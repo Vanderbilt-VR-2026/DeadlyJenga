@@ -9,6 +9,7 @@ public class LobbyRoomCode : MonoBehaviour
     [SerializeField] TMP_Text roomCodeLabel;
 
     const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    string displayedCode;
 
     void Awake()
     {
@@ -18,15 +19,35 @@ public class LobbyRoomCode : MonoBehaviour
         }
     }
 
+    void Update()
+    {
+        // The session name is already shared by Fusion, including with late joiners.
+        // This project runs one session per device; ignore the inactive runner template.
+        string sessionCode = null;
+        foreach (var runner in NetworkRunner.Instances)
+        {
+            if (runner != null && runner.IsRunning && runner.SessionInfo.IsValid)
+            {
+                sessionCode = runner.SessionInfo.Name;
+                break;
+            }
+        }
+
+        if (roomCodeLabel == null) return;
+        string label = string.IsNullOrEmpty(sessionCode)
+            ? "Room Code: —"
+            : $"Room Code: {sessionCode}";
+        if (displayedCode != label || roomCodeLabel.text != label)
+        {
+            roomCodeLabel.text = label;
+            displayedCode = label;
+        }
+    }
+
     public void Host()
     {
         string code = GenerateCode(4);
         bootstrap.DefaultRoomName = code;
-
-        if (roomCodeLabel != null)
-        {
-            roomCodeLabel.text = $"Room Code: {code}";
-        }
 
         Debug.Log($"Hosting room {code}");
         bootstrap.StartHost();
