@@ -1,9 +1,11 @@
+using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
 
-public class PlayerSpawner : SimulationBehaviour, IPlayerJoined
+public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
 {
     [SerializeField] NetworkObject playerPrefab;
+    readonly Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new();
     NetworkEvents networkEvents;
     LocalHandInput localHands;
     bool warnedMissingHands;
@@ -47,6 +49,21 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined
         }
 
         Vector3 spawnPosition = new Vector3(player.PlayerId * 1.5f, 0f, 0f);
-        Runner.Spawn(playerPrefab, spawnPosition, Quaternion.identity, player);
+        if (spawnedPlayers.ContainsKey(player))
+            return;
+
+        var avatar = Runner.Spawn(playerPrefab, spawnPosition, Quaternion.identity, player);
+        if (avatar != null)
+            spawnedPlayers.Add(player, avatar);
+    }
+
+    public void PlayerLeft(PlayerRef player)
+    {
+        if (!Runner.IsServer || !spawnedPlayers.TryGetValue(player, out var avatar))
+            return;
+
+        spawnedPlayers.Remove(player);
+        if (avatar != null)
+            Runner.Despawn(avatar);
     }
 }
