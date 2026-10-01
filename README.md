@@ -1,5 +1,17 @@
 # DeadlyJenga
 
+GROUP ROLES & RESPONSIBILITIES:
+|================================================================================================================|
+|  NAME      |                                           |      MAJOR(S)       |        SKILLS/INTERESTS        ||
+|================================================================================================================|
+|  Evan    -->  User Controls, Movement, & Appearence    |  Neuroscience & CS  | Brain-Visual Symmetry/Cohesion ||
+|  Kaleb   -->  Physics & Runtime Latency                |  CS                 |          Architecture          ||
+|  Luke    -->  Networking & Map State                   |  CS                 |      Online Social Cohesion    ||
+|  Arsema  -->  Textures & Diegetic Elements             |  Cognitive Studies  |          Graphic Design        ||
+|================================================================================================================|
+
+
+
 A multiplayer VR project targeting Meta Quest. The current starting scene is `Assets/Scenes/Lobby.unity`.
 
 See [Project context](PROJECT_CONTEXT.md) for the proposed goals, gameplay, and scope. That document describes the design proposal, not a list of implemented features.
