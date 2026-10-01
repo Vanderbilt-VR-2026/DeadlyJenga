@@ -5,12 +5,12 @@ EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
   m_Scenes:
-  - enabled: 1
+  - enabled: 0
     path: Assets/Scenes/Lobby.unity
     guid: a71f0f4a8b7194537b2803eb8689ba69
-  - enabled: 0
-    path: Assets/Samples/XR Interaction Toolkit/3.3.2/Spatial Keyboard/KeyboardDemo.unity
-    guid: ad3bc6be3dfc6fe4c93410327d58b369
+  - enabled: 1
+    path: Assets/Scenes/Main.unity
+    guid: 6fa8239901873f2419b13fc18e775aa9
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
     com.unity.xr.management.loader_settings: {fileID: 11400000, guid: fad7026b94406474e96f78ba8b1e9ead, type: 2}
