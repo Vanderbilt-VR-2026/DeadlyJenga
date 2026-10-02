@@ -1,0 +1,11 @@
+{
+  "name": "HandDemo.Editor",
+  "rootNamespace": "FlyingHand.Editor",
+  "references": [
+    "HandDemo.Runtime",
+    "Unity.InputSystem",
+    "Unity.XR.CoreUtils"
+  ],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

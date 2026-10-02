@@ -1,0 +1,13 @@
+PASS Auto without running display: Desktop
+PASS Input-only HMD does not select VR: Simulated HMD present, no XR display
+PASS Desktop camera tracking disabled: False
+PASS W/E through shared Rigidbody: (0.00, 5.90, 3.62)
+PASS S/Q through shared Rigidbody: (0.00, 0.76, -3.31)
+PASS A strafe left: (-4.34, 2.64, -0.46)
+PASS D strafe right: (4.34, 3.00, 0.00)
+PASS Mouse X yaws body: (0.00, 54.25, 0.00)
+PASS Mouse Y changes view pitch: 6.480004
+PASS Desktop yaw stays upright: (0.00, 53.19, 0.00)
+PASS VR override restores tracked camera: VR
+PASS VR ignores desktop input: (0.00, 3.00, 0.00)
+PASS Desktop override restores mouse view: Desktop

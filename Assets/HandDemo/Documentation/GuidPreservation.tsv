@@ -1,0 +1,19 @@
+b1380a890a2917c43b827b7005139ec2	Assets/FlyingHand/Editor	Assets/HandDemo/Editor
+6afabc3f30e55c44e8ede15b80b85722	Assets/FlyingHand/Editor/FlyingHandControllerInspector.cs	Assets/HandDemo/Editor/FlyingHandControllerInspector.cs
+b89f6cbfbc89635458c8d04518e55015	Assets/FlyingHand/Editor/FlyingHandDesktopSmokeTest.cs	Assets/HandDemo/Editor/FlyingHandDesktopSmokeTest.cs
+a8f001b037a2dd44a8c4fa7fd3d792d9	Assets/FlyingHand/Editor/FlyingHandSceneBuilder.cs	Assets/HandDemo/Editor/FlyingHandSceneBuilder.cs
+308193f031fc7f14cbf59e7bb1f39ee3	Assets/FlyingHand/Editor/FlyingHandSmokeTest.cs	Assets/HandDemo/Editor/FlyingHandSmokeTest.cs
+dbc35f399126da14d9bc46ea532518b5	Assets/FlyingHand/InputModeValidation.txt	Assets/HandDemo/Documentation/InputModeValidation.txt
+37f0f8d256328314e983495ce0551173	Assets/FlyingHand/Materials	Assets/HandDemo/Materials
+057e412e72c2bc04684322156087ce1a	Assets/FlyingHand/Materials/Ground Slate.mat	Assets/HandDemo/Materials/Ground Slate.mat
+a614130e80541374d9214a40cb8ae94a	Assets/FlyingHand/Materials/Matte White Hand.mat	Assets/HandDemo/Materials/Matte White Hand.mat
+dbb9191df5ce4d142be6c630ddc17232	Assets/FlyingHand/Materials/Test Crates Orange.mat	Assets/HandDemo/Materials/Test Crates Orange.mat
+3fb4caabb31f3f54ca9254a975c52aff	Assets/FlyingHand/Prefabs	Assets/HandDemo/Prefabs
+98be3c6885fa76d4a80fa4b179e97a52	Assets/FlyingHand/Prefabs/FlyingHandPlayer.prefab	Assets/HandDemo/Prefabs/FlyingHandPlayer.prefab
+573965746903f204fa5bf98d45acb634	Assets/FlyingHand/README.md	Assets/HandDemo/Documentation/README.md
+fc3fdaf37f6238344b88aec1970a8fe2	Assets/FlyingHand/Scripts	Assets/HandDemo/Scripts
+0334a534b4b2bce448b863ff1022c7f4	Assets/FlyingHand/Scripts/FlyingHandController.cs	Assets/HandDemo/Scripts/FlyingHandController.cs
+e618f4e3d2149ef4fb6f4865511dd6ec	Assets/FlyingHand/Scripts/ThirdPersonVRFollow.cs	Assets/HandDemo/Scripts/ThirdPersonVRFollow.cs
+55791cf7fe77a7f4e9a3e5d4cac4adcb	Assets/FlyingHand/Validation.txt	Assets/HandDemo/Documentation/Validation.txt
+95d141fed2aa8e646a1bd56256abe46c	Assets/FlyingHand	Assets/HandDemo
+7b6ebca359d51c44eb7ea8e033ed93db	Assets/Scenes/FlyingHandQuest.unity	Assets/HandDemo/Scenes/FlyingHandQuest.unity

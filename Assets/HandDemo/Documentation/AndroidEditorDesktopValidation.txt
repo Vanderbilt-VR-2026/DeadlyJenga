@@ -1,0 +1,14 @@
+Android active target; Input System Package (New); no running XR display.
+PASS Auto without running display: Desktop
+PASS Input-only HMD does not select VR: Simulated HMD present, no XR display
+PASS Desktop camera tracking disabled: False
+PASS W/E through shared Rigidbody: (0.00, 6.47, 4.34)
+PASS S/Q through shared Rigidbody: (0.03, 0.76, -3.65)
+PASS A strafe left: (-4.49, 2.50, -0.62)
+PASS D strafe right: (4.03, 3.00, 0.00)
+PASS Mouse X yaws body: (0.00, 57.99, 0.00)
+PASS Mouse Y changes view pitch: 9.360003
+PASS Desktop yaw stays upright: (0.00, 57.04, 0.00)
+PASS VR override restores tracked camera: VR
+PASS VR ignores desktop input: (0.00, 3.00, 0.00)
+PASS Desktop override restores mouse view: Desktop

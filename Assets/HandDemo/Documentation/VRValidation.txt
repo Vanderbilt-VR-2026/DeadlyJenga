@@ -1,0 +1,14 @@
+PASS XR left stick forward: (-0.54, 3.34, 17.18)
+PASS Dynamic collision pushes stack: (0.10, 0.79, 16.91)
+PASS Collision upright: (0.00, 344.97, 0.00)
+PASS Camera root follows: follow lag=1.684714
+PASS XR left stick reverse: (0.00, 3.00, -5.11)
+PASS XR left stick strafe: (4.04, 3.00, 0.00)
+PASS XR right stick yaw: (0.00, 76.48, 0.00)
+PASS Yaw stays upright: (0.00, 76.48, 0.00)
+PASS XR right trigger ascend: (0.00, 6.59, 0.00)
+PASS XR left trigger descend: (0.00, 0.76, 0.00)
+PASS Headset rotation preserved: (15.00, 55.00, 0.00)
+PASS Headset translation preserved: (0.20, 0.30, 0.10)
+PASS Head/controller poses do not steer: (0.00, 3.00, 0.00)
+PASS Speed bounded: 12.00

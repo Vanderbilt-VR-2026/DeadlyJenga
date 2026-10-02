@@ -1,0 +1,11 @@
+{
+  "unityVersion": "6000.3.23f1",
+  "renderPipeline": "Existing host URP 17.3.0; camera code has no SRP package dependency",
+  "resolvedHostPackages": {
+    "com.unity.inputsystem": "1.20.0",
+    "com.unity.xr.core-utils": "2.6.0",
+    "com.unity.xr.management": "4.7.0",
+    "com.unity.xr.openxr": "1.16.1"
+  },
+  "note": "Transferred into the tracked root project. No package changes. Input System, Core Utilities and OpenXR already resolve. HandDemo materials were adapted to existing URP. See ROOT_TRANSFER.md and QUEST_CONFIGURATION.md."
+}

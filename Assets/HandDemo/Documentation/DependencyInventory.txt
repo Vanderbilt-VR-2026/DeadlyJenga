@@ -1,0 +1,39 @@
+HISTORICAL SOURCE-PROJECT RECORD. Superseded by IMPORT_GUIDE.md and PORTABILITY_AUDIT.md for this destination.
+
+Unity 6000.3.23f1
+Scene: Assets/HandDemo/Scenes/FlyingHandQuest.unity
+Audit: 59 objects; 1157 references; no missing scripts/materials/meshes/references; original GUIDs preserved.
+Prefab: 16 colliders; no missing scripts/materials/meshes.
+Built-ins: sphere/capsule/cube meshes and Default-Skybox. Input actions: inline.
+FEATURE FILES:
+Assets/HandDemo/Documentation/DependencyInventory.txt
+Assets/HandDemo/Documentation/EXPORT_NOTES.md
+Assets/HandDemo/Documentation/GuidPreservation.tsv
+Assets/HandDemo/Documentation/IMPORT_GUIDE.md
+Assets/HandDemo/Documentation/InputModeValidation.txt
+Assets/HandDemo/Documentation/PackageDependencies.json
+Assets/HandDemo/Documentation/PortabilityValidation.txt
+Assets/HandDemo/Documentation/README.md
+Assets/HandDemo/Documentation/Validation.txt
+Assets/HandDemo/Editor/FlyingHandControllerInspector.cs
+Assets/HandDemo/Editor/FlyingHandDesktopSmokeTest.cs
+Assets/HandDemo/Editor/FlyingHandSceneBuilder.cs
+Assets/HandDemo/Editor/FlyingHandSmokeTest.cs
+Assets/HandDemo/Editor/HandDemo.Editor.asmdef
+Assets/HandDemo/Editor/HandDemoPackageExporter.cs
+Assets/HandDemo/Materials/Ground Slate.mat
+Assets/HandDemo/Materials/Matte White Hand.mat
+Assets/HandDemo/Materials/Test Crates Orange.mat
+Assets/HandDemo/Prefabs/FlyingHandPlayer.prefab
+Assets/HandDemo/Scenes/FlyingHandQuest.unity
+Assets/HandDemo/Scripts/FlyingHandController.cs
+Assets/HandDemo/Scripts/HandDemo.Runtime.asmdef
+Assets/HandDemo/Scripts/ThirdPersonVRFollow.cs
+EXTERNAL PACKAGE REFERENCES:
+Packages/com.unity.inputsystem/InputSystem/Editor/Icons/TrackedPoseDriver@4x.png
+Packages/com.unity.inputsystem/InputSystem/Runtime/Plugins/XR/TrackedPoseDriver.cs
+Packages/com.unity.render-pipelines.universal/Editor/AssetVersion.cs
+Packages/com.unity.render-pipelines.universal/Runtime/UniversalAdditionalCameraData.cs
+Packages/com.unity.render-pipelines.universal/Runtime/UniversalAdditionalLightData.cs
+Packages/com.unity.render-pipelines.universal/Shaders/Lit.shader
+Packages/com.unity.xr.core-utils/Runtime/XROrigin.cs

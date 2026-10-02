@@ -1,0 +1,37 @@
+HISTORICAL SOURCE-PROJECT RECORD. Superseded by IMPORT_GUIDE.md and PORTABILITY_AUDIT.md for this destination.
+
+Post-reorganization desktop validation (temporary cloned input settings for unfocused Editor):
+PASS Auto without running display: Desktop
+PASS Input-only HMD does not select VR: Simulated HMD present, no XR display
+PASS Desktop camera tracking disabled: False
+PASS W/E through shared Rigidbody: (0.00, 6.83, 4.79)
+PASS S/Q through shared Rigidbody: (0.04, 0.76, -3.66)
+PASS A strafe left: (-4.79, 3.00, 0.00)
+PASS D strafe right: (4.79, 3.00, 0.00)
+PASS Mouse X yaws body: (0.00, 73.48, 0.00)
+PASS Mouse Y changes view pitch: -35
+PASS Desktop yaw stays upright: (0.00, 72.97, 0.00)
+PASS VR override restores tracked camera: VR
+PASS VR ignores desktop input: (0.00, 3.00, 0.00)
+PASS Desktop override restores mouse view: Desktop
+
+Post-reorganization XR validation (neutral input between stages):
+PASS XR left stick forward: (-0.45, 3.33, 18.09)
+PASS Dynamic collision pushes stack: (0.29, 0.82, 16.69)
+PASS Collision upright: (0.00, 355.54, 0.00)
+PASS Camera root follows: follow lag=1.560532
+PASS XR left stick reverse: (0.00, 3.00, -4.49)
+PASS XR left stick strafe: (4.95, 3.00, 0.00)
+PASS XR right stick yaw: (0.00, 62.99, 0.00)
+PASS Yaw stays upright: (0.00, 62.99, 0.00)
+PASS XR right trigger ascend: (0.00, 6.12, 0.00)
+PASS XR left trigger descend: (0.00, 0.76, 0.00)
+PASS Headset rotation preserved: (15.00, 55.00, 0.00)
+PASS Headset translation preserved: (0.20, 0.30, 0.10)
+PASS Head/controller poses do not steer: (0.00, 3.00, 0.00)
+PASS Speed bounded: 12.00
+
+Scene/prefab/serialized reference audit: PASS; GUID preservation: PASS.
+Package dependency versions match current lockfile.
+No implementation compiler errors; unrelated Unity AI NoSubscription logs remain.
+Physical Quest hardware and destination-project compatibility were not tested.

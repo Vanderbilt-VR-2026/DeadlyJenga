@@ -1,0 +1,22 @@
+HISTORICAL SOURCE-PROJECT RECORD. Superseded by IMPORT_GUIDE.md and PORTABILITY_AUDIT.md for this destination.
+
+PASS XR left stick forward: (-0.58, 3.39, 17.58)
+PASS Dynamic collision pushes stack: (-0.12, 0.97, 17.54)
+PASS Collision upright: (0.00, 358.15, 0.00)
+PASS Camera root follows: follow lag=1.975756
+PASS XR left stick reverse: (0.00, 3.00, -4.79)
+PASS XR left stick strafe: (4.79, 3.00, 0.00)
+PASS XR right stick yaw: (0.00, 71.98, 0.00)
+PASS Yaw stays upright: (0.00, 71.98, 0.00)
+PASS XR right trigger ascend: (0.00, 6.71, 0.00)
+PASS XR left trigger descend: (0.00, 0.76, 0.00)
+PASS Headset rotation preserved: (15.00, 55.00, 0.00)
+PASS Headset translation preserved: (0.20, 0.30, 0.10)
+PASS Head/controller poses do not steer: (0.00, 3.00, 0.00)
+PASS Speed bounded: 12.00
+
+Final scene validation: zero missing scripts or broken prefabs.
+Android OpenXR validation: zero blocking errors; optional optimization warnings remain.
+Meta Quest Support enabled; deprecated Oculus Quest Support disabled.
+Console: no implementation compiler/runtime errors; unrelated Unity AI NoSubscription errors remain.
+Hardware Quest 3 testing and APK deployment not performed.

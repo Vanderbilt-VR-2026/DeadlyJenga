@@ -1,0 +1,9 @@
+{
+  "name": "HandDemo.Runtime",
+  "rootNamespace": "FlyingHand",
+  "references": [
+    "Unity.InputSystem",
+    "Unity.XR.CoreUtils"
+  ],
+  "autoReferenced": true
+}

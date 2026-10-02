@@ -1,0 +1,9 @@
+PASS one Camera
+PASS one MainCamera
+PASS one XR Origin
+PASS one AudioListener
+PASS no duplicate EventSystems
+PASS follow target/controller/camera assigned
+PASS Main Camera pose actions
+PASS Left Controller pose actions
+PASS Right Controller pose actions

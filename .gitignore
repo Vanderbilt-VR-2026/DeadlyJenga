@@ -3,6 +3,9 @@
 # Keep this file in the project root, next to the Assets folder.
 
 # ---- Folders Unity generates on each computer ----
+# Local recovery copy of the accidentally nested Unity project.
+# Keep it on disk without staging its assets or generated caches.
+/DeadlyJenga/
 .utmp/
 /[Ll]ibrary/
 /[Tt]emp/
