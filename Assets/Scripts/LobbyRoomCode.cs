@@ -7,6 +7,7 @@ public class LobbyRoomCode : MonoBehaviour
     [SerializeField] FusionBootstrap bootstrap;
     [SerializeField] TMP_InputField codeInput;
     [SerializeField] TMP_Text roomCodeLabel;
+    [SerializeField] LobbyCountdown countdown;
 
     const string Alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     string displayedCode;
@@ -37,6 +38,8 @@ public class LobbyRoomCode : MonoBehaviour
         string label = string.IsNullOrEmpty(sessionCode)
             ? "Room Code: —"
             : $"Room Code: {sessionCode}";
+        if (countdown != null && countdown.TryGetLabel(out var countdownLabel))
+            label = countdownLabel;
         if (displayedCode != label || roomCodeLabel.text != label)
         {
             roomCodeLabel.text = label;
