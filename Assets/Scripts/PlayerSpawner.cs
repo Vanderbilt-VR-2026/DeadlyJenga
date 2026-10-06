@@ -53,8 +53,12 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
         localHands = null;
         placedLocalRig = false;
         if (runner.IsServer)
+        {
             foreach (var player in runner.ActivePlayers)
                 PlayerJoined(player);
+            foreach (var tower in FindObjectsByType<TowerGenerator>(FindObjectsSortMode.None))
+                tower.Generate(runner);
+        }
     }
 
     bool TryGetSpawnPose(PlayerRef player, out Vector3 position, out Quaternion rotation)

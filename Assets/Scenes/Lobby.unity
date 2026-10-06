@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 67788559}
   - component: {fileID: 67788558}
   - component: {fileID: 67788561}
+  - component: {fileID: 67788562}
   m_Layer: 0
   m_Name: Prototype Runner
   m_TagString: Untagged
@@ -304,6 +305,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerSpawner
   playerPrefab: {fileID: 2196282950460103762, guid: 8a776ffa8e83847b8b34a2e1e7e9fc66, type: 3}
+  spawnSpacing: 1.5
+--- !u!114 &67788562
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 67788557}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82522767432240b68cb8b70fe6240e86, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.RunnerSimulatePhysics
+  Update2DPhysicsScene: 0
+  Update3DPhysicsScene: 0
+  _timeScale: 1
 --- !u!1 &203541298
 GameObject:
   m_ObjectHideFlags: 0

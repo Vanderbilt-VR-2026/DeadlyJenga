@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Fusion;
 using UnityEngine;
 
 public class TowerGenerator : MonoBehaviour
@@ -9,18 +10,26 @@ public class TowerGenerator : MonoBehaviour
     [SerializeField, Min(0f)] float gap = 0.002f;
 
     readonly List<Rigidbody> blocks = new();
+    bool generated;
 
     public IReadOnlyList<Rigidbody> Blocks => blocks;
     public int BlocksPerLayer => blocksPerLayer;
 
-    void Start()
+    // Called by the persistent runner after Fusion finishes loading the scene.
+    public void Generate(NetworkRunner runner)
     {
-        Generate();
-    }
+        if (runner == null || !runner.IsRunning || !runner.IsServer || generated)
+            return;
 
-    public void Generate()
-    {
-        var box = blockPrefab.GetComponent<BoxCollider>();
+        if (blockPrefab == null || !blockPrefab.TryGetComponent<NetworkObject>(out var networkPrefab)
+            || !blockPrefab.TryGetComponent<BoxCollider>(out var box)
+            || !blockPrefab.TryGetComponent<Rigidbody>(out _))
+        {
+            Debug.LogError("TowerGenerator needs a block prefab with NetworkObject, BoxCollider, and Rigidbody on its root.", this);
+            return;
+        }
+
+        generated = true;
         Vector3 size = Vector3.Scale(box.size, blockPrefab.transform.localScale);
 
         float pitch = size.x + gap;
@@ -37,12 +46,16 @@ public class TowerGenerator : MonoBehaviour
                 float offset = (i - center) * pitch;
                 Vector3 local = odd ? new Vector3(0f, y, offset) : new Vector3(offset, y, 0f);
 
-                var block = Instantiate(blockPrefab, transform.TransformPoint(local), rot, transform);
+                var block = runner.Spawn(networkPrefab, transform.TransformPoint(local), rot,
+                    onBeforeSpawned: (_, spawned) =>
+                    {
+                        var body = spawned.GetComponent<Rigidbody>();
+                        body.solverIterations = 30;
+                        body.solverVelocityIterations = 10;
+                        body.sleepThreshold = 0.01f;
+                    });
                 block.name = $"Block_L{layer}_{i}";
                 var rb = block.GetComponent<Rigidbody>();
-                rb.solverIterations = 30;
-                rb.solverVelocityIterations = 10;
-                rb.sleepThreshold = 0.01f;
                 blocks.Add(rb);
             }
         }
