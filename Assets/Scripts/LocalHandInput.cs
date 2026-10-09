@@ -57,4 +57,25 @@ public class LocalHandInput : MonoBehaviour
         };
         return true;
     }
+
+    public void MoveToSpawn(Vector3 position, Quaternion rotation)
+    {
+        var origin = GetComponentInParent<XROrigin>();
+        var root = origin != null ? origin.transform : transform;
+        var controller = root.GetComponent<CharacterController>();
+        bool restoreController = controller != null && controller.enabled;
+        if (restoreController) controller.enabled = false;
+
+        root.SetPositionAndRotation(position, rotation);
+        if (origin != null && origin.Camera != null)
+        {
+            origin.MatchOriginUpCameraForward(Vector3.up, rotation * Vector3.forward);
+            // Preserve tracked height while placing the headset over the spawn point.
+            var offset = position - origin.Camera.transform.position;
+            offset.y = 0f;
+            root.position += offset;
+        }
+
+        if (restoreController) controller.enabled = true;
+    }
 }
