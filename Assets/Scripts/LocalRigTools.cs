@@ -26,20 +26,20 @@ public static class LocalRigTools
         if (tower == null) return false;
 
         var t = tower.transform;
+        var rig = FindRig();
         Vector3 origin = t.position + t.right * sideOffset + Vector3.up * 1000f;
-        if (!Physics.Raycast(origin, Vector3.down, out var hit, 2000f, ~0, QueryTriggerInteraction.Ignore))
-        {
-            Debug.LogWarning("nothing under the tower center to stand on.");
-            return false;
-        }
-        return TeleportTo(hit.point + Vector3.up * DropHeight, t.rotation);
-    }
 
-    public static bool RespawnAtSpawnPoint()
-    {
-        var spawn = GameObject.Find("Spawn Points");
-        if (spawn == null) return false;
-        return TeleportTo(spawn.transform.position, spawn.transform.rotation);
+        var hits = Physics.RaycastAll(origin, Vector3.down, 2000f, ~0, QueryTriggerInteraction.Ignore);
+        System.Array.Sort(hits, (a, b) => a.distance.CompareTo(b.distance));
+
+        foreach (var hit in hits)
+        {
+            if (rig != null && hit.collider.transform.IsChildOf(rig.transform)) continue;
+            return TeleportTo(hit.point + Vector3.up * DropHeight, t.rotation);
+        }
+
+        Debug.LogWarning("LocalRigTools: nothing under the tower center to stand on.");
+        return false;
     }
 
     public static float Scale

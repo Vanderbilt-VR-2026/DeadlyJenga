@@ -20,8 +20,26 @@ public class TowerGenerator : MonoBehaviour
     public int Layers { get => layers; set => layers = Mathf.Max(1, value); }
     public int BlocksPerLayer { get => blocksPerLayer; set => blocksPerLayer = Mathf.Max(1, value); }
     public float BlockScale { get => blockScale; set => blockScale = Mathf.Max(0.05f, value); }
+    public bool CanRebuild => runner != null && runner.IsServer;
 
     public float BlockHeight => blockSize.y;
+    public float HalfWidth => halfWidth;
+
+    // for dev tools. size for the current settings, works before the tower is built
+    Vector3 PlannedBlockSize()
+    {
+        var box = blockPrefab.GetComponent<BoxCollider>();
+        return Vector3.Scale(box.size, blockPrefab.transform.localScale * blockScale);
+    }
+    public float PlannedHeight => PlannedBlockSize().y * layers;
+    public float PlannedHalfWidth
+    {
+        get
+        {
+            var s = PlannedBlockSize();
+            return Mathf.Max(s.z, blocksPerLayer * (s.x + gap)) * 0.5f;
+        }
+    }
 
     // determine if a position is inside the tower
     public bool OnTower(Vector3 worldPos)

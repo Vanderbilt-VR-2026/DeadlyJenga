@@ -1,4 +1,3 @@
-using System.Xml.Serialization;
 using Fusion;
 using UnityEngine;
 
@@ -108,17 +107,20 @@ public class JengaBlock: NetworkBehaviour
     }
 
     // dev test. fakes a hand pulling block straight out
+    public static string LastTestResult = "";
     [ContextMenu("Test Pull")]
-    void TestPull() => StartCoroutine(TestPullRoutine());
+    public void TestPull() => StartCoroutine(TestPullRoutine());
 
     System.Collections.IEnumerator TestPullRoutine()
     {
         Vector3 start = Body.position, hand = start;
         if (!TryStartPull(Runner.LocalPlayer, hand))
         {
-            Debug.Log($"{name}: cant pull (cooldown or locked)", this);
+            LastTestResult = $"{name}: cant pull (cooldown or locked)";
+            Debug.Log(LastTestResult, this);
             yield break;
         }
+        LastTestResult = $"{name}: pulling...";
         for (float t = 0; t < 4f; t += Time.fixedDeltaTime)
         {
             hand += transform.forward * (3f * Time.fixedDeltaTime);
@@ -126,7 +128,8 @@ public class JengaBlock: NetworkBehaviour
             yield return new WaitForFixedUpdate();
         }
         EndPull();
-        Debug.Log($"{name}: hand moved {(hand - start).magnitude:0.0}, block moved {(Body.position - start).magnitude:0.0}", this);
+        LastTestResult = $"{name}: hand moved {(hand - start).magnitude:0.0}, block moved {(Body.position - start).magnitude:0.0}";
+        Debug.Log(LastTestResult, this);
     }
 
 }
