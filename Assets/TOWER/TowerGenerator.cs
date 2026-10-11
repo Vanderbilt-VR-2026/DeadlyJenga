@@ -56,14 +56,15 @@ public class TowerGenerator : MonoBehaviour
 
                 var block = runner.Spawn(networkPrefab, transform.TransformPoint(local), rot,
                     onBeforeSpawned: (_, spawned) =>
-                    {
+                    {   
+                        var jb = spawned.GetComponent<JengaBlock>();
+                        jb.Layer = layer; jb.Index = i;
                         spawned.transform.localScale = scale;
                         var body = spawned.GetComponent<Rigidbody>();
                         body.solverIterations = 30;
                         body.solverVelocityIterations = 10;
                         body.sleepThreshold = 0.01f;
                     });
-                block.name = $"Block_L{layer}_{i}";
                 blocks.Add(block.GetComponent<Rigidbody>());
             }
         }
