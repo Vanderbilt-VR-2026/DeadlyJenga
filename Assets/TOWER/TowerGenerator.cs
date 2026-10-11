@@ -13,13 +13,23 @@ public class TowerGenerator : MonoBehaviour
     readonly List<Rigidbody> blocks = new();
     NetworkRunner runner;
     bool generated;
+    Vector3 blockSize;
+    float halfWidth;
 
     public IReadOnlyList<Rigidbody> Blocks => blocks;
     public int Layers { get => layers; set => layers = Mathf.Max(1, value); }
     public int BlocksPerLayer { get => blocksPerLayer; set => blocksPerLayer = Mathf.Max(1, value); }
     public float BlockScale { get => blockScale; set => blockScale = Mathf.Max(0.05f, value); }
 
+    public float BlockHeight => blockSize.y;
 
+    // determine if a position is inside the tower
+    public bool OnTower(Vector3 worldPos)
+    {
+        Vector3 local = transform.InverseTransformPoint(worldPos);
+        float half = halfWidth;
+        return Mathf.Abs(local.x) <= half && Mathf.Abs(local.z) <= half;
+    }
     // Called by the persistent runner after Fusion finishes loading the scene.
     public void Generate(NetworkRunner runner)
     {
@@ -42,6 +52,8 @@ public class TowerGenerator : MonoBehaviour
 
         float pitch = size.x + gap;
         float center = (blocksPerLayer - 1) * 0.5f;
+        blockSize = size;
+        halfWidth = Mathf.Max(size.z, blocksPerLayer * pitch) * 0.5f;
 
         for (int layer = 0; layer < layers; layer++)
         {
@@ -59,6 +71,7 @@ public class TowerGenerator : MonoBehaviour
                     {   
                         var jb = spawned.GetComponent<JengaBlock>();
                         jb.Layer = layer; jb.Index = i;
+                        jb.Tower = this;
                         spawned.transform.localScale = scale;
                         var body = spawned.GetComponent<Rigidbody>();
                         body.solverIterations = 30;

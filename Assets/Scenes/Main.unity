@@ -129,6 +129,7 @@ GameObject:
   m_Component:
   - component: {fileID: 128105676}
   - component: {fileID: 128105677}
+  - component: {fileID: 128105678}
   m_Layer: 0
   m_Name: Tower
   m_TagString: Untagged
@@ -168,6 +169,23 @@ MonoBehaviour:
   blocksPerLayer: 3
   gap: 0.002
   blockScale: 1
+--- !u!114 &128105678
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 128105674}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: cde68027bb66cef4a9aca5d5aaab84bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::PullRules
+  baseCooldown: 6
+  handCount: 1
+  heaviestSpeed: 0.15
+  maxSpeed: 10
+  lockLastInLayer: 1
 --- !u!1 &203844586
 GameObject:
   m_ObjectHideFlags: 0
