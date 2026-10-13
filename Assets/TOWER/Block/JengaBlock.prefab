@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 1665879664191609018}
   - component: {fileID: 5789619762698918039}
   - component: {fileID: -5446140861918629509}
+  - component: {fileID: -1642116123741041675}
   m_Layer: 0
   m_Name: JengaBlock
   m_TagString: Untagged
@@ -161,6 +162,7 @@ MonoBehaviour:
   NestedObjects: []
   NetworkedBehaviours:
   - {fileID: -5446140861918629509}
+  - {fileID: -1642116123741041675}
   ForceRemoteRenderTimeframe: 0
 --- !u!114 &-5446140861918629509
 MonoBehaviour:
@@ -175,6 +177,20 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.NetworkRigidbody
   _stateAuthorityChangeErrorCorrectionDelta: 0
-  SyncScale: 0
+  SyncScale: 1
   SyncParent: 1
   _interpolationTarget: {fileID: 0}
+--- !u!114 &-1642116123741041675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 246034181081273893}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 611e19871676fce44b0c993dfe8e7024, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::JengaBlock
+  _Layer: 0
+  _Index: 0
