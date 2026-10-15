@@ -1,0 +1,33 @@
+PASS 16 dynamic hand bodies and 15 hand-only joints.
+PASS Test block has no grab/attachment joints.
+PASS Baked continuous candy skin follows all physical finger bones.
+PASS Open hand mesh has no triangles bridging neighbouring digits beyond knuckles.
+PASS Stable acquisition ramps to full bounded drive strength.
+PASS Tracking spike target displacement is speed limited.
+PASS Sustained tracking loss releases pressure and becomes inactive.
+PASS One reacquired frame cannot reactivate contacts.
+PASS Stable controller fallback returns through a strength ramp.
+PASS Controller-to-skeleton acquisition preserves tracked finger proportions.
+PASS Activated contact hand is visibly rendered.
+PASS Contact/friction-only pinch lifts block; observed rise 0.1113m.
+PASS Drive forces stay within configured caps.
+PASS Lift leaves object unattached and unparented.
+PASS Opening fingers releases block back to bench.
+PASS Physics remains finite and velocity bounded.
+PASS Tracking loss releases an actual held object and disables all contacts.
+PASS Zero-friction comparison slips instead of silently attaching.
+PASS Reactivation inside an object is blocked.
+PASS Inactive resize doubles geometry without changing strength.
+PASS Project physics timestep remains unchanged at 50 Hz.
+PASS Castle flying-hand role automatically uses the smooth desktop pointer.
+PASS View follows flight independently of wrist rotation; bounds contain physical hand.
+PASS Original rigid pointer colliders are disabled while the new rig owns contact.
+PASS Opening the demo menu releases physical hand contacts.
+PASS Closing the menu smoothly reacquires the desktop pointer.
+PASS Headset mode with no tracked source has no active unknown-position hand.
+PASS A simulated tracked controller activates the pointing fallback.
+PASS Controller tracking loss removes contact without preserving a frozen grip.
+PASS Ordinary player hands remain visual-only and cannot push castle blocks.
+PASS Giant hand follows rotated articulated skeleton in clear space (20x scale).
+PASS Giant wrist follows continuous translation and rotation without excessive lag.
+PASS Saved castle scene and block configuration are byte-for-byte unchanged.

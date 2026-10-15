@@ -1,0 +1,6 @@
+PASS Can stage from a low-roof platform centre to its launch edge.
+PASS Can cross a no-floor gap and catch a ledge 2m higher.
+PASS Does not jump through the low roof from the platform centre.
+PASS Can descend across the gap with a controlled walk-off/drop.
+PASS Rejects an unreachable gap instead of inventing an aerial step.
+PASS Rejects a destination without standing clearance.

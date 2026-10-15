@@ -1,0 +1,12 @@
+BlockTap
+BlockHit
+BlockSmash
+StructureLean
+RubberTouch
+ClimbPlant
+VaultGrunt
+ClimbGrunt
+FriendlyWave
+Phew
+NopeNopeNope
+BlockSplash

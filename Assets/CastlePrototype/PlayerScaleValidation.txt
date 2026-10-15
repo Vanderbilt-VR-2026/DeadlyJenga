@@ -1,0 +1,7 @@
+PASS Half-size body height in actual player loop
+PASS Half-size body radius
+PASS Half-size desktop camera height
+PASS Half-size player stays grounded on top: grounded=True, actual=(4.52, 59.90, 4.38), spawn=(4.44, 60.07, 4.44), drift=0.194
+PASS Movement and jump retain existing tuning
+PASS Tracked-head translation uses half scale
+PASS Returning to desktop keeps half-size eye and body

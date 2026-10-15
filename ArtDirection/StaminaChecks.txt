@@ -1,0 +1,55 @@
+PASS Linear degree 1 is stable across 90 integration steps.
+PASS Linear degree 1 reaches full in finite time.
+PASS Linear degree 2 is stable across 90 integration steps.
+PASS Linear degree 2 reaches full in finite time.
+PASS Linear degree 4 is stable across 90 integration steps.
+PASS Linear degree 4 reaches full in finite time.
+PASS Linear degree 6 is stable across 90 integration steps.
+PASS Linear degree 6 reaches full in finite time.
+PASS PowerIn degree 1 is stable across 90 integration steps.
+PASS PowerIn degree 1 reaches full in finite time.
+PASS PowerIn degree 2 is stable across 90 integration steps.
+PASS PowerIn degree 2 reaches full in finite time.
+PASS PowerIn degree 4 is stable across 90 integration steps.
+PASS PowerIn degree 4 reaches full in finite time.
+PASS PowerIn degree 6 is stable across 90 integration steps.
+PASS PowerIn degree 6 reaches full in finite time.
+PASS PowerOut degree 1 is stable across 90 integration steps.
+PASS PowerOut degree 1 reaches full in finite time.
+PASS PowerOut degree 2 is stable across 90 integration steps.
+PASS PowerOut degree 2 reaches full in finite time.
+PASS PowerOut degree 4 is stable across 90 integration steps.
+PASS PowerOut degree 4 reaches full in finite time.
+PASS PowerOut degree 6 is stable across 90 integration steps.
+PASS PowerOut degree 6 reaches full in finite time.
+PASS Exponential degree 1 is stable across 90 integration steps.
+PASS Exponential degree 1 reaches full in finite time.
+PASS Exponential degree 2 is stable across 90 integration steps.
+PASS Exponential degree 2 reaches full in finite time.
+PASS Exponential degree 4 is stable across 90 integration steps.
+PASS Exponential degree 4 reaches full in finite time.
+PASS Exponential degree 6 is stable across 90 integration steps.
+PASS Exponential degree 6 reaches full in finite time.
+PASS Changing curves while idle never changes current stamina.
+PASS HUD is opaque while climbing, translucent until full, then hidden.
+PASS Suspended/hidden view hides the HUD.
+PASS Breathing follows climbing, recovery, exhaustion and silence at full.
+PASS BreathExertion has audible PCM and silent loop seams.
+PASS BreathRecovery has audible PCM and silent loop seams.
+PASS BreathExhausted has audible PCM and silent loop seams.
+PASS Default capacity drains one effort unit per moving second.
+PASS Live doubling of capacity halves drain without refilling.
+PASS Live drain-rate multiplier is applied by the actual climbing motor.
+PASS Zero drain pauses consumption without restoring stamina.
+PASS Exponential drain runs on the live motor.
+PASS Airborne release never regenerates stamina.
+PASS Actual desktop Canvas appears at full opacity during real climbing.
+PASS Secure footing enables the actual recovery state after the rest delay.
+PASS Actual Canvas turns translucent during recovery.
+PASS Live zero recovery rate prevents regeneration on secure footing.
+PASS Live exponential recovery reaches full on secure footing.
+PASS Actual Canvas disappears once full.
+PASS BreathExertion plays through the existing local audio pool.
+PASS BreathRecovery plays through the existing local audio pool.
+PASS BreathExhausted plays through the existing local audio pool.
+PASS Breathing allocates no extra audio voices.

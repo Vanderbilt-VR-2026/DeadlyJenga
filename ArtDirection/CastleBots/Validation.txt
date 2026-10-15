@@ -1,0 +1,6 @@
+PASS Demo starts without unsolicited bots or auto-fill.
+PASS Public spawn function creates one NPC.
+PASS NPC input owns only its motor; local human retains normal controls.
+PASS NPC has no rendering camera, audio listener or headset pose driver.
+PASS NPC uses the same current avatar prefab as human survivors.
+PASS NPC retains player collision isolation and visual-only avatar hands.

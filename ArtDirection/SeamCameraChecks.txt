@@ -1,0 +1,15 @@
+PASS Horizontal seam 0.08m crosses (position (123.73, 41.75, 0.86), normal (0.00, 0.00, -1.00)).
+PASS Horizontal seam 0.15m crosses (position (123.67, 41.75, 0.86), normal (0.00, 0.00, -1.00)).
+PASS Horizontal seam 1m cannot cross with cling alone (position (123.14, 41.75, 1.49), normal (1.00, 0.00, 0.00)).
+PASS Actual purple keep intersection 0 crosses cardinal/diagonal course join.
+PASS Actual purple keep intersection 1 crosses cardinal/diagonal course join.
+PASS Actual purple keep intersection 2 crosses cardinal/diagonal course join.
+PASS Actual purple keep intersection 3 crosses cardinal/diagonal course join.
+PASS Desktop eye framing compensates the XR camera-floor parent.
+PASS Observer remains near the visible hand even when the flight target is far away.
+PASS Wrist rotation does not steer observer heading.
+PASS VR head pose and natural leaning remain untouched by following.
+PASS Small flight yaw does not smoothly rotate the VR view.
+PASS VR observer heading advances in predictable snap steps.
+PASS Observer horizon stays upright.
+PASS Real demo wires observer position to current physical palm and compact framing.

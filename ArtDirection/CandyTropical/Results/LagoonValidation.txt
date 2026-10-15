@@ -1,0 +1,9 @@
+PASS All 568 block transforms, colliders and Rigidbody settings preserved.
+PASS Original static support collider preserved.
+PASS Water and molded sand shaders compile.
+PASS Every initial bottom-block footprint corner sits on sand at support height.
+PASS Natural sand shoulders extend modestly beyond the castle, including the submerged skirt (43.42m).
+PASS Free sand areas have real rounded relief, not only shader texture.
+PASS Molded terrain adds no physics components.
+PASS Water depth uses the actual static terrain height map.
+PASS Unchanged terrain refresh reuses its mesh and height map.

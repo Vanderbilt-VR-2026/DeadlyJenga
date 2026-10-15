@@ -1,0 +1,16 @@
+PASS Candy body and head instantiated 
+PASS Rig has 44 articulated bones 
+PASS Visual body cannot push physics blocks 
+PASS First-person and outside views share one hand rig 
+PASS Random spawn color comes from bright palette 
+PASS Input payload fits 512 bytes 440
+PASS Network finger positions preserve 1mm precision 
+PASS Tracked left wrist rendered at actual world pose 
+PASS Tracked right wrist rendered at actual world pose 
+PASS Tracked finger geometry uses actual joint position 
+PASS Controller device position drives visible hand actual=(4.50, 61.30, 4.17), expected=(4.50, 61.30, 4.17)
+PASS Vault reaches actual crate ledge 
+PASS Both palms lock to direct ledge contacts 
+PASS Palm underside touches crate top 
+PASS Hand contact follows moving ledge 
+PASS Vault completes and tracking is released 

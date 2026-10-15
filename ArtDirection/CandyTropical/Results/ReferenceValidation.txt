@@ -1,0 +1,16 @@
+PASS 568 identical crates 
+PASS Four crates on every keep layer 
+PASS Keep alternates 0/45 degrees without accumulated twist 
+PASS Keep repeats positions after two layers 
+PASS Crate height exceeds 1.7m player 
+PASS Test crate physics pose initialized (180.00, 11.00, 180.00)
+PASS Player blocked by crate face (180.00, 10.01, 178.87)
+PASS Walking cannot move 1kg crate drift=0.000000m
+PASS Landing stands on crate 
+PASS Landing cannot move crate 
+PASS Vault onto dynamic crate surface 
+PASS Vault cannot move crate 
+PASS Real crate remains dynamic and responds to impact 
+PASS Live artwork swaps without changing physics 
+PASS Artwork collider cannot affect physics 
+PASS Live material override reaches artwork 

@@ -1,0 +1,22 @@
+{
+  "PolishValidation.txt": {
+    "pass": 9,
+    "fail": 0
+  },
+  "AvatarValidation.txt": {
+    "pass": 16,
+    "fail": 0
+  },
+  "ReferenceValidation.txt": {
+    "pass": 16,
+    "fail": 0
+  },
+  "TraversalValidation.txt": {
+    "pass": 22,
+    "fail": 0
+  },
+  "InputValidation.txt": {
+    "pass": 13,
+    "fail": 0
+  }
+}

@@ -1,0 +1,240 @@
+PASS Default audio bank loads from Resources.
+PASS Unique cue: BlockTap
+PASS Variation count: BlockTap
+PASS Usable mono clip: BlockTap_01
+PASS Usable mono clip: BlockTap_02
+PASS Usable mono clip: BlockTap_03
+PASS Usable mono clip: BlockTap_04
+PASS Valid spatial range: BlockTap
+PASS Unique cue: BlockHit
+PASS Variation count: BlockHit
+PASS Usable mono clip: BlockHit_01
+PASS Usable mono clip: BlockHit_02
+PASS Usable mono clip: BlockHit_03
+PASS Usable mono clip: BlockHit_04
+PASS Valid spatial range: BlockHit
+PASS Unique cue: BlockSmash
+PASS Variation count: BlockSmash
+PASS Usable mono clip: BlockSmash_01
+PASS Usable mono clip: BlockSmash_02
+PASS Usable mono clip: BlockSmash_03
+PASS Usable mono clip: BlockSmash_04
+PASS Valid spatial range: BlockSmash
+PASS Unique cue: BlockScrape
+PASS Variation count: BlockScrape
+PASS Usable mono clip: BlockScrape_01
+PASS Valid spatial range: BlockScrape
+PASS Unique cue: StructureLean
+PASS Variation count: StructureLean
+PASS Usable mono clip: StructureLean_01
+PASS Usable mono clip: StructureLean_02
+PASS Usable mono clip: StructureLean_03
+PASS Usable mono clip: StructureLean_04
+PASS Valid spatial range: StructureLean
+PASS Unique cue: BlockSplash
+PASS Variation count: BlockSplash
+PASS Usable mono clip: BlockSplash_01
+PASS Usable mono clip: BlockSplash_02
+PASS Usable mono clip: BlockSplash_03
+PASS Usable mono clip: BlockSplash_04
+PASS Valid spatial range: BlockSplash
+PASS Unique cue: PlayerSplash
+PASS Variation count: PlayerSplash
+PASS Usable mono clip: PlayerSplash_01
+PASS Usable mono clip: PlayerSplash_02
+PASS Usable mono clip: PlayerSplash_03
+PASS Usable mono clip: PlayerSplash_04
+PASS Valid spatial range: PlayerSplash
+PASS Unique cue: RubberSlide
+PASS Variation count: RubberSlide
+PASS Usable mono clip: RubberSlide_01
+PASS Valid spatial range: RubberSlide
+PASS Unique cue: RubberTouch
+PASS Variation count: RubberTouch
+PASS Usable mono clip: RubberTouch_01
+PASS Usable mono clip: RubberTouch_02
+PASS Usable mono clip: RubberTouch_03
+PASS Usable mono clip: RubberTouch_04
+PASS Valid spatial range: RubberTouch
+PASS Unique cue: FootstepCandy
+PASS Variation count: FootstepCandy
+PASS Usable mono clip: FootstepCandy_01
+PASS Usable mono clip: FootstepCandy_02
+PASS Usable mono clip: FootstepCandy_03
+PASS Usable mono clip: FootstepCandy_04
+PASS Valid spatial range: FootstepCandy
+PASS Unique cue: FootstepSand
+PASS Variation count: FootstepSand
+PASS Usable mono clip: FootstepSand_01
+PASS Usable mono clip: FootstepSand_02
+PASS Usable mono clip: FootstepSand_03
+PASS Usable mono clip: FootstepSand_04
+PASS Valid spatial range: FootstepSand
+PASS Unique cue: Jump
+PASS Variation count: Jump
+PASS Usable mono clip: Jump_01
+PASS Usable mono clip: Jump_02
+PASS Usable mono clip: Jump_03
+PASS Usable mono clip: Jump_04
+PASS Valid spatial range: Jump
+PASS Unique cue: LandSoft
+PASS Variation count: LandSoft
+PASS Usable mono clip: LandSoft_01
+PASS Usable mono clip: LandSoft_02
+PASS Usable mono clip: LandSoft_03
+PASS Usable mono clip: LandSoft_04
+PASS Valid spatial range: LandSoft
+PASS Unique cue: LandHard
+PASS Variation count: LandHard
+PASS Usable mono clip: LandHard_01
+PASS Usable mono clip: LandHard_02
+PASS Usable mono clip: LandHard_03
+PASS Usable mono clip: LandHard_04
+PASS Valid spatial range: LandHard
+PASS Unique cue: VaultGrunt
+PASS Variation count: VaultGrunt
+PASS Usable mono clip: VaultGrunt_01
+PASS Usable mono clip: VaultGrunt_02
+PASS Usable mono clip: VaultGrunt_03
+PASS Usable mono clip: VaultGrunt_04
+PASS Valid spatial range: VaultGrunt
+PASS Unique cue: ClimbGrunt
+PASS Variation count: ClimbGrunt
+PASS Usable mono clip: ClimbGrunt_01
+PASS Usable mono clip: ClimbGrunt_02
+PASS Usable mono clip: ClimbGrunt_03
+PASS Usable mono clip: ClimbGrunt_04
+PASS Valid spatial range: ClimbGrunt
+PASS Unique cue: ClimbPlant
+PASS Variation count: ClimbPlant
+PASS Usable mono clip: ClimbPlant_01
+PASS Usable mono clip: ClimbPlant_02
+PASS Usable mono clip: ClimbPlant_03
+PASS Usable mono clip: ClimbPlant_04
+PASS Valid spatial range: ClimbPlant
+PASS Unique cue: ClimbRelease
+PASS Variation count: ClimbRelease
+PASS Usable mono clip: ClimbRelease_01
+PASS Usable mono clip: ClimbRelease_02
+PASS Usable mono clip: ClimbRelease_03
+PASS Usable mono clip: ClimbRelease_04
+PASS Valid spatial range: ClimbRelease
+PASS Unique cue: FallWind
+PASS Variation count: FallWind
+PASS Usable mono clip: FallWind_01
+PASS Valid spatial range: FallWind
+PASS Unique cue: BeachWind
+PASS Variation count: BeachWind
+PASS Usable mono clip: BeachWind_01
+PASS Valid spatial range: BeachWind
+PASS Unique cue: HandFlight
+PASS Variation count: HandFlight
+PASS Usable mono clip: HandFlight_01
+PASS Valid spatial range: HandFlight
+PASS Unique cue: Surf
+PASS Variation count: Surf
+PASS Usable mono clip: Surf_01
+PASS Valid spatial range: Surf
+PASS Unique cue: Music
+PASS Variation count: Music
+PASS Usable mono clip: Music_01
+PASS Valid spatial range: Music
+PASS Unique cue: Spawn
+PASS Variation count: Spawn
+PASS Usable mono clip: Spawn_01
+PASS Usable mono clip: Spawn_02
+PASS Usable mono clip: Spawn_03
+PASS Usable mono clip: Spawn_04
+PASS Valid spatial range: Spawn
+PASS Unique cue: Respawn
+PASS Variation count: Respawn
+PASS Usable mono clip: Respawn_01
+PASS Usable mono clip: Respawn_02
+PASS Usable mono clip: Respawn_03
+PASS Usable mono clip: Respawn_04
+PASS Valid spatial range: Respawn
+PASS Unique cue: UiClick
+PASS Variation count: UiClick
+PASS Usable mono clip: UiClick_01
+PASS Usable mono clip: UiClick_02
+PASS Usable mono clip: UiClick_03
+PASS Usable mono clip: UiClick_04
+PASS Valid spatial range: UiClick
+PASS Unique cue: GripWarning
+PASS Variation count: GripWarning
+PASS Usable mono clip: GripWarning_01
+PASS Usable mono clip: GripWarning_02
+PASS Usable mono clip: GripWarning_03
+PASS Usable mono clip: GripWarning_04
+PASS Valid spatial range: GripWarning
+PASS Unique cue: FriendlyWave
+PASS Variation count: FriendlyWave
+PASS Usable mono clip: FriendlyWave_01
+PASS Usable mono clip: FriendlyWave_02
+PASS Usable mono clip: FriendlyWave_03
+PASS Usable mono clip: FriendlyWave_04
+PASS Valid spatial range: FriendlyWave
+PASS Unique cue: TotallyMeantThat
+PASS Variation count: TotallyMeantThat
+PASS Usable mono clip: TotallyMeantThat_01
+PASS Usable mono clip: TotallyMeantThat_02
+PASS Usable mono clip: TotallyMeantThat_03
+PASS Usable mono clip: TotallyMeantThat_04
+PASS Valid spatial range: TotallyMeantThat
+PASS Unique cue: Phew
+PASS Variation count: Phew
+PASS Usable mono clip: Phew_01
+PASS Usable mono clip: Phew_02
+PASS Usable mono clip: Phew_03
+PASS Usable mono clip: Phew_04
+PASS Valid spatial range: Phew
+PASS Unique cue: WhatWasThat
+PASS Variation count: WhatWasThat
+PASS Usable mono clip: WhatWasThat_01
+PASS Usable mono clip: WhatWasThat_02
+PASS Usable mono clip: WhatWasThat_03
+PASS Usable mono clip: WhatWasThat_04
+PASS Valid spatial range: WhatWasThat
+PASS Unique cue: GolfClap
+PASS Variation count: GolfClap
+PASS Usable mono clip: GolfClap_01
+PASS Usable mono clip: GolfClap_02
+PASS Usable mono clip: GolfClap_03
+PASS Usable mono clip: GolfClap_04
+PASS Valid spatial range: GolfClap
+PASS Unique cue: JustChilling
+PASS Variation count: JustChilling
+PASS Usable mono clip: JustChilling_01
+PASS Usable mono clip: JustChilling_02
+PASS Usable mono clip: JustChilling_03
+PASS Usable mono clip: JustChilling_04
+PASS Valid spatial range: JustChilling
+PASS Unique cue: NopeNopeNope
+PASS Variation count: NopeNopeNope
+PASS Usable mono clip: NopeNopeNope_01
+PASS Usable mono clip: NopeNopeNope_02
+PASS Usable mono clip: NopeNopeNope_03
+PASS Usable mono clip: NopeNopeNope_04
+PASS Valid spatial range: NopeNopeNope
+PASS Unique cue: TinyVictoryDance
+PASS Variation count: TinyVictoryDance
+PASS Usable mono clip: TinyVictoryDance_01
+PASS Usable mono clip: TinyVictoryDance_02
+PASS Usable mono clip: TinyVictoryDance_03
+PASS Usable mono clip: TinyVictoryDance_04
+PASS Valid spatial range: TinyVictoryDance
+PASS Unique cue: BreathExertion
+PASS Variation count: BreathExertion
+PASS Usable mono clip: BreathExertion
+PASS Valid spatial range: BreathExertion
+PASS Unique cue: BreathRecovery
+PASS Variation count: BreathRecovery
+PASS Usable mono clip: BreathRecovery
+PASS Valid spatial range: BreathRecovery
+PASS Unique cue: BreathExhausted
+PASS Variation count: BreathExhausted
+PASS Usable mono clip: BreathExhausted
+PASS Valid spatial range: BreathExhausted
+PASS All defined gameplay cues have bank mappings or supported synthesized breathing defaults.
+PASS Bounded default voice pool (48 or fewer).
+Clips: 122; cues: 38

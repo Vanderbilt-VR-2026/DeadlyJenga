@@ -1,0 +1,25 @@
+PASS Legacy center-eye-only binding misses device-pose-only head rotation.
+PASS Survivor enables position AND rotation tracking.
+PASS Device-pose HMD yaw, pitch and roll reach the camera without a joystick.
+PASS Physical leaning reaches the camera independently of locomotion.
+PASS Center-eye backends also track physical head turning.
+PASS Opening the menu never freezes headset looking.
+PASS Changing player scale does not reset tracked head rotation.
+PASS Snap turning rotates the rig exactly 30 degrees.
+PASS Stick turn pivots around the eyes without overwriting head pose.
+PASS Holding the snap stick does not repeat turns.
+PASS Releasing the stick rearms snap turn in either direction.
+PASS Smooth turning follows degrees/second around a stable eye pivot.
+PASS Physical-only mode ignores joystick turning.
+PASS Stationary movement keeps forward tied to rig facing while looking sideways.
+PASS Fluid movement follows horizontal head direction.
+PASS Invalid tracking freezes the last valid pose instead of applying bad input.
+PASS Head rotation resumes after tracking recovers.
+PASS Seated preset uses stable movement plus snap turn.
+PASS Fluid preset uses head-directed movement plus smooth turn.
+PASS Desktop mode restores mouse-owned camera rotation.
+PASS Headset demo menu includes its movement/turning settings entry.
+PASS Gaze selection opens the actual VR comfort page.
+PASS Headset menu stationary preset changes the live local survivor.
+PASS Headset menu fluid preset changes the live local survivor.
+PASS VR changes preserve player/block physics isolation.

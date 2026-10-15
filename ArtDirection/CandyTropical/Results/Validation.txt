@@ -1,0 +1,6 @@
+PASS default castle validation
+Blocks: 568
+Initial penetrations > 1mm: 0
+10 seconds gravity simulation: maximum position drift 0.1135 m; blocks moving > 0.25m: 0
+After removing first corner's two bottom supports: next block dropped 1.994m in 3 seconds
+Validation uses an isolated Unity PhysicsScene at 50Hz. This is not headset or multiplayer performance validation.

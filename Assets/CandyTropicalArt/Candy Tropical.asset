@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c9afdf99623b88b4680097d702bf61a4, type: 3}
+  m_Name: Candy Tropical
+  m_EditorClassIdentifier: Assembly-CSharp::DeadlyJenga.CandyArt.CandyArtProfile
+  bevel: 0.12
+  panelDepth: 0.035
+  cornerButtons: 1
+  red: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+  green: {fileID: 2100000, guid: 1f4297b594299cc4fbdec5329506df5f, type: 2}
+  purple: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+  water: {fileID: 2100000, guid: d7d52e1a26880bf49abfbf74b1387091, type: 2}
+  sand: {fileID: 2100000, guid: 380d8085f7f2b4749b3966bbcc071891, type: 2}
+  sky: {fileID: 2100000, guid: 2e4d6c8837c271a45b04f997f3c0b03f, type: 2}
+  waterHeight: 0.08
+  sandHeight: -0.32
+  islandRadius: 26
+  islandAspect: {x: 1, y: 0.92}
+  oceanSize: 1600
+  fitIslandToFoundation: 1
+  alignSandToFoundation: 1
+  sandPlateau: 0.8
+  sandDepth: 4
+  sandSegments: 72
+  sandMargin: 2.35
+  sandRelief: 0.8
+  sandShoreWidth: 1.5
+  terrainResolution: 128
+  waterResolution: 96
+  waveExtent: 72
+  waveHeight: 0.32
+  waveSpeed: 0.9
+  waveChop: 0.4
+  sunColor: {r: 1, g: 0.94, b: 0.83, a: 1}
+  sunIntensity: 1.65
+  sunEuler: {x: 48, y: -32, z: 0}
