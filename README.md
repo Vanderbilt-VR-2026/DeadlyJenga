@@ -20,48 +20,57 @@ You can find the Sprint 1 demo video [here](https://drive.google.com/file/d/1HR0
 
 
 
+
 ## Sprint 2
 
-All Sprint 2 deliverables are available in the [**Sprint 2 Explanation Folder**](https://drive.google.com/drive/folders/1aqJDwO-LhcusEajRKALIoX2oDCbFFBj_?usp=sharing).
-They Contain the Following:
+All Sprint 2 deliverables are available in the [**Sprint 2 Explanation Folder**](https://drive.google.com/drive/folders/1aqJDwO-LhcusEajRKALIoX2oDCbFFBj_?usp=sharing). They contain the following:
 
-###  1. APK File
+### 1. APK File
+
 Downloadable Meta Quest application build.
 
-###  2. Demo Video
+### 2. Demo Video
+
 Video demonstration of Sprint 2 gameplay and features.
 
-###  3. Sprint 2 Explanation & Future Directions
+### 3. Sprint 2 Explanation & Future Directions
+
 Detailed documentation covering the current project and planned development.
 
 #### Feature Summary
 
-** Environment & World Design**
+**Environment & World Design**
+
 - Castle-like structure with dynamic tower design
 - Sand island surrounded by ocean with daytime skybox
 - Shiny, candy-like art style for objects and map
 
-** Multiplayer & AI**
+**Multiplayer & AI**
+
 - Easy networking, joining, and inviting for users running the APK on the same Wi-Fi
 - AI player bots
 - AI flying hand bots
 
-** Player Avatar**
+**Player Avatar**
+
 - Complete avatar visible to the user and other players
 - Hand synchronization compatibility
 
-** Movement & Interaction**
+**Movement & Interaction**
+
 - **Climbing**
   - Stamina bar to prevent mount abuse
 - **Vaulting**
   - Shooter-style ledge climbing
 - Basic jumping and walking
 
-** Demo Controls & UI**
+**Demo Controls & UI**
+
 - Add AI players and flying hands
 - Reset the map without restarting the application
 
-** Audio System**
+**Audio System**
+
 - Block collision and scraping sounds
 - Player sounds
 - Ambient music and environmental audio
