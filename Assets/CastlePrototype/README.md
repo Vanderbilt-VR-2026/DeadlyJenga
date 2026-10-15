@@ -3,7 +3,8 @@
 Open `Scenes/CastlePhysicsTest.unity`, select the Game tab, and enter Play Mode.
 You spawn as a survivor on the highest surviving upright block, with desktop or XR controls
 selected automatically from whether an XR display is running. The scene is independent of Lobby and Photon.
-It is deliberately not added to the game's build scene list.
+It is currently the default and sole enabled build scene. Lobby/Main remain in the
+project with their separate Photon flow; they are disabled in the build scene list.
 
 ## Controls
 

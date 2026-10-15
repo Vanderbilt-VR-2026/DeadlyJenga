@@ -130,6 +130,9 @@ namespace DeadlyJenga.CandyAudio
             focusGain=Mathf.MoveTowards(focusGain,focus?1:0,Time.unscaledDeltaTime*4);ActiveVoices=0;
             foreach(var voice in voices)
             {
+                // Stop can reach the audio thread after this frame; a released
+                // voice must not be mixed using the cue that was just cleared.
+                if(voice.cue==null){if(voice.source.isPlaying)voice.source.Stop();continue;}
                 if(!voice.source.isPlaying)continue;
                 if(voice.looping)
                 {

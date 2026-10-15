@@ -1,5 +1,5 @@
 PASS Default role survivor 
-PASS Spawn at top actual=(4.47, 59.93, 4.40), target=(4.47, 59.98, 4.40)
+PASS Spawn at top actual=(-4.33, 59.97, -4.44), target=(-4.33, 59.99, -4.44)
 PASS Single active camera 
 PASS Auto desktop without running display 
 PASS VR enables head tracking 

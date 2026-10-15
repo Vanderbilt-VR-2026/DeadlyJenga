@@ -8,13 +8,46 @@ public class TowerGenerator : MonoBehaviour
     [SerializeField, Min(1)] int layers = 18;
     [SerializeField, Min(1)] int blocksPerLayer = 3;
     [SerializeField, Min(0f)] float gap = 0.002f;
+    [SerializeField, Min(0.05f)] float blockScale = 1f;
 
     readonly List<Rigidbody> blocks = new();
+    NetworkRunner runner;
     bool generated;
+    Vector3 blockSize;
+    float halfWidth;
 
     public IReadOnlyList<Rigidbody> Blocks => blocks;
-    public int BlocksPerLayer => blocksPerLayer;
+    public int Layers { get => layers; set => layers = Mathf.Max(1, value); }
+    public int BlocksPerLayer { get => blocksPerLayer; set => blocksPerLayer = Mathf.Max(1, value); }
+    public float BlockScale { get => blockScale; set => blockScale = Mathf.Max(0.05f, value); }
+    public bool CanRebuild => runner != null && runner.IsServer;
 
+    public float BlockHeight => blockSize.y;
+    public float HalfWidth => halfWidth;
+
+    // for dev tools. size for the current settings, works before the tower is built
+    Vector3 PlannedBlockSize()
+    {
+        var box = blockPrefab.GetComponent<BoxCollider>();
+        return Vector3.Scale(box.size, blockPrefab.transform.localScale * blockScale);
+    }
+    public float PlannedHeight => PlannedBlockSize().y * layers;
+    public float PlannedHalfWidth
+    {
+        get
+        {
+            var s = PlannedBlockSize();
+            return Mathf.Max(s.z, blocksPerLayer * (s.x + gap)) * 0.5f;
+        }
+    }
+
+    // determine if a position is inside the tower
+    public bool OnTower(Vector3 worldPos)
+    {
+        Vector3 local = transform.InverseTransformPoint(worldPos);
+        float half = halfWidth;
+        return Mathf.Abs(local.x) <= half && Mathf.Abs(local.z) <= half;
+    }
     // Called by the persistent runner after Fusion finishes loading the scene.
     public void Generate(NetworkRunner runner)
     {
@@ -29,11 +62,16 @@ public class TowerGenerator : MonoBehaviour
             return;
         }
 
+        this.runner = runner;
         generated = true;
-        Vector3 size = Vector3.Scale(box.size, blockPrefab.transform.localScale);
+
+        Vector3 scale = blockPrefab.transform.localScale * blockScale;
+        Vector3 size = Vector3.Scale(box.size, scale);
 
         float pitch = size.x + gap;
         float center = (blocksPerLayer - 1) * 0.5f;
+        blockSize = size;
+        halfWidth = Mathf.Max(size.z, blocksPerLayer * pitch) * 0.5f;
 
         for (int layer = 0; layer < layers; layer++)
         {
@@ -48,19 +86,43 @@ public class TowerGenerator : MonoBehaviour
 
                 var block = runner.Spawn(networkPrefab, transform.TransformPoint(local), rot,
                     onBeforeSpawned: (_, spawned) =>
-                    {
+                    {   
+                        var jb = spawned.GetComponent<JengaBlock>();
+                        jb.Layer = layer; jb.Index = i;
+                        jb.Tower = this;
+                        spawned.transform.localScale = scale;
                         var body = spawned.GetComponent<Rigidbody>();
                         body.solverIterations = 30;
                         body.solverVelocityIterations = 10;
                         body.sleepThreshold = 0.01f;
                     });
-                block.name = $"Block_L{layer}_{i}";
-                var rb = block.GetComponent<Rigidbody>();
-                blocks.Add(rb);
+                blocks.Add(block.GetComponent<Rigidbody>());
             }
         }
 
         foreach (var b in blocks)
             b.Sleep();
+    }
+
+    // only the host can use this function.
+    public bool Rebuild()
+    {
+        if (runner == null || !runner.IsServer)
+        {
+            Debug.LogWarning("Rebuild can only run on the host.", this);
+            return false;
+        }
+        Clear();
+        Generate(runner);
+        return true;
+    }
+
+    void Clear()
+    {
+        foreach (var rb in blocks)
+            if (rb != null && rb.TryGetComponent<NetworkObject>(out var no) && no.IsValid)
+                runner.Despawn(no);
+        blocks.Clear();
+        generated = false;
     }
 }

@@ -84,13 +84,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Setup();Tick(110,Vector2.zero,true);motor.InputDriver=new Hold();motor.enabled=true;
             session.enabled=false;session.Player.viewCamera.enabled=false;motor.viewCamera.enabled=true;motor.InputSuspended=false;
             var hud=motor.gameObject.AddComponent<CandyStaminaHud>();hud.Present(motor,1);Canvas.ForceUpdateCanvases();
-            yield return new WaitForEndOfFrame();hud.Present(motor,1);Assert(hud.Opacity==1,"Actual desktop Canvas appears at full opacity during real climbing.");
-            ScreenCapture.CaptureScreenshot("ArtDirection/StaminaClimbing.png");yield return null;yield return new WaitForEndOfFrame();
+            yield return Application.isBatchMode?null:new WaitForEndOfFrame();hud.Present(motor,1);Assert(hud.Opacity==1,"Actual desktop Canvas appears at full opacity during real climbing.");
+            if(!Application.isBatchMode)ScreenCapture.CaptureScreenshot("ArtDirection/StaminaClimbing.png");yield return null;yield return Application.isBatchMode?null:new WaitForEndOfFrame();
             motor.InputDriver=null;motor.enabled=false;motor.climbRecoveryPerSecond=.12f;
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=motor.transform.position-Vector3.up*.5f;floor.transform.localScale=new Vector3(20,.5f,20);Physics.SyncTransforms();
             Tick(80,Vector2.zero,false);Assert(motor.StaminaRecovering,"Secure footing enables the actual recovery state after the rest delay.");
             motor.enabled=true;hud.Present(motor,1);
-            yield return new WaitForEndOfFrame();Assert(Mathf.Abs(hud.Opacity-.46f)<.001f,"Actual Canvas turns translucent during recovery.");ScreenCapture.CaptureScreenshot("ArtDirection/StaminaRecovery.png");yield return null;
+            yield return Application.isBatchMode?null:new WaitForEndOfFrame();Assert(Mathf.Abs(hud.Opacity-.46f)<.001f,"Actual Canvas turns translucent during recovery.");if(!Application.isBatchMode)ScreenCapture.CaptureScreenshot("ArtDirection/StaminaRecovery.png");yield return null;
             motor.enabled=false;motor.climbRecoveryPerSecond=0;start=motor.GripRemaining;Tick(120,Vector2.zero,false);
             Assert(motor.GripRemaining==start,"Live zero recovery rate prevents regeneration on secure footing.");
             motor.climbRecoveryPerSecond=.65f;motor.climbRecoveryCurve=StaminaCurve.Exponential;motor.climbRecoveryDegree=3;Tick(150,Vector2.zero,false);
