@@ -10,6 +10,10 @@
 
 A multiplayer VR project targeting Meta Quest. The current starting scene is `Assets/Scenes/Lobby.unity`.
 
+The active gameplay scene is `Assets/Scenes/Game.unity`. Host and Join use Fusion;
+Solo practice runs locally. See [cleanup status and headset checks](Docs/AI_CLEANUP_STATUS.md)
+for the current implementation and its validation limits.
+
 See [Project context](PROJECT_CONTEXT.md) for the proposed goals, gameplay, and scope. That document describes the design proposal, not a list of implemented features.
 
 ## Sprint 1

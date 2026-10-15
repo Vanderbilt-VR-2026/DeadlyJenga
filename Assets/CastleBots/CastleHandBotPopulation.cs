@@ -29,6 +29,7 @@ namespace DeadlyJenga.CastleBots
             staging=new GameObject("Inactive AI hand assembly").transform;staging.SetParent(transform,false);staging.gameObject.SetActive(false);
         }
         public void CyclePersonality(){SelectedPreset=(SelectedPreset+1)%profiles.Length;}
+        public void SelectPreset(int index){if(profiles==null||profiles.Length==0)return;SelectedPreset=Mathf.Clamp(index,0,profiles.Length-1);}
         public CastleHandBotBrain SpawnHand()
         {
             if(Count>=Mathf.Clamp(maximumHands,1,20)||Count>=Mathf.Max(0,Session.Bots.targetPopulation-Session.Bots.humanPlayers)){Status="AI hand limit reached";return null;}

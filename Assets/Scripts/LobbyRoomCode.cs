@@ -1,6 +1,7 @@
 using Fusion;
 using TMPro;
 using UnityEngine;
+using DeadlyJenga.CastlePrototype;
 
 public class LobbyRoomCode : MonoBehaviour
 {
@@ -18,6 +19,8 @@ public class LobbyRoomCode : MonoBehaviour
         {
             bootstrap = GetComponent<FusionBootstrap>();
         }
+        if (FindFirstObjectByType<LobbyMatchSetup>() == null)
+            new GameObject("Match Setup").AddComponent<LobbyMatchSetup>();
     }
 
     void Update()
@@ -49,6 +52,8 @@ public class LobbyRoomCode : MonoBehaviour
 
     public void Host()
     {
+        MatchSetup.FromLobby = true;
+        MatchSetup.StartLocalSession = false;
         string code = GenerateCode(4);
         bootstrap.DefaultRoomName = code;
 
@@ -65,6 +70,8 @@ public class LobbyRoomCode : MonoBehaviour
             return;
         }
 
+        MatchSetup.FromLobby = true;
+        MatchSetup.StartLocalSession = false;
         bootstrap.DefaultRoomName = code;
         Debug.Log($"Joining room {code}");
         bootstrap.StartClient();

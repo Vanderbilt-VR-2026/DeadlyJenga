@@ -1,3 +1,5 @@
+> Historical prototype notes: the supported entry scene is now `Assets/Scenes/Lobby.unity`, followed by `Assets/Scenes/Game.unity`. References below to `CastlePhysicsTest` describe the older prototype. See the current cleanup status in `Docs/AI_CLEANUP_STATUS.md`.
+
 # Candy tropical art module
 
 Bare-bones visual pass for the castle prototype. Tested with Unity 6000.3.23f1 and URP 17.3.0. The artwork uses procedural shared meshes and shaders; no texture downloads or extra Unity packages are required.

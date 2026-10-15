@@ -21,8 +21,11 @@ namespace DeadlyJenga.CastlePrototype
         Canvas hintCanvas;CanvasGroup hintGroup;RectTransform hintRoot;Text roleText,statusText,menuText;
         readonly Text[] hintKeys=new Text[3],hintNames=new Text[3];readonly RawImage[] hintIcons=new RawImage[3];
         readonly Action[] navActions=new Action[40];int navCount,drawIndex;bool activate;
-        static readonly string[] Pages={"Play","Survivors","Giant hands","Friends","Settings","Controls"};
-        static readonly CandyHudIcon[] PageIcons={CandyHudIcon.Play,CandyHudIcon.Survivor,CandyHudIcon.Hand,CandyHudIcon.Friends,CandyHudIcon.Settings,CandyHudIcon.Help};
+        bool HasFriends=>session&&session.Network;
+        int PageCount=>HasFriends?3:2;
+        string PageName(int index)=>HasFriends?(index==0?"Play":index==1?"Friends":"Controls"):(index==0?"Play":"Controls");
+        CandyHudIcon PageIcon(int index)=>PageName(index)=="Friends"?CandyHudIcon.Friends:PageName(index)=="Controls"?CandyHudIcon.Help:CandyHudIcon.Play;
+        bool ControlsPageOpen=>page==PageCount-1;
         public bool GameplayHintsVisible=>hintGroup&&hintGroup.alpha>.01f;
         public Canvas ControlHintCanvas=>hintCanvas;
         public string InputLabel=>!session||!session.Player?"Keyboard + mouse":session.IsVR?(TrackedHands?"Hand tracking":"VR controllers"):"Keyboard + mouse";
@@ -33,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!Ready)return;
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
-            if(studio)studio.ShowLauncher=!session.MenuOpen;
+            if(studio)studio.ShowLauncher=false;
             tracking=(session.PlayingHand?session.Hand.gameObject:session.Player.gameObject).GetComponent<CandyTrackingSource>();
             if(lastRole!=session.PlayingHand||lastVR!=session.IsVR){changedAt=Time.unscaledTime;lastRole=session.PlayingHand;lastVR=session.IsVR;}
             if(session.MenuOpen&&!lastMenu){selection=0;changedAt=Time.unscaledTime;}
@@ -41,8 +44,8 @@ namespace DeadlyJenga.CastlePrototype
             var k=Keyboard.current;
             if(k!=null&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
             {
-                if(k.leftArrowKey.wasPressedThisFrame)ChangePage((page+Pages.Length-1)%Pages.Length);
-                if(k.rightArrowKey.wasPressedThisFrame)ChangePage((page+1)%Pages.Length);
+                if(k.leftArrowKey.wasPressedThisFrame)ChangePage((page+PageCount-1)%PageCount);
+                if(k.rightArrowKey.wasPressedThisFrame)ChangePage((page+1)%PageCount);
                 if(k.upArrowKey.wasPressedThisFrame){selection=(selection+Mathf.Max(1,navCount)-1)%Mathf.Max(1,navCount);FollowSelection();}
                 if(k.downArrowKey.wasPressedThisFrame){selection=(selection+1)%Mathf.Max(1,navCount);FollowSelection();}
                 if(k.enterKey.wasPressedThisFrame||k.numpadEnterKey.wasPressedThisFrame)activate=true;
@@ -81,24 +84,25 @@ namespace DeadlyJenga.CastlePrototype
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
             Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
             GUI.Label(new Rect(93,23,700,45),"DEADLY JENGA  /  DEMO",title);
-            GUI.Label(new Rect(95,71,775,30),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Network&&session.Network.IsClient?"Joined a local host":"Your local playground"),small);
+            GUI.Label(new Rect(95,71,775,30),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Network&&session.Network.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
-            for(int i=0;i<Pages.Length;i++)
+            for(int i=0;i<PageCount;i++)
             {
-                var r=new Rect(20,128+i*74,218,62);if(Button(r,"       "+Pages[i]+(i==3&&session.Network&&session.Network.HasPending?"  !":""),i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
-                Icon(new Rect(r.x+14,r.y+15,30,30),PageIcons[i],i==page?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
+                bool pending=PageName(i)=="Friends"&&session.Network&&session.Network.HasPending;
+                var r=new Rect(20,128+i*74,218,62);if(Button(r,"       "+PageName(i)+(pending?"  !":""),i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
+                Icon(new Rect(r.x+14,r.y+15,30,30),PageIcon(i),i==page?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
             }
             Panel(new Rect(258,126,921,548),CandyHudVisuals.Panel);drawIndex=0;
-            float contentHeight=page==4?1450:page==5?920:640;
+            float contentHeight=ControlsPageOpen?920:640;
             scroll=GUI.BeginScrollView(new Rect(278,142,884,516),scroll,new Rect(0,0,856,contentHeight));
             GUI.Label(new Rect(8,2,830,36),PageTitle(),heading);GUI.Label(new Rect(8,45,830,60),PageDescription(),small);
-            if(page==0)PlayPage();else if(page==1)BotsPage();else if(page==2)HandsPage();else if(page==3)FriendsPage();else if(page==4)SettingsPage();else ControlsPage();
+            if(page==0)PlayPage();else if(HasFriends&&page==1)FriendsPage();else ControlsPage();
             GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
             GUI.Label(new Rect(26,692,1150,30),"CLICK a card to act  ·  SCROLL for more  ·  ← → sections  ·  ↑ ↓ choose a card  ·  ENTER confirm  ·  ESC resume",small);
             if(activate&&Event.current.type==EventType.Repaint){activate=false;if(selection<navCount)navActions[selection]?.Invoke();}
         }
-        string PageTitle()=>page switch{0=>"Make a little mayhem",1=>"Bring the island to life",2=>"Add a helping... or troublesome hand",3=>"Play together on the same Wi-Fi",4=>"Make yourself comfortable",_=>"A little guide to surviving the chaos"};
-        string PageDescription()=>page switch{0=>"Switch roles, get back on top, or start the tower over. The demo keeps running while this menu is open.",1=>"Survivors explore, react and try to stay alive. Choose a personality before spawning the next bot.",2=>"Giant hands stir up trouble. Their personality affects how they approach the castle.",3=>"Both players open Friends on the same network. Pick a nearby demo, then send a join request or invite.",4=>"Tune the display and control hints here. Live climbing settings remain available below.",_=>"Hints match the inputs this demo actually supports. A regular gamepad is not a desktop movement binding yet."};
+        string PageTitle()=>page==0?"Make a little mayhem":HasFriends&&page==1?"Multiplayer session":"A little guide to surviving the chaos";
+        string PageDescription()=>page==0?"Switch roles, get back on top, or start the tower over. Match setup stays in the lobby.":HasFriends&&page==1?"Your current connection and controls for leaving the session.":"Hints match the inputs this demo actually supports. A regular gamepad is not a desktop movement binding yet.";
         bool EditWorld=>!session.Network||session.Network.CanEditWorld;
         void ActionCard(float y,CandyHudIcon icon,string name,string description,Action action,bool enabled=true,Color? accent=null)
         {
@@ -114,7 +118,6 @@ namespace DeadlyJenga.CastlePrototype
             ActionCard(119,session.PlayingHand?CandyHudIcon.Survivor:CandyHudIcon.Hand,session.PlayingHand?"Become a survivor":"Become a giant hand",session.PlayingHand?"Spawn at the top and explore the castle.":"Fly around the tower and push its candy blocks.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);});
             ActionCard(223,CandyHudIcon.Home,"Back to the top","Respawn as a survivor on the highest upright block.",()=>{session.SetRole(false);session.SetMenu(false);});
             ActionCard(327,CandyHudIcon.Home,"Rebuild the castle",EditWorld?"Restore the whole tower and reposition the demo actors.":"The host controls the shared castle.",()=>{session.ResetCastle();session.SetMenu(false);},EditWorld,CandyHudVisuals.Peach);
-            ActionCard(431,CandyHudIcon.Sound,"Sound studio","Preview and swap sound sets, or fine-tune the live mix.",()=>{if(studio)studio.Open();},studio);
         }
         void BotsPage()
         {

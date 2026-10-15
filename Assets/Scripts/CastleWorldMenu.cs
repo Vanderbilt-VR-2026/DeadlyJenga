@@ -57,25 +57,36 @@ namespace DeadlyJenga.CastlePrototype
             var net=session.Network;
             var tracking=(session.PlayingHand?session.Hand.gameObject:session.Player.gameObject).GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
             string select=tracking&&tracking.HasHandTracking?"Look at a button · RIGHT pinch to select":"Look at a button · RIGHT trigger to select";
-            heading.text=comfortPage?"VR MOVEMENT / TURNING\nHeadset looking is always active":networkPage?"FRIENDS · SAME WI-FI\n"+(net?net.Status:"Finding nearby demos..."):"DEADLY JENGA / DEMO\n"+select;
-            if(comfortPage)
+            heading.text=networkPage?"MULTIPLAYER\n"+(net?net.Status:"Finding nearby demos..."):"DEADLY JENGA\n"+select;
+            if (networkPage && net && net.IsFusion)
+            {
+                for (int j = 0; j < buttons.Length; j++) buttons[j].gameObject.SetActive(j == 0 || j == 6 || j == 11);
+                labels[0].text = "Resume"; labels[6].text = net.IsClient ? "Leave game" : "Close game for everyone"; labels[11].text = "Back";
+                targets[0].enabled = targets[6].enabled = targets[11].enabled = true;
+            }
+            else if(comfortPage)
             {
                 var p=session.Player;
                 string[] titles={"Resume","Movement: "+p.vrMovement,"Right stick: "+p.vrTurn,"Snap amount: "+p.vrSnapAngle+"°","Smooth speed: "+p.vrSmoothDegreesPerSecond+"° / sec","Stationary / seated preset","Fluid / head-directed preset","Left stick moves · right stick turns","Physical head turns always look around","Stationary: movement follows rig facing","Fluid: movement follows head direction","Snap is the default comfort option","Back to demo controls"};
                 for(int i=0;i<labels.Length;i++){labels[i].text=titles[i];targets[i].enabled=i<7||i==12;}
             }
-            else if(networkPage)
+            else if(networkPage&&net)
             {
+                foreach(var button in buttons)button.gameObject.SetActive(true);
                 string[] titles={"Resume","Nearby: "+net.SelectedName+" (next)","Request to join selected demo","Invite selected demo here","Accept invite / join request","Decline invite / join request","Leave / end local session",net.PendingLabel,net.IsClient?"Connected to host":"Hosting · "+net.HumanCount+" humans","Open this page on both headsets","No restart needed to join","Back to demo controls"};
-                for(int i=0;i<labels.Length;i++){labels[i].text=i<titles.Length?titles[i]:"VR movement / turning";targets[i].enabled=true;}
+                for(int i=0;i<labels.Length;i++){labels[i].text=i<titles.Length?titles[i]:"";targets[i].enabled=i<titles.Length;}
+                if(titles.Length<buttons.Length)buttons[titles.Length].gameObject.SetActive(false);
             }
             else
             {
-                foreach(var target in targets)target.enabled=true;labels[12].text="VR movement / turning";
                 labels[0].text="Resume";labels[1].text="Switch survivor / flying hand";labels[2].text="Respawn on top";labels[3].text="Rebuild castle (host)";
-                labels[7].text="Clear survivors / stop auto-fill";labels[10].text="Clear AI hands";labels[11].text="Local multiplayer / invites"+(net&&net.HasPending?" · NEW":"");
-                if(session.Bots){labels[4].text="Spawn AI survivor ("+session.Bots.Count+" / "+session.Bots.Capacity+")";labels[5].text="Fill to "+session.Bots.targetPopulation+" players";labels[6].text="NPC personality: "+session.Bots.SelectedName;}
-                if(session.HandBots){labels[8].text="Spawn AI hand ("+session.HandBots.Count+" / "+session.HandBots.maximumHands+")";labels[9].text="Hand personality: "+session.HandBots.SelectedName;}
+                labels[11].text=net&&net.IsFusion?"Multiplayer / leave":"Same-Wi-Fi invites"+(net&&net.HasPending?" · NEW":"");
+                for(int i=0;i<buttons.Length;i++)
+                {
+                    bool shown=i<4||(i==11&&net);
+                    buttons[i].gameObject.SetActive(shown);
+                    if(shown)targets[i].enabled=true;
+                }
             }
             // Follow locomotion without following head rotation, so gaze can travel between buttons.
             transform.position = camera.transform.position + openingForward * 1.6f;
@@ -84,12 +95,13 @@ namespace DeadlyJenga.CastlePrototype
             bool pointed=false;
             for (int i = 0; i < buttons.Length; i++)
             {
+                if(!buttons[i].gameObject.activeSelf)continue;
                 bool hover = targets[i].Raycast(ray, out _, 4);
                 buttons[i].image.color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;
                 labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
                 if(hover){pointed=true;help.text=networkPage||comfortPage||i>=explanations.Length?select:explanations[i]+"\n"+select;}
                 if (!hover || !pressed) continue;
-                if(i==12){comfortPage=!comfortPage;networkPage=false;break;}
+                if(i==12){comfortPage=false;networkPage=false;break;}
                 if(comfortPage)
                 {
                     var p=session.Player;

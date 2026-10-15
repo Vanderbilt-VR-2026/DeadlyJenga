@@ -1,4 +1,6 @@
 using FlyingHand;
+using Fusion;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -45,13 +47,26 @@ namespace DeadlyJenga.CastlePrototype
             SetRole(false); SetMenu(false);
             Bots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleBotPopulation>();Bots.Initialize(this);
             HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();HandBots.Initialize(this);
-            Network=gameObject.AddComponent<CastleLanSession>();Network.Initialize(this);
+            var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
+            if (runner != null)
+            {
+                Network = gameObject.AddComponent<CastleLanSession>();
+                gameObject.AddComponent<CastleFusionSession>().Initialize(runner, this, Network);
+            }
+            else if(MatchSetup.StartLocalSession)
+            {
+                Network=gameObject.AddComponent<CastleLanSession>();
+                Network.Initialize(this);
+            }
+            MatchSetup.Apply(this);
             if(!GetComponent<CandyDemoHud>())gameObject.AddComponent<CandyDemoHud>();
         }
         void OnDestroy()
         {
             switchRole?.Dispose(); toggleMenu?.Dispose(); select?.Dispose();
             if (worldMenu) Destroy(worldMenu.gameObject);
+            if (Player) Destroy(Player.gameObject);
+            if (Hand) Destroy(Hand.gameObject);
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
         }
         void OnApplicationFocus(bool value) { focused = value; if (!value && Player && Hand) SetMenu(true); }
@@ -131,28 +146,9 @@ namespace DeadlyJenga.CastlePrototype
             if (GUILayout.Button("Resume controls", GUILayout.Height(32))) SetMenu(false);
             if (GUILayout.Button(PlayingHand ? "Become survivor (spawn on top)" : "Become flying hand", GUILayout.Height(32))) { SetRole(!PlayingHand); SetMenu(false); }
             if (GUILayout.Button("Respawn on top", GUILayout.Height(32))) { SetRole(false); SetMenu(false); }
-            if (Network) Network.DrawMenu();
-            Player.DrawStaminaSettings();
-            Player.DrawVRSettings();
             bool editWorld=!Network||Network.CanEditWorld;
             if (editWorld&&GUILayout.Button("Rebuild castle", GUILayout.Height(32))) { ResetCastle(); SetMenu(false); }
-            if(Bots&&editWorld)
-            {
-                GUILayout.Label("NPC survivors: "+Bots.Count+" / "+Bots.Capacity+(Bots.autoFill?" · auto-fill on":""));
-                if(GUILayout.Button("Spawn AI survivor",GUILayout.Height(32)))Bots.SpawnBot();
-                if(GUILayout.Button("Fill to "+Bots.targetPopulation+" players (including humans)",GUILayout.Height(32)))Bots.FillToTarget();
-                if(GUILayout.Button("Next NPC personality: "+Bots.SelectedName,GUILayout.Height(28)))Bots.CyclePersonality();
-                if(GUILayout.Button("Clear NPCs / stop auto-fill",GUILayout.Height(28)))Bots.ClearBots();
-                GUILayout.Label(Bots.Status);
-            }
-            if(HandBots&&editWorld)
-            {
-                GUILayout.Label("AI giant hands: "+HandBots.Count+" / "+HandBots.maximumHands);
-                if(GUILayout.Button("Spawn AI giant hand",GUILayout.Height(32)))HandBots.SpawnHand();
-                if(GUILayout.Button("Next hand personality: "+HandBots.SelectedName,GUILayout.Height(28)))HandBots.CyclePersonality();
-                if(GUILayout.Button("Clear AI hands",GUILayout.Height(28)))HandBots.ClearHands();
-                GUILayout.Label(HandBots.Status);
-            }
+            if (Network) Network.DrawMenu();
             GUILayout.Label("Space / right A: jump; press again near a ledge to vault. Hold near a steep block to scramble; movement climbs/shimmies. Release to drop. Grip recovers on secure ground.\nVR hands: hold right pinch; left pinch climbs up. Tab / right B: switch role. Left Y: VR menu.");
             GUILayout.EndScrollView();
             GUILayout.EndArea();

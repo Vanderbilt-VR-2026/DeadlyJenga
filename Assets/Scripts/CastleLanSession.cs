@@ -37,7 +37,7 @@ namespace DeadlyJenga.CastlePrototype
             public float connected, lastPose;
             public P.Actor actor;
         }
-        readonly string id = Guid.NewGuid().ToString("N");
+        string id = Guid.NewGuid().ToString("N");
         readonly Dictionary<string, Nearby> nearby = new Dictionary<string, Nearby>();
         readonly Dictionary<string, Pending> pending = new Dictionary<string, Pending>();
         readonly Dictionary<string, Grant> grants = new Dictionary<string, Grant>();
@@ -61,10 +61,13 @@ namespace DeadlyJenga.CastlePrototype
 #if UNITY_ANDROID && !UNITY_EDITOR
         AndroidJavaObject multicastLock;
 #endif
-        public bool IsClient => host != null;
+        bool fusionMode, fusionClient;
+        readonly Dictionary<string, P.Actor> fusionActors = new Dictionary<string, P.Actor>();
+        public bool IsFusion => fusionMode;
+        public bool IsClient => fusionMode ? fusionClient : host != null;
         public bool CanEditWorld => !IsClient;
         public bool WaitingForWorld => IsClient && !receivedWorld;
-        public int HumanCount => 1 + connections.Count(c => c.id != null);
+        public int HumanCount => 1 + (fusionMode ? fusionActors.Count : connections.Count(c => c.id != null));
         public string Status { get; private set; } = "Starting local discovery…";
         public int NearbyCount => Choices().Count;
         public string SelectedName => Selected()?.info.name ?? "No local demos found";
@@ -101,6 +104,54 @@ namespace DeadlyJenga.CastlePrototype
                 Status = "Local demo ready · same Wi-Fi · " + displayName;
             }
             catch (Exception e) { Status = "Local networking: " + e.Message; Debug.LogWarning(Status, this); }
+        }
+        // The castle snapshot/actor implementation is shared by both transports.
+        // Fusion mode never opens discovery sockets or TCP connections.
+        public void InitializeFusion(CastlePlaySession owner, string playerID, bool client)
+        {
+            session = owner; id = playerID; fusionMode = true; fusionClient = client;
+            localBridge = session.Hand.GetComponent<CandyFlyingHandBridge>();
+            Status = client ? "Waiting for host castle…" : "Hosting castle through Fusion";
+            if (client)
+            {
+                session.Bots.ClearBots(); session.Bots.enabled = false;
+                session.HandBots.ClearHands(); session.HandBots.enabled = false;
+                foreach (var body in session.generator.Bodies) if (body) body.isKinematic = true;
+                if (localBridge) localBridge.NetworkPreview = true;
+                session.SetMenu(true);
+            }
+        }
+        public byte[] FusionWelcome(string playerID)
+        {
+            bool survivor = TrySpawn(out var pose);
+            fusionActors[playerID] = InitialActor(playerID, survivor, pose);
+            return P.Encode(P.Welcome, w => { w.Write(!survivor); P.Write(w, pose); w.Write(MatchSetup.CaptureRules(session.Player)); });
+        }
+        public void FusionReceiveWelcome(byte[] data)
+        {
+            if (welcomed) return;
+            using var reader = P.Reader(data, P.Welcome);
+            reader.ReadBoolean(); P.ReadPose(reader);
+            MatchSetup.ApplyRules(session.Player, P.Text(reader, 4096));
+            ReceiveWelcome(data);
+        }
+        public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
+        public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
+        public void FusionApplyWorld(byte[] data) => ApplyWorld(P.DecodeWorld(data));
+        public void FusionReceivePlayer(string playerID, byte[] data)
+        {
+            using var reader = P.Reader(data, P.Player);
+            var actor = P.ReadActor(reader); actor.id = playerID;
+            if (actor.hand && localBridge) { actor.size = localBridge.settings.size; actor.left = localBridge.useLeftHand; }
+            fusionActors[playerID] = actor;
+            ShowActor(actor, true);
+        }
+        public void FusionRemovePlayer(string playerID) { fusionActors.Remove(playerID); RemoveView(playerID); }
+        public void FusionSuspendPlayer(string playerID) { if (views.TryGetValue(playerID, out var view)) view.Suspend(); }
+        public void FusionRender()
+        {
+            if (IsClient && receivedWorld) InterpolateWorld();
+            foreach (var view in views.Values) if (view) view.Render(Time.unscaledDeltaTime);
         }
         List<Nearby> Choices() => nearby.Values.Where(p => p.info.available && Time.unscaledTime - p.seen < 5).OrderBy(p => p.info.name).ToList();
         Nearby Selected() { var list = Choices(); return list.Count == 0 ? null : list[selectedIndex % list.Count]; }
@@ -315,6 +366,7 @@ namespace DeadlyJenga.CastlePrototype
                     p = hit.point + Vector3.up * .06f;
                     if (!session.PlayingHand && Vector3.Distance(session.Player.transform.position, p) < 1) continue;
                     if (connections.Any(c => c.actor != null && !c.actor.hand && Vector3.Distance(c.actor.avatar.feet, p) < 1)) continue;
+                    if (fusionActors.Values.Any(a => !a.hand && Vector3.Distance(a.avatar.feet, p) < 1)) continue;
                     if (session.Bots.Bots.Any(b => b && !b.Respawning && Vector3.Distance(b.transform.position, p) < 1)) continue;
                     var heading = Vector3.ProjectOnPlane(session.generator.transform.position - p, Vector3.up);
                     spawn = new P.Pose(p, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity); return true;
@@ -371,6 +423,12 @@ namespace DeadlyJenga.CastlePrototype
                 if (c.actor == null) continue;
                 if (c.actor.hand && views.TryGetValue(c.id, out var v) && v.Hand) actors.Add(CaptureHand(c.id, v.Hand));
                 else actors.Add(c.actor);
+            }
+            foreach (var pair in fusionActors)
+            {
+                if (pair.Value.hand && views.TryGetValue(pair.Key, out var view) && view.Hand)
+                    actors.Add(CaptureHand(pair.Key, view.Hand));
+                else actors.Add(pair.Value);
             }
             foreach (var bot in session.Bots.Bots)
             {
@@ -436,7 +494,11 @@ namespace DeadlyJenga.CastlePrototype
             view.Receive(actor);
         }
         void RemoveView(string key) { if (views.TryGetValue(key, out var view) && view) { view.gameObject.SetActive(false); Destroy(view.gameObject); } views.Remove(key); }
-        public void LeaveSession() => Leave("Local session ended · continuing this demo locally.");
+        public void LeaveSession()
+        {
+            if (fusionMode) { GetComponent<CastleFusionSession>().Leave(); return; }
+            Leave("Local session ended · continuing this demo locally.");
+        }
         void Leave(string reason)
         {
             connectAttempt++; connecting = false; requested = null;
@@ -455,13 +517,14 @@ namespace DeadlyJenga.CastlePrototype
             connectAttempt++; transport?.Dispose();
             while (completions.TryDequeue(out var completion)) completion();
             foreach (var view in views.Values) if (view) Destroy(view.gameObject);
-            Application.runInBackground = oldRunInBackground;
+            if (!fusionMode) Application.runInBackground = oldRunInBackground;
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (multicastLock != null) { multicastLock.Call("release"); multicastLock.Dispose(); }
 #endif
         }
         public void DrawMenu()
         {
+            if (fusionMode) { GUILayout.Label(Status); if (GUILayout.Button(IsClient ? "Leave game" : "Close game for everyone", GUILayout.Height(32))) LeaveSession(); return; }
             GUILayout.Space(8); GUILayout.Label("LOCAL MULTIPLAYER · same Wi-Fi"); GUILayout.Label(Status);
             if (!IsClient)
             {
