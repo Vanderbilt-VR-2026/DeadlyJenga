@@ -1,0 +1,2 @@
+PASS Terrain and height map remain fixed during wave animation.
+OBSERVATION Whole-demo editor median frame interval: 10.59 ms; not an isolated GPU or headset benchmark.

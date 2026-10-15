@@ -1,0 +1,11 @@
+# Audio design research / choices
+
+- [Unity Collision.impulse](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/Collision-impulse.html): use the physics solver's existing impulse instead of adding force calculations or modifying contacts. Combine impulse per mass with normal relative speed; contact count is only a rough proxy for the contact patch.
+- [Unity AudioSource spatialBlend](https://docs.unity3d.com/6000.0/Documentation/ScriptReference/AudioSource-spatialBlend.html): use spatial effects for characters, blocks and hands; local music/UI/environment bed. Positional stereo is distinct from a headset HRTF spatializer.
+- [Unity AudioSource priority](https://docs.unity.com/en-us/engine/6000.3/script-reference/unityengine/audiosource/priority): use priorities and source limits so large collapses don't swamp critical feedback. The module additionally limits starts/second, concurrency, distance and repeated contact events.
+- [Unity AudioMixer](https://docs.unity3d.com/6000.0/Documentation/Manual/AudioMixer.html): keep cue/bus control separate from sound assets. Optional mixer-group assignments allow later EQ, compression, ducking or routing without replacing gameplay hooks; this first pass uses software bus gains and simple collapse/music ducking.
+- [GDC: Materials vs. Audio — Object Interaction Sound Design in Halo](https://www.gdcvault.com/play/1012708/Materials-vs-Audio-Object-Interaction): relevant precedent for choosing responses based on object/material interactions. This project uses a much smaller candy/crate palette and optional surface tags.
+
+Specific immersion choices for this project: rounded resonant crate impacts convey weight without harsh metallic realism; rubber movement/friction ties the giant hand to contact; character chirps/effort provide social presence; grip contacts give tactile timing; sheltered wind and distant surf describe space; music stays under gameplay. Future danger, health and round-result cues should follow the actual game rules, rather than playing arbitrary alarms now.
+
+All audio assets and the music sequence are original deterministic synthesis from the included Python source. No source above supplies sampled audio or a melody. The desired Mario-like quality is interpreted as cheerful, tactile, playful cartoon audio rather than copying Nintendo sound assets.

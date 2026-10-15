@@ -1,0 +1,3 @@
+PASS Animated water retains the same mesh and vertex buffer.
+PASS Fixed-camera rendered wave frames change over time.
+OBSERVATION Editor median frame interval with ocean: 19.83 ms. Includes editor, castle physics, avatar and other applications; not an isolated GPU benchmark or headset guarantee.

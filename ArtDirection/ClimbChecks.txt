@@ -1,0 +1,23 @@
+PASS Nearby wall does not automatically latch.
+PASS Brief jump press does not trigger a cling.
+PASS Holding jump catches a vertical crate through its real survivor surface.
+PASS Forward input climbs upward.
+PASS Right input shimmies right along the wall.
+PASS Both avatar hands have separate wall contact targets.
+PASS Shared avatar presents the wall grip to first and third person.
+PASS Releasing drops without restoring stamina.
+PASS Idle clinging exhausts grip and drops the survivor.
+PASS Holding through exhaustion cannot relatch or recharge in air.
+PASS Secure footing restores exhausted grip after a short rest.
+PASS Climbing crosses adjacent crate seams without refilling grip.
+PASS Gentle block movement carries the climber without parenting.
+PASS Climber never becomes a child of the physics block.
+PASS A thrown crate breaks grip and transfers launch momentum.
+PASS A falling crate cannot be used as a permanent anchor.
+PASS Rapid tumbling breaks grip.
+PASS A sharp acceleration breaks grip even below the speed cap.
+PASS Impact API breaks grip before applying knockback.
+PASS Disabled/destroyed support safely releases the climber.
+PASS Upward scramble transitions into the normal clear-ledge vault.
+PASS A settled 70 degree face supports upward scrambling.
+PASS Climbing keeps player-to-dynamic-block collision isolation.

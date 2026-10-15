@@ -1,0 +1,10 @@
+PASS Flat floor supports the survivor.
+PASS Ground jump works; a second airborne press does not double jump.
+PASS 30 degree ramp permits continuous uphill walking.
+PASS 30 degree ramp retains grip.
+PASS Jump launches from an incline.
+PASS 55 degree slope slides downhill with foot support.
+PASS Sliding survivor can jump away.
+PASS 70 degree slope slips faster than 55 degrees.
+PASS Near-vertical face supplies no grounded jump.
+PASS Survivors still cannot push dynamic blocks.

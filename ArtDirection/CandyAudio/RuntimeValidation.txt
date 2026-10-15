@@ -1,0 +1,15 @@
+PASS Runtime engine and swappable bank exist.
+PASS Castle audio world exists.
+PASS Exactly one bounded gameplay voice pool is allocated (studio preview is separate).
+PASS Audio module creates no competing listener.
+PASS Every live generated block has a contact observer (wait one second after rebuilding).
+PASS A mapped effect starts a real AudioSource successfully.
+PASS At least one ambience/music loop is actually playing.
+PASS Collision storm is bounded by the voice/event budget.
+PASS Audio root contains no physics body/collider.
+PASS Friendly runtime sound studio is installed.
+PASS Studio opens on a session copy, preserving the project bank.
+PASS Editing a nested cue leaves the source bank unchanged.
+PASS Studio variation preview plays a real clip.
+PASS Closing stops audition and restores the game mix.
+This smoke test does not certify perceived sound quality, Quest frame time, HRTF or network event replication.

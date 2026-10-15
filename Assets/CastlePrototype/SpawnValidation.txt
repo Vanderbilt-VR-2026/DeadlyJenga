@@ -1,0 +1,1 @@
+PASS Initial spawn stays on top after 2 seconds: actual=(4.52, 59.91, 4.38), target=(4.44, 60.08, 4.44)

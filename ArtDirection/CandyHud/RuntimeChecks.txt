@@ -1,0 +1,13 @@
+PASS New HUD is installed by the demo session.
+PASS Control hints appear while playing.
+PASS Desktop prompts identify supported inputs.
+PASS Desktop prompts match real movement / jump bindings.
+PASS HUD adds no physics colliders or bodies.
+PASS Menu hides gameplay hints.
+PASS Opening the menu suspends local movement input.
+PASS Hidden hint setting actually hides the control overlay.
+PASS VR uses VR / hand prompts, not keyboard instructions.
+PASS VR hints use a world-space canvas visible to both eyes.
+PASS VR menu remains available.
+PASS HUD creates no extra audio listener.
+VR layout uses forced control mode; real headset legibility and hand gestures still need device testing.

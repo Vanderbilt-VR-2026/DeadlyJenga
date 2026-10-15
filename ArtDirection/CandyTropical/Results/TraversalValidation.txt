@@ -1,0 +1,22 @@
+PASS Default role survivor 
+PASS Spawn at top actual=(4.45, 59.97, 4.41), target=(4.45, 59.98, 4.41)
+PASS Single active camera 
+PASS Auto desktop without running display 
+PASS VR enables head tracking 
+PASS Desktop restores untracked eye 
+PASS Ground detection 
+PASS Jump barely clears 2m crate height=2.030m
+PASS No extra jump in empty air 
+PASS No ledge found in empty air 
+PASS Nearby crate detected 
+PASS Vault begins 
+PASS Vault lands on crate (0.00, 2.01, 1.24)
+PASS Blocked landing rejected 
+PASS Too high ledge rejected 
+PASS Destroyed ledge cancels vault 
+PASS Hand possession 
+PASS Hand camera follows prefab target 
+PASS Hand single camera 
+PASS Return to survivor 
+PASS Reset retains 568 blocks 
+Headset hardware/comfort and network play are not covered by these editor checks.

@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7a6a97f8e8a2e0e468100ef15327ad40, type: 3}
+  m_Name: Bench Hand Settings
+  m_EditorClassIdentifier: Assembly-CSharp::DeadlyJenga.CandyPhysicsHands.CandyHandSettings
+  size: 1
+  skin: {fileID: 2100000, guid: a977112ad27800943b162857ac7eb2db, type: 2}
+  palmMass: 0.3
+  fingerMass: 0.1
+  palmForce: 20
+  fingerForce: 3
+  palmTorque: 1
+  fingerTorque: 0.01
+  positionSpring: 200
+  positionDamping: 2
+  rotationSpring: 10
+  rotationDamping: 0.02
+  maxSpeed: 1
+  maxAngularSpeed: 12
+  solverIterations: 32
+  solverVelocityIterations: 16
+  staticFriction: 1.5
+  dynamicFriction: 1.2
+  stableTime: 0.12
+  dropoutHold: 0.1
+  releaseTime: 0.25
+  recoveryTime: 0.35
+  jitterTime: 0.035
+  maxTargetSpeed: 0.6
+  maxTargetAngularSpeed: 540

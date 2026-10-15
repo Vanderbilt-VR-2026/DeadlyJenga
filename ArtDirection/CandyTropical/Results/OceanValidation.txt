@@ -1,0 +1,6 @@
+PASS Installed rolling ocean in the active scene.
+PASS Ocean shader compiles without errors.
+PASS All 568 crate transforms, colliders and Rigidbody settings are unchanged.
+PASS Grid topology counts match profile: 10185 vertices / 19200 triangles.
+PASS Repeated refresh reuses the mesh.
+PASS Ocean has no collider or Rigidbody.

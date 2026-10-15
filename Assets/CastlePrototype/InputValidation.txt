@@ -1,0 +1,14 @@
+PASS Input-only HMD keeps desktop mode 
+PASS W walks forward (0.00, 0.00, 1.00)
+PASS Mouse look rotates yaw and pitch 
+PASS Space jumps 
+PASS Second space in open air gives no jump 
+PASS Airborne space vaults nearby crate (100.00, 12.01, 101.24)
+PASS Tab possesses hand 
+PASS Hand W/E moves physics body 
+PASS XR left stick walks 
+PASS XR A jumps 
+PASS XR Y opens world menu 
+PASS Gaze plus trigger activates menu trigger=1 gazeHit=False
+PASS XR B switches role 
+Uses synthetic Input System devices in the real Unity player loop; no physical headset was available.

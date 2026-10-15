@@ -1,0 +1,839 @@
+{
+  "sample_rate": 32000,
+  "origin": "Original deterministic procedural synthesis; no external samples or melodies.",
+  "clips": [
+    {
+      "cue": "BlockTap",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockTap_01.wav",
+      "guid": "7a3ec5d527435cfd99125a811a6c887c",
+      "sha256": "f2cab491be64410a31969b2b6e66d62baee5179ab3a56afe2e1fd11893e4143d"
+    },
+    {
+      "cue": "BlockTap",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockTap_02.wav",
+      "guid": "61ed75bee1bb5bc1b3c5dcdcfcb891f3",
+      "sha256": "1b459632ea4f396b516c9a17733263a0c376688da43529d86def6e0fd50e248a"
+    },
+    {
+      "cue": "BlockTap",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockTap_03.wav",
+      "guid": "1b73ee2ade4d556b89bd1205e3bd909a",
+      "sha256": "67e3a08b6072bf3546f89d14d2048dc31a81c0f3067e21430875afb3ac67b708"
+    },
+    {
+      "cue": "BlockTap",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockTap_04.wav",
+      "guid": "4452472bf84552bc9ec1a5aa6fa39779",
+      "sha256": "1b0709ccc6d3c4bb3027136280ca6b0227d451c1db9cbf6ee30865a47d48ec90"
+    },
+    {
+      "cue": "BlockHit",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockHit_01.wav",
+      "guid": "c584d5542bdf59e6bb748bd0cfb26441",
+      "sha256": "a251eb44454aff682f4d8e502fe2412184bdb7c20560f6e3f019e30f5381cf68"
+    },
+    {
+      "cue": "BlockHit",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockHit_02.wav",
+      "guid": "788d76d138ce571bb4ee0b1e124a8264",
+      "sha256": "d354b1f991506b177cd9b196e4988b4c01b88912222062251dbbceb9dc4e2266"
+    },
+    {
+      "cue": "BlockHit",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockHit_03.wav",
+      "guid": "6e68064cde355a74b78baec5d639d984",
+      "sha256": "1540ecfd3b9d2c14031b0c22472805ad9d6a82276f4ca2836a03ef4b5aa38589"
+    },
+    {
+      "cue": "BlockHit",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockHit_04.wav",
+      "guid": "cedd4218f5d95119971c98f73f8e4094",
+      "sha256": "dc2e08cdbc07825b02807851b783d4999545ff0f573f9caaa215108e27bb22a0"
+    },
+    {
+      "cue": "BlockSmash",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSmash_01.wav",
+      "guid": "36d3d107be2a5a838123a92989734e66",
+      "sha256": "f14b866448b207b026f89c4583d5ef884e780863abdcca2cf0203612418b6e41"
+    },
+    {
+      "cue": "BlockSmash",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSmash_02.wav",
+      "guid": "4c340171a5ce51c5831ffb83de283933",
+      "sha256": "378b6b7440c601a90ad76a3135278b99ba565ac30da9d9f63a2fb06bdfb0cc4b"
+    },
+    {
+      "cue": "BlockSmash",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSmash_03.wav",
+      "guid": "ffc087192c665bffa8998ef0ed487d1e",
+      "sha256": "543a53762168dbf84d7406baa392f4c2673d2c65489e8192bab5683f5b127816"
+    },
+    {
+      "cue": "BlockSmash",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSmash_04.wav",
+      "guid": "7411984e8b565039b66f4377d042ba3e",
+      "sha256": "4f5fe83a16c76bdd6fcdd901c7a5ecaa7eb6a3a4ed5547539e26d2437189d9e9"
+    },
+    {
+      "cue": "BlockScrape",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Loops/BlockScrape_01.wav",
+      "guid": "c7566d4d327b5354aec96ccdaf8df68d",
+      "sha256": "9dcfd0ab3977953a3680823de7a218f130db8ffc715d00949a65cb51b14b3c49"
+    },
+    {
+      "cue": "StructureLean",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/StructureLean_01.wav",
+      "guid": "3b480e02a024579593e561bb5a0cdb2c",
+      "sha256": "87644b26f87561c612c62b5e42db1cb7eeef72936a27aae0b7feaef0e1310197"
+    },
+    {
+      "cue": "StructureLean",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/StructureLean_02.wav",
+      "guid": "38e2fc7ac6945d94945245b9ecf00b45",
+      "sha256": "29dda33887bb5c1e4e64a8133821b36e12ea81f329c5b2483eb3cce7bd1dc6e4"
+    },
+    {
+      "cue": "StructureLean",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/StructureLean_03.wav",
+      "guid": "19079f8796c058138f030338c52b5186",
+      "sha256": "ecee5b297a7d47997e4c487cb6c2cf50d8e5c7ec0a6f0b25279fedc6c784c2bf"
+    },
+    {
+      "cue": "StructureLean",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/StructureLean_04.wav",
+      "guid": "a17f7aa99fc6549886d3ae3854a77f94",
+      "sha256": "1ac99425c6faa55200161b39e56d61b2746371e4991651ddbd0b6441da8fb6d2"
+    },
+    {
+      "cue": "BlockSplash",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSplash_01.wav",
+      "guid": "ac85d090cef7576594212759b7447869",
+      "sha256": "de8a0a8efa2a0216bf5974e312d3841b0d5752071c137134b9b5473b641e3526"
+    },
+    {
+      "cue": "BlockSplash",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSplash_02.wav",
+      "guid": "98a8f9f5b02058d19a85e13e5155b69b",
+      "sha256": "238439c3731722344dc47dc50ce9a3c65d17a24ce18fa2c64d055b6d76199ac4"
+    },
+    {
+      "cue": "BlockSplash",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSplash_03.wav",
+      "guid": "6178913499f15885a0a12e6f4b5bf07a",
+      "sha256": "3328047a2be406cc21060df7b8c571ee727f2f0aa61e7f086908250226786899"
+    },
+    {
+      "cue": "BlockSplash",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/BlockSplash_04.wav",
+      "guid": "6363c179ce8a5be090c444646d01d4e6",
+      "sha256": "5429ebcc8d16684ab74e28f488c3e2879a792d83d3e5d09624cd21ee3f0e6c22"
+    },
+    {
+      "cue": "PlayerSplash",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/PlayerSplash_01.wav",
+      "guid": "acec5f1e59ff543f86fbee8f73310479",
+      "sha256": "739aeeee242487673cb02f809b51233716a7e651f6e9948d449375eac4b27ce2"
+    },
+    {
+      "cue": "PlayerSplash",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/PlayerSplash_02.wav",
+      "guid": "8b22e23e2c5955a9a65b2b9e266fd6f7",
+      "sha256": "3e2f597b04cd93acbfc5d237eca5c5323393a31548d40d2b5d81939ca8dbaa90"
+    },
+    {
+      "cue": "PlayerSplash",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/PlayerSplash_03.wav",
+      "guid": "978031ceb5c8589ca1f8e2e2ce9fddfc",
+      "sha256": "defa44066eaf83efa470af9cedef37621feed379a9a976f7ee93a1a38b1e8601"
+    },
+    {
+      "cue": "PlayerSplash",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/PlayerSplash_04.wav",
+      "guid": "63d167d1cd6c569391fa1195038e71b8",
+      "sha256": "6fc363a5d40cf11a49a5b5c746b05c4b116e49fd0600e5168450f914f82ea829"
+    },
+    {
+      "cue": "RubberSlide",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Loops/RubberSlide_01.wav",
+      "guid": "89143c99964b517cae1355efe9adb570",
+      "sha256": "4721474c335bae341c0040eac3074f1cc127045d8de4537208eb3b0990e88bb7"
+    },
+    {
+      "cue": "RubberTouch",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/RubberTouch_01.wav",
+      "guid": "754e8678539155c885c43850cf2d1817",
+      "sha256": "6632eb2036e2afd9033f546911c4ec5802d7eab7bffb4e9d34f5001b6a989dd6"
+    },
+    {
+      "cue": "RubberTouch",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/RubberTouch_02.wav",
+      "guid": "e657af461bba589d840b02c8396fa52c",
+      "sha256": "cec3aa61cbd790cbe3c8b2244a8fbd90559f8b2a2cf38f09d35f88b05188a43d"
+    },
+    {
+      "cue": "RubberTouch",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/RubberTouch_03.wav",
+      "guid": "1f40ad2c0a0d5a9f8cc05d417ae6eda4",
+      "sha256": "bd23137fada832ab83179f67bc2ccc7559c590bd76c89f269d074fbb1ddcdd6c"
+    },
+    {
+      "cue": "RubberTouch",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/RubberTouch_04.wav",
+      "guid": "28a3313edfad5214901fb974423248ff",
+      "sha256": "d301084b3533cd6adec84c2cebb7f8b2e10692f8deae4e90d6d5be6c32237b1a"
+    },
+    {
+      "cue": "FootstepCandy",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepCandy_01.wav",
+      "guid": "67d18165c6615ed886bc3c9b4149829a",
+      "sha256": "f5511951be320004afdecffe5d2660a2a338eec8eada6e546541224bd0a93b54"
+    },
+    {
+      "cue": "FootstepCandy",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepCandy_02.wav",
+      "guid": "e5a63bbcac17545ebcbbf092840c22a0",
+      "sha256": "d4cd2c822b64c06b0b6ae080cbaeba0db11b4984c89cb9fe87f6d716c8435be5"
+    },
+    {
+      "cue": "FootstepCandy",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepCandy_03.wav",
+      "guid": "03350cd1d40b52a9bc053efb0f384075",
+      "sha256": "efd699b0644fb71f27f65163248590a18af12493b18b785f6ae159d6d9589401"
+    },
+    {
+      "cue": "FootstepCandy",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepCandy_04.wav",
+      "guid": "2315bf7a98185ce68a1c3d3087b246e7",
+      "sha256": "ba92f6cc894b0f7290dc290b85bda721c7d693e691889e7e50efeaf448f20923"
+    },
+    {
+      "cue": "FootstepSand",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepSand_01.wav",
+      "guid": "be002d48bf92585498b965ef21e4e1a4",
+      "sha256": "2d4124993501c2d517195899f599a74a1a4719646f213da9a631ad08870b59b3"
+    },
+    {
+      "cue": "FootstepSand",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepSand_02.wav",
+      "guid": "093db35d6fc457c19e182f9199029dfe",
+      "sha256": "d3c48bdf1a67309cd8961f847bdcc9482e6da2583877fb4eec44a34c93782f56"
+    },
+    {
+      "cue": "FootstepSand",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepSand_03.wav",
+      "guid": "1e64ac3aa0bd538fad871f7356bcd3d1",
+      "sha256": "0f0b25782558ddf039787762a31a1cf0a5f97e471542c2f49c38ec1beaa8e8f4"
+    },
+    {
+      "cue": "FootstepSand",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/FootstepSand_04.wav",
+      "guid": "323a7d97879f53acb084f6355cc078f3",
+      "sha256": "d3d1c7e71c4e7355a085738601a87e629f6613591ceab32e555d0575fc5fddbf"
+    },
+    {
+      "cue": "Jump",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/Jump_01.wav",
+      "guid": "b1c73fd7c4d9573295fd273887d5ec4a",
+      "sha256": "02b2cc5aa8c757c2b65fcb362621cb43cd050aec58d2c483c23519594403caa1"
+    },
+    {
+      "cue": "Jump",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/Jump_02.wav",
+      "guid": "852abcc91f2f511d96bd1b5e72028108",
+      "sha256": "fe1282a8cc898dc7d8fb44f082a4696af2525a0ab0d033d4d4f627c00adad241"
+    },
+    {
+      "cue": "Jump",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/Jump_03.wav",
+      "guid": "3b7443a5b3ae5c93b5d3b7156c8b8ad0",
+      "sha256": "314238cd2f385e6192e5ab3e6f85a961279155ec3f82d7384addb6d5f756b642"
+    },
+    {
+      "cue": "Jump",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/Jump_04.wav",
+      "guid": "b9d84c9ab10b5db3a14ce7003ca592a1",
+      "sha256": "180ed920b0c44e918cb2ca55afa480e4d88ace071f9bd8ef835ce9ef2fcd473b"
+    },
+    {
+      "cue": "LandSoft",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/LandSoft_01.wav",
+      "guid": "9340348168fd5d4cbcbf10480ca22270",
+      "sha256": "550bf7623623f713fae90e9bb67b8439de3c95449cc2b7872c6d897766c80d4c"
+    },
+    {
+      "cue": "LandSoft",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/LandSoft_02.wav",
+      "guid": "da4eeddabddc5c51ac56b60d52bbb130",
+      "sha256": "c51a5b4a648043634348dd5d858b500b7626082aae9b0bcdbfbd2b975a07a7ac"
+    },
+    {
+      "cue": "LandSoft",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/LandSoft_03.wav",
+      "guid": "0664a4a577ec593c8d080a65518fd34d",
+      "sha256": "3871aca67d2a897e337dae9aa12b1f1cd3edf9150855ca34e3d5abce5e6525a6"
+    },
+    {
+      "cue": "LandSoft",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/LandSoft_04.wav",
+      "guid": "52cb7f66c8e15b6abec2f3d4a69e7140",
+      "sha256": "e6a186bb084dad93c184ca1fed996a4e84517e84c7083971137590d7c834db90"
+    },
+    {
+      "cue": "LandHard",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/LandHard_01.wav",
+      "guid": "de94c99362115686b20dbbd5818d8b3d",
+      "sha256": "3494befab7b0a20e6c43c9c143b2c85235f76ce20dcdd2704ab3276151949d32"
+    },
+    {
+      "cue": "LandHard",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/LandHard_02.wav",
+      "guid": "62932ae20e5a54f7bbbb33a1c78e3513",
+      "sha256": "0c39572fb0831962aab7c796aa3d208959a1fd35992a892970ff0993f89a792d"
+    },
+    {
+      "cue": "LandHard",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/LandHard_03.wav",
+      "guid": "1cfce8bc837b5194949f39d8a4bf13a9",
+      "sha256": "49015879285bd12e301d4477c35678b378bbd6b25c124aba68985d9e2bec795a"
+    },
+    {
+      "cue": "LandHard",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/LandHard_04.wav",
+      "guid": "ca40ae9f64bb5d119ab9c7f54bbbbd54",
+      "sha256": "2e6ab7bbefc39fec1142759094e7c2266f086e12503a54665cf1a69e7223e17c"
+    },
+    {
+      "cue": "VaultGrunt",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/VaultGrunt_01.wav",
+      "guid": "3d3cac2ea50e5f9c8462b29e647ef1dd",
+      "sha256": "15bab28bd6bf14f47f72a5d12a25c7a364df4b1788a46acf8366f826bc4fd27b"
+    },
+    {
+      "cue": "VaultGrunt",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/VaultGrunt_02.wav",
+      "guid": "f4f2d411e50b5d85a484559d2065e14b",
+      "sha256": "97bd058f5a441c8b41d671444c63508cbf8ea77757d86106b1053afeb76275a0"
+    },
+    {
+      "cue": "VaultGrunt",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/VaultGrunt_03.wav",
+      "guid": "362b799ebf555b7bbfcab6b7987f73dd",
+      "sha256": "6ba8f88059330173a939384a9068cf801f9acca0cb64ecb8656eff0347e88427"
+    },
+    {
+      "cue": "VaultGrunt",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/VaultGrunt_04.wav",
+      "guid": "0fef570a9ac5512bb4049f274e28603d",
+      "sha256": "6c6b7a1836a889052817cc9b601fca6dbde6dc2b7711b9c975492f278ad72c11"
+    },
+    {
+      "cue": "ClimbGrunt",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbGrunt_01.wav",
+      "guid": "4122c92cda5a57cdb4b9670e8719f38e",
+      "sha256": "02b6cabd552a56f60d5055fd1ed054295035f3201c9a46d6beaadfb65e9b880c"
+    },
+    {
+      "cue": "ClimbGrunt",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbGrunt_02.wav",
+      "guid": "2f7a75cc602a56a29fe971c43b810019",
+      "sha256": "e51987146ba6da98d6430658dbb1ea73baae71a4756bf0312397b1c54f68a8be"
+    },
+    {
+      "cue": "ClimbGrunt",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbGrunt_03.wav",
+      "guid": "e4e0b87bd2a25193a8300f609bdf8ec7",
+      "sha256": "ab9a219ce717adfde8fb59669d0e225ec295d4f19b54e771a389d10c98d9e9c0"
+    },
+    {
+      "cue": "ClimbGrunt",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbGrunt_04.wav",
+      "guid": "65574154b9c651a6911891000af304ab",
+      "sha256": "6dd337d7d74f52ad5bbe79dce06db0ce422972b58157afc3704f19bdf31a629d"
+    },
+    {
+      "cue": "ClimbPlant",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbPlant_01.wav",
+      "guid": "44fbf416c597563b9e8b2663ddc74d25",
+      "sha256": "cba187a04db3ae7ddcdff6181a8067a32c12bdf86d49ff2df3efb7fe89548211"
+    },
+    {
+      "cue": "ClimbPlant",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbPlant_02.wav",
+      "guid": "cf4c081f655556f998f8359f5722939f",
+      "sha256": "ec17a97b017320e3efa1c725006baab8edc7c147f0604e8fede36b4ac3fdeca2"
+    },
+    {
+      "cue": "ClimbPlant",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbPlant_03.wav",
+      "guid": "a357377f4c6e5c6089bf28c1fc0999a8",
+      "sha256": "9e21d5a0ed3b12aa23fa47cd050b76f42537baaff0e671604a614cd916d922b5"
+    },
+    {
+      "cue": "ClimbPlant",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbPlant_04.wav",
+      "guid": "b7c49956478c54e0a517476c139622eb",
+      "sha256": "c40ee3d7b46c6bec03f6200c2cc501cd948be62358c59c2c1478d674f8b540b4"
+    },
+    {
+      "cue": "ClimbRelease",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbRelease_01.wav",
+      "guid": "ad05a57c916a525f928b2a796d04d9f9",
+      "sha256": "751bfc74c5188c752ee9df83a0b220448ad84b3301dfdea82b48f43d96564ea3"
+    },
+    {
+      "cue": "ClimbRelease",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbRelease_02.wav",
+      "guid": "3e65c1b92d6958f5a18bb8f615ccfc1d",
+      "sha256": "2e2efb78028e223e7ba9c86e01f32be3c5e272a076ed69e4dc81580b7be85ab6"
+    },
+    {
+      "cue": "ClimbRelease",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbRelease_03.wav",
+      "guid": "76b4638db009587586767972d550be85",
+      "sha256": "b56c8593c36cd73a0c49777759f62b5249a8dbbab22c0976d6fa4762c7a7d58b"
+    },
+    {
+      "cue": "ClimbRelease",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/ClimbRelease_04.wav",
+      "guid": "17ea9ecba2965a8cbe770b8179206ffb",
+      "sha256": "a8546b07265d980fe6f4fd4ef5efd97e515637547b4080c3b1b4c7211ffce8dc"
+    },
+    {
+      "cue": "FallWind",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Loops/FallWind_01.wav",
+      "guid": "5fc0b18b39fd58dd9376d035603435e8",
+      "sha256": "da3cedb059034459763fc182b161cf96b966523099d725ceb1718ed3ee0d2676"
+    },
+    {
+      "cue": "BeachWind",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Loops/BeachWind_01.wav",
+      "guid": "38bd937b96425547b66dfa59b7ce2240",
+      "sha256": "e979f021acf2fa76a7ad140354bb7883d99b312112a299e084df3d2cc44288b3"
+    },
+    {
+      "cue": "HandFlight",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Loops/HandFlight_01.wav",
+      "guid": "1a252b3b6cd25b2aa8de886dca72d3f9",
+      "sha256": "b5abba02fd127060e37e5b178df77b36ae9d29c312e49f5512cf2e4a110bf8c2"
+    },
+    {
+      "cue": "Surf",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Loops/Surf_01.wav",
+      "guid": "3207016b987c57949fcb011dd92fb6dd",
+      "sha256": "8ea62ef9148bf734d26425e6b71a24f4f6b0c5eae3b5db3a12e634167bed10de"
+    },
+    {
+      "cue": "Music",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Music/Music_01.wav",
+      "guid": "a58886876fff5a3a80d24ad70b2b2107",
+      "sha256": "fa1a9209a0b9ce32e55592b806ab2d8cca9bb985fba137d0f79de65013432806"
+    },
+    {
+      "cue": "Spawn",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/Spawn_01.wav",
+      "guid": "5821953fd7d55a91941ca801b104967d",
+      "sha256": "917c083240a60e19304d3ae80c73023412859eeecbb0be625317c87ef45ea621"
+    },
+    {
+      "cue": "Spawn",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/Spawn_02.wav",
+      "guid": "b11e0db50aeb51299bd96c9fa9f008f9",
+      "sha256": "291222fea6610a41afdcea83cc3242fd8759d1917d951ed3a2a2a3e11b02fb15"
+    },
+    {
+      "cue": "Spawn",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/Spawn_03.wav",
+      "guid": "e5c62d7db69a5d829a5371b636bfeff9",
+      "sha256": "f78ec48eae6c096377e02c4b3184801c44ea003ca90a90b89bd6aee808dbe461"
+    },
+    {
+      "cue": "Spawn",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/Spawn_04.wav",
+      "guid": "e0e30806be7458c7a01ee75265048e05",
+      "sha256": "7b0e24ff13e72a9ebda670824f8b6905fe2f52a6611c35f569448d710a72d915"
+    },
+    {
+      "cue": "Respawn",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/Respawn_01.wav",
+      "guid": "fc0d79812f895bd5b97bbf7e0913e930",
+      "sha256": "98d0d37780ccfd3a593b242e4cea0ad9caf877ac6e4223c7ff45f88781e7b3a2"
+    },
+    {
+      "cue": "Respawn",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/Respawn_02.wav",
+      "guid": "2b9603fdcca4546490c11944438bd168",
+      "sha256": "ca882110e51e70a75888043ac778e4c69caff0343613d99517ce49d49ebb8df9"
+    },
+    {
+      "cue": "Respawn",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/Respawn_03.wav",
+      "guid": "da3def984a355e94ba286ebae93679d0",
+      "sha256": "05c5888513c973706acf272e8d47e8c8374af19214b96bcac9174c83c3ab9bb0"
+    },
+    {
+      "cue": "Respawn",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/Respawn_04.wav",
+      "guid": "9c313b75eabc532d9d3cfccddb1c456d",
+      "sha256": "8685967d202060c565013d7fe73d74b2f7561ef0b4ea10047036d16b9bfffac0"
+    },
+    {
+      "cue": "UiClick",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/UiClick_01.wav",
+      "guid": "648749efdf03566d927d4d80ca27ac03",
+      "sha256": "ce2ff198a8a1b9bfbb715720b55b5193f7fc81c14c30d04835fadce8a76ffbb9"
+    },
+    {
+      "cue": "UiClick",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/UiClick_02.wav",
+      "guid": "62796f2d05f150f28156b42c19035534",
+      "sha256": "6e8b6ed6cec0508f10a1f1038cf1cb977f7720ab7884dec50c6a6fd1dbca8112"
+    },
+    {
+      "cue": "UiClick",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/UiClick_03.wav",
+      "guid": "19a90178f4655c46bde4e3e193756355",
+      "sha256": "ff64e51f5287e702c6d9e8af192baa1bfe0c7f755171b945cb1f8fc444a35d19"
+    },
+    {
+      "cue": "UiClick",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/UiClick_04.wav",
+      "guid": "3db25017f1045400ac553e377a1591e8",
+      "sha256": "8a441b39bd8e8c0029fa99907f18a2fbb3befee27f0e05286c58cbd04787ac52"
+    },
+    {
+      "cue": "GripWarning",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Effects/GripWarning_01.wav",
+      "guid": "db2a999e2ad85680ac90d972b5793b17",
+      "sha256": "891e638d27e40f70293d7532332f50f8feb2db73063707a6eaf57c3135a604e8"
+    },
+    {
+      "cue": "GripWarning",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Effects/GripWarning_02.wav",
+      "guid": "0edbb7f8343953d8a28308562d48623c",
+      "sha256": "0b2daf94398056c3a1e3e08293d28c1cb043304ffacda9790790eb90701b81a2"
+    },
+    {
+      "cue": "GripWarning",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Effects/GripWarning_03.wav",
+      "guid": "e9fd5fc0fb325ee480dede539ced925f",
+      "sha256": "56420734235b566e957d96e97297cbb00cf2427ca6eefcc2b50ac9ea2a9f9e95"
+    },
+    {
+      "cue": "GripWarning",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Effects/GripWarning_04.wav",
+      "guid": "e5ed98929fa053ffb5067b8ade59e808",
+      "sha256": "dfd729f1f5c9d54fce3587e4fc0d6c8732b93601b0157480fb31505e8f6fab51"
+    },
+    {
+      "cue": "FriendlyWave",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/FriendlyWave_01.wav",
+      "guid": "2870f0e94c7c57e994d0aeccccf6ec4a",
+      "sha256": "114d8126376cc8a47088af9028116114cf33b4cfcefab73a369e8a96cc0fe4c9"
+    },
+    {
+      "cue": "FriendlyWave",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/FriendlyWave_02.wav",
+      "guid": "6ae385c407c55068a85e3902e0ad0d13",
+      "sha256": "52b9dad5007fc13dd484b19b8ba93af0b08bba68d0f75afb46c21bde6b03a5f2"
+    },
+    {
+      "cue": "FriendlyWave",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/FriendlyWave_03.wav",
+      "guid": "694b0c8a864251108ec566b9abc72d78",
+      "sha256": "56598e86451fe4b824660dbfa3a5c571d64d95a6af852a3923557419c954c172"
+    },
+    {
+      "cue": "FriendlyWave",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/FriendlyWave_04.wav",
+      "guid": "b994a7abe4de5a37a937b64615eca824",
+      "sha256": "e12ae29240495b26942c52f798301b761e12176481e9ca6fb05cdb25f23e2d19"
+    },
+    {
+      "cue": "TotallyMeantThat",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/TotallyMeantThat_01.wav",
+      "guid": "a92b66bcb58e55a9894ff4cd9ac8d394",
+      "sha256": "26f72d7eb00c84da707042291d98dd4509d084a3ac0cd45d88fa4dd5bfab9bb3"
+    },
+    {
+      "cue": "TotallyMeantThat",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/TotallyMeantThat_02.wav",
+      "guid": "e374429a88b35d09b847ba65777cc03f",
+      "sha256": "6235548b48a088e8bcb95f0ed61e1da2a3bcfa294691ca54c5651658e56c01ed"
+    },
+    {
+      "cue": "TotallyMeantThat",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/TotallyMeantThat_03.wav",
+      "guid": "836a6e6acbe85799bb4bbf0199b3c8a7",
+      "sha256": "0e0067f317d8244b4364a802c8191e1eb75ce991eb5035bcea23e03f79e9b486"
+    },
+    {
+      "cue": "TotallyMeantThat",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/TotallyMeantThat_04.wav",
+      "guid": "eea000364ed757de88cc8f3beb1b19f0",
+      "sha256": "b9187f235df72d571428764668369d7ce9186355371af9ef10f0071150fae5b4"
+    },
+    {
+      "cue": "Phew",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/Phew_01.wav",
+      "guid": "8e83d97fc8585ef58f8a4b7157f0670e",
+      "sha256": "960472997419abfb74640b3c373fe5128150822ba7ba1e7694b37ca590696726"
+    },
+    {
+      "cue": "Phew",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/Phew_02.wav",
+      "guid": "84d1af9fadcd507a92568c5afd67ad32",
+      "sha256": "17553d29907763ce6430bb93630a79fdcd3dc0fe6c8c761441a77dc103d0ac7b"
+    },
+    {
+      "cue": "Phew",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/Phew_03.wav",
+      "guid": "baf8aaca76f75f16a3f6f96a21998890",
+      "sha256": "e85e771f943f0f4383d493e26f6b1da155b3ec0583d8375054b07b14eeaeff16"
+    },
+    {
+      "cue": "Phew",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/Phew_04.wav",
+      "guid": "2b9140927a2f5b66a95ab370d054c88c",
+      "sha256": "3659a0606cab897cf7d21949e9eeb8e8a5b81edcf00f77c03e7c07f6766156fa"
+    },
+    {
+      "cue": "WhatWasThat",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/WhatWasThat_01.wav",
+      "guid": "c347df642dc459188b7eb3288ae683a4",
+      "sha256": "b4304d96e161b2b13316677955f6d2d6b61cdbdf35cf42422e003fbf91e95486"
+    },
+    {
+      "cue": "WhatWasThat",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/WhatWasThat_02.wav",
+      "guid": "8d98ac0001205487b0cfb080d1a46398",
+      "sha256": "c08540488c80e93e5798adc8947ea406a178659f575e6cff5421422f9e116f20"
+    },
+    {
+      "cue": "WhatWasThat",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/WhatWasThat_03.wav",
+      "guid": "122329d502635d1b95cd2d59e3cbc1ea",
+      "sha256": "b748cc9f5ca26c3d04f39eb4e9e59d9dadb87939c7d81ea9bf6545500923dba6"
+    },
+    {
+      "cue": "WhatWasThat",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/WhatWasThat_04.wav",
+      "guid": "53cfdd56c2a65679b63730916599b303",
+      "sha256": "762960dbe9afb3eec0bc28c33726982422d501259cbd767cbff3a8c49ffe852a"
+    },
+    {
+      "cue": "GolfClap",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/GolfClap_01.wav",
+      "guid": "0e134839d28357889aaf4b1e29106d88",
+      "sha256": "02795498c45447d96d949f2161038d74f002ff2e71ff60d2eebe0feb5771d458"
+    },
+    {
+      "cue": "GolfClap",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/GolfClap_02.wav",
+      "guid": "f85210a039db5941a0a3fa067a629460",
+      "sha256": "38908c8820aa5f683d9e8dab10268ba79326f5d7d9614f6832540985e3603ff2"
+    },
+    {
+      "cue": "GolfClap",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/GolfClap_03.wav",
+      "guid": "8ee8736d435f58098adf2864c0440195",
+      "sha256": "ed3f0b5da7197e242a968a26a752a54c5f9ffcd2dd916756ce2f5ce49eaefe78"
+    },
+    {
+      "cue": "GolfClap",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/GolfClap_04.wav",
+      "guid": "88a5f725cc8d56288d65ba00bde60ced",
+      "sha256": "571e8d3db6f56ac9d050e66f671db9ac91c741ac2a3bedbe1911822dc5cdcede"
+    },
+    {
+      "cue": "JustChilling",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/JustChilling_01.wav",
+      "guid": "d6e4ce2cd306549481bf1611f3234248",
+      "sha256": "6f23b6e477282eb40efe3bea992f835df0f67468465eb0891775436cea77ab18"
+    },
+    {
+      "cue": "JustChilling",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/JustChilling_02.wav",
+      "guid": "4275a219aa7f583daeb7372b2b35ae53",
+      "sha256": "582a899885b01301a6851900e9eb04bd269a146da029f3ebeb3b7f95d7564ce5"
+    },
+    {
+      "cue": "JustChilling",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/JustChilling_03.wav",
+      "guid": "b44ae15521e55b72935c2dfe7943b8b9",
+      "sha256": "7334b0ec8a96b497abdadbb4568491a8c2e55d27d8dbbdf14d005f5478702728"
+    },
+    {
+      "cue": "JustChilling",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/JustChilling_04.wav",
+      "guid": "17872e3c04495632be4371a598631cc1",
+      "sha256": "b75530b5659d7c70e9cfabe2d00f379380d7c0758f19ddece30fc1715bc1cded"
+    },
+    {
+      "cue": "NopeNopeNope",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/NopeNopeNope_01.wav",
+      "guid": "55b1df79d3615443b5ebcf1465f97b4b",
+      "sha256": "5082d851b8e3a2f6b8bcb4d63ec874b9af18b6cedfeb27769f5f856172eed61f"
+    },
+    {
+      "cue": "NopeNopeNope",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/NopeNopeNope_02.wav",
+      "guid": "eeaa7c33407c5c03883b758edc4e9eb2",
+      "sha256": "8451bdf13da6d52560298c6d9b2db732e668396a20bf9abb8dff325c94e59e25"
+    },
+    {
+      "cue": "NopeNopeNope",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/NopeNopeNope_03.wav",
+      "guid": "d421bcb503d650bb8105b11bbde56c4b",
+      "sha256": "e955ac2f344bc80f9b71da4bc900c8f90d7709ed8468dd8a966a7b6efb580c78"
+    },
+    {
+      "cue": "NopeNopeNope",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/NopeNopeNope_04.wav",
+      "guid": "e9e46e0d451751d6b76461ad2c0a593b",
+      "sha256": "5d39a1db3028c3c0808bd61f2375db0c5e0047e2829663f04cc68271d5d590da"
+    },
+    {
+      "cue": "TinyVictoryDance",
+      "variant": 1,
+      "path": "Assets/CandyAudio/Audio/Emotes/TinyVictoryDance_01.wav",
+      "guid": "4e8daeeeb67b5a0087f56a8a105c39aa",
+      "sha256": "6322d7ac4ee59ae394414f806073e56e81a72ffee0a56c034530b47825894176"
+    },
+    {
+      "cue": "TinyVictoryDance",
+      "variant": 2,
+      "path": "Assets/CandyAudio/Audio/Emotes/TinyVictoryDance_02.wav",
+      "guid": "42425f6c18c75c40b5721f378e6171e4",
+      "sha256": "2de1fc955cbee8336b479c500df543d59c2e159b0baa4a16a7a051aeb80a7713"
+    },
+    {
+      "cue": "TinyVictoryDance",
+      "variant": 3,
+      "path": "Assets/CandyAudio/Audio/Emotes/TinyVictoryDance_03.wav",
+      "guid": "cf8473fe364153ed8b1e82604ebd86e6",
+      "sha256": "52c01b786d5f0b40d324c4aeb18eaeb328163774f71557c3af53baafbc981200"
+    },
+    {
+      "cue": "TinyVictoryDance",
+      "variant": 4,
+      "path": "Assets/CandyAudio/Audio/Emotes/TinyVictoryDance_04.wav",
+      "guid": "ad5a3fc7ec2f53d9974dac5fe889e92f",
+      "sha256": "99a133a35c548e64f75af0904c551a9708f3876f4f6e0f6e36eeb2c913b7ccc4"
+    }
+  ]
+}

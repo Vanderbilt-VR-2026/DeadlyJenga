@@ -1,0 +1,9 @@
+PASS All 568 block transforms, Rigidbody settings and colliders preserved.
+PASS Original static support collider preserved.
+PASS Water and sand shaders compile.
+PASS Sandbar is a volumetric terrain mesh with a sloping seabed.
+PASS Level sand support is flush with the physics foundation top.
+PASS Terrain adds no physics components.
+PASS Legacy ocean and gray foundation rendering remain hidden.
+PASS All 44 body and finger bones preserved.
+PASS Continuous skin blends across tracked joints.

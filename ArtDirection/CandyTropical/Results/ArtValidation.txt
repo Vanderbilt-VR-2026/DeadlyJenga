@@ -1,0 +1,6 @@
+PASS Apply preserved all 568 crate transforms, Rigidbody settings, velocities, collider shapes and physics materials.
+PASS Repeated Apply creates one installation.
+PASS Restore recovered original assignments and preserved physics.
+PASS Final application preserved physics.
+PASS Candy artwork contains no physics components.
+PASS Generated physics prefab retains the source mass and collider.
