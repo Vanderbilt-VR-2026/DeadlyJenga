@@ -14,7 +14,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
     {
         const string ScenePath = "Assets/Scenes/Game.unity";
         const string PrefabRoot = "Assets/Prefabs/";
-        static CastlePlayBuilder() { EditorApplication.delayCall += FirstImport; }
+        static CastlePlayBuilder() {}
         static void FirstImport()
         {
             if (EditorApplication.isCompiling || EditorApplication.isPlayingOrWillChangePlaymode) return;

@@ -15,7 +15,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
         const string PrefabRoot = "Assets/Prefabs/";
         static CastlePrototypeBuilder()
         {
-            EditorApplication.delayCall += FirstImport;
             EditorApplication.playModeStateChanged += state =>
             {
                 if (state == PlayModeStateChange.EnteredPlayMode && SessionState.GetBool("CastleValidate", false))
