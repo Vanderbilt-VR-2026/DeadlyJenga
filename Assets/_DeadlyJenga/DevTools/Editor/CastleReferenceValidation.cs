@@ -89,7 +89,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Time.captureDeltaTime = oldCapture;
                 Object.Destroy(fixture); if (replacement) Object.Destroy(replacement); if (replacementMaterial) Object.Destroy(replacementMaterial);
                 session.SetRole(false); session.SetMenu(true);
-                File.WriteAllText("Assets/CastlePrototype/ReferenceValidation.txt", report.ToString()); Debug.Log(report.ToString());
+                File.WriteAllText(ProjectPath.Report("ReferenceValidation.txt"), report.ToString()); Debug.Log(report.ToString());
             }
         }
     }

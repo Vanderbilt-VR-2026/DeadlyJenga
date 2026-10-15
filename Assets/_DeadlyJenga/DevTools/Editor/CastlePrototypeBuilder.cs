@@ -10,9 +10,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
     [InitializeOnLoad]
     public static class CastlePrototypeBuilder
     {
-        const string ScenePath = "Assets/Scenes/Game.unity";
-        const string MaterialRoot = "Assets/Materials/";
-        const string PrefabRoot = "Assets/Prefabs/";
+        static string ScenePath => ProjectPath.Find("Game.unity");
+        static string MaterialRoot => ProjectPath.FolderOf("Corner Jade.mat");
+        static string PrefabRoot => ProjectPath.FolderOf("CastleBlock.prefab");
         static CastlePrototypeBuilder()
         {
             EditorApplication.playModeStateChanged += state =>
@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var keep = Material("Keep Violet", new Color(.43f, .3f, .7f));
                 var stone = Material("Foundation Slate", new Color(.19f, .23f, .29f));
                 var water = Material("Ocean Blue", new Color(.025f, .2f, .3f));
-                string physicsPath = MaterialRoot + "Castle Friction.physicMaterial";
+                string physicsPath = ProjectPath.Find("Castle Friction.physicMaterial");
                 var friction = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(physicsPath);
                 if (!friction)
                 {
@@ -89,7 +89,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var mesh = GameObject.CreatePrimitive(PrimitiveType.Cube); mesh.name = "Crate Visual";
                 UnityEngine.Object.DestroyImmediate(mesh.GetComponent<Collider>());
                 mesh.GetComponent<Renderer>().sharedMaterial = wall;
-                appearance.visualPrefab = PrefabUtility.SaveAsPrefabAsset(mesh, PrefabRoot + "Crate Visual.prefab");
+                appearance.visualPrefab = PrefabUtility.SaveAsPrefabAsset(mesh, ProjectPath.Find("Crate Visual.prefab"));
                 UnityEngine.Object.DestroyImmediate(mesh); EditorUtility.SetDirty(appearance);
             }
             var cube = new GameObject("CastleBlock"); cube.layer = CastleBlock.BlockLayer;
@@ -156,19 +156,19 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var scene = SceneManager.GetSceneByPath(ScenePath);
             if (!scene.IsValid() || !scene.isLoaded) scene = EditorSceneManager.OpenScene(ScenePath);
             var prefab = CreateBlockPrefab(AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "Wall Terracotta.mat"),
-                AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(MaterialRoot + "Castle Friction.physicMaterial"));
+                AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(ProjectPath.Find("Castle Friction.physicMaterial")));
             foreach (var root in scene.GetRootGameObjects())
             {
                 if (root.TryGetComponent<CastleGenerator>(out var gen))
                 { gen.settings = new CastleSettings(); gen.blockPrefab = prefab; gen.Rebuild(); }
             }
-            var player = PrefabUtility.LoadPrefabContents(PrefabRoot + "CastleSurvivor.prefab");
+            var player = PrefabUtility.LoadPrefabContents(ProjectPath.Find("CastleSurvivor.prefab"));
             try
             {
                 player.layer = CastleBlock.SurvivorLayer;
                 player.GetComponent<CastleSurvivor>().jumpHeight = 1.82f;
                 player.GetComponent<CharacterController>().excludeLayers = 1 << CastleBlock.BlockLayer;
-                PrefabUtility.SaveAsPrefabAsset(player, PrefabRoot + "CastleSurvivor.prefab");
+                PrefabUtility.SaveAsPrefabAsset(player, ProjectPath.Find("CastleSurvivor.prefab"));
             }
             finally { PrefabUtility.UnloadPrefabContents(player); }
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
@@ -258,7 +258,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             catch (Exception e) { report = "FAIL validation exception: " + e; }
             finally { SceneManager.SetActiveScene(previous); SceneManager.UnloadSceneAsync(scene); }
-            File.WriteAllText("Assets/CastlePrototype/Validation.txt", report); AssetDatabase.Refresh(); Debug.Log(report);
+            File.WriteAllText(ProjectPath.Report("Validation.txt"), report); AssetDatabase.Refresh(); Debug.Log(report);
         }
     }
 }

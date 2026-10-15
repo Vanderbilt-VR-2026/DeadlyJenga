@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         [MenuItem("Tools/Castle Prototype/Install Stamina Breathing")]
         public static void InstallAudio()
         {
-            const string directory="Assets/CandyAudio/Audio/Breathing";Directory.CreateDirectory(directory);
+            string directory=ProjectPath.FolderOf("CandyAudioEngine.cs")+"Audio/Breathing";Directory.CreateDirectory(directory);
             var bank=Resources.Load<CandyAudioBank>("CandyAudio/Default");if(!bank)throw new InvalidOperationException("Default candy audio bank missing");
             var cues=new List<CandyAudioCue>(bank.cues);
             foreach(var sound in CandyBreathing.Sounds)

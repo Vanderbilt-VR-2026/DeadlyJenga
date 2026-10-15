@@ -51,7 +51,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             void Check(string name, bool success, string detail = "")
             {
                 report.AppendLine((success ? "PASS " : "FAIL ") + name + " " + detail);
-                File.WriteAllText("Assets/CastlePrototype/InputValidation.txt", report.ToString());
+                File.WriteAllText(ProjectPath.Report("InputValidation.txt"), report.ToString());
             }
             var saved = InputSystem.settings;
             var savedFlags = saved.hideFlags;
@@ -144,7 +144,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Object.Destroy(settings); Object.Destroy(floor); Object.Destroy(ledge);
                 session.Player.controlMode = ControlMode.Auto; session.SetRole(false); session.Player.RefreshMode(); session.SetMenu(true);
                 report.AppendLine("Uses synthetic Input System devices in the real Unity player loop; no physical headset was available.");
-                File.WriteAllText("Assets/CastlePrototype/InputValidation.txt", report.ToString()); Debug.Log(report.ToString());
+                File.WriteAllText(ProjectPath.Report("InputValidation.txt"), report.ToString()); Debug.Log(report.ToString());
             }
         }
     }

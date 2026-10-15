@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Object.Destroy(fixture);
                 session.Player.controlMode = ControlMode.Auto; session.SetRole(false); session.SetMenu(true);
                 report.AppendLine("Headset hardware/comfort and network play are not covered by these editor checks.");
-                File.WriteAllText("Assets/CastlePrototype/TraversalValidation.txt", report.ToString());
+                File.WriteAllText(ProjectPath.Report("TraversalValidation.txt"), report.ToString());
                 Debug.Log(report.ToString());
             }
             yield return null;

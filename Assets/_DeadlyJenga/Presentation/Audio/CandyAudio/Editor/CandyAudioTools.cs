@@ -40,7 +40,7 @@ namespace DeadlyJenga.CandyAudio.Editor
         [MenuItem("Tools/Candy Audio/Run Checks And Return To Edit Mode %&#a")]
         public static void RunChecks()
         {
-            if(Application.isPlaying||EditorApplication.isCompiling||EditorSceneManager.GetActiveScene().isDirty||EditorSceneManager.GetActiveScene().path!="Assets/Scenes/Game.unity")
+            if(Application.isPlaying||EditorApplication.isCompiling||EditorSceneManager.GetActiveScene().isDirty||EditorSceneManager.GetActiveScene().name!="Game")
                 throw new InvalidOperationException("Use the saved Game scene in Edit Mode.");
             ValidateBank();SessionState.SetBool(TestKey,true);EditorApplication.EnterPlaymode();
         }
@@ -114,7 +114,7 @@ namespace DeadlyJenga.CandyAudio.Editor
         [MenuItem("Tools/Candy Audio/Export Audio Module")]
         public static void Export()
         {
-            Directory.CreateDirectory(Output);AssetDatabase.ExportPackage("Assets/CandyAudio",Output+"CandyAudio.unitypackage",ExportPackageOptions.Recurse);
+            Directory.CreateDirectory(Output);AssetDatabase.ExportPackage(ProjectPath.FolderOf("CandyAudioEngine.cs").TrimEnd('/'),Output+"CandyAudio.unitypackage",ExportPackageOptions.Recurse);
             Debug.Log("Exported "+Output+"CandyAudio.unitypackage");
         }
     }

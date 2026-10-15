@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)return;
-            if(UnityEngine.SceneManagement.SceneManager.GetActiveScene().path!="Assets/Scenes/Game.unity")
+            if(UnityEngine.SceneManagement.SceneManager.GetActiveScene().name!="Game")
                 throw new System.InvalidOperationException("Open the Game scene first.");
             SessionState.SetBool(Key,true);EditorApplication.EnterPlaymode();
         }
@@ -55,7 +55,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Check("Tracked-head translation uses half scale",p.cameraOffset.localScale==Vector3.one*.5f);
             p.controlMode=ControlMode.Auto;p.RefreshMode();
             Check("Returning to desktop keeps half-size eye and body",Mathf.Abs(p.Capsule.height-.85f)<.001f&&Mathf.Abs(p.viewCamera.transform.localPosition.y-.8f)<.001f);
-            File.WriteAllText("Assets/CastlePrototype/PlayerScaleValidation.txt",report.ToString());
+            File.WriteAllText(ProjectPath.Report("PlayerScaleValidation.txt"),report.ToString());
             yield return CastleReferenceValidation.Validate(session);
             yield return CastleTraversalValidation.Validate(session);
             yield return CastleInputValidation.Validate(session);

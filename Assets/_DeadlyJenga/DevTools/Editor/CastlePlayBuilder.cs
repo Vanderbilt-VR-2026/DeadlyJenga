@@ -12,8 +12,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
     [InitializeOnLoad]
     public static class CastlePlayBuilder
     {
-        const string ScenePath = "Assets/Scenes/Game.unity";
-        const string PrefabRoot = "Assets/Prefabs/";
+        static string ScenePath => ProjectPath.Find("Game.unity");
+        static string PrefabRoot => ProjectPath.FolderOf("CastleSurvivor.prefab");
         static CastlePlayBuilder() {}
         static void FirstImport()
         {
@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         }
         static void FixHandMaterial()
         {
-            var material = AssetDatabase.LoadAssetAtPath<Material>("Assets/HandDemo/Materials/Matte White Hand.mat");
+            var material = AssetDatabase.LoadAssetAtPath<Material>(ProjectPath.Find("Matte White Hand.mat"));
             var shader = Shader.Find("Universal Render Pipeline/Lit");
             if (material && shader && material.shader != shader)
             {
@@ -95,11 +95,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     playerPrefab = PrefabUtility.SaveAsPrefabAsset(go, PrefabRoot + "CastleSurvivor.prefab").GetComponent<CastleSurvivor>();
                     Object.DestroyImmediate(go);
                 }
-                var handPrefab = AssetDatabase.LoadAssetAtPath<CastleHandActor>(PrefabRoot + "CastleFlyingHand.prefab");
+                var handPrefab = AssetDatabase.LoadAssetAtPath<CastleHandActor>(ProjectPath.Find("CastleFlyingHand.prefab"));
                 if (!handPrefab)
                 {
                     var go = new GameObject("CastleFlyingHand"); go.SetActive(false);
-                    var source = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/HandDemo/Prefabs/FlyingHandPlayer.prefab");
+                    var source = AssetDatabase.LoadAssetAtPath<GameObject>(ProjectPath.Find("FlyingHandPlayer.prefab"));
                     var hand = (GameObject)PrefabUtility.InstantiatePrefab(source, go.transform);
                     hand.transform.localPosition = Vector3.zero;
                     var motor = hand.GetComponent<FlyingHandController>(); motor.captureDesktopCursor = false;
@@ -109,7 +109,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     follow.target = hand.transform.Find("CameraFollowTarget"); follow.distance = 7; follow.height = 3;
                     var actor = go.AddComponent<CastleHandActor>(); actor.motor = motor; actor.follow = follow;
                     go.SetActive(true);
-                    handPrefab = PrefabUtility.SaveAsPrefabAsset(go, PrefabRoot + "CastleFlyingHand.prefab").GetComponent<CastleHandActor>();
+                    handPrefab = PrefabUtility.SaveAsPrefabAsset(go, ProjectPath.Find("CastleFlyingHand.prefab")).GetComponent<CastleHandActor>();
                     Object.DestroyImmediate(go);
                 }
                 CastlePlaySession session = null; CastleGenerator generator = null; Camera overview = null;

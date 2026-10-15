@@ -64,7 +64,7 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
     static bool InCastleGame()
     {
         var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
-        return scene.path == "Assets/Scenes/Game.unity";
+        return scene.name == "Game";
     }
 
     bool TryGetSpawnPose(PlayerRef player, out Vector3 position, out Quaternion rotation)

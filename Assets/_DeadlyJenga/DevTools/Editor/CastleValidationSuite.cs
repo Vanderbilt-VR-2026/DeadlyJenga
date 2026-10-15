@@ -29,14 +29,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
         public static void Run()
         {
             if (Application.isPlaying) throw new System.InvalidOperationException("Exit Play Mode first.");
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != "Assets/Scenes/Game.unity")
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().name != "Game")
                 throw new System.InvalidOperationException("Open the Game scene before running the suite.");
             SessionState.SetBool(Key,true); EditorApplication.EnterPlaymode();
         }
         static IEnumerator All(CastlePlaySession session)
         {
             yield return new WaitForSeconds(2);
-            File.WriteAllText("Assets/CastlePrototype/SpawnValidation.txt",
+            File.WriteAllText(ProjectPath.Report("SpawnValidation.txt"),
                 $"{(session.Player.Grounded && Vector3.Distance(session.Player.transform.position, session.LastSpawnFeet) < .2f ? "PASS" : "FAIL")} Initial spawn stays on top after 2 seconds: actual={session.Player.transform.position}, target={session.LastSpawnFeet}\n");
             yield return CastleReferenceValidation.Validate(session);
             yield return CastleTraversalValidation.Validate(session);

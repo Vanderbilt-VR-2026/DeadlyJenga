@@ -33,7 +33,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Shot("central-interior",origin+new Vector3(0,61,0),origin+new Vector3(0,25,7));
                 var top = generator.Bodies.Where(b => b && b.name.StartsWith("Corner")).OrderByDescending(b => b.position.y).First();
                 var box = top.GetComponent<BoxCollider>();
-                float playerHeight = AssetDatabase.LoadAssetAtPath<CastleSurvivor>("Assets/Prefabs/CastleSurvivor.prefab").StandingHeight;
+                float playerHeight = AssetDatabase.LoadAssetAtPath<CastleSurvivor>(ProjectPath.Find("CastleSurvivor.prefab")).StandingHeight;
                 float playerRadius = .24f * (playerHeight / 1.7f);
                 marker = GameObject.CreatePrimitive(PrimitiveType.Capsule); marker.name = playerHeight + " metre player scale marker";
                 marker.GetComponent<Collider>().enabled = false;
