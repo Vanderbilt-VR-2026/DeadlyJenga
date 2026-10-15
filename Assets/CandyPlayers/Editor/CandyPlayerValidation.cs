@@ -35,7 +35,7 @@ namespace DeadlyJenga.CandyPlayers.Editor
         [MenuItem("Tools/Candy Players/Install And Verify")]
         public static void Run()
         {
-            if(UnityEngine.SceneManagement.SceneManager.GetActiveScene().path!="Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity")throw new System.InvalidOperationException("Open CastlePhysicsTest first.");
+            if(UnityEngine.SceneManagement.SceneManager.GetActiveScene().path!="Assets/Scenes/Game.unity")throw new System.InvalidOperationException("Open the Game scene first.");
             CandyPlayerBuilder.Install();SessionState.SetBool(Key,true);EditorApplication.EnterPlaymode();
         }
         static IEnumerator Validate()

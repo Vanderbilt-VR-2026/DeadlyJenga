@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
     {
         const string Key = "CastleMergeCompatibilityPhase";
         const string Report = "ArtDirection/MergeCompatibility.txt";
-        const string Castle = "Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity";
+        const string Castle = "Assets/Scenes/Game.unity";
         static CastleMergeCompatibility()
         {
             EditorApplication.update += () =>

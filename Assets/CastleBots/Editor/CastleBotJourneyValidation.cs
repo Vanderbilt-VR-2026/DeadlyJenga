@@ -119,7 +119,7 @@ namespace DeadlyJenga.CastleBots.Editor
         public static void Run()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();
-            if(!Application.isPlaying||!session||!session.Player)throw new InvalidOperationException("Run CastlePhysicsTest first; this check uses the current survivor dimensions.");
+            if(!Application.isPlaying||!session||!session.Player)throw new InvalidOperationException("Run the Game scene first; this check uses the current survivor dimensions.");
             var root=new GameObject("Temporary journey link checks");var results=new List<string>();var motor=session.Player;
             void Check(bool pass,string label)=>results.Add((pass?"PASS ":"FAIL ")+label);
             GameObject Box(string name,Vector3 position,Vector3 size)

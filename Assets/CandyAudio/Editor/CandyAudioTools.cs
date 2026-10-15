@@ -40,8 +40,8 @@ namespace DeadlyJenga.CandyAudio.Editor
         [MenuItem("Tools/Candy Audio/Run Checks And Return To Edit Mode %&#a")]
         public static void RunChecks()
         {
-            if(Application.isPlaying||EditorApplication.isCompiling||EditorSceneManager.GetActiveScene().isDirty||EditorSceneManager.GetActiveScene().path!="Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity")
-                throw new InvalidOperationException("Use the saved CastlePhysicsTest scene in Edit Mode.");
+            if(Application.isPlaying||EditorApplication.isCompiling||EditorSceneManager.GetActiveScene().isDirty||EditorSceneManager.GetActiveScene().path!="Assets/Scenes/Game.unity")
+                throw new InvalidOperationException("Use the saved Game scene in Edit Mode.");
             ValidateBank();SessionState.SetBool(TestKey,true);EditorApplication.EnterPlaymode();
         }
         [MenuItem("Tools/Candy Audio/Validate Bank")]

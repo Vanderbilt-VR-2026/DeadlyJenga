@@ -29,8 +29,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
         public static void Run()
         {
             if (Application.isPlaying) throw new System.InvalidOperationException("Exit Play Mode first.");
-            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != "Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity")
-                throw new System.InvalidOperationException("Open CastlePhysicsTest before running the suite.");
+            if (UnityEngine.SceneManagement.SceneManager.GetActiveScene().path != "Assets/Scenes/Game.unity")
+                throw new System.InvalidOperationException("Open the Game scene before running the suite.");
             SessionState.SetBool(Key,true); EditorApplication.EnterPlaymode();
         }
         static IEnumerator All(CastlePlaySession session)

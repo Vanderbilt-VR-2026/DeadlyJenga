@@ -11,7 +11,7 @@ $lanArguments.Add('/target:exe'); $lanArguments.Add('/langversion:9'); $lanArgum
 $lanArguments.Add('/out:"' + (Join-Path $lanOutput 'TransportChecks.dll') + '"')
 Get-ChildItem (Join-Path $lanRefs.FullName 'ref/net8.0') -Filter '*.dll' | ForEach-Object { $lanArguments.Add('/reference:"' + $_.FullName + '"') }
 $lanArguments.Add('"' + (Join-Path $PSScriptRoot 'TransportChecks.cs') + '"')
-$lanArguments.Add('"' + (Join-Path $lanRoot 'Assets/CastlePrototype/Scripts/CastleLanTransport.cs') + '"')
+$lanArguments.Add('"' + (Join-Path $lanRoot 'Assets/Scripts/CastleLanTransport.cs') + '"')
 $lanResponse = Join-Path $lanOutput 'compile.rsp'
 [IO.File]::WriteAllLines($lanResponse, $lanArguments)
 & dotnet (Join-Path $lanSdk.FullName 'Roslyn/bincore/csc.dll') "@$lanResponse"

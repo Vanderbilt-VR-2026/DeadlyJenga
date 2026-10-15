@@ -10,8 +10,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
     [InitializeOnLoad]
     public static class CastlePrototypeBuilder
     {
-        const string Root = "Assets/CastlePrototype/";
-        const string ScenePath = Root + "Scenes/CastlePhysicsTest.unity";
+        const string ScenePath = "Assets/Scenes/Game.unity";
+        const string MaterialRoot = "Assets/Materials/";
+        const string PrefabRoot = "Assets/Prefabs/";
         static CastlePrototypeBuilder()
         {
             EditorApplication.delayCall += FirstImport;
@@ -40,7 +41,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var keep = Material("Keep Violet", new Color(.43f, .3f, .7f));
                 var stone = Material("Foundation Slate", new Color(.19f, .23f, .29f));
                 var water = Material("Ocean Blue", new Color(.025f, .2f, .3f));
-                string physicsPath = Root + "Materials/Castle Friction.physicMaterial";
+                string physicsPath = MaterialRoot + "Castle Friction.physicMaterial";
                 var friction = AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(physicsPath);
                 if (!friction)
                 {
@@ -81,15 +82,15 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static GameObject CreateBlockPrefab(Material wall, PhysicsMaterial friction)
         {
-            var appearance = AssetDatabase.LoadAssetAtPath<CastleBlockAppearance>(Root + "Materials/Block Appearance.asset");
+            var appearance = AssetDatabase.LoadAssetAtPath<CastleBlockAppearance>(MaterialRoot + "Block Appearance.asset");
             if (!appearance)
             {
                 appearance = ScriptableObject.CreateInstance<CastleBlockAppearance>();
-                AssetDatabase.CreateAsset(appearance, Root + "Materials/Block Appearance.asset");
+                AssetDatabase.CreateAsset(appearance, MaterialRoot + "Block Appearance.asset");
                 var mesh = GameObject.CreatePrimitive(PrimitiveType.Cube); mesh.name = "Crate Visual";
                 UnityEngine.Object.DestroyImmediate(mesh.GetComponent<Collider>());
                 mesh.GetComponent<Renderer>().sharedMaterial = wall;
-                appearance.visualPrefab = PrefabUtility.SaveAsPrefabAsset(mesh, Root + "Prefabs/Crate Visual.prefab");
+                appearance.visualPrefab = PrefabUtility.SaveAsPrefabAsset(mesh, PrefabRoot + "Crate Visual.prefab");
                 UnityEngine.Object.DestroyImmediate(mesh); EditorUtility.SetDirty(appearance);
             }
             var cube = new GameObject("CastleBlock"); cube.layer = CastleBlock.BlockLayer;
@@ -101,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var visual = new GameObject("Visual (replace artwork here)"); visual.transform.SetParent(cube.transform, false);
             var block = cube.AddComponent<CastleBlock>(); block.visualRoot = visual.transform;
             block.appearance = appearance; block.sectionMaterial = wall; block.RefreshAppearance();
-            var prefab = PrefabUtility.SaveAsPrefabAsset(cube, Root + "Prefabs/CastleBlock.prefab");
+            var prefab = PrefabUtility.SaveAsPrefabAsset(cube, PrefabRoot + "CastleBlock.prefab");
             UnityEngine.Object.DestroyImmediate(cube); return prefab;
         }
 
@@ -155,20 +156,20 @@ namespace DeadlyJenga.CastlePrototype.Editor
             tags.ApplyModifiedProperties();
             var scene = SceneManager.GetSceneByPath(ScenePath);
             if (!scene.IsValid() || !scene.isLoaded) scene = EditorSceneManager.OpenScene(ScenePath);
-            var prefab = CreateBlockPrefab(AssetDatabase.LoadAssetAtPath<Material>(Root + "Materials/Wall Terracotta.mat"),
-                AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(Root + "Materials/Castle Friction.physicMaterial"));
+            var prefab = CreateBlockPrefab(AssetDatabase.LoadAssetAtPath<Material>(MaterialRoot + "Wall Terracotta.mat"),
+                AssetDatabase.LoadAssetAtPath<PhysicsMaterial>(MaterialRoot + "Castle Friction.physicMaterial"));
             foreach (var root in scene.GetRootGameObjects())
             {
                 if (root.TryGetComponent<CastleGenerator>(out var gen))
                 { gen.settings = new CastleSettings(); gen.blockPrefab = prefab; gen.Rebuild(); }
             }
-            var player = PrefabUtility.LoadPrefabContents(Root + "Prefabs/CastleSurvivor.prefab");
+            var player = PrefabUtility.LoadPrefabContents(PrefabRoot + "CastleSurvivor.prefab");
             try
             {
                 player.layer = CastleBlock.SurvivorLayer;
                 player.GetComponent<CastleSurvivor>().jumpHeight = 1.82f;
                 player.GetComponent<CharacterController>().excludeLayers = 1 << CastleBlock.BlockLayer;
-                PrefabUtility.SaveAsPrefabAsset(player, Root + "Prefabs/CastleSurvivor.prefab");
+                PrefabUtility.SaveAsPrefabAsset(player, PrefabRoot + "CastleSurvivor.prefab");
             }
             finally { PrefabUtility.UnloadPrefabContents(player); }
             EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
@@ -177,7 +178,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         static Material Material(string name, Color color)
         {
-            string path = Root + "Materials/" + name + ".mat";
+            string path = MaterialRoot + name + ".mat";
             var material = AssetDatabase.LoadAssetAtPath<Material>(path);
             if (!material)
             {
@@ -219,7 +220,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             {
                 var go = new GameObject("Validation Castle"); SceneManager.MoveGameObjectToScene(go, scene);
                 var gen = go.AddComponent<CastleGenerator>(); gen.generateOnStart = false;
-                gen.blockPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(Root + "Prefabs/CastleBlock.prefab");
+                gen.blockPrefab = AssetDatabase.LoadAssetAtPath<GameObject>(PrefabRoot + "CastleBlock.prefab");
                 var floor = GameObject.CreatePrimitive(PrimitiveType.Cube); SceneManager.MoveGameObjectToScene(floor, scene);
                 floor.transform.position = new Vector3(0, -.5f, 0); floor.transform.localScale = new Vector3(CastleLayout.Footprint(gen.settings) + 4, 1, CastleLayout.Footprint(gen.settings) + 4);
                 gen.Rebuild();
@@ -258,7 +259,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             catch (Exception e) { report = "FAIL validation exception: " + e; }
             finally { SceneManager.SetActiveScene(previous); SceneManager.UnloadSceneAsync(scene); }
-            File.WriteAllText(Root + "Validation.txt", report); AssetDatabase.Refresh(); Debug.Log(report);
+            File.WriteAllText("Assets/CastlePrototype/Validation.txt", report); AssetDatabase.Refresh(); Debug.Log(report);
         }
     }
 }
