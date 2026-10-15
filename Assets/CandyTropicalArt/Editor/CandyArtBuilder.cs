@@ -55,7 +55,7 @@ namespace DeadlyJenga.CandyArt.Editor
             appearance.visualPrefab=AssetDatabase.LoadAssetAtPath<GameObject>(visualPath);appearance.materialOverride=null;EditorUtility.SetDirty(appearance);
             if(!AssetDatabase.LoadAssetAtPath<GameObject>(BlockPath))
             {
-                var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/CastlePrototype/Prefabs/CastleBlock.prefab");
+                var source=AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/CastleBlock.prefab");
                 if(!source)throw new InvalidOperationException("The local CastleBlock physics prefab is required. Build assets in the prototype project first.");
                 var copy=Object.Instantiate(source);copy.name="Candy Physics Block";
                 var block=copy.GetComponent<CastleBlock>();block.appearance=appearance;

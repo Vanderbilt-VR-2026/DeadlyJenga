@@ -34,14 +34,14 @@ namespace DeadlyJenga.CastleBots.Editor
         [MenuItem("Tools/Castle Bots/Install Profiles And Verify")]
         public static void InstallAndTest()
         {
-            if(Application.isPlaying||EditorSceneManager.GetActiveScene().isDirty||EditorSceneManager.GetActiveScene().path!="Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity")throw new InvalidOperationException("Open the saved CastlePhysicsTest scene in Edit Mode before running NPC checks.");
+            if(Application.isPlaying||EditorSceneManager.GetActiveScene().isDirty||EditorSceneManager.GetActiveScene().path!="Assets/Scenes/Game.unity")throw new InvalidOperationException("Open the saved Game scene in Edit Mode before running NPC checks.");
             Directory.CreateDirectory(Root+"Resources/CastleBots");Directory.CreateDirectory(Output);AssetDatabase.Refresh();
             for(int i=0;i<4;i++)if(!AssetDatabase.LoadAssetAtPath<CastleBotPersonality>(Root+"Resources/CastleBots/"+i+".asset"))AssetDatabase.CreateAsset(CastleBotPersonality.Create(i),Root+"Resources/CastleBots/"+i+".asset");
             Directory.CreateDirectory(Root+"Resources/CastleHandBots");AssetDatabase.Refresh();
             for(int i=0;i<4;i++)if(!AssetDatabase.LoadAssetAtPath<CastleHandBotPersonality>(Root+"Resources/CastleHandBots/"+i+".asset"))AssetDatabase.CreateAsset(CastleHandBotPersonality.Create(i),Root+"Resources/CastleHandBots/"+i+".asset");
             AssetDatabase.SaveAssets();SessionState.SetString(Key+"Hash",HashScene());SessionState.SetBool(Key,true);EditorApplication.EnterPlaymode();
         }
-        static string HashScene()=>Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes("Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity")));
+        static string HashScene()=>Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes("Assets/Scenes/Game.unity")));
         static void Check(bool ok,string label){report.Add((ok?"PASS ":"FAIL ")+label);File.WriteAllLines(Output+"Validation.txt",report);Debug.Log(report.Last());}
         sealed class ManualDriver:ICastleSurvivorDriver
         {
@@ -182,7 +182,7 @@ namespace DeadlyJenga.CastleBots.Editor
         public static void Export()
         {
             Directory.CreateDirectory(Output);
-            AssetDatabase.ExportPackage(new[]{Root.TrimEnd('/'),"Assets/CastlePrototype/Scripts/CastleSurvivor.cs","Assets/CastlePrototype/Scripts/CastlePlaySession.cs","Assets/CastlePrototype/Scripts/CastleWorldMenu.cs","Assets/CandyPlayers/CandyPlayerAvatar.cs","Assets/CastlePrototype/Prefabs/CastleSurvivor.prefab","Assets/CastlePrototype/Prefabs/CastleFlyingHand.prefab","Assets/HandDemo/Scripts/FlyingHandController.cs","Assets/HandDemo/Scripts/FlyingHandInputSource.cs","Assets/CandyPhysicsHands"},Output+"CastleBots.unitypackage",ExportPackageOptions.Recurse|ExportPackageOptions.IncludeDependencies);
+            AssetDatabase.ExportPackage(new[]{Root.TrimEnd('/'),"Assets/Scripts/CastleSurvivor.cs","Assets/Scripts/CastlePlaySession.cs","Assets/Scripts/CastleWorldMenu.cs","Assets/CandyPlayers/CandyPlayerAvatar.cs","Assets/Prefabs/CastleSurvivor.prefab","Assets/Prefabs/CastleFlyingHand.prefab","Assets/HandDemo/Scripts/FlyingHandController.cs","Assets/HandDemo/Scripts/FlyingHandInputSource.cs","Assets/CandyPhysicsHands"},Output+"CastleBots.unitypackage",ExportPackageOptions.Recurse|ExportPackageOptions.IncludeDependencies);
         }
     }
 }

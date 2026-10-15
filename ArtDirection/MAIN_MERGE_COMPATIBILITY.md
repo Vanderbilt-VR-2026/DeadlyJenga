@@ -1,3 +1,5 @@
+> Historical prototype notes: the supported entry scene is now `Assets/Scenes/Lobby.unity`, followed by `Assets/Scenes/Game.unity`. References below to `CastlePhysicsTest` describe the older prototype. See the current cleanup status in `Docs/AI_CLEANUP_STATUS.md`.
+
 # Main merge compatibility — October 15, 2026
 
 Merged `origin/main` at `7e6d1c84c` into `EP_Sprint_2`, after castle snapshot

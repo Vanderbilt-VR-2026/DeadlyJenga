@@ -1,0 +1,6 @@
+PASS Existing snapshot, malformed-packet and remote-hand physics validation
+PASS Compressed castle round trip preserves every byte
+PASS Complete castle survives the Fusion wire format
+PASS Oversized expanded transfers are rejected
+PASS Host stamina rules restore on clients
+Sample layout: 568 blocks, 16690 raw bytes, 9090 compressed bytes.

@@ -12,6 +12,7 @@ namespace DeadlyJenga.CandyAudio
         public static CandyAudioWorld Instance {get;private set;}
         public float WaterHeight {get;private set;}=-.12f;
         public bool musicEnabled=true;
+        CandyAudioBank ownedBank;
         CastlePlaySession session;CandyOceanSurface ocean;float scanAt,windAt,exposure=1,tension;
         readonly System.Collections.Generic.Dictionary<Vector3Int,float> leanCells=new System.Collections.Generic.Dictionary<Vector3Int,float>();
         readonly System.Collections.Generic.Dictionary<Vector3Int,float> splashCells=new System.Collections.Generic.Dictionary<Vector3Int,float>();
@@ -21,7 +22,7 @@ namespace DeadlyJenga.CandyAudio
         {
             if(Instance)return;
             var go=new GameObject("Candy Audio — presentation only");DontDestroyOnLoad(go);
-            var engine=go.AddComponent<CandyAudioEngine>();engine.Configure(Resources.Load<CandyAudioBank>("CandyAudio/Default"));go.AddComponent<CandyAudioWorld>();go.AddComponent<CandyAudioStudio>();
+            var engine=go.AddComponent<CandyAudioEngine>();var bank=Resources.Load<CandyAudioBank>("CandyAudio/Default");var copy=bank?Instantiate(bank):null;engine.Configure(copy);go.AddComponent<CandyAudioWorld>().ownedBank=copy;go.AddComponent<CandyAudioStudio>();
         }
         void Awake(){Instance=this;}
         public static bool Near(Vector3 p,float range=80)
@@ -74,6 +75,6 @@ namespace DeadlyJenga.CandyAudio
             splashCells[cell]=Time.time+.13f;
             CandyAudioEngine.Instance.Play(player?CandySound.PlayerSplash:CandySound.BlockSplash,position,strength,owner,Mathf.Lerp(1.15f,.8f,strength));
         }
-        void OnDestroy(){if(Instance==this)Instance=null;}
+        void OnDestroy(){if(Instance==this)Instance=null;if(ownedBank)Destroy(ownedBank);}
     }
 }

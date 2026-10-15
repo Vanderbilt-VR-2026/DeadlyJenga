@@ -2967,8 +2967,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1d410ed3f30ed4b46ab29f8536dde663, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LobbyCountdown
-  destinationScene: {fileID: 102900000, guid: 6fa8239901873f2419b13fc18e775aa9, type: 3}
-  destinationScenePath: Assets/Scenes/Main.unity
+  destinationScene: {fileID: 102900000, guid: 7439c6fd6f59ed54aa8c233bca35611f, type: 3}
+  destinationScenePath: Assets/Scenes/Game.unity
   _Finished:
     RawValue: 0
 --- !u!1 &1275364555

@@ -52,13 +52,19 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
         changingScene = false;
         localHands = null;
         placedLocalRig = false;
-        if (runner.IsServer)
+        if (runner.IsServer && !InCastleGame())
         {
             foreach (var player in runner.ActivePlayers)
                 PlayerJoined(player);
             foreach (var tower in FindObjectsByType<TowerGenerator>(FindObjectsSortMode.None))
                 tower.Generate(runner);
         }
+    }
+
+    static bool InCastleGame()
+    {
+        var scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene();
+        return scene.path == "Assets/Scenes/Game.unity";
     }
 
     bool TryGetSpawnPose(PlayerRef player, out Vector3 position, out Quaternion rotation)
@@ -77,7 +83,7 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
 
     void CollectInput(NetworkRunner runner, NetworkInput input)
     {
-        if (changingScene) return;
+        if (changingScene || InCastleGame()) return;
         if (localHands == null)
             localHands = LocalHandInput.FindOrCreate();
         if (localHands != null && !placedLocalRig && runner.LocalPlayer != PlayerRef.None)
@@ -100,7 +106,7 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
 
     public void PlayerJoined(PlayerRef player)
     {
-        if (Runner.IsServer == false || changingScene)
+        if (Runner.IsServer == false || changingScene || InCastleGame())
         {
             return;
         }

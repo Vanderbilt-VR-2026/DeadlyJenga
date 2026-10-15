@@ -36,7 +36,7 @@ namespace DeadlyJenga.CandyPhysicsHands.Editor
                 if(state==PlayModeStateChange.EnteredPlayMode&&SessionState.GetBool(Key,false)){SessionState.SetBool(Key,false);EditorApplication.delayCall+=()=>Object.FindFirstObjectByType<CandyHandLab>().StartCoroutine(Checks());}
                 if(state==PlayModeStateChange.EnteredPlayMode&&SessionState.GetBool(Key+"Demo",false)){SessionState.SetBool(Key+"Demo",false);EditorApplication.delayCall+=()=>Object.FindFirstObjectByType<CastlePlaySession>().StartCoroutine(DemoChecks());}
                 if(state==PlayModeStateChange.EnteredEditMode&&SessionState.GetBool(Key+"Restore",false))
-                {SessionState.SetBool(Key+"Restore",false);EditorApplication.delayCall+=()=>{EditorSceneManager.OpenScene(SessionState.GetString(Key+"Scene","Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity"));Export();if(Object.FindFirstObjectByType<CastlePlaySession>()){SessionState.SetBool(Key+"Demo",true);EditorApplication.EnterPlaymode();}};}
+                {SessionState.SetBool(Key+"Restore",false);EditorApplication.delayCall+=()=>{EditorSceneManager.OpenScene(SessionState.GetString(Key+"Scene","Assets/Scenes/Game.unity"));Export();if(Object.FindFirstObjectByType<CastlePlaySession>()){SessionState.SetBool(Key+"Demo",true);EditorApplication.EnterPlaymode();}};}
             };
         }
         public static CandyHandSettings Profile(string name,bool giant)
@@ -119,7 +119,7 @@ namespace DeadlyJenga.CandyPhysicsHands.Editor
             var giant=Profile("Flying Hand Settings",true);var labSettings=Profile("Bench Hand Settings",false);
             var mat=AssetDatabase.LoadAssetAtPath<Material>(Root+"White candy hand.mat");if(!mat){mat=new Material(CandyPlayerBuilder.Style.material){name="White candy hand"};mat.SetColor("_BaseColor",new Color(.92f,.95f,1));AssetDatabase.CreateAsset(mat,Root+"White candy hand.mat");}
             giant.skin=mat;labSettings.skin=mat;EditorUtility.SetDirty(giant);EditorUtility.SetDirty(labSettings);var prefab=BuildVisual(giant);
-            string actorPath="Assets/CastlePrototype/Prefabs/CastleFlyingHand.prefab";var actorGo=PrefabUtility.LoadPrefabContents(actorPath);
+            string actorPath="Assets/Prefabs/CastleFlyingHand.prefab";var actorGo=PrefabUtility.LoadPrefabContents(actorPath);
             try{var bridge=actorGo.GetComponent<CandyFlyingHandBridge>();if(!bridge)bridge=actorGo.AddComponent<CandyFlyingHandBridge>();bridge.actor=actorGo.GetComponent<CastleHandActor>();bridge.prefab=prefab;bridge.settings=giant;bridge.trackingStyle=CandyPlayerBuilder.Style;PrefabUtility.SaveAsPrefabAsset(actorGo,actorPath);}finally{PrefabUtility.UnloadPrefabContents(actorGo);}
             SessionState.SetString(Key+"Scene",SceneManager.GetActiveScene().path);
             SessionState.SetString(Key+"Hash",Convert.ToBase64String(System.Security.Cryptography.SHA256.Create().ComputeHash(File.ReadAllBytes(SceneManager.GetActiveScene().path))));
@@ -237,7 +237,7 @@ namespace DeadlyJenga.CandyPhysicsHands.Editor
             var target=new RenderTexture(1200,900,24);var previous=RenderTexture.active;lab.view.targetTexture=target;lab.view.Render();RenderTexture.active=target;var texture=new Texture2D(1200,900,TextureFormat.RGB24,false);texture.ReadPixels(new Rect(0,0,1200,900),0,0);texture.Apply();File.WriteAllBytes(Output+name,texture.EncodeToPNG());lab.view.targetTexture=null;RenderTexture.active=previous;Object.Destroy(texture);Object.Destroy(target);
         }
         [MenuItem("Tools/Candy Hands/Export Module")]
-        public static void Export(){Directory.CreateDirectory(Output);AssetDatabase.ExportPackage(new[]{Root.TrimEnd('/'),"Assets/CastlePrototype/Prefabs/CastleFlyingHand.prefab","Assets/CastlePrototype/Scripts/CastlePlaySession.cs","Assets/CandyPlayers/CandySmoothHandMesh.cs","Assets/CandyPlayers/CandyHandSkeleton.cs","Assets/CandyPlayers/CandyTrackingSource.cs","Assets/CandyPlayers/CandyPlayerRig.cs","Assets/CandyPlayers/Editor/CandyPlayerBuilder.cs","Assets/CandyPlayers/Resources/CandyPlayerVisual.prefab"},Output+"CandyPhysicsHands.unitypackage",ExportPackageOptions.IncludeDependencies|ExportPackageOptions.Recurse);}
+        public static void Export(){Directory.CreateDirectory(Output);AssetDatabase.ExportPackage(new[]{Root.TrimEnd('/'),"Assets/Prefabs/CastleFlyingHand.prefab","Assets/Scripts/CastlePlaySession.cs","Assets/CandyPlayers/CandySmoothHandMesh.cs","Assets/CandyPlayers/CandyHandSkeleton.cs","Assets/CandyPlayers/CandyTrackingSource.cs","Assets/CandyPlayers/CandyPlayerRig.cs","Assets/CandyPlayers/Editor/CandyPlayerBuilder.cs","Assets/CandyPlayers/Resources/CandyPlayerVisual.prefab"},Output+"CandyPhysicsHands.unitypackage",ExportPackageOptions.IncludeDependencies|ExportPackageOptions.Recurse);}
         static IEnumerator DemoChecks()
         {
             report.Clear();report.AddRange(File.ReadAllLines(Output+"Validation.txt"));Application.runInBackground=true;yield return new WaitForSeconds(.5f);

@@ -56,7 +56,7 @@ namespace DeadlyJenga.CandyPlayers.Editor
                 PrefabUtility.SaveAsPrefabAsset(go,PrefabPath);Object.DestroyImmediate(go);
             }
             var visual=AssetDatabase.LoadAssetAtPath<CandyPlayerRig>(PrefabPath);
-            string playerPath="Assets/CastlePrototype/Prefabs/CastleSurvivor.prefab";
+            string playerPath="Assets/Prefabs/CastleSurvivor.prefab";
             var player=PrefabUtility.LoadPrefabContents(playerPath);
             try
             {
@@ -83,7 +83,7 @@ namespace DeadlyJenga.CandyPlayers.Editor
             var paths=new System.Collections.Generic.List<string>();
             foreach(var guid in AssetDatabase.FindAssets("",new[]{Root.TrimEnd('/')}))
             {var path=AssetDatabase.GUIDToAssetPath(guid);if(!AssetDatabase.IsValidFolder(path))paths.Add(path);}
-            paths.Add("Assets/CastlePrototype/Prefabs/CastleSurvivor.prefab");
+            paths.Add("Assets/Prefabs/CastleSurvivor.prefab");
             paths.Add("Assets/Scripts/LocalHandInput.cs");paths.Add("Assets/Scripts/NetworkHands.cs");
             AssetDatabase.ExportPackage(paths.ToArray(),"ArtDirection/CandyPlayers/CandyPlayers.unitypackage",ExportPackageOptions.IncludeDependencies);
         }

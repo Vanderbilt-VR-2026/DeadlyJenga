@@ -64,8 +64,8 @@ namespace DeadlyJenga.CandyArt.Editor
         [MenuItem("Tools/Candy Tropical/5 Apply And Verify Art Pass")]
         public static void ApplyAndVerify()
         {
-            if(SceneManager.GetActiveScene().path!="Assets/CastlePrototype/Scenes/CastlePhysicsTest.unity")
-                throw new InvalidOperationException("Open CastlePhysicsTest. Verification never opens or replaces a different scene.");
+            if(SceneManager.GetActiveScene().path!="Assets/Scenes/Game.unity")
+                throw new InvalidOperationException("Open the Game scene. Verification never opens or replaces a different scene.");
             Directory.CreateDirectory(Output);
             var generator=Object.FindFirstObjectByType<CastleGenerator>();
             var before=generator.GetComponentsInChildren<CastleBlock>(true).Select(b=>new PhysicsState(b)).ToArray();
