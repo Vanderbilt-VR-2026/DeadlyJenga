@@ -13,7 +13,7 @@ namespace DeadlyJenga.CandyAudio
         public float WaterHeight {get;private set;}=-.12f;
         public bool musicEnabled=true;
         CandyAudioBank ownedBank;
-        CastlePlaySession session;CandyOceanSurface ocean;float scanAt,windAt,exposure=1,tension;
+        ISessionInfo session;CastleGenerator generator;CandyOceanSurface ocean;float scanAt,windAt,exposure=1,tension;
         readonly System.Collections.Generic.Dictionary<Vector3Int,float> leanCells=new System.Collections.Generic.Dictionary<Vector3Int,float>();
         readonly System.Collections.Generic.Dictionary<Vector3Int,float> splashCells=new System.Collections.Generic.Dictionary<Vector3Int,float>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]static void ResetStatics(){Instance=null;}
@@ -33,16 +33,16 @@ namespace DeadlyJenga.CandyAudio
             if(Time.time>=scanAt)
             {
                 scanAt=Time.time+.75f;
-                if(!session)session=FindFirstObjectByType<CastlePlaySession>();
+                session=GameSessionInfo.Current;if(!generator)generator=FindFirstObjectByType<CastleGenerator>();
                 if(!ocean)ocean=FindFirstObjectByType<CandyOceanSurface>();
                 if(ocean)WaterHeight=ocean.transform.position.y;
-                if(!session)return;
-                foreach(var body in session.generator.Bodies)if(body&&!body.TryGetComponent<CandyBlockAudio>(out _))body.gameObject.AddComponent<CandyBlockAudio>();
+                if(session==null||!generator)return;
+                foreach(var body in generator.Bodies)if(body&&!body.TryGetComponent<CandyBlockAudio>(out _))body.gameObject.AddComponent<CandyBlockAudio>();
                 foreach(var player in FindObjectsByType<CastleSurvivor>(FindObjectsSortMode.None))if(!player.TryGetComponent<CandyPlayerAudio>(out _))player.gameObject.AddComponent<CandyPlayerAudio>();
                 foreach(var hand in FindObjectsByType<CastleHandActor>(FindObjectsSortMode.None))if(!hand.TryGetComponent<CandyHandAudio>(out _))hand.gameObject.AddComponent<CandyHandAudio>();
                 if(leanCells.Count>128)leanCells.Clear();if(splashCells.Count>128)splashCells.Clear();
             }
-            if(!session||!engine.Listener)return;
+            if(session==null||!engine.Listener)return;
             // Desktop demo menu feedback. Future world-space buttons call the
             // public Play(UiClick, ..., local:true) API on their actual activation.
             if(session.MenuOpen&&Mouse.current!=null&&Mouse.current.leftButton.wasPressedThisFrame)

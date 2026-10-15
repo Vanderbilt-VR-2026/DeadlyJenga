@@ -44,6 +44,12 @@ namespace DeadlyJenga.CastlePrototype
             label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=16;label.fontStyle=FontStyle.Bold;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(310,40);label.rectTransform.anchoredPosition=new Vector2(0,4);
         }
+        CastleSurvivor owner;
+        void Update()
+        {
+            if (!owner) owner = GetComponent<CastleSurvivor>();
+            if (owner && !owner.externallyDriven && owner.viewCamera) Present(owner, Time.unscaledDeltaTime);
+        }
         public void Present(CastleSurvivor motor,float dt)
         {
             if(!canvas)Build();

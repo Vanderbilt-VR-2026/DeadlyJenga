@@ -82,8 +82,8 @@ namespace DeadlyJenga.CandyAudio.Editor
                 int pooled=0;foreach(var source in engine.GetComponentsInChildren<AudioSource>())if(source.name.StartsWith("Pooled candy voice"))pooled++;
                 Check(pooled==engine.bank.oneShotVoices+engine.bank.loopVoices,"Exactly one bounded gameplay voice pool is allocated (studio preview is separate).");
                 Check(engine.GetComponentsInChildren<AudioListener>().Length==0,"Audio module creates no competing listener.");
-                var session=UnityEngine.Object.FindFirstObjectByType<CastlePlaySession>();int attached=0,total=0;
-                if(session)foreach(var body in session.generator.Bodies)if(body){total++;if(body.GetComponent<CandyBlockAudio>())attached++;}
+                var generator=UnityEngine.Object.FindFirstObjectByType<CastleGenerator>();int attached=0,total=0;
+                if(generator)foreach(var body in generator.Bodies)if(body){total++;if(body.GetComponent<CandyBlockAudio>())attached++;}
                 Check(total>0&&attached==total,"Every live generated block has a contact observer (wait one second after rebuilding).");
                 int culled=engine.Culled,played=engine.Played;
                 if(engine.Listener)

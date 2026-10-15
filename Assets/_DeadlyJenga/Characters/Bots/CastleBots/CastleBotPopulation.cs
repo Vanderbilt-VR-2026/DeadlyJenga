@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastleBots
 {
     public sealed class CastleBotPopulation : MonoBehaviour
     {
-        public CastlePlaySession Session {get;private set;}
+        public BotWorld Session {get;private set;}
         public int targetPopulation=10;
         [Tooltip("Supply the host's connected human count here when integrating multiplayer.")]
         public int humanPlayers=1;
@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastleBots
         public int SelectedPreset {get;private set;}
         public string SelectedName=>profiles[SelectedPreset].displayName;
         public int Count=>bots.Count;
-        public int Capacity=>Mathf.Clamp(targetPopulation-humanPlayers-(Session&&Session.HandBots?Session.HandBots.Count:0),0,20);
+        public int Capacity=>Mathf.Clamp(targetPopulation-humanPlayers-(Session!=null&&Session.HandBots?Session.HandBots.Count:0),0,20);
         public IReadOnlyList<CastleBotBrain> Bots=>bots;
         public string Status {get;private set;}="";
         readonly List<CastleBotBrain> bots=new List<CastleBotBrain>();
@@ -30,7 +30,7 @@ namespace DeadlyJenga.CastleBots
         Transform staging;
         float nextPopulation,nextHazards;
         int serial;
-        public void Initialize(CastlePlaySession session)
+        public void Initialize(BotWorld session)
         {
             Session=session;handBridge=session.Hand.GetComponent<DeadlyJenga.CandyPhysicsHands.CandyFlyingHandBridge>();profiles=Resources.LoadAll<CastleBotPersonality>("CastleBots").OrderBy(p=>p.displayName).ToArray();
             if(profiles.Length==0){ownsProfiles=true;profiles=new CastleBotPersonality[4];for(int i=0;i<4;i++)profiles[i]=CastleBotPersonality.Create(i);}

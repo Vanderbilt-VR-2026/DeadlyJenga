@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(200)]
-    public sealed class CastlePlaySession : MonoBehaviour
+    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo
     {
         public CastleGenerator generator;
         public CastleSurvivor survivorPrefab;
@@ -32,8 +32,9 @@ namespace DeadlyJenga.CastlePrototype
 
         void Start()
         {
+            GameSessionInfo.Current = this;
             if (overviewCamera) overviewCamera.gameObject.SetActive(false);
-            Player = Instantiate(survivorPrefab); Player.name = "Survivor (local)";
+            Player = Instantiate(survivorPrefab); Player.name = "Survivor (local)"; Player.gameObject.AddComponent<CandyStaminaHud>();
             TuneJump();
             Hand = Instantiate(handPrefab); Hand.name = "Flying Hand (local)";
             Player.viewCamera.clearFlags = CameraClearFlags.Skybox;
@@ -45,8 +46,10 @@ namespace DeadlyJenga.CastlePrototype
             switchRole.Enable(); toggleMenu.Enable(); select.Enable();
             worldMenu = new GameObject("Headset demo menu").AddComponent<CastleWorldMenu>(); worldMenu.Build(this);
             SetRole(false); SetMenu(false);
-            Bots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleBotPopulation>();Bots.Initialize(this);
-            HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();HandBots.Initialize(this);
+            Bots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleBotPopulation>();
+            HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();
+            var botWorld=new DeadlyJenga.CastleBots.BotWorld{generator=generator,Player=Player,Hand=Hand,survivorPrefab=survivorPrefab,handPrefab=handPrefab,Bots=Bots,HandBots=HandBots,isPlayingHand=()=>PlayingHand};
+            Bots.Initialize(botWorld);HandBots.Initialize(botWorld);
             var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)
             {
@@ -63,6 +66,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
+            if (ReferenceEquals(GameSessionInfo.Current, this)) GameSessionInfo.Current = null;
             switchRole?.Dispose(); toggleMenu?.Dispose(); select?.Dispose();
             if (worldMenu) Destroy(worldMenu.gameObject);
             if (Player) Destroy(Player.gameObject);

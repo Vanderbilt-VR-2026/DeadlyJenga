@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastleBots
 {
     public sealed class CastleHandBotPopulation:MonoBehaviour
     {
-        public CastlePlaySession Session {get;private set;}
+        public BotWorld Session {get;private set;}
         [Range(1,20)]public int maximumHands=9;
         public int Count=>hands.Count;
         public IReadOnlyList<CastleHandBotBrain> Hands=>hands;
@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastleBots
         Transform staging;
         bool ownsProfiles;
         int serial;
-        public void Initialize(CastlePlaySession session)
+        public void Initialize(BotWorld session)
         {
             Session=session;profiles=Resources.LoadAll<CastleHandBotPersonality>("CastleHandBots").OrderBy(p=>p.displayName).ToArray();
             if(profiles.Length==0){ownsProfiles=true;profiles=Enumerable.Range(0,4).Select(CastleHandBotPersonality.Create).ToArray();}
@@ -55,7 +55,7 @@ namespace DeadlyJenga.CastleBots
         public void ClearHands()
         {
             foreach(var hand in hands)if(hand){hand.gameObject.SetActive(false);Destroy(hand.gameObject);}
-            hands.Clear();Status="AI hands cleared";if(Session&&Session.Bots)Session.Bots.ReconcileHandSlots();
+            hands.Clear();Status="AI hands cleared";if(Session!=null&&Session.Bots)Session.Bots.ReconcileHandSlots();
         }
         public void TrimHumanCapacity()
         {

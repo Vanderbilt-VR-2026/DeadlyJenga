@@ -90,7 +90,7 @@ namespace DeadlyJenga.CastleBots
             if(!brain.Population)return false;
             var session=brain.Population.Session;
             float radius=1.3f;
-            if(session&&session.Player&&session.Player.gameObject.activeInHierarchy&&(session.Player.transform.position-transform.position).sqrMagnitude<radius*radius)return true;
+            if(session!=null&&session.Player&&session.Player.gameObject.activeInHierarchy&&(session.Player.transform.position-transform.position).sqrMagnitude<radius*radius)return true;
             foreach(var bot in brain.Population.Bots)
                 if(bot&&bot!=brain&&!bot.Respawning&&(bot.transform.position-transform.position).sqrMagnitude<radius*radius)return true;
             return false;

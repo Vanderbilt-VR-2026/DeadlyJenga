@@ -30,15 +30,6 @@ namespace DeadlyJenga.CastlePrototype
         readonly Vector3[] climbHandFrom=new Vector3[2];
         readonly float[] climbHandReach=new float[2];
         int climbMovingHand=-1;
-        CandyStaminaHud climbHud;
-
-        void UpdateClimbHud()
-        {
-            if(externallyDriven||!viewCamera)return;
-            if(!climbHud)climbHud=gameObject.AddComponent<CandyStaminaHud>();
-            climbHud.Present(this,Time.unscaledDeltaTime);
-        }
-
         void ResetClimb(bool refill)
         {
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;

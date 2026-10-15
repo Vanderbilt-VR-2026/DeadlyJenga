@@ -15,7 +15,7 @@ namespace DeadlyJenga.CandyAudio
         public bool ShowLauncher {get;set;}=true;
         public CandyAudioBank SessionBank=>working;
         public bool IsPreviewPlaying=>preview&&preview.isPlaying;
-        CandyAudioBank original,working;CandyAudioEngine engine;CastlePlaySession session;
+        CandyAudioBank original,working;CandyAudioEngine engine;ISessionInfo session;
         AudioSource preview;CandyAudioCue selected;bool previousMenu,library,spatial,quiet=true;
         int category=-1,take;float strength=.75f,distance=8,angle=30;string search="",clipSearch="",status="Live session mix • project assets stay untouched";
         Vector2 scroll,clipScroll;float[] waveform=new float[100],samples=new float[128];
@@ -33,13 +33,13 @@ namespace DeadlyJenga.CandyAudio
         {
             if(!engine||!engine.bank)return;
             if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";engine.Configure(working);}
-            session=FindFirstObjectByType<CastlePlaySession>();previousMenu=session&&session.MenuOpen;if(session)session.SetMenu(true);
+            session=GameSessionInfo.Current;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
             GatherClips();IsOpen=true;status="Session copy • preview freely, then save a preset if you like it.";
         }
         public void Close()
         {
             preview.Stop();selected=null;library=false;IsOpen=false;if(engine)engine.auditionDucking=1;
-            if(session)session.SetMenu(previousMenu);
+            if(session!=null)session.SetMenu(previousMenu);
         }
         void Update()
         {
@@ -48,7 +48,7 @@ namespace DeadlyJenga.CandyAudio
             if(!IsOpen)return;
             if(keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame){if(library)library=false;else if(selected!=null){selected=null;preview.Stop();}else Close();}
             if(!IsOpen)return;
-            if(session&&!session.MenuOpen)session.SetMenu(true);
+            if(session!=null&&!session.MenuOpen)session.SetMenu(true);
             engine.auditionDucking=quiet&&preview.isPlaying?.12f:1;
             if(preview.isPlaying&&selected!=null)
             {

@@ -146,7 +146,6 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             Simulate(walking, pressed, Time.deltaTime,held);
-            UpdateClimbHud();
         }
 
         public void Teleport(Vector3 feet, Quaternion rotation)
