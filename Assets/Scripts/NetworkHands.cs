@@ -3,6 +3,8 @@ using UnityEngine;
 
 public class NetworkHands : NetworkBehaviour
 {
+    [Tooltip("Optional: assigned only on the Lobby avatar.")]
+    [SerializeField] NetworkTransform head;
     [SerializeField] NetworkTransform leftHand;
     [SerializeField] NetworkTransform rightHand;
 
@@ -24,6 +26,8 @@ public class NetworkHands : NetworkBehaviour
         if (!GetInput<HandPoseInput>(out var pose)) return;
 
         transform.SetPositionAndRotation(pose.RootPosition, pose.RootRotation);
+        if (head != null)
+            head.transform.SetPositionAndRotation(pose.HeadPosition, pose.HeadRotation);
         leftHand.transform.SetPositionAndRotation(pose.LeftPosition, pose.LeftRotation);
         rightHand.transform.SetPositionAndRotation(pose.RightPosition, pose.RightRotation);
     }

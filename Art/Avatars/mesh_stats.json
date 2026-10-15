@@ -1,0 +1,19 @@
+{
+  "Head": {
+    "vertices": 610,
+    "triangles": 1216
+  },
+  "Torso": {
+    "vertices": 1730,
+    "triangles": 3456
+  },
+  "LeftHand": {
+    "vertices": 399,
+    "triangles": 794
+  },
+  "RightHand": {
+    "vertices": 399,
+    "triangles": 794
+  },
+  "total_triangles": 6260
+}

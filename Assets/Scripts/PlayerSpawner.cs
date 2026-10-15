@@ -115,7 +115,10 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
         if (spawnedPlayers.ContainsKey(player))
             return;
 
-        var avatar = Runner.Spawn(playerPrefab, spawnPosition, spawnRotation, player);
+        // Resolve per scene: the persistent runner returns to its original prefab in Main.
+        var lobby = FindFirstObjectByType<DeadlyJenga.Avatars.LobbyAvatarScene>();
+        var prefab = lobby != null && lobby.networkPrefab != null ? lobby.networkPrefab : playerPrefab;
+        var avatar = Runner.Spawn(prefab, spawnPosition, spawnRotation, player);
         if (avatar != null)
             spawnedPlayers.Add(player, avatar);
     }

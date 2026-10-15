@@ -3681,6 +3681,62 @@ MonoBehaviour:
   m_VerticalAxis: Vertical
   m_SubmitButton: Submit
   m_CancelButton: Cancel
+--- !u!1 &1710404091
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1710404093}
+  - component: {fileID: 1710404092}
+  m_Layer: 0
+  m_Name: Lobby Avatar Setup
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1710404092
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710404091}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1f95d3f63f6394a6c80f605a631a5c70, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::DeadlyJenga.Avatars.LobbyAvatarScene
+  visualPrefab: {fileID: 7348896343526866915, guid: afac27e4b33ee4cce8d0fea7d9deabbd, type: 3}
+  networkPrefab: {fileID: 74666710513931360, guid: 3a11955af7ab74bb09ddf513932518c8, type: 3}
+  headTarget: {fileID: 2219529367916465401}
+  leftHandTarget: {fileID: 7698344515222159846}
+  rightHandTarget: {fileID: 4923742529756201133}
+  playerColors:
+  - {r: 0.12, g: 0.65, b: 0.95, a: 1}
+  - {r: 0.98, g: 0.28, b: 0.2, a: 1}
+  - {r: 0.35, g: 0.85, b: 0.2, a: 1}
+  - {r: 0.85, g: 0.2, b: 0.92, a: 1}
+  - {r: 1, g: 0.8, b: 0.1, a: 1}
+  - {r: 0.1, g: 0.85, b: 0.75, a: 1}
+--- !u!4 &1710404093
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1710404091}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1760272917
 GameObject:
   m_ObjectHideFlags: 0
@@ -13208,3 +13264,4 @@ SceneRoots:
   - {fileID: 368802774}
   - {fileID: 67788560}
   - {fileID: 534955661}
+  - {fileID: 1710404093}

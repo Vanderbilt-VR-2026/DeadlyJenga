@@ -6,6 +6,8 @@ public struct HandPoseInput : INetworkInput
 {
     public Vector3 RootPosition;
     public Quaternion RootRotation;
+    public Vector3 HeadPosition;
+    public Quaternion HeadRotation;
     public Vector3 LeftPosition;
     public Quaternion LeftRotation;
     public Vector3 RightPosition;
@@ -15,6 +17,7 @@ public struct HandPoseInput : INetworkInput
 // Lives only on the local XR rig, never on the spawned avatar.
 public class LocalHandInput : MonoBehaviour
 {
+    Transform head;
     [SerializeField] Transform leftVisual;
     [SerializeField] Transform rightVisual;
 
@@ -31,6 +34,8 @@ public class LocalHandInput : MonoBehaviour
 
     void Awake()
     {
+        var origin = GetComponentInParent<XROrigin>();
+        head = origin != null && origin.Camera != null ? origin.Camera.transform : null;
         if (leftVisual == null)
             leftVisual = transform.Find("Camera Offset/Left Controller/Left Controller Visual");
         if (rightVisual == null)
@@ -50,6 +55,8 @@ public class LocalHandInput : MonoBehaviour
         {
             RootPosition = transform.position,
             RootRotation = transform.rotation,
+            HeadPosition = head != null ? head.position : transform.position,
+            HeadRotation = head != null ? head.rotation : transform.rotation,
             LeftPosition = leftVisual.position,
             LeftRotation = leftVisual.rotation,
             RightPosition = rightVisual.position,
