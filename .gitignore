@@ -98,3 +98,9 @@ __MACOSX/
 # "Icon?" above also matches folders named "Icons" (like Assets/TutorialInfo/Icons).
 # This line keeps those folders in Git.
 !Icons/
+
+# Architecture analysis and per-developer layouts stay local.
+/.architecture/local/
+/Tools/ArchitectureMap/bin/
+/Tools/ArchitectureMap/obj/
+!/Tools/ArchitectureMap/ArchitectureMap.csproj
