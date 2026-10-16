@@ -14,8 +14,8 @@ A box may only use boxes at a LOWER level. Never the same level or higher.
 |-------|--------------|-----------------------------|-------------------------|
 | 0     | Core         | -                           | nothing                 |
 | 1     | World        | Blocks, Maps                | Core                    |
-| 2     | Characters   | Player, Hand, Bots          | Core, World             |
-| 3     | Presentation | Audio, Visuals              | Core, World, Characters |
+| 2     | Characters   | Player, Hand, Bots          | Core                    |
+| 3     | Presentation | Audio, Visuals              | Core                    |
 | 4     | GameSession  | Session, Modes              | all boxes               |
 | side  | DevTools     | -                           | all boxes; nothing may use DevTools |
 
@@ -60,11 +60,19 @@ Data (Core/Data):
 
 Services (Core/Services):
 - Services.Session (ISessionInfo): MenuOpen, SetMenu. Set by GameSession.
-- Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint.
-  Set by the active map.
+- Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
+  Blocks, Center, TopHeight, Radius. Set by the active map.
+- ISyncedWorld: Root, Revision, SaveLayout, LoadLayout, SetReplica. The active map
+  implements it so multiplayer can copy it; networking never names a map class.
+- IMapFootprint: the map's ground outline, for art shaped around it (works in edit mode).
+
+State (Core/State) - read-only views for sound, HUD and bots:
+- IMovementState (walking/climbing characters), IFlyingState (flying hands).
+- IPlayerView: the local player's camera, VR flag and stamina status (for HUDs).
+- Tracked.Movers / Tracked.Flyers: characters add themselves in OnEnable, remove in OnDisable.
 
 Events (Core/Events/GameEvents): BlockHit, Pushed, Damaged, Eliminated,
-EffectStarted, EffectEnded, HazardStarted, HazardEnded, RoundStarted, RoundEnded.
+EffectStarted, EffectEnded, HazardStarted, HazardEnded, Emoted, RoundStarted, RoundEnded.
 Whoever causes something raises it (GameEvents.RaiseX). Whoever cares subscribes
 in OnEnable and unsubscribes in OnDisable/OnDestroy.
 

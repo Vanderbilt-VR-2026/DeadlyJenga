@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
-using DeadlyJenga.CastlePrototype;
+using UnityEngine.Serialization;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyArt
 {
@@ -8,7 +9,10 @@ namespace DeadlyJenga.CandyArt
     public sealed class CandySandbar:MonoBehaviour
     {
         public CandyArtProfile profile;
-        public CastleGenerator generator;
+        [Tooltip("The map this sand surrounds. Any component that implements IMapFootprint.")]
+        [FormerlySerializedAs("generator")] public MonoBehaviour map;
+        IMapFootprint Map => map as IMapFootprint;
+        static readonly List<Footprint> ground = new List<Footprint>();
         Mesh owned;Texture2D heights;int signature;
         public Texture2D HeightMap=>heights;
         public Vector2 HalfSize{get;private set;}
@@ -21,17 +25,17 @@ namespace DeadlyJenga.CandyArt
         void Release(){Dispose(owned);Dispose(heights);owned=null;heights=null;}
         public void Refresh()
         {
-            if(!profile)return;var settings=generator?generator.settings:null;
+            if(!profile)return;var shape=map?Map:null;
             int hash=profile.terrainResolution;
             void Hash(float value){hash=hash*31+value.GetHashCode();}
             Hash(profile.sandMargin);Hash(profile.sandRelief);Hash(profile.sandDepth);Hash(profile.sandShoreWidth);Hash(profile.islandRadius);
-            if(settings!=null){Hash(settings.blockSize.x);Hash(settings.blockSize.z);Hash(settings.modulesPerSide);Hash(settings.moduleGap);Hash(settings.singleTower?1:0);}
+            if(shape!=null)Hash(shape.FootprintVersion);
             if(owned&&heights&&hash==signature)return;
-            Release();feet.Clear();float half=settings!=null?CastleLayout.Footprint(settings)*.5f:profile.islandRadius*.65f;
+            Release();feet.Clear();float half=shape!=null?shape.FootprintHalfSize:profile.islandRadius*.65f;
             // A softly oval natural island has room at its shoulders while covering the castle's corners.
             HalfSize=new Vector2(half+profile.sandMargin+2.7f,half+profile.sandMargin+2.3f)+Vector2.one*profile.sandShoreWidth;
-            if(settings!=null)foreach(var placement in CastleLayout.Build(settings))if(placement.Course==0)
-                feet.Add(new Foot{center=new Vector2(placement.Position.x,placement.Position.z),half=new Vector2(settings.blockSize.x,settings.blockSize.z)*.5f,rotation=Quaternion.Inverse(placement.Rotation)});
+            if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
+                foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
             BuildMesh();signature=hash;
         }
         float SupportDistance(Vector2 p)

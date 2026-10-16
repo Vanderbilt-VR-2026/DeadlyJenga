@@ -1,7 +1,7 @@
 # Characters (level 2)
 
 Everything that moves through the world, human or AI.
-May use: Core, World.
+May use: Core only. Ask the map through Services.World (IWorldQuery), never World classes.
 
 ## Lanes
 - Player: CastleSurvivor (+ Climbing, Stamina, VR, Abilities), LocalHandInput,

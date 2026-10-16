@@ -35,8 +35,8 @@ namespace DeadlyJenga.CandyArt
             if(terrain)
             {
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
-                if(baseline)terrain.generator=baseline.generator;
-                else if(foundation)terrain.generator=foundation.GetComponentInParent<DeadlyJenga.CastlePrototype.CastleGenerator>();
+                if(baseline)terrain.map=baseline.map;
+                else if(foundation)terrain.map=foundation.GetComponentInParent<DeadlyJenga.Core.IMapFootprint>() as MonoBehaviour;
                 terrain.Refresh();sandRenderer.transform.localScale=Vector3.one;
             }
             else sandRenderer.transform.localScale=new Vector3(radius*2*profile.islandAspect.x,1,radius*2*profile.islandAspect.y);

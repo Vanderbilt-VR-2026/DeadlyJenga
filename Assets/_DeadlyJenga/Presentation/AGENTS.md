@@ -1,7 +1,7 @@
 # Presentation (level 3)
 
 What you see and hear. Nothing here may change gameplay.
-May use: Core, World, Characters.
+May use: Core only. Reads characters through IMovementState, IFlyingState and IPlayerView, the map through Services.World and IMapFootprint.
 
 ## Lanes
 - Audio: CandyAudio (engine, bank, studio, block/player/hand audio).

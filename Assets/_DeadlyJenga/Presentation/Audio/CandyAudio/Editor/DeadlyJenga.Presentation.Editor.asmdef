@@ -3,9 +3,10 @@
     "references": [
         "DeadlyJenga.Core",
         "DeadlyJenga.Core.Editor",
-        "DeadlyJenga.World",
         "DeadlyJenga.Presentation"
     ],
-    "includePlatforms": ["Editor"],
+    "includePlatforms": [
+        "Editor"
+    ],
     "autoReferenced": true
 }

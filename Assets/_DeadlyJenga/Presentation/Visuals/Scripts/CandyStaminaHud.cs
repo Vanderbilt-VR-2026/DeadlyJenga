@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -44,25 +45,30 @@ namespace DeadlyJenga.CastlePrototype
             label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=16;label.fontStyle=FontStyle.Bold;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(310,40);label.rectTransform.anchoredPosition=new Vector2(0,4);
         }
-        CastleSurvivor owner;
+        // Reads the character only through Core (IMovementState + IPlayerView).
+        IMovementState owner;
         void Update()
         {
-            if (!owner) owner = GetComponent<CastleSurvivor>();
-            if (owner && !owner.externallyDriven && owner.viewCamera) Present(owner, Time.unscaledDeltaTime);
+            if (!(owner is Object alive && alive)) owner = GetComponent<IMovementState>();
+            var view = owner as IPlayerView;
+            if (view != null && view.ControlledHere && view.ViewCamera) Present(owner, Time.unscaledDeltaTime);
         }
-        public void Present(CastleSurvivor motor,float dt)
+        public void Present(IMovementState motor,float dt)
         {
+            var view=motor as IPlayerView;var body=motor as Behaviour;
+            if(view==null||!body)return;
+            var viewCamera=view.ViewCamera;
             if(!canvas)Build();
-            if(attachedCamera!=motor.viewCamera||vr!=motor.IsVR||canvas.renderMode==RenderMode.ScreenSpaceOverlay&&motor.IsVR)
-            {attachedCamera=motor.viewCamera;vr=motor.IsVR;ConfigureView();}
+            if(attachedCamera!=viewCamera||vr!=view.IsVR||canvas.renderMode==RenderMode.ScreenSpaceOverlay&&view.IsVR)
+            {attachedCamera=viewCamera;vr=view.IsVR;ConfigureView();}
             // First desktop frame also needs anchors set.
             if(!vr&&panel.anchorMin!=new Vector2(.5f,0))ConfigureView();
-            bool hidden=!motor.isActiveAndEnabled||motor.InputSuspended||!motor.viewCamera||!motor.viewCamera.isActiveAndEnabled;
-            group.alpha=Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing,motor.GripRemaining,hidden),Mathf.Max(0,dt)*4);
-            displayed=Mathf.MoveTowards(displayed,motor.GripRemaining,Mathf.Max(0,dt)*3);
+            bool hidden=!body.isActiveAndEnabled||motor.InputPaused||!viewCamera||!viewCamera.isActiveAndEnabled;
+            group.alpha=Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing,motor.Stamina,hidden),Mathf.Max(0,dt)*4);
+            displayed=Mathf.MoveTowards(displayed,motor.Stamina,Mathf.Max(0,dt)*3);
             fill.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,308*displayed);
             juice.color=Color.Lerp(new Color(1,.26f,.32f),new Color(.22f,1,.76f),Mathf.SmoothStep(0,1,displayed));
-            label.text=(motor.StaminaExhausted?"EXHAUSTED":motor.Climbing?"GRIP":motor.StaminaRecovering?"CATCHING YOUR BREATH":"FIND SECURE FOOTING")+"  "+Mathf.CeilToInt(motor.GripRemaining*100)+"%";
+            label.text=(view.StaminaExhausted?"EXHAUSTED":motor.Climbing?"GRIP":view.StaminaRecovering?"CATCHING YOUR BREATH":"FIND SECURE FOOTING")+"  "+Mathf.CeilToInt(motor.Stamina*100)+"%";
             canvas.enabled=group.alpha>0;
         }
         void ConfigureView()

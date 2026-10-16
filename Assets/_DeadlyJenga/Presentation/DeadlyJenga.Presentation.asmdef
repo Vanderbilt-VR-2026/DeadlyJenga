@@ -2,9 +2,6 @@
     "name": "DeadlyJenga.Presentation",
     "references": [
         "DeadlyJenga.Core",
-        "DeadlyJenga.World",
-        "DeadlyJenga.Characters",
-        "HandDemo.Runtime",
         "Unity.InputSystem",
         "UnityEngine.UI"
     ],

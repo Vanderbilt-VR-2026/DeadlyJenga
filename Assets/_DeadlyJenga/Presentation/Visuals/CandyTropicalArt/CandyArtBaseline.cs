@@ -2,16 +2,17 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
-using DeadlyJenga.CastlePrototype;
+using UnityEngine.Serialization;
 
 namespace DeadlyJenga.CandyArt
 {
     // Scene-specific restore data, deliberately excluded from the portable environment prefab.
     public sealed class CandyArtBaseline : MonoBehaviour
     {
-        [Serializable] public class BlockState { public CastleBlock block; public CastleBlockAppearance appearance; public Material material; }
+        [Serializable] public class BlockState { public MonoBehaviour block; public ScriptableObject appearance; public Material material; }
         [Serializable] public class RendererState { public Renderer renderer; public bool enabled; }
-        public CastleGenerator generator;
+        [Tooltip("The map (any IMapFootprint component).")]
+        [FormerlySerializedAs("generator")] public MonoBehaviour map;
         public GameObject blockPrefab;
         public Material red,green,purple,sky;
         public AmbientMode ambientMode;
