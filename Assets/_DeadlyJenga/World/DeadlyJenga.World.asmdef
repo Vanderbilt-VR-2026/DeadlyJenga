@@ -1,0 +1,5 @@
+{
+    "name": "DeadlyJenga.World",
+    "references": ["DeadlyJenga.Core"],
+    "autoReferenced": true
+}

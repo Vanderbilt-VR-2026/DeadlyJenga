@@ -4,28 +4,28 @@ Everything that moves through the world, human or AI.
 May use: Core, World.
 
 ## Lanes
-- Player: CastleSurvivor (+ Climbing, Stamina, VR parts), LocalHandInput,
+- Player: CastleSurvivor (+ Climbing, Stamina, VR, Abilities), LocalHandInput,
   CandyPlayers (avatar), CastleSurvivor prefab.
 - Hand: CastleHandActor, HandDemo, CandyPhysicsHands, CastleFlyingHand prefab.
-- Bots: CastleBots (survivor + hand AI, personalities, navigation).
+- Bots: CastleBots (survivor + hand AI, personalities, navigation, BotWorld).
 
-## Contracts
-- Hand pulls blocks only through IPullable, never CastleBlock directly.
-- Player exposes stamina as public read-only values for the HUD to read.
-- Raise GameEvents for jump, land, climb, vault, grab, release, emote.
-- Player and hand state reach networking through ISyncState.
-- Bots read game state through ISessionInfo.
-
-## Sandbox
-Characters/Sandbox.unity: a few gray blocks, one player, one hand,
-a fake ISessionInfo, a cube implementing IPullable.
+## What Characters provides
+- CastleSurvivor (players and bots): IPushable, IDamageable, IAffectable, ITeleportable.
+  Reactions to specific effects go in CastleSurvivor.Abilities.cs > Apply().
+- CastleHandActor: ITeleportable.
+- Climbing and vaulting use IClimbable via Climbables.TryGet, never CastleBlock.
 
 ## Rules
-- Never call HUD, audio, or session code directly. Raise events or
-  expose values; other boxes read them.
-- Bots copy human controls through the driver interfaces. If player or hand
-  movement changes, check bots in the sandbox before finishing.
+- Never call HUD, audio or session code. Raise GameEvents or expose read-only values.
+- Unknown effects are ignored, never an error.
+- If you change how a survivor or hand moves, check bots in the sandbox too.
+- LocalHandInput and CandyHandSkeleton are networked types; this assembly is woven by Photon.
 
-## Known fixes
-- Remove Player's direct call to CandyStaminaHud.
-- Replace Bots' use of CastlePlaySession with ISessionInfo.
+## Sandbox
+Characters/Sandbox.unity: gray blocks, one player, one hand, FakeSession,
+FakeWorldQuery, and buttons that Push / Damage / Apply effects to the player.
+
+## Next up
+- Hands grab blocks through IGrabbable once World implements it.
+- Bots still use BotWorld (concrete classes inside this box and World). Fine for
+  now; switch to Services.World where it helps.

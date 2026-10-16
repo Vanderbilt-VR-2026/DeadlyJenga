@@ -33,11 +33,55 @@ Lanes are subfolders inside a box. They divide work, not code.
 - You may read and call code from other lanes in the same box, but do not
   edit their files unless the task says so.
 
-## Core
-Core holds only shared definitions: interfaces, events, constants, plain data.
-No gameplay logic.
-Current contracts: IPullable, ISessionInfo, ISyncState, GameEvents, Layers.
-Do not edit Core unless the task explicitly says so.
+## Core: the shared vocabulary
+Boxes talk to each other ONLY through Core. Never name another box's class.
+Ask what something CAN DO, not what it IS:
+`hit.GetComponentInParent<IPushable>()?.Push(force, gameObject)`
+
+Namespace: DeadlyJenga.Core. Folder: Assets/_DeadlyJenga/Core/.
+
+Abilities (Core/Abilities) - any object may implement any of these:
+- IPushable      Push(force, source). force = velocity change in m/s.
+- IDamageable    Health, MaxHealth, Damage(amount, source), Eliminate(source).
+- IAffectable    Apply(Effect), Remove(EffectType), Has(EffectType).
+                 Ignore effects you don't understand.
+- ITeleportable  Teleport(position, rotation).
+- IClimbable     CanClimb, Grip, Anchor, Body, Visual.
+                 Use Climbables.TryGet(collider, out climbable) to find one.
+- IGrabbable     Weight, CanGrab, TryStartGrab, Hold, Release (hands pulling blocks).
+
+Data (Core/Data):
+- EffectType / HazardType: ScriptableObject assets. New effects and hazards
+  are NEW ASSETS, not new code (right-click > Create > Deadly Jenga).
+- Effect: { type, strength, duration, source }.
+- IHazard: Type, Active, Begin(), End(). Every disaster prefab implements it;
+  game modes start/stop hazards without knowing what they are.
+- Layers: Survivor, Block, Surface.
+
+Services (Core/Services):
+- Services.Session (ISessionInfo): MenuOpen, SetMenu. Set by GameSession.
+- Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint.
+  Set by the active map.
+
+Events (Core/Events/GameEvents): BlockHit, Pushed, Damaged, Eliminated,
+EffectStarted, EffectEnded, HazardStarted, HazardEnded, RoundStarted, RoundEnded.
+Whoever causes something raises it (GameEvents.RaiseX). Whoever cares subscribes
+in OnEnable and unsubscribes in OnDisable/OnDestroy.
+
+Test stand-ins (Core/Testing): TestDummy (implements the character abilities and
+logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
+
+### Changing Core
+- Only ADD. Never rename or change an existing member.
+- To remove something: mark it [System.Obsolete] first; delete it once nothing uses it.
+- Do not edit Core unless the task says so. If you need something that is not
+  there, stop and report the smallest addition (name + signature) that would help.
+- Core holds no gameplay logic.
+
+### Presentation never gets called by gameplay
+- Gameplay code never plays sounds, spawns particles or calls the HUD.
+  It raises GameEvents or exposes read-only values. Presentation listens/reads.
+- Gameplay prefabs keep art in a child named "Visual". Gameplay never depends on it.
 
 ## Working rules
 1. Only change files inside the box and lane named in your task.
@@ -58,6 +102,11 @@ Do not edit Core unless the task explicitly says so.
 - Never add, remove, or upgrade packages.
 - Never commit Library/, Temp/, Logs/, Builds/, UserSettings/, or Assets/_Recovery/.
 - Never add editor scripts that create or overwrite assets automatically when Unity loads.
+- Editor tools find assets by name (ProjectPath.Find / FolderOf), never by hard-coded path.
+- Each box's Editor folder needs an editor-only assembly definition (or an .asmref
+  to the box's existing one). Do not leave Editor scripts inside a runtime assembly.
+- New networked code (NetworkBehaviour, INetworkStruct) must live in an assembly listed
+  in Photon's NetworkProjectConfig "Assemblies To Weave" (Characters, GameSession).
 
 ## Unity MCP
 - Edit only prefabs and the Sandbox scene of your task's box.

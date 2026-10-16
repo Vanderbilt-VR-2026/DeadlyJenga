@@ -5,26 +5,22 @@ May use: Core, World, Characters.
 
 ## Lanes
 - Audio: CandyAudio (engine, bank, studio, block/player/hand audio).
-- Visuals: CandyTropicalArt, Crate Visual, Block Appearance asset,
-  block and ocean materials, OceanFlow, skybox and texture folders,
-  HUD (CandyDemoHud, CandyHudVisuals, CandyStaminaHud).
+- Visuals: CandyTropicalArt, Crate Visual, Block Appearance asset, materials,
+  OceanFlow, skybox and texture folders, CandyHudVisuals, CandyStaminaHud.
 
-## Contracts
-- Prefer listening to GameEvents over searching the scene for objects.
-- HUD reads stamina from Player and game state from ISessionInfo.
-- Supplies art to CastleBlockAppearance; never changes block colliders,
-  mass, or placement.
-
-## Sandbox
-Presentation/Sandbox.unity: a few blocks and a player, plus buttons that
-fire GameEvents by hand to test sounds and effects.
+## How it plugs in
+- Listen to GameEvents (Pushed, Damaged, Eliminated, EffectStarted/Ended,
+  HazardStarted/Ended, BlockHit...) and read values (Health, stamina, Services.Session).
+- Map each EffectType / HazardType to its sound and visuals in a lookup table owned
+  here. A type with no entry simply has no art yet; gameplay still works.
+- Replace gameplay prefabs' "Visual" child to change their look. Never touch colliders,
+  rigidbodies, mass or placement.
 
 ## Rules
 - Deleting this box must leave a playable gray-box game.
-- Never add colliders, rigidbodies, or gameplay logic.
 - Keep originals in "Assets For Texture (BETA)". Make new variants instead.
-- Do not run CandyArtBuilder / installer commands unless the task asks.
 
-## Known fixes
-- Replace Audio's and HUD's use of CastlePlaySession with ISessionInfo.
-- Move audio triggers from scene searches to GameEvents over time.
+## Next up
+- Audio still attaches components to players, hands and blocks by searching the scene
+  and reading their state. Allowed by the levels, but new sounds should use GameEvents,
+  and existing ones can move over time.
