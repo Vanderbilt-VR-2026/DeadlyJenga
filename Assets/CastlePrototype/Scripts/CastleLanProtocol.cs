@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public static class CastleLanProtocol
     {
-        public const string Version = "DeadlyJenga-LAN-1";
+        public const string Version = "DeadlyJenga-LAN-2";
         public const byte Hello = 1, Welcome = 2, World = 3, Player = 4;
         public struct Pose
         {

@@ -33,8 +33,10 @@ namespace DeadlyJenga.CastleBots
             previousFeet=transform.position;previousY=transform.position.y;
             nextAllowed=Time.time+Range(2,6);nextAmbient=Time.time+Range(6,18);nextSense=Time.time+Range(0,.3f);
         }
-        float Range(float a,float b)=>Mathf.Lerp(a,b,(float)random.NextDouble());
-        bool Chance(float probability)=>random.NextDouble()<Mathf.Clamp01(probability);
+        // Managed RNG state is not serialized across an editor domain reload.
+        System.Random RandomSource=>random??(random=new System.Random(unchecked(GetInstanceID()*397)));
+        float Range(float a,float b)=>Mathf.Lerp(a,b,(float)RandomSource.NextDouble());
+        bool Chance(float probability)=>RandomSource.NextDouble()<Mathf.Clamp01(probability);
         float Goofiness=>brain&&brain.Personality?brain.Personality.goofiness:.2f;
         bool IdleOnly(Emote emote)=>emote==Emote.WhatWasThat||emote==Emote.JustChilling||emote==Emote.TinyVictoryDance||emote==Emote.GolfClap;
         bool CanPose()=>brain&&brain.isActiveAndEnabled&&brain.Motor&&!brain.Respawning&&brain.Motor.Grounded&&!brain.Motor.Vaulting&&avatar&&avatar.Rig&&avatar.Rig.gameObject.activeInHierarchy;

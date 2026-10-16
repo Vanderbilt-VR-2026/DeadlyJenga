@@ -89,7 +89,7 @@ namespace DeadlyJenga.CastlePrototype
                 Icon(new Rect(r.x+14,r.y+15,30,30),PageIcons[i],i==page?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
             }
             Panel(new Rect(258,126,921,548),CandyHudVisuals.Panel);drawIndex=0;
-            float contentHeight=page==4?1450:page==5?920:640;
+            float contentHeight=page==4?2300:page==5?920:640;
             scroll=GUI.BeginScrollView(new Rect(278,142,884,516),scroll,new Rect(0,0,856,contentHeight));
             GUI.Label(new Rect(8,2,830,36),PageTitle(),heading);GUI.Label(new Rect(8,45,830,60),PageDescription(),small);
             if(page==0)PlayPage();else if(page==1)BotsPage();else if(page==2)HandsPage();else if(page==3)FriendsPage();else if(page==4)SettingsPage();else ControlsPage();
@@ -143,7 +143,9 @@ namespace DeadlyJenga.CastlePrototype
             GUI.Label(new Rect(12,230,820,29),"Hint opacity  ·  "+Mathf.RoundToInt(hintOpacity*100)+"%",body);hintOpacity=GUI.HorizontalSlider(new Rect(12,270,815,24),hintOpacity,.5f,1);
             Note(310,"Tip: F1 toggles gameplay hints. Use a larger Game view for a larger menu. Settings here apply to this running session.");
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(12,410,816,900));session.Player.DrawVRSettings();session.Player.DrawStaminaSettings();GUILayout.EndArea();GUI.backgroundColor=color;
+            GUILayout.BeginArea(new Rect(12,410,816,1800));session.Player.DrawVRSettings();session.Player.DrawStaminaSettings();
+            var social=session.GetComponent<DeadlyJenga.CastleSocial.SocialRuntimePanel>();if(social){GUILayout.Space(20);social.DrawControls();}
+            GUILayout.EndArea();GUI.backgroundColor=color;
         }
         void ControlsPage()
         {

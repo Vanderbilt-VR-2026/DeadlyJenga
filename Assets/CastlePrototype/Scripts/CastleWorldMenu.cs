@@ -12,6 +12,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly BoxCollider[] targets = new BoxCollider[13];
         readonly Text[] labels = new Text[13];
         bool networkPage,comfortPage;
+        int socialSelection;bool socialMuted;
         Text heading,help;
         readonly CandyHudIcon[] icons={CandyHudIcon.Play,CandyHudIcon.Hand,CandyHudIcon.Home,CandyHudIcon.Home,CandyHudIcon.Survivor,CandyHudIcon.Friends,CandyHudIcon.Settings,CandyHudIcon.Survivor,CandyHudIcon.Hand,CandyHudIcon.Settings,CandyHudIcon.Hand,CandyHudIcon.Friends};
         readonly string[] explanations={"Return to the action.","Swap between surviving and flying as a giant hand.","Return to the highest upright block as a survivor.","Restore the castle. Only the host can rebuild.","Add a survivor with the selected personality.","Fill empty survivor slots, including human players.","Choose the personality used by the next survivor.","Remove survivor bots and stop automatic filling.","Add an AI giant hand using the current hand prefab.","Choose the next giant hand's personality.","Remove AI hands; keep the human players.","Find nearby players and manage invitations."};
@@ -62,7 +63,16 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var p=session.Player;
                 string[] titles={"Resume","Movement: "+p.vrMovement,"Right stick: "+p.vrTurn,"Snap amount: "+p.vrSnapAngle+"°","Smooth speed: "+p.vrSmoothDegreesPerSecond+"° / sec","Stationary / seated preset","Fluid / head-directed preset","Left stick moves · right stick turns","Physical head turns always look around","Stationary: movement follows rig facing","Fluid: movement follows head direction","Snap is the default comfort option","Back to demo controls"};
-                for(int i=0;i<labels.Length;i++){labels[i].text=titles[i];targets[i].enabled=i<7||i==12;}
+                var social=session.GetComponent<DeadlyJenga.CastleSocial.SocialWorld>();
+                if(social)
+                {
+                    titles[7]=social.MicrophoneInput.Capturing?"Mute microphone":"Enable microphone (permission)";
+                    titles[8]="Bot voices: "+(social.Config.enableVoice?"on":"off");
+                    var names=new System.Collections.Generic.List<DeadlyJenga.CastleSocial.SocialNotice>(social.Participants.Values);
+                    titles[9]=names.Count>0?"AI player: "+names[socialSelection%names.Count].name+" (next)":"No AI players yet";
+                    titles[10]="Toggle mute selected AI";titles[11]="Bot volume: "+social.Settings.botVolume.ToString("P0")+" (cycle)";
+                }
+                for(int i=0;i<labels.Length;i++){labels[i].text=titles[i];targets[i].enabled=social||i<7||i==12;}
             }
             else if(networkPage)
             {
@@ -96,7 +106,17 @@ namespace DeadlyJenga.CastlePrototype
                     if(i==0)session.SetMenu(false);if(i==1)p.CycleVRMovement();if(i==2)p.CycleVRTurn();
                     if(i==3)p.vrSnapAngle=p.vrSnapAngle<30?30:p.vrSnapAngle<45?45:p.vrSnapAngle<60?60:15;
                     if(i==4)p.vrSmoothDegreesPerSecond=p.vrSmoothDegreesPerSecond<60?60:p.vrSmoothDegreesPerSecond<90?90:45;
-                    if(i==5)p.UseStationaryVR();if(i==6)p.UseFluidVR();break;
+                    if(i==5)p.UseStationaryVR();if(i==6)p.UseFluidVR();
+                    var social=session.GetComponent<DeadlyJenga.CastleSocial.SocialWorld>();
+                    if(social)
+                    {
+                        if(i==7)social.MicrophoneInput.EnableCapture(!social.MicrophoneInput.Capturing);
+                        if(i==8)social.Config.enableVoice=!social.Config.enableVoice;
+                        if(i==9){socialSelection++;socialMuted=false;}
+                        if(i==10){var names=new System.Collections.Generic.List<DeadlyJenga.CastleSocial.SocialNotice>(social.Participants.Values);if(names.Count>0){socialMuted=!socialMuted;social.Mute(names[socialSelection%names.Count].id,socialMuted);}}
+                        if(i==11)social.Settings.botVolume=social.Settings.botVolume>.9f?0:Mathf.Min(1,social.Settings.botVolume+.2f);
+                    }
+                    break;
                 }
                 if(i==11){networkPage=!networkPage;break;}
                 if(networkPage)

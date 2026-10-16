@@ -15,6 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         CastlePlaySession session;
         bool authority, initialized, suspended;
         P.Actor target;
+        public Vector3 WorldPosition=>target==null?transform.position:target.hand?target.target.position:target.avatar.head;
         CandyAvatarFrame frame;
         public void Initialize(CastlePlaySession owner, bool host) { session = owner; authority = host; }
         public void Receive(P.Actor actor)

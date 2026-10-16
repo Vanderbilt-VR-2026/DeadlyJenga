@@ -63,6 +63,31 @@ namespace DeadlyJenga.CastlePrototype
 #endif
         public bool IsClient => host != null;
         public bool CanEditWorld => !IsClient;
+        public string LocalParticipantId=>id;
+        public event Action<string,byte[]> SocialReceived;
+        public event Action<string> ParticipantLeft;
+        public void SendSocial(byte[] data,string except=null)
+        {
+            if(data==null||data.Length<1||data.Length>16000||(data[0]!=5&&data[0]!=6))return;
+            if(IsClient){if(data[0]==5)host.SendAudio(data);else host.Send(data);}
+            else foreach(var c in connections)if(c.id!=null&&c.id!=except){if(data[0]==5)c.link.SendAudio(data);else c.link.Send(data);}
+        }
+        public Transform ParticipantTransform(string actorId)
+        {
+            if(actorId==id)return session.Player.transform;
+            return views.TryGetValue(actorId,out var view)&&view?view.transform:null;
+        }
+        public bool TryParticipantPosition(string actorId,out Vector3 position)
+        {
+            if(actorId==id&&session&&session.Player){position=session.Player.viewCamera.transform.position;return true;}
+            if(actorId!=null&&views.TryGetValue(actorId,out var view)&&view){position=view.WorldPosition;return true;}
+            position=default;return false;
+        }
+        public IEnumerable<KeyValuePair<string,Vector3>> HumanPositions()
+        {
+            if(session&&session.Player)yield return new KeyValuePair<string,Vector3>(id,session.Player.transform.position);
+            foreach(var c in connections)if(c.id!=null&&c.actor!=null)yield return new KeyValuePair<string,Vector3>(c.id,c.actor.hand?c.actor.target.position:c.actor.avatar.head);
+        }
         public bool WaitingForWorld => IsClient && !receivedWorld;
         public int HumanCount => 1 + connections.Count(c => c.id != null);
         public string Status { get; private set; } = "Starting local discovery…";
@@ -228,7 +253,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 try
                 {
-                    while (host.Controls.TryDequeue(out var control)) ReceiveWelcome(control);
+                    while (host.Controls.TryDequeue(out var control)){if(control[0]==6)SocialReceived?.Invoke("host",control);else ReceiveWelcome(control);}
+                    for(int n=0;n<32&&host.Audio.TryDequeue(out var audio);n++)SocialReceived?.Invoke("host",audio);
                     var state = welcomed ? host.TakeState() : null;
                     if (state != null) ApplyWorld(P.DecodeWorld(state));
                     if (host.Closed || now - lastWorldAt > 12) Leave("Host disconnected · continuing locally from the last received state.");
@@ -247,6 +273,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     while (c.link.Controls.TryDequeue(out var control))
                     {
+                        if(control[0]==6&&c.id!=null){SocialReceived?.Invoke(c.id,control);continue;}
                         if (c.id != null) throw new InvalidDataException("Duplicate handshake");
                         using var r = P.Reader(control, P.Hello);
                         string version = P.Text(r), peerID = P.Text(r), token = P.Text(r);
@@ -260,6 +287,7 @@ namespace DeadlyJenga.CastlePrototype
                         Status = "Hosting " + HumanCount + " humans · live local demo";
                         // Humans do not consume the demo's ten-slot bot budget.
                     }
+                    for(int n=0;n<32&&c.link.Audio.TryDequeue(out var audio);n++)if(c.id!=null)SocialReceived?.Invoke(c.id,audio);
                     var state = c.link.TakeState();
                     if (state != null && c.id != null)
                     {
@@ -274,7 +302,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (c.link.Closed || c.id == null && Time.unscaledTime - c.connected > 5 || Time.unscaledTime - c.lastPose > 12)
                 {
                     c.link.Dispose(); connections.RemoveAt(i);
-                    if (c.id != null) RemoveView(c.id);
+                    if (c.id != null) {RemoveView(c.id);ParticipantLeft?.Invoke(c.id);}
                 }
                 else if (c.id != null && Time.unscaledTime - c.lastPose > 1 && views.TryGetValue(c.id, out var stale)) stale.Suspend();
             }

@@ -1,0 +1,278 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ec7ad331b536364a91cdf667cd7e4ec, type: 3}
+  m_Name: Default
+  m_EditorClassIdentifier: Assembly-CSharp::DeadlyJenga.CastleSocial.SocialSettings
+  configuration:
+    seed: 3821
+    previewCount: 20
+    maxPopulation: 20
+    memoryLimit: 24
+    attentionLimit: 4
+    traits:
+    - id: competitiveness
+      label: Competitiveness
+      description: Competitiveness tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: boldness
+      label: Boldness
+      description: Boldness tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: sociability
+      label: Sociability
+      description: Sociability tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: playfulness
+      label: Playfulness
+      description: Playfulness tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: cooperativeness
+      label: Cooperativeness
+      description: Cooperativeness tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: impulsiveness
+      label: Impulsiveness
+      description: Impulsiveness tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: reactivity
+      label: Emotional reactivity
+      description: Emotional reactivity tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    - id: strategy
+      label: Strategic thinking
+      description: Strategic thinking tendency; independent of skill.
+      distribution:
+        median: 50
+        deviation: 18
+        skew: 0
+        minimum: 0
+        maximum: 100
+    correlations:
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 1
+    mappings:
+    - behavior: risk
+      trait: boldness
+      weight: 1
+      curve:
+      - 0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1
+    - behavior: delay
+      trait: impulsiveness
+      weight: 1
+      curve:
+      - 1
+      - 0.8
+      - 0.5
+      - 0.25
+      - 0
+    - behavior: social
+      trait: sociability
+      weight: 1
+      curve:
+      - 0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1
+    - behavior: reaction
+      trait: reactivity
+      weight: 1
+      curve:
+      - 0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1
+    - behavior: help
+      trait: cooperativeness
+      weight: 1
+      curve:
+      - 0
+      - 0.25
+      - 0.5
+      - 0.75
+      - 1
+    age:
+      median: 24
+      deviation: 8
+      skew: 0
+      minimum: 16
+      maximum: 65
+    skill:
+      median: 60
+      deviation: 18
+      skew: 0
+      minimum: 0
+      maximum: 100
+    groupSize:
+      median: 3
+      deviation: 1
+      skew: 0
+      minimum: 2
+      maximum: 5
+    maleProbability: 0.5
+    voiceProbability: 1
+    friendProbability: 0.45
+    cohesion: 0.6
+    sharedHistory: 0.55
+    demographicNames:
+    - Male profile
+    - Female profile
+    demographicWeights: []
+    spontaneous: 0.2
+    respondHuman: 0.85
+    respondBot: 0.3
+    interjections: 0.12
+    overlap: 0.15
+    interruptSensitivity: 0.6
+    chaos: 0.5
+    silliness: 0.5
+    trolling: 0.2
+    trashTalk: 0.2
+    reactions: 0.7
+    screaming: 0.15
+    verbosity: 0.35
+    slang: 0.4
+    tickSeconds: 0.2
+    minCooldown: 5
+    maxCooldown: 12
+    maxSilence: 24
+    eventLifetime: 5
+    humanHold: 0.35
+    providerTimeout: 8
+    typicalResponses: 2
+    maxConcurrentSpeech: 2
+    maxEvents: 64
+    maxSpeechQueue: 12
+    enableBots: 1
+    enableVoice: 1
+    allowProfanity: 0
+    retainHumanText: 0
+    recordDemonstrations: 0
+  mode: 1
+  serviceUrl: http://127.0.0.1:8765
+  microphoneEnabled: 0
+  showRuntimePanel: 1
+  botVolume: 0.8
+  humanVolume: 1
+  spatialBlend: 0
+  microphoneEffects:
+    highPass: 90
+    lowPass: 10000
+    compression: 0.2
+    saturation: 0.04
+    noise: 0.0001
+    gate: 0.002
+    proximity: 0.1
+    codec: 0.05
+  usePerIdentityMic: 1

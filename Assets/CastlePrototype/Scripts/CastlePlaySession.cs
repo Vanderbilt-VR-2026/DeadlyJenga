@@ -46,6 +46,7 @@ namespace DeadlyJenga.CastlePrototype
             Bots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleBotPopulation>();Bots.Initialize(this);
             HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();HandBots.Initialize(this);
             Network=gameObject.AddComponent<CastleLanSession>();Network.Initialize(this);
+            gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>().Initialize(this);
             if(!GetComponent<CandyDemoHud>())gameObject.AddComponent<CandyDemoHud>();
         }
         void OnDestroy()
