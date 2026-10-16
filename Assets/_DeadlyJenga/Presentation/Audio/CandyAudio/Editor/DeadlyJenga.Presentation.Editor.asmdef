@@ -1,0 +1,11 @@
+{
+    "name": "DeadlyJenga.Presentation.Editor",
+    "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.World",
+        "DeadlyJenga.Presentation"
+    ],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": true
+}

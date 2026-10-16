@@ -1,5 +1,13 @@
 # DeadlyJenga
 
+## Architecture Map
+
+Double-click **Open Architecture Map.cmd** to explore the real project, inspect dependencies, and mark work as Editable, Protected, or Watch. Requires the free .NET 10 SDK; no AI service or subscription is used.
+
+[![Architecture overview](Tools/ArchitectureMap/preview.svg)](Tools/ArchitectureMap/README.md)
+
+[Quick guide and limitations](Tools/ArchitectureMap/README.md) · [GitHub architecture reports](https://github.com/Vanderbilt-VR-2026/DeadlyJenga/actions/workflows/architecture-map.yml). Reports become available after the tooling is merged into the default branch. Public hosting is opt-in.
+
 | Team Member | Major(s) | Skills / Interests | Responsibilities |
 |-------------|----------|--------------------|------------------|
 | Evan | Neuroscience & CS | Brain-Visual Symmetry / Cohesion | User Controls<br>Movement<br>Appearance |
@@ -9,6 +17,10 @@
 
 
 A multiplayer VR project targeting Meta Quest. The current starting scene is `Assets/Scenes/Lobby.unity`.
+
+The active gameplay scene is `Assets/Scenes/Game.unity`. Host and Join use Fusion;
+Solo practice runs locally. See [cleanup status and headset checks](Docs/AI_CLEANUP_STATUS.md)
+for the current implementation and its validation limits.
 
 See [Project context](PROJECT_CONTEXT.md) for the proposed goals, gameplay, and scope. That document describes the design proposal, not a list of implemented features.
 

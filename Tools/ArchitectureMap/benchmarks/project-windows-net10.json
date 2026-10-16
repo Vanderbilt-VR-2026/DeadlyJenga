@@ -1,0 +1,10 @@
+{
+  "nodes": 26304,
+  "edges": 142207,
+  "coldMs": 26345.4642,
+  "warmMs": 611.7466,
+  "warmChanged": 0,
+  "memoryBytes": 828264472,
+  "runtime": "10.0.12",
+  "measuredAt": "2026-10-16T03:06:36.1332053+00:00"
+}

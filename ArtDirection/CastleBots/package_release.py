@@ -11,9 +11,9 @@ report = (out / 'Validation.txt').read_text()
 assert sum(line.startswith('PASS ') for line in report.splitlines()) == 46
 assert not any(line.startswith('FAIL ') for line in report.splitlines())
 integration = [
-    'Assets/CastlePrototype/Scripts/CastleSurvivor.cs',
-    'Assets/CastlePrototype/Scripts/CastlePlaySession.cs',
-    'Assets/CastlePrototype/Scripts/CastleWorldMenu.cs',
+    'Assets/Scripts/CastleSurvivor.cs',
+    'Assets/Scripts/CastlePlaySession.cs',
+    'Assets/Scripts/CastleWorldMenu.cs',
     'Assets/CandyPlayers/CandyPlayerAvatar.cs',
     'Assets/HandDemo/Scripts/FlyingHandController.cs',
     'Assets/HandDemo/Scripts/FlyingHandInputSource.cs',

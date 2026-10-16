@@ -1,0 +1,70 @@
+name: Architecture Map
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Pushes validate the pushed tool; PRs use only tooling from their base commit.
+      # Analyzed PR content is data only; never execute its analyzer or build scripts.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: project
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Check trusted analyzer availability
+        id: tooling
+        shell: bash
+        run: |
+          if test -f trusted/Tools/ArchitectureMap/ArchitectureMap.csproj; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Architecture analyzer is not installed in the PR base yet. Validation will run on branch pushes; PR analysis starts after the tool lands in the base branch."
+            echo "PR analysis skipped: the trusted base branch does not contain the analyzer yet." >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - uses: actions/setup-dotnet@v4
+        if: steps.tooling.outputs.available == 'true'
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build trusted analyzer
+        if: steps.tooling.outputs.available == 'true'
+        run: |
+          dotnet restore trusted/Tools/ArchitectureMap/ArchitectureMap.csproj --configfile trusted/Tools/ArchitectureMap/NuGet.Config
+          dotnet build trusted/Tools/ArchitectureMap/ArchitectureMap.csproj --no-restore
+      - name: Analyzer regression checks
+        if: steps.tooling.outputs.available == 'true'
+        run: |
+          dotnet trusted/Tools/ArchitectureMap/bin/Debug/net10.0/ArchitectureMap.dll --test
+          node --check trusted/Tools/ArchitectureMap/web/app.js
+          node --test trusted/Tools/ArchitectureMap/tests/layout.test.mjs
+      - name: Analyze repository as data
+        if: steps.tooling.outputs.available == 'true'
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          args=(--root project --export architecture-report --check)
+          if test -n "$BASE_REF" && git -C project cat-file -e "$BASE_REF^{commit}" 2>/dev/null; then
+            args+=(--base "$BASE_REF")
+          fi
+          dotnet trusted/Tools/ArchitectureMap/bin/Debug/net10.0/ArchitectureMap.dll "${args[@]}"
+      - uses: actions/upload-artifact@v4
+        if: always() && steps.tooling.outputs.available == 'true'
+        with:
+          name: architecture-map
+          path: architecture-report/
+          retention-days: 14
+      - name: Report access
+        if: always()
+        run: echo 'Download the architecture-map artifact and serve its folder with any local static web server. No public deployment is performed.' >> "$GITHUB_STEP_SUMMARY"

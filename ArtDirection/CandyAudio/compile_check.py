@@ -12,8 +12,8 @@ for kind in ['runtime','editor']:
     if kind=='editor':text=re.sub(r'^-r:"[^"\r\n]*/Assembly-CSharp\.ref\.dll"$',f'-r:"{folder.as_posix()}/CandyAudioCheck.ref.dll"',text,flags=re.M)
     paths=list((root/'Assets/CandyAudio').rglob('*.cs'))
     # Include any freshly written runtime sources not imported into the project's rsp yet.
-    if kind=='runtime':paths+=list((root/'Assets/CastlePrototype/Scripts').glob('*.cs'))+list((root/'Assets/CastleBots').glob('*.cs'))
-    else:paths+=list((root/'Assets/CastlePrototype/Editor').glob('*.cs'))+list((root/'Assets/CastleBots/Editor').glob('*.cs'))
+    if kind=='runtime':paths+=list((root/'Assets/Scripts').glob('*.cs'))+list((root/'Assets/CastleBots').glob('*.cs'))
+    else:paths+=list((root/'Assets/Scripts/Editor').glob('*.cs'))+list((root/'Assets/CastleBots/Editor').glob('*.cs'))
     for path in paths:
         is_editor='Editor' in path.relative_to(root/'Assets').parts
         if is_editor!=(kind=='editor'):continue
