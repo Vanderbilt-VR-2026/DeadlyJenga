@@ -61,7 +61,8 @@ Data (Core/Data):
 Services (Core/Services):
 - Services.Session (ISessionInfo): MenuOpen, SetMenu. Set by GameSession.
 - Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
-  Blocks, Center, TopHeight, Radius. Set by the active map.
+  Blocks, Center, TopHeight, Radius, StepHeight. Set by the active map.
+- IRebuildable: Rebuild(). The active map implements it (the reset-castle button).
 - ISyncedWorld: Root, Revision, SaveLayout, LoadLayout, SetReplica. The active map
   implements it so multiplayer can copy it; networking never names a map class.
 - IMapFootprint: the map's ground outline, for art shaped around it (works in edit mode).

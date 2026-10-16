@@ -17,10 +17,11 @@ namespace DeadlyJenga.Core.Testing
         public Vector3 SafeSpawnPoint() => spawnPoint;
 
         public List<Rigidbody> blocks = new List<Rigidbody>();
-        public float topHeight = 10, radius = 10;
+        public float topHeight = 10, radius = 10, stepHeight = 2;
         public IReadOnlyList<Rigidbody> Blocks => blocks;
         public Vector3 Center => transform.position;
         public float TopHeight => topHeight;
         public float Radius => radius;
+        public float StepHeight => stepHeight;
     }
 }

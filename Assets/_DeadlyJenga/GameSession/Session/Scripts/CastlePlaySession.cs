@@ -10,7 +10,6 @@ namespace DeadlyJenga.CastlePrototype
     [DefaultExecutionOrder(200)]
     public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo
     {
-        public CastleGenerator generator;
         public CastleSurvivor survivorPrefab;
         public CastleHandActor handPrefab;
         public Camera overviewCamera;
@@ -83,8 +82,9 @@ namespace DeadlyJenga.CastlePrototype
             Player.gameObject.SetActive(!hand); Hand.gameObject.SetActive(hand);
             if (hand)
             {
-                float extent = CastleLayout.Footprint(generator.settings) * .5f;
-                Hand.Place(generator.transform.position + new Vector3(0, generator.settings.cornerCourses * generator.settings.blockSize.y + 3, -extent - 10), Quaternion.identity);
+                // Float beside the map, a little above its top.
+                var world = Services.World;
+                Hand.Place(world.Center + new Vector3(0, world.TopHeight - world.Center.y + 3, -world.Radius - 10), Quaternion.identity);
             }
             else RespawnPlayer();
             SetMenu(MenuOpen);
@@ -98,7 +98,7 @@ namespace DeadlyJenga.CastlePrototype
         public void RespawnPlayer()
         {
             Vector3 feet = Services.World.SafeSpawnPoint();
-            Vector3 heading = Vector3.ProjectOnPlane(generator.transform.position - feet, Vector3.up);
+            Vector3 heading = Vector3.ProjectOnPlane(Services.World.Center - feet, Vector3.up);
             LastSpawnFeet = feet;
             Player.Teleport(feet, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity);
             Player.Revive();
@@ -107,9 +107,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!tuneJumpToBlockHeight||!Player)return;
             float margin=Mathf.Max(jumpShortfall,Player.Capsule.radius+Player.Capsule.stepOffset+Player.Capsule.skinWidth+.02f);
-            Player.jumpHeight=Mathf.Max(.1f,generator.settings.blockSize.y-margin);
+            if(Services.World==null)return;
+            Player.jumpHeight=Mathf.Max(.1f,Services.World.StepHeight-margin);
         }
-        public void ResetCastle() { if(Network&&!Network.CanEditWorld)return;generator.Rebuild(); TuneJump();SetRole(PlayingHand);if(HandBots)HandBots.CastleRebuilt();if(Bots)Bots.CastleRebuilt(); }
+        public void ResetCastle() { if(Network&&!Network.CanEditWorld)return;(Services.World as IRebuildable)?.Rebuild(); TuneJump();SetRole(PlayingHand);if(HandBots)HandBots.CastleRebuilt();if(Bots)Bots.CastleRebuilt(); }
         public void SetMenu(bool open)
         {
             MenuOpen = open;

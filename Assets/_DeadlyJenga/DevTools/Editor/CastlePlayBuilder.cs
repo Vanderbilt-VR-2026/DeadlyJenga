@@ -120,7 +120,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if (root.TryGetComponent<CastleTestControls>(out var controls)) overview = controls.viewCamera;
                 }
                 if (!session) session = new GameObject("Castle Play Session").AddComponent<CastlePlaySession>();
-                session.generator = generator; session.survivorPrefab = playerPrefab; session.handPrefab = handPrefab; session.overviewCamera = overview;
+                session.survivorPrefab = playerPrefab; session.handPrefab = handPrefab; session.overviewCamera = overview;
                 EditorSceneManager.MarkSceneDirty(scene); EditorSceneManager.SaveScene(scene); AssetDatabase.SaveAssets();
                 Debug.Log("Castle player/hand prefabs installed. Play the castle scene to spawn on top.");
             }

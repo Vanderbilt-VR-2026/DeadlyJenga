@@ -4,7 +4,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public class CastleGenerator : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint
+    public class CastleGenerator : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable
     {
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
@@ -37,6 +37,7 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 Center => transform.position;
         public float TopHeight => transform.position.y + settings.keepCourses * settings.blockSize.y;
         public float Radius => CastleLayout.Footprint(settings) * .5f;
+        public float StepHeight => settings.blockSize.y;
 
         // ISyncedWorld (Revision is declared above)
         public Transform Root => transform;

@@ -64,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             foreach(var camera in motor.GetComponentsInChildren<Camera>(true))camera.enabled=false;
             foreach(var listener in motor.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;
             staging.SetActive(true);motor.RefreshMode();
-            var block=Object.Instantiate(session.generator.blockPrefab).GetComponent<CastleBlock>();var body=block.GetComponent<Rigidbody>();body.isKinematic=true;
+            var block=Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab).GetComponent<CastleBlock>();var body=block.GetComponent<Rigidbody>();body.isKinematic=true;
             block.transform.SetPositionAndRotation(new Vector3(120,45,2),Quaternion.identity);block.transform.localScale=new Vector3(6,10,2);block.SyncSurface();block.RefreshAppearance();Physics.SyncTransforms();
             void Tick(int n,Vector2 input,bool held){for(int i=0;i<n;i++)motor.Simulate(input,false,1f/60,held);}
             void Setup(){motor.Teleport(new Vector3(120,42,.82f),Quaternion.identity);Tick(15,Vector2.zero,true);}

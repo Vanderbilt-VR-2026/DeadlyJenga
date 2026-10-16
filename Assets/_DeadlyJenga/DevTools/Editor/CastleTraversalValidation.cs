@@ -100,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 session.SetRole(false);
                 Check("Return to survivor", session.Player.gameObject.activeSelf && !session.Hand.gameObject.activeSelf);
                 session.ResetCastle();
-                Check("Reset retains 568 blocks", session.generator.Bodies.Count == 568);
+                Check("Reset retains 568 blocks", Object.FindAnyObjectByType<CastleGenerator>().Bodies.Count == 568);
             }
             finally
             {

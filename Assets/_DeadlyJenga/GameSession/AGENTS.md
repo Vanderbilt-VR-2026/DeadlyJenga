@@ -1,6 +1,6 @@
 # GameSession (level 4)
 
-The rules of the match and who is playing. May use every box.
+The rules of the match and who is playing. Reaches the map only through Core (Services.World, IRebuildable, ISyncedWorld); never names World classes.
 
 ## Lanes
 - Session: CastlePlaySession, CandyDemoHud (in-game menu), CastleWorldMenu,
