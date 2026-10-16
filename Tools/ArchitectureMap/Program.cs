@@ -84,6 +84,8 @@ app.MapGet("/api/state", () =>
         presentation = shared, personal };
 });
 app.MapGet("/api/git", () => git.Status());
+var relationships = new RelationshipCompare(root);
+app.MapGet("/api/relationships", (string branch, string baseline, CancellationToken cancellationToken) => relationships.Compare(branch, baseline, cancellationToken));
 app.MapGet("/api/compare", (string branch, string baseline) => git.Compare(branch, baseline));
 app.MapGet("/api/preview", (string left, string right) => git.Preview(left, right, graph));
 app.MapGet("/api/pulls", () => git.PullRequests());

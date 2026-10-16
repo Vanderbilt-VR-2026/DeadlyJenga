@@ -20,7 +20,7 @@ async function main(){
   await page.goto('http://127.0.0.1:'+server.address().port);await page.waitForSelector('.node');
   assert.match(await page.locator('#status').textContent(),/Snapshot/);console.log('PASS Shared renderer loads real exported snapshot');
   await page.locator('#git').click();assert.match(await page.locator('#panel').textContent(),/Snapshot: Git status is from export time\. Live comparisons require the local dashboard\./);console.log('PASS Snapshot labels unavailable live Git controls');
-  await page.locator('#settings').click();await page.getByLabel('Theme',{exact:true}).selectOption('light');
+  await page.locator('#settings').click();await page.getByLabel('Theme',{exact:true}).selectOption('light');await page.locator('#saveView').click();
   assert.equal(await page.evaluate(()=>JSON.parse(localStorage.getItem('architecture-presentation')).theme),'light');console.log('PASS Snapshot visual overrides persist locally');
   assert.equal(errors.length,0,errors.join(';'));console.log('PASS Snapshot has no JavaScript errors');
  }finally{if(browser)await browser.close();await new Promise(resolve=>server.close(resolve));}

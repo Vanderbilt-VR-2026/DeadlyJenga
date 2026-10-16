@@ -9,8 +9,9 @@ public static class Semantic
 {
     static readonly Lazy<List<MetadataReference>> FallbackReferences = new(() => ((string?)AppContext.GetData("TRUSTED_PLATFORM_ASSEMBLIES") ?? "").Split(Path.PathSeparator).Where(File.Exists).Select(p => (MetadataReference)MetadataReference.CreateFromFile(p)).ToList());
     public static string ContextHash(string root) => Data.Hash(string.Join("|", Directory.EnumerateFiles(root, "*.csproj").Order().Select(p => File.ReadAllText(p))) + string.Join("|", Discovery.Files(Path.Combine(root, "Library/ScriptAssemblies")).Where(p => p.EndsWith(".dll")).Select(p => p + File.GetLastWriteTimeUtc(p).Ticks)));
-    public static Graph Analyze(string root, List<Node> scripts)
+    public static Graph Analyze(string root, List<Node> scripts, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (scripts.Count == 0) return new([], [], []);
         var nodes = new Dictionary<string, Node>(); var edges = new List<Edge>(); var issues = new List<Issue>();
         var byPath = scripts.ToDictionary(n => n.Path); var assignments = new Dictionary<string, (string Assembly, string[] Defines, List<MetadataReference> Refs)>();
@@ -49,10 +50,11 @@ public static class Semantic
         foreach (var (compilation, exact) in compilations)
         foreach (var tree in compilation.SyntaxTrees)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var model = compilation.GetSemanticModel(tree); var asset = byPath[tree.FilePath];
-            foreach (var syntax in tree.GetRoot().DescendantNodes().Where(n => n is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax or BaseMethodDeclarationSyntax or PropertyDeclarationSyntax or EventDeclarationSyntax || n is VariableDeclaratorSyntax v && v.Parent?.Parent is EventFieldDeclarationSyntax))
+            foreach (var syntax in tree.GetRoot(cancellationToken).DescendantNodes().Where(n => n is BaseTypeDeclarationSyntax or DelegateDeclarationSyntax or BaseMethodDeclarationSyntax or PropertyDeclarationSyntax or EventDeclarationSyntax || n is VariableDeclaratorSyntax v && v.Parent?.Parent is EventFieldDeclarationSyntax))
             {
-                var symbol = model.GetDeclaredSymbol(syntax); if (symbol == null || symbol.IsImplicitlyDeclared) continue;
+                var symbol = model.GetDeclaredSymbol(syntax, cancellationToken); if (symbol == null || symbol.IsImplicitlyDeclared) continue;
                 var key = Key(symbol); var anchors = symbol.DeclaringSyntaxReferences.Select(r => byPath.GetValueOrDefault(r.SyntaxTree.FilePath)?.Id).Where(x => x != null).Order().ToArray();
                 var id = anchors.FirstOrDefault() + ":" + key;
                 symbolIds[key] = id;
@@ -69,14 +71,16 @@ public static class Semantic
         }
         foreach (var (compilation, exact) in compilations)
         {
-            var diagnostics = compilation.GetDiagnostics().Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
+            var diagnostics = compilation.GetDiagnostics(cancellationToken).Where(d => d.Severity == DiagnosticSeverity.Error).ToArray();
             if (diagnostics.Length > 0) issues.Add(new("semantic-context", $"{compilation.AssemblyName}: {diagnostics.Length} compiler diagnostics; affected bindings are not verified."));
             if (!exact) issues.Add(new("fallback-context", "Unity assembly metadata unavailable for some scripts; fallback semantic relationships are inferred."));
             foreach (var tree in compilation.SyntaxTrees)
             {
-                var model = compilation.GetSemanticModel(tree); var asset = byPath[tree.FilePath];
-                foreach (var syntax in tree.GetRoot().DescendantNodes())
+                cancellationToken.ThrowIfCancellationRequested();
+            var model = compilation.GetSemanticModel(tree); var asset = byPath[tree.FilePath];
+                foreach (var syntax in tree.GetRoot(cancellationToken).DescendantNodes())
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
                     var kind = syntax switch
                     {
                         InvocationExpressionSyntax => "calls",
@@ -90,7 +94,7 @@ public static class Semantic
                     };
                     if (kind == null) continue;
                     var bind = syntax is BaseTypeSyntax b ? b.Type : syntax is AssignmentExpressionSyntax assignment ? assignment.Left : syntax;
-                    var symbol = model.GetSymbolInfo(bind).Symbol;
+                    var symbol = model.GetSymbolInfo(bind, cancellationToken).Symbol;
                     var line = syntax.GetLocation().GetLineSpan().StartLinePosition.Line + 1;
                     if (symbol == null || symbol is ITypeSymbol errorType && errorType.TypeKind == TypeKind.Error)
                     { issues.Add(new("unresolved-symbol", "Symbol could not be bound at " + tree.FilePath + ":" + line, asset.Id, Severity: "info")); continue; }
@@ -103,13 +107,13 @@ public static class Semantic
                     var hasError = diagnostics.Any(d => d.Location.SourceTree == tree && d.Location.SourceSpan.IntersectsWith(syntax.Span));
                     var status = exact && !hasError ? "verified" : "inferred";
                     var evidence = kind == "calls" && symbol is IMethodSymbol m && (m.IsVirtual || m.IsAbstract || m.ContainingType.TypeKind == TypeKind.Interface) ? "Compile-time target; runtime dispatch may differ" : "Statically bound " + symbol.Kind;
-                    edges.Add(new(source, target, kind, tree.FilePath, line, evidence, "Roslyn semantic", status));
+                    edges.Add(new(source, target, kind, tree.FilePath, line, evidence, "Roslyn semantic", status, syntax.GetLocation().GetLineSpan().StartLinePosition.Character + 1));
                     if (symbol.ContainingType != null && caller?.ContainingType != null)
-                        edges.Add(new(Target(caller.ContainingType), Target(symbol.ContainingType), "depends", tree.FilePath, line, evidence, "Roslyn semantic", status));
+                        edges.Add(new(Target(caller.ContainingType), Target(symbol.ContainingType), "depends", tree.FilePath, line, evidence, "Roslyn semantic", status, syntax.GetLocation().GetLineSpan().StartLinePosition.Character + 1));
                 }
                 foreach (var node in nodes.Values.Where(n => n.Path == tree.FilePath && n.Kind is "method" or "property" or "event").ToArray())
                 {
-                    var syntax = tree.GetRoot().FindToken(tree.GetText().Lines[node.Line - 1].Start).Parent;
+                    var syntax = tree.GetRoot(cancellationToken).FindToken(tree.GetText().Lines[node.Line - 1].Start).Parent;
                     var type = syntax?.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().FirstOrDefault();
                     var symbol = type == null ? null : model.GetDeclaredSymbol(type);
                     if (symbol != null) nodes[node.Id] = node with { Parent = Target(symbol) };

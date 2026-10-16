@@ -10,21 +10,20 @@ In Unity, use **Tools → Architecture Map → Open**. The small editor assembly
 
 Start with the folder-based systems. Double-click to explore scripts or Unity objects; double-click a leaf to read local source. Search finds nodes at any level. Select an arrow to inspect its direction, evidence, source line, and verification status. Group arrows aggregate underlying connections; the inspector explicitly identifies the representative record.
 
-Switch Unity Structure, Code Relationships, or Custom Architecture to keep separate arrangements of the same facts. Select nodes and choose **Create visual module from selection** to group them conceptually in Custom Architecture. This changes presentation only. Scope actions on a visual module apply to its members explicitly; actual hierarchy groups use inherited scope. Use the Node list for keyboard-accessible selection. Drag empty canvas to pan, wheel to zoom, and Fit to frame visible nodes. Search results are capped at 240 visible nodes, with the total shown; narrower searches expose the remaining nodes.
+Switch File Structure and Code Relationships to keep separate arrangements. Edit nodes directly in either view. Use the Node list for keyboard-accessible selection. Drag empty canvas to pan, wheel to zoom, and Fit to frame visible nodes. Visible graphs are capped at 240 cards; use search or drill-down to narrow them.
 
 The workspace menu offers light/dark themes, connection routing, relationship filters, descriptions, layout import/export, team presets, refresh, and diagnostics. Node inspectors offer labels, colors, shapes, notes, and position locking. Shift-click selects several nodes; drag them together. Ctrl+Z / Ctrl+Y undo and redo presentation edits. `/` focuses search; Escape closes the inspector. Team presets are checked in; personal overrides are ignored by Git.
 
 ### Views versus arrangements
 
-The three tabs show different aspects of the same project, not three versions of the project:
+The two tabs show different aspects of the same project, not three versions of the project:
 
 | View | Question it answers | Default automatic arrangement |
 |---|---|---|
-| Unity Structure | What contains what? Scenes/prefabs, GameObjects, components | Hierarchy tree; containment links only |
+| File Structure | What contains what? Scenes/prefabs, GameObjects, components | Hierarchy tree; containment links only |
 | Code Relationships | What uses what? Scripts, types, methods, dependencies | Dependency flow, left to right |
-| Custom Architecture | How do we want to explain or group this project? | Grouped columns for your modules |
 
-Use the **layout menu beside Fit** to choose a visualization. Changes take effect and save immediately; Undo restores the previous arrangement. The left and right canvas arrows cycle only through the checked menu items. Checkbox choices are included in exported and shared presentation JSON. Rearrange recalculates the current layout. Locked nodes stay in place in existing layouts; ELK requires unlocking them.
+Use the **layout menu beside Fit** to choose a visualization. Changes take effect immediately as a draft. Save view makes them the saved presentation; Undo restores the previous arrangement. The left and right canvas arrows cycle only through the checked menu items. Checkbox choices are included in exported and shared presentation JSON. Rearrange recalculates the current layout. Locked nodes stay in place in existing layouts; ELK requires unlocking them.
 
 Use **1 level / 2 levels / 3 levels** to reveal more hierarchy without opening each node. Large expanded views may need zooming or drilling down to keep labels readable. Tree layouts hide unrelated dependency arrows; their root/context connector represents navigation, not a method call. Dependency flow preserves directions and groups cyclic relationships at one rank; it is not a guaranteed execution order and cannot turn cyclic code into a strict tree.
 
@@ -38,11 +37,11 @@ Incoming/outgoing impact traversal is configurable from one to five levels. It s
 
 ## Git and pull requests
 
-The Git panel separates index/worktree status, displays upstream ahead/behind counts, accepts a comparison base, and overlays locally available branches using merge-base comparisons. Multiple overlays are retained, currently using one gold outline style. Source diffs compare tracked working content with HEAD. Untracked files have no baseline diff.
+The Git panel separates index/worktree status, displays upstream ahead/behind counts, accepts a comparison base, and overlays locally available branches using merge-base comparisons. Each branch has its own color and B-number. Choose File changes only or Relationship changes only. Source diffs compare tracked working content with HEAD. Untracked files have no baseline diff.
 
 Refresh GitHub PRs fetches ordinary REST metadata. Public repositories need no token, subject to GitHub limits. For authenticated access set `GH_TOKEN` in the launching process; it is never sent to the browser or written to reports. The tool does not fetch or push branches. Fetch PR commits using your normal Git client, then select the PR overlay. Unavailable commits and network failures are explicit. Remote data is refreshed on request, not continuously synchronized.
 
-Combined-change assessment uses `git merge-tree --write-tree`: it may add Git objects, but never updates HEAD, the index, or working files. A confirmed textual conflict is distinct from same-file overlap and possible dependency impact. Dependency estimates use the **current local graph**, not reanalyzed merged content. Method-level hunk overlap, authorship history, historical graph diffs, and merged-content architecture analysis remain unimplemented. Export a named folder to retain a snapshot for manual comparison.
+Combined-change assessment uses `git merge-tree --write-tree`: it may add Git objects, but never updates HEAD, the index, or working files. A confirmed textual conflict is distinct from same-file overlap and possible dependency impact. Dependency estimates use the **current local graph**, not reanalyzed merged content. Method-level hunk overlap, authorship history, and merged-content architecture analysis remain unimplemented. Historical relationship comparisons are separate from the merge-conflict preview. Export a named folder to retain a snapshot for manual comparison.
 
 ## Automatic updates and repair
 
@@ -108,73 +107,44 @@ See [verification results](VERIFICATION.md) for actual measurements, tested cove
 
 API references: [Roslyn semantic model](https://learn.microsoft.com/en-us/dotnet/api/microsoft.codeanalysis.semanticmodel), [Unity AssetDatabase dependencies](https://docs.unity3d.com/6000.3/Documentation/ScriptReference/AssetDatabase.GetDependencies.html), [GitHub untrusted-workflow guidance](https://docs.github.com/en/actions/reference/security/secure-use).
 
-### Style studio and navigation
+### Editing, themes, and sharing
 
-Use **Style studio** in the bottom toolbar to apply a visual language to the entire diagram: node types, hierarchy, system families, connection hubs, change scopes, or quiet monochrome. Color, shape and size mappings are independent. Hierarchy size represents containment depth; hub size represents the number of visible aggregated connections, not execution order or architectural authority. The legend explains the current encoding. Presets retain explicit node overrides; use **Clear node appearance overrides** to return those nodes to automatic styling.
+There is no separate Custom Architecture tab. Node positions, labels, shapes, colors, and notes are edited in File Structure or Code Relationships. Changes remain a draft until **Save view**; the small toolbar indicator shows unsaved changes. Saving also remembers the active view, drill-down and camera. Undo/Redo works for presentation edits. Scope/rule changes are separate shared architecture policy and are not staged by Save view.
 
-The studio also controls typography, node size, border weight, line routing, relationship colors, line thickness/opacity, labels and arrowheads. Bulk color/shape edits target all nodes, visible nodes, selected nodes or a node type. Type overrides also apply to subsequently discovered nodes of that type; all/visible/selected edits apply to current nodes. Undo/redo and personal persistence cover styling. Save as team preset explicitly to share via Git; personal overrides still take precedence.
+The arrows immediately beside the layout dropdown cycle through its checked entries. The list and six visual themes are part of the shareable presentation JSON. Style Studio has **Visual presets** (Studio, Retro Desk, Neon Lab, Terminal, Cozy, Blueprint Paper), **Color representations**, and an **Edit…** menu for Nodes, Arrows, and Sharing. Visual themes preserve semantic colors while changing textures, corners, contrast, fonts and shadows.
 
-**Back** is above the diagram beside clickable **Project › parent › current** breadcrumbs. It returns one containment level; Alt+Left does the same. Project returns to the root. Back is disabled at the root.
+**Share** exports the current diagram as SVG or PNG (up to 4096 pixels on its longest side), including draft styling and branch legends. Editable layout JSON is for reopening on the same repository; it does not embed source code or an entire historical graph. Set as team default writes shared presentation JSON; commit and push it to distribute it. Personal overrides take precedence. Temporary historical comparison maps can be shared as images; clear the comparison before saving a normal view.
 
-### Adaptive styles and relationship readability
+### Relationship changes in Git
 
-**Adaptive overview** assigns distinct system colors at the folder level and type colors below it, with size based on visible connectivity. System colors follow original ancestry, ignoring the generic Unassigned / Review classification. Presets clear explicit node fill/shape overrides; Undo restores them. Kind/depth encodings intentionally show identical colors for identical values.
+**File changes only** compares paths from the common ancestor to each branch. **Relationship changes only** reconstructs each revision from Git blobs, runs static analysis separately and compares source/target/type counts. It does not use changed-file highlighting as a substitute. Comment-only or line-number edits are ignored. Added arrows are solid with + labels, removed arrows dashed with − labels; B-numbers and colors identify branches. Removed endpoints are retained. Hovering a branch isolates its arrows. At most 240 endpoint cards are displayed; the expandable results include every detected change.
 
-Connections support plain, dashed, flowing, glowing and tapered effects globally or per relationship kind. Auto maps calls to directional flow, subscriptions to glow and inheritance to taper. Inferred evidence stays dashed, and reduced-motion disables animation. Count-based thickness uses logarithmic scaling of aggregated static relationship records; it does not measure runtime traffic or architectural importance.
+Historical analysis reads committed source and serialized Assets only. It never checks out branches, executes scripts, builds projects, or loads historical binaries. Compiled Unity/package references, Unity AssetDatabase exports and runtime-only relationships are unavailable, so some calls cannot be resolved. No detected changes is not proof of identical runtime behavior. The common-ancestor and head commit IDs and coverage caveat are shown with each result. Missing commits and unsupported source LFS pointers report an unavailable comparison, never a successful empty diff. Baked LightingData is omitted as opaque binary data. Extraction is bounded to 60,000 entries, 32 MB per analyzed file and 256 MB total; four graph snapshots are cached in memory. Initial scans may take minutes. Fetch commits with your Git client first.
 
-**Focus connections** isolates the selected neighborhood; click a node to show its incident connections, or click the button again to restore all. The studio also offers strongest 30 and minimum-record filters, with shown/total counts. Expand the small About this control notes for explanations. Failed saves remain pending in the current tab and retry after reconnection; keep that tab open until saving succeeds.
+### Layouts and navigation
 
-### Face snapping, auto gain, and guided Git
+ELK runs locally in a worker and controls both node placement and connection routing. It uses visible nodes only, with a 30-second layout timeout. Unlock displayed nodes before choosing ELK. Switch to another layout for manual dragging. Dense graphs may still need depth limits and hover/selection filtering. The indented hierarchy remains useful for many siblings; wide ELK hierarchies keep readable zoom and may require panning. Vendor notices are in THIRD-PARTY.md and ELK-LICENSE.md.
 
-Arrows recompute attachment sides whenever nodes move. Incoming and outgoing connections share distributed face ports, including reciprocal links. Rounded/pill boundaries are respected. Arrowheads stay fixed at 8 graph units regardless of weighted line thickness. Dense diagrams can still cross; use Focus connections when many links share a small node.
+### Branding and status
 
-Node size gain and Arrow thickness gain default to auto. Node gain applies to connectivity sizing; arrow gain applies to count weighting. Both normalize logarithmically against the current projected graph’s 90th percentile. Nodes remain within their layout cell and arrow thickness is capped at 6 graph units. Navigation and graph updates recalculate gain. Clutter filters retain the same scale so selecting a neighborhood does not suddenly amplify its links. Fixed gain remains available.
+The header reads Digital Architecture Map and uses the repository root folder name. Green animation means connected/current with no reported issues; yellow means checking/refreshing, warnings, or an offline snapshot; red means detected changes pending refresh, errors or disconnection. Click the icon for details. Reduced-motion pauses the supplied local MP4 animation. Status does not certify game correctness.
 
-The Git button is labeled explicitly. The guided panel provides a starting branch, branch with changes, Compare and highlight, clear overlay, and an interactive illustrative example. Comparisons highlight file paths on the current graph, not a historical branch graph. Local changes, overlap checks, and GitHub PRs have separate expandable sections. Remote-tracking branches reflect the last fetch.
+### Arrowheads and directional glow
+Open **Style studio → Edit… → Arrows → Connections** to choose head shape, base size (2–24 graph units), fixed or record-count sizing, and Dreamchase travel time. Shapes are independent of line thickness; zoom scales both. Auto maps inheritance to a hollow triangle, containment to a diamond, references to an open chevron, subscriptions to a circle, and other relationships to a filled triangle. These are diagram conventions, not strict UML. Expand **By relationship type** to override shapes or effects for a kind.
 
-### Connection-aware arrangements
+Dreamchase sends a bright pulse from source to target. Auto applies it to calls. It illustrates static relationship direction, not observed execution or traffic. Inferred evidence remains dashed underneath. Reduced-motion hides moving pulses; indented hierarchy and Git comparisons use plain connectors. Settings participate in Undo, Save view, and shared layout exports.
 
-Hierarchy layout now allocates contiguous subtree spans and never wraps siblings into multiple rows. Dependency flow uses alternating neighbor-order sweeps and wider rank spacing to reduce crossings. Face ports are sorted by the other node’s position. Tree links use orthogonal routing; orthogonal routes search nearby corridors around intervening nodes. Labels follow the route midpoint. This is a readability heuristic, not a guarantee of zero crossings; dense graphs and locked placements can still need focus filtering. Wide trees deliberately use more canvas space. Choose a layout or click Rearrange to replace the current positions; Undo restores the prior arrangement.
+Relationship comparison responsiveness: requests now have a two-minute cancellation budget including queue time, propagated through historical extraction and Roslyn analysis. Identical Assets trees return immediately without scans. The UI compares branches sequentially, shows branch progress and elapsed time, provides Cancel, aborts superseded/closed comparisons, and imposes a 135-second per-request fallback deadline. Cancellation preserves the displayed map; timeouts never display partial results as a successful comparison.
 
-### Recommended section overview
+## Get only the visualizer on another game branch
 
-Unity structure at one level now uses responsive section cards when Recommended is selected. The heading and breadcrumbs identify the shared parent, so redundant parent arrows and the synthetic context node are omitted. Cards show direct child counts, use consistent readable sizing, and automatically fit above the toolbar. Single-click opens details; double-click explores. This mode arranges cards automatically; choose an explicit layout to drag positions or show hierarchy links. Two/three-level views still show the hierarchy. The diagram legend is collapsed by default in graph views and hidden in the section overview.
+To install the standalone visualizer for the first time without switching or merging game branches, run from the repository root:
 
-### Hover isolation
+```sh
+git fetch origin Evan_Sprint_3
+git restore --source origin/Evan_Sprint_3 -- Tools/ArchitectureMap "Open Architecture Map.cmd"
+```
 
-Hover a connection to hide all other connections, including their labels, arrowheads, glow and taper segments. Hover a node to retain only its incoming/outgoing connections. Leaving the hovered object or canvas restores the currently filtered set. Thin arrows have a wider invisible pointer target; clicking still opens relationship evidence. Hovering does not change saved styling or graph data.
+These paths contain the tool and launcher only. This replaces existing files at those tool paths, so preserve any local visualizer edits first. It does not copy scenes, game scripts, packages or ProjectSettings. The tool creates default architecture settings if absent. Add `.architecture/local/`, `Tools/ArchitectureMap/bin/`, and `Tools/ArchitectureMap/obj/` to your local `.git/info/exclude` if your branch does not already ignore them. The .NET 10 SDK is required; Git enables branch comparisons. Open the launcher to build and run the map. Unity can remain closed; without Unity-generated metadata, some relationships are labeled inferred.
 
-### Current Unity hierarchy behavior
-
-Recommended and Hierarchy tree now use an indented vertical outline with fixed readable node dimensions. The former automatic card overview is disabled. Original auto positions are replaced on entering this hierarchy; explicit position locks remain honored. Parent rails run beside children, containment labels/arrowheads are omitted, and relationship hover isolation still works. Scroll browses the hierarchy; Ctrl+wheel zooms. Fit returns to the readable top instead of shrinking the whole tree. Other diagram layouts retain their existing zoom/fit behavior.
-
-### Multi-branch visual comparison
-
-The Git panel accepts up to eight branches against one starting branch. **Use open pull requests** populates those inputs from currently open GitHub PRs (up to eight); it does not fetch missing commits. **Compare and highlight** opens Unity structure in grouped columns, initially showing changed sections. **Show unchanged sections** in the floating legend restores context.
-
-Changed descendants highlight their containing sections. Each branch has a distinct color and B-number. Nodes changed by multiple branches retain separate labeled outlines. Nearby nodes share an enclosing glow only when their complete branch membership matches and the region contains no unrelated nodes. Hover a colored outline or a legend entry to hide other branch highlights and isolate related arrows. Leaving restores them. Local uncommitted-change outlines are suppressed during branch comparison to avoid mixing meanings.
-
-Per-branch file lists are collapsed by default. They also report changed paths with no node in the current graph, including deleted/non-Unity files. Comparison highlights the current graph, not a reconstructed historical branch graph. Missing local PR commits are reported per branch, while successful comparisons still display. Comparisons do not switch, fetch, push, or merge branches.
-
-### Help and panel refresh (current behavior)
-
-Inline help now describes actual scope: visual Undo does not revert architecture rules, scope declarations, Git selections, or a shared preset write. Hierarchy-specific fixed card sizing, text size, plain rails, hidden labels/heads, scrolling and Back to top are explained explicitly. Gain is in graph units and scales on zoom; dashed styling alone is not proof of inferred evidence. All-node and type bulk defaults also apply to newly discovered nodes. Import/export, reset, scan actions and team sharing have separate explanations.
-
-Style studio uses collapsible sections for presets, node appearance, connections, per-relationship overrides, bulk edits, and reset/sharing. Each relationship type has a nested disclosure. Node inspectors group scope, impact, presentation and relationships. Workspace settings group display/navigation, relationship visibility, personal/team layout, scan controls and diagnostics. Open/closed sections are remembered during the current page session.
-
-The Git panel now separates setup, actions, results and advanced tools. Compact branch rows show the same B-number/color as displayed results; unavailable branches have no active color. Compare remains in a sticky action strip. PR population and Add branch are adjacent. Example, local changes and overlap checks are below the primary workflow. Changed file lists remain collapsed and partial comparison failures retain the successful branch highlights.
-
-### ELK layouts
-
-Use the bottom layout menu → **ELK · Dependency flow** or **ELK · Hierarchy**, and it takes effect immediately. Undo restores the prior arrangement. Existing layout choices remain available. ELK runs locally in a worker with a 30-second timeout and uses the visible graph (up to 240 cards), not the entire project graph.
-
-ELK controls both positions and orthogonal connection paths, with separate connection ports and label space. It recalculates when visible nodes, relationships, or node dimensions change. Hover isolation, multi-selection, relationship inspection, styling and Git highlights remain available. ELK layouts cannot be manually dragged; choose another layout for manual placement. Unlock visible nodes before using ELK. Dense graphs still benefit from Focus connections, reduced depth and drill-down; no engine guarantees crossing-free diagrams. A wide hierarchy may require zooming/panning; the existing indented hierarchy remains available for reading many siblings.
-
-Vendor attribution and license: THIRD-PARTY.md and ELK-LICENSE.md.
-
-
-### Branding, status, and Style Studio
-
-The header reads Digital Architecture Map and uses the repository root folder name beneath it, also stored in new static exports. Supplied green animation loops locally as MP4; yellow/red use the supplied static icons. Green means connected/current with no reported issues; yellow means checking/refreshing, warnings to review, or an offline snapshot; red means detected changes awaiting refresh, errors, or a disconnected service. Click the icon for the reason and Refresh now. Reduced-motion preference pauses the animation. The status does not certify game correctness.
-
-Style Studio separates Presets, Nodes, Arrows, and Sharing. Changes save automatically for you; use Undo to reverse them. Sharing a team preset writes presentation JSON, including layout-cycle choices; commit/push that file to distribute it. Personal overrides continue to take precedence.
+The optional `Assets/ArchitectureMap` editor integration adds the Unity menu and dependency export. It is already included on Evan_Sprint_3, but is not required for the standalone launcher. Importing only the tool does not install that integration. To update an existing Evan_Sprint_3 checkout, use your normal pull instead; pulling a whole branch includes everything on that branch, not a selectable subset of files.

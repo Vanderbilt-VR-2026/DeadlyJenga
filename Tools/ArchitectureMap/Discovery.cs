@@ -7,7 +7,7 @@ namespace ArchitectureMap;
 public record Fragment(string Hash, List<Node> Nodes, List<Edge> Edges);
 public sealed class Discovery(string root)
 {
-    const string CacheVersion = "v4";
+    const string CacheVersion = "v5";
     Dictionary<string, Fragment> cache = new();
     Graph? last;
     string inventory = "";
@@ -20,8 +20,9 @@ public sealed class Discovery(string root)
         foreach (var file in Directory.EnumerateFiles(dir)) if ((File.GetAttributes(file) & FileAttributes.ReparsePoint) == 0) yield return file;
         foreach (var sub in Directory.EnumerateDirectories(dir)) if ((File.GetAttributes(sub) & FileAttributes.ReparsePoint) == 0) foreach (var file in Files(sub)) yield return file;
     }
-    public Graph Scan(bool full = false)
+    public Graph Scan(bool full = false, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         var timer = Stopwatch.StartNew();
         var files = Files(Path.Combine(root, "Assets")).ToArray();
         var context = Semantic.ContextHash(root);
@@ -35,6 +36,7 @@ public sealed class Discovery(string root)
         var guids = new Dictionary<string, string>();
         foreach (var meta in files.Where(f => f.EndsWith(".meta")))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var match = Regex.Match(File.ReadAllText(meta), @"(?m)^guid:\s*([a-fA-F0-9]{32})\s*$");
             if (match.Success) guids[Data.Relative(root, meta[..^5])] = match.Groups[1].Value.ToLowerInvariant();
         }
@@ -43,6 +45,7 @@ public sealed class Discovery(string root)
         var changed = 0;
         foreach (var file in files.Where(f => !f.EndsWith(".meta")))
         {
+            cancellationToken.ThrowIfCancellationRequested();
             var path = Data.Relative(root, file); var ext = Path.GetExtension(file).ToLowerInvariant();
             var id = "asset:" + (guids.GetValueOrDefault(path) ?? "path:" + path);
             if (duplicates.Any(g => g.Key == guids.GetValueOrDefault(path))) id += ":" + path;
@@ -56,7 +59,7 @@ public sealed class Discovery(string root)
         var codeChanged = full || last == null || next.Where(x => x.Key.EndsWith(".cs") || x.Key.EndsWith(".asmdef")).Any(x => !cache.TryGetValue(x.Key, out var old) || old.Hash != x.Value.Hash)
             || cache.Keys.Except(next.Keys).Any(x => x.EndsWith(".cs") || x.EndsWith(".asmdef")) || context != previousContext;
         var nodes = next.Values.SelectMany(f => f.Nodes).ToList(); var edges = next.Values.SelectMany(f => f.Edges).ToList();
-        if (codeChanged) code = Semantic.Analyze(root, nodes.Where(n => n.Kind == "script").ToList());
+        if (codeChanged) code = Semantic.Analyze(root, nodes.Where(n => n.Kind == "script").ToList(), cancellationToken);
         nodes.AddRange(code.Nodes); edges.AddRange(code.Edges); issues.AddRange(code.Issues);
         try
         {
