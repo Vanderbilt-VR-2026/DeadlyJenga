@@ -1,5 +1,6 @@
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
 using DeadlyJenga.CandyPhysicsHands;
 using DeadlyJenga.CandyArt;
 using UnityEngine.InputSystem;
@@ -33,7 +34,7 @@ namespace DeadlyJenga.CandyAudio
             if(Time.time>=scanAt)
             {
                 scanAt=Time.time+.75f;
-                session=GameSessionInfo.Current;if(!generator)generator=FindFirstObjectByType<CastleGenerator>();
+                session=Services.Session;if(!generator)generator=FindFirstObjectByType<CastleGenerator>();
                 if(!ocean)ocean=FindFirstObjectByType<CandyOceanSurface>();
                 if(ocean)WaterHeight=ocean.transform.position.y;
                 if(session==null||!generator)return;
@@ -50,7 +51,7 @@ namespace DeadlyJenga.CandyAudio
             if(Time.time>=windAt)
             {
                 windAt=Time.time+.55f;int blocked=0;var p=engine.Listener.position;
-                const int mask=~((1<<CastleBlock.SurvivorLayer)|(1<<CastleBlock.BlockLayer));
+                const int mask=~((1<<Layers.Survivor)|(1<<Layers.Block));
                 for(int i=0;i<4;i++)if(Physics.Raycast(p,Quaternion.Euler(0,i*90,0)*Vector3.forward,3.5f,mask,QueryTriggerInteraction.Ignore))blocked++;
                 if(Physics.Raycast(p,Vector3.up,4,mask,QueryTriggerInteraction.Ignore))blocked++;
                 exposure=1-blocked/5f;

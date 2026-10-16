@@ -3,6 +3,7 @@ using FlyingHand;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -54,8 +55,8 @@ namespace DeadlyJenga.CastlePrototype
         void Awake()
         {
             Capsule = GetComponent<CharacterController>();
-            gameObject.layer = CastleBlock.SurvivorLayer;
-            Capsule.excludeLayers = 1 << CastleBlock.BlockLayer;
+            gameObject.layer = Layers.Survivor;
+            Capsule.excludeLayers = 1 << Layers.Block;
             tracker = viewCamera.GetComponent<TrackedPoseDriver>();
             headActions=ConfigureHeadTracking(tracker);
             move = new InputAction("Walk", InputActionType.Value, "<XRController>{LeftHand}/primary2DAxis");
@@ -215,7 +216,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Vector3 feet = Feet;
             bool wasGrounded = Grounded;
-            int mask=~((1 << gameObject.layer) | (1 << CastleBlock.BlockLayer));
+            int mask=~((1 << gameObject.layer) | (1 << Layers.Block));
             bool contact=Physics.SphereCast(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,
                 Vector3.down,out var hit,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
             // Sphere normals can interpolate across box edges. Recover the actual face
@@ -241,10 +242,10 @@ namespace DeadlyJenga.CastlePrototype
             for (float probeHeight = .12f; probeHeight <= 1.15f; probeHeight += .25f)
             {
                 if (!Physics.Raycast(feet + Vector3.up * probeHeight, forward, out var face,
-                    vaultReach, ~((1 << gameObject.layer) | (1 << CastleBlock.BlockLayer)), QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) continue;
+                    vaultReach, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) continue;
                 Vector3 inside = face.point + forward * (Capsule.radius + .12f);
                 Vector3 above = new Vector3(inside.x, feet.y + vaultMaxRise + .15f, inside.z);
-                if (!Physics.Raycast(above, Vector3.down, out top, vaultMaxRise + .3f, ~((1 << gameObject.layer) | (1 << CastleBlock.BlockLayer)), QueryTriggerInteraction.Ignore)
+                if (!Physics.Raycast(above, Vector3.down, out top, vaultMaxRise + .3f, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore)
                     || top.collider != face.collider || top.normal.y < .85f) continue;
                 float rise = top.point.y - feet.y;
                 if (rise < .08f || rise > vaultMaxRise) continue;
@@ -255,17 +256,17 @@ namespace DeadlyJenga.CastlePrototype
                 if (!ClearPath(feet + Vector3.up * .04f, lifted) || !ClearPath(lifted, destinationFeet)) continue;
                 target = destinationFeet - (Feet - transform.position);
                 candidateGrip=new Vector3(face.point.x,top.point.y,face.point.z);candidateNormal=top.normal;candidateForward=forward;
-                if(CastleBlock.TryGetSurfaceOwner(top.collider,out var owner)&&owner.visualRoot)
+                if(Climbables.TryGet(top.collider,out var owner)&&owner.Visual)
                 {
                     float maxY=float.NegativeInfinity;
-                    foreach(var mesh in owner.visualRoot.GetComponentsInChildren<MeshFilter>())
+                    foreach(var mesh in owner.Visual.GetComponentsInChildren<MeshFilter>())
                     {
                         if(!mesh.sharedMesh)continue;
-                        var bounds=mesh.sharedMesh.bounds;var matrix=owner.transform.worldToLocalMatrix*mesh.transform.localToWorldMatrix;
+                        var bounds=mesh.sharedMesh.bounds;var matrix=owner.Anchor.worldToLocalMatrix*mesh.transform.localToWorldMatrix;
                         for(int i=0;i<8;i++)maxY=Mathf.Max(maxY,matrix.MultiplyPoint3x4(bounds.center+Vector3.Scale(bounds.extents,new Vector3((i&1)==0?-1:1,(i&2)==0?-1:1,(i&4)==0?-1:1))).y);
                     }
                     if(!float.IsNegativeInfinity(maxY))
-                    {var box=owner.GetComponent<BoxCollider>();candidateGrip+=top.normal*((maxY-box.center.y-box.size.y*.5f)*owner.transform.lossyScale.y);}
+                    {var box=owner.Anchor.GetComponent<BoxCollider>();if(box)candidateGrip+=top.normal*((maxY-box.center.y-box.size.y*.5f)*owner.Anchor.lossyScale.y);}
                 }
                 return true;
             }
@@ -275,14 +276,14 @@ namespace DeadlyJenga.CastlePrototype
         {
             float r = Capsule.radius * .95f;
             return !Physics.CheckCapsule(feet + Vector3.up * (r + .03f), feet + Vector3.up * (Capsule.height - r),
-                r, ~((1 << gameObject.layer) | (1 << CastleBlock.BlockLayer)), QueryTriggerInteraction.Ignore);
+                r, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore);
         }
         bool ClearPath(Vector3 start, Vector3 end)
         {
             Vector3 delta = end - start; float r = Capsule.radius * .95f;
             return delta.magnitude < .001f || !Physics.CapsuleCast(start + Vector3.up * (r + .03f),
                 start + Vector3.up * (Capsule.height - r), r, delta.normalized, delta.magnitude,
-                ~((1 << gameObject.layer) | (1 << CastleBlock.BlockLayer)), QueryTriggerInteraction.Ignore);
+                ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore);
         }
         public bool TryStartVault()
         {

@@ -3,6 +3,7 @@ using Fusion;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -32,7 +33,8 @@ namespace DeadlyJenga.CastlePrototype
 
         void Start()
         {
-            GameSessionInfo.Current = this;
+            Services.Session = this;
+            GameEvents.Eliminated += OnEliminated;
             if (overviewCamera) overviewCamera.gameObject.SetActive(false);
             Player = Instantiate(survivorPrefab); Player.name = "Survivor (local)"; Player.gameObject.AddComponent<CandyStaminaHud>();
             TuneJump();
@@ -66,7 +68,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
-            if (ReferenceEquals(GameSessionInfo.Current, this)) GameSessionInfo.Current = null;
+            if (ReferenceEquals(Services.Session, this)) Services.Session = null;
+            GameEvents.Eliminated -= OnEliminated;
             switchRole?.Dispose(); toggleMenu?.Dispose(); select?.Dispose();
             if (worldMenu) Destroy(worldMenu.gameObject);
             if (Player) Destroy(Player.gameObject);
@@ -86,22 +89,19 @@ namespace DeadlyJenga.CastlePrototype
             else RespawnPlayer();
             SetMenu(MenuOpen);
         }
+        // The ocean (or any hazard) eliminated someone. In this demo the local survivor just respawns.
+        void OnEliminated(GameObject who, GameObject source)
+        {
+            if (Player && who == Player.gameObject && !PlayingHand) RespawnPlayer();
+        }
+
         public void RespawnPlayer()
         {
-            Physics.SyncTransforms();
-            // Calculate from the body's physics pose, including immediately after a rebuild.
-            Collider best = null; float highest = float.NegativeInfinity;
-            foreach (var body in generator.Bodies)
-            {
-                if (!body || Vector3.Dot(body.transform.up, Vector3.up) < .95f) continue;
-                var col = body.GetComponent<Collider>();
-                if (col.bounds.max.y > highest) { highest = col.bounds.max.y; best = col; }
-            }
-            Vector3 feet = best ? best.attachedRigidbody.position + Vector3.up * (best.bounds.extents.y + .08f)
-                : generator.foundation.position + Vector3.up * .6f;
+            Vector3 feet = Services.World.SafeSpawnPoint();
             Vector3 heading = Vector3.ProjectOnPlane(generator.transform.position - feet, Vector3.up);
             LastSpawnFeet = feet;
             Player.Teleport(feet, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity);
+            Player.Revive();
         }
         void TuneJump()
         {
@@ -129,7 +129,6 @@ namespace DeadlyJenga.CastlePrototype
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if(IsVR&&candyTracking&&candyTracking.LeftMenuPressed)SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
-            if (!PlayingHand && Player.transform.position.y < -6) RespawnPlayer();
             if (MenuOpen && IsVR) worldMenu.Point(ActiveCamera, select.WasPressedThisFrame()||(candyTracking&&candyTracking.RightPinchPressed));
         }
         void OnGUI()

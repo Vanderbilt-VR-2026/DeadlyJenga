@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
@@ -16,7 +17,7 @@ namespace DeadlyJenga.CastleBots
     }
     public static class CastleBotNavigation
     {
-        public const int Mask=~((1<<CastleBlock.SurvivorLayer)|(1<<CastleBlock.BlockLayer));
+        public const int Mask=~((1<<Layers.Survivor)|(1<<Layers.Block));
         public static bool Ground(Vector3 point,float distance,out RaycastHit hit)
             =>Physics.Raycast(point,Vector3.down,out hit,distance,Mask,QueryTriggerInteraction.Ignore)&&hit.normal.y>.85f;
         public static bool Room(CastleSurvivor motor,Vector3 feet)

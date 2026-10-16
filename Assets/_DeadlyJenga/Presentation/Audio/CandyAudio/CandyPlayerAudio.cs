@@ -2,6 +2,7 @@ using System;
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CastleBots;
+using DeadlyJenga.Core;
 namespace DeadlyJenga.CandyAudio
 {
     [DefaultExecutionOrder(300),DisallowMultipleComponent]
@@ -48,7 +49,7 @@ namespace DeadlyJenga.CandyAudio
                 {
                     stepTravel=0;nextStep=Time.time+.19f;
                     var cue=CandySound.FootstepCandy;
-                    if(Physics.Raycast(p+Vector3.up*.2f,Vector3.down,out var hit,.65f,1<<CastleBlock.SurfaceLayer,QueryTriggerInteraction.Ignore))
+                    if(Physics.Raycast(p+Vector3.up*.2f,Vector3.down,out var hit,.65f,1<<Layers.Surface,QueryTriggerInteraction.Ignore))
                     {if(hit.collider.TryGetComponent<CandyAudioSurface>(out var surface)&&surface.surface==CandySurface.Sand)cue=CandySound.FootstepSand;}
                     else cue=CandySound.FootstepSand;
                     Sound(cue,p,Mathf.Clamp(Vector3.ProjectOnPlane(d,Vector3.up).magnitude/dt/7,.15f,.65f),Mathf.Clamp(1/motor.playerScale*.5f,.85f,1.2f));

@@ -1,9 +1,10 @@
 using System.Collections.Generic;
 using UnityEngine;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public class CastleGenerator : MonoBehaviour
+    public class CastleGenerator : MonoBehaviour, IWorldQuery
     {
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
@@ -16,7 +17,51 @@ namespace DeadlyJenga.CastlePrototype
         public float LastBuildMilliseconds { get; private set; }
         public int Revision { get; private set; }
 
+        [Header("World")]
+        public float waterHeight = -.12f;
+        [Tooltip("Anything that can be eliminated is eliminated below this height.")]
+        public float oceanKillHeight = -6;
+        readonly Collider[] fallen = new Collider[256];
+        float nextKillCheck;
+
         void Start() { if (generateOnStart) Rebuild(); }
+        void OnEnable() => Services.World = this;
+        void OnDisable() { if (ReferenceEquals(Services.World, this)) Services.World = null; }
+
+        // IWorldQuery
+        public float WaterHeight(Vector3 position) => waterHeight;
+        public bool IsSheltered(Vector3 position) =>
+            Physics.Raycast(position + Vector3.up * .1f, Vector3.up, 500, 1 << Layers.Block, QueryTriggerInteraction.Ignore);
+
+        // Top of the highest upright block, or the foundation if none are left.
+        public Vector3 SafeSpawnPoint()
+        {
+            Physics.SyncTransforms();
+            Collider best = null; float highest = float.NegativeInfinity;
+            foreach (var body in Bodies)
+            {
+                if (!body || Vector3.Dot(body.transform.up, Vector3.up) < .95f) continue;
+                var col = body.GetComponent<Collider>();
+                if (col.bounds.max.y > highest) { highest = col.bounds.max.y; best = col; }
+            }
+            return best ? best.attachedRigidbody.position + Vector3.up * (best.bounds.extents.y + .08f)
+                : foundation.position + Vector3.up * .6f;
+        }
+
+        // The ocean: eliminate anything that falls below the kill height.
+        void FixedUpdate()
+        {
+            if (!Application.isPlaying || Time.time < nextKillCheck) return;
+            nextKillCheck = Time.time + .1f;
+            var center = new Vector3(transform.position.x, oceanKillHeight - 500, transform.position.z);
+            int mask = ~((1 << Layers.Block) | (1 << Layers.Surface));
+            int count = Physics.OverlapBoxNonAlloc(center, new Vector3(2000, 500, 2000), fallen, Quaternion.identity, mask, QueryTriggerInteraction.Ignore);
+            for (int i = 0; i < count; i++)
+            {
+                var target = fallen[i].GetComponentInParent<IDamageable>();
+                if (target != null && target.Health > 0) target.Eliminate(gameObject);
+            }
+        }
 
         public void Rebuild()
         {

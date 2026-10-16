@@ -1,13 +1,14 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
-    public sealed class CastleBlock : MonoBehaviour
+    public sealed class CastleBlock : MonoBehaviour, IClimbable, IPushable
     {
-        public const int SurvivorLayer = 8, BlockLayer = 9, SurfaceLayer = 10;
+        public const int SurvivorLayer = Layers.Survivor, BlockLayer = Layers.Block, SurfaceLayer = Layers.Surface;
         public CastleBlockAppearance appearance;
         public Transform visualRoot;
         public Material sectionMaterial;
@@ -17,10 +18,9 @@ namespace DeadlyJenga.CastlePrototype
         BoxCollider surface;
         Rigidbody surfaceBody;
         static bool collisionLayersConfigured;
-        static readonly System.Collections.Generic.Dictionary<Collider,CastleBlock> SurfaceOwners=new System.Collections.Generic.Dictionary<Collider,CastleBlock>();
-        public static bool TryGetSurfaceOwner(Collider collider,out CastleBlock owner)=>SurfaceOwners.TryGetValue(collider,out owner);
+        Rigidbody body;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetRuntime() { collisionLayersConfigured = false;SurfaceOwners.Clear(); }
+        static void ResetRuntime() { collisionLayersConfigured = false; }
 
         void Awake()
         {
@@ -43,14 +43,28 @@ namespace DeadlyJenga.CastlePrototype
             surfaceBody = proxy.AddComponent<Rigidbody>();
             surfaceBody.isKinematic = true; surfaceBody.useGravity = false;
             surface = proxy.AddComponent<BoxCollider>();
-            SurfaceOwners[surface]=this;
+            Climbables.Register(surface, this);
             surface.excludeLayers = ~(1 << SurvivorLayer);
             surface.layerOverridePriority = 10;
             SyncSurface();
         }
         void OnEnable() { if (surface) surface.gameObject.SetActive(true); }
         void OnDisable() { if (surface) surface.gameObject.SetActive(false); }
-        void OnDestroy() { if (surface) {SurfaceOwners.Remove(surface);Destroy(surface.gameObject);} }
+        void OnDestroy() { if (surface) {Climbables.Unregister(surface);Destroy(surface.gameObject);} }
+        // IClimbable
+        public bool CanClimb => isActiveAndEnabled;
+        public float Grip => 1;
+        public Transform Anchor => transform;
+        public Rigidbody Body => body ? body : body = GetComponent<Rigidbody>();
+        public Transform Visual => visualRoot;
+
+        // IPushable
+        public void Push(Vector3 force, GameObject source)
+        {
+            Body.AddForce(force, ForceMode.VelocityChange);
+            GameEvents.RaisePushed(gameObject, force);
+        }
+
         public void SyncSurface()
         {
             if (!surface) return;

@@ -1,4 +1,5 @@
 using UnityEngine;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -19,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         public float GripRemaining { get; private set; }=1;
         public float ClimbProgress=>Mathf.Clamp01(climbElapsed/.14f);
         public Vector3 ClimbNormal=>climbNormal;
-        CastleBlock climbBlock;
+        IClimbable climbBlock;
         Rigidbody climbBody;
         Collider climbCollider;
         Vector3 climbNormal,climbLocalFeet,climbWorldFeet,climbPointVelocity,climbLastVelocity;
@@ -36,12 +37,12 @@ namespace DeadlyJenga.CastlePrototype
             climbHold=climbCooldown=climbElapsed=climbGroundRest=climbStun=0;climbMustRelease=false;
             if(refill)GripRemaining=1;
         }
-        int ClimbMask=>1<<CastleBlock.SurfaceLayer;
+        int ClimbMask=>1<<Layers.Surface;
         bool ClimbFace(Vector3 origin,Vector3 direction,float distance,out RaycastHit hit)
         {
             if(!Physics.Raycast(origin,direction,out hit,distance,ClimbMask,QueryTriggerInteraction.Ignore))return false;
             float angle=Vector3.Angle(hit.normal,Vector3.up);
-            return angle>=55&&angle<=100&&CastleBlock.TryGetSurfaceOwner(hit.collider,out var block)&&block&&block.isActiveAndEnabled;
+            return angle>=55&&angle<=100&&Climbables.TryGet(hit.collider,out var block)&&block.CanClimb&&block.Grip>0;
         }
         bool FindClimbFace(Vector3 feet,Vector3 direction,out RaycastHit hit)
         {
@@ -64,21 +65,21 @@ namespace DeadlyJenga.CastlePrototype
             }
             hit=default;return false;
         }
-        Vector3 PointVelocity()=>climbBody&&climbBlock?climbBody.GetPointVelocity(climbBlock.transform.TransformPoint(climbLocalFeet)):Vector3.zero;
+        Vector3 PointVelocity()=>climbBody&&Climbables.Alive(climbBlock)?climbBody.GetPointVelocity(climbBlock.Anchor.TransformPoint(climbLocalFeet)):Vector3.zero;
         bool UnsafeClimb(Vector3 velocity,float dt,bool initial)
         {
-            if(!climbBlock||!climbCollider||!climbCollider.enabled||!climbBlock.isActiveAndEnabled)return true;
+            if(!Climbables.Alive(climbBlock)||!climbCollider||!climbCollider.enabled||!climbBlock.CanClimb)return true;
             dt=Mathf.Max(dt,Time.fixedDeltaTime); // Rigidbody samples advance at the physics rate.
             float spin=climbBody?climbBody.angularVelocity.magnitude:0;
-            if(!initial)spin=Mathf.Max(spin,Quaternion.Angle(climbLastRotation,climbBlock.transform.rotation)*Mathf.Deg2Rad/Mathf.Max(.001f,dt));
+            if(!initial)spin=Mathf.Max(spin,Quaternion.Angle(climbLastRotation,climbBlock.Anchor.rotation)*Mathf.Deg2Rad/Mathf.Max(.001f,dt));
             return velocity.magnitude>climbBreakSpeed||velocity.y < -climbBreakFallSpeed||spin>climbBreakSpin||
                 (!initial&&(velocity-climbLastVelocity).magnitude/Mathf.Max(.001f,dt)>climbBreakAcceleration);
         }
         void BindClimb(RaycastHit hit)
         {
-            CastleBlock.TryGetSurfaceOwner(hit.collider,out climbBlock);climbBody=climbBlock.GetComponent<Rigidbody>();climbCollider=hit.collider;
-            climbNormal=hit.normal;climbLocalFeet=climbBlock.transform.InverseTransformPoint(Feet);climbWorldFeet=Feet;
-            climbLastVelocity=PointVelocity();climbLastRotation=climbBlock.transform.rotation;
+            Climbables.TryGet(hit.collider,out climbBlock);climbBody=climbBlock.Body;climbCollider=hit.collider;
+            climbNormal=hit.normal;climbLocalFeet=climbBlock.Anchor.InverseTransformPoint(Feet);climbWorldFeet=Feet;
+            climbLastVelocity=PointVelocity();climbLastRotation=climbBlock.Anchor.rotation;
         }
         void ReleaseClimb(string reason,bool forced)
         {
@@ -115,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!held||InputSuspended){ReleaseClimb("Released grip",false);return false;}
             climbPointVelocity=PointVelocity();
             if(UnsafeClimb(climbPointVelocity,dt,false)){ReleaseClimb("Block thrown / falling — grip broken",true);return false;}
-            Vector3 carried=climbBlock.transform.TransformPoint(climbLocalFeet);
+            Vector3 carried=climbBlock.Anchor.TransformPoint(climbLocalFeet);
             Vector3 carry=carried-climbWorldFeet;
             if(carry.magnitude>climbBreakSpeed*dt+.06f){ReleaseClimb("Block moved abruptly — grip broken",true);return false;}
             Capsule.Move(carry);
@@ -165,13 +166,13 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<2;i++)
             {
                 Vector3 shoulder=Feet+Vector3.up*(1.255f*playerScale)+right*((i==0?-.21f:.21f)*playerScale)+climbNormal*(.05f*playerScale);
-                Vector3 planted=climbBlock.transform.TransformPoint(climbHandLocal[i]);
+                Vector3 planted=climbBlock.Anchor.TransformPoint(climbHandLocal[i]);
                 if(Vector3.Distance(shoulder,planted)>.48f*playerScale)PlantClimbHand(i);
                 climbHandReach[i]=Mathf.Min(1,climbHandReach[i]+dt/.1f);
             }
             GripRemaining=1-CastleStaminaCurve.Advance(1-GripRemaining,dt*Mathf.Max(0,climbDrainPerSecond)/Mathf.Max(.2f,climbGripSeconds)*(input.sqrMagnitude>.01f?1f:.85f),climbDrainCurve,climbDrainDegree);climbElapsed+=dt;
-            climbLocalFeet=climbBlock.transform.InverseTransformPoint(Feet);climbWorldFeet=climbBlock.transform.TransformPoint(climbLocalFeet);
-            climbLastVelocity=climbPointVelocity;climbLastRotation=climbBlock.transform.rotation;
+            climbLocalFeet=climbBlock.Anchor.InverseTransformPoint(Feet);climbWorldFeet=climbBlock.Anchor.TransformPoint(climbLocalFeet);
+            climbLastVelocity=climbPointVelocity;climbLastRotation=climbBlock.Anchor.rotation;
             verticalSpeed=0;Grounded=false;ActionStatus="Scramble · grip "+Mathf.CeilToInt(GripRemaining*100)+"% · release to drop";
             if(GripRemaining<=0){ReleaseClimb("Grip exhausted — find secure footing",true);return false;}
             if(input.y>.1f&&ClimbMantle())return true;
@@ -181,8 +182,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!support)return true;
             var collider=support.GetComponent<Collider>();
-            return !collider||!CastleBlock.TryGetSurfaceOwner(collider,out var block)||!block||
-                (block.GetComponent<Rigidbody>().linearVelocity.magnitude<.7f&&block.GetComponent<Rigidbody>().angularVelocity.magnitude<.4f);
+            return !collider||!Climbables.TryGet(collider,out var block)||!block.Body||
+                (block.Body.linearVelocity.magnitude<.7f&&block.Body.angularVelocity.magnitude<.4f);
         }
         bool ClimbMantle()
         {
@@ -193,27 +194,27 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PlantClimbHand(int side)
         {
-            if(!climbBlock)return;
+            if(!Climbables.Alive(climbBlock))return;
             Vector3 up=Vector3.ProjectOnPlane(Vector3.up,climbNormal).normalized,right=Vector3.Cross(climbNormal,up).normalized;
             climbHandFrom[side]=Vector3.Lerp(climbHandFrom[side],climbHandLocal[side],Mathf.SmoothStep(0,1,climbHandReach[side]));climbHandReach[side]=0;
             Vector3 origin=Feet+Vector3.up*(StandingHeight*.83f)+right*((side==0?-.18f:.18f)*playerScale)+up*(.06f*playerScale);
             if(ClimbFace(origin,-climbNormal,Capsule.radius+.6f*playerScale,out var hit)&&hit.collider==climbCollider)
-                climbHandLocal[side]=climbBlock.transform.InverseTransformPoint(hit.point+hit.normal*(.024f*playerScale));
-            else climbHandLocal[side]=climbBlock.transform.InverseTransformPoint(origin-climbNormal*(Capsule.radius+.02f));
+                climbHandLocal[side]=climbBlock.Anchor.InverseTransformPoint(hit.point+hit.normal*(.024f*playerScale));
+            else climbHandLocal[side]=climbBlock.Anchor.InverseTransformPoint(origin-climbNormal*(Capsule.radius+.02f));
         }
         public bool TryGetClimbGrip(bool left,out Pose grip)
         {
-            grip=default;if(!Climbing||!climbBlock)return false;
+            grip=default;if(!Climbing||!Climbables.Alive(climbBlock))return false;
             Vector3 up=Vector3.ProjectOnPlane(Vector3.up,climbNormal).normalized;
             // Skeleton local +Z runs along fingers, local -Y is the palm side.
             int side=left?0:1;float t=climbHandReach[side];
             Vector3 point=Vector3.Lerp(climbHandFrom[side],climbHandLocal[side],Mathf.SmoothStep(0,1,t));
-            grip=new Pose(climbBlock.transform.TransformPoint(point)+climbNormal*(Mathf.Sin(t*Mathf.PI)*.035f*playerScale),Quaternion.LookRotation(up,climbNormal));return true;
+            grip=new Pose(climbBlock.Anchor.TransformPoint(point)+climbNormal*(Mathf.Sin(t*Mathf.PI)*.035f*playerScale),Quaternion.LookRotation(up,climbNormal));return true;
         }
         void OnControllerColliderHit(ControllerColliderHit hit)
         {
-            if(!Climbing||!CastleBlock.TryGetSurfaceOwner(hit.collider,out var block)||!block||block==climbBlock)return;
-            var body=block.GetComponent<Rigidbody>();var velocity=body.GetPointVelocity(hit.point);
+            if(!Climbing||!Climbables.TryGet(hit.collider,out var block)||block==climbBlock||!block.Body)return;
+            var body=block.Body;var velocity=body.GetPointVelocity(hit.point);
             if(velocity.magnitude>3&&Vector3.Dot(velocity,hit.normal)>2)ApplyTraversalImpulse(Vector3.ClampMagnitude(velocity,10));
         }
     }

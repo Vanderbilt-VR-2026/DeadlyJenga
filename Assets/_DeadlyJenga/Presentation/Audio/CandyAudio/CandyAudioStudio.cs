@@ -4,6 +4,7 @@ using System.IO;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyAudio
 {
@@ -33,7 +34,7 @@ namespace DeadlyJenga.CandyAudio
         {
             if(!engine||!engine.bank)return;
             if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";engine.Configure(working);}
-            session=GameSessionInfo.Current;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
+            session=Services.Session;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
             GatherClips();IsOpen=true;status="Session copy • preview freely, then save a preset if you like it.";
         }
         public void Close()

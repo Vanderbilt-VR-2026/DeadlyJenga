@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
@@ -74,7 +75,7 @@ namespace DeadlyJenga.CastleBots
                 if(!CastleBotNavigation.Landing(bot.Motor,p,out var hit))continue;
                 p=hit.point+Vector3.up*.06f;
                 float r=bot.Motor.Capsule.radius+.18f;
-                int count=Physics.OverlapCapsuleNonAlloc(p+Vector3.up*r,p+Vector3.up*bot.Motor.StandingHeight,r,nearbySurvivors,1<<CastleBlock.SurvivorLayer,QueryTriggerInteraction.Ignore);
+                int count=Physics.OverlapCapsuleNonAlloc(p+Vector3.up*r,p+Vector3.up*bot.Motor.StandingHeight,r,nearbySurvivors,1<<Layers.Survivor,QueryTriggerInteraction.Ignore);
                 bool occupied=count>=nearbySurvivors.Length;
                 for(int i=0;i<count;i++)if(nearbySurvivors[i]!=bot.Motor.Capsule)occupied=true;
                 if(occupied||bots.Any(b=>b&&b!=bot&&!b.Respawning&&Vector3.Distance(b.transform.position,p)<.7f))continue;

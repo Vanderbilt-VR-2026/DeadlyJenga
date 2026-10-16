@@ -73,7 +73,7 @@ namespace DeadlyJenga.CastleBots
         }
         public void Spawned(bool respawn)
         {
-            hasGoal=false;planner=null;journey.Clear();tripUntil=0;waitUntil=0;Respawning=false;Motor.InputSuspended=false;
+            Motor.Revive();hasGoal=false;planner=null;journey.Clear();tripUntil=0;waitUntil=0;Respawning=false;Motor.InputSuspended=false;
             if(avatar&&avatar.Rig)avatar.Rig.gameObject.SetActive(true);
             if(respawn)Respawns++;nextPlan=Time.time+.2f+(Seed%1)*.2f;progressAt=Time.time;progressPosition=transform.position;Intent="Finding footing";
         }

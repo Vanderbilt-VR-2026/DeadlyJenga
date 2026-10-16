@@ -1,6 +1,7 @@
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CandyPhysicsHands;
+using DeadlyJenga.Core;
 namespace DeadlyJenga.CandyAudio
 {
     [DisallowMultipleComponent]
@@ -28,7 +29,7 @@ namespace DeadlyJenga.CandyAudio
         }
         public void Contact(Collision collision)
         {
-            if(!isActiveAndEnabled||collision.gameObject.layer!=CastleBlock.BlockLayer||collision.contactCount==0||!CandyAudioWorld.Near(transform.position,65))return;
+            if(!isActiveAndEnabled||collision.gameObject.layer!=Layers.Block||collision.contactCount==0||!CandyAudioWorld.Near(transform.position,65))return;
             var cp=collision.GetContact(0);float tangent=Vector3.ProjectOnPlane(collision.relativeVelocity,cp.normal).magnitude;
             contactAt=Time.time;contactPosition=cp.point;slide=Mathf.Max(slide,tangent);
             if(tangent>.12f&&Time.time>=nextTouch)
