@@ -22,3 +22,21 @@ The rules of the match and who is playing. May use every box.
 - Photon is the only multiplayer path. CastleLanSession holds the snapshot code
   Photon uses; do not delete it until that is split out.
 - This assembly is woven by Photon.
+
+## Multiplayer contract
+### World (done)
+- The snapshot code reaches the map only through Core: `Services.World` (IWorldQuery)
+  for block bodies, center, top height and radius, and `ISyncedWorld` for layout,
+  origin, revision and replica mode.
+- Never name CastleGenerator, CastleSettings or CastleLayout in networking code.
+  A new map syncs by implementing ISyncedWorld; networking does not change.
+
+### Actors (planned, for Luke; not built yet)
+- Today CastleLanSession and CastleLanActorView read CandyPlayerAvatar and
+  CandyPhysicalHand directly, and the snapshot's Actor type lists their fields.
+- Plan: a Core interface each synced character implements:
+  `string Kind { get; }`, `void WriteState(BinaryWriter w)`, `void ReadState(BinaryReader r)`.
+  The real character writes its own state; the copy on other machines reads it.
+  Networking ships bytes and creates remote copies by Kind from a prefab list.
+- This changes the network format and remote drawing, so it needs a two-player
+  test on both host and client before merging. Do not start it without Luke.

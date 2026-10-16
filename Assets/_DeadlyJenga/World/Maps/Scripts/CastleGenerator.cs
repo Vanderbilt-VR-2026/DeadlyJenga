@@ -4,7 +4,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public class CastleGenerator : MonoBehaviour, IWorldQuery
+    public class CastleGenerator : MonoBehaviour, IWorldQuery, ISyncedWorld
     {
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
@@ -37,6 +37,29 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 Center => transform.position;
         public float TopHeight => transform.position.y + settings.keepCourses * settings.blockSize.y;
         public float Radius => CastleLayout.Footprint(settings) * .5f;
+
+        // ISyncedWorld (Revision is declared above)
+        public Transform Root => transform;
+        public string SaveLayout() => JsonUtility.ToJson(settings);
+        public bool LoadLayout(string layout, int expectedBlocks, Pose origin, Vector3 scale)
+        {
+            var incoming = JsonUtility.FromJson<CastleSettings>(layout);
+            if (incoming == null || CastleLayout.Build(incoming).Count != expectedBlocks) return false;
+            settings = incoming;
+            transform.SetPositionAndRotation(origin.position, origin.rotation);
+            transform.localScale = scale;
+            Rebuild();
+            return true;
+        }
+        public void SetReplica(bool replica)
+        {
+            foreach (var body in Bodies)
+            {
+                if (!body) continue;
+                body.isKinematic = replica;
+                body.interpolation = replica ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
+            }
+        }
 
         // Top of the highest upright block, or the foundation if none are left.
         public Vector3 SafeSpawnPoint()

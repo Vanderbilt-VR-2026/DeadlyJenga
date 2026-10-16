@@ -9,6 +9,7 @@ using UnityEngine;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CandyPhysicsHands;
 using DeadlyJenga.CastleBots;
+using DeadlyJenga.Core;
 using P = DeadlyJenga.CastlePrototype.CastleLanProtocol;
 
 namespace DeadlyJenga.CastlePrototype
@@ -37,6 +38,9 @@ namespace DeadlyJenga.CastlePrototype
             public float connected, lastPose;
             public P.Actor actor;
         }
+        // The map, asked through Core. Networking never names a specific map type.
+        static IWorldQuery World => Services.World;
+        static ISyncedWorld Synced => Services.World as ISyncedWorld;
         string id = Guid.NewGuid().ToString("N");
         readonly Dictionary<string, Nearby> nearby = new Dictionary<string, Nearby>();
         readonly Dictionary<string, Pending> pending = new Dictionary<string, Pending>();
@@ -116,7 +120,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 session.Bots.ClearBots(); session.Bots.enabled = false;
                 session.HandBots.ClearHands(); session.HandBots.enabled = false;
-                foreach (var body in session.generator.Bodies) if (body) body.isKinematic = true;
+                Synced?.SetReplica(true);
                 if (localBridge) localBridge.NetworkPreview = true;
                 session.SetMenu(true);
             }
@@ -355,7 +359,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool TrySpawn(out P.Pose spawn)
         {
             Physics.SyncTransforms();
-            var sites = session.generator.Bodies.Where(b => b && b.gameObject.activeInHierarchy && b.position.y > 0 && !b.isKinematic && b.linearVelocity.sqrMagnitude < 1 && Vector3.Dot(b.rotation * Vector3.up, Vector3.up) > .97f).OrderByDescending(b => b.position.y);
+            var sites = World.Blocks.Where(b => b && b.gameObject.activeInHierarchy && b.position.y > 0 && !b.isKinematic && b.linearVelocity.sqrMagnitude < 1 && Vector3.Dot(b.rotation * Vector3.up, Vector3.up) > .97f).OrderByDescending(b => b.position.y);
             foreach (var rb in sites)
             {
                 var box = rb.GetComponent<BoxCollider>(); if (!box) continue;
@@ -368,12 +372,12 @@ namespace DeadlyJenga.CastlePrototype
                     if (connections.Any(c => c.actor != null && !c.actor.hand && Vector3.Distance(c.actor.avatar.feet, p) < 1)) continue;
                     if (fusionActors.Values.Any(a => !a.hand && Vector3.Distance(a.avatar.feet, p) < 1)) continue;
                     if (session.Bots.Bots.Any(b => b && !b.Respawning && Vector3.Distance(b.transform.position, p) < 1)) continue;
-                    var heading = Vector3.ProjectOnPlane(session.generator.transform.position - p, Vector3.up);
+                    var heading = Vector3.ProjectOnPlane(World.Center - p, Vector3.up);
                     spawn = new P.Pose(p, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity); return true;
                 }
             }
-            float extent = CastleLayout.Footprint(session.generator.settings) * .5f;
-            spawn = new P.Pose(session.generator.transform.position + new Vector3(0, Mathf.Max(5, session.generator.settings.cornerCourses * session.generator.settings.blockSize.y + 3), -extent - 10), Quaternion.identity);
+            // No room on top: join as a flying hand, floating beside the map.
+            spawn = new P.Pose(World.Center + new Vector3(0, Mathf.Max(5, World.TopHeight - World.Center.y + 3), -World.Radius - 10), Quaternion.identity);
             return false;
         }
         void LateUpdate()
@@ -409,12 +413,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         P.Snapshot CaptureWorld()
         {
-            var g = session.generator;
-            var s = new P.Snapshot { revision = g.Revision, settings = JsonUtility.ToJson(g.settings), origin = new P.Pose(g.transform.position, g.transform.rotation), originScale = g.transform.localScale,
-                blocks = new P.Pose[g.Bodies.Count], active = new bool[g.Bodies.Count] };
-            for (int i = 0; i < g.Bodies.Count; i++)
+            var w = Synced; var blocks = World.Blocks;
+            var s = new P.Snapshot { revision = w.Revision, settings = w.SaveLayout(), origin = new P.Pose(w.Root.position, w.Root.rotation), originScale = w.Root.localScale,
+                blocks = new P.Pose[blocks.Count], active = new bool[blocks.Count] };
+            for (int i = 0; i < blocks.Count; i++)
             {
-                var b = g.Bodies[i]; s.blocks[i] = b ? new P.Pose(b.position, b.rotation) : new P.Pose(Vector3.zero, Quaternion.identity);
+                var b = blocks[i]; s.blocks[i] = b ? new P.Pose(b.position, b.rotation) : new P.Pose(Vector3.zero, Quaternion.identity);
                 s.active[i] = b && b.gameObject.activeSelf;
             }
             var actors = new List<P.Actor> { LocalActor() };
@@ -441,21 +445,21 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ApplyWorld(P.Snapshot s)
         {
-            var g = session.generator;
+            var w = Synced;
             bool rebuild = !receivedWorld || hostRevision != s.revision;
             if (rebuild)
             {
-                var settings = JsonUtility.FromJson<CastleSettings>(s.settings);
-                if (CastleLayout.Build(settings).Count != s.blocks.Length) throw new InvalidDataException("Demo layouts do not match");
-                g.settings = settings; g.transform.SetPositionAndRotation(s.origin.position, s.origin.rotation); g.transform.localScale = s.originScale;
-                g.Rebuild(); hostRevision = s.revision;
-                foreach (var b in g.Bodies) { b.isKinematic = true; b.interpolation = RigidbodyInterpolation.None; }
-                previousBlocks = new P.Pose[g.Bodies.Count];
+                if (!w.LoadLayout(s.settings, s.blocks.Length, new Pose(s.origin.position, s.origin.rotation), s.originScale))
+                    throw new InvalidDataException("Demo layouts do not match");
+                hostRevision = s.revision;
+                w.SetReplica(true);
+                previousBlocks = new P.Pose[World.Blocks.Count];
             }
-            if (g.Bodies.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
-            for (int i = 0; i < g.Bodies.Count; i++)
+            var blocks = World.Blocks;
+            if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
+            for (int i = 0; i < blocks.Count; i++)
             {
-                var b = g.Bodies[i];
+                var b = blocks[i];
                 previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
                 b.gameObject.SetActive(s.active[i]);
             }
@@ -479,7 +483,7 @@ namespace DeadlyJenga.CastlePrototype
             float t = Mathf.Clamp01((Time.unscaledTime - worldAt) * 15);
             for (int i = 0; i < targetWorld.blocks.Length; i++)
             {
-                var b = session.generator.Bodies[i]; var p = targetWorld.blocks[i];
+                var b = World.Blocks[i]; var p = targetWorld.blocks[i];
                 b.position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
                 b.rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
             }
@@ -506,7 +510,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach (var c in connections) c.link.Dispose(); connections.Clear();
             foreach (var key in views.Keys.ToArray()) RemoveView(key);
             if (receivedWorld)
-                foreach (var b in session.generator.Bodies) if (b) { b.isKinematic = false; b.interpolation = RigidbodyInterpolation.Interpolate; }
+                Synced?.SetReplica(false);
             welcomed=false;receivedWorld = false; hostRevision = -1; targetWorld = null;
             if (localBridge) localBridge.NetworkPreview = false;
             session.Bots.enabled = true; session.HandBots.enabled = true;
