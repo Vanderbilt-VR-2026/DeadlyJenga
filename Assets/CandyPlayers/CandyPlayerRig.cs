@@ -9,6 +9,7 @@ namespace DeadlyJenga.CandyPlayers
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
         public Camera ownerCamera;
+        public CandyAvatarCalibration calibration;
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
         MaterialPropertyBlock colorProperties;
@@ -44,21 +45,33 @@ namespace DeadlyJenga.CandyPlayers
             if(!bodyRenderer)BuildModel();
             if(colorIndex!=int.MinValue)SetColor(colorIndex);
             float scale=Mathf.Max(.1f,frame.scale);
+            var fit=calibration;
+            // Work on the frame copy; the tracked/network poses remain untouched.
+            if(fit!=null)
+            {
+                frame.left.position+=frame.left.rotation*fit.leftPosition*scale;
+                frame.left.rotation*=Quaternion.Euler(fit.leftRotation);
+                frame.right.position+=frame.right.rotation*fit.rightPosition*scale;
+                frame.right.rotation*=Quaternion.Euler(fit.rightRotation);
+            }
             Vector3 forward=Vector3.ProjectOnPlane(frame.headRotation*Vector3.forward,Vector3.up).normalized;
             if(forward.sqrMagnitude<.01f)forward=transform.forward;
-            transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));transform.localScale=Vector3.one*scale;
+            transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
+            transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
             float headY=transform.InverseTransformPoint(frame.head).y;
-            float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f);
-            bones[0].localPosition=Vector3.zero;bones[0].localRotation=Quaternion.identity;bones[0].localScale=new Vector3(1,crouch,1);
-            bones[1].SetPositionAndRotation(frame.head-frame.headRotation*(Vector3.up*.11f+Vector3.forward*.16f)*scale,frame.headRotation);
-            bones[1].localScale=Vector3.one;
+            float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
+            float width=fit?.shoulderWidth??1f;
+            Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
+            bones[0].localPosition=torsoOffset;bones[0].localRotation=Quaternion.identity;bones[0].localScale=new Vector3(width,crouch,1);
+            bones[1].SetPositionAndRotation(frame.head+frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))*scale,frame.headRotation);
+            bones[1].localScale=Vector3.one*(fit?.headSize??1f);
             if(deltaTime>0){locomotionSpeed=Vector3.ProjectOnPlane(frame.feet-previousFeet,Vector3.up).magnitude/deltaTime;previousFeet=frame.feet;walkPhase+=Mathf.Min(locomotionSpeed,6)*deltaTime*6;}
             float speed=locomotionSpeed;
             float stride=grounded?Mathf.Clamp01(speed/2)*.13f:0;
             for(int side=0;side<2;side++)
             {
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
-                Vector3 hip=transform.TransformPoint(new Vector3(sign*.105f,.67f*crouch,0));
+                Vector3 hip=transform.TransformPoint(torsoOffset+new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
                 if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
                 int thigh=side==0?8:11;
@@ -66,7 +79,7 @@ namespace DeadlyJenga.CandyPlayers
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
                 bones[thigh+2].SetPositionAndRotation(foot,transform.rotation);bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
-                Vector3 shoulder=transform.TransformPoint(new Vector3(sign*.21f,1.255f*crouch,0));
+                Vector3 shoulder=transform.TransformPoint(torsoOffset+new Vector3(sign*.21f*width,1.255f*crouch,0));
                 Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,-transform.forward*.65f+Vector3.down*.8f+transform.right*sign*.3f);
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,hand.position);

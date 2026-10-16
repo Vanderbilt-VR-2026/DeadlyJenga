@@ -1,5 +1,6 @@
 using UnityEngine;
 using Unity.XR.CoreUtils;
+using UnityEngine.XR.Interaction.Toolkit.Interactors;
 using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.CandyPlayers
@@ -16,6 +17,8 @@ namespace DeadlyJenga.CandyPlayers
         public CandyAvatarFrame LastFrame{get;private set;}
         public bool remoteDriven;
         public int ColorIndex{get;private set;}
+        NearFarInteractor[] nearRays;
+        XRRayInteractor[] farRays;
         bool overridePose,wasVaulting;
         CandyAvatarFrame overridden;
         CandyHandPose vaultStartLeft,vaultStartRight;
@@ -36,6 +39,8 @@ namespace DeadlyJenga.CandyPlayers
             {
                 tracking=GetComponent<CandyTrackingSource>();if(!tracking)tracking=gameObject.AddComponent<CandyTrackingSource>();
                 tracking.trackingOrigin=trackingOrigin;tracking.style=Rig.style;
+                nearRays=GetComponentsInChildren<NearFarInteractor>(true);
+                farRays=GetComponentsInChildren<XRRayInteractor>(true);
             }
         }
         void OnEnable(){Application.onBeforeRender+=BeforeRender;}
@@ -55,9 +60,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!viewCamera){frame.head=frame.feet+Vector3.up*(1.6f*scale);frame.headRotation=transform.rotation;}
             // Room-scale body placement follows the head's horizontal location; locomotion feet supply height.
             frame.feet=new Vector3(frame.head.x,transform.position.y,frame.head.z);
-            Vector3 facing=Vector3.ProjectOnPlane(transform.forward,Vector3.up).normalized;
-            // Eyes sit ahead of the neck. Keep the chest behind the eye position when looking down.
-            frame.feet-=facing*((survivor&&survivor.Climbing?.05f:.24f)*scale);
+            // Keep the torso directly beneath the tracked head, including room-scale steps.
             bool vr=survivor?survivor.IsVR:tracking&&tracking.HasTrackedHands;
             var left=vr&&tracking?tracking.WorldHand(true):default;
             var right=vr&&tracking?tracking.WorldHand(false):default;
@@ -67,13 +70,35 @@ namespace DeadlyJenga.CandyPlayers
                 return new CandyHandPose{position=frame.head+frame.headRotation*(new Vector3(sign*.23f,-.20f,.40f)*scale),rotation=frame.headRotation*Quaternion.Euler(8,sign*-8,0),skeleton=CandyHandSkeleton.Rest(isLeft,.12f)};
             }
             frame.left=left.tracked?left:Rest(true);frame.right=right.tracked?right:Rest(false);
+            PointOnHover(ref frame.left, true);
+            PointOnHover(ref frame.right, false);
             return frame;
+        }
+        void PointOnHover(ref CandyHandPose hand, bool isLeft)
+        {
+            if(!tracking || !hand.tracked || hand.skeletonTracked)return;
+            var controller=isLeft?tracking.leftController:tracking.rightController;
+            if(!controller)return;
+            bool hovering=false;
+            foreach(var ray in nearRays)
+                if(ray && ray.isActiveAndEnabled && ray.transform.IsChildOf(controller) &&
+                    (ray.TryGetCurrentUIRaycastResult(out _) || ray.hasHover))hovering=true;
+            foreach(var ray in farRays)
+                if(ray && ray.isActiveAndEnabled && ray.transform.IsChildOf(controller) &&
+                    (ray.TryGetCurrentUIRaycastResult(out _) || ray.hasHover))hovering=true;
+            if(!hovering)return;
+            var pointing=CandyHandSkeleton.Rest(isLeft,.85f);
+            var open=CandyHandSkeleton.Rest(isLeft);
+            for(int joint=0;joint<4;joint++)pointing.SetJoint(4+joint,open.Joint(4+joint));
+            hand.skeleton=pointing;
+            hand.skeletonTracked=true; // Preserve the explicit pose through rig/network presentation.
         }
         void Present(float dt)
         {
             if(!Rig)return;
+            Rig.calibration=!remoteDriven&&(!survivor||!survivor.externallyDriven)?CandyAvatarCalibration.Current:null;
             var frame=ReadFrame();
-            bool climbing=survivor&&survivor.Climbing;
+            bool climbing=survivor&&!survivor.IsVR&&survivor.Climbing;
             if(climbing)
             {
                 if(!wasClimbing){climbStartLeft=frame.left;climbStartRight=frame.right;}
@@ -94,7 +119,7 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right.position=Vector3.Lerp(climbLastRight.position,frame.right.position,t);frame.right.rotation=Quaternion.Slerp(climbLastRight.rotation,frame.right.rotation,t);
             }
             wasClimbing=climbing;
-            bool vaulting=survivor&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;
+            bool vaulting=survivor&&!survivor.IsVR&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;
             if(vaulting)
             {
                 if(!wasVaulting){vaultStartLeft=frame.left;vaultStartRight=frame.right;}

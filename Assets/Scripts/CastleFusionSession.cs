@@ -21,18 +21,26 @@ namespace DeadlyJenga.CastlePrototype
         CastleLanSession castle;
         CastlePlaySession session;
         int sequence, waitingPose;
-        bool welcomed, closing;
+        bool welcomed, closing, leavingIntentionally;
         float nextSend, lastWorld;
 
         public void Initialize(NetworkRunner networkRunner, CastlePlaySession owner, CastleLanSession state)
         {
             runner = networkRunner; session = owner; castle = state;
+            // Fusion disables Unity's automatic physics when this component starts.
+            // The castle's flight motor and contact hands still require 3D simulation.
+            var physics = runner.GetComponent<Fusion.Addons.Physics.RunnerSimulatePhysics>();
+            if (physics) physics.Update3DPhysicsScene = true;
             castle.InitializeFusion(owner, runner.LocalPlayer.ToString(), !runner.IsServer);
             callbacks = new NetworkDelegates();
             callbacks.OnReliableDataReceived = Receive;
             callbacks.OnPlayerLeft = (_, player) => RemovePlayer(player);
             callbacks.OnPlayerJoined = (_, player) => UpdatePopulation();
-            callbacks.OnShutdown = (_, reason) => ReturnToLobby();
+            callbacks.OnShutdown = (_, reason) => {
+                if (!leavingIntentionally && !FusionBootstrap.LeavingIntentionally && !FusionBootstrap.ConnectionError)
+                    FusionBootstrap.SetConnectionMessage(FusionBootstrap.DescribeFailure(reason), true);
+                ReturnToLobby();
+            };
             runner.AddCallbacks(callbacks);
             lastWorld = Time.unscaledTime;
             UpdatePopulation();
@@ -94,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 Debug.LogError("Castle synchronization rejected a message: " + error.Message, this);
                 if (runner.IsServer) runner.Disconnect(player);
-                else Leave();
+                else Fail("Game synchronization failed. Make sure everyone has the same build, then rejoin.");
             }
         }
 
@@ -130,7 +138,7 @@ namespace DeadlyJenga.CastlePrototype
                     waitingPose = ++sequence;
                     Send(default, Pose, castle.FusionCapturePlayer(), waitingPose);
                 }
-                if (now - lastWorld > (welcomed ? 20 : 60)) Leave();
+                if (now - lastWorld > (welcomed ? 20 : 60)) Fail("The host stopped responding. Check your connection and rejoin the room.");
             }
         }
 
@@ -148,6 +156,15 @@ namespace DeadlyJenga.CastlePrototype
         public void Leave()
         {
             if (closing) return;
+            leavingIntentionally = true;
+            FusionBootstrap.MarkIntentionalLeave();
+            runner.Shutdown();
+        }
+
+        void Fail(string message)
+        {
+            if (closing) return;
+            FusionBootstrap.SetConnectionMessage(message, true);
             runner.Shutdown();
         }
 

@@ -1,4 +1,5 @@
 using Fusion;
+using DeadlyJenga.CastlePrototype;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
@@ -32,7 +33,31 @@ public class LobbyCountdown : NetworkBehaviour
     [Networked] public NetworkBool Finished { get; set; }
     public bool IsReady { get; private set; }
 
-    public override void Spawned() => IsReady = true;
+    [Networked] public LobbySettings Settings { get; set; }
+    [Networked] public int SelectedPage { get; set; }
+    [Networked] public Vector3 ScreenPosition { get; set; }
+    [Networked] public Quaternion ScreenRotation { get; set; }
+
+    public override void Spawned()
+    {
+        IsReady = true;
+        if (Object.HasStateAuthority) CaptureScreen();
+    }
+
+    void CaptureScreen()
+    {
+        Settings = LobbySettings.Capture();
+        var screen = FindFirstObjectByType<LobbyMatchSetup>();
+        if (!screen) return;
+        SelectedPage = screen.Page;
+        ScreenPosition = screen.transform.position;
+        ScreenRotation = screen.transform.rotation;
+    }
+
+    public override void Render()
+    {
+        if (!Object.HasStateAuthority) Settings.Apply();
+    }
 
     public override void Despawned(NetworkRunner runner, bool hasState)
     {
@@ -80,6 +105,7 @@ public class LobbyCountdown : NetworkBehaviour
 
     public override void FixedUpdateNetwork()
     {
+        if (Object.HasStateAuthority) CaptureScreen();
         if (!Runner.IsServer || !Object.HasStateAuthority || Finished || !Countdown.Expired(Runner))
             return;
 
@@ -93,5 +119,33 @@ public class LobbyCountdown : NetworkBehaviour
         if (spawner != null)
             spawner.PrepareForSceneChange();
         Runner.LoadScene(SceneRef.FromIndex(sceneIndex), LoadSceneMode.Single);
+    }
+}
+
+// Only shared match rules travel over Fusion. Comfort and volume stay device-local.
+public struct LobbySettings : INetworkStruct
+{
+    public int Population, Hands, SurvivorPreset, HandPreset, DrainCurve, RecoveryCurve;
+    public float Capacity, Drain, Recovery, Delay, DrainDegree, RecoveryDegree;
+
+    public static LobbySettings Capture() => new LobbySettings
+    {
+        Population = MatchSetup.BotTarget, Hands = MatchSetup.HandCount,
+        SurvivorPreset = MatchSetup.SurvivorPreset, HandPreset = MatchSetup.HandPreset,
+        Capacity = MatchSetup.GripSeconds, Drain = MatchSetup.DrainRate,
+        Recovery = MatchSetup.RecoveryRate, Delay = MatchSetup.RecoveryDelay,
+        DrainDegree = MatchSetup.DrainDegree, RecoveryDegree = MatchSetup.RecoveryDegree,
+        DrainCurve = (int)MatchSetup.DrainCurve, RecoveryCurve = (int)MatchSetup.RecoveryCurve
+    };
+    public void Apply()
+    {
+        MatchSetup.FromLobby = true;
+        MatchSetup.BotTarget = Population; MatchSetup.HandCount = Hands;
+        MatchSetup.SurvivorPreset = SurvivorPreset; MatchSetup.HandPreset = HandPreset;
+        MatchSetup.GripSeconds = Capacity; MatchSetup.DrainRate = Drain;
+        MatchSetup.RecoveryRate = Recovery; MatchSetup.RecoveryDelay = Delay;
+        MatchSetup.DrainDegree = DrainDegree; MatchSetup.RecoveryDegree = RecoveryDegree;
+        MatchSetup.DrainCurve = (StaminaCurve)DrainCurve;
+        MatchSetup.RecoveryCurve = (StaminaCurve)RecoveryCurve;
     }
 }

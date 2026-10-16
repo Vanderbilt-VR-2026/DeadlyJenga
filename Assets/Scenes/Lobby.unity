@@ -319,7 +319,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.RunnerSimulatePhysics
   Update2DPhysicsScene: 0
-  Update3DPhysicsScene: 0
+  Update3DPhysicsScene: 1
   _timeScale: 1
 --- !u!1 &203541298
 GameObject:
@@ -2971,6 +2971,9 @@ MonoBehaviour:
   destinationScenePath: Assets/Scenes/Game.unity
   _Finished:
     RawValue: 0
+  _SelectedPage: 0
+  _ScreenPosition: {x: 0, y: 0, z: 0}
+  _ScreenRotation: {x: 0, y: 0, z: 0, w: 0}
 --- !u!1 &1275364555
 GameObject:
   m_ObjectHideFlags: 0
@@ -4088,7 +4091,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2030279774
 RectTransform:
   m_ObjectHideFlags: 0
