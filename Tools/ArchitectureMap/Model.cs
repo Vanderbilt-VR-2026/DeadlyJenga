@@ -5,7 +5,7 @@ using System.Text.Json;
 namespace ArchitectureMap;
 
 public record Node(string Id, string Label, string Kind, string Path = "", int Line = 0, string? Parent = null, string Group = "Unassigned / Review", string Status = "verified");
-public record Edge(string Source, string Target, string Kind, string Path, int Line, string Evidence, string Method, string Status = "verified");
+public record Edge(string Source, string Target, string Kind, string Path, int Line, string Evidence, string Method, string Status = "verified", int Column = 0);
 public record Issue(string Code, string Message, string? Source = null, string? Target = null, string Severity = "warning", Edge? Evidence = null);
 public record Graph(List<Node> Nodes, List<Edge> Edges, List<Issue> Issues)
 {

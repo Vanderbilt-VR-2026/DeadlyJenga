@@ -1,5 +1,5 @@
 // Local ELK 0.12.0 adapter. The renderer consumes these paths without rerouting.
-export const edgeKey = e => JSON.stringify([e.a,e.b,e.e.kind]);
+export const edgeKey = e => JSON.stringify([e.a,e.b,e.e.kind,e.e.diffBranch??null,e.e.change??null]);
 export function layoutSignature(nodes, links, mode, labels) {
   return JSON.stringify([mode,labels,nodes.map(n=>[n.id,n.width,n.height]).sort(),links.map(e=>[edgeKey(e),e.count]).sort()]);
 }
@@ -8,7 +8,7 @@ export function makeElkGraph(nodes, links, mode, labels=false) {
   const by=new Map(children.map(n=>[n.id,n]));
   const edges=links.map((e,i)=>{const source='port-source-'+i,target='port-target-'+i;
     by.get(e.a).ports.push({id:source,width:0,height:0});by.get(e.b).ports.push({id:target,width:0,height:0});
-    const text=e.e.kind+(e.count>1?' ×'+e.count:'');
+    const text=(e.e.change?'B'+(e.e.diffBranch+1)+' '+(e.e.change==='added'?'+':'−')+' ':'')+e.e.kind+(e.count>1?' ×'+e.count:'');
     return {id:'edge-'+i,sources:[source],targets:[target],labels:labels?[{text,width:text.length*6.2,height:15}]:[]};
   });
   return {id:'elk-root',layoutOptions:{'elk.algorithm':'layered','elk.direction':mode==='elk-tree'?'DOWN':'RIGHT','elk.edgeRouting':'ORTHOGONAL','elk.spacing.nodeNode':'40','elk.layered.spacing.nodeNodeBetweenLayers':'90','elk.spacing.edgeNode':'18','elk.spacing.edgeEdge':'12','elk.layered.spacing.edgeEdgeBetweenLayers':'14','elk.padding':'[top=24,left=24,bottom=24,right=24]','elk.randomSeed':'1','elk.layered.considerModelOrder.strategy':'NODES_AND_EDGES','elk.layered.mergeEdges':'false'},children,edges};

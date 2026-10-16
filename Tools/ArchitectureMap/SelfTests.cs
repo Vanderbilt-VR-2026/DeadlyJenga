@@ -15,6 +15,32 @@ public static class SelfTests
         string Normal(Graph g) => JsonSerializer.Serialize(new { g.Nodes, g.Edges }, Data.Json);
         try
         {
+            Test("Historical relationship comparison ignores comments and detects added and removed calls", () =>
+            {
+                var fixture = Path.Combine(root, "RelationshipHistory"); Directory.CreateDirectory(Path.Combine(fixture, "Assets"));
+                var git = new GitService(fixture);
+                void G(params string[] args) { var r = git.Run(args); Assert(r.Code == 0, r.Text); }
+                G("init"); G("config", "user.email", "test@example.invalid"); G("config", "user.name", "Architecture test");
+                var file = Path.Combine(fixture,"Assets/Test.cs");
+                File.WriteAllText(file,"public class A { public void Run() { B.Go(); } } public static class B { public static void Go() {} } public static class C { public static void Go() {} }");
+                File.WriteAllText(file+".meta","guid: abcdefabcdefabcdefabcdefabcdefab");
+                G("add","."); G("commit","-m","base"); var baseline=git.Resolve("HEAD");
+                File.WriteAllText(file,"// comment only\n\n"+File.ReadAllText(file)); G("add",".");G("commit","-m","comments");
+                var service=new RelationshipCompare(fixture);
+                using var cancelled=new CancellationTokenSource();cancelled.Cancel();
+                Assert(service.Compare("HEAD",baseline,cancelled.Token).GetAwaiter().GetResult().Error!=null,"Cancellation was ignored");
+                var same=service.Compare("HEAD","HEAD").GetAwaiter().GetResult();Assert(same.Error==null&&same.Relationships.Count==0&&same.Warnings.Any(w=>w.Contains("no relationship scan needed")),"Identical revision was scanned");
+                var comments=service.Compare("HEAD",baseline).GetAwaiter().GetResult();
+                Assert(comments.Error==null,comments.Error??"");Assert(comments.Relationships.Count==0,"Comments became relationships");
+                File.WriteAllText(file,File.ReadAllText(file).Replace("B.Go();","C.Go(); C.Go();"));G("add",".");G("commit","-m","calls");
+                var result=service.Compare("HEAD",baseline).GetAwaiter().GetResult();Assert(result.Error==null,result.Error??"");
+                Assert(result.Relationships.Any(d=>d.Edge.Kind=="calls"&&d.Change=="removed"&&d.Count==1));
+                Assert(result.Relationships.Any(d=>d.Edge.Kind=="calls"&&d.Change=="added"&&d.Count==2));
+                var originalHead=git.Resolve("HEAD");File.Delete(file);G("add",".");G("commit","-m","delete source");
+                var deleted=service.Compare("HEAD",originalHead).GetAwaiter().GetResult();Assert(deleted.Relationships.Any(d=>d.Change=="removed"));Assert(deleted.Nodes.Count>0,"Removed endpoints disappeared");
+                Assert(git.Status().Changes.Count==0,"Comparison changed checkout");
+                Assert(service.Compare("missing-branch",baseline).GetAwaiter().GetResult().Error!=null);
+            });
             Script("A.cs", "public interface I { void Run(); } public class A : I { public event System.Action E; public virtual void Run() { B.Go(); E += B.Go; } } public static class B { public static void Go() {} }", new string('a', 32));
             Test("Roslyn calls, inheritance and event subscriptions", () => { var g = new Discovery(root).Scan(); Assert(g.Edges.Any(e => e.Kind == "calls")); Assert(g.Edges.Any(e => e.Kind == "inherits")); Assert(g.Edges.Any(e => e.Kind == "subscribes")); Assert(g.Edges.Where(e => e.Method == "Roslyn semantic").All(e => e.Status == "inferred")); });
             Test("Verified semantic context binds overloads, construction and field types", () =>

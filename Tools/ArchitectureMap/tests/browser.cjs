@@ -18,7 +18,7 @@ async function main(){
  try{
   await page.goto(base);await page.waitForSelector('.node');
   ok(await page.locator('.node').count()>0,'Dashboard loads real graph');
-  await page.getByRole('button',{name:'Unity structure',exact:true}).click();ok(await page.locator('#heading').textContent()==='Unity structure','View switching');
+  await page.getByRole('button',{name:'File structure',exact:true}).click();ok(await page.locator('#heading').textContent()==='File structure','View switching');
   await page.getByRole('button',{name:'Code relationships',exact:true}).click();
   await page.locator('.node').first().dblclick();ok((await page.locator('#crumb').textContent())!=='Project','Hierarchy drill down');
   await page.locator('#search').fill('CastleLanTransport');await page.waitForTimeout(200);ok(await page.locator('.node').count()>0,'Search finds repository symbols');
@@ -27,7 +27,7 @@ async function main(){
   await page.getByLabel('Notes',{exact:true}).fill('<script>window.INJECTED=true</script>');await page.getByLabel('Notes',{exact:true}).blur();await page.waitForTimeout(300);ok(!(await page.evaluate(()=>window.INJECTED)),'Notes displayed as text');
   const before=await page.locator('.node').first().getAttribute('transform');let box=await page.locator('.node').first().boundingBox();await page.mouse.move(box.x+50,box.y+30);await page.mouse.down();await page.mouse.move(box.x+150,box.y+110,{steps:8});await page.mouse.up();ok(await page.locator('.node').first().getAttribute('transform')!==before,'Dragging changes layout');
   await page.locator('#undo').click();ok(await page.locator('.node').first().getAttribute('transform')===before,'Visual undo restores position');
-  page.once('dialog',d=>d.accept('Browser test module'));await page.getByRole('button',{name:'Create visual module from selection',exact:true}).click();ok(await page.locator('#heading').textContent()==='Custom architecture','Custom module uses presentation view');await page.locator('#back').click();await page.locator('#search').fill('Browser test module');await page.locator('.node').first().click();await page.getByRole('button',{name:'Dissolve visual module',exact:true}).click();await page.locator('#search').fill('');
+  ok(await page.getByRole('button',{name:'Custom architecture',exact:true}).count()===0,'Editing remains in the primary views');
   await page.locator('#settings').click();await page.getByLabel('Theme',{exact:true}).selectOption('light');ok(await page.locator('body').evaluate(e=>e.classList.contains('light')),'Light theme');
   await page.getByLabel('Connections',{exact:true}).selectOption('orthogonal');await page.locator('#close').click();ok(await page.locator('#inspector').isHidden(),'Inspector collapses');
   await page.locator('#search').fill('');await page.keyboard.press('Escape');await page.keyboard.press('/');ok(await page.locator('#search').evaluate(e=>e===document.activeElement),'Keyboard search shortcut');
