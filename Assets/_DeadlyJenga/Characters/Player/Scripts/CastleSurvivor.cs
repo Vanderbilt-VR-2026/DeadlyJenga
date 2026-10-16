@@ -63,8 +63,8 @@ namespace DeadlyJenga.CastlePrototype
             turn = new InputAction("Snap turn", InputActionType.Value, "<XRController>{RightHand}/primary2DAxis");
             jump = new InputAction("Jump or vault", InputActionType.Button, "<XRController>{RightHand}/primaryButton");
         }
-        void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; }
-        void OnDisable() { move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false); }
+        void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this); }
+        void OnDisable() { move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()

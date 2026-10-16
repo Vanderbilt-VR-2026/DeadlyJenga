@@ -179,7 +179,7 @@ namespace DeadlyJenga.CastleBots
         public static void Nearby(CastleBotBrain bot,List<CastleBotLanding> candidates)
         {
             candidates.Clear();var motor=bot.Motor;var feet=motor.transform.position;
-            foreach(var rb in bot.Population.Session.generator.Bodies)
+            foreach(var rb in bot.Population.Session.world.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.93f)continue;
                 if(Mathf.Abs(rb.position.y-feet.y)>6||Vector3.ProjectOnPlane(rb.position-feet,Vector3.up).sqrMagnitude>81)continue;

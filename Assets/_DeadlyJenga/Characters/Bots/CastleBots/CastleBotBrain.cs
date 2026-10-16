@@ -86,7 +86,7 @@ namespace DeadlyJenga.CastleBots
                 {if(Population.Place(this))Spawned(true);else respawnAt=Time.time+1;}
                 return;
             }
-            if(transform.position.y<Population.deathHeight||Vector3.Distance(transform.position,Population.Session.generator.transform.position)>200)
+            if(transform.position.y<Population.deathHeight||Vector3.Distance(transform.position,Population.Session.world.Center)>200)
             {
                 Respawning=true;Intent="Knocked out — respawning";Motor.InputSuspended=true;Motor.Capsule.enabled=false;
                 if(avatar&&avatar.Rig)avatar.Rig.gameObject.SetActive(false);

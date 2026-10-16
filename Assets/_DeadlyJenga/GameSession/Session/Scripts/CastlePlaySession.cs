@@ -50,7 +50,7 @@ namespace DeadlyJenga.CastlePrototype
             SetRole(false); SetMenu(false);
             Bots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleBotPopulation>();
             HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();
-            var botWorld=new DeadlyJenga.CastleBots.BotWorld{generator=generator,Player=Player,Hand=Hand,survivorPrefab=survivorPrefab,handPrefab=handPrefab,Bots=Bots,HandBots=HandBots,isPlayingHand=()=>PlayingHand};
+            var botWorld=new DeadlyJenga.CastleBots.BotWorld{Player=Player,Hand=Hand,survivorPrefab=survivorPrefab,handPrefab=handPrefab,Bots=Bots,HandBots=HandBots,isPlayingHand=()=>PlayingHand};
             Bots.Initialize(botWorld);HandBots.Initialize(botWorld);
             var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)

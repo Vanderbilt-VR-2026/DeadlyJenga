@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     // How the survivor responds to the shared abilities in Core.
     // Teleport(position, rotation) already exists in CastleSurvivor.cs.
-    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable
+    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState
     {
         [Header("Health")]
         public float maxHealth = 100;
@@ -62,6 +62,14 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public bool Has(EffectType type) => type && effectsEndAt.ContainsKey(type);
+
+        // IMovementState (Grounded, Climbing, Vaulting, VerticalSpeed, VaultCount already exist)
+        public float Stamina => GripRemaining;
+        public float Height => StandingHeight;
+        public float Scale => playerScale;
+        public bool IsLocal => !externallyDriven && viewCamera && viewCamera.isActiveAndEnabled;
+        public bool InputPaused => InputSuspended;
+        public bool TryGetGrip(bool left, out Pose grip) => TryGetClimbGrip(left, out grip);
 
         void LateUpdate()
         {

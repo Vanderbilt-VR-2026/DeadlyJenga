@@ -1,6 +1,7 @@
 using System;
 using UnityEngine;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
@@ -43,7 +44,7 @@ namespace DeadlyJenga.CastleBots
         {
             if(!CanPose()||active||frequency<=0||(!ignoreCooldown&&Time.time<nextAllowed)||IdleOnly(emote)&&speed>.45f)return false;
             current=emote;began=Time.time;duration=emote==Emote.FriendlyWave?1.5f:emote==Emote.NopeNopeNope?1.1f:Range(1.6f,2.4f);
-            active=true;EmotesPlayed++;nextAllowed=Time.time+duration+Mathf.Max(2,minimumCooldown)*Range(.85f,1.5f)/Mathf.Max(.25f,frequency);
+            active=true;EmotesPlayed++;GameEvents.RaiseEmoted(gameObject,current.ToString());nextAllowed=Time.time+duration+Mathf.Max(2,minimumCooldown)*Range(.85f,1.5f)/Mathf.Max(.25f,frequency);
             return true;
         }
         void Attempt(Emote emote,string reason)

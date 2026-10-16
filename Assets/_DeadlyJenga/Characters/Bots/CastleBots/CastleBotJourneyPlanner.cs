@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
@@ -10,7 +11,7 @@ namespace DeadlyJenga.CastleBots
     {
         sealed class Snapshot
         {
-            public CastleGenerator generator;
+            public IWorldQuery generator;
             public Rigidbody first;
             public float at,minY=float.PositiveInfinity,maxY=float.NegativeInfinity;
             public readonly List<CastleBotLanding> nodes=new List<CastleBotLanding>();
@@ -18,12 +19,12 @@ namespace DeadlyJenga.CastleBots
         }
         static Snapshot shared;
         static Vector3Int Cell(Vector3 p)=>new Vector3Int(Mathf.FloorToInt(p.x/3),Mathf.FloorToInt(p.y/3),Mathf.FloorToInt(p.z/3));
-        static Snapshot Geometry(CastleGenerator generator)
+        static Snapshot Geometry(IWorldQuery generator)
         {
-            var first=generator.Bodies.Count>0?generator.Bodies[0]:null;
+            var first=generator.Blocks.Count>0?generator.Blocks[0]:null;
             if(shared!=null&&shared.generator==generator&&shared.first==first&&Time.time-shared.at<1)return shared;
             var graph=new Snapshot{generator=generator,first=first,at=Time.time};
-            foreach(var rb in generator.Bodies)
+            foreach(var rb in generator.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.93f||rb.linearVelocity.magnitude>1.2f)continue;
                 var box=rb.GetComponent<BoxCollider>();if(!box)continue;
@@ -41,7 +42,7 @@ namespace DeadlyJenga.CastleBots
         }
         public static Vector3 ChooseDestination(CastleBotBrain bot,int trip)
         {
-            var graph=Geometry(bot.Population.Session.generator);var p=bot.Personality;var feet=bot.transform.position;
+            var graph=Geometry(bot.Population.Session.world);var p=bot.Personality;var feet=bot.transform.position;
             float fraction=Mathf.Repeat(bot.Seed*.173f+trip*.618034f,1);
             float targetY=Mathf.Lerp(feet.y,Mathf.Lerp(graph.minY,graph.maxY,fraction),p.verticalVariety);
             Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
@@ -76,7 +77,7 @@ namespace DeadlyJenga.CastleBots
         public readonly List<CastleBotLanding> Result=new List<CastleBotLanding>();
         public CastleBotJourneyPlanner(CastleBotBrain bot,Vector3 destination)
         {
-            this.bot=bot;this.destination=destination;start=bot.transform.position;graph=Geometry(bot.Population.Session.generator);
+            this.bot=bot;this.destination=destination;start=bot.transform.position;graph=Geometry(bot.Population.Session.world);
             bestDistance=Heuristic(start);discovered[-1]=new SearchNode{parent=-1};open.Add(-1);
         }
         float Heuristic(Vector3 p)

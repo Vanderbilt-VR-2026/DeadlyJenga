@@ -42,11 +42,11 @@ namespace DeadlyJenga.CastleBots
             float best=float.NegativeInfinity;Rigidbody choice=null;var session=Population.Session;
             float survivorHeight=session.Player.gameObject.activeInHierarchy?session.Player.transform.position.y:float.NegativeInfinity;
             foreach(var bot in session.Bots.Bots)if(bot&&!bot.Respawning)survivorHeight=Mathf.Max(survivorHeight,bot.transform.position.y);
-            if(float.IsNegativeInfinity(survivorHeight))survivorHeight=session.generator.transform.position.y+session.generator.settings.keepCourses*session.generator.settings.blockSize.y;
-            foreach(var rb in session.generator.Bodies)
+            if(float.IsNegativeInfinity(survivorHeight))survivorHeight=session.world.TopHeight;
+            foreach(var rb in session.world.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy||rb.linearVelocity.magnitude>3||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.8f)continue;
-                var radial=Vector3.ProjectOnPlane(rb.position-session.generator.transform.position,Vector3.up);
+                var radial=Vector3.ProjectOnPlane(rb.position-session.world.Center,Vector3.up);
                 float score=-Mathf.Abs(rb.position.y-(survivorHeight-1.2f))*(.3f+Personality.targetSurvivors)-Vector3.Distance(rb.position,Actor.motor.transform.position)*.025f;
                 score+=radial.magnitude*.08f+Mathf.PerlinNoise(rb.position.x*.2f+seed,rb.position.y*.2f+Time.time*.02f)*Personality.goofiness;
                 if(radial.sqrMagnitude>.01f)score+=Vector3.Dot(radial.normalized,Quaternion.Euler(0,angle,0)*Vector3.forward)*1.5f;
@@ -63,7 +63,7 @@ namespace DeadlyJenga.CastleBots
             if(!Target||!Target.gameObject.activeInHierarchy||phase==Phase.Approach&&Time.time>=nextChoice)PickTarget();
             if(!Target){Intent="Waiting for a surviving castle";return;}
             foreach(var ability in abilities)if(ability.TryAct(this,Target,out flight,out pose)){Intent="Using hand ability";return;}
-            var center=Population.Session.generator.transform.position;
+            var center=Population.Session.world.Center;
             var radial=Vector3.ProjectOnPlane(Target.position-center,Vector3.up);
             if(radial.sqrMagnitude<1)radial=Quaternion.Euler(0,angle,0)*Vector3.forward;
             outward=radial.normalized;

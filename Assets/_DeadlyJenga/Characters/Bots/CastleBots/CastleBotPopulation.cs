@@ -58,7 +58,7 @@ namespace DeadlyJenga.CastleBots
         public bool Place(CastleBotBrain bot)
         {
             spawnSites.Clear();Physics.SyncTransforms();
-            foreach(var rb in Session.generator.Bodies)
+            foreach(var rb in Session.world.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.97f||rb.linearVelocity.magnitude>1)continue;
                 var box=rb.GetComponent<BoxCollider>();if(!box)continue;
@@ -79,7 +79,7 @@ namespace DeadlyJenga.CastleBots
                 bool occupied=count>=nearbySurvivors.Length;
                 for(int i=0;i<count;i++)if(nearbySurvivors[i]!=bot.Motor.Capsule)occupied=true;
                 if(occupied||bots.Any(b=>b&&b!=bot&&!b.Respawning&&Vector3.Distance(b.transform.position,p)<.7f))continue;
-                var direction=Vector3.ProjectOnPlane(Session.generator.transform.position-p,Vector3.up);
+                var direction=Vector3.ProjectOnPlane(Session.world.Center-p,Vector3.up);
                 bot.Motor.Teleport(p,direction.sqrMagnitude>.01f?Quaternion.LookRotation(direction):Quaternion.identity);return true;
             }
             return false;
@@ -103,7 +103,7 @@ namespace DeadlyJenga.CastleBots
             if(Time.time>=nextHazards)
             {
                 nextHazards=Time.time+.2f;hazards.Clear();
-                foreach(var rb in Session.generator.Bodies)if(rb&&rb.linearVelocity.y<-.8f)hazards.Add(rb.position+rb.linearVelocity*.35f);
+                foreach(var rb in Session.world.Blocks)if(rb&&rb.linearVelocity.y<-.8f)hazards.Add(rb.position+rb.linearVelocity*.35f);
             }
         }
         public float ThreatCost(Vector3 point)

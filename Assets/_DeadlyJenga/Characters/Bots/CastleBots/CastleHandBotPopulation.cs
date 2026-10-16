@@ -47,10 +47,10 @@ namespace DeadlyJenga.CastleBots
         }
         void Place(CastleHandBotBrain brain,int number)
         {
-            float y=Session.generator.transform.position.y+Session.generator.settings.keepCourses*Session.generator.settings.blockSize.y-2;
+            float y=Session.world.TopHeight-2;
             var outward=Quaternion.Euler(0,number*137.508f,0)*Vector3.forward;
-            float radius=CastleLayout.Footprint(Session.generator.settings)*.5f+8;
-            brain.Bridge.ResetExternalRig();brain.Actor.Place(Session.generator.transform.position+outward*radius+Vector3.up*(y-Session.generator.transform.position.y),Quaternion.LookRotation(-outward));brain.Restart();
+            float radius=Session.world.Radius+8;
+            brain.Bridge.ResetExternalRig();brain.Actor.Place(Session.world.Center+outward*radius+Vector3.up*(y-Session.world.Center.y),Quaternion.LookRotation(-outward));brain.Restart();
         }
         public void ClearHands()
         {
@@ -68,7 +68,7 @@ namespace DeadlyJenga.CastleBots
         void Update()
         {
             hands.RemoveAll(h=>!h);
-            for(int i=0;i<hands.Count;i++)if(hands[i].Actor.motor.transform.position.y<-10||Vector3.Distance(hands[i].Actor.motor.transform.position,Session.generator.transform.position)>180)Place(hands[i],i+1);
+            for(int i=0;i<hands.Count;i++)if(hands[i].Actor.motor.transform.position.y<-10||Vector3.Distance(hands[i].Actor.motor.transform.position,Session.world.Center)>180)Place(hands[i],i+1);
         }
         void OnDestroy()
         {

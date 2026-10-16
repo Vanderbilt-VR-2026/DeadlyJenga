@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace DeadlyJenga.Core.Testing
@@ -14,5 +15,12 @@ namespace DeadlyJenga.Core.Testing
         public float WaterHeight(Vector3 position) => waterHeight;
         public bool IsSheltered(Vector3 position) => Physics.Raycast(position, Vector3.up, 50, 1 << Layers.Block);
         public Vector3 SafeSpawnPoint() => spawnPoint;
+
+        public List<Rigidbody> blocks = new List<Rigidbody>();
+        public float topHeight = 10, radius = 10;
+        public IReadOnlyList<Rigidbody> Blocks => blocks;
+        public Vector3 Center => transform.position;
+        public float TopHeight => topHeight;
+        public float Radius => radius;
     }
 }

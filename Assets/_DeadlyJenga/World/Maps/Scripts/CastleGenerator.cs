@@ -33,6 +33,11 @@ namespace DeadlyJenga.CastlePrototype
         public bool IsSheltered(Vector3 position) =>
             Physics.Raycast(position + Vector3.up * .1f, Vector3.up, 500, 1 << Layers.Block, QueryTriggerInteraction.Ignore);
 
+        public IReadOnlyList<Rigidbody> Blocks => Bodies;
+        public Vector3 Center => transform.position;
+        public float TopHeight => transform.position.y + settings.keepCourses * settings.blockSize.y;
+        public float Radius => CastleLayout.Footprint(settings) * .5f;
+
         // Top of the highest upright block, or the foundation if none are left.
         public Vector3 SafeSpawnPoint()
         {

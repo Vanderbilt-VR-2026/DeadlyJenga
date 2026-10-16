@@ -14,6 +14,7 @@ namespace DeadlyJenga.Core
         public static event Action<GameObject, EffectType> EffectEnded;
         public static event Action<HazardType, Vector3> HazardStarted;        // hazard, position
         public static event Action<HazardType, Vector3> HazardEnded;
+        public static event Action<GameObject, string> Emoted;              // who, emote name
         public static event Action RoundStarted;
         public static event Action RoundEnded;
 
@@ -25,6 +26,7 @@ namespace DeadlyJenga.Core
         public static void RaiseEffectEnded(GameObject who, EffectType type) => EffectEnded?.Invoke(who, type);
         public static void RaiseHazardStarted(HazardType type, Vector3 position) => HazardStarted?.Invoke(type, position);
         public static void RaiseHazardEnded(HazardType type, Vector3 position) => HazardEnded?.Invoke(type, position);
+        public static void RaiseEmoted(GameObject who, string emote) => Emoted?.Invoke(who, emote);
         public static void RaiseRoundStarted() => RoundStarted?.Invoke();
         public static void RaiseRoundEnded() => RoundEnded?.Invoke();
 
@@ -33,7 +35,7 @@ namespace DeadlyJenga.Core
         {
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
-            RoundStarted = null; RoundEnded = null;
+            RoundStarted = null; RoundEnded = null; Emoted = null;
         }
     }
 }

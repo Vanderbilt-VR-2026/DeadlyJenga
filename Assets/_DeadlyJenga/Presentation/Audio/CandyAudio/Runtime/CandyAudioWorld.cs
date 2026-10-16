@@ -14,7 +14,7 @@ namespace DeadlyJenga.CandyAudio
         public float WaterHeight {get;private set;}=-.12f;
         public bool musicEnabled=true;
         CandyAudioBank ownedBank;
-        ISessionInfo session;CastleGenerator generator;CandyOceanSurface ocean;float scanAt,windAt,exposure=1,tension;
+        ISessionInfo session;CandyOceanSurface ocean;float scanAt,windAt,exposure=1,tension;
         readonly System.Collections.Generic.Dictionary<Vector3Int,float> leanCells=new System.Collections.Generic.Dictionary<Vector3Int,float>();
         readonly System.Collections.Generic.Dictionary<Vector3Int,float> splashCells=new System.Collections.Generic.Dictionary<Vector3Int,float>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]static void ResetStatics(){Instance=null;}
@@ -34,13 +34,13 @@ namespace DeadlyJenga.CandyAudio
             if(Time.time>=scanAt)
             {
                 scanAt=Time.time+.75f;
-                session=Services.Session;if(!generator)generator=FindFirstObjectByType<CastleGenerator>();
+                session=Services.Session;var map=Services.World;
                 if(!ocean)ocean=FindFirstObjectByType<CandyOceanSurface>();
                 if(ocean)WaterHeight=ocean.transform.position.y;
-                if(session==null||!generator)return;
-                foreach(var body in generator.Bodies)if(body&&!body.TryGetComponent<CandyBlockAudio>(out _))body.gameObject.AddComponent<CandyBlockAudio>();
-                foreach(var player in FindObjectsByType<CastleSurvivor>(FindObjectsSortMode.None))if(!player.TryGetComponent<CandyPlayerAudio>(out _))player.gameObject.AddComponent<CandyPlayerAudio>();
-                foreach(var hand in FindObjectsByType<CastleHandActor>(FindObjectsSortMode.None))if(!hand.TryGetComponent<CandyHandAudio>(out _))hand.gameObject.AddComponent<CandyHandAudio>();
+                if(session==null||map==null)return;
+                foreach(var body in map.Blocks)if(body&&!body.TryGetComponent<CandyBlockAudio>(out _))body.gameObject.AddComponent<CandyBlockAudio>();
+                for(int i=0;i<Tracked.Movers.Count;i++)if(Tracked.Movers[i] is Component mover&&mover&&!mover.TryGetComponent<CandyPlayerAudio>(out _))mover.gameObject.AddComponent<CandyPlayerAudio>();
+                for(int i=0;i<Tracked.Flyers.Count;i++)if(Tracked.Flyers[i] is Component flyer&&flyer&&!flyer.TryGetComponent<CandyHandAudio>(out _))flyer.gameObject.AddComponent<CandyHandAudio>();
                 if(leanCells.Count>128)leanCells.Clear();if(splashCells.Count>128)splashCells.Clear();
             }
             if(session==null||!engine.Listener)return;
