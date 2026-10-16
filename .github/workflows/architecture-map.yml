@@ -1,0 +1,51 @@
+name: Architecture Map
+on:
+  push:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  architecture:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # Tooling always comes from the trusted default branch. Analyzed PR content
+      # is data only: never run its builds, MSBuild imports, analyzers or scripts.
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          path: trusted
+          persist-credentials: false
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          path: project
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+      - name: Build trusted analyzer
+        run: |
+          dotnet restore trusted/Tools/ArchitectureMap/ArchitectureMap.csproj --configfile trusted/Tools/ArchitectureMap/NuGet.Config
+          dotnet build trusted/Tools/ArchitectureMap/ArchitectureMap.csproj --no-restore
+      - name: Analyzer regression checks
+        run: |
+          dotnet trusted/Tools/ArchitectureMap/bin/Debug/net10.0/ArchitectureMap.dll --test
+          node --check trusted/Tools/ArchitectureMap/web/app.js
+          node --test trusted/Tools/ArchitectureMap/tests/layout.test.mjs
+      - name: Analyze repository as data
+        env:
+          BASE_REF: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          dotnet trusted/Tools/ArchitectureMap/bin/Debug/net10.0/ArchitectureMap.dll --root project --export architecture-report --check --base "$BASE_REF"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: architecture-map
+          path: architecture-report/
+          retention-days: 14
+      - name: Report access
+        if: always()
+        run: echo 'Download the architecture-map artifact and serve its folder with any local static web server. No public deployment is performed.' >> "$GITHUB_STEP_SUMMARY"

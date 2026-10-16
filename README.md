@@ -1,5 +1,13 @@
 # DeadlyJenga
 
+## Architecture Map
+
+Double-click **Open Architecture Map.cmd** to explore the real project, inspect dependencies, and mark work as Editable, Protected, or Watch. Requires the free .NET 10 SDK; no AI service or subscription is used.
+
+[![Architecture overview](Tools/ArchitectureMap/preview.svg)](Tools/ArchitectureMap/README.md)
+
+[Quick guide and limitations](Tools/ArchitectureMap/README.md) · [GitHub architecture reports](https://github.com/Vanderbilt-VR-2026/DeadlyJenga/actions/workflows/architecture-map.yml). Reports become available after the tooling is merged into the default branch. Public hosting is opt-in.
+
 | Team Member | Major(s) | Skills / Interests | Responsibilities |
 |-------------|----------|--------------------|------------------|
 | Evan | Neuroscience & CS | Brain-Visual Symmetry / Cohesion | User Controls<br>Movement<br>Appearance |

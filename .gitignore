@@ -98,26 +98,3 @@ __MACOSX/
 # "Icon?" above also matches folders named "Icons" (like Assets/TutorialInfo/Icons).
 # This line keeps those folders in Git.
 !Icons/
-
-# ---- Extra: Deadly Jenga ----
-# Unity crash-recovery scenes
-/[Aa]ssets/_[Rr]ecovery/
-/[Aa]ssets/_[Rr]ecovery.meta
-
-# Merge leftovers (git mergetool and Unity Smart Merge)
-*.orig
-*.orig.meta
-*_BACKUP_*
-*_BASE_*
-*_LOCAL_*
-*_REMOTE_*
-
-# Android build side folders, wherever the build is saved
-*_BurstDebugInformation_DoNotShip/
-*_BackUpThisFolder_ButDontShipItWithYourGame/
-
-# Per-person AI agent settings (shared rules live in AGENTS.md / CLAUDE.md)
-.claude/settings.local.json
-CLAUDE.local.md
-.cursor/
-.codex/

@@ -1,0 +1,6 @@
+{
+  "name": "DeadlyJenga.ArchitectureMap.Editor",
+  "rootNamespace": "DeadlyJenga.ArchitectureMap.Editor",
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}

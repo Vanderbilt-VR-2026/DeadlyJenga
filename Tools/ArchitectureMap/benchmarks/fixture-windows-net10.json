@@ -1,0 +1,42 @@
+{
+  "measuredAt": "2026-10-16T03:03:54.1893652+00:00",
+  "runtime": "10.0.12",
+  "fixtures": [
+    {
+      "inputObjects": 100,
+      "nodes": 102,
+      "edges": 201,
+      "coldMs": 70.4689,
+      "warmMs": 2.4007,
+      "incrementalMs": 8.0695,
+      "fullMs": 6.093,
+      "search100Ms": 0.6476,
+      "incrementalEqualsFull": true,
+      "managedBytes": 3236392
+    },
+    {
+      "inputObjects": 1000,
+      "nodes": 1002,
+      "edges": 2001,
+      "coldMs": 24.8872,
+      "warmMs": 0.7631,
+      "incrementalMs": 17.982,
+      "fullMs": 17.0608,
+      "search100Ms": 2.7205,
+      "incrementalEqualsFull": true,
+      "managedBytes": 14720720
+    },
+    {
+      "inputObjects": 5000,
+      "nodes": 5002,
+      "edges": 10001,
+      "coldMs": 264.8989,
+      "warmMs": 0.7582,
+      "incrementalMs": 205.1197,
+      "fullMs": 183.4194,
+      "search100Ms": 22.3796,
+      "incrementalEqualsFull": true,
+      "managedBytes": 68989824
+    }
+  ]
+}
