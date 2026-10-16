@@ -57,6 +57,9 @@ ExportedObj/
 sysinfo.txt
 mono_crash.*
 
+# Unity scene recovery dumps. These are full scene copies and should not be committed.
+/[Aa]ssets/_Recovery/
+
 # Builds
 *.apk
 *.aab
