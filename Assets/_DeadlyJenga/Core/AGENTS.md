@@ -8,11 +8,12 @@ Core uses nothing. Namespace: DeadlyJenga.Core.
               IGrabbable, Climbables (find the IClimbable behind a collider).
 - Data/       EffectType and HazardType (ScriptableObject assets), Effect,
               IHazard, Layers.
-- Services/   Services (Session, World, Audio), ISessionInfo, IWorldQuery, ISyncedWorld,
+- Services/   Services (Session, World, Lobby), ISessionInfo, IWorldQuery, ISyncedWorld,
               IRebuildable, IMapFootprint.
 - State/      IMovementState, IFlyingState, IPlayerView, Tracked.
 - Session/    IPlayableCharacter, ISurvivorSettings, MatchRules, MatchOptions, bot contracts
-              (IBotPopulation, BotSystems), IMultiplayerControls, IAudioControls, ILocalPlayerInput.
+              (IBotPopulation, BotSystems), IMultiplayerControls, ILocalPlayerInput,
+              ILobbyControls, MatchChoices.
 - Network/    INetworkActor, INetworkActorView, NetworkActors, NetworkKinds, NetWire, INetworkPreview.
 - Events/     GameEvents.
 - Testing/    TestDummy, FakeWorldQuery, FakeSession (stand-ins for testing).
@@ -20,6 +21,7 @@ Core uses nothing. Namespace: DeadlyJenga.Core.
 
 ## Rules
 - Only interfaces, events, constants, plain data and test stand-ins. No gameplay.
+- No drawing methods in contracts (no Draw*, OnGUI). Expose values and commands instead.
 - Never reference any other box.
 - Only ADD. Never rename or change an existing member; other boxes depend on it.
 - Remove by marking [System.Obsolete] first, delete once nothing uses it.

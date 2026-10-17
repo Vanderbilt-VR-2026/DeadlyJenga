@@ -1,15 +1,17 @@
 using System;
 using System.Linq;
-using Fusion;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 using UnityEngine.XR.Interaction.Toolkit.UI;
-using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyAudio;
 
+// The lobby's match setup panel. Choices go to MatchChoices (Core); solo practice goes to Services.Lobby;
+// volume and sound go to CandyAudioControls (Presentation's own audio). Draws only; decides nothing about the match.
 public class LobbyMatchSetup : MonoBehaviour
 {
+    static float masterVolume = .8f, musicVolume = .22f;
+    static MatchRules Rules => MatchChoices.Rules;
     Transform content;
     string[] survivorNames, handNames;
     int page;
@@ -52,29 +54,29 @@ public class LobbyMatchSetup : MonoBehaviour
         {
             Label("Host / Join uses Fusion, including on the same Wi-Fi.", 210, 16);
             Button("Solo practice", 0, 160, StartSolo);
-            Button("Turn: " + MatchSetup.Turn, -140, 100, () => { MatchSetup.Turn = MatchOptions.Next(MatchOptions.Turns, MatchSetup.Turn); BuildPage(); }, 260);
-            Button("Move: " + MatchSetup.Movement, 140, 100, () => { MatchSetup.Movement = MatchOptions.Next(MatchOptions.Movements, MatchSetup.Movement); BuildPage(); }, 260);
-            Step("Population (host): " + MatchSetup.BotTarget, 35, () => MatchSetup.BotTarget = Mathf.Max(1, MatchSetup.BotTarget - 1), () => MatchSetup.BotTarget = Mathf.Min(20, MatchSetup.BotTarget + 1));
-            Step("AI hands (host): " + MatchSetup.HandCount, -30, () => MatchSetup.HandCount = Mathf.Max(0, MatchSetup.HandCount - 1), () => MatchSetup.HandCount = Mathf.Min(9, MatchSetup.HandCount + 1));
-            Button("Survivors: " + survivorNames[MatchSetup.SurvivorPreset % survivorNames.Length], 0, -100, () => { MatchSetup.SurvivorPreset = (MatchSetup.SurvivorPreset + 1) % survivorNames.Length; BuildPage(); }, 530);
-            Button("Hands: " + handNames[MatchSetup.HandPreset % handNames.Length], 0, -160, () => { MatchSetup.HandPreset = (MatchSetup.HandPreset + 1) % handNames.Length; BuildPage(); }, 530);
+            Button("Turn: " + Rules.turn, -140, 100, () => { Rules.turn = MatchOptions.Next(MatchOptions.Turns, Rules.turn); BuildPage(); }, 260);
+            Button("Move: " + Rules.movement, 140, 100, () => { Rules.movement = MatchOptions.Next(MatchOptions.Movements, Rules.movement); BuildPage(); }, 260);
+            Step("Population (host): " + MatchChoices.BotTarget, 35, () => MatchChoices.BotTarget = Mathf.Max(1, MatchChoices.BotTarget - 1), () => MatchChoices.BotTarget = Mathf.Min(20, MatchChoices.BotTarget + 1));
+            Step("AI hands (host): " + MatchChoices.HandCount, -30, () => MatchChoices.HandCount = Mathf.Max(0, MatchChoices.HandCount - 1), () => MatchChoices.HandCount = Mathf.Min(9, MatchChoices.HandCount + 1));
+            Button("Survivors: " + survivorNames[MatchChoices.SurvivorPreset % survivorNames.Length], 0, -100, () => { MatchChoices.SurvivorPreset = (MatchChoices.SurvivorPreset + 1) % survivorNames.Length; BuildPage(); }, 530);
+            Button("Hands: " + handNames[MatchChoices.HandPreset % handNames.Length], 0, -160, () => { MatchChoices.HandPreset = (MatchChoices.HandPreset + 1) % handNames.Length; BuildPage(); }, 530);
             Label("Population includes you, survivor bots and AI hands.\nAI hands use available population slots.", -235, 17);
         }
         else if (page == 1)
         {
-            Step("Grip capacity: " + MatchSetup.GripSeconds.ToString("0.0"), 205, () => MatchSetup.GripSeconds = Mathf.Max(.5f, MatchSetup.GripSeconds - .5f), () => MatchSetup.GripSeconds = Mathf.Min(20, MatchSetup.GripSeconds + .5f));
-            Step("Drain / sec: " + MatchSetup.DrainRate.ToString("0.00"), 145, () => MatchSetup.DrainRate = Mathf.Max(0, MatchSetup.DrainRate - .25f), () => MatchSetup.DrainRate = Mathf.Min(4, MatchSetup.DrainRate + .25f));
-            Step("Recovery / sec: " + MatchSetup.RecoveryRate.ToString("0.00"), 85, () => MatchSetup.RecoveryRate = Mathf.Max(0, MatchSetup.RecoveryRate - .05f), () => MatchSetup.RecoveryRate = Mathf.Min(2, MatchSetup.RecoveryRate + .05f));
-            Step("Recovery delay: " + MatchSetup.RecoveryDelay.ToString("0.00"), 25, () => MatchSetup.RecoveryDelay = Mathf.Max(0, MatchSetup.RecoveryDelay - .05f), () => MatchSetup.RecoveryDelay = Mathf.Min(5, MatchSetup.RecoveryDelay + .05f));
-            Button("Drain curve: " + MatchSetup.DrainCurve, 0, -40, () => { MatchSetup.DrainCurve = MatchOptions.Next(MatchOptions.Curves, MatchSetup.DrainCurve); BuildPage(); }, 530);
-            Step("Drain degree: " + MatchSetup.DrainDegree.ToString("0.0"), -100, () => MatchSetup.DrainDegree = Mathf.Max(1, MatchSetup.DrainDegree - .5f), () => MatchSetup.DrainDegree = Mathf.Min(6, MatchSetup.DrainDegree + .5f));
-            Button("Recovery curve: " + MatchSetup.RecoveryCurve, 0, -160, () => { MatchSetup.RecoveryCurve = MatchOptions.Next(MatchOptions.Curves, MatchSetup.RecoveryCurve); BuildPage(); }, 530);
-            Step("Recovery degree: " + MatchSetup.RecoveryDegree.ToString("0.0"), -220, () => MatchSetup.RecoveryDegree = Mathf.Max(1, MatchSetup.RecoveryDegree - .5f), () => MatchSetup.RecoveryDegree = Mathf.Min(6, MatchSetup.RecoveryDegree + .5f));
+            Step("Grip capacity: " + Rules.gripSeconds.ToString("0.0"), 205, () => Rules.gripSeconds = Mathf.Max(.5f, Rules.gripSeconds - .5f), () => Rules.gripSeconds = Mathf.Min(20, Rules.gripSeconds + .5f));
+            Step("Drain / sec: " + Rules.drainRate.ToString("0.00"), 145, () => Rules.drainRate = Mathf.Max(0, Rules.drainRate - .25f), () => Rules.drainRate = Mathf.Min(4, Rules.drainRate + .25f));
+            Step("Recovery / sec: " + Rules.recoveryRate.ToString("0.00"), 85, () => Rules.recoveryRate = Mathf.Max(0, Rules.recoveryRate - .05f), () => Rules.recoveryRate = Mathf.Min(2, Rules.recoveryRate + .05f));
+            Step("Recovery delay: " + Rules.recoveryDelay.ToString("0.00"), 25, () => Rules.recoveryDelay = Mathf.Max(0, Rules.recoveryDelay - .05f), () => Rules.recoveryDelay = Mathf.Min(5, Rules.recoveryDelay + .05f));
+            Button("Drain curve: " + Rules.drainCurve, 0, -40, () => { Rules.drainCurve = MatchOptions.Next(MatchOptions.Curves, Rules.drainCurve); BuildPage(); }, 530);
+            Step("Drain degree: " + Rules.drainDegree.ToString("0.0"), -100, () => Rules.drainDegree = Mathf.Max(1, Rules.drainDegree - .5f), () => Rules.drainDegree = Mathf.Min(6, Rules.drainDegree + .5f));
+            Button("Recovery curve: " + Rules.recoveryCurve, 0, -160, () => { Rules.recoveryCurve = MatchOptions.Next(MatchOptions.Curves, Rules.recoveryCurve); BuildPage(); }, 530);
+            Step("Recovery degree: " + Rules.recoveryDegree.ToString("0.0"), -220, () => Rules.recoveryDegree = Mathf.Max(1, Rules.recoveryDegree - .5f), () => Rules.recoveryDegree = Mathf.Min(6, Rules.recoveryDegree + .5f));
         }
         else
         {
-            Step("Master: " + MatchSetup.MasterVolume.ToString("0.00"), 170, () => Mix(-.05f, false), () => Mix(.05f, false));
-            Step("Music: " + MatchSetup.MusicVolume.ToString("0.00"), 100, () => Mix(-.05f, true), () => Mix(.05f, true));
+            Step("Master: " + masterVolume.ToString("0.00"), 170, () => Mix(-.05f, false), () => Mix(.05f, false));
+            Step("Music: " + musicVolume.ToString("0.00"), 100, () => Mix(-.05f, true), () => Mix(.05f, true));
             Button("Preview sound", 0, 25, Preview, 300);
             Button("Open desktop sound studio", 0, -50, Studio, 530);
             Label("The full sound editor uses the desktop Game view.\nVolume and preview controls above work in VR.", -130, 17);
@@ -83,28 +85,23 @@ public class LobbyMatchSetup : MonoBehaviour
     }
     void StartSolo()
     {
-        if (NetworkRunner.Instances.Any(r => r != null && r.IsRunning))
-        { message.text = "Leave the current room before starting solo practice."; return; }
-        MatchSetup.FromLobby = true; MatchSetup.StartLocalSession = false;
-        SceneManager.LoadScene("Game");
+        if (Services.Lobby == null) { message.text = "The lobby connection is not ready yet."; return; }
+        if (!Services.Lobby.TryStartSolo(out var problem)) message.text = problem;
     }
     void Mix(float delta, bool music)
     {
-        if (music) MatchSetup.MusicVolume = Mathf.Clamp01(MatchSetup.MusicVolume + delta);
-        else MatchSetup.MasterVolume = Mathf.Clamp01(MatchSetup.MasterVolume + delta);
+        if (music) musicVolume = Mathf.Clamp01(musicVolume + delta);
+        else masterVolume = Mathf.Clamp01(masterVolume + delta);
         EnsureAudio();
     }
-    // Sound through Core (Presentation provides Services.Audio).
     void EnsureAudio()
     {
-        var audio = Services.Audio;
-        if (audio == null) return;
-        audio.MasterVolume = MatchSetup.MasterVolume;
-        audio.MusicVolume = MatchSetup.MusicVolume;
+        CandyAudioControls.MasterVolume = masterVolume;
+        CandyAudioControls.MusicVolume = musicVolume;
     }
 
-    void Preview() { EnsureAudio(); Services.Audio?.PlayUiClick(transform.position); }
-    void Studio() { EnsureAudio(); Services.Audio?.OpenStudio(); }
+    void Preview() { EnsureAudio(); CandyAudioControls.PlayUiClick(transform.position); }
+    void Studio() { EnsureAudio(); CandyAudioControls.OpenStudio(); }
     void Step(string title, float y, Action less, Action more)
     {
         Label(title, y, 18);

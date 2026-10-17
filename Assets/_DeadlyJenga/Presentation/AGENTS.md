@@ -8,7 +8,10 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
 - Visuals: CandyTropicalArt, Crate Visual, Block Appearance asset, materials,
   OceanFlow, skybox and texture folders, CandyHudVisuals, CandyStaminaHud.
   Menus/: CandyDemoHud (desktop menu + hints), CastleWorldMenu (VR menu), SessionPresentation
-  (attaches menus, HUD and stamina bar on GameEvents.SessionStarted).
+  (attaches menus, HUD and stamina bar on GameEvents.SessionStarted), SurvivorSettingsPanel
+  (VR and stamina settings), MultiplayerPanel (multiplayer page).
+  Menus/Lobby/: Lobby Menu prefab (placed in Lobby.unity), LobbyRoomCode (its buttons and
+  text, through Services.Lobby), LobbyMatchSetup (match setup panel, writes MatchChoices).
 
 ## How it plugs in
 - Listen to GameEvents (Pushed, Damaged, Eliminated, EffectStarted/Ended,
@@ -20,6 +23,8 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
 
 ## Rules
 - Deleting this box must leave a playable gray-box game.
+- Menus send the player's requests through Core commands; the owning box decides.
+  Never change gameplay state any other way.
 - Keep originals in "Assets For Texture (BETA)". Make new variants instead.
 
 ## Next up

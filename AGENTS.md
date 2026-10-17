@@ -23,7 +23,8 @@ GameSession assemblies reference Core and no other box (DevTools may reference e
 
 - World: blocks, physics, pull rules, map layouts, island/ocean/sky objects.
 - Characters: player movement/climbing, avatar, flying hand, bots.
-- Presentation: sounds, HUD, materials, textures, shaders, skybox, block art.
+- Presentation: sounds, HUD, every menu (in-game and lobby), materials, textures, shaders,
+  skybox, environment art.
   The game must still play (gray-box) if Presentation is removed.
 - GameSession: lobby, Photon, spawning, round flow, match settings (Session);
   game modes such as classic, teams, disasters (Modes).
@@ -63,7 +64,8 @@ Data (Core/Data):
 Services (Core/Services):
 - Services.Session (ISessionInfo): menu, role (survivor/hand), Player and Hand (IPlayableCharacter),
   IsVR, ActiveCamera, CanEditWorld, ResetMap, SurvivorBots/HandBots, Multiplayer. Set by GameSession.
-- Services.Audio (IAudioControls): volumes, UI click, sound studio. Set by Presentation.
+- Services.Lobby (ILobbyControls): host, join, leave, start/cancel countdown, solo practice,
+  room label. Set by GameSession (LobbyConnection) while the Lobby scene is open.
 - Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
   Blocks, Center, TopHeight, Radius, StepHeight. Set by the active map.
 - IRebuildable: Rebuild(). The active map implements it (the reset-castle button).
@@ -78,11 +80,15 @@ State (Core/State) - read-only views for sound, HUD and bots:
 
 Session (Core/Session) - what the session, menus and lobby use:
 - IPlayableCharacter: the local survivor or hand (camera, VR, input pause, Place, status).
-- ISurvivorSettings: comfort/turning, stamina rules, FitJump, ApplyMatchRules, TryStandOn.
-- MatchRules + MatchOptions: lobby choices; Characters fills the option lists on load.
+- ISurvivorSettings: comfort/turning, CurrentRules + ApplyMatchRules (VR and stamina values),
+  FitJump, TryStandOn.
+- MatchRules + MatchOptions: rule values and option lists; Characters fills the lists on load.
+- MatchChoices: what the lobby menus chose (rules, population, AI hands, presets);
+  GameSession applies it when Game loads.
+- ILobbyControls: the lobby's connection commands (Services.Lobby).
 - IBotPopulation / ISurvivorBotPopulation + BotSystems.Create: bots without naming bot classes.
-- IMultiplayerControls (the menus' multiplayer page), ILocalPlayerInput (lobby Photon input),
-  IAudioControls, ISessionHud.
+- IMultiplayerControls (state and commands for the menus' multiplayer page),
+  ILocalPlayerInput (lobby Photon input).
 
 Network (Core/Network) - characters pack their own network state:
 - INetworkActor (NetworkKind, NetworkActive, NetworkPosition, WriteState) on local characters;
@@ -106,10 +112,23 @@ logs), FakeWorldQuery, FakeSession. Use them to test against something that does
   there, stop and report the smallest addition (name + signature) that would help.
 - Core holds no gameplay logic.
 
-### Presentation never gets called by gameplay
-- Gameplay code never plays sounds, spawns particles or calls the HUD.
-  It raises GameEvents or exposes read-only values. Presentation listens/reads.
+### Gameplay announces, Presentation shows
+- World, Characters and GameSession never play sounds, spawn particles, call the HUD,
+  or draw any UI (no OnGUI, GUILayout, Canvas, TMP, UnityEngine.UI). Their assemblies
+  don't reference UI packages, so the compiler catches it.
+- They raise GameEvents or expose values and commands through Core. Presentation listens,
+  reads and draws.
+- Core contracts never contain drawing methods. A setting is exposed as a value
+  (e.g. ISurvivorSettings.CurrentRules) and Presentation draws the control for it.
+- Menus are allowed to send the player's requests through Core commands
+  (session.SetRole, Services.Lobby.Host, multiplayer.LeaveSession). Presentation passes
+  on the request; the box that owns the rule decides. That is not gameplay in Presentation.
+- A thing owns its own body: a block or character may set the materials and colors of its
+  own model. Presentation owns everything else that is seen or heard: UI, sound, the
+  environment, and reactions to events.
 - Gameplay prefabs keep art in a child named "Visual". Gameplay never depends on it.
+- Scenes are containers: UI in a scene is a Presentation prefab (e.g. Lobby Menu), and
+  game objects are never nested inside a UI canvas.
 
 ## Working rules
 1. Only change files inside the box and lane named in your task.

@@ -47,34 +47,18 @@ namespace DeadlyJenga.CastlePrototype
             if (reader.ReadByte() != expected) { reader.Dispose(); throw new InvalidDataException("Unexpected LAN message"); }
             return reader;
         }
-        public static int Count(BinaryReader r, int max)
-        {
-            int count = r.ReadInt32();
-            if (count < 0 || count > max) throw new InvalidDataException("Invalid LAN object count");
-            return count;
-        }
+        // Numbers, vectors, rotations and poses use Core's NetWire, the same validated format characters use.
+        public static int Count(BinaryReader r, int max) => NetWire.ReadCount(r, max);
         public static string Text(BinaryReader r, int max = 256)
         {
             string s = r.ReadString();
             if (s.Length > max) throw new InvalidDataException("LAN text too long");
             return s;
         }
-        static float Number(BinaryReader r)
-        {
-            float f = r.ReadSingle();
-            if (float.IsNaN(f) || float.IsInfinity(f) || Mathf.Abs(f) > 1000000) throw new InvalidDataException("Invalid LAN coordinate");
-            return f;
-        }
-        public static void Write(BinaryWriter w, Vector3 p) { w.Write(p.x); w.Write(p.y); w.Write(p.z); }
-        public static Vector3 Vector(BinaryReader r) => new Vector3(Number(r), Number(r), Number(r));
-        public static void Write(BinaryWriter w, Quaternion q) { w.Write(q.x); w.Write(q.y); w.Write(q.z); w.Write(q.w); }
-        public static Quaternion Rotation(BinaryReader r)
-        {
-            var q = new Quaternion(Number(r), Number(r), Number(r), Number(r));
-            float length = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
-            if (length < .01f || length > 4) throw new InvalidDataException("Invalid LAN rotation");
-            return q.normalized;
-        }
+        public static void Write(BinaryWriter w, Vector3 p) => NetWire.Write(w, p);
+        public static Vector3 Vector(BinaryReader r) => NetWire.ReadVector(r);
+        public static void Write(BinaryWriter w, Quaternion q) => NetWire.Write(w, q);
+        public static Quaternion Rotation(BinaryReader r) => NetWire.ReadRotation(r);
         public static void Write(BinaryWriter w, Pose p) { Write(w, p.position); Write(w, p.rotation); }
         public static Pose ReadPose(BinaryReader r) => new Pose(Vector(r), Rotation(r));
         public static void Write(BinaryWriter w, Actor a)

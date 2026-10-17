@@ -512,24 +512,6 @@ namespace DeadlyJenga.CastlePrototype
             if (multicastLock != null) { multicastLock.Call("release"); multicastLock.Dispose(); }
 #endif
         }
-        public void DrawMenu()
-        {
-            if (fusionMode) { GUILayout.Label(Status); if (GUILayout.Button(IsClient ? "Leave game" : "Close game for everyone", GUILayout.Height(32))) LeaveSession(); return; }
-            GUILayout.Space(8); GUILayout.Label("LOCAL MULTIPLAYER · same Wi-Fi"); GUILayout.Label(Status);
-            if (!IsClient)
-            {
-                if (GUILayout.Button("Nearby: " + SelectedName + " (next)", GUILayout.Height(30))) NextNearby();
-                if (GUILayout.Button("Request to join selected demo", GUILayout.Height(30))) RequestSelected();
-                if (GUILayout.Button("Invite selected demo here", GUILayout.Height(30))) InviteSelected();
-                GUILayout.Label(PendingLabel);
-                if (HasPending)
-                {
-                    if (GUILayout.Button("Accept", GUILayout.Height(30))) AcceptPending();
-                    if (GUILayout.Button("Decline", GUILayout.Height(30))) DeclinePending();
-                }
-            }
-            if (IsClient || HumanCount > 1 || requested != null || connecting)
-                if (GUILayout.Button(IsClient ? "Leave local session" : "End / cancel local session", GUILayout.Height(30))) LeaveSession();
-        }
+        public bool CanLeave => IsClient || HumanCount > 1 || requested != null || connecting;
     }
 }

@@ -22,6 +22,11 @@ May use: Core only. Ask the map through Services.World (IWorldQuery), never Worl
 
 ## Rules
 - Never call HUD, audio or session code. Raise GameEvents or expose read-only values.
+- Never draw UI. Settings are exposed as values (ISurvivorSettings.CurrentRules) and
+  Presentation draws them.
+- A character may set the materials and colors of its own model (its body); everything
+  else seen or heard belongs to Presentation.
+- Test benches and lab scenes go in DevTools (e.g. DevTools/Scenes/CandyHandContactLab).
 - Unknown effects are ignored, never an error.
 - If you change how a survivor or hand moves, check bots too, and multiplayer if it changes network state.
 - LocalHandInput and CandyHandSkeleton are networked types; this assembly is woven by Photon.

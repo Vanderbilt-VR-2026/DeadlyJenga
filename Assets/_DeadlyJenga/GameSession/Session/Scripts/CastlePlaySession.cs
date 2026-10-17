@@ -34,7 +34,6 @@ namespace DeadlyJenga.CastlePrototype
         public bool CanEditWorld => !Network || Network.CanEditWorld;
         InputAction switchRole, toggleMenu, select;
         bool wasVR, focused = true;
-        Vector2 menuScroll;
 
         void Start()
         {
@@ -136,32 +135,6 @@ namespace DeadlyJenga.CastlePrototype
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
-        }
-        // Plain fallback menu, used only when no Presentation HUD is attached.
-        void OnGUI()
-        {
-            if (GetComponent<ISessionHud>() != null) return;
-            if (!Ready || IsVR) return;
-            if (!MenuOpen)
-            {
-                var stamina = Player as IMovementState;
-                GUI.Box(new Rect(14, 14, 520, 74), PlayingHand ? "FLYING HAND | WASD fly · Q/E down/up · Mouse steer\nTab: become survivor · Esc: menu"
-                    : "SURVIVOR | Space: jump/vault · Hold near wall: scramble\nWASD: move / climb · Release Space: drop · Grip "+Mathf.CeilToInt((stamina != null ? stamina.Stamina : 1)*100)+"%\n" + Player.StatusText);
-                GUI.Label(new Rect(Screen.width / 2f - 5, Screen.height / 2f - 12, 20, 24), "+");
-                return;
-            }
-            GUILayout.BeginArea(new Rect(20, 20, 410, Mathf.Min(650,Screen.height-40)), GUI.skin.box);
-            menuScroll=GUILayout.BeginScrollView(menuScroll);
-            GUILayout.Label("CASTLE PLAY DEMO — " + (PlayingHand ? "FLYING HAND" : "SURVIVOR"));
-            GUILayout.Label("Keyboard / mouse detected. Headset switches automatically.");
-            if (GUILayout.Button("Resume controls", GUILayout.Height(32))) SetMenu(false);
-            if (GUILayout.Button(PlayingHand ? "Become survivor (spawn on top)" : "Become flying hand", GUILayout.Height(32))) { SetRole(!PlayingHand); SetMenu(false); }
-            if (GUILayout.Button("Respawn on top", GUILayout.Height(32))) { SetRole(false); SetMenu(false); }
-            if (CanEditWorld&&GUILayout.Button("Rebuild castle", GUILayout.Height(32))) { ResetMap(); SetMenu(false); }
-            if (Network) Network.DrawMenu();
-            GUILayout.Label("Space / right A: jump; press again near a ledge to vault. Hold near a steep block to scramble; movement climbs/shimmies. Release to drop. Grip recovers on secure ground.\nVR hands: hold right pinch; left pinch climbs up. Tab / right B: switch role. Left Y: VR menu.");
-            GUILayout.EndScrollView();
-            GUILayout.EndArea();
         }
     }
 }

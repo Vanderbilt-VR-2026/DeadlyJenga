@@ -3,11 +3,7 @@
     "references": [
         "DeadlyJenga.Core",
         "Fusion.Unity",
-        "Unity.InputSystem",
-        "Unity.TextMeshPro",
-        "UnityEngine.UI",
-        "Unity.XR.Interaction.Toolkit",
-        "Unity.XR.CoreUtils"
+        "Unity.InputSystem"
     ],
     "autoReferenced": true
 }

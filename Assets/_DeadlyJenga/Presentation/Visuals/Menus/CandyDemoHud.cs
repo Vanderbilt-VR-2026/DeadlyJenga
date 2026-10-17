@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
     // Demo presentation only: actions go to the session, bots and multiplayer through Core.
     [DefaultExecutionOrder(250)]
     [DisallowMultipleComponent]
-    public sealed class CandyDemoHud : MonoBehaviour, ISessionHud
+    public sealed class CandyDemoHud : MonoBehaviour
     {
         public enum HintMode { Adaptive, Always, Hidden }
         public HintMode hintMode=HintMode.Adaptive;
@@ -140,7 +140,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             // Keep all discovery / pending / cancellation conditions owned by the network component.
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)session.Multiplayer.DrawMenu();else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
+            GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)MultiplayerPanel.Draw(session.Multiplayer);else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
         }
         void SettingsPage()
         {
@@ -148,7 +148,7 @@ namespace DeadlyJenga.CastlePrototype
             GUI.Label(new Rect(12,230,820,29),"Hint opacity  ·  "+Mathf.RoundToInt(hintOpacity*100)+"%",body);hintOpacity=GUI.HorizontalSlider(new Rect(12,270,815,24),hintOpacity,.5f,1);
             Note(310,"Tip: F1 toggles gameplay hints. Use a larger Game view for a larger menu. Settings here apply to this running session.");
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(12,410,816,900));(session.Player as ISurvivorSettings)?.DrawSettings();GUILayout.EndArea();GUI.backgroundColor=color;
+            GUILayout.BeginArea(new Rect(12,410,816,900));SurvivorSettingsPanel.Draw(session.Player as ISurvivorSettings);GUILayout.EndArea();GUI.backgroundColor=color;
         }
         void ControlsPage()
         {

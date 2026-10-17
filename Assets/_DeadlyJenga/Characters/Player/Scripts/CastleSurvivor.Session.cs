@@ -30,7 +30,12 @@ namespace DeadlyJenga.CastlePrototype
         public void CycleSmoothTurnSpeed() => vrSmoothDegreesPerSecond = vrSmoothDegreesPerSecond < 60 ? 60 : vrSmoothDegreesPerSecond < 90 ? 90 : 45;
         public void UseStationaryPreset() => UseStationaryVR();
         public void UseFluidPreset() => UseFluidVR();
-        public void DrawSettings() { DrawVRSettings(); DrawStaminaSettings(); }
+        public MatchRules CurrentRules => new MatchRules
+        {
+            movement = vrMovement.ToString(), turn = vrTurn.ToString(), snapAngle = vrSnapAngle, smoothDegrees = vrSmoothDegreesPerSecond,
+            gripSeconds = climbGripSeconds, drainRate = climbDrainPerSecond, recoveryRate = climbRecoveryPerSecond, recoveryDelay = climbRecoveryDelay,
+            drainCurve = climbDrainCurve.ToString(), recoveryCurve = climbRecoveryCurve.ToString(), drainDegree = climbDrainDegree, recoveryDegree = climbRecoveryDegree
+        };
 
         public void FitJump(float stepHeight, float shortfall)
         {

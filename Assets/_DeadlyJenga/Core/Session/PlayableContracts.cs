@@ -32,7 +32,7 @@ namespace DeadlyJenga.Core
         void CycleSmoothTurnSpeed();
         void UseStationaryPreset();
         void UseFluidPreset();
-        void DrawSettings();                                  // desktop menu (IMGUI): VR and stamina settings
+        MatchRules CurrentRules { get; }                      // current VR and stamina values; change a copy, then ApplyMatchRules
         void FitJump(float stepHeight, float shortfall);      // jump just short of one map level
         string SaveStaminaRules();                            // host's rules, sent to joining players
         void LoadStaminaRules(string json);

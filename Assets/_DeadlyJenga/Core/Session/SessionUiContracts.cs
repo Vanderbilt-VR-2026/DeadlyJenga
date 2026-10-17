@@ -13,24 +13,12 @@ namespace DeadlyJenga.Core
         string SelectedName { get; }
         string PendingLabel { get; }
         bool HasPending { get; }
+        bool CanLeave { get; }      // in, joining or hosting someone: a leave / end button makes sense
         void NextNearby();
         void RequestSelected();
         void InviteSelected();
         void AcceptPending();
         void DeclinePending();
         void LeaveSession();
-        void DrawMenu();   // desktop menu (IMGUI)
     }
-
-    // Sound controls for menus and the lobby. Presentation provides it as Services.Audio.
-    public interface IAudioControls
-    {
-        float MasterVolume { get; set; }
-        float MusicVolume { get; set; }
-        void PlayUiClick(Vector3 at);
-        void OpenStudio();
-    }
-
-    // Marks a full menu/HUD on the session object, so the session skips its plain fallback text.
-    public interface ISessionHud { }
 }
