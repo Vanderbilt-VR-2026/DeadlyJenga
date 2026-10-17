@@ -1,6 +1,6 @@
 # GameSession (level 4)
 
-The rules of the match and who is playing. Reaches the map only through Core (Services.World, IRebuildable, ISyncedWorld); never names World classes.
+The rules of the match and who is playing. Uses only Core: the map (Services.World, IRebuildable, ISyncedWorld), characters (IPlayableCharacter, ISurvivorSettings, INetworkActor), bots (BotSystems, IBotPopulation), sound (Services.Audio). Menus and HUDs live in Presentation and attach on GameEvents.SessionStarted.
 
 ## Lanes
 - Session: CastlePlaySession, CandyDemoHud (in-game menu), CastleWorldMenu,

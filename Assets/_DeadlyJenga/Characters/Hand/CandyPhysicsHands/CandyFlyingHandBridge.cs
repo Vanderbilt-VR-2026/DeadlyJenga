@@ -2,10 +2,13 @@ using UnityEngine;
 using FlyingHand;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
+using DeadlyJenga.CharacterNetwork;
+using System.IO;
 namespace DeadlyJenga.CandyPhysicsHands
 {
     [DefaultExecutionOrder(50)]
-    public sealed class CandyFlyingHandBridge : MonoBehaviour
+    public sealed class CandyFlyingHandBridge : MonoBehaviour, INetworkActor, INetworkPreview
     {
         public CastleHandActor actor;
         public CandyPhysicalHand prefab;
@@ -102,7 +105,19 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);Destroy(physical.gameObject);physical=null;}
             transition=new CandyHandTransition();trackedGeometry=false;anchored=false;
         }
-        void OnDisable(){if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
+        // INetworkActor: what other players see of this hand (the player's or a bot's).
+        public string NetworkKind => NetworkKinds.Hand;
+        public bool NetworkActive => physical ? physical.gameObject.activeInHierarchy && physical.skin && physical.skin.enabled : actor && !actor.motor.externallyDriven;
+        public Vector3 NetworkPosition => physical ? physical.transform.position : actor ? actor.motor.transform.position : transform.position;
+        public void WriteState(BinaryWriter w)
+        {
+            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies); return; }
+            var at = actor ? actor.motor.transform : transform;
+            var rest = new CandyHandPose { position = at.position, rotation = at.rotation, tracked = true, skeleton = CandyHandSkeleton.Rest(useLeftHand) };
+            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null);
+        }
+        void OnEnable(){NetworkActors.Local.Add(this);}
+        void OnDisable(){NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
         void OnDestroy(){if(physical)Destroy(physical.gameObject);}
     }
 }

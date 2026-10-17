@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -69,9 +70,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
             // deliberately suspending hand construction. Isolate this wiring check from
             // desktop focus/menu policy rather than interpreting that as broken wiring.
             session.SetRole(true);session.SetMenu(false);bool sessionEnabled=session.enabled;session.enabled=false;
-            for(int frame=0;frame<35;frame++){session.Hand.motor.InputSuspended=false;yield return null;}
-            var bridge=session.Hand.GetComponent<CandyFlyingHandBridge>();
-            Assert(bridge.PhysicalHand&&session.Hand.follow.positionTarget==bridge.PhysicalHand.visualBones[0]&&session.Hand.follow.compactHandView,"Real demo wires observer position to current physical palm and compact framing.");
+            for(int frame=0;frame<35;frame++){session.HandActor().motor.InputSuspended=false;yield return null;}
+            var bridge=session.HandActor().GetComponent<CandyFlyingHandBridge>();
+            Assert(bridge.PhysicalHand&&session.HandActor().follow.positionTarget==bridge.PhysicalHand.visualBones[0]&&session.HandActor().follow.compactHandView,"Real demo wires observer position to current physical palm and compact framing.");
             session.enabled=sessionEnabled;session.SetMenu(true);Debug.Log(string.Join("\n",lines));yield return CastleClimbChecks.Check();
         }
     }

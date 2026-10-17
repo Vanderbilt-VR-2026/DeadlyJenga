@@ -136,13 +136,13 @@ namespace DeadlyJenga.CastlePrototype
 
         void UpdatePopulation()
         {
-            if (runner.IsServer) session.Bots.SetHumanPlayerCount(runner.ActivePlayers.Count());
+            if (runner.IsServer) session.SurvivorBots?.SetHumanPlayerCount(runner.ActivePlayers.Count());
         }
 
         void RemovePlayer(PlayerRef player)
         {
             peers.Remove(player); castle.FusionRemovePlayer(player.ToString());
-            if (runner.IsServer) session.Bots.SetHumanPlayerCount(runner.ActivePlayers.Count(p => p != player));
+            if (runner.IsServer) session.SurvivorBots?.SetHumanPlayerCount(runner.ActivePlayers.Count(p => p != player));
         }
 
         public void Leave()

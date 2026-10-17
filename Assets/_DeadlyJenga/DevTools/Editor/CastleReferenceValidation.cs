@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.IO;
 using System.Linq;
@@ -29,10 +30,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Mathf.Abs(Mathf.DeltaAngle(p.Rotation.eulerAngles.y % 90, (p.Course % 2) * 45)) < .01f));
             Check("Keep repeats positions after two layers", keep.Where(p => p.Course >= 2).All(p => keep.Any(q =>
                 q.Course == p.Course - 2 && Vector3.Distance(p.Position - Vector3.up * 4, q.Position) < .001f)));
-            Check("Crate height exceeds player", settings.blockSize.y == 2 && session.Player.Capsule.height < 2);
+            Check("Crate height exceeds player", settings.blockSize.y == 2 && session.Survivor().Capsule.height < 2);
 
             var fixture = new GameObject("Reference interaction validation");
-            var motor = Object.Instantiate(session.survivorPrefab, fixture.transform);
+            var motor = Object.Instantiate(session.survivorPrefab, fixture.transform).GetComponent<CastleSurvivor>();
             motor.enabled = false; motor.viewCamera.gameObject.SetActive(false); motor.RefreshMode();
             var crate = Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab, fixture.transform);
             crate.transform.position = new Vector3(180, 11, 180); crate.transform.localScale = settings.blockSize;

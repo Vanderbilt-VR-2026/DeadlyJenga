@@ -1,13 +1,14 @@
 using System.Collections.Generic;
 using Fusion;
 using UnityEngine;
+using DeadlyJenga.Core;
 
 public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
 {
     [SerializeField] NetworkObject playerPrefab;
     readonly Dictionary<PlayerRef, NetworkObject> spawnedPlayers = new();
     NetworkEvents networkEvents;
-    LocalHandInput localHands;
+    ILocalPlayerInput localHands;   // the local rig's hands, through Core
     bool warnedMissingHands;
     bool changingScene;
     bool placedLocalRig;
@@ -82,17 +83,16 @@ public class PlayerSpawner : SimulationBehaviour, IPlayerJoined, IPlayerLeft
     void CollectInput(NetworkRunner runner, NetworkInput input)
     {
         if (changingScene || InCastleGame()) return;
-        if (localHands == null)
-            localHands = LocalHandInput.FindOrCreate();
-        if (localHands != null && !placedLocalRig && runner.LocalPlayer != PlayerRef.None)
+        if (!NetworkActors.Alive(localHands))
+            localHands = LocalPlayerInput.FindOrCreate();
+        if (NetworkActors.Alive(localHands) && !placedLocalRig && runner.LocalPlayer != PlayerRef.None)
         {
             if (TryGetSpawnPose(runner.LocalPlayer, out var position, out var rotation))
                 localHands.MoveToSpawn(position, rotation);
             placedLocalRig = true;
         }
-        if (localHands != null && localHands.TryRead(out var pose))
+        if (NetworkActors.Alive(localHands) && localHands.TryWriteInput(input))
         {
-            input.Set(pose);
             warnedMissingHands = false;
         }
         else if (!warnedMissingHands)

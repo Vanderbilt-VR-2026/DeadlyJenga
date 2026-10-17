@@ -7,7 +7,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
-    public sealed class CastleBotPopulation : MonoBehaviour
+    public sealed class CastleBotPopulation : MonoBehaviour, ISurvivorBotPopulation
     {
         public BotWorld Session {get;private set;}
         public int targetPopulation=10;
@@ -84,6 +84,13 @@ namespace DeadlyJenga.CastleBots
             }
             return false;
         }
+        // ISurvivorBotPopulation (Count, Capacity, Status, SelectedName, CyclePersonality, SelectPreset,
+        // FillToTarget and SetHumanPlayerCount are public members of this class)
+        public bool Running { get => enabled; set => enabled = value; }
+        void IBotPopulation.SpawnOne() => SpawnBot();
+        void IBotPopulation.Clear() => ClearBots();
+        void IBotPopulation.MapRebuilt() => CastleRebuilt();
+        int ISurvivorBotPopulation.TargetPopulation { get => targetPopulation; set => targetPopulation = value; }
         public void FillToTarget(){autoFill=true;Reconcile();}
         public void SetHumanPlayerCount(int count){humanPlayers=Mathf.Max(0,count);if(Session.HandBots)Session.HandBots.TrimHumanCapacity();if(autoFill)Reconcile();}
         public void ReconcileHandSlots(){while(bots.Count>Capacity)RemoveLast();if(autoFill)Reconcile();}

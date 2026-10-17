@@ -9,6 +9,8 @@ Start scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Lobby.unity
 All team code lives in Assets/_DeadlyJenga/. It is split into boxes.
 Each box has its own assembly definition (DeadlyJenga.<Box>).
 A box may only use boxes at a LOWER level. Never the same level or higher.
+Today every box reaches the others ONLY through Core: World, Characters, Presentation and
+GameSession assemblies reference Core and no other box (DevTools may reference everything).
 
 | Level | Box          | Lanes (subfolders)          | May use                 |
 |-------|--------------|-----------------------------|-------------------------|
@@ -16,7 +18,7 @@ A box may only use boxes at a LOWER level. Never the same level or higher.
 | 1     | World        | Blocks, Maps                | Core                    |
 | 2     | Characters   | Player, Hand, Bots          | Core                    |
 | 3     | Presentation | Audio, Visuals              | Core                    |
-| 4     | GameSession  | Session, Modes              | all boxes               |
+| 4     | GameSession  | Session, Modes              | Core                    |
 | side  | DevTools     | -                           | all boxes; nothing may use DevTools |
 
 - World: blocks, physics, pull rules, map layouts, island/ocean/sky objects.

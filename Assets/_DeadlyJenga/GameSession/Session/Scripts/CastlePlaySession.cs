@@ -1,4 +1,3 @@
-using FlyingHand;
 using Fusion;
 using System.Linq;
 using UnityEngine;
@@ -7,26 +6,33 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
+    // Runs the match: creates the local survivor and hand, switches between them, respawns,
+    // starts bots and networking. Talks to every other box only through Core.
     [DefaultExecutionOrder(200)]
     public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo
     {
-        public CastleSurvivor survivorPrefab;
-        public CastleHandActor handPrefab;
+        [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")]
+        public MonoBehaviour survivorPrefab;
+        [Tooltip("The flying hand prefab (any component on it that implements IPlayableCharacter).")]
+        public MonoBehaviour handPrefab;
         public Camera overviewCamera;
         public bool tuneJumpToBlockHeight=true;
         public float jumpShortfall=.18f;
-        public CastleSurvivor Player { get; private set; }
-        public CastleHandActor Hand { get; private set; }
+        public IPlayableCharacter Player { get; private set; }
+        public IPlayableCharacter Hand { get; private set; }
         public bool PlayingHand { get; private set; }
         public bool MenuOpen { get; private set; }
-        public bool IsVR => PlayingHand ? Hand.motor.ActiveControlMode == ControlMode.VR : Player.IsVR;
-        public Camera ActiveCamera => PlayingHand ? Hand.View : Player.viewCamera;
+        IPlayableCharacter Active => PlayingHand ? Hand : Player;
+        public bool IsVR => NetworkActors.Alive(Active) && Active.IsVR;
+        public Camera ActiveCamera => NetworkActors.Alive(Active) ? Active.ViewCamera : null;
+        public bool MenuSelectPressed => MenuOpen && IsVR && select != null && (select.WasPressedThisFrame() || Active.SelectPressed);
         public Vector3 LastSpawnFeet { get; private set; }
-        public DeadlyJenga.CastleBots.CastleBotPopulation Bots {get;private set;}
-        public DeadlyJenga.CastleBots.CastleHandBotPopulation HandBots {get;private set;}
-        public CastleLanSession Network {get;private set;}
+        public ISurvivorBotPopulation SurvivorBots { get; private set; }
+        public IBotPopulation HandBots { get; private set; }
+        public CastleLanSession Network { get; private set; }
+        public IMultiplayerControls Multiplayer => Network;
+        public bool CanEditWorld => !Network || Network.CanEditWorld;
         InputAction switchRole, toggleMenu, select;
-        CastleWorldMenu worldMenu;
         bool wasVR, focused = true;
         Vector2 menuScroll;
 
@@ -35,22 +41,18 @@ namespace DeadlyJenga.CastlePrototype
             Services.Session = this;
             GameEvents.Eliminated += OnEliminated;
             if (overviewCamera) overviewCamera.gameObject.SetActive(false);
-            Player = Instantiate(survivorPrefab); Player.name = "Survivor (local)"; Player.gameObject.AddComponent<CandyStaminaHud>();
+            Player = Instantiate(survivorPrefab).GetComponent<IPlayableCharacter>(); Player.gameObject.name = "Survivor (local)";
             TuneJump();
-            Hand = Instantiate(handPrefab); Hand.name = "Flying Hand (local)";
-            Player.viewCamera.clearFlags = CameraClearFlags.Skybox;
-            Hand.View.clearFlags = CameraClearFlags.Skybox;
-            Hand.motor.captureDesktopCursor = false;
+            Hand = Instantiate(handPrefab).GetComponent<IPlayableCharacter>(); Hand.gameObject.name = "Flying Hand (local)";
+            Player.PrepareForSession(); Hand.PrepareForSession();
             switchRole = new InputAction("Switch role", InputActionType.Button, "<XRController>{RightHand}/secondaryButton");
             toggleMenu = new InputAction("Demo menu", InputActionType.Button, "<XRController>{LeftHand}/secondaryButton");
             select = new InputAction("Menu select", InputActionType.Button, "<XRController>{RightHand}/trigger");
             switchRole.Enable(); toggleMenu.Enable(); select.Enable();
-            worldMenu = new GameObject("Headset demo menu").AddComponent<CastleWorldMenu>(); worldMenu.Build(this);
             SetRole(false); SetMenu(false);
-            Bots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleBotPopulation>();
-            HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();
-            var botWorld=new DeadlyJenga.CastleBots.BotWorld{Player=Player,Hand=Hand,survivorPrefab=survivorPrefab,handPrefab=handPrefab,Bots=Bots,HandBots=HandBots,isPlayingHand=()=>PlayingHand};
-            Bots.Initialize(botWorld);HandBots.Initialize(botWorld);
+            BotSystems.Create(gameObject, new BotSetup { player = Player, hand = Hand, survivorPrefab = survivorPrefab, handPrefab = handPrefab, isPlayingHand = () => PlayingHand },
+                out var survivorBots, out var handBots);
+            SurvivorBots = survivorBots; HandBots = handBots;
             var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)
             {
@@ -63,19 +65,20 @@ namespace DeadlyJenga.CastlePrototype
                 Network.Initialize(this);
             }
             MatchSetup.Apply(this);
-            if(!GetComponent<CandyDemoHud>())gameObject.AddComponent<CandyDemoHud>();
+            // Menus, HUDs and the stamina bar attach themselves (Presentation listens for this).
+            GameEvents.RaiseSessionStarted(gameObject);
         }
         void OnDestroy()
         {
             if (ReferenceEquals(Services.Session, this)) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
             switchRole?.Dispose(); toggleMenu?.Dispose(); select?.Dispose();
-            if (worldMenu) Destroy(worldMenu.gameObject);
-            if (Player) Destroy(Player.gameObject);
-            if (Hand) Destroy(Hand.gameObject);
+            if (NetworkActors.Alive(Player)) Destroy(Player.gameObject);
+            if (NetworkActors.Alive(Hand)) Destroy(Hand.gameObject);
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
         }
-        void OnApplicationFocus(bool value) { focused = value; if (!value && Player && Hand) SetMenu(true); }
+        bool Ready => NetworkActors.Alive(Player) && NetworkActors.Alive(Hand);
+        void OnApplicationFocus(bool value) { focused = value; if (!value && Ready) SetMenu(true); }
         public void SetRole(bool hand)
         {
             PlayingHand = hand;
@@ -92,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
         // The ocean (or any hazard) eliminated someone. In this demo the local survivor just respawns.
         void OnEliminated(GameObject who, GameObject source)
         {
-            if (Player && who == Player.gameObject && !PlayingHand) RespawnPlayer();
+            if (Ready && who == Player.gameObject && !PlayingHand) RespawnPlayer();
         }
 
         public void RespawnPlayer()
@@ -100,46 +103,50 @@ namespace DeadlyJenga.CastlePrototype
             Vector3 feet = Services.World.SafeSpawnPoint();
             Vector3 heading = Vector3.ProjectOnPlane(Services.World.Center - feet, Vector3.up);
             LastSpawnFeet = feet;
-            Player.Teleport(feet, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity);
-            Player.Revive();
+            Player.Place(feet, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity);
         }
         void TuneJump()
         {
-            if(!tuneJumpToBlockHeight||!Player)return;
-            float margin=Mathf.Max(jumpShortfall,Player.Capsule.radius+Player.Capsule.stepOffset+Player.Capsule.skinWidth+.02f);
-            if(Services.World==null)return;
-            Player.jumpHeight=Mathf.Max(.1f,Services.World.StepHeight-margin);
+            if (!tuneJumpToBlockHeight || Services.World == null) return;
+            (Player as ISurvivorSettings)?.FitJump(Services.World.StepHeight, jumpShortfall);
         }
-        public void ResetCastle() { if(Network&&!Network.CanEditWorld)return;(Services.World as IRebuildable)?.Rebuild(); TuneJump();SetRole(PlayingHand);if(HandBots)HandBots.CastleRebuilt();if(Bots)Bots.CastleRebuilt(); }
+        public void ResetMap()
+        {
+            if (!CanEditWorld) return;
+            (Services.World as IRebuildable)?.Rebuild();
+            TuneJump(); SetRole(PlayingHand);
+            HandBots?.MapRebuilt(); SurvivorBots?.MapRebuilt();
+        }
+        public void ResetCastle() => ResetMap();
         public void SetMenu(bool open)
         {
             MenuOpen = open;
-            Player.InputSuspended = open || !focused || (Network&&Network.WaitingForWorld);
-            Hand.motor.InputSuspended = open || !focused || (Network&&Network.WaitingForWorld);
+            bool suspended = open || !focused || (Network && Network.WaitingForWorld);
+            Player.InputSuspended = suspended;
+            Hand.InputSuspended = suspended;
             Cursor.lockState = !open && !IsVR && focused ? CursorLockMode.Locked : CursorLockMode.None;
             Cursor.visible = open || IsVR;
-            if (worldMenu) worldMenu.Show(open && IsVR, ActiveCamera);
         }
         void Update()
         {
-            if (!Player || !Hand) return;
+            if (!Ready) return;
             var k = Keyboard.current;
-            var candyTracking=(PlayingHand?Hand.gameObject:Player.gameObject).GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
             if (!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
-            if(IsVR&&candyTracking&&candyTracking.LeftMenuPressed)SetMenu(!MenuOpen);
+            if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
-            if (MenuOpen && IsVR) worldMenu.Point(ActiveCamera, select.WasPressedThisFrame()||(candyTracking&&candyTracking.RightPinchPressed));
         }
+        // Plain fallback menu, used only when no Presentation HUD is attached.
         void OnGUI()
         {
-            if(GetComponent<CandyDemoHud>())return;
-            if (!Player || !Hand || IsVR) return;
+            if (GetComponent<ISessionHud>() != null) return;
+            if (!Ready || IsVR) return;
             if (!MenuOpen)
             {
+                var stamina = Player as IMovementState;
                 GUI.Box(new Rect(14, 14, 520, 74), PlayingHand ? "FLYING HAND | WASD fly · Q/E down/up · Mouse steer\nTab: become survivor · Esc: menu"
-                    : "SURVIVOR | Space: jump/vault · Hold near wall: scramble\nWASD: move / climb · Release Space: drop · Grip "+Mathf.CeilToInt(Player.GripRemaining*100)+"%\n" + Player.ActionStatus);
+                    : "SURVIVOR | Space: jump/vault · Hold near wall: scramble\nWASD: move / climb · Release Space: drop · Grip "+Mathf.CeilToInt((stamina != null ? stamina.Stamina : 1)*100)+"%\n" + Player.StatusText);
                 GUI.Label(new Rect(Screen.width / 2f - 5, Screen.height / 2f - 12, 20, 24), "+");
                 return;
             }
@@ -150,8 +157,7 @@ namespace DeadlyJenga.CastlePrototype
             if (GUILayout.Button("Resume controls", GUILayout.Height(32))) SetMenu(false);
             if (GUILayout.Button(PlayingHand ? "Become survivor (spawn on top)" : "Become flying hand", GUILayout.Height(32))) { SetRole(!PlayingHand); SetMenu(false); }
             if (GUILayout.Button("Respawn on top", GUILayout.Height(32))) { SetRole(false); SetMenu(false); }
-            bool editWorld=!Network||Network.CanEditWorld;
-            if (editWorld&&GUILayout.Button("Rebuild castle", GUILayout.Height(32))) { ResetCastle(); SetMenu(false); }
+            if (CanEditWorld&&GUILayout.Button("Rebuild castle", GUILayout.Height(32))) { ResetMap(); SetMenu(false); }
             if (Network) Network.DrawMenu();
             GUILayout.Label("Space / right A: jump; press again near a ledge to vault. Hold near a steep block to scramble; movement climbs/shimmies. Release to drop. Grip recovers on secure ground.\nVR hands: hold right pinch; left pinch climbs up. Tab / right B: switch role. Left Y: VR menu.");
             GUILayout.EndScrollView();

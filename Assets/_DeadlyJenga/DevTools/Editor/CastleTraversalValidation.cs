@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.IO;
 using System.Text;
@@ -37,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var report = new StringBuilder();
             void Check(string label, bool pass, string detail = "") => report.AppendLine((pass ? "PASS " : "FAIL ") + label + " " + detail);
             var fixture = new GameObject("Temporary traversal validation");
-            var motor = Object.Instantiate(session.survivorPrefab, fixture.transform);
+            var motor = Object.Instantiate(session.survivorPrefab, fixture.transform).GetComponent<CastleSurvivor>();
             motor.viewCamera.gameObject.SetActive(false); motor.enabled = false; motor.RefreshMode();
             var basis = new Vector3(100, 10, 100);
             GameObject Box(string name, Vector3 pos, Vector3 scale)
@@ -50,15 +51,15 @@ namespace DeadlyJenga.CastlePrototype.Editor
             try
             {
                 Check("Default role survivor", !session.PlayingHand);
-                Check("Spawn at top", session.Player.transform.position.y > 59,
-                    $"actual={session.Player.transform.position}, target={session.LastSpawnFeet}");
+                Check("Spawn at top", session.Survivor().transform.position.y > 59,
+                    $"actual={session.Survivor().transform.position}, target={session.LastSpawnFeet}");
                 Check("Single active camera", Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Length == 1);
-                session.Player.RefreshMode();
-                Check("Auto desktop without running display", !session.Player.IsVR);
-                session.Player.controlMode = ControlMode.VR; session.Player.RefreshMode();
-                Check("VR enables head tracking", session.Player.viewCamera.GetComponent<TrackedPoseDriver>().enabled);
-                session.Player.controlMode = ControlMode.Auto; session.Player.RefreshMode();
-                Check("Desktop restores untracked eye", !session.Player.viewCamera.GetComponent<TrackedPoseDriver>().enabled);
+                session.Survivor().RefreshMode();
+                Check("Auto desktop without running display", !session.Survivor().IsVR);
+                session.Survivor().controlMode = ControlMode.VR; session.Survivor().RefreshMode();
+                Check("VR enables head tracking", session.Survivor().viewCamera.GetComponent<TrackedPoseDriver>().enabled);
+                session.Survivor().controlMode = ControlMode.Auto; session.Survivor().RefreshMode();
+                Check("Desktop restores untracked eye", !session.Survivor().viewCamera.GetComponent<TrackedPoseDriver>().enabled);
                 motor.Teleport(basis + Vector3.up * .04f, Quaternion.identity); Physics.SyncTransforms();
                 for (int i = 0; i < 20; i++) motor.Simulate(Vector2.zero, false, .02f);
                 Check("Ground detection", motor.Grounded);
@@ -94,18 +95,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 motor.Simulate(Vector2.zero, false, .02f);
                 Check("Destroyed ledge cancels vault", !motor.Vaulting);
                 session.SetRole(true);
-                Check("Hand possession", session.Hand.gameObject.activeSelf && !session.Player.gameObject.activeSelf);
-                Check("Hand camera follows prefab target", session.Hand.follow.target.IsChildOf(session.Hand.motor.transform));
+                Check("Hand possession", session.HandActor().gameObject.activeSelf && !session.Survivor().gameObject.activeSelf);
+                Check("Hand camera follows prefab target", session.HandActor().follow.target.IsChildOf(session.HandActor().motor.transform));
                 Check("Hand single camera", Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Length == 1);
                 session.SetRole(false);
-                Check("Return to survivor", session.Player.gameObject.activeSelf && !session.Hand.gameObject.activeSelf);
+                Check("Return to survivor", session.Survivor().gameObject.activeSelf && !session.HandActor().gameObject.activeSelf);
                 session.ResetCastle();
                 Check("Reset retains 568 blocks", Object.FindAnyObjectByType<CastleGenerator>().Bodies.Count == 568);
             }
             finally
             {
                 Object.Destroy(fixture);
-                session.Player.controlMode = ControlMode.Auto; session.SetRole(false); session.SetMenu(true);
+                session.Survivor().controlMode = ControlMode.Auto; session.SetRole(false); session.SetMenu(true);
                 report.AppendLine("Headset hardware/comfort and network play are not covered by these editor checks.");
                 File.WriteAllText(ProjectPath.Report("TraversalValidation.txt"), report.ToString());
                 Debug.Log(report.ToString());

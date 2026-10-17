@@ -2,9 +2,6 @@
     "name": "DeadlyJenga.GameSession",
     "references": [
         "DeadlyJenga.Core",
-        "DeadlyJenga.Characters",
-        "DeadlyJenga.Presentation",
-        "HandDemo.Runtime",
         "Fusion.Unity",
         "Unity.InputSystem",
         "Unity.TextMeshPro",

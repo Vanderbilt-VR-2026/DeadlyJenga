@@ -17,6 +17,7 @@ namespace DeadlyJenga.Core
         public static event Action<GameObject, string> Emoted;              // who, emote name
         public static event Action RoundStarted;
         public static event Action RoundEnded;
+        public static event Action<GameObject> SessionStarted;                // the session object; menus and HUDs attach here
 
         public static void RaiseBlockHit(Vector3 position, float strength) => BlockHit?.Invoke(position, strength);
         public static void RaisePushed(GameObject who, Vector3 force) => Pushed?.Invoke(who, force);
@@ -29,13 +30,14 @@ namespace DeadlyJenga.Core
         public static void RaiseEmoted(GameObject who, string emote) => Emoted?.Invoke(who, emote);
         public static void RaiseRoundStarted() => RoundStarted?.Invoke();
         public static void RaiseRoundEnded() => RoundEnded?.Invoke();
+        public static void RaiseSessionStarted(GameObject session) => SessionStarted?.Invoke(session);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()
         {
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
-            RoundStarted = null; RoundEnded = null; Emoted = null;
+            RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null;
         }
     }
 }

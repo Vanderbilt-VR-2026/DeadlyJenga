@@ -19,7 +19,7 @@ public struct HandPoseInput : INetworkInput
 }
 
 // Lives only on the local XR rig, never on the spawned avatar.
-public class LocalHandInput : MonoBehaviour
+public class LocalHandInput : MonoBehaviour, DeadlyJenga.Core.ILocalPlayerInput
 {
     [SerializeField] Transform leftVisual;
     [SerializeField] Transform rightVisual;
@@ -55,6 +55,13 @@ public class LocalHandInput : MonoBehaviour
         }
     }
 
+    // ILocalPlayerInput: the lobby's Photon input, filled in here so networking never names HandPoseInput.
+    public bool TryWriteInput(object networkInput)
+    {
+        if (!(networkInput is NetworkInput input) || !TryRead(out var pose)) return false;
+        input.Set(pose);
+        return true;
+    }
     public bool TryRead(out HandPoseInput pose)
     {
         pose = default;

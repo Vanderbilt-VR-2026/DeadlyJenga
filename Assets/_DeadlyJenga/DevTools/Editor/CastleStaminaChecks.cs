@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -82,7 +83,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Assert(motor.GripRemaining==start,"Airborne release never regenerates stamina.");
             // Render an actual latched survivor with the actual HUD, not a static UI mockup.
             Setup();Tick(110,Vector2.zero,true);motor.InputDriver=new Hold();motor.enabled=true;
-            session.enabled=false;session.Player.viewCamera.enabled=false;motor.viewCamera.enabled=true;motor.InputSuspended=false;
+            session.enabled=false;session.Survivor().viewCamera.enabled=false;motor.viewCamera.enabled=true;motor.InputSuspended=false;
             var hud=motor.gameObject.AddComponent<CandyStaminaHud>();hud.Present(motor,1);Canvas.ForceUpdateCanvases();
             yield return Application.isBatchMode?null:new WaitForEndOfFrame();hud.Present(motor,1);Assert(hud.Opacity==1,"Actual desktop Canvas appears at full opacity during real climbing.");
             if(!Application.isBatchMode)ScreenCapture.CaptureScreenshot("ArtDirection/StaminaClimbing.png");yield return null;yield return Application.isBatchMode?null:new WaitForEndOfFrame();
@@ -96,14 +97,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
             motor.climbRecoveryPerSecond=.65f;motor.climbRecoveryCurve=StaminaCurve.Exponential;motor.climbRecoveryDegree=3;Tick(150,Vector2.zero,false);
             Assert(motor.GripRemaining==1,"Live exponential recovery reaches full on secure footing.");
             motor.enabled=true;hud.Present(motor,1);Assert(hud.Opacity==0,"Actual Canvas disappears once full.");Object.Destroy(floor);
-            motor.enabled=false;motor.viewCamera.enabled=false;session.Player.viewCamera.enabled=true;session.enabled=true;
+            motor.enabled=false;motor.viewCamera.enabled=false;session.Survivor().viewCamera.enabled=true;session.enabled=true;
             var engine=CandyAudioEngine.Instance;int voices=engine.GetComponentsInChildren<AudioSource>().Length;
             foreach(var sound in CandyBreathing.Sounds)
             {
                 bool playing=false;
                 for(int attempt=0;attempt<30&&!playing;attempt++)
                 {
-                    engine.Loop(sound,session.Player.transform,.5f,true);yield return null;
+                    engine.Loop(sound,session.Survivor().transform,.5f,true);yield return null;
                     foreach(var source in engine.GetComponentsInChildren<AudioSource>())if(source.isPlaying&&source.clip&&source.clip.name.Contains(sound.ToString())&&source.spatialBlend==0)playing=true;
                 }
                 Assert(playing,sound+" plays through the existing local audio pool.");

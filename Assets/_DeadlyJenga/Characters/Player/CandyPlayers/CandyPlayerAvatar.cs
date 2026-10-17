@@ -1,11 +1,15 @@
 using UnityEngine;
 using Unity.XR.CoreUtils;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.CastleBots;
+using DeadlyJenga.Core;
+using DeadlyJenga.CharacterNetwork;
+using System.IO;
 
 namespace DeadlyJenga.CandyPlayers
 {
     [DefaultExecutionOrder(100)]
-    public sealed class CandyPlayerAvatar : MonoBehaviour
+    public sealed class CandyPlayerAvatar : MonoBehaviour, INetworkActor
     {
         public CandyPlayerRig visualPrefab;
         public CastleSurvivor survivor;
@@ -38,8 +42,15 @@ namespace DeadlyJenga.CandyPlayers
                 tracking.trackingOrigin=trackingOrigin;tracking.style=Rig.style;
             }
         }
-        void OnEnable(){Application.onBeforeRender+=BeforeRender;}
-        void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;}
+        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(!remoteDriven)NetworkActors.Local.Add(this);}
+        void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);}
+
+        // INetworkActor: what other players see of this survivor (the player's or a bot's).
+        CastleBotBrain bot;
+        public string NetworkKind=>NetworkKinds.Survivor;
+        public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
+        public Vector3 NetworkPosition=>transform.position;
+        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,ReadFrame(),ColorIndex);
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
         public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}
