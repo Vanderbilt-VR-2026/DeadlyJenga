@@ -1,3 +1,5 @@
+using UnityEngine;
+
 namespace DeadlyJenga.Core
 {
     // The lobby's connection controls. GameSession provides it as Services.Lobby while the Lobby scene is open;
@@ -5,6 +7,19 @@ namespace DeadlyJenga.Core
     public interface ILobbyControls
     {
         string RoomLabel { get; }          // "Room Code: ABCD", the countdown, or "Room Code: —"
+        bool Connected { get; }            // in a room
+        bool Connecting { get; }           // hosting or joining is in progress
+        bool CanEdit { get; }              // not in a room, or this player is the host
+        string Status { get; }             // last connection message, "" when none
+        bool StatusIsError { get; }
+        void ShowMessage(string text, bool error);
+
+        // The shared lobby screen: the host publishes its page and placement, everyone else follows.
+        bool HasSharedScreen { get; }      // connected and following the host
+        int SharedPage { get; }
+        Pose SharedScreenPose { get; }
+        void PublishScreen(int page, Pose pose);   // ignored unless CanEdit
+
         void Host();
         void Join(string code);
         void Leave();                      // leave or close the room

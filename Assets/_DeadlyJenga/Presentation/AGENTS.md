@@ -10,8 +10,10 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
   Menus/: CandyDemoHud (desktop menu + hints), CastleWorldMenu (VR menu), SessionPresentation
   (attaches menus, HUD and stamina bar on GameEvents.SessionStarted), SurvivorSettingsPanel
   (VR and stamina settings), MultiplayerPanel (multiplayer page).
-  Menus/Lobby/: Lobby Menu prefab (placed in Lobby.unity), LobbyRoomCode (its buttons and
-  text, through Services.Lobby), LobbyMatchSetup (match setup panel, writes MatchChoices).
+  Menus/Lobby/: Lobby Menu prefab (placed in Lobby.unity; its old panels are hidden at runtime),
+  LobbyRoomCode (its buttons, room-code field and text, through Services.Lobby), LobbyMatchSetup
+  (the main menu: Host, Join keypad, Solo, rules, stamina, audio; writes MatchChoices; follows the
+  host's shared screen when connected).
 
 ## How it plugs in
 - Listen to GameEvents (Pushed, Damaged, Eliminated, EffectStarted/Ended,

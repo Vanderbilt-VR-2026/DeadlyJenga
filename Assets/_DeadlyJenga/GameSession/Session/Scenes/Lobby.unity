@@ -319,7 +319,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Fusion.Addons.Physics::Fusion.Addons.Physics.RunnerSimulatePhysics
   Update2DPhysicsScene: 0
-  Update3DPhysicsScene: 0
+  Update3DPhysicsScene: 1
   _timeScale: 1
 --- !u!1 &203541298
 GameObject:

@@ -9,6 +9,8 @@ namespace DeadlyJenga.CandyPlayers
     public sealed class CandyTrackingSource : MonoBehaviour
     {
         public Transform trackingOrigin;
+        // Controller roots identify the matching UI interactors; they are aim poses, not palms.
+        public Transform leftController, rightController;
         public CandyPlayerStyle style;
         public bool RightPinchPressed{get;private set;}
         public bool RightPinching{get;private set;}
@@ -77,6 +79,9 @@ namespace DeadlyJenga.CandyPlayers
         public CandyHandPose WorldHand(bool isLeft)
         {
             var hand=isLeft?left:right;
+            // The XR rig's controller transforms use pointer/aim poses for UI rays.
+            // Render the palm from devicePosition/deviceRotation (grip pose) instead;
+            // aim rotation has a device-specific tilt and is not the wrist orientation.
             if(trackingOrigin){hand.position=trackingOrigin.TransformPoint(hand.position);hand.rotation=trackingOrigin.rotation*hand.rotation;}
             return hand;
         }

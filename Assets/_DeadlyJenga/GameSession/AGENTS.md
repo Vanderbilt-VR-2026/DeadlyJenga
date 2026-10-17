@@ -14,7 +14,13 @@ The rules of the match and who is playing. Uses only Core: the map (Services.Wor
 - Creates bots through BotSystems.Create and raises GameEvents.SessionStarted.
 - CastleLanSession implements IMultiplayerControls (state and commands) for the menus.
 - LobbyConnection implements ILobbyControls as Services.Lobby; it adds itself to the
-  FusionBootstrap object when a scene with a LobbyCountdown loads.
+  FusionBootstrap object when a scene with a LobbyCountdown loads. It validates room codes,
+  checks the network, owns the connection messages and gives the lobby rig its body
+  (LocalPlayerInput.FindOrCreate) before connecting.
+- LobbyCountdown is the lobby's shared network state: countdown, the host's MatchChoices rules,
+  and the host's menu page and placement (taken from LobbyConnection, never from a menu class).
+- Photon's FusionBootstrap.cs carries our connection-message and timeout fixes. Only GameSession
+  reads it; re-apply those edits if Photon Fusion is ever upgraded.
 - MatchSetup applies Core's MatchChoices (set by the lobby menu) when Game loads.
 
 ## Rules

@@ -3,6 +3,7 @@
     "references": [
         "DeadlyJenga.Core",
         "Fusion.Unity",
+        "Fusion.Addons.Physics",
         "Unity.InputSystem"
     ],
     "autoReferenced": true

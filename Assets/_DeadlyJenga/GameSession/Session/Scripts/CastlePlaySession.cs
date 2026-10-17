@@ -135,6 +135,7 @@ namespace DeadlyJenga.CastlePrototype
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
+            if (!PlayingHand && NetworkActors.Alive(Player) && Player.transform.position.y < -6) RespawnPlayer();
         }
     }
 }

@@ -23,7 +23,8 @@ May use: Core only. Ask the map through Services.World (IWorldQuery), never Worl
 ## Rules
 - Never call HUD, audio or session code. Raise GameEvents or expose read-only values.
 - Never draw UI. Settings are exposed as values (ISurvivorSettings.CurrentRules) and
-  Presentation draws them.
+  Presentation draws them. Reading XR Interaction Toolkit interactor state (e.g. a ray hovering
+  UI, to pose the hand as pointing) is fine; that is the body reacting, not drawing UI.
 - A character may set the materials and colors of its own model (its body); everything
   else seen or heard belongs to Presentation.
 - Test benches and lab scenes go in DevTools (e.g. DevTools/Scenes/CandyHandContactLab).

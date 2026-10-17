@@ -51,6 +51,11 @@ public class LocalHandInput : MonoBehaviour, DeadlyJenga.Core.ILocalPlayerInput
             Debug.LogError("LocalHandInput cannot find the local controller visuals. Assign Left Visual and Right Visual on the local XR rig.", this);
         if(candyAvatar)
         {
+            if(candyAvatar.tracking)
+            {
+                candyAvatar.tracking.leftController = leftVisual ? leftVisual.parent : null;
+                candyAvatar.tracking.rightController = rightVisual ? rightVisual.parent : null;
+            }
             foreach(var visual in new[]{leftVisual,rightVisual})if(visual)foreach(var renderer in visual.GetComponentsInChildren<Renderer>())renderer.forceRenderingOff=true;
         }
     }

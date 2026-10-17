@@ -65,7 +65,9 @@ Services (Core/Services):
 - Services.Session (ISessionInfo): menu, role (survivor/hand), Player and Hand (IPlayableCharacter),
   IsVR, ActiveCamera, CanEditWorld, ResetMap, SurvivorBots/HandBots, Multiplayer. Set by GameSession.
 - Services.Lobby (ILobbyControls): host, join, leave, start/cancel countdown, solo practice,
-  room label. Set by GameSession (LobbyConnection) while the Lobby scene is open.
+  room label, connection status and messages, who can edit (the host), and the shared lobby
+  screen (the host publishes its page and placement; others follow). Set by GameSession
+  (LobbyConnection) while the Lobby scene is open.
 - Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
   Blocks, Center, TopHeight, Radius, StepHeight. Set by the active map.
 - IRebuildable: Rebuild(). The active map implements it (the reset-castle button).
