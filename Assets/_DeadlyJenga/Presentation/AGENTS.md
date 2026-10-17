@@ -7,6 +7,8 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
 - Audio: CandyAudio (engine, bank, studio, block/player/hand audio).
 - Visuals: CandyTropicalArt, Crate Visual, Block Appearance asset, materials,
   OceanFlow, skybox and texture folders, CandyHudVisuals, CandyStaminaHud.
+  Menus/: CandyDemoHud (desktop menu + hints), CastleWorldMenu (VR menu), SessionPresentation
+  (attaches menus, HUD and stamina bar on GameEvents.SessionStarted).
 
 ## How it plugs in
 - Listen to GameEvents (Pushed, Damaged, Eliminated, EffectStarted/Ended,
@@ -21,6 +23,6 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
 - Keep originals in "Assets For Texture (BETA)". Make new variants instead.
 
 ## Next up
-- Audio still attaches components to players, hands and blocks by searching the scene
-  and reading their state. Allowed by the levels, but new sounds should use GameEvents,
-  and existing ones can move over time.
+- Audio attaches itself to anything in Tracked.Movers / Flyers and Services.World.Blocks
+  and reads Core state. New sounds should listen to GameEvents (Pushed, Damaged and the
+  hazard events have no listener yet).

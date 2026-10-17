@@ -61,7 +61,9 @@ Data (Core/Data):
 - Layers: Survivor, Block, Surface.
 
 Services (Core/Services):
-- Services.Session (ISessionInfo): MenuOpen, SetMenu. Set by GameSession.
+- Services.Session (ISessionInfo): menu, role (survivor/hand), Player and Hand (IPlayableCharacter),
+  IsVR, ActiveCamera, CanEditWorld, ResetMap, SurvivorBots/HandBots, Multiplayer. Set by GameSession.
+- Services.Audio (IAudioControls): volumes, UI click, sound studio. Set by Presentation.
 - Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
   Blocks, Center, TopHeight, Radius, StepHeight. Set by the active map.
 - IRebuildable: Rebuild(). The active map implements it (the reset-castle button).
@@ -74,13 +76,28 @@ State (Core/State) - read-only views for sound, HUD and bots:
 - IPlayerView: the local player's camera, VR flag and stamina status (for HUDs).
 - Tracked.Movers / Tracked.Flyers: characters add themselves in OnEnable, remove in OnDisable.
 
+Session (Core/Session) - what the session, menus and lobby use:
+- IPlayableCharacter: the local survivor or hand (camera, VR, input pause, Place, status).
+- ISurvivorSettings: comfort/turning, stamina rules, FitJump, ApplyMatchRules, TryStandOn.
+- MatchRules + MatchOptions: lobby choices; Characters fills the option lists on load.
+- IBotPopulation / ISurvivorBotPopulation + BotSystems.Create: bots without naming bot classes.
+- IMultiplayerControls (the menus' multiplayer page), ILocalPlayerInput (lobby Photon input),
+  IAudioControls, ISessionHud.
+
+Network (Core/Network) - characters pack their own network state:
+- INetworkActor (NetworkKind, NetworkActive, NetworkPosition, WriteState) on local characters;
+  NetworkActors.Local lists them. INetworkActorView = a remote copy (ReadState, Render, Suspend).
+- NetworkActors.Register/CreateView/WriteSpawn: Characters registers one maker per NetworkKinds kind.
+- NetWire: validated read/write helpers. INetworkPreview: joined machines preview their own hand.
+
 Events (Core/Events/GameEvents): BlockHit, Pushed, Damaged, Eliminated,
-EffectStarted, EffectEnded, HazardStarted, HazardEnded, Emoted, RoundStarted, RoundEnded.
+EffectStarted, EffectEnded, HazardStarted, HazardEnded, Emoted, RoundStarted, RoundEnded,
+SessionStarted (Presentation attaches menus/HUD here).
 Whoever causes something raises it (GameEvents.RaiseX). Whoever cares subscribes
 in OnEnable and unsubscribes in OnDisable/OnDestroy.
 
 Test stand-ins (Core/Testing): TestDummy (implements the character abilities and
-logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
+logs), FakeWorldQuery, FakeSession. Use them to test against something that doesn't exist yet.
 
 ### Changing Core
 - Only ADD. Never rename or change an existing member.
@@ -101,8 +118,9 @@ logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
 3. Lower boxes only ADD to what they expose. Never rename or remove a public
    member another box uses unless the task says so.
 4. If a feature you depend on does not exist yet, build against a Core
-   interface and test with a stand-in in your box's Sandbox scene.
-5. Every box must run in its own Sandbox scene with stand-ins for anything above it.
+   interface and test with a stand-in (Core/Testing).
+5. Before merging, Game.unity still plays solo; networking changes also get a
+   two-player Multiplayer Play Mode test.
 
 ## Unity and files
 - Move/rename assets only through the Unity Editor (or Unity MCP asset tools),
@@ -120,7 +138,7 @@ logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
   in Photon's NetworkProjectConfig "Assemblies To Weave" (Characters, GameSession).
 
 ## Unity MCP
-- Edit only prefabs and the Sandbox scene of your task's box.
+- Edit only prefabs of your task's box (and your own scratch scenes).
 - Never save Lobby.unity or Game.unity unless it is a GameSession task.
 - Do not run builder/installer menu commands that regenerate scenes or
   prefabs unless the task asks for it.

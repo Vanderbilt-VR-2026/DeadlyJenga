@@ -8,9 +8,14 @@ Core uses nothing. Namespace: DeadlyJenga.Core.
               IGrabbable, Climbables (find the IClimbable behind a collider).
 - Data/       EffectType and HazardType (ScriptableObject assets), Effect,
               IHazard, Layers.
-- Services/   Services (Session, World), ISessionInfo, IWorldQuery.
+- Services/   Services (Session, World, Audio), ISessionInfo, IWorldQuery, ISyncedWorld,
+              IRebuildable, IMapFootprint.
+- State/      IMovementState, IFlyingState, IPlayerView, Tracked.
+- Session/    IPlayableCharacter, ISurvivorSettings, MatchRules, MatchOptions, bot contracts
+              (IBotPopulation, BotSystems), IMultiplayerControls, IAudioControls, ILocalPlayerInput.
+- Network/    INetworkActor, INetworkActorView, NetworkActors, NetworkKinds, NetWire, INetworkPreview.
 - Events/     GameEvents.
-- Testing/    TestDummy, FakeWorldQuery, FakeSession for Sandbox scenes.
+- Testing/    TestDummy, FakeWorldQuery, FakeSession (stand-ins for testing).
 - Editor/     ProjectPath (editor tools find assets by name).
 
 ## Rules
@@ -23,5 +28,4 @@ Core uses nothing. Namespace: DeadlyJenga.Core.
 
 ## Not built yet (add when the feature that needs it starts)
 - Round info on ISessionInfo (round time, survivors left, hand count).
-- A way for boxes to hand their state to networking (design with whoever owns Photon).
 - IClaimable / points events for team modes.
