@@ -20,21 +20,23 @@ namespace DeadlyJenga.CastlePrototype
         public sealed class Datagram { public byte[] Data; public IPEndPoint Endpoint; }
         readonly UdpClient udp;
         readonly TcpListener listener;
+        readonly IPAddress bindAddress;
         readonly ConcurrentDictionary<Link, byte> links = new ConcurrentDictionary<Link, byte>();
         volatile bool disposed;
         public int Port => ((IPEndPoint)listener.LocalEndpoint).Port;
 
-        public CastleLanTransport()
+        public CastleLanTransport(IPAddress localAddress = null)
         {
+            bindAddress=localAddress??IPAddress.Any;
             try
             {
                 udp = new UdpClient(AddressFamily.InterNetwork);
                 udp.Client.ExclusiveAddressUse = false;
                 udp.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                udp.Client.Bind(new IPEndPoint(IPAddress.Any, DiscoveryPort));
+                udp.Client.Bind(new IPEndPoint(bindAddress, DiscoveryPort));
                 udp.EnableBroadcast = true;
                 udp.Client.SendTimeout = 200;
-                listener = new TcpListener(IPAddress.Any, 0);
+                listener = new TcpListener(bindAddress, 0);
                 listener.Start();
                 StartThread(ReceiveDiscovery); StartThread(Accept);
             }
@@ -86,6 +88,7 @@ namespace DeadlyJenga.CastlePrototype
             StartThread(() =>
             {
                 var client = new TcpClient(AddressFamily.InterNetwork);
+                if(!bindAddress.Equals(IPAddress.Any))client.Client.Bind(new IPEndPoint(bindAddress,0));
                 try
                 {
                     var pending = client.BeginConnect(address, port, null, null);
@@ -109,7 +112,9 @@ namespace DeadlyJenga.CastlePrototype
         public sealed class Link : IDisposable
         {
             public readonly ConcurrentQueue<byte[]> Controls = new ConcurrentQueue<byte[]>();
+            public readonly ConcurrentQueue<byte[]> Audio = new ConcurrentQueue<byte[]>();
             readonly ConcurrentQueue<byte[]> outgoing = new ConcurrentQueue<byte[]>();
+            readonly ConcurrentQueue<byte[]> audioOutgoing = new ConcurrentQueue<byte[]>();
             readonly TcpClient client;
             readonly NetworkStream stream;
             readonly AutoResetEvent wake = new AutoResetEvent(false);
@@ -135,6 +140,14 @@ namespace DeadlyJenga.CastlePrototype
                 wake.Set();
             }
             public byte[] TakeState() => Interlocked.Exchange(ref latestIncoming, null);
+            // Loss-tolerant bounded audio stays separate from reliable control and
+            // latest world state. TCP still has head-of-line latency on packet loss.
+            public void SendAudio(byte[] data)
+            {
+                if(Closed||data==null||data.Length>3500||data.Length<1||data[0]!=5)return;
+                while(audioOutgoing.Count>=8)audioOutgoing.TryDequeue(out _);
+                audioOutgoing.Enqueue(data);wake.Set();
+            }
             void Read()
             {
                 try
@@ -146,7 +159,8 @@ namespace DeadlyJenga.CastlePrototype
                         if (size < 1 || size > MaxPacket) throw new InvalidDataException("Invalid LAN frame length");
                         var data = reader.ReadBytes(size);
                         if (data.Length != size) throw new EndOfStreamException();
-                        if (data[0] == 3 || data[0] == 4) Interlocked.Exchange(ref latestIncoming, data);
+                        if(data[0]==5){while(Audio.Count>=8)Audio.TryDequeue(out _);Audio.Enqueue(data);}
+                        else if (data[0] == 3 || data[0] == 4) Interlocked.Exchange(ref latestIncoming, data);
                         else if (Controls.Count < 32) Controls.Enqueue(data);
                         else throw new InvalidDataException("Too many LAN control messages");
                     }
@@ -161,7 +175,12 @@ namespace DeadlyJenga.CastlePrototype
                     using (var writer = new BinaryWriter(stream, System.Text.Encoding.UTF8, true))
                     while (!Closed)
                     {
-                        if (!outgoing.TryDequeue(out var data)) data = Interlocked.Exchange(ref latestOutgoing, null);
+                        if (!outgoing.TryDequeue(out var data))
+                        {
+                            // Always service world state between audio chunks.
+                            data = Interlocked.Exchange(ref latestOutgoing, null);
+                            if(data==null)audioOutgoing.TryDequeue(out data);
+                        }
                         if (data == null) { wake.WaitOne(500); continue; }
                         writer.Write(data.Length); writer.Write(data); writer.Flush();
                     }

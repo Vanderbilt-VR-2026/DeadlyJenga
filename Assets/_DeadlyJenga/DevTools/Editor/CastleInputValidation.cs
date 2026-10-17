@@ -78,6 +78,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 yield return new WaitForSeconds(.2f);
                 Check("Input-only HMD keeps desktop mode", !p.IsVR);
                 Vector3 before = p.transform.position;
+                // A batch editor cannot acquire an OS mouse lock; desktop input is checked in an interactive editor.
+                if(!Application.isBatchMode)
+                {
                 InputSystem.QueueStateEvent(keys, new KeyboardState(Key.W));
                 yield return new WaitForSeconds(.2f);
                 InputSystem.QueueStateEvent(keys, new KeyboardState());
@@ -108,6 +111,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 yield return new WaitForSeconds(.6f);
                 Check("Hand W/E moves physics body", session.HandActor().motor.Body.position.z > before.z + .3f && session.HandActor().motor.Body.position.y > before.y + .2f);
                 InputSystem.QueueStateEvent(keys, new KeyboardState()); yield return null; yield return null;
+                }
+                else report.AppendLine("SKIP Desktop keyboard/mouse and hand flight: batch mode cannot acquire mouse capture. Run this suite interactively for those checks.");
                 session.SetRole(false); p.controlMode = ControlMode.VR; p.RefreshMode(); session.SetMenu(false);
                 p.Teleport(new Vector3(100, 10.04f, 96), Quaternion.identity); Physics.SyncTransforms();
                 yield return new WaitForSeconds(.2f); before = p.transform.position;

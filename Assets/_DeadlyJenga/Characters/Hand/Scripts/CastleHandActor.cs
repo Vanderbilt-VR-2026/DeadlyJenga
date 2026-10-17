@@ -33,6 +33,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool HasHandTracking => HandTracking && HandTracking.HasHandTracking;
         public bool MenuPressed => HandTracking && HandTracking.LeftMenuPressed;
         public bool SelectPressed => HandTracking && HandTracking.RightPinchPressed;
+        public bool SelectHeld => HandTracking && HandTracking.RightPinching;
         public string StatusText => "";
         public void PrepareForSession()
         {
@@ -46,6 +47,7 @@ namespace DeadlyJenga.CastlePrototype
             motor.Body.position = position; motor.Body.rotation = rotation;
             motor.Body.linearVelocity = Vector3.zero; motor.Body.angularVelocity = Vector3.zero;
             motor.transform.SetPositionAndRotation(position, rotation);
+            if(Bridge)Bridge.ResetTrackingRig();
             follow.SnapToTarget();
         }
     }

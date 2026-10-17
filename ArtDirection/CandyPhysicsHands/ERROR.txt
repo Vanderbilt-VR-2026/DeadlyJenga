@@ -1,0 +1,5 @@
+System.InvalidOperationException: This can only be used during play mode, please use EditorSceneManager.NewScene() instead.
+  at (wrapper managed-to-native) UnityEngine.SceneManagement.SceneManager.CreateScene_Injected(UnityEngine.Bindings.ManagedSpanWrapper&,UnityEngine.SceneManagement.CreateSceneParameters&,UnityEngine.SceneManagement.Scene&)
+  at UnityEngine.SceneManagement.SceneManager.CreateScene (System.String sceneName, UnityEngine.SceneManagement.CreateSceneParameters parameters) [0x00039] in <4188a0f79dff4b4191dbeaff03bfe462>:0 
+  at DeadlyJenga.CandyPhysicsHands.Editor.CandyHandInstaller.Sweep () [0x0001a] in C:\Users\evanp\Downloads\DeadlyJenga\Assets\CandyPhysicsHands\Editor\CandyHandInstaller.cs:141 
+  at DeadlyJenga.CandyPhysicsHands.Editor.CandyHandInstaller+<>c.<.cctor>b__5_0 () [0x00068] in C:\Users\evanp\Downloads\DeadlyJenga\Assets\CandyPhysicsHands\Editor\CandyHandInstaller.cs:28 

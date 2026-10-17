@@ -1,0 +1,82 @@
+Draft maps, Game and lobby Play Mode validation
+PASS MapDrafterEvan1: world has valid playable bounds
+PASS MapDrafterEvan1: skybox is assigned
+PASS MapDrafterEvan1: local player spawns
+PASS MapDrafterEvan1: map starts without blocks
+PASS MapDrafterEvan1: empty map reports its actual ground height, not the absent tower
+PASS MapDrafterEvan1: sand terrain generates
+PASS MapDrafterEvan1: ocean mesh generates
+PASS MapDrafterEvan1: empty network layout round-trips
+PASS MapDrafterEvan1: rebuild preserves empty map
+PASS MapDrafterEvan1: nonempty network layout is rejected
+PASS MapDrafterEvan2: world has valid playable bounds
+PASS MapDrafterEvan2: skybox is assigned
+PASS MapDrafterEvan2: local player spawns
+PASS MapDrafterEvan2: map starts without blocks
+PASS MapDrafterEvan2: empty map reports its actual ground height, not the absent tower
+PASS MapDrafterEvan2: sand terrain generates
+PASS MapDrafterEvan2: ocean mesh generates
+PASS MapDrafterEvan2: empty network layout round-trips
+PASS MapDrafterEvan2: rebuild preserves empty map
+PASS MapDrafterEvan2: nonempty network layout is rejected
+PASS MapDrafterLuke1: world has valid playable bounds
+PASS MapDrafterLuke1: skybox is assigned
+PASS MapDrafterLuke1: local player spawns
+PASS MapDrafterLuke1: map starts without blocks
+PASS MapDrafterLuke1: empty map reports its actual ground height, not the absent tower
+PASS MapDrafterLuke1: sand terrain generates
+PASS MapDrafterLuke1: ocean mesh generates
+PASS MapDrafterLuke1: empty network layout round-trips
+PASS MapDrafterLuke1: rebuild preserves empty map
+PASS MapDrafterLuke1: nonempty network layout is rejected
+PASS MapDrafterLuke2: world has valid playable bounds
+PASS MapDrafterLuke2: skybox is assigned
+PASS MapDrafterLuke2: local player spawns
+PASS MapDrafterLuke2: map starts without blocks
+PASS MapDrafterLuke2: empty map reports its actual ground height, not the absent tower
+PASS MapDrafterLuke2: sand terrain generates
+PASS MapDrafterLuke2: ocean mesh generates
+PASS MapDrafterLuke2: empty network layout round-trips
+PASS MapDrafterLuke2: rebuild preserves empty map
+PASS MapDrafterLuke2: nonempty network layout is rejected
+PASS MapDrafterKaleb1: world has valid playable bounds
+PASS MapDrafterKaleb1: skybox is assigned
+PASS MapDrafterKaleb1: local player spawns
+PASS MapDrafterKaleb1: map starts without blocks
+PASS MapDrafterKaleb1: empty map reports its actual ground height, not the absent tower
+PASS MapDrafterKaleb1: sand terrain generates
+PASS MapDrafterKaleb1: ocean mesh generates
+PASS MapDrafterKaleb1: empty network layout round-trips
+PASS MapDrafterKaleb1: rebuild preserves empty map
+PASS MapDrafterKaleb1: nonempty network layout is rejected
+PASS MapDrafterKaleb2: world has valid playable bounds
+PASS MapDrafterKaleb2: skybox is assigned
+PASS MapDrafterKaleb2: local player spawns
+PASS MapDrafterKaleb2: map starts without blocks
+PASS MapDrafterKaleb2: empty map reports its actual ground height, not the absent tower
+PASS MapDrafterKaleb2: sand terrain generates
+PASS MapDrafterKaleb2: ocean mesh generates
+PASS MapDrafterKaleb2: empty network layout round-trips
+PASS MapDrafterKaleb2: rebuild preserves empty map
+PASS MapDrafterKaleb2: nonempty network layout is rejected
+PASS Game: world has valid playable bounds
+PASS Game: skybox is assigned
+PASS Game: local player spawns
+PASS Game: castle still generates blocks
+PASS Lobby: world has valid playable bounds
+PASS Lobby: skybox is assigned
+PASS Lobby: local player spawns
+PASS Lobby: MapDrafterEvan1 is registered for launch
+PASS Lobby: MapDrafterEvan1 fits on the map selector
+PASS Lobby: MapDrafterEvan2 is registered for launch
+PASS Lobby: MapDrafterEvan2 fits on the map selector
+PASS Lobby: MapDrafterLuke1 is registered for launch
+PASS Lobby: MapDrafterLuke1 fits on the map selector
+PASS Lobby: MapDrafterLuke2 is registered for launch
+PASS Lobby: MapDrafterLuke2 fits on the map selector
+PASS Lobby: MapDrafterKaleb1 is registered for launch
+PASS Lobby: MapDrafterKaleb1 fits on the map selector
+PASS Lobby: MapDrafterKaleb2 is registered for launch
+PASS Lobby: MapDrafterKaleb2 fits on the map selector
+PASS Lobby: original castle remains selectable
+PASSED: all eight scenes; no runtime errors.

@@ -15,11 +15,14 @@ namespace DeadlyJenga.Core.Testing
         public bool IsVR => false;
         public Camera ActiveCamera => Camera.main;
         public bool MenuSelectPressed => false;
+        public bool MenuSelectHeld => false;
         public bool CanEditWorld => true;
         public void ResetMap() => Debug.Log("FakeSession: reset map", this);
         public ISurvivorBotPopulation SurvivorBots => null;
         public IBotPopulation HandBots => null;
         public IMultiplayerControls Multiplayer => null;
+        public IDemoControls Demo => null;
+        public ISocialControls Social => null;
 
         void OnEnable() => Services.Session = this;
         void OnDisable() { if (ReferenceEquals(Services.Session, this)) Services.Session = null; }

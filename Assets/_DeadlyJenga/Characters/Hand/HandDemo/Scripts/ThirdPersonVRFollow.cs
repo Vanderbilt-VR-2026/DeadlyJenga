@@ -120,14 +120,17 @@ namespace FlyingHand
             if(followYaw)
             {
                 float delta=Mathf.DeltaAngle(yaw,target.eulerAngles.y);
-                if(vr&&vrSnapYaw){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step)yaw+=Mathf.Round(delta/step)*step;}
+                if(vr&&vrSnapYaw){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
                 else yaw=Mathf.LerpAngle(yaw,target.eulerAngles.y,1-Mathf.Exp(-yawResponse*dt));
             }
             Quaternion rotation=Quaternion.Euler(0,yaw,0);
             float d=compactHandView?handViewDistance:distance,h=compactHandView?handViewHeight:height;
             Vector3 desired=FollowPosition+rotation*new Vector3(0,h,-d);
             desired-=ViewOffset(rotation);
-            transform.position=Vector3.SmoothDamp(transform.position,desired,ref velocity,positionSmoothTime,Mathf.Infinity,dt);
+            // The motor already interpolates flight. A second spring makes VR drift
+            // after release and sweeps the camera around the hand after snap turns.
+            if(vr){transform.position=desired;velocity=Vector3.zero;}
+            else transform.position=Vector3.SmoothDamp(transform.position,desired,ref velocity,positionSmoothTime,Mathf.Infinity,dt);
             // Bounded lag keeps a blocked/fast-moving visible hand within the observer's reach.
             transform.position=desired+Vector3.ClampMagnitude(transform.position-desired,Mathf.Max(.1f,maximumFollowLag));
             transform.rotation=rotation;

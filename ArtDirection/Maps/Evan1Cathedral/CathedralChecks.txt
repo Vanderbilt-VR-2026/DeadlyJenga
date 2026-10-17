@@ -1,0 +1,91 @@
+Evan 1 · giant cathedral
+PASS The cathedral layout is selected
+PASS Layout fits the existing snapshot block-count contract: 6098
+PASS No intersecting blocks in any course (or duplicate placements)
+PASS Every elevated block's centre of mass is inside its actual bearing polygon
+PASS Serialized map settings regenerate exactly the same ordered block layout
+PASS Giant footprint and spire height: (156.00, 179.00, 159.00) / top 180
+Geometry/bearing checks are necessary, not proof of whole-structure stability. Gravity simulation follows.
+PASS Full scene instantiates the identical physical block prefab
+PASS Every structural block is dynamic, with gravity enabled
+PASS World bounds and top spawn match the cathedral
+PASS Current survivor prefab spawns on the highest spire
+Gravity: 0.5 simulated seconds; 0.5 wall seconds
+Gravity: 1.0 simulated seconds; 1.3 wall seconds
+Gravity: 1.5 simulated seconds; 1.8 wall seconds
+Gravity: 2.0 simulated seconds; 2.3 wall seconds
+Gravity: 2.5 simulated seconds; 2.7 wall seconds
+Gravity: 3.0 simulated seconds; 3.1 wall seconds
+Gravity: 3.5 simulated seconds; 3.5 wall seconds
+Gravity: 4.0 simulated seconds; 3.9 wall seconds
+Gravity: 4.5 simulated seconds; 4.2 wall seconds
+Gravity: 5.0 simulated seconds; 4.5 wall seconds
+Gravity: 5.5 simulated seconds; 4.8 wall seconds
+Gravity: 6.0 simulated seconds; 5.0 wall seconds
+Gravity: 6.5 simulated seconds; 5.2 wall seconds
+Gravity: 7.0 simulated seconds; 5.4 wall seconds
+Gravity: 7.5 simulated seconds; 5.6 wall seconds
+Gravity: 8.0 simulated seconds; 5.8 wall seconds
+Gravity: 8.5 simulated seconds; 6.0 wall seconds
+Gravity: 9.0 simulated seconds; 6.2 wall seconds
+Gravity: 9.5 simulated seconds; 6.3 wall seconds
+Gravity: 10.0 simulated seconds; 6.5 wall seconds
+Gravity: 10.5 simulated seconds; 6.7 wall seconds
+Gravity: 11.0 simulated seconds; 6.8 wall seconds
+Gravity: 11.5 simulated seconds; 6.9 wall seconds
+Gravity: 12.0 simulated seconds; 7.0 wall seconds
+Gravity: 12.5 simulated seconds; 7.1 wall seconds
+Gravity: 13.0 simulated seconds; 7.2 wall seconds
+Gravity: 13.5 simulated seconds; 7.2 wall seconds
+Gravity: 14.0 simulated seconds; 7.3 wall seconds
+Gravity: 14.5 simulated seconds; 7.4 wall seconds
+Gravity: 15.0 simulated seconds; 7.5 wall seconds
+Gravity: 15.5 simulated seconds; 7.6 wall seconds
+Gravity: 16.0 simulated seconds; 7.7 wall seconds
+Gravity: 16.5 simulated seconds; 7.8 wall seconds
+Gravity: 17.0 simulated seconds; 7.9 wall seconds
+Gravity: 17.5 simulated seconds; 7.9 wall seconds
+Gravity: 18.0 simulated seconds; 8.0 wall seconds
+Gravity: 18.5 simulated seconds; 8.1 wall seconds
+Gravity: 19.0 simulated seconds; 8.2 wall seconds
+Gravity: 19.5 simulated seconds; 8.2 wall seconds
+Gravity: 20.0 simulated seconds; 8.3 wall seconds
+Gravity: 20.5 simulated seconds; 8.4 wall seconds
+Gravity: 21.0 simulated seconds; 8.5 wall seconds
+Gravity: 21.5 simulated seconds; 8.6 wall seconds
+Gravity: 22.0 simulated seconds; 8.6 wall seconds
+Gravity: 22.5 simulated seconds; 8.7 wall seconds
+Gravity: 23.0 simulated seconds; 8.8 wall seconds
+Gravity: 23.5 simulated seconds; 8.9 wall seconds
+Gravity: 24.0 simulated seconds; 8.9 wall seconds
+Gravity: 24.5 simulated seconds; 9.0 wall seconds
+Gravity: 25.0 simulated seconds; 9.1 wall seconds
+Gravity: 25.5 simulated seconds; 9.2 wall seconds
+Gravity: 26.0 simulated seconds; 9.3 wall seconds
+Gravity: 26.5 simulated seconds; 9.3 wall seconds
+Gravity: 27.0 simulated seconds; 9.4 wall seconds
+Gravity: 27.5 simulated seconds; 9.5 wall seconds
+Gravity: 28.0 simulated seconds; 9.6 wall seconds
+Gravity: 28.5 simulated seconds; 9.7 wall seconds
+Gravity: 29.0 simulated seconds; 9.8 wall seconds
+Gravity: 29.5 simulated seconds; 9.9 wall seconds
+Gravity: 30.0 simulated seconds; 10.0 wall seconds
+Settling: maximum translation 0.242196m; rotation 0deg; moved >0.5m 0 / 6098; simulation wall time 10.0021443s
+Sleeping after settling: 6098 / 6098
+Height band 0–40m: shifted 0 / 3134
+Height band 40–80m: shifted 0 / 1916
+Height band 80–120m: shifted 0 / 716
+Height band 120–160m: shifted 0 / 260
+Height band 160–200m: shifted 0 / 72
+Keep_Course89_Block703 start (-9.98, 178.99, 4.13) drift 0.242196
+Keep_Course88_Block702 start (-9.98, 176.99, 4.13) drift 0.2410533
+Keep_Course87_Block701 start (-9.98, 174.99, 4.13) drift 0.2400249
+Keep_Course86_Block700 start (-9.98, 172.99, 4.13) drift 0.2386796
+Keep_Course85_Block699 start (-9.98, 170.99, 4.13) drift 0.2377068
+Keep_Course84_Block698 start (-9.98, 168.99, 4.13) drift 0.2361812
+Keep_Course87_Block711 start (-4.13, 174.99, 9.98) drift 0.2356501
+Keep_Course83_Block697 start (-9.98, 166.99, 4.13) drift 0.2352752
+PASS Whole cathedral remains standing after thirty simulated seconds of unconstrained gravity
+PASS Cathedral enters Play Mode without runtime errors
+PASS Map/disaster catalog validation runs
+COMPLETE: layout, gravity, spawn and bounds. Not a Quest performance or live two-headset test.

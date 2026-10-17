@@ -1,0 +1,1 @@
+Position (59.58, 82.01, 2.40); jumps 1; vaults 1; intent Finding safer footing; goal (58.32, 82.00, 2.40)

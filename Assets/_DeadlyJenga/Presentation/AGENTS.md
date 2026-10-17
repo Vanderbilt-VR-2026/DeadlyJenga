@@ -28,6 +28,9 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
 - Menus send the player's requests through Core commands; the owning box decides.
   Never change gameplay state any other way.
 - Keep originals in "Assets For Texture (BETA)". Make new variants instead.
+- CandyTsunamiVisuals reads Core IWaveState. Keep its shader profile and ocean mask consistent
+  with the World tsunami surface profile. The map supplies water level; materials supply the look.
+  No particle collisions, mesh colliders or gameplay force calls belong in this visual.
 
 ## Next up
 - Audio attaches itself to anything in Tracked.Movers / Flyers and Services.World.Blocks

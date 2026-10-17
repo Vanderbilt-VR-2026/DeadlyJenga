@@ -1,0 +1,43 @@
+Three lobby stations / giant physical keyboard
+PASS Exactly three stations replace the previous terminal cluster
+PASS Lobby displays the castle skybox through the shared character camera
+PASS Joining starts active while map and mode choices start locked
+PASS Optional candy resort builds its own Visual child
+PASS Resort art adds no colliders or rigidbodies
+PASS Resort geometry stays within ten static color batches and 65k vertices
+PASS Oversized piano keyboard has a solid static case over 3.8 metres wide
+PASS Every keyboard key has a raised rounded 3D cap
+PASS Keyboard accepts A
+PASS Keyboard accepts S
+PASS Keyboard accepts I
+PASS Keyboard accepts A
+PASS Keyboard accepts -
+PASS Keyboard accepts A
+PASS Keyboard accepts B
+PASS Keyboard accepts C
+PASS Keyboard accepts 2
+PASS Keyboard accepts 3
+PASS Keyboard accepts 4
+PASS Keyboard supports full region-qualified room codes
+PASS Physical fingertip contact presses a 3D key
+PASS Holding a fingertip on a key does not repeat characters
+PASS Lifting and pressing again re-arms a physical key
+PASS The large code box focuses desktop typing
+PASS Desktop keyboard text enters the same world-space code field
+PASS Large Detect Nearby button opens the picker
+PASS Compatible LAN rooms populate the nearby picker
+PASS Nearby result displays its regular Fusion join code
+PASS Nearby picker can return to direct code entry
+PASS Become Host is available on the second station
+PASS Choosing host immediately deactivates join controls and keyboard
+PASS Host connection completes
+PASS Real Fusion hosting succeeds: Room US-RRXCHV · you are host
+PASS Hosting unlocks Map + Mode while keeping Join disabled
+PASS Host can invite nearby players from the host station
+PASS Placeholder remains unavailable for launch
+PASS Compact map arrows and mode selection preserve launch eligibility
+PASS Abandon Hosting uses the existing clean room-leave flow
+PASS Abandoning hosting closes the Fusion room
+PASS Leaving hosting restores Join and locks Map + Mode
+PASS Lobby stations and input run without errors
+COMPLETE: editor contact simulation, native text input, LAN packet receive and real Fusion host/leave. Physical headset touch comfort not tested.

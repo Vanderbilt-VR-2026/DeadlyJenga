@@ -1,0 +1,2 @@
+Worst joint position error: 0.01307514 m; angle: 0.2683408 deg. Synthetic 20x articulated hand, clear space.
+Moving wrist worst position error: 0.08956224 m; angle: 1.945142 deg.

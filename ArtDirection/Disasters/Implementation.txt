@@ -1,0 +1,43 @@
+Deadly Jenga - basic disaster suite
+
+Use the Demo menu > Disasters. Desktop: sliders appear below each launch button.
+VR: choose a disaster, adjust sliders with gaze + held right trigger/pinch, then Launch.
+Settings configure the next launch; they never edit prefab assets or an active event.
+Stop all disasters, map rebuild, scene shutdown and host migration clean up temporary effects.
+Host owns damage/forces/projectiles. Shared demo permission permits guests to request launches.
+All clients need this updated build: the lobby compatibility fingerprint includes disasters-1.
+
+Controls
+Tsunami: speed (m/s), push/lift multiplier, height (m), width (m; zero fits map), warning.
+Meteor shower: average diameter and standard deviation (m), meteors/second, impact velocity change (m/s), warning, duration.
+Planet killer: diameter (10-150 m), warning. One sphere, ends after impact/miss cleanup; no artificial timer cuts its flight short.
+Tornado: height, funnel diameter, ferocity (acceleration), pull-in distance, warning, duration. Pulls, swirls and lifts; moves slowly across the map.
+Fire: player contact damage (HP/s), contact time before spread, initial burning block count, warning, duration. Distinct random seeds; nearby blocks ignite progressively. Burning blocks are not destroyed or consumed.
+Icey: slipperiness, warning. Toggle again to stop. Changes block/surface collision materials temporarily and gives survivors momentum, reduced braking and downhill drift. Does not globally change gravity or permanently edit materials.
+Earthquake: horizontal acceleration, frequency, vertical fraction, warning, duration. Forces/torques shake the existing dynamic tower; the foundation and VR camera are not artificially animated.
+Acid rain: exposed player damage, visual rain density, warning, duration. Uses the map's shelter query; sheltered players are protected. Does not dissolve blocks in this basic version.
+Anti-gravity: upward acceleration, sideways drift, warning, duration. Cancels block gravity and lifts/drifts them; pushes character abilities upward. Stopping restores normal falling rather than freezing bodies in place.
+
+Architecture
+Core DisasterControls.cs: parameter schema, IDemoHazard, read-only DisasterFrame/IDisasterState registry.
+World/Hazards: existing prefab scripts/GUIDs retained; eight formerly empty scripts inherit BasicDisaster. Tsunami retains IWaveTuning and adds generic settings.
+GameSession/Session: menu renders each prefab's parameter schema; host validates command arrays, clamps finite values and configures inactive clones before Begin.
+Non-wave visual frames use a compressed Fusion message at up to 5 Hz, behind existing per-peer world backpressure. Clients extrapolate meteor motion briefly. No client projectile physics.
+Presentation/Visuals: instanced glossy candy balls, flame tongues, lime rain, aqua cyclone swirls, icy gloss and anti-gravity bubbles. No physics colliders or force calls in visual code.
+Characters/Bots: manual survivor/hand spawning is uncapped; optional fill target is separate and fills gradually. Safe spawn-space checks still apply. Hands no longer consume/trim survivor slots. Existing legacy maximumHands field remains for serialized compatibility but no longer gates spawning.
+Characters/Player: reads shared ice state for foot traction, including on remote clients.
+
+Budgets and limits
+128 live swept meteor projectiles maximum; higher requested density waits for slots rather than spawning unbounded physics bodies.
+Fire processes 32 burning sources per 0.1 s, with accumulated contact times; visual flame sampling covers up to 192 burning blocks. Spread/damage are basic proximity/contact approximations with a 0.3 m tolerance.
+Rain caps visible drops at 420. Candy shapes are instanced and do not use particle collisions or per-flame lights.
+Uncapped bots still cost CPU, physics and network bandwidth. Existing bounded network packet sizes remain for safety; uncapped does not mean unlimited hardware capacity.
+Disaster presentation is a basic stylized pass, not smoke/fluid simulation. Gameplay works without Presentation.
+
+Validation
+Tools > Deadly Jenga > Test All Disasters (explicit request runner also supported).
+Tools > Deadly Jenga > Validate Disaster Setup / Test Disaster Map Contract.
+Tools > Deadly Jenga > Validate Terminals and Wave Sliders.
+Reports/screenshots copied beside these notes after the final run.
+Quest performance, bare-hand slider comfort and real two-headset disaster replication still need on-device testing. Desktop stand-ins and receive/encoding tests do not certify those.
+Final checks: 103 disaster assertions and 19 lobby/wave regression assertions passed in Unity Editor. No gameplay error/exception records in the final reports. The map-contract suite also passed. Twelve survivor bots and twelve AI hands coexisted during spawning tests. Real Quest / two-headset disaster validation remains unverified.

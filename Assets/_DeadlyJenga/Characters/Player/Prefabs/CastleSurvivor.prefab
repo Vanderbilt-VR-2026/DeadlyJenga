@@ -204,6 +204,7 @@ GameObject:
   - component: {fileID: 8798164120018315874}
   - component: {fileID: 7994476601969063959}
   - component: {fileID: 1983102345180354341}
+  - component: {fileID: 818148921928100001}
   m_Layer: 8
   m_Name: CastleSurvivor
   m_TagString: Untagged
@@ -291,6 +292,8 @@ MonoBehaviour:
   mouseSensitivity: 0.12
   playerScale: 0.5
   vaultReach: 0.65
+  vaultDetectionWidth: 0.4
+  vaultLandingDepth: 0.12
   vaultMaxRise: 1.25
   vaultDuration: 0.65
 --- !u!114 &1983102345180354341
@@ -343,3 +346,24 @@ Transform:
   - {fileID: 1962070272730888049}
   m_Father: {fileID: 7676078586342783893}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &818148921928100001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5576430228481083361}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c87ee44115734e40a1e8ae05bab01402, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  glowShader: {fileID: 4800000, guid: c87ee44115734e40a1e8ae05bab01403, type: 3}
+  tint: {r: 0.25, g: 0.75, b: 1, a: 0.32}
+  brightness: 1.2
+  edgeSpan: 1.1
+  topDepth: 0.09
+  faceDepth: 0.07
+  surfaceOffset: 0.008
+  fadeSeconds: 0.12
+  shimmer: 0.06

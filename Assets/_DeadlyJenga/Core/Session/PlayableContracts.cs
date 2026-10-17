@@ -14,6 +14,7 @@ namespace DeadlyJenga.Core
         bool HasHandTracking { get; }
         bool MenuPressed { get; }       // hand-tracking menu gesture this frame
         bool SelectPressed { get; }     // hand-tracking select (right pinch) this frame
+        bool SelectHeld { get; }        // hand-tracking select is held (dragging a slider)
         string StatusText { get; }      // one line for the HUD
         void PrepareForSession();       // cameras clear to the sky; hands leave the desktop cursor alone
         void Place(Vector3 position, Quaternion rotation);   // put here, ready to play (survivors are revived)
@@ -32,6 +33,13 @@ namespace DeadlyJenga.Core
         void CycleSmoothTurnSpeed();
         void UseStationaryPreset();
         void UseFluidPreset();
+        // Seated or standing play (standing: turn physically, jump with a hand gesture).
+        bool StandingPlay { get; }
+        void UseStandingPreset();
+        string JumpGestureLabel { get; }       // "IndexPinch" or "Fist"
+        void CycleJumpGesture();
+        void RecalibrateSeatedHeight();
+        string ControlDescription { get; }     // one line describing the current VR controls
         MatchRules CurrentRules { get; }                      // current VR and stamina values; change a copy, then ApplyMatchRules
         void FitJump(float stepHeight, float shortfall);      // jump just short of one map level
         string SaveStaminaRules();                            // host's rules, sent to joining players
@@ -45,6 +53,7 @@ namespace DeadlyJenga.Core
     public sealed class MatchRules
     {
         public string movement = "HeadRelative", turn = "Snap", drainCurve = "Linear", recoveryCurve = "Linear";
+        public string playStyle = "";   // "Seated" or "Standing"; empty keeps this device's saved choice
         public float snapAngle = 30, smoothDegrees = 60, gripSeconds = 4;
         public float drainRate = 1, recoveryRate = .65f, recoveryDelay = .45f, drainDegree = 2, recoveryDegree = 2;
     }
@@ -54,6 +63,7 @@ namespace DeadlyJenga.Core
     {
         public static string[] Movements = { "HeadRelative", "BodyRelative" };
         public static string[] Turns = { "Snap", "Smooth" };
+        public static string[] PlayStyles = { "Seated", "Standing" };
         public static string[] Curves = { "Linear" };
         public static Func<string[]> SurvivorPersonalities = () => new[] { "Default" };
         public static Func<string[]> HandPersonalities = () => new[] { "Playful" };

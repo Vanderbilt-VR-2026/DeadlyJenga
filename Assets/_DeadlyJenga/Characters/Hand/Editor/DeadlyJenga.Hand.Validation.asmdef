@@ -1,0 +1,5 @@
+{
+  "name": "DeadlyJenga.Hand.Validation",
+  "references": ["DeadlyJenga.Characters", "HandDemo.Runtime", "DeadlyJenga.Core", "DeadlyJenga.Core.Editor", "Unity.InputSystem"],
+  "includePlatforms": ["Editor"]
+}

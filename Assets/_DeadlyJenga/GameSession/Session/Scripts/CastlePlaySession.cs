@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     // Runs the match: creates the local survivor and hand, switches between them, respawns,
     // starts bots and networking. Talks to every other box only through Core.
     [DefaultExecutionOrder(200)]
-    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo
+    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo, IWorldAuthority
     {
         [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")]
         public MonoBehaviour survivorPrefab;
@@ -18,19 +18,34 @@ namespace DeadlyJenga.CastlePrototype
         public Camera overviewCamera;
         public bool tuneJumpToBlockHeight=true;
         public float jumpShortfall=.18f;
-        public IPlayableCharacter Player { get; private set; }
-        public IPlayableCharacter Hand { get; private set; }
+        [Header("Next tsunami")]
+        [Range(.5f,30)] public float tsunamiSpeed=8;
+        [Range(0,5)] public float tsunamiForce=1;
+        // TEMPORARY (Evan port, phase 1): concrete classes for the ported Sprint 3 code. Other boxes use the
+        // Core interfaces below. Phase 2 moves the ported code onto the interfaces and removes these.
+        public CastleSurvivor Player { get; private set; }
+        public CastleHandActor Hand { get; private set; }
+        public DeadlyJenga.CastleBots.CastleBotPopulation Bots => SurvivorBots as DeadlyJenga.CastleBots.CastleBotPopulation;
+        public DeadlyJenga.CastleBots.CastleHandBotPopulation HandBots => handBots as DeadlyJenga.CastleBots.CastleHandBotPopulation;
+        public CastleGenerator generator => Services.World as CastleGenerator;
+        IPlayableCharacter ISessionInfo.Player => Player;
+        IPlayableCharacter ISessionInfo.Hand => Hand;
+        IBotPopulation ISessionInfo.HandBots => handBots;
+        IBotPopulation handBots;
         public bool PlayingHand { get; private set; }
         public bool MenuOpen { get; private set; }
-        IPlayableCharacter Active => PlayingHand ? Hand : Player;
+        IPlayableCharacter Active => PlayingHand ? (IPlayableCharacter)Hand : Player;
         public bool IsVR => NetworkActors.Alive(Active) && Active.IsVR;
         public Camera ActiveCamera => NetworkActors.Alive(Active) ? Active.ViewCamera : null;
         public bool MenuSelectPressed => MenuOpen && IsVR && select != null && (select.WasPressedThisFrame() || Active.SelectPressed);
+        public bool MenuSelectHeld => MenuOpen && IsVR && select != null && (select.IsPressed() || Active.SelectHeld);
+        public bool HasWorldAuthority => !Network || !Network.IsClient;
         public Vector3 LastSpawnFeet { get; private set; }
         public ISurvivorBotPopulation SurvivorBots { get; private set; }
-        public IBotPopulation HandBots { get; private set; }
         public CastleLanSession Network { get; private set; }
         public IMultiplayerControls Multiplayer => Network;
+        public IDemoControls Demo { get; private set; }
+        public ISocialControls Social { get; private set; }
         public bool CanEditWorld => !Network || Network.CanEditWorld;
         InputAction switchRole, toggleMenu, select;
         bool wasVR, focused = true;
@@ -40,9 +55,9 @@ namespace DeadlyJenga.CastlePrototype
             Services.Session = this;
             GameEvents.Eliminated += OnEliminated;
             if (overviewCamera) overviewCamera.gameObject.SetActive(false);
-            Player = Instantiate(survivorPrefab).GetComponent<IPlayableCharacter>(); Player.gameObject.name = "Survivor (local)";
+            Player = Instantiate(survivorPrefab).GetComponent<CastleSurvivor>(); Player.gameObject.name = "Survivor (local)";
             TuneJump();
-            Hand = Instantiate(handPrefab).GetComponent<IPlayableCharacter>(); Hand.gameObject.name = "Flying Hand (local)";
+            Hand = Instantiate(handPrefab).GetComponent<CastleHandActor>(); Hand.gameObject.name = "Flying Hand (local)";
             Player.PrepareForSession(); Hand.PrepareForSession();
             switchRole = new InputAction("Switch role", InputActionType.Button, "<XRController>{RightHand}/secondaryButton");
             toggleMenu = new InputAction("Demo menu", InputActionType.Button, "<XRController>{LeftHand}/secondaryButton");
@@ -51,8 +66,9 @@ namespace DeadlyJenga.CastlePrototype
             SetRole(false); SetMenu(false);
             BotSystems.Create(gameObject, new BotSetup { player = Player, hand = Hand, survivorPrefab = survivorPrefab, handPrefab = handPrefab, isPlayingHand = () => PlayingHand },
                 out var survivorBots, out var handBots);
-            SurvivorBots = survivorBots; HandBots = handBots;
-            var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
+            SurvivorBots = survivorBots; this.handBots = handBots;
+            var room = IslandRoomConnection.Instance;
+            var runner = room && room.Connected ? room.Runner : NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)
             {
                 Network = gameObject.AddComponent<CastleLanSession>();
@@ -64,6 +80,9 @@ namespace DeadlyJenga.CastlePrototype
                 Network.Initialize(this);
             }
             MatchSetup.Apply(this);
+            var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);
+            Demo = new SessionDemoControls(this);
+            Social = new DeadlyJenga.CastleSocial.SocialControls(social);
             // Menus, HUDs and the stamina bar attach themselves (Presentation listens for this).
             GameEvents.RaiseSessionStarted(gameObject);
         }
@@ -111,10 +130,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void ResetMap()
         {
-            if (!CanEditWorld) return;
+            // Clients ask the host; the host stops disasters and rebuilds for everyone.
+            if (Network && Network.IsClient) { CastleDemoCommands.Run(this, CastleDemoAction.Rebuild); return; }
+            DemoDisasters.StopAll(this);
             (Services.World as IRebuildable)?.Rebuild();
             TuneJump(); SetRole(PlayingHand);
-            HandBots?.MapRebuilt(); SurvivorBots?.MapRebuilt();
+            handBots?.MapRebuilt(); SurvivorBots?.MapRebuilt();
         }
         public void ResetCastle() => ResetMap();
         public void SetMenu(bool open)

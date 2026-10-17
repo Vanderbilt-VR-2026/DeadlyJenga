@@ -1,0 +1,5 @@
+10/14/2026 2:53:59 PM
+PASS: player, giant and bench meshes saved.
+PASS: finite vertices and full cuff bounds.
+Vertices: 17010
+Visual-only bake: tracking, colliders, joints, forces and profiles unchanged.

@@ -34,6 +34,9 @@ namespace DeadlyJenga.Core
         public bool host;                  // the host simulates remote hands against the real map
         public GameObject localSurvivor;   // this machine's own characters, used as templates
         public GameObject localHand;
+        public string actorId;             // the network id of the actor this view shows
+        // Host only: pass a hazard's push (velocity change) and damage on to the player who owns the actor.
+        public System.Action<string, Vector3, float> sendImpact;
     }
 
     public static class NetworkKinds

@@ -1,0 +1,85 @@
+INTEGRATION SWEEP - 2026-10-17
+Branch: Evan_Sprint_3. Latest fetched origin/main is already included.
+All work remains local; no commit, push, package upgrade or new Core change in this sweep.
+Android was restored as the active Unity build target by the final suite chain.
+
+COORDINATION
+Gathered read-only reports from the hand/controls, disaster, maps, block-prefab and
+vault-glow/controller-guide chats. Reserved one editor at a time. The independent
+network test deliberately ran two built players; they do not import the checkout.
+Isolated stat-tracker and architecture projects were not integrated or tested here.
+
+FIXES
+1. Real cross-process guest transition exception: IslandLobby.OnDestroy could access
+   a remote avatar rig already destroyed by scene unloading. RemovePeer now guards it.
+   Found in ProcessSweep1; rebuilt player and reran ProcessSweep2 cleanly.
+2. Catalog/network overlap: six map additions retained the same protocol despite
+   sending selections by index. Fusion and nearby discovery now use the protocol plus
+   a deterministic fingerprint of ordered map/mode IDs and mode availability. Visual
+   titles do not invalidate compatibility. Incompatible wire/scene-build ordering or
+   physics-content edits still need a manual protocol increment. Rebuild both APKs.
+3. Empty drafting maps no longer advertise the absent castle as their TopHeight.
+   All six now verify the actual ground/spawn height during Play Mode.
+4. Climbing resets VR smoothing velocity at a new grip and mantle transition so a
+   previous climb cannot carry its smoothing state into another climb.
+5. In-game control hints now match left-controller flight trigger/grip/X turning and
+   spare-hand gesture flight. Removed the nonexistent survivor left-pinch locomotion
+   hint; survivor jump hints follow Standing/Seated and pinch/fist selection.
+6. Repaired validation harness issues: synthetic bitfield input events, headless editor
+   focus settings, and screenshots on null graphics devices. Final hand run used real
+   desktop graphics and generated four fixture images. These were test bugs, not
+   evidence of physical headset input failure.
+
+FRESH PASSING EVIDENCE
+- CrossSystemSweep.txt: 58 checks. Actual Game, live survivor/hand AI together, slopes,
+  seam climb, impact release/regrab prevention, repeated role/camera/audio lifecycle,
+  full tsunami traversal touching real targets, stop/retrigger, rebuild during a wave,
+  population cleanup, and no captured runtime errors.
+- FlyingHandTracking.txt: 62 checks. Tracked geometry, recovery/fallback, 20x poses,
+  controller bindings, flight/braking/turns, collision blocking, bounded forces,
+  physical AI push/retreat/blocked-target handling, actual Game and graphics captures.
+- SurvivorControls.txt: 25 checks. Seated/Standing, head-pivot turns, gesture rearming,
+  calibration, real ledge vault/climb and external survivor movement.
+- VaultTargetValidation.txt: 12 checks. Valid/blocked/off-center targets, actual vault
+  eligibility, adjustable landing depth and shader/prefab references.
+- MapDraftValidation.txt: 80 checks across all eight scenes. Spawn/environment,
+  playable bounds, empty-map network layout, reset, true height and lobby registration.
+- IslandNetworkValidation.txt: 81 checks. Real Photon peers, discovery/invites, code
+  joining, selection ACK/start barrier, voice PCM, lobby migration, permissions,
+  host hazard proxies, impact routing, disaster cancellation and physics promotion.
+- Independent-host.txt / Independent-client.txt: 11 / 18 checks in two actual Windows
+  development players. UDP discovery, shared lobby, synchronized Castle transition,
+  guest-authorized AI spawn, replica-only guest physics, wave start/stop, actual Game
+  host takeover, resumed authoritative physics/AI voice and clean island return.
+- Portable social suite: 79 checks passed (Tests/SocialSimulation/Run-Checks.ps1).
+  100 bots/3000 ticks/600 events: 0.041 ms/tick, 23.7 MiB managed heap in portable test.
+  This is NOT a Quest frame-rate or memory benchmark.
+- VoiceBridgeChecks.txt: six isolated HTTP/Windows TTS checks; real non-silent PCM.
+  No microphone was enabled. Missing ASR returns its explicit unavailable fallback.
+
+LOG AND BUILD SCOPE
+Two Windows development builds succeeded. Final runtime reports contain no FAIL/ERROR
+entries. Final Unity logs were also scanned for compiler and common C# exception
+signatures. The editor two-peer fixture deliberately accounts for Fusion's exact
+empty-scene Multiple Peer diagnostic and its deliberate join-cancellation message;
+other errors still fail. Independent built-player runs require no such exclusions.
+Raw logs, fixture images and builds remain under ignored Logs/ and Builds/.
+Reusable opt-in tools: DevTools/Editor/CrossSystemSweep.cs, CrossProcessBuild.cs and
+DevTools/Scripts/CrossProcessSmoke.cs. The development-player hook is inert without
+both explicit --dj-smoke and --dj-smoke-dir command-line arguments, and absent in
+release builds. Existing per-feature validation entry points remain available.
+No authored scene or prefab was regenerated by this sweep.
+
+INTENTIONAL INCOMPLETENESS AND UNVERIFIED AREAS
+- The six drafting maps are empty authoring environments. They are not finished maps;
+  manually placed blocks need registration in the world sync contract. No real Photon
+  transition to a draft map was tested; local scene and layout checks passed.
+- Eight non-tsunami disasters remain placeholders. Trigger/stop event plumbing works;
+  those buttons do not imply completed disaster gameplay.
+- AI hands perform physical palm pushes rather than natural pinch extraction.
+- Full local conversational inference and neural ASR/TTS were not tested here. The
+  working Windows fallback and portable social logic are separate from that deployment.
+- No physical Quest, Android APK/IL2CPP build, actual Wi-Fi across devices, stereo comfort,
+  tracking quality or headset performance measurement. Windows graphics captures do
+  not establish Quest GPU quality or frame rate. Those require your hands-on pass.
+- Testing finds failures in exercised paths; it cannot prove the absence of every bug.

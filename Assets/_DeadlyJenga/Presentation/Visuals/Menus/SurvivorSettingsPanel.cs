@@ -10,25 +10,31 @@ namespace DeadlyJenga.CastlePrototype
     {
         static bool staminaOpen;
 
-        public static void Draw(ISurvivorSettings survivor)
+        // staminaEditable: false for joined players (the host owns stamina rules).
+        // shareStamina: called with the new stamina rules after a change, so the host can share them.
+        public static void Draw(ISurvivorSettings survivor, bool staminaEditable = true, System.Action<string> shareStamina = null)
         {
             if (survivor == null) return;
             var rules = survivor.CurrentRules;
             bool changed = false;
+            string staminaBefore = survivor.SaveStaminaRules();
 
-            GUILayout.Label("VR looking always follows your headset. Left stick moves; right stick turns.");
+            GUILayout.Label(survivor.ControlDescription);
             GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Stationary / seated")) survivor.UseStationaryPreset();
-            if (GUILayout.Button("Fluid / head-directed")) survivor.UseFluidPreset();
+            if (GUILayout.Button("Seated / smooth turn")) survivor.UseStationaryPreset();
+            if (GUILayout.Button("Standing / physical turn")) survivor.UseStandingPreset();
             GUILayout.EndHorizontal();
+            if (GUILayout.Button("Standing jump gesture: " + survivor.JumpGestureLabel)) survivor.CycleJumpGesture();
+            if (!survivor.StandingPlay && GUILayout.Button("Recalibrate seated eye height")) survivor.RecalibrateSeatedHeight();
             if (GUILayout.Button("Movement: " + survivor.MovementLabel)) survivor.CycleMovement();
             if (GUILayout.Button("Right-stick turn: " + survivor.TurnLabel)) survivor.CycleTurn();
             changed |= Slider("Snap: " + rules.snapAngle.ToString("0") + "\u00b0", ref rules.snapAngle, 15, 90);
             changed |= Slider("Smooth: " + rules.smoothDegrees.ToString("0") + "\u00b0 / sec", ref rules.smoothDegrees, 15, 180);
 
-            staminaOpen = GUILayout.Toggle(staminaOpen, "Live climbing stamina settings");
+            staminaOpen = GUILayout.Toggle(staminaOpen, "Live climbing stamina settings" + (staminaEditable ? "" : " (host only)"));
             if (staminaOpen)
             {
+                bool wasEnabled = GUI.enabled; GUI.enabled = staminaEditable;
                 changed |= Slider("Capacity: " + rules.gripSeconds.ToString("0.0") + " effort units", ref rules.gripSeconds, .5f, 20);
                 changed |= Slider("Drain: " + rules.drainRate.ToString("0.00") + " units / second", ref rules.drainRate, 0, 4);
                 changed |= Slider("Recovery: " + (rules.recoveryRate * 100).ToString("0") + "% / second (secure footing)", ref rules.recoveryRate, 0, 2);
@@ -37,8 +43,10 @@ namespace DeadlyJenga.CastlePrototype
                 changed |= Curve("Recovery curve", ref rules.recoveryCurve);
                 changed |= Slider("Recovery degree: " + rules.recoveryDegree.ToString("0.0"), ref rules.recoveryDegree, 1, 6);
                 GUILayout.Label("Power in starts gently, power out starts strongly. Exponential accelerates. Degree 1 makes power curves linear. Changes keep the current stamina fraction.");
+                GUI.enabled = wasEnabled;
             }
             if (changed) survivor.ApplyMatchRules(rules);
+            if (changed && survivor.SaveStaminaRules() != staminaBefore) shareStamina?.Invoke(survivor.SaveStaminaRules());
         }
 
         static bool Slider(string label, ref float value, float min, float max)

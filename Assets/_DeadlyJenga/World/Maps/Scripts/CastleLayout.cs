@@ -16,6 +16,8 @@ namespace DeadlyJenga.CastlePrototype
         [Range(2, 64)] public int keepCourses = 30;
         [Range(0.02f, 1f)] public float moduleGap = 0.08f;
         public bool singleTower;
+        [Tooltip("Evan's cathedral draft. Uses the same blocks with a separate large, open layout.")]
+        public bool cathedral;
     }
 
     public readonly struct CastlePlacement
@@ -42,15 +44,19 @@ namespace DeadlyJenga.CastlePrototype
                 throw new ArgumentException("Use positive block dimensions (length > 2 × width), an odd module count from 3–7, and valid course counts/gaps.");
             if (!s.singleTower && s.modulesPerSide < 5)
                 throw new ArgumentException("The octagonal keep needs at least five modules per side.");
+            if(s.cathedral&&Mathf.Abs(s.blockSize.x-3*s.blockSize.z)>.001f)
+                throw new ArgumentException("The cathedral bearing pattern requires blocks three times as long as they are wide.");
         }
         static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
 
-        public static float Footprint(CastleSettings s) => s.singleTower ? s.blockSize.x :
+        public static int HeightCourses(CastleSettings s)=>s.cathedral?90:s.singleTower?s.cornerCourses:Mathf.Max(s.keepCourses,s.cornerCourses,s.wallCourses+2);
+        public static float Footprint(CastleSettings s) => s.cathedral?27*s.blockSize.x:s.singleTower ? s.blockSize.x :
             (s.modulesPerSide - 1) * (s.blockSize.x + s.moduleGap) + s.blockSize.x;
 
         public static List<CastlePlacement> Build(CastleSettings s)
         {
             Validate(s);
+            if(s.cathedral)return CathedralLayout.Build(s);
             var result = new List<CastlePlacement>();
             if (s.singleTower) { AddTower(result, s, Vector3.zero, s.cornerCourses, CastleSection.Corner); return result; }
             int last = s.modulesPerSide - 1;

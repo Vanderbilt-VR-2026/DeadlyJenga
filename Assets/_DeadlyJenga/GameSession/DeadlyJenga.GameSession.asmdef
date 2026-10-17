@@ -2,9 +2,18 @@
     "name": "DeadlyJenga.GameSession",
     "references": [
         "DeadlyJenga.Core",
+        "DeadlyJenga.World",
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.Presentation",
+        "HandDemo.Runtime",
         "Fusion.Unity",
         "Fusion.Addons.Physics",
-        "Unity.InputSystem"
+        "Photon.Realtime",
+        "Unity.InputSystem",
+        "Unity.TextMeshPro",
+        "UnityEngine.UI",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.CoreUtils"
     ],
     "autoReferenced": true
 }

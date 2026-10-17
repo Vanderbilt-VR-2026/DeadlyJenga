@@ -1,0 +1,26 @@
+PASS Game.unity runs five seconds without errors
+PASS Seated turn is continuous at 60 degrees per second
+PASS Turning pivots about eyes and preserves tracked pitch, yaw and roll
+PASS Turn deadzone prevents idle drift
+PASS Standing ignores right-stick turning
+PASS Move stick has a continuous deadzone and full travel
+PASS Held gesture at entry cannot auto-jump
+PASS Fresh right pinch jumps and holds for climbing
+PASS Pinch hysteresis prevents chatter and repeated jumps
+PASS Menu closing requires a released gesture before another jump
+PASS Tracking reacquisition does not auto-jump
+PASS Fist is a selectable alternative to pinch
+PASS Seated button jumps without requiring hand tracking
+PASS Held jump button climbs without repeated jump presses
+PASS Seated calibration restores avatar eye height
+PASS VR vault starts only at a real clear ledge
+PASS Artificial turning cannot displace an active vault
+PASS Vault settles on the ledge with grounded state restored
+PASS Vault movement stays bounded and never animates head rotation
+PASS Holding jump catches a real climbable face
+PASS VR climb starts with bounded acceleration
+PASS VR climb reaches useful upward motion
+PASS Release exits climb without locking the camera
+PASS Externally driven survivor keeps its original movement speed
+PASS No runtime errors during control and traversal checks
+COMPLETE: Quest tracking and comfort still require device testing.

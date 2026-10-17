@@ -1,0 +1,21 @@
+Lobby / tsunami UI validation
+PASS All disaster map contracts pass translated and scaled bounds checks
+PASS Front face is fully visible and readable
+PASS Backside cannot accidentally activate a front keypad key
+PASS Back view hides mirrored front text
+PASS Front keypad remains interactive
+PASS Lobby panels run without errors
+PASS Disaster catalog validation command runs
+PASS Wave contract bounds excessive tuning
+PASS Repeated tuning does not compound force
+PASS Spawn applies selected speed and push/lift force before Begin
+PASS Changing sliders leaves the existing wave untouched
+PASS Prefab tuning is never modified
+PASS Network command serialization preserves per-spawn options
+PASS Zero force disables push and lift
+PASS Host rejects nonfinite tuning values
+PASS VR disaster page exposes its wave sliders
+PASS VR gaze plus held trigger adjusts speed slider continuously
+PASS VR force slider uses the same held-input interaction
+PASS Wave tuning and VR controls run without errors
+COMPLETE: desktop editor checks; physical headset pointer/comfort not tested.

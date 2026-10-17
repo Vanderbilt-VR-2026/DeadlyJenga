@@ -1,0 +1,19 @@
+Giant milkshake traversal
+PASS Milkshake collision geometry exists independently of its artwork
+PASS Milkshake and clutter use static collision, with no network physics objects
+PASS Presentation replaces all gray-box renderers
+PASS The open centre has no invisible lid; the first surface is the half-full chocolate
+PASS The glass rim is a real supporting surface
+PASS Ground to cooler is reachable with the current movement controller
+PASS Cooler to delivery stack is reachable
+PASS Delivery stack to parasol is reachable
+PASS Parasol to the narrow glass rim is reachable
+PASS A player dropped through the opening lands inside on the chocolate
+PASS The cherry gives an interior foothold
+PASS The interior foothold permits an escape jump and vault to the rim
+PASS The first jump also works at the slower VR movement speed
+PASS An edge takeoff reaches the crates at VR speed
+PASS An edge takeoff reaches the parasol at VR speed
+PASS Careful parasol edge positioning reaches the rim at VR speed
+PASS Milkshake scene runs without runtime errors
+COMPLETE: desktop capsule/jump/vault simulation. Quest comfort and human difficulty still need hands-on play.

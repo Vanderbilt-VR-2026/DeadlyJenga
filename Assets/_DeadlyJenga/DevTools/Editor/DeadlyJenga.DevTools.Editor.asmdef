@@ -16,8 +16,11 @@
         "Unity.XR.Management",
         "Unity.XR.Management.Editor",
         "Unity.XR.OpenXR",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Photon.Realtime"
     ],
-    "includePlatforms": ["Editor"],
+    "includePlatforms": [
+        "Editor"
+    ],
     "autoReferenced": false
 }

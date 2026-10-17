@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     // How the survivor responds to the shared abilities in Core.
     // Teleport(position, rotation) already exists in CastleSurvivor.cs.
-    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView
+    public sealed partial class CastleSurvivor : IPushable, IDamageable, IAffectable, ITeleportable, IMovementState, IPlayerView, IHazardMotion
     {
         [Header("Health")]
         public float maxHealth = 100;
@@ -16,6 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<EffectType> expired = new List<EffectType>();
 
         public float MaxHealth => maxHealth;
+        public Vector3 HazardVelocity => slopeVelocity + Vector3.up * verticalSpeed;
         public float Health => health < 0 ? maxHealth : health;
 
         public void Push(Vector3 force, GameObject source)

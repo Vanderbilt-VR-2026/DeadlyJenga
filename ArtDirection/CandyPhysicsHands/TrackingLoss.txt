@@ -1,0 +1,1 @@
+Held height: 0.4557059; released height: 0.339; active: False; strength: 0

@@ -1,0 +1,1 @@
+GPU ocean installed. Profile controls quality and motion; no physics changes.

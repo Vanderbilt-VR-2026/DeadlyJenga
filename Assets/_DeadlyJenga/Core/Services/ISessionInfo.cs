@@ -17,6 +17,7 @@ namespace DeadlyJenga.Core
         bool IsVR { get; }
         Camera ActiveCamera { get; }
         bool MenuSelectPressed { get; }           // VR "select" this frame (trigger or pinch)
+        bool MenuSelectHeld { get; }              // VR "select" held down (for dragging sliders)
 
         // The shared map and the people in it.
         bool CanEditWorld { get; }                // false on joined machines: the host owns the map
@@ -24,5 +25,7 @@ namespace DeadlyJenga.Core
         ISurvivorBotPopulation SurvivorBots { get; }   // may be null
         IBotPopulation HandBots { get; }               // may be null
         IMultiplayerControls Multiplayer { get; }      // null when playing alone
+        IDemoControls Demo { get; }                    // bots and disasters for the menus; null when not available
+        ISocialControls Social { get; }                // AI voices and microphone; null when not available
     }
 }

@@ -17,6 +17,10 @@ namespace DeadlyJenga.CastlePrototype
         Material currentMaterial;
         BoxCollider surface;
         Rigidbody surfaceBody;
+        BoxCollider sourceBox;
+        Vector3 surfacePosition, surfaceScale, surfaceCenter, surfaceSize;
+        Quaternion surfaceRotation;
+        bool surfaceSynced;
         static bool collisionLayersConfigured;
         Rigidbody body;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -68,12 +72,22 @@ namespace DeadlyJenga.CastlePrototype
         public void SyncSurface()
         {
             if (!surface) return;
-            var box = GetComponent<BoxCollider>();
-            surfaceBody.position = transform.position; surfaceBody.rotation = transform.rotation;
-            surface.transform.localScale = transform.lossyScale;
-            surface.center = box.center; surface.size = box.size;
+            if (!sourceBox) sourceBox = GetComponent<BoxCollider>();
+            var center = sourceBox.center; var size = sourceBox.size;
+            if (surfaceSynced && !transform.hasChanged && surfaceCenter.Equals(center) && surfaceSize.Equals(size)) return;
+            var position = transform.position; var rotation = transform.rotation;
+            var scale = transform.lossyScale;
+            // Leave resting proxies untouched. Rewriting them dirties the physics broadphase.
+            if (!surfaceSynced || !surfacePosition.Equals(position) || !surfaceRotation.Equals(rotation))
+            { surfaceBody.position = position; surfaceBody.rotation = rotation; }
+            if (!surfaceSynced || !surfaceScale.Equals(scale)) surface.transform.localScale = scale;
+            if (!surfaceSynced || !surfaceCenter.Equals(center)) surface.center = center;
+            if (!surfaceSynced || !surfaceSize.Equals(size)) surface.size = size;
+            surfacePosition = position; surfaceRotation = rotation; surfaceScale = scale;
+            surfaceCenter = center; surfaceSize = size; surfaceSynced = true;
+            transform.hasChanged = false;
         }
-        void FixedUpdate() { SyncSurface(); }
+        void FixedUpdate() { if (transform.hasChanged) SyncSurface(); }
         void Update() { SyncSurface(); RefreshAppearance(); }
         public void RefreshAppearance()
         {

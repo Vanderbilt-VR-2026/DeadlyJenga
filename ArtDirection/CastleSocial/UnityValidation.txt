@@ -1,0 +1,52 @@
+PASS Social system initializes in the real castle scene.
+PASS Local host owns social decisions.
+PASS Microphone remains off until explicit user action.
+PASS Offline test mode has no model/service dependency; authored voice settings are preserved.
+PASS Integration test starts without external connected humans.
+PASS Existing factory spawns legal survivor 0
+PASS Existing factory spawns legal survivor 1
+PASS Existing factory spawns legal survivor 2
+PASS Existing factory spawns legal survivor 3
+PASS Existing factory spawns legal survivor 4
+PASS Existing factory spawns legal survivor 5
+PASS Existing flying-hand bot still spawns.
+PASS Every survivor receives a social adapter.
+PASS Flying-hand bot has no player-social adapter.
+PASS Generated social identities are unique.
+PASS Social movement uses the ordinary survivor driver interface.
+PASS Generated traits affect actual planner personalities.
+PASS Bots physically move in the real castle.
+PASS Survivor-to-block physics isolation remains intact.
+PASS Tower event changes actual bot emotion/decision context.
+PASS Runtime memories remain bounded.
+PASS Invalid live capacity change restores a valid population without deleting survivors.
+PASS Restored configuration rebinds every live survivor to the current director.
+PASS Per-bot mute updates director state.
+PASS Real UDP join request opens pending approval
+PASS Accept sends approval token to requesting peer
+PASS Loopback peer connects after approval
+PASS No peer connection error
+PASS Approved peer receives welcome
+PASS Late joiner receives live castle snapshot
+PASS Authoritative session admits approved requester
+PASS Nearby selector discovers invitation target
+PASS Real UDP invitation reaches selected peer
+PASS Accepted invitation auto-approves return join request
+PASS Loopback peer connects after approval
+PASS No peer connection error
+PASS Approved peer receives welcome
+PASS Late joiner receives live castle snapshot
+PASS Both humans coexist with host-owned social bots
+PASS Human PCM travels through host to other participant
+PASS Host binds speech to authenticated player ID; forged bot ID discarded
+PASS Human disconnect removes only its own connection
+PASS Voice/disconnect path preserves AI hand population
+PASS Cancelled voice jobs release their budget
+PASS Actual self-hosted TTS streams PCM into Unity without provider errors: Streaming · Pebble
+PASS Independent voice playback source is created.
+MEASURE TTS first audio 0.248 seconds; provider kokoro + Whisper tiny.en; latency is not a naturalness rating.
+PASS Actual incoming audio reaches local ASR and returns attributed text
+PASS Recognized speech enters bot perception without retaining private text by default.
+PASS Synthetic audio test never enables the human microphone.
+PASS Despawn cancels social agents and pending speech.
+PASS Clearing regular players does not clear flying hands.

@@ -18,6 +18,7 @@ namespace DeadlyJenga.CharacterNetwork
             MatchOptions.Movements = new[] { nameof(SurvivorVRMovement.HeadRelative), nameof(SurvivorVRMovement.BodyRelative) };
             MatchOptions.Turns = new[] { nameof(SurvivorVRTurn.Snap), nameof(SurvivorVRTurn.Smooth) };   // the two the lobby offers
             MatchOptions.Curves = Enum.GetNames(typeof(StaminaCurve));
+            MatchOptions.PlayStyles = Enum.GetNames(typeof(SurvivorVRPlayStyle));
             MatchOptions.SurvivorPersonalities = () => Names(Resources.LoadAll<CastleBotPersonality>("CastleBots").Select(p => p.displayName), "Default");
             MatchOptions.HandPersonalities = () => Names(Resources.LoadAll<CastleHandBotPersonality>("CastleHandBots").Select(p => p.displayName), "Playful");
             LocalPlayerInput.FindOrCreate = () => LocalHandInput.FindOrCreate();

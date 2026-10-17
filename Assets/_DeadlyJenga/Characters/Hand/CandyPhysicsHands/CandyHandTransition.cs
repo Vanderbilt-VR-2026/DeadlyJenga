@@ -12,13 +12,17 @@ namespace DeadlyJenga.CandyPhysicsHands
         public bool Initialized {get;private set;}
         float missing, stable, recovery;
         CandyHandMode candidate;
-        public void Step(CandyHandPose raw,CandyHandMode source,bool left,float dt,CandyHandSettings settings)
+        public static bool IsValidPose(CandyHandPose raw)
         {
-            dt=Mathf.Clamp(dt,0,.05f);
             bool Finite(float f)=>!float.IsNaN(f)&&!float.IsInfinity(f);
             bool valid=Finite(raw.position.x)&&Finite(raw.position.y)&&Finite(raw.position.z)&&Finite(raw.rotation.x)&&Finite(raw.rotation.y)&&Finite(raw.rotation.z)&&Finite(raw.rotation.w)&&Quaternion.Dot(raw.rotation,raw.rotation)>.1f;
             if(raw.skeletonTracked)for(int f=0;f<5;f++)for(int j=0;j<3;j++){float length=Vector3.Distance(raw.skeleton.Joint(f*4+j),raw.skeleton.Joint(f*4+j+1));valid&=length>.002f&&length<.12f;}
-            if(!valid){raw.tracked=false;source=CandyHandMode.Inactive;}
+            return valid;
+        }
+        public void Step(CandyHandPose raw,CandyHandMode source,bool left,float dt,CandyHandSettings settings)
+        {
+            dt=Mathf.Clamp(dt,0,.05f);
+            if(!IsValidPose(raw)){raw.tracked=false;source=CandyHandMode.Inactive;}
             if(source==CandyHandMode.Inactive||!raw.tracked)
             {
                 missing+=dt;stable=0;candidate=CandyHandMode.Inactive;

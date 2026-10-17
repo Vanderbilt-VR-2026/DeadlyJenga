@@ -31,9 +31,12 @@ namespace DeadlyJenga.CastlePrototype
         readonly Vector3[] climbHandFrom=new Vector3[2];
         readonly float[] climbHandReach=new float[2];
         int climbMovingHand=-1;
+        Vector3 vrClimbVelocity;
+        [Min(.1f)] public float vrClimbAcceleration=10f;
         void ResetClimb(bool refill)
         {
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;
+            vrClimbVelocity=Vector3.zero;
             climbHold=climbCooldown=climbElapsed=climbGroundRest=climbStun=0;climbMustRelease=false;
             if(refill)GripRemaining=1;
         }
@@ -88,6 +91,7 @@ namespace DeadlyJenga.CastlePrototype
             verticalSpeed=Mathf.Clamp(inherited.y,-10,8);slopeVelocity=Vector3.ProjectOnPlane(inherited,Vector3.up)+climbNormal*(forced?1.8f:.65f);
             jumped=true;lastGrounded=-100;airborneSince=Time.time;climbCooldown=forced?.85f:.3f;climbMustRelease=forced;
             climbHold=0;ActionStatus=reason;
+            vrClimbVelocity=Vector3.zero;
         }
         // Future hit/ragdoll systems call this before taking over. Climbing cannot mask knockback.
         public void ApplyTraversalImpulse(Vector3 velocityChange)
@@ -110,7 +114,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(!FindClimbFace(Feet,facing,out var initial))return false;
                 BindClimb(initial);climbPointVelocity=PointVelocity();
                 if(UnsafeClimb(climbPointVelocity,dt,true)){climbBlock=null;climbBody=null;climbCollider=null;return false;}
-                Climbing=true;Grounded=false;support=null;verticalSpeed=0;slopeVelocity=Vector3.zero;climbElapsed=climbGait=0;climbMovingHand=-1;
+                Climbing=true;Grounded=false;support=null;verticalSpeed=0;slopeVelocity=Vector3.zero;vrClimbVelocity=Vector3.zero;climbElapsed=climbGait=0;climbMovingHand=-1;
                 PlantClimbHand(0);PlantClimbHand(1);climbHandFrom[0]=climbHandLocal[0];climbHandFrom[1]=climbHandLocal[1];climbHandReach[0]=climbHandReach[1]=1;ActionStatus="Scramble";
             }
             if(!held||InputSuspended){ReleaseClimb("Released grip",false);return false;}
@@ -124,6 +128,8 @@ namespace DeadlyJenga.CastlePrototype
             var up=Vector3.ProjectOnPlane(Vector3.up,climbNormal).normalized;
             var right=Vector3.Cross(climbNormal,up).normalized;
             Vector3 along=(up*input.y+right*input.x)*climbSpeed;
+            if(IsVR&&!externallyDriven)
+            {vrClimbVelocity=Vector3.MoveTowards(vrClimbVelocity,along,vrClimbAcceleration*dt);along=vrClimbVelocity;}
             // Try the prospective position first, then the existing patch and nearby face angles.
             Vector3 prospective=Feet+along*dt;
             bool found=FindClimbFace(prospective,-climbNormal,out var face);
@@ -189,7 +195,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             // Use wall-facing probes without turning the player's view (especially the HMD).
             if(!TryFindLedge(out var top,out var destination,-climbNormal))return false;
-            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;
+            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;vrClimbVelocity=Vector3.zero;
             BeginVault(top,destination);return true;
         }
         void PlantClimbHand(int side)

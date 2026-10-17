@@ -1,0 +1,96 @@
+ISLAND ROOMS: LAN DISCOVERY, INVITATIONS, AND DEMO POWERS
+
+GameSession / Session owns all runtime changes. No packages or Core API additions.
+Android manifest explicitly requests Internet, Wi-Fi state and multicast-lock permission.
+No Meta SDK, Bluetooth, location or camera permission is needed.
+
+QUICK JOIN
+Every open APK's persistent IslandRoomConnection listens on UDP port 47738.
+Hosts advertise a short room address once per second. Receivers filter the product,
+Photon app identity and network compatibility version. Messages expire after 5 seconds.
+The Nearby panel beside the connection terminal cycles rooms and joins through the
+same IslandRoomConnection.Join used by typed room codes. Internet remains required.
+Host Invite Everyone broadcasts an optional invitation, repeated for packet loss.
+The receiver accepts or dismisses it. An invitation never forcibly changes rooms.
+Received invitations also appear in the in-game Friends notification and VR multiplayer
+page. Already-connected users must leave their room before accepting another invitation.
+Desktop and VR use the same world terminal; the Game Friends page can send invitations.
+Discovery listens while the app is running in the foreground. Sleeping headsets and
+router guest/client isolation can block it. Windows firewall may also block UDP.
+Manual region-qualified room codes remain the fallback.
+
+COMPATIBILITY
+Catalog protocolVersion is island-2, combined with a deterministic map/mode catalog
+fingerprint for Fusion AppVersion and nearby discovery. Earlier builds without the
+fingerprint, and builds with different map/mode ordering, intentionally cannot join.
+The network version changed because lobby permissions and assigned spawns were added.
+Compatible visual-only APK updates keep the same fingerprint. Map/mode additions
+or ordering changes update it automatically. Future incompatible wire, scene/build
+index or physics-content changes still require an explicit protocolVersion increment. Nearby advertisements are not credentials.
+
+SHARED ISLAND
+Each device renders the same island and current character prefab. Host assigns a
+separate spawn spot in island coordinates. Avatar/hand poses and optional PCM voice
+continue through Fusion; the UDP service never sends game state.
+This does not align physical rooms or shared spatial anchors.
+
+DEMO POWERS
+Host toggles Host Only / Everyone on the mode terminal before launch or from the
+in-game Friends / Multiplayer page. Host is the only user allowed to change this flag.
+Permitted guests request rebuild, bot spawn/fill/clear/personality and stamina changes.
+The host validates permission and rate limits requests, performs the operation, and
+replicates the result. Removing permission takes effect on the host immediately.
+Audio volume, microphone, local movement and comfort settings stay local.
+AI simulation, AI speech and block physics still have exactly one authority.
+Future non-Demo modes do not accept these guest administration commands.
+
+HOST DEPARTURE
+Fusion native host migration is enabled in a runtime copy of NetworkProjectConfig;
+the shared project config asset is unchanged. Snapshot pushes run every 2 seconds.
+Fusion elects a remaining participant (its own election, not uniform random selection).
+The old runner is shut down and replaced using its migration token. Lobby selection,
+room address and shared-control state are kept. In-game physics freezes during transfer;
+the elected host restores latest received block poses and estimated velocities.
+NPCs are recreated at their latest replicated positions with current selected presets.
+Their private AI decision/conversation history is not fully checkpointed. Hands and
+survivors can briefly correct as the new authority resumes. Cloud reachability is needed.
+NetworkObjects in any future map must add appropriate migration-state restoration.
+
+VALIDATION
+Runtime validation entry: DeadlyJenga.CastlePrototype.Editor.IslandNetworkValidation.RunBatch
+Report: Logs/Validation/IslandNetworkValidation.txt
+Checks cover malformed/mismatched/stale advertisements, actual UDP broadcast invitation,
+real Photon host/client code joins, client-assigned lobby spawn, native host migration,
+voice regression, normal Castle Demo launch, authoritative command dispatch and physics
+freeze/resume. Real multiple-Quest Wi-Fi behavior remains a device test.
+
+SDK CLEANUP NOTE
+FusionMigrationCleanup is isolated to Fusion.Runtime version 2.1.3.0. This SDK's
+Simulation.Dispose releases/nulls its allocator before DisposeHostMigration frees
+resumed snapshots. Before an owned resumed-host shutdown, we release that local
+snapshot cache while the allocator is alive. Cloud migration data is not cleared.
+The SDK binary is unchanged. Session/link.xml preserves the reflected cleanup method
+for IL2CPP. Remove/reassess this compatibility helper after a Photon SDK update.
+Snapshot uploads are manually scheduled; the SDK auto-upload timer is disabled to
+avoid two independent upload schedules.
+
+TEST SCOPE
+Native host migration is tested end-to-end in the lobby and in the active Castle Game.
+The latter uses two independent development-player processes with real Photon joins,
+shared guest commands, tsunami start/stop replication, original-host departure, actual
+client takeover, resumed physics/AI voice authority and a clean return to the island.
+The saved-snapshot fixture additionally verifies fallen-block positions.
+End-to-end handover between physical Quests remains a device test.
+
+LOBBY START AND MIGRATION SETTINGS
+Start waits for every connected player to acknowledge the latest map/mode selection,
+with a ten-second timeout and Cancel Start. This prevents entering Game with stale mode
+permissions. Host transfer preserves AI population target, autofill and hand limit.
+The deliberate cancellation test permits only Fusion's expected OperationCanceled
+startup log during its cancellation window; other runtime errors still fail the suite.
+
+MULTI-PEER TEST DIAGNOSTIC
+The editor fixture keeps both peers in the already-open lobby instead of loading
+duplicate lobby scenes. Fusion SceneManagerDefault logs its exact empty-scene
+Multiple Peer diagnostic for this fixture; it is excluded only while the test
+configuration is Multiple. Normal APKs use Single peer. No other errors are excluded.
