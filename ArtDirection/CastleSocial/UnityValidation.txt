@@ -1,7 +1,7 @@
 PASS Social system initializes in the real castle scene.
 PASS Local host owns social decisions.
 PASS Microphone remains off until explicit user action.
-PASS Default mode has no model/service dependency.
+PASS Offline test mode has no model/service dependency; authored voice settings are preserved.
 PASS Integration test starts without external connected humans.
 PASS Existing factory spawns legal survivor 0
 PASS Existing factory spawns legal survivor 1
@@ -41,9 +41,10 @@ PASS Human PCM travels through host to other participant
 PASS Host binds speech to authenticated player ID; forged bot ID discarded
 PASS Human disconnect removes only its own connection
 PASS Voice/disconnect path preserves AI hand population
-PASS Actual self-hosted TTS streams PCM into Unity without provider errors.
+PASS Cancelled voice jobs release their budget
+PASS Actual self-hosted TTS streams PCM into Unity without provider errors: Streaming · Pebble
 PASS Independent voice playback source is created.
-MEASURE TTS first audio 0.185 seconds; provider kokoro; latency is not a naturalness rating.
+MEASURE TTS first audio 0.248 seconds; provider kokoro + Whisper tiny.en; latency is not a naturalness rating.
 PASS Actual incoming audio reaches local ASR and returns attributed text
 PASS Recognized speech enters bot perception without retaining private text by default.
 PASS Synthetic audio test never enables the human microphone.

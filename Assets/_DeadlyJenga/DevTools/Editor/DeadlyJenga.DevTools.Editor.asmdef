@@ -1,0 +1,23 @@
+{
+    "name": "DeadlyJenga.DevTools.Editor",
+    "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.World",
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.Presentation",
+        "DeadlyJenga.Presentation.Editor",
+        "DeadlyJenga.GameSession",
+        "DeadlyJenga.DevTools",
+        "HandDemo.Runtime",
+        "Fusion.Unity",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor",
+        "Unity.XR.OpenXR",
+        "UnityEngine.UI"
+    ],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": false
+}

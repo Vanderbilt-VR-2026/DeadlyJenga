@@ -10,7 +10,8 @@ if (!$socialRefs) { throw 'Install the .NET 8 SDK.' }
 $socialArguments = [Collections.Generic.List[string]]::new()
 @('/target:exe','/langversion:9','/nostdlib+',('/out:"'+(Join-Path $socialOutput 'SocialChecks.dll')+'"')) | ForEach-Object { $socialArguments.Add($_) }
 Get-ChildItem (Join-Path $socialRefs.FullName 'ref/net8.0') -Filter '*.dll' | ForEach-Object { $socialArguments.Add('/reference:"'+$_.FullName+'"') }
-Get-ChildItem (Join-Path $socialRoot 'Assets/CastleSocial/Core') -Filter '*.cs' | ForEach-Object { $socialArguments.Add('"'+$_.FullName+'"') }
+Get-ChildItem (Join-Path $socialRoot 'Assets/_DeadlyJenga/GameSession/Session/CastleSocial/Core') -Filter '*.cs' | ForEach-Object { $socialArguments.Add('"'+$_.FullName+'"') }
+$socialArguments.Add('"'+(Join-Path $socialRoot 'Assets/_DeadlyJenga/GameSession/Session/Scripts/CastleSocialChannel.cs')+'"')
 $socialArguments.Add('"'+(Join-Path $PSScriptRoot 'Program.cs')+'"')
 $socialResponse = Join-Path $socialOutput 'compile.rsp'
 [IO.File]::WriteAllLines($socialResponse,$socialArguments)

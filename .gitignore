@@ -99,7 +99,7 @@ __MACOSX/
 # This line keeps those folders in Git.
 !Icons/
 
-# Architecture analysis and per-developer layouts stay local.
+# Local architecture working files
 /.architecture/local/
 /Tools/ArchitectureMap/bin/
 /Tools/ArchitectureMap/obj/

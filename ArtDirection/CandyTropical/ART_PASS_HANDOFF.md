@@ -1,3 +1,5 @@
+> Historical prototype notes: the supported entry scene is now `Assets/Scenes/Lobby.unity`, followed by `Assets/Scenes/Game.unity`. References below to `CastlePhysicsTest` describe the older prototype. See the current cleanup status in `Docs/AI_CLEANUP_STATUS.md`.
+
 # Candy tropical environment — reusable art-pass handoff
 
 Recorded 2026-10-13. The bare-bones art pass is implemented and applied to the local prototype. Read this file, `Assets/CandyTropicalArt/README.md`, and the bundled References before resuming; do not rely on conversation memory.

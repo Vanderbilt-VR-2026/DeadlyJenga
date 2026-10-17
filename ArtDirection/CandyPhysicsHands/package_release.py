@@ -9,7 +9,7 @@ root = Path(__file__).resolve().parents[2]
 out = Path(__file__).resolve().parent
 package = out / 'CandyPhysicsHands.unitypackage'
 integration = [
-    'Assets/CastlePrototype/Scripts/CastlePlaySession.cs',
+    'Assets/Scripts/CastlePlaySession.cs',
     'Assets/CandyPlayers/CandySmoothHandMesh.cs',
     'Assets/CandyPlayers/CandyTrackingSource.cs',
     'Assets/CandyPlayers/CandyPlayerRig.cs',
@@ -17,7 +17,7 @@ integration = [
 ]
 required = integration + ['Assets/CandyPhysicsHands/README.md',
     'Assets/CandyPhysicsHands/CandyPhysicalHand.cs',
-    'Assets/CastlePrototype/Prefabs/CastleFlyingHand.prefab',
+    'Assets/Prefabs/CastleFlyingHand.prefab',
     'Assets/CandyPlayers/CandyHandSkeleton.cs']
 with tarfile.open(package, 'r:gz') as tar:
     members = {m.name: m for m in tar.getmembers()}

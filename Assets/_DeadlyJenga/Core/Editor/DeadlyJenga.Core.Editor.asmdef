@@ -1,0 +1,6 @@
+{
+    "name": "DeadlyJenga.Core.Editor",
+    "references": [],
+    "includePlatforms": ["Editor"],
+    "autoReferenced": true
+}

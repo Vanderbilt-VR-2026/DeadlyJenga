@@ -96,7 +96,9 @@
     },
     "AssembliesToWeave": [
         "Assembly-CSharp",
-        "Assembly-CSharp-firstpass"
+        "Assembly-CSharp-firstpass",
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.GameSession"
     ],
     "UseSerializableDictionary": true,
     "NullChecksForNetworkedProperties": true,

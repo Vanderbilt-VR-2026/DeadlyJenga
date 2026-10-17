@@ -1,0 +1,13 @@
+{
+    "name": "DeadlyJenga.DevTools",
+    "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.World",
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.Presentation",
+        "DeadlyJenga.GameSession",
+        "HandDemo.Runtime",
+        "Unity.InputSystem"
+    ],
+    "autoReferenced": false
+}

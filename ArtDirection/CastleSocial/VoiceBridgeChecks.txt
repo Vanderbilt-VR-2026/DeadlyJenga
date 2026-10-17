@@ -1,13 +1,5 @@
-PASS Local bridge uses no paid service or voice recording
-PASS At least one real installed speech voice is available
-PASS Speech chunk contains actual audio rather than a mock
-PASS End-to-end synthesis returns non-silent generated speech PCM
-PASS Pre-generated neural acknowledgment returns real cached audio
-MEASURE pre-generated reaction first audio seconds: 0.005
-PASS Real CPU recognizer transcribes synthetic speech partial window
-MEASURE ASR cold partial seconds: 1.363
-PASS Real CPU recognizer transcribes synthetic speech final
-MEASURE ASR final seconds: 0.797
-PASS Unapproved voice identity rejected
-MEASURE actual kokoro voice bank: af_heart, af_bella, af_nicole, af_sarah, am_adam, am_michael, bf_emma, bm_george
-MEASURE first audio seconds: [3.203, 3.388]
+Local speech integration after main merge
+PASS Kokoro and Whisper tiny.en loaded from existing local setup.
+PASS Neural TTS returned a non-silent synthetic PCM fixture over HTTP.
+PASS Final Unity synthesis/playback, transcription, and human-perception checks passed; see UnityValidation.txt and MainIntegration-20261016.txt.
+The earlier test_bridge.py --unity invocation timed out during the first large asset import; its original report is retained at Logs/Validation/VoiceBridgeImportTimeout.txt.

@@ -11,6 +11,17 @@ static class SocialChecks
     static bool Reject(Action action){try{action();return false;}catch(ArgumentException){return true;}}
     static void Main()
     {
+        var channel=new DeadlyJenga.CastlePrototype.CastleSocialChannel();
+        var sent=new List<int>();for(int i=0;i<200;i++)channel.Enqueue(new byte[]{5,(byte)i},0);
+        Check(channel.Pending==8,"Fusion audio backlog bounded to eight frames");
+        channel.Pump(0,(id,data)=>sent.Add(id));Check(sent.Count==4&&channel.InFlight==4,"Fusion voice has four acknowledged slots");
+        channel.Pump(0,(id,data)=>sent.Add(id));Check(sent.Count==4,"Unresponsive receiver cannot grow reliable voice backlog");
+        channel.Ack(9876);Check(channel.InFlight==4,"Unrecognized acknowledgement cannot free a slot");
+        channel.Ack(sent[0]);channel.Pump(0,(id,data)=>sent.Add(id));Check(sent.Count==5,"Acknowledgement releases exactly one voice slot");
+        foreach(int id in sent)channel.Ack(id);channel.Pump(1,(id,data)=>{throw new Exception("Stale audio transmitted");});
+        Check(channel.Pending==0,"Stale voice is discarded after half a second");
+        for(int i=0;i<100;i++)channel.Enqueue(new byte[]{6},0);Check(channel.Pending==32,"Fusion social metadata backlog bounded");
+        channel.Enqueue(new byte[]{7},0);channel.Enqueue(new byte[16001],0);Check(channel.Pending==32,"Fusion channel rejects unrelated and oversized packets");
         var watch=Stopwatch.StartNew();var r=new Random(781);
         foreach(var spec in new[]{new SocialDistribution(24,8,16,65),new SocialDistribution(50,18,0,100),new SocialDistribution(30,10,0,100,-1),new SocialDistribution(30,10,0,100,1)})
         {
