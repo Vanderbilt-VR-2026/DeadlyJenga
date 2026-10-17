@@ -1,0 +1,15 @@
+Giant retro milkshake parkour — October 17, 2026
+
+World/Maps/Scripts/LobbyMilkshake.cs owns static gray-box collision. Presentation/Visuals/CandyTropicalArt/CandyLobbyResort.Milkshake.cs supplies optional candy artwork through a serialized Transform reference. No Core changes, new packages, rigidbodies, damage, score, interaction prompts or network commands.
+
+The milkshake is 5.15 metres tall above its base, with a genuinely open annular rim and a 50% chocolate fill. The red/white striped bent straw has static collision. A beach cooler, stacked delivery crates and a tall parasol form a possible route; there are no arrows, checkpoint UI or instructions advertising the challenge. The cherry inside gives an escape foothold. The chocolate is a solid playable surface, not a fluid/swimming simulation.
+
+Validation uses the current survivor prefab's CharacterController, capsule dimensions, gravity, jump and vault methods. It searches movement release timing and requires grounded takeoff/landing. Every entry jump passed at the desktop movement speed. Edge-positioned takeoffs also passed using the slower VR movement speed. Interior landing, cherry jump and rim escape passed. These tests prove feasible individual jumps; they do not measure human difficulty or actual tracked-hand comfort. No locomotion values were changed to make the route work.
+
+Both clients should run the updated scene/build to see and collide with the same new props. This scenery does not require synchronized moving objects. Existing lobby room joining and hosting are retained.
+
+Height, radius and fill are editable on the LobbyMilkshake scene component. Restart Play Mode to rebuild geometry after changing them. The artwork reads the built collider markers so glass height, fill and clutter position follow the gray-box layout. Large dimension changes require a traversal retest. Optional art palette/gloss remain editable on CandyLobbyResort.
+
+Reapply by adding LobbyMilkshake to a child of the lobby at (2.6, .45, -3.8), and assigning that child to CandyLobbyResort.milkshakeGeometry. The explicit Tools > Deadly Jenga > Apply Lobby Resort Dressing command adds this configuration to the existing Lobby scene without regenerating it. No assets are installed automatically at editor startup.
+
+Still needed: physical Quest comfort, visual quality and performance checks; human attempts to tune difficulty. Static decor benches/palms/flumes elsewhere are still cosmetic.

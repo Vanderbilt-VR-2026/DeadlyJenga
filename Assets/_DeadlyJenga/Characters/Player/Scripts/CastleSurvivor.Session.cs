@@ -15,6 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool HasHandTracking => HandTracking && HandTracking.HasHandTracking;
         public bool MenuPressed => HandTracking && HandTracking.LeftMenuPressed;
         public bool SelectPressed => HandTracking && HandTracking.RightPinchPressed;
+        public bool SelectHeld => HandTracking && HandTracking.RightPinching;
         public string StatusText => ActionStatus;
         public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; }
         public void Place(Vector3 position, Quaternion rotation) { Teleport(position, rotation); Revive(); }
@@ -30,9 +31,14 @@ namespace DeadlyJenga.CastlePrototype
         public void CycleSmoothTurnSpeed() => vrSmoothDegreesPerSecond = vrSmoothDegreesPerSecond < 60 ? 60 : vrSmoothDegreesPerSecond < 90 ? 90 : 45;
         public void UseStationaryPreset() => UseStationaryVR();
         public void UseFluidPreset() => UseFluidVR();
+        public bool StandingPlay => vrPlayStyle == SurvivorVRPlayStyle.Standing;
+        public void UseStandingPreset() => UseStandingVR();
+        public string JumpGestureLabel => jumpGesture.ToString();
+        public void RecalibrateSeatedHeight() => CalibrateSeatedHeight();
+        public string ControlDescription => VRControlDescription;
         public MatchRules CurrentRules => new MatchRules
         {
-            movement = vrMovement.ToString(), turn = vrTurn.ToString(), snapAngle = vrSnapAngle, smoothDegrees = vrSmoothDegreesPerSecond,
+            playStyle = vrPlayStyle.ToString(), movement = vrMovement.ToString(), turn = vrTurn.ToString(), snapAngle = vrSnapAngle, smoothDegrees = vrSmoothDegreesPerSecond,
             gripSeconds = climbGripSeconds, drainRate = climbDrainPerSecond, recoveryRate = climbRecoveryPerSecond, recoveryDelay = climbRecoveryDelay,
             drainCurve = climbDrainCurve.ToString(), recoveryCurve = climbRecoveryCurve.ToString(), drainDegree = climbDrainDegree, recoveryDegree = climbRecoveryDegree
         };
@@ -59,6 +65,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             var rules = JsonUtility.FromJson<StaminaRules>(json);
             if (rules == null) throw new System.IO.InvalidDataException("Missing host stamina rules");
+            foreach (float number in new[] { rules.capacity, rules.drain, rules.recovery, rules.delay, rules.drainDegree, rules.recoveryDegree })
+                if (float.IsNaN(number) || float.IsInfinity(number)) throw new System.IO.InvalidDataException("Invalid stamina number");
+            if (!Enum.IsDefined(typeof(StaminaCurve), rules.drainCurve) || !Enum.IsDefined(typeof(StaminaCurve), rules.recoveryCurve))
+                throw new System.IO.InvalidDataException("Invalid stamina curve");
             climbGripSeconds = Mathf.Clamp(rules.capacity, .5f, 20);
             climbDrainPerSecond = Mathf.Clamp(rules.drain, 0, 4);
             climbRecoveryPerSecond = Mathf.Clamp(rules.recovery, 0, 2);
@@ -72,6 +82,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ApplyMatchRules(MatchRules rules)
         {
             if (rules == null) return;
+            if (Enum.TryParse(rules.playStyle, out SurvivorVRPlayStyle style)) SetVRPlayStyle(style, false);
             if (Enum.TryParse(rules.movement, out SurvivorVRMovement movement)) vrMovement = movement;
             if (Enum.TryParse(rules.turn, out SurvivorVRTurn turn)) vrTurn = turn;
             vrSnapAngle = rules.snapAngle;

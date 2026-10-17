@@ -1,0 +1,71 @@
+Flying hand integration checks
+PASS Starting with a held pinch does not unexpectedly fly
+PASS Fresh pinch and forward displacement command forward flight
+PASS Gesture flight follows observer heading
+PASS Steering-wrist turn commands flight yaw
+PASS Menu suspension stops gesture thrust
+PASS Closing menu requires release and fresh pinch
+PASS Upward steering displacement commands ascent
+PASS Tracking loss stops gesture thrust
+PASS Reacquisition with held pinch does not restart flight
+PASS Actual flying-hand prefab found
+PASS Local VR path activates articulated physical hand
+PASS Palm and all fifteen finger segments exist
+PASS 30 cm wrist movement reaches 20x pose target within 250 ms (error 0.002 m)
+PASS Physical palm follows six-metre scaled wrist displacement
+PASS Moving the wrist does not translate the observer camera
+PASS Physical palm follows wrist rotation
+PASS Menu suspension preserves visible tracking and disables contacts
+PASS Tracked target keeps updating while menu is open
+PASS Contacts resume after closing menu in clear space
+PASS Tracking loss releases contacts and hides stale hand
+PASS Tracking recovery reactivates physical hand
+PASS Controller fallback rebuilds and activates geometry
+PASS Controller-to-hand transition restores articulated tracking
+PASS Role re-entry builds at new spawn instead of dragging old rig across world
+PASS Tracked target beyond wall does not teleport physical palm through it
+PASS Physical contact forces stay bounded
+PASS Client preview has no authoritative contacts
+PASS External bot poses remain world-space without local scaling
+PASS Desktop mode still creates an interactive hand
+PASS Tracked source through bridge drives real flight motor forward
+PASS Motor clears gesture input when suspended
+PASS Motor does not resume held pinch after suspension
+PASS A controller in the steering hand does not get swallowed by gesture flight
+BINDINGS device=True tracked=1 move=(0.00, 1.00) up=1 enabled=True mode=VR suspended=False output=(0.00, 1.00)/1
+PASS Actual Input System left-controller bindings drive forward and ascent with right hand tracked
+PASS Actual left grip binding drives descent without a right controller
+PASS Actual X binding selects turning instead of horizontal flight
+PASS Left stick deadzone prevents idle drift
+PASS Half stick provides precise low-speed flight
+PASS Left trigger commands ascent
+PASS Left grip commands descent
+PASS VR flight reaches configured speed without exceeding it
+PASS Releasing flight input brakes to a stop within 400 ms
+PASS X plus stick commands one 30-degree snap turn
+PASS Held turn stick does not repeat until centered
+PASS VR camera does not drift after a snap turn
+PASS VR camera and flight heading agree after snap turn
+PASS Actor teardown leaves no physical-hand rig behind
+BOT Placing palm against a block at 14.15
+BOT Settling fingers at 16.46
+BOT Pushing with palm at 17.06
+BOT Releasing and backing away at 18.46
+BOT measured worst finger relative error 22.96 degrees; joint separation 0.0069 m; block displacement 0.251 m
+PASS AI settles fingers, makes a deliberate push, and withdraws
+PASS Physical palm contact moves the block; no block pose or velocity commands
+PASS AI finger articulation stays within 50 degrees of commanded joint pose during contact
+PASS AI finger joint anchors stay connected during push
+PASS AI uses joint-driven finger physics
+PASS AI abandons an immovable block without claiming a successful push
+PASS AI never moves an immovable block by changing its transform
+PASS AI clears a destroyed target without stale attack commands
+PASS Game.unity enters Play Mode and runs for five seconds without errors
+PASS Game initializes real hand-bot population
+PASS Actual hand bot spawns using shared prefab
+PASS Real hand bot activates its physical hand
+PASS Real hand bot continues flying under external input
+GAME BOT intent: Settling fingers; attempts: 1; successful pushes: 0
+PASS Real castle bot selects an exposed block and reaches a deliberate push attempt
+PASS Game and hand bot run without runtime errors
+COMPLETE: editor checks passed; Quest hardware not tested.

@@ -12,7 +12,7 @@ namespace DeadlyJenga.CandyArt
         public Light sun;
         public bool applyLighting;
         MaterialPropertyBlock properties;
-        void OnEnable() { Refresh(); }
+        void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();} Refresh(); }
         void Update() { Refresh(); }
         public void Refresh()
         {
@@ -20,7 +20,8 @@ namespace DeadlyJenga.CandyArt
             float radius=profile.fitIslandToFoundation && foundation ? Mathf.Max(foundation.lossyScale.x,foundation.lossyScale.z)*.5f : profile.islandRadius;
             radius=Mathf.Max(1,radius);
             var origin=transform.position;
-            waterRenderer.transform.localPosition=new Vector3(0,profile.waterHeight,0);
+            float waterLevel=DeadlyJenga.Core.Services.World!=null?DeadlyJenga.Core.Services.World.WaterHeight(origin):origin.y+profile.waterHeight;
+            waterRenderer.transform.localPosition=new Vector3(0,waterLevel-origin.y,0);
             waterRenderer.transform.localScale=new Vector3(profile.oceanSize,1,profile.oceanSize);
             var ocean=waterRenderer.GetComponent<CandyOceanSurface>();
             if(ocean){ocean.profile=profile;ocean.Refresh();}
@@ -44,11 +45,11 @@ namespace DeadlyJenga.CandyArt
             if(sandRenderer.sharedMaterial!=profile.sand)sandRenderer.sharedMaterial=profile.sand;
             properties ??=new MaterialPropertyBlock();
             properties.SetVector("_Island",new Vector4(origin.x,origin.z,radius*profile.islandAspect.x,radius*profile.islandAspect.y));
-            properties.SetFloat("_Submersion",origin.y+profile.waterHeight-sandTop);
+            properties.SetFloat("_Submersion",waterLevel-sandTop);
             properties.SetFloat("_SandTop",sandTop);
             properties.SetFloat("_SandDepth",profile.sandDepth);
             properties.SetFloat("_Plateau",profile.sandPlateau);
-            properties.SetFloat("_WaterHeight",origin.y+profile.waterHeight);
+            properties.SetFloat("_WaterHeight",waterLevel);
             if(terrain&&terrain.HeightMap)
             {
                 properties.SetTexture("_TerrainHeight",terrain.HeightMap);

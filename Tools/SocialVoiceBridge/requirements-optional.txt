@@ -1,0 +1,5 @@
+# Install in a dedicated virtual environment only when selecting neural providers.
+# Default Windows preview TTS uses the Python standard library and installed SAPI.
+kokoro>=0.9.2,<1
+faster-whisper>=1.1,<2
+soundfile>=0.12,<1

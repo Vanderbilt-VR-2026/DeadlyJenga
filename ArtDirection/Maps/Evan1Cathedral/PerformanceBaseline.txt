@@ -1,0 +1,7 @@
+Cathedral editor overview benchmark; VSync off; 24 frames per phase. Not a device FPS guarantee.
+Blocks 6098; renderers 6098; shared visual mesh vertices 2088
+Normal: median 614.93ms, p90 687.95ms; triangles 13403837; batches 5287
+Block rendering disabled: median 503.35ms, p90 546.31ms; triangles 214121; batches 60
+Block behaviour/surface updates disabled: median 43.16ms, p90 64.91ms; triangles 13672275; batches 5440
+Physics simulation disabled: median 353.49ms, p90 361.53ms; triangles 13261418; batches 5173
+COMPLETE

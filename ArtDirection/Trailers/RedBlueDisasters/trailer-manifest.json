@@ -1,0 +1,85 @@
+{
+  "durationSeconds": 20,
+  "fps": 30,
+  "resolution": [
+    1280,
+    720
+  ],
+  "type": "art-driven animated concept trailer, not captured Unity gameplay",
+  "video": "DeadlyJenga_RedBlue_Disaster_Concept_20s.mp4",
+  "audio": "existing project sound library plus original synthesized UI tones",
+  "shots": [
+    {
+      "file": "01-capture.png",
+      "start": 0,
+      "end": 6.5,
+      "z0": 1.02,
+      "z1": 1.13,
+      "c0": [
+        0.51,
+        0.51
+      ],
+      "c1": [
+        0.57,
+        0.57
+      ]
+    },
+    {
+      "file": "02-meteors.png",
+      "start": 6.5,
+      "end": 10.5,
+      "z0": 1.13,
+      "z1": 1.02,
+      "c0": [
+        0.44,
+        0.52
+      ],
+      "c1": [
+        0.5,
+        0.5
+      ]
+    },
+    {
+      "file": "03-hands.png",
+      "start": 10.5,
+      "end": 15.5,
+      "z0": 1.04,
+      "z1": 1.12,
+      "c0": [
+        0.48,
+        0.52
+      ],
+      "c1": [
+        0.53,
+        0.56
+      ]
+    },
+    {
+      "file": "04-flood.png",
+      "start": 15.5,
+      "end": 20,
+      "z0": 1.13,
+      "z1": 1.02,
+      "c0": [
+        0.54,
+        0.58
+      ],
+      "c1": [
+        0.5,
+        0.5
+      ]
+    }
+  ],
+  "warnings": [
+    {
+      "event": "meteors",
+      "warningAt": 3.5,
+      "eventAt": 6.5
+    },
+    {
+      "event": "flood",
+      "warningAt": 12.5,
+      "eventAt": 15.5
+    }
+  ]
+}

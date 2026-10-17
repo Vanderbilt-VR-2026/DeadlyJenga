@@ -43,7 +43,7 @@ namespace DeadlyJenga.CastlePrototype
                 worldMenu.Show(show && view, view);
                 shown = show; lastCamera = view; lastHand = session.PlayingHand;
             }
-            if (show && view) worldMenu.Point(view, session.MenuSelectPressed);
+            if (show && view) worldMenu.Point(view, session.MenuSelectPressed, session.MenuSelectHeld);
         }
 
         void OnDestroy() { if (worldMenu) Destroy(worldMenu.gameObject); }

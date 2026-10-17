@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public static class CastleLanProtocol
     {
-        public const string Version = "DeadlyJenga-LAN-1";
+        public const string Version = "DeadlyJenga-LAN-2";
         public const byte Hello = 1, Welcome = 2, World = 3, Player = 4;
         public struct Pose
         {
@@ -102,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype
             var s = new Snapshot { revision = r.ReadInt32(), settings = Text(r, 4096), origin = ReadPose(r), originScale = Vector(r) };
             int count = Count(r, 20000); s.blocks = new Pose[count]; s.active = new bool[count];
             for (int i = 0; i < count; i++) { s.active[i] = r.ReadBoolean(); s.blocks[i] = ReadPose(r); }
-            s.actors = new Actor[Count(r, 512)];
+            s.actors = new Actor[Count(r, data.Length / 16)];
             for (int i = 0; i < s.actors.Length; i++) s.actors[i] = ReadActor(r);
             if (r.BaseStream.Position != r.BaseStream.Length) throw new InvalidDataException("Trailing LAN state data");
             return s;

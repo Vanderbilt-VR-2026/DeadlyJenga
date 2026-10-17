@@ -1,0 +1,31 @@
+Main integration into Evan_Sprint_3
+Main commit a1b2362daee0ec379613e35639f283279135c075; remote tip rechecked unchanged.
+Pre-merge source checkpoint dd2200fd2; complete tracked-game asset backup in ignored ArtDirection/CastleSocial/IntegrationBackup/before-main.zip.
+Default launch is main Lobby -> Game, per user choice.
+Preserved existing BotWorld composition, castle physics/avatars/hands/traversal/audio and authored local voice settings.
+Social assets relocated with Unity AssetDatabase; GUID audit maps 366 moved assets. Missing historical GUIDs are main-deleted editor tools and empty folders, retained in the backup.
+Added bounded acknowledged Fusion social channel; kept actor/world snapshot wire format unchanged.
+Restored survivor, giant-hand, comfort and voice menu access. Direct Game Play Mode also supports no-network social bots.
+No new packages/models installed. Local speech virtual environment/model/cache folders preserved.
+Intentional speech cancellation no longer counts as a provider connection failure.
+Cached Kokoro first audio in final Unity run: 0.248 seconds. An uncached full sentence took 10.45 seconds in a separate HTTP preparation call on the loaded laptop; cached timing is not representative of uncached synthesis.
+No push or PR performed.
+
+Final consolidated merge validation: 2026-10-16
+Earlier full runs are preserved in Logs/Validation/MainMergeRuntime*.log; the isolated final speech/perception rerun is MainMergeVoiceFinal.log.
+PASS Direct Game scene works without a network session; bot adapter initializes.
+PASS Lobby initializes with no missing scripts and is the first enabled build scene.
+PASS ArtDirection/CastleSocial/UnityValidation.txt: 51 assertions; modified 2026-10-16T19:49:33
+PASS Logs/Validation/ReferenceValidation.txt: 16 assertions; modified 2026-10-16T19:41:12
+PASS Logs/Validation/TraversalValidation.txt: 22 assertions; modified 2026-10-16T19:41:14
+PASS Logs/Validation/InputValidation.txt: 6 assertions; modified 2026-10-16T19:41:18
+PASS ArtDirection/VRViewChecks.txt: 25 assertions; modified 2026-10-16T19:41:20
+PASS ArtDirection/SeamCameraChecks.txt: 15 assertions; modified 2026-10-16T19:41:23
+PASS ArtDirection/SlopeChecks.txt: 10 assertions; modified 2026-10-16T19:44:56
+PASS ArtDirection/StaminaChecks.txt: 55 assertions; modified 2026-10-16T19:43:32
+PASS ArtDirection/ClimbChecks.txt: 23 assertions; modified 2026-10-16T19:43:35
+PASS Portable AI, DSP, packet and Fusion queue checks: 74 assertions.
+Unity assertion total across component reports: 223.
+LIMIT Desktop mouse capture/keyboard/hand-flight checks require an interactive editor; batch mode explicitly skips these.
+LIMIT No physical Quest or two-peer Photon cloud session was available; device tracking, hardware audibility and real Fusion voice remain to be smoke-tested.
+LIMIT Full conversational LLM is not configured; existing local speech/recognition capability is preserved.

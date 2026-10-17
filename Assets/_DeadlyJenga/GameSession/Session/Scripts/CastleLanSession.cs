@@ -66,7 +66,34 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<string, P.Actor> fusionActors = new Dictionary<string, P.Actor>();
         public bool IsFusion => fusionMode;
         public bool IsClient => fusionMode ? fusionClient : host != null;
-        public bool CanEditWorld => !IsClient;
+        public bool CanEditWorld => !IsClient || fusionMode&&GetComponent<CastleFusionSession>()&&GetComponent<CastleFusionSession>().CanUseDemoControls;
+        public string LocalParticipantId=>id;
+        public event Action<string,byte[]> SocialReceived;
+        public event Action<string> ParticipantLeft;
+        public void SendSocial(byte[] data,string except=null)
+        {
+            if(data==null||data.Length<1||data.Length>16000||(data[0]!=5&&data[0]!=6))return;
+            if(fusionMode){GetComponent<CastleFusionSession>()?.SendSocial(data,except);return;}
+            if(IsClient){if(data[0]==5)host.SendAudio(data);else host.Send(data);}
+            else foreach(var c in connections)if(c.id!=null&&c.id!=except){if(data[0]==5)c.link.SendAudio(data);else c.link.Send(data);}
+        }
+        public Transform ParticipantTransform(string actorId)
+        {
+            if(actorId==id)return session.Player.transform;
+            return views.TryGetValue(actorId,out var view)&&view is Component c&&c?c.transform:null;
+        }
+        public bool TryParticipantPosition(string actorId,out Vector3 position)
+        {
+            if(actorId==id&&session&&NetworkActors.Alive(session.Player)){position=session.Player.ViewCamera.transform.position;return true;}
+            if(actorId!=null&&views.TryGetValue(actorId,out var view)&&NetworkActors.Alive(view)){position=view.NetworkPosition+(view.NetworkKind==NetworkKinds.Survivor?Vector3.up*1.6f:Vector3.zero);return true;}
+            position=default;return false;
+        }
+        public IEnumerable<KeyValuePair<string,Vector3>> HumanPositions()
+        {
+            if(session&&NetworkActors.Alive(session.Player))yield return new KeyValuePair<string,Vector3>(id,session.Player.transform.position);
+            if(fusionMode)foreach(var a in fusionActors)yield return new KeyValuePair<string,Vector3>(a.Key,a.Value.position);
+            foreach(var c in connections)if(c.id!=null&&c.actor!=null)yield return new KeyValuePair<string,Vector3>(c.id,c.actor.position);
+        }
         public bool WaitingForWorld => IsClient && !receivedWorld;
         public int HumanCount => 1 + (fusionMode ? fusionActors.Count : connections.Count(c => c.id != null));
         public string Status { get; private set; } = "Starting local discovery…";
@@ -80,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
                 return p == null ? "No invites or join requests" : p.peer.info.name + (p.invite ? " invited you" : " wants to join");
             }
         }
-        public bool HasPending => pending.Count > 0;
+        public bool HasPending => pending.Count > 0 || fusionMode&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.Discovery?.Invitation!=null;
 
         public void Initialize(CastlePlaySession owner)
         {
@@ -121,6 +148,34 @@ namespace DeadlyJenga.CastlePrototype
                 session.SetMenu(true);
             }
         }
+        Vector3[] migrationVelocity,migrationAngular;
+        public void FusionFreeze()
+        {
+            var blocks=World.Blocks;if(migrationVelocity==null||migrationVelocity.Length!=blocks.Count)migrationVelocity=new Vector3[blocks.Count];if(migrationAngular==null||migrationAngular.Length!=blocks.Count)migrationAngular=new Vector3[blocks.Count];
+            for(int i=0;i<blocks.Count;i++)if(blocks[i]&&!blocks[i].isKinematic){migrationVelocity[i]=blocks[i].linearVelocity;migrationAngular[i]=blocks[i].angularVelocity;}
+            Synced?.SetReplica(true);
+        }
+        public void FusionRebind(string newId,bool client,int survivors,int hands,int survivorPreset,int handPreset)
+        {
+            id=newId;fusionClient=client;fusionActors.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
+            if(!client)
+            {
+                if(targetWorld!=null)for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]){World.Blocks[i].position=targetWorld.blocks[i].position;World.Blocks[i].rotation=targetWorld.blocks[i].rotation;}
+                Synced?.SetReplica(false);
+                for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
+                if(localPreview!=null)localPreview.NetworkPreview=false;
+                var bots=session.SurvivorBots;var handBots=session.HandBots;
+                if(bots!=null){bots.Running=true;bots.TargetPopulation=Mathf.Max(10,bots.TargetPopulation);bots.SelectPreset(survivorPreset);}
+                if(handBots!=null){handBots.Running=true;handBots.SelectPreset(handPreset);}
+                var survivorFrames=targetWorld?.actors.Where(a=>a.id.StartsWith("bot:")).ToArray();
+                var handFrames=targetWorld?.actors.Where(a=>a.id.StartsWith("bot-hand:")).ToArray();
+                for(int i=0;i<survivors&&bots!=null;i++){var bot=bots.SpawnOne();if(bot&&survivorFrames!=null&&i<survivorFrames.Length)bot.GetComponent<IPlayableCharacter>()?.Place(survivorFrames[i].position,Quaternion.identity);}
+                for(int i=0;i<hands&&handBots!=null;i++){var bot=handBots.SpawnOne();if(bot&&handFrames!=null&&i<handFrames.Length)bot.GetComponent<IPlayableCharacter>()?.Place(handFrames[i].position,Quaternion.identity);}
+                receivedWorld=false;targetWorld=null;
+            }
+            else {Synced?.SetReplica(true);if(localPreview!=null)localPreview.NetworkPreview=true;}
+            Status=client?"Host reassigned · reconnecting castle":"You are the new castle host";
+        }
         public byte[] FusionWelcome(string playerID)
         {
             bool survivor = TrySpawn(out var pose);
@@ -137,7 +192,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
-        public void FusionApplyWorld(byte[] data) => ApplyWorld(P.DecodeWorld(data));
+        public void FusionApplyWorld(byte[] data)
+        {
+            var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
+            if(targetWorld!=null&&targetWorld.revision==snapshot.revision&&targetWorld.blocks.Length==snapshot.blocks.Length&&dt>.01f&&dt<1)
+            {migrationVelocity=new Vector3[snapshot.blocks.Length];migrationAngular=new Vector3[snapshot.blocks.Length];for(int i=0;i<snapshot.blocks.Length;i++)
+                {migrationVelocity[i]=Vector3.ClampMagnitude((snapshot.blocks[i].position-targetWorld.blocks[i].position)/dt,60);
+                    var delta=snapshot.blocks[i].rotation*Quaternion.Inverse(targetWorld.blocks[i].rotation);delta.ToAngleAxis(out float angle,out Vector3 axis);if(angle>180)angle-=360;
+                    if(axis.sqrMagnitude>0&&!float.IsNaN(axis.x))migrationAngular[i]=Vector3.ClampMagnitude(axis*(angle*Mathf.Deg2Rad/dt),30);}}
+            ApplyWorld(snapshot);
+        }
         public void FusionReceivePlayer(string playerID, byte[] data)
         {
             using var reader = P.Reader(data, P.Player);
@@ -145,7 +209,8 @@ namespace DeadlyJenga.CastlePrototype
             fusionActors[playerID] = actor;
             ShowActor(actor, true);
         }
-        public void FusionRemovePlayer(string playerID) { fusionActors.Remove(playerID); RemoveView(playerID); }
+        public void FusionRemovePlayer(string playerID) { fusionActors.Remove(playerID); RemoveView(playerID); ParticipantLeft?.Invoke(playerID); }
+        public void FusionReceiveSocial(string source,byte[] data) { if(data!=null&&data.Length>0&&data.Length<=16000&&(data[0]==5||data[0]==6))SocialReceived?.Invoke(source,data); }
         public void FusionSuspendPlayer(string playerID) { if (views.TryGetValue(playerID, out var view)) view.Suspend(); }
         public void FusionRender()
         {
@@ -278,7 +343,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 try
                 {
-                    while (host.Controls.TryDequeue(out var control)) ReceiveWelcome(control);
+                    while (host.Controls.TryDequeue(out var control)){if(control[0]==6)SocialReceived?.Invoke("host",control);else ReceiveWelcome(control);}
+                    for(int n=0;n<32&&host.Audio.TryDequeue(out var audio);n++)SocialReceived?.Invoke("host",audio);
                     var state = welcomed ? host.TakeState() : null;
                     if (state != null) ApplyWorld(P.DecodeWorld(state));
                     if (host.Closed || now - lastWorldAt > 12) Leave("Host disconnected · continuing locally from the last received state.");
@@ -297,6 +363,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     while (c.link.Controls.TryDequeue(out var control))
                     {
+                        if(control[0]==6&&c.id!=null){SocialReceived?.Invoke(c.id,control);continue;}
                         if (c.id != null) throw new InvalidDataException("Duplicate handshake");
                         using var r = P.Reader(control, P.Hello);
                         string version = P.Text(r), peerID = P.Text(r), token = P.Text(r);
@@ -310,6 +377,7 @@ namespace DeadlyJenga.CastlePrototype
                         Status = "Hosting " + HumanCount + " humans · live local demo";
                         // Humans do not consume the demo's ten-slot bot budget.
                     }
+                    for(int n=0;n<32&&c.link.Audio.TryDequeue(out var audio);n++)if(c.id!=null)SocialReceived?.Invoke(c.id,audio);
                     var state = c.link.TakeState();
                     if (state != null && c.id != null)
                     {
@@ -323,7 +391,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (c.link.Closed || c.id == null && Time.unscaledTime - c.connected > 5 || Time.unscaledTime - c.lastPose > 12)
                 {
                     c.link.Dispose(); connections.RemoveAt(i);
-                    if (c.id != null) RemoveView(c.id);
+                    if (c.id != null) {RemoveView(c.id);ParticipantLeft?.Invoke(c.id);}
                 }
                 else if (c.id != null && Time.unscaledTime - c.lastPose > 1 && views.TryGetValue(c.id, out var stale)) stale.Suspend();
             }
@@ -394,7 +462,8 @@ namespace DeadlyJenga.CastlePrototype
         void StopBots()
         {
             if (session.SurvivorBots != null) { session.SurvivorBots.Clear(); session.SurvivorBots.Running = false; }
-            if (session.HandBots != null) { session.HandBots.Clear(); session.HandBots.Running = false; }
+            var hands = session.HandBots;
+            if (hands != null) { hands.Clear(); hands.Running = false; }
         }
         void ResumeBots()
         {
@@ -402,7 +471,11 @@ namespace DeadlyJenga.CastlePrototype
             if (session.HandBots != null) session.HandBots.Running = true;
         }
         bool IsOwnCharacter(INetworkActor a) => a is Component c && c && (c.gameObject == session.Player.gameObject || c.gameObject == session.Hand.gameObject);
-        NetworkContext Context(bool host) => new NetworkContext { host = host, localSurvivor = session.Player.gameObject, localHand = session.Hand.gameObject };
+        NetworkContext Context(bool host, string id = null) => new NetworkContext
+        {
+            host = host, localSurvivor = session.Player.gameObject, localHand = session.Hand.gameObject, actorId = id,
+            sendImpact = (actor, push, damage) => GetComponent<CastleFusionSession>()?.QueueDisasterImpact(actor, push, damage)
+        };
         // A joined player's character, as the host currently has it (a host-simulated hand sends its real bones).
         P.Actor Rebroadcast(string actorID, P.Actor stored) =>
             views.TryGetValue(actorID, out var view) && NetworkActors.Alive(view) ? P.Capture(actorID, view) : stored;
@@ -476,7 +549,7 @@ namespace DeadlyJenga.CastlePrototype
             if (view == null)
             {
                 var root = new GameObject("LAN player " + actor.id);
-                view = NetworkActors.CreateView(actor.kind, root, Context(authoritative));
+                view = NetworkActors.CreateView(actor.kind, root, Context(authoritative, actor.id));
                 if (view == null) { Destroy(root); return; }
                 views[actor.id] = view;
             }
@@ -513,5 +586,15 @@ namespace DeadlyJenga.CastlePrototype
 #endif
         }
         public bool CanLeave => IsClient || HumanCount > 1 || requested != null || connecting;
+        IslandRoomConnection Room => fusionMode ? IslandRoomConnection.Instance : null;
+        public string RoomInfo => Room ? "Room: " + Room.Code + " \u00b7 " + Room.HumanCount + " players" : "";
+        public string DiscoveryStatus => !Room ? "" : Room.DiscoveryStatus.Length > 0 ? Room.DiscoveryStatus : Room.Discovery?.Status ?? "Discovery starting";
+        public bool CanToggleSharedControls => Room && Room.IsHost && MatchSetup.ModeId == "demo";
+        public bool SharedControls => Room && Room.SharedDemoControls;
+        public void ToggleSharedControls() { if (CanToggleSharedControls) Room.SetSharedControls(!Room.SharedDemoControls); }
+        public bool CanInviteNearby => Room && Room.IsHost;
+        public void InviteNearby() { if (CanInviteNearby) Room.InviteNearby(); }
+        public string InvitationFrom => Room && Room.Discovery?.Invitation != null ? Room.Discovery.Invitation.message.name : "";
+        public void DismissInvitation() => Room?.Discovery?.Dismiss();
     }
 }

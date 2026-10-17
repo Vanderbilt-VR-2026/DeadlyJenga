@@ -13,7 +13,19 @@ namespace DeadlyJenga.CastlePrototype
             if (net.IsFusion)
             {
                 GUILayout.Label(net.Status);
-                if (GUILayout.Button(net.IsClient ? "Leave game" : "Close game for everyone", GUILayout.Height(32))) net.LeaveSession();
+                if (net.RoomInfo.Length > 0)
+                {
+                    GUILayout.Label(net.RoomInfo);
+                    if (net.CanToggleSharedControls && GUILayout.Button("Demo controls: " + (net.SharedControls ? "EVERYONE" : "HOST ONLY"), GUILayout.Height(32))) net.ToggleSharedControls();
+                    if (net.CanInviteNearby && GUILayout.Button("Invite everyone on this Wi-Fi", GUILayout.Height(32))) net.InviteNearby();
+                    if (net.InvitationFrom.Length > 0)
+                    {
+                        GUILayout.Label("Nearby invitation from " + net.InvitationFrom + ". Leave this room to accept it on the island.");
+                        if (GUILayout.Button("Dismiss invitation", GUILayout.Height(32))) net.DismissInvitation();
+                    }
+                    GUILayout.Label(net.DiscoveryStatus);
+                }
+                if (GUILayout.Button(net.IsClient ? "Leave game" : (net.RoomInfo.Length > 0 ? "Leave / transfer host" : "Close game for everyone"), GUILayout.Height(32))) net.LeaveSession();
                 return;
             }
             GUILayout.Space(8); GUILayout.Label("LOCAL MULTIPLAYER \u00b7 same Wi-Fi"); GUILayout.Label(net.Status);

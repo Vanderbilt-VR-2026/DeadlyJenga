@@ -1,0 +1,1 @@
+AI attacks: 1; crate displacement: 30.04557 m; intent: Lining up a crate; wrist: (39.78, 67.43, -1.65)

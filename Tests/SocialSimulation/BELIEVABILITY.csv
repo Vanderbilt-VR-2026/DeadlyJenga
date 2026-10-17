@@ -1,0 +1,1 @@
+run_id,condition_code,seed,build,bot_count,backend,hardware,rater_code,hesitation_1to5,context_relevance_1to5,repetition_1to5,friend_coherence_1to5,interruption_quality_1to5,overall_1to5,first_audio_ms,failures,notes

@@ -1,0 +1,38 @@
+Cathedral editor overview benchmark; VSync off; 24 frames per phase. Not a device FPS guarantee.
+Blocks 6098; renderers 6098; shared visual mesh vertices 96
+Normal: median 150.74ms, p90 396.14ms; triangles 872701; batches 84
+  Physics.SyncTransforms mean 14.5112533333333ms
+  Physics.Simulate mean 62.2721566666667ms
+  Main Thread mean 266.609386666667ms
+  BehaviourUpdate mean 28.5858766666667ms
+Block rendering disabled: median 52.95ms, p90 62.74ms; triangles 214121; batches 60
+  Physics.SyncTransforms mean 1.08741333333333ms
+  Physics.Simulate mean 7.19942ms
+  Main Thread mean 54.2552766666667ms
+  BehaviourUpdate mean 15.3811666666667ms
+Block behaviour/surface updates disabled: median 24.67ms, p90 36.17ms; triangles 872705; batches 85
+  Physics.SyncTransforms mean 0.0390333333333333ms
+  Physics.Simulate mean 3.76503666666667ms
+  Main Thread mean 27.1966033333333ms
+  BehaviourUpdate mean 6.53657ms
+Physics simulation disabled: median 32.51ms, p90 41.44ms; triangles 872705; batches 85
+  Physics.SyncTransforms mean 0.24066ms
+  Physics.Simulate mean 0ms
+  Main Thread mean 34.0060833333333ms
+  BehaviourUpdate mean 13.23073ms
+Sleeping before settled sample: 6098 / 6098
+Normal after settling: median 38.94ms, p90 57.19ms; triangles 871905; batches 84
+  Physics.SyncTransforms mean 0.0511133333333333ms
+  Physics.Simulate mean 1.59886666666667ms
+  Main Thread mean 40.5029366666667ms
+  BehaviourUpdate mean 13.8183633333333ms
+PASS All 6098 structural bodies retain dynamic gravity
+PASS Near / middle / far visual detail: 2088 / 216 / 96 vertices; close artwork preserved
+PASS Climbable proxy registration remains intact
+PASS Proxy follows translation, rotation, scale and collider edits
+PASS One-way player collision retained; players cannot push real blocks
+PASS Hand / hazard push still accelerates dynamic blocks
+PASS Distant normal artwork uses instanced batches
+PASS Per-block shader effects fall back to normal rendering
+PASS Close blocks return to fully detailed normal rendering
+COMPLETE

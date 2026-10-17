@@ -1,0 +1,51 @@
+Lobby networking assessment — 2026-10-16
+
+The new island uses one persistent Fusion Host/Client runner. The connection is
+created by the CONNECTION terminal; the same runner carries the room into Game.
+The old sample bootstrap, separate avatar spawner, and countdown are absent from
+the new Lobby scene. The existing Castle Demo snapshot and avatar format is reused.
+
+Room codes and regions
+- New codes are six non-confusable random characters, qualified by region (for
+  example US-ABC234). A typed full code chooses its region; the VR keypad uses
+  the terminal's selected region. A join never creates a new room on a typo.
+- Settings are copied per connection. The project's global Photon asset is not
+  rewritten. The protocol app-version suffix keeps this lobby flow separate
+  from older incompatible builds. All players need the same updated build.
+- Main previously used best-region selection independently on each device and
+  four-character names. A name is unique only inside a Photon region, so the
+  same code alone could miss a host when devices selected different regions.
+
+Nearby discovery: feasible without changing Core
+- A small UDP discovery service could advertise only this room's code, region,
+  protocol version, occupancy, and whether it is in Lobby or Game. Selecting a
+  nearby result calls the same IslandRoomConnection.Join(fullCode) as typing.
+- Discovery would not transport poses, game physics, or voice. Fusion remains
+  the only multiplayer session, authority, scene transition, and replication path.
+- Existing CastleLanTransport demonstrates UDP discovery and Android multicast
+  handling, but its legacy advertisements contain TCP link details rather than
+  this region-qualified Fusion address. Add a dedicated versioned beacon wrapper
+  instead of connecting the old LAN game transport in parallel.
+- Treat advertisements as untrusted and short-lived; validate length/fields,
+  expire stale entries, and require user selection. Include a protocol/version
+  marker to avoid joining a stale or unrelated build.
+- Android Wi-Fi discovery permissions/multicast behavior and Windows firewall
+  need device tests. Some networks isolate clients or block broadcast/multicast;
+  always retain typed codes. Nearby discovery does not remove the need for
+  Internet/Photon availability when the actual room uses Photon Cloud.
+- Nearby beacons/invites are an assessed extension, not implemented by this change.
+
+Limitations to track
+- There is no public automatic matchmaking or host migration in this private-room
+  flow. Opening Lobby always shows the island locally; Host/Join makes it shared.
+- The lobby avatar replication reuses the existing pose codec. It is not a rewrite
+  of the planned generic character wire API.
+- Voice is existing opt-in PCM with bounded buffers. It needs no AI speech model,
+  but is less bandwidth-efficient than Opus/Photon Voice. No additional paid voice
+  service or microphone recording was introduced.
+- Placeholder is selectable and visibly unfinished; it cannot launch. Future maps
+  and modes are catalog entries, with map scenes required in the build list.
+
+Primary references
+https://doc.photonengine.com/fusion/v2/manual/connection-and-matchmaking/matchmaking
+https://doc.photonengine.com/fusion/v2/manual/scene-loading

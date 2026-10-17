@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     // Runs the match: creates the local survivor and hand, switches between them, respawns,
     // starts bots and networking. Talks to every other box only through Core.
     [DefaultExecutionOrder(200)]
-    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo
+    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo, IWorldAuthority
     {
         [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")]
         public MonoBehaviour survivorPrefab;
@@ -18,19 +18,26 @@ namespace DeadlyJenga.CastlePrototype
         public Camera overviewCamera;
         public bool tuneJumpToBlockHeight=true;
         public float jumpShortfall=.18f;
+        [Header("Next tsunami")]
+        [Range(.5f,30)] public float tsunamiSpeed=8;
+        [Range(0,5)] public float tsunamiForce=1;
         public IPlayableCharacter Player { get; private set; }
         public IPlayableCharacter Hand { get; private set; }
+        public IBotPopulation HandBots { get; private set; }
         public bool PlayingHand { get; private set; }
         public bool MenuOpen { get; private set; }
         IPlayableCharacter Active => PlayingHand ? Hand : Player;
         public bool IsVR => NetworkActors.Alive(Active) && Active.IsVR;
         public Camera ActiveCamera => NetworkActors.Alive(Active) ? Active.ViewCamera : null;
         public bool MenuSelectPressed => MenuOpen && IsVR && select != null && (select.WasPressedThisFrame() || Active.SelectPressed);
+        public bool MenuSelectHeld => MenuOpen && IsVR && select != null && (select.IsPressed() || Active.SelectHeld);
+        public bool HasWorldAuthority => !Network || !Network.IsClient;
         public Vector3 LastSpawnFeet { get; private set; }
         public ISurvivorBotPopulation SurvivorBots { get; private set; }
-        public IBotPopulation HandBots { get; private set; }
         public CastleLanSession Network { get; private set; }
         public IMultiplayerControls Multiplayer => Network;
+        public IDemoControls Demo { get; private set; }
+        public ISocialControls Social { get; private set; }
         public bool CanEditWorld => !Network || Network.CanEditWorld;
         InputAction switchRole, toggleMenu, select;
         bool wasVR, focused = true;
@@ -52,7 +59,8 @@ namespace DeadlyJenga.CastlePrototype
             BotSystems.Create(gameObject, new BotSetup { player = Player, hand = Hand, survivorPrefab = survivorPrefab, handPrefab = handPrefab, isPlayingHand = () => PlayingHand },
                 out var survivorBots, out var handBots);
             SurvivorBots = survivorBots; HandBots = handBots;
-            var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
+            var room = IslandRoomConnection.Instance;
+            var runner = room && room.Connected ? room.Runner : NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)
             {
                 Network = gameObject.AddComponent<CastleLanSession>();
@@ -64,6 +72,9 @@ namespace DeadlyJenga.CastlePrototype
                 Network.Initialize(this);
             }
             MatchSetup.Apply(this);
+            var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);
+            Demo = new SessionDemoControls(this);
+            Social = new DeadlyJenga.CastleSocial.SocialControls(social);
             // Menus, HUDs and the stamina bar attach themselves (Presentation listens for this).
             GameEvents.RaiseSessionStarted(gameObject);
         }
@@ -111,7 +122,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void ResetMap()
         {
-            if (!CanEditWorld) return;
+            // Clients ask the host; the host stops disasters and rebuilds for everyone.
+            if (Network && Network.IsClient) { CastleDemoCommands.Run(this, CastleDemoAction.Rebuild); return; }
+            DemoDisasters.StopAll(this);
             (Services.World as IRebuildable)?.Rebuild();
             TuneJump(); SetRole(PlayingHand);
             HandBots?.MapRebuilt(); SurvivorBots?.MapRebuilt();

@@ -8,7 +8,7 @@ using System.IO;
 namespace DeadlyJenga.CandyPhysicsHands
 {
     [DefaultExecutionOrder(50)]
-    public sealed class CandyFlyingHandBridge : MonoBehaviour, INetworkActor, INetworkPreview
+    public sealed class CandyFlyingHandBridge : MonoBehaviour, INetworkActor, INetworkPreview, ITrackedFlightInputSource
     {
         public CastleHandActor actor;
         public CandyPhysicalHand prefab;
@@ -30,9 +30,10 @@ namespace DeadlyJenga.CandyPhysicsHands
         Vector3 trackingAnchor;
         bool anchored;
         bool trackedGeometry;
+        readonly CandyHandFlightGesture flightGesture=new CandyHandFlightGesture();
         void Awake()
         {
-            if(!actor.motor.externallyDriven){source=gameObject.AddComponent<CandyTrackingSource>();source.style=trackingStyle;}
+            if(!actor.motor.externallyDriven){source=gameObject.AddComponent<CandyTrackingSource>();source.style=trackingStyle;actor.motor.TrackedInputDriver=this;}
             var visuals=actor.motor.transform.Find("HandVisual");pointerRenderers=visuals?visuals.GetComponentsInChildren<Renderer>(true):new Renderer[0];
             pointerColliders=actor.motor.GetComponentsInChildren<Collider>(true);
             colliderEnabled=new bool[pointerColliders.Length];rendererEnabled=new bool[pointerRenderers.Length];
@@ -44,20 +45,31 @@ namespace DeadlyJenga.CandyPhysicsHands
             for(int i=0;i<pointerColliders.Length;i++)pointerColliders[i].enabled=value&&colliderEnabled[i];
             for(int i=0;i<pointerRenderers.Length;i++)pointerRenderers[i].enabled=value&&rendererEnabled[i];
         }
+        public bool TryReadFlightInput(out FlyingHandCommand command)
+        {
+            command=default;
+            if(!source||!source.HasHandTracking){flightGesture.Reset();return false;}
+            var steering=source.WorldHand(!useLeftHand);
+            if(!steering.tracked||!steering.skeletonTracked){flightGesture.Reset();return false;}
+            command=flightGesture.Read(steering,actor.follow.transform.rotation,actor.motor.InputSuspended);
+            return true;
+        }
+        public void ResetFlightInput()=>flightGesture.Reset();
         void Update()
         {
             bool desktop=actor.motor.ActiveControlMode==ControlMode.Desktop;
             Pointer(false);
             bool external=actor.motor.externallyDriven;
             var raw=source?source.WorldHand(useLeftHand):default;
-            if(external){if(PoseSource==null||!PoseSource.TryGetPose(out raw))raw=default;}
+            if(PoseSource!=null){if(!PoseSource.TryGetPose(out raw))raw=default;}
+            else if(external)raw=default;
+            if(!CandyHandTransition.IsValidPose(raw))raw.tracked=false;
             CandyHandMode mode=raw.tracked?(raw.skeletonTracked?CandyHandMode.HandTracking:CandyHandMode.Controller):CandyHandMode.Inactive;
             if(desktop&&!external)
             {
                 raw=new CandyHandPose{tracked=true,position=actor.motor.transform.position,rotation=actor.motor.transform.rotation,skeleton=CandyHandSkeleton.Rest(useLeftHand,.85f)};
                 mode=CandyHandMode.Desktop;anchored=false;
             }
-            if(actor.motor.InputSuspended){raw.tracked=false;mode=CandyHandMode.Inactive;}
             if(raw.tracked)
             {
                 if(!desktop&&!external)
@@ -77,13 +89,10 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(transition.Mode==CandyHandMode.Inactive&&transition.Strength<=0)
             {if(physical&&physical.gameObject.activeSelf){physical.SetInteractive(false);physical.gameObject.SetActive(false);}return;}
             bool needsTrackedGeometry=transition.Mode==CandyHandMode.HandTracking;
-            if(!physical){physical=Instantiate(prefab);physical.name="Contact driven candy hand";physical.settings=settings;physical.left=useLeftHand;physical.Build(transition.Pose);trackedGeometry=needsTrackedGeometry;}
-            // The viewer follows flight, not the user's wrist. Wrist-following feeds hand
-            // rotation back into the view and makes a stationary observer swing around.
+            if(!physical){physical=Instantiate(prefab);physical.name="Contact driven candy hand";physical.settings=settings;physical.left=useLeftHand;physical.JointDrivenFingers=external;physical.Build(transition.Pose);trackedGeometry=needsTrackedGeometry;}
+            // Wrist movement must stay visible relative to the observer.
             actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");
-            // Follow visible contact geometry in position, but retain flight heading.
-            // This avoids both motor/hand separation and wrist-to-camera rotation feedback.
-            actor.follow.positionTarget=physical.visualBones[0];actor.follow.compactHandView=true;
+            actor.follow.positionTarget=null;actor.follow.compactHandView=true;
             if(trackedGeometry!=needsTrackedGeometry&&raw.tracked&&transition.Mode==mode)
             {
                 physical.SetInteractive(false);
@@ -94,14 +103,19 @@ namespace DeadlyJenga.CandyPhysicsHands
             physical.NetworkPreview=NetworkPreview;
             if(!physical.IsInteractive&&Mathf.Abs(physical.GeometrySize-settings.size)>.001f)physical.RebuildInactive(transition.Pose);
             // No reset on reacquisition: the dynamic hand returns through bounded drives.
-            physical.SetInteractive(transition.Strength>0);
-            physical.skin.enabled=physical.IsInteractive;
+            physical.SetInteractive(transition.Strength>0&&!actor.motor.InputSuspended);
+            physical.skin.enabled=physical.IsInteractive||(actor.motor.InputSuspended&&transition.Strength>0);
             if(transition.Mode==CandyHandMode.Inactive){physical.gameObject.SetActive(false);}
         }
         // Respawn/rebuild only: release contacts before discarding the old rig. Never moves a held block.
         public void ResetExternalRig()
         {
             if(!actor.motor.externallyDriven)return;
+            ResetTrackingRig();
+        }
+        public void ResetTrackingRig()
+        {
+            flightGesture.Reset();
             if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);Destroy(physical.gameObject);physical=null;}
             transition=new CandyHandTransition();trackedGeometry=false;anchored=false;
         }

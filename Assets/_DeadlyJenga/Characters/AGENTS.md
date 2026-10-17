@@ -7,7 +7,7 @@ May use: Core only. Ask the map through Services.World (IWorldQuery), never Worl
 - Player: CastleSurvivor (+ Climbing, Stamina, VR, Abilities), LocalHandInput,
   CandyPlayers (avatar), CastleSurvivor prefab.
 - Hand: CastleHandActor, HandDemo, CandyPhysicsHands, CastleFlyingHand prefab.
-- Bots: CastleBots (survivor + hand AI, personalities, navigation, BotWorld).
+- Bots: CastleBots (survivor + hand AI, personalities, navigation, BotWorld), SocialBotDriver.
 - Network: remote copies (SurvivorNetworkView, HandNetworkView), CharacterWire (state format),
   CharacterNetwork + CharacterServices (register with Core on load).
 
@@ -18,6 +18,9 @@ May use: Core only. Ask the map through Services.World (IWorldQuery), never Worl
 - CastleHandActor: ITeleportable, IFlyingState, IPlayableCharacter.
 - CandyPlayerAvatar and CandyFlyingHandBridge: INetworkActor (pack their own network state).
 - Bot populations: ISurvivorBotPopulation / IBotPopulation, created through BotSystems.
+- SocialBotDriver: ISocialBot (registered with SocialBots). The social layer tunes a bot's
+  personality and nudges its walking through it; the bot still does all the moving.
+- CandyTrackingSource: IFingerTips (fingertip positions for pressing things).
 - Climbing and vaulting use IClimbable via Climbables.TryGet, never CastleBlock.
 
 ## Rules

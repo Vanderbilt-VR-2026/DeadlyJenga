@@ -18,7 +18,8 @@ namespace DeadlyJenga.CastleBots
         public int SelectedPreset {get;private set;}
         public string SelectedName=>profiles[SelectedPreset].displayName;
         public int Count=>bots.Count;
-        public int Capacity=>Mathf.Clamp(targetPopulation-humanPlayers-(Session!=null&&Session.HandBots?Session.HandBots.Count:0),0,20);
+        public int Capacity=>int.MaxValue;
+        public int FillCapacity=>Mathf.Max(0,targetPopulation-humanPlayers);
         public IReadOnlyList<CastleBotBrain> Bots=>bots;
         public string Status {get;private set;}="";
         readonly List<CastleBotBrain> bots=new List<CastleBotBrain>();
@@ -41,7 +42,6 @@ namespace DeadlyJenga.CastleBots
         public void SelectPreset(int index){if(profiles==null||profiles.Length==0)return;SelectedPreset=Mathf.Clamp(index,0,profiles.Length-1);}
         public CastleBotBrain SpawnBot()
         {
-            if(Count>=Capacity){Status="Population is full";return null;}
             var motor=Instantiate(Session.survivorPrefab,staging);motor.name="Candy NPC "+(++serial)+" — "+SelectedName;
             motor.externallyDriven=true;motor.controlMode=FlyingHand.ControlMode.Desktop;
             var avatar=motor.GetComponent<CandyPlayerAvatar>();if(avatar)avatar.remoteDriven=true;
@@ -87,18 +87,19 @@ namespace DeadlyJenga.CastleBots
         // ISurvivorBotPopulation (Count, Capacity, Status, SelectedName, CyclePersonality, SelectPreset,
         // FillToTarget and SetHumanPlayerCount are public members of this class)
         public bool Running { get => enabled; set => enabled = value; }
-        void IBotPopulation.SpawnOne() => SpawnBot();
+        GameObject IBotPopulation.SpawnOne() => SpawnBot()?.gameObject;
+        IEnumerable<GameObject> ISurvivorBotPopulation.Members => bots.Where(b => b).Select(b => b.gameObject);
+        bool ISurvivorBotPopulation.AutoFill { get => autoFill; set => autoFill = value; }
         void IBotPopulation.Clear() => ClearBots();
         void IBotPopulation.MapRebuilt() => CastleRebuilt();
         int ISurvivorBotPopulation.TargetPopulation { get => targetPopulation; set => targetPopulation = value; }
         public void FillToTarget(){autoFill=true;Reconcile();}
         public void SetHumanPlayerCount(int count){humanPlayers=Mathf.Max(0,count);if(Session.HandBots)Session.HandBots.TrimHumanCapacity();if(autoFill)Reconcile();}
-        public void ReconcileHandSlots(){while(bots.Count>Capacity)RemoveLast();if(autoFill)Reconcile();}
+        public void ReconcileHandSlots(){if(autoFill)Reconcile();}
         void Reconcile()
         {
-            while(bots.Count>Capacity)RemoveLast();
-            int remaining=Capacity-bots.Count;
-            for(int i=0;i<remaining;i++)if(!SpawnBot())break;
+            int remaining=Mathf.Max(0,FillCapacity-bots.Count);
+            for(int i=0;i<Mathf.Min(remaining,4);i++)if(!SpawnBot())break;
         }
         void RemoveLast(){var bot=bots[bots.Count-1];bots.RemoveAt(bots.Count-1);if(bot){bot.gameObject.SetActive(false);Destroy(bot.gameObject);}}
         public void ClearBots(){autoFill=false;while(bots.Count>0)RemoveLast();Status="NPCs cleared";}

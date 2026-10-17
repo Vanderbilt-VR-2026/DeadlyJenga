@@ -18,6 +18,7 @@ namespace DeadlyJenga.Core
         public static event Action RoundStarted;
         public static event Action RoundEnded;
         public static event Action<GameObject> SessionStarted;                // the session object; menus and HUDs attach here
+        public static event Action<GameObject> LobbyStarted;                  // the lobby object (also ILobbyControls); its terminals attach here
 
         public static void RaiseBlockHit(Vector3 position, float strength) => BlockHit?.Invoke(position, strength);
         public static void RaisePushed(GameObject who, Vector3 force) => Pushed?.Invoke(who, force);
@@ -31,13 +32,14 @@ namespace DeadlyJenga.Core
         public static void RaiseRoundStarted() => RoundStarted?.Invoke();
         public static void RaiseRoundEnded() => RoundEnded?.Invoke();
         public static void RaiseSessionStarted(GameObject session) => SessionStarted?.Invoke(session);
+        public static void RaiseLobbyStarted(GameObject lobby) => LobbyStarted?.Invoke(lobby);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()
         {
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
-            RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null;
+            RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null; LobbyStarted = null;
         }
     }
 }

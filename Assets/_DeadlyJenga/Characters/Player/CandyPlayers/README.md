@@ -1,5 +1,17 @@
 # Candy players: reusable visual and tracking module
 
+## Tower player VR controls
+
+Choose Standing or Seated from the lobby Controls button or the in-game VR controls page. The mode is remembered locally. Standing uses left-stick movement relative to horizontal head direction, physical turning, and a right-hand index pinch to jump; hold the gesture to climb and release to drop. A fist can replace pinch through the gesture button or `CastleSurvivor.jumpGesture`. Thresholds are real hand metres / normalized finger curl, independent of avatar scale. Releasing is required after a mode change, menu, focus loss or tracking loss before jumping again. Left-hand gestures never override stick movement.
+
+Seated uses left-stick movement relative to the rig, continuous right-stick yaw at 60 degrees/second, and right A to jump / hold to climb. Edit the serialized `seatedJump` Input Action binding to change the button. Looking up/down remains headset-tracked. The mode calibrates seated eye height from a valid pose; the controls page also offers manual recalibration. Turning pivots around the eyes, preserving tracked local pose. Mode changes and joystick turning do not interrupt active climbs/vaults.
+
+Local VR walking defaults to 2.5 m/s with a remapped 0.18 stick deadzone. VR vaults use 0.85 seconds with a short preparation phase, a clear vertical lift and a collision-swept traverse. Climbing accelerates at 10 m/s². These fields are editable on CastleSurvivor. Desktop and externally driven bots retain their previous movement speeds and vault duration. Traversal never adds camera bob, roll, forced look direction or landing shake.
+
+Design references: [Meta locomotion preferences](https://developers.meta.com/vr/design/locomotion-user-preferences/) supports distinct physical/artificial turning, adjustable smooth-turn speed, direction mappings, real-time mode switches and remembered preferences. [Meta best practices](https://developers.meta.com/vr/design/locomotion-best-practices/) recommends limiting acceleration and controlling camera elevation. The numerical settings here are game-specific tuning choices, not platform standards or a guarantee of comfort.
+
+Run `DeadlyJenga.CastlePrototype.Editor.SurvivorControlValidation.RunBatch` explicitly in Unity batch mode. It opens Game without saving it, checks controls with synthetic poses, tests collision-based vault/climb fixtures and the external motor path, and writes `Logs/Validation/SurvivorControls.txt`. Quest hybrid hand/controller availability, gesture reliability, seated calibration/recentering, stereo appearance and comfort require hardware playtesting.
+
 Unity 6000.3.23f1 / URP 17.3.0. Runtime dependencies: the project's Fusion integration, Input System 1.20.0, XR Core Utils, OpenXR 1.16.1 and XR Hands 1.7.3. Install those through the project package manifest; a Unity asset package does not install Package Manager dependencies.
 
 The Resources/CandyPlayerVisual prefab contains baked shared meshes and 44 pose bones. The body uses smoothly skinned limb tubes and a closed torso. Each hand is baked from a smooth union of its palm and finger shapes, then skinned to the existing palm and 15 finger-segment bones. No voxel meshing runs during normal play. All 20 tracked finger nodes still determine the segments, and the same visible hands are used for first-person and outside views. The owner's head casts shadows but is hidden from its own camera. Eyes are placed ahead of the body and head's center to avoid viewing an open neck when looking down.

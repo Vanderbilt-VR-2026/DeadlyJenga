@@ -1,0 +1,25 @@
+PERFORMANCE PASS — 17 OCTOBER 2026
+
+Changes in World/Blocks and Presentation/Visuals; explicit benchmarks in DevTools/Editor. No Core additions, packages, project-wide quality settings, map dimensions, masses, solver settings, collision layers, physical block counts or prefab assets changed in this performance pass.
+
+CastleBlock now caches its source collider and survivor-proxy state. Resting proxies no longer repeatedly assign Rigidbody position/rotation, collider dimensions and scale. Moving, rotated, scaled and resized blocks still synchronize. FixedUpdate skips unchanged transforms; Update checks collider edits. Transform.hasChanged is consumed by this component; no existing project code used that flag.
+
+CandyCrateVisual now selects shared visual meshes by projected distance, with hysteresis: full candy panels/buttons nearby (2,088 vertices), rounded body at medium distance (216), coarse rounded body far away (96). Regular-sized blocks switch around 30m and 90m at a 60-degree FOV. Larger block sizes and narrower fields of view retain detail farther away. Checks are staggered around four times per second. Editor artwork remains full detail. This changes artwork only; all 6,098 real physical blocks remain dynamic.
+
+CandyCrateBatchRenderer groups distant blocks by shared mesh/material/layer/shadow configuration using GPU instancing. All block transforms remain independent. Close blocks, unsupported instancing hardware/materials and per-renderer property effects (such as ice tint) use normal renderers. Rendering metadata refresh is staggered, so material/effect changes on distant blocks may take about 0.35 seconds to appear. Moving transforms are submitted each frame. Manual Camera.Render capture tools temporarily disable the batching component so ordinary renderers supply those offscreen captures; the benchmark also captures the actual normal Game View frame with batching enabled.
+
+MEASURED RESULTS
+Same editor overview, VSync disabled temporarily and restored after the test; 24 sampled frames per phase. Small samples and editor overhead mean these are diagnostic results, not a release-build or Quest frame-rate guarantee.
+- Baseline early normal sample: median 614.93ms (~1.6 FPS), 13,403,837 rendered triangles and 5,287 draw batches.
+- Final early normal sample: median 181.48ms (~5.5 FPS), 872,703 triangles and 84 batches. An earlier repeat measured 150.74ms. Startup settling still produces slow frames.
+- Final normal sample after every block naturally settled: median 47.48ms (~21.1 FPS), p90 58.48ms. An earlier repeat measured 38.94ms (~25.7 FPS); see PerformanceChecksEarlier.txt. Baseline did NOT have a separately measured settled phase; do not claim this is a matched 16x FPS gain.
+- In the earlier settled repeat Physics.Simulate averaged 1.60ms and BehaviourUpdate 13.82ms; in the final repeat they were 2.12ms and 14.84ms. Final initial settling physics averaged 63.49ms. CPU/script/render submission and editor overhead still matter after the graphics savings.
+- Triangle count dropped about 93.5%; draw batches about 98.4% in this overview.
+
+LIMITS / NEXT DECISIONS
+This is a substantial improvement, but NOT equivalent to castle-level smooth VR performance. 6,098 independent bodies with ninety loose vertical courses are still an expensive stress map, especially while a disaster wakes many blocks. A Quest test, standalone player profiling and full-collapse stress measurements remain necessary. A reliable headset release may need a smaller block budget or a larger simulation/rendering architecture change. We deliberately did not freeze blocks, force them asleep, remove collisions or silently shrink the cathedral to claim better FPS.
+
+VALIDATION
+See PerformanceChecks.txt, CathedralChecks.txt and OriginalCastleRegression.txt for detailed checks. Proxy translation, rotation, scaling and collider edits; climbable registration; one-way player collision; physical pushing; near/far meshes; instancing and shader-effect fallback are checked. Whole-map gravity, spawn, bounds, disaster catalog and original Game/Lobby play checks are included. No headset or live multiplayer performance certification is implied.
+
+

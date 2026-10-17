@@ -1,0 +1,81 @@
+PASS Current survivor prefab spawns a complete avatar on the island.
+PASS Character settles on the actual 3D sand collider.
+PASS Only the shared character camera is active; no second XR rig.
+PASS Catalog retains Castle, Demo and Placeholder alongside additional maps.
+PASS Catalog additions change network compatibility instead of reinterpreting older map indices
+PASS Mode, map and launch controls are locked before hosting.
+PASS Lobby uses a runtime art profile; castle art stays unchanged.
+PASS Sand is 3D static collision terrain, with no island rigidbody.
+PASS Lobby voice is opt-in and independent of AI inference.
+PASS Invalid code and unknown region are rejected.
+PASS LAN discovery starts without legacy TCP networking
+PASS Compatible LAN advertisement resolves a normal Fusion address
+PASS Other Photon applications are filtered out of nearby rooms
+PASS Malformed and oversized discovery packets are rejected
+PASS Stale nearby rooms expire
+PASS Real Photon host connection completes
+PASS Photon host room is running: Room US-JNEWF7 · you are host
+PASS Host gets a region-qualified code and unlocked terminals.
+PASS Placeholder can be selected but cannot launch unfinished gameplay.
+PASS Castle Demo is launchable by the host.
+PASS Independent Photon client joins the host code
+PASS Client joins the same Fusion session: Ok
+PASS Client receives lobby welcome before sending pose
+PASS Real lobby pose replicates and host replaces a forged player ID
+PASS Actual UDP broadcast discovers the running Fusion room
+PASS Host invitation reaches another app listener over UDP
+PASS Invitation can be declined without joining
+PASS Host enables shared Demo powers from the terminal
+PASS Host mode selection replicates to the client
+PASS Start waits until clients acknowledge the newest mode and map selection
+PASS Host can cancel a pending start and edit the lobby again
+PASS Actual PCM voice data crosses the Fusion lobby channel
+PASS Incoming client voice reaches the shared playback system
+PASS Client leaves cleanly
+PASS Disconnected guest avatar is removed
+PASS Host can close the room
+PASS Leave resets the lobby for another connection attempt.
+PASS Malformed code returns immediately
+PASS Invalid join does not create a room or lock the controls.
+PASS Connecting UI exposes a cancel action
+PASS Cancelled join releases its startup task
+PASS Cancelled connection leaves the island ready to retry
+PASS Independent migration host starts
+PASS Migration host connected
+PASS Production client joins the migration host
+PASS Host lobby permissions reach the actual client
+PASS Joining client spawns at the host-assigned island spot
+PASS Host uploads migration snapshot
+PASS Photon accepts the migration snapshot
+PASS Original host leaves
+PASS Remaining player automatically becomes host using the production migration path
+PASS Host handover preserves room code and shared Demo permissions
+PASS Migrated host leaves cleanly
+PASS Host reconnects with a fresh runner in normal single-peer mode
+PASS Rehosting succeeds after leaving.
+PASS Host launch enters the actual castle Game scene
+PASS Same host runner survives lobby -> castle without duplicate lobby characters.
+PASS Original detailed in-game demo HUD and social voice system remain installed.
+PASS Host can still spawn a survivor and giant hand in Castle Demo.
+PASS A nearby invitation reaches the in-game Friends notification state
+PASS Only the host has Demo powers by default
+PASS In-game host grants everyone Demo powers
+PASS Remote survivor exposes a host hazard target without owning a camera
+PASS Host remote-survivor impact is routed to the owning player
+PASS Suspended remote actors cannot receive stale disaster impacts
+PASS A real host disaster publishes active shared wave state
+PASS Host migration cancels active disasters and clears wave sources
+PASS Physics freezes while host transfer is in progress
+PASS Host resume retains block positions and restores physics authority
+PASS Host handover preserves the configured AI population and hand limits
+PASS Demo command path executes through the authority
+PASS A client replica has no independent block simulation
+PASS Client-to-host promotion restores the last fallen-block arrangement instead of rebuilding the castle
+PASS AI voice authority follows the promoted physics host
+PASS Headset demo menu retains original controls and host tuning alongside new pages.
+PASS Gaze/trigger opens the in-game host tuning page.
+PASS Host tuning modifies the live stamina capacity in game.
+PASS Leaving Castle Demo shuts down the same room
+PASS Disconnect returns to the island with a fresh local character
+PASS No stale game session or runner remains after return.
+PASS Runtime completes without unexpected Unity errors or exceptions: 

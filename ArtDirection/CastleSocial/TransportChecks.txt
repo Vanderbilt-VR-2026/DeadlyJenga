@@ -1,0 +1,22 @@
+Microsoft (R) Visual C# Compiler version 4.8.0-7.25569.25 (38896ab4)
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PASS Local discovery socket receives UDP advertisement
+PASS Direct connection needs no cloud service
+PASS Running host accepts a late connection
+PASS Reliable control messages arrive
+PASS Handshake control order is preserved
+PASS Large late-join snapshot survives TCP fragmentation
+PASS Player input travels back to the host
+PASS Publishing 500 updates never waits on a network write
+PASS Latest snapshot wins after a burst; no permanent state gap
+PASS A second late joiner connects while first remains active
+PASS Each peer has an independent state stream
+PASS Voice travels in the independent audio channel
+PASS Audio burst preserves reliable controls and latest world state
+PASS Unread audio is bounded without disconnecting gameplay
+PASS Malformed-frame test connected
+PASS Oversized frame is rejected before allocation
+PASS Disconnect promptly closes the remote link
+PASS One disconnect does not interrupt another player
+18 checks passed

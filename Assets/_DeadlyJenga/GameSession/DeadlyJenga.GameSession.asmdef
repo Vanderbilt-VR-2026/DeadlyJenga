@@ -4,6 +4,7 @@
         "DeadlyJenga.Core",
         "Fusion.Unity",
         "Fusion.Addons.Physics",
+        "Photon.Realtime",
         "Unity.InputSystem"
     ],
     "autoReferenced": true

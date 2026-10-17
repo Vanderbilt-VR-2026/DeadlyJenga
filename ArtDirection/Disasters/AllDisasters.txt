@@ -1,0 +1,114 @@
+All disasters / tuning / bot spawning
+PASS Catalog authoring validation runs
+PASS Tsunami exposes configurable settings
+PASS Tsunami refuses client-side physics simulation
+PASS Tsunami starts on translated sandbox bounds
+PASS Tsunami uses selected height and map-fitted width
+TIMING Tsunami checks 0 ms
+PASS Tsunami stops and unregisters cleanly
+PASS Tornado exposes configurable settings
+PASS Tornado refuses client-side physics simulation
+PASS Tornado warning gives players time before effects begin
+PASS Tornado starts on translated sandbox bounds
+PASS Tornado publishes its visual state
+PASS Tornado affects the player ability stand-in
+PASS Tornado state round-trips through compressed network encoding
+TIMING Tornado checks 10 ms
+PASS Tornado stops and unregisters cleanly
+PASS MeteorShower exposes configurable settings
+PASS MeteorShower refuses client-side physics simulation
+PASS MeteorShower warning gives players time before effects begin
+PASS MeteorShower starts on translated sandbox bounds
+PASS MeteorShower publishes its visual state
+PASS Meteor bodies are visible within the active budget
+PASS MeteorShower swept collisions produce impacts
+PASS MeteorShower state round-trips through compressed network encoding
+TIMING MeteorShower checks 20 ms
+PASS MeteorShower stops and unregisters cleanly
+PASS PlanetKillerMeteor exposes configurable settings
+PASS PlanetKillerMeteor refuses client-side physics simulation
+PASS PlanetKillerMeteor warning gives players time before effects begin
+PASS PlanetKillerMeteor starts on translated sandbox bounds
+PASS PlanetKillerMeteor publishes its visual state
+PASS Meteor bodies are visible within the active budget
+PASS Planet killer is one massive sphere
+PASS PlanetKillerMeteor swept collisions produce impacts
+PASS PlanetKillerMeteor state round-trips through compressed network encoding
+TIMING PlanetKillerMeteor checks 3 ms
+PASS PlanetKillerMeteor stops and unregisters cleanly
+PASS Icey exposes configurable settings
+PASS Icey refuses client-side physics simulation
+PASS Icey warning gives players time before effects begin
+PASS Icey starts on translated sandbox bounds
+PASS Icey publishes its visual state
+PASS Ice changes collision friction and player traction state
+PASS Icey state round-trips through compressed network encoding
+TIMING Icey checks 6 ms
+PASS Icey stops and unregisters cleanly
+PASS Ice restores original friction on stop
+PASS Earthquake exposes configurable settings
+PASS Earthquake refuses client-side physics simulation
+PASS Earthquake warning gives players time before effects begin
+PASS Earthquake starts on translated sandbox bounds
+PASS Earthquake publishes its visual state
+PASS Earthquake affects the player ability stand-in
+PASS Earthquake state round-trips through compressed network encoding
+TIMING Earthquake checks 4 ms
+PASS Earthquake stops and unregisters cleanly
+PASS AcidRain exposes configurable settings
+PASS AcidRain refuses client-side physics simulation
+PASS AcidRain warning gives players time before effects begin
+PASS AcidRain starts on translated sandbox bounds
+PASS AcidRain publishes its visual state
+PASS Acid damages exposed players while shelter protects them
+PASS AcidRain state round-trips through compressed network encoding
+TIMING AcidRain checks 3 ms
+PASS AcidRain stops and unregisters cleanly
+PASS Fire exposes configurable settings
+PASS Fire refuses client-side physics simulation
+PASS Fire warning gives players time before effects begin
+PASS Fire starts on translated sandbox bounds
+PASS Fire publishes its visual state
+PASS Fire spreads beyond its single seed through block contact
+PASS Fire state round-trips through compressed network encoding
+TIMING Fire checks 12 ms
+PASS Fire stops and unregisters cleanly
+PASS AntiGravity exposes configurable settings
+PASS AntiGravity refuses client-side physics simulation
+PASS AntiGravity warning gives players time before effects begin
+PASS AntiGravity starts on translated sandbox bounds
+PASS AntiGravity publishes its visual state
+PASS AntiGravity affects the player ability stand-in
+PASS AntiGravity state round-trips through compressed network encoding
+TIMING AntiGravity checks 3 ms
+PASS AntiGravity stops and unregisters cleanly
+PASS Client receive path publishes ice traction without client hazard physics
+PASS Network teardown clears replicated disaster effects
+PASS Host rejects nonfinite generic command settings
+PASS Full per-disaster settings survive command serialization
+PASS VR meteor page includes four requested sliders plus warning and duration
+PASS Opening VR settings preserves authored duration defaults
+PASS VR held input changes a generic disaster slider
+PASS Survivor spawning has no fixed population cap
+PASS Survivor bots spawn beyond the former demo limit
+PASS Twelve hands coexist without trimming survivor bots
+PASS Real Unity FixedUpdate advances derived disasters without the test driver
+PASS Map loads the candy disaster renderer
+PASS MeteorShower launches in the real castle
+PASS Fire launches in the real castle
+PASS Icey launches in the real castle
+PASS AcidRain launches in the real castle
+PASS AntiGravity launches in the real castle
+PASS Concurrent launch: Tsunami
+PASS Concurrent launch: Tornado
+PASS Concurrent launch: MeteorShower
+PASS Concurrent launch: PlanetKillerMeteor
+PASS Concurrent launch: Icey
+PASS Concurrent launch: Earthquake
+PASS Concurrent launch: AcidRain
+PASS Concurrent launch: Fire
+PASS Concurrent launch: AntiGravity
+PASS Stopping concurrent disasters clears every shared effect source
+PASS Temporary disaster changes leave normal block gravity intact
+PASS Game Play Mode, menus and disaster visuals produce no errors
+COMPLETE: editor + stand-in physics + encoding; real two-headset networking and Quest performance remain device tests.

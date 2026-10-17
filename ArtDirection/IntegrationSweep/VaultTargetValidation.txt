@@ -1,0 +1,13 @@
+PASS Game enters Play Mode without runtime errors
+PASS Empty air has no vault target
+PASS Valid ledge supplies a surface and landing
+PASS Suspended input suppresses target
+PASS Blocked landing suppresses target
+PASS The advertised target can actually start a vault
+PASS Active vault suppresses another hint
+PASS Centre-only query misses an off-centre ledge
+PASS Wider query finds the off-centre ledge
+PASS Landing depth adjusts the accepted destination
+PASS Candy glow shader imports without errors
+PASS Prefab includes the assigned glow shader
+Not covered: headset appearance, stereo comfort, GPU cost, arbitrary mesh ledges.

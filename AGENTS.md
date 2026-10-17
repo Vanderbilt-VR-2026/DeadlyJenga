@@ -63,11 +63,9 @@ Data (Core/Data):
 
 Services (Core/Services):
 - Services.Session (ISessionInfo): menu, role (survivor/hand), Player and Hand (IPlayableCharacter),
-  IsVR, ActiveCamera, CanEditWorld, ResetMap, SurvivorBots/HandBots, Multiplayer. Set by GameSession.
-- Services.Lobby (ILobbyControls): host, join, leave, start/cancel countdown, solo practice,
-  room label, connection status and messages, who can edit (the host), and the shared lobby
-  screen (the host publishes its page and placement; others follow). Set by GameSession
-  (LobbyConnection) while the Lobby scene is open.
+  IsVR, ActiveCamera, CanEditWorld, ResetMap, SurvivorBots/HandBots, Multiplayer, Demo
+  (IDemoControls: bots and disasters for the menus), Social (ISocialControls: AI voices, mic).
+  Set by GameSession (CastlePlaySession in a match, IslandLobby in the lobby).
 - Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
   Blocks, Center, TopHeight, Radius, StepHeight. Set by the active map.
 - IRebuildable: Rebuild(). The active map implements it (the reset-castle button).
@@ -78,6 +76,7 @@ Services (Core/Services):
 State (Core/State) - read-only views for sound, HUD and bots:
 - IMovementState (walking/climbing characters), IFlyingState (flying hands).
 - IPlayerView: the local player's camera, VR flag and stamina status (for HUDs).
+- IFingerTips: where a tracked index fingertip is (pressing the lobby's giant keys).
 - Tracked.Movers / Tracked.Flyers: characters add themselves in OnEnable, remove in OnDisable.
 
 Session (Core/Session) - what the session, menus and lobby use:
@@ -87,8 +86,16 @@ Session (Core/Session) - what the session, menus and lobby use:
 - MatchRules + MatchOptions: rule values and option lists; Characters fills the lists on load.
 - MatchChoices: what the lobby menus chose (rules, population, AI hands, presets);
   GameSession applies it when Game loads.
-- ILobbyControls: the lobby's connection commands (Services.Lobby).
-- IBotPopulation / ISurvivorBotPopulation + BotSystems.Create: bots without naming bot classes.
+- ILobbyControls: the island lobby's three terminals (join, host, map + mode): values and
+  commands. IslandLobby (GameSession) provides it and raises GameEvents.LobbyStarted;
+  IslandLobbyView (Presentation) draws the terminals and keyboard. Collision stays with the
+  lobby: the view hands over shapes (SetFloor, AddBlocker).
+- IDemoControls / ISocialControls: the demo and voice pages' values and commands.
+- ISocialBot + SocialBots.Attach: a survivor bot as the social layer sees it (Characters
+  provides it). IVoicePlayer / IVoiceMix + VoicePlayback.Create: voice streams are played by
+  Presentation; the social layer only hands over samples.
+- IBotPopulation / ISurvivorBotPopulation + BotSystems.Create: bots without naming bot classes
+  (spawn, clear, presets, Members, AutoFill, ThreatCost).
 - IMultiplayerControls (state and commands for the menus' multiplayer page),
   ILocalPlayerInput (lobby Photon input).
 
@@ -123,13 +130,14 @@ logs), FakeWorldQuery, FakeSession. Use them to test against something that does
 - Core contracts never contain drawing methods. A setting is exposed as a value
   (e.g. ISurvivorSettings.CurrentRules) and Presentation draws the control for it.
 - Menus are allowed to send the player's requests through Core commands
-  (session.SetRole, Services.Lobby.Host, multiplayer.LeaveSession). Presentation passes
+  (session.SetRole, lobby.Host, multiplayer.LeaveSession). Presentation passes
   on the request; the box that owns the rule decides. That is not gameplay in Presentation.
 - A thing owns its own body: a block or character may set the materials and colors of its
   own model. Presentation owns everything else that is seen or heard: UI, sound, the
   environment, and reactions to events.
 - Gameplay prefabs keep art in a child named "Visual". Gameplay never depends on it.
-- Scenes are containers: UI in a scene is a Presentation prefab (e.g. Lobby Menu), and
+- Scenes are containers: UI in a scene is a Presentation prefab or is built by Presentation at runtime
+  (e.g. the island lobby's terminals), and
   game objects are never nested inside a UI canvas.
 
 ## Working rules

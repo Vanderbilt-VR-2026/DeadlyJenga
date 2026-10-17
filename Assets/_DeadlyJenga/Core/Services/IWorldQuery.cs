@@ -16,5 +16,7 @@ namespace DeadlyJenga.Core
         float TopHeight { get; }
         float Radius { get; }
         float StepHeight { get; }   // height of one level (one block), for tuning jumps
+        // World-space area used by disasters. All dimensions must be finite and positive.
+        Bounds PlayableBounds { get; }
     }
 }

@@ -1,0 +1,26 @@
+{
+  "backend": "Kokoro-82M",
+  "device": "cpu",
+  "threads": 2,
+  "recording": false,
+  "samples": [
+    {
+      "voice": "af_heart",
+      "first_audio_seconds": 4.166,
+      "audio_seconds": 3.1,
+      "synthesis_seconds": 4.171,
+      "realtime_factor": 1.345,
+      "file": "neural-voice-1.wav"
+    },
+    {
+      "voice": "am_adam",
+      "first_audio_seconds": 4.116,
+      "audio_seconds": 3.15,
+      "synthesis_seconds": 4.119,
+      "realtime_factor": 1.308,
+      "file": "neural-voice-2.wav"
+    }
+  ],
+  "cold_start_seconds": 74.903,
+  "status": "PASS actual CPU neural speech generated; perceptual naturalness requires listening evaluation"
+}

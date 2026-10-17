@@ -1,0 +1,59 @@
+PASS Game enters Play Mode cleanly with current combined changes
+PASS World/session services point to the active Game
+PASS Local survivor settles on castle
+PASS Castle bodies are present and finite
+PASS Session jump tuning stays below a full block
+PASS CastleSurvivor has no missing scripts
+PASS CastleFlyingHand has no missing scripts
+PASS Candy Physics Block has no missing scripts
+PASS Voice/social and detailed Demo HUD coexist
+PASS Role switch 0 keeps one active camera
+PASS Role switch 0 keeps one audio listener
+PASS Role switch 1 keeps one active camera
+PASS Role switch 1 keeps one audio listener
+PASS Role switch 2 keeps one active camera
+PASS Role switch 2 keeps one audio listener
+PASS Role switch 3 keeps one active camera
+PASS Role switch 3 keeps one audio listener
+PASS Role switch 4 keeps one active camera
+PASS Role switch 4 keeps one audio listener
+PASS Role switch 5 keeps one active camera
+PASS Role switch 5 keeps one audio listener
+PASS Inclined debris permits uphill walking
+PASS Inclined support still permits jumping
+PASS Steep debris slides instead of locking movement
+PASS Sliding player can jump away
+PASS Climbing crosses a small real block seam
+PASS A disaster/impact breaks climbing rather than permanent latch immunity
+PASS Held jump cannot immediately negate the impact by regrabbing
+PASS Survivor movement still cannot push physics blocks
+PASS Live survivor bot 0 spawns
+PASS Live survivor bot 1 spawns
+PASS Live survivor bot 2 spawns
+PASS Live physical hand bot 0 spawns
+PASS Live physical hand bot 1 spawns
+PASS Live survivor bots remain finite with two AI hands active
+PASS A real survivor bot makes movement decisions in the live castle
+PASS Demo command triggers Tsunami
+PASS Demo command triggers Tornado
+PASS Demo command triggers MeteorShower
+PASS Demo command triggers PlanetKillerMeteor
+PASS Demo command triggers Icey
+PASS Demo command triggers Earthquake
+PASS Demo command triggers AcidRain
+PASS Demo command triggers Fire
+PASS Demo command triggers AntiGravity
+PASS Duplicate live tsunami is rejected
+PASS Stopping all hazards balances events and clears ocean wave masking
+PASS Tsunami can retrigger after Stop All
+PASS Full tsunami crossing touches targets in the actual live castle
+PASS Full wave ends without manual stop
+PASS Completed wave leaves no stale global wave source
+PASS Another tsunami starts before a map reset
+PASS Rebuild during a disaster cancels hazards and visual mask
+PASS Rebuild restores all block bodies while bots/hands exist
+PASS Survivor and AI recover after disaster plus reset
+PASS Clear population removes live AI after stress
+PASS No camera leak after bots, hazards and repeated role changes
+PASS No runtime errors across integrated sweep: 
+COMPLETE: live Game integration; no scenes/prefabs saved. Quest hardware, GPU/stereo and multi-device Wi-Fi remain untested.

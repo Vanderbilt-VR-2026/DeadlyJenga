@@ -1,0 +1,71 @@
+Microsoft (R) Visual C# Compiler version 4.8.0-7.25569.25 (38896ab4)
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PASS Distribution respects bounds at lean 0
+PASS Requested median calibrated at lean 0
+PASS Requested SD calibrated at lean 0
+PASS CDF and quantile agree
+PASS Distribution respects bounds at lean 0
+PASS Requested median calibrated at lean 0
+PASS Requested SD calibrated at lean 0
+PASS CDF and quantile agree
+PASS Distribution respects bounds at lean -1
+PASS Requested median calibrated at lean -1
+PASS Requested SD calibrated at lean -1
+PASS CDF and quantile agree
+PASS Distribution respects bounds at lean 1
+PASS Requested median calibrated at lean 1
+PASS Requested SD calibrated at lean 1
+PASS CDF and quantile agree
+PASS Impossible spread rejected
+PASS Boundary median with nonzero spread rejected
+PASS Zero-spread point population works
+PASS Seed reproduces identities, traits, groups and voices
+PASS Voice participation converges to 35 percent
+PASS Categorical demographic probability converges
+PASS Friend membership approximates population target
+PASS No singleton or oversized friend groups
+PASS Skill sampled independently of personality
+PASS Custom categorical weights include every configured profile
+PASS Zero-total categorical weights rejected
+PASS Positive copula correlations affect samples
+PASS Negative correlations affect samples
+PASS Non-PSD correlation combinations rejected
+PASS Perfect correlation supported without singular crash
+PASS Impulsiveness reduces mapped planning delay
+PASS Sociability increases mapped social interest
+PASS Emotion decays independently of baseline identity
+PASS Memory bounded and human transcript retention off by default
+PASS No dogpile at population 1
+PASS Queues bounded at population 1
+PASS Simultaneous responses not identical at population 1
+PASS Duplicate event does not repeat perception
+PASS No dogpile at population 9
+PASS Queues bounded at population 9
+PASS Simultaneous responses not identical at population 9
+PASS Duplicate event does not repeat perception
+PASS No dogpile at population 24
+PASS Queues bounded at population 24
+PASS Simultaneous responses not identical at population 24
+PASS Duplicate event does not repeat perception
+PASS No dogpile at population 100
+PASS Queues bounded at population 100
+PASS Simultaneous responses not identical at population 100
+PASS Duplicate event does not repeat perception
+PASS Sustained human speech defers full bot statements
+PASS Bots resume after human yields
+PASS Event flood is bounded
+PASS Expired dialogue does not survive long stalls
+PASS Despawn removes speaker state
+PASS Human activity clears when the person yields
+PASS Instruction leakage rejected as speech
+PASS Speech text strips markup/control characters and caps length
+PASS PCM16 speaker packet round-trip
+PASS Oversized voice packet rejected
+PASS Audio jitter buffer bounded under overload
+PASS Audio underflow is silence
+PASS Microphone DSP finite, bounded and audible
+PASS DSP filter state continuous across streaming chunks
+PASS 100-bot stress maintains memory and attention budgets
+BENCHMARK 100 bots / 3000 ticks / 600 events: 196.2ms total, 0.065ms/tick; managed heap 23.7 MiB
+RESULT 66 checks passed in 0.70s

@@ -59,6 +59,14 @@ static class TransportChecks
             Check(Until(() => Volatile.Read(ref otherOut) != null && host.Accepted.TryDequeue(out otherIn)), "A second late joiner connects while first remains active");
             inbound.Send(new byte[] { 3, 44 }, true); otherIn.Send(new byte[] { 3, 55 }, true);
             Check(Take(outbound)[1] == 44 && Take(otherOut)[1] == 55, "Each peer has an independent state stream");
+            inbound.SendAudio(new byte[]{5,17});
+            byte[] voice=null;
+            Check(Until(()=>outbound.Audio.TryDequeue(out voice))&&voice[1]==17,"Voice travels in the independent audio channel");
+            for(int i=0;i<500;i++)inbound.SendAudio(new byte[]{5,(byte)i});
+            inbound.Send(new byte[]{6,88});inbound.Send(new byte[]{3,77},true);
+            Check(Until(()=>outbound.Controls.TryDequeue(out var control)&&control[0]==6)&&Take(outbound)[1]==77,"Audio burst preserves reliable controls and latest world state");
+            Thread.Sleep(100);
+            Check(outbound.Audio.Count<=8&&!outbound.Closed,"Unread audio is bounded without disconnecting gameplay");
             using var bad = new TcpClient(); bad.Connect(IPAddress.Loopback, host.Port);
             CastleLanTransport.Link badLink = null;
             Check(Until(() => host.Accepted.TryDequeue(out badLink)), "Malformed-frame test connected");

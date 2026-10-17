@@ -1,11 +1,14 @@
 # GameSession (level 4)
 
-The rules of the match and who is playing. Uses only Core: the map (Services.World, IRebuildable, ISyncedWorld), characters (IPlayableCharacter, ISurvivorSettings, INetworkActor), bots (BotSystems, IBotPopulation). It draws nothing and plays no sound: menus, HUDs and the lobby menu live in Presentation (in-game menus attach on GameEvents.SessionStarted).
+The rules of the match and who is playing. Uses only Core: the map (Services.World, IRebuildable, ISyncedWorld), characters (IPlayableCharacter, ISurvivorSettings, INetworkActor), bots (BotSystems, IBotPopulation, SocialBots). It draws nothing and plays no sound: menus, HUDs, the lobby terminals and voice playback live in Presentation (in-game menus attach on GameEvents.SessionStarted, the lobby's on GameEvents.LobbyStarted).
 
 ## Lanes
-- Session: CastlePlaySession, CastleFusionSession, CastleFusionWire, CastleLan* (shared
-  snapshot code), LobbyConnection, LobbyCountdown, MatchSetup, PlayerSpawner,
-  scenes Lobby.unity and Game.unity.
+- Session: CastlePlaySession, CastleFusionSession (+ Disasters), CastleFusionWire, CastleLan*
+  (shared snapshot code), IslandLobby (+ Controls, Session), IslandRoomConnection,
+  IslandRoomAddress, IslandDiscovery, IslandLobbyCatalog, MatchSetup, SessionDemoControls,
+  CastleDemoCommands, DemoDisasters, scenes Lobby.unity and Game.unity.
+- Session/CastleSocial: the AI social layer (identities, director, speech, microphone capture,
+  SocialBotAgent, SocialWorld, SocialControls). It plays no audio: voices go to Core's IVoicePlayer.
 - Modes: game modes (classic, teams, random disasters). One subfolder per mode.
 
 ## What GameSession provides
@@ -13,21 +16,29 @@ The rules of the match and who is playing. Uses only Core: the map (Services.Wor
 - Listens to GameEvents.Eliminated (currently: respawn the local survivor).
 - Creates bots through BotSystems.Create and raises GameEvents.SessionStarted.
 - CastleLanSession implements IMultiplayerControls (state and commands) for the menus.
-- LobbyConnection implements ILobbyControls as Services.Lobby; it adds itself to the
-  FusionBootstrap object when a scene with a LobbyCountdown loads. It validates room codes,
-  checks the network, owns the connection messages and gives the lobby rig its body
-  (LocalPlayerInput.FindOrCreate) before connecting.
-- LobbyCountdown is the lobby's shared network state: countdown, the host's MatchChoices rules,
-  and the host's menu page and placement (taken from LobbyConnection, never from a menu class).
-- Photon's FusionBootstrap.cs carries our connection-message and timeout fixes. Only GameSession
-  reads it; re-apply those edits if Photon Fusion is ever upgraded.
-- MatchSetup applies Core's MatchChoices (set by the lobby menu) when Game loads.
+- IslandLobby is ISessionInfo and IWorldQuery while Lobby.unity is open, and ILobbyControls
+  for the terminals (IslandLobby.Controls.cs). It owns the room connection (IslandRoomConnection),
+  the other players' remote views, AI voices and all lobby collision (a flat gray-box floor
+  until Presentation hands over the sand shape). It raises GameEvents.LobbyStarted.
+- CastlePlaySession provides IDemoControls (SessionDemoControls) and ISocialControls (SocialControls).
+- SocialBotAgent gives survivor bots identities through Core's ISocialBot; it never names bot classes.
+- MatchSetup applies Core's MatchChoices when Game loads.
+- Photon's FusionBootstrap.cs may carry our connection-message and timeout fixes. Only GameSession
+  reads it; check for those edits if Photon Fusion is ever upgraded.
 
 ## Rules
 - Only GameSession may edit or save Lobby.unity and Game.unity.
 - Game.unity is a container. Change other boxes' prefabs in their own box.
 - Modes start and stop hazards only through IHazard, from a list of hazard prefabs.
   A mode never knows what a hazard does. A mode must not require another mode.
+- Demo disasters come from the Core HazardCatalog resource named DisasterCatalog. Validate
+  through IMapHazard before starting; never bypass missing map bounds or instantiate at an
+  arbitrary fallback position. Keep host authority and use the existing command path.
+- Adding/removing a disaster changes the catalog, not a hard-coded UI list. Follow
+  World/Hazards/AGENTS.md for prefab registration and validation.
+- Tsunami visuals replicate through Core WaveFrame in the demo snapshot. The host's remote
+  survivor proxies forward impacts to owners; clients never run the wave's world physics.
+  Leaving or migrating cancels disasters and clears queued impacts.
 - Raise RoundStarted / RoundEnded when rounds exist.
 - Photon is the only multiplayer path. CastleLanSession holds the snapshot code
   Photon uses; do not delete it until that is split out.
@@ -56,6 +67,8 @@ network prefabs or networked scripts. The virtual player is read-only and needs 
 dependency values from the main editor; it only gets them reliably while it is running.
 Fix (no restart or Reimport All needed):
 1. Stop Play mode. Turn Player 2 ON and wait until it is idle.
-2. With Player 2 running, in the main editor Reimport GameSession/Session/Prefabs/VR Player Variant
-   and GameSession/Session/Scripts/LobbyCountdown.cs; wait for the recompile.
+2. With Player 2 running, in the main editor Reimport GameSession/Session/Prefabs/VR Player Variant,
+   (resends Fusion.PrefabsDependency) and Characters/Player/Scripts/NetworkHands.cs (resends
+   Fusion.ScriptOrderDependency; it must be a NetworkBehaviour script, and it is the only one left);
+   wait for the recompile.
 3. Clear Player 2's console, then Play, host and join.

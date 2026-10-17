@@ -1,0 +1,1 @@
+Candy avatar, tracking, vault and input verification finished. Hardware and two-headset network tests remain unverified.

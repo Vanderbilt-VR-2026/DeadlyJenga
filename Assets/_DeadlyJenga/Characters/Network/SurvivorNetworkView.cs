@@ -6,13 +6,25 @@ using DeadlyJenga.CandyPlayers;
 namespace DeadlyJenga.CharacterNetwork
 {
     // Someone else's survivor (a player or bot) on this machine. No camera, no input.
-    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView
+    // On the host it can also be hit by hazards: pushes and damage go to its owner through the network.
+    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, IPushable, IDamageable, IHazardMotion
     {
         NetworkContext context;
         CandyPlayerRig rig;
         CandyAvatarFrame target, frame;
         int color;
-        bool active, hasTarget, initialized;
+        bool active, hasTarget, initialized, suspended;
+        CapsuleCollider hazardTarget;
+        Vector3 previousFeet, velocity;
+        float previousPoseTime;
+
+        public Vector3 HazardVelocity => velocity;
+        public float Health => 100;
+        public float MaxHealth => 100;
+        bool CanBeHit => context.host && !suspended && active && context.sendImpact != null && context.actorId != null;
+        public void Push(Vector3 force, GameObject source) { if (CanBeHit) context.sendImpact(context.actorId, force, 0); }
+        public void Damage(float amount, GameObject source) { if (CanBeHit) context.sendImpact(context.actorId, Vector3.zero, amount); }
+        public void Eliminate(GameObject source) => Damage(10000, source);
 
         public SurvivorNetworkView Init(NetworkContext networkContext) { context = networkContext; return this; }
 
@@ -33,6 +45,26 @@ namespace DeadlyJenga.CharacterNetwork
             }
             rig.gameObject.SetActive(active); rig.SetColor(color);
             if (!initialized) { frame = target; initialized = true; }
+            UpdateHazardTarget();
+        }
+
+        // Host: a trigger capsule where the remote survivor stands, so hazards can find and hit it.
+        void UpdateHazardTarget()
+        {
+            if (!context.host) { if (hazardTarget) hazardTarget.enabled = false; return; }
+            if (!hazardTarget)
+            {
+                var hit = new GameObject("Remote survivor hazard target"); hit.layer = Layers.Survivor;
+                hit.transform.SetParent(transform, false); hazardTarget = hit.AddComponent<CapsuleCollider>(); hazardTarget.isTrigger = true;
+            }
+            float dt = Time.time - previousPoseTime;
+            velocity = previousPoseTime > 0 && dt > .001f ? Vector3.ClampMagnitude((target.feet - previousFeet) / dt, 60) : Vector3.zero;
+            previousFeet = target.feet; previousPoseTime = Time.time;
+            hazardTarget.transform.position = target.feet;
+            hazardTarget.height = Mathf.Max(.2f, 1.7f * target.scale);
+            hazardTarget.radius = Mathf.Max(.05f, .24f * target.scale);
+            hazardTarget.center = Vector3.up * hazardTarget.height * .5f;
+            hazardTarget.enabled = active && !suspended;
         }
 
         public void Render(float dt)
@@ -45,7 +77,7 @@ namespace DeadlyJenga.CharacterNetwork
             rig.ApplyFrame(frame, true, dt);
         }
 
-        public void Suspend() { }
+        public void Suspend() { suspended = true; if (hazardTarget) hazardTarget.enabled = false; }
 
         static CandyHandPose Blend(CandyHandPose from, CandyHandPose to, float t)
         {
