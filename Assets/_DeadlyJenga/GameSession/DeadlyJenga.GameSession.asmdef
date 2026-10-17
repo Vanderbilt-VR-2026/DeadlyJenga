@@ -11,7 +11,8 @@
         "Unity.TextMeshPro",
         "UnityEngine.UI",
         "Unity.XR.Interaction.Toolkit",
-        "Unity.XR.CoreUtils"
+        "Unity.XR.CoreUtils",
+        "Photon.Realtime"
     ],
     "autoReferenced": true
 }

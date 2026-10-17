@@ -18,6 +18,14 @@ The rules of the match and who is playing. May use every box.
 - Game.unity is a container. Change other boxes' prefabs in their own box.
 - Modes start and stop hazards only through IHazard, from a list of hazard prefabs.
   A mode never knows what a hazard does. A mode must not require another mode.
+- Demo disasters come from the Core HazardCatalog resource named DisasterCatalog. Validate
+  through IMapHazard before starting; never bypass missing map bounds or instantiate at an
+  arbitrary fallback position. Keep host authority and use the existing command path.
+- Adding/removing a disaster changes the catalog, not a hard-coded UI list. Follow
+  World/Hazards/AGENTS.md for prefab registration and validation.
+- Tsunami visuals replicate through Core WaveFrame in the demo snapshot. The host's remote
+  survivor proxies forward impacts to owners; clients never run the wave's world physics.
+  Leaving or migrating cancels disasters and clears queued impacts.
 - Raise RoundStarted / RoundEnded when rounds exist.
 - Photon is the only multiplayer path. CastleLanSession holds the snapshot code
   Photon uses; do not delete it until that is split out.

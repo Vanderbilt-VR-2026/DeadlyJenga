@@ -10,28 +10,58 @@ namespace DeadlyJenga.CandyArt
         public CandyArtProfile profile;
         static readonly Dictionary<string, Mesh> Cache = new Dictionary<string, Mesh>();
         MeshFilter filter;
+        MeshRenderer meshRenderer;
         string lastKey;
         Vector3 lastSize;
         float lastBevel,lastDepth;
         bool lastButtons;
-        void OnEnable() { Refresh(); }
-        void Update() { Refresh(); }
+        int lastDetail = -1;
+        float nextRefresh;
+        static Camera view;
+        static float nextCameraCheck;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetView() { view = null; nextCameraCheck = 0; }
+        void OnEnable() { Refresh(); if (Application.isPlaying) CandyCrateBatchRenderer.Register(this); }
+        void OnDisable() { CandyCrateBatchRenderer.Unregister(this); if(meshRenderer)meshRenderer.forceRenderingOff=false; }
+        internal Mesh Mesh => filter ? filter.sharedMesh : null;
+        internal MeshRenderer Renderer => meshRenderer ? meshRenderer : meshRenderer=GetComponent<MeshRenderer>();
+        internal bool Distant => lastDetail > 0;
+        void Update()
+        {
+            if (Application.isPlaying && Time.unscaledTime < nextRefresh) return;
+            nextRefresh = Time.unscaledTime + .22f + (GetInstanceID() & 31) * .004f;
+            Refresh();
+        }
+        int Detail(Vector3 size)
+        {
+            if (!Application.isPlaying) return 0;
+            if (Time.unscaledTime >= nextCameraCheck)
+            { view = Camera.main; nextCameraCheck = Time.unscaledTime + .25f; }
+            if (!view || !view.isActiveAndEnabled) return 0;
+            float distance = Vector3.Distance(view.transform.position, transform.position);
+            // Match detail to projected size, including unusually scaled blocks and narrower views.
+            distance *= Mathf.Tan(view.fieldOfView * Mathf.Deg2Rad * .5f) / .57735f;
+            distance /= Mathf.Max(1, size.magnitude / 6.63325f);
+            float near = lastDetail == 0 ? 34 : 28, far = lastDetail == 2 ? 80 : 95;
+            return distance < near ? 0 : distance < far ? 1 : 2;
+        }
         public void Refresh()
         {
             if (!profile) return;
             if (!filter) filter = GetComponent<MeshFilter>();
             Vector3 size = transform.lossyScale;
             size = new Vector3(Mathf.Max(.01f,Mathf.Abs(size.x)),Mathf.Max(.01f,Mathf.Abs(size.y)),Mathf.Max(.01f,Mathf.Abs(size.z)));
-            if(size==lastSize && profile.bevel==lastBevel && profile.panelDepth==lastDepth && profile.cornerButtons==lastButtons && filter.sharedMesh)return;
-            string key = size.ToString("F3") + ":" + profile.bevel.ToString("F3") + ":" + profile.panelDepth.ToString("F3") + ":" + profile.cornerButtons;
+            int detail = Detail(size);
+            if(size==lastSize && detail==lastDetail && profile.bevel==lastBevel && profile.panelDepth==lastDepth && profile.cornerButtons==lastButtons && filter.sharedMesh)return;
+            string key = size.ToString("F3") + ":" + profile.bevel.ToString("F3") + ":" + profile.panelDepth.ToString("F3") + ":" + profile.cornerButtons + ":" + detail;
             if (key == lastKey && filter.sharedMesh) return;
             if (!Cache.TryGetValue(key,out var mesh) || !mesh)
             {
-                mesh = Build(size,profile); mesh.hideFlags = HideFlags.HideAndDontSave; Cache[key] = mesh;
+                mesh = Build(size,profile,detail); mesh.hideFlags = HideFlags.HideAndDontSave; Cache[key] = mesh;
             }
-            filter.sharedMesh = mesh; lastKey = key;lastSize=size;lastBevel=profile.bevel;lastDepth=profile.panelDepth;lastButtons=profile.cornerButtons;
+            filter.sharedMesh = mesh; lastKey = key;lastSize=size;lastBevel=profile.bevel;lastDepth=profile.panelDepth;lastButtons=profile.cornerButtons;lastDetail=detail;
         }
-        static Mesh Build(Vector3 size,CandyArtProfile p)
+        static Mesh Build(Vector3 size,CandyArtProfile p,int detail)
         {
             var vertices = new List<Vector3>(); var normals = new List<Vector3>();
             var uv = new List<Vector2>(); var triangles = new List<int>();
@@ -52,6 +82,7 @@ namespace DeadlyJenga.CandyArt
                     float Sample(int i,float extent)
                     {
                         if(resolution==2) return i==0?-extent:extent;
+                        if(resolution==4) return i==0?-extent:i==1?-extent+radius:i==2?extent-radius:extent;
                         float[] values={-extent,-extent+radius*.293f,-extent+radius,extent-radius,extent-radius*.293f,extent};
                         return values[i];
                     }
@@ -70,15 +101,15 @@ namespace DeadlyJenga.CandyArt
                     {int a=start+y*resolution+x,b=a+1,c=a+resolution,d=c+1; triangles.Add(a);triangles.Add(b);triangles.Add(c);triangles.Add(b);triangles.Add(d);triangles.Add(c);}
                 }
             }
-            Box(Vector3.zero,size-Vector3.one*(depth*2+.012f),r,6);
+            Box(Vector3.zero,size-Vector3.one*(detail==0?depth*2+.012f:.012f),r,detail==2?4:6);
             // Shallow molded panels on every face. All details remain inside the unit collider bounds.
-            for(int axis=0;axis<3;axis++)for(int sign=-1;sign<=1;sign+=2)
+            if(detail==0)for(int axis=0;axis<3;axis++)for(int sign=-1;sign<=1;sign+=2)
             {
                 Vector3 dimensions=size-Vector3.one*(r*2.6f); dimensions[axis]=depth+.018f;
                 Vector3 center=Vector3.zero;center[axis]=sign*(size[axis]*.5f-dimensions[axis]*.5f-.006f);
                 Box(center,dimensions,Mathf.Min(r*.45f,dimensions[axis]*.4f),6);
             }
-            if(p.cornerButtons)
+            if(detail==0 && p.cornerButtons)
             {
                 float button=Mathf.Min(.17f,smallest*.09f);
                 for(int face=0;face<6;face++)

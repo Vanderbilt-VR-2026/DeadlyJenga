@@ -1,0 +1,13 @@
+Independent player host
+PASS Independent process opens playable lobby
+PASS Host connects to real Fusion
+PASS Independent guest avatar joins host island
+PASS Host transitions lobby to Castle Demo
+PASS Guest completes castle snapshot handshake
+PASS Guest shared-control command creates exactly one authoritative AI
+PASS Host retains AI voice authority with shared UI
+PASS Host triggers network tsunami
+PASS Independent guest receives active wave state
+PASS Independent guest clears wave visuals after stop
+PASS Original host leaves Game cleanly
+COMPLETE Separate-process multiplayer run

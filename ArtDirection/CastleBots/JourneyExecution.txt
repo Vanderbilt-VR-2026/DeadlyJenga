@@ -1,0 +1,18 @@
+UP (80.57, 80.01, 0.00) grounded=True goal=True vault=False wait=-33.5555 route=Walk distance=0.3276825 rise=-0.007499695 ahead=True obstacle=False angle=0 Finding safer footing target=(80.84, 80.00, 0.00)
+UP (80.85, 80.01, 0.00) grounded=True goal=True vault=False wait=-33.75666 route=Walk distance=0.4818878 rise=-0.007499695 ahead=True obstacle=False angle=40.08165 Following a route target=(81.29, 80.00, 0.00)
+UP (81.60, 80.70, 0.00) grounded=False goal=True vault=False wait=-33.95974 route=Vault distance=1.741882 rise=1.353897 ahead=False obstacle=False angle=0 Jumping target=(83.31, 82.00, 0.00)
+UP (82.40, 81.64, 0.00) grounded=False goal=True vault=False wait=-34.17093 route=Vault distance=0.9570236 rise=0.3924103 ahead=False obstacle=False angle=0 Jumping target=(83.31, 82.00, 0.00)
+UP (82.60, 81.76, 0.00) grounded=False goal=True vault=True wait=-34.3764 Vaulting target=(83.31, 82.00, 0.00)
+UP (82.60, 82.07, 0.00) grounded=False goal=True vault=True wait=-34.57856 Vaulting target=(83.31, 82.00, 0.00)
+UP (83.01, 82.08, 0.00) grounded=False goal=True vault=True wait=-34.78282 Vaulting target=(83.31, 82.00, 0.00)
+UP (83.29, 82.01, 0.00) grounded=True goal=False vault=False wait=-34.98551 Vaulting target=(83.29, 82.01, 0.00)
+PASS Actual motor stages under a roof, jumps a gap and vaults onto a 2m higher crate.
+DOWN (83.29, 82.01, 0.00) grounded=True goal=True vault=False wait=-35.19022 route=Drop distance=3.289566 rise=-2.007492 ahead=False obstacle=False angle=80.56208 Dropping to a lower ledge target=(80.00, 80.00, 0.00)
+DOWN (83.16, 82.01, 0.00) grounded=True goal=True vault=False wait=-35.40016 route=Drop distance=3.192886 rise=-2.0075 ahead=False obstacle=False angle=5.973959 Dropping to a lower ledge target=(80.00, 80.00, 0.00)
+DOWN (82.59, 81.59, 0.00) grounded=False goal=True vault=False wait=-35.60796 route=Drop distance=2.616661 rise=-1.622124 ahead=False obstacle=False angle=0 Dropping to a lower ledge target=(80.00, 80.00, 0.00)
+DOWN (82.03, 80.40, 0.00) grounded=False goal=True vault=False wait=-35.8132 route=Drop distance=2.065086 rise=-0.4890823 ahead=False obstacle=False angle=0 Dropping to a lower ledge target=(80.00, 80.00, 0.00)
+DOWN (81.77, 79.59, 0.00) grounded=False goal=True vault=True wait=-36.01435 Vaulting target=(80.00, 80.00, 0.00)
+DOWN (81.77, 79.93, 0.00) grounded=False goal=True vault=True wait=-36.21538 Vaulting target=(80.00, 80.00, 0.00)
+DOWN (81.64, 80.11, 0.00) grounded=False goal=True vault=True wait=-36.41813 Vaulting target=(80.00, 80.00, 0.00)
+DOWN (81.10, 80.01, 0.00) grounded=True goal=True vault=False wait=-36.62018 route=Walk distance=1.127502 rise=-0.007492065 ahead=True obstacle=False angle=0 Vaulting target=(80.00, 80.00, 0.00)
+PASS Actual motor returns across the lower gap without falling away.

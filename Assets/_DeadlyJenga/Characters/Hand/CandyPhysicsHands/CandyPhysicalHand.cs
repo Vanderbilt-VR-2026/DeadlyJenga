@@ -29,6 +29,8 @@ namespace DeadlyJenga.CandyPhysicsHands
         public bool NetworkPreview {get;set;}
         bool previousNetworkPreview;
         public float GeometrySize=>builtSize;
+        // AI fingers follow their joints instead of pulling independently through a contacted block.
+        public bool JointDrivenFingers {get;set;}
         public void RebuildInactive(CandyHandPose pose)
         {
             if(active)throw new System.InvalidOperationException("Release contacts before resizing the hand.");
@@ -67,6 +69,14 @@ namespace DeadlyJenga.CandyPhysicsHands
                 joint.connectedAnchor=Quaternion.Inverse(joint.connectedBody.rotation)*(bodies[i].position-joint.connectedBody.position);
                 joint.xMotion=joint.yMotion=joint.zMotion=ConfigurableJointMotion.Locked;
                 joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Free;
+                if(JointDrivenFingers)
+                {
+                    joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Limited;
+                    joint.lowAngularXLimit=new SoftJointLimit{limit=-80};
+                    joint.highAngularXLimit=new SoftJointLimit{limit=80};
+                    float swing=i<=3?40:20;
+                    joint.angularYLimit=new SoftJointLimit{limit=swing};joint.angularZLimit=new SoftJointLimit{limit=swing};
+                }
                 joint.enableCollision=false;joint.enablePreprocessing=true;joint.projectionMode=JointProjectionMode.None;
                 joint.rotationDriveMode=RotationDriveMode.Slerp;joint.configuredInWorldSpace=false;joints[i-1]=joint;
                 referenceRelative[i-1]=Quaternion.Inverse(joint.connectedBody.rotation)*bodies[i].rotation;
@@ -157,7 +167,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                 var rb=bodies[i];Desired(Target,i,out var p,out var q);
                 float denominator=1+dt*settings.positionDamping/rb.mass+dt*dt*settings.positionSpring/rb.mass;
                 Vector3 force=Vector3.ClampMagnitude(((p-rb.position)*settings.positionSpring-rb.linearVelocity*settings.positionDamping)/denominator,(i==0?settings.palmForce:settings.fingerForce)*Strength);
-                rb.AddForce(force);MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
+                if(i==0||!JointDrivenFingers){rb.AddForce(force);MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);}
                 if(i>0)
                 {
                     // Drive the anatomical rotation relative to its connected hand bone.

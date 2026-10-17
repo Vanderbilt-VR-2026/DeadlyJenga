@@ -1,0 +1,48 @@
+Island lobby implementation — 2026-10-16
+Branch: Evan_Sprint_3. Local implementation; nothing pushed.
+Changed box/lane: GameSession/Session, plus DevTools editor installation/validation.
+Core changes: none. Packages, global Photon settings, XR settings and Game scene are unchanged.
+
+Implemented
+- Lobby is a small playable 3D sand island using a runtime copy of the castle's
+  environment profile. Character spawning uses the same survivor prefab asset
+  as Game, so later avatar/prefab updates flow into the lobby.
+- Three world terminals: Connection, Game Mode, Map. Hosting illuminates the
+  latter two; guests receive selections but cannot change host settings.
+- Castle is the only map. Demo is playable; Placeholder is selectable but cannot
+  launch. Catalog metadata and scene references are editable for future additions.
+- Region-qualified six-character codes, no room creation on a client typo,
+  connection cancellation and retry, one persistent Fusion runner into Game.
+- Lobby remote avatars use the current visual prefab and existing pose codec.
+  Opt-in microphone voice reuses the bounded PCM transport; no AI service needed.
+- Castle Demo retains the original detailed in-game host HUD and adds a VR host
+  tuning page. Lobby Demo leaves ten total population slots available without
+  auto-spawning bots. Stamina host changes are forwarded to game clients.
+- Source castle physics, character movement/tracking and map layouts are unchanged.
+
+Validation
+- 79 portable AI/audio/queue/code-address checks pass.
+- 42 integrated runtime assertions pass, including independent real Photon host/client
+  runners, authenticated avatar identity, replicated mode selection, PCM voice
+  delivery both ways, leave/rehost, cancelled join, actual host launch into Game,
+  AI survivor/hand spawning, gaze-selected host stamina tuning, and return to Lobby.
+- Four Unity-camera renders are saved alongside this report.
+- Main's remote tip was rechecked: a1b2362daee0ec379613e35639f283279135c075,
+  already merged into this branch.
+
+Practical limits
+- The island opens locally until Host/Join. No public auto-matchmaking is implied.
+- Actual Quest headset controls, physical microphone permissions/audibility,
+  performance on device, and a two-device Game scene handoff still need hardware
+  smoke testing. The cloud lobby test used two runners on this laptop; the host
+  Game scene handoff was tested in normal single-peer mode after the probe left.
+- Nearby scanning is assessed in NetworkingAssessment.txt, not implemented.
+- Adding a genuinely new game mode will require its behavior implementation;
+  adding catalog metadata alone is not a finished mode.
+
+How to try
+Open Lobby and press Play. Walk to Connection. Select Host, or enter a code using
+the world keypad (selected region) / paste a full code in the desktop Esc panel.
+The host selects Demo + Candy Castle, then Start Demo. In game, Esc / left Y
+opens demo controls. The host can add survivors/hands, rebuild, tune stamina,
+and use the existing voice and audio tools. Leave closes/returns to the island.

@@ -6,7 +6,8 @@ The place you play in. May use: Core only.
 - Blocks: CastleBlock (+ prefab), Castle Friction material, CastleBlockAppearance
   (the block's visual slot).
 - Maps: CastleGenerator, CastleLayout, castle settings, island, ocean kill height.
-- Hazards (future): disaster prefabs. One subfolder per hazard. Each implements IHazard.
+- Hazards: map-aware disaster prefabs. Read Hazards/AGENTS.md before changing them.
+  Each derives from MapHazard (PlaceholderHazard for duds) and is registered in DisasterCatalog.
 
 ## What World provides
 - CastleBlock implements IClimbable and IPushable.
@@ -19,6 +20,9 @@ The place you play in. May use: Core only.
   Services.World, GameEvents. Never reference Characters or player classes.
 - Raise GameEvents.HazardStarted/HazardEnded from hazards so Presentation can react.
 - New effect or hazard kinds are new EffectType / HazardType assets.
+- Maps must implement IWorldQuery.PlayableBounds. CastleGenerator calculates its area or uses
+  its assigned trigger BoxCollider. Map size controls disaster coverage, not intensity.
+- Run Tools > Deadly Jenga > Validate Disaster Setup when changing maps or disasters.
 
 ## Sandbox
 World/Sandbox.unity: a small castle and a few TestDummy capsules.

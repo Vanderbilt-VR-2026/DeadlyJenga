@@ -5,12 +5,21 @@ namespace DeadlyJenga.CastlePrototype
     {
         public static bool FromLobby;
         public static bool StartLocalSession;
-        public static SurvivorVRMovement Movement = SurvivorVRMovement.HeadRelative;
-        public static SurvivorVRTurn Turn = SurvivorVRTurn.Snap;
+        public static string ModeId="demo", MapId="castle";
+        public static SurvivorVRPlayStyle PlayStyle=(SurvivorVRPlayStyle)UnityEngine.Mathf.Clamp(UnityEngine.PlayerPrefs.GetInt("SurvivorVRPlayStyle",0),0,1);
+        public static SurvivorVRMovement Movement = PlayStyle==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
+        public static SurvivorVRTurn Turn = PlayStyle==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
+        public static void TogglePlayStyle()
+        {
+            PlayStyle=PlayStyle==SurvivorVRPlayStyle.Seated?SurvivorVRPlayStyle.Standing:SurvivorVRPlayStyle.Seated;
+            Movement=PlayStyle==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
+            Turn=PlayStyle==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
+            UnityEngine.PlayerPrefs.SetInt("SurvivorVRPlayStyle",(int)PlayStyle);
+        }
         public static float SnapAngle = 30f;
         public static float SmoothDegrees = 60f;
         public static float GripSeconds = 4f;
-        public static int BotTarget = 1;
+        public static int BotTarget = 10;
         public static int SurvivorPreset;
         public static int HandPreset;
         public static int HandCount;
@@ -36,6 +45,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             var rules = UnityEngine.JsonUtility.FromJson<StaminaRules>(json);
             if (rules == null) throw new System.IO.InvalidDataException("Missing host stamina rules");
+            float[] numbers={rules.capacity,rules.drain,rules.recovery,rules.delay,rules.drainDegree,rules.recoveryDegree};
+            foreach(float number in numbers)if(float.IsNaN(number)||float.IsInfinity(number))throw new System.IO.InvalidDataException("Invalid stamina number");
+            if(!System.Enum.IsDefined(typeof(StaminaCurve),rules.drainCurve)||!System.Enum.IsDefined(typeof(StaminaCurve),rules.recoveryCurve))throw new System.IO.InvalidDataException("Invalid stamina curve");
             player.climbGripSeconds = UnityEngine.Mathf.Clamp(rules.capacity, .5f, 20);
             player.climbDrainPerSecond = UnityEngine.Mathf.Clamp(rules.drain, 0, 4);
             player.climbRecoveryPerSecond = UnityEngine.Mathf.Clamp(rules.recovery, 0, 2);
@@ -46,12 +58,22 @@ namespace DeadlyJenga.CastlePrototype
             player.climbRecoveryCurve = rules.recoveryCurve;
         }
 
+        public static void RefreshLocalControls()
+        {
+            var savedStyle=(SurvivorVRPlayStyle)UnityEngine.Mathf.Clamp(UnityEngine.PlayerPrefs.GetInt("SurvivorVRPlayStyle",(int)PlayStyle),0,1);
+            if(savedStyle!=PlayStyle)
+            {
+                PlayStyle=savedStyle;
+                Movement=PlayStyle==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
+                Turn=PlayStyle==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
+            }
+        }
         public static void Apply(CastlePlaySession session)
         {
-            if (!FromLobby || session == null || session.Player == null)
-                return;
-
-            var player = session.Player;
+            if (!FromLobby || session == null || session.Player == null)return;
+            var player=session.Player;
+            RefreshLocalControls();
+            player.SetVRPlayStyle(PlayStyle,false);
             player.vrMovement = Movement;
             player.vrTurn = Turn;
             player.vrSnapAngle = SnapAngle;
@@ -64,20 +86,20 @@ namespace DeadlyJenga.CastlePrototype
             player.climbRecoveryCurve = RecoveryCurve;
             player.climbDrainDegree = DrainDegree;
             player.climbRecoveryDegree = RecoveryDegree;
-            if (session.Network != null && !session.Network.CanEditWorld) return;
+            if (session.Network != null && session.Network.IsClient) return;
             if (session.Bots != null)
             {
-                session.Bots.targetPopulation = UnityEngine.Mathf.Clamp(BotTarget, 1, 20);
+                session.Bots.targetPopulation = UnityEngine.Mathf.Max(1,BotTarget);
                 session.Bots.SelectPreset(SurvivorPreset);
 
             }
             if (session.HandBots != null)
             {
                 session.HandBots.SelectPreset(HandPreset);
-                for (int i = 0; i < UnityEngine.Mathf.Min(HandCount, BotTarget - 1); i++)
+                for (int i = 0; i < UnityEngine.Mathf.Max(0,HandCount); i++)
                     session.HandBots.SpawnHand();
             }
-            if (session.Bots != null && BotTarget > 1) session.Bots.FillToTarget();
+            if (ModeId!="demo" && session.Bots != null && BotTarget > 1) session.Bots.FillToTarget();
         }
     }
 }

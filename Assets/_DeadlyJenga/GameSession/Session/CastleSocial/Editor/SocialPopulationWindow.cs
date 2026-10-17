@@ -149,7 +149,7 @@ namespace DeadlyJenga.CastleSocial.Editor
         {try{preview=SocialPopulation.Generate(C,C.previewCount);simulation=new SocialDirector(C,preview);simulatedTime=0;warning="";}catch(Exception e){warning=e.Message;}}
         void Preview()
         {
-            if(preview==null)return;
+            if(preview==null||preview.Count==0)return;
             EditorGUILayout.LabelField($"Sample: {preview.Count} · voice {preview.Count(b=>b.voice)} · grouped {preview.Count(b=>b.group>=0)} · median age {preview.OrderBy(b=>b.age).ElementAt(preview.Count/2).age:F1}",EditorStyles.miniLabel);
             aggregate=EditorGUILayout.Foldout(aggregate,"Configured vs sampled trait statistics",true);
             if(aggregate)

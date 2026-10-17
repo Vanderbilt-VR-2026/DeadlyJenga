@@ -1,4 +1,5 @@
 using UnityEngine;
+using DeadlyJenga.Core;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CandyPhysicsHands;
 using P = DeadlyJenga.CastlePrototype.CastleLanProtocol;
@@ -7,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     // Remote avatars have no cameras/input. Remote hand contacts exist only on
     // the host; all other devices display the host's actual palm/finger poses.
-    public sealed class CastleLanActorView : MonoBehaviour
+    public sealed class CastleLanActorView : MonoBehaviour, IPushable, IDamageable, IHazardMotion
     {
         public CandyPhysicalHand Hand { get; private set; }
         CandyPlayerRig rig;
@@ -17,12 +18,46 @@ namespace DeadlyJenga.CastlePrototype
         P.Actor target;
         public Vector3 WorldPosition=>target==null?transform.position:target.hand?target.target.position:target.avatar.head;
         CandyAvatarFrame frame;
+        CapsuleCollider hazardTarget;
+        Vector3 previousFeet, velocity;
+        float previousPoseTime;
+        public Vector3 HazardVelocity => velocity;
+        public float Health => 100;
+        public float MaxHealth => 100;
+        public void Push(Vector3 force, GameObject source)
+        {
+            if (authority && !suspended && target != null && !target.hand && target.active)
+                session.GetComponent<CastleFusionSession>()?.QueueDisasterImpact(target.id, force, 0);
+        }
+        public void Damage(float amount, GameObject source)
+        {
+            if (authority && !suspended && target != null && !target.hand && target.active)
+                session.GetComponent<CastleFusionSession>()?.QueueDisasterImpact(target.id, Vector3.zero, amount);
+        }
+        public void Eliminate(GameObject source) => Damage(10000, source);
         public void Initialize(CastlePlaySession owner, bool host) { session = owner; authority = host; }
         public void Receive(P.Actor actor)
         {
             suspended=false;
             if (target != null && (target.hand != actor.hand || actor.hand && (target.left != actor.left || Mathf.Abs(target.size - actor.size) > .01f))) Clear();
             target = actor;
+            if (authority && !actor.hand)
+            {
+                if (!hazardTarget)
+                {
+                    var hit = new GameObject("Remote survivor hazard target"); hit.layer = Layers.Survivor;
+                    hit.transform.SetParent(transform, false); hazardTarget = hit.AddComponent<CapsuleCollider>(); hazardTarget.isTrigger = true;
+                }
+                float dt = Time.time - previousPoseTime;
+                velocity = previousPoseTime > 0 && dt > .001f ? Vector3.ClampMagnitude((actor.avatar.feet - previousFeet) / dt, 60) : Vector3.zero;
+                previousFeet = actor.avatar.feet; previousPoseTime = Time.time;
+                hazardTarget.transform.position = actor.avatar.feet;
+                hazardTarget.height = Mathf.Max(.2f, 1.7f * actor.avatar.scale);
+                hazardTarget.radius = Mathf.Max(.05f, .24f * actor.avatar.scale);
+                hazardTarget.center = Vector3.up * hazardTarget.height * .5f;
+                hazardTarget.enabled = actor.active;
+            }
+            else if (hazardTarget) hazardTarget.enabled = false;
             if (actor.hand)
             {
                 if (!Hand)
@@ -48,7 +83,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (!initialized) { frame = actor.avatar; initialized = true; }
             }
         }
-        public void Suspend() { suspended=true;if (Hand) { Hand.SetTarget(Hand.Target, 0); Hand.SetInteractive(false); } }
+        public void Suspend() { suspended=true;if(hazardTarget)hazardTarget.enabled=false;if (Hand) { Hand.SetTarget(Hand.Target, 0); Hand.SetInteractive(false); } }
         public void Render(float dt)
         {
             if (target == null || !target.active) return;

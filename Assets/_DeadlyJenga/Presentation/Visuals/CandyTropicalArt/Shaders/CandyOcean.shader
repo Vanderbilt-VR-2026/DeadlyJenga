@@ -49,6 +49,8 @@ Shader "Candy Tropical/Ocean"
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
             float4 _TerrainBounds;
             float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
+            float4 _SurgeOrigin, _SurgeDirection;
+            float _SurgeWidth, _SurgeDepth, _SurgeHeight;
             float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain;
             CBUFFER_END
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
@@ -97,6 +99,16 @@ Shader "Candy Tropical/Ocean"
             half4 frag(Varyings i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
+                float surgeCoverage=0;
+                if(_SurgeHeight>.001)
+                {
+                    float2 delta=i.world.xz-_SurgeOrigin.xz;
+                    float t=dot(delta,_SurgeDirection.xz)/max(.01,_SurgeDepth)+.5;
+                    float across=abs(dot(delta,float2(_SurgeDirection.z,-_SurgeDirection.x)))/max(.01,_SurgeWidth*.5);
+                    float shape=t<.72?smoothstep(0,.72,t):1-smoothstep(.72,1,t);
+                    float elevation=_SurgeHeight*shape*(1-smoothstep(.85,1,across));
+                    surgeCoverage=smoothstep(0,.4,elevation);clip(.4-elevation);
+                }
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
                 float depth=max(.01,i.world.y-TerrainHeight(i.world.xz)),deep=smoothstep(.15,3.2,depth);
                 float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;
@@ -118,7 +130,7 @@ Shader "Candy Tropical/Ocean"
                 float foam=0;
                 color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,saturate(fresnel*.82+foam));
-                return half4(color,alpha);
+                return half4(color,alpha*(1-surgeCoverage));
             }
             ENDHLSL
         }

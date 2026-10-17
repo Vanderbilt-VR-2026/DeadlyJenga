@@ -1,5 +1,8 @@
-Local speech integration after main merge
-PASS Kokoro and Whisper tiny.en loaded from existing local setup.
-PASS Neural TTS returned a non-silent synthetic PCM fixture over HTTP.
-PASS Final Unity synthesis/playback, transcription, and human-perception checks passed; see UnityValidation.txt and MainIntegration-20261016.txt.
-The earlier test_bridge.py --unity invocation timed out during the first large asset import; its original report is retained at Logs/Validation/VoiceBridgeImportTimeout.txt.
+PASS Local bridge uses no paid service or voice recording
+PASS At least one real installed speech voice is available
+PASS Speech chunk contains actual audio rather than a mock
+PASS End-to-end synthesis returns non-silent generated speech PCM
+PASS Unavailable STT backend reports explicit fallback
+PASS Unapproved voice identity rejected
+MEASURE actual windows voice bank: Microsoft David Desktop, Microsoft Zira Desktop
+MEASURE first audio seconds: [1.385, 1.24]

@@ -1,0 +1,49 @@
+Evan 1 · giant cathedral
+PASS The cathedral layout is selected
+PASS Layout fits the existing snapshot block-count contract: 6090
+PASS No intersecting blocks in any course (or duplicate placements)
+PASS Every elevated block's centre of mass is inside its actual bearing polygon
+PASS Giant footprint and spire height: (156.00, 179.00, 159.00) / top 180
+Geometry/bearing checks are necessary, not proof of whole-structure stability. Gravity simulation follows.
+PASS Full scene instantiates the identical physical block prefab
+PASS Every structural block is dynamic, with gravity enabled
+PASS World bounds and top spawn match the cathedral
+PASS Current survivor prefab spawns on the highest spire
+Gravity: 0.5 simulated seconds; 0.5 wall seconds
+Gravity: 1.0 simulated seconds; 1.5 wall seconds
+Gravity: 1.5 simulated seconds; 2.3 wall seconds
+Gravity: 2.0 simulated seconds; 3.0 wall seconds
+Gravity: 2.5 simulated seconds; 3.7 wall seconds
+Gravity: 3.0 simulated seconds; 4.4 wall seconds
+Gravity: 3.5 simulated seconds; 5.0 wall seconds
+Gravity: 4.0 simulated seconds; 5.6 wall seconds
+Gravity: 4.5 simulated seconds; 6.2 wall seconds
+Gravity: 5.0 simulated seconds; 6.8 wall seconds
+Gravity: 5.5 simulated seconds; 7.3 wall seconds
+Gravity: 6.0 simulated seconds; 7.9 wall seconds
+Gravity: 6.5 simulated seconds; 8.4 wall seconds
+Gravity: 7.0 simulated seconds; 8.9 wall seconds
+Gravity: 7.5 simulated seconds; 9.4 wall seconds
+Gravity: 8.0 simulated seconds; 9.9 wall seconds
+Gravity: 8.5 simulated seconds; 10.4 wall seconds
+Gravity: 9.0 simulated seconds; 10.9 wall seconds
+Gravity: 9.5 simulated seconds; 11.4 wall seconds
+Gravity: 10.0 simulated seconds; 11.8 wall seconds
+Settling: maximum translation 0.2243918m; rotation 0deg; moved >0.5m 0 / 6090; simulation wall time 12.2206788s
+Height band 0–40m: shifted 0 / 3126
+Height band 40–80m: shifted 0 / 1916
+Height band 80–120m: shifted 0 / 716
+Height band 120–160m: shifted 0 / 260
+Height band 160–200m: shifted 0 / 72
+Keep_Course89_Block703 start (-9.98, 178.99, 4.13) drift 0.2243918
+Keep_Course88_Block702 start (-9.98, 176.99, 4.13) drift 0.2237623
+Keep_Course87_Block701 start (-9.98, 174.99, 4.13) drift 0.2232493
+Keep_Course86_Block700 start (-9.98, 172.99, 4.13) drift 0.2224162
+Keep_Course87_Block693 start (-9.98, 174.99, -4.13) drift 0.2221447
+Keep_Course89_Block685 start (-4.13, 178.99, -9.98) drift 0.2220937
+Keep_Course85_Block699 start (-9.98, 170.99, 4.13) drift 0.2219345
+Keep_Course86_Block692 start (-9.98, 172.99, -4.13) drift 0.2215831
+PASS Whole cathedral remains standing after ten simulated seconds of unconstrained gravity
+PASS Cathedral enters Play Mode without runtime errors
+PASS Map/disaster catalog validation runs
+COMPLETE: layout, gravity, spawn and bounds. Not a Quest performance or live two-headset test.

@@ -19,6 +19,9 @@ May use: Core, World, Characters.
 ## Rules
 - Deleting this box must leave a playable gray-box game.
 - Keep originals in "Assets For Texture (BETA)". Make new variants instead.
+- CandyTsunamiVisuals reads Core IWaveState. Keep its shader profile and ocean mask consistent
+  with the World tsunami surface profile. The map supplies water level; materials supply the look.
+  No particle collisions, mesh colliders or gameplay force calls belong in this visual.
 
 ## Next up
 - Audio still attaches components to players, hands and blocks by searching the scene

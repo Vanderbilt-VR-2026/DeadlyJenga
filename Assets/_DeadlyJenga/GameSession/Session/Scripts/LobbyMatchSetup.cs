@@ -44,6 +44,7 @@ public class LobbyMatchSetup : MonoBehaviour
     }
     void BuildPage()
     {
+        MatchSetup.RefreshLocalControls();
         foreach (Transform child in content) { child.gameObject.SetActive(false); Destroy(child.gameObject); }
         Label("MATCH SETUP", 325);
         Button("Match", -190, 270, () => { page = 0; BuildPage(); });
@@ -53,10 +54,10 @@ public class LobbyMatchSetup : MonoBehaviour
         {
             Label("Host / Join uses Fusion, including on the same Wi-Fi.", 210, 16);
             Button("Solo practice", 0, 160, StartSolo);
-            Button("Turn: " + MatchSetup.Turn, -140, 100, () => { MatchSetup.Turn = MatchSetup.Turn == SurvivorVRTurn.Snap ? SurvivorVRTurn.Smooth : SurvivorVRTurn.Snap; BuildPage(); }, 260);
+            Button("Controls: " + MatchSetup.PlayStyle, -140, 100, () => { MatchSetup.TogglePlayStyle(); BuildPage(); }, 260);
             Button("Move: " + MatchSetup.Movement, 140, 100, () => { MatchSetup.Movement = MatchSetup.Movement == SurvivorVRMovement.HeadRelative ? SurvivorVRMovement.BodyRelative : SurvivorVRMovement.HeadRelative; BuildPage(); }, 260);
-            Step("Population (host): " + MatchSetup.BotTarget, 35, () => MatchSetup.BotTarget = Mathf.Max(1, MatchSetup.BotTarget - 1), () => MatchSetup.BotTarget = Mathf.Min(20, MatchSetup.BotTarget + 1));
-            Step("AI hands (host): " + MatchSetup.HandCount, -30, () => MatchSetup.HandCount = Mathf.Max(0, MatchSetup.HandCount - 1), () => MatchSetup.HandCount = Mathf.Min(9, MatchSetup.HandCount + 1));
+            Step("Population (host): " + MatchSetup.BotTarget, 35, () => MatchSetup.BotTarget = Mathf.Max(1, MatchSetup.BotTarget - 1), () => MatchSetup.BotTarget = MatchSetup.BotTarget + 1);
+            Step("AI hands (host): " + MatchSetup.HandCount, -30, () => MatchSetup.HandCount = Mathf.Max(0, MatchSetup.HandCount - 1), () => MatchSetup.HandCount = MatchSetup.HandCount + 1);
             Button("Survivors: " + survivorNames[MatchSetup.SurvivorPreset % survivorNames.Length], 0, -100, () => { MatchSetup.SurvivorPreset = (MatchSetup.SurvivorPreset + 1) % survivorNames.Length; BuildPage(); }, 530);
             Button("Hands: " + handNames[MatchSetup.HandPreset % handNames.Length], 0, -160, () => { MatchSetup.HandPreset = (MatchSetup.HandPreset + 1) % handNames.Length; BuildPage(); }, 530);
             Label("Population includes you, survivor bots and AI hands.\nAI hands use available population slots.", -235, 17);

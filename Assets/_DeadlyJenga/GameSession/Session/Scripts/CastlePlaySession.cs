@@ -8,7 +8,7 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(200)]
-    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo
+    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo, IWorldAuthority
     {
         public CastleGenerator generator;
         public CastleSurvivor survivorPrefab;
@@ -16,10 +16,14 @@ namespace DeadlyJenga.CastlePrototype
         public Camera overviewCamera;
         public bool tuneJumpToBlockHeight=true;
         public float jumpShortfall=.18f;
+        [Header("Next tsunami")]
+        [Range(.5f,30)] public float tsunamiSpeed=8;
+        [Range(0,5)] public float tsunamiForce=1;
         public CastleSurvivor Player { get; private set; }
         public CastleHandActor Hand { get; private set; }
         public bool PlayingHand { get; private set; }
         public bool MenuOpen { get; private set; }
+        public bool HasWorldAuthority => !Network || !Network.IsClient;
         public bool IsVR => PlayingHand ? Hand.motor.ActiveControlMode == ControlMode.VR : Player.IsVR;
         public Camera ActiveCamera => PlayingHand ? Hand.View : Player.viewCamera;
         public Vector3 LastSpawnFeet { get; private set; }
@@ -52,7 +56,8 @@ namespace DeadlyJenga.CastlePrototype
             HandBots=gameObject.AddComponent<DeadlyJenga.CastleBots.CastleHandBotPopulation>();
             var botWorld=new DeadlyJenga.CastleBots.BotWorld{Player=Player,Hand=Hand,survivorPrefab=survivorPrefab,handPrefab=handPrefab,Bots=Bots,HandBots=HandBots,isPlayingHand=()=>PlayingHand};
             Bots.Initialize(botWorld);HandBots.Initialize(botWorld);
-            var runner = NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
+            var room=IslandRoomConnection.Instance;
+            var runner = room&&room.Connected?room.Runner:NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)
             {
                 Network = gameObject.AddComponent<CastleLanSession>();
@@ -110,7 +115,7 @@ namespace DeadlyJenga.CastlePrototype
             float margin=Mathf.Max(jumpShortfall,Player.Capsule.radius+Player.Capsule.stepOffset+Player.Capsule.skinWidth+.02f);
             Player.jumpHeight=Mathf.Max(.1f,generator.settings.blockSize.y-margin);
         }
-        public void ResetCastle() { if(Network&&!Network.CanEditWorld)return;generator.Rebuild(); TuneJump();SetRole(PlayingHand);if(HandBots)HandBots.CastleRebuilt();if(Bots)Bots.CastleRebuilt(); }
+        public void ResetCastle() { if(Network&&Network.IsClient){CastleDemoCommands.Run(this,CastleDemoAction.Rebuild);return;}DemoDisasters.StopAll(this);generator.Rebuild(); TuneJump();SetRole(PlayingHand);if(HandBots)HandBots.CastleRebuilt();if(Bots)Bots.CastleRebuilt(); }
         public void SetMenu(bool open)
         {
             MenuOpen = open;
@@ -130,7 +135,7 @@ namespace DeadlyJenga.CastlePrototype
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if(IsVR&&candyTracking&&candyTracking.LeftMenuPressed)SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
-            if (MenuOpen && IsVR) worldMenu.Point(ActiveCamera, select.WasPressedThisFrame()||(candyTracking&&candyTracking.RightPinchPressed));
+            if (MenuOpen && IsVR) worldMenu.Point(ActiveCamera, select.WasPressedThisFrame()||(candyTracking&&candyTracking.RightPinchPressed),select.IsPressed()||(candyTracking&&candyTracking.RightPinching));
         }
         void OnGUI()
         {

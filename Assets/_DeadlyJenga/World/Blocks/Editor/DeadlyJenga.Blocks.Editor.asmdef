@@ -1,0 +1,5 @@
+{
+  "name": "DeadlyJenga.Blocks.Editor",
+  "references": ["DeadlyJenga.Core", "DeadlyJenga.Core.Editor", "DeadlyJenga.World"],
+  "includePlatforms": ["Editor"]
+}

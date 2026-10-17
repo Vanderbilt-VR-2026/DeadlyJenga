@@ -69,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<string, P.Actor> fusionActors = new Dictionary<string, P.Actor>();
         public bool IsFusion => fusionMode;
         public bool IsClient => fusionMode ? fusionClient : host != null;
-        public bool CanEditWorld => !IsClient;
+        public bool CanEditWorld => !IsClient || fusionMode&&GetComponent<CastleFusionSession>()&&GetComponent<CastleFusionSession>().CanUseDemoControls;
         public string LocalParticipantId=>id;
         public event Action<string,byte[]> SocialReceived;
         public event Action<string> ParticipantLeft;
@@ -110,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
                 return p == null ? "No invites or join requests" : p.peer.info.name + (p.invite ? " invited you" : " wants to join");
             }
         }
-        public bool HasPending => pending.Count > 0;
+        public bool HasPending => pending.Count > 0 || fusionMode&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.Discovery?.Invitation!=null;
 
         public void Initialize(CastlePlaySession owner)
         {
@@ -152,6 +152,33 @@ namespace DeadlyJenga.CastlePrototype
                 session.SetMenu(true);
             }
         }
+        Vector3[] migrationVelocity,migrationAngular;
+        public void FusionFreeze()
+        {
+            var blocks=World.Blocks;if(migrationVelocity==null||migrationVelocity.Length!=blocks.Count)migrationVelocity=new Vector3[blocks.Count];if(migrationAngular==null||migrationAngular.Length!=blocks.Count)migrationAngular=new Vector3[blocks.Count];
+            for(int i=0;i<blocks.Count;i++)if(blocks[i]&&!blocks[i].isKinematic){migrationVelocity[i]=blocks[i].linearVelocity;migrationAngular[i]=blocks[i].angularVelocity;}
+            Synced?.SetReplica(true);
+        }
+        public void FusionRebind(string newId,bool client,int survivors,int hands,int survivorPreset,int handPreset)
+        {
+            id=newId;fusionClient=client;fusionActors.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
+            if(!client)
+            {
+                if(targetWorld!=null)for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]){World.Blocks[i].position=targetWorld.blocks[i].position;World.Blocks[i].rotation=targetWorld.blocks[i].rotation;}
+                Synced?.SetReplica(false);
+                for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
+                if(localBridge)localBridge.NetworkPreview=false;
+                session.Bots.enabled=session.HandBots.enabled=true;session.Bots.targetPopulation=Mathf.Max(10,session.Bots.targetPopulation);
+                session.Bots.SelectPreset(survivorPreset);session.HandBots.SelectPreset(handPreset);
+                var survivorFrames=targetWorld?.actors.Where(a=>a.id.StartsWith("bot:")).ToArray();
+                var handFrames=targetWorld?.actors.Where(a=>a.id.StartsWith("bot-hand:")).ToArray();
+                for(int i=0;i<survivors;i++){var bot=session.Bots.SpawnBot();if(bot&&survivorFrames!=null&&i<survivorFrames.Length)bot.Motor.Teleport(survivorFrames[i].avatar.feet,Quaternion.identity);}
+                for(int i=0;i<hands;i++){var bot=session.HandBots.SpawnHand();if(bot&&handFrames!=null&&i<handFrames.Length)bot.Actor.Place(handFrames[i].target.position,handFrames[i].target.rotation);}
+                receivedWorld=false;targetWorld=null;
+            }
+            else {Synced?.SetReplica(true);if(localBridge)localBridge.NetworkPreview=true;}
+            Status=client?"Host reassigned · reconnecting castle":"You are the new castle host";
+        }
         public byte[] FusionWelcome(string playerID)
         {
             bool survivor = TrySpawn(out var pose);
@@ -168,7 +195,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
-        public void FusionApplyWorld(byte[] data) => ApplyWorld(P.DecodeWorld(data));
+        public void FusionApplyWorld(byte[] data)
+        {
+            var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
+            if(targetWorld!=null&&targetWorld.revision==snapshot.revision&&targetWorld.blocks.Length==snapshot.blocks.Length&&dt>.01f&&dt<1)
+            {migrationVelocity=new Vector3[snapshot.blocks.Length];migrationAngular=new Vector3[snapshot.blocks.Length];for(int i=0;i<snapshot.blocks.Length;i++)
+                {migrationVelocity[i]=Vector3.ClampMagnitude((snapshot.blocks[i].position-targetWorld.blocks[i].position)/dt,60);
+                    var delta=snapshot.blocks[i].rotation*Quaternion.Inverse(targetWorld.blocks[i].rotation);delta.ToAngleAxis(out float angle,out Vector3 axis);if(angle>180)angle-=360;
+                    if(axis.sqrMagnitude>0&&!float.IsNaN(axis.x))migrationAngular[i]=Vector3.ClampMagnitude(axis*(angle*Mathf.Deg2Rad/dt),30);}}
+            ApplyWorld(snapshot);
+        }
         public void FusionReceivePlayer(string playerID, byte[] data)
         {
             using var reader = P.Reader(data, P.Player);
@@ -559,7 +595,17 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void DrawMenu()
         {
-            if (fusionMode) { GUILayout.Label(Status); if (GUILayout.Button(IsClient ? "Leave game" : "Close game for everyone", GUILayout.Height(32))) LeaveSession(); return; }
+            if (fusionMode)
+            {
+                GUILayout.Label(Status);var room=IslandRoomConnection.Instance;
+                if(room){GUILayout.Label("Room: "+room.Code+" · "+room.HumanCount+" players");
+                    if(room.IsHost&&MatchSetup.ModeId=="demo"&&GUILayout.Button("Demo controls: "+(room.SharedDemoControls?"EVERYONE":"HOST ONLY"),GUILayout.Height(32)))room.SetSharedControls(!room.SharedDemoControls);
+                    if(room.IsHost&&GUILayout.Button("Invite everyone on this Wi-Fi",GUILayout.Height(32)))room.InviteNearby();
+                    if(room.Discovery?.Invitation!=null)
+                    {GUILayout.Label("Nearby invitation from "+room.Discovery.Invitation.message.name+". Leave this room to accept it on the island.");if(GUILayout.Button("Dismiss invitation",GUILayout.Height(32)))room.Discovery.Dismiss();}
+                    GUILayout.Label(room.DiscoveryStatus.Length>0?room.DiscoveryStatus:room.Discovery?.Status??"Discovery starting");}
+                if(GUILayout.Button(IsClient?"Leave game":"Leave / transfer host",GUILayout.Height(32)))LeaveSession();return;
+            }
             GUILayout.Space(8); GUILayout.Label("LOCAL MULTIPLAYER · same Wi-Fi"); GUILayout.Label(Status);
             if (!IsClient)
             {

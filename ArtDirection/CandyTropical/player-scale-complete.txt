@@ -1,0 +1,1 @@
+Half-size player validation completed. Inspect PlayerScaleValidation, ReferenceValidation, TraversalValidation and InputValidation reports.

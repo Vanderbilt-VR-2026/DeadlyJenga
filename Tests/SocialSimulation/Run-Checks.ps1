@@ -12,6 +12,7 @@ $socialArguments = [Collections.Generic.List[string]]::new()
 Get-ChildItem (Join-Path $socialRefs.FullName 'ref/net8.0') -Filter '*.dll' | ForEach-Object { $socialArguments.Add('/reference:"'+$_.FullName+'"') }
 Get-ChildItem (Join-Path $socialRoot 'Assets/_DeadlyJenga/GameSession/Session/CastleSocial/Core') -Filter '*.cs' | ForEach-Object { $socialArguments.Add('"'+$_.FullName+'"') }
 $socialArguments.Add('"'+(Join-Path $socialRoot 'Assets/_DeadlyJenga/GameSession/Session/Scripts/CastleSocialChannel.cs')+'"')
+$socialArguments.Add('"'+(Join-Path $socialRoot 'Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandRoomAddress.cs')+'"')
 $socialArguments.Add('"'+(Join-Path $PSScriptRoot 'Program.cs')+'"')
 $socialResponse = Join-Path $socialOutput 'compile.rsp'
 [IO.File]::WriteAllLines($socialResponse,$socialArguments)

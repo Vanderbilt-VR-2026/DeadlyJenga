@@ -1,0 +1,38 @@
+Cathedral editor overview benchmark; VSync off; 24 frames per phase. Not a device FPS guarantee.
+Blocks 6098; renderers 6098; shared visual mesh vertices 96
+Normal: median 181.48ms, p90 389.91ms; triangles 872703; batches 84
+  Physics.SyncTransforms mean 14.7016866666667ms
+  Physics.Simulate mean 63.4856366666667ms
+  Main Thread mean 279.655866666667ms
+  BehaviourUpdate mean 30.23153ms
+Block rendering disabled: median 64.01ms, p90 72.40ms; triangles 214121; batches 60
+  Physics.SyncTransforms mean 1.21711666666667ms
+  Physics.Simulate mean 8.27263666666667ms
+  Main Thread mean 62.4208933333333ms
+  BehaviourUpdate mean 16.7306866666667ms
+Block behaviour/surface updates disabled: median 26.30ms, p90 34.55ms; triangles 872705; batches 85
+  Physics.SyncTransforms mean 0.0409266666666667ms
+  Physics.Simulate mean 3.87052333333333ms
+  Main Thread mean 28.3484366666667ms
+  BehaviourUpdate mean 7.15639666666667ms
+Physics simulation disabled: median 34.86ms, p90 43.08ms; triangles 869459; batches 84
+  Physics.SyncTransforms mean 0.22943ms
+  Physics.Simulate mean 0ms
+  Main Thread mean 35.7776633333333ms
+  BehaviourUpdate mean 13.36882ms
+Sleeping before settled sample: 6098 / 6098
+Normal after settling: median 47.48ms, p90 58.48ms; triangles 872705; batches 85
+  Physics.SyncTransforms mean 0.06156ms
+  Physics.Simulate mean 2.11994666666667ms
+  Main Thread mean 47.4568666666667ms
+  BehaviourUpdate mean 14.83897ms
+PASS All 6098 structural bodies retain dynamic gravity
+PASS Near / middle / far visual detail: 2088 / 216 / 96 vertices; close artwork preserved
+PASS Climbable proxy registration remains intact
+PASS Proxy follows translation, rotation, scale and collider edits
+PASS One-way player collision retained; players cannot push real blocks
+PASS Hand / hazard push still accelerates dynamic blocks
+PASS Distant normal artwork uses instanced batches
+PASS Per-block shader effects fall back to normal rendering
+PASS Close blocks return to fully detailed normal rendering
+COMPLETE

@@ -29,6 +29,7 @@ namespace DeadlyJenga.CastlePrototype
             motor.Body.position = position; motor.Body.rotation = rotation;
             motor.Body.linearVelocity = Vector3.zero; motor.Body.angularVelocity = Vector3.zero;
             motor.transform.SetPositionAndRotation(position, rotation);
+            if(Bridge)Bridge.ResetTrackingRig();
             follow.SnapToTarget();
         }
     }

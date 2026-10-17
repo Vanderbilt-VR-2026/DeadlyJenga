@@ -26,6 +26,7 @@ namespace FlyingHand
         public bool InputSuspended { get; set; }
         [HideInInspector] public bool externallyDriven;
         public IFlyingHandInputSource InputDriver {get;set;}
+        public ITrackedFlightInputSource TrackedInputDriver {get;set;}
         readonly List<XRDisplaySubsystem> displays = new List<XRDisplaySubsystem>();
         bool modeInitialized;
         CursorLockMode previousCursorLock;
@@ -36,6 +37,15 @@ namespace FlyingHand
         public InputAction turn = new InputAction("Yaw", InputActionType.Value, "<XRController>{RightHand}/primary2DAxis", expectedControlType: "Vector2");
         public InputAction ascend = new InputAction("Ascend", InputActionType.Value, "<XRController>{RightHand}/trigger", expectedControlType: "Axis");
         public InputAction descend = new InputAction("Descend", InputActionType.Value, "<XRController>{LeftHand}/trigger", expectedControlType: "Axis");
+        [Header("Local VR flight")]
+        public bool leftControllerFlight = true;
+        public InputAction flightUp = new InputAction("Flight up", InputActionType.Value, "<XRController>{LeftHand}/trigger");
+        public InputAction flightDown = new InputAction("Flight down", InputActionType.Value, "<XRController>{LeftHand}/grip");
+        public InputAction flightTurn = new InputAction("Flight turn modifier", InputActionType.Button, "<XRController>{LeftHand}/primaryButton");
+        [Min(.1f)] public float vrFlightSpeed = 6f, vrClimbSpeed = 3f;
+        [Min(.1f)] public float vrAcceleration = 18f, vrBraking = 24f;
+        [Range(15,90)] public float vrSnapDegrees = 30f;
+        bool snapArmed;
         [Header("Flight (metres / seconds)")]
         [Min(0)] public float thrust = 10f;
         [Min(0)] public float verticalThrust = 8f;
@@ -85,7 +95,7 @@ namespace FlyingHand
             EnsureAction(ref turn, "Yaw", "<XRController>{RightHand}/primary2DAxis", "Vector2");
             EnsureAction(ref ascend, "Ascend", "<XRController>{RightHand}/trigger", "Axis");
             EnsureAction(ref descend, "Descend", "<XRController>{LeftHand}/trigger", "Axis");
-            if(!externallyDriven){move.Enable(); turn.Enable(); ascend.Enable(); descend.Enable();}
+            if(!externallyDriven){move.Enable(); turn.Enable(); ascend.Enable(); descend.Enable();flightUp.Enable();flightDown.Enable();flightTurn.Enable();}
             RefreshControlMode();
         }
         static void EnsureAction(ref InputAction action, string name, string binding, string controlType)
@@ -123,15 +133,18 @@ namespace FlyingHand
         }
         void ClearInput()
         {
+            TrackedInputDriver?.ResetFlightInput();
             MoveInput = Vector2.zero; YawInput = VerticalInput = 0; DesktopLookDelta = Vector2.zero;
             smoothedInput = Vector3.zero; smoothedYaw = 0;
+            snapArmed=false;
         }
         void OnDisable()
         {
             move?.Disable(); turn?.Disable(); ascend?.Disable(); descend?.Disable();
+            flightUp?.Disable();flightDown?.Disable();flightTurn?.Disable();
             ClearInput(); ReleaseCursor(); modeInitialized = false;
         }
-        void OnDestroy() { move?.Dispose(); turn?.Dispose(); ascend?.Dispose(); descend?.Dispose(); }
+        void OnDestroy() { move?.Dispose(); turn?.Dispose(); ascend?.Dispose(); descend?.Dispose();flightUp?.Dispose();flightDown?.Dispose();flightTurn?.Dispose(); }
         void OnApplicationFocus(bool value)
         {
             focused = value;
@@ -169,13 +182,51 @@ namespace FlyingHand
                     ? Mathf.Clamp(DesktopLookDelta.x * mouseYawSensitivity / (Time.deltaTime * yawSpeed), -1, 1) : 0;
                 return;
             }
+            bool leftController=false;
+            foreach(var control in move.controls)
+                if(control.device is UnityEngine.InputSystem.XR.XRController xr && xr.isTracked.isPressed){leftController=true;break;}
+            if(!leftController&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
+            {
+                var local=Quaternion.Inverse(Quaternion.Euler(0,Body.rotation.eulerAngles.y,0))*trackedCommand.moveWorld;
+                MoveInput=Vector2.ClampMagnitude(new Vector2(local.x,local.z),1);
+                VerticalInput=Mathf.Clamp(local.y,-1,1);YawInput=Mathf.Clamp(trackedCommand.yaw,-1,1);
+                return;
+            }
             Vector2 raw = focused ? move.ReadValue<Vector2>() : Vector2.zero;
+            if(leftControllerFlight)
+            {
+                TrackedInputDriver?.ResetFlightInput();
+                ReadLeftController(leftController?raw:Vector2.zero,leftController?flightUp.ReadValue<float>():0,leftController?flightDown.ReadValue<float>():0,leftController&&flightTurn.IsPressed());
+                return;
+            }
             MoveInput = raw.sqrMagnitude > stickDeadzone * stickDeadzone ? raw.normalized * Mathf.InverseLerp(stickDeadzone, 1, raw.magnitude) : Vector2.zero;
             YawInput = focused ? Deadzone(turn.ReadValue<Vector2>().x) : 0;
             VerticalInput = focused ? Mathf.Clamp(ascend.ReadValue<float>() - descend.ReadValue<float>(), -1, 1) : 0;
         }
+        void ReadLeftController(Vector2 stick,float up,float down,bool turning)
+        {
+            float magnitude=Mathf.InverseLerp(stickDeadzone,1,stick.magnitude);
+            MoveInput=turning?Vector2.zero:stick.normalized*magnitude*magnitude;
+            VerticalInput=Mathf.Clamp(up-down,-1,1);YawInput=0;
+            if(Mathf.Abs(stick.x)<.25f)snapArmed=true;
+            if(turning&&snapArmed&&Mathf.Abs(stick.x)>.7f)
+            {
+                Body.rotation=Quaternion.Euler(0,Mathf.Sign(stick.x)*vrSnapDegrees,0)*Body.rotation;
+                Body.angularVelocity=Vector3.zero;snapArmed=false;
+            }
+        }
         void FixedUpdate()
         {
+            if(!externallyDriven&&ActiveControlMode==ControlMode.VR)
+            {
+                var headingVR=Quaternion.Euler(0,Body.rotation.eulerAngles.y,0);
+                var desired=headingVR*new Vector3(MoveInput.x*vrFlightSpeed,VerticalInput*vrClimbSpeed,MoveInput.y*vrFlightSpeed);
+                float rate=desired.sqrMagnitude<Body.linearVelocity.sqrMagnitude?vrBraking:vrAcceleration;
+                Body.linearDamping=0;
+                Body.linearVelocity=Vector3.MoveTowards(Body.linearVelocity,desired,rate*Time.fixedDeltaTime);
+                Body.angularVelocity=new Vector3(0,YawInput*yawSpeed*Mathf.Deg2Rad,0);
+                return;
+            }
             float blend = 1 - Mathf.Exp(-inputResponse * Time.fixedDeltaTime);
             smoothedInput = Vector3.Lerp(smoothedInput, new Vector3(MoveInput.x, VerticalInput, MoveInput.y), blend);
             smoothedYaw = Mathf.Lerp(smoothedYaw, YawInput, blend);

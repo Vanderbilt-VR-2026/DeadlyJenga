@@ -1,0 +1,5 @@
+{
+    "name": "DeadlyJenga.GameSession.Editor",
+    "references": ["DeadlyJenga.Core", "DeadlyJenga.Core.Editor", "DeadlyJenga.GameSession"],
+    "includePlatforms": ["Editor"]
+}

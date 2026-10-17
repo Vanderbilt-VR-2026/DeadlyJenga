@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Default
   m_EditorClassIdentifier: Assembly-CSharp::DeadlyJenga.CastleSocial.SocialSettings
   configuration:
-    seed: 3821
+    seed: 455756235
     previewCount: 20
     maxPopulation: 20
     memoryLimit: 24

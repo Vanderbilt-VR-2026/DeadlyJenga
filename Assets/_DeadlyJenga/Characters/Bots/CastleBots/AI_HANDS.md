@@ -4,7 +4,9 @@ Open the demo menu and choose **Spawn AI giant hand** repeatedly. The next-hand 
 
 The factory instantiates `CastlePlaySession.handPrefab`, disables its cameras/listeners/XR origin/follow script, and supplies external input. It uses the same `FlyingHandController`, `CandyFlyingHandBridge`, physical prefab, mesh, size profile, material, solver settings and bounded drives as the human hand. Human input and hand tracking are not read by AI actors. Changing the shared assets affects their next spawn or contact-rig rebuild, just as for the human rig. Runtime force/friction profile adjustments retain the existing hand module's live-tuning behavior. Geometry/mass changes require a released rebuild; **Rebuild castle** restarts the AI hand rigs safely.
 
-The first brain selects exposed crates near survivor height, approaches, visibly winds up, drives its fingers into a swipe/jab and backs off. Crates move through collider forces only; there is no attachment, parenting, object teleport or artificial block impulse. Finger pose generation preserves phalanx lengths. These actions are physical swipes, not a completed strategic pinch-and-pull planner.
+The brain selects exposed crates on its side of the castle near survivor height. It holds that target, approaches with upright fingers and its palm facing the block, settles, makes a slow push, and backs away. A successful push requires measured block displacement. Stalled attempts time out, and failed targets have a retry cooldown. Crates move through collider forces only; there is no attachment, parenting, object teleport or artificial block impulse. This is a palm-push behavior, not a strategic pinch-and-pull planner.
+
+AI contact rigs enable `JointDrivenFingers`: finger joints have angular limits, and the fingers follow the palm through their joints instead of each pulling toward an independent world-space position. Finger curls change gradually and preserve phalanx lengths. The local player's tracked fingers retain their existing drive mode.
 
 ## Personalities and future actions
 
@@ -21,5 +23,7 @@ AI hands count toward `targetPopulation`: one local human + one AI hand + eight 
 All decisions and actors are local. Multiplayer requires one authoritative host running these brains and spawning/replicating the actors. Existing human count hooks provide population accounting, not a finished network transport. Device frame rate, real headset UI operation, long collapse sessions and arbitrary future prefab replacements still require their own testing. A replacement hand must retain or adapt the shared flight/contact interfaces.
 
 ## Reapply
+
+Run **Tools > Deadly Jenga > Validate Flying Hand Tracking** for the current player and AI regression suite. It tests a real AI hand pushing a dynamic block, an immovable target, target removal, and an attempt in Game.unity. Reports and rendered contact frames go to `Logs/Validation`; the test scenes and fixtures are not saved. Older export archives do not contain these changes.
 
 The combined `CastleBots.unitypackage` and reapply archive include survivor AI, hand AI, their current integration sources, profiles and the current shared hand module. Import into this compatible project with its Fusion/XR/URP dependencies installed. Review integration-file overwrites when importing over later work; older art/hand archives remain snapshots of their earlier versions. Run **Tools > Castle Bots > Install Profiles And Verify** on the saved CastlePhysicsTest scene for the integration checks. Test fixtures exist only in Play Mode and the authored scene is not saved by verification.

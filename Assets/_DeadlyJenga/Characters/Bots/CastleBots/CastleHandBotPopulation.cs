@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastleBots
     public sealed class CastleHandBotPopulation:MonoBehaviour
     {
         public BotWorld Session {get;private set;}
-        [Range(1,20)]public int maximumHands=9;
+        [Tooltip("Legacy field; manual spawning is uncapped.")] public int maximumHands=0;
         public int Count=>hands.Count;
         public IReadOnlyList<CastleHandBotBrain> Hands=>hands;
         public int SelectedPreset {get;private set;}
@@ -32,7 +32,6 @@ namespace DeadlyJenga.CastleBots
         public void SelectPreset(int index){if(profiles==null||profiles.Length==0)return;SelectedPreset=Mathf.Clamp(index,0,profiles.Length-1);}
         public CastleHandBotBrain SpawnHand()
         {
-            if(Count>=Mathf.Clamp(maximumHands,1,20)||Count>=Mathf.Max(0,Session.Bots.targetPopulation-Session.Bots.humanPlayers)){Status="AI hand limit reached";return null;}
             var actor=Instantiate(Session.handPrefab,staging);
             if(!actor.GetComponent<CandyFlyingHandBridge>()){Destroy(actor.gameObject);Status="Hand prefab needs the shared physical-hand bridge";return null;}
             actor.name="AI Giant Hand "+(++serial)+" — "+SelectedName;
@@ -57,11 +56,7 @@ namespace DeadlyJenga.CastleBots
             foreach(var hand in hands)if(hand){hand.gameObject.SetActive(false);Destroy(hand.gameObject);}
             hands.Clear();Status="AI hands cleared";if(Session!=null&&Session.Bots)Session.Bots.ReconcileHandSlots();
         }
-        public void TrimHumanCapacity()
-        {
-            while(hands.Count>Mathf.Max(0,Session.Bots.targetPopulation-Session.Bots.humanPlayers))
-            {var hand=hands[hands.Count-1];hands.RemoveAt(hands.Count-1);if(hand){hand.gameObject.SetActive(false);Destroy(hand.gameObject);}}
-        }
+        public void TrimHumanCapacity() { }
         public void CastleRebuilt(){for(int i=0;i<hands.Count;i++)if(hands[i])Place(hands[i],i+1);}
         public float ThreatCost(Vector3 point)
         {float cost=0;foreach(var hand in hands)if(hand&&!hand.Paused)cost+=Mathf.Max(0,7-Vector3.Distance(point,hand.ContactPosition))*.5f;return cost;}

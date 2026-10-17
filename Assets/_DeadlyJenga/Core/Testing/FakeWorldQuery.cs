@@ -22,5 +22,7 @@ namespace DeadlyJenga.Core.Testing
         public Vector3 Center => transform.position;
         public float TopHeight => topHeight;
         public float Radius => radius;
+        public Bounds playableBounds = new Bounds(new Vector3(0, 5, 0), new Vector3(20, 10, 20));
+        public Bounds PlayableBounds => new Bounds(transform.position + playableBounds.center, playableBounds.size);
     }
 }

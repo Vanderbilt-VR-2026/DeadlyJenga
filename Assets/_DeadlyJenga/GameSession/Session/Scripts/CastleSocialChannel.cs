@@ -19,6 +19,7 @@ namespace DeadlyJenga.CastlePrototype
             if(queue.Count>=limit)queue.Dequeue();queue.Enqueue(new Item{data=data,at=now});
         }
         public void Ack(int serial)=>waiting.Remove(serial);
+        public void Clear(){audio.Clear();control.Clear();waiting.Clear();}
         public void Pump(float now,Action<int,byte[]> send)
         {
             while(audio.Count>0&&now-audio.Peek().at>.5f)audio.Dequeue();

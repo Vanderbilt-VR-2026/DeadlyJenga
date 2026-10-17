@@ -1,0 +1,17 @@
+EVAN ROUGH DRAFT 1 — CATHEDRAL FORTRESS
+
+Open MapDrafterEvan1 and press Play. The map generates from the existing Candy Physics Block prefab. Only Evan 1 opts into CastleSettings.cathedral; the original castle and the other draft scenes retain their normal settings. No Core contracts or packages were changed.
+
+Dimensions: 156m across, 159m long, tallest crown 180m. Relative to the original 30.32m-wide, 60m-tall castle, this is about 5.15x wider, 5.24x longer and 3x maximum height. Twin bell towers and the apse reach roughly 132m; the side lanterns reach roughly 108m. Nave/cross-wing galleries and lower chapels have their own heights.
+
+Structural vocabulary: alternating half-courses of 12- and 16-sided polygons with broad overlapping end bearings between layers; paired open piers; continuous six-metre gallery caps across eight-metre pier bays; cross-stacked finials; diagonal corner chapels; low terraced outer buttresses; a corbelled pointed entrance supporting a belfry. Every structural piece is the same 6x2x2m physical block. No hidden structural pillars, glued bodies, joints, kinematic structural blocks or spawn-time sleeping.
+
+Navigation: large open nave, large hollow lantern interiors, two-metre pier bays, alternating layer windows, side aisles, multiple gallery levels, narrow upper crowns and separated stepping piers. The original character, hand, vault, climb, surface-proxy and block-art systems remain in use. This has not been exhaustively human-played or bot-path tested.
+
+Implementation: World/Maps/Scripts/CathedralLayout.cs is a deterministic, pure layout. CastleLayout dispatches to it only for the opt-in setting. CastleGenerator uses its actual bounds/height and raises solver iterations to 80 position / 20 velocity for the ninety-course stress map; standard castles retain 20 / 8. CandySandbar invalidates its mesh when the map footprint changes. The existing ISyncedWorld JSON layout path carries the new setting without a Core change. Regenerated block order is validated. All players need an updated build for this new layout.
+
+The scene stores a compact recipe rather than thousands of duplicated block records. Tools > Deadly Jenga > Maps > Build Evan 1 Cathedral configures the existing named scene explicitly; it does not run on editor startup. Reset/rebuild in the demo regenerates the layout. Do not use registration tools to clear this map; draft registration now preserves the cathedral option.
+
+Physics evidence and screenshots are copied alongside this file. The original 20-iteration solver was insufficient at this height; the 80-iteration version passed settling without constraints. Runtime performance on Quest and a live two-headset session still require device testing. This is a deliberately large experimental map, not a Quest-optimized release map. The simulation timings in the report are editor measurements, not headset frame-rate promises.
+
+Final layout: 6,098 blocks including the pointed gate. Thirty-second gravity result: maximum settling displacement 0.242196m, no measured rotation, no blocks moved more than 0.5m, all 6,098 bodies naturally asleep at completion. Whole test took about 29.55 wall seconds including editor/render work. See CathedralChecks.txt. Original castle course sliders are not cathedral shape controls; the deterministic cathedral recipe is in CathedralLayout.Build.

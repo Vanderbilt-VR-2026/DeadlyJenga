@@ -1,0 +1,10 @@
+<linker>
+  <assembly fullname="Fusion.Runtime">
+    <type fullname="Fusion.NetworkRunner" preserve="nothing">
+      <field name="_simulation" />
+    </type>
+    <type fullname="Fusion.Simulation/Server" preserve="nothing">
+      <method name="DisposeHostMigration" />
+    </type>
+  </assembly>
+</linker>

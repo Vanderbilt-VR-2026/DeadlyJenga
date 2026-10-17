@@ -15,12 +15,14 @@ namespace DeadlyJenga.CastleSocial
     public sealed class SocialWorld : MonoBehaviour
     {
         public CastlePlaySession Session {get;private set;}
+        public IslandLobby Lobby {get;private set;}
+        IslandRoomConnection lobbyRoom;
         public SocialSettings Settings {get;private set;}
         public SocialConfiguration Config=>Settings.configuration;
         public SocialDirector Director {get;private set;}
-        public bool IsAuthority=>Session&&(!Session.Network||Session.Network.CanEditWorld);
+        public bool IsAuthority=>Lobby?Lobby.Room.IsHost:Session&&(!Session.Network||!Session.Network.IsClient);
         readonly string standaloneId="local:"+Guid.NewGuid().ToString("N");
-        public string LocalParticipantId=>Session.Network?Session.Network.LocalParticipantId:standaloneId;
+        public string LocalParticipantId=>Lobby?(Lobby.Room.Connected?Lobby.Room.Runner.LocalPlayer.ToString():standaloneId):Session&&Session.Network?Session.Network.LocalParticipantId:standaloneId;
         public readonly List<SocialBotAgent> Agents=new List<SocialBotAgent>();
         public readonly Dictionary<string,SocialNotice> Participants=new Dictionary<string,SocialNotice>();
         public string Caption {get;private set;}="Social simulation ready";
@@ -41,6 +43,19 @@ namespace DeadlyJenga.CastleSocial
             gameObject.AddComponent<SocialRuntimePanel>().Initialize(this);if(!ApplyConfiguration()){Settings.ResetDefaults();ApplyConfiguration();}
             gameObject.AddComponent<SocialDemonstrationRecorder>().Initialize(this);
         }
+        public void Initialize(IslandLobby lobby)
+        {
+            Lobby=lobby;var authored=Resources.Load<SocialSettings>("CastleSocial/Default");Settings=authored?Instantiate(authored):ScriptableObject.CreateInstance<SocialSettings>();
+            Settings.mode=SocialOperatingMode.Offline;Settings.microphoneEnabled=false;
+            Playback=gameObject.AddComponent<SocialVoicePlayback>();Playback.Initialize(this);
+            Speech=gameObject.AddComponent<SocialSpeechClient>();Speech.Initialize(this);
+            MicrophoneInput=gameObject.AddComponent<SocialMicrophone>();MicrophoneInput.Initialize(this);
+            Director=new SocialDirector(Config,new List<SocialIdentity>());
+            lobbyRoom=lobby.Room;lobbyRoom.SocialReceived+=Receive;lobbyRoom.ParticipantLeft+=Left;
+        }
+        public void ResetLobbyAudio(){MicrophoneInput.StopCapture();Playback.Clear();sequences.Clear();rates.Clear();lastVoice.Clear();}
+        void SendPacket(byte[] bytes,string except=null)
+        {if(Lobby)Lobby.Room.SendSocial(bytes,except);else if(Session&&Session.Network)Session.Network.SendSocial(bytes,except);}
         public bool ApplyConfiguration()
         {
             try
@@ -107,6 +122,7 @@ namespace DeadlyJenga.CastleSocial
         public SocialBotAgent NearestFriend(SocialBotAgent self)=>Agents.Where(a=>a&&a!=self&&a.State.identity.group==self.State.identity.group&&!a.Brain.Respawning).OrderBy(a=>(a.transform.position-self.transform.position).sqrMagnitude).FirstOrDefault();
         public bool TryPosition(string id,out Vector3 point)
         {
+            if(Lobby)return Lobby.TryPeerPosition(id,out point);
             var a=Agents.FirstOrDefault(x=>x&&x.State.identity.id==id);if(a){point=a.transform.position+Vector3.up*.7f;return true;}
             if(id==LocalParticipantId&&Session.Player){point=Session.Player.viewCamera.transform.position;return true;}
             if(Session.Network&&Session.Network.TryParticipantPosition(Participants.TryGetValue(id??"",out var n)?n.actor:id,out point))return true;point=default;return false;
@@ -132,7 +148,7 @@ namespace DeadlyJenga.CastleSocial
         public void SendAudio(SocialAudioPacket packet,bool human)
         {
             if(human){packet.speaker=LocalParticipantId;Activity(packet.speaker,packet);}
-            var bytes=packet.Encode();if(Session.Network)Session.Network.SendSocial(bytes);
+            var bytes=packet.Encode();SendPacket(bytes);
             if(!human)Playback.Accept(packet);
         }
         void Activity(string id,SocialAudioPacket p)
@@ -153,7 +169,7 @@ namespace DeadlyJenga.CastleSocial
                     if(sequences.TryGetValue(p.speaker,out int last)&&p.sequence<=last)return;sequences[p.speaker]=p.sequence;
                     // The host alone can originate bot speech; client-supplied IDs
                     // are replaced with the authenticated connection's human ID.
-                    Playback.Accept(p);if(IsAuthority){Activity(source,p);Session.Network.SendSocial(p.Encode(),source);}
+                    Playback.Accept(p);if(IsAuthority){Activity(source,p);SendPacket(p.Encode(),source);}
                 }
                 else if(bytes[0]==6&&!IsAuthority)
                 {
@@ -171,7 +187,7 @@ namespace DeadlyJenga.CastleSocial
             rate.count++;rates[source]=rate;return rate.count<=(source=="host"?1024:80);
         }
         void SendNotice(SocialNotice notice)
-        {byte[] json=Encoding.UTF8.GetBytes(JsonUtility.ToJson(notice));if(json.Length>15000)return;var packet=new byte[json.Length+1];packet[0]=6;Buffer.BlockCopy(json,0,packet,1,json.Length);if(Session.Network)Session.Network.SendSocial(packet);}
+        {byte[] json=Encoding.UTF8.GetBytes(JsonUtility.ToJson(notice));if(json.Length>15000)return;var packet=new byte[json.Length+1];packet[0]=6;Buffer.BlockCopy(json,0,packet,1,json.Length);SendPacket(packet);}
         void Left(string id){Director?.RemoveHuman(id);Speech.ForgetHuman(id);Playback.Remove(id);sequences.Remove(id);lastVoice.Remove(id);rates.Remove(id);}
         public void Detach(SocialBotAgent agent)
         {
@@ -179,6 +195,6 @@ namespace DeadlyJenga.CastleSocial
         }
         public void Mute(string id,bool muted){if(Director.bots.TryGetValue(id,out var b)){b.muted=muted;if(muted){Director.Cancel(id);Speech.Cancel(id);}}Playback.Mute(id,muted);}
         void OnDestroy()
-        {if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
+        {if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(lobbyRoom){lobbyRoom.SocialReceived-=Receive;lobbyRoom.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
     }
 }

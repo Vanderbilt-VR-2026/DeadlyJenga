@@ -1,0 +1,15 @@
+Candy resort lobby — October 17, 2026
+
+Presentation/Visuals/CandyTropicalArt/CandyLobbyResort.cs creates optional cosmetic scenery under its own Visual child. It is attached to the existing Lobby scene, with a serialized reference to the current candy material. Gameplay never calls it. Remove/disable the component to restore the plain island.
+
+Includes a welcoming Jenga arch, inflatable-style palm leaves, curved colored wayfinding inlays, terminal stands, umbrellas, candy benches, pool rings, a beach ball, string lights, looping flumes and a miniature block sculpture. Palette and gloss are editable on the scene component; restart Play Mode to rebuild the static geometry after changes.
+
+The art uses nine combined color meshes, fewer than 65,000 vertices (checked at runtime), three small world-space lettering canvases, no Update loop, no lights, no particle systems, no colliders, no rigidbodies and no network payload. Existing terrain, ocean, sky and networking are retained. Decorative seating and flumes are scenery, not interactable furniture or working rides.
+
+Validation: Unity compilation; simulated physical key contacts; desktop native typing; LAN presence packet filtering/picker; real Fusion host and leave; joining disabled while hosting; map/mode permissions; clean runtime art initialization. See LobbyStations.txt. Screenshot cameras are temporary and do not alter the player's camera or scene.
+
+Still needs physical Quest review for headset frame rate, scale/reach and fingertip comfort, plus two-device LAN invite/join testing. No device performance claim is made from desktop checks.
+
+To reapply: keep the component and its .meta file, open the existing Lobby scene and add CandyLobbyResort with its candyMaterial reference, or explicitly run Tools > Deadly Jenga > Apply Lobby Resort Dressing. That command only attaches the optional component; it does not regenerate the scene. No automatic asset installation occurs on Unity startup.
+
+Update: the optional milkshake challenge adds two color batches. Current combined resort art validation permits twelve batches and 85k vertices; see ../Milkshake for current screenshots, route checks and setup notes.

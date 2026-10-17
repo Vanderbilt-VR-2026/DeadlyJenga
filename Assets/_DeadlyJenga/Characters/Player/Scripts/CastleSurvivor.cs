@@ -8,7 +8,7 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.CastlePrototype
 {
     [RequireComponent(typeof(CharacterController))]
-    public sealed partial class CastleSurvivor : MonoBehaviour
+    public sealed partial class CastleSurvivor : MonoBehaviour, IVaultTargetProvider
     {
         public Camera viewCamera;
         public Transform cameraOffset;
@@ -28,7 +28,11 @@ namespace DeadlyJenga.CastlePrototype
         [Range(.1f,2f)] public float playerScale = .5f;
         public float StandingHeight => 1.7f * playerScale;
         public float vaultReach = .65f, vaultMaxRise = 1.25f, vaultDuration = .65f;
-        public float VaultProgress=>Vaulting?Mathf.Clamp01(vaultTime/vaultDuration):0;
+        [Tooltip("Full sideways span of the ledge search in metres. Zero uses the original centre ray.")]
+        [Range(0, 1.5f)] public float vaultDetectionWidth = .4f;
+        [Tooltip("Landing inset beyond the capsule radius, in metres.")]
+        [Range(.04f, .6f)] public float vaultLandingDepth = .12f;
+        public float VaultProgress=>Vaulting?Mathf.Clamp01(vaultTime/ActiveVaultDuration):0;
         public bool InputSuspended { get; set; }
         [HideInInspector] public bool externallyDriven;
         public DeadlyJenga.CastleBots.ICastleSurvivorDriver InputDriver { get; set; }
@@ -47,7 +51,7 @@ namespace DeadlyJenga.CastlePrototype
         float appliedScale;
         Transform support, vaultSurface;
         Vector3 supportLocal, supportWorld, vaultLocal, vaultStart;
-        Vector3 slopeVelocity;
+        Vector3 slopeVelocity, iceVelocity;
         Vector3 candidateGrip,candidateNormal,candidateForward,vaultGripLocal,vaultNormalLocal,vaultForwardLocal;
         DeadlyJenga.CandyPlayers.CandyTrackingSource candyTracking;
         float vaultTime;
@@ -61,10 +65,11 @@ namespace DeadlyJenga.CastlePrototype
             headActions=ConfigureHeadTracking(tracker);
             move = new InputAction("Walk", InputActionType.Value, "<XRController>{LeftHand}/primary2DAxis");
             turn = new InputAction("Snap turn", InputActionType.Value, "<XRController>{RightHand}/primary2DAxis");
-            jump = new InputAction("Jump or vault", InputActionType.Button, "<XRController>{RightHand}/primaryButton");
+            jump = seatedJump;
+            SetVRPlayStyle((SurvivorVRPlayStyle)Mathf.Clamp(PlayerPrefs.GetInt("SurvivorVRPlayStyle",(int)vrPlayStyle),0,1),false);
         }
         void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this); }
-        void OnDisable() { move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false); Tracked.Movers.Remove(this); }
+        void OnDisable() { move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()
@@ -87,6 +92,12 @@ namespace DeadlyJenga.CastlePrototype
             // XROrigin handles floor/device origin offsets in VR. Desktop owns its eye pose.
             var origin = GetComponent<Unity.XR.CoreUtils.XROrigin>();
             if (origin) { origin.enabled = vr; origin.CameraYOffset = scaledEye; }
+            if(vr)
+            {
+                bool floor=origin&&origin.CurrentTrackingOriginMode==UnityEngine.XR.TrackingOriginModeFlags.Floor;
+                cameraOffset.localPosition=Vector3.up*((floor?0:scaledEye)+seatedHeightOffset);
+                if(!wasVR)calibrateSeated=vrPlayStyle==SurvivorVRPlayStyle.Seated;
+            }
             if(!vr){viewCamera.transform.localPosition=Vector3.up*scaledEye;viewCamera.transform.localRotation=Quaternion.identity;pitch=0;}
             else if(!wasVR){viewCamera.transform.localPosition=Vector3.zero;viewCamera.transform.localRotation=Quaternion.identity;}
         }
@@ -95,6 +106,7 @@ namespace DeadlyJenga.CastlePrototype
             RefreshMode();
             if (IsVR)
             {
+                UpdateSeatedHeight();
                 Vector3 head = transform.InverseTransformPoint(viewCamera.transform.position);
                 Capsule.height = Mathf.Clamp(head.y + .1f * playerScale, .7f * playerScale, 2.4f * playerScale);
                 Capsule.center = new Vector3(head.x, Capsule.height / 2, head.z);
@@ -114,18 +126,14 @@ namespace DeadlyJenga.CastlePrototype
                 Vector3 f=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 walking=new Vector2(Vector3.Dot(command.move,Vector3.Cross(Vector3.up,f)),Vector3.Dot(command.move,f));pressed=command.jump;held=command.climbHeld;
             }
-            else if (!InputSuspended)
+            else if (!InputSuspended&&vrInputFocused)
             {
                 if (IsVR)
                 {
-                    walking = move.ReadValue<Vector2>();
-                    if (walking.magnitude < .18f) walking = Vector2.zero;
+                    walking = FilterVRMove(move.ReadValue<Vector2>());
                     ApplyVRTurn(turn.ReadValue<Vector2>().x,Time.deltaTime);
-                    pressed = jump.WasPressedThisFrame();
-                    held=jump.IsPressed();
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
-                    if(candyTracking&&candyTracking.HasHandTracking)
-                    {if(candyTracking.LeftPinching)walking=Vector2.up;pressed|=candyTracking.RightPinchPressed;held|=candyTracking.RightPinching;}
+                    ReadVRJump(candyTracking?candyTracking.WorldHand(false):default,jump.IsPressed(),out pressed,out held);
                 }
                 else if (Cursor.lockState == CursorLockMode.Locked)
                 {
@@ -146,6 +154,7 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 }
             }
+            else ResetVRJump();
             Simulate(walking, pressed, Time.deltaTime,held);
         }
 
@@ -153,9 +162,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             Capsule.enabled = false; transform.SetPositionAndRotation(feet, rotation);
             Physics.SyncTransforms(); Capsule.enabled = true; Physics.SyncTransforms();
-            verticalSpeed = 0; Grounded = false; Vaulting = false; jumped = false; support = null; slopeVelocity = Vector3.zero; GroundNormal = Vector3.up;
+            iceVelocity = Vector3.zero; verticalSpeed = 0; Grounded = false; Vaulting = false; jumped = false; support = null; slopeVelocity = Vector3.zero; GroundNormal = Vector3.up;
             lastGrounded = -100; ActionStatus = "Spawned on top";
             ResetClimb(true);
+            ResetVRJump();
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
@@ -188,7 +198,15 @@ namespace DeadlyJenga.CastlePrototype
             Vector3 forward = MovementForward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             input = Vector2.ClampMagnitude(input, 1);
-            Vector3 movement=(forward*input.y+right*input.x)*walkSpeed;
+            Vector3 movement=(forward*input.y+right*input.x)*(IsVR&&!externallyDriven?vrWalkSpeed:walkSpeed);
+            float slip=DisasterStates.Slipperiness;
+            if(slip>0)
+            {
+                iceVelocity=Vector3.MoveTowards(iceVelocity,movement,Mathf.Lerp(6,1.6f,slip)*dt);
+                if(Grounded)iceVelocity+=Vector3.ProjectOnPlane(Vector3.down,GroundNormal)*gravity*slip*dt;
+                iceVelocity=Vector3.ClampMagnitude(iceVelocity,12);movement=iceVelocity;
+            }
+            else iceVelocity=movement;
             if(Grounded)
             {
                 float steepness=Mathf.SmoothStep(0,1,Mathf.InverseLerp(slopeGripAngle,slopeSupportAngle,GroundAngle));
@@ -234,16 +252,28 @@ namespace DeadlyJenga.CastlePrototype
 
         public bool TryFindLedge(out RaycastHit top, out Vector3 target,Vector3? facingOverride=null)
         {
+            Vector3 forward = Vector3.ProjectOnPlane(facingOverride ?? viewCamera.transform.forward, Vector3.up).normalized;
+            Vector3 right = Vector3.Cross(Vector3.up, forward);
+            int samples = vaultDetectionWidth > .001f ? 5 : 1;
+            for (int i = 0; i < samples; i++)
+            {
+                float offset = i == 0 ? 0 : ((i + 1) / 2) * (i % 2 == 1 ? -1 : 1) * Mathf.Clamp(vaultDetectionWidth, 0, 1.5f) * .25f;
+                if (FindLedgeAtOffset(forward, right * offset, out top, out target)) return true;
+            }
+            top = default; target = default; return false;
+        }
+
+        bool FindLedgeAtOffset(Vector3 forward, Vector3 offset, out RaycastHit top, out Vector3 target)
+        {
             top = default; target = default;
             Vector3 feet = Feet;
-            Vector3 forward = Vector3.ProjectOnPlane(facingOverride??viewCamera.transform.forward, Vector3.up).normalized;
             if (forward.sqrMagnitude < .1f) return false;
             // Look for a solid vertical face first: empty air is never a vault target.
             for (float probeHeight = .12f; probeHeight <= 1.15f; probeHeight += .25f)
             {
-                if (!Physics.Raycast(feet + Vector3.up * probeHeight, forward, out var face,
+                if (!Physics.Raycast(feet + offset + Vector3.up * probeHeight, forward, out var face,
                     vaultReach, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) continue;
-                Vector3 inside = face.point + forward * (Capsule.radius + .12f);
+                Vector3 inside = face.point + forward * (Capsule.radius + Mathf.Clamp(vaultLandingDepth, .04f, .6f));
                 Vector3 above = new Vector3(inside.x, feet.y + vaultMaxRise + .15f, inside.z);
                 if (!Physics.Raycast(above, Vector3.down, out top, vaultMaxRise + .3f, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore)
                     || top.collider != face.collider || top.normal.y < .85f) continue;
@@ -290,6 +320,15 @@ namespace DeadlyJenga.CastlePrototype
             if (Grounded || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
             BeginVault(hit,destination);return true;
         }
+        public bool TryGetVaultTarget(out Collider surface, out Vector3 edgePoint, out Vector3 landingPoint)
+        {
+            surface = null; edgePoint = landingPoint = default;
+            if (!isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || Grounded || Vaulting || Climbing
+                || Time.time - airborneSince <= .06f || (!jumped && Time.time - lastGrounded < .07f)) return false;
+            if (!TryFindLedge(out var hit, out var destination)) return false;
+            surface = hit.collider; edgePoint = candidateGrip; landingPoint = destination + (Feet - transform.position);
+            return true;
+        }
         void BeginVault(RaycastHit hit,Vector3 destination)
         {
             vaultSurface = hit.transform; vaultLocal = vaultSurface.InverseTransformPoint(destination);
@@ -314,13 +353,15 @@ namespace DeadlyJenga.CastlePrototype
             if (Vector3.Distance(end, vaultStart) > 3 || !ClearCapsule(end + (Feet - transform.position)))
             { Vaulting = false; return; }
             vaultTime += dt;
-            float t = Mathf.Clamp01(vaultTime / vaultDuration);
+            float t = Mathf.Clamp01(vaultTime / ActiveVaultDuration);
             // Lift above the lip first, then move across it. CharacterController sweeps every step.
             Vector3 lifted = new Vector3(vaultStart.x, Mathf.Max(vaultStart.y, end.y) + .1f, vaultStart.z);
-            Vector3 desired=t<.18f?vaultStart:t<.65f?Vector3.Lerp(vaultStart,lifted,Mathf.SmoothStep(0,1,(t-.18f)/.47f)):
-                Vector3.Lerp(lifted,end,Mathf.SmoothStep(0,1,(t-.65f)/.35f));
+            bool localVR=IsVR&&!externallyDriven;
+            float preparation=localVR?.06f:.18f,liftEnd=localVR?.62f:.65f;
+            Vector3 desired=t<preparation?vaultStart:t<liftEnd?Vector3.Lerp(vaultStart,lifted,Mathf.SmoothStep(0,1,(t-preparation)/(liftEnd-preparation))):
+                Vector3.Lerp(lifted,end,Mathf.SmoothStep(0,1,(t-liftEnd)/(1-liftEnd)));
             Capsule.Move(desired - transform.position);
-            if (t >= 1) { Vaulting = false; verticalSpeed = -1; ActionStatus = "Vault complete"; }
+            if (t >= 1) { Vaulting = false; verticalSpeed = -1; ActionStatus = Vector3.Distance(transform.position,end)<.12f?"Vault complete":"Vault blocked — movement stopped";ProbeGround(); }
         }
     }
 }

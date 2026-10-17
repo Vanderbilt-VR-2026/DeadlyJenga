@@ -20,6 +20,15 @@ The flying bridge applies a changed size after contacts become inactive. Mass an
 
 The lab's XR origin maps the table to a comfortable physical height and drives the camera from the HMD. Without a running XR display, it keeps the fixed desktop bench camera. With a running display but no valid hand/controller input, it releases and hides the hand rather than enabling a desktop hand at an unknown position.
 
+## Flying role controls
+The default local VR mapping uses the right tracked hand for contact and the left controller for flight. Left stick moves in the flight rig's horizontal heading, left trigger rises, and left grip descends. Hold X and flick the stick sideways for a 30-degree snap turn; center the stick before another turn. Turning suppresses horizontal translation. Looking around does not redirect flight. The existing Y menu binding is unaffected.
+
+Stick response is squared after a 0.15 deadzone for precise block approach. Full stick targets 6 m/s horizontally and triggers target 3 m/s vertically, with 18 m/s² acceleration and 24 m/s² braking. These are starting tuning values, not a comfort guarantee. Local VR uses velocity control; desktop and AI keep their existing flight motor. A tracked left controller takes precedence over spare-hand gesture flight. Without a controller, a tracked spare hand can still steer with a fresh pinch.
+
+The VR observer follows the interpolated flight rig directly, without a second camera spring or wrist-following motion. Head tracking remains independent. Snap turning updates the observer offset immediately instead of adding a delayed orbit. Desktop retains its smooth camera follow.
+
+This follows [Meta's locomotion guidance](https://developers.meta.com/vr/design/locomotion-best-practices/) to limit acceleration duration and prefer snap turning over default smooth rotation. Validate hybrid input availability, stopping feel, turn comfort, collisions and near-block precision on Quest; editor simulation cannot establish comfort or runtime support for simultaneous hand/controller tracking.
+
 ## Tracking transitions
 Require a stable input source before activation. Use adaptive target smoothing, speed/rotation limits and a recovery strength ramp. Short loss reduces pressure; sustained loss opens the target and reduces pressure to zero, then disables contacts. Do not preserve an invisible frozen grip. Reacquisition must not teleport interacting bodies. Controller fallback supplies a pointing skeleton; desktop keeps keyboard/mouse flight. A headset with neither valid skeleton nor controller has no active contact hand.
 

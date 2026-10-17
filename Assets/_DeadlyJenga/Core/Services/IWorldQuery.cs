@@ -15,5 +15,7 @@ namespace DeadlyJenga.Core
         Vector3 Center { get; }
         float TopHeight { get; }
         float Radius { get; }
+        // World-space area used by disasters. All dimensions must be finite and positive.
+        Bounds PlayableBounds { get; }
     }
 }

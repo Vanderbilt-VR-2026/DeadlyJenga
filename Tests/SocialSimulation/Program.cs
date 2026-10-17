@@ -22,6 +22,12 @@ static class SocialChecks
         Check(channel.Pending==0,"Stale voice is discarded after half a second");
         for(int i=0;i<100;i++)channel.Enqueue(new byte[]{6},0);Check(channel.Pending==32,"Fusion social metadata backlog bounded");
         channel.Enqueue(new byte[]{7},0);channel.Enqueue(new byte[16001],0);Check(channel.Pending==32,"Fusion channel rejects unrelated and oversized packets");
+        channel.Clear();Check(channel.Pending==0&&channel.InFlight==0,"Leaving a room resets voice backlog and acknowledged slots");
+        string room=DeadlyJenga.CastlePrototype.IslandRoomAddress.Create("us");
+        Check(DeadlyJenga.CastlePrototype.IslandRoomAddress.TryParse(room.ToLowerInvariant(),"eu",out var region,out var normalized)&&region=="us"&&normalized==room,"Join code carries a normalized explicit Photon region");
+        Check(DeadlyJenga.CastlePrototype.IslandRoomAddress.TryParse("ABC234","eu",out region,out normalized)&&normalized=="EU-ABC234","Keypad codes use the selected region");
+        Check(!DeadlyJenga.CastlePrototype.IslandRoomAddress.TryParse("xx-ABC234","us",out _,out _)&&!DeadlyJenga.CastlePrototype.IslandRoomAddress.TryParse("US-ABC234-extra","us",out _,out _),"Unknown regions and malformed code prefixes are rejected");
+        Check(!DeadlyJenga.CastlePrototype.IslandRoomAddress.TryParse("ABCI01","us",out _,out _),"Confusable code characters are rejected");
         var watch=Stopwatch.StartNew();var r=new Random(781);
         foreach(var spec in new[]{new SocialDistribution(24,8,16,65),new SocialDistribution(50,18,0,100),new SocialDistribution(30,10,0,100,-1),new SocialDistribution(30,10,0,100,1)})
         {

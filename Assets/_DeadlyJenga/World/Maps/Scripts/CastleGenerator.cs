@@ -11,6 +11,8 @@ namespace DeadlyJenga.CastlePrototype
         public Material cornerMaterial, wallMaterial, keepMaterial;
         public Transform foundation;
         public bool generateOnStart = true;
+        [Tooltip("Keep this map empty when rebuilding or synchronizing its layout.")]
+        public bool environmentOnly;
         public float mass = 40;
         public readonly List<Rigidbody> Bodies = new List<Rigidbody>();
         [SerializeField, HideInInspector] Transform generatedRoot;
@@ -18,9 +20,11 @@ namespace DeadlyJenga.CastlePrototype
         public int Revision { get; private set; }
 
         [Header("World")]
-        public float waterHeight = -.12f;
+        public float waterHeight = .08f;
         [Tooltip("Anything that can be eliminated is eliminated below this height.")]
         public float oceanKillHeight = -6;
+        [Tooltip("Optional playable area. Use an enabled trigger BoxCollider. Otherwise the castle layout supplies the area.")]
+        public BoxCollider playableArea;
         readonly Collider[] fallen = new Collider[256];
         float nextKillCheck;
 
@@ -35,8 +39,31 @@ namespace DeadlyJenga.CastlePrototype
 
         public IReadOnlyList<Rigidbody> Blocks => Bodies;
         public Vector3 Center => transform.position;
-        public float TopHeight => transform.position.y + settings.keepCourses * settings.blockSize.y;
+        public float TopHeight => environmentOnly ? SafeSpawnPoint().y : transform.position.y + CastleLayout.HeightCourses(settings) * settings.blockSize.y;
         public float Radius => CastleLayout.Footprint(settings) * .5f;
+        public Bounds PlayableBounds
+        {
+            get
+            {
+                if (playableArea)
+                    return playableArea.isTrigger ? playableArea.bounds : new Bounds();
+                float width = CastleLayout.Footprint(settings) + 4;
+                float height = CastleLayout.HeightCourses(settings) * settings.blockSize.y;
+                var bounds = new Bounds(transform.TransformPoint(Vector3.zero), Vector3.zero);
+                for (int x = -1; x <= 1; x += 2)
+                for (int y = 0; y <= 1; y++)
+                for (int z = -1; z <= 1; z += 2)
+                    bounds.Encapsulate(transform.TransformPoint(new Vector3(x * width * .5f, y * height, z * width * .5f)));
+                return bounds;
+            }
+        }
+
+        void OnDrawGizmosSelected()
+        {
+            Gizmos.color = Color.cyan;
+            var area = PlayableBounds;
+            Gizmos.DrawWireCube(area.center, area.size);
+        }
 
         // ISyncedWorld (Revision is declared above)
         public Transform Root => transform;
@@ -44,7 +71,8 @@ namespace DeadlyJenga.CastlePrototype
         public bool LoadLayout(string layout, int expectedBlocks, Pose origin, Vector3 scale)
         {
             var incoming = JsonUtility.FromJson<CastleSettings>(layout);
-            if (incoming == null || CastleLayout.Build(incoming).Count != expectedBlocks) return false;
+            if (incoming != null) CastleLayout.Validate(incoming);
+            if (incoming == null || (environmentOnly ? 0 : CastleLayout.Build(incoming).Count) != expectedBlocks) return false;
             settings = incoming;
             transform.SetPositionAndRotation(origin.position, origin.rotation);
             transform.localScale = scale;
@@ -94,8 +122,9 @@ namespace DeadlyJenga.CastlePrototype
         public void Rebuild()
         {
             Revision++;
-            var layout = CastleLayout.Build(settings);
-            if (!blockPrefab || !blockPrefab.GetComponent<Rigidbody>() || !blockPrefab.GetComponent<BoxCollider>())
+            CastleLayout.Validate(settings);
+            var layout = environmentOnly ? new List<CastlePlacement>() : CastleLayout.Build(settings);
+            if (!environmentOnly && (!blockPrefab || !blockPrefab.GetComponent<Rigidbody>() || !blockPrefab.GetComponent<BoxCollider>()))
                 throw new System.InvalidOperationException("Assign a unit cube prefab with Rigidbody and BoxCollider.");
             float started = Time.realtimeSinceStartup;
             if (generatedRoot)
@@ -130,8 +159,9 @@ namespace DeadlyJenga.CastlePrototype
                     block.RefreshAppearance(); block.SyncSurface();
                 }
                 body.mass = Mathf.Max(1, mass);
-                body.solverIterations = 20;
-                body.solverVelocityIterations = 8;
+                // Ninety loose courses need more contact iterations than the standard castle.
+                body.solverIterations = settings.cathedral ? 80 : 20;
+                body.solverVelocityIterations = settings.cathedral ? 20 : 8;
                 body.sleepThreshold = .005f;
                 Bodies.Add(body);
             }

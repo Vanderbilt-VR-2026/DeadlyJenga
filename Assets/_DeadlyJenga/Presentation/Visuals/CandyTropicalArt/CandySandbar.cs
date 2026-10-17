@@ -25,7 +25,7 @@ namespace DeadlyJenga.CandyArt
             int hash=profile.terrainResolution;
             void Hash(float value){hash=hash*31+value.GetHashCode();}
             Hash(profile.sandMargin);Hash(profile.sandRelief);Hash(profile.sandDepth);Hash(profile.sandShoreWidth);Hash(profile.islandRadius);
-            if(settings!=null){Hash(settings.blockSize.x);Hash(settings.blockSize.z);Hash(settings.modulesPerSide);Hash(settings.moduleGap);Hash(settings.singleTower?1:0);}
+            if(settings!=null){Hash(settings.blockSize.x);Hash(settings.blockSize.z);Hash(settings.modulesPerSide);Hash(settings.moduleGap);Hash(settings.singleTower?1:0);Hash(CastleLayout.Footprint(settings));}
             if(owned&&heights&&hash==signature)return;
             Release();feet.Clear();float half=settings!=null?CastleLayout.Footprint(settings)*.5f:profile.islandRadius*.65f;
             // A softly oval natural island has room at its shoulders while covering the castle's corners.

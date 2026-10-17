@@ -1,0 +1,1 @@
+Art apply/restore and Unity Play Mode verification finished at 2026-10-13T19:16:24.8712841Z. Inspect reports for failures. Hardware performance remains unverified.
