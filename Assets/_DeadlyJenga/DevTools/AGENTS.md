@@ -8,6 +8,9 @@ Never included in gameplay logic.
 - Scripts/CandyHandLab + Scenes/CandyHandContactLab: one-block bench for the physical hand.
 - Editor/: validation suites (input, traversal, climbing, stamina, VR view...),
   CastlePrototypeBuilder and CastlePlayBuilder.
+- Editor/Social/: AI social layer tests and the population window (moved out of GameSession).
+- Editor/SessionTestAccess: the only way tests reach real classes behind Core interfaces
+  (session.Survivor(), Bots(), Hands(), Generator(), lobby.View()). Gameplay code never does this.
 
 ## Rules
 - Reports go to Logs/Validation via ProjectPath.Report. Assets are found by name

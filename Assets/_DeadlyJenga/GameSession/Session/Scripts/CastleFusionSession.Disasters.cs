@@ -83,12 +83,12 @@ namespace DeadlyJenga.CastlePrototype
         void ReceiveDisasterImpact(byte[] bytes)
         {
             var impact = JsonUtility.FromJson<Impact>(System.Text.Encoding.UTF8.GetString(bytes));
-            if (impact == null || !session || !session.Player || session.PlayingHand) return;
+            if (impact == null || !session || !NetworkActors.Alive(session.Player) || session.PlayingHand) return;
             if (float.IsNaN(impact.push.sqrMagnitude) || float.IsInfinity(impact.push.sqrMagnitude) ||
                 float.IsNaN(impact.damage) || float.IsInfinity(impact.damage)) return;
             var push = Vector3.ClampMagnitude(impact.push,30);
-            if (push.sqrMagnitude > .000001f) session.Player.GetComponent<IPushable>()?.Push(Vector3.ClampMagnitude(push, 20), gameObject);
-            if (impact.damage > 0) session.Player.GetComponent<IDamageable>()?.Damage(Mathf.Min(impact.damage, 10000), gameObject);
+            if (push.sqrMagnitude > .000001f) session.Player.gameObject.GetComponent<IPushable>()?.Push(Vector3.ClampMagnitude(push, 20), gameObject);
+            if (impact.damage > 0) session.Player.gameObject.GetComponent<IDamageable>()?.Damage(Mathf.Min(impact.damage, 10000), gameObject);
         }
         void ResetDisasters()
         {

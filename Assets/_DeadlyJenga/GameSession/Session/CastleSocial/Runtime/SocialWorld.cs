@@ -4,15 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEngine;
-using DeadlyJenga.CastleBots;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleSocial
 {
     [Serializable] public sealed class SocialNotice
     {public string kind,id,actor,name,text,topic;public SocialIdentity identity;public bool speaking;public double at;}
     [DefaultExecutionOrder(300)]
-    public sealed class SocialWorld : MonoBehaviour
+    public sealed class SocialWorld : MonoBehaviour, IVoiceMix
     {
         public CastlePlaySession Session {get;private set;}
         public IslandLobby Lobby {get;private set;}
@@ -28,7 +28,7 @@ namespace DeadlyJenga.CastleSocial
         public string Caption {get;private set;}="Social simulation ready";
         public string LastError {get;private set;}="";
         public SocialSpeechClient Speech {get;private set;}
-        public SocialVoicePlayback Playback {get;private set;}
+        public IVoicePlayer Playback {get;private set;}   // Presentation plays the voices (Core's VoicePlayback)
         public SocialMicrophone MicrophoneInput {get;private set;}
         List<SocialIdentity> pool;SocialConfiguration lastValid;int nextIdentity,eventSerial,metadataIndex;float nextScan,nextTick,nextMetadata,nextThreat;bool lastAuthority=true;
         readonly Dictionary<string,int> sequences=new Dictionary<string,int>();readonly Dictionary<string,float> lastVoice=new Dictionary<string,float>();
@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastleSocial
         public void Initialize(CastlePlaySession session)
         {
             Session=session;var authored=Resources.Load<SocialSettings>("CastleSocial/Default");Settings=authored?Instantiate(authored):ScriptableObject.CreateInstance<SocialSettings>();
-            Playback=gameObject.AddComponent<SocialVoicePlayback>();Playback.Initialize(this);
+            Playback=VoicePlayback.Create(gameObject,this);
             Speech=gameObject.AddComponent<SocialSpeechClient>();Speech.Initialize(this);
             MicrophoneInput=gameObject.AddComponent<SocialMicrophone>();MicrophoneInput.Initialize(this);
             if(session.Network){session.Network.SocialReceived+=Receive;session.Network.ParticipantLeft+=Left;}
@@ -47,7 +47,7 @@ namespace DeadlyJenga.CastleSocial
         {
             Lobby=lobby;var authored=Resources.Load<SocialSettings>("CastleSocial/Default");Settings=authored?Instantiate(authored):ScriptableObject.CreateInstance<SocialSettings>();
             Settings.mode=SocialOperatingMode.Offline;Settings.microphoneEnabled=false;
-            Playback=gameObject.AddComponent<SocialVoicePlayback>();Playback.Initialize(this);
+            Playback=VoicePlayback.Create(gameObject,this);
             Speech=gameObject.AddComponent<SocialSpeechClient>();Speech.Initialize(this);
             MicrophoneInput=gameObject.AddComponent<SocialMicrophone>();MicrophoneInput.Initialize(this);
             Director=new SocialDirector(Config,new List<SocialIdentity>());
@@ -63,16 +63,16 @@ namespace DeadlyJenga.CastleSocial
                 Config.Validate();if(Config.maxPopulation<Agents.Count)throw new ArgumentException("Clear some survivors before lowering population capacity below the current live count.");var generated=SocialPopulation.Generate(Config,Config.maxPopulation);
                 foreach(var agent in Agents.ToArray())if(agent)Speech.Cancel(agent.State.identity.id);
                 pool=generated;Director=new SocialDirector(Config,pool);Director.Speak+=OnSpeech;Director.Perception=Perceive;nextIdentity=0;
-                foreach(var agent in Agents)if(agent)Bind(agent,agent.Brain);
+                foreach(var agent in Agents)if(agent)Bind(agent,agent.Bot);
                 lastValid=JsonUtility.FromJson<SocialConfiguration>(JsonUtility.ToJson(Config));LastError="";return true;
             }
             catch(Exception e){if(lastValid!=null){Settings.configuration=JsonUtility.FromJson<SocialConfiguration>(JsonUtility.ToJson(lastValid));ApplyConfiguration();}LastError=e.Message;Debug.LogWarning("Social configuration rejected: "+e.Message,this);return false;}
         }
-        void Bind(SocialBotAgent agent,CastleBotBrain brain)
+        void Bind(SocialBotAgent agent,ISocialBot bot)
         {
             if(pool==null||nextIdentity>=pool.Count)return;var identity=pool[nextIdentity++];
             if(!Director.bots.TryGetValue(identity.id,out var state))Director.bots[identity.id]=state=new SocialState{identity=identity};
-            agent.Initialize(this,brain,state);Publish(SocialEventKind.Greeting,identity.id,.6);
+            agent.Initialize(this,bot,state);Publish(SocialEventKind.Greeting,identity.id,.6);
         }
         void Update()
         {
@@ -84,12 +84,13 @@ namespace DeadlyJenga.CastleSocial
             if(Time.unscaledTime>=nextScan)
             {
                 nextScan=Time.unscaledTime+.25f;Agents.RemoveAll(a=>!a);
-                foreach(var brain in Session.Bots.Bots)
+                foreach(var bot in Session.SurvivorBots?.Members??Array.Empty<GameObject>())
                 {
-                    if(!brain||brain.GetComponent<SocialBotAgent>()||Agents.Count>=Config.maxPopulation)continue;
+                    if(!bot||bot.GetComponent<SocialBotAgent>()||Agents.Count>=Config.maxPopulation)continue;
                     // Recycle a free stable identity, never overwrite a live player's.
                     nextIdentity=pool.FindIndex(p=>!Agents.Any(a=>a&&a.State.identity.id==p.id));if(nextIdentity<0)break;
-                    var agent=brain.gameObject.AddComponent<SocialBotAgent>();Bind(agent,brain);Agents.Add(agent);
+                    var body=SocialBots.Attach(bot);if(body==null)continue;
+                    var agent=bot.AddComponent<SocialBotAgent>();Bind(agent,body);Agents.Add(agent);
                 }
             }
             foreach(var id in lastVoice.Where(p=>Time.unscaledTime-p.Value>.35f).Select(p=>p.Key).ToArray()){Director.HumanActivity(id,false,Time.unscaledTime);lastVoice.Remove(id);}
@@ -98,7 +99,7 @@ namespace DeadlyJenga.CastleSocial
             if(Time.unscaledTime>=nextThreat)
             {
                 nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
-                foreach(var body in Session.generator.Bodies)if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
+                foreach(var body in Services.World.Blocks)if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
                 if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
             }
             if(Time.unscaledTime>=nextMetadata&&Agents.Count>0)
@@ -110,21 +111,21 @@ namespace DeadlyJenga.CastleSocial
         double Perceive(string bot,SocialEvent e)
         {
             var agent=Agents.FirstOrDefault(a=>a&&a.State.identity.id==bot);if(!agent)return 0;
-            if(e.speaker=="tower")return Session.Bots.ThreatCost(agent.transform.position)>.2f?1:.4;
+            if(e.speaker=="tower")return Session.SurvivorBots.ThreatCost(agent.transform.position)>.2f?1:.4;
             if(TryPosition(e.speaker,out var target))
             {
                 float distance=Vector3.Distance(target,agent.transform.position);if(distance>40)return .05;
-                var origin=agent.transform.position+Vector3.up*.7f;bool blocked=Physics.Linecast(origin,target,CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore);
+                var origin=agent.transform.position+Vector3.up*.7f;bool blocked=Physics.Linecast(origin,target,SocialBots.SightMask,QueryTriggerInteraction.Ignore);
                 return Math.Max(.1,(blocked?.45:1)*(1-distance/50));
             }
             return e.human?.65:1;
         }
-        public SocialBotAgent NearestFriend(SocialBotAgent self)=>Agents.Where(a=>a&&a!=self&&a.State.identity.group==self.State.identity.group&&!a.Brain.Respawning).OrderBy(a=>(a.transform.position-self.transform.position).sqrMagnitude).FirstOrDefault();
+        public SocialBotAgent NearestFriend(SocialBotAgent self)=>Agents.Where(a=>a&&a!=self&&a.State.identity.group==self.State.identity.group&&!a.Bot.Respawning).OrderBy(a=>(a.transform.position-self.transform.position).sqrMagnitude).FirstOrDefault();
         public bool TryPosition(string id,out Vector3 point)
         {
             if(Lobby)return Lobby.TryPeerPosition(id,out point);
             var a=Agents.FirstOrDefault(x=>x&&x.State.identity.id==id);if(a){point=a.transform.position+Vector3.up*.7f;return true;}
-            if(id==LocalParticipantId&&Session.Player){point=Session.Player.viewCamera.transform.position;return true;}
+            if(id==LocalParticipantId&&NetworkActors.Alive(Session.Player)){point=Session.Player.ViewCamera.transform.position;return true;}
             if(Session.Network&&Session.Network.TryParticipantPosition(Participants.TryGetValue(id??"",out var n)?n.actor:id,out point))return true;point=default;return false;
         }
         public void Publish(SocialEventKind kind,string speaker,double salience=1,string text=null,string recipient=null)
@@ -139,7 +140,7 @@ namespace DeadlyJenga.CastleSocial
             if(!Director.bots.TryGetValue(intent.botId,out var state))return;
             Caption=state.identity.name+" [AI]: "+intent.text;SendNotice(new SocialNotice{kind="caption",id=intent.botId,text=intent.text,name=state.identity.name,topic=intent.topic});
             Speech.Speak(intent,state.identity);
-            var agent=Agents.FirstOrDefault(a=>a&&a.State==state);if(agent){var emote=agent.GetComponent<CastleBotEmotes>();if(emote)emote.TryPlay(state.emotion.fear>.6?CastleBotEmotes.Emote.NopeNopeNope:CastleBotEmotes.Emote.FriendlyWave);}
+            var agent=Agents.FirstOrDefault(a=>a&&a.State==state);if(agent&&NetworkActors.Alive(agent.Bot))agent.Bot.PlayEmote(state.emotion.fear>.6?SocialEmote.Scared:SocialEmote.Friendly);
         }
         public void SpokenText(string id,string text)
         {
@@ -149,7 +150,7 @@ namespace DeadlyJenga.CastleSocial
         {
             if(human){packet.speaker=LocalParticipantId;Activity(packet.speaker,packet);}
             var bytes=packet.Encode();SendPacket(bytes);
-            if(!human)Playback.Accept(packet);
+            if(!human)Playback.Accept(packet.speaker,packet.samples,packet.end);
         }
         void Activity(string id,SocialAudioPacket p)
         {
@@ -169,7 +170,7 @@ namespace DeadlyJenga.CastleSocial
                     if(sequences.TryGetValue(p.speaker,out int last)&&p.sequence<=last)return;sequences[p.speaker]=p.sequence;
                     // The host alone can originate bot speech; client-supplied IDs
                     // are replaced with the authenticated connection's human ID.
-                    Playback.Accept(p);if(IsAuthority){Activity(source,p);SendPacket(p.Encode(),source);}
+                    Playback.Accept(p.speaker,p.samples,p.end);if(IsAuthority){Activity(source,p);SendPacket(p.Encode(),source);}
                 }
                 else if(bytes[0]==6&&!IsAuthority)
                 {
@@ -196,5 +197,10 @@ namespace DeadlyJenga.CastleSocial
         public void Mute(string id,bool muted){if(Director.bots.TryGetValue(id,out var b)){b.muted=muted;if(muted){Director.Cancel(id);Speech.Cancel(id);}}Playback.Mute(id,muted);}
         void OnDestroy()
         {if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(lobbyRoom){lobbyRoom.SocialReceived-=Receive;lobbyRoom.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
+        // IVoiceMix: how loud and where each voice plays.
+        public float Gain(string speaker)
+        {if(!Settings)return 0;bool bot=speaker!=null&&speaker.StartsWith("social:",StringComparison.Ordinal);return bot?(Config.enableVoice?Settings.botVolume:0):Settings.humanVolume;}
+        public float SpatialBlend=>Settings?Settings.spatialBlend:0;
+        public float Pitch(string speaker)=>speaker!=null&&Participants.TryGetValue(speaker,out var n)&&n.identity!=null?n.identity.vocal.pitch:1;
     }
 }

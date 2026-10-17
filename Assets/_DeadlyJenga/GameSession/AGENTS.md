@@ -1,11 +1,14 @@
 # GameSession (level 4)
 
-The rules of the match and who is playing. Uses only Core: the map (Services.World, IRebuildable, ISyncedWorld), characters (IPlayableCharacter, ISurvivorSettings, INetworkActor), bots (BotSystems, IBotPopulation). It draws nothing and plays no sound: menus, HUDs and the lobby menu live in Presentation (in-game menus attach on GameEvents.SessionStarted).
+The rules of the match and who is playing. Uses only Core: the map (Services.World, IRebuildable, ISyncedWorld), characters (IPlayableCharacter, ISurvivorSettings, INetworkActor), bots (BotSystems, IBotPopulation, SocialBots). It draws nothing and plays no sound: menus, HUDs, the lobby terminals and voice playback live in Presentation (in-game menus attach on GameEvents.SessionStarted, the lobby's on GameEvents.LobbyStarted).
 
 ## Lanes
-- Session: CastlePlaySession, CastleFusionSession, CastleFusionWire, CastleLan* (shared
-  snapshot code), LobbyConnection, LobbyCountdown, MatchSetup, PlayerSpawner,
-  scenes Lobby.unity and Game.unity.
+- Session: CastlePlaySession, CastleFusionSession (+ Disasters), CastleFusionWire, CastleLan*
+  (shared snapshot code), IslandLobby (+ Controls, Session), IslandRoomConnection,
+  IslandRoomAddress, IslandDiscovery, IslandLobbyCatalog, MatchSetup, SessionDemoControls,
+  CastleDemoCommands, DemoDisasters, scenes Lobby.unity and Game.unity.
+- Session/CastleSocial: the AI social layer (identities, director, speech, microphone capture,
+  SocialBotAgent, SocialWorld, SocialControls). It plays no audio: voices go to Core's IVoicePlayer.
 - Modes: game modes (classic, teams, random disasters). One subfolder per mode.
 
 ## What GameSession provides
@@ -13,15 +16,15 @@ The rules of the match and who is playing. Uses only Core: the map (Services.Wor
 - Listens to GameEvents.Eliminated (currently: respawn the local survivor).
 - Creates bots through BotSystems.Create and raises GameEvents.SessionStarted.
 - CastleLanSession implements IMultiplayerControls (state and commands) for the menus.
-- LobbyConnection implements ILobbyControls as Services.Lobby; it adds itself to the
-  FusionBootstrap object when a scene with a LobbyCountdown loads. It validates room codes,
-  checks the network, owns the connection messages and gives the lobby rig its body
-  (LocalPlayerInput.FindOrCreate) before connecting.
-- LobbyCountdown is the lobby's shared network state: countdown, the host's MatchChoices rules,
-  and the host's menu page and placement (taken from LobbyConnection, never from a menu class).
-- Photon's FusionBootstrap.cs carries our connection-message and timeout fixes. Only GameSession
-  reads it; re-apply those edits if Photon Fusion is ever upgraded.
-- MatchSetup applies Core's MatchChoices (set by the lobby menu) when Game loads.
+- IslandLobby is ISessionInfo and IWorldQuery while Lobby.unity is open, and ILobbyControls
+  for the terminals (IslandLobby.Controls.cs). It owns the room connection (IslandRoomConnection),
+  the other players' remote views, AI voices and all lobby collision (a flat gray-box floor
+  until Presentation hands over the sand shape). It raises GameEvents.LobbyStarted.
+- CastlePlaySession provides IDemoControls (SessionDemoControls) and ISocialControls (SocialControls).
+- SocialBotAgent gives survivor bots identities through Core's ISocialBot; it never names bot classes.
+- MatchSetup applies Core's MatchChoices when Game loads.
+- Photon's FusionBootstrap.cs may carry our connection-message and timeout fixes. Only GameSession
+  reads it; check for those edits if Photon Fusion is ever upgraded.
 
 ## Rules
 - Only GameSession may edit or save Lobby.unity and Game.unity.

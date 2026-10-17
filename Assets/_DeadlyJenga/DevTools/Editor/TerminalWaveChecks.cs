@@ -10,6 +10,7 @@ using UnityEngine.UI;
 using DeadlyJenga.Core;
 using DeadlyJenga.World.Hazards;
 using Object=UnityEngine.Object;
+using DeadlyJenga.DevTools.Editor;
 
 namespace DeadlyJenga.CastlePrototype.Editor
 {
@@ -57,16 +58,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             yield return new WaitForSeconds(2);
             if(SessionState.GetInt(Key+"Stage",0)==0)
             {
-                var lobby=IslandLobby.Current;lobby.SetMenu(true);var camera=lobby.Player.viewCamera;
+                var lobby=IslandLobby.Current;lobby.SetMenu(true);var camera=lobby.Survivor().viewCamera;
                 var panel=lobby.GetComponentsInChildren<LobbyTerminalFaces>().First(f=>f.name=="JOIN");
                 camera.transform.position=panel.transform.position-panel.transform.forward*2;camera.transform.LookAt(panel.transform);panel.Refresh();
                 Assert(panel.ShowingFront&&panel.GetComponent<CanvasGroup>().alpha==1,"Front face is fully visible and readable");Capture(camera,"terminal-front.png");
                 var key=lobby.GetComponentsInChildren<BoxCollider>().First(c=>c.name=="key-A");string before=lobby.EnteredCode;
-                lobby.Point(new Ray(key.transform.position+panel.transform.forward,-panel.transform.forward),true);
+                lobby.View().Point(new Ray(key.transform.position+panel.transform.forward,-panel.transform.forward),true);
                 Assert(lobby.EnteredCode==before,"Backside cannot accidentally activate a front keypad key");
                 camera.transform.position=panel.transform.position+panel.transform.forward*2;camera.transform.LookAt(panel.transform);panel.Refresh();
                 Assert(!panel.ShowingFront&&panel.GetComponent<CanvasGroup>().alpha==0,"Back view hides mirrored front text");Capture(camera,"terminal-back.png");
-                lobby.Point(new Ray(key.transform.position-panel.transform.forward,panel.transform.forward),true);Assert(lobby.EnteredCode==before+"A","Front keypad remains interactive");
+                lobby.View().Point(new Ray(key.transform.position-panel.transform.forward,panel.transform.forward),true);Assert(lobby.EnteredCode==before+"A","Front keypad remains interactive");
                 camera.transform.position=new Vector3(0,2,-4.5f);camera.transform.LookAt(new Vector3(0,1.7f,.8f));foreach(var f in lobby.GetComponentsInChildren<LobbyTerminalFaces>())f.Refresh();Capture(camera,"lobby-clean-panels.png");
                 Assert(errors==0,"Lobby panels run without errors");yield break;
             }
@@ -87,7 +88,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             wave=s.GetComponentsInChildren<TsunamiHazard>().Single(h=>h.Active);Assert(wave.approachSpeed==18&&wave.pushAcceleration==0&&wave.liftAcceleration==0,"Zero force disables push and lift");
             DemoDisasters.StopAll(s);yield return null;
             Assert(!DemoDisasters.Execute(s,prefab.name,float.NaN,1),"Host rejects nonfinite tuning values");
-            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);var cam=s.Player.viewCamera;menu.Show(true,cam);
+            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);var cam=s.Survivor().viewCamera;menu.Show(true,cam);
             typeof(CastleWorldMenu).GetField("disasterPage",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(menu,true);typeof(CastleWorldMenu).GetField("disasterSelection",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(menu,0);menu.Point(cam,false);
             var slider=((Slider[])typeof(CastleWorldMenu).GetField("disasterSliders",BindingFlags.NonPublic|BindingFlags.Instance).GetValue(menu))[0];
             Assert(slider.gameObject.activeSelf&&slider.interactable,"VR disaster page exposes its wave sliders");

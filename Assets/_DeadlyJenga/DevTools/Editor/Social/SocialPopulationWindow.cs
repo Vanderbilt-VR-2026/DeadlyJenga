@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using UnityEditor;
 using UnityEngine;
+using DeadlyJenga.CastleBots;
+using DeadlyJenga.DevTools.Editor;
 using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.CastleSocial.Editor
@@ -178,15 +180,15 @@ namespace DeadlyJenga.CastleSocial.Editor
             count=EditorGUILayout.IntSlider("Live bots requested",count,1,20);var world=FindFirstObjectByType<SocialWorld>();
             using(new EditorGUI.DisabledScope(!Application.isPlaying||!world||!world.IsAuthority))
             {
-                if(GUILayout.Button("Apply profile & spawn regular player bots")){world.Settings.configuration=JsonUtility.FromJson<SocialConfiguration>(JsonUtility.ToJson(C));world.Settings.mode=profile.mode;world.Settings.serviceUrl=profile.serviceUrl;if(world.ApplyConfiguration()){world.Session.Bots.targetPopulation=Mathf.Max(world.Session.Bots.targetPopulation,count+1);for(int i=world.Session.Bots.Count;i<count;i++)if(!world.Session.Bots.SpawnBot())break;}else warning=world.LastError;}
-                EditorGUILayout.BeginHorizontal();if(GUILayout.Button("Collapse stimulus"))world.Publish(SocialEventKind.Collapse,"tower");if(GUILayout.Button("Greeting"))world.Publish(SocialEventKind.Greeting,"human");if(GUILayout.Button("Clear survivors"))world.Session.Bots.ClearBots();EditorGUILayout.EndHorizontal();
-                if(GUILayout.Button("Physically remove lower supports")){var bodies=world.Session.generator.Bodies.Where(b=>b&&b.gameObject.activeSelf).OrderBy(b=>b.position.y).Take(4).ToArray();foreach(var body in bodies)body.gameObject.SetActive(false);world.Publish(SocialEventKind.Collapse,"tower");}
+                if(GUILayout.Button("Apply profile & spawn regular player bots")){world.Settings.configuration=JsonUtility.FromJson<SocialConfiguration>(JsonUtility.ToJson(C));world.Settings.mode=profile.mode;world.Settings.serviceUrl=profile.serviceUrl;if(world.ApplyConfiguration()){world.Session.Bots().targetPopulation=Mathf.Max(world.Session.Bots().targetPopulation,count+1);for(int i=world.Session.Bots().Count;i<count;i++)if(!world.Session.Bots().SpawnBot())break;}else warning=world.LastError;}
+                EditorGUILayout.BeginHorizontal();if(GUILayout.Button("Collapse stimulus"))world.Publish(SocialEventKind.Collapse,"tower");if(GUILayout.Button("Greeting"))world.Publish(SocialEventKind.Greeting,"human");if(GUILayout.Button("Clear survivors"))world.Session.Bots().ClearBots();EditorGUILayout.EndHorizontal();
+                if(GUILayout.Button("Physically remove lower supports")){var bodies=world.Session.Generator().Bodies.Where(b=>b&&b.gameObject.activeSelf).OrderBy(b=>b.position.y).Take(4).ToArray();foreach(var body in bodies)body.gameObject.SetActive(false);world.Publish(SocialEventKind.Collapse,"tower");}
                 transcript=EditorGUILayout.TextField("Simulated human text",transcript);if(GUILayout.Button("Inject transcript (test only)"))world.HumanTranscript("test-human",transcript,Guid.NewGuid().ToString("N"),true);
                 if(GUILayout.Button("Simulate 2s human interruption"))world.StartCoroutine(Interrupt(world));
                 if(GUILayout.Button("Disable inference (keep gameplay & captions)")){world.Settings.mode=SocialOperatingMode.Offline;world.Speech.CancelAll();}
                 if(GUILayout.Button("Dissolve current friend groups")){foreach(var agent in world.Agents){agent.State.identity.group=-1;agent.State.relationships.Clear();}}
             }
-            if(world){EditorGUILayout.LabelField($"{world.Agents.Count} AI · speech queue {world.Director.Scheduled} · inference {world.Speech.ActiveRequests} · audio sources {world.Playback.SpeakerCount}");EditorGUILayout.LabelField(world.Caption,EditorStyles.wordWrappedLabel);foreach(var a in world.Agents.Where(a=>a))EditorGUILayout.LabelField(a.State.identity.name+": "+a.Brain.Intent+" · "+a.State.reason,EditorStyles.wordWrappedMiniLabel);}
+            if(world){EditorGUILayout.LabelField($"{world.Agents.Count} AI · speech queue {world.Director.Scheduled} · inference {world.Speech.ActiveRequests} · audio sources {world.Playback.SpeakerCount}");EditorGUILayout.LabelField(world.Caption,EditorStyles.wordWrappedLabel);foreach(var a in world.Agents.Where(a=>a))EditorGUILayout.LabelField(a.State.identity.name+": "+a.GetComponent<CastleBotBrain>().Intent+" · "+a.State.reason,EditorStyles.wordWrappedMiniLabel);}
             if(GUILayout.Button("Generate offline sample"))Generate();if(simulation!=null){if(GUILayout.Button("Advance 20-second chaos scenario")){for(int i=0;i<100;i++){simulatedTime+=.2;if(i%20==0)simulation.Publish(new SocialEvent{id=Guid.NewGuid().ToString("N"),kind=SocialEventKind.Collapse,time=simulatedTime});simulation.Tick(simulatedTime);}}foreach(var line in simulation.diagnostics)EditorGUILayout.LabelField(line,EditorStyles.wordWrappedMiniLabel);Preview();}
         }
         static System.Collections.IEnumerator Interrupt(SocialWorld world)

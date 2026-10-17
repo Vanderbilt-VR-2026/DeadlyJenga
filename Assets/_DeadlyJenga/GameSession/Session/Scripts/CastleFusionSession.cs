@@ -44,7 +44,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ResumeAfterMigration(NetworkRunner next)
         {
             peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;welcomed=false;closing=false;nextSend=0;
-            runner=next;if(next.IsServer){if(Demo.target>0)session.Bots.targetPopulation=Mathf.Max(1,Demo.target);if(Demo.handLimit>0)session.HandBots.maximumHands=0;session.Bots.autoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
+            runner=next;if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
         }
         void AttachCallbacks()
@@ -181,8 +181,9 @@ namespace DeadlyJenga.CastlePrototype
                 nextSend = now + .1f;
                 FlushDisasterImpacts();
                 CaptureDisasters();
-                Demo=new DemoState{wave=CaptureWave(),shared=IslandRoomConnection.Instance&&IslandRoomConnection.Instance.SharedDemoControls,survivors=session.Bots.Count,hands=session.HandBots.Count,
-                    autoFill=session.Bots.autoFill,handLimit=session.HandBots.maximumHands,capacity=session.Bots.Capacity,target=session.Bots.targetPopulation,survivorPreset=session.Bots.SelectedPreset,handPreset=session.HandBots.SelectedPreset,survivorName=session.Bots.SelectedName,handName=session.HandBots.SelectedName};
+                var bots=session.SurvivorBots;var hands=session.HandBots;
+                Demo=new DemoState{wave=CaptureWave(),shared=IslandRoomConnection.Instance&&IslandRoomConnection.Instance.SharedDemoControls,survivors=bots?.Count??0,hands=hands?.Count??0,
+                    autoFill=bots?.AutoFill??false,handLimit=hands?.Capacity??0,capacity=bots?.Capacity??0,target=bots?.TargetPopulation??0,survivorPreset=bots?.SelectedPreset??0,handPreset=hands?.SelectedPreset??0,survivorName=bots?.SelectedName??"",handName=hands?.SelectedName??""};
                 string admin=JsonUtility.ToJson(Demo);
                 byte[] world = null;
                 foreach (var pair in peers)

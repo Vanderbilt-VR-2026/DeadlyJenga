@@ -23,12 +23,20 @@ namespace DeadlyJenga.CharacterNetwork
             MatchOptions.HandPersonalities = () => Names(Resources.LoadAll<CastleHandBotPersonality>("CastleHandBots").Select(p => p.displayName), "Playful");
             LocalPlayerInput.FindOrCreate = () => LocalHandInput.FindOrCreate();
             BotSystems.Register(MakeBots);
+            SocialBots.Register(SocialDriver);
         }
 
         static string[] Names(IEnumerable<string> names, string fallback)
         {
             var sorted = names.OrderBy(n => n).ToArray();
             return sorted.Length == 0 ? new[] { fallback } : sorted;
+        }
+
+        static ISocialBot SocialDriver(GameObject bot)
+        {
+            if (!bot.GetComponent<CastleBotBrain>()) return null;
+            var driver = bot.GetComponent<SocialBotDriver>();
+            return driver ? driver : bot.AddComponent<SocialBotDriver>();
         }
 
         static void MakeBots(GameObject host, BotSetup setup, out ISurvivorBotPopulation survivors, out IBotPopulation hands)

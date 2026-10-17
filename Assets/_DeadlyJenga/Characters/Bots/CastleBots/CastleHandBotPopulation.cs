@@ -55,7 +55,7 @@ namespace DeadlyJenga.CastleBots
         // IBotPopulation (Count, Status, SelectedName, CyclePersonality, SelectPreset are public members of this class)
         int IBotPopulation.Capacity => maximumHands;
         public bool Running { get => enabled; set => enabled = value; }
-        void IBotPopulation.SpawnOne() => SpawnHand();
+        GameObject IBotPopulation.SpawnOne() => SpawnHand()?.gameObject;
         void IBotPopulation.Clear() => ClearHands();
         void IBotPopulation.MapRebuilt() => CastleRebuilt();
         public void ClearHands()

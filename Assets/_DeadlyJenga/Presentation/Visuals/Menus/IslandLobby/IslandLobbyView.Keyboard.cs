@@ -2,11 +2,12 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
-using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed partial class IslandLobby
+    // The giant piano keyboard for typing room codes (point, click or press keys with a fingertip).
+    public sealed partial class IslandLobbyView
     {
         RectTransform piano;
         Material keyboardMaterial;
@@ -21,17 +22,17 @@ namespace DeadlyJenga.CastlePrototype
             go.transform.SetPositionAndRotation(panel.position+yaw*new Vector3(0,-.88f,-.95f),yaw*Quaternion.Euler(65,0,0));go.transform.localScale=Vector3.one*.0024f;
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
             var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.18f,.08f,.32f));
-            var collider=go.AddComponent<BoxCollider>();collider.size=new Vector3(1680,740,120);collider.center=new Vector3(0,0,40);
+            lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));   // the lobby makes the piano solid
             string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM-"};
             for(int row=0;row<rows.Length;row++)
             for(int col=0;col<rows[row].Length;col++)
             {
                 char c=rows[row][col];float x=(col-(rows[row].Length-1)*.5f)*150;
-                PhysicalKey("key-"+c,c.ToString(),x,225-row*120,134,()=>{FocusCode();CodeText(c);},()=>JoinStationEnabled,new Color(.79f,.68f,1));
+                PhysicalKey("key-"+c,c.ToString(),x,225-row*120,134,()=>{lobby.FocusCode();lobby.TypeCode(c);},()=>lobby.JoinEnabled,new Color(.79f,.68f,1));
             }
-            PhysicalKey("backspace","ERASE",-560,-275,370,EraseCode,()=>JoinStationEnabled,new Color(1,.72f,.63f));
-            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>EnteredCode="",()=>JoinStationEnabled,new Color(1,.72f,.63f));
-            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,()=>_=Room.Join(EnteredCode),()=>JoinStationEnabled&&ValidCode,CandyHudVisuals.Mint);
+            PhysicalKey("backspace","ERASE",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(1,.72f,.63f));
+            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.72f,.63f));
+            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,CandyHudVisuals.Mint);
         }
         void PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
@@ -48,14 +49,13 @@ namespace DeadlyJenga.CastlePrototype
             Color color=!enabled?new Color(.16f,.13f,.22f):hover||depression>0?CandyHudVisuals.Mint:key.keyColor;
             key.keyProperties.SetColor("_BaseColor",color);key.keyRenderer.SetPropertyBlock(key.keyProperties);
         }
-        void UpdateKeyboardTouches(CandyTrackingSource tracking)
+        void UpdateKeyboardTouches()
         {
-            if(!Player.IsVR||!tracking||!tracking.HasTrackedHands||!JoinStationEnabled){touching[0]=touching[1]=null;return;}
+            var fingers=Player.gameObject.GetComponent<IFingerTips>();
+            if(!Player.IsVR||fingers==null||!lobby.JoinEnabled){touching[0]=touching[1]=null;return;}
             for(int side=0;side<2;side++)
             {
-                var hand=tracking.WorldHand(side==0);if(!hand.tracked){touching[side]=null;continue;}
-                float scale=tracking.trackingOrigin?tracking.trackingOrigin.lossyScale.x:1;
-                Vector3 tip=hand.position+hand.rotation*(hand.skeletonTracked?hand.skeleton.Joint(7)*scale:Vector3.forward*.06f*scale);
+                if(!fingers.TryIndexTip(side==0,out var tip)){touching[side]=null;continue;}
                 TouchKeyboard(tip,side);
             }
         }
@@ -63,7 +63,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(hand<0||hand>1)return false;
             Choice hit=null;float distance=.018f*.018f;
-            if(JoinStationEnabled)
+            if(lobby.JoinEnabled)
             foreach(var choice in choices)
             {
                 if(!choice.physical||!choice.collider.enabled||choice.enabled!=null&&!choice.enabled())continue;
@@ -79,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
         void EnsureKeyboardArt()
         {
             if(!keyboardMesh)keyboardMesh=RoundedBox();
-            if(!keyboardMaterial){keyboardMaterial=new Material(catalog.art.purple);keyboardMaterial.name="Lobby candy stations (runtime)";keyboardMaterial.SetFloat("_Smoothness",.85f);}
+            if(!keyboardMaterial){keyboardMaterial=new Material(localArt.purple);keyboardMaterial.name="Lobby candy stations (runtime)";keyboardMaterial.SetFloat("_Smoothness",.85f);}
         }
         Renderer Box(Transform parent,string name,Vector3 position,Vector3 scale,Color color)
         {

@@ -65,7 +65,7 @@ namespace DeadlyJenga.CastlePrototype
             (session.Player as ISurvivorSettings)?.ApplyMatchRules(Rules);
             if (session.Network != null && session.Network.IsClient) return;
             var bots = session.SurvivorBots;
-            var hands = ((ISessionInfo)session).HandBots;
+            var hands = session.HandBots;
             if (bots != null)
             {
                 bots.TargetPopulation = Mathf.Max(1, BotTarget);

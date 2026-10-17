@@ -38,9 +38,9 @@ namespace DeadlyJenga.CastlePrototype
         public int SurvivorTarget => Remote != null ? Remote.target : session.SurvivorBots?.TargetPopulation ?? 0;
         public string SurvivorPersonality => Remote != null ? Remote.survivorName : session.SurvivorBots?.SelectedName ?? "";
         public string SurvivorStatus => session.SurvivorBots?.Status ?? "";
-        public int HandCount => Remote != null ? Remote.hands : ((ISessionInfo)session).HandBots?.Count ?? 0;
-        public string HandPersonality => Remote != null ? Remote.handName : ((ISessionInfo)session).HandBots?.SelectedName ?? "";
-        public string HandStatus => ((ISessionInfo)session).HandBots?.Status ?? "";
+        public int HandCount => Remote != null ? Remote.hands : session.HandBots?.Count ?? 0;
+        public string HandPersonality => Remote != null ? Remote.handName : session.HandBots?.SelectedName ?? "";
+        public string HandStatus => session.HandBots?.Status ?? "";
 
         public void ApplyStaminaRules(string json) => CastleDemoCommands.Run(session, CastleDemoAction.Stamina, json);
 

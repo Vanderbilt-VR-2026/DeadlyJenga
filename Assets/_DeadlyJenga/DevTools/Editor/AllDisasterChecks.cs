@@ -12,6 +12,7 @@ using DeadlyJenga.Core;
 using DeadlyJenga.Core.Testing;
 using DeadlyJenga.World.Hazards;
 using Object=UnityEngine.Object;
+using DeadlyJenga.DevTools.Editor;
 
 namespace DeadlyJenga.CastlePrototype.Editor
 {
@@ -133,7 +134,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(!DemoDisasters.Execute(session,tsunami.name,values:invalid),"Host rejects nonfinite generic command settings");
             var request=new CastleDemoCommand{action=CastleDemoAction.Disaster,rules=tsunami.name,hazardValues=DemoDisasters.Values(session,tsunami)};
             Require(JsonUtility.FromJson<CastleDemoCommand>(JsonUtility.ToJson(request)).hazardValues.Length==5,"Full per-disaster settings survive command serialization");
-            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);var cam=session.Player.viewCamera;menu.Show(true,cam);
+            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);var cam=session.Survivor().viewCamera;menu.Show(true,cam);
             typeof(CastleWorldMenu).GetField("disasterPage",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(menu,true);
             var selection=typeof(CastleWorldMenu).GetField("disasterSelection",BindingFlags.Instance|BindingFlags.NonPublic);selection.SetValue(menu,Array.FindIndex(DemoDisasters.Prefabs,p=>p.GetComponent<MeteorShowerHazard>()));menu.Point(cam,false);
             var sliders=(Slider[])typeof(CastleWorldMenu).GetField("disasterSliders",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
@@ -141,13 +142,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(Mathf.Abs(sliders[5].value-25)<.01f,"Opening VR settings preserves authored duration defaults");
             cam.transform.LookAt(sliders[2].transform.TransformPoint(new Vector3(125,-13,0)));menu.Point(cam,true,true);
             Require(sliders[2].normalizedValue>.7f,"VR held input changes a generic disaster slider");cam.transform.LookAt(menu.transform.position);Capture(cam,"disaster-meteor-controls.png");menu.Show(false,cam);
-            session.Bots.targetPopulation=1;
-            Require(session.Bots.Capacity==int.MaxValue,"Survivor spawning has no fixed population cap");
-            for(int i=0;i<12;i++){var bot=session.Bots.SpawnBot();if(bot)bot.enabled=false;}
-            Require(session.Bots.Count>9,"Survivor bots spawn beyond the former demo limit");int survivors=session.Bots.Count;
-            for(int i=0;i<12;i++){var hand=session.HandBots.SpawnHand();if(hand)hand.enabled=false;}
-            Require(session.HandBots.Count==12&&session.Bots.Count==survivors,"Twelve hands coexist without trimming survivor bots");
-            session.Bots.ClearBots();session.HandBots.ClearHands();yield return null;
+            session.Bots().targetPopulation=1;
+            Require(session.Bots().Capacity==int.MaxValue,"Survivor spawning has no fixed population cap");
+            for(int i=0;i<12;i++){var bot=session.Bots().SpawnBot();if(bot)bot.enabled=false;}
+            Require(session.Bots().Count>9,"Survivor bots spawn beyond the former demo limit");int survivors=session.Bots().Count;
+            for(int i=0;i<12;i++){var hand=session.Hands().SpawnHand();if(hand)hand.enabled=false;}
+            Require(session.HandBots.Count==12&&session.Bots().Count==survivors,"Twelve hands coexist without trimming survivor bots");
+            session.Bots().ClearBots();session.Hands().ClearHands();yield return null;
             var tornado=DemoDisasters.Prefabs.First(p=>p.GetComponent<TornadoHazard>());var v=DemoDisasters.Values(session,tornado);Set(tornado.GetComponent<IDemoHazard>(),v,"warning",0);DemoDisasters.Request(session,tornado);
             yield return new WaitForSecondsRealtime(1);
             var active=session.GetComponentsInChildren<BasicDisaster>().FirstOrDefault(h=>h.Active);
@@ -165,7 +166,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             {var options=prefab.GetComponent<IDemoHazard>();var settings=DemoDisasters.Values(session,prefab);Set(options,settings,"warning",0);Require(DemoDisasters.Execute(session,prefab.name,values:settings),"Concurrent launch: "+prefab.name);}
             yield return new WaitForSecondsRealtime(.5f);DemoDisasters.StopAll(session);yield return null;
             Require(DisasterStates.Active.Count==0&&Tracked.Waves.Count==0,"Stopping concurrent disasters clears every shared effect source");
-            Require(session.generator.Bodies.All(b=>!b||b.useGravity),"Temporary disaster changes leave normal block gravity intact");
+            Require(session.Generator().Bodies.All(b=>!b||b.useGravity),"Temporary disaster changes leave normal block gravity intact");
             Require(errors==0,"Game Play Mode, menus and disaster visuals produce no errors");
             File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"COMPLETE: editor + stand-in physics + encoding; real two-headset networking and Quest performance remain device tests.\n");
         }

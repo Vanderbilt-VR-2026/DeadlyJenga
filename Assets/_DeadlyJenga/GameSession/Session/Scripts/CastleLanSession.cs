@@ -84,13 +84,13 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool TryParticipantPosition(string actorId,out Vector3 position)
         {
-            if(actorId==id&&session&&session.Player){position=session.Player.viewCamera.transform.position;return true;}
+            if(actorId==id&&session&&NetworkActors.Alive(session.Player)){position=session.Player.ViewCamera.transform.position;return true;}
             if(actorId!=null&&views.TryGetValue(actorId,out var view)&&NetworkActors.Alive(view)){position=view.NetworkPosition+(view.NetworkKind==NetworkKinds.Survivor?Vector3.up*1.6f:Vector3.zero);return true;}
             position=default;return false;
         }
         public IEnumerable<KeyValuePair<string,Vector3>> HumanPositions()
         {
-            if(session&&session.Player)yield return new KeyValuePair<string,Vector3>(id,session.Player.transform.position);
+            if(session&&NetworkActors.Alive(session.Player))yield return new KeyValuePair<string,Vector3>(id,session.Player.transform.position);
             if(fusionMode)foreach(var a in fusionActors)yield return new KeyValuePair<string,Vector3>(a.Key,a.Value.position);
             foreach(var c in connections)if(c.id!=null&&c.actor!=null)yield return new KeyValuePair<string,Vector3>(c.id,c.actor.position);
         }
@@ -164,12 +164,13 @@ namespace DeadlyJenga.CastlePrototype
                 Synced?.SetReplica(false);
                 for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
                 if(localPreview!=null)localPreview.NetworkPreview=false;
-                session.Bots.enabled=session.HandBots.enabled=true;session.Bots.targetPopulation=Mathf.Max(10,session.Bots.targetPopulation);
-                session.Bots.SelectPreset(survivorPreset);session.HandBots.SelectPreset(handPreset);
+                var bots=session.SurvivorBots;var handBots=session.HandBots;
+                if(bots!=null){bots.Running=true;bots.TargetPopulation=Mathf.Max(10,bots.TargetPopulation);bots.SelectPreset(survivorPreset);}
+                if(handBots!=null){handBots.Running=true;handBots.SelectPreset(handPreset);}
                 var survivorFrames=targetWorld?.actors.Where(a=>a.id.StartsWith("bot:")).ToArray();
                 var handFrames=targetWorld?.actors.Where(a=>a.id.StartsWith("bot-hand:")).ToArray();
-                for(int i=0;i<survivors;i++){var bot=session.Bots.SpawnBot();if(bot&&survivorFrames!=null&&i<survivorFrames.Length)bot.Motor.Teleport(survivorFrames[i].position,Quaternion.identity);}
-                for(int i=0;i<hands;i++){var bot=session.HandBots.SpawnHand();if(bot&&handFrames!=null&&i<handFrames.Length)bot.Actor.Place(handFrames[i].position,Quaternion.identity);}
+                for(int i=0;i<survivors&&bots!=null;i++){var bot=bots.SpawnOne();if(bot&&survivorFrames!=null&&i<survivorFrames.Length)bot.GetComponent<IPlayableCharacter>()?.Place(survivorFrames[i].position,Quaternion.identity);}
+                for(int i=0;i<hands&&handBots!=null;i++){var bot=handBots.SpawnOne();if(bot&&handFrames!=null&&i<handFrames.Length)bot.GetComponent<IPlayableCharacter>()?.Place(handFrames[i].position,Quaternion.identity);}
                 receivedWorld=false;targetWorld=null;
             }
             else {Synced?.SetReplica(true);if(localPreview!=null)localPreview.NetworkPreview=true;}
@@ -452,7 +453,7 @@ namespace DeadlyJenga.CastlePrototype
         // The character this machine's person is playing right now, read through Core.
         P.Actor LocalActor()
         {
-            var who = (session.PlayingHand ? (Component)session.Hand : session.Player).gameObject.GetComponent<INetworkActor>();
+            var who = (session.PlayingHand ? session.Hand : session.Player).gameObject.GetComponent<INetworkActor>();
             if (who != null) return P.Capture(id, who);
             var at = session.PlayingHand ? session.Hand.transform : session.Player.transform;
             return InitialActor(id, !session.PlayingHand, new P.Pose(at.position, at.rotation));
@@ -461,7 +462,7 @@ namespace DeadlyJenga.CastlePrototype
         void StopBots()
         {
             if (session.SurvivorBots != null) { session.SurvivorBots.Clear(); session.SurvivorBots.Running = false; }
-            var hands = ((ISessionInfo)session).HandBots;
+            var hands = session.HandBots;
             if (hands != null) { hands.Clear(); hands.Running = false; }
         }
         void ResumeBots()

@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var shake=lobby.GetComponentInChildren<LobbyMilkshake>();
             if(!shake){var go=new GameObject("Milkshake · beach delivery clutter");Undo.RegisterCreatedObjectUndo(go,"Add milkshake challenge");go.transform.SetParent(lobby.transform,false);go.transform.localPosition=new Vector3(2.6f,.45f,-3.8f);shake=Undo.AddComponent<LobbyMilkshake>(go);}
             art.milkshakeGeometry=shake.transform;
-            art.candyMaterial=lobby.catalog.art.purple;EditorUtility.SetDirty(art);EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);
+            art.candyMaterial=((DeadlyJenga.CandyArt.CandyArtProfile)lobby.catalog.art).purple;EditorUtility.SetDirty(art);EditorSceneManager.MarkSceneDirty(scene);EditorSceneManager.SaveScene(scene);
             File.WriteAllText(ProjectPath.Report("LobbyResortSetup.txt"),"Applied optional Presentation/Visuals resort dressing and static World/Maps milkshake challenge to existing Lobby scene. No scene regeneration or network changes.\n");
             if(original!=scene.path&&File.Exists(original))EditorSceneManager.OpenScene(original);
         }

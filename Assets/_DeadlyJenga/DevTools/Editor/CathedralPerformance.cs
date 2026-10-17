@@ -11,6 +11,7 @@ using Unity.Profiling.LowLevel.Unsafe;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyArt;
 using Object=UnityEngine.Object;
+using DeadlyJenga.DevTools.Editor;
 
 namespace DeadlyJenga.CastlePrototype.Editor
 {
@@ -30,9 +31,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static IEnumerator Check()
         {
             var session=Object.FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);
-            var camera=session.Player.viewCamera;camera.transform.position=new Vector3(175,130,-210);camera.transform.LookAt(new Vector3(0,70,0));
+            var camera=session.Survivor().viewCamera;camera.transform.position=new Vector3(175,130,-210);camera.transform.LookAt(new Vector3(0,70,0));
             int vsync=QualitySettings.vSyncCount,rate=Application.targetFrameRate;QualitySettings.vSyncCount=0;Application.targetFrameRate=-1;
-            var blocks=session.generator.Bodies.Select(b=>b.GetComponent<CastleBlock>()).ToArray();
+            var blocks=session.Generator().Bodies.Select(b=>b.GetComponent<CastleBlock>()).ToArray();
             var renderers=blocks.SelectMany(b=>b.GetComponentsInChildren<Renderer>()).ToArray();
             var previous=Physics.simulationMode;
             try

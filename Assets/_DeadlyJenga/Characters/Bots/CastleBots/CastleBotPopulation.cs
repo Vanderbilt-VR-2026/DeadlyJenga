@@ -87,7 +87,9 @@ namespace DeadlyJenga.CastleBots
         // ISurvivorBotPopulation (Count, Capacity, Status, SelectedName, CyclePersonality, SelectPreset,
         // FillToTarget and SetHumanPlayerCount are public members of this class)
         public bool Running { get => enabled; set => enabled = value; }
-        void IBotPopulation.SpawnOne() => SpawnBot();
+        GameObject IBotPopulation.SpawnOne() => SpawnBot()?.gameObject;
+        IEnumerable<GameObject> ISurvivorBotPopulation.Members => bots.Where(b => b).Select(b => b.gameObject);
+        bool ISurvivorBotPopulation.AutoFill { get => autoFill; set => autoFill = value; }
         void IBotPopulation.Clear() => ClearBots();
         void IBotPopulation.MapRebuilt() => CastleRebuilt();
         int ISurvivorBotPopulation.TargetPopulation { get => targetPopulation; set => targetPopulation = value; }

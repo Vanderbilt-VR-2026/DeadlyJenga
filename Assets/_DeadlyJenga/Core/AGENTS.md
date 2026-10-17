@@ -10,14 +10,15 @@ Core uses nothing. Namespace: DeadlyJenga.Core.
               IHazard, IMapHazard, IWaveTuning, HazardCatalog, Layers, DisasterControls
               (IDemoHazard, DisasterFrame, IDisasterState, DisasterStates), WaveFrame (IWaveState,
               IWorldAuthority, IHazardMotion, IWaterResistance).
-- Services/   Services (Session, World, Lobby), ISessionInfo, IWorldQuery, ISyncedWorld,
+- Services/   Services (Session, World), ISessionInfo, IWorldQuery, ISyncedWorld,
               IRebuildable, IMapFootprint.
-- State/      IMovementState, IFlyingState, IPlayerView, IVaultTargetProvider, Tracked (Movers, Flyers, Waves).
+- State/      IMovementState, IFlyingState, IPlayerView, IFingerTips, IVaultTargetProvider, Tracked (Movers, Flyers, Waves).
 - Session/    IPlayableCharacter, ISurvivorSettings, MatchRules, MatchOptions, bot contracts
               (IBotPopulation, BotSystems), IMultiplayerControls, ILocalPlayerInput,
-              ILobbyControls, MatchChoices.
+              ILobbyControls (island lobby terminals), MatchChoices, IDemoControls + ISocialControls
+              (DemoContracts), ISocialBot + SocialBots, IVoicePlayer + IVoiceMix + VoicePlayback.
 - Network/    INetworkActor, INetworkActorView, NetworkActors, NetworkKinds, NetWire, INetworkPreview.
-- Events/     GameEvents.
+- Events/     GameEvents (SessionStarted: match menus attach; LobbyStarted: lobby terminals attach).
 - Testing/    TestDummy, FakeWorldQuery, FakeSession (stand-ins for testing).
 - Editor/     ProjectPath (editor tools find assets by name).
 

@@ -49,7 +49,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Capture("lobby-milkshake-overview.png",new Vector3(-5,6,-12),new Vector3(2,2.6f,-1.5f));
             Capture("lobby-milkshake-clutter.png",new Vector3(8,3.4f,-7.6f),new Vector3(3.4f,2.7f,-2.4f));
             Capture("lobby-milkshake-inside.png",c+new Vector3(0,shake.height+1.9f,-.3f),c+Vector3.up*1.9f);
-            var motor=Object.Instantiate(lobby.catalog.survivorPrefab);motor.name="Temporary milkshake traversal probe";motor.enabled=false;motor.externallyDriven=true;motor.RefreshMode();motor.viewCamera.gameObject.SetActive(false);
+            var motor=Object.Instantiate(lobby.catalog.survivorPrefab).GetComponent<CastleSurvivor>();motor.name="Temporary milkshake traversal probe";motor.enabled=false;motor.externallyDriven=true;motor.RefreshMode();motor.viewCamera.gameObject.SetActive(false);
             try
             {
                 // These runs use the current player's capsule, jump, collision and vault code.

@@ -10,8 +10,9 @@ namespace DeadlyJenga.Core
         int Capacity { get; }
         string Status { get; }
         string SelectedName { get; }   // personality used for the next one
+        int SelectedPreset { get; }    // index of that personality
         bool Running { get; set; }
-        void SpawnOne();
+        GameObject SpawnOne();         // the new bot, or null when there was no room for it
         void Clear();
         void CyclePersonality();
         void SelectPreset(int index);
@@ -23,6 +24,9 @@ namespace DeadlyJenga.Core
         int TargetPopulation { get; set; }
         void FillToTarget();
         void SetHumanPlayerCount(int humans);
+        System.Collections.Generic.IEnumerable<GameObject> Members { get; }   // the survivor bots alive now
+        bool AutoFill { get; set; }    // keep topping up to TargetPopulation
+        float ThreatCost(Vector3 point);   // how dangerous a spot is right now (0 = safe)
     }
 
     // What the session hands to the bot system when a game starts.

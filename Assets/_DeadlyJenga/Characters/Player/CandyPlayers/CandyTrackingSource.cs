@@ -2,11 +2,12 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR.Hands;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyPlayers
 {
     [DefaultExecutionOrder(-50)]
-    public sealed class CandyTrackingSource : MonoBehaviour
+    public sealed class CandyTrackingSource : MonoBehaviour, IFingerTips
     {
         public Transform trackingOrigin;
         // Controller roots identify the matching UI interactors; they are aim poses, not palms.
@@ -75,6 +76,12 @@ namespace DeadlyJenga.CandyPlayers
                 if(style){result.position+=result.rotation*style.controllerPalmOffset;result.rotation*=Quaternion.Euler(isLeft?style.leftControllerRotation:style.rightControllerRotation);}
             }
             return result;
+        }
+        public bool TryIndexTip(bool isLeft,out Vector3 tip)
+        {
+            var hand=WorldHand(isLeft);tip=default;if(!hand.tracked)return false;
+            float scale=trackingOrigin?trackingOrigin.lossyScale.x:1;
+            tip=hand.position+hand.rotation*(hand.skeletonTracked?hand.skeleton.Joint(7)*scale:Vector3.forward*.06f*scale);return true;
         }
         public CandyHandPose WorldHand(bool isLeft)
         {

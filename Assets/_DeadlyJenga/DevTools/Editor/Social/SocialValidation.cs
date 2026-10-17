@@ -9,6 +9,7 @@ using System.Text;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using DeadlyJenga.DevTools.Editor;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CastleBots;
 using P=DeadlyJenga.CastlePrototype.CastleLanProtocol;
@@ -70,14 +71,14 @@ namespace DeadlyJenga.CastleSocial.Editor
             Assert(!world.MicrophoneInput.Capturing,"Microphone remains off until explicit user action.");
             world.Settings.mode=SocialOperatingMode.Offline;Assert(world.Settings.mode==SocialOperatingMode.Offline,"Offline test mode has no model/service dependency; authored voice settings are preserved.");
             Assert(session.Network.HumanCount==1,"Integration test starts without external connected humans.");
-            session.Bots.targetPopulation=12;for(int i=0;i<6;i++)Assert(session.Bots.SpawnBot(),"Existing factory spawns legal survivor "+i);
-            var hand=session.HandBots.SpawnHand();Assert(hand,"Existing flying-hand bot still spawns.");
+            session.Bots().targetPopulation=12;for(int i=0;i<6;i++)Assert(session.Bots().SpawnBot(),"Existing factory spawns legal survivor "+i);
+            var hand=session.Hands().SpawnHand();Assert(hand,"Existing flying-hand bot still spawns.");
             yield return new WaitForSeconds(.5f);
             Assert(world.Agents.Count==6,"Every survivor receives a social adapter.");
             Assert(!hand.GetComponent<SocialBotAgent>(),"Flying-hand bot has no player-social adapter.");
             Assert(world.Agents.Select(a=>a.State.identity.id).Distinct().Count()==6,"Generated social identities are unique.");
-            Assert(world.Agents.All(a=>ReferenceEquals(a.Brain.Motor.InputDriver,a)),"Social movement uses the ordinary survivor driver interface.");
-            Assert(world.Agents.Select(a=>a.Brain.Personality.bravery).Distinct().Count()>1,"Generated traits affect actual planner personalities.");
+            Assert(world.Agents.All(a=>ReferenceEquals(a.GetComponent<CastleBotBrain>().Motor.InputDriver,a.Bot)),"Social movement uses the ordinary survivor driver interface.");
+            Assert(world.Agents.Select(a=>a.GetComponent<CastleBotBrain>().Personality.bravery).Distinct().Count()>1,"Generated traits affect actual planner personalities.");
             var starts=world.Agents.Select(a=>a.transform.position).ToArray();yield return new WaitForSeconds(6);
             Assert(world.Agents.Select((a,i)=>Vector3.Distance(a.transform.position,starts[i])).Sum()>.5,"Bots physically move in the real castle.");
             Assert(Physics.GetIgnoreLayerCollision(CastleBlock.SurvivorLayer,CastleBlock.BlockLayer),"Survivor-to-block physics isolation remains intact.");
@@ -118,9 +119,9 @@ namespace DeadlyJenga.CastleSocial.Editor
                 }
                 world.Settings.mode=SocialOperatingMode.Offline;
             }
-            int count=world.Agents.Count;session.Bots.ClearBots();yield return null;yield return null;
+            int count=world.Agents.Count;session.Bots().ClearBots();yield return null;yield return null;
             Assert(count>0&&world.Agents.Count==0,"Despawn cancels social agents and pending speech.");
-            Assert(session.HandBots.Count==1,"Clearing regular players does not clear flying hands.");session.HandBots.ClearHands();
+            Assert(session.HandBots.Count==1,"Clearing regular players does not clear flying hands.");session.Hands().ClearHands();
             File.WriteAllLines(Output,results);Debug.Log(string.Join("\n",results));EditorApplication.ExitPlaymode();
         }
         sealed class Peer:IDisposable

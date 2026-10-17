@@ -55,7 +55,7 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
-            yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.Player,"Independent process opens playable lobby");
+            yield return Until(()=>IslandLobby.Current&&NetworkActors.Alive(IslandLobby.Current.Player),"Independent process opens playable lobby");
             var room=IslandRoomConnection.Instance;
             if(role=="host")
             {
@@ -66,7 +66,7 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(()=>FindFirstObjectByType<CastlePlaySession>(),"Host transitions lobby to Castle Demo");
                 var session=FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);
                 yield return Until(()=>session.Network.HumanCount==2,"Guest completes castle snapshot handshake");
-                yield return Until(()=>session.Bots.Count==1,"Guest shared-control command creates exactly one authoritative AI");
+                yield return Until(()=>session.SurvivorBots.Count==1,"Guest shared-control command creates exactly one authoritative AI");
                 Require(session.GetComponent<SocialWorld>().IsAuthority,"Host retains AI voice authority with shared UI");
                 Require(DemoDisasters.Execute(session,"Tsunami"),"Host triggers network tsunami");
                 yield return Until(()=>File.Exists(Mark("wave-seen")),"Independent guest receives active wave state");
@@ -85,7 +85,7 @@ namespace DeadlyJenga.CastlePrototype
                 var session=FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);var sync=session.GetComponent<CastleFusionSession>();
                 yield return Until(()=>sync.CanUseDemoControls,"Shared Demo powers arrive on independent guest");
                 Require(!session.GetComponent<SocialWorld>().IsAuthority,"Shared UI does not create a second AI voice authority");
-                Require(session.generator.Bodies.All(b=>b&&b.isKinematic),"Independent guest has replica-only block physics");
+                Require(Services.World.Blocks.All(b=>b&&b.isKinematic),"Independent guest has replica-only block physics");
                 CastleDemoCommands.Run(session,CastleDemoAction.AddSurvivor);
                 yield return Until(()=>sync.Demo.survivors==1,"Guest receives authoritative AI population update");
                 yield return Until(()=>Tracked.Waves.Any(w=>w.Wave.active),"Active tsunami is replicated to guest");File.WriteAllText(Mark("wave-seen"),"yes");
@@ -94,11 +94,11 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(()=>room.IsHost&&!room.Busy,"Guest becomes host inside actual Game process",70);
                 session=FindFirstObjectByType<CastlePlaySession>();
                 Require(session&&session.Network&&!session.Network.IsClient,"Promoted guest keeps actual Castle Game active");
-                Require(session.generator.Bodies.Count>0&&session.generator.Bodies.All(b=>b&&!b.isKinematic),"Promoted guest resumes authoritative block physics");
+                Require(Services.World.Blocks.Count>0&&Services.World.Blocks.All(b=>b&&!b.isKinematic),"Promoted guest resumes authoritative block physics");
                 Require(session.GetComponent<SocialWorld>().IsAuthority,"AI voice authority follows real process host migration");
                 yield return new WaitForSeconds(3);
                 task=room.Leave();yield return Until(()=>task.IsCompleted,"Migrated host leaves cleanly");
-                yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.Player,"Migrated host returns to usable island");
+                yield return Until(()=>IslandLobby.Current&&NetworkActors.Alive(IslandLobby.Current.Player),"Migrated host returns to usable island");
             }
         }
     }

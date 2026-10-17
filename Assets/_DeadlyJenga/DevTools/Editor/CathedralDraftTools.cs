@@ -129,7 +129,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(generator.Bodies.Count==CastleLayout.Build(generator.settings).Count,"Full scene instantiates the identical physical block prefab");
             Require(generator.Bodies.All(b=>!b.isKinematic&&b.useGravity),"Every structural block is dynamic, with gravity enabled");
             Require(Services.World.PlayableBounds.size.x>160&&Services.World.TopHeight==180,"World bounds and top spawn match the cathedral");
-            Require(session.Player&&session.Player.transform.position.y>179,"Current survivor prefab spawns on the highest spire");
+            Require(NetworkActors.Alive(session.Player)&&session.Player.transform.position.y>179,"Current survivor prefab spawns on the highest spire");
             var initial=generator.Bodies.Select(b=>new Pose(b.position,b.rotation)).ToArray();
             var previous=Physics.simulationMode;Physics.simulationMode=SimulationMode.Script;
             var watch=System.Diagnostics.Stopwatch.StartNew();

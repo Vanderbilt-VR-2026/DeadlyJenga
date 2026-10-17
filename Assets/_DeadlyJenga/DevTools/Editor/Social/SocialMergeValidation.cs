@@ -7,6 +7,7 @@ using System.Reflection;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using DeadlyJenga.DevTools.Editor;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CastlePrototype.Editor;
 namespace DeadlyJenga.CastleSocial.Editor
@@ -75,7 +76,7 @@ namespace DeadlyJenga.CastleSocial.Editor
             {
                 var social=session.GetComponent<SocialWorld>();
                 if(!social||!social.IsAuthority||session.Network)throw new Exception("Direct scene social initialization failed");
-                session.Bots.SpawnBot();yield return new WaitForSeconds(.6f);
+                session.Bots().SpawnBot();yield return new WaitForSeconds(.6f);
                 if(social.Agents.Count!=1)throw new Exception("Standalone bot social adapter absent");
                 File.AppendAllText(ProjectPath.Report("MainMergeValidation.txt"),"PASS Direct Game scene works without a network session; bot social adapter initializes.\n");
                 EditorApplication.ExitPlaymode();

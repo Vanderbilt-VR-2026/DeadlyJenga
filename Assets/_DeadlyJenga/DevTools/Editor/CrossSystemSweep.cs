@@ -11,6 +11,7 @@ using DeadlyJenga.CastleBots;
 using DeadlyJenga.CastleSocial;
 using DeadlyJenga.World.Hazards;
 using Object=UnityEngine.Object;
+using DeadlyJenga.DevTools.Editor;
 
 namespace DeadlyJenga.CastlePrototype.Editor
 {
@@ -73,11 +74,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
             yield return new WaitForSeconds(3);
             var s=Object.FindFirstObjectByType<CastlePlaySession>();s.SetMenu(true);
             Require(errors.Count==0,"Game enters Play Mode cleanly with current combined changes");
-            Require(ReferenceEquals(Services.World,s.generator)&&ReferenceEquals(Services.Session,s),"World/session services point to the active Game");
-            Require(s.Player.Grounded&&Finite(s.Player.transform.position),"Local survivor settles on castle");
-            Require(s.generator.Bodies.Count>0&&s.generator.Bodies.All(b=>b&&Finite(b.position)),"Castle bodies are present and finite");
-            Require(s.Player.jumpHeight<s.generator.settings.blockSize.y,"Session jump tuning stays below a full block");
-            foreach(var prefab in new[]{s.survivorPrefab.gameObject,s.handPrefab.gameObject,s.generator.blockPrefab})
+            Require(ReferenceEquals(Services.World,s.Generator())&&ReferenceEquals(Services.Session,s),"World/session services point to the active Game");
+            Require(s.Survivor().Grounded&&Finite(s.Player.transform.position),"Local survivor settles on castle");
+            Require(s.Generator().Bodies.Count>0&&s.Generator().Bodies.All(b=>b&&Finite(b.position)),"Castle bodies are present and finite");
+            Require(s.Survivor().jumpHeight<s.Generator().settings.blockSize.y,"Session jump tuning stays below a full block");
+            foreach(var prefab in new[]{s.survivorPrefab.gameObject,s.handPrefab.gameObject,s.Generator().blockPrefab})
                 Require(prefab.GetComponentsInChildren<Transform>(true).All(t=>GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(t.gameObject)==0),prefab.name+" has no missing scripts");
             Require(s.GetComponent<SocialWorld>()&&s.GetComponent<CandyDemoHud>(),"Voice/social and detailed Demo HUD coexist");
             int initialCameras=Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Count(c=>c.isActiveAndEnabled);
@@ -89,10 +90,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             s.SetRole(false);s.SetMenu(true);
             yield return Movement(s);
-            for(int i=0;i<3;i++)Require(s.Bots.SpawnBot(),"Live survivor bot "+i+" spawns");
-            for(int i=0;i<2;i++)Require(s.HandBots.SpawnHand(),"Live physical hand bot "+i+" spawns");
-            var bot=s.Bots.Bots[0];var start=bot.transform.position;yield return new WaitForSeconds(5);
-            Require(s.Bots.Bots.All(b=>b&&Finite(b.transform.position)),"Live survivor bots remain finite with two AI hands active");
+            for(int i=0;i<3;i++)Require(s.Bots().SpawnBot(),"Live survivor bot "+i+" spawns");
+            for(int i=0;i<2;i++)Require(s.Hands().SpawnHand(),"Live physical hand bot "+i+" spawns");
+            var bot=s.Bots().Bots[0];var start=bot.transform.position;yield return new WaitForSeconds(5);
+            Require(s.Bots().Bots.All(b=>b&&Finite(b.transform.position)),"Live survivor bots remain finite with two AI hands active");
             Require(Vector3.Distance(start,bot.transform.position)>.02f,"A real survivor bot makes movement decisions in the live castle");
             int began=0,ended=0;Action<HazardType,Vector3> begin=(_,__)=>began++;Action<HazardType,Vector3> end=(_,__)=>ended++;
             GameEvents.HazardStarted+=begin;GameEvents.HazardEnded+=end;
@@ -111,14 +112,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Require(!wave||!wave.Active,"Full wave ends without manual stop");
                 yield return null;Require(Tracked.Waves.Count==0,"Completed wave leaves no stale global wave source");
                 Require(DemoDisasters.Execute(s,"Tsunami"),"Another tsunami starts before a map reset");
-                int count=s.generator.Bodies.Count;s.ResetCastle();yield return new WaitForSeconds(3);
+                int count=s.Generator().Bodies.Count;s.ResetCastle();yield return new WaitForSeconds(3);
                 Require(Tracked.Waves.Count==0&&!s.GetComponentsInChildren<MonoBehaviour>().OfType<IHazard>().Any(h=>h.Active),"Rebuild during a disaster cancels hazards and visual mask");
-                Require(s.generator.Bodies.Count==count&&s.generator.Bodies.All(b=>b&&Finite(b.position)),"Rebuild restores all block bodies while bots/hands exist");
-                Require(s.Player.Grounded&&s.Bots.Bots.All(b=>b&&Finite(b.transform.position)),"Survivor and AI recover after disaster plus reset");
+                Require(s.Generator().Bodies.Count==count&&s.Generator().Bodies.All(b=>b&&Finite(b.position)),"Rebuild restores all block bodies while bots/hands exist");
+                Require(s.Survivor().Grounded&&s.Bots().Bots.All(b=>b&&Finite(b.transform.position)),"Survivor and AI recover after disaster plus reset");
             }
             finally{GameEvents.HazardStarted-=begin;GameEvents.HazardEnded-=end;DemoDisasters.StopAll(s);}
-            s.HandBots.ClearHands();s.Bots.ClearBots();yield return null;
-            Require(s.HandBots.Count==0&&s.Bots.Count==0,"Clear population removes live AI after stress");
+            s.Hands().ClearHands();s.Bots().ClearBots();yield return null;
+            Require(s.HandBots.Count==0&&s.Bots().Count==0,"Clear population removes live AI after stress");
             Require(Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Count(c=>c.isActiveAndEnabled)==initialCameras,"No camera leak after bots, hazards and repeated role changes");
             Require(errors.Count==0,"No runtime errors across integrated sweep: "+string.Join("\n",errors));
             lines.Add("COMPLETE: live Game integration; no scenes/prefabs saved. Quest hardware, GPU/stereo and multi-device Wi-Fi remain untested.");Save();
@@ -149,7 +150,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var blocks=new List<CastleBlock>();
                 foreach(float x in new[]{150f,156.15f})
                 {
-                    var b=Object.Instantiate(s.generator.blockPrefab,root.transform).GetComponent<CastleBlock>();
+                    var b=Object.Instantiate(s.Generator().blockPrefab,root.transform).GetComponent<CastleBlock>();
                     b.GetComponent<Rigidbody>().isKinematic=true;b.transform.position=new Vector3(x,45,2);b.transform.localScale=new Vector3(6,10,2);b.SyncSurface();blocks.Add(b);
                 }
                 Physics.SyncTransforms();m.Teleport(new Vector3(152.7f,42,.82f),Quaternion.identity);

@@ -29,7 +29,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
             var root=new GameObject("Island lobby · shared character and castle art");root.AddComponent<IslandLobby>().catalog=catalog;
             // The character prefab owns the camera and XR input. No second XR rig or spawner.
-            RenderSettings.skybox=catalog.art.sky;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;
+            RenderSettings.skybox=((DeadlyJenga.CandyArt.CandyArtProfile)catalog.art).sky;RenderSettings.ambientMode=UnityEngine.Rendering.AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.55f,.72f,.9f);RenderSettings.ambientEquatorColor=new Color(.43f,.57f,.64f);RenderSettings.ambientGroundColor=new Color(.3f,.3f,.36f);
             EditorSceneManager.SaveScene(scene,lobbyPath);AssetDatabase.SaveAssets();
             File.WriteAllText(ProjectPath.Report("IslandLobbyInstall.txt"),"Lobby replaced through Unity scene APIs; current survivor and environment prefab references retained.\n"+path+"\n");

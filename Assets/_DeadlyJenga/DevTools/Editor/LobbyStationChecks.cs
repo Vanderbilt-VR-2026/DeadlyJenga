@@ -9,6 +9,7 @@ using UnityEngine.InputSystem;
 using DeadlyJenga.Core;
 using Fusion.Photon.Realtime;
 using Object=UnityEngine.Object;
+using DeadlyJenga.DevTools.Editor;
 
 namespace DeadlyJenga.CastlePrototype.Editor
 {
@@ -49,7 +50,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             yield return new WaitForSecondsRealtime(1);
             var lobby=IslandLobby.Current;var room=lobby.Room;lobby.SetMenu(true);
             Require(lobby.GetComponentsInChildren<LobbyTerminalFaces>().Length==3,"Exactly three stations replace the previous terminal cluster");
-            Require(lobby.Player.viewCamera.clearFlags==CameraClearFlags.Skybox&&RenderSettings.skybox==lobby.Environment.profile.sky,"Lobby displays the castle skybox through the shared character camera");
+            Require(lobby.Survivor().viewCamera.clearFlags==CameraClearFlags.Skybox&&RenderSettings.skybox==lobby.View().Environment.profile.sky,"Lobby displays the castle skybox through the shared character camera");
             Require(lobby.JoinStationEnabled&&!lobby.SetupStationEnabled,"Joining starts active while map and mode choices start locked");
             var resort=lobby.GetComponent<DeadlyJenga.CandyArt.CandyLobbyResort>();
             Require(resort&&resort.transform.Find("Visual · Candy island resort"),"Optional candy resort builds its own Visual child");
@@ -57,40 +58,40 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Require(dressing.GetComponentsInChildren<Collider>().Length==0&&dressing.GetComponentsInChildren<Rigidbody>().Length==0,"Resort art adds no colliders or rigidbodies");
             var artMeshes=dressing.GetComponentsInChildren<MeshFilter>();
             Require(artMeshes.Length<=12&&artMeshes.Sum(m=>m.sharedMesh.vertexCount)<85000,"Resort and milkshake geometry stay within twelve static color batches and 85k vertices");
-            var keyboard=lobby.GiantKeyboard.GetComponent<RectTransform>();
+            var keyboard=lobby.View().GiantKeyboard.GetComponent<RectTransform>();
             Require(keyboard.rect.width*keyboard.lossyScale.x>3.8f&&keyboard.GetComponent<BoxCollider>()&&!keyboard.GetComponent<Rigidbody>(),"Oversized piano keyboard has a solid static case over 3.8 metres wide");
             Require(keyboard.GetComponentsInChildren<MeshRenderer>().Length>=40,"Every keyboard key has a raised rounded 3D cap");
-            foreach(char c in "ASIA-ABC234")Require(lobby.InvokeChoice("key-"+c),"Keyboard accepts "+c);
+            foreach(char c in "ASIA-ABC234")Require(lobby.View().InvokeChoice("key-"+c),"Keyboard accepts "+c);
             Require(lobby.EnteredCode=="ASIA-ABC234"&&IslandRoomAddress.TryParse(lobby.EnteredCode,room.Region,out _,out _),"Keyboard supports full region-qualified room codes");
-            lobby.InvokeChoice("clear-code");
+            lobby.View().InvokeChoice("clear-code");
             var key=lobby.GetComponentsInChildren<BoxCollider>().First(c=>c.name=="key-Z");Physics.SyncTransforms();var point=key.transform.TransformPoint(new Vector3(0,0,-55));
-            Require(lobby.TouchKeyboard(point,0)&&lobby.EnteredCode=="Z","Physical fingertip contact presses a 3D key");
-            Require(!lobby.TouchKeyboard(point,0)&&lobby.EnteredCode=="Z","Holding a fingertip on a key does not repeat characters");
-            lobby.TouchKeyboard(Vector3.one*500,0);yield return new WaitForSecondsRealtime(.2f);
-            Require(lobby.TouchKeyboard(point,0)&&lobby.EnteredCode=="ZZ","Lifting and pressing again re-arms a physical key");
-            lobby.InvokeChoice("clear-code");Require(lobby.InvokeChoice("code"),"The large code box focuses desktop typing");
+            Require(lobby.View().TouchKeyboard(point,0)&&lobby.EnteredCode=="Z","Physical fingertip contact presses a 3D key");
+            Require(!lobby.View().TouchKeyboard(point,0)&&lobby.EnteredCode=="Z","Holding a fingertip on a key does not repeat characters");
+            lobby.View().TouchKeyboard(Vector3.one*500,0);yield return new WaitForSecondsRealtime(.2f);
+            Require(lobby.View().TouchKeyboard(point,0)&&lobby.EnteredCode=="ZZ","Lifting and pressing again re-arms a physical key");
+            lobby.View().InvokeChoice("clear-code");Require(lobby.View().InvokeChoice("code"),"The large code box focuses desktop typing");
             foreach(char c in "EU-ABC234")InputSystem.QueueTextEvent(Keyboard.current,c);yield return null;
             Require(lobby.EnteredCode=="EU-ABC234","Desktop keyboard text enters the same world-space code field");
-            Require(lobby.InvokeChoice("detect-nearby"),"Large Detect Nearby button opens the picker");
+            Require(lobby.View().InvokeChoice("detect-nearby"),"Large Detect Nearby button opens the picker");
             var app=PhotonAppSettings.Global.AppSettings;string protocol=(app.AppVersion??"")+"/"+lobby.catalog.NetworkVersion;
             using(var nearby=new IslandDiscovery(app.AppIdFusion,protocol,0))
             {Require(room.Discovery.Receive(nearby.EncodePresence("US-ABC234",2),new System.Net.IPEndPoint(System.Net.IPAddress.Loopback,47738),Time.unscaledTime),"Compatible LAN rooms populate the nearby picker");}
             yield return null;Require(lobby.GetComponentsInChildren<UnityEngine.UI.Text>().Any(t=>t.text.Contains("JOIN US-ABC234")),"Nearby result displays its regular Fusion join code");
-            Require(lobby.InvokeChoice("code-instead"),"Nearby picker can return to direct code entry");yield return null;
+            Require(lobby.View().InvokeChoice("code-instead"),"Nearby picker can return to direct code entry");yield return null;
             Capture(lobby,"lobby-three-stations-idle.png",new Vector3(0,3.2f,-7.5f),new Vector3(0,1.25f,.6f));
             Capture(lobby,"lobby-piano-keyboard.png",new Vector3(-3.1f,2.1f,-2.5f),new Vector3(-3.05f,.9f,.1f));
             Capture(lobby,"lobby-resort-overview.png",new Vector3(9,7,-11),new Vector3(0,1.8f,1.1f));
             Capture(lobby,"lobby-resort-arrival.png",new Vector3(0,1.65f,-4.4f),new Vector3(0,2.25f,2.8f));
-            Require(lobby.InvokeChoice("host"),"Become Host is available on the second station");
-            Require(!lobby.JoinStationEnabled&&!lobby.InvokeChoice("key-A")&&!lobby.InvokeChoice("detect-nearby"),"Choosing host immediately deactivates join controls and keyboard");
+            Require(lobby.View().InvokeChoice("host"),"Become Host is available on the second station");
+            Require(!lobby.JoinStationEnabled&&!lobby.View().InvokeChoice("key-A")&&!lobby.View().InvokeChoice("detect-nearby"),"Choosing host immediately deactivates join controls and keyboard");
             yield return Until(()=>!room.Busy,"Host connection completes");Require(room.IsHost,"Real Fusion hosting succeeds: "+room.Status);
             yield return null;
             Require(lobby.SetupStationEnabled&&!lobby.JoinStationEnabled,"Hosting unlocks Map + Mode while keeping Join disabled");
-            Require(lobby.InvokeChoice("invite-all"),"Host can invite nearby players from the host station");
-            Require(lobby.InvokeChoice("mode-placeholder")&&!room.CanLaunch,"Placeholder remains unavailable for launch");lobby.InvokeChoice("mode-demo");
-            int map=room.MapIndex;lobby.InvokeChoice("map-next");lobby.InvokeChoice("map-prev");Require(room.MapIndex==map&&room.CanLaunch,"Compact map arrows and mode selection preserve launch eligibility");
+            Require(lobby.View().InvokeChoice("invite-all"),"Host can invite nearby players from the host station");
+            Require(lobby.View().InvokeChoice("mode-placeholder")&&!room.CanLaunch,"Placeholder remains unavailable for launch");lobby.View().InvokeChoice("mode-demo");
+            int map=room.MapIndex;lobby.View().InvokeChoice("map-next");lobby.View().InvokeChoice("map-prev");Require(room.MapIndex==map&&room.CanLaunch,"Compact map arrows and mode selection preserve launch eligibility");
             Capture(lobby,"lobby-three-stations-hosting.png",new Vector3(0,3.2f,-7.5f),new Vector3(0,1.25f,.6f));
-            Require(lobby.InvokeChoice("abandon-host"),"Abandon Hosting uses the existing clean room-leave flow");yield return Until(()=>!room.Busy&&!room.Connected,"Abandoning hosting closes the Fusion room");yield return null;
+            Require(lobby.View().InvokeChoice("abandon-host"),"Abandon Hosting uses the existing clean room-leave flow");yield return Until(()=>!room.Busy&&!room.Connected,"Abandoning hosting closes the Fusion room");yield return null;
             Require(lobby.JoinStationEnabled&&!lobby.SetupStationEnabled,"Leaving hosting restores Join and locks Map + Mode");
             Require(errors==0,"Lobby stations and input run without errors");
             File.AppendAllText(ProjectPath.Report("LobbyStations.txt"),"COMPLETE: editor contact simulation, native text input, LAN packet receive and real Fusion host/leave. Physical headset touch comfort not tested.\n");
