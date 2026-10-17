@@ -9,19 +9,22 @@ Start scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Lobby.unity
 All team code lives in Assets/_DeadlyJenga/. It is split into boxes.
 Each box has its own assembly definition (DeadlyJenga.<Box>).
 A box may only use boxes at a LOWER level. Never the same level or higher.
+Today every box reaches the others ONLY through Core: World, Characters, Presentation and
+GameSession assemblies reference Core and no other box (DevTools may reference everything).
 
 | Level | Box          | Lanes (subfolders)          | May use                 |
 |-------|--------------|-----------------------------|-------------------------|
 | 0     | Core         | -                           | nothing                 |
 | 1     | World        | Blocks, Maps                | Core                    |
-| 2     | Characters   | Player, Hand, Bots          | Core, World             |
-| 3     | Presentation | Audio, Visuals              | Core, World, Characters |
-| 4     | GameSession  | Session, Modes              | all boxes               |
+| 2     | Characters   | Player, Hand, Bots          | Core                    |
+| 3     | Presentation | Audio, Visuals              | Core                    |
+| 4     | GameSession  | Session, Modes              | Core                    |
 | side  | DevTools     | -                           | all boxes; nothing may use DevTools |
 
 - World: blocks, physics, pull rules, map layouts, island/ocean/sky objects.
 - Characters: player movement/climbing, avatar, flying hand, bots.
-- Presentation: sounds, HUD, materials, textures, shaders, skybox, block art.
+- Presentation: sounds, HUD, every menu (in-game and lobby), materials, textures, shaders,
+  skybox, environment art.
   The game must still play (gray-box) if Presentation is removed.
 - GameSession: lobby, Photon, spawning, round flow, match settings (Session);
   game modes such as classic, teams, disasters (Modes).
@@ -59,17 +62,50 @@ Data (Core/Data):
 - Layers: Survivor, Block, Surface.
 
 Services (Core/Services):
-- Services.Session (ISessionInfo): MenuOpen, SetMenu. Set by GameSession.
-- Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint.
-  Set by the active map.
+- Services.Session (ISessionInfo): menu, role (survivor/hand), Player and Hand (IPlayableCharacter),
+  IsVR, ActiveCamera, CanEditWorld, ResetMap, SurvivorBots/HandBots, Multiplayer. Set by GameSession.
+- Services.Lobby (ILobbyControls): host, join, leave, start/cancel countdown, solo practice,
+  room label, connection status and messages, who can edit (the host), and the shared lobby
+  screen (the host publishes its page and placement; others follow). Set by GameSession
+  (LobbyConnection) while the Lobby scene is open.
+- Services.World (IWorldQuery): WaterHeight, IsSheltered, SafeSpawnPoint,
+  Blocks, Center, TopHeight, Radius, StepHeight. Set by the active map.
+- IRebuildable: Rebuild(). The active map implements it (the reset-castle button).
+- ISyncedWorld: Root, Revision, SaveLayout, LoadLayout, SetReplica. The active map
+  implements it so multiplayer can copy it; networking never names a map class.
+- IMapFootprint: the map's ground outline, for art shaped around it (works in edit mode).
+
+State (Core/State) - read-only views for sound, HUD and bots:
+- IMovementState (walking/climbing characters), IFlyingState (flying hands).
+- IPlayerView: the local player's camera, VR flag and stamina status (for HUDs).
+- Tracked.Movers / Tracked.Flyers: characters add themselves in OnEnable, remove in OnDisable.
+
+Session (Core/Session) - what the session, menus and lobby use:
+- IPlayableCharacter: the local survivor or hand (camera, VR, input pause, Place, status).
+- ISurvivorSettings: comfort/turning, CurrentRules + ApplyMatchRules (VR and stamina values),
+  FitJump, TryStandOn.
+- MatchRules + MatchOptions: rule values and option lists; Characters fills the lists on load.
+- MatchChoices: what the lobby menus chose (rules, population, AI hands, presets);
+  GameSession applies it when Game loads.
+- ILobbyControls: the lobby's connection commands (Services.Lobby).
+- IBotPopulation / ISurvivorBotPopulation + BotSystems.Create: bots without naming bot classes.
+- IMultiplayerControls (state and commands for the menus' multiplayer page),
+  ILocalPlayerInput (lobby Photon input).
+
+Network (Core/Network) - characters pack their own network state:
+- INetworkActor (NetworkKind, NetworkActive, NetworkPosition, WriteState) on local characters;
+  NetworkActors.Local lists them. INetworkActorView = a remote copy (ReadState, Render, Suspend).
+- NetworkActors.Register/CreateView/WriteSpawn: Characters registers one maker per NetworkKinds kind.
+- NetWire: validated read/write helpers. INetworkPreview: joined machines preview their own hand.
 
 Events (Core/Events/GameEvents): BlockHit, Pushed, Damaged, Eliminated,
-EffectStarted, EffectEnded, HazardStarted, HazardEnded, RoundStarted, RoundEnded.
+EffectStarted, EffectEnded, HazardStarted, HazardEnded, Emoted, RoundStarted, RoundEnded,
+SessionStarted (Presentation attaches menus/HUD here).
 Whoever causes something raises it (GameEvents.RaiseX). Whoever cares subscribes
 in OnEnable and unsubscribes in OnDisable/OnDestroy.
 
 Test stand-ins (Core/Testing): TestDummy (implements the character abilities and
-logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
+logs), FakeWorldQuery, FakeSession. Use them to test against something that doesn't exist yet.
 
 ### Changing Core
 - Only ADD. Never rename or change an existing member.
@@ -78,10 +114,23 @@ logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
   there, stop and report the smallest addition (name + signature) that would help.
 - Core holds no gameplay logic.
 
-### Presentation never gets called by gameplay
-- Gameplay code never plays sounds, spawns particles or calls the HUD.
-  It raises GameEvents or exposes read-only values. Presentation listens/reads.
+### Gameplay announces, Presentation shows
+- World, Characters and GameSession never play sounds, spawn particles, call the HUD,
+  or draw any UI (no OnGUI, GUILayout, Canvas, TMP, UnityEngine.UI). Their assemblies
+  don't reference UI packages, so the compiler catches it.
+- They raise GameEvents or expose values and commands through Core. Presentation listens,
+  reads and draws.
+- Core contracts never contain drawing methods. A setting is exposed as a value
+  (e.g. ISurvivorSettings.CurrentRules) and Presentation draws the control for it.
+- Menus are allowed to send the player's requests through Core commands
+  (session.SetRole, Services.Lobby.Host, multiplayer.LeaveSession). Presentation passes
+  on the request; the box that owns the rule decides. That is not gameplay in Presentation.
+- A thing owns its own body: a block or character may set the materials and colors of its
+  own model. Presentation owns everything else that is seen or heard: UI, sound, the
+  environment, and reactions to events.
 - Gameplay prefabs keep art in a child named "Visual". Gameplay never depends on it.
+- Scenes are containers: UI in a scene is a Presentation prefab (e.g. Lobby Menu), and
+  game objects are never nested inside a UI canvas.
 
 ## Working rules
 1. Only change files inside the box and lane named in your task.
@@ -90,8 +139,9 @@ logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
 3. Lower boxes only ADD to what they expose. Never rename or remove a public
    member another box uses unless the task says so.
 4. If a feature you depend on does not exist yet, build against a Core
-   interface and test with a stand-in in your box's Sandbox scene.
-5. Every box must run in its own Sandbox scene with stand-ins for anything above it.
+   interface and test with a stand-in (Core/Testing).
+5. Before merging, Game.unity still plays solo; networking changes also get a
+   two-player Multiplayer Play Mode test.
 
 ## Unity and files
 - Move/rename assets only through the Unity Editor (or Unity MCP asset tools),
@@ -109,7 +159,7 @@ logs), FakeWorldQuery, FakeSession. Use them in Sandbox scenes.
   in Photon's NetworkProjectConfig "Assemblies To Weave" (Characters, GameSession).
 
 ## Unity MCP
-- Edit only prefabs and the Sandbox scene of your task's box.
+- Edit only prefabs of your task's box (and your own scratch scenes).
 - Never save Lobby.unity or Game.unity unless it is a GameSession task.
 - Do not run builder/installer menu commands that regenerate scenes or
   prefabs unless the task asks for it.

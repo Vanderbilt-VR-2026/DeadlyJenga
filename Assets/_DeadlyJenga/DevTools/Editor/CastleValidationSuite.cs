@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.IO;
 using UnityEditor;
@@ -37,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         {
             yield return new WaitForSeconds(2);
             File.WriteAllText(ProjectPath.Report("SpawnValidation.txt"),
-                $"{(session.Player.Grounded && Vector3.Distance(session.Player.transform.position, session.LastSpawnFeet) < .2f ? "PASS" : "FAIL")} Initial spawn stays on top after 2 seconds: actual={session.Player.transform.position}, target={session.LastSpawnFeet}\n");
+                $"{(session.Survivor().Grounded && Vector3.Distance(session.Survivor().transform.position, session.LastSpawnFeet) < .2f ? "PASS" : "FAIL")} Initial spawn stays on top after 2 seconds: actual={session.Survivor().transform.position}, target={session.LastSpawnFeet}\n");
             yield return CastleReferenceValidation.Validate(session);
             yield return CastleTraversalValidation.Validate(session);
             CastlePrototypeBuilder.ValidatePhysics();

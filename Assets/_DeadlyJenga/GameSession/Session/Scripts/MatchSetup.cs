@@ -1,83 +1,37 @@
+using DeadlyJenga.Core;
+
 namespace DeadlyJenga.CastlePrototype
 {
-    // Choices made in the lobby before Game loads. Direct play of Game leaves these unset.
+    // Applies the lobby's choices (Core's MatchChoices, set by the lobby menus) when Game loads.
+    // Direct play of Game leaves FromLobby unset, so nothing is applied.
     public static class MatchSetup
     {
         public static bool FromLobby;
         public static bool StartLocalSession;
-        public static SurvivorVRMovement Movement = SurvivorVRMovement.HeadRelative;
-        public static SurvivorVRTurn Turn = SurvivorVRTurn.Snap;
-        public static float SnapAngle = 30f;
-        public static float SmoothDegrees = 60f;
-        public static float GripSeconds = 4f;
-        public static int BotTarget = 1;
-        public static int SurvivorPreset;
-        public static int HandPreset;
-        public static int HandCount;
-        public static float DrainRate = 1f, RecoveryRate = .65f, RecoveryDelay = .45f;
-        public static float DrainDegree = 2f, RecoveryDegree = 2f;
-        public static StaminaCurve DrainCurve, RecoveryCurve;
-        public static float MasterVolume = .8f, MusicVolume = .22f;
-
-        [System.Serializable]
-        public sealed class StaminaRules
-        {
-            public float capacity, drain, recovery, delay, drainDegree, recoveryDegree;
-            public StaminaCurve drainCurve, recoveryCurve;
-        }
-        public static string CaptureRules(CastleSurvivor player) => UnityEngine.JsonUtility.ToJson(new StaminaRules
-        {
-            capacity = player.climbGripSeconds, drain = player.climbDrainPerSecond,
-            recovery = player.climbRecoveryPerSecond, delay = player.climbRecoveryDelay,
-            drainDegree = player.climbDrainDegree, recoveryDegree = player.climbRecoveryDegree,
-            drainCurve = player.climbDrainCurve, recoveryCurve = player.climbRecoveryCurve
-        });
-        public static void ApplyRules(CastleSurvivor player, string json)
-        {
-            var rules = UnityEngine.JsonUtility.FromJson<StaminaRules>(json);
-            if (rules == null) throw new System.IO.InvalidDataException("Missing host stamina rules");
-            player.climbGripSeconds = UnityEngine.Mathf.Clamp(rules.capacity, .5f, 20);
-            player.climbDrainPerSecond = UnityEngine.Mathf.Clamp(rules.drain, 0, 4);
-            player.climbRecoveryPerSecond = UnityEngine.Mathf.Clamp(rules.recovery, 0, 2);
-            player.climbRecoveryDelay = UnityEngine.Mathf.Clamp(rules.delay, 0, 5);
-            player.climbDrainDegree = UnityEngine.Mathf.Clamp(rules.drainDegree, 1, 6);
-            player.climbRecoveryDegree = UnityEngine.Mathf.Clamp(rules.recoveryDegree, 1, 6);
-            player.climbDrainCurve = rules.drainCurve;
-            player.climbRecoveryCurve = rules.recoveryCurve;
-        }
+        public static MatchRules Rules => MatchChoices.Rules;
+        static int BotTarget => MatchChoices.BotTarget;
 
         public static void Apply(CastlePlaySession session)
         {
             if (!FromLobby || session == null || session.Player == null)
                 return;
 
-            var player = session.Player;
-            player.vrMovement = Movement;
-            player.vrTurn = Turn;
-            player.vrSnapAngle = SnapAngle;
-            player.vrSmoothDegreesPerSecond = SmoothDegrees;
-            player.climbGripSeconds = GripSeconds;
-            player.climbDrainPerSecond = DrainRate;
-            player.climbRecoveryPerSecond = RecoveryRate;
-            player.climbRecoveryDelay = RecoveryDelay;
-            player.climbDrainCurve = DrainCurve;
-            player.climbRecoveryCurve = RecoveryCurve;
-            player.climbDrainDegree = DrainDegree;
-            player.climbRecoveryDegree = RecoveryDegree;
-            if (session.Network != null && !session.Network.CanEditWorld) return;
-            if (session.Bots != null)
+            (session.Player as ISurvivorSettings)?.ApplyMatchRules(Rules);
+            if (!session.CanEditWorld) return;
+            var bots = session.SurvivorBots;
+            var hands = session.HandBots;
+            if (bots != null)
             {
-                session.Bots.targetPopulation = UnityEngine.Mathf.Clamp(BotTarget, 1, 20);
-                session.Bots.SelectPreset(SurvivorPreset);
-
+                bots.TargetPopulation = UnityEngine.Mathf.Clamp(BotTarget, 1, 20);
+                bots.SelectPreset(MatchChoices.SurvivorPreset);
             }
-            if (session.HandBots != null)
+            if (hands != null)
             {
-                session.HandBots.SelectPreset(HandPreset);
-                for (int i = 0; i < UnityEngine.Mathf.Min(HandCount, BotTarget - 1); i++)
-                    session.HandBots.SpawnHand();
+                hands.SelectPreset(MatchChoices.HandPreset);
+                for (int i = 0; i < UnityEngine.Mathf.Min(MatchChoices.HandCount, BotTarget - 1); i++)
+                    hands.SpawnOne();
             }
-            if (session.Bots != null && BotTarget > 1) session.Bots.FillToTarget();
+            if (bots != null && BotTarget > 1) bots.FillToTarget();
         }
     }
 }

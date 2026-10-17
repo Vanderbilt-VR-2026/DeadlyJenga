@@ -1,12 +1,14 @@
 using UnityEngine;
 using UnityEngine.UI;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
     // World-space menu is visible in both eyes; gaze + trigger requires no mouse in VR.
+    // Talks to the session, bots and multiplayer only through Core.
     public sealed class CastleWorldMenu : MonoBehaviour
     {
-        CastlePlaySession session;
+        ISessionInfo session;
         Vector3 openingForward;
         readonly Button[] buttons = new Button[13];
         readonly BoxCollider[] targets = new BoxCollider[13];
@@ -15,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         Text heading,help;
         readonly CandyHudIcon[] icons={CandyHudIcon.Play,CandyHudIcon.Hand,CandyHudIcon.Home,CandyHudIcon.Home,CandyHudIcon.Survivor,CandyHudIcon.Friends,CandyHudIcon.Settings,CandyHudIcon.Survivor,CandyHudIcon.Hand,CandyHudIcon.Settings,CandyHudIcon.Hand,CandyHudIcon.Friends};
         readonly string[] explanations={"Return to the action.","Swap between surviving and flying as a giant hand.","Return to the highest upright block as a survivor.","Restore the castle. Only the host can rebuild.","Add a survivor with the selected personality.","Fill empty survivor slots, including human players.","Choose the personality used by the next survivor.","Remove survivor bots and stop automatic filling.","Add an AI giant hand using the current hand prefab.","Choose the next giant hand's personality.","Remove AI hands; keep the human players.","Find nearby players and manage invitations."};
-        public void Build(CastlePlaySession owner)
+        public void Build(ISessionInfo owner)
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
@@ -54,23 +56,23 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Point(Camera camera, bool pressed)
         {
-            var net=session.Network;
-            var tracking=(session.PlayingHand?session.Hand.gameObject:session.Player.gameObject).GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
-            string select=tracking&&tracking.HasHandTracking?"Look at a button · RIGHT pinch to select":"Look at a button · RIGHT trigger to select";
-            heading.text=networkPage?"MULTIPLAYER\n"+(net?net.Status:"Finding nearby demos..."):"DEADLY JENGA\n"+select;
-            if (networkPage && net && net.IsFusion)
+            var net=session.Multiplayer;
+            var active=session.PlayingHand?session.Hand:session.Player;
+            bool trackedHands=active!=null&&active.HasHandTracking;
+            string select=trackedHands?"Look at a button · RIGHT pinch to select":"Look at a button · RIGHT trigger to select";
+            heading.text=networkPage?"MULTIPLAYER\n"+(net!=null?net.Status:"Finding nearby demos..."):"DEADLY JENGA\n"+select;
+            if (networkPage && net!=null && net.IsFusion)
             {
                 for (int j = 0; j < buttons.Length; j++) buttons[j].gameObject.SetActive(j == 0 || j == 6 || j == 11);
                 labels[0].text = "Resume"; labels[6].text = net.IsClient ? "Leave game" : "Close game for everyone"; labels[11].text = "Back";
                 targets[0].enabled = targets[6].enabled = targets[11].enabled = true;
             }
-            else if(comfortPage)
+            else if(comfortPage&&session.Player is ISurvivorSettings p)
             {
-                var p=session.Player;
-                string[] titles={"Resume","Movement: "+p.vrMovement,"Right stick: "+p.vrTurn,"Snap amount: "+p.vrSnapAngle+"°","Smooth speed: "+p.vrSmoothDegreesPerSecond+"° / sec","Stationary / seated preset","Fluid / head-directed preset","Left stick moves · right stick turns","Physical head turns always look around","Stationary: movement follows rig facing","Fluid: movement follows head direction","Snap is the default comfort option","Back to demo controls"};
+                string[] titles={"Resume","Movement: "+p.MovementLabel,"Right stick: "+p.TurnLabel,"Snap amount: "+p.SnapAngle+"°","Smooth speed: "+p.SmoothTurnSpeed+"° / sec","Stationary / seated preset","Fluid / head-directed preset","Left stick moves · right stick turns","Physical head turns always look around","Stationary: movement follows rig facing","Fluid: movement follows head direction","Snap is the default comfort option","Back to demo controls"};
                 for(int i=0;i<labels.Length;i++){labels[i].text=titles[i];targets[i].enabled=i<7||i==12;}
             }
-            else if(networkPage&&net)
+            else if(networkPage&&net!=null)
             {
                 foreach(var button in buttons)button.gameObject.SetActive(true);
                 string[] titles={"Resume","Nearby: "+net.SelectedName+" (next)","Request to join selected demo","Invite selected demo here","Accept invite / join request","Decline invite / join request","Leave / end local session",net.PendingLabel,net.IsClient?"Connected to host":"Hosting · "+net.HumanCount+" humans","Open this page on both headsets","No restart needed to join","Back to demo controls"};
@@ -80,10 +82,10 @@ namespace DeadlyJenga.CastlePrototype
             else
             {
                 labels[0].text="Resume";labels[1].text="Switch survivor / flying hand";labels[2].text="Respawn on top";labels[3].text="Rebuild castle (host)";
-                labels[11].text=net&&net.IsFusion?"Multiplayer / leave":"Same-Wi-Fi invites"+(net&&net.HasPending?" · NEW":"");
+                labels[11].text=net!=null&&net.IsFusion?"Multiplayer / leave":"Same-Wi-Fi invites"+(net!=null&&net.HasPending?" · NEW":"");
                 for(int i=0;i<buttons.Length;i++)
                 {
-                    bool shown=i<4||(i==11&&net);
+                    bool shown=i<4||(i==11&&net!=null);
                     buttons[i].gameObject.SetActive(shown);
                     if(shown)targets[i].enabled=true;
                 }
@@ -104,11 +106,11 @@ namespace DeadlyJenga.CastlePrototype
                 if(i==12){comfortPage=false;networkPage=false;break;}
                 if(comfortPage)
                 {
-                    var p=session.Player;
-                    if(i==0)session.SetMenu(false);if(i==1)p.CycleVRMovement();if(i==2)p.CycleVRTurn();
-                    if(i==3)p.vrSnapAngle=p.vrSnapAngle<30?30:p.vrSnapAngle<45?45:p.vrSnapAngle<60?60:15;
-                    if(i==4)p.vrSmoothDegreesPerSecond=p.vrSmoothDegreesPerSecond<60?60:p.vrSmoothDegreesPerSecond<90?90:45;
-                    if(i==5)p.UseStationaryVR();if(i==6)p.UseFluidVR();break;
+                    var p=session.Player as ISurvivorSettings;
+                    if(i==0)session.SetMenu(false);if(i==1)p?.CycleMovement();if(i==2)p?.CycleTurn();
+                    if(i==3)p?.CycleSnapAngle();
+                    if(i==4)p?.CycleSmoothTurnSpeed();
+                    if(i==5)p?.UseStationaryPreset();if(i==6)p?.UseFluidPreset();break;
                 }
                 if(i==11){networkPage=!networkPage;break;}
                 if(networkPage)
@@ -122,21 +124,21 @@ namespace DeadlyJenga.CastlePrototype
                     if(i==6)net.LeaveSession();
                     break;
                 }
-                if(i>=3&&net&&!net.CanEditWorld)break;
+                if(i>=3&&!session.CanEditWorld)break;
                 if (i == 1) session.SetRole(!session.PlayingHand);
                 if (i == 2) session.SetRole(false);
-                if (i == 3) session.ResetCastle();
-                if (i == 4) session.Bots.SpawnBot();
-                if (i == 5) session.Bots.FillToTarget();
-                if (i == 6) session.Bots.CyclePersonality();
-                if (i == 7) session.Bots.ClearBots();
-                if (i == 8) session.HandBots.SpawnHand();
-                if (i == 9) session.HandBots.CyclePersonality();
-                if (i == 10) session.HandBots.ClearHands();
+                if (i == 3) session.ResetMap();
+                if (i == 4) session.SurvivorBots?.SpawnOne();
+                if (i == 5) session.SurvivorBots?.FillToTarget();
+                if (i == 6) session.SurvivorBots?.CyclePersonality();
+                if (i == 7) session.SurvivorBots?.Clear();
+                if (i == 8) session.HandBots?.SpawnOne();
+                if (i == 9) session.HandBots?.CyclePersonality();
+                if (i == 10) session.HandBots?.Clear();
                 if(i>=4)break;
                 session.SetMenu(false); break;
             }
-            if(!pointed)help.text="LOOK to highlight · "+(tracking&&tracking.HasHandTracking?"RIGHT pinch selects\nLeft thumb + middle opens / closes":"RIGHT trigger selects\nY · LEFT opens / closes");
+            if(!pointed)help.text="LOOK to highlight · "+(trackedHands?"RIGHT pinch selects\nLeft thumb + middle opens / closes":"RIGHT trigger selects\nY · LEFT opens / closes");
         }
     }
 }

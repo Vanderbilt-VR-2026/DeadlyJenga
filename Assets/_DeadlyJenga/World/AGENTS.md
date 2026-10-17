@@ -20,9 +20,6 @@ The place you play in. May use: Core only.
 - Raise GameEvents.HazardStarted/HazardEnded from hazards so Presentation can react.
 - New effect or hazard kinds are new EffectType / HazardType assets.
 
-## Sandbox
-World/Sandbox.unity: a small castle and a few TestDummy capsules.
-
 ## Next up
 - Implement IGrabbable on CastleBlock (port weight, cooldown and last-in-layer
   lock from _Legacy/TOWER), then hands use it.

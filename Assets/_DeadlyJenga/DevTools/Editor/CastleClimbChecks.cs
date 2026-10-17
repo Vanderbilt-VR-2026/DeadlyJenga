@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             foreach(var camera in motor.GetComponentsInChildren<Camera>(true))camera.enabled=false;
             foreach(var listener in motor.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;
             staging.SetActive(true);motor.RefreshMode();
-            var block=Object.Instantiate(session.generator.blockPrefab).GetComponent<CastleBlock>();
+            var block=Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab).GetComponent<CastleBlock>();
             var body=block.GetComponent<Rigidbody>();body.useGravity=false;body.isKinematic=true;
             const float dt=1f/60;
             void Assert(bool ok,string text){lines.Add((ok?"PASS ":"FAIL ")+text);File.WriteAllLines("ArtDirection/ClimbChecks.txt",lines);}
@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Tick(Vector2.zero,true,90);Assert(!motor.Climbing&&motor.GripRemaining<.01f,"Holding through exhaustion cannot relatch or recharge in air.");
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.position=new Vector3(120,motor.transform.position.y-1,0);floor.transform.localScale=new Vector3(20,.5f,20);
             Tick(Vector2.zero,false,140);Assert(motor.Grounded&&motor.GripRemaining>.7f,"Secure footing restores exhausted grip after a short rest.");Object.DestroyImmediate(floor);
-            Setup();var next=Object.Instantiate(session.generator.blockPrefab).GetComponent<CastleBlock>();next.GetComponent<Rigidbody>().isKinematic=true;next.transform.SetPositionAndRotation(new Vector3(126,45,2),Quaternion.identity);next.transform.localScale=new Vector3(6,10,2);next.SyncSurface();
+            Setup();var next=Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab).GetComponent<CastleBlock>();next.GetComponent<Rigidbody>().isKinematic=true;next.transform.SetPositionAndRotation(new Vector3(126,45,2),Quaternion.identity);next.transform.localScale=new Vector3(6,10,2);next.SyncSurface();
             motor.Teleport(new Vector3(122.7f,42,.82f),Quaternion.identity);Tick(Vector2.zero,true,15);spent=motor.GripRemaining;Tick(Vector2.right,true,35);
             Assert(motor.Climbing&&motor.transform.position.x>123.3f&&motor.GripRemaining<spent,"Climbing crosses adjacent crate seams without refilling grip.");Object.DestroyImmediate(next.gameObject);
             Setup();Tick(Vector2.zero,true,15);start=motor.transform.position;

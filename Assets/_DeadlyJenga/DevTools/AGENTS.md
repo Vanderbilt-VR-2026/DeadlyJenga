@@ -5,6 +5,7 @@ Never included in gameplay logic.
 
 ## Contents
 - Scripts/CastleTestControls: runtime test controls.
+- Scripts/CandyHandLab + Scenes/CandyHandContactLab: one-block bench for the physical hand.
 - Editor/: validation suites (input, traversal, climbing, stamina, VR view...),
   CastlePrototypeBuilder and CastlePlayBuilder.
 

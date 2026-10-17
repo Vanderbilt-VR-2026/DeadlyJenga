@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using System.Text;
 using UnityEngine;
-using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -16,15 +16,14 @@ namespace DeadlyJenga.CastlePrototype
             public Quaternion rotation;
             public Pose(Vector3 p, Quaternion q) { position = p; rotation = q; }
         }
+        // One character in a snapshot. Its state bytes are written and read by the character itself
+        // (through Core's INetworkActor); networking never looks inside them.
         public sealed class Actor
         {
-            public string id;
-            public bool hand, active = true, left;
-            public int color;
-            public float size;
-            public CandyAvatarFrame avatar;
-            public CandyHandPose target;
-            public Pose[] bones = Array.Empty<Pose>();
+            public string id, kind;
+            public bool active = true;
+            public byte[] state = Array.Empty<byte>();
+            public Vector3 position;   // not sent; kept to space out join spawns
         }
         public sealed class Snapshot
         {
@@ -48,80 +47,48 @@ namespace DeadlyJenga.CastlePrototype
             if (reader.ReadByte() != expected) { reader.Dispose(); throw new InvalidDataException("Unexpected LAN message"); }
             return reader;
         }
-        public static int Count(BinaryReader r, int max)
-        {
-            int count = r.ReadInt32();
-            if (count < 0 || count > max) throw new InvalidDataException("Invalid LAN object count");
-            return count;
-        }
+        // Numbers, vectors, rotations and poses use Core's NetWire, the same validated format characters use.
+        public static int Count(BinaryReader r, int max) => NetWire.ReadCount(r, max);
         public static string Text(BinaryReader r, int max = 256)
         {
             string s = r.ReadString();
             if (s.Length > max) throw new InvalidDataException("LAN text too long");
             return s;
         }
-        static float Number(BinaryReader r)
-        {
-            float f = r.ReadSingle();
-            if (float.IsNaN(f) || float.IsInfinity(f) || Mathf.Abs(f) > 1000000) throw new InvalidDataException("Invalid LAN coordinate");
-            return f;
-        }
-        public static void Write(BinaryWriter w, Vector3 p) { w.Write(p.x); w.Write(p.y); w.Write(p.z); }
-        public static Vector3 Vector(BinaryReader r) => new Vector3(Number(r), Number(r), Number(r));
-        public static void Write(BinaryWriter w, Quaternion q) { w.Write(q.x); w.Write(q.y); w.Write(q.z); w.Write(q.w); }
-        public static Quaternion Rotation(BinaryReader r)
-        {
-            var q = new Quaternion(Number(r), Number(r), Number(r), Number(r));
-            float length = q.x*q.x + q.y*q.y + q.z*q.z + q.w*q.w;
-            if (length < .01f || length > 4) throw new InvalidDataException("Invalid LAN rotation");
-            return q.normalized;
-        }
+        public static void Write(BinaryWriter w, Vector3 p) => NetWire.Write(w, p);
+        public static Vector3 Vector(BinaryReader r) => NetWire.ReadVector(r);
+        public static void Write(BinaryWriter w, Quaternion q) => NetWire.Write(w, q);
+        public static Quaternion Rotation(BinaryReader r) => NetWire.ReadRotation(r);
         public static void Write(BinaryWriter w, Pose p) { Write(w, p.position); Write(w, p.rotation); }
         public static Pose ReadPose(BinaryReader r) => new Pose(Vector(r), Rotation(r));
-        static void Write(BinaryWriter w, CandyHandPose p)
-        {
-            w.Write(p.tracked); w.Write(p.skeletonTracked); Write(w, p.position); Write(w, p.rotation);
-            for (int i = 0; i < 20; i++) Write(w, p.skeleton.Joint(i));
-        }
-        static CandyHandPose Hand(BinaryReader r)
-        {
-            var p = new CandyHandPose { tracked = r.ReadBoolean(), skeletonTracked = r.ReadBoolean(), position = Vector(r), rotation = Rotation(r) };
-            for (int i = 0; i < 20; i++) p.skeleton.SetJoint(i, Vector(r));
-            return p;
-        }
         public static void Write(BinaryWriter w, Actor a)
         {
-            w.Write(a.id); w.Write(a.hand); w.Write(a.active); w.Write(a.color);
-            if (a.hand)
-            {
-                w.Write(a.left); w.Write(a.size); Write(w, a.target); w.Write(a.bones.Length);
-                foreach (var p in a.bones) Write(w, p);
-            }
-            else
-            {
-                var f = a.avatar;
-                Write(w, f.feet); Write(w, f.head); Write(w, f.headRotation); w.Write(f.scale);
-                Write(w, f.left); Write(w, f.right);
-            }
+            w.Write(a.id); w.Write(a.kind); w.Write(a.active); w.Write(a.state.Length); w.Write(a.state);
         }
         public static Actor ReadActor(BinaryReader r)
         {
-            var a = new Actor { id = Text(r), hand = r.ReadBoolean(), active = r.ReadBoolean(), color = r.ReadInt32() };
-            if (a.hand)
-            {
-                a.left = r.ReadBoolean(); a.size = Number(r);
-                if (a.size < .1f || a.size > 100) throw new InvalidDataException("Invalid hand size");
-                a.target = Hand(r); a.bones = new Pose[Count(r, 16)];
-                if (a.bones.Length != 0 && a.bones.Length != 16) throw new InvalidDataException("Invalid hand bones");
-                for (int i = 0; i < a.bones.Length; i++) a.bones[i] = ReadPose(r);
-            }
-            else
-            {
-                a.avatar = new CandyAvatarFrame { feet = Vector(r), head = Vector(r), headRotation = Rotation(r), scale = Number(r), left = Hand(r), right = Hand(r) };
-                if (a.avatar.scale < .1f || a.avatar.scale > 2) throw new InvalidDataException("Invalid avatar scale");
-            }
+            var a = new Actor { id = Text(r), kind = Text(r, 32), active = r.ReadBoolean() };
+            int length = Count(r, 65536);
+            a.state = r.ReadBytes(length);
+            if (a.state.Length != length) throw new InvalidDataException("Truncated actor state");
             return a;
         }
+        // Packs a character (or a remote copy) through Core.
+        public static Actor Capture(string id, INetworkActor source)
+        {
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream, Encoding.UTF8, true)) source.WriteState(writer);
+            return new Actor { id = id, kind = source.NetworkKind, active = source.NetworkActive, state = stream.ToArray(), position = source.NetworkPosition };
+        }
+        // Starting state for someone who just joined.
+        public static Actor Spawn(string id, string kind, Pose spawn, NetworkContext context)
+        {
+            using var stream = new MemoryStream();
+            using (var writer = new BinaryWriter(stream, Encoding.UTF8, true))
+                NetworkActors.WriteSpawn(kind, writer, new UnityEngine.Pose(spawn.position, spawn.rotation), context);
+            return new Actor { id = id, kind = kind, state = stream.ToArray(), position = spawn.position };
+        }
+        public static BinaryReader StateReader(Actor a) => new BinaryReader(new MemoryStream(a.state, false), Encoding.UTF8);
         public static byte[] EncodeWorld(Snapshot s) => Encode(World, w =>
         {
             w.Write(s.revision); w.Write(s.settings); Write(w, s.origin); Write(w, s.originScale);

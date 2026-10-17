@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.IO;
 using System.Linq;
@@ -20,21 +21,21 @@ namespace DeadlyJenga.CastlePrototype.Editor
         {
             var report = new StringBuilder();
             void Check(string label, bool pass, string detail = "") => report.AppendLine((pass ? "PASS " : "FAIL ") + label + " " + detail);
-            var settings = session.generator.settings;
+            var settings = Object.FindAnyObjectByType<CastleGenerator>().settings;
             var layout = CastleLayout.Build(settings);
             var keep = layout.Where(p => p.Section == CastleSection.Keep).ToArray();
-            Check("568 identical crates", layout.Count == 568 && session.generator.Bodies.All(b => b.transform.localScale == new Vector3(6, 2, 2)));
+            Check("568 identical crates", layout.Count == 568 && Object.FindAnyObjectByType<CastleGenerator>().Bodies.All(b => b.transform.localScale == new Vector3(6, 2, 2)));
             Check("Four crates on every keep layer", keep.GroupBy(p => p.Course).All(g => g.Count() == 4));
             Check("Keep alternates 0/45 degrees without accumulated twist", keep.All(p =>
                 Mathf.Abs(Mathf.DeltaAngle(p.Rotation.eulerAngles.y % 90, (p.Course % 2) * 45)) < .01f));
             Check("Keep repeats positions after two layers", keep.Where(p => p.Course >= 2).All(p => keep.Any(q =>
                 q.Course == p.Course - 2 && Vector3.Distance(p.Position - Vector3.up * 4, q.Position) < .001f)));
-            Check("Crate height exceeds player", settings.blockSize.y == 2 && session.Player.Capsule.height < 2);
+            Check("Crate height exceeds player", settings.blockSize.y == 2 && session.Survivor().Capsule.height < 2);
 
             var fixture = new GameObject("Reference interaction validation");
-            var motor = Object.Instantiate(session.survivorPrefab, fixture.transform);
+            var motor = Object.Instantiate(session.survivorPrefab, fixture.transform).GetComponent<CastleSurvivor>();
             motor.enabled = false; motor.viewCamera.gameObject.SetActive(false); motor.RefreshMode();
-            var crate = Object.Instantiate(session.generator.blockPrefab, fixture.transform);
+            var crate = Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab, fixture.transform);
             crate.transform.position = new Vector3(180, 11, 180); crate.transform.localScale = settings.blockSize;
             var block = crate.GetComponent<CastleBlock>(); var rb = crate.GetComponent<Rigidbody>();
             rb.position = new Vector3(180, 11, 180); rb.rotation = Quaternion.identity;

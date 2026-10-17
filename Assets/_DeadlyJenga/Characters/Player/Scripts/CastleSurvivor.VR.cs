@@ -54,13 +54,5 @@ namespace DeadlyJenga.CastlePrototype
         public void UseFluidVR(){vrMovement=SurvivorVRMovement.HeadRelative;vrTurn=SurvivorVRTurn.Smooth;turnReady=false;}
         public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;}
         public void CycleVRMovement(){vrMovement=vrMovement==SurvivorVRMovement.HeadRelative?SurvivorVRMovement.BodyRelative:SurvivorVRMovement.HeadRelative;}
-        public void DrawVRSettings()
-        {
-            GUILayout.Label("VR looking always follows your headset. Left stick moves; right stick turns.");
-            GUILayout.BeginHorizontal();if(GUILayout.Button("Stationary / seated"))UseStationaryVR();if(GUILayout.Button("Fluid / head-directed"))UseFluidVR();GUILayout.EndHorizontal();
-            if(GUILayout.Button("Movement: "+vrMovement))CycleVRMovement();if(GUILayout.Button("Right-stick turn: "+vrTurn))CycleVRTurn();
-            GUILayout.Label("Snap: "+vrSnapAngle.ToString("0")+"°");vrSnapAngle=GUILayout.HorizontalSlider(vrSnapAngle,15,90);
-            GUILayout.Label("Smooth: "+vrSmoothDegreesPerSecond.ToString("0")+"° / sec");vrSmoothDegreesPerSecond=GUILayout.HorizontalSlider(vrSmoothDegreesPerSecond,15,180);
-        }
     }
 }

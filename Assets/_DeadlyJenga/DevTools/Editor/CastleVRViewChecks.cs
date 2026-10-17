@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -38,7 +39,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             settings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;InputSystem.settings=settings;
             var hmd=InputSystem.AddDevice<XRHMD>("Survivor head pose regression HMD");
             var staging=new GameObject("Isolated VR view checks");staging.SetActive(false);
-            var p=Object.Instantiate(session.survivorPrefab,staging.transform);p.enabled=false;p.controlMode=ControlMode.VR;
+            var p=Object.Instantiate(session.survivorPrefab,staging.transform).GetComponent<CastleSurvivor>();p.enabled=false;p.controlMode=ControlMode.VR;
             foreach(var camera in p.GetComponentsInChildren<Camera>(true))camera.enabled=false;
             foreach(var listener in p.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;
             staging.SetActive(true);p.RefreshMode();p.InputSuspended=false;
@@ -88,14 +89,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);menu.Show(true,p.viewCamera);
                 var buttons=menu.GetComponentsInChildren<UnityEngine.UI.Button>(true);
                 Assert(buttons.Length==13,"Headset demo menu includes its movement/turning settings entry.");
-                var savedMove=session.Player.vrMovement;var savedTurn=session.Player.vrTurn;
+                var savedMove=session.Survivor().vrMovement;var savedTurn=session.Survivor().vrTurn;
                 p.viewCamera.transform.LookAt(buttons[12].transform);menu.Point(p.viewCamera,true);menu.Point(p.viewCamera,false);
                 Assert(buttons[1].GetComponentInChildren<UnityEngine.UI.Text>().text.StartsWith("Movement:"),"Gaze selection opens the actual VR comfort page.");
                 p.viewCamera.transform.LookAt(buttons[5].transform);menu.Point(p.viewCamera,true);
-                Assert(session.Player.vrMovement==SurvivorVRMovement.BodyRelative&&session.Player.vrTurn==SurvivorVRTurn.Snap,"Headset menu stationary preset changes the live local survivor.");
+                Assert(session.Survivor().vrMovement==SurvivorVRMovement.BodyRelative&&session.Survivor().vrTurn==SurvivorVRTurn.Snap,"Headset menu stationary preset changes the live local survivor.");
                 p.viewCamera.transform.LookAt(buttons[6].transform);menu.Point(p.viewCamera,true);
-                Assert(session.Player.vrMovement==SurvivorVRMovement.HeadRelative&&session.Player.vrTurn==SurvivorVRTurn.Smooth,"Headset menu fluid preset changes the live local survivor.");
-                session.Player.vrMovement=savedMove;session.Player.vrTurn=savedTurn;menu.Show(false,p.viewCamera);
+                Assert(session.Survivor().vrMovement==SurvivorVRMovement.HeadRelative&&session.Survivor().vrTurn==SurvivorVRTurn.Smooth,"Headset menu fluid preset changes the live local survivor.");
+                session.Survivor().vrMovement=savedMove;session.Survivor().vrTurn=savedTurn;menu.Show(false,p.viewCamera);
                 Assert(Physics.GetIgnoreLayerCollision(CastleBlock.SurvivorLayer,CastleBlock.BlockLayer),"VR changes preserve player/block physics isolation.");
             }
             finally

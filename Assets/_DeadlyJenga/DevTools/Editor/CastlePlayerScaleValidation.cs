@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.IO;
 using System.Text;
@@ -43,7 +44,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             // Isolate initial spawn from physical keyboard/mouse input while the tester waits.
             session.SetRole(false);session.SetMenu(true);
             yield return new WaitForSeconds(2);
-            var p=session.Player;p.RefreshMode();
+            var p=session.Survivor();p.RefreshMode();
             var report=new StringBuilder();
             void Check(string label,bool ok)=>report.AppendLine((ok?"PASS ":"FAIL ")+label);
             Check("Half-size body height in actual player loop",Mathf.Abs(p.Capsule.height-.85f)<.001f);

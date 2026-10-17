@@ -4,10 +4,11 @@ using UnityEngine;
 using UnityEngine.InputSystem.XR;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CandyPhysicsHands;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
-    public sealed class CastleHandBotPopulation:MonoBehaviour
+    public sealed class CastleHandBotPopulation:MonoBehaviour, IBotPopulation
     {
         public BotWorld Session {get;private set;}
         [Range(1,20)]public int maximumHands=9;
@@ -52,6 +53,12 @@ namespace DeadlyJenga.CastleBots
             float radius=Session.world.Radius+8;
             brain.Bridge.ResetExternalRig();brain.Actor.Place(Session.world.Center+outward*radius+Vector3.up*(y-Session.world.Center.y),Quaternion.LookRotation(-outward));brain.Restart();
         }
+        // IBotPopulation (Count, Status, SelectedName, CyclePersonality, SelectPreset are public members of this class)
+        int IBotPopulation.Capacity => maximumHands;
+        public bool Running { get => enabled; set => enabled = value; }
+        void IBotPopulation.SpawnOne() => SpawnHand();
+        void IBotPopulation.Clear() => ClearHands();
+        void IBotPopulation.MapRebuilt() => CastleRebuilt();
         public void ClearHands()
         {
             foreach(var hand in hands)if(hand){hand.gameObject.SetActive(false);Destroy(hand.gameObject);}

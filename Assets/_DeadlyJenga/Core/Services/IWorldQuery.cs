@@ -15,5 +15,6 @@ namespace DeadlyJenga.Core
         Vector3 Center { get; }
         float TopHeight { get; }
         float Radius { get; }
+        float StepHeight { get; }   // height of one level (one block), for tuning jumps
     }
 }

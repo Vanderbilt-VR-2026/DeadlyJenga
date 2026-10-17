@@ -23,6 +23,45 @@ namespace Fusion {
   [ScriptHelp(BackColor = ScriptHeaderBackColor.Steel)]
   public class FusionBootstrap : Fusion.Behaviour {
 
+    // Survives the bootstrap's scene reset so failures remain visible in the lobby.
+    public static string ConnectionMessage { get; private set; } = "";
+    public static bool ConnectionError { get; private set; }
+    public bool ConnectionBusy => CurrentStage != Stage.Disconnected && CurrentStage != Stage.AllConnected;
+    bool resetting;
+    public static bool LeavingIntentionally { get; private set; }
+    public static void MarkIntentionalLeave() {
+      LeavingIntentionally = true;
+      SetConnectionMessage("You left the room.");
+    }
+
+    public static void SetConnectionMessage(string message, bool error = false) {
+      ConnectionMessage = message;
+      ConnectionError = error;
+    }
+
+    public static string DescribeFailure(ShutdownReason reason) {
+      switch (reason) {
+        case ShutdownReason.GameNotFound: return "Room not found. Check the code and ask the host if the room is still open.";
+        case ShutdownReason.GameIsFull: return "That room is full. Ask the host to free a space.";
+        case ShutdownReason.GameClosed: return "That room is closed. Ask the host to open a new room.";
+        case ShutdownReason.ConnectionTimeout:
+        case ShutdownReason.PhotonCloudTimeout:
+        case ShutdownReason.OperationTimeout:
+        case ShutdownReason.OperationCanceled: return "Connection timed out. Check your internet connection and try again.";
+        case ShutdownReason.ConnectionRefused: return "The connection was refused. Check the code and try again.";
+        case ShutdownReason.InvalidAuthentication:
+        case ShutdownReason.CustomAuthenticationFailed:
+        case ShutdownReason.AuthenticationTicketExpired: return "The multiplayer service could not authenticate this game. Check the Photon configuration.";
+        case ShutdownReason.InvalidRegion: return "The multiplayer region is unavailable. Check the Photon region settings.";
+        case ShutdownReason.MaxCcuReached: return "The multiplayer service is at capacity. Try again later.";
+        case ShutdownReason.IncompatibleConfiguration: return "Game versions do not match. Everyone needs the same build.";
+        case ShutdownReason.GameIdAlreadyExists:
+        case ShutdownReason.ServerInRoom: return "That room code is already in use. Press Host again for a new code.";
+        case ShutdownReason.DisconnectedByPluginLogic: return "You were disconnected from the room. Ask the host to rejoin.";
+        default: return "Connection lost or unavailable. Check your internet connection and try again.";
+      }
+    }
+
     /// <summary>
     /// Selection for how <see cref="FusionBootstrap"/> will behave at startup.
     /// </summary>
@@ -333,6 +372,8 @@ namespace Fusion {
     public virtual void StartHost() {
       if (TryGetSceneRef(out var sceneRef)) {
         StartCoroutine(StartWithClients(GameMode.Host, sceneRef, 0));
+      } else {
+        SetConnectionMessage("Cannot host: enable the Lobby scene in Build Settings.", true);
       }
     }
 
@@ -454,6 +495,8 @@ namespace Fusion {
     }
 
     public void ShutdownAll() {
+      if (resetting) return;
+      resetting = true;
       foreach (var runner in NetworkRunner.Instances.ToList()) {
         if (runner != null && runner.IsRunning) {
           runner.Shutdown();
@@ -482,12 +525,16 @@ namespace Fusion {
         yield break;
       }
 
+      LeavingIntentionally = false;
+      SetConnectionMessage(serverMode == GameMode.Client ? "Joining room…" : "Creating room…");
       CurrentStage = Stage.StartingUp;
 
       var currentScene = SceneManager.GetActiveScene();
 
       // must have a runner
       if (!RunnerPrefab) {
+        SetConnectionMessage("Multiplayer is not configured: the network runner is missing.", true);
+        CurrentStage = Stage.Disconnected;
         Debug.LogError($"{nameof(RunnerPrefab)} not set, can't perform debug start.");
         yield break;
       }
@@ -640,14 +687,17 @@ namespace Fusion {
         yield return new WaitForSeconds(1f);
       }
 
-      if (clientsStartTask.IsFaulted) {
+      if (clientsStartTask.IsFaulted || clientsStartTask.IsCanceled) {
         Debug.LogWarning(clientsStartTask.Exception);
+        ShutdownAll();
+        yield break;
       }
 
       CurrentStage = Stage.AllConnected;
+      SetConnectionMessage("Connected to room " + DefaultRoomName + ".");
     }
 
-    protected virtual Task InitializeNetworkRunner(NetworkRunner runner, GameMode gameMode, NetAddress address, SceneRef scene, Action<NetworkRunner> onGameStarted, 
+    protected virtual async Task InitializeNetworkRunner(NetworkRunner runner, GameMode gameMode, NetAddress address, SceneRef scene, Action<NetworkRunner> onGameStarted,
       INetworkRunnerUpdater updater = null) {
 
       var sceneManager = runner.GetComponent<INetworkSceneManager>();
@@ -667,16 +717,38 @@ namespace Fusion {
         sceneInfo.AddSceneRef(scene, LoadSceneMode.Additive);
       }
 
-      return runner.StartGame(new StartGameArgs {
-        GameMode       = gameMode,
-        Address        = address,
-        Scene          = sceneInfo,
-        SessionName    = DefaultRoomName,
-        OnGameStarted    = onGameStarted,
-        SceneManager   = sceneManager,
-        Updater        = updater,
-        ObjectProvider = objectProvider,
-      });
+      var notifications = new NetworkDelegates();
+      notifications.OnShutdown = (_, reason) => {
+        if (resetting || CurrentStage != Stage.AllConnected) return;
+        if (!LeavingIntentionally && !ConnectionError) SetConnectionMessage(DescribeFailure(reason), true);
+        ShutdownAll();
+      };
+      runner.AddCallbacks(notifications);
+      using var timeout = new System.Threading.CancellationTokenSource(TimeSpan.FromSeconds(30));
+      try {
+        var result = await runner.StartGame(new StartGameArgs {
+          GameMode       = gameMode,
+          EnableClientSessionCreation = gameMode == GameMode.Client ? false : (bool?)null,
+          StartGameCancellationToken = timeout.Token,
+          Address        = address,
+          Scene          = sceneInfo,
+          SessionName    = DefaultRoomName,
+          OnGameStarted    = onGameStarted,
+          SceneManager   = sceneManager,
+          Updater        = updater,
+          ObjectProvider = objectProvider,
+        });
+        if (!result.Ok) {
+          SetConnectionMessage(DescribeFailure(result.ShutdownReason), true);
+          throw new InvalidOperationException("Multiplayer startup failed: " + result.ShutdownReason);
+        }
+      } catch (Exception error) {
+        if (!ConnectionError) SetConnectionMessage(timeout.IsCancellationRequested
+          ? DescribeFailure(ShutdownReason.ConnectionTimeout)
+          : "Unable to connect to multiplayer. Check your internet connection and try again.", true);
+        Debug.LogException(error);
+        throw;
+      }
     }
     
     private static bool IsMPPMEnabled => FusionMppm.Status != FusionMppmStatus.Disabled;

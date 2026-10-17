@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -25,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var blocks=new List<CastleBlock>();
             CastleBlock Block(Vector3 p,Quaternion r,Vector3 size)
             {
-                var b=Object.Instantiate(session.generator.blockPrefab).GetComponent<CastleBlock>();b.GetComponent<Rigidbody>().isKinematic=true;b.transform.SetPositionAndRotation(p,r);b.transform.localScale=size;b.SyncSurface();blocks.Add(b);return b;
+                var b=Object.Instantiate(Object.FindAnyObjectByType<CastleGenerator>().blockPrefab).GetComponent<CastleBlock>();b.GetComponent<Rigidbody>().isKinematic=true;b.transform.SetPositionAndRotation(p,r);b.transform.localScale=size;b.SyncSurface();blocks.Add(b);return b;
             }
             void Clear(){foreach(var b in blocks)Object.DestroyImmediate(b.gameObject);blocks.Clear();}
             void Tick(Vector2 input,int n){for(int i=0;i<n;i++)motor.Simulate(input,false,dt,true);}
@@ -36,7 +37,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Assert(gap<.2f?motor.Climbing&&motor.transform.position.x>123+gap:!motor.Climbing||motor.transform.position.x<123.2f,"Horizontal seam "+gap+"m "+(gap<.2f?"crosses":"cannot cross with cling alone")+" (position "+motor.transform.position+", normal "+motor.ClimbNormal+").");Clear();
             }
             // Actual layout coordinates, dimensions and alternating 45-degree courses.
-            var settings=session.generator.settings;var layout=CastleLayout.Build(settings);var origin=new Vector3(120,40,0);
+            var settings=Object.FindAnyObjectByType<CastleGenerator>().settings;var layout=CastleLayout.Build(settings);var origin=new Vector3(120,40,0);
             foreach(var p in layout)if(p.Section==CastleSection.Keep&&p.Course<3)Block(origin+p.Position,p.Rotation,settings.blockSize);
             float radius=(settings.blockSize.x-settings.blockSize.z*.4f)*.5f/Mathf.Tan(Mathf.PI/8);
             for(int side=0;side<4;side++)
@@ -69,9 +70,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
             // deliberately suspending hand construction. Isolate this wiring check from
             // desktop focus/menu policy rather than interpreting that as broken wiring.
             session.SetRole(true);session.SetMenu(false);bool sessionEnabled=session.enabled;session.enabled=false;
-            for(int frame=0;frame<35;frame++){session.Hand.motor.InputSuspended=false;yield return null;}
-            var bridge=session.Hand.GetComponent<CandyFlyingHandBridge>();
-            Assert(bridge.PhysicalHand&&session.Hand.follow.positionTarget==bridge.PhysicalHand.visualBones[0]&&session.Hand.follow.compactHandView,"Real demo wires observer position to current physical palm and compact framing.");
+            for(int frame=0;frame<35;frame++){session.HandActor().motor.InputSuspended=false;yield return null;}
+            var bridge=session.HandActor().GetComponent<CandyFlyingHandBridge>();
+            Assert(bridge.PhysicalHand&&session.HandActor().follow.positionTarget==bridge.PhysicalHand.visualBones[0]&&session.HandActor().follow.compactHandView,"Real demo wires observer position to current physical palm and compact framing.");
             session.enabled=sessionEnabled;session.SetMenu(true);Debug.Log(string.Join("\n",lines));yield return CastleClimbChecks.Check();
         }
     }

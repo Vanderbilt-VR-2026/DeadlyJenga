@@ -1,3 +1,4 @@
+using DeadlyJenga.DevTools.Editor;
 using System.Collections;
 using System.IO;
 using System.Text;
@@ -73,7 +74,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             try
             {
                 session.SendMessage("OnApplicationFocus", true); session.SetRole(false); session.SetMenu(false);
-                var p = session.Player; p.Teleport(new Vector3(100, 10.04f, 96), Quaternion.identity); Physics.SyncTransforms();
+                var p = session.Survivor(); p.Teleport(new Vector3(100, 10.04f, 96), Quaternion.identity); Physics.SyncTransforms();
                 yield return new WaitForSeconds(.2f);
                 Check("Input-only HMD keeps desktop mode", !p.IsVR);
                 Vector3 before = p.transform.position;
@@ -103,9 +104,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 InputSystem.QueueStateEvent(keys, new KeyboardState(Key.Tab)); yield return null; yield return null;
                 Check("Tab possesses hand", session.PlayingHand);
                 InputSystem.QueueStateEvent(keys, new KeyboardState(Key.W, Key.E));
-                session.Hand.motor.SendMessage("OnApplicationFocus", true); before = session.Hand.motor.Body.position;
+                session.HandActor().motor.SendMessage("OnApplicationFocus", true); before = session.HandActor().motor.Body.position;
                 yield return new WaitForSeconds(.6f);
-                Check("Hand W/E moves physics body", session.Hand.motor.Body.position.z > before.z + .3f && session.Hand.motor.Body.position.y > before.y + .2f);
+                Check("Hand W/E moves physics body", session.HandActor().motor.Body.position.z > before.z + .3f && session.HandActor().motor.Body.position.y > before.y + .2f);
                 InputSystem.QueueStateEvent(keys, new KeyboardState()); yield return null; yield return null;
                 session.SetRole(false); p.controlMode = ControlMode.VR; p.RefreshMode(); session.SetMenu(false);
                 p.Teleport(new Vector3(100, 10.04f, 96), Quaternion.identity); Physics.SyncTransforms();
@@ -142,7 +143,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 InputSystem.settings = saved; saved.hideFlags = savedFlags;
                 Time.captureDeltaTime = savedCaptureDelta;
                 Object.Destroy(settings); Object.Destroy(floor); Object.Destroy(ledge);
-                session.Player.controlMode = ControlMode.Auto; session.SetRole(false); session.Player.RefreshMode(); session.SetMenu(true);
+                session.Survivor().controlMode = ControlMode.Auto; session.SetRole(false); session.Survivor().RefreshMode(); session.SetMenu(true);
                 report.AppendLine("Uses synthetic Input System devices in the real Unity player loop; no physical headset was available.");
                 File.WriteAllText(ProjectPath.Report("InputValidation.txt"), report.ToString()); Debug.Log(report.ToString());
             }

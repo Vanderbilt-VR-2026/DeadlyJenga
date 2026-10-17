@@ -2,11 +2,10 @@
     "name": "DeadlyJenga.Presentation",
     "references": [
         "DeadlyJenga.Core",
-        "DeadlyJenga.World",
-        "DeadlyJenga.Characters",
-        "HandDemo.Runtime",
         "Unity.InputSystem",
-        "UnityEngine.UI"
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.XR.Interaction.Toolkit"
     ],
     "autoReferenced": true
 }

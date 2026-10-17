@@ -6,7 +6,7 @@ An articulated, shiny continuous hand targets the tracked wrist and finger joint
 Ordinary survivor/avatar hands remain visual-only. The separate flying-hand actor owns this physical interaction. The existing castle layout, block rigidbodies and survivor collision isolation are not rewritten by the installer.
 
 ## Files and use
-- `Assets/CandyPhysicsHands/CandyHandContactLab.unity`: isolated one-block static bench. WASD translates the wrist, Q/E lowers/raises it, Space closes the synthetic thumb/index pose. With XR input, the right tracked skeleton replaces simulation.
+- `DevTools/Scenes/CandyHandContactLab.unity` (bench script: `DevTools/Scripts/CandyHandLab.cs`): isolated one-block static bench. WASD translates the wrist, Q/E lowers/raises it, Space closes the synthetic thumb/index pose. With XR input, the right tracked skeleton replaces simulation.
 - `Candy Physical Hand.prefab`: baked smooth skin and sixteen render bones. The runtime backend creates a palm and fifteen rigid finger segments, connected only to other hand bodies. Rounded proximal segments and broad distal finger pads provide real contact patches. The rendered fingers remain rounded.
 - `Candy Bench Hand.prefab`: a separate skin bake calibrated to the synthetic bench pose. The shared generator accepts a reference skeleton and shape parameters; the previous player mesh defaults and existing player meshes remain unchanged. Live tracked lab input switches to the normal hand mesh and calibrates its physical link lengths from the incoming skeleton.
 - `Flying Hand Settings.asset` and `Bench Hand Settings.asset`: independent geometry, mass, drive force/torque ceilings, spring/damping, friction and transition settings.

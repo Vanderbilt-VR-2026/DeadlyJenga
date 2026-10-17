@@ -4,7 +4,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public class CastleGenerator : MonoBehaviour, IWorldQuery, ISyncedWorld
+    public class CastleGenerator : MonoBehaviour, IWorldQuery, ISyncedWorld, IMapFootprint, IRebuildable
     {
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
@@ -37,6 +37,7 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 Center => transform.position;
         public float TopHeight => transform.position.y + settings.keepCourses * settings.blockSize.y;
         public float Radius => CastleLayout.Footprint(settings) * .5f;
+        public float StepHeight => settings.blockSize.y;
 
         // ISyncedWorld (Revision is declared above)
         public Transform Root => transform;
@@ -59,6 +60,33 @@ namespace DeadlyJenga.CastlePrototype
                 body.isKinematic = replica;
                 body.interpolation = replica ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             }
+        }
+
+        // IMapFootprint: the bottom course of the castle, for the sand around it
+        public int FootprintVersion
+        {
+            get
+            {
+                if (settings == null) return 0;
+                int hash = 17;
+                void Hash(float value) { hash = hash * 31 + value.GetHashCode(); }
+                Hash(settings.blockSize.x); Hash(settings.blockSize.z); Hash(settings.modulesPerSide);
+                Hash(settings.moduleGap); Hash(settings.singleTower ? 1 : 0);
+                return hash;
+            }
+        }
+        public float FootprintHalfSize => settings != null ? CastleLayout.Footprint(settings) * .5f : 0;
+        public void GetGroundFootprints(List<Footprint> into)
+        {
+            if (settings == null) return;
+            foreach (var placement in CastleLayout.Build(settings))
+                if (placement.Course == 0)
+                    into.Add(new Footprint
+                    {
+                        center = new Vector2(placement.Position.x, placement.Position.z),
+                        halfSize = new Vector2(settings.blockSize.x, settings.blockSize.z) * .5f,
+                        rotation = placement.Rotation
+                    });
         }
 
         // Top of the highest upright block, or the foundation if none are left.

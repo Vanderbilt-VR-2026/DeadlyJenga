@@ -81,6 +81,8 @@ namespace FlyingHand
         }
         void OnEnable()
         {
+            // Role switching disables this component; it can miss a focus-gained event.
+            focused = Application.isFocused;
             EnsureAction(ref move, "Move", "<XRController>{LeftHand}/primary2DAxis", "Vector2");
             EnsureAction(ref turn, "Yaw", "<XRController>{RightHand}/primary2DAxis", "Vector2");
             EnsureAction(ref ascend, "Ascend", "<XRController>{RightHand}/trigger", "Axis");
@@ -90,6 +92,13 @@ namespace FlyingHand
         }
         static void EnsureAction(ref InputAction action, string name, string binding, string controlType)
         {
+            // Older prefabs serialized these analogue controls as Button actions.
+            if (action != null && action.type != InputActionType.Value)
+            {
+                var replacement = new InputAction(name, InputActionType.Value, expectedControlType: controlType);
+                foreach (var existing in action.bindings) replacement.AddBinding(existing);
+                action.Dispose(); action = replacement;
+            }
             if (action == null) action = new InputAction(name, InputActionType.Value, expectedControlType: controlType);
             if (action.bindings.Count == 0) action.AddBinding(binding);
         }
@@ -169,10 +178,17 @@ namespace FlyingHand
                     ? Mathf.Clamp(DesktopLookDelta.x * mouseYawSensitivity / (Time.deltaTime * yawSpeed), -1, 1) : 0;
                 return;
             }
-            Vector2 raw = focused ? move.ReadValue<Vector2>() : Vector2.zero;
+            // Keep keyboard flight available when the editor XR simulator is running too.
+            var keys = Keyboard.current;
+            Vector2 keyboardMove = keys == null ? Vector2.zero : new Vector2(
+                (keys.dKey.isPressed ? 1 : 0) - (keys.aKey.isPressed ? 1 : 0),
+                (keys.wKey.isPressed ? 1 : 0) - (keys.sKey.isPressed ? 1 : 0));
+            float keyboardLift = keys == null ? 0 : (keys.eKey.isPressed ? 1 : 0) - (keys.qKey.isPressed ? 1 : 0);
+            Vector2 raw = move.ReadValue<Vector2>();
+            if (keyboardMove.sqrMagnitude > 0) raw = Vector2.ClampMagnitude(keyboardMove, 1);
             MoveInput = raw.sqrMagnitude > stickDeadzone * stickDeadzone ? raw.normalized * Mathf.InverseLerp(stickDeadzone, 1, raw.magnitude) : Vector2.zero;
             YawInput = focused ? Deadzone(turn.ReadValue<Vector2>().x) : 0;
-            VerticalInput = focused ? Mathf.Clamp(ascend.ReadValue<float>() - descend.ReadValue<float>(), -1, 1) : 0;
+            VerticalInput = focused ? Mathf.Clamp(ascend.ReadValue<float>() - descend.ReadValue<float>() + keyboardLift, -1, 1) : 0;
         }
         void FixedUpdate()
         {
