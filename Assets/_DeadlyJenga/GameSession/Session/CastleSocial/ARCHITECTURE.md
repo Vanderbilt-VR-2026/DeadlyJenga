@@ -3,7 +3,9 @@
 The historical investigation below describes the pre-merge baseline. Current
 composition lives under `_DeadlyJenga/GameSession/Session/CastleSocial` and compiles
 into DeadlyJenga.GameSession. Portable distributions/director/DSP remain free of
-Unity dependencies. Editor tooling has its own editor-only assembly.
+Unity dependencies. Editor tooling lives in DevTools/Editor/Social. Voice playback is
+Presentation's (Audio/Voice/VoicePlayer, through Core's IVoicePlayer); bots are reached through
+Core's ISocialBot (Characters' SocialBotDriver).
 
 Main's Lobby -> Game flow is the default. CastlePlaySession constructs bot
 populations through main's BotWorld and then constructs SocialWorld. Direct Game
@@ -43,11 +45,11 @@ increase compatibility risk while losing dynamic-block traversal behavior.
 | Portable simulation | Core/SocialSimulation | Events, emotions, bounded attention/memory, affinities, friend topics, speech bids/budgets |
 | Portable audio | Core/SocialAudio | PCM validation, bounded jitter buffer, stateful microphone DSP |
 | Host runtime | Runtime/SocialWorld | Explicit session owner, real event observations, authority gating, identity/voice routing |
-| Gameplay adapter | Runtime/SocialBotAgent | Existing navigator/motor input; identity-based tuning and friend destinations |
-| Audio | Runtime/SocialMicrophone, SocialVoicePlayback | Permission-gated capture/VAD, per-speaker sources, local mute/volume, spatial-ready output |
+| Gameplay adapter | Runtime/SocialBotAgent | Identity-based tuning and friend destinations through Core's ISocialBot |
+| Audio | Runtime/SocialMicrophone (capture); Presentation VoicePlayer (playback) | Permission-gated capture/VAD; per-speaker sources, mute/volume and spatial output via IVoicePlayer/IVoiceMix |
 | Inference client | Runtime/SocialSpeechClient | Optional async/chunked speech and incremental transcription, bounded requests, stale cancellation |
 | Service boundary | Tools/SocialVoiceBridge | Windows preview TTS; opt-in Kokoro/faster-whisper/Ollama without Unity dependencies |
-| Tooling | Editor/SocialPopulationWindow, SocialValidation | Profiles, graphs, previews, scenario harness, real Unity/LAN checks |
+| Tooling | DevTools/Editor/Social: SocialPopulationWindow, SocialValidation | Profiles, graphs, previews, scenario harness, real Unity/LAN checks |
 
 The portable core has no Unity, HTTP, model or network dependency. Speech is text
 intent plus identity/context, never executable gameplay commands. Voice transport
