@@ -145,7 +145,14 @@ namespace FlyingHand
                 viewCamera.transform.localPosition = Vector3.zero;
                 viewCamera.transform.localRotation = Quaternion.Euler(desktopPitch, 0, 0);
             }
+            ClampCameraWater();
             // In VR only this parent moves; tracked camera pose remains untouched.
+        }
+        public void ClampCameraWater()
+        {
+            if (!viewCamera || DeadlyJenga.Core.Services.World == null) return;
+            float water = DeadlyJenga.Core.Services.World.WaterHeight(viewCamera.transform.position) + .08f;
+            if (viewCamera.transform.position.y < water) transform.position += Vector3.up * (water - viewCamera.transform.position.y);
         }
     }
 }

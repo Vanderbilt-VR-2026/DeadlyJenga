@@ -2,6 +2,15 @@ using System.Collections.Generic;
 
 namespace DeadlyJenga.Core
 {
+    public interface IDemoMapControls
+    {
+        IReadOnlyList<LobbyOption> Maps { get; }
+        string CurrentMapId { get; }
+        bool CanSelectMap { get; }
+        string MapStatus { get; }
+        void SelectMap(string id);
+    }
+
     // What the in-game menus can ask the match to do. Clients' requests go to the host.
     public enum DemoCommand { Rebuild, AddSurvivor, FillSurvivors, NextSurvivor, ClearSurvivors, AddHand, NextHand, ClearHands, StopDisasters }
 

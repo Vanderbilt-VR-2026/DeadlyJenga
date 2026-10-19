@@ -7,6 +7,7 @@ namespace DeadlyJenga.CastleSocial
     {
         public bool Capturing=>clip;public string Device="";public string Status {get;private set;}="Microphone off (opt-in)";
         [Range(.001f,.1f)] public float threshold=.012f;
+        readonly System.Collections.Generic.Queue<float[]> preRoll=new System.Collections.Generic.Queue<float[]>();
         SocialWorld world;AudioClip clip;int read,sequence;float lastLoud=-100;bool speaking,requesting,captureWanted;
         public void Initialize(SocialWorld owner){world=owner;}
         public void EnableCapture(bool enabled)
@@ -38,14 +39,15 @@ namespace DeadlyJenga.CastleSocial
             {
                 var data=new float[800];clip.GetData(data,read);read=(read+800)%clip.samples;available-=800;
                 double energy=0;foreach(float x in data)energy+=x*x;bool loud=System.Math.Sqrt(energy/data.Length)>threshold;
-                if(loud)lastLoud=Time.unscaledTime;bool active=Time.unscaledTime-lastLoud<.18f;
-                if(active){world.SendAudio(new SocialAudioPacket{sequence=++sequence,samples=data},true);speaking=true;}
+                if(loud)lastLoud=Time.unscaledTime;bool active=Time.unscaledTime-lastLoud<(world.OnDevice&&world.OnDevice.Requested?.45f:.18f);
+                if(active){if(!speaking){foreach(var prior in preRoll)world.SendAudio(new SocialAudioPacket{sequence=++sequence,samples=prior},true);preRoll.Clear();}world.SendAudio(new SocialAudioPacket{sequence=++sequence,samples=data},true);speaking=true;}
                 else if(speaking){world.SendAudio(new SocialAudioPacket{sequence=++sequence,end=true,samples=new float[0]},true);speaking=false;}
+                if(!active){preRoll.Enqueue(data);while(preRoll.Count>3)preRoll.Dequeue();}
             }
         }
         public void StopCapture()
         {
-            captureWanted=false;
+            captureWanted=false;preRoll.Clear();
             if(clip){Microphone.End(Device);Destroy(clip);clip=null;}
             if(speaking&&world)world.SendAudio(new SocialAudioPacket{sequence=++sequence,end=true,samples=new float[0]},true);
             speaking=false;if(world&&world.Settings)world.Settings.microphoneEnabled=false;Status="Microphone off";

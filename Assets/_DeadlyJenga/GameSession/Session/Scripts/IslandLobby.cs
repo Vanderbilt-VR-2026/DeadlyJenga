@@ -36,11 +36,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             Current=this;Services.Session=this;Services.World=this;
             if(!catalog||!catalog.survivorPrefab||!catalog.environmentPrefab){Debug.LogError("Island lobby catalog is incomplete.",this);enabled=false;return;}
+            catalog=IslandLobbyCatalog.Runtime(catalog);
             Room=IslandRoomConnection.Ensure();bool firstVisit=!Room.Catalog;Room.Catalog=catalog;Room.StartDiscovery();if(firstVisit)Room.Region=catalog.defaultRegion;
             Player=Instantiate(catalog.survivorPrefab).GetComponent<IPlayableCharacter>();
             if(Player==null){Debug.LogError("Island lobby survivor prefab needs an IPlayableCharacter.",this);enabled=false;return;}
             Player.gameObject.name="Lobby survivor (current character prefab)";
             Player.ViewCamera.clearFlags=CameraClearFlags.Skybox;
+            Room.PrepareSoloIdentity();ApplyLobbyIdentities();
             BuildFlatFloor();
             GameEvents.RaiseLobbyStarted(gameObject);   // Presentation builds the island and terminals
             Player.Place(SafeSpawnPoint(),Quaternion.identity);
@@ -57,7 +59,7 @@ namespace DeadlyJenga.CastlePrototype
             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
-            UpdateControls();
+            ApplyLobbyIdentities();UpdateControls();
         }
         public static Vector3 SpawnPoint(int slot)
         {float angle=(Math.Abs(slot)%10)*2.399963f;return new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);}
@@ -74,7 +76,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!peers.TryGetValue(actor.id,out var peer))
             {
                 if(peers.Count>=9)return;
-                var root=new GameObject("Lobby guest · "+actor.id);
+                var root=new GameObject("Lobby guest Â· "+actor.id);
                 peer=NetworkActors.CreateView(actor.kind,root,new NetworkContext{host=false,localSurvivor=Player.gameObject,actorId=actor.id});
                 if(peer==null){Destroy(root);return;}
                 peers[actor.id]=peer;

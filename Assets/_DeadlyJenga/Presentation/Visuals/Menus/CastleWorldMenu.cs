@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly Button[] buttons = new Button[15];
         readonly BoxCollider[] targets = new BoxCollider[15];
         readonly Text[] labels = new Text[15];
-        bool networkPage,comfortPage,tuningPage,disasterPage;
+        bool networkPage,comfortPage,tuningPage,disasterPage,modePage;
         string disasterStatus=string.Empty;
         int disasterOffset;
         int socialSelection;bool socialMuted;
@@ -31,8 +31,8 @@ namespace DeadlyJenga.CastlePrototype
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
             var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1040); transform.localScale = Vector3.one * .0018f;
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.color = CandyHudVisuals.Ink;
-            heading=Text("DEADLY JENGA / DEMO\nLook at a button · RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
-            help=Text("Left Y closes · Hand tracking: left thumb + middle opens / closes",new Vector2(0,-480),new Vector2(550,65),19);help.color=CandyHudVisuals.Muted;
+            heading=Text("DEADLY JENGA / DEMO\nLook at a button Â· RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
+            help=Text("Left Y closes Â· Hand tracking: left thumb + middle opens / closes",new Vector2(0,-480),new Vector2(550,65),19);help.color=CandyHudVisuals.Muted;
             string[] titles = { "Resume", "Switch survivor / flying hand", "Respawn on top", "Rebuild castle", "Spawn AI survivor", "Fill to 10 players", "NPC personality: Balanced", "Clear survivors / stop auto-fill", "Spawn AI giant hand", "Hand personality: Playful", "Clear AI hands", "Local multiplayer / invites", "VR movement / turning", "Host stamina / audio", "Natural disasters" };
             for (int i = 0; i < buttons.Length; i++)
             {
@@ -45,6 +45,8 @@ namespace DeadlyJenga.CastlePrototype
                 label.rectTransform.anchoredPosition = new Vector2(20,0);
                 var glyph=new GameObject("Candy menu icon",typeof(RectTransform),typeof(RawImage));glyph.transform.SetParent(go.transform,false);var image=glyph.GetComponent<RawImage>();image.texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);image.color=CandyHudVisuals.Lavender;image.raycastTarget=false;image.rectTransform.sizeDelta=new Vector2(27,27);image.rectTransform.anchoredPosition=new Vector2(-243,0);
             }
+            BuildScaffoldButton();
+            BuildMapControls();
             gameObject.SetActive(false);
         }
         Slider CreateDisasterSlider(string name,out Text caption,out BoxCollider hit)
@@ -62,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!slider.gameObject.activeSelf||!slider.interactable||!collider.Raycast(ray,out var hit,4))return false;
             if(pressed){float t=Mathf.InverseLerp(-250,250,slider.transform.InverseTransformPoint(hit.point).x);slider.value=Mathf.Lerp(slider.minValue,slider.maxValue,t);}
-            help.text="Next launch only · look along the slider and hold trigger / pinch to adjust";return true;
+            help.text="Next launch only Â· look along the slider and hold trigger / pinch to adjust";return true;
         }
         Text Text(string value, Vector2 position, Vector2 size, int fontSize)
         {
@@ -81,11 +83,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Point(Camera camera, bool pressed,bool held=false)
         {
+            if(PointMapControls(camera,pressed))return;
+            PointScaffold(camera,pressed);
+            if(tabletopPage){PointTabletop(camera,pressed);return;}
+            if(modePage){PointModePage(camera,pressed);return;}
             if(disasterPage){PointDisasterPage(camera,pressed,held);return;}
             HideDisasterSliders();
             var net=session.Multiplayer;
+            bool watching=false;var match=MatchRuntime.Current;if(match?.Frame!=null)foreach(var row in match.Frame.players)if(row.id==match.LocalActorId&&row.role=="spectator")watching=true;
             var active=session.PlayingHand?session.Hand:session.Player;bool trackedHands=active!=null&&active.HasHandTracking;
-            string select=trackedHands?"Look at a button · RIGHT pinch to select":"Look at a button · RIGHT trigger to select";
+            string select=trackedHands?"Look at a button Â· RIGHT pinch to select":"Look at a button Â· RIGHT trigger to select";
             heading.text=networkPage?"MULTIPLAYER\n"+(net!=null?net.Status:"Finding nearby demos..."):"DEADLY JENGA\n"+select;
             for(int j=0;j<buttons.Length;j++){var r=(RectTransform)buttons[j].transform;r.anchoredPosition=new Vector2(0,277-j*50);r.sizeDelta=new Vector2(540,46);}
             if (networkPage && net!=null && net.IsFusion)
@@ -97,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
                 bool invitation=net.InvitationFrom.Length>0;
                 buttons[3].gameObject.SetActive(invitation);buttons[4].gameObject.SetActive(invitation);
                 labels[3].text=invitation?"Invite: "+net.InvitationFrom:"";targets[3].enabled=false;
-                labels[4].text="Dismiss invite · leave room to accept";targets[4].enabled=invitation;
+                labels[4].text="Dismiss invite Â· leave room to accept";targets[4].enabled=invitation;
                 targets[0].enabled = targets[6].enabled = targets[11].enabled = true;
             }
             else if(tuningPage&&Settings!=null)
@@ -109,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
             else if(comfortPage&&Settings!=null)
             {
                 var p=Settings;var social=session.Social;
-                string[] titles={"Resume","Movement: "+p.MovementLabel,"Right stick: "+p.TurnLabel,p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+"° / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Left stick moves in both modes","Physical head turns always look around","Seated: A jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
+                string[] titles={"Resume","Movement: "+p.MovementLabel,"Right stick: "+p.TurnLabel,p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+"Â° / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Left stick moves in both modes","Physical head turns always look around","Seated: A jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
                 if(social!=null)
                 {
                     titles[7]=social.MicrophoneOn?"Mute microphone":"Enable microphone (permission)";
@@ -123,19 +130,19 @@ namespace DeadlyJenga.CastlePrototype
             else if(networkPage&&net!=null)
             {
                 foreach(var button in buttons)button.gameObject.SetActive(true);
-                string[] titles={"Resume","Nearby: "+net.SelectedName+" (next)","Request to join selected demo","Invite selected demo here","Accept invite / join request","Decline invite / join request","Leave / end local session",net.PendingLabel,net.IsClient?"Connected to host":"Hosting · "+net.HumanCount+" humans","Open this page on both headsets","No restart needed to join","Back to demo controls"};
+                string[] titles={"Resume","Nearby: "+net.SelectedName+" (next)","Request to join selected demo","Invite selected demo here","Accept invite / join request","Decline invite / join request","Leave / end local session",net.PendingLabel,net.IsClient?"Connected to host":"Hosting Â· "+net.HumanCount+" humans","Open this page on both headsets","No restart needed to join","Back to demo controls"};
                 for(int i=0;i<labels.Length;i++){labels[i].text=i<titles.Length?titles[i]:"";targets[i].enabled=i<titles.Length;}
                 if(titles.Length<buttons.Length)buttons[titles.Length].gameObject.SetActive(false);
             }
             else
             {
-                labels[0].text="Resume";labels[1].text="Switch survivor / flying hand";labels[2].text="Respawn on top";labels[3].text="Rebuild castle (host)";
+                labels[0].text="Resume";labels[1].text=watching?"Spectate previous survivor":"Switch survivor / flying hand";labels[2].text=watching?"Spectate next survivor":"Respawn on top";labels[3].text="Rebuild castle (host)";
                 labels[4].text="Add a survivor";labels[5].text="Fill to target";labels[6].text="Next survivor personality";labels[7].text="Clear survivors";
-                labels[8].text="Add a flying hand";labels[9].text="Next hand personality";labels[10].text="Clear flying hands";labels[12].text="VR movement / voice";labels[13].text="Host stamina / audio";labels[14].text="Natural disasters";
-                labels[11].text=net!=null&&net.IsFusion?"Multiplayer / leave":"Same-Wi-Fi invites"+(net!=null&&net.HasPending?" · NEW":"");
+                labels[8].text="Add a flying hand";labels[9].text="Next hand personality";labels[10].text="Clear flying hands";labels[12].text="VR movement / voice";labels[13].text="Match / scenery / stamina";labels[14].text="Natural disasters";
+                labels[11].text=net!=null&&net.IsFusion?"Multiplayer / leave":"Same-Wi-Fi invites"+(net!=null&&net.HasPending?" Â· NEW":"");
                 for(int i=0;i<buttons.Length;i++)
                 {
-                    bool shown=(i!=11||net!=null)&&(i!=13||session.CanEditWorld)&&(i!=14||DemoMode);
+                    bool shown=(i!=11||net!=null)&&(i!=13||session.CanEditWorld)&&(i!=14||DemoMode||CanCommand);
                     buttons[i].gameObject.SetActive(shown);
                     if(shown)targets[i].enabled=true;
                 }
@@ -151,8 +158,10 @@ namespace DeadlyJenga.CastlePrototype
                 bool hover = targets[i].Raycast(ray, out _, 4);
                 buttons[i].image.color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;
                 labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
-                if(hover){pointed=true;help.text=networkPage||comfortPage||i>=explanations.Length?select:explanations[i]+"\n"+select;}
+                if(hover){pointed=true;help.text=networkPage||comfortPage||i>=explanations.Length?select:explanations[i]+"\n"+select;
+                    }
                 if (!hover || !pressed) continue;
+                if(watching&&!networkPage&&!comfortPage&&!tuningPage&&(i==1||i==2)){match.NextSpectator(i==1?-1:1);session.SetMenu(false);break;}
                 if(i==14){disasterSelection=-1;disasterPage=true;networkPage=comfortPage=tuningPage=false;break;}
                 if(i==12){if(tuningPage){tuningPage=false;comfortPage=false;}else comfortPage=!comfortPage;networkPage=false;break;}
                 if(tuningPage)
@@ -172,7 +181,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(i>=1&&i<=9){p.ApplyMatchRules(rules);string after=p.SaveStaminaRules();if(after!=before)Demo?.ApplyStaminaRules(after);}
                     break;
                 }
-                if(i==13){tuningPage=true;comfortPage=networkPage=false;break;}
+                if(i==13){modePage=true;comfortPage=networkPage=false;break;}
                 if(comfortPage&&Settings!=null)
                 {
                     var p=Settings;var social=session.Social;
@@ -217,7 +226,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(i>=4)break;
                 session.SetMenu(false); break;
             }
-            if(!pointed)help.text="LOOK to highlight · "+(trackedHands?"RIGHT pinch selects\nLeft thumb + middle opens / closes":"RIGHT trigger selects\nY · LEFT opens / closes");
+            if(!pointed)help.text="LOOK to highlight Â· "+(trackedHands?"RIGHT pinch selects\nLeft thumb + middle opens / closes":"RIGHT trigger selects\nY Â· LEFT opens / closes");
         }
     }
 }

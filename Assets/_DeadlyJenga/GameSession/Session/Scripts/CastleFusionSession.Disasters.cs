@@ -66,15 +66,18 @@ namespace DeadlyJenga.CastlePrototype
             if (frame.active && !Tracked.Waves.Contains(remoteWave)) Tracked.Waves.Add(remoteWave);
             if (!frame.active) Tracked.Waves.Remove(remoteWave);
         }
-        public void QueueDisasterImpact(string actorId, Vector3 push, float damage)
+        public void QueueDisasterImpact(string actorId, Vector3 push, float damage) => QueueDisasterImpact(actorId,push,damage,true);
+        void QueueDisasterImpact(string actorId, Vector3 push, float damage,bool recordHealth)
         {
-            if (!IsHost || closing) return;
+            if (!IsHost || closing || session&&session.Modes&&session.Modes.Frame.phase!=RoundPhase.Playing) return;
+            if(recordHealth&&damage>0){ConnectModes();modeRuntime?.RecordRemoteDamage(actorId,damage);}
             if (!disasterImpacts.TryGetValue(actorId, out var impact)) disasterImpacts[actorId] = impact = new Impact();
             impact.push = Vector3.ClampMagnitude(impact.push + push, 20);
             impact.damage = Mathf.Clamp(impact.damage + damage, 0, 10000);
         }
         void FlushDisasterImpacts()
         {
+            if(session&&session.Modes&&session.Modes.Frame.phase!=RoundPhase.Playing){disasterImpacts.Clear();return;}
             foreach (var pair in peers)
                 if (pair.Value.ready && disasterImpacts.TryGetValue(pair.Key.ToString(), out var impact))
                     Send(pair.Key, DisasterImpact, System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(impact)), ++sequence);
@@ -83,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
         void ReceiveDisasterImpact(byte[] bytes)
         {
             var impact = JsonUtility.FromJson<Impact>(System.Text.Encoding.UTF8.GetString(bytes));
-            if (impact == null || !session || !NetworkActors.Alive(session.Player) || session.PlayingHand) return;
+            if (impact == null || !session || session.Modes&&session.Modes.Frame.phase!=RoundPhase.Playing || !NetworkActors.Alive(session.Player) || session.PlayingHand) return;
             if (float.IsNaN(impact.push.sqrMagnitude) || float.IsInfinity(impact.push.sqrMagnitude) ||
                 float.IsNaN(impact.damage) || float.IsInfinity(impact.damage)) return;
             var push = Vector3.ClampMagnitude(impact.push,30);

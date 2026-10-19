@@ -7,7 +7,7 @@ namespace DeadlyJenga.CharacterNetwork
 {
     // Someone else's survivor (a player or bot) on this machine. No camera, no input.
     // On the host it can also be hit by hazards: pushes and damage go to its owner through the network.
-    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, IPushable, IDamageable, IHazardMotion
+    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, IPushable, IDamageable, IHazardMotion, IModeActor
     {
         NetworkContext context;
         CandyPlayerRig rig;
@@ -17,6 +17,37 @@ namespace DeadlyJenga.CharacterNetwork
         CapsuleCollider hazardTarget;
         Vector3 previousFeet, velocity;
         float previousPoseTime;
+        string assignedId, displayName;
+        int team = -1;
+        Color assignedColor = UnityEngine.Color.white;
+        bool identityAssigned;
+        RaycastHit standingHit;
+        float groundProbeAt=-1;
+        public string ActorId => string.IsNullOrEmpty(assignedId) ? context.actorId : assignedId;
+        public string DisplayName => string.IsNullOrEmpty(displayName) ? gameObject.name : displayName;
+        public int Team => team;
+        public Color Color => identityAssigned ? assignedColor : rig&&rig.style?rig.style.ColorAt(color):UnityEngine.Color.white;
+        public bool Alive => active && !suspended;
+        public bool IsBot => context.actorId!=null&&context.actorId.StartsWith("bot",System.StringComparison.OrdinalIgnoreCase);
+        public bool IsLocal => false;
+        public Transform Visual => rig ? rig.transform : null;
+        public Pose ViewPose => initialized ? new Pose(frame.head,frame.headRotation) : new Pose(target.head,target.headRotation);
+        public Pose HandPose(bool left)
+        {
+            var f=initialized?frame:target;var hand=left?f.left:f.right;
+            return new Pose(hand.position,hand.rotation);
+        }
+        public Rigidbody StandingBody { get { ProbeStanding();return standingHit.collider&&Climbables.TryGet(standingHit.collider,out var owner)?owner.Body:standingHit.rigidbody; } }
+        public Vector3 StandingNormal { get { ProbeStanding();return standingHit.collider?standingHit.normal:Vector3.zero; } }
+        public bool Grounded { get { ProbeStanding();return standingHit.collider&&standingHit.normal.y>.25f; } }
+        void ProbeStanding()
+        {
+            if(Time.time<groundProbeAt)return;groundProbeAt=Time.time+.1f;
+            Physics.Raycast(target.feet+Vector3.up*.08f,Vector3.down,out standingHit,.2f,(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore);
+        }
+        public void SetIdentity(string id,string label,int assignedTeam,Color tint)
+        { assignedId=id;displayName=label;team=assignedTeam;assignedColor=tint;identityAssigned=true; }
+        public void ApplyModeRules(ModeRules rules) { }
 
         public Vector3 HazardVelocity => velocity;
         public float Health => 100;
@@ -37,6 +68,7 @@ namespace DeadlyJenga.CharacterNetwork
         {
             CharacterWire.ReadSurvivor(r, out target, out color);
             active = isActive; hasTarget = true;
+            transform.SetPositionAndRotation(target.feet, Quaternion.Euler(0,target.headRotation.eulerAngles.y,0));
             if (!rig)
             {
                 var avatar = context.localSurvivor ? context.localSurvivor.GetComponent<CandyPlayerAvatar>() : null;

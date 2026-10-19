@@ -38,6 +38,7 @@ namespace DeadlyJenga.CastleSocial
         public void Initialize(SocialWorld owner){world=owner;}
         public void Speak(SocialSpeech intent,SocialIdentity identity)
         {
+            if(world.OnDevice&&world.OnDevice.Requested){world.OnDevice.Speak(intent,identity);return;}
             if(world.Settings.mode==SocialOperatingMode.Offline||world.Settings.mode==SocialOperatingMode.ReducedResource){Status="Offline captions (no synthetic speech provider)";return;}
             if(jobs>=2){Status="Speech budget full; keeping gameplay responsive";return;}
             if(!ValidEndpoint())return;
@@ -106,6 +107,7 @@ namespace DeadlyJenga.CastleSocial
         {operation=null;try{operation=request.SendWebRequest();return true;}catch(Exception e){Failures++;Status="Speech request unavailable; check URL and platform HTTP policy: "+SocialText.Clean(e.Message,100);return false;}}
         public void HumanAudio(string id,SocialAudioPacket packet)
         {
+            if(world.OnDevice&&world.OnDevice.Requested){world.OnDevice.HumanAudio(id,packet);return;}
             if(world.Settings.mode==SocialOperatingMode.Offline||world.Settings.mode==SocialOperatingMode.ReducedResource)return;
             if(!humanBuffers.TryGetValue(id,out var buffer)){if(humanBuffers.Count>=16)return;humanBuffers[id]=buffer=new List<float>();}
             buffer.AddRange(packet.samples);if(buffer.Count>96000)buffer.RemoveRange(0,buffer.Count-96000);
@@ -122,7 +124,7 @@ namespace DeadlyJenga.CastleSocial
         }
         void Update()
         {
-            if(!world||!world.IsAuthority||transcriptions>0)return;
+            if(!world||!world.IsAuthority||transcriptions>0||world.OnDevice&&world.OnDevice.Requested)return;
             foreach(var entry in pendingTranscripts.ToArray())
             {pendingTranscripts.Remove(entry.Key);if(Time.unscaledTime-entry.Value.queued>6)continue;StartCoroutine(Transcribe(entry.Key,entry.Value.samples,entry.Value.turn,entry.Value.final));break;}
         }
@@ -134,7 +136,7 @@ namespace DeadlyJenga.CastleSocial
             {
                 request.uploadHandler=new UploadHandlerRaw(Encoding.UTF8.GetBytes(JsonUtility.ToJson(new Transcription{speaker=id,audio=Convert.ToBase64String(data),final=final})));request.downloadHandler=new DownloadHandlerBuffer();request.timeout=6;request.SetRequestHeader("Content-Type","application/json");
                 if(!TrySend(request,out var operation)){transcriptions--;yield break;}yield return operation;transcriptions--;
-                if(!world||!world.IsAuthority||!humanBuffers.ContainsKey(id)||Time.unscaledTime-began>6)yield break;
+                if(!world||!world.IsAuthority||!humanBuffers.ContainsKey(id)||Time.unscaledTime-began>6||world.OnDevice&&world.OnDevice.Requested)yield break;
                 if(request.result!=UnityWebRequest.Result.Success){Status="STT unavailable; microphone voice chat still works";yield break;}
                 Transcript result=null;try{result=JsonUtility.FromJson<Transcript>(request.downloadHandler.text);}catch(ArgumentException){Status="Invalid transcription response";}
                 if(result!=null&&!string.IsNullOrWhiteSpace(result.text))
@@ -146,9 +148,9 @@ namespace DeadlyJenga.CastleSocial
                 }
             }
         }
-        public void ForgetHuman(string id){humanBuffers.Remove(id);humanNext.Remove(id);utterances.Remove(id);pendingTranscripts.Remove(id);foreach(var key in lastTranscripts.Keys.Where(k=>k.StartsWith(id+":")).ToArray())lastTranscripts.Remove(key);}
-        public void Cancel(string id){tokens.Remove(id);if(world&&world.Director!=null)world.Director.AudioFinished(id);if(requests.TryGetValue(id,out var request))request.Abort();}
-        public void CancelAll(){foreach(var id in tokens.Keys.ToArray())Cancel(id);humanBuffers.Clear();humanNext.Clear();utterances.Clear();pendingTranscripts.Clear();lastTranscripts.Clear();}
+        public void ForgetHuman(string id){world.OnDevice?.ForgetHuman(id);humanBuffers.Remove(id);humanNext.Remove(id);utterances.Remove(id);pendingTranscripts.Remove(id);foreach(var key in lastTranscripts.Keys.Where(k=>k.StartsWith(id+":")).ToArray())lastTranscripts.Remove(key);}
+        public void Cancel(string id){world.OnDevice?.Cancel(id);tokens.Remove(id);if(world&&world.Director!=null)world.Director.AudioFinished(id);if(requests.TryGetValue(id,out var request))request.Abort();}
+        public void CancelAll(){world?.OnDevice?.CancelAll();foreach(var id in tokens.Keys.ToArray())Cancel(id);humanBuffers.Clear();humanNext.Clear();utterances.Clear();pendingTranscripts.Clear();lastTranscripts.Clear();}
         void OnDestroy(){CancelAll();}
     }
 }

@@ -18,6 +18,8 @@ namespace DeadlyJenga.CastlePrototype
         public bool singleTower;
         [Tooltip("Evan's cathedral draft. Uses the same blocks with a separate large, open layout.")]
         public bool cathedral;
+        [Tooltip("Optional deterministic mode layout. Empty preserves the original castle.")]
+        public string layoutPreset = "";
     }
 
     public readonly struct CastlePlacement
@@ -46,16 +48,19 @@ namespace DeadlyJenga.CastlePrototype
                 throw new ArgumentException("The octagonal keep needs at least five modules per side.");
             if(s.cathedral&&Mathf.Abs(s.blockSize.x-3*s.blockSize.z)>.001f)
                 throw new ArgumentException("The cathedral bearing pattern requires blocks three times as long as they are wide.");
+            if(!string.IsNullOrEmpty(s.layoutPreset)&&!ModeMapLayout.Known(s.layoutPreset))throw new ArgumentException("Unknown mode map layout: "+s.layoutPreset);
         }
         static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
 
-        public static int HeightCourses(CastleSettings s)=>s.cathedral?90:s.singleTower?s.cornerCourses:Mathf.Max(s.keepCourses,s.cornerCourses,s.wallCourses+2);
-        public static float Footprint(CastleSettings s) => s.cathedral?27*s.blockSize.x:s.singleTower ? s.blockSize.x :
+        public static int HeightCourses(CastleSettings s)=>!string.IsNullOrEmpty(s.layoutPreset)?ModeMapLayout.Height(s.layoutPreset):s.cathedral?90:s.singleTower?s.cornerCourses:Mathf.Max(s.keepCourses,s.cornerCourses,s.wallCourses+2);
+        public static float Footprint(CastleSettings s) => !string.IsNullOrEmpty(s.layoutPreset)?Mathf.Max(ModeMapLayout.Size(s).x,ModeMapLayout.Size(s).y):s.cathedral?27*s.blockSize.x:s.singleTower ? s.blockSize.x :
             (s.modulesPerSide - 1) * (s.blockSize.x + s.moduleGap) + s.blockSize.x;
+        public static Vector2 FootprintSize(CastleSettings s)=>!string.IsNullOrEmpty(s.layoutPreset)?ModeMapLayout.Size(s):Vector2.one*Footprint(s);
 
         public static List<CastlePlacement> Build(CastleSettings s)
         {
             Validate(s);
+            if(!string.IsNullOrEmpty(s.layoutPreset))return ModeMapLayout.Build(s);
             if(s.cathedral)return CathedralLayout.Build(s);
             var result = new List<CastlePlacement>();
             if (s.singleTower) { AddTower(result, s, Vector3.zero, s.cornerCourses, CastleSection.Corner); return result; }

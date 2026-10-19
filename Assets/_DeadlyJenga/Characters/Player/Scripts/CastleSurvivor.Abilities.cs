@@ -30,7 +30,7 @@ namespace DeadlyJenga.CastlePrototype
             if (eliminated || amount <= 0) return;
             health = Mathf.Max(0, Health - amount);
             GameEvents.RaiseDamaged(gameObject, amount);
-            if (health <= 0) Eliminate(source);
+            if (health <= 0 && !IgnoreFatalDamage) Eliminate(source);
         }
 
         public void Eliminate(GameObject source)

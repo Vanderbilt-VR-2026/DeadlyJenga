@@ -33,6 +33,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
             File.WriteAllText(ProjectPath.Report("LobbyStations.txt"),"Three lobby stations / giant physical keyboard\n");
             SessionState.SetString(Key+"Original",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);SessionState.SetBool(Key,true);EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));EditorApplication.EnterPlaymode();
         }
+        [MenuItem("Tools/Deadly Jenga/Validation/Check Lobby Population")]
+        public static void RunPopulation(){Run();SessionState.SetBool(Key+"PopulationOnly",true);}
         static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(ProjectPath.Report("LobbyStations.txt"),"ERROR "+message+"\n"+trace+"\n");}}
         static void Require(bool ok,string message){File.AppendAllText(ProjectPath.Report("LobbyStations.txt"),(ok?"PASS ":"FAIL ")+message+"\n");if(!ok)throw new Exception(message);}
         static IEnumerator Guard(IEnumerator test)
@@ -48,18 +50,20 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static IEnumerator Check()
         {
             yield return new WaitForSecondsRealtime(1);
+            if(SessionState.GetBool(Key+"PopulationOnly",false)){SessionState.SetBool(Key+"PopulationOnly",false);yield return Population();yield break;}
             var lobby=IslandLobby.Current;var room=lobby.Room;lobby.SetMenu(true);
             Require(lobby.GetComponentsInChildren<LobbyTerminalFaces>().Length==3,"Exactly three stations replace the previous terminal cluster");
             Require(lobby.Survivor().viewCamera.clearFlags==CameraClearFlags.Skybox&&RenderSettings.skybox==lobby.View().Environment.profile.sky,"Lobby displays the castle skybox through the shared character camera");
             Require(lobby.JoinStationEnabled&&!lobby.SetupStationEnabled,"Joining starts active while map and mode choices start locked");
+            Require(!lobby.View().InvokeChoice("player-target"),"Population control is locked before hosting");
             var resort=lobby.GetComponent<DeadlyJenga.CandyArt.CandyLobbyResort>();
-            Require(resort&&resort.transform.Find("Visual · Candy island resort"),"Optional candy resort builds its own Visual child");
-            var dressing=resort.transform.Find("Visual · Candy island resort");
+            Require(resort&&resort.transform.Find("Visual \u00b7 Candy island resort"),"Optional candy resort builds its own Visual child");
+            var dressing=resort.transform.Find("Visual \u00b7 Candy island resort");
             Require(dressing.GetComponentsInChildren<Collider>().Length==0&&dressing.GetComponentsInChildren<Rigidbody>().Length==0,"Resort art adds no colliders or rigidbodies");
             var artMeshes=dressing.GetComponentsInChildren<MeshFilter>();
             Require(artMeshes.Length<=12&&artMeshes.Sum(m=>m.sharedMesh.vertexCount)<85000,"Resort and milkshake geometry stay within twelve static color batches and 85k vertices");
             var keyboard=lobby.View().GiantKeyboard.GetComponent<RectTransform>();
-            Require(keyboard.rect.width*keyboard.lossyScale.x>3.8f&&keyboard.GetComponent<BoxCollider>()&&!keyboard.GetComponent<Rigidbody>(),"Oversized piano keyboard has a solid static case over 3.8 metres wide");
+            Require(Mathf.Abs(keyboard.rect.width*keyboard.lossyScale.x-1.008f)<.01f&&keyboard.GetComponent<BoxCollider>()&&!keyboard.GetComponent<Rigidbody>(),"Oversized piano keyboard has a solid static case at the tuned 1.008 metre width");
             Require(keyboard.GetComponentsInChildren<MeshRenderer>().Length>=40,"Every keyboard key has a raised rounded 3D cap");
             foreach(char c in "ASIA-ABC234")Require(lobby.View().InvokeChoice("key-"+c),"Keyboard accepts "+c);
             Require(lobby.EnteredCode=="ASIA-ABC234"&&IslandRoomAddress.TryParse(lobby.EnteredCode,room.Region,out _,out _),"Keyboard supports full region-qualified room codes");
@@ -87,6 +91,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             yield return Until(()=>!room.Busy,"Host connection completes");Require(room.IsHost,"Real Fusion hosting succeeds: "+room.Status);
             yield return null;
             Require(lobby.SetupStationEnabled&&!lobby.JoinStationEnabled,"Hosting unlocks Map + Mode while keeping Join disabled");
+            MatchChoices.BotTarget=10;yield return null;
+            foreach(int target in new[]{15,25,50,100,10})
+            {
+                Require(lobby.View().InvokeChoice("player-target")&&MatchChoices.BotTarget==target,"Host population selector chooses "+target);
+                yield return Until(()=>room.Runner.SessionInfo.Properties.TryGetValue("population",out var value)&&(int)value==target,"Fusion publishes total population "+target);
+            }
             Require(lobby.View().InvokeChoice("invite-all"),"Host can invite nearby players from the host station");
             Require(lobby.View().InvokeChoice("mode-placeholder")&&!room.CanLaunch,"Placeholder remains unavailable for launch");lobby.View().InvokeChoice("mode-demo");
             int map=room.MapIndex;lobby.View().InvokeChoice("map-next");lobby.View().InvokeChoice("map-prev");Require(room.MapIndex==map&&room.CanLaunch,"Compact map arrows and mode selection preserve launch eligibility");
@@ -102,6 +112,24 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var rt=new RenderTexture(1600,1000,24);var old=RenderTexture.active;Texture2D pixels=null;
             try{camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;pixels=new Texture2D(1600,1000,TextureFormat.RGB24,false);pixels.ReadPixels(new Rect(0,0,1600,1000),0,0);pixels.Apply();File.WriteAllBytes(ProjectPath.Report(name),pixels.EncodeToPNG());}
             finally{RenderTexture.active=old;Object.Destroy(rt);if(pixels)Object.Destroy(pixels);Object.Destroy(go);}
+        }
+        static IEnumerator Population()
+        {
+            var lobby=IslandLobby.Current;var room=lobby.Room;lobby.SetMenu(true);
+            Require(!lobby.View().InvokeChoice("player-target"),"Population selection is locked before hosting");
+            Require(lobby.View().InvokeChoice("host"),"Host connects through the real lobby terminal");
+            yield return Until(()=>!room.Busy,"Host connection completes");Require(room.IsHost,"Real Fusion host owns population controls");
+            MatchChoices.BotTarget=10;yield return null;
+            foreach(int target in new[]{15,25,50,100,10})
+            {
+                Require(lobby.View().InvokeChoice("player-target")&&MatchChoices.BotTarget==target,"Actual host terminal selects "+target);
+                yield return Until(()=>room.Runner.SessionInfo.Properties.TryGetValue("population",out var value)&&(int)value==target,"Room publishes population "+target);
+            }
+            yield return new WaitForSeconds(.3f);
+            Capture(lobby,"Repair-LobbyPopulation.png",new Vector3(3.05f,1.65f,-1),new Vector3(3.05f,1.62f,1));
+            Require(lobby.View().InvokeChoice("abandon-host"),"Host leaves through the terminal");yield return Until(()=>!room.Connected&&!room.Busy,"Room closes cleanly");
+            Require(!lobby.View().InvokeChoice("player-target")&&errors==0,"Population locks again without runtime errors");
+            File.AppendAllText(ProjectPath.Report("LobbyStations.txt"),"COMPLETE population selector checks. No physical headset used.\n");
         }
     }
 }

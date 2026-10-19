@@ -30,7 +30,7 @@ namespace DeadlyJenga.CastlePrototype
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
         float seatedHeightOffset;
-        public float ActiveVaultDuration=>IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration);
+        public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
             ? "Standing: left stick moves; turn physically; right "+jumpGesture+" jumps / holds to climb"
             : "Seated: left stick moves; right stick turns smoothly; jump button holds to climb";

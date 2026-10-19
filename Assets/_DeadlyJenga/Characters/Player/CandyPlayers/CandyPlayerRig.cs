@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    public sealed class CandyPlayerRig : MonoBehaviour
+    public sealed class CandyPlayerRig : MonoBehaviour, IMysteryBodySource
     {
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
@@ -24,6 +25,12 @@ namespace DeadlyJenga.CandyPlayers
         public Transform RightPalm=>bones[7];
         public int ColorIndex=>colorIndex;
         public int BoneCount=>bones?.Length??0;
+        public IMysteryBody CreateMysteryBody()
+        {
+            var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;
+            copy.bodyRenderer.enabled=copy.headRenderer.enabled=true;copy.bodyRenderer.SetPropertyBlock(colorProperties);copy.headRenderer.SetPropertyBlock(colorProperties);
+            var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);return corpse;
+        }
         void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();}
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
@@ -45,6 +52,13 @@ namespace DeadlyJenga.CandyPlayers
             if(!bodyRenderer)BuildModel();
             if(colorIndex!=int.MinValue)SetColor(colorIndex);
             float scale=Mathf.Max(.1f,frame.scale);
+            var actor=GetComponentInParent<IModeActor>();bool downed=actor!=null&&MatchRuntime.Current?.RulesFor(actor.gameObject).downed==true;
+            if(downed)
+            {
+                frame.head=frame.feet+Vector3.up*.62f*scale+frame.headRotation*Vector3.forward*.3f*scale;
+                frame.left.position=frame.feet+transform.forward*.5f*scale-transform.right*.23f*scale+Vector3.up*.12f*scale;
+                frame.right.position=frame.feet+transform.forward*.5f*scale+transform.right*.23f*scale+Vector3.up*.12f*scale;
+            }
             var fit=calibration;
             // Work on the frame copy; the tracked/network poses remain untouched.
             if(fit!=null)
@@ -63,7 +77,8 @@ namespace DeadlyJenga.CandyPlayers
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
             bones[0].localPosition=torsoOffset;bones[0].localRotation=Quaternion.identity;bones[0].localScale=new Vector3(width,crouch,1);
-            bones[1].SetPositionAndRotation(frame.head+frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))*scale,frame.headRotation);
+            var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
+            bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
             if(deltaTime>0){locomotionSpeed=Vector3.ProjectOnPlane(frame.feet-previousFeet,Vector3.up).magnitude/deltaTime;previousFeet=frame.feet;walkPhase+=Mathf.Min(locomotionSpeed,6)*deltaTime*6;}
             float speed=locomotionSpeed;
@@ -93,6 +108,7 @@ namespace DeadlyJenga.CandyPlayers
                 }
             }
             bodyRenderer.localBounds=new Bounds(new Vector3(0,1,0),new Vector3(6,5,6));
+            if(downed){bones[0].localRotation=Quaternion.Euler(65,0,0);bones[0].localPosition=new Vector3(0,.05f,.28f);}
         }
         static Quaternion Orientation(Vector3 delta,Vector3 normal)
         {

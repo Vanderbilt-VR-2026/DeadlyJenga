@@ -32,6 +32,9 @@ namespace DeadlyJenga.CastleBots
         Transform staging;
         float nextPopulation,nextHazards;
         int serial;
+        readonly Dictionary<Vector3Int,List<CastleBotBrain>> crowdCells=new Dictionary<Vector3Int,List<CastleBotBrain>>();
+        float crowdAt;
+        static Vector3Int CrowdCell(Vector3 point)=>new Vector3Int(Mathf.FloorToInt(point.x/2),Mathf.FloorToInt(point.y/2),Mathf.FloorToInt(point.z/2));
         public void Initialize(BotWorld session)
         {
             Session=session;handBridge=session.Hand.GetComponent<DeadlyJenga.CandyPhysicsHands.CandyFlyingHandBridge>();profiles=Resources.LoadAll<CastleBotPersonality>("CastleBots").OrderBy(p=>p.displayName).ToArray();
@@ -58,13 +61,14 @@ namespace DeadlyJenga.CastleBots
         public bool Place(CastleBotBrain bot)
         {
             spawnSites.Clear();Physics.SyncTransforms();
+            var samples=new List<Vector3>(18);
             foreach(var rb in Session.world.Blocks)
             {
-                if(!rb||!rb.gameObject.activeInHierarchy||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.97f||rb.linearVelocity.magnitude>1)continue;
+                if(!rb||!rb.gameObject.activeInHierarchy||!rb.isKinematic&&rb.linearVelocity.magnitude>1)continue;
                 var box=rb.GetComponent<BoxCollider>();if(!box)continue;
-                for(int i=-1;i<=1;i++)
+                CastleBotNavigation.SurfaceSamples(rb,box,samples);
+                foreach(var p in samples)
                 {
-                    var p=CastleBotNavigation.TopPoint(rb,box,i*.28f);
                     spawnSites.Add(new CastleBotLanding{surface=rb.transform,local=rb.transform.InverseTransformPoint(p),score=p.y});
                 }
             }
@@ -116,7 +120,7 @@ namespace DeadlyJenga.CastleBots
         }
         public float ThreatCost(Vector3 point)
         {
-            float cost=Session.HandBots?Session.HandBots.ThreatCost(point):0;
+            float cost=BotHazardRisk.Cost(point)+(Session.HandBots?Session.HandBots.ThreatCost(point):0);
             if(Session.PlayingHand&&Session.Hand.gameObject.activeInHierarchy)
             {
                 Vector3 position=handBridge&&handBridge.PhysicalHand&&handBridge.PhysicalHand.IsInteractive?handBridge.PhysicalHand.bodies[0].position:Session.Hand.motor.transform.position;
@@ -131,7 +135,25 @@ namespace DeadlyJenga.CastleBots
             return cost;
         }
         public float Crowding(Vector3 point,CastleBotBrain self)
-        {float cost=0;foreach(var b in bots)if(b&&b!=self&&!b.Respawning)cost+=Mathf.Max(0,1.2f-Vector3.Distance(b.transform.position,point));return cost;}
+        {
+            if(Time.time>=crowdAt)
+            {
+                crowdAt=Time.time+.2f;
+                if(crowdCells.Count>256)crowdCells.Clear();
+                foreach(var list in crowdCells.Values)list.Clear();
+                foreach(var bot in bots)
+                {
+                    if(!bot||bot.Respawning)continue;var key=CrowdCell(bot.transform.position);
+                    if(!crowdCells.TryGetValue(key,out var list))crowdCells[key]=list=new List<CastleBotBrain>();
+                    list.Add(bot);
+                }
+            }
+            float cost=0;var cell=CrowdCell(point);
+            for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++)
+                if(crowdCells.TryGetValue(cell+new Vector3Int(x,y,z),out var list))
+                    foreach(var bot in list)if(bot&&bot!=self&&!bot.Respawning)cost+=Mathf.Max(0,1.2f-Vector3.Distance(bot.transform.position,point));
+            return cost;
+        }
         void OnDestroy()
         {
             foreach(var bot in bots)if(bot)Destroy(bot.gameObject);

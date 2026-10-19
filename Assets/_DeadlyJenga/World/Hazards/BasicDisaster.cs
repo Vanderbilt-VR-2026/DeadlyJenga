@@ -38,6 +38,13 @@ namespace DeadlyJenga.World.Hazards
             var p=new List<DisasterParameter>();
             switch(Kind)
             {
+                case "PowerOutage":
+                    p.Add(new DisasterParameter("bulbs","Neon blocks",0,150,24,"",true));
+                    p.Add(new DisasterParameter("rim","Edge glow reach",2,30,9,"m"));break;
+                case "Vampire":
+                    p.Add(new DisasterParameter("damage","Sunlight damage",0,40,9,"HP/s"));
+                    p.Add(new DisasterParameter("delay","Exposure grace",.1f,3,.55f,"s"));
+                    p.Add(new DisasterParameter("elevation","Sun elevation",10,85,45,"°"));break;
                 case "MeteorShower":
                     p.Add(new DisasterParameter("size","Average diameter",.5f,15,3,"m"));
                     p.Add(new DisasterParameter("deviation","Size deviation",0,6,1,"m"));
@@ -83,18 +90,45 @@ namespace DeadlyJenga.World.Hazards
             float dt=Time.fixedDeltaTime;age+=dt;
             if(!Toggle&&Kind!="PlanetKillerMeteor"&&age>=V("warning")+V("duration")){End();return;}
             if(age<V("warning"))return;
-            if(!started){started=true;if(Kind=="Fire")SeedFire();}
+            if(!started){started=true;if(Kind=="Fire")SeedFire();if(Kind=="PowerOutage")SeedLights();}
             if(Kind=="MeteorShower"||Kind=="PlanetKillerMeteor")TickMeteors(dt);
             if(age<nextTick)return;
             nextTick=age+.1f;
             switch(Kind)
             {
+                case "Vampire":TickSun(.1f);break;
                 case "Icey":ApplyIce();break;
                 case "Fire":TickFire(.1f);break;
                 case "Tornado":TickTornado(.1f);break;
                 case "Earthquake":TickEarthquake(.1f);break;
                 case "AcidRain":TickRain(.1f);break;
                 case "AntiGravity":TickGravity(.1f);break;
+            }
+        }
+        readonly Dictionary<IDamageable,float> sunlight = new Dictionary<IDamageable,float>();
+        void SeedLights()
+        {
+            var ids = new List<int>();
+            for(int i=0;i<world.Blocks.Count;i++)if(world.Blocks[i])ids.Add(i);
+            int count=Mathf.Min(ids.Count,Mathf.RoundToInt(V("bulbs")));
+            for(int i=0;i<count;i++){int j=UnityEngine.Random.Range(i,ids.Count);int swap=ids[i];ids[i]=ids[j];ids[j]=swap;burning.Add(ids[i]);}
+        }
+        void TickSun(float dt)
+        {
+            float elevation=V("elevation")*Mathf.Deg2Rad;
+            var towardSun=new Vector3(.6f*Mathf.Cos(elevation),Mathf.Sin(elevation),.8f*Mathf.Cos(elevation));
+            int n=Physics.OverlapBoxNonAlloc(area.center,area.extents+Vector3.one*5,hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Ignore);
+            receivers.Clear();
+            for(int i=0;i<n;i++)
+            {
+                var health=hits[i].GetComponentInParent<IDamageable>();
+                if(health==null||!receivers.Add(health))continue;
+                var eye=hits[i].bounds.center+Vector3.up*hits[i].bounds.extents.y*.65f;
+                bool exposed=!Physics.Raycast(eye,towardSun,1000,1<<Layers.Block,QueryTriggerInteraction.Ignore);
+                sunlight.TryGetValue(health,out float accumulated);
+                accumulated=Mathf.MoveTowards(accumulated,exposed?V("delay")+1:0,dt);
+                sunlight[health]=accumulated;
+                if(exposed&&accumulated>=V("delay"))health.Damage(V("damage")*dt*strength,gameObject);
             }
         }
         protected int Query(Vector3 center,float radius)
@@ -164,7 +198,7 @@ namespace DeadlyJenga.World.Hazards
         }
         protected override void EndHazard()
         {
-            DisasterStates.Active.Remove(this);
+            DisasterStates.Active.Remove(this);sunlight.Clear();
             foreach(var pair in originals)if(pair.Key&&pair.Key.sharedMaterial==ice)pair.Key.sharedMaterial=pair.Value;
             originals.Clear();if(ice)Destroy(ice);ice=null;meteors.Clear();burning.Clear();heat.Clear();lastContact.Clear();lastFireDamage.Clear();blockIds.Clear();ignited.Clear();meteorClock=0;launched=false;
         }

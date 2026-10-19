@@ -24,15 +24,15 @@ namespace DeadlyJenga.CastleBots
             var first=generator.Blocks.Count>0?generator.Blocks[0]:null;
             if(shared!=null&&shared.generator==generator&&shared.first==first&&Time.time-shared.at<1)return shared;
             var graph=new Snapshot{generator=generator,first=first,at=Time.time};
+            var samples=new List<Vector3>(18);
             foreach(var rb in generator.Blocks)
             {
-                if(!rb||!rb.gameObject.activeInHierarchy||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.93f||rb.linearVelocity.magnitude>1.2f)continue;
+                if(!rb||!rb.gameObject.activeInHierarchy||!rb.isKinematic&&rb.linearVelocity.magnitude>1.2f)continue;
                 var box=rb.GetComponent<BoxCollider>();if(!box)continue;
-                for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)
+                CastleBotNavigation.SurfaceSamples(rb,box,samples);
+                foreach(var p in samples)
                 {
-                    bool longX=box.size.x*rb.transform.lossyScale.x>=box.size.z*rb.transform.lossyScale.z;
-                    var local=box.center+new Vector3(box.size.x*x*(longX?.43f:.34f),box.size.y*.5f,box.size.z*z*(longX?.34f:.43f));
-                    var p=rb.position+rb.rotation*Vector3.Scale(local,rb.transform.lossyScale);
+                    var local=rb.transform.InverseTransformPoint(p);
                     int id=graph.nodes.Count;graph.nodes.Add(new CastleBotLanding{surface=rb.transform,body=rb,local=local});
                     var cell=Cell(p);if(!graph.cells.TryGetValue(cell,out var list))graph.cells[cell]=list=new List<int>();list.Add(id);
                     graph.minY=Mathf.Min(graph.minY,p.y);graph.maxY=Mathf.Max(graph.maxY,p.y);
@@ -60,6 +60,43 @@ namespace DeadlyJenga.CastleBots
             for(int i=0;i<Mathf.Min(24,ranked.Count);i++)if(CastleBotNavigation.Landing(bot.Motor,ranked[i].Point,out _))return ranked[i].Point;
             return feet+bearing*5;
         }
+        public static bool RecoveryStage(CastleBotBrain bot,Vector3 destination,List<Vector3> recent,out Vector3 stage)
+        {
+            stage=default;if(!BotPlanningBudget.TrySense(Mathf.RoundToInt(bot.Seed/7.193f)-1,bot.Population.Count))return false;
+            var graph=Geometry(bot.Population.Session.world);var feet=bot.transform.position;
+            var candidates=new List<CastleBotLanding>();
+            foreach(var node in graph.nodes)
+            {
+                var p=node.Point;float rise=p.y-feet.y;float distance=Vector3.ProjectOnPlane(p-feet,Vector3.up).magnitude;
+                if(rise<.6f||rise>bot.Motor.jumpHeight+bot.Motor.vaultMaxRise-.15f||distance<3||distance>Mathf.Clamp(bot.Population.Session.world.PlayableBounds.size.magnitude*.6f,30,80))continue;
+                bool visited=false;foreach(var old in recent)if((old-p).sqrMagnitude<9){visited=true;break;}if(visited)continue;
+                var candidate=node;candidate.score=distance+Vector3.ProjectOnPlane(destination-p,Vector3.up).magnitude;candidates.Add(candidate);
+            }
+            candidates.Sort((a,b)=>a.score.CompareTo(b.score));
+            int tested=0,inspected=0;
+            foreach(var candidate in candidates)
+            {
+                if(inspected++>=512||tested>=32)break;var p=candidate.Point;
+                if(!CastleBotNavigation.Landing(bot.Motor,p,out _)||Physics.Raycast(p+Vector3.up*.15f,Vector3.up,8,CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore))continue;
+                tested++;
+                // Open consecutive steps distinguish an ascending approach from another roof.
+                var cell=Cell(p);bool ascending=false;
+                for(int x=-1;x<=1&&!ascending;x++)for(int y=0;y<=1&&!ascending;y++)for(int z=-1;z<=1&&!ascending;z++)
+                {
+                    if(!graph.cells.TryGetValue(cell+new Vector3Int(x,y,z),out var indices))continue;
+                    foreach(int index in indices)
+                    {
+                        var q=graph.nodes[index].Point;float rise=q.y-p.y;
+                        if(rise<.8f||rise>2.5f||Vector3.ProjectOnPlane(q-p,Vector3.up).sqrMagnitude>12||!CastleBotNavigation.Landing(bot.Motor,q,out _))continue;
+                        if(Physics.Raycast(q+Vector3.up*.15f,Vector3.up,6,CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore))continue;
+                        if(CastleBotNavigation.TryLink(bot.Motor,p,q,out _,out _)){ascending=true;break;}
+                    }
+                }
+                if(ascending){stage=p;bot.RecoveryDiagnostics="candidates="+candidates.Count+" inspected="+inspected+" open="+tested+" stage="+stage;return true;}
+            }
+            bot.RecoveryDiagnostics="candidates="+candidates.Count+" inspected="+inspected+" open="+tested+" no ascending stage";
+            return false;
+        }
         struct SearchNode {public float cost;public int parent;public CastleBotRoute route;}
         struct Candidate {public int id;public float priority;}
         readonly CastleBotBrain bot;
@@ -70,10 +107,12 @@ namespace DeadlyJenga.CastleBots
         readonly List<int> open=new List<int>();
         readonly HashSet<int> closed=new HashSet<int>();
         readonly List<Candidate> neighbors=new List<Candidate>();
-        int expanding=-1,neighborCursor,best=-1,expanded,checkedEdges;
+        int expanding=-1,neighborCursor,best=-1,escapeBest=-1,expanded,checkedEdges;
+        float escapeScore=float.PositiveInfinity;
         float bestDistance;
         bool haveExpansion;
         public bool Complete {get;private set;}
+        public string Diagnostics=>"expanded="+expanded+" checked="+checkedEdges+" best="+(best>=0?Point(best).ToString():"none")+" escape="+(escapeBest>=0?Point(escapeBest).ToString():"none")+" result="+Result.Count;
         public readonly List<CastleBotLanding> Result=new List<CastleBotLanding>();
         public CastleBotJourneyPlanner(CastleBotBrain bot,Vector3 destination)
         {
@@ -86,14 +125,14 @@ namespace DeadlyJenga.CastleBots
         bool Valid(int id)
         {
             if(validity.TryGetValue(id,out bool valid))return valid;
-            var node=graph.nodes[id];valid=node.surface&&node.surface.gameObject.activeInHierarchy&&node.body&&node.body.linearVelocity.magnitude<1.5f&&Vector3.Dot(node.body.rotation*Vector3.up,Vector3.up)>.9f&&CastleBotNavigation.Landing(bot.Motor,node.Point,out _);
+            var node=graph.nodes[id];valid=node.surface&&node.surface.gameObject.activeInHierarchy&&node.body&&(node.body.isKinematic||node.body.linearVelocity.magnitude<1.5f)&&CastleBotNavigation.Landing(bot.Motor,node.Point,out _);
             validity[id]=valid;return valid;
         }
         void Neighbors(int id)
         {
             neighbors.Clear();neighborCursor=0;var p=Point(id);var cell=Cell(p);
             float v=Mathf.Sqrt(2*bot.Motor.gravity*bot.Motor.jumpHeight);
-            float range=Mathf.Clamp(bot.Motor.walkSpeed*v*2/bot.Motor.gravity+bot.Motor.vaultReach,2,7);
+            float range=Mathf.Clamp(bot.Motor.EffectiveWalkSpeed*v*2/bot.Motor.gravity+bot.Motor.vaultReach,2,7);
             int cells=Mathf.CeilToInt(range/3);
             for(int x=-cells;x<=cells;x++)for(int y=-2;y<=2;y++)for(int z=-cells;z<=cells;z++)
             {
@@ -101,7 +140,7 @@ namespace DeadlyJenga.CastleBots
                 foreach(int next in list)
                 {
                     if(next==id||closed.Contains(next))continue;var point=graph.nodes[next].Point;var delta=point-p;
-                    if(Mathf.Abs(delta.y)>.1f+bot.Motor.jumpHeight+bot.Motor.vaultMaxRise||Vector3.ProjectOnPlane(delta,Vector3.up).sqrMagnitude>range*range||delta.sqrMagnitude<.08f)continue;
+                    if(Mathf.Abs(delta.y)>Mathf.Max(.1f+bot.Motor.jumpHeight+bot.Motor.vaultMaxRise,bot.Motor.climbSpeed*bot.Motor.climbGripSeconds*.65f)||Vector3.ProjectOnPlane(delta,Vector3.up).sqrMagnitude>range*range||delta.sqrMagnitude<.08f)continue;
                     float priority=Heuristic(point)+delta.magnitude*.1f+bot.RevisitCost(graph.nodes[next].body)*.2f;
                     neighbors.Add(new Candidate{id=next,priority=priority});
                 }
@@ -134,11 +173,12 @@ namespace DeadlyJenga.CastleBots
                     Neighbors(expanding);haveExpansion=true;
                 }
                 if(neighborCursor>=neighbors.Count){haveExpansion=false;continue;}
+                if(!BotPlanningBudget.TryEdge(Mathf.RoundToInt(bot.Seed/7.193f)-1,bot.Population.Count))return;
                 int next=neighbors[neighborCursor++].id;validations++;
                 if(!Valid(next))continue;
                 var from=Point(expanding);var to=Point(next);
                 float drop=from.y-to.y;
-                if(drop>bot.Motor.jumpHeight+bot.Motor.StandingHeight*(.5f+bot.Personality.bravery))continue;
+                if(drop>bot.Motor.jumpHeight+bot.Motor.StandingHeight*2)continue;
                 // Blocked/covered surface samples must not consume the entire
                 // route-search budget before real stepping stones are tested.
                 checkedEdges++;
@@ -157,12 +197,20 @@ namespace DeadlyJenga.CastleBots
                 // A useful partial route is preferable to standing still waiting for a
                 // full trip across many storeys to fit in one bounded search.
                 float h=Heuristic(to);if(h<bestDistance-.2f){best=next;bestDistance=h;}
+                // Some routes first descend or circle away to reach the next staircase.
+                // Keep a real, safe alternative rather than demanding immediate height progress.
+                if(graph.nodes[next].body!=bot.Motor.StandingBody&&Vector3.Distance(to,start)>1)
+                {
+                    float alternative=h+bot.RevisitCost(graph.nodes[next].body)*4+bot.RecentStopCost(to)*6;
+                    if(alternative<escapeScore){escapeScore=alternative;escapeBest=next;}
+                }
             }
             if(checkedEdges>=256)Finish();
         }
         void Finish()
         {
             Complete=true;
+            if(escapeBest>=0&&(best<0||graph.nodes[best].body==bot.Motor.StandingBody&&Vector3.Distance(Point(best),start)<2))best=escapeBest;
             if(best<0)return;
             int node=best,guard=0;
             while(node>=0&&guard++<64)

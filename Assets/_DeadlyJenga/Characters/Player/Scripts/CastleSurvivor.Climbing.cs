@@ -45,7 +45,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!Physics.Raycast(origin,direction,out hit,distance,ClimbMask,QueryTriggerInteraction.Ignore))return false;
             float angle=Vector3.Angle(hit.normal,Vector3.up);
-            return angle>=55&&angle<=100&&Climbables.TryGet(hit.collider,out var block)&&block.CanClimb&&block.Grip>0;
+            return angle>=55&&angle<=100&&Climbables.TryGet(hit.collider,out var block)&&block.CanClimb&&block.Grip>0&&(ClimbPermission==null||ClimbPermission(block))&&(MatchRuntime.Current==null||MatchRuntime.Current.CanClimb(gameObject,block));
         }
         bool FindClimbFace(Vector3 feet,Vector3 direction,out RaycastHit hit)
         {
@@ -109,7 +109,7 @@ namespace DeadlyJenga.CastlePrototype
                 // Rest on secure ground only. Dropping/regrabbing or changing blocks never refills grip.
                 if(Grounded&&GroundAngle<=slopeGripAngle&&SupportAtRest())climbGroundRest+=dt;else climbGroundRest=0;
                 if(climbGroundRest>Mathf.Max(0,climbRecoveryDelay))GripRemaining=CastleStaminaCurve.Advance(GripRemaining,Mathf.Max(0,climbRecoveryPerSecond)*dt,climbRecoveryCurve,climbRecoveryDegree);
-                if(!climbingEnabled||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
+                if(!climbingEnabled||(modeRules!=null&&!modeRules.canClimb)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
                 var facing=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 if(!FindClimbFace(Feet,facing,out var initial))return false;
                 BindClimb(initial);climbPointVelocity=PointVelocity();

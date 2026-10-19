@@ -5,6 +5,7 @@ using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
 using DeadlyJenga.CharacterNetwork;
 using System.IO;
+using UnityEngine.InputSystem;
 namespace DeadlyJenga.CandyPhysicsHands
 {
     [DefaultExecutionOrder(50)]
@@ -15,6 +16,9 @@ namespace DeadlyJenga.CandyPhysicsHands
         public CandyHandSettings settings;
         public CandyPlayerStyle trackingStyle;
         public bool useLeftHand;
+        public bool ExternalUsesJointDrives {get;set;}=true;
+        public bool SuppressNetworkRegistration {get;set;}
+        SeaSpiritController Spirit=>GetComponent<SeaSpiritController>();
         public CandyHandMode Mode=>transition.Mode;
         public CandyPhysicalHand PhysicalHand=>physical;
         // A joining headset predicts its own hand visuals; only the host makes
@@ -30,6 +34,10 @@ namespace DeadlyJenga.CandyPhysicsHands
         Vector3 trackingAnchor;
         bool anchored;
         bool trackedGeometry;
+        public DesktopHandPose DesktopPose { get; private set; }
+        public float DesktopClench { get; private set; }
+        CandyHandSkeleton desktopSkeleton;
+        bool desktopPoseReady;
         readonly CandyHandFlightGesture flightGesture=new CandyHandFlightGesture();
         void Awake()
         {
@@ -67,7 +75,8 @@ namespace DeadlyJenga.CandyPhysicsHands
             CandyHandMode mode=raw.tracked?(raw.skeletonTracked?CandyHandMode.HandTracking:CandyHandMode.Controller):CandyHandMode.Inactive;
             if(desktop&&!external)
             {
-                raw=new CandyHandPose{tracked=true,position=actor.motor.transform.position,rotation=actor.motor.transform.rotation,skeleton=CandyHandSkeleton.Rest(useLeftHand,.85f)};
+                ReadDesktopPose();
+                raw=new CandyHandPose{tracked=true,skeletonTracked=true,position=actor.motor.transform.position,rotation=actor.motor.transform.rotation,skeleton=desktopSkeleton};
                 mode=CandyHandMode.Desktop;anchored=false;
             }
             if(raw.tracked)
@@ -89,7 +98,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(transition.Mode==CandyHandMode.Inactive&&transition.Strength<=0)
             {if(physical&&physical.gameObject.activeSelf){physical.SetInteractive(false);physical.gameObject.SetActive(false);}return;}
             bool needsTrackedGeometry=transition.Mode==CandyHandMode.HandTracking;
-            if(!physical){physical=Instantiate(prefab);physical.name="Contact driven candy hand";physical.settings=settings;physical.left=useLeftHand;physical.JointDrivenFingers=external;physical.Build(transition.Pose);trackedGeometry=needsTrackedGeometry;}
+            if(!physical){physical=Instantiate(prefab);physical.name="Contact driven candy hand";physical.settings=settings;physical.left=useLeftHand;physical.JointDrivenFingers=external&&ExternalUsesJointDrives;physical.Build(transition.Pose);trackedGeometry=needsTrackedGeometry;}
             // Wrist movement must stay visible relative to the observer.
             actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");
             actor.follow.positionTarget=null;actor.follow.compactHandView=true;
@@ -107,6 +116,29 @@ namespace DeadlyJenga.CandyPhysicsHands
             physical.skin.enabled=physical.IsInteractive||(actor.motor.InputSuspended&&transition.Strength>0);
             if(transition.Mode==CandyHandMode.Inactive){physical.gameObject.SetActive(false);}
         }
+        public void SelectDesktopPose(DesktopHandPose value) => DesktopPose = value;
+        void ReadDesktopPose()
+        {
+            bool input=actor.motor.DesktopInputAllowed;
+            if(input)
+            {
+                var keyboard=Keyboard.current;
+                if(keyboard!=null)
+                {
+                    if(keyboard.digit1Key.wasPressedThisFrame||keyboard.numpad1Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Pointer;
+                    if(keyboard.digit2Key.wasPressedThisFrame||keyboard.numpad2Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Cup;
+                    if(keyboard.digit3Key.wasPressedThisFrame||keyboard.numpad3Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Fist;
+                    if(keyboard.digit4Key.wasPressedThisFrame||keyboard.numpad4Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Flat;
+                    if(keyboard.digit5Key.wasPressedThisFrame||keyboard.numpad5Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Peace;
+                    if(keyboard.digit6Key.wasPressedThisFrame||keyboard.numpad6Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Spread;
+                }
+            }
+            bool held=input && Mouse.current!=null && Mouse.current.leftButton.isPressed;
+            DesktopClench=Mathf.MoveTowards(DesktopClench,held?1:0,Time.deltaTime*5);
+            var goal=DesktopHandPoses.Build(useLeftHand,DesktopPose,DesktopClench);
+            desktopSkeleton=desktopPoseReady?DesktopHandPoses.Blend(desktopSkeleton,goal,1-Mathf.Exp(-Time.deltaTime*12)):goal;
+            desktopPoseReady=true;
+        }
         // Respawn/rebuild only: release contacts before discarding the old rig. Never moves a held block.
         public void ResetExternalRig()
         {
@@ -121,16 +153,23 @@ namespace DeadlyJenga.CandyPhysicsHands
         }
         // INetworkActor: what other players see of this hand (the player's or a bot's).
         public string NetworkKind => NetworkKinds.Hand;
-        public bool NetworkActive => physical ? physical.gameObject.activeInHierarchy && physical.skin && physical.skin.enabled : actor && !actor.motor.externallyDriven;
-        public Vector3 NetworkPosition => physical ? physical.transform.position : actor ? actor.motor.transform.position : transform.position;
+        public bool NetworkActive => Spirit&&Spirit.Active || (physical ? physical.gameObject.activeInHierarchy && physical.skin && physical.skin.enabled : actor && !actor.motor.externallyDriven);
+        public Vector3 NetworkPosition => Spirit&&Spirit.Active?Spirit.BustAnchor.position:physical ? physical.bodies[0].position : actor ? actor.motor.transform.position : transform.position;
         public void WriteState(BinaryWriter w)
         {
+            var spirit=Spirit;
+            if(spirit&&spirit.Active)
+            {
+                var restSea=new CandyHandPose{position=spirit.BustAnchor.position,rotation=spirit.BustAnchor.rotation,tracked=false,skeleton=CandyHandSkeleton.Rest(useLeftHand)};
+                CharacterWire.WriteHand(w,useLeftHand,settings.size,restSea,(Pose[])null);
+                CharacterWire.WriteSeaSpirit(w,spirit);return;
+            }
             if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies); return; }
             var at = actor ? actor.motor.transform : transform;
             var rest = new CandyHandPose { position = at.position, rotation = at.rotation, tracked = true, skeleton = CandyHandSkeleton.Rest(useLeftHand) };
             CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null);
         }
-        void OnEnable(){NetworkActors.Local.Add(this);}
+        void OnEnable(){if(!SuppressNetworkRegistration&&!NetworkActors.Local.Contains(this))NetworkActors.Local.Add(this);}
         void OnDisable(){NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
         void OnDestroy(){if(physical)Destroy(physical.gameObject);}
     }

@@ -10,7 +10,10 @@ namespace DeadlyJenga.CandyAudio
         RubberSlide,RubberTouch,FootstepCandy,FootstepSand,Jump,LandSoft,LandHard,VaultGrunt,ClimbGrunt,ClimbPlant,ClimbRelease,
         FallWind,BeachWind,HandFlight,Surf,Music,Spawn,Respawn,UiClick,GripWarning,
         FriendlyWave,TotallyMeantThat,Phew,WhatWasThat,GolfClap,JustChilling,NopeNopeNope,TinyVictoryDance,
-        BreathExertion,BreathRecovery,BreathExhausted
+        BreathExertion,BreathRecovery,BreathExhausted,
+        DisasterHorn,DisasterTension,WaveImpact,WaveSpray,PuddleDrain,AcidSizzle,AcidBurn,
+        CycloneWind,EarthRumble,FireCrackle,MeteorWhistle,MeteorImpact,PowerDown,PowerUp,
+        FingerFlex,HandSwirl,PushImpact,ClaimWin,IslandSink,VampireSizzle
     }
     public enum CandyBus { World,Character,Ambience,Music,UI }
     [Serializable]

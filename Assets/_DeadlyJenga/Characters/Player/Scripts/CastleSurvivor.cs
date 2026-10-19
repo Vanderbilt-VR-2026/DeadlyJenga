@@ -40,6 +40,8 @@ namespace DeadlyJenga.CastlePrototype
         public bool Grounded { get; private set; }
         public bool Vaulting { get; private set; }
         public float VerticalSpeed => verticalSpeed;
+        public Collider StandingSurface { get; private set; }
+        public Vector3 FootPosition => Feet;
         public int VaultCount { get; private set; }
         public string ActionStatus { get; private set; } = "Ready";
         public CharacterController Capsule { get; private set; }
@@ -155,6 +157,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             else ResetVRJump();
+            UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
         }
 
@@ -166,12 +169,14 @@ namespace DeadlyJenga.CastlePrototype
             lastGrounded = -100; ActionStatus = "Spawned on top";
             ResetClimb(true);
             ResetVRJump();
+            SetSinking(false); punchHandReady = false;peakFallSpeed=0;
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
             if (dt <= 0 || !Capsule.enabled) return;
+            peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();
-            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended,dt))return;
+            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt))return;
             if (Vaulting) { AdvanceVault(dt); return; }
             if (support && Grounded)
             {
@@ -180,6 +185,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (carry.magnitude < 2) Capsule.Move(carry);
             }
             ProbeGround();
+            ApplyFallImpact();
             if (Grounded)
             {
                 lastGrounded = Time.time; jumped = false;
@@ -187,18 +193,19 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (jumpPressed)
             {
-                if (!jumped && (Grounded || Time.time - lastGrounded < .07f))
+                if (!Sinking && (modeRules==null||modeRules.canJump) && !jumped && (Grounded || Time.time - lastGrounded < .07f))
                 {
                     verticalSpeed = Mathf.Sqrt(2 * gravity * jumpHeight); Grounded = false;
                     jumped = true; support = null; airborneSince = Time.time; ActionStatus = "Jump";
                 }
-                else if (!Grounded && Time.time - airborneSince > .06f && TryStartVault()) return;
+                else if ((Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
                 else ActionStatus = "No reachable ledge — no double jump";
             }
             Vector3 forward = MovementForward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             input = Vector2.ClampMagnitude(input, 1);
             Vector3 movement=(forward*input.y+right*input.x)*(IsVR&&!externallyDriven?vrWalkSpeed:walkSpeed);
+            movement *= movementMultiplier * (Sinking&&(modeRules==null||!modeRules.sinking) ? .16f : 1);
             float slip=DisasterStates.Slipperiness;
             if(slip>0)
             {
@@ -229,24 +236,44 @@ namespace DeadlyJenga.CastlePrototype
             if ((flags & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             if ((flags & CollisionFlags.Below) != 0 && verticalSpeed < 0) verticalSpeed = -1;
             ProbeGround();
+            ApplyFallImpact();
+        }
+        readonly RaycastHit[] groundContacts=new RaycastHit[24];
+        bool SupportFace(ref RaycastHit hit,Vector3 feet,int mask)
+        {
+            if(Physics.Raycast(hit.point+Vector3.up*(.06f*playerScale),Vector3.down,out var face,.12f*playerScale,mask,QueryTriggerInteraction.Ignore)&&face.collider==hit.collider)hit=face;
+            float gap=feet.y-hit.point.y;
+            return gap>=-.1f*playerScale&&gap<=.12f*playerScale+Capsule.skinWidth*2&&hit.normal.y>=Mathf.Cos(slopeSupportAngle*Mathf.Deg2Rad);
         }
         void ProbeGround()
         {
-            Vector3 feet = Feet;
-            bool wasGrounded = Grounded;
-            int mask=~((1 << gameObject.layer) | (1 << Layers.Block));
-            bool contact=Physics.SphereCast(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,
-                Vector3.down,out var hit,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
-            // Sphere normals can interpolate across box edges. Recover the actual face
-            // at the contact point, rather than classifying a wall edge as a floor.
-            if(contact&&Physics.Raycast(hit.point+Vector3.up*(.06f*playerScale),Vector3.down,out var face,.12f*playerScale,mask,QueryTriggerInteraction.Ignore)&&face.collider==hit.collider)hit=face;
-            Grounded=verticalSpeed<=0&&contact&&hit.normal.y>=Mathf.Cos(slopeSupportAngle*Mathf.Deg2Rad);
-            if (Grounded)
+            Vector3 feet=Feet;bool wasGrounded=Grounded;
+            int mask=~((1<<gameObject.layer)|(1<<Layers.Block));
+            int count=Physics.SphereCastNonAlloc(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,Vector3.down,groundContacts,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
+            bool contact=false;RaycastHit hit=default;float best=float.NegativeInfinity;
+            for(int i=0;i<count;i++)
             {
-                GroundNormal=hit.normal;
-                support = hit.transform; supportLocal = support.InverseTransformPoint(feet); supportWorld = support.TransformPoint(supportLocal);
+                var candidate=groundContacts[i];if(!SupportFace(ref candidate,feet,mask))continue;
+                float score=candidate.normal.y-Mathf.Abs(feet.y-candidate.point.y);
+                if(score>best){best=score;hit=candidate;contact=true;}
             }
-            else { support = null; if (wasGrounded) airborneSince = Time.time; }
+            // A wall touching the capsule must not hide a floor beneath its footprint.
+            if(!contact&&count>0)
+            {
+                for(int i=0;i<5;i++)
+                {
+                    Vector3 offset=i==0?Vector3.zero:(i<=2?Vector3.right:Vector3.forward)*((i%2==0?-1:1)*Capsule.radius*.65f);
+                    if(!Physics.Raycast(feet+offset+Vector3.up*(.15f*playerScale),Vector3.down,out var candidate,.36f*playerScale,mask,QueryTriggerInteraction.Ignore)||!SupportFace(ref candidate,feet,mask))continue;
+                    if(!contact||candidate.normal.y>hit.normal.y){hit=candidate;contact=true;}
+                }
+            }
+            Grounded=verticalSpeed<=0&&contact;
+            if(Grounded)
+            {
+                GroundNormal=hit.normal;support=hit.transform;supportLocal=support.InverseTransformPoint(feet);supportWorld=support.TransformPoint(supportLocal);
+            }
+            else{support=null;if(wasGrounded)airborneSince=Time.time;}
+            StandingSurface=Grounded?hit.collider:null;
         }
         Vector3 Feet => transform.TransformPoint(Capsule.center) - Vector3.up * Capsule.height / 2;
 
@@ -317,14 +344,14 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool TryStartVault()
         {
-            if (Grounded || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
+            if ((modeRules!=null&&!modeRules.canVault) || (Grounded && !Sinking) || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
             BeginVault(hit,destination);return true;
         }
         public bool TryGetVaultTarget(out Collider surface, out Vector3 edgePoint, out Vector3 landingPoint)
         {
             surface = null; edgePoint = landingPoint = default;
-            if (!isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || Grounded || Vaulting || Climbing
-                || Time.time - airborneSince <= .06f || (!jumped && Time.time - lastGrounded < .07f)) return false;
+            if ((modeRules!=null&&!modeRules.canVault) || !isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || (Grounded && !Sinking) || Vaulting || Climbing
+                || (!Sinking && (Time.time - airborneSince <= .06f || (!jumped && Time.time - lastGrounded < .07f)))) return false;
             if (!TryFindLedge(out var hit, out var destination)) return false;
             surface = hit.collider; edgePoint = candidateGrip; landingPoint = destination + (Feet - transform.position);
             return true;
@@ -335,6 +362,7 @@ namespace DeadlyJenga.CastlePrototype
             vaultGripLocal=vaultSurface.InverseTransformPoint(candidateGrip);
             vaultNormalLocal=vaultSurface.InverseTransformDirection(candidateNormal);vaultForwardLocal=vaultSurface.InverseTransformDirection(candidateForward);
             vaultStart = transform.position; vaultTime = 0; Vaulting = true; verticalSpeed = 0;
+            peakFallSpeed=0;
             support = null; ActionStatus = "Vault"; VaultCount++;
         }
         public bool TryGetVaultGrip(bool left,out Pose grip)
@@ -347,7 +375,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void AdvanceVault(float dt)
         {
-            if (!vaultSurface || Vector3.Angle(vaultSurface.up, Vector3.up) > 25)
+            if (!vaultSurface || Vector3.Angle(vaultSurface.TransformDirection(vaultNormalLocal), Vector3.up) > 32)
             { Vaulting = false; ActionStatus = "Ledge moved — vault cancelled"; return; }
             Vector3 end = vaultSurface.TransformPoint(vaultLocal);
             if (Vector3.Distance(end, vaultStart) > 3 || !ClearCapsule(end + (Feet - transform.position)))

@@ -10,8 +10,8 @@ namespace DeadlyJenga.Presentation
     {
         [SerializeField] Shader glowShader;
         [Header("Candy appearance")]
-        [ColorUsage(true, true)] public Color tint = new Color(.25f, .75f, 1f, .32f);
-        [Range(0, 3)] public float brightness = 1.2f;
+        [ColorUsage(true, true)] public Color tint = new Color(.08f, .48f, 1f, .75f);
+        [Range(0, 3)] public float brightness = 2.3f;
         [Min(.02f)] public float edgeSpan = 1.1f;
         [Min(.005f)] public float topDepth = .09f;
         [Min(.005f)] public float faceDepth = .07f;
@@ -37,6 +37,7 @@ namespace DeadlyJenga.Presentation
 
         void Awake()
         {
+            if(tint==new Color(.25f,.75f,1,.32f)&&Mathf.Approximately(brightness,1.2f)){tint=new Color(.08f,.48f,1,.75f);brightness=2.3f;}
             provider = GetComponent<IVaultTargetProvider>(); owner = GetComponent<IMovementState>();
             if (!glowShader || provider == null || owner == null) { enabled = false; return; }
             visual = new GameObject("Visual - vault ledge glow");
@@ -51,6 +52,8 @@ namespace DeadlyJenga.Presentation
         void LateUpdate()
         {
             if (!visual) return;
+            if(provider==null||owner==null){provider=GetComponent<IVaultTargetProvider>();owner=GetComponent<IMovementState>();}
+            if(provider==null||owner==null)return;
             Collider surface = null; Vector3 edge = default;
             bool visible = owner.IsLocal && !owner.InputPaused && !(Services.Session?.MenuOpen ?? false)
                 && provider.TryGetVaultTarget(out surface, out edge, out _);

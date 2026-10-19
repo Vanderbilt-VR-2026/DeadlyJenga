@@ -14,7 +14,16 @@ namespace DeadlyJenga.CastleBots
         Vector3 previousMove;
         bool tuned;
 
-        public string NetworkId => "bot:" + Brain.GetInstanceID();
+        string generatedNetworkId;
+        public string NetworkId
+        {
+            get
+            {
+                var actor=GetComponent<IModeActor>();var assigned=actor?.ActorId;
+                if(!string.IsNullOrEmpty(assigned)&&assigned.StartsWith("bot:",StringComparison.Ordinal))return assigned;
+                return generatedNetworkId??(generatedNetworkId="bot:"+Guid.NewGuid().ToString("N"));
+            }
+        }
         public bool Respawning => Brain.Respawning;
         public int Respawns => Brain.Respawns;
         public bool Grounded => Brain.Motor.Grounded;
@@ -45,7 +54,7 @@ namespace DeadlyJenga.CastleBots
         {
             var command = Brain.ReadCommand(motor, dt); if (!tuned) return command;
             // Keep ballistic/ledge commands exact. Skill only smooths safe grounded walking.
-            if (motor.Grounded && !motor.Vaulting && !command.jump && !motor.Climbing)
+            if (motor.Grounded && !motor.Vaulting && !command.jump && !motor.Climbing && !Brain.PrecisionTraversal)
             {
                 float smooth = 1 - Mathf.Exp(-dt * Mathf.Lerp(7, 18, Skill));
                 previousMove = Vector3.Lerp(previousMove, command.move, smooth); command.move = previousMove;

@@ -14,7 +14,7 @@ namespace DeadlyJenga.CastlePrototype
         public Camera ActiveCamera => NetworkActors.Alive(Player) ? Player.ViewCamera : null;
         public bool MenuSelectPressed => false;
         public bool MenuSelectHeld => false;
-        public bool CanEditWorld => true;
+        public bool CanEditWorld => Room&&Room.LocalIsLobbyHost;
         public void ResetMap() { }
         public ISurvivorBotPopulation SurvivorBots => null;
         public IBotPopulation HandBots => null;

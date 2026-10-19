@@ -10,7 +10,7 @@ using System.IO;
 namespace DeadlyJenga.CandyPlayers
 {
     [DefaultExecutionOrder(100)]
-    public sealed class CandyPlayerAvatar : MonoBehaviour, INetworkActor
+    public sealed partial class CandyPlayerAvatar : MonoBehaviour, INetworkActor
     {
         public CandyPlayerRig visualPrefab;
         public CastleSurvivor survivor;
@@ -47,23 +47,34 @@ namespace DeadlyJenga.CandyPlayers
                 farRays=GetComponentsInChildren<XRRayInteractor>(true);
             }
         }
-        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(!remoteDriven)NetworkActors.Local.Add(this);}
-        void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);}
+        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(survivor)survivor.PunchRequested+=BeginPunch;if(!remoteDriven)NetworkActors.Local.Add(this);}
+        void OnDisable(){Application.onBeforeRender-=BeforeRender;if(survivor)survivor.PunchRequested-=BeginPunch;ResetPunch();wasVaulting=false;NetworkActors.Local.Remove(this);}
 
         // INetworkActor: what other players see of this survivor (the player's or a bot's).
         CastleBotBrain bot;
         public string NetworkKind=>NetworkKinds.Survivor;
         public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
         public Vector3 NetworkPosition=>transform.position;
-        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,ReadFrame(),ColorIndex);
+        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,survivor&&survivor.externallyDriven&&LastFrame.scale>0?LastFrame:ReadFrame(),ColorIndex);
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
         public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}
+        public void SetExactColor(Color color)
+        {
+            if(!Rig||!Rig.style)return;
+            float distance=float.PositiveInfinity;int best=0;
+            for(int i=0;i<Rig.style.colors.Length;i++)
+            {
+                var c=Rig.style.colors[i];float d=(new Vector3(c.r,c.g,c.b)-new Vector3(color.r,color.g,color.b)).sqrMagnitude;
+                if(d<distance){distance=d;best=i;}
+            }
+            SetColor(best);
+        }
         public void OverridePose(CandyAvatarFrame frame){overridden=frame;overridePose=true;}
         public void ClearPoseOverride(){overridePose=false;}
         public CandyAvatarFrame ReadFrame()
         {
-            if(overridePose)return overridden;
+            if(overridePose){var posed=overridden;ApplyPunch(ref posed);return posed;}
             float scale=survivor?survivor.playerScale:trackingOrigin?Mathf.Abs(trackingOrigin.lossyScale.y):1;
             scale=Mathf.Max(.1f,scale);
             Transform head=viewCamera?viewCamera.transform:transform;
@@ -83,6 +94,7 @@ namespace DeadlyJenga.CandyPlayers
             frame.left=left.tracked?left:Rest(true);frame.right=right.tracked?right:Rest(false);
             PointOnHover(ref frame.left, true);
             PointOnHover(ref frame.right, false);
+            ApplyPunch(ref frame);
             return frame;
         }
         void PointOnHover(ref CandyHandPose hand, bool isLeft)
@@ -107,7 +119,7 @@ namespace DeadlyJenga.CandyPlayers
         void Present(float dt)
         {
             if(!Rig)return;
-            Rig.calibration=!remoteDriven&&(!survivor||!survivor.externallyDriven)?CandyAvatarCalibration.Current:null;
+            Rig.calibration=!remoteDriven&&survivor&&survivor.IsVR&&!survivor.externallyDriven?CandyAvatarCalibration.Current:null;
             var frame=ReadFrame();
             bool climbing=survivor&&!survivor.IsVR&&survivor.Climbing;
             if(climbing)
