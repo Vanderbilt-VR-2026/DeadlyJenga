@@ -10,6 +10,9 @@ namespace DeadlyJenga.CastlePrototype
     {
         [Header("Health")]
         public float maxHealth = 100;
+        [Min(0)] public float healthRecoveryDelay = 10;
+        [Min(0)] public float healthRecoveryPerSecond = 5;
+        float lastDamageAt = float.NegativeInfinity;
         float health = -1;
         bool eliminated;
         readonly Dictionary<EffectType, float> effectsEndAt = new Dictionary<EffectType, float>();
@@ -27,8 +30,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Damage(float amount, GameObject source)
         {
-            if (eliminated || amount <= 0) return;
+            if (eliminated || amount <= 0 || float.IsNaN(amount) || float.IsInfinity(amount)) return;
             health = Mathf.Max(0, Health - amount);
+            lastDamageAt = Time.time;
             GameEvents.RaiseDamaged(gameObject, amount);
             if (health <= 0 && !IgnoreFatalDamage) Eliminate(source);
         }
@@ -46,6 +50,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             eliminated = false;
             health = maxHealth;
+            lastDamageAt = float.NegativeInfinity;
         }
 
         public void Apply(Effect effect)
@@ -78,10 +83,19 @@ namespace DeadlyJenga.CastlePrototype
 
         void LateUpdate()
         {
+            RecoverHealth(Time.deltaTime);
             if (effectsEndAt.Count == 0) return;
             expired.Clear();
             foreach (var pair in effectsEndAt) if (Time.time >= pair.Value) expired.Add(pair.Key);
             foreach (var type in expired) Remove(type);
+        }
+        void RecoverHealth(float seconds)
+        {
+            if(eliminated || Health>=maxHealth || modeRules?.downed==true)return;
+            var match=MatchRuntime.Current;
+            if(match!=null&&(!match.Frame.rules.healthEnabled||match.Frame.phase!=RoundPhase.Playing))return;
+            float recovering=Mathf.Min(Mathf.Max(0,seconds),Mathf.Max(0,Time.time-lastDamageAt-healthRecoveryDelay));
+            health=Mathf.Min(maxHealth,Health+recovering*Mathf.Max(0,healthRecoveryPerSecond));
         }
     }
 }

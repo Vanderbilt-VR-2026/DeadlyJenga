@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
                 string first=WaveStatus,warning=first.Contains(" IN ")?first:"";int count=first.Length>0?1:0;
                 foreach(var source in DisasterStates.Active)
                 {
-                    var f=source.Capture();if(f==null)continue;count++;
+                    var f=source.Capture();if(f==null||f.residualOnly)continue;count++;
                     string line=f.label+(f.warning>0?" IN "+Mathf.CeilToInt(f.warning)+" s":f.remaining<0?" · ACTIVE":" · "+Mathf.CeilToInt(f.remaining)+" s");
                     if(first.Length==0)first=line;if(f.warning>0&&warning.Length==0)warning=line;
                 }

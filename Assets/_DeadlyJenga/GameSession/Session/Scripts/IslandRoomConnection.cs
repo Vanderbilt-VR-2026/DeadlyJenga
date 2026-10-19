@@ -99,13 +99,13 @@ namespace DeadlyJenga.CastlePrototype
         public bool Connected=>Runner&&Runner.IsRunning;
         public bool IsHost=>Connected&&Runner.IsServer;
         public int HumanCount=>Connected?Runner.ActivePlayers.Count():1;
-        public bool CanConfigure=>!Busy&&!LaunchPending&&LocalIsLobbyHost;
+        public bool CanConfigure=>!Busy&&!LaunchPending&&!Departing&&LocalIsLobbyHost;
         public event Action<string,byte[]> SocialReceived;
         public event Action<string> ParticipantLeft;
         readonly Dictionary<PlayerRef,CastleSocialChannel> socialPeers=new Dictionary<PlayerRef,CastleSocialChannel>();
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
         const int SocialChannel=0x49534C56;
-        public bool CanLaunch=>LocalIsLobbyHost&&!Busy&&!LaunchPending&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available;
+        public bool CanLaunch=>LocalIsLobbyHost&&!Busy&&!LaunchPending&&!Departing&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available;
         NetworkDelegates callbacks;float nextSend,nextHello,lastServer;int serial,waitingPose,generation;bool leaving,transitioning,welcomed;
         NetworkRunner ownedRunner;
         CancellationTokenSource connecting;
@@ -174,7 +174,7 @@ namespace DeadlyJenga.CastlePrototype
         async Task Migrate(NetworkRunner old,HostMigrationToken token)
         {
             if(Migrating||leaving)return;
-            Migrating=Busy=true;LaunchPending=false;Status="Host left · transferring the island…";
+            CancelDeparture();Migrating=Busy=true;LaunchPending=false;Status="Host left · transferring the island…";
             var game=FindFirstObjectByType<CastleFusionSession>();game?.PauseForMigration();
             IslandLobby.Current?.Voice?.ResetLobbyAudio();
             try
@@ -209,6 +209,15 @@ namespace DeadlyJenga.CastlePrototype
         void Receive(NetworkRunner runner,PlayerRef source,ReliableKey key,ReadOnlySpan<byte> data)
         {
             key.GetInts(out int channel,out int kind,out int id,out _);
+            if(channel==DepartureChannel)
+            {
+                if(!IsHost&&Connected&&IslandLobby.Current&&kind==1&&data.Length==4)
+                {
+                    float seconds=BitConverter.ToSingle(data.ToArray(),0);
+                    if(!float.IsNaN(seconds)&&!float.IsInfinity(seconds)&&seconds>=.3f&&seconds<=3)ReceiveDeparture(seconds);
+                }
+                return;
+            }
             if (channel == MapSwitchChannel && Connected && data.Length > 0 && data.Length <= 256)
             {
                 string map = System.Text.Encoding.UTF8.GetString(data);
@@ -299,26 +308,27 @@ namespace DeadlyJenga.CastlePrototype
                 var map=Catalog.maps[MapIndex];
                 if(SceneUtility.GetBuildIndexByScenePath(map.scenePath)<0){Status="Selected map is not enabled in this build.";return;}
                 MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=map.id;
-                SceneManager.LoadScene(SceneUtility.GetBuildIndexByScenePath(map.scenePath));return;
+                BeginDeparture(SceneUtility.GetBuildIndexByScenePath(map.scenePath),false);return;
             }
             LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Waiting for players to confirm the selected mode and map…";CheckLaunch();
         }
-        public void CancelLaunch(){if(LocalIsLobbyHost)Act(new LobbyAction{verb="cancel"});}
+        public void CancelLaunch(){if(LocalIsLobbyHost&&!Departing)Act(new LobbyAction{verb="cancel"});}
         void CheckLaunch()
         {
-            if(!LaunchPending||!IsHost)return;
+            if(!LaunchPending||!IsHost||Departing)return;
             bool ready=Runner.ActivePlayers.Where(p=>p!=Runner.LocalPlayer).All(p=>peers.TryGetValue(p,out var peer)&&peer.ready&&peer.ackedSelection==selectionVersion);
             if(!ready){if(Time.unscaledTime>launchDeadline){LaunchPending=false;Status="A player has not confirmed the lobby setup. Retry Start when everyone is ready.";}return;}
             LaunchPending=false;
             int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);
             if(index<0){Status="Selected map is not enabled in this build.";return;}
-            transitioning=true;MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=Catalog.maps[MapIndex].id;
-            Status="Starting "+Catalog.modes[ModeIndex].title+"…";Runner.LoadScene(SceneRef.FromIndex(index),LoadSceneMode.Single);
+            MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=Catalog.maps[MapIndex].id;
+            Status="Starting "+Catalog.modes[ModeIndex].title+"…";BeginDeparture(index,true);
         }
         public async Task Leave()
         {if(leaving)return;leaving=true;generation++;connecting?.Cancel();Busy=true;if(Runner){FusionMigrationCleanup.BeforeShutdown(Runner);await Runner.Shutdown();}else Disconnected("Left room");}
         void Disconnected(string reason)
         {
+            CancelDeparture();
             pendingGameMap=null;SwitchingMap=false;mapAcks.Clear();
             if(!this)return;bool inGame=SceneManager.GetActiveScene().name!="Lobby";Status="Disconnected: "+reason;
             connecting?.Dispose();connecting=null;

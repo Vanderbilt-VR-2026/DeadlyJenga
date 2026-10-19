@@ -9,32 +9,42 @@ namespace DeadlyJenga.CastlePrototype
         Button scaffoldButton;
         BoxCollider scaffoldTarget;
         Text scaffoldLabel;
-        Button mapButton,exitButton;
-        BoxCollider mapTarget,exitTarget;
-        bool mapPage;
+        Button mapButton,exitButton,spectateButton,endButton;
+        BoxCollider mapTarget,exitTarget,spectateTarget,endTarget;
+        bool mapPage,spectatePage;
         int mapOffset;
         void BuildMapControls()
         {
-            mapButton=HeaderButton("Change map",-140,out mapTarget);
-            exitButton=HeaderButton("Exit to Lobby",140,out exitTarget);
+            mapButton=HeaderButton("Maps",-222,out mapTarget);
+            spectateButton=HeaderButton("Spectate",-74,out spectateTarget);
+            endButton=HeaderButton("End Game",74,out endTarget);
+            exitButton=HeaderButton("Exit to Lobby",222,out exitTarget);
         }
         Button HeaderButton(string label,float x,out BoxCollider target)
         {
             var go=new GameObject(label,typeof(RectTransform),typeof(Image),typeof(Button),typeof(BoxCollider));go.transform.SetParent(transform,false);
-            var rect=go.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(260,48);rect.anchoredPosition=new Vector2(x,455);
+            var rect=go.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(140,48);rect.anchoredPosition=new Vector2(x,455);
             var button=go.GetComponent<Button>();button.image.sprite=CandyHudVisuals.Pill;button.image.type=Image.Type.Sliced;
-            target=go.GetComponent<BoxCollider>();target.size=new Vector3(260,48,4);target.isTrigger=true;
-            var text=Text(label,Vector2.zero,new Vector2(250,48),23);text.transform.SetParent(go.transform,false);text.color=CandyHudVisuals.Ink;
+            target=go.GetComponent<BoxCollider>();target.size=new Vector3(140,48,4);target.isTrigger=true;
+            var text=Text(label,Vector2.zero,new Vector2(134,48),19);text.transform.SetParent(go.transform,false);text.color=CandyHudVisuals.Ink;
             return button;
         }
         bool PointMapControls(Camera camera,bool pressed)
         {
             var ray=new Ray(camera.transform.position,camera.transform.forward);
-            bool exitHover=exitTarget.Raycast(ray,out _,4),mapHover=mapTarget.Raycast(ray,out _,4);
+            var review=MatchRuntime.Current as IMatchReviewControls;bool endVisible=review?.DevelopmentReviewEnabled==true;
+            endButton.gameObject.SetActive(endVisible);endTarget.enabled=endVisible&&review.CanEndGame;
+            bool endHover=endVisible&&review.CanEndGame&&endTarget.Raycast(ray,out _,4);
+            endButton.image.color=endHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
+            if(pressed&&endHover){review.EndGame();return true;}
+            bool exitHover=exitTarget.Raycast(ray,out _,4),mapHover=mapTarget.Raycast(ray,out _,4),spectateHover=spectateTarget.Raycast(ray,out _,4);
             exitButton.image.color=exitHover?CandyHudVisuals.Mint:CandyHudVisuals.Peach;
             mapButton.image.color=mapHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
+            spectateButton.image.color=spectateHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
             if(pressed&&exitHover){MatchRuntime.Current?.ReturnToLobby();return true;}
-            if(pressed&&mapHover){mapPage=!mapPage;mapOffset=0;pressed=false;}
+            if(pressed&&mapHover){mapPage=!mapPage;spectatePage=false;mapOffset=0;pressed=false;}
+            if(pressed&&spectateHover){spectatePage=!spectatePage;mapPage=false;pressed=false;}
+            if(spectatePage){PointSpectatePage(camera,pressed);return true;}
             if(!mapPage)return false;
             scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
             var maps=Demo as IDemoMapControls;var options=maps?.Maps;
@@ -54,6 +64,33 @@ namespace DeadlyJenga.CastlePrototype
             }
             help.text="Changing maps restarts the map. Connected players follow the host.";
             transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();return true;
+        }
+        void PointSpectatePage(Camera camera,bool pressed)
+        {
+            scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
+            var controls=Demo as ISpectatorControls;heading.text="WATCH THE MATCH\nYour character stays in the world";
+            var review=MatchRuntime.Current as IMatchReviewControls;
+            bool spoilers=review?.DevelopmentReviewEnabled==true&&MatchRuntime.Current.Rules.mode==GameModeKind.MurderMystery;
+            var ray=new Ray(camera.transform.position,camera.transform.forward);
+            for(int i=0;i<buttons.Length;i++)
+            {
+                bool shown=i<=4||spoilers&&i<=6;buttons[i].gameObject.SetActive(shown);if(!shown)continue;
+                targets[i].enabled=true;var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,46);
+                labels[i].text=i==0?"Back":i==1?(controls?.Spectating==true?"Return to your character":"Start spectating"):i==2?"Previous player":i==3?"Next player":controls?.FourViews==true?"Four views (desktop only)":"Single POV · four views on desktop";
+                bool enabled=i==0||controls!=null&&(i==1?(controls.CanSpectate||controls.Spectating):i==4?controls.CanUseFourViews:controls.Spectating);
+                string watchedId="";
+                if(i>=5)
+                {
+                    var role=i==5?MysteryRole.Murderer:MysteryRole.Sheriff;watchedId=review.PlayerInRole(role);MatchPlayerFrame player=null;
+                    foreach(var p in MatchRuntime.Current.Frame.players)if(p.id==watchedId){player=p;break;}
+                    labels[i].text="DEV · "+role+": "+(player?.name??"not assigned");enabled=player!=null&&player.alive&&!player.dying;
+                }
+                bool hover=enabled&&targets[i].Raycast(ray,out _,4);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:enabled?Color.white:CandyHudVisuals.Muted;
+                if(hover&&pressed)
+                {if(i==0)spectatePage=false;else if(i>=5)review.WatchPlayer(watchedId);else if(i==1){controls.SetSpectating(!controls.Spectating);session.SetMenu(false);}else if(i==4)controls.SetFourViews(!controls.FourViews);else{controls.CycleWatched(i==2?-1:1);session.SetMenu(false);}break;}
+            }
+            help.text=controls?.Spectating==true?"Watching "+controls.WatchedName(0)+"\nRight stick switches players. Open this menu to return.":"No movement commands reach the watched player.\nYour body can still be affected by the match.";
+            transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();
         }
         void BuildScaffoldButton()
         {

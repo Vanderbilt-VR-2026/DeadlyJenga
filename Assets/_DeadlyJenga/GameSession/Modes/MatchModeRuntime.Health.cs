@@ -10,6 +10,16 @@ namespace DeadlyJenga.Modes
         sealed class FallSample{public bool airborne;public float peak,last;}
         readonly Dictionary<string,FallSample> remoteFalls=new Dictionary<string,FallSample>();
         float RemoteHealth(string id)=>remoteHealth.Read(id);
+        void TickRemoteRecovery(float seconds)
+        {
+            if(!Authority||simulation.Phase!=RoundPhase.Playing||!Rules.healthEnabled)return;
+            foreach(var pair in actors)
+            {
+                var actor=pair.Value;var p=simulation.Find(pair.Key);
+                if(actor==null||actor.IsLocal||actor.IsBot||p==null||!p.frame.alive||p.frame.dying||RulesFor(actor.gameObject).downed)continue;
+                remoteHealth.Recover(pair.Key,seconds);
+            }
+        }
         void ResetRemoteHealth(string id)
         {remoteHealth.Reset(id);remoteFalls.Remove(id);var p=simulation.Find(id);if(p!=null)p.frame.health=1;}
         public void RecordRemoteDamage(string id,float damage,string sourceId=null)

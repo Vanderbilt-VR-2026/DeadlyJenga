@@ -19,8 +19,9 @@ namespace DeadlyJenga.Presentation
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
         readonly Dictionary<Renderer,MaterialPropertyBlock> handOriginals=new Dictionary<Renderer,MaterialPropertyBlock>();readonly HashSet<Renderer> activeHands=new HashSet<Renderer>();readonly List<Renderer> oldHands=new List<Renderer>();
         readonly HashSet<string> melting=new HashSet<string>();readonly HashSet<Renderer> hidden=new HashSet<Renderer>();
-        void OnEnable(){props=new MaterialPropertyBlock();healthShader=Resources.Load<Shader>("CandyScenery/CandyAvatarHealth");if(healthShader&&!healthMaterial){healthMaterial=new Material(healthShader);healthMaterial.enableInstancing=true;healthMaterial.SetFloat("_Smoothness",.8f);}GameEvents.Eliminated+=Eliminated;}
-        void OnDisable(){GameEvents.Eliminated-=Eliminated;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();}
+        void OnEnable(){props=new MaterialPropertyBlock();healthShader=Resources.Load<Shader>("CandyScenery/CandyAvatarHealth");if(healthShader&&!healthMaterial){healthMaterial=new Material(healthShader);healthMaterial.enableInstancing=true;healthMaterial.SetFloat("_Smoothness",.8f);}GameEvents.Eliminated+=Eliminated;GameEvents.RoundEnded+=RoundEnded;}
+        void RoundEnded(){transitionAt=Time.unscaledTime;transitionColor=new Color(.96f,.97f,1);}
+        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();}
         void Update()
         {
             var runtime=MatchRuntime.Current;if(runtime?.Frame==null)return;var f=runtime.Frame;
@@ -86,7 +87,7 @@ namespace DeadlyJenga.Presentation
                 if(Mathf.Abs(shown-target)<.001f)shown=target;displayedHealth[p.id]=shown;
                 float bottom=actor.transform.position.y,top=Mathf.Max(bottom+.1f,actor.ViewPose.position.y);
                 foreach(var look in list)if(look.renderer)
-                {look.renderer.GetPropertyBlock(props);props.SetColor("_BaseColor",p.color);props.SetFloat("_Health",shown);props.SetFloat("_Sink",runtime.RulesFor(actor.gameObject).sinkProgress);props.SetFloat("_Bottom",bottom);props.SetFloat("_Top",top);look.renderer.SetPropertyBlock(props);}
+                {look.renderer.GetPropertyBlock(props);props.SetColor("_BaseColor",p.color);props.SetFloat("_Health",shown);props.SetFloat("_Recovering",target>previous+.0001f?1:0);props.SetFloat("_Sink",runtime.RulesFor(actor.gameObject).sinkProgress);props.SetFloat("_Bottom",bottom);props.SetFloat("_Top",top);look.renderer.SetPropertyBlock(props);}
             }
         }
         void RestoreLooks()
@@ -97,7 +98,9 @@ namespace DeadlyJenga.Presentation
         {foreach(var l in list){if(l.renderer){l.renderer.sharedMaterials=l.originals;l.renderer.SetPropertyBlock(l.originalProps);}}}
         void Winner(MatchFrame f)
         {
-            int team=f.phase==RoundPhase.Victory?f.winnerTeam:-2;if(team==winner)return;RestoreWinner();winner=team;if(team<0){RestoreBlocks();claimRevision=-1;return;}
+            int team=f.phase==RoundPhase.Victory?f.winnerTeam:-2;if(team==winner)return;
+            if(team>=0)foreach(var effect in FindObjectsByType<CandyDisasterVisuals>(FindObjectsSortMode.None))effect.ReleaseFireSurfaces();
+            RestoreWinner();winner=team;if(team<0){RestoreBlocks();claimRevision=-1;return;}
             Color c=Color.white;foreach(var t in f.teams)if(t.id==team)c=t.color;
             var world=Services.World;if(world!=null)foreach(var b in world.Blocks)
             {var visual=b?b.GetComponent<IClimbable>()?.Visual:null;if(visual)foreach(var r in visual.GetComponentsInChildren<Renderer>())BlockTint(r,c);}

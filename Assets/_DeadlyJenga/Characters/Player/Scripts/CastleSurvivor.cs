@@ -291,9 +291,11 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         bool FindLedgeAtOffset(Vector3 forward, Vector3 offset, out RaycastHit top, out Vector3 target)
+            =>FindLedgeFrom(Feet,forward,offset,out top,out target);
+
+        bool FindLedgeFrom(Vector3 feet,Vector3 forward,Vector3 offset,out RaycastHit top,out Vector3 target)
         {
             top = default; target = default;
-            Vector3 feet = Feet;
             if (forward.sqrMagnitude < .1f) return false;
             // Look for a solid vertical face first: empty air is never a vault target.
             for (float probeHeight = .12f; probeHeight <= 1.15f; probeHeight += .25f)

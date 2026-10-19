@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Text;
 using DeadlyJenga.Core;
+using DeadlyJenga.CastlePrototype;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -9,7 +10,9 @@ namespace DeadlyJenga.Presentation
     // One canvas for desktop or headset; receives only host-authored snapshot values.
     public sealed class CandyMatchHud : MonoBehaviour
     {
-        Canvas canvas;RectTransform root;Text board,teams,claim,status;Image claimFill;Camera camera;bool vr;float sampleAt;
+        Canvas canvas;RectTransform root;Text board,teams,claim,status,warning;Image claimFill;Camera camera;bool vr;float sampleAt;
+        CanvasGroup healthGroup;Image healthFill;Text healthText;
+        float shownHealth=1,lastHealth=1,fullHealthAt=-100;
         readonly StringBuilder text=new StringBuilder(512);
         readonly Dictionary<string,TextMesh> plates=new Dictionary<string,TextMesh>();
         readonly Dictionary<string,float> plateSeen=new Dictionary<string,float>();
@@ -24,11 +27,20 @@ namespace DeadlyJenga.Presentation
             var go=new GameObject("Visual - match telemetry",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);
             canvas=go.GetComponent<Canvas>();canvas.sortingOrder=26;root=go.GetComponent<RectTransform>();
             var scale=go.GetComponent<CanvasScaler>();scale.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scale.referenceResolution=new Vector2(1280,720);
-            board=Label("Top ten",new Vector2(350,360),new Vector2(-435,150),TextAnchor.UpperLeft,17);
-            teams=Label("Team scores",new Vector2(600,45),new Vector2(0,300),TextAnchor.MiddleCenter,20);
-            status=Label("Round and spectators",new Vector2(650,70),new Vector2(0,240),TextAnchor.MiddleCenter,18);
-            claim=Label("Block ownership",new Vector2(400,36),new Vector2(0,-225),TextAnchor.MiddleCenter,17);
-            var fill=new GameObject("Claim juice",typeof(RectTransform),typeof(Image));fill.transform.SetParent(root,false);claimFill=fill.GetComponent<Image>();claimFill.color=new Color(.25f,1,.8f,.8f);claimFill.raycastTarget=false;claimFill.rectTransform.anchoredPosition=new Vector2(-160,-247);claimFill.rectTransform.pivot=new Vector2(0,.5f);claimFill.rectTransform.sizeDelta=new Vector2(0,6);
+            board=Label("Top ten",new Vector2(312,548),new Vector2(460,102),TextAnchor.UpperLeft,16);
+            teams=Label("Team scores",new Vector2(460,44),new Vector2(0,290),TextAnchor.MiddleCenter,18);
+            teams.resizeTextForBestFit=true;teams.resizeTextMinSize=10;teams.resizeTextMaxSize=18;
+            status=Label("Round and spectators",new Vector2(460,68),new Vector2(0,354),TextAnchor.MiddleCenter,17);
+            warning=Label("Disaster warning",new Vector2(460,112),new Vector2(0,204),TextAnchor.MiddleCenter,20);warning.color=CandyHudVisuals.Peach;
+            claim=Label("Block ownership",new Vector2(400,36),new Vector2(0,-246),TextAnchor.MiddleCenter,17);
+            var fill=new GameObject("Claim juice",typeof(RectTransform),typeof(Image));fill.transform.SetParent(root,false);claimFill=fill.GetComponent<Image>();claimFill.color=new Color(.25f,1,.8f,.8f);claimFill.raycastTarget=false;claimFill.rectTransform.anchoredPosition=new Vector2(-160,-268);claimFill.rectTransform.pivot=new Vector2(0,.5f);claimFill.rectTransform.sizeDelta=new Vector2(0,6);
+            var health=new GameObject("Health bar",typeof(RectTransform),typeof(CanvasGroup));health.transform.SetParent(root,false);
+            var rect=health.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(330,60);rect.anchoredPosition=new Vector2(0,-196);
+            healthGroup=health.GetComponent<CanvasGroup>();healthGroup.alpha=0;healthGroup.blocksRaycasts=false;healthGroup.interactable=false;
+            var track=new GameObject("Candy health track",typeof(RectTransform),typeof(Image));track.transform.SetParent(health.transform,false);
+            var back=track.GetComponent<Image>();back.sprite=CandyHudVisuals.Pill;back.type=Image.Type.Sliced;back.color=new Color(.055f,.02f,.1f,.9f);back.raycastTarget=false;back.rectTransform.sizeDelta=new Vector2(330,19);
+            var juice=new GameObject("Health juice",typeof(RectTransform),typeof(Image));juice.transform.SetParent(track.transform,false);healthFill=juice.GetComponent<Image>();healthFill.sprite=CandyHudVisuals.Pill;healthFill.type=Image.Type.Sliced;healthFill.raycastTarget=false;healthFill.rectTransform.pivot=new Vector2(0,.5f);healthFill.rectTransform.anchoredPosition=new Vector2(-160,0);healthFill.rectTransform.sizeDelta=new Vector2(320,11);
+            healthText=Label("Health",new Vector2(330,28),new Vector2(0,25),TextAnchor.MiddleCenter,17);healthText.transform.SetParent(health.transform,false);
         }
         Text Label(string name,Vector2 size,Vector2 position,TextAnchor alignment,int fontSize)
         {
@@ -38,7 +50,18 @@ namespace DeadlyJenga.Presentation
         {
             var session=Services.Session;var match=MatchRuntime.Current;if(session==null||match?.Frame==null)return;
             if(!canvas)Build();if(camera!=session.ActiveCamera||vr!=session.IsVR){camera=session.ActiveCamera;vr=session.IsVR;Configure();}
-            canvas.enabled=camera&&!session.MenuOpen;
+            var spectator=session.Demo as ISpectatorControls;
+            bool watching=spectator?.Spectating==true;
+            canvas.enabled=camera&&!session.MenuOpen&&(!watching||vr);
+            if(watching)
+            {
+                board.text=teams.text=claim.text=warning.text="";claimFill.enabled=false;
+                status.text=vr?"WATCHING "+spectator.WatchedName(0)+"\nRight stick switches players":"";
+                foreach(var marker in markers)if(marker)marker.enabled=false;
+                foreach(var plate in plates.Values)if(plate)plate.gameObject.SetActive(false);
+                return;
+            }
+            UpdateHealthBar(match.Frame,match.LocalActorId);
             if(Time.unscaledTime<sampleAt)return;sampleAt=Time.unscaledTime+.2f;
             var f=match.Frame;MatchPlayerFrame own=null;foreach(var p in f.players)if(p.id==match.LocalActorId){own=p;break;}
             text.Clear();text.Append("TOP 10  ·  ").Append(f.metricLabel).Append('\n');
@@ -54,11 +77,11 @@ namespace DeadlyJenga.Presentation
             foreach(var t in f.teams){if(text.Length>0)text.Append("     ");text.Append("<color=#").Append(ColorUtility.ToHtmlStringRGB(t.color)).Append('>').Append(t.name).Append("</color>  ").Append(f.rules.mode==GameModeKind.CaptureFlag?t.captures+" captures":f.rules.mode==GameModeKind.TeamTickets?t.tickets+" respawns":t.points.ToString("0")+" pts · "+t.ownedBlocks+" blocks");}
             teams.text=text.ToString();
             status.text=f.phase==RoundPhase.Victory?f.winner+" WINS!":f.phase==RoundPhase.Results?"ROUND RESULTS":f.rules.mode+(f.remaining>=0?"  ·  "+Mathf.CeilToInt(f.remaining)+"s":"  ·  No time limit");
-            if(!string.IsNullOrEmpty(f.disasterWarning))status.text+="\nWARNING: "+f.disasterWarning+" in "+Mathf.CeilToInt(f.disasterWarningRemaining)+"s";
+            warning.text=string.IsNullOrEmpty(f.disasterWarning)?"":"WARNING\n"+f.disasterWarning+" in "+Mathf.CeilToInt(f.disasterWarningRemaining)+"s";
             if(own!=null)
             {
                 if(f.rules.mode==GameModeKind.KingOfHill){float distance=Vector3.Distance(own.position,f.hill);status.text+="\n"+(own.alive&&distance<=f.rules.hillRadius?"HILL SCORING":"REACH THE HILL  ·  "+Mathf.RoundToInt(distance)+"m");}
-                if(f.rules.healthEnabled)status.text+="\nHEALTH  "+Mathf.CeilToInt(own.health*100)+"%";
+
                 if(!string.IsNullOrEmpty(own.spectating)){MatchPlayerFrame watched=null;foreach(var p in f.players)if(p.id==own.spectating){watched=p;break;}status.text="WATCHING "+(watched?.name??"the build")+"  ·  ← / → switch";}
                 else if(own.watching>0)status.text+="\n◉ "+own.watching+" watching you";
                 bool show=f.rules.mode==GameModeKind.BlockControl;claim.enabled=show;claimFill.enabled=show;
@@ -78,12 +101,25 @@ namespace DeadlyJenga.Presentation
             Markers(f,own);
             Nameplates(f,match.LocalActorId);
         }
+        void UpdateHealthBar(MatchFrame frame,string local)
+        {
+            MatchPlayerFrame own=null;foreach(var player in frame.players)if(player.id==local){own=player;break;}
+            bool available=frame.rules.healthEnabled&&own!=null&&own.role!="hand"&&own.role!="spectator"&&own.alive&&!own.dying;
+            float target=available?Mathf.Clamp01(own.health):1;
+            if(target<.9999f)fullHealthAt=float.PositiveInfinity;
+            else if(lastHealth<.9999f)fullHealthAt=Time.unscaledTime;
+            shownHealth=Mathf.MoveTowards(shownHealth,target,Time.unscaledDeltaTime*3);lastHealth=target;
+            bool visible=available&&(target<.9999f||Time.unscaledTime-fullHealthAt<5);
+            healthGroup.alpha=Mathf.MoveTowards(healthGroup.alpha,visible?1:0,Time.unscaledDeltaTime*4);
+            healthFill.rectTransform.sizeDelta=new Vector2(320*shownHealth,11);
+            if(own!=null)healthFill.color=Color.Lerp(own.color,Color.white,.18f);
+            healthText.text="HEALTH  "+Mathf.CeilToInt(target*100)+"%";
+        }
         void Row(MatchPlayerFrame p,bool own,bool numbered)
-        {if(own)text.Append("<color=#72FFD6>▶ ");text.Append(numbered?p.rank.ToString()+". ":"   ").Append(p.name).Append("  ").Append(p.metric.ToString("0.0"));if(own)text.Append("</color>");text.Append('\n');}
+        {if(own)text.Append("<color=#72FFD6>▶</color> ");text.Append(numbered?p.rank.ToString()+". ":"   ").Append(CandyHudLayout.PlayerName(p)).Append("  ").Append(p.metric.ToString("0.0"));text.Append('\n');}
         void Configure()
         {
-            if(vr&&camera){root.SetParent(camera.transform,false);canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=camera;root.sizeDelta=new Vector2(1280,720);root.localPosition=new Vector3(0,0,1.1f);root.localRotation=Quaternion.identity;root.localScale=Vector3.one*.0007f;}
-            else {root.SetParent(transform,false);canvas.renderMode=RenderMode.ScreenSpaceOverlay;root.localScale=Vector3.one;}
+            CandyHudLayout.Configure(canvas,transform,camera,vr);
         }
         void Nameplates(MatchFrame f,string local)
         {
@@ -138,7 +174,7 @@ namespace DeadlyJenga.Presentation
         {
             if(markerCount>=24)return;Vector3 p=camera.WorldToViewportPoint(world);if(p.z<0){p.x=1-p.x;p.y=.08f;}
             Text label;if(markerCount==markers.Count){label=Label("Objective blip",new Vector2(210,36),Vector2.zero,TextAnchor.MiddleCenter,15);markers.Add(label);}else label=markers[markerCount];markerCount++;
-            label.enabled=true;label.color=color;label.text=name+"  "+Mathf.RoundToInt(Vector3.Distance(camera.transform.position,world))+"m";label.rectTransform.anchoredPosition=new Vector2((Mathf.Clamp(p.x,.12f,.88f)-.5f)*1280,(Mathf.Clamp(p.y,.12f,.88f)-.5f)*720);
+            label.enabled=true;label.color=color;label.text=name+"  "+Mathf.RoundToInt(Vector3.Distance(camera.transform.position,world))+"m";label.rectTransform.anchoredPosition=CandyHudLayout.MarkerPosition(p,label.rectTransform.sizeDelta);
         }
         void OnDestroy(){if(canvas)Destroy(canvas.gameObject);foreach(var p in plates.Values)if(p)Destroy(p.gameObject);}
     }

@@ -28,7 +28,7 @@ namespace DeadlyJenga.Presentation
         void Build()
         {
             var go=new GameObject("Visual - mystery clues",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=30;root=go.GetComponent<RectTransform>();var scale=go.GetComponent<CanvasScaler>();scale.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scale.referenceResolution=new Vector2(1280,720);
-            role=Label("Your secret role",new Vector2(0,-280),new Vector2(850,40),21);prompt=Label("Mystery interaction",new Vector2(0,-320),new Vector2(950,40),18);choices=Label("Private disaster choices",new Vector2(0,140),new Vector2(1050,95),22);
+            role=Label("Your secret role",new Vector2(-420,260),new Vector2(360,76),17);prompt=Label("Mystery interaction",new Vector2(-420,166),new Vector2(360,96),17);choices=Label("Private disaster choices",new Vector2(0,82),new Vector2(460,112),18);
         }
         void Update()
         {
@@ -38,8 +38,7 @@ namespace DeadlyJenga.Presentation
             if(eye!=session.ActiveCamera||vr!=session.IsVR)
             {
                 eye=session.ActiveCamera;vr=session.IsVR;
-                if(vr&&eye){root.SetParent(eye.transform,false);canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=eye;root.sizeDelta=new Vector2(1280,720);root.localPosition=new Vector3(0,0,1.1f);root.localRotation=Quaternion.identity;root.localScale=Vector3.one*.0007f;}
-                else{root.SetParent(transform,false);canvas.renderMode=RenderMode.ScreenSpaceOverlay;root.localScale=Vector3.one;}
+                CandyHudLayout.Configure(canvas,transform,eye,vr);
             }
             foreach(var t in markers.Values)t.gameObject.SetActive(false);
             foreach(var w in weapons.Values)w.gameObject.SetActive(false);
@@ -121,14 +120,14 @@ namespace DeadlyJenga.Presentation
             if(vr&&Services.Session.MenuSelectPressed&&p.disasterChoices.Length>0)
             {
                 var plane=new Plane(root.forward,root.position);if(plane.Raycast(new Ray(eye.transform.position,eye.transform.forward),out float d))
-                {var local=root.InverseTransformPoint(eye.transform.position+eye.transform.forward*d);if(local.y>90&&local.y<190){int index=Mathf.Clamp(Mathf.FloorToInt((local.x+525)/(1050/p.disasterChoices.Length)),0,p.disasterChoices.Length-1);mystery.ChooseDisaster(p.disasterChoices[index]);}}
+                {var local=choices.rectTransform.InverseTransformPoint(eye.transform.position+eye.transform.forward*d);var rect=choices.rectTransform.rect;if(rect.Contains(new Vector2(local.x,local.y))){int index=Mathf.Clamp(Mathf.FloorToInt((local.x-rect.xMin)/rect.width*p.disasterChoices.Length),0,p.disasterChoices.Length-1);mystery.ChooseDisaster(p.disasterChoices[index]);}}
             }
         }
         void Marker(string id,Vector3 position,string text,float alpha)
         {
             if(!markers.TryGetValue(id,out var label)){label=Label("Mystery marker",Vector2.zero,new Vector2(430,125),16);markers[id]=label;}
             var point=eye.WorldToViewportPoint(position);bool show=point.z>0&&point.x>0&&point.x<1&&point.y>0&&point.y<1;
-            label.gameObject.SetActive(show);if(!show)return;label.rectTransform.anchoredPosition=new Vector2((point.x-.5f)*1280,(point.y-.5f)*720);label.text=text;label.color=Color.white;var group=label.GetComponent<CanvasGroup>();if(!group)group=label.gameObject.AddComponent<CanvasGroup>();group.alpha=alpha;
+            label.gameObject.SetActive(show);if(!show)return;label.rectTransform.anchoredPosition=CandyHudLayout.MarkerPosition(point,label.rectTransform.sizeDelta,!string.IsNullOrEmpty(choices.text));label.text=text;label.color=Color.white;var group=label.GetComponent<CanvasGroup>();if(!group)group=label.gameObject.AddComponent<CanvasGroup>();group.alpha=alpha;
         }
         Transform MakeWeapon(MysteryRole role)
         {

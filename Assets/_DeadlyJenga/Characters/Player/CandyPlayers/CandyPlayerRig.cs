@@ -35,7 +35,12 @@ namespace DeadlyJenga.CandyPlayers
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
-        {if(headRenderer)headRenderer.shadowCastingMode=camera==ownerCamera?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;}
+        {
+            var spectator=Services.Session?.Demo as ISpectatorControls;
+            var watched=spectator?.WatchedRoot(camera);
+            bool firstPerson=camera==ownerCamera||(watched&&transform.IsChildOf(watched));
+            if(headRenderer)headRenderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
+        }
         void AfterCamera(ScriptableRenderContext context,Camera camera){if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
         public void SetColor(int index)
         {

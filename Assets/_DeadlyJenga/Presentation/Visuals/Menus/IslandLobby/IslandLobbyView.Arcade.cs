@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
             Face(0,3,2,1);Face(4,5,6,7);Face(0,1,5,4);Face(1,2,6,5);Face(2,3,7,6);Face(3,0,4,7);
             cabinetMesh=new Mesh{name="Vertical arcade cabinet with sloped top"};cabinetMesh.SetVertices(vertices);cabinetMesh.SetTriangles(triangles,0);cabinetMesh.RecalculateNormals();cabinetMesh.RecalculateBounds();
             root.GetComponent<MeshFilter>().sharedMesh=cabinetMesh;var renderer=root.GetComponent<Renderer>();renderer.sharedMaterial=keyboardMaterial;
-            var properties=new MaterialPropertyBlock();properties.SetColor("_BaseColor",new Color(.28f,.008f,.025f));renderer.SetPropertyBlock(properties);
+            var properties=new MaterialPropertyBlock();properties.SetColor("_BaseColor",new Color(.72f,.012f,.045f));renderer.SetPropertyBlock(properties);
             // Lobby-owned static slices approximate the angled top without a new collision contract.
             float front=corners[0].z,back=corners[3].z;
             for(int i=0;i<8;i++)

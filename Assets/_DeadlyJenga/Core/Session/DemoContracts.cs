@@ -2,6 +2,19 @@ using System.Collections.Generic;
 
 namespace DeadlyJenga.Core
 {
+    public interface ISpectatorControls
+    {
+        bool CanSpectate { get; }
+        bool Spectating { get; }
+        bool FourViews { get; }
+        bool CanUseFourViews { get; }
+        string WatchedName(int slot);
+        UnityEngine.Transform WatchedRoot(UnityEngine.Camera camera);
+        void SetSpectating(bool active);
+        void SetFourViews(bool active);
+        void CycleWatched(int step);
+    }
+
     public interface IDemoMapControls
     {
         IReadOnlyList<LobbyOption> Maps { get; }

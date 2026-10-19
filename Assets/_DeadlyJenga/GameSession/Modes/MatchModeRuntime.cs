@@ -7,7 +7,7 @@ using UnityEngine;
 namespace DeadlyJenga.Modes
 {
     [DefaultExecutionOrder(250)]
-    public sealed partial class MatchModeRuntime : MonoBehaviour, IMatchRuntime, IBotObjectives, IMysteryControls
+    public sealed partial class MatchModeRuntime : MonoBehaviour, IMatchRuntime, IBotObjectives, IMysteryControls, IMatchReviewControls
     {
         CastlePlaySession session;
         ModeSimulation simulation;
@@ -82,6 +82,7 @@ namespace DeadlyJenga.Modes
         }
         void OnDestroy()
         {
+            ClearDemoCameras();
             ClearMysteryBodies();
             if(ReferenceEquals(MatchRuntime.Current,this))MatchRuntime.Current=null;
             if(ReferenceEquals(BotObjectives.Current,this))BotObjectives.Current=null;
@@ -125,6 +126,7 @@ namespace DeadlyJenga.Modes
             wasAuthority=Authority;
             if(Authority)simulation.Tick(Time.deltaTime);
             if(Authority)TickMystery(Time.deltaTime);
+            TickRemoteRecovery(Time.deltaTime);
             TickTransitions();TickSpectatorInput();
             if(Authority&&pendingSpawns.Count>0)
             {

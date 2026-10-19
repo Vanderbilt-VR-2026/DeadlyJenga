@@ -21,6 +21,17 @@ namespace DeadlyJenga.CastlePrototype
             if(mystery?.Active==true)
             {
                 GUI.enabled=was;GUILayout.Label("Your private role: "+mystery.Personal.role);
+                if(match is IMatchReviewControls review&&review.DevelopmentReviewEnabled)
+                {
+                    GUILayout.Label("DEVELOPMENT REVIEW · ROLE SPOILERS · REMOVE FOR RELEASE");
+                    foreach(var role in new[]{MysteryRole.Murderer,MysteryRole.Sheriff})
+                    {
+                        string id=review.PlayerInRole(role);var player=match.Frame.players.FirstOrDefault(p=>p.id==id);
+                        GUI.enabled=was&&player!=null&&player.alive&&!player.dying;
+                        if(GUILayout.Button("Watch "+role+": "+(player?.name??"not assigned")+(player!=null&&!player.alive?" · fallen":"")))review.WatchPlayer(id);
+                    }
+                    GUI.enabled=was;
+                }
                 if(mystery.Personal.role==MysteryRole.Murderer||mystery.Personal.role==MysteryRole.Sheriff){bool special=GUILayout.Toggle(mystery.Personal.specialAttack,"Use special punch");if(special!=mystery.Personal.specialAttack)mystery.SetSpecialAttack(special);}
                 foreach(string hazard in mystery.Personal.disasterChoices)if(GUILayout.Button((mystery.Personal.veto?"Veto ":"Trigger ")+hazard))mystery.ChooseDisaster(hazard);
                 GUI.enabled=was&&match.Authority;

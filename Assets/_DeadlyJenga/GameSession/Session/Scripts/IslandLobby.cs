@@ -19,6 +19,19 @@ namespace DeadlyJenga.CastlePrototype
         public IPlayableCharacter Player {get;private set;}
         public IslandRoomConnection Room {get;private set;}
         public bool MenuOpen {get;private set;}
+        bool departing;float departureAt,departureSeconds;Pose departurePose;
+        public void BeginDeparture(float seconds)
+        {
+            if(departing||!NetworkActors.Alive(Player))return;
+            SetMenu(false);departing=true;departureAt=Time.unscaledTime;departureSeconds=seconds;
+            departurePose=new Pose(Player.transform.position,Player.transform.rotation);Player.InputSuspended=true;
+        }
+        public void CancelDeparture()
+        {
+            if(!departing)return;departing=false;
+            if(NetworkActors.Alive(Player))Player.Place(departurePose.position,departurePose.rotation);
+            SetMenu(MenuOpen);
+        }
         public IReadOnlyList<Rigidbody> Blocks=>Array.Empty<Rigidbody>();
         public Vector3 Center=>Vector3.zero;
         public float TopHeight=>.45f;
@@ -53,6 +66,14 @@ namespace DeadlyJenga.CastlePrototype
         void Update()
         {
             if(!NetworkActors.Alive(Player))return;
+            if(departing)
+            {
+                float t=Mathf.Clamp01((Time.unscaledTime-departureAt)/Mathf.Max(.1f,departureSeconds));
+                Player.InputSuspended=true;
+                Player.transform.SetPositionAndRotation(departurePose.position+Vector3.up*(70*t*t),departurePose.rotation);
+                foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
+                return;
+            }
             var feet=Player.transform.position;
             if(feet.y<-.9f||(feet-Center).sqrMagnitude>900)Player.Place(SafeSpawnPoint(),Quaternion.identity);
             var keyboard=Keyboard.current;
@@ -65,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
         {float angle=(Math.Abs(slot)%10)*2.399963f;return new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);}
         public void SpawnAt(P.Pose pose){Player.Place(pose.position,pose.rotation);ClearPeers();}
         public void SetMenu(bool open)
-        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
+        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
         void OnApplicationFocus(bool value){focused=value;if(!value)SetMenu(true);}
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
         public bool TryPeerPosition(string id,out Vector3 position)

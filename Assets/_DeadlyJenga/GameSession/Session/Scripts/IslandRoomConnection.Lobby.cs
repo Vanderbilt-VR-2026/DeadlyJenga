@@ -83,7 +83,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(action==null)return;
             bool member=!Connected||source==Runner.LocalPlayer.ToString()||peers.Any(p=>p.Key.ToString()==source&&p.Value.ready);
-            if(!member)return;
+            if(!member||Departing)return;
             if(action.verb=="request")
             {
                 if(source==leaderId||hostRequests.Contains(source)||hostRequests.Count>=10)return;

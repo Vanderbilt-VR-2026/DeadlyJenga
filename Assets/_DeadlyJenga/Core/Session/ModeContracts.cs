@@ -143,6 +143,15 @@ namespace DeadlyJenga.Core
         void NextSpectator(int step);
         void ActivateHandPower(float seconds);
     }
+    // Temporary development review tools. Normal host permission must never enable these.
+    public interface IMatchReviewControls
+    {
+        bool DevelopmentReviewEnabled { get; }
+        bool CanEndGame { get; }
+        string PlayerInRole(MysteryRole role);
+        void WatchPlayer(string actorId);
+        void EndGame();
+    }
     public static class MatchRuntime
     {
         public static IMatchRuntime Current;

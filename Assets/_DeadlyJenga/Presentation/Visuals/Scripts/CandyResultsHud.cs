@@ -40,15 +40,15 @@ namespace DeadlyJenga.Presentation
             int pageSize=infection?5:10;int first = page * pageSize;
             for (int i = first; i < Mathf.Min(first + pageSize, sorted.Length); i++)
             {
-                var p = sorted[i]; string color = ColorUtility.ToHtmlStringRGB(Color.Lerp(p.color,Color.white,.55f));
+                var p = sorted[i]; string color = ColorUtility.ToHtmlStringRGB(p.color);
                 text.Append(i + 1).Append(". <color=#").Append(color).Append('>').Append(p.name).Append("</color>    ").Append(p.metric.ToString("0.0"));
                 if (infection) text.Append(" sec");
                 text.Append('\n');
             }
             rows.text = text.ToString();
-            if(infection){text.Clear();text.Append("INFECTION KILLS\n");for(int i=killPage*5;i<Mathf.Min(killPage*5+5,infectedSorted.Length);i++){var p=infectedSorted[i];text.Append(i+1).Append(". ").Append(p.name).Append("    ").Append(p.kills).Append('\n');}secondaryRows.text=text.ToString();}
+            if(infection){text.Clear();text.Append("INFECTION KILLS\n");for(int i=killPage*5;i<Mathf.Min(killPage*5+5,infectedSorted.Length);i++){var p=infectedSorted[i];text.Append(i+1).Append(". ").Append(CandyHudLayout.PlayerName(p)).Append("    ").Append(p.kills).Append('\n');}secondaryRows.text=text.ToString();}
             hint.text=infection?"Survivors "+(page+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(sorted.Length/5f))+"   ·   Kills "+(killPage+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(infectedSorted.Length/5f)):"Page "+(page+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(sorted.Length/10f))+"  ·  Look and select";labels[2].text=infection?"NEXT SURVIVORS":"PREVIOUS";labels[3].text=infection?"NEXT KILLS":"NEXT";
-            labels[0].text = match.Authority ? "NEXT ROUND" : "WAITING FOR HOST";
+            labels[0].text = match.Authority ? "STAY / NEXT ROUND" : "STAY · WAIT FOR HOST";
             if(!session.IsVR){canvas.gameObject.SetActive(false);return;}
             canvas.gameObject.SetActive(true);if(!camera)return;
             canvas.transform.SetParent(transform,false);canvas.transform.position=camera.transform.position+openingForward*1.8f;
@@ -76,7 +76,7 @@ namespace DeadlyJenga.Presentation
             rows = Label("Scores", new Vector2(820, 350), new Vector2(0, 25), 23); rows.alignment = TextAnchor.UpperLeft;
             secondaryRows=Label("Infected kills",new Vector2(820,170),new Vector2(0,-70),21);secondaryRows.alignment=TextAnchor.UpperLeft;
             hint = Label("Paging", new Vector2(820, 40), new Vector2(0, -185), 18);
-            string[] names = { "NEXT ROUND", "RETURN TO LOBBY", "PREVIOUS", "NEXT" };
+            string[] names = { "STAY / NEXT ROUND", "RETURN TO LOBBY", "PREVIOUS", "NEXT" };
             for (int i = 0; i < 4; i++)
             {
                 labels[i] = Label(names[i], new Vector2(195, 52), new Vector2(-315 + i * 210, -265), 19);
@@ -94,7 +94,7 @@ namespace DeadlyJenga.Presentation
             if (!visible || Services.Session?.IsVR == true || MatchRuntime.Current == null) return;
             var oldSkin=GUI.skin;int oldDepth=GUI.depth;
             if(!theme){theme=Instantiate(GUI.skin);theme.label.fontSize=20;theme.label.normal.textColor=Color.white;theme.button.fontSize=19;theme.button.normal.textColor=Color.white;theme.button.hover.textColor=Color.white;theme.button.active.textColor=Color.white;theme.button.normal.background=DeadlyJenga.CastlePrototype.CandyHudVisuals.Rounded;theme.box.normal.background=DeadlyJenga.CastlePrototype.CandyHudVisuals.Rounded;theme.box.padding=new RectOffset(24,24,20,20);}
-            GUI.skin=theme;GUI.depth = -50;
+            GUI.skin=theme;GUI.skin.label.richText=true;GUI.depth = -50;
             var frame = MatchRuntime.Current.Frame;
             float width = Mathf.Min(Screen.width - 30, 860), height = Mathf.Min(Screen.height - 30, 590);
             var old = GUI.backgroundColor; GUI.backgroundColor = new Color(.18f, .07f, .32f);
@@ -102,10 +102,10 @@ namespace DeadlyJenga.Presentation
             GUILayout.Label((string.IsNullOrEmpty(frame.winner) ? "ROUND COMPLETE" : frame.winner + " WINS") + "  ·  " + frame.metricLabel);
             bool infection=frame.rules.mode==GameModeKind.Infection;int pageSize=infection?5:10;
             if(infection)GUILayout.Label("LONGEST SURVIVORS");
-            for(int i=page*pageSize;i<Mathf.Min(page*pageSize+pageSize,sorted.Length);i++){var p=sorted[i];GUILayout.Label((i+1)+". "+p.name+"    "+p.metric.ToString("0.0")+(infection?" sec":""));}
-            if(infection){GUILayout.Space(12);GUILayout.Label("INFECTION KILLS");for(int i=killPage*5;i<Mathf.Min(killPage*5+5,infectedSorted.Length);i++){var p=infectedSorted[i];GUILayout.Label((i+1)+". "+p.name+"    "+p.kills);}}
+            for(int i=page*pageSize;i<Mathf.Min(page*pageSize+pageSize,sorted.Length);i++){var p=sorted[i];GUILayout.Label((i+1)+". "+CandyHudLayout.PlayerName(p)+"    "+p.metric.ToString("0.0")+(infection?" sec":""));}
+            if(infection){GUILayout.Space(12);GUILayout.Label("INFECTION KILLS");for(int i=killPage*5;i<Mathf.Min(killPage*5+5,infectedSorted.Length);i++){var p=infectedSorted[i];GUILayout.Label((i+1)+". "+CandyHudLayout.PlayerName(p)+"    "+p.kills);}}
             GUILayout.FlexibleSpace(); GUILayout.BeginHorizontal();
-            bool enabled = GUI.enabled; GUI.enabled = MatchRuntime.Current.Authority; if (GUILayout.Button("NEXT ROUND", GUILayout.Height(48))) Act(0); GUI.enabled = enabled;
+            bool enabled = GUI.enabled; GUI.enabled = MatchRuntime.Current.Authority; if (GUILayout.Button("STAY / NEXT ROUND", GUILayout.Height(48))) Act(0); GUI.enabled = enabled;
             if (GUILayout.Button("RETURN TO LOBBY", GUILayout.Height(48))) Act(1); GUILayout.EndHorizontal();
             GUILayout.BeginHorizontal(); if (GUILayout.Button(infection?"NEXT SURVIVORS":"PREVIOUS")) Act(2); GUILayout.Label(infection?"Survivors "+(page+1)+" · Kills "+(killPage+1):"Page "+(page+1)); if (GUILayout.Button(infection?"NEXT KILLS":"NEXT")) Act(3); GUILayout.EndHorizontal();
             GUILayout.EndArea(); GUI.backgroundColor = old;GUI.depth=oldDepth;GUI.skin=oldSkin;

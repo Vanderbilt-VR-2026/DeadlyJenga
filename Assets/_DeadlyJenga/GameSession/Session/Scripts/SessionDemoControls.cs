@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     // ISessionInfo.Demo: bots and disasters for the menus (Presentation). Joined players' requests go to
     // the host through CastleDemoCommands; their counts come from the host's shared demo state.
-    public sealed class SessionDemoControls : IDemoControls, IBuildUpControls, IDemoMapControls
+    public sealed class SessionDemoControls : IDemoControls, IBuildUpControls, IDemoMapControls, ISpectatorControls
     {
         readonly CastlePlaySession session;
         public SessionDemoControls(CastlePlaySession owner) { session = owner; }
@@ -15,6 +15,15 @@ namespace DeadlyJenga.CastlePrototype
         CastleFusionSession.DemoState Remote { get { var net = Net; return net && !net.IsHost ? net.Demo : null; } }
 
         public bool DemoMode => MatchSetup.ModeId == "demo";
+        public bool CanSpectate => session.Modes && (DemoMode || session.CanEditWorld);
+        public bool Spectating => session.Modes && session.Modes.DemoSpectating;
+        public bool FourViews => session.Modes && session.Modes.DemoFourViews;
+        public bool CanUseFourViews => CanSpectate && !session.IsVR;
+        public string WatchedName(int slot) => session.Modes ? session.Modes.DemoWatchedName(slot) : "";
+        public UnityEngine.Transform WatchedRoot(UnityEngine.Camera camera) => session.Modes ? session.Modes.SpectatorRoot(camera) : null;
+        public void SetSpectating(bool active) { if (!active || CanSpectate) session.Modes?.SetDemoSpectating(active); }
+        public void SetFourViews(bool active) { if (!active || CanUseFourViews) session.Modes?.SetDemoFourViews(active); }
+        public void CycleWatched(int step) => session.Modes?.CycleDemoWatched(step);
         public bool CanCommand => session.CanEditWorld;
         IslandLobbyCatalog MapCatalog => IslandRoomConnection.Instance && IslandRoomConnection.Instance.Catalog ? IslandRoomConnection.Instance.Catalog : IslandLobbyCatalog.Runtime(UnityEngine.Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog"));
         public IReadOnlyList<LobbyOption> Maps

@@ -46,7 +46,7 @@ namespace DeadlyJenga.CandyAudio
             var e=CandyAudioEngine.Instance;if(!e||!e.Listener)return;seen.Clear();
             foreach(var source in DisasterStates.Active)
             {
-                var f=source.Capture();if(f==null)continue;string key=f.kind+":"+source.GetHashCode();seen.Add(key);
+                var f=source.Capture();if(f==null||f.residualOnly)continue;string key=f.kind+":"+source.GetHashCode();seen.Add(key);
                 if(!anchors.TryGetValue(key,out var anchor)||!anchor){anchor=new GameObject("Audio - "+f.kind).transform;anchor.SetParent(transform);anchors[key]=anchor;}
                 anchor.position=f.center;
                 float distance=Vector3.Distance(e.Listener.position,f.center),reach=Mathf.Max(12,f.size.magnitude*.65f),proximity=1-Mathf.Clamp01(distance/reach);

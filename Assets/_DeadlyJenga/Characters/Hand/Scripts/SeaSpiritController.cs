@@ -13,8 +13,10 @@ namespace DeadlyJenga.CastlePrototype
     {
         public float reach = 25, orbitDegreesPerSecond = 35;
         public float orbitAngle, minimumReach = 8, maximumReach = 80;
+        [Min(.2f)] public float entranceSeconds=3.8f;
+        public bool Entering=>Time.unscaledTime-entranceAt<entranceSeconds;
         public bool InputSuspended { get; set; }
-        public Transform BustAnchor => observer;
+        public Transform BustAnchor => spiritAnchor;
         public CastleHandActor LeftHand => left;
         public CastleHandActor RightHand => right;
         public Transform LeftShoulder => leftShoulder;
@@ -26,6 +28,11 @@ namespace DeadlyJenga.CastlePrototype
         CastleHandActor left, right;
         CandyTrackingSource source;
         Transform observer;
+        Transform spiritAnchor;
+        Pose entranceStart;
+        Vector3 cameraOffset;
+        Quaternion cameraRotation;
+        float entranceAt;
         Camera view;
         ThirdPersonVRFollow originalFollow;
         bool followWasEnabled;
@@ -56,6 +63,10 @@ namespace DeadlyJenga.CastlePrototype
             observer=originalFollow?originalFollow.transform:camera?camera.transform.parent:null;
             if(!template||!observer) { enabled=false; return; }
             observerStart=new Pose(observer.position,observer.rotation);
+            entranceStart=new Pose(view.transform.position,view.transform.rotation);
+            cameraOffset=observer.InverseTransformPoint(view.transform.position);cameraRotation=Quaternion.Inverse(observer.rotation)*view.transform.rotation;
+            entranceAt=Time.unscaledTime;
+            spiritAnchor=new GameObject("Sea spirit bust anchor").transform;spiritAnchor.SetParent(transform,false);
             leftShoulder=new GameObject("Left spirit shoulder").transform;leftShoulder.SetParent(transform,false);
             rightShoulder=new GameObject("Right spirit shoulder").transform;rightShoulder.SetParent(transform,false);
             if(originalFollow){followWasEnabled=originalFollow.enabled;originalFollow.enabled=false;}
@@ -91,15 +102,16 @@ namespace DeadlyJenga.CastlePrototype
 
         Vector3 Shoulder(bool isLeft)
         {
-            if(!observer)return transform.position;
-            return observer.position + observer.right*(isLeft?-1:1)*Mathf.Max(1,reach*.1f)-Vector3.up*Mathf.Max(1,reach*.07f);
+            if(!spiritAnchor)return transform.position;
+            return spiritAnchor.position + spiritAnchor.right*(isLeft?-1:1)*Mathf.Max(1,reach*.1f)-Vector3.up*Mathf.Max(1,reach*.07f);
         }
 
         void Update()
         {
             if(!view||!observer||Services.World==null)return;
+            bool suspended=InputSuspended||Entering||Services.Session?.MenuOpen==true;
             bool vr=source&&source.HasTrackedHands;
-            if(!InputSuspended)
+            if(!suspended)
             {
                 var keys=Keyboard.current;
                 float turn=keys==null?0:(keys.aKey.isPressed?1:0)-(keys.dKey.isPressed?1:0);
@@ -122,7 +134,14 @@ namespace DeadlyJenga.CastlePrototype
             var outward=Quaternion.Euler(0,orbitAngle,0)*Vector3.forward;
             Vector3 eye=world.Center+outward*radius;
             eye.y=Mathf.Max(world.WaterHeight(eye)+2,world.TopHeight*.55f+world.Center.y*.45f);
-            observer.SetPositionAndRotation(eye,Quaternion.LookRotation(-outward,Vector3.up));
+            Quaternion facing=Quaternion.LookRotation(-outward,Vector3.up);
+            float progress=Mathf.Clamp01((Time.unscaledTime-entranceAt)/Mathf.Max(.2f,entranceSeconds));
+            float rise=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.1f,.65f,progress));
+            float depth=Mathf.Max(12,eye.y-world.WaterHeight(eye)+8);
+            spiritAnchor.SetPositionAndRotation(eye-Vector3.up*depth*(1-rise),facing);
+            var cameraPose=Entering?EntrancePose(progress,eye,facing,radius):new Pose(eye,facing);
+            observer.rotation=cameraPose.rotation*Quaternion.Inverse(cameraRotation);
+            observer.position=cameraPose.position-observer.rotation*cameraOffset;
             leftShoulder.position=Shoulder(true);rightShoulder.position=Shoulder(false);
             for(int i=0;i<2;i++)
             {
@@ -130,23 +149,36 @@ namespace DeadlyJenga.CastlePrototype
                 var actor=isLeft?left:right;if(!actor)continue;
                 actor.GetComponent<CandyFlyingHandBridge>().NetworkPreview=templateBridgePreview;
                 CandyHandPose pose=vr?source.WorldHand(isLeft):default;
-                if(vr&&pose.tracked)
+                if(vr&&pose.tracked&&!Entering)
                 {
                     Vector3 offset=observer.InverseTransformVector(pose.position-view.transform.position);
-                    pose.position=eye+observer.forward*(radius*.72f)+observer.rotation*(offset*reach);
+                    pose.position=eye+spiritAnchor.forward*(radius*.72f)+spiritAnchor.rotation*(offset*reach);
                 }
-                else if(!vr)
+                else if(!vr||Entering)
                 {
-                    float curl=Mouse.current!=null&&(isLeft?Mouse.current.rightButton.isPressed:Mouse.current.leftButton.isPressed)?1:0;
-                    pose=new CandyHandPose{tracked=true,skeletonTracked=true,position=eye+observer.forward*(radius*.72f)+observer.right*(desktop[i].x*reach*.6f)+Vector3.up*(desktop[i].y*reach*.6f),rotation=observer.rotation*Quaternion.Euler(-65,0,0),skeleton=DesktopHandPoses.Build(isLeft,DesktopHandPose.Cup,curl)};
+                    float curl=Entering?1:Mouse.current!=null&&(isLeft?Mouse.current.rightButton.isPressed:Mouse.current.leftButton.isPressed)?1:0;
+                    pose=new CandyHandPose{tracked=true,skeletonTracked=true,position=eye+spiritAnchor.forward*(radius*.72f)+spiritAnchor.right*(desktop[i].x*reach*.6f)+Vector3.up*(desktop[i].y*reach*.6f),rotation=spiritAnchor.rotation*Quaternion.Euler(-65,0,0),skeleton=DesktopHandPoses.Build(isLeft,Entering?DesktopHandPose.Fist:DesktopHandPose.Cup,curl)};
                 }
                 if(pose.tracked)
                 {
                     var position=pose.position;position.y=Mathf.Max(position.y,world.WaterHeight(position)-.35f);pose.position=position;
+                    if(Entering)pose.position=Vector3.Lerp(Shoulder(isLeft),pose.position,rise);
                     actor.motor.transform.SetPositionAndRotation(position,pose.rotation);
                 }
-                inputs[i].pose=pose;actor.InputSuspended=InputSuspended;
+                inputs[i].pose=pose;actor.InputSuspended=suspended;
             }
+        }
+
+        Pose EntrancePose(float progress,Vector3 eye,Quaternion facing,float radius)
+        {
+            var world=Services.World;
+            Vector3 high=Vector3.Lerp(entranceStart.position,eye,.42f);
+            high.y=Mathf.Max(entranceStart.position.y+12,world.TopHeight+Mathf.Max(12,radius*.65f));
+            Quaternion reveal=Quaternion.LookRotation(eye+Vector3.up*2-high,Vector3.up);
+            float launch=Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.42f,progress));
+            if(progress<.55f)return new Pose(Vector3.Lerp(entranceStart.position,high,launch),Quaternion.Slerp(entranceStart.rotation,reveal,launch));
+            float enter=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.55f,1,progress));
+            return new Pose(Vector3.Lerp(high,eye,enter),Quaternion.Slerp(reveal,facing,enter));
         }
 
         public void Shutdown()
@@ -157,6 +189,7 @@ namespace DeadlyJenga.CastlePrototype
             if(originalFollow){originalFollow.enabled=followWasEnabled;if(observer)observer.SetPositionAndRotation(observerStart.position,observerStart.rotation);}
             if(staging)Destroy(staging.gameObject);
             if(leftShoulder)Destroy(leftShoulder.gameObject);if(rightShoulder)Destroy(rightShoulder.gameObject);
+            if(spiritAnchor)Destroy(spiritAnchor.gameObject);
         }
         void OnDestroy()=>Shutdown();
     }

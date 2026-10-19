@@ -19,10 +19,10 @@ namespace DeadlyJenga.CastlePrototype
             EnsureKeyboardArt();
             var go=new GameObject("Giant piano keyboard",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);
             var yaw=panel.rotation;
-            go.transform.SetPositionAndRotation(panel.position+yaw*new Vector3(0,-.68f,-.45f),yaw*Quaternion.Euler(50,0,0));
-            go.transform.localScale=Vector3.one*.0006f;
+            go.transform.SetPositionAndRotation(panel.position+yaw*new Vector3(0,-.68f,-.45f),yaw*Quaternion.Euler(40,0,0));
+            go.transform.localScale=Vector3.one*.0003f;
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
-            var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.55f,.015f,.055f));
+            var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
             lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));   // the lobby makes the piano solid
             BuildArcadeCabinet();
             string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM-"};
@@ -32,11 +32,11 @@ namespace DeadlyJenga.CastlePrototype
                 char c=rows[row][col];float x=(col-(rows[row].Length-1)*.5f)*150;
                 PhysicalKey("key-"+c,c.ToString(),x,225-row*120,134,()=>{lobby.FocusCode();lobby.TypeCode(c);},()=>lobby.JoinEnabled,new Color(.92f,.04f,.12f));
             }
-            var back=PhysicalKey("backspace","\u232b",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(.75f,.035f,.11f));
+            var back=PhysicalKey("backspace","\u232b",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
             back.label.enabled=false;
             var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
             PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
-            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(.015f,.32f,.20f));
+            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
         }
         Choice PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
@@ -46,7 +46,7 @@ namespace DeadlyJenga.CastlePrototype
             key.keyProperties=new MaterialPropertyBlock();key.label.fontSize=44;key.label.resizeTextMaxSize=44;key.label.fontStyle=FontStyle.Bold;key.label.color=Color.white;key.label.rectTransform.anchoredPosition3D=new Vector3(0,0,-67);
             Image Glow(string name,float padding,float alpha)
             {
-                var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(key.button.transform,false);var glow=go.GetComponent<Image>();glow.sprite=CandyHudVisuals.Pill;glow.type=Image.Type.Sliced;glow.fillCenter=false;glow.raycastTarget=false;glow.color=new Color(.25f,1,.8f,alpha);glow.rectTransform.sizeDelta=new Vector2(width+padding,100+padding);glow.rectTransform.anchoredPosition3D=new Vector3(0,0,-68);glow.enabled=false;return glow;
+                var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(key.button.transform,false);var glow=go.GetComponent<Image>();glow.sprite=CandyHudVisuals.Pill;glow.type=Image.Type.Sliced;glow.fillCenter=false;glow.raycastTarget=false;glow.color=new Color(1,.62f,.68f,alpha);glow.rectTransform.sizeDelta=new Vector2(width+padding,100+padding);glow.rectTransform.anchoredPosition3D=new Vector3(0,0,-68);glow.enabled=false;return glow;
             }
             key.keyGlowSoft=Glow("Soft selection glow",44,.3f);key.keyGlow=Glow("Bright selection rim",22,1);
             return key;
@@ -59,7 +59,7 @@ namespace DeadlyJenga.CastlePrototype
             bool lit=enabled&&(hover||depression>0);
             Color color=!enabled?new Color(.28f,.035f,.07f):key.keyColor;
             key.keyProperties.SetColor("_BaseColor",color);
-            key.keyProperties.SetColor("_EmissionColor",lit?(key.id=="keyboard-enter"?new Color(.03f,1,.45f):new Color(1,.02f,.10f))*1.8f:Color.black);
+            key.keyProperties.SetColor("_EmissionColor",lit?new Color(1,.08f,.16f)*1.8f:Color.black);
             key.keyRenderer.SetPropertyBlock(key.keyProperties);
             key.keyGlow.enabled=key.keyGlowSoft.enabled=lit;
             key.keyGlow.rectTransform.anchoredPosition3D=key.keyGlowSoft.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);

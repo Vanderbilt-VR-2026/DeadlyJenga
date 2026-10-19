@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -62,7 +63,7 @@ namespace DeadlyJenga.CastlePrototype
             if(attachedCamera!=viewCamera||vr!=view.IsVR||canvas.renderMode==RenderMode.ScreenSpaceOverlay&&view.IsVR)
             {attachedCamera=viewCamera;vr=view.IsVR;ConfigureView();}
             // First desktop frame also needs anchors set.
-            if(!vr&&panel.anchorMin!=new Vector2(.5f,0))ConfigureView();
+            if(!vr&&panel.anchoredPosition!=CandyHudLayout.StaminaPosition)ConfigureView();
             bool hidden=!body.isActiveAndEnabled||motor.InputPaused||!viewCamera||!viewCamera.isActiveAndEnabled;
             group.alpha=Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing,motor.Stamina,hidden),Mathf.Max(0,dt)*4);
             displayed=Mathf.MoveTowards(displayed,motor.Stamina,Mathf.Max(0,dt)*3);
@@ -73,18 +74,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ConfigureView()
         {
-            var rect=canvas.GetComponent<RectTransform>();
-            if(vr&&attachedCamera)
-            {
-                canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=attachedCamera;rect.SetParent(attachedCamera.transform,false);
-                rect.sizeDelta=new Vector2(360,90);rect.localPosition=new Vector3(0,-.22f,.8f);rect.localRotation=Quaternion.identity;rect.localScale=Vector3.one*.00065f;
-                panel.anchorMin=panel.anchorMax=new Vector2(.5f,.5f);panel.anchoredPosition=Vector2.zero;
-            }
-            else
-            {
-                rect.SetParent(transform,false);canvas.renderMode=RenderMode.ScreenSpaceOverlay;rect.localScale=Vector3.one;
-                panel.anchorMin=panel.anchorMax=new Vector2(.5f,0);panel.anchoredPosition=new Vector2(0,80);
-            }
+            CandyHudLayout.Configure(canvas,transform,attachedCamera,vr);
+            panel.anchorMin=panel.anchorMax=new Vector2(.5f,.5f);panel.anchoredPosition=CandyHudLayout.StaminaPosition;
         }
         void OnDisable(){if(canvas)canvas.enabled=false;}
         void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}

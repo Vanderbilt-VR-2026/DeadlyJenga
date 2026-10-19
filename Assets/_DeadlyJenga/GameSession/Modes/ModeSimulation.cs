@@ -223,8 +223,19 @@ namespace DeadlyJenga.Modes
                 if(active.Count<=1){int t=-1;foreach(int value in active)t=value;Finish(t>=0?teams[t].name:"Nobody",t);return;}
             }
             if(Rules.roundSeconds<=0||Elapsed<Rules.roundSeconds)return;
+            FinishByScore();
+        }
+        void FinishByScore()
+        {
             if(teams.Count>0){int best=0;bool tie=false;for(int i=1;i<teams.Count;i++){float a=TeamScore(teams[i]),b=TeamScore(teams[best]);if(a>b){best=i;tie=false;}else if(a==b)tie=true;}Finish(tie?"Draw":teams[best].name,tie?-1:best);}
             else{var top=TopTen();Finish(top.Length>0?top[0].name:"Nobody",-1);}
+        }
+        public void EndForDevelopmentReview()
+        {
+            if(Phase!=RoundPhase.Playing)return;
+            if(Rules.mode==GameModeKind.MurderMystery){FinishMystery("Innocents");return;}
+            if(Rules.mode==GameModeKind.Infection){bool alive=false;foreach(var p in players.Values)if(p.present&&p.frame.alive&&p.frame.role!="infected")alive=true;Finish(alive?"Survivors":"Infected",alive?-1:-2);return;}
+            FinishByScore();
         }
         float TeamScore(MatchTeamFrame t) => Rules.mode==GameModeKind.CaptureFlag?t.captures:Rules.mode==GameModeKind.TeamTickets?t.tickets:t.points;
         void Finish(string winner,int team){Winner=winner;WinnerTeam=team;ChangePhase(RoundPhase.Victory);}

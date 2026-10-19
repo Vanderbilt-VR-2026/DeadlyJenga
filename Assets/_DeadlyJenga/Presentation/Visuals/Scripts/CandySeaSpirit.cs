@@ -17,8 +17,8 @@ namespace DeadlyJenga.Presentation
             {scanAt=Time.unscaledTime+1;foreach(var c in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))if(c is ISeaSpiritView found){view=found;break;}}
             bool active=view!=null&&view.Active;if(!active){if(bust)bust.parent.gameObject.SetActive(false);Restore();return;}
             if(!bust)Build();bust.parent.gameObject.SetActive(true);
-            Vector3 eye=view.BustAnchor.position;float waterline=Services.World?.WaterHeight(eye)??0;float shoulders=(view.LeftShoulder.position.y+view.RightShoulder.position.y)*.5f;float torsoHeight=Mathf.Max(6,shoulders-waterline+3);
-            bust.position=new Vector3(eye.x,waterline+torsoHeight*.42f,eye.z);bust.rotation=Quaternion.Euler(0,view.BustAnchor.eulerAngles.y,0);bust.localScale=new Vector3(Mathf.Max(8,torsoHeight*.45f),torsoHeight*1.2f,Mathf.Max(5,torsoHeight*.27f));
+            Vector3 eye=view.BustAnchor.position;float waterline=Services.World?.WaterHeight(eye)??0;float torsoHeight=Mathf.Max(6,(Services.World?.TopHeight??12)*.55f-waterline+3);
+            bust.position=new Vector3(eye.x,eye.y-torsoHeight*.45f,eye.z);bust.rotation=Quaternion.Euler(0,view.BustAnchor.eulerAngles.y,0);bust.localScale=new Vector3(Mathf.Max(8,torsoHeight*.45f),torsoHeight*1.2f,Mathf.Max(5,torsoHeight*.27f));
             float headHeight=Mathf.Max(5,torsoHeight*.25f);head.position=eye+Vector3.up*(headHeight*.42f);head.localScale=new Vector3(headHeight*.86f,headHeight,headHeight*.8f);
             for(int side=0;side<2;side++)
             {
