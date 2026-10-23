@@ -34,6 +34,10 @@ namespace DeadlyJenga.CandyAudio
             foreach(var cue in bank.cues)if(cue!=null)cues[cue.sound]=cue;
             // Bank-authored recordings override the lightweight original breath defaults.
             foreach(var sound in CandyBreathing.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyBreathing.DefaultCue(sound);
+            foreach(var sound in CandyDisasterSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyDisasterSounds.DefaultCue(sound);
+            foreach(var sound in CandyWeaponSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyWeaponSounds.DefaultCue(sound);
+            foreach(var sound in CandyJaguarSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyJaguarSounds.DefaultCue(sound);
+            foreach(var sound in CandyPlayerSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyPlayerSounds.DefaultCue(sound);
             for(int i=0;i<bank.oneShotVoices+bank.loopVoices;i++)
             {
                 var go=new GameObject("Pooled candy voice "+i);go.transform.SetParent(transform,false);
@@ -121,10 +125,11 @@ namespace DeadlyJenga.CandyAudio
         void Update()
         {
             if(bank!=current)Rebuild();if(!bank)return;
+            var activeView=DeadlyJenga.Core.Services.Session?.ActiveCamera;if(activeView)Listener=activeView.transform;
             if(Time.unscaledTime>=nextListener)
             {
-                nextListener=Time.unscaledTime+.5f;Listener=null;
-                foreach(var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))if(listener.isActiveAndEnabled){Listener=listener.transform;break;}
+                nextListener=Time.unscaledTime+.5f;
+                if(!activeView){Listener=null;foreach(var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))if(listener.isActiveAndEnabled){Listener=listener.transform;break;}}
                 if(cooldowns.Count>4096)cooldowns.Clear();
             }
             focusGain=Mathf.MoveTowards(focusGain,focus?1:0,Time.unscaledDeltaTime*4);ActiveVoices=0;

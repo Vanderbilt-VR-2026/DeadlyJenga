@@ -19,6 +19,19 @@ namespace DeadlyJenga.CastlePrototype
         public IPlayableCharacter Player {get;private set;}
         public IslandRoomConnection Room {get;private set;}
         public bool MenuOpen {get;private set;}
+        bool departing;float departureAt,departureSeconds;Pose departurePose;
+        public void BeginDeparture(float seconds)
+        {
+            if(departing||!NetworkActors.Alive(Player))return;
+            SetMenu(false);departing=true;departureAt=Time.unscaledTime;departureSeconds=seconds;
+            departurePose=new Pose(Player.transform.position,Player.transform.rotation);Player.InputSuspended=true;
+        }
+        public void CancelDeparture()
+        {
+            if(!departing)return;departing=false;
+            if(NetworkActors.Alive(Player))Player.Place(departurePose.position,departurePose.rotation);
+            SetMenu(MenuOpen);
+        }
         public IReadOnlyList<Rigidbody> Blocks=>Array.Empty<Rigidbody>();
         public Vector3 Center=>Vector3.zero;
         public float TopHeight=>.45f;
@@ -36,11 +49,14 @@ namespace DeadlyJenga.CastlePrototype
         {
             Current=this;Services.Session=this;Services.World=this;
             if(!catalog||!catalog.survivorPrefab||!catalog.environmentPrefab){Debug.LogError("Island lobby catalog is incomplete.",this);enabled=false;return;}
+            catalog=IslandLobbyCatalog.Runtime(catalog);
             Room=IslandRoomConnection.Ensure();bool firstVisit=!Room.Catalog;Room.Catalog=catalog;Room.StartDiscovery();if(firstVisit)Room.Region=catalog.defaultRegion;
+            Room.CompleteDeparture();
             Player=Instantiate(catalog.survivorPrefab).GetComponent<IPlayableCharacter>();
             if(Player==null){Debug.LogError("Island lobby survivor prefab needs an IPlayableCharacter.",this);enabled=false;return;}
             Player.gameObject.name="Lobby survivor (current character prefab)";
             Player.ViewCamera.clearFlags=CameraClearFlags.Skybox;
+            Room.PrepareSoloIdentity();ApplyLobbyIdentities();
             BuildFlatFloor();
             GameEvents.RaiseLobbyStarted(gameObject);   // Presentation builds the island and terminals
             Player.Place(SafeSpawnPoint(),Quaternion.identity);
@@ -51,19 +67,27 @@ namespace DeadlyJenga.CastlePrototype
         void Update()
         {
             if(!NetworkActors.Alive(Player))return;
+            if(departing)
+            {
+                float t=Mathf.Clamp01((Time.unscaledTime-departureAt)/Mathf.Max(.1f,departureSeconds));
+                Player.InputSuspended=true;
+                Player.transform.SetPositionAndRotation(departurePose.position+Vector3.up*(70*t*t),departurePose.rotation);
+                foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
+                return;
+            }
             var feet=Player.transform.position;
             if(feet.y<-.9f||(feet-Center).sqrMagnitude>900)Player.Place(SafeSpawnPoint(),Quaternion.identity);
             var keyboard=Keyboard.current;
             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
-            UpdateControls();
+            ApplyLobbyIdentities();UpdateControls();
         }
         public static Vector3 SpawnPoint(int slot)
         {float angle=(Math.Abs(slot)%10)*2.399963f;return new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);}
         public void SpawnAt(P.Pose pose){Player.Place(pose.position,pose.rotation);ClearPeers();}
         public void SetMenu(bool open)
-        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
+        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
         void OnApplicationFocus(bool value){focused=value;if(!value)SetMenu(true);}
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
         public bool TryPeerPosition(string id,out Vector3 position)
@@ -74,7 +98,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!peers.TryGetValue(actor.id,out var peer))
             {
                 if(peers.Count>=9)return;
-                var root=new GameObject("Lobby guest · "+actor.id);
+                var root=new GameObject("Lobby guest Â· "+actor.id);
                 peer=NetworkActors.CreateView(actor.kind,root,new NetworkContext{host=false,localSurvivor=Player.gameObject,actorId=actor.id});
                 if(peer==null){Destroy(root);return;}
                 peers[actor.id]=peer;

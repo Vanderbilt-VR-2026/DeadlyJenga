@@ -1,0 +1,32 @@
+Embedded prototype dependencies and corresponding sources
+
+llama.cpp b11714, commit c0fd78626405c6d9b934efef0ec7291fcc20e3d6
+https://github.com/ggml-org/llama.cpp/tree/c0fd78626405c6d9b934efef0ec7291fcc20e3d6
+Adapter compiler: Zig 0.15.2, shipped adapter statically links its C++ runtime.
+https://ziglang.org/download/0.15.2/release-notes.html
+Android libc++: Unity bundled NDK r27c (LLVM Apache-2.0 with LLVM exceptions).
+
+Sherpa-onnx v1.13.8 prebuilt C API:
+https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8
+Dependency source/version pinning:
+https://github.com/k2-fsa/sherpa-onnx/tree/v1.13.8/cmake
+Prebuilt TTS contains eSpeak NG/piper-phonemize. It is NOT an Apache-only stack.
+https://github.com/k2-fsa/sherpa-onnx/issues/3731
+Do not ship a closed-source APK with these binaries without resolving licensing.
+
+Qwen3-0.6B GGUF official weights, revision 23749fefcc72300e3a2ad315e1317431b06b590a
+https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/tree/23749fefcc72300e3a2ad315e1317431b06b590a
+Locally requantized Q8_0 to Q4_K_M using pinned llama.cpp.
+
+Sherpa streaming Zipformer English 20M 2023-02-17:
+https://github.com/k2-fsa/sherpa-onnx/releases/tag/asr-models
+Training/export recipe:
+https://github.com/k2-fsa/icefall/tree/master/egs/librispeech/ASR
+Weight and training-data rights still need release review.
+
+Kitten nano English v0.2 FP16 converted model:
+https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
+https://github.com/KittenML/KittenTTS
+
+Every downloaded archive and official weight SHA256 is recorded in downloads.lock.json.
+These source links/notice texts do not by themselves settle all distribution obligations.

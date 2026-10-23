@@ -40,6 +40,8 @@ namespace DeadlyJenga.CastlePrototype
         public bool Grounded { get; private set; }
         public bool Vaulting { get; private set; }
         public float VerticalSpeed => verticalSpeed;
+        public Collider StandingSurface { get; private set; }
+        public Vector3 FootPosition => Feet;
         public int VaultCount { get; private set; }
         public string ActionStatus { get; private set; } = "Ready";
         public CharacterController Capsule { get; private set; }
@@ -47,6 +49,7 @@ namespace DeadlyJenga.CastlePrototype
         InputAction move, turn, jump;
         TrackedPoseDriver tracker;
         float verticalSpeed, pitch, lastGrounded = -100, airborneSince;
+        float authoredJumpHeight;
         bool jumped, modeReady, turnReady = true;
         float appliedScale;
         Transform support, vaultSurface;
@@ -59,6 +62,7 @@ namespace DeadlyJenga.CastlePrototype
         void Awake()
         {
             Capsule = GetComponent<CharacterController>();
+            authoredJumpHeight = jumpHeight;
             gameObject.layer = Layers.Survivor;
             Capsule.excludeLayers = 1 << Layers.Block;
             tracker = viewCamera.GetComponent<TrackedPoseDriver>();
@@ -69,7 +73,7 @@ namespace DeadlyJenga.CastlePrototype
             SetVRPlayStyle((SurvivorVRPlayStyle)Mathf.Clamp(PlayerPrefs.GetInt("SurvivorVRPlayStyle",(int)vrPlayStyle),0,1),false);
         }
         void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this); }
-        void OnDisable() { move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
+        void OnDisable() { ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()
@@ -133,7 +137,8 @@ namespace DeadlyJenga.CastlePrototype
                     walking = FilterVRMove(move.ReadValue<Vector2>());
                     ApplyVRTurn(turn.ReadValue<Vector2>().x,Time.deltaTime);
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
-                    ReadVRJump(candyTracking?candyTracking.WorldHand(false):default,jump.IsPressed(),out pressed,out held);
+                    var blaster=GetComponent<DeadlyJenga.CandyPlayers.CandyBlaster>();blasterJumpOverride=GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.UsesTriggers==true&&!HasHandTracking;
+                    ReadVRJump(candyTracking?candyTracking.WorldHand(blasterJumpOverride&&!blaster.LeftHanded):default,blasterJumpOverride?blaster.JumpHeld:jump.IsPressed(),out pressed,out held);
                 }
                 else if (Cursor.lockState == CursorLockMode.Locked)
                 {
@@ -155,6 +160,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             else ResetVRJump();
+            var equipped=GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.Equipment;
+            if(!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn)
+            {ResetVRJump();pressed=held=false;}
+            UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
         }
 
@@ -166,12 +175,14 @@ namespace DeadlyJenga.CastlePrototype
             lastGrounded = -100; ActionStatus = "Spawned on top";
             ResetClimb(true);
             ResetVRJump();
+            SetSinking(false); punchHandReady = false;peakFallSpeed=0;
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
             if (dt <= 0 || !Capsule.enabled) return;
+            peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();
-            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended,dt))return;
+            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt))return;
             if (Vaulting) { AdvanceVault(dt); return; }
             if (support && Grounded)
             {
@@ -180,6 +191,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (carry.magnitude < 2) Capsule.Move(carry);
             }
             ProbeGround();
+            ApplyFallImpact();
             if (Grounded)
             {
                 lastGrounded = Time.time; jumped = false;
@@ -187,18 +199,19 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (jumpPressed)
             {
-                if (!jumped && (Grounded || Time.time - lastGrounded < .07f))
+                if (!Sinking && (modeRules==null||modeRules.canJump)&&GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal!=true && !jumped && (Grounded || Time.time - lastGrounded < .07f))
                 {
-                    verticalSpeed = Mathf.Sqrt(2 * gravity * jumpHeight); Grounded = false;
+                    verticalSpeed = Mathf.Sqrt(2 * gravity * EffectiveJumpHeight); Grounded = false;
                     jumped = true; support = null; airborneSince = Time.time; ActionStatus = "Jump";
                 }
-                else if (!Grounded && Time.time - airborneSince > .06f && TryStartVault()) return;
+                else if ((Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
                 else ActionStatus = "No reachable ledge — no double jump";
             }
             Vector3 forward = MovementForward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             input = Vector2.ClampMagnitude(input, 1);
             Vector3 movement=(forward*input.y+right*input.x)*(IsVR&&!externallyDriven?vrWalkSpeed:walkSpeed);
+            movement *= PowerupSpeedMultiplier * movementMultiplier * (Sinking&&(modeRules==null||!modeRules.sinking) ? .16f : 1);
             float slip=DisasterStates.Slipperiness;
             if(slip>0)
             {
@@ -223,30 +236,58 @@ namespace DeadlyJenga.CastlePrototype
             {
                 slopeVelocity=Vector3.MoveTowards(Vector3.ProjectOnPlane(slopeVelocity,Vector3.up),Vector3.zero,1.5f*dt);
             }
-            float fall = verticalSpeed * dt - .5f * gravity * dt * dt;
+            float effectiveGravity=gravity*DisasterGravity(out float fallLimit);
+            if(verticalSpeed < -fallLimit)verticalSpeed=-fallLimit;
+            if(!float.IsPositiveInfinity(fallLimit))peakFallSpeed=Mathf.Min(peakFallSpeed,fallLimit);
+            float fall = verticalSpeed * dt - .5f * effectiveGravity * dt * dt;
             var flags = Capsule.Move((movement+slopeVelocity)*dt + Vector3.up * fall);
-            verticalSpeed -= gravity * dt;
+            verticalSpeed = Mathf.Max(-fallLimit,verticalSpeed-effectiveGravity*dt);
             if ((flags & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             if ((flags & CollisionFlags.Below) != 0 && verticalSpeed < 0) verticalSpeed = -1;
             ProbeGround();
+            ApplyFallImpact();
+        }
+        readonly RaycastHit[] groundContacts=new RaycastHit[24];
+        static readonly Vector3[] supportProbes={Vector3.zero,Vector3.right,Vector3.left,Vector3.forward,Vector3.back,
+            new Vector3(1,0,1).normalized,new Vector3(-1,0,1).normalized,new Vector3(1,0,-1).normalized,new Vector3(-1,0,-1).normalized};
+        bool SupportFace(ref RaycastHit hit,Vector3 feet,int mask)
+        {
+            if(Physics.Raycast(hit.point+Vector3.up*(.06f*playerScale),Vector3.down,out var face,.12f*playerScale,mask,QueryTriggerInteraction.Ignore)&&face.collider==hit.collider)hit=face;
+            float gap=feet.y-hit.point.y;
+            return gap>=-(Capsule.radius+Capsule.skinWidth*2)&&gap<=.12f*playerScale+Capsule.skinWidth*2&&hit.normal.y>=Mathf.Cos(slopeSupportAngle*Mathf.Deg2Rad);
         }
         void ProbeGround()
         {
-            Vector3 feet = Feet;
-            bool wasGrounded = Grounded;
-            int mask=~((1 << gameObject.layer) | (1 << Layers.Block));
-            bool contact=Physics.SphereCast(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,
-                Vector3.down,out var hit,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
-            // Sphere normals can interpolate across box edges. Recover the actual face
-            // at the contact point, rather than classifying a wall edge as a floor.
-            if(contact&&Physics.Raycast(hit.point+Vector3.up*(.06f*playerScale),Vector3.down,out var face,.12f*playerScale,mask,QueryTriggerInteraction.Ignore)&&face.collider==hit.collider)hit=face;
-            Grounded=verticalSpeed<=0&&contact&&hit.normal.y>=Mathf.Cos(slopeSupportAngle*Mathf.Deg2Rad);
-            if (Grounded)
+            Vector3 feet=Feet;bool wasGrounded=Grounded;
+            int mask=~((1<<gameObject.layer)|(1<<Layers.Block));
+            int count=Physics.SphereCastNonAlloc(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,Vector3.down,groundContacts,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
+            bool contact=false;RaycastHit hit=default;float best=float.NegativeInfinity;
+            for(int i=0;i<count;i++)
             {
-                GroundNormal=hit.normal;
-                support = hit.transform; supportLocal = support.InverseTransformPoint(feet); supportWorld = support.TransformPoint(supportLocal);
+                var candidate=groundContacts[i];if(!SupportFace(ref candidate,feet,mask))continue;
+                float score=candidate.normal.y-Mathf.Abs(feet.y-candidate.point.y);
+                if(score>best){best=score;hit=candidate;contact=true;}
             }
-            else { support = null; if (wasGrounded) airborneSince = Time.time; }
+            // The rounded base can touch a lip outside the smaller sphere probe.
+            float gapLimit=.12f*playerScale+Capsule.skinWidth*2;
+            if(!contact&&verticalSpeed<=0&&(count>0||Capsule.isGrounded||Physics.CheckSphere(feet+Vector3.up*Capsule.radius,Capsule.radius+gapLimit,mask,QueryTriggerInteraction.Ignore)))
+            {
+                float lift=Capsule.radius+Capsule.skinWidth*2+.05f*playerScale;
+                for(int i=0;i<supportProbes.Length;i++)
+                {
+                    Vector3 offset=supportProbes[i]*(Capsule.radius*.95f+Capsule.skinWidth);
+                    if(!Physics.Raycast(feet+offset+Vector3.up*lift,Vector3.down,out var candidate,lift+gapLimit,mask,QueryTriggerInteraction.Ignore)||!SupportFace(ref candidate,feet,mask))continue;
+                    if(!contact||candidate.normal.y>hit.normal.y){hit=candidate;contact=true;}
+                    if(hit.normal.y>.999f)break;
+                }
+            }
+            Grounded=verticalSpeed<=0&&contact;
+            if(Grounded)
+            {
+                GroundNormal=hit.normal;support=hit.transform;supportLocal=support.InverseTransformPoint(feet);supportWorld=support.TransformPoint(supportLocal);
+            }
+            else{support=null;if(wasGrounded)airborneSince=Time.time;}
+            StandingSurface=Grounded?hit.collider:null;
         }
         Vector3 Feet => transform.TransformPoint(Capsule.center) - Vector3.up * Capsule.height / 2;
 
@@ -264,21 +305,29 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         bool FindLedgeAtOffset(Vector3 forward, Vector3 offset, out RaycastHit top, out Vector3 target)
+            =>FindLedgeFrom(Feet,forward,offset,out top,out target);
+
+        float ReachableVaultRise => Sinking
+            ? Mathf.Max(vaultMaxRise, Mathf.Min(Services.World?.StepHeight ?? vaultMaxRise, StandingHeight + vaultMaxRise))
+            : vaultMaxRise;
+
+        bool FindLedgeFrom(Vector3 feet,Vector3 forward,Vector3 offset,out RaycastHit top,out Vector3 target)
         {
             top = default; target = default;
-            Vector3 feet = Feet;
             if (forward.sqrMagnitude < .1f) return false;
+            float maxRise = ReachableVaultRise;
+            // Sinking removes the jump that normally lifts us into reach of the first course.
             // Look for a solid vertical face first: empty air is never a vault target.
             for (float probeHeight = .12f; probeHeight <= 1.15f; probeHeight += .25f)
             {
                 if (!Physics.Raycast(feet + offset + Vector3.up * probeHeight, forward, out var face,
                     vaultReach, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) continue;
                 Vector3 inside = face.point + forward * (Capsule.radius + Mathf.Clamp(vaultLandingDepth, .04f, .6f));
-                Vector3 above = new Vector3(inside.x, feet.y + vaultMaxRise + .15f, inside.z);
-                if (!Physics.Raycast(above, Vector3.down, out top, vaultMaxRise + .3f, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore)
+                Vector3 above = new Vector3(inside.x, feet.y + maxRise + .15f, inside.z);
+                if (!Physics.Raycast(above, Vector3.down, out top, maxRise + .3f, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore)
                     || top.collider != face.collider || top.normal.y < .85f) continue;
                 float rise = top.point.y - feet.y;
-                if (rise < .08f || rise > vaultMaxRise) continue;
+                if (rise < .08f || rise > maxRise) continue;
                 Vector3 destinationFeet = top.point + Vector3.up * .04f;
                 if (!ClearCapsule(destinationFeet)) continue;
                 // Check both lift and traverse segments, including low ceilings.
@@ -317,14 +366,14 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool TryStartVault()
         {
-            if (Grounded || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
+            if (!isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || ((modeRules!=null&&!modeRules.canVault)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true) || (Grounded && !Sinking) || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
             BeginVault(hit,destination);return true;
         }
         public bool TryGetVaultTarget(out Collider surface, out Vector3 edgePoint, out Vector3 landingPoint)
         {
             surface = null; edgePoint = landingPoint = default;
-            if (!isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || Grounded || Vaulting || Climbing
-                || Time.time - airborneSince <= .06f || (!jumped && Time.time - lastGrounded < .07f)) return false;
+            if (((modeRules!=null&&!modeRules.canVault)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true) || !isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || (Grounded && !Sinking) || Vaulting || Climbing
+                || (!Sinking && (Time.time - airborneSince <= .06f || (!jumped && Time.time - lastGrounded < .07f)))) return false;
             if (!TryFindLedge(out var hit, out var destination)) return false;
             surface = hit.collider; edgePoint = candidateGrip; landingPoint = destination + (Feet - transform.position);
             return true;
@@ -335,6 +384,7 @@ namespace DeadlyJenga.CastlePrototype
             vaultGripLocal=vaultSurface.InverseTransformPoint(candidateGrip);
             vaultNormalLocal=vaultSurface.InverseTransformDirection(candidateNormal);vaultForwardLocal=vaultSurface.InverseTransformDirection(candidateForward);
             vaultStart = transform.position; vaultTime = 0; Vaulting = true; verticalSpeed = 0;
+            peakFallSpeed=0;
             support = null; ActionStatus = "Vault"; VaultCount++;
         }
         public bool TryGetVaultGrip(bool left,out Pose grip)
@@ -347,7 +397,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void AdvanceVault(float dt)
         {
-            if (!vaultSurface || Vector3.Angle(vaultSurface.up, Vector3.up) > 25)
+            if (!vaultSurface || Vector3.Angle(vaultSurface.TransformDirection(vaultNormalLocal), Vector3.up) > 32)
             { Vaulting = false; ActionStatus = "Ledge moved — vault cancelled"; return; }
             Vector3 end = vaultSurface.TransformPoint(vaultLocal);
             if (Vector3.Distance(end, vaultStart) > 3 || !ClearCapsule(end + (Feet - transform.position)))
@@ -365,5 +415,3 @@ namespace DeadlyJenga.CastlePrototype
         }
     }
 }
-
-

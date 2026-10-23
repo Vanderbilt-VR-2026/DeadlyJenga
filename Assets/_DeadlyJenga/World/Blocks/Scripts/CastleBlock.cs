@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
-    public sealed class CastleBlock : MonoBehaviour, IClimbable, IPushable
+    public sealed class CastleBlock : MonoBehaviour, IClimbable, IPushable, IBlockOwnership
     {
         public const int SurvivorLayer = Layers.Survivor, BlockLayer = Layers.Block, SurfaceLayer = Layers.Surface;
         public CastleBlockAppearance appearance;
@@ -23,6 +23,7 @@ namespace DeadlyJenga.CastlePrototype
         bool surfaceSynced;
         static bool collisionLayersConfigured;
         Rigidbody body;
+        MagneticBlock magnet;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetRuntime() { collisionLayersConfigured = false; }
 
@@ -47,6 +48,7 @@ namespace DeadlyJenga.CastlePrototype
             surfaceBody = proxy.AddComponent<Rigidbody>();
             surfaceBody.isKinematic = true; surfaceBody.useGravity = false;
             surface = proxy.AddComponent<BoxCollider>();
+            surface.enabled = traversalEnabled;
             Climbables.Register(surface, this);
             surface.excludeLayers = ~(1 << SurvivorLayer);
             surface.layerOverridePriority = 10;
@@ -56,7 +58,10 @@ namespace DeadlyJenga.CastlePrototype
         void OnDisable() { if (surface) surface.gameObject.SetActive(false); }
         void OnDestroy() { if (surface) {Climbables.Unregister(surface);Destroy(surface.gameObject);} }
         // IClimbable
-        public bool CanClimb => isActiveAndEnabled;
+        bool traversalEnabled = true;
+        public bool CanClimb => isActiveAndEnabled && traversalEnabled;
+        public void SetTraversalEnabled(bool enabled)
+        { traversalEnabled = enabled; if (surface) surface.enabled = enabled; }
         public float Grip => 1;
         public Transform Anchor => transform;
         public Rigidbody Body => body ? body : body = GetComponent<Rigidbody>();
@@ -65,9 +70,13 @@ namespace DeadlyJenga.CastlePrototype
         // IPushable
         public void Push(Vector3 force, GameObject source)
         {
-            Body.AddForce(force, ForceMode.VelocityChange);
+            if (!magnet) magnet = GetComponent<MagneticBlock>();
+            if (!magnet || !magnet.TryPush(force)) Body.AddForce(force, ForceMode.VelocityChange);
             GameEvents.RaisePushed(gameObject, force);
         }
+
+        public int OwnerTeam { get; private set; } = -1;
+        public void SetOwner(int team, Color color) { OwnerTeam = team; }
 
         public void SyncSurface()
         {

@@ -1,0 +1,72 @@
+{
+  "schemaVersion": 1,
+  "id": "team-tickets",
+  "description": "Search midfield and pursue observed opponents. Regroup at critical health or an outnumbered final life; actual eliminations consume tickets.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "repel",
+      "query": "close-threats",
+      "skill": "Attack",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3.5,
+      "radius": 1.1,
+      "timeout": 12,
+      "retry": 2,
+      "commitment": 1,
+      "exclude": [
+        "carrying"
+      ]
+    },
+    {
+      "id": "regroup",
+      "query": "regroup",
+      "skill": "Travel",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "require": [
+        "needs-retreat"
+      ],
+      "utility": 2,
+      "radius": 0.4,
+      "timeout": 20
+    },
+    {
+      "id": "enemy",
+      "query": "hostiles",
+      "skill": "Attack",
+      "exclude": [
+        "needs-retreat"
+      ],
+      "completeWhen": "target-dead",
+      "tier": 1,
+      "maximum": 4,
+      "fraction": 0.25,
+      "utility": 1,
+      "radius": 1,
+      "timeout": 45
+    },
+    {
+      "id": "search",
+      "query": "midfield",
+      "skill": "Travel",
+      "completeWhen": "visited",
+      "maximum": 100,
+      "utility": 0.4,
+      "radius": 0.8,
+      "timeout": 45
+    }
+  ]
+}

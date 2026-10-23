@@ -32,7 +32,7 @@ namespace DeadlyJenga.CandyPlayers
             rp=Action("<XRController>{RightHand}/devicePosition");rr=Action("<XRController>{RightHand}/deviceRotation");rt=Action("<XRController>{RightHand}/isTracked");
         }
         void OnEnable(){lp.Enable();lr.Enable();lt.Enable();rp.Enable();rr.Enable();rt.Enable();Application.onBeforeRender+=ReadLatest;}
-        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();Application.onBeforeRender-=ReadLatest;}
+        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();Application.onBeforeRender-=ReadLatest;left=right=default;RightPinchPressed=RightPinching=LeftMenuPressed=LeftPinching=previousRight=previousMenu=false;}
         void OnDestroy(){lp.Dispose();lr.Dispose();lt.Dispose();rp.Dispose();rr.Dispose();rt.Dispose();}
         void Update()
         {
@@ -85,7 +85,7 @@ namespace DeadlyJenga.CandyPlayers
         }
         public CandyHandPose WorldHand(bool isLeft)
         {
-            var hand=isLeft?left:right;
+            var hand=isActiveAndEnabled?(isLeft?left:right):default;
             // The XR rig's controller transforms use pointer/aim poses for UI rays.
             // Render the palm from devicePosition/deviceRotation (grip pose) instead;
             // aim rotation has a device-specific tilt and is not the wrist orientation.

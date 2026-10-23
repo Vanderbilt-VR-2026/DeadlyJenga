@@ -154,6 +154,8 @@ MonoBehaviour:
   overviewCamera: {fileID: 518757462}
   tuneJumpToBlockHeight: 1
   jumpShortfall: 0.18
+  tsunamiSpeed: 8
+  tsunamiForce: 1
 --- !u!4 &132092394
 Transform:
   m_ObjectHideFlags: 0
@@ -198,7 +200,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: -0.5, z: 0}
-  m_LocalScale: {x: 34.32, y: 1, z: 34.32}
+  m_LocalScale: {x: 36, y: 1, z: 36}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
@@ -705,6 +707,8 @@ GameObject:
   m_Component:
   - component: {fileID: 1132920722}
   - component: {fileID: 1132920721}
+  - component: {fileID: 1132920724}
+  - component: {fileID: 1132920723}
   m_Layer: 0
   m_Name: Castle Layout (local prototype)
   m_TagString: Untagged
@@ -732,18 +736,20 @@ MonoBehaviour:
     keepCourses: 30
     moduleGap: 0.08
     singleTower: 0
+    cathedral: 0
   blockPrefab: {fileID: 2703243324835835218, guid: fb47b0ca6a0439a4b80af65a71cbc26c, type: 3}
   cornerMaterial: {fileID: 2100000, guid: 1f4297b594299cc4fbdec5329506df5f, type: 2}
   wallMaterial: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
   keepMaterial: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
   foundation: {fileID: 184940342}
-  generateOnStart: 0
-  environmentOnly: 1
+  generateOnStart: 1
+  environmentOnly: 0
+  magneticMap: {fileID: 1132920724}
   mass: 40
   generatedRoot: {fileID: 0}
   waterHeight: 0.08
   oceanKillHeight: -6
-  playableArea: {fileID: 0}
+  playableArea: {fileID: 1132920723}
 --- !u!4 &1132920722
 Transform:
   m_ObjectHideFlags: 0
@@ -759,6 +765,44 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!65 &1132920723
+BoxCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1132920720}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 1
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 3
+  m_Size: {x: 36, y: 30, z: 36}
+  m_Center: {x: 0, y: 14, z: 0}
+--- !u!114 &1132920724
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1132920720}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8cad74e9e0c1fd845826fe0f5fa8695c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticDraftMap
+  cubePrefab: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  catwalkPrefab: {fileID: 2043361167730743211, guid: 7b3dcf8492916d146aea3fab67900f2a, type: 3}
+  weakMaterial: {fileID: 2100000, guid: 90efb27a270ade743a3f2613111962b0, type: 2}
+  mediumMaterial: {fileID: 2100000, guid: d87340c6d29cb074eb6d20b2e3accc54, type: 2}
+  strongMaterial: {fileID: 2100000, guid: 747e26778178e8b4890077c7203ac784, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

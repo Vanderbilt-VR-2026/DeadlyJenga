@@ -1,0 +1,47 @@
+[
+  {
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-android.tar.bz2",
+    "file": "sherpa-onnx-v1.13.8-android.tar.bz2",
+    "sha256": "2ff63469a71cb6009aa2e3ed5f4a670f8abdcbe4bb9ffd23776afc792a6b4f44"
+  },
+  {
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-win-x64-shared-MD-Release.tar.bz2",
+    "file": "sherpa-onnx-v1.13.8-win-x64-shared-MD-Release.tar.bz2",
+    "sha256": "3e971a04b2e0ba4dfa53d381a006367ce8c9f5f09b4ae00043e9845c2baded22"
+  },
+  {
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/v1.13.8/sherpa-onnx-v1.13.8-win-x64-shared-MD-Release-lib.tar.bz2",
+    "file": "sherpa-onnx-v1.13.8-win-x64-shared-MD-Release-lib.tar.bz2",
+    "sha256": "3c43d1efba780d7ae7f5d64cae08803dcecf417109a5f593684e536f3cbd5cf1"
+  },
+  {
+    "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11714/llama-b11714-bin-android-arm64.tar.gz",
+    "file": "llama-b11714-bin-android-arm64.tar.gz",
+    "sha256": "ee87b9353cf246cc3fcb259c1947d2692728c5d8fda4ee7e0ca57b96301c4874"
+  },
+  {
+    "url": "https://github.com/ggml-org/llama.cpp/releases/download/b11714/llama-b11714-bin-win-cpu-x64.zip",
+    "file": "llama-b11714-bin-win-cpu-x64.zip",
+    "sha256": "f78eded047061a3f86372db426797400a2f1bb0ec37868d5927dd820eb3386c0"
+  },
+  {
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/asr-models/sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
+    "file": "sherpa-onnx-streaming-zipformer-en-20M-2023-02-17.tar.bz2",
+    "sha256": "9c559283e8498d3fe95913c79ca1cb454bb26281ac2b102b41306c7d752765d9"
+  },
+  {
+    "url": "https://github.com/k2-fsa/sherpa-onnx/releases/download/tts-models/kitten-nano-en-v0_2-fp16.tar.bz2",
+    "file": "kitten-nano-en-v0_2-fp16.tar.bz2",
+    "sha256": "0345a8a2f4a710cb8f7912c9a731ded8b3e1e69b33a871efa95c2e64651518fe"
+  },
+  {
+    "url": "https://huggingface.co/Qwen/Qwen3-0.6B-GGUF/resolve/23749fefcc72300e3a2ad315e1317431b06b590a/Qwen3-0.6B-Q8_0.gguf",
+    "file": "Qwen3-0.6B-Q8_0.gguf",
+    "sha256": "9465e63a22add5354d9bb4b99e90117043c7124007664907259bd16d043bb031"
+  },
+  {
+    "url": "https://ziglang.org/download/0.15.2/zig-x86_64-windows-0.15.2.zip",
+    "file": "zig-x86_64-windows-0.15.2.zip",
+    "sha256": "3a0ed1e8799a2f8ce2a6e6290a9ff22e6906f8227865911fb7ddedc3cc14cb0c"
+  }
+]

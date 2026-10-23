@@ -1,0 +1,94 @@
+{
+  "schemaVersion": 1,
+  "id": "infection",
+  "description": "Infected pursue or search. Survivors evade known threats and seek elevated footing. Public radar remains public.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "repel",
+      "query": "close-threats",
+      "skill": "Attack",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3.5,
+      "radius": 1.1,
+      "timeout": 12,
+      "retry": 2,
+      "commitment": 1,
+      "exclude": [
+        "carrying"
+      ]
+    },
+    {
+      "id": "infect",
+      "query": "hostiles",
+      "skill": "Attack",
+      "require": [
+        "infected"
+      ],
+      "completeWhen": "target-infected",
+      "tier": 1,
+      "maximum": 4,
+      "fraction": 0.3,
+      "utility": 1,
+      "radius": 1,
+      "timeout": 45
+    },
+    {
+      "id": "escape",
+      "query": "escape-routes",
+      "skill": "Travel",
+      "exclude": [
+        "infected"
+      ],
+      "require": [
+        "threat-near"
+      ],
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 2,
+      "radius": 0.4,
+      "timeout": 20
+    },
+    {
+      "id": "search",
+      "query": "infection-search",
+      "skill": "Travel",
+      "completeWhen": "visited",
+      "require": [
+        "infected"
+      ],
+      "exclude": [
+        "has-hostile"
+      ],
+      "maximum": 100,
+      "utility": 0.5,
+      "radius": 0.8,
+      "timeout": 45
+    },
+    {
+      "id": "high-ground",
+      "query": "high-ground",
+      "skill": "Travel",
+      "exclude": [
+        "infected"
+      ],
+      "maximum": 10,
+      "fraction": 0.2,
+      "utility": 0.8,
+      "radius": 0.65,
+      "timeout": 120
+    }
+  ]
+}

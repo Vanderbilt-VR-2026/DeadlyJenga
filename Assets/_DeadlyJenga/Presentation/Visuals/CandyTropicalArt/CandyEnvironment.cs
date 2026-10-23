@@ -12,11 +12,27 @@ namespace DeadlyJenga.CandyArt
         public Light sun;
         public bool applyLighting;
         MaterialPropertyBlock properties;
-        void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();} Refresh(); }
-        void Update() { Refresh(); }
+        DeadlyJenga.Core.IWorldQuery activeWorld;
+        void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();if(!GetComponent<CandySceneSkins>())gameObject.AddComponent<CandySceneSkins>();} Refresh(); }
+        void Update() { if(Application.isPlaying){if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
         public void Refresh()
         {
             if(!profile || !waterRenderer || !sandRenderer) return;
+            var world=DeadlyJenga.Core.Services.World;
+            if(Application.isPlaying && world!=null && !ReferenceEquals(activeWorld,world))
+            {
+                activeWorld=world;
+                if(world is MonoBehaviour map)
+                {
+                    float area=0;Transform floor=null;
+                    foreach(var col in map.GetComponentsInChildren<Collider>())
+                        if(!col.isTrigger && !col.attachedRigidbody && (col.gameObject.layer==DeadlyJenga.Core.Layers.Surface||col.gameObject.layer==0))
+                        {float candidate=col.bounds.size.x*col.bounds.size.z;if(candidate>area){area=candidate;floor=col.transform;}}
+                    if(floor)foundation=floor;
+                    var baseline=GetComponent<CandyArtBaseline>();if(baseline)baseline.map=map;
+                    transform.position=world.Center;
+                }
+            }
             float radius=profile.fitIslandToFoundation && foundation ? Mathf.Max(foundation.lossyScale.x,foundation.lossyScale.z)*.5f : profile.islandRadius;
             radius=Mathf.Max(1,radius);
             var origin=transform.position;

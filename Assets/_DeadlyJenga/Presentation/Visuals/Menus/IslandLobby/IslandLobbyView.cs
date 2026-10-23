@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         public CandyEnvironment Environment {get;private set;}
         CandyArtProfile localArt;
         InputAction select;
-        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;}
+        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;}
         readonly List<Choice> choices=new List<Choice>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -38,6 +38,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildIsland();
             select=new InputAction("Lobby select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();
             BuildTerminals();
+            BuildWardrobe();
         }
         void BuildIsland()
         {
@@ -55,9 +56,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(lobby==null||!NetworkActors.Alive(Player))return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
+            if(UpdateWardrobe())return;
             bool pressed=select.WasPressedThisFrame()||Player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
             Ray ray=!Player.IsVR&&session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
-            Point(ray,pressed);
+            Point(ray,pressed,select.IsPressed()||Player.SelectHeld||mouse!=null&&mouse.leftButton.isPressed);
             UpdateStations();
         }
         public bool InvokeChoice(string id)
@@ -70,23 +72,25 @@ namespace DeadlyJenga.CastlePrototype
             if(choice.physical)choice.pressedUntil=Time.unscaledTime+.14f;
             choice.action();return true;
         }
-        public void Point(Ray ray,bool pressed)
+        public void Point(Ray ray,bool pressed,bool held=false)
         {
-            Choice nearest=null;float distance=4;
+            Choice nearest=null;float distance=4;Vector3 selectionPoint=default;
             foreach(var choice in choices)
             {
                 bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
                 bool usable=choice.enabled==null||choice.enabled();choice.button.interactable=usable;choice.collider.enabled=usable;
                 if(choice.title!=null)choice.label.text=choice.title();
-                choice.label.color=usable?(choice.physical?CandyHudVisuals.Ink:Color.white):CandyHudVisuals.Muted;
-                if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,4)&&hit.distance<distance){nearest=choice;distance=hit.distance;}
+                choice.label.color=choice.physical?new Color(1,1,1,usable?1:.5f):usable?Color.white:CandyHudVisuals.Muted;
+                if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,4)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
                 choice.button.image.color=choice.physical?Color.clear:usable?CandyHudVisuals.Card:new Color(.11f,.14f,.2f);
                 if(choice.physical)UpdatePhysicalKey(choice,false);
             }
             if(nearest!=null)
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);else nearest.button.image.color=CandyHudVisuals.Mint;
-                nearest.label.color=CandyHudVisuals.Ink;if(pressed)InvokeChoice(nearest.id);
+                nearest.label.color=nearest.physical?Color.white:CandyHudVisuals.Ink;
+                if(nearest.slide!=null&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
+                else if(pressed)InvokeChoice(nearest.id);
             }
         }
         void OnGUI()
@@ -97,8 +101,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
+            DisposeWardrobe();
             if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;
-            if(keyboardMaterial)Destroy(keyboardMaterial);if(keyboardMesh)Destroy(keyboardMesh);
+            if(keyboardMaterial)Destroy(keyboardMaterial);if(keyboardMesh)Destroy(keyboardMesh);if(cabinetMesh)Destroy(cabinetMesh);if(consoleSphere)Destroy(consoleSphere);
             select?.Dispose();if(Environment)Destroy(Environment.gameObject);if(localArt)Destroy(localArt);
         }
     }

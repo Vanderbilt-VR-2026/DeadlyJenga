@@ -31,13 +31,16 @@ namespace DeadlyJenga.CastlePrototype
         readonly System.Collections.Generic.List<Action> navActions=new System.Collections.Generic.List<Action>();int navCount,drawIndex;bool activate;
         readonly System.Collections.Generic.List<float> navTops=new System.Collections.Generic.List<float>();
         bool HasFriends=>session!=null&&session.Multiplayer!=null;
-        bool DemoMode=>Demo!=null&&Demo.DemoMode;
+        bool DemoMode=>Demo!=null&&(Demo.DemoMode||Demo.CanCommand);
         string disasterStatus="";
-        int PageCount=>(HasFriends?7:6)+(DemoMode?1:0);
+        int PageCount=>(HasFriends?8:7)+(DemoMode?1:0)+2;
         string PageName(int index)
         {
+            if(index==PageCount-3)return "Maps";
+            if(index==PageCount-2)return "Spectate";
+            if(index>PageCount-3)index-=2;
             if(DemoMode){if(index==3)return "Disasters";if(index>3)index--;}
-            return (HasFriends?new[]{"Play","Survivors","Giant hands","Friends","Settings","Voice","Controls"}:new[]{"Play","Survivors","Giant hands","Settings","Voice","Controls"})[index];
+            return (HasFriends?new[]{"Play","Survivors","Giant hands","Friends","Modes","Settings","Voice","Controls"}:new[]{"Play","Survivors","Giant hands","Modes","Settings","Voice","Controls"})[index];
         }
         CandyHudIcon PageIcon(int index)=>PageName(index)=="Survivors"?CandyHudIcon.Survivor:PageName(index)=="Giant hands"?CandyHudIcon.Hand:PageName(index)=="Settings"?CandyHudIcon.Settings:PageName(index)=="Controls"?CandyHudIcon.Help:PageName(index)=="Play"?CandyHudIcon.Play:CandyHudIcon.Friends;
         bool ControlsPageOpen=>page==PageCount-1;
@@ -49,6 +52,7 @@ namespace DeadlyJenga.CastlePrototype
         void Awake(){session=GetComponent<ISessionInfo>();changedAt=Time.unscaledTime;}
         void Update()
         {
+            if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(!Ready)return;
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
             if(studio)studio.ShowLauncher=false;
@@ -79,9 +83,13 @@ namespace DeadlyJenga.CastlePrototype
             box=new GUIStyle(GUI.skin.box){border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded}};
             themed=Instantiate(GUI.skin);themed.hideFlags=HideFlags.HideAndDontSave;themed.label=body;themed.button=button;themed.box=box;
             themed.toggle.font=font;themed.toggle.fontSize=19;themed.toggle.normal.textColor=Color.white;
+            themed.textField=new GUIStyle(button){fontStyle=FontStyle.Normal};
+            foreach(var state in new[]{themed.button.normal,themed.button.hover,themed.button.active,themed.button.focused,themed.textField.normal,themed.textField.hover,themed.textField.active,themed.textField.focused}){state.textColor=Color.white;state.background=CandyHudVisuals.Rounded;}
         }
         void OnGUI()
         {
+            DrawSpectatorLabels();
+            if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(Ready&&!session.MenuOpen&&session.Social!=null&&session.Social.ShowCaption)SocialPanel.DrawCaption(session.Social);
             if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen)return;
             Styles();var old=GUI.matrix;var skin=GUI.skin;var tint=GUI.color;int depth=GUI.depth;
@@ -99,26 +107,32 @@ namespace DeadlyJenga.CastlePrototype
             page=Mathf.Clamp(page,0,PageCount-1);
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
             Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
-            GUI.Label(new Rect(93,23,700,45),"DEADLY JENGA  /  DEMO",title);
+            GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
             GUI.Label(new Rect(95,71,775,30),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
+            var inspection=CandyThirdPersonInspection.For(session);
+            if(Demo?.DemoMode==true){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,88,207,30),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
+            if(Button(new Rect(748,28,201,51),"Exit to Lobby",CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
+            var review=MatchRuntime.Current as IMatchReviewControls;
+            if(review?.DevelopmentReviewEnabled==true)
+            {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),"End Game",CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=PageName(i)=="Friends"&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
-                var r=new Rect(20,128+i*68,218,58);if(Button(r,"       "+PageName(i)+(pending?"  !":""),i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
+                var r=new Rect(20,128+i*48,218,43);if(Button(r,"       "+PageName(i)+(pending?"  !":""),i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
                 Icon(new Rect(r.x+14,r.y+15,30,30),PageIcon(i),i==page?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
             }
             Panel(new Rect(258,126,921,548),CandyHudVisuals.Panel);drawIndex=0;
-            float contentHeight=PageName(page)=="Disasters"?DisasterContentHeight():PageName(page)=="Settings"?2300:PageName(page)=="Voice"?1450:ControlsPageOpen?920:640;
+            float contentHeight=PageName(page)=="Survivors"?900:PageName(page)=="Spectate"?900:PageName(page)=="Maps"?160+((Demo as IDemoMapControls)?.Maps.Count??0)*104:PageName(page)=="Disasters"?DisasterContentHeight():PageName(page)=="Modes"?6000:PageName(page)=="Play"?1900:PageName(page)=="Settings"?2300:PageName(page)=="Voice"?1450:ControlsPageOpen?1050:640;
             scroll=GUI.BeginScrollView(new Rect(278,142,884,516),scroll,new Rect(0,0,856,contentHeight));
             GUI.Label(new Rect(8,2,830,36),PageTitle(),heading);GUI.Label(new Rect(8,45,830,60),PageDescription(),small);
-            switch(PageName(page)){case "Disasters":DisastersPage();break;case "Play":PlayPage();break;case "Survivors":BotsPage();break;case "Giant hands":HandsPage();break;case "Friends":FriendsPage();break;case "Settings":SettingsPage();break;case "Voice":VoicePage();break;default:ControlsPage();break;}
+            switch(PageName(page)){case "Spectate":SpectatePage();break;case "Maps":MapsPage();break;case "Disasters":DisastersPage();break;case "Play":PlayPage();break;case "Survivors":BotsPage();break;case "Giant hands":HandsPage();break;case "Friends":FriendsPage();break;case "Modes":ModesPage();break;case "Settings":SettingsPage();break;case "Voice":VoicePage();break;default:ControlsPage();break;}
             GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
             GUI.Label(new Rect(26,692,1150,30),"CLICK a card to act  ·  SCROLL for more  ·  ← → sections  ·  ↑ ↓ choose a card  ·  ENTER confirm  ·  ESC resume",small);
             if(activate&&Event.current.type==EventType.Repaint){activate=false;if(selection<navCount)navActions[selection]?.Invoke();}
         }
-        string PageTitle()=>PageName(page)=="Disasters"?"Natural disasters":PageName(page)=="Play"?"Make a little mayhem":PageName(page)=="Voice"?"AI players and voice":PageName(page)=="Survivors"?"Bring the island to life":PageName(page)=="Giant hands"?"A few extra hands":PageName(page)=="Settings"?"Your local controls":PageName(page)=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";
-        string PageDescription()=>PageName(page)=="Disasters"?(!string.IsNullOrEmpty(DemoStatus)?DemoStatus:string.IsNullOrEmpty(disasterStatus)?"Tune a disaster below its button, then launch it. Ice toggles on / off. New settings apply on the next launch.":disasterStatus):PageName(page)=="Voice"?"Microphone is opt-in. Each AI keeps its own voice and volume.":PageName(page)=="Survivors"||PageName(page)=="Giant hands"?"The host manages the shared AI population.":PageName(page)=="Settings"?"Tune local controls while keeping lobby match setup available.":PageName(page)=="Play"?"Switch roles, get back on top, or start the tower over.":PageName(page)=="Friends"?"Your current connection and session controls.":"Hints match the inputs this demo actually supports.";
+        string PageTitle()=>PageName(page)=="Spectate"?"Watch the match":PageName(page)=="Maps"?"Change map":PageName(page)=="Disasters"?"Natural disasters":PageName(page)=="Modes"?"Game modes and world rules":PageName(page)=="Play"?"Make a little mayhem":PageName(page)=="Voice"?"AI players and voice":PageName(page)=="Survivors"?"Bring the island to life":PageName(page)=="Giant hands"?"A few extra hands":PageName(page)=="Settings"?"Your local controls":PageName(page)=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";
+        string PageDescription()=>PageName(page)=="Spectate"?"Use the same eye pose as the shared survivor character, with no commands sent to the watched player.":PageName(page)=="Maps"?((Demo as IDemoMapControls)?.MapStatus??"Maps are unavailable."):PageName(page)=="Disasters"?(!string.IsNullOrEmpty(DemoStatus)?DemoStatus:string.IsNullOrEmpty(disasterStatus)?"Tune a disaster below its button, then launch it. Ice toggles on / off. New settings apply on the next launch.":disasterStatus):PageName(page)=="Voice"?"Microphone is opt-in. Each AI keeps its own voice and volume.":PageName(page)=="Survivors"||PageName(page)=="Giant hands"?"The host manages the shared AI population.":PageName(page)=="Settings"?"Tune local controls while keeping lobby match setup available.":PageName(page)=="Play"?"Switch roles, get back on top, or start the tower over.":PageName(page)=="Friends"?"Your current connection and session controls.":"Hints match the inputs this demo actually supports.";
         bool EditWorld=>session.CanEditWorld;
         bool CanCommand=>Demo!=null&&Demo.CanCommand;
         void ActionCard(float y,CandyHudIcon icon,string name,string description,Action action,bool enabled=true,Color? accent=null)
@@ -132,9 +146,82 @@ namespace DeadlyJenga.CastlePrototype
         void Note(float y,string text){GUI.Label(new Rect(10,y,821,80),text,small);}
         void PlayPage()
         {
+            var match=MatchRuntime.Current;bool watching=false;if(match?.Frame!=null)foreach(var row in match.Frame.players)if(row.id==match.LocalActorId&&row.role=="spectator")watching=true;
+            if(watching){ActionCard(119,CandyHudIcon.Survivor,"Previous survivor","Switch to another living player's view.",()=>{match.NextSpectator(-1);session.SetMenu(false);});ActionCard(223,CandyHudIcon.Survivor,"Next survivor","Your team is shown while teammates remain alive.",()=>{match.NextSpectator(1);session.SetMenu(false);});return;}
+
             ActionCard(119,session.PlayingHand?CandyHudIcon.Survivor:CandyHudIcon.Hand,session.PlayingHand?"Become a survivor":"Become a giant hand",session.PlayingHand?"Spawn at the top and explore the castle.":"Fly around the tower and push its candy blocks.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);});
             ActionCard(223,CandyHudIcon.Home,"Back to the top","Respawn as a survivor on the highest upright block.",()=>{session.SetRole(false);session.SetMenu(false);});
             ActionCard(327,CandyHudIcon.Home,"Rebuild the castle",EditWorld?"Restore the whole tower and reposition the demo actors.":"The host controls the shared castle.",()=>{session.ResetMap();session.SetMenu(false);},EditWorld,CandyHudVisuals.Peach);
+            if (Demo is IBuildUpControls buildUp && buildUp.Available)
+                ActionCard(431,CandyHudIcon.Play,buildUp.Delivering?"Delivering the next tier...":buildUp.ClimbSecondsRemaining>0?"Climb window · "+Mathf.CeilToInt(buildUp.ClimbSecondsRemaining)+" seconds":buildUp.Stage>=buildUp.StageCount-1?"All scaffold tiers delivered":"Deliver next scaffold tier",
+                    "Modules descend and snap to the grid. Grates stay climbable for 20 seconds after delivery.",()=>{buildUp.AdvanceStage();session.SetMenu(false);},buildUp.CanAdvance,CandyHudVisuals.Mint);
+            if(Demo?.DemoMode==true)
+            {
+                bool can=CanCommand&&!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true;
+                ActionCard(535,CandyHudIcon.Play,"Spawn 2x speed orb","20 seconds of double speed and unlimited stamina. Walk into the glass ball.",()=>{Demo.Run(DemoCommand.SpawnSpeedPowerup);session.SetMenu(false);},can,CandyHudVisuals.Mint);
+                ActionCard(639,CandyHudIcon.Play,"Spawn 3x jump orb","20 seconds of triple jump height and unlimited stamina. Recollect to refresh.",()=>{Demo.Run(DemoCommand.SpawnJumpPowerup);session.SetMenu(false);},can,CandyHudVisuals.Lavender);
+                var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();
+                ActionCard(743,CandyHudIcon.Play,"BLASTER TESTING: "+(gun?.TestingEnabled==true?"ON":"OFF"),"Enable plasma weapons for this Demo session. Host controls the testing toggle.",()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&MatchRuntime.Current?.Authority==true,CandyHudVisuals.Mint);
+                ActionCard(847,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. Controller trigger draws; trigger near its holster stows. Trigger away from holster fires.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
+                ActionCard(951,CandyHudIcon.Settings,"DOMINANT HAND: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Non-dominant controller trigger jumps while testing is enabled, including when holstered.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
+                int weaponRow=0;
+                foreach(EquipmentKind kind in new[]{EquipmentKind.Blaster,EquipmentKind.MurderSword,EquipmentKind.SheriffHammer,EquipmentKind.DualRifle,EquipmentKind.BoxingGlove,EquipmentKind.PoweredArmor})
+                {
+                    var item=kind;ActionCard(1055+weaponRow++*104,CandyHudIcon.Play,"Spawn "+EquipmentNames(item),"One weapon or powerup per player. Walk near it and confirm a swap.",()=>{(match as IEquipmentRuntime)?.SpawnEquipment(item);session.SetMenu(false);},can&&match?.Authority==true);
+                }
+                Note(1590,Demo.Status);
+                var inspection=CandyThirdPersonInspection.For(session);
+                ActionCard(1695,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Drag to orbit, scroll to zoom; V returns to first person.",()=>inspection.Begin(),inspection!=null&&inspection.CanInspect);
+            }
+        }
+        static string EquipmentNames(EquipmentKind item)=>item==EquipmentKind.PoweredArmor?"powered iron suit":item==EquipmentKind.DualRifle?"dual rifle / shotgun":item==EquipmentKind.MurderSword?"murderer sword":item==EquipmentKind.SheriffHammer?"sheriff hammer":item==EquipmentKind.BoxingGlove?"giant boxing glove":"alien blaster";
+        void MapsPage()
+        {
+            if(Demo is IDemoMapControls maps)
+            {
+                float y=119;
+                foreach(var map in maps.Maps)
+                {
+                    string id=map.id;bool current=id==maps.CurrentMapId;
+                    ActionCard(y,CandyHudIcon.Home,map.title+(current?" · current":""),"Load this map with the current mode. The map starts fresh.",()=>maps.SelectMap(id),maps.CanSelectMap&&map.available&&!current);
+                    y+=104;
+                }
+            }
+        }
+        void SpectatePage()
+        {
+            var controls=Demo as ISpectatorControls;
+            if(controls==null){Note(119,"Spectator controls are getting ready...");return;}
+            var review=MatchRuntime.Current as IMatchReviewControls;
+            bool spoilers=review?.DevelopmentReviewEnabled==true&&MatchRuntime.Current.Rules.mode==GameModeKind.MurderMystery;
+            if(spoilers){ReviewRoleCard(119,MysteryRole.Murderer,review);ReviewRoleCard(223,MysteryRole.Sheriff,review);}
+            float offset=spoilers?208:0;
+            ActionCard(119+offset,CandyHudIcon.Survivor,controls.Spectating?"Return to your character":"Watch players / bots","Leave your character in place and watch without controlling the target.",()=>{controls.SetSpectating(!controls.Spectating);session.SetMenu(false);},controls.Spectating||controls.CanSpectate);
+            ActionCard(223+offset,CandyHudIcon.Settings,controls.FourViews?"View: four quadrants":"View: single POV",controls.CanUseFourViews?"Switch between one POV and four different living players.":"Headsets use one full-screen view with physical head looking.",()=>controls.SetFourViews(!controls.FourViews),controls.CanUseFourViews);
+            ActionCard(327+offset,CandyHudIcon.Survivor,"Previous player","Switch the watched player; four-view mode rotates the group.",()=>{controls.CycleWatched(-1);session.SetMenu(false);},controls.Spectating);
+            ActionCard(431+offset,CandyHudIcon.Survivor,"Next player","Dead or removed targets are replaced automatically.",()=>{controls.CycleWatched(1);session.SetMenu(false);},controls.Spectating);
+            Note(spoilers?743:535,"Your body stays in the world and can still be hit. Arrow keys switch targets; Esc opens this menu. Extra POV cameras render only while spectating.");
+        }
+        void ReviewRoleCard(float y,MysteryRole role,IMatchReviewControls review)
+        {
+            string id=review.PlayerInRole(role);MatchPlayerFrame player=null;
+            foreach(var row in MatchRuntime.Current.Frame.players)if(row.id==id){player=row;break;}
+            string name=player?.name??"not assigned";
+            ActionCard(y,CandyHudIcon.Survivor,role.ToString().ToUpperInvariant()+": "+name,"DEVELOPMENT REVIEW ONLY · "+(player!=null&&!player.alive?"Fallen":id==MatchRuntime.Current.LocalActorId?"Return to your own view":"Watch this player’s first-person view"),()=>review.WatchPlayer(id),player!=null&&player.alive&&!player.dying);
+        }
+        GUIStyle spectatorLabel;
+        void DrawSpectatorLabels()
+        {
+            if(!Ready||session.IsVR||session.MenuOpen||!(Demo is ISpectatorControls controls)||!controls.Spectating)return;
+            spectatorLabel??=new GUIStyle(GUI.skin.box){font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"),fontSize=16,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(12,12,4,4),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
+            var old=GUI.backgroundColor;GUI.backgroundColor=new Color(.08f,.03f,.15f,.9f);
+            for(int i=0;i<(controls.FourViews?4:1);i++)
+            {
+                float width=controls.FourViews?Screen.width*.5f:Screen.width;
+                float x=controls.FourViews?(i%2)*width:0,y=controls.FourViews?(i/2)*Screen.height*.5f:0;
+                GUI.Box(new Rect(x+8,y+8,Mathf.Max(100,width-16),32),controls.WatchedName(i)+"  ·  SPECTATING",spectatorLabel);
+            }
+            GUI.Box(new Rect(8,Screen.height-34,Mathf.Min(Screen.width-16,490),26),"← / → switch players   ·   Esc spectator menu",spectatorLabel);GUI.backgroundColor=old;
         }
         float DisasterContentHeight()
         {
@@ -145,7 +232,7 @@ namespace DeadlyJenga.CastlePrototype
         void DisastersPage()
         {
             if(Demo==null){Note(125,"Disasters are getting ready...");return;}
-            ActionCard(119,CandyHudIcon.Play,"Stop all disasters","End every disaster and restore temporary surface changes.",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
+            ActionCard(119,CandyHudIcon.Play,"Stop all disasters","Extinguish fires and stop disasters. Reset the map to clear charring.",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
             float y=223;
             for(int d=0;d<Demo.DisasterCount;d++)
             {
@@ -156,6 +243,13 @@ namespace DeadlyJenga.CastlePrototype
                 bool old=GUI.enabled;GUI.enabled=CanCommand;
                 for(int i=0;i<definitions.Count;i++)
                 {
+                    var option=definitions[i];
+                    if(option.whole&&option.min==0&&option.max==1)
+                    {
+                        bool on=values[i]>.5f;
+                        if(Button(new Rect(28,y+12+i*64,780,40),option.label+"  ·  "+(on?"ON":"OFF"),on?CandyHudVisuals.Mint:CandyHudVisuals.Panel))Demo.SetDisasterValue(index,i,on?0:1);
+                        continue;
+                    }
                     var p=definitions[i];GUI.Label(new Rect(28,y+6+i*64,780,26),p.label+" · "+values[i].ToString(p.whole?"F0":"F1")+" "+p.unit,body);
                     float v=GUI.HorizontalSlider(new Rect(28,y+37+i*64,780,20),values[i],p.min,p.max);if(!Mathf.Approximately(v,values[i]))Demo.SetDisasterValue(index,i,v);
                 }
@@ -168,7 +262,11 @@ namespace DeadlyJenga.CastlePrototype
             ActionCard(119,CandyHudIcon.Survivor,"Add a survivor  ·  "+Demo.SurvivorCount+" active","Spawn a bot using the selected personality.",()=>Demo.Run(DemoCommand.AddSurvivor),CanCommand);
             ActionCard(223,CandyHudIcon.Friends,"Fill to "+Demo.SurvivorTarget+" players","Count human players too; fill the remaining survivor slots.",()=>Demo.Run(DemoCommand.FillSurvivors),CanCommand);
             ActionCard(327,CandyHudIcon.Settings,"Next personality: "+Demo.SurvivorPersonality,"Click to cycle the personality used for new survivors.",()=>Demo.Run(DemoCommand.NextSurvivor),CanCommand);
-            ActionCard(431,CandyHudIcon.Survivor,"Clear bot survivors","Remove the survivor bots and stop automatic filling.",()=>Demo.Run(DemoCommand.ClearSurvivors),CanCommand,CandyHudVisuals.Peach);Note(541,Demo.SurvivorStatus+(CanCommand?"":"  Only the host can add or remove bots."));
+            ActionCard(431,CandyHudIcon.Survivor,"Clear bot survivors","Remove the survivor bots and stop automatic filling.",()=>Demo.Run(DemoCommand.ClearSurvivors),CanCommand,CandyHudVisuals.Peach);
+            var enemies=session.SurvivorBots as IEnemyPopulation;bool canEnemies=enemies!=null&&MatchRuntime.Current?.Authority==true;
+            ActionCard(535,CandyHudIcon.Survivor,"Spawn jaguar enemy  ·  "+(enemies?.EnemyCount??0)+" active","Infected-style pursuit and normal bot movement. Spawns at the perimeter; 20 damage per hit.",()=>enemies.SpawnEnemy(new EnemySpawnSettings()),canEnemies,CandyHudVisuals.Peach);
+            ActionCard(639,CandyHudIcon.Survivor,"Clear jaguar enemies","Remove enemies while keeping ordinary survivor bots.",()=>enemies.ClearEnemies(),canEnemies);
+            Note(749,Demo.SurvivorStatus+(CanCommand?"":"  Only the host can add or remove bots."));
         }
         void HandsPage()
         {
@@ -183,6 +281,12 @@ namespace DeadlyJenga.CastlePrototype
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
             GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)MultiplayerPanel.Draw(session.Multiplayer);else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
         }
+        void ModesPage()
+        {
+            var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
+            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();
+            GUI.backgroundColor=background;
+        }
         void SettingsPage()
         {
             ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive fades back after a moment. Always keeps hints bright. Hidden removes them.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);changedAt=Time.unscaledTime;});
@@ -194,17 +298,21 @@ namespace DeadlyJenga.CastlePrototype
         }
         void VoicePage()
         {
+            var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
             GUILayout.BeginArea(new Rect(12,115,816,1250));
             SocialPanel.Draw(session.Social);
             GUILayout.EndArea();
+            GUI.backgroundColor=background;
         }
         void ControlsPage()
         {
-            var hints=Hints();for(int i=0;i<3;i++){Panel(new Rect(8,117+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,140+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,129+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,168+i*107,720,38),hints[i].text,body);}
-            Note(451,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Tab switches survivor / giant hand during play. F8 opens Sound Studio.":"MENU: left Y opens / closes. Look at a button, then squeeze RIGHT trigger. With tracked hands, left thumb + middle finger toggles the menu; RIGHT pinch selects.");
-            Note(557,"SURVIVOR: jump toward a block, then press jump again near its edge to vault. Hold jump near a wall to catch it; move to climb or shimmy, then release to drop. Rest on secure ground to recover grip.");
-            Note(683,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
-            Note(815,"Input icons reflect the demo bindings. They are not remapping controls. After tracking loss, release your gesture before starting again. Survivor movement uses LEFT stick; hand gestures do not replace that stick.");
+            var inspection=CandyThirdPersonInspection.For(session);
+            ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection.Begin(),inspection?.CanInspect==true);
+            var hints=Hints();for(int i=0;i<3;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
+            Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Tab switches survivor / giant hand during play. F8 opens Sound Studio.":"MENU: left Y opens / closes. Look at a button, then squeeze RIGHT trigger. With tracked hands, left thumb + middle finger toggles the menu; RIGHT pinch selects.");
+            Note(661,"SURVIVOR: jump toward a block, then press jump again near its edge to vault. Hold jump near a wall to catch it; move to climb or shimmy, then release to drop. Rest on secure ground to recover grip.");
+            Note(787,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
+            Note(919,"Input icons reflect the demo bindings. They are not remapping controls. After tracking loss, release your gesture before starting again. Survivor movement uses LEFT stick; hand gestures do not replace that stick.");
         }
         public struct Hint {public CandyHudIcon icon;public string key,text;public Hint(CandyHudIcon i,string k,string t){icon=i;key=k;text=t;}}
         public Hint[] Hints()
@@ -246,12 +354,13 @@ namespace DeadlyJenga.CastlePrototype
         bool viewVR;Camera hintCamera;
         void PresentHints()
         {
+            if(DeadlyJenga.Presentation.CandyMatchHud.Expanded){if(hintCanvas)hintCanvas.enabled=false;return;}
+            if(session.Demo is ISpectatorControls observer&&observer.Spectating){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(!hintCanvas)BuildHints();var camera=session.ActiveCamera;
             if(viewVR!=session.IsVR||hintCamera!=camera||hintCanvas.renderMode==RenderMode.ScreenSpaceOverlay&&session.IsVR)
             {
                 viewVR=session.IsVR;hintCamera=camera;
-                if(viewVR){hintRoot.SetParent(camera.transform,false);hintCanvas.renderMode=RenderMode.WorldSpace;hintCanvas.worldCamera=camera;hintRoot.sizeDelta=new Vector2(1280,800);hintRoot.localPosition=new Vector3(0,0,1.25f);hintRoot.localRotation=Quaternion.identity;hintRoot.localScale=Vector3.one*.00085f;}
-                else{hintRoot.SetParent(transform,false);hintCanvas.renderMode=RenderMode.ScreenSpaceOverlay;hintRoot.localScale=Vector3.one;}
+                DeadlyJenga.Presentation.CandyHudLayout.Configure(hintCanvas,transform,camera,viewVR);
             }
             string context=(session.PlayingHand?"HAND":Climbing?"CLIMB":Vaulting?"VAULT":"SURVIVOR")+InputLabel;
             if(context!=lastContext)
@@ -259,7 +368,8 @@ namespace DeadlyJenga.CastlePrototype
                 lastContext=context;changedAt=Time.unscaledTime;
                 var hints=Hints();for(int i=0;i<3;i++){hintKeys[i].text=hints[i].key;hintNames[i].text=hints[i].text;hintIcons[i].texture=CandyHudVisuals.Icon(hints[i].icon);}
             }
-            bool hidden=session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden;
+            bool hidden=session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||DeadlyJenga.Presentation.CandyMatchHud.Expanded;
+            roleText.transform.parent.gameObject.SetActive(MatchRuntime.Current==null);
             float opacity=hidden?0:hintMode==HintMode.Always||Time.unscaledTime-changedAt<9||!session.PlayingHand&&Climbing?hintOpacity:hintOpacity*.62f;
             hintGroup.alpha=Mathf.MoveTowards(hintGroup.alpha,opacity,Time.unscaledDeltaTime*3);hintCanvas.enabled=hintGroup.alpha>.001f;
             roleText.text=session.PlayingHand?"GIANT HAND":"SURVIVOR";statusText.text=!string.IsNullOrEmpty(DemoStatus)?DemoStatus:session.PlayingHand?InputLabel:session.Player.StatusText;

@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
                 string first=WaveStatus,warning=first.Contains(" IN ")?first:"";int count=first.Length>0?1:0;
                 foreach(var source in DisasterStates.Active)
                 {
-                    var f=source.Capture();if(f==null)continue;count++;
+                    var f=source.Capture();if(f==null||f.residualOnly)continue;count++;
                     string line=f.label+(f.warning>0?" IN "+Mathf.CeilToInt(f.warning)+" s":f.remaining<0?" · ACTIVE":" · "+Mathf.CeilToInt(f.remaining)+" s");
                     if(first.Length==0)first=line;if(f.warning>0&&warning.Length==0)warning=line;
                 }
@@ -60,7 +60,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static string Label(GameObject prefab) => prefab ? prefab.GetComponent<IHazard>()?.Type?.name ?? prefab.name : "Missing disaster prefab";
-        public static bool CanTrigger(CastlePlaySession session) => session && MatchSetup.ModeId == "demo" &&
+        public static bool CanTrigger(CastlePlaySession session) => session &&
             (!session.Network || session.Network.CanEditWorld);
 
         public static string Request(CastlePlaySession session, GameObject prefab)
@@ -76,9 +76,15 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static bool Execute(CastlePlaySession session, string id,float? speed=null,float? force=null,float[] values=null)
+            => ExecuteInternal(session,id,speed,force,values,false);
+
+        public static bool ExecuteForMode(CastlePlaySession session,string id,float[] values=null)
+            => ExecuteInternal(session,id,null,null,values,true);
+
+        static bool ExecuteInternal(CastlePlaySession session,string id,float? speed,float? force,float[] values,bool modeOwned)
         {
             if(values!=null&&values.Length==0)values=null;
-            if (!CanTrigger(session) || string.IsNullOrEmpty(id)) return false;
+            if (!(modeOwned?session&&session.HasWorldAuthority:CanTrigger(session)) || string.IsNullOrEmpty(id)) return false;
             if(speed.HasValue&&(float.IsNaN(speed.Value)||float.IsInfinity(speed.Value))||force.HasValue&&(float.IsNaN(force.Value)||float.IsInfinity(force.Value)))return false;
             var network = session.GetComponent<CastleFusionSession>();
             if (network && !network.IsHost) return false;

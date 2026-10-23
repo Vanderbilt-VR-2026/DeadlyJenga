@@ -25,12 +25,13 @@ namespace DeadlyJenga.CastlePrototype
         public float jumpPinchPress=.023f,jumpPinchRelease=.032f;
         [Range(0,1)] public float jumpFistPress=.7f,jumpFistRelease=.5f;
         bool jumpArmed,gestureHeld,previousJumpHeld;
+        bool blasterJumpOverride;
         bool vrInputFocused=true;
         void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused)ResetVRJump();}
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
         float seatedHeightOffset;
-        public float ActiveVaultDuration=>IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration);
+        public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
             ? "Standing: left stick moves; turn physically; right "+jumpGesture+" jumps / holds to climb"
             : "Seated: left stick moves; right stick turns smoothly; jump button holds to climb";
@@ -103,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             pressed=held=false;
             if(InputSuspended||!vrInputFocused){ResetVRJump();return;}
-            if(vrPlayStyle==SurvivorVRPlayStyle.Standing)
+            if(vrPlayStyle==SurvivorVRPlayStyle.Standing&&!blasterJumpOverride)
             {
                 if(!hand.tracked||!hand.skeletonTracked){ResetVRJump();return;}
                 if(jumpGesture==SurvivorJumpGesture.IndexPinch)

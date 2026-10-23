@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 1, "id": "demo", "description": "Explore and socialize freely when unassigned; active hazards may request a safe refuge through the shared objective director.",
+  "objectives": [
+    { "id": "survive", "query": "hazard-refuge", "skill": "Guard", "tier": 3, "personal": true, "maximum": 1, "utility": 3, "radius": 0.7, "timeout": 30 }
+  ]
+}

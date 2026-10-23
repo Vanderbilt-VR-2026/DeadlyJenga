@@ -44,9 +44,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (!Application.isPlaying) { SessionState.SetBool("CastleInputTest", true); EditorApplication.EnterPlaymode(); return; }
             var session = Object.FindFirstObjectByType<CastlePlaySession>(); session.StartCoroutine(Validate(session));
         }
-        public static IEnumerator Validate(CastlePlaySession session)
+        public static IEnumerator Validate(CastlePlaySession session,bool xrOnly=false)
         {
             var report = new StringBuilder();
+            var survivor=session.Survivor();var savedMode=survivor.controlMode;
+            bool savedRole=session.PlayingHand,savedMenu=session.MenuOpen;
+            bool savedPlayerSuspended=survivor.InputSuspended,savedHandSuspended=session.Hand.InputSuspended;
+            var savedPlayerPosition=survivor.transform.position;var savedPlayerRotation=survivor.transform.rotation;
+            var savedHandPosition=session.Hand.transform.position;var savedHandRotation=session.Hand.transform.rotation;
             float savedCaptureDelta = Time.captureDeltaTime;
             Time.captureDeltaTime = 1f / 60; // Stable simulated frame duration despite editor import stalls.
             void Check(string name, bool success, string detail = "")
@@ -74,12 +79,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             try
             {
                 session.SendMessage("OnApplicationFocus", true); session.SetRole(false); session.SetMenu(false);
-                var p = session.Survivor(); p.Teleport(new Vector3(100, 10.04f, 96), Quaternion.identity); Physics.SyncTransforms();
+                var p = survivor;p.controlMode=ControlMode.Auto;p.RefreshMode();p.InputSuspended=false; p.Teleport(new Vector3(100, 10.04f, 96), Quaternion.identity); Physics.SyncTransforms();
                 yield return new WaitForSeconds(.2f);
                 Check("Input-only HMD keeps desktop mode", !p.IsVR);
                 Vector3 before = p.transform.position;
                 // A batch editor cannot acquire an OS mouse lock; desktop input is checked in an interactive editor.
-                if(!Application.isBatchMode)
+                if(!Application.isBatchMode&&!xrOnly)
                 {
                 InputSystem.QueueStateEvent(keys, new KeyboardState(Key.W));
                 yield return new WaitForSeconds(.2f);
@@ -118,29 +123,56 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 yield return new WaitForSeconds(.2f); before = p.transform.position;
                 InputSystem.QueueDeltaStateEvent(left.primary2DAxis, Vector2.up);
                 yield return new WaitForSeconds(.2f);
-                Check("XR left stick walks", p.transform.position.z > before.z + .5f);
+                Check("XR left stick walks", p.transform.position.z > before.z + p.vrWalkSpeed*.12f);
                 InputSystem.QueueDeltaStateEvent(left.primary2DAxis, Vector2.zero);
                 before = p.transform.position;
                 InputSystem.QueueDeltaStateEvent(right.primaryButton, 1f); yield return new WaitForSeconds(.12f);
                 Check("XR A jumps", p.transform.position.y > before.y + .25f);
                 InputSystem.QueueDeltaStateEvent(right.primaryButton, 0f);
+                // Finish the jump fixture before aiming at a menu that follows the head.
+                // Otherwise its old collider pose aims one row low as the rising camera recentres it.
+                p.Teleport(new Vector3(100,10.04f,96),Quaternion.identity);Physics.SyncTransforms();
+                yield return new WaitForSeconds(.25f);
                 InputSystem.QueueDeltaStateEvent(left.secondaryButton, 1f); yield return null; yield return null;
                 Check("XR Y opens world menu", session.MenuOpen && Object.FindFirstObjectByType<CastleWorldMenu>());
                 InputSystem.QueueDeltaStateEvent(left.secondaryButton, 0f);
                 var menu = Object.FindFirstObjectByType<CastleWorldMenu>();
                 if (menu)
                 {
-                    p.viewCamera.transform.LookAt(menu.transform.Find("Resume"));
-                    InputSystem.QueueDeltaStateEvent(hmd.centerEyeRotation, p.viewCamera.transform.localRotation);
-                    InputSystem.QueueDeltaStateEvent(hmd.trackingState, 2);
-                    InputSystem.QueueDeltaStateEvent(right.trigger, 1f); yield return null; yield return null;
-                    Check("Gaze plus trigger activates menu", !session.MenuOpen,
-                        "trigger=" + right.trigger.ReadValue() + " gazeHit=" + menu.transform.Find("Resume").GetComponent<Collider>().Raycast(new Ray(p.viewCamera.transform.position, p.viewCamera.transform.forward), out _, 4));
+                    var resume=menu.transform.Find("Resume").GetComponent<Collider>();
+                    bool gazeHit=false;float angle=180;
+                    InputSystem.QueueDeltaStateEvent(right.trigger,0f);
+                    // TPD owns head pose. Queue a head turn, allow the real tracking / menu loop
+                    // to settle, and only press once the actual gaze ray reaches the button.
+                    for(int attempt=0;attempt<8&&!gazeHit;attempt++)
+                    {
+                        var camera=p.viewCamera.transform;
+                        var desired=Quaternion.LookRotation(resume.bounds.center-camera.position,Vector3.up);
+                        var local=Quaternion.Inverse(camera.parent.rotation)*desired;
+                        InputSystem.QueueDeltaStateEvent(hmd.deviceRotation,local);
+                        InputSystem.QueueDeltaStateEvent(hmd.centerEyeRotation,local);
+                        InputSystem.QueueDeltaStateEvent(hmd.trackingState,2);
+                        yield return null;yield return null;Physics.SyncTransforms();
+                        angle=Vector3.Angle(camera.forward,resume.bounds.center-camera.position);
+                        gazeHit=resume.Raycast(new Ray(camera.position,camera.forward),out _,4);
+                    }
+                    Check("Tracked gaze reaches the real Resume button before trigger",gazeHit,"angle="+angle);
+                    InputSystem.QueueDeltaStateEvent(right.trigger, 1f);yield return null;yield return null;
+                    Check("Gaze plus trigger activates Resume without changing role",gazeHit&&!session.MenuOpen&&!session.PlayingHand,
+                        "trigger="+right.trigger.ReadValue()+" gazeBeforePress="+gazeHit+" menuOpen="+session.MenuOpen+" hand="+session.PlayingHand);
                     InputSystem.QueueDeltaStateEvent(right.trigger, 0f);
                 }
                 session.SetMenu(false);
                 InputSystem.QueueDeltaStateEvent(right.secondaryButton, 1f); yield return null; yield return null;
                 Check("XR B switches role", session.PlayingHand);
+                if(xrOnly)
+                {
+                    InputSystem.QueueDeltaStateEvent(right.secondaryButton,0f);session.SetRole(false);p.RefreshMode();session.SetMenu(false);
+                    var inspection=CandyThirdPersonInspection.For(session);var originalCamera=p.ViewCamera;inspection.Begin();yield return null;
+                    Check("VR inspection preserves the tracked camera and suspends player input",inspection.Inspecting&&originalCamera.enabled&&p.InputSuspended);inspection.End();
+                    yield return ModeCriteriaChecks.CheckClosedMenuInputPlay();
+                    Check("Closed-menu controller context actions remain interactive",true);
+                }
             }
             finally
             {
@@ -148,7 +180,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 InputSystem.settings = saved; saved.hideFlags = savedFlags;
                 Time.captureDeltaTime = savedCaptureDelta;
                 Object.Destroy(settings); Object.Destroy(floor); Object.Destroy(ledge);
-                session.Survivor().controlMode = ControlMode.Auto; session.SetRole(false); session.Survivor().RefreshMode(); session.SetMenu(true);
+                survivor.controlMode=savedMode;session.SetRole(savedRole);survivor.RefreshMode();
+                survivor.Place(savedPlayerPosition,savedPlayerRotation);session.Hand.Place(savedHandPosition,savedHandRotation);
+                session.SetMenu(savedMenu);survivor.InputSuspended=savedPlayerSuspended;session.Hand.InputSuspended=savedHandSuspended;
                 report.AppendLine("Uses synthetic Input System devices in the real Unity player loop; no physical headset was available.");
                 File.WriteAllText(ProjectPath.Report("InputValidation.txt"), report.ToString()); Debug.Log(report.ToString());
             }

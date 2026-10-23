@@ -2,8 +2,30 @@ using System.Collections.Generic;
 
 namespace DeadlyJenga.Core
 {
+    public interface ISpectatorControls
+    {
+        bool CanSpectate { get; }
+        bool Spectating { get; }
+        bool FourViews { get; }
+        bool CanUseFourViews { get; }
+        string WatchedName(int slot);
+        UnityEngine.Transform WatchedRoot(UnityEngine.Camera camera);
+        void SetSpectating(bool active);
+        void SetFourViews(bool active);
+        void CycleWatched(int step);
+    }
+
+    public interface IDemoMapControls
+    {
+        IReadOnlyList<LobbyOption> Maps { get; }
+        string CurrentMapId { get; }
+        bool CanSelectMap { get; }
+        string MapStatus { get; }
+        void SelectMap(string id);
+    }
+
     // What the in-game menus can ask the match to do. Clients' requests go to the host.
-    public enum DemoCommand { Rebuild, AddSurvivor, FillSurvivors, NextSurvivor, ClearSurvivors, AddHand, NextHand, ClearHands, StopDisasters }
+    public enum DemoCommand { Rebuild, AddSurvivor, FillSurvivors, NextSurvivor, ClearSurvivors, AddHand, NextHand, ClearHands, StopDisasters, SpawnSpeedPowerup, SpawnJumpPowerup }
 
     // Bots and disasters for the menus (Presentation). GameSession provides it as ISessionInfo.Demo.
     public interface IDemoControls

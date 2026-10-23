@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         // Join terminal
-        public bool JoinEnabled=>Room&&!Room.HostSelected&&!Room.Connected&&!Room.Busy;
+        public bool JoinEnabled=>Room&&!Room.Busy&&!Room.LaunchPending;
         public bool JoinStationEnabled=>JoinEnabled;
         public bool SetupStationEnabled=>Room&&Room.CanConfigure;
         public bool ShowingNearby=>showingNearby;
@@ -69,30 +69,36 @@ namespace DeadlyJenga.CastlePrototype
         public string JoinHint{get;private set;}=""; 
 
         // Host terminal
-        public bool HostActive=>Room.HostSelected||Room.IsHost;
+        public bool HostActive=>Room.LocalIsLobbyHost;
         public bool CanHost=>!Room.Busy&&!Room.Connected;
         public void Host(){if(CanHost)_=Room.Host();}
-        public string HostCode=>Room.Busy?"CREATING ISLAND…":Room.Code;
+        public string HostCode=>Room.Busy?"CONNECTING…":Room.Connected?Room.Code:"PRIVATE SOLO ISLAND";
         public string Region=>Room.Region;
         public void NextRegion(){if(CanHost)Room.Region=IslandRoomAddress.Regions[(Array.IndexOf(IslandRoomAddress.Regions,Room.Region)+1)%IslandRoomAddress.Regions.Length];}
-        public bool CanInvite=>Room.IsHost&&!Room.Busy;
+        public bool CanInvite=>!Room.Busy&&!Room.LaunchPending;
         public void InviteNearby()=>Room.InviteNearby();
         public bool DemoSelected=>catalog.modes[Room.ModeIndex].id=="demo";
         public bool SharedControls=>Room.SharedDemoControls;
-        public void ToggleSharedControls(){if(CanInvite&&DemoSelected)Room.SetSharedControls(!Room.SharedDemoControls);}
+        public void ToggleSharedControls(){if(Room.CanConfigure&&DemoSelected)Room.SetSharedControls(!Room.SharedDemoControls);}
         public string HostHint{get;private set;}="";
 
         // Map + mode terminal
-        public bool IsHost=>Room.IsHost;
+        public bool IsHost=>Room.LocalIsLobbyHost;
         public bool Connected=>Room.Connected;
         public bool CanConfigure=>Room.CanConfigure;
         public string MapTitle=>catalog.maps[Room.MapIndex].title;
         public string ModeTitle=>catalog.modes[Room.ModeIndex].title;
-        public void CycleMap(int step)=>Room.SelectMap((Room.MapIndex+step+catalog.maps.Length)%catalog.maps.Length);
-        public void CycleMode(int step)=>Room.SelectMode((Room.ModeIndex+step+catalog.modes.Length)%catalog.modes.Length);
-        public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!Room.CanConfigure)return false;Room.SelectMap(i);return true;}
-        public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!Room.CanConfigure)return false;Room.SelectMode(i);return true;}
-        public bool CanStart=>Room.CanLaunch||Room.LaunchPending&&Room.IsHost;
+        public void CycleMap(int step)
+        {
+            int at=Room.MapIndex;for(int i=0;i<catalog.maps.Length;i++){at=(at+step+catalog.maps.Length)%catalog.maps.Length;if(!catalog.maps[at].SupportsMode(SelectedModeId))continue;Room.SelectMap(at);return;}
+        }
+        public void CycleMode(int step)
+        {
+            int at=Room.ModeIndex;for(int i=0;i<catalog.modes.Length;i++){at=(at+step+catalog.modes.Length)%catalog.modes.Length;if(!catalog.modes[at].available||!Array.Exists(catalog.maps,m=>m.SupportsMode(catalog.modes[at].id)))continue;Room.SelectMode(at);return;}
+        }
+        public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!Room.CanConfigure||!catalog.maps[i].SupportsMode(SelectedModeId))return false;Room.SelectMap(i);return true;}
+        public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!Room.CanConfigure||!catalog.modes[i].available||!Array.Exists(catalog.maps,m=>m.SupportsMode(id)))return false;Room.SelectMode(i);return true;}
+        public bool CanStart=>Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost;
         public bool StartPending=>Room.LaunchPending;
         public void StartOrCancel(){if(!CanStart)return;if(Room.LaunchPending)Room.CancelLaunch();else Room.Launch();}
         public string SetupHint{get;private set;}="";
@@ -100,10 +106,10 @@ namespace DeadlyJenga.CastlePrototype
         void UpdateControls()
         {
             if(!JoinEnabled)codeFocused=false;
-            HostHint=HostActive?(Room.Busy?"You can cancel while connecting.":"Your room · "+Room.HumanCount+" / 10 players\nInvite friends, then choose a map and mode."):Room.Connected?"You are a guest on the host's island.":"Create an island for your friends.\nJoining switches off while you host.";
-            SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.IsHost?"Ready when you are.":Room.Connected?"The host chooses. Everyone sees the same setup.":"Become host to choose.";
-            JoinHint=HostActive?"JOIN IS OFF WHILE YOU HOST":Room.Busy?"Connecting… cancel above if needed.":Room.Connected?"Joined "+Room.Code:showingNearby?(Room.Discovery==null?Room.DiscoveryStatus:Time.unscaledTime<scanningUntil?"Detecting nearby islands…":(Room.Discovery.Nearby.Count==0?"No rooms yet. Same Wi-Fi + Internet required.\nYou can still enter a code.":"Tap a room to join.")):"Type, point, or play the giant keyboard.\nFull codes look like US-ABC234.";
-            if(!HostActive&&!Room.Busy&&!Room.Connected&&Room.Status.StartsWith("Connection failed",StringComparison.Ordinal))JoinHint=HostHint=Room.Status;
+            HostHint=Room.Busy?Room.Status:Room.Discovery!=null&&Room.Discovery.Status.StartsWith("Invites sent",StringComparison.Ordinal)?Room.Discovery.Status:Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):"Start solo now, or create a code / invite nearby.";
+            SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
+            JoinHint=Room.Busy?Room.Status:showingNearby?(Room.Discovery==null?Room.DiscoveryStatus:Time.unscaledTime<scanningUntil?"Detecting nearby islands…":(Room.Discovery.Nearby.Count==0?"No rooms yet. Same Wi-Fi + Internet required.":"Pick a room, or enter a different code above.")):Room.Connected?"Joining another room leaves this island.":"Type, point, or play the giant keyboard.\nFull codes look like US-ABC234.";
+            if(!Room.Busy&&!Room.Connected&&Room.Status.StartsWith("Connection failed",StringComparison.Ordinal))JoinHint=HostHint=Room.Status;
             else if(JoinEnabled&&!showingNearby&&enteredCode.Length>=6&&!CodeValid)JoinHint="Check the code. Example: US-ABC234.\nUse the host's region prefix, or six room characters.";
         }
     }

@@ -17,13 +17,13 @@ namespace DeadlyJenga.CandyAudio
         {
             motor=GetComponent<IMovementState>();motorBehaviour=motor as Behaviour;previous=transform.position;grounded=motor.Grounded;climbing=motor.Climbing;vaults=motor.VaultCount;
             voicePitch=Mathf.Lerp(.86f,1.16f,Mathf.Abs(GetInstanceID()%101)/100f);
-            var engine=CandyAudioEngine.Instance;if(engine)engine.Play(CandySound.Spawn,previous,.4f,GetInstanceID(),voicePitch);
+            var engine=CandyAudioEngine.Instance;if(engine&&!CandyJaguarAudio.IsJaguar(this))engine.Play(CandySound.Spawn,previous,.4f,GetInstanceID(),voicePitch);
         }
         void Sound(CandySound sound,Vector3 position,float gain=1,float pitch=1)
         {CandyAudioEngine.Instance.Play(sound,position,gain,GetInstanceID(),pitch*voicePitch);}
         void LateUpdate()
         {
-            var engine=CandyAudioEngine.Instance;if(!engine||!motorBehaviour)return;
+            var engine=CandyAudioEngine.Instance;if(!engine||!motorBehaviour||CandyJaguarAudio.IsJaguar(this))return;
             var p=transform.position;var d=p-previous;previous=p;float dt=Mathf.Max(.001f,Time.deltaTime);
             if(d.magnitude>4){stepTravel=0;fallSpeed=0;airtime=0;grounded=motor.Grounded;Sound(CandySound.Respawn,p,.45f);return;}
             bool nearby=CandyAudioWorld.Near(p,70);
@@ -84,7 +84,7 @@ namespace DeadlyJenga.CandyAudio
         void OnDisable()=>GameEvents.Emoted-=OnEmoted;
         void OnEmoted(GameObject who,string emote)
         {
-            if(who!=gameObject||motor==null||!CandyAudioEngine.Instance||!CandyAudioWorld.Near(transform.position,70))return;
+            if(who!=gameObject||motor==null||CandyJaguarAudio.IsJaguar(this)||!CandyAudioEngine.Instance||!CandyAudioWorld.Near(transform.position,70))return;
             if(Enum.TryParse<CandySound>(emote,out var cue))Sound(cue,transform.position+Vector3.up*motor.Height*.85f,.7f);
         }
     }
