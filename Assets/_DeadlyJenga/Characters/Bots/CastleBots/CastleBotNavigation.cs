@@ -17,6 +17,11 @@ namespace DeadlyJenga.CastleBots
     }
     public static class CastleBotNavigation
     {
+        public static bool ShouldStageAscent(Vector3 feet,Vector3 destination,bool descendingTransit)
+        {
+            var delta=destination-feet;
+            return !descendingTransit&&delta.y>3&&Vector3.ProjectOnPlane(delta,Vector3.up).magnitude<=Mathf.Max(12,delta.y*1.2f+8);
+        }
         public const int Mask=~((1<<Layers.Survivor)|(1<<Layers.Block));
         public static bool Ground(Vector3 point,float distance,out RaycastHit hit)
             =>Physics.Raycast(point,Vector3.down,out hit,distance,Mask,QueryTriggerInteraction.Ignore)&&hit.normal.y>.4f;
@@ -82,6 +87,12 @@ namespace DeadlyJenga.CastleBots
             if(abilities!=null)foreach(var ability in abilities)if(ability.CanReach(motor,end)){route=CastleBotRoute.Ability;return true;}
             return false;
         }
+        public static float MaximumDrop(CastleSurvivor motor)
+        {
+            var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
+            if(rules!=null&&!rules.fallDamage)return 12;
+            return rules!=null?Mathf.Max(.5f,rules.fallDamageStart*.9f):motor.jumpHeight+motor.StandingHeight*2;
+        }
         // Evaluates hypothetical graph edges as well as the bot's current position.
         // The speed output is useful for a controlled walk-off to a lower landing.
         public static bool TryLink(CastleSurvivor motor,Vector3 start,Vector3 end,out CastleBotRoute route,out float speed)
@@ -91,10 +102,10 @@ namespace DeadlyJenga.CastleBots
             if(distance<.05f||motor.gravity<=0||motor.EffectiveWalkSpeed<=0)return false;
             if(Mathf.Abs(rise)<Mathf.Max(.18f,distance*1.4f)&&Walkable(motor,start,end))return true;
             if(rise>0&&ClimbLink(motor,start,end,out _)){route=CastleBotRoute.Climb;speed=motor.climbSpeed;return true;}
-            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise<-(motor.jumpHeight+motor.StandingHeight*2))return false;
-            if(rise<-.3f&&DropArc(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
-            if(rise<-.3f&&DropCatch(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
+            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise< -MaximumDrop(motor))return false;
             var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
+            if(rise<-.3f&&DropArc(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
+            if(rise<-.3f&&(rules==null||rules.canVault)&&DropCatch(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
             if(rules!=null&&!rules.canJump)return false;
             speed=motor.EffectiveWalkSpeed;
             float v=Mathf.Sqrt(2*motor.gravity*motor.jumpHeight),disc=v*v-2*motor.gravity*rise;
@@ -235,19 +246,19 @@ namespace DeadlyJenga.CastleBots
         public static bool GroundStep(CastleBotBrain bot,out CastleBotLanding landing)
         {
             landing=default;var motor=bot.Motor;
-            if(!motor.Grounded||!motor.HasWalkableIsland||!motor.StandingSurface||motor.StandingSurface.gameObject.layer!=0)return false;
+            if(!motor.Grounded||!motor.StandingSurface)return false;
             var delta=Vector3.ProjectOnPlane(bot.TripDestination-bot.transform.position,Vector3.up);if(delta.magnitude<.7f)return false;
             float best=float.NegativeInfinity;bool found=false;
-            for(int bearing=0;bearing<5;bearing++)
+            for(int bearing=0;bearing<9;bearing++)
             {
-                float angle=bearing==0?0:(bearing%2==0?1:-1)*((bearing+1)/2)*35;
+                float angle=bearing==0?0:(bearing%2==0?1:-1)*((bearing+1)/2)*40;
                 for(int length=0;length<3;length++)
                 {
                     float step=Mathf.Min(delta.magnitude-.35f,length==0?2.5f:length==1?1.2f:.6f);
                     var probe=bot.transform.position+Quaternion.Euler(0,angle,0)*delta.normalized*step;
                     if(!Ground(probe+Vector3.up*.5f,1,out var floor)||Mathf.Abs(floor.point.y-bot.transform.position.y)>.25f)continue;
                     if(!Room(motor,floor.point+Vector3.up*.04f)||!Walkable(motor,bot.transform.position,floor.point))continue;
-                    float score=bot.JourneyProgress(floor.point)-Mathf.Abs(angle)*.01f-bot.Population.ThreatCost(floor.point);
+                    float score=bot.JourneyProgress(floor.point)-Mathf.Abs(angle)*.004f-bot.Population.ThreatCost(floor.point)-bot.RecentStopCost(floor.point)*2-bot.Population.Crowding(floor.point,bot);
                     if(score<=best)continue;best=score;found=true;
                     landing=new CastleBotLanding{surface=floor.transform,body=floor.rigidbody,local=floor.transform.InverseTransformPoint(floor.point),route=CastleBotRoute.Walk};
                 }
@@ -271,13 +282,13 @@ namespace DeadlyJenga.CastleBots
             foreach(var rb in bot.Population.Session.world.Blocks)
             {
                 if(!rb||!rb.gameObject.activeInHierarchy)continue;
-                if(Mathf.Abs(rb.position.y-feet.y)>6||Vector3.ProjectOnPlane(rb.position-feet,Vector3.up).sqrMagnitude>81)continue;
+                if(rb.position.y-feet.y>6||feet.y-rb.position.y>MaximumDrop(motor)+1||Vector3.ProjectOnPlane(rb.position-feet,Vector3.up).sqrMagnitude>81)continue;
                 var box=rb.GetComponent<BoxCollider>();if(!box)continue;
                 SurfaceSamples(rb,box,samples);
                 foreach(var p in samples)
                 {
                     float distance=Vector3.ProjectOnPlane(p-feet,Vector3.up).magnitude,rise=p.y-feet.y;
-                    if(distance<.3f||distance>7||rise>Mathf.Max(motor.jumpHeight+motor.vaultMaxRise-.15f,motor.climbSpeed*motor.climbGripSeconds*.65f)||rise<-(motor.jumpHeight+motor.StandingHeight*2))continue;
+                    if(distance<.3f||distance>7||rise>Mathf.Max(motor.jumpHeight+motor.vaultMaxRise-.15f,motor.climbSpeed*motor.climbGripSeconds*.65f)||rise< -MaximumDrop(motor))continue;
                     var personality=bot.Personality;
                     float danger=rb.linearVelocity.magnitude*.8f+rb.angularVelocity.magnitude*2;
                     float threat=bot.Population.ThreatCost(p),crowd=bot.Population.Crowding(p,bot);

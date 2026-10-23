@@ -5,6 +5,7 @@ using UnityEngine;
 namespace DeadlyJenga.CastlePrototype
 {
     public enum CastleSection { Corner, Wall, Keep }
+    public enum CastleStructure { Original, Catwalks, FourKeeps }
 
     [Serializable]
     public class CastleSettings
@@ -14,8 +15,9 @@ namespace DeadlyJenga.CastlePrototype
         [Range(2, 40)] public int wallCourses = 12;
         [Range(2, 48)] public int cornerCourses = 18;
         [Range(2, 64)] public int keepCourses = 30;
-        [Range(0.02f, 1f)] public float moduleGap = 0.08f;
+        [Range(0.02f, 10f)] public float moduleGap = 0.08f;
         public bool singleTower;
+        public CastleStructure structureVariant;
         [Tooltip("Evan's cathedral draft. Uses the same blocks with a separate large, open layout.")]
         public bool cathedral;
         [Tooltip("Optional deterministic mode layout. Empty preserves the original castle.")]
@@ -28,8 +30,12 @@ namespace DeadlyJenga.CastlePrototype
         public readonly Quaternion Rotation;
         public readonly CastleSection Section;
         public readonly int Course;
+        public readonly Vector3 Size;
+        public Vector3 BlockSize(CastleSettings settings) => Size == Vector3.zero ? settings.blockSize : Size;
         public CastlePlacement(Vector3 p, Quaternion r, CastleSection s, int c)
-        { Position = p; Rotation = r; Section = s; Course = c; }
+         : this(p,r,s,c,Vector3.zero) { }
+        public CastlePlacement(Vector3 p, Quaternion r, CastleSection s, int c, Vector3 size)
+        { Position = p; Rotation = r; Section = s; Course = c; Size = size; }
     }
 
     // Pure layout: no scene objects, physics, networking, or randomness.
@@ -44,6 +50,9 @@ namespace DeadlyJenga.CastlePrototype
                 || s.wallCourses < 2 || s.wallCourses > 40 || s.cornerCourses < 2 || s.cornerCourses > 48
                 || s.keepCourses < 2 || s.keepCourses > 64 || !Finite(s.moduleGap) || s.moduleGap < .02f)
                 throw new ArgumentException("Use positive block dimensions (length > 2 × width), an odd module count from 3–7, and valid course counts/gaps.");
+            if (!Enum.IsDefined(typeof(CastleStructure),s.structureVariant)) throw new ArgumentException("Unknown castle structure.");
+            if(s.structureVariant!=CastleStructure.Original&&(s.singleTower||s.cathedral||!string.IsNullOrEmpty(s.layoutPreset)||s.modulesPerSide!=5||s.keepCourses<=s.wallCourses+4))
+                throw new ArgumentException("Experimental structures require the five-module castle and a keep above the wall towers.");
             if (!s.singleTower && s.modulesPerSide < 5)
                 throw new ArgumentException("The octagonal keep needs at least five modules per side.");
             if(s.cathedral&&Mathf.Abs(s.blockSize.x-3*s.blockSize.z)>.001f)
@@ -52,7 +61,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         static bool Finite(float f) => !float.IsNaN(f) && !float.IsInfinity(f);
 
-        public static int HeightCourses(CastleSettings s)=>!string.IsNullOrEmpty(s.layoutPreset)?ModeMapLayout.Height(s.layoutPreset):s.cathedral?90:s.singleTower?s.cornerCourses:Mathf.Max(s.keepCourses,s.cornerCourses,s.wallCourses+2);
+        public static int HeightCourses(CastleSettings s)=>!string.IsNullOrEmpty(s.layoutPreset)?ModeMapLayout.Height(s.layoutPreset):s.cathedral?90:s.structureVariant==CastleStructure.FourKeeps?Mathf.Max(s.cornerCourses,s.wallCourses+3+s.keepCourses):s.singleTower?s.cornerCourses:Mathf.Max(s.keepCourses,s.cornerCourses,s.wallCourses+2);
         public static float Footprint(CastleSettings s) => !string.IsNullOrEmpty(s.layoutPreset)?Mathf.Max(ModeMapLayout.Size(s).x,ModeMapLayout.Size(s).y):s.cathedral?27*s.blockSize.x:s.singleTower ? s.blockSize.x :
             (s.modulesPerSide - 1) * (s.blockSize.x + s.moduleGap) + s.blockSize.x;
         public static Vector2 FootprintSize(CastleSettings s)=>!string.IsNullOrEmpty(s.layoutPreset)?ModeMapLayout.Size(s):Vector2.one*Footprint(s);
@@ -87,6 +96,7 @@ namespace DeadlyJenga.CastlePrototype
                 result.Add(new CastlePlacement(Vector3.up * ((c + .5f) * s.blockSize.y)
                     + r * new Vector3(0, 0, radius), r, CastleSection.Keep, c));
             }
+            CastleVariants.Apply(result,s);
             return result;
         }
 

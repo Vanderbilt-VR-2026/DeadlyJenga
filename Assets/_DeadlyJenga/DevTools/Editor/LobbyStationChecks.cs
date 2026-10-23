@@ -63,7 +63,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var artMeshes=dressing.GetComponentsInChildren<MeshFilter>();
             Require(artMeshes.Length<=12&&artMeshes.Sum(m=>m.sharedMesh.vertexCount)<85000,"Resort and milkshake geometry stay within twelve static color batches and 85k vertices");
             var keyboard=lobby.View().GiantKeyboard.GetComponent<RectTransform>();
-            Require(Mathf.Abs(keyboard.rect.width*keyboard.lossyScale.x-1.008f)<.01f&&keyboard.GetComponent<BoxCollider>()&&!keyboard.GetComponent<Rigidbody>(),"Oversized piano keyboard has a solid static case at the tuned 1.008 metre width");
+            Require(Mathf.Abs(keyboard.rect.width*keyboard.lossyScale.x-2.2f)<.01f&&keyboard.GetComponent<BoxCollider>()&&!keyboard.GetComponent<Rigidbody>(),"Oversized piano keyboard has a solid static case at the matching 2.2 metre screen width");
             Require(keyboard.GetComponentsInChildren<MeshRenderer>().Length>=40,"Every keyboard key has a raised rounded 3D cap");
             foreach(char c in "ASIA-ABC234")Require(lobby.View().InvokeChoice("key-"+c),"Keyboard accepts "+c);
             Require(lobby.EnteredCode=="ASIA-ABC234"&&IslandRoomAddress.TryParse(lobby.EnteredCode,room.Region,out _,out _),"Keyboard supports full region-qualified room codes");

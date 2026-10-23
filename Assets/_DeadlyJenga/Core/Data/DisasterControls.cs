@@ -21,6 +21,8 @@ namespace DeadlyJenga.Core
     }
     [Serializable] public struct DisasterPoint
     { public int id; public Vector3 position, velocity; public float size, life; }
+    [Serializable] public struct BlockBurnFrame
+    { public int block; public float flameRemaining, smokeRemaining; }
     [Serializable] public sealed class DisasterFrame
     {
         public string kind, label;
@@ -29,6 +31,8 @@ namespace DeadlyJenga.Core
         public float[] values;
         public DisasterPoint[] points;
         public int[] blocks;
+        public BlockBurnFrame[] burns;
+        public bool residualOnly;
         [NonSerialized] public float sampledAt;
     }
     public interface IDisasterState { DisasterFrame Capture(); }

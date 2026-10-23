@@ -7,6 +7,7 @@ namespace DeadlyJenga.Modes
     public sealed partial class ModeSimulation
     {
         readonly List<FlagFrame> flags=new List<FlagFrame>();
+        public int CapturesBy(string actor)=>Find(actor)?.frame.captures??0;
         public IEnumerable<FlagFrame> Flags => flags;
         public void SetFlagHomes(Vector3[] homes)
         {
@@ -37,9 +38,10 @@ namespace DeadlyJenga.Modes
                     if(p.frame.team<0||p.frame.team>=flags.Count)continue;
                     var home=flags[p.frame.team];
                     if(Vector3.Distance(p.frame.position,home.home)>2.5f)continue;
-                    if(flag.team==p.frame.team){Return(flag);continue;}
+                    if(flag.team==p.frame.team){p.frame.flagReturns++;Return(flag);continue;}
                     if(!home.atHome)continue;
                     teams[p.frame.team].captures++;teams[p.frame.team].points++;
+                    p.frame.captures++;
                     Return(flag);CheckFlagWin();
                     continue;
                 }

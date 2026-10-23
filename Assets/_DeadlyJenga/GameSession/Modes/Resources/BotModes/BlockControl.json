@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "id": "block-control",
+  "description": "Spread across supported block tops, complete actual claims, contest observed opponents and refresh decaying ownership through real grounded occupancy.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "repel",
+      "query": "close-threats",
+      "skill": "Attack",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3.5,
+      "radius": 1.1,
+      "timeout": 12,
+      "retry": 2,
+      "commitment": 1,
+      "exclude": [
+        "carrying"
+      ]
+    },
+    {
+      "id": "defend-block",
+      "query": "block-threats",
+      "skill": "Attack",
+      "tier": 1,
+      "maximum": 2,
+      "fraction": 0.2,
+      "utility": 1,
+      "radius": 1,
+      "timeout": 20
+    },
+    {
+      "id": "claim",
+      "query": "unowned-blocks",
+      "skill": "Contest",
+      "completeWhen": "block-owned",
+      "maximum": 2,
+      "fraction": 0.15,
+      "utility": 1.2,
+      "radius": 0.25,
+      "timeout": 90
+    },
+    {
+      "id": "maintain",
+      "query": "owned-blocks",
+      "skill": "Contest",
+      "completeWhen": "block-refreshed",
+      "maximum": 1,
+      "fraction": 0.1,
+      "utility": 0.5,
+      "radius": 0.25,
+      "timeout": 30
+    }
+  ]
+}

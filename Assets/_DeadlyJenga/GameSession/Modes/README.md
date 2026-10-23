@@ -43,7 +43,7 @@ Competitive rounds schedule catalog hazards after 90–120 seconds, announce the
 
 ## Bots and new modes
 
-Modes publish `IBotObjectives` opportunities through Core: travel, guard, escort, contest, attack and evade. Bots weigh them against personality, distance and commitment, then use ordinary movement, climb, vault and punch controls. Runtime bot decisions do not require language models or read a README. A new mode supplies objectives and permissions; new movement mechanics also need a reachability/control adapter in Characters.
+All eight shipped modes have validated JSON definitions in Resources/BotModes. The shared director allocates travel, guard, escort, contest, attack and evade assignments through Core, using bounded typed facts, capacity, utility and commitment. Characters executes ordinary movement, climb, vault and punch controls and reports progress. Actual mode state owns completion. Runtime decisions require no language model. See [BotObjectives/README.md](BotObjectives/README.md) for the full mode catalog, extension contract and acceptance tools. New movement mechanics still need a reachability/control adapter in Characters.
 
 Maps declare recommended populations. Filling subtracts the connected human count and supplies ordinary survivor bots. A recommendation is a design starting point, not a measured Quest capacity. See Characters/Bots/CastleBots/TRAVERSAL_AND_OBJECTIVES.md for navigation and physical-hand details.
 
@@ -52,3 +52,40 @@ Maps declare recommended populations. Filling subtracts the connected human coun
 Fusion transports authoritative match frames, inputs and outcomes. Stable bot identities and restored human PlayerRefs keep the roster continuous through host migration. Reconciliation removes departed humans and releases their flags. Clients do not run the host's world disaster physics.
 
 Editor validation reports are written under Logs/Validation, which is intentionally not committed. Pure rule tests, actual Game tests, physical map settling, natural bot outcomes, rendered shader checks, and independent Fusion runners cover different risks; none substitutes for Quest testing. Bare-hand gestures, stereo comfort, real passthrough placement, controller haptics, thermal performance and multiplayer headset play still require device acceptance. Do not infer arbitrary-map success or a 100-player headset budget from small fixtures or desktop CPU measurements.
+
+
+## Equipment authority
+MatchModeRuntime.Equipment owns the equipment ledger and world pickup records.
+Core EquipmentContracts contains only enums, snapshot data and commands.
+MatchFrame carries bounded inventory/pickup arrays through the existing compressed
+match-state stream. Validate arrays before accepting a remote snapshot. Character
+pose packets already carry the weapon hand poses; no parallel weapon pose stream
+is needed.
+
+An empty slot collects a nearby pickup. Occupied slots require an explicit swap.
+The host validates the authenticated sender, living/playing state, distance, line
+of sight and pickup availability before changing anything. A successful swap
+places the previous item at the new pickup's original position, with its remaining
+power duration. Dropped items have a one-second collection grace. Death removes
+the slot and drops the item before the respawn/outcome transition. Stations on
+the Powerup Test Island offer all seven items and recharge in fifteen seconds.
+Menu spawning remains a host-only Demo command. Existing timed effects invoked
+directly by other systems remain independent of pickup inventory.
+
+Murder Mystery assigns role weapons into the same slot. Undrawn role-issued
+equipment is omitted from public snapshots and hidden by character visuals.
+Drawing a role weapon uses the existing Mystery special-attack rules; collecting
+a sword or sheriff hammer from the test map grants a generic damage weapon, not
+a secret role. Role changes update or remove the issued equipment. Migration
+restores public inventory/pickups; a restarted Mystery clears the old ledger.
+
+The rifle has seven shotgun pellets (14 m range, 13 damage each) or one long-rifle
+shot (65 m, 55 damage). The glove does 80 damage with a 22 m/s horizontal impulse
+and 6 m/s lift before the normal motor/geometry response. All attacks validate
+ownership, draw state, cooldown, finite/reachable muzzle, cover and team rules.
+These are initial tuning values, not headset balance certification.
+
+Validation: AvatarEnemyChecks also runs EquipmentChecks (actual Game scene,
+physical damage/cover fixtures, inventory/drop lifecycle and remote render
+reconstruction). Reports and captures go to Logs/Validation. The Photon check
+uses two runners inside one Editor; it does not certify two physical devices.

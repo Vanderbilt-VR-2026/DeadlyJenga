@@ -62,8 +62,19 @@ namespace DeadlyJenga.CandyAudio.Editor
                     foreach(var clip in cue.variants){count++;Check(clip&&clip.samples>0&&clip.channels==1,"Usable mono clip: "+(clip?clip.name:"missing"));}
                     Check(cue.maxDistance>cue.minDistance&&cue.minDistance>0,"Valid spatial range: "+cue.sound);
                 }
-                bool mapped=true;foreach(CandySound sound in Enum.GetValues(typeof(CandySound)))if(!found.Contains(sound)&&!CandyBreathing.IsBreath(sound))mapped=false;
-                Check(mapped,"All defined gameplay cues have bank mappings or supported synthesized breathing defaults.");
+                bool mapped=true;
+                foreach(CandySound sound in Enum.GetValues(typeof(CandySound)))
+                {
+                    if(found.Contains(sound)||CandyBreathing.IsBreath(sound))continue;
+                    CandyAudioCue fallback=null;
+                    if(Array.IndexOf(CandyDisasterSounds.Sounds,sound)>=0)fallback=CandyDisasterSounds.DefaultCue(sound);
+                    if(Array.IndexOf(CandyWeaponSounds.Sounds,sound)>=0)fallback=CandyWeaponSounds.DefaultCue(sound);
+                    if(Array.IndexOf(CandyJaguarSounds.Sounds,sound)>=0)fallback=CandyJaguarSounds.DefaultCue(sound);
+                    bool usable=fallback!=null&&fallback.variants!=null&&fallback.variants.Length>0;
+                    if(usable)foreach(var clip in fallback.variants)usable&=clip&&clip.samples>0&&clip.channels==1;
+                    Check(usable,"Usable fallback cue: "+sound);mapped&=usable;
+                }
+                Check(mapped,"All defined gameplay cues have bank mappings or usable fallback clips.");
                 Check(bank.oneShotVoices+bank.loopVoices<=48,"Bounded default voice pool (48 or fewer).");
                 lines.Add("Clips: "+count+"; cues: "+found.Count);
             }

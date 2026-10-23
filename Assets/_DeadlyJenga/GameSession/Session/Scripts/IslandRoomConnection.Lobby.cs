@@ -53,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype
         void ResetModeSetup()
         {
             var kind=MatchModeRuntime.ParseMode(Catalog.modes[ModeIndex].id);
-            setup=new LobbySetup{rules=ModeSimulation.Defaults(kind),movement=MatchChoices.Rules,population=MatchSetup.BotTarget,hands=MatchSetup.HandCount,sameHumanTeam=MatchChoices.SameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,disasters=DemoDisasters.Prefabs.Select(p=>new LobbyHazardSetup{id=p.name,values=DemoDisasters.Parameters(p).Select(v=>v.initial).ToArray()}).ToArray()};
+            setup=new LobbySetup{rules=MatchSetup.DefaultModeRules(kind,Catalog.maps[MapIndex]),movement=MatchChoices.Rules,population=MatchSetup.BotTarget,hands=MatchSetup.HandCount,sameHumanTeam=MatchChoices.SameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,disasters=DemoDisasters.Prefabs.Select(p=>new LobbyHazardSetup{id=p.name,values=DemoDisasters.Parameters(p).Select(v=>v.initial).ToArray()}).ToArray()};
         }
         public void ConfigureSetup(LobbySetup value)
         {if(CanConfigure&&ValidSetup(value))Act(new LobbyAction{verb="setup",setup=value});}
@@ -83,7 +83,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(action==null)return;
             bool member=!Connected||source==Runner.LocalPlayer.ToString()||peers.Any(p=>p.Key.ToString()==source&&p.Value.ready);
-            if(!member)return;
+            if(!member||Departing)return;
             if(action.verb=="request")
             {
                 if(source==leaderId||hostRequests.Contains(source)||hostRequests.Count>=10)return;
@@ -97,8 +97,16 @@ namespace DeadlyJenga.CastlePrototype
                 if(action.verb=="accept"&&identities.ContainsKey(action.value)){leaderId=action.value;hostRequests.Clear();lobbyNotice=identities[action.value].displayName+" is now host.";LaunchPending=false;RefreshHostFlags();}
                 else lobbyNotice="Host request declined.";
             }
-            else if(!LaunchPending&&action.verb=="map"&&action.index>=0&&action.index<Catalog.maps.Length)MapIndex=action.index;
-            else if(!LaunchPending&&action.verb=="mode"&&action.index>=0&&action.index<Catalog.modes.Length){ModeIndex=action.index;ResetModeSetup();}
+            else if(!LaunchPending&&action.verb=="map"&&action.index>=0&&action.index<Catalog.maps.Length&&Catalog.maps[action.index].SupportsMode(Catalog.modes[ModeIndex].id))
+            {
+                MapIndex=action.index;
+                if(setup!=null)setup.rules.island=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(Catalog.modes[ModeIndex].id),Catalog.maps[MapIndex]).island;
+            }
+            else if(!LaunchPending&&action.verb=="mode"&&action.index>=0&&action.index<Catalog.modes.Length&&Catalog.modes[action.index].available)
+            {
+                int compatible=Array.FindIndex(Catalog.maps,m=>m.SupportsMode(Catalog.modes[action.index].id));if(compatible<0)return;
+                ModeIndex=action.index;if(!Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id))MapIndex=compatible;ResetModeSetup();
+            }
             else if(!LaunchPending&&action.verb=="setup"&&ValidSetup(action.setup))ApplySetup(action.setup);
             else if(!LaunchPending&&action.verb=="shared"&&Catalog.modes[ModeIndex].id=="demo")SharedDemoControls=action.index!=0;
             else if(action.verb=="launch"){LaunchAuthoritative();return;}

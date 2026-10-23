@@ -39,6 +39,28 @@ namespace DeadlyJenga.CharacterNetwork
             if (frame.scale < .1f || frame.scale > 2) throw new InvalidDataException("Invalid avatar scale");
             color = r.ReadInt32();
         }
+        const int AppearanceMagic=0x41565031;
+        public static void WriteSurvivor(BinaryWriter w,CandyAvatarFrame frame,int color,AvatarAppearance appearance,IEnemyActor enemy=null,IBlasterControls blaster=null,byte remoteBlaster=0)
+        {
+            WriteSurvivor(w,frame,color);w.Write(AppearanceMagic);w.Write((uint)(appearance.accessories&CandyPlayerAvatar.SupportedAccessories));
+            bool npc=enemy?.IsEnemy==true;w.Write(npc);if(npc)w.Write(Mathf.Clamp(enemy.HitDamage,1,99));
+            w.Write(blaster==null?(byte)(remoteBlaster&3):(byte)((blaster.Drawn?1:0)|(blaster.LeftHanded?2:0)));
+            w.Write(CandyPlayerAvatar.StyleBits(appearance));
+        }
+        public static void ReadSurvivor(BinaryReader r,out CandyAvatarFrame frame,out int color,out AvatarAppearance appearance,out EnemySpawnSettings enemy)
+        {ReadSurvivor(r,out frame,out color,out appearance,out enemy,out _);}
+        public static void ReadSurvivor(BinaryReader r,out CandyAvatarFrame frame,out int color,out AvatarAppearance appearance,out EnemySpawnSettings enemy,out byte blaster)
+        {
+            ReadSurvivor(r,out frame,out color);appearance=default;enemy=null;blaster=0;
+            if(r.BaseStream.Position==r.BaseStream.Length)return;
+            if(r.ReadInt32()!=AppearanceMagic)throw new InvalidDataException("Unknown survivor appearance extension");
+            uint bits=r.ReadUInt32();if((bits&~(uint)CandyPlayerAvatar.SupportedAccessories)!=0)throw new InvalidDataException("Unknown avatar attachment");
+            appearance.accessories=(AvatarAccessory)bits;
+            if(r.ReadBoolean()){float damage=NetWire.ReadNumber(r);if(damage<1||damage>99)throw new InvalidDataException("Invalid enemy damage");enemy=new EnemySpawnSettings{hitDamage=damage};}
+            if(r.BaseStream.Position<r.BaseStream.Length){blaster=r.ReadByte();if((blaster&~3)!=0)throw new InvalidDataException("Invalid blaster flags");}
+            if(r.BaseStream.Position<r.BaseStream.Length){uint style=r.ReadUInt32();if((style&~0xFFFFFu)!=0||(style&7)>6||((style>>3)&15)>12)throw new InvalidDataException("Invalid avatar style");appearance=CandyPlayerAvatar.WithStyle(appearance,style);}
+            if(r.BaseStream.Position!=r.BaseStream.Length)throw new InvalidDataException("Trailing survivor appearance data");
+        }
 
         // Hand: handedness, size, finger target and (when simulated) the 16 bone poses.
         public static void WriteHand(BinaryWriter w, bool left, float size, CandyHandPose target, Rigidbody[] bodies)

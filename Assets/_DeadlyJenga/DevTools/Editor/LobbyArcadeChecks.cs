@@ -56,9 +56,9 @@ namespace DeadlyJenga.DevTools.Editor
         {
             yield return new WaitForSecondsRealtime(1);
             var lobby=IslandLobby.Current;var view=lobby.View();lobby.SetMenu(true);var keyboard=view.GiantKeyboard;
-            var yaw=Quaternion.Euler(0,-10,0);var expected=new Vector3(-3.05f,1.62f,1)+yaw*new Vector3(0,-.68f,-.45f);
-            Require(Vector3.Distance(keyboard.position,expected)<.0001f&&Quaternion.Angle(keyboard.rotation,yaw*Quaternion.Euler(50,0,0))<.01f,"Keyboard keeps its original world position, angle and scale");
-            Require(Mathf.Abs(((RectTransform)keyboard).rect.width*keyboard.lossyScale.x-1.008f)<.001f,"Original keyboard width remains unchanged");
+            var yaw=Quaternion.identity;var expected=new Vector3(-3.05f,.94f,.55f);
+            Require(Vector3.Distance(keyboard.position,expected)<.0001f&&Quaternion.Angle(keyboard.rotation,yaw*Quaternion.Euler(40,0,0))<.01f,"Keyboard keeps its height with the aligned station orientation");
+            Require(Mathf.Abs(((RectTransform)keyboard).rect.width*keyboard.lossyScale.x-2.2f)<.001f,"Keyboard width matches the enlarged JOIN screen");
             var key=keyboard.Find("key-Q");var ray=new Ray(key.TransformPoint(new Vector3(0,0,-500)),key.forward);Physics.SyncTransforms();
             view.Point(ray,false);
             Require(key.GetComponentInChildren<Text>().color==Color.white,"Gaze-selected key label stays white");

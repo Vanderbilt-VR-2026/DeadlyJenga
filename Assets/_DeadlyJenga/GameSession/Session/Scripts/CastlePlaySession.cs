@@ -18,6 +18,9 @@ namespace DeadlyJenga.CastlePrototype
         public Camera overviewCamera;
         public bool tuneJumpToBlockHeight=true;
         public float jumpShortfall=.18f;
+        [Header("Temporary development stage")]
+        [Tooltip("Turn OFF for release. Enables role spoilers and manual match ending for development review only; unrelated to host powers.")]
+        public bool developmentReviewTools=true;
         [Header("Next tsunami")]
         [Range(.5f,30)] public float tsunamiSpeed=8;
         [Range(0,5)] public float tsunamiForce=1;
@@ -39,9 +42,17 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!Ready)return;
             if(active&&Modes&&Modes.Rules.mode!=GameModeKind.Demo)return;
+            var previousView=ActiveCamera;
+            var entrance=previousView?new Pose(previousView.transform.position,previousView.transform.rotation):default;
             if(active&&!PlayingHand)SetRole(true);
+            if(active&&!SeaSpiritActive&&previousView&&Hand.ViewCamera)
+            {
+                var camera=Hand.ViewCamera;var rig=camera.transform.parent;
+                if(rig){rig.rotation=entrance.rotation*Quaternion.Inverse(camera.transform.localRotation);rig.position+=entrance.position-camera.transform.position;}
+            }
             if(seaSpirit==null&&active)seaSpirit=SeaSpiritSystems.Create?.Invoke(Hand.gameObject);
             seaSpirit?.SetSeaSpirit(active);
+            if(active&&SeaSpiritActive)SetMenu(false);
         }
         public void SetSeaSpiritReach(float meters)=>seaSpirit?.SetSeaSpiritReach(meters);
         public void RecenterSeaSpirit()=>seaSpirit?.RecenterSeaSpirit();
@@ -57,10 +68,12 @@ namespace DeadlyJenga.CastlePrototype
         public bool CanEditWorld => !Network || Network.CanEditWorld;
         InputAction switchRole, toggleMenu, select;
         bool wasVR, focused = true;
+        bool arrivalPending,travelInputHeld;float travelReleaseAt=-1;
 
         void Start()
         {
             Services.Session = this;
+            arrivalPending=true;travelInputHeld=MatchSetup.FromLobby;
             GameEvents.Eliminated += OnEliminated;
             MatchSetup.ApplyMap();
             if (overviewCamera) overviewCamera.gameObject.SetActive(false);
@@ -77,6 +90,7 @@ namespace DeadlyJenga.CastlePrototype
                 out var survivorBots, out var handBots);
             SurvivorBots = survivorBots; HandBots = handBots;
             var room = IslandRoomConnection.Instance;
+            room?.CompleteDeparture();
             var runner = room && room.Connected ? room.Runner : NetworkRunner.Instances.FirstOrDefault(r => r != null && r.IsRunning);
             if (runner != null)
             {
@@ -112,6 +126,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool value) { focused = value; if (!value && Ready) SetMenu(true); }
         public void SetRole(bool hand)
         {
+            if(Modes&&Modes.DemoSpectating)Modes.SetDemoSpectating(false);
             if(!hand&&SeaSpiritActive)seaSpirit.SetSeaSpirit(false);
             PlayingHand = hand;
             Player.gameObject.SetActive(!hand); Hand.gameObject.SetActive(hand);
@@ -159,7 +174,7 @@ namespace DeadlyJenga.CastlePrototype
         public void SetMenu(bool open)
         {
             MenuOpen = open;
-            bool suspended = open || !focused || (Network && Network.WaitingForWorld);
+            bool suspended = travelInputHeld || open || !focused || (Network && Network.WaitingForWorld) || (Modes && Modes.DemoSpectating);
             Player.InputSuspended = suspended;
             Hand.InputSuspended = suspended;
             Cursor.lockState = !open && !IsVR && focused ? CursorLockMode.Locked : CursorLockMode.None;
@@ -168,9 +183,15 @@ namespace DeadlyJenga.CastlePrototype
         void Update()
         {
             if (!Ready) return;
+            if(arrivalPending&&(!Network||!Network.WaitingForWorld))
+            {
+                arrivalPending=false;if(travelInputHeld)travelReleaseAt=Time.unscaledTime+.8f;
+                GameEvents.RaiseEmoted(gameObject,"TravelArrived");
+            }
+            if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
             var k = Keyboard.current;
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
-            if ((!Modes||Modes.Rules.mode==GameModeKind.Demo)&&!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
+            if ((!Modes||Modes.Rules.mode==GameModeKind.Demo)&&!(Modes&&Modes.DemoSpectating)&&!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);

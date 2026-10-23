@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         public IReadOnlyList<LobbyParticipant> Participants=>Room.Participants;
         public IReadOnlyList<string> HostRequests=>Room.HostRequests;
-        public IReadOnlyList<LobbyOption> Maps=>catalog.maps.Select(m=>new LobbyOption{id=m.id,title=m.title}).ToArray();
+        public IReadOnlyList<LobbyOption> Maps=>catalog.maps.Where(m=>m.SupportsMode(SelectedModeId)).Select(m=>new LobbyOption{id=m.id,title=m.title}).ToArray();
         public IReadOnlyList<LobbyOption> Modes=>catalog.modes.Select(m=>new LobbyOption{id=m.id,title=m.title,description=m.description,available=m.available}).ToArray();
         public string LocalParticipantId=>Room.LocalLobbyId;
         public string SelectedMapId=>catalog.maps[Room.MapIndex].id;

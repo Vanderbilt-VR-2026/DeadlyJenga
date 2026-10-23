@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
             Face(0,3,2,1);Face(4,5,6,7);Face(0,1,5,4);Face(1,2,6,5);Face(2,3,7,6);Face(3,0,4,7);
             cabinetMesh=new Mesh{name="Vertical arcade cabinet with sloped top"};cabinetMesh.SetVertices(vertices);cabinetMesh.SetTriangles(triangles,0);cabinetMesh.RecalculateNormals();cabinetMesh.RecalculateBounds();
             root.GetComponent<MeshFilter>().sharedMesh=cabinetMesh;var renderer=root.GetComponent<Renderer>();renderer.sharedMaterial=keyboardMaterial;
-            var properties=new MaterialPropertyBlock();properties.SetColor("_BaseColor",new Color(.28f,.008f,.025f));renderer.SetPropertyBlock(properties);
+            var properties=new MaterialPropertyBlock();properties.SetColor("_BaseColor",new Color(.72f,.012f,.045f));renderer.SetPropertyBlock(properties);
             // Lobby-owned static slices approximate the angled top without a new collision contract.
             float front=corners[0].z,back=corners[3].z;
             for(int i=0;i<8;i++)
@@ -37,7 +37,8 @@ namespace DeadlyJenga.CastlePrototype
         void StyleJoinArcade()
         {
             var yaw=Quaternion.Euler(0,piano.eulerAngles.y,0);
-            joinStation.SetPositionAndRotation(piano.position+yaw*new Vector3(0,.55f,.20f),yaw);joinStation.localScale=Vector3.one*.0011f;
+            joinStation.SetPositionAndRotation(new Vector3(piano.position.x,StationY,StationZ),yaw);joinStation.localScale=Vector3.one*StationScale;
+            Box(transform,"JOIN monitor support",new Vector3(piano.position.x,1.35f,1.12f),new Vector3(.24f,.95f,.18f),new Color(.63f,.018f,.055f));
             var red=new Color(.63f,.018f,.055f);
             Box(joinStation,"CRT red back shell",new Vector3(0,0,110),new Vector3(1140,880,70),red);
             Box(joinStation,"CRT dark glass",new Vector3(0,0,50),new Vector3(1010,770,80),new Color(.012f,.008f,.025f));

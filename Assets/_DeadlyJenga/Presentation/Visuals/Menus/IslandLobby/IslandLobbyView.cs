@@ -38,6 +38,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildIsland();
             select=new InputAction("Lobby select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();
             BuildTerminals();
+            BuildWardrobe();
         }
         void BuildIsland()
         {
@@ -55,6 +56,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(lobby==null||!NetworkActors.Alive(Player))return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
+            if(UpdateWardrobe())return;
             bool pressed=select.WasPressedThisFrame()||Player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
             Ray ray=!Player.IsVR&&session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
             Point(ray,pressed,select.IsPressed()||Player.SelectHeld||mouse!=null&&mouse.leftButton.isPressed);
@@ -99,8 +101,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
+            DisposeWardrobe();
             if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;
-            if(keyboardMaterial)Destroy(keyboardMaterial);if(keyboardMesh)Destroy(keyboardMesh);if(cabinetMesh)Destroy(cabinetMesh);
+            if(keyboardMaterial)Destroy(keyboardMaterial);if(keyboardMesh)Destroy(keyboardMesh);if(cabinetMesh)Destroy(cabinetMesh);if(consoleSphere)Destroy(consoleSphere);
             select?.Dispose();if(Environment)Destroy(Environment.gameObject);if(localArt)Destroy(localArt);
         }
     }

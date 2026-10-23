@@ -18,7 +18,9 @@
         "Unity.XR.OpenXR",
         "UnityEngine.UI",
         "Photon.Realtime",
-        "Unity.XR.OpenXR.Editor"
+        "Unity.XR.OpenXR.Editor",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
     ],
     "includePlatforms": [
         "Editor"

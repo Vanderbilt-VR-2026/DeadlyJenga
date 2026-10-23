@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         public float fallSafeSpeed = 8, fallDamagePerSpeed = 12;
         public event Action<CastleSurvivor, Vector3, Vector3, float> PunchRequested;
         float movementMultiplier = 1, vaultMultiplier = 1, nextPunch;
-        public float EffectiveWalkSpeed => walkSpeed*movementMultiplier;
+        public float EffectiveWalkSpeed => walkSpeed*movementMultiplier*PowerupSpeedMultiplier;
         float peakFallSpeed;
         ModeRules modeRules;
         string actorId, displayName;
@@ -100,6 +100,7 @@ namespace DeadlyJenga.CastlePrototype
         void UpdatePunch()
         {
             if(MatchRuntime.Current!=null)ApplyModeRules(MatchRuntime.Current.RulesFor(gameObject));
+            var weapon=GetComponent<CandyEquipment>();if(weapon?.Equipment.drawn==true){punchHandReady=false;return;}
             if (externallyDriven || !PunchEnabled || CarryingFlag || InputSuspended || !vrInputFocused)
             { punchHandReady = false; return; }
             if (!IsVR)

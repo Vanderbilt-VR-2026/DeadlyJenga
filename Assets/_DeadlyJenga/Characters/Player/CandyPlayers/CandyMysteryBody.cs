@@ -33,7 +33,20 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
         public void Follow(Rigidbody body,Vector3 position)
-        {support=body;supportNormal=body?body.transform.InverseTransformDirection(Vector3.up):Vector3.up;}
+        {
+            var positions=new Vector3[parts.Count];
+            for(int i=0;i<parts.Count;i++)if(parts[i])positions[i]=parts[i].transform.position;
+            Vector3 anchor=parts.Count>0&&parts[0]?positions[0]:transform.position;
+            Vector3 delta=position-anchor;
+            transform.position+=delta;
+            for(int i=0;i<parts.Count;i++)if(parts[i])
+            {
+                parts[i].position=positions[i]+delta;
+                if(!parts[i].isKinematic){parts[i].linearVelocity=Vector3.zero;parts[i].angularVelocity=Vector3.zero;}
+            }
+            Physics.SyncTransforms();
+            support=body;supportNormal=body?body.transform.InverseTransformDirection(Vector3.up):Vector3.up;
+        }
         void LateUpdate()
         {
             if(Position.y<(Services.World?.WaterHeight(Position)??-100)-2){gameObject.SetActive(false);return;}

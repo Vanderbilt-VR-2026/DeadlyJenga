@@ -15,6 +15,12 @@ namespace DeadlyJenga.CastlePrototype
         public static IslandLobbyCatalog.Map SelectedMap
         {get{var catalog=Catalog;return catalog?System.Array.Find(catalog.maps,m=>m.id==MapId):null;}}
         public static int RecommendedPopulation=>Mathf.Clamp(FromLobby?BotTarget:SelectedMap?.recommendedPlayers??10,ModeId=="mystery"?3:1,100);
+        public static ModeRules DefaultModeRules(GameModeKind mode,IslandLobbyCatalog.Map map)
+        {
+            var rules=DeadlyJenga.Modes.ModeSimulation.Defaults(mode);
+            if(map?.walkableIsland==true)rules.island=IslandRule.Walkable;
+            return rules;
+        }
         public static void ApplyMap()
         {
             var map=SelectedMap;if(map==null||!map.mapPrefab)return;

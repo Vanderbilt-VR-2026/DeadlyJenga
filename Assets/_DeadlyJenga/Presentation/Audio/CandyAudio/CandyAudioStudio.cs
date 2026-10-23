@@ -33,9 +33,26 @@ namespace DeadlyJenga.CandyAudio
         public void Open()
         {
             if(!engine||!engine.bank)return;
-            if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";engine.Configure(working);}
+            if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";IncludeFallbacks(working);engine.Configure(working);}
             session=Services.Session;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
             GatherClips();IsOpen=true;status="Session copy • preview freely, then save a preset if you like it.";
+        }
+        static CandyAudioCue Fallback(CandySound sound)
+        {
+            if(Array.IndexOf(CandyPlayerSounds.Sounds,sound)>=0)return CandyPlayerSounds.DefaultCue(sound);
+            if(Array.IndexOf(CandyWeaponSounds.Sounds,sound)>=0)return CandyWeaponSounds.DefaultCue(sound);
+            if(Array.IndexOf(CandyJaguarSounds.Sounds,sound)>=0)return CandyJaguarSounds.DefaultCue(sound);
+            if(Array.IndexOf(CandyDisasterSounds.Sounds,sound)>=0)return CandyDisasterSounds.DefaultCue(sound);
+            if(CandyBreathing.IsBreath(sound))return CandyBreathing.DefaultCue(sound);
+            return null;
+        }
+        static void IncludeFallbacks(CandyAudioBank bank)
+        {
+            var cues=new List<CandyAudioCue>(bank.cues);var present=new HashSet<CandySound>();
+            foreach(var cue in cues)if(cue!=null)present.Add(cue.sound);
+            foreach(CandySound sound in Enum.GetValues(typeof(CandySound)))
+            {if(present.Contains(sound))continue;var cue=Fallback(sound);if(cue!=null)cues.Add(cue);}
+            bank.cues=cues.ToArray();
         }
         public void Close()
         {
@@ -87,7 +104,8 @@ namespace DeadlyJenga.CandyAudio
         }
         void ResetCue()
         {
-            foreach(var cue in original.cues)if(cue.sound==selected.sound)
+            var defaults=new List<CandyAudioCue>(original.cues);var fallback=Fallback(selected.sound);if(fallback!=null)defaults.Add(fallback);
+            foreach(var cue in defaults)if(cue.sound==selected.sound)
             {
                 selected.enabled=cue.enabled;selected.volume=cue.volume;selected.pitch=cue.pitch;selected.minDistance=cue.minDistance;selected.maxDistance=cue.maxDistance;
                 selected.cooldown=cue.cooldown;selected.maxVoices=cue.maxVoices;selected.priority=cue.priority;selected.output=cue.output;selected.variants=(AudioClip[])cue.variants.Clone();break;
@@ -127,6 +145,9 @@ namespace DeadlyJenga.CandyAudio
         }
         static int Group(CandySound sound)
         {
+            if(Array.IndexOf(CandyWeaponSounds.Sounds,sound)>=0)return 2;
+            if(Array.IndexOf(CandyPlayerSounds.Sounds,sound)>=0)return 6;
+            if(Array.IndexOf(CandyJaguarSounds.Sounds,sound)>=0)return 6;
             if(CandyBreathing.IsBreath(sound))return 3;
             int id=(int)sound;if(id<=6)return 0;if(id==7||id==8||id==20)return 1;if(id>=9&&id<=13||id==23||id==24)return 2;
             if(id>=14&&id<=17||id==26)return 3;if(id==18||id==19||id==21)return 4;if(id==22)return 5;if(id>=27)return 6;return 7;
@@ -135,8 +156,12 @@ namespace DeadlyJenga.CandyAudio
         {
             string raw=sound.ToString(),result="";for(int i=0;i<raw.Length;i++){if(i>0&&char.IsUpper(raw[i]))result+=" ";result+=raw[i];}return result;
         }
-        public static string Description(CandySound s)=>s switch
+        public static string Description(CandySound s)=>Array.IndexOf(CandyWeaponSounds.Sounds,s)>=0?
+            "Original Candy weapon cue: "+Label(s)+". Spatial Character bus; four replaceable takes.":
+            Array.IndexOf(CandyJaguarSounds.Sounds,s)>=0?"Jaguar creature cue: "+Label(s)+". Spatial Character bus.":s switch
         {
+            CandySound.PlayerPain=>"Short stylized ow reaction to a nonfatal hit; nearby survivors hear it spatially.",CandySound.PlayerDeath=>"A falling vocal and candy dissolve accent when a survivor is eliminated.",
+            CandySound.SuitThruster=>"Pooled jet airflow while powered armor thrust is held.",CandySound.SuitIgnition=>"Powered armor ignition and rising energy charge.",CandySound.SuitShutdown=>"Powered armor shutdown and descending energy release.",
             CandySound.BlockTap=>"Small candy-crate knocks and gentle bumps.",CandySound.BlockHit=>"Solid impacts; stronger hits sound heavier.",CandySound.BlockSmash=>"Big crashes when blocks slam together.",CandySound.BlockScrape=>"Crates rubbing or sliding against a surface.",
             CandySound.StructureLean=>"A cartoon timber creak as the tower leans.",CandySound.BlockSplash=>"Heavy blocks crossing the ocean surface.",CandySound.PlayerSplash=>"A bubbly splash when a survivor hits water.",
             CandySound.RubberSlide=>"Continuous rubber friction from fingers on crates.",CandySound.RubberTouch=>"Short squeaks when a hand makes sliding contact.",CandySound.HandFlight=>"Air rushing around a moving giant hand.",
@@ -172,7 +197,7 @@ namespace DeadlyJenga.CandyAudio
             GUI.Label(new Rect(247,100,90,30),"FIND A SOUND",small);search=GUI.TextField(new Rect(343,98,480,34),search,field);
             if(Btn(new Rect(838,98,116,34),"Save preset",Card))SavePreset();if(Btn(new Rect(966,98,116,34),"Load preset",Card))LoadPreset();
             if(Btn(new Rect(1094,98,116,34),"Reset mix",Card))
-            {preview.Stop();selected=null;Destroy(working);working=Instantiate(original);working.name=original.name+" (studio session)";engine.Configure(working);status="Original mix restored for this session.";}
+            {preview.Stop();selected=null;Destroy(working);working=Instantiate(original);working.name=original.name+" (studio session)";IncludeFallbacks(working);engine.Configure(working);status="Original mix restored for this session.";}
             shown.Clear();foreach(var cue in working.cues)if((category<0||Group(cue.sound)==category)&&(string.IsNullOrWhiteSpace(search)||(Label(cue.sound)+Description(cue.sound)).IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0))shown.Add(cue);
             scroll=GUI.BeginScrollView(new Rect(242,147,978,435),scroll,new Rect(0,0,953,Mathf.Max(430,Mathf.Ceil(shown.Count/3f)*127)));
             for(int i=0;i<shown.Count;i++)DrawCard(shown[i],new Rect((i%3)*317,(i/3)*127,305,115));GUI.EndScrollView();

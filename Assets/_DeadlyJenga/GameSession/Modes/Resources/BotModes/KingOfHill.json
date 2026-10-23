@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "id": "king-of-hill",
+  "description": "Reach and occupy the current public hill, defend it against observed intruders, and survive immediate hazards. Grounded authoritative hill time owns scoring.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "repel",
+      "query": "close-threats",
+      "skill": "Attack",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3.5,
+      "radius": 1.1,
+      "timeout": 12,
+      "retry": 2,
+      "commitment": 1,
+      "exclude": [
+        "carrying"
+      ]
+    },
+    {
+      "id": "defend-hill",
+      "query": "hill-threats",
+      "skill": "Attack",
+      "tier": 1,
+      "maximum": 2,
+      "fraction": 0.2,
+      "utility": 1,
+      "radius": 1,
+      "timeout": 20
+    },
+    {
+      "id": "hill",
+      "query": "hill",
+      "skill": "Contest",
+      "maximum": 100,
+      "utility": 1,
+      "radius": 2.5,
+      "timeout": 180
+    }
+  ]
+}

@@ -65,8 +65,10 @@ namespace DeadlyJenga.CastleBots
             return Mathf.Clamp(Remaining(transform.position)-Remaining(point),-4,4);
         }
         public void SetJourneyDestination(Vector3 destination,float seconds=30)
+        {transitReturns.Clear();transitAscending=false;ascentCommittedUntil=0;SetRouteDestination(destination,seconds);}
+        void SetRouteDestination(Vector3 destination,float seconds)
         {
-            tripDestination=destination;tripUntil=Time.time+Mathf.Max(5,seconds);planner=null;journey.Clear();hasGoal=false;waitUntil=0;nextPlan=0;Activity="Travelling to selected area";
+            progressSampleAt=0;progressDistance=float.PositiveInfinity;tripDestination=destination;tripUntil=Time.time+Mathf.Max(5,seconds);planner=null;journey.Clear();hasGoal=false;waitUntil=0;nextPlan=0;Activity="Travelling to selected area";
         }
         public void Initialize(CastleBotPopulation population,CastleSurvivor motor,CastleBotPersonality personality,int number)
         {
@@ -79,7 +81,9 @@ namespace DeadlyJenga.CastleBots
         }
         public void Spawned(bool respawn)
         {
-            Motor.Revive();hasGoal=false;planner=null;journey.Clear();tripUntil=0;waitUntil=0;Respawning=false;Motor.InputSuspended=false;
+            ResetCombat();
+            ReleaseExecution("Spawned");
+            Motor.Revive();traversalProgress.Reset();transitReturns.Clear();transitAscending=false;ascentCommittedUntil=0;observedFeet=false;idleFor=0;progressSampleAt=0;steeringVelocity=Vector3.zero;hasObjective=false;nextObjective=0;recovering=false;hasGoal=false;planner=null;journey.Clear();tripUntil=0;waitUntil=0;Respawning=false;Motor.InputSuspended=false;
             if(avatar&&avatar.Rig)avatar.Rig.gameObject.SetActive(true);
             if(respawn)Respawns++;nextPlan=Time.time+.2f+(Seed%1)*.2f;progressAt=Time.time;progressPosition=transform.position;Intent="Finding footing";
         }
@@ -105,11 +109,7 @@ namespace DeadlyJenga.CastleBots
                 if(avatar&&avatar.Rig)avatar.Rig.gameObject.SetActive(false);
                 respawnAt=Time.time+Population.respawnDelay*variation;return;
             }
-            if(Time.time-progressAt>2.5f)
-            {
-                if(hasGoal&&planner==null&&!Motor.Vaulting&&Vector3.Distance(progressPosition,transform.position)<.18f){hasGoal=false;journey.Clear();tripUntil=0;WanderDirection=Quaternion.Euler(0,107,0)*WanderDirection;}
-                progressPosition=transform.position;progressAt=Time.time;
-            }
+
         }
         void LateUpdate()
         {
@@ -153,7 +153,24 @@ namespace DeadlyJenga.CastleBots
                 goal=new CastleBotLanding{surface=directTop.transform,body=directTop.rigidbody,local=directTop.transform.InverseTransformPoint(directTop.point),route=directRoute};
                 hasGoal=true;goalSince=Time.time;Intent="Taking a direct "+directRoute+" route";return;
             }
-            if(CastleBotNavigation.GroundStep(this,out goal)){hasGoal=true;goalSince=Time.time;Intent="Walking across the island";return;}
+            if(Population.WalkingRoutes.TryWaypoint(this,tripDestination,out goal))
+            {hasGoal=true;goalSince=Time.time;Intent="Following a walking corridor";return;}
+            if(hasObjective&&Motor.HasWalkableIsland&&!CastleBotNavigation.ShouldStageAscent(transform.position,tripDestination,false)&&Time.time>=ascentCommittedUntil&&Time.time>=nextDeparture&&Vector3.ProjectOnPlane(tripDestination-transform.position,Vector3.up).magnitude>20)
+            {
+                nextDeparture=Time.time+3;
+                if(CastleBotJourneyPlanner.DepartureStage(this,tripDestination,out var departure,out var approach,out _))
+                {
+                    PushTransit(departure,25);Activity="Taking a descending exit route";
+                    if(CastleBotNavigation.Landing(Motor,departure,out var exitTop)&&CastleBotNavigation.Landing(Motor,approach,out var launchTop)&&CastleBotNavigation.Walkable(Motor,transform.position,launchTop.point)&&CastleBotNavigation.TryLink(Motor,launchTop.point,exitTop.point,out var exitRoute,out dropSpeed))
+                    {
+                        var exit=new CastleBotLanding{surface=exitTop.transform,body=exitTop.rigidbody,local=exitTop.transform.InverseTransformPoint(exitTop.point),route=exitRoute};
+                        journey.Clear();
+                        if(Vector3.Distance(transform.position,launchTop.point)<.08f)goal=exit;
+                        else {goal=new CastleBotLanding{surface=launchTop.transform,body=launchTop.rigidbody,local=launchTop.transform.InverseTransformPoint(launchTop.point),route=CastleBotRoute.Walk};journey.Enqueue(exit);}
+                        hasGoal=true;goalSince=Time.time;return;
+                    }
+                }
+            }
             planner=new CastleBotJourneyPlanner(this,tripDestination);Intent="Planning stepping stones";
             // Get moving on a safe local step while the longer search is spread over frames.
             LocalFallback();
@@ -179,11 +196,19 @@ namespace DeadlyJenga.CastleBots
         void LocalFallback()
         {
             if(!BotPlanningBudget.TrySense(Mathf.RoundToInt(Seed/7.193f)-1,Population.Count)){nextPlan=Time.time+.12f;return;}
+            BotPlanningBudget.BeginWork();
+            try { LocalFallbackWork(); }
+            finally { BotPlanningBudget.EndWork(); }
+        }
+        void LocalFallbackWork()
+        {
+            if(Population.WalkingRoutes.TryWaypoint(this,tripDestination,out goal))
+            {hasGoal=true;goalSince=Time.time;Intent="Following a walking corridor";return;}
             CastleBotNavigation.Nearby(this,candidates);
             int checkedRoutes=0;
             foreach(var candidate in candidates)
             {
-                if(checkedRoutes++>=18)break;
+                if(checkedRoutes++>=32)break;
                 if(!CastleBotNavigation.Landing(Motor,candidate.Point,out var top))continue;
                 if(!CastleBotNavigation.Route(Motor,top.point,Abilities,out var route))continue;
                 if(diagnostics)LastRouteChange="adopt "+route+" from "+transform.position+" to "+top.point;
@@ -191,7 +216,7 @@ namespace DeadlyJenga.CastleBots
                 CastleBotNavigation.TryLink(Motor,transform.position,top.point,out _,out dropSpeed);
                 Intent=route==CastleBotRoute.Walk?"Finding safer footing":route==CastleBotRoute.Vault?"Climbing a crate":"Crossing a gap";return;
             }
-            Intent="Holding safe ground";nextPlan=Time.time+.6f*variation;
+            Intent="Holding safe ground";nextPlan=Time.time+.25f*variation;
         }
         void Arrived()
         {
@@ -201,7 +226,7 @@ namespace DeadlyJenga.CastleBots
             hasGoal=false;
             if(journey.Count>0&&TakeWaypoint())return;
             bool completed=Time.time>=tripUntil||Vector3.Distance(transform.position,tripDestination)<2;
-            if(completed&&Population.ThreatCost(transform.position)<.3f)
+            if(completed&&!hasObjective&&Population.ThreatCost(transform.position)<.3f)
             {
                 float choose=Mathf.PerlinNoise(Seed+tripNumber,tripNumber*.731f);
                 float restChance=Mathf.Lerp(.7f,.15f,Personality.journeyDrive);
@@ -214,7 +239,7 @@ namespace DeadlyJenga.CastleBots
             }
             WanderDirection=Quaternion.Euler(0,47+Seed%90,0)*WanderDirection;
         }
-        public CastleBotCommand ReadCommand(CastleSurvivor motor,float dt)
+        CastleBotCommand ReadMovementCommand(CastleSurvivor motor,float dt)
         {
             if(!isActiveAndEnabled||Respawning||!Population)return default;
             UpdateObjectives();
@@ -223,6 +248,12 @@ namespace DeadlyJenga.CastleBots
             if(diagnostics)DebugState="grounded="+motor.Grounded+" goal="+hasGoal+" planner="+(planner!=null)+" planIn="+(nextPlan-Time.time)+" budget="+BotPlanningBudget.EdgesUsed+" vault="+motor.Vaulting+" wait="+(waitUntil-Time.time);
             var command=new CastleBotCommand();
             if(motor.Vaulting){Intent="Vaulting";return command;}
+            if(TacticalHold&&motor.Grounded&&Population.ThreatCost(transform.position)<1)
+            {
+                planner=null;journey.Clear();hasGoal=false;
+                if(!objectiveReached){ObjectivesReached++;objectiveReached=true;}
+                command.look=Population.Session.world.Center-transform.position;return command;
+            }
             if(hasGoal&&goal.route==CastleBotRoute.Climb)
             {
                 var end=goal.Point;
@@ -230,7 +261,7 @@ namespace DeadlyJenga.CastleBots
                 var flat=Vector3.ProjectOnPlane(end-transform.position,Vector3.up);
                 if(CastleBotNavigation.ClimbLink(motor,transform.position,end,out var face))
                 {
-                    var normal=face.normal;command.look=-normal;
+                    var normal=face.normal;command.look=-normal;command.climbHeld=true;
                     var stage=face.point+normal*(motor.Capsule.radius+.025f);stage.y=transform.position.y;
                     if(!motor.Climbing&&motor.Grounded&&Vector3.Distance(stage,transform.position)>.12f)
                         command.move=Vector3.ClampMagnitude(stage-transform.position,1)*.5f;
@@ -254,7 +285,6 @@ namespace DeadlyJenga.CastleBots
             if(Time.time<waitUntil&&motor.Grounded&&!danger){command.look=Population.Session.Player.transform.position-transform.position;return command;}
             if(planner!=null&&motor.Grounded)
             {
-                planner.Advance(2);
                 if(planner.Complete)
                 {
                     if(diagnostics){LastRouteSearch=planner.Diagnostics;for(int i=0;i<Mathf.Min(4,planner.Result.Count);i++)LastRouteSearch+=" ["+planner.Result[i].route+" "+planner.Result[i].Point+"]";}
@@ -262,7 +292,8 @@ namespace DeadlyJenga.CastleBots
                     if(!TakeWaypoint()){LocalFallback();if(!hasGoal)tripUntil=0;}
                 }
             }
-            if(planner!=null&&motor.CarryingFlag){command.look=tripDestination-transform.position;return command;}
+            if(planner!=null&&!hasGoal&&motor.Grounded&&Time.time>=nextFallback)
+            {nextFallback=Time.time+.25f;LocalFallback();}
             if(Time.time>=nextPlan&&motor.Grounded)
             {
                 nextPlan=Time.time+Personality.decisionInterval*variation;
@@ -285,6 +316,7 @@ namespace DeadlyJenga.CastleBots
                 command.look=Vector3.ProjectOnPlane(goal.Point-transform.position,Vector3.up).normalized;
                 return command;
             }
+            if(goal.route==CastleBotRoute.Walk&&journey.Count>0&&!PrecisionTraversal)SmoothWalkingRoute();
             var destination=goal.Point;var delta=Vector3.ProjectOnPlane(destination-transform.position,Vector3.up);float distance=delta.magnitude;
             float arrival=goal.route==CastleBotRoute.Walk&&journey.Count>0&&journey.Peek().route!=CastleBotRoute.Walk?.025f:.12f;
             if(distance<arrival&&Mathf.Abs(destination.y-transform.position.y)<.3f&&motor.Grounded)
@@ -333,7 +365,7 @@ namespace DeadlyJenga.CastleBots
                 if(Time.time>=nextJump&&Time.time>=nextVaultProbe)
                 {
                     nextVaultProbe=Time.time+.06f;
-                    if(motor.TryFindLedge(out _,out _)){command.jump=true;nextJump=Time.time+.12f;Intent="Catching a ledge";}
+                    if(motor.TryFindLedge(out _,out var ledge)&&Mathf.Abs(ledge.y-destination.y)<.4f){command.jump=true;nextJump=Time.time+.12f;Intent="Catching a ledge";}
                 }
                 if(goal.route==CastleBotRoute.Drop)pace=Mathf.Clamp(dropSpeed/Mathf.Max(.1f,motor.EffectiveWalkSpeed),.08f,1);
                 if(goal.route==CastleBotRoute.Vault)pace=Mathf.Clamp(dropSpeed/Mathf.Max(.1f,motor.EffectiveWalkSpeed),.08f,1);
@@ -345,10 +377,10 @@ namespace DeadlyJenga.CastleBots
             }
             command.move=direction*pace;
             // Never shuffle off a safe ledge to make a purely cosmetic joke.
-            if(motor.Grounded&&goal.route==CastleBotRoute.Walk&&!command.jump&&safeAhead&&!obstacle&&Time.time>=nextJump&&Personality.goofiness>.5f&&Population.ThreatCost(transform.position)<.1f&&Mathf.PerlinNoise(Seed,Time.time*.1f)>.86f)
+            if(motor.Grounded&&goal.route==CastleBotRoute.Walk&&!command.jump&&safeAhead&&!obstacle&&Time.time>=nextJump&&!hasObjective&&Personality.goofiness>.5f&&Population.ThreatCost(transform.position)<.1f&&Mathf.PerlinNoise(Seed,Time.time*.1f)>.86f)
             {command.jump=true;command.move=Vector3.zero;playfulHop=true;hopStarted=Time.time;nextJump=Time.time+3;Jumps++;Intent="Playful hop";}
             return command;
         }
-        void OnDestroy(){if(Motor&&ReferenceEquals(Motor.InputDriver,this))Motor.InputDriver=null;}
+        void OnDestroy(){ReleaseExecution("Actor destroyed");if(Motor&&ReferenceEquals(Motor.InputDriver,this))Motor.InputDriver=null;}
     }
 }

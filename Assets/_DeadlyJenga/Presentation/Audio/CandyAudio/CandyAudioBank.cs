@@ -13,7 +13,12 @@ namespace DeadlyJenga.CandyAudio
         BreathExertion,BreathRecovery,BreathExhausted,
         DisasterHorn,DisasterTension,WaveImpact,WaveSpray,PuddleDrain,AcidSizzle,AcidBurn,
         CycloneWind,EarthRumble,FireCrackle,MeteorWhistle,MeteorImpact,PowerDown,PowerUp,
-        FingerFlex,HandSwirl,PushImpact,ClaimWin,IslandSink,VampireSizzle
+        FingerFlex,HandSwirl,PushImpact,ClaimWin,IslandSink,VampireSizzle,LobbyLaunch,SpawnSlam,
+        WeaponRifle,WeaponShotgun,WeaponBlaster,WeaponTransform,WeaponDraw,WeaponHolster,WeaponPickup,
+        WeaponSwap,WeaponDrop,WeaponSword,WeaponHammer,WeaponBoxing,WeaponPlasmaImpact,
+        JaguarIdle,JaguarChuff,JaguarGrowl,JaguarAlert,JaguarAttack,JaguarHurt,JaguarDeath,JaguarFootfall,JaguarLand,
+        PlayerPain,PlayerDeath,
+        SuitThruster,SuitIgnition,SuitShutdown
     }
     public enum CandyBus { World,Character,Ambience,Music,UI }
     [Serializable]

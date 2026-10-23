@@ -15,10 +15,14 @@ namespace DeadlyJenga.Modes
             {
                 case ScoreMetric.AverageHeight:return f.averageHeight;
                 case ScoreMetric.CurrentHeight:return f.height;
-                case ScoreMetric.HillTime:return f.metric;
+                case ScoreMetric.HillTime:return f.hillSeconds;
                 case ScoreMetric.BlocksOwned:return f.team>=0?teams[f.team].ownedBlocks:0;
                 case ScoreMetric.TeamPoints:return f.team>=0?TeamScore(teams[f.team]):0;
-                case ScoreMetric.InfectedKills:return f.kills;
+                case ScoreMetric.InfectedKills:return f.infections;
+                case ScoreMetric.Eliminations:return f.kills;
+                case ScoreMetric.FlagCaptures:return f.captures;
+                case ScoreMetric.BlocksClaimed:return f.blocksClaimed;
+                case ScoreMetric.AliveStatus:return f.alive&&!f.dying&&f.role!="spectator"?1:0;
                 default:return f.survivalSeconds;
             }
         }
@@ -44,15 +48,15 @@ namespace DeadlyJenga.Modes
         {
             if(Rules.mode!=GameModeKind.Infection)return Array.Empty<MatchPlayerFrame>();
             var list=new List<Participant>();foreach(var p in players.Values)if(p.present&&p.frame.role=="infected")list.Add(p);
-            list.Sort((a,b)=>{int kills=b.frame.kills.CompareTo(a.frame.kills);return kills!=0?kills:string.CompareOrdinal(a.frame.id,b.frame.id);});
+            list.Sort((a,b)=>{int kills=b.frame.infections.CompareTo(a.frame.infections);return kills!=0?kills:string.CompareOrdinal(a.frame.id,b.frame.id);});
             var result=new MatchPlayerFrame[Mathf.Min(5,list.Count)];
-            for(int i=0;i<result.Length;i++){result[i]=list[i].frame.Copy();result[i].metric=list[i].frame.kills;result[i].rank=i+1;}return result;
+            for(int i=0;i<result.Length;i++){result[i]=list[i].frame.Copy();result[i].metric=list[i].frame.infections;result[i].rank=i+1;}return result;
         }
         public string MetricLabel
         {
             get
             {
-                switch(Rules.metric){case ScoreMetric.AverageHeight:return "Average height";case ScoreMetric.CurrentHeight:return "Height";case ScoreMetric.HillTime:return "Hill time";case ScoreMetric.BlocksOwned:return "Blocks owned";case ScoreMetric.TeamPoints:return Rules.mode==GameModeKind.CaptureFlag?"Captures":"Team points";case ScoreMetric.InfectedKills:return "Infected kills";default:return "Time alive";}
+                switch(Rules.metric){case ScoreMetric.AverageHeight:return "Average height";case ScoreMetric.CurrentHeight:return "Height";case ScoreMetric.HillTime:return "Hill time";case ScoreMetric.BlocksOwned:return "Blocks owned";case ScoreMetric.TeamPoints:return Rules.mode==GameModeKind.CaptureFlag?"Team captures":Rules.mode==GameModeKind.TeamTickets?"Team lives remaining":"Team points";case ScoreMetric.InfectedKills:return "Infections";case ScoreMetric.Eliminations:return "Eliminations";case ScoreMetric.FlagCaptures:return "Captures";case ScoreMetric.BlocksClaimed:return "Blocks claimed";case ScoreMetric.AliveStatus:return "Status";default:return "Time alive";}
             }
         }
         public MatchFrame Snapshot()
@@ -60,14 +64,16 @@ namespace DeadlyJenga.Modes
             foreach(var participant in players.Values)if(!participant.frame.name.StartsWith(ModeNames.NameFor(participant.frame.color,participant.noun),StringComparison.Ordinal))Rename(participant);
             var rows=new List<MatchPlayerFrame>();int alive=0;
             foreach(var p in players.Values)if(p.present){var f=p.frame.Copy();f.handPowerRemaining=Mathf.Max(0,p.powerUntil-Elapsed);f.handReturnRole=p.previousRole;f.heightObservedSeconds=p.observedSeconds;f.metric=Score(p);f.rank=0;rows.Add(f);if(f.alive&&f.role!="infected")alive++;}
-            var top=TopTen();if(Rules.mode==GameModeKind.Infection&&top.Length>5)Array.Resize(ref top,5);
+            bool privateRound=Rules.mode==GameModeKind.MurderMystery&&Phase!=RoundPhase.Victory&&Phase!=RoundPhase.Results;
+            if(privateRound)foreach(var row in rows){row.kills=row.deaths=0;row.metric=0;}
+            var top=privateRound?Array.Empty<MatchPlayerFrame>():TopTen();if(Rules.mode==GameModeKind.Infection&&top.Length>5)Array.Resize(ref top,5);
             foreach(var f in top)foreach(var row in rows)if(row.id==f.id){row.rank=f.rank;break;}
-            var claimFrames=new List<BlockClaimFrame>();foreach(var c in claims.Values)claimFrames.Add(new BlockClaimFrame{block=c.frame.block,owner=c.frame.owner,claimant=c.frame.claimant,progress=c.frame.progress});
+            var claimFrames=new List<BlockClaimFrame>();foreach(var c in claims.Values)claimFrames.Add(new BlockClaimFrame{block=c.frame.block,owner=c.frame.owner,claimant=c.frame.claimant,progress=c.frame.progress,emptySeconds=c.emptySeconds});
             var teamFrames=new MatchTeamFrame[teams.Count];for(int i=0;i<teams.Count;i++){var t=teams[i];teamFrames[i]=new MatchTeamFrame{id=t.id,name=t.name,color=t.color,points=t.points,ownedBlocks=t.ownedBlocks,captures=t.captures,tickets=t.tickets};}
             var flagFrames=new FlagFrame[flags.Count];for(int i=0;i<flags.Count;i++){var f=flags[i];flagFrames[i]=new FlagFrame{team=f.team,home=f.home,position=f.position,carrier=f.carrier,atHome=f.atHome};}
             return new MatchFrame{revision=++sequence,phase=Phase,rules=Rules.Copy(),metricLabel=MetricLabel,winner=Winner,winnerTeam=WinnerTeam,
                 elapsed=Elapsed,remaining=Phase==RoundPhase.Countdown?Mathf.Max(0,Rules.countdownSeconds-phaseTime):Rules.roundSeconds<=0?-1:Mathf.Max(0,Rules.roundSeconds-Elapsed),hill=Hill,survivorsLeft=alive,
-                players=rows.ToArray(),topTen=top,secondaryLeaders=InfectedLeaders(),secondaryMetricLabel=Rules.mode==GameModeKind.Infection?"Infected kills":"",teams=teamFrames,claims=claimFrames.ToArray(),flags=flagFrames};
+                players=rows.ToArray(),topTen=top,secondaryLeaders=InfectedLeaders(),secondaryMetricLabel=Rules.mode==GameModeKind.Infection?"Infections":"",teams=teamFrames,claims=claimFrames.ToArray(),flags=flagFrames};
         }
         void TickSpectators()
         {

@@ -102,6 +102,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool UpdateClimb(Vector2 input,bool held,float dt)
         {
+            if(PowerupUnlimitedStamina)GripRemaining=1;
             climbCooldown=Mathf.Max(0,climbCooldown-dt);climbStun=Mathf.Max(0,climbStun-dt);
             if(!held){climbMustRelease=false;climbHold=0;}else climbHold+=dt;
             if(!Climbing)
@@ -109,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
                 // Rest on secure ground only. Dropping/regrabbing or changing blocks never refills grip.
                 if(Grounded&&GroundAngle<=slopeGripAngle&&SupportAtRest())climbGroundRest+=dt;else climbGroundRest=0;
                 if(climbGroundRest>Mathf.Max(0,climbRecoveryDelay))GripRemaining=CastleStaminaCurve.Advance(GripRemaining,Mathf.Max(0,climbRecoveryPerSecond)*dt,climbRecoveryCurve,climbRecoveryDegree);
-                if(!climbingEnabled||(modeRules!=null&&!modeRules.canClimb)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
+                if(!climbingEnabled||((modeRules!=null&&!modeRules.canClimb)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
                 var facing=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 if(!FindClimbFace(Feet,facing,out var initial))return false;
                 BindClimb(initial);climbPointVelocity=PointVelocity();
@@ -176,7 +177,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(Vector3.Distance(shoulder,planted)>.48f*playerScale)PlantClimbHand(i);
                 climbHandReach[i]=Mathf.Min(1,climbHandReach[i]+dt/.1f);
             }
-            GripRemaining=1-CastleStaminaCurve.Advance(1-GripRemaining,dt*Mathf.Max(0,climbDrainPerSecond)/Mathf.Max(.2f,climbGripSeconds)*(input.sqrMagnitude>.01f?1f:.85f),climbDrainCurve,climbDrainDegree);climbElapsed+=dt;
+            if(!PowerupUnlimitedStamina)GripRemaining=1-CastleStaminaCurve.Advance(1-GripRemaining,dt*Mathf.Max(0,climbDrainPerSecond)/Mathf.Max(.2f,climbGripSeconds)*(input.sqrMagnitude>.01f?1f:.85f),climbDrainCurve,climbDrainDegree);climbElapsed+=dt;
             climbLocalFeet=climbBlock.Anchor.InverseTransformPoint(Feet);climbWorldFeet=climbBlock.Anchor.TransformPoint(climbLocalFeet);
             climbLastVelocity=climbPointVelocity;climbLastRotation=climbBlock.Anchor.rotation;
             verticalSpeed=0;Grounded=false;ActionStatus="Scramble · grip "+Mathf.CeilToInt(GripRemaining*100)+"% · release to drop";

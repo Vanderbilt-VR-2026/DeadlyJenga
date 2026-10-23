@@ -5,7 +5,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    public sealed class CandyPlayerRig : MonoBehaviour, IMysteryBodySource
+    public sealed partial class CandyPlayerRig : MonoBehaviour, IMysteryBodySource, IAvatarSurfacePalette
     {
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
@@ -16,36 +16,67 @@ namespace DeadlyJenga.CandyPlayers
         MaterialPropertyBlock colorProperties;
         Material currentMaterial;
         Color currentColor;
+        [SerializeField] bool hasTint;
+        [SerializeField] Color tint;
         float currentSmoothness;
         int colorIndex=int.MinValue;
         Vector3 previousFeet;
         float walkPhase;
         float locomotionSpeed;
         public Transform LeftPalm=>bones[4];
+        public Transform HeadAnchor=>bones[1];
+        public Transform BodyAnchor=>bones[0];
+        CandyAvatarAttachments attachments;
+        public void SetAppearance(AvatarAppearance appearance)
+        {
+            if(!attachments)attachments=GetComponent<CandyAvatarAttachments>();
+            if(!attachments)attachments=gameObject.AddComponent<CandyAvatarAttachments>();
+            attachments.Apply(this,appearance);
+        }
+        public void SetTint(Color color)
+        {
+            hasTint=true;tint=color;
+            if(currentColor==color)return;
+            colorProperties??=new MaterialPropertyBlock();colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style?style.smoothness:.78f);
+            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);currentColor=color;
+            if(attachments)attachments.Tint(this);
+        }
         public Transform RightPalm=>bones[7];
+        public Transform AppearanceBone(int index)=>bones[index];
+        public Color BaseAppearanceColor=>hasTint?tint:style?style.ColorAt(colorIndex):Color.white;
+        public void ApplyBodyPalette(Color color){colorProperties??=new MaterialPropertyBlock();bodyRenderer.GetPropertyBlock(colorProperties);colorProperties.SetColor("_BaseColor",color);bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);}
         public int ColorIndex=>colorIndex;
         public int BoneCount=>bones?.Length??0;
         public IMysteryBody CreateMysteryBody()
         {
             var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;
             copy.bodyRenderer.enabled=copy.headRenderer.enabled=true;copy.bodyRenderer.SetPropertyBlock(colorProperties);copy.headRenderer.SetPropertyBlock(colorProperties);
-            var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);return corpse;
+            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments)copiedAttachments.Tint(copy);
+            var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
         void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();}
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
-        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
+        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
-        {if(headRenderer)headRenderer.shadowCastingMode=camera==ownerCamera?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;}
-        void AfterCamera(ScriptableRenderContext context,Camera camera){if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
+        {
+            var spectator=Services.Session?.Demo as ISpectatorControls;
+            var watched=spectator?.WatchedRoot(camera);
+            bool firstPerson=camera==ownerCamera||(watched&&transform.IsChildOf(watched));
+            if(headRenderer)headRenderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
+            SetFirstPersonBody(firstPerson);
+            if(attachments)attachments.FirstPerson(this,firstPerson);
+        }
+        void AfterCamera(ScriptableRenderContext context,Camera camera){RestoreFirstPersonBody();if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;if(attachments)attachments.FirstPerson(this,false);}
         public void SetColor(int index)
         {
-            if(!style)return;var color=style.ColorAt(index);
+            if(!style)return;var color=hasTint?tint:style.ColorAt(index);
             if(index==colorIndex&&currentMaterial==style.material&&currentColor==color&&currentSmoothness==style.smoothness)return;
             colorProperties??=new MaterialPropertyBlock();
             bodyRenderer.sharedMaterial=style.material;headRenderer.sharedMaterial=style.material;
             colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style.smoothness);
             bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);
             colorIndex=index;currentMaterial=style.material;currentColor=color;currentSmoothness=style.smoothness;
+            if(attachments)attachments.Tint(this);
         }
         public void ApplyFrame(CandyAvatarFrame frame,bool grounded=true,float deltaTime=0)
         {
@@ -80,6 +111,7 @@ namespace DeadlyJenga.CandyPlayers
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
+            if(attachments)attachments.RefreshPalette(this);
             if(deltaTime>0){locomotionSpeed=Vector3.ProjectOnPlane(frame.feet-previousFeet,Vector3.up).magnitude/deltaTime;previousFeet=frame.feet;walkPhase+=Mathf.Min(locomotionSpeed,6)*deltaTime*6;}
             float speed=locomotionSpeed;
             float stride=grounded?Mathf.Clamp01(speed/2)*.13f:0;

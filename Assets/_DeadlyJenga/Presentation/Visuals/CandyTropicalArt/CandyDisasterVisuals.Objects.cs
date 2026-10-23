@@ -169,18 +169,12 @@ namespace DeadlyJenga.CandyArt
         }
         void Fire(DisasterFrame f)
         {
+            if(f.burns!=null){FireSurfaces(f);return;}
             var world=Services.World;if(world==null||f.blocks==null)return;
-            int stride=Mathf.Max(1,Mathf.CeilToInt(f.blocks.Length/96f));
-            for(int i=0;i<f.blocks.Length;i+=stride)
+            for(int i=0;i<f.blocks.Length;i++)
             {
                 int id=f.blocks[i];if(id<0||id>=world.Blocks.Count)continue;var rb=world.Blocks[id];if(!rb||!rb.gameObject.activeInHierarchy)continue;
-                var collider=rb.GetComponent<Collider>();if(!collider)continue;var bounds=collider.bounds;
-                for(int j=0;j<3;j++)
-                {
-                    float phase=Time.time*5+id*1.7f+j*2,scale=.8f+.15f*Mathf.Sin(phase);
-                    var p=bounds.center+new Vector3(Mathf.Sin(j*2.4f)*bounds.extents.x*.6f,bounds.extents.y+.5f,Mathf.Cos(j*2.4f)*bounds.extents.z*.6f);
-                    Puff(flames,p,scale,scale*2,j*13);if(j==0)Puff(smokePuffs,p+Vector3.up*(1+Mathf.Repeat(Time.time+id,2)),1.8f,2.5f,id*31);
-                }
+                Engulf(rb,id);
             }
         }
         void Dust(DisasterFrame f)

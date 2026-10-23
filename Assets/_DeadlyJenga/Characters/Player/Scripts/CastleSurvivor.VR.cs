@@ -25,6 +25,7 @@ namespace DeadlyJenga.CastlePrototype
         public float jumpPinchPress=.023f,jumpPinchRelease=.032f;
         [Range(0,1)] public float jumpFistPress=.7f,jumpFistRelease=.5f;
         bool jumpArmed,gestureHeld,previousJumpHeld;
+        bool blasterJumpOverride;
         bool vrInputFocused=true;
         void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused)ResetVRJump();}
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
@@ -103,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             pressed=held=false;
             if(InputSuspended||!vrInputFocused){ResetVRJump();return;}
-            if(vrPlayStyle==SurvivorVRPlayStyle.Standing)
+            if(vrPlayStyle==SurvivorVRPlayStyle.Standing&&!blasterJumpOverride)
             {
                 if(!hand.tracked||!hand.skeletonTracked){ResetVRJump();return;}
                 if(jumpGesture==SurvivorJumpGesture.IndexPinch)

@@ -41,23 +41,36 @@ namespace DeadlyJenga.Presentation
                     var go=new GameObject("Visual - colored footprints",typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(blocks[trail.block].transform,false);var mesh=new Mesh{name="Batched mystery footprints"};mesh.MarkDynamic();go.GetComponent<MeshFilter>().sharedMesh=mesh;var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;
                     batch=new Batch{root=go.transform,mesh=mesh,renderer=renderer};batches.Add(batch);open[key]=batch;
                 }
-                var normal=trail.normal.sqrMagnitude>.1f?trail.normal.normalized:Vector3.up;
-                var rotation=Quaternion.FromToRotation(Vector3.up,normal)*Quaternion.Euler(0,trail.yaw,0);
+                var block=blocks[trail.block].transform;
+                var localNormal=trail.normal.sqrMagnitude>.1f?trail.normal.normalized:Vector3.up;
+                var normal=block.TransformDirection(localNormal).normalized;
+                var rotation=block.rotation*Quaternion.FromToRotation(Vector3.up,localNormal)*Quaternion.Euler(0,trail.yaw,0);
+                float scale=FootScale(trail.color);
+                var point=block.TransformPoint(trail.point);
                 for(int side=-1;side<=1;side+=2)
                 {
-                    var center=trail.point+normal*.012f+rotation*Vector3.right*(side*.12f);
-                    Oval(batch,center+rotation*Vector3.forward*.075f,rotation,normal,.065f,.12f);
-                    Oval(batch,center-rotation*Vector3.forward*.075f,rotation,normal,.048f,.045f);
+                    var center=point+normal*.006f+rotation*Vector3.right*(side*.12f*scale);
+                    Oval(batch,center+rotation*Vector3.forward*(.075f*scale),rotation,normal,.092f*scale,.12f*scale);
+                    Oval(batch,center-rotation*Vector3.forward*(.075f*scale),rotation,normal,.07f*scale,.045f*scale);
                 }
                 batch.prints++;dirty.Add(batch);
             }
             foreach(var batch in dirty){batch.mesh.SetVertices(batch.vertices);batch.mesh.SetNormals(batch.normals);batch.mesh.SetTriangles(batch.indices,0);batch.mesh.RecalculateBounds();}
             if(Time.unscaledTime>=nextVisibility&&Services.Session?.ActiveCamera){nextVisibility=Time.unscaledTime+.25f;var point=Services.Session.ActiveCamera.transform.position;foreach(var batch in batches)if(batch.renderer)batch.renderer.enabled=batch.renderer.bounds.SqrDistance(point)<625;}
         }
+        static float FootScale(Color color)
+        {
+            var runtime=MatchRuntime.Current;
+            if(runtime?.Frame?.players!=null)foreach(var player in runtime.Frame.players)
+                if(player.color==color){var visual=runtime.FindActor(player.id)?.Visual;if(visual)return Mathf.Clamp(Mathf.Abs(visual.lossyScale.x),.05f,3);}
+            var local=Services.Session?.Player?.gameObject.GetComponent<IModeActor>()?.Visual;
+            return local?Mathf.Clamp(Mathf.Abs(local.lossyScale.x),.05f,3):1;
+        }
         static void Oval(Batch batch,Vector3 center,Quaternion rotation,Vector3 normal,float width,float length)
         {
-            int start=batch.vertices.Count;batch.vertices.Add(center);batch.normals.Add(normal);
-            for(int i=0;i<9;i++){float angle=i*Mathf.PI*2/8;batch.vertices.Add(center+rotation*new Vector3(Mathf.Sin(angle)*width,0,Mathf.Cos(angle)*length));batch.normals.Add(normal);if(i<8){batch.indices.Add(start);batch.indices.Add(start+i+1);batch.indices.Add(start+i+2);}}
+            var frame=batch.root;var localNormal=frame.localToWorldMatrix.transpose.MultiplyVector(normal).normalized;
+            int start=batch.vertices.Count;batch.vertices.Add(frame.InverseTransformPoint(center));batch.normals.Add(localNormal);
+            for(int i=0;i<9;i++){float angle=i*Mathf.PI*2/8;batch.vertices.Add(frame.InverseTransformPoint(center+rotation*new Vector3(Mathf.Sin(angle)*width,0,Mathf.Cos(angle)*length)));batch.normals.Add(localNormal);if(i<8){batch.indices.Add(start);batch.indices.Add(start+i+1);batch.indices.Add(start+i+2);}}
         }
         void Clear(){foreach(var b in batches){if(b.root)Destroy(b.root.gameObject);if(b.mesh)Destroy(b.mesh);}batches.Clear();open.Clear();seen=0;first=null;}
         void OnDestroy(){Clear();foreach(var m in materials.Values)if(m)Destroy(m);}

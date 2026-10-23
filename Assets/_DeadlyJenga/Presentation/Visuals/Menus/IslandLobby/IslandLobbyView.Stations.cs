@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     // The three terminals: JOIN (code, nearby rooms, invitations), HOST, and MAP + MODE.
     public sealed partial class IslandLobbyView
     {
+        const float StationY = 2.5f, StationZ = 1f, StationScale = .0022f;
         RectTransform joinStation,hostStation,setupStation;
         LobbyTerminalFaces joinFace,setupFace;
         Text joinHint,hostHint,setupHint,hostCode;
@@ -16,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         void BuildTerminals()
         {
             var l=lobby;
-            joinStation=Terminal("JOIN",new Vector3(-3.05f,1.62f,1),-10,new Vector2(1000,760),CandyHudVisuals.Lavender);
+            joinStation=Terminal("JOIN",new Vector3(-3.05f,StationY,StationZ),0,new Vector2(1000,760),CandyHudVisuals.Lavender);
             joinFace=joinStation.GetComponent<LobbyTerminalFaces>();
             Add(joinStation,"code",()=>l.EnteredCode.Length>0?l.EnteredCode:"ENTER A CODE",170,l.FocusCode,()=>l.JoinEnabled,-90,690,95);
             Add(joinStation,"join",()=>"JOIN",170,l.Join,()=>l.JoinEnabled&&l.CodeValid,360,145,95);
@@ -33,6 +34,8 @@ namespace DeadlyJenga.CastlePrototype
             StyleJoinArcade();
             BuildRoomStation();
             BuildGameStation();
+            BuildControlCabinet(hostStation,false);
+            BuildControlCabinet(setupStation,true);
         }        void UpdateStations()
         {
             joinFace.Opacity=1;setupFace.Opacity=lobby.IsHost?1:.38f;UpdateRoomStation();UpdateGameStation();
@@ -50,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype
         void CodeText(char value){if(lobby!=null&&lobby.CodeFocused)lobby.TypeCode(value);}
         RectTransform Terminal(string title,Vector3 position,float yaw,Vector2 size,Color accent)
         {
-            var go=new GameObject(title,typeof(RectTransform),typeof(Canvas),typeof(Image));go.transform.SetParent(transform,false);go.transform.SetPositionAndRotation(position,Quaternion.Euler(0,yaw,0));go.transform.localScale=Vector3.one*.0022f;
+            var go=new GameObject(title,typeof(RectTransform),typeof(Canvas),typeof(Image));go.transform.SetParent(transform,false);go.transform.SetPositionAndRotation(position,Quaternion.Euler(0,yaw,0));go.transform.localScale=Vector3.one*(title=="WARDROBE"?.0022f:StationScale);
             var rect=go.GetComponent<RectTransform>();rect.sizeDelta=size;var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=100;
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
             Label(rect,title,size.y*.5f-72,68,size.x-70,105).fontStyle=FontStyle.Bold;

@@ -28,6 +28,7 @@ namespace DeadlyJenga.Modes
                 f.survivorColor=source.survivorColor.a>0?source.survivorColor:source.role=="infected"?ModeNames.Colors[1]:source.color;
                 f.position=source.position;f.viewPosition=source.viewPosition;f.viewRotation=source.viewRotation;
                 f.health=source.health;f.metric=source.metric;f.survivalSeconds=source.survivalSeconds;f.averageHeight=source.averageHeight;f.height=source.height;f.kills=source.kills;f.spectating=source.spectating;
+                f.deaths=source.deaths;f.captures=source.captures;f.flagReturns=source.flagReturns;f.blocksClaimed=source.blocksClaimed;f.infections=source.infections;f.bodyReports=source.bodyReports;f.revives=source.revives;f.hillSeconds=source.hillSeconds;
                 f.dying=source.dying;f.deathProgress=source.deathProgress;f.deathRemaining=source.deathRemaining;f.pendingOutcome=source.pendingOutcome;
                 f.sinking=source.sinking;f.sinkProgress=source.sinkProgress;
                 p.previousRole=source.handReturnRole;p.powerUntil=source.handPowerRemaining>0?frame.elapsed+source.handPowerRemaining:0;
@@ -35,7 +36,7 @@ namespace DeadlyJenga.Modes
             }
             foreach(var t in frame.teams)if(t.id>=0&&t.id<teams.Count){var target=teams[t.id];target.points=t.points;target.captures=t.captures;target.tickets=t.tickets;target.ownedBlocks=t.ownedBlocks;}
             flags.Clear();foreach(var f in frame.flags)flags.Add(new FlagFrame{team=f.team,home=f.home,position=f.position,carrier=f.carrier,atHome=f.atHome});
-            claims.Clear();foreach(var f in frame.claims){var c=new Claim();c.frame.block=f.block;c.frame.owner=f.owner;c.frame.claimant=f.claimant;c.frame.progress=f.progress;claims[f.block]=c;}
+            claims.Clear();foreach(var f in frame.claims){var c=new Claim();c.frame.block=f.block;c.frame.owner=f.owner;c.frame.claimant=f.claimant;c.frame.progress=f.progress;c.emptySeconds=f.emptySeconds;claims[f.block]=c;}
             Elapsed=frame.elapsed;Hill=frame.hill;Winner=frame.winner;WinnerTeam=frame.winnerTeam;Phase=frame.phase;
             phaseTime=Phase==RoundPhase.Countdown?Mathf.Max(0,Rules.countdownSeconds-frame.remaining):0;sequence=frame.revision;
         }

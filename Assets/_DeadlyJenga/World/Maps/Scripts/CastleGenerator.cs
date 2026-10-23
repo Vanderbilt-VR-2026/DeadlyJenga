@@ -128,7 +128,7 @@ namespace DeadlyJenga.CastlePrototype
                 int hash = 17;
                 void Hash(float value) { hash = hash * 31 + value.GetHashCode(); }
                 Hash(settings.blockSize.x); Hash(settings.blockSize.z); Hash(settings.modulesPerSide);
-                Hash(settings.moduleGap); Hash(settings.singleTower ? 1 : 0); Hash(CastleLayout.Footprint(settings));
+                Hash((int)settings.structureVariant); Hash(settings.moduleGap); Hash(settings.singleTower ? 1 : 0); Hash(CastleLayout.Footprint(settings));
                 hash=hash*31+(settings.layoutPreset??"").GetHashCode();
                 return hash;
             }
@@ -138,11 +138,11 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (settings == null) return;
             foreach (var placement in CastleLayout.Build(settings))
-                if (placement.Course == 0)
+                if (Mathf.Abs(placement.Position.y-placement.BlockSize(settings).y*.5f)<.01f)
                     into.Add(new Footprint
                     {
                         center = new Vector2(placement.Position.x, placement.Position.z),
-                        halfSize = new Vector2(settings.blockSize.x, settings.blockSize.z) * .5f,
+                        halfSize = new Vector2(placement.BlockSize(settings).x, placement.BlockSize(settings).z) * .5f,
                         rotation = placement.Rotation
                     });
         }
@@ -212,7 +212,7 @@ namespace DeadlyJenga.CastlePrototype
                 go.name = $"{p.Section}_Course{p.Course:00}_Block{Bodies.Count:000}";
                 go.transform.localPosition = p.Position;
                 go.transform.localRotation = p.Rotation;
-                go.transform.localScale = settings.blockSize;
+                go.transform.localScale = p.BlockSize(settings);
                 var body = go.GetComponent<Rigidbody>();
                 // Teleport the physics pose too: interpolated bodies otherwise retain the
                 // prefab's origin until the first physics step, including during top spawn.
@@ -224,10 +224,13 @@ namespace DeadlyJenga.CastlePrototype
                         p.Section == CastleSection.Keep ? keepMaterial : wallMaterial;
                     block.RefreshAppearance(); block.SyncSurface();
                 }
-                body.mass = Mathf.Max(1, mass);
+                var size=p.BlockSize(settings);
+                float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
+                body.mass = Mathf.Max(1, mass*volumeRatio);
                 // Ninety loose courses need more contact iterations than the standard castle.
-                body.solverIterations = settings.cathedral ? 80 : 20;
-                body.solverVelocityIterations = settings.cathedral ? 20 : 8;
+                bool tallKeep=settings.structureVariant==CastleStructure.FourKeeps&&p.Section==CastleSection.Keep;
+                body.solverIterations = settings.cathedral ? 80 : tallKeep ? 60 : 20;
+                body.solverVelocityIterations = settings.cathedral ? 20 : tallKeep ? 16 : 8;
                 body.sleepThreshold = .005f;
                 Bodies.Add(body);
             }

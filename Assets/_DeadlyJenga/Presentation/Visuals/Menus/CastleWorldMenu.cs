@@ -84,8 +84,10 @@ namespace DeadlyJenga.CastlePrototype
         public void Point(Camera camera, bool pressed,bool held=false)
         {
             if(PointMapControls(camera,pressed))return;
+            if(powerupPage){PointPowerupPage(camera,pressed);return;}
             PointScaffold(camera,pressed);
             if(tabletopPage){PointTabletop(camera,pressed);return;}
+            if(hudPage){PointHudPage(camera,pressed);return;}
             if(modePage){PointModePage(camera,pressed);return;}
             if(disasterPage){PointDisasterPage(camera,pressed,held);return;}
             HideDisasterSliders();
@@ -138,11 +140,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 labels[0].text="Resume";labels[1].text=watching?"Spectate previous survivor":"Switch survivor / flying hand";labels[2].text=watching?"Spectate next survivor":"Respawn on top";labels[3].text="Rebuild castle (host)";
                 labels[4].text="Add a survivor";labels[5].text="Fill to target";labels[6].text="Next survivor personality";labels[7].text="Clear survivors";
-                labels[8].text="Add a flying hand";labels[9].text="Next hand personality";labels[10].text="Clear flying hands";labels[12].text="VR movement / voice";labels[13].text="Match / scenery / stamina";labels[14].text="Natural disasters";
+                labels[8].text="Add a flying hand";labels[9].text="Next hand personality";labels[10].text="Clear flying hands";labels[12].text="VR movement / voice";labels[13].text="Match / scenery / stamina";labels[14].text="Powerups / disasters";
                 labels[11].text=net!=null&&net.IsFusion?"Multiplayer / leave":"Same-Wi-Fi invites"+(net!=null&&net.HasPending?" Â· NEW":"");
                 for(int i=0;i<buttons.Length;i++)
                 {
-                    bool shown=(i!=11||net!=null)&&(i!=13||session.CanEditWorld)&&(i!=14||DemoMode||CanCommand);
+                    bool shown=(i!=11||net!=null)&&(i!=13||session.CanEditWorld||match!=null)&&(i!=14||DemoMode||CanCommand);
                     buttons[i].gameObject.SetActive(shown);
                     if(shown)targets[i].enabled=true;
                 }
@@ -162,7 +164,7 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 if (!hover || !pressed) continue;
                 if(watching&&!networkPage&&!comfortPage&&!tuningPage&&(i==1||i==2)){match.NextSpectator(i==1?-1:1);session.SetMenu(false);break;}
-                if(i==14){disasterSelection=-1;disasterPage=true;networkPage=comfortPage=tuningPage=false;break;}
+                if(i==14){powerupPage=true;networkPage=comfortPage=tuningPage=false;break;}
                 if(i==12){if(tuningPage){tuningPage=false;comfortPage=false;}else comfortPage=!comfortPage;networkPage=false;break;}
                 if(tuningPage)
                 {

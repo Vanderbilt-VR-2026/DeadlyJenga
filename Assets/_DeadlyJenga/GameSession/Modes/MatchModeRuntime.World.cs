@@ -10,6 +10,7 @@ namespace DeadlyJenga.Modes
         Vector3 HighestSupport()
         {
             var world=Services.World;if(world==null)return Vector3.zero;
+            var layout=AuthoredLayout();if(layout)return LayoutPosition(layout.hill);
             Vector3 best=world.SafeSpawnPoint();float height=float.NegativeInfinity;
             if(Physics.Raycast(new Vector3(world.Center.x,world.PlayableBounds.max.y+20,world.Center.z),Vector3.down,out var floor,world.PlayableBounds.size.y+100,1,QueryTriggerInteraction.Ignore))best=floor.point+Vector3.up*.05f;
             foreach(var block in world.Blocks)
@@ -26,6 +27,7 @@ namespace DeadlyJenga.Modes
         public Vector3 SpawnPoint(int team,int ordinal,string role)
         {
             var world=Services.World;if(world==null)return Vector3.up;
+            if(TryLayoutSpawn(team,ordinal,role,out var authored))return authored;
             if(role=="infected")return RimPoint(team<0?ordinal:team,12);
             if(Rules.spawn==SpawnRule.Top)return world.SafeSpawnPoint();
             int participants=0;foreach(var p in simulation.Participants)if(p.present)participants++;
@@ -55,6 +57,7 @@ namespace DeadlyJenga.Modes
         void SetFlagHomes()
         {
             if(!Authority||Rules.mode!=GameModeKind.CaptureFlag)return;
+            if(TryLayoutFlagHomes(out var authoredHomes)){simulation.SetFlagHomes(authoredHomes);return;}
             var homes=new Vector3[Rules.teamCount];
             for(int t=0;t<homes.Length;t++)
             {
@@ -122,8 +125,9 @@ namespace DeadlyJenga.Modes
         }
         public void MapRebuilt()
         {
+            ResetEquipment();
             LatestReport=null;restoredHistory=false;pendingBotHealth.Clear();lastBlocks=-1;RefreshBlocks();sinkStarted.Clear();transitionUntil.Clear();delayedOutcomes.Clear();nextHill=0;ruleCache.Clear();
-            simulation.StartRound();SetFlagHomes();frame=simulation.Snapshot();
+            simulation.StartRound();SetFlagHomes();frame=simulation.Snapshot();PublishEnemyActions();PublishEquipment();
             simulation.Hill=HighestSupport();
             foreach(var p in simulation.Participants)Respawn(p.frame.id,p.frame.role);
         }

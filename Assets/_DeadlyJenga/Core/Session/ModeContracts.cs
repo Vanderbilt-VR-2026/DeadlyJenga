@@ -8,7 +8,7 @@ namespace DeadlyJenga.Core
     public enum IslandRule { Sink, Lethal, Walkable }
     public enum SpawnRule { Top, Rim, TeamPoles }
     public enum RoundPhase { Waiting, Countdown, Playing, Victory, Results }
-    public enum ScoreMetric { SurvivalTime, AverageHeight, CurrentHeight, HillTime, BlocksOwned, TeamPoints, InfectedKills }
+    public enum ScoreMetric { SurvivalTime, AverageHeight, CurrentHeight, HillTime, BlocksOwned, TeamPoints, InfectedKills, Eliminations, FlagCaptures, BlocksClaimed, AliveStatus }
 
     [Serializable]
     public sealed class ModeRules
@@ -68,6 +68,8 @@ namespace DeadlyJenga.Core
     {
         public string id, name, role = "survivor", spectating;
         public int team = -1, rank, kills, watching;
+        public int deaths, captures, flagReturns, blocksClaimed, infections, bodyReports, revives;
+        public float hillSeconds;
         public Color color = Color.white;
         public Color survivorColor;
         public bool alive, bot, local, dying;
@@ -95,6 +97,7 @@ namespace DeadlyJenga.Core
     {
         public int block, owner = -1, claimant = -1;
         public float progress;
+        public float emptySeconds;
     }
     [Serializable]
     public sealed class FlagFrame
@@ -107,6 +110,15 @@ namespace DeadlyJenga.Core
     [Serializable]
     public sealed class MatchFrame
     {
+        public string enemyActionEpoch="";
+        public int enemyActionSequence;
+        public EnemyActionFrame[] enemyActions=Array.Empty<EnemyActionFrame>();
+        public string equipmentEpoch="";
+        public int equipmentSequence;
+        public EquipmentActionFrame[] equipmentActions=Array.Empty<EquipmentActionFrame>();
+        public EquipmentState[] equipment=Array.Empty<EquipmentState>();
+        public EquipmentPickup[] pickups=Array.Empty<EquipmentPickup>();
+        public BlasterFrame blaster=new BlasterFrame();
         public int revision, winnerTeam = -1;
         public RoundPhase phase;
         public ModeRules rules = new ModeRules();
@@ -142,6 +154,15 @@ namespace DeadlyJenga.Core
         void ReturnToLobby();
         void NextSpectator(int step);
         void ActivateHandPower(float seconds);
+    }
+    // Temporary development review tools. Normal host permission must never enable these.
+    public interface IMatchReviewControls
+    {
+        bool DevelopmentReviewEnabled { get; }
+        bool CanEndGame { get; }
+        string PlayerInRole(MysteryRole role);
+        void WatchPlayer(string actorId);
+        void EndGame();
     }
     public static class MatchRuntime
     {

@@ -22,29 +22,86 @@ namespace DeadlyJenga.DevTools.Editor
     public static class ModeRuntimeGameChecks
     {
         const string Key="ModeRuntimeGameChecks";
+        [Serializable] sealed class ShelterScenes { public SceneSetup[] scenes; }
         static int failures, errors;
         static string Report=>ProjectPath.Report("ModeRuntimeGame.txt");
         static ModeRuntimeGameChecks()
         {
+            EditorApplication.update+=PollShelter;
             EditorApplication.playModeStateChanged+=state=>
             {
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode)
                 {
                     failures=errors=0;Application.logMessageReceived+=Log;
-                    EditorApplication.delayCall+=()=>{var driver=new GameObject("Mode integration test driver");Object.DontDestroyOnLoad(driver);driver.AddComponent<ModeGameCheckDriver>().StartCoroutine(Guard(Check()));};
+                    EditorApplication.delayCall+=()=>{var driver=new GameObject("Mode integration test driver");Object.DontDestroyOnLoad(driver);driver.AddComponent<ModeGameCheckDriver>().StartCoroutine(Guard(SessionState.GetBool(Key+"ShelterOnly",false)?ShelterCheck():Check()));};
                 }
                 if(state==PlayModeStateChange.EnteredEditMode)
                 {
                     Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);
                     if(SessionState.GetBool(Key+"Batch",false))EditorApplication.Exit(SessionState.GetInt(Key+"Failures",1)==0?0:1);
-                    else {var original=SessionState.GetString(Key+"Original","");if(File.Exists(original))EditorSceneManager.OpenScene(original);}
+                    else {var original=SessionState.GetString(Key+"Original","");if(File.Exists(original)&&!SessionState.GetBool(Key+"ShelterOnly",false))EditorSceneManager.OpenScene(original);}
+                    if(SessionState.GetBool(Key+"ShelterOnly",false))
+                    {
+                        var saved=JsonUtility.FromJson<ShelterScenes>(SessionState.GetString(Key+"SavedScenes",""));
+                        if(saved?.scenes!=null)EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
+                        var choices=SessionState.GetString(Key+"SavedChoices","");
+                        if(!string.IsNullOrEmpty(choices))SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(choices));
+                        MatchSetup.FromLobby=SessionState.GetBool(Key+"SavedLobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"SavedLocal",false);
+                        SessionState.SetBool(Key+"ShelterOnly",false);
+                        bool same=saved?.scenes!=null&&EditorSceneManager.GetSceneManagerSetup().Select(s=>s.path).SequenceEqual(saved.scenes.Select(s=>s.path));
+                        File.AppendAllText(Report,(same?"PASS ":"FAIL ")+"Original scene setup restored; match choices reapplied.\n");
+                    }
                 }
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validate Actual Game Mode Runtime")]
-        public static void Run()=>Begin(false);
-        public static void RunBatch()=>Begin(true);
+        public static void Run(){SessionState.SetBool(Key+"ShelterOnly",false);Begin(false);}
+        public static void RunBatch(){SessionState.SetBool(Key+"ShelterOnly",false);Begin(true);}
+        static void PollShelter()
+        {
+            if(EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode||SpectatorVideoCapture.Busy)return;
+            string request=ProjectPath.Report("BotShelter.request");if(!File.Exists(request))return;
+            File.Delete(request);RunShelterOnly();
+        }
+        [MenuItem("Tools/Deadly Jenga/Validation/Check Demo Bot Shelter")]
+        public static void RunShelterOnly()
+        {
+            if(EditorSceneManager.GetSceneManagerSetup().Any(s=>string.IsNullOrEmpty(s.path))||Enumerable.Range(0,UnityEngine.SceneManagement.SceneManager.sceneCount).Any(i=>UnityEngine.SceneManagement.SceneManager.GetSceneAt(i).isDirty))
+                throw new InvalidOperationException("Save edited scenes before running bot shelter checks.");
+            SessionState.SetString(Key+"SavedChoices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
+            SessionState.SetString(Key+"SavedScenes",JsonUtility.ToJson(new ShelterScenes{scenes=EditorSceneManager.GetSceneManagerSetup()}));
+            SessionState.SetBool(Key+"SavedLobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"SavedLocal",MatchSetup.StartLocalSession);
+            SessionState.SetBool(Key+"ShelterOnly",true);Begin(false);
+        }
+        static IEnumerator ShelterCheck()
+        {
+            yield return Until(()=>Services.Session is CastlePlaySession s&&s.Modes&&s.Player!=null,"Game session starts");
+            var session=(CastlePlaySession)Services.Session;
+            if(session.Social!=null)session.Social.VoiceEnabled=false;
+            session.SetMenu(false);session.Survivor().InputSuspended=true;
+            CheckCapsuleEdges(session);
+            yield return ShelterRoute(session,session.Modes);
+        }
+        static void CheckCapsuleEdges(CastlePlaySession session)
+        {
+            var motor=session.Survivor();var saved=motor.transform.position;var rotation=motor.transform.rotation;
+            var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.name="Capsule edge grounding fixture";floor.layer=Layers.Surface;
+            float scale=motor.playerScale;floor.transform.position=new Vector3(100,9,100);floor.transform.localScale=new Vector3(4*scale,2,2*scale);
+            var body=floor.AddComponent<Rigidbody>();body.isKinematic=true;body.useGravity=false;
+            var probe=typeof(CastleSurvivor).GetMethod("ProbeGround",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            try
+            {
+                float y=10-(.1f*scale+motor.Capsule.skinWidth);
+                motor.Teleport(new Vector3(100,y,100+scale+motor.Capsule.radius*.35f),Quaternion.identity);probe.Invoke(motor,null);
+                CheckThat(motor.Grounded,"Actual capsule lip contact accepts skin-width penetration");
+                motor.Teleport(new Vector3(100,y,100+scale+2),Quaternion.identity);probe.Invoke(motor,null);
+                CheckThat(!motor.Grounded,"Unsupported air does not become ground");
+                motor.Teleport(new Vector3(100,9,100+scale+motor.Capsule.radius*.6f),Quaternion.identity);probe.Invoke(motor,null);
+                CheckThat(!motor.Grounded,"Vertical wall contact does not become ground");
+            }
+            finally{motor.Teleport(saved,rotation);Object.Destroy(floor);}
+        }
         static void Begin(bool batch)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Leave Play Mode before running the mode fixture.");
@@ -326,7 +383,7 @@ namespace DeadlyJenga.DevTools.Editor
                     float end=Time.time+25;bool choseShelter=false;
                     while(Time.time<end&&!fake.IsSheltered(actor.ViewPose.position))
                     {
-                        var goals=new List<BotObjective>();runtime.Collect(bot,goals);choseShelter|=goals.Any(g=>g.id.StartsWith("hazard-safe:"));yield return null;
+                        var goals=new List<BotObjective>();runtime.Collect(bot,goals);choseShelter|=goals.Any(g=>g.kind==BotObjectiveKind.Guard&&fake.IsSheltered(g.position+actor.ViewPose.position-actor.transform.position));yield return null;
                     }
                     CheckThat(choseShelter&&fake.IsSheltered(actor.ViewPose.position)&&bot.transform.position.x>fixture.transform.position.x,"Ordinary bot follows a real route into standing-clear acid-rain shelter without test movement or damage");
                 }

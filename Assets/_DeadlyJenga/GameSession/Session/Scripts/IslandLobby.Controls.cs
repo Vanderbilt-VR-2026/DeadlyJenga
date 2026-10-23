@@ -88,10 +88,16 @@ namespace DeadlyJenga.CastlePrototype
         public bool CanConfigure=>Room.CanConfigure;
         public string MapTitle=>catalog.maps[Room.MapIndex].title;
         public string ModeTitle=>catalog.modes[Room.ModeIndex].title;
-        public void CycleMap(int step)=>Room.SelectMap((Room.MapIndex+step+catalog.maps.Length)%catalog.maps.Length);
-        public void CycleMode(int step)=>Room.SelectMode((Room.ModeIndex+step+catalog.modes.Length)%catalog.modes.Length);
-        public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!Room.CanConfigure)return false;Room.SelectMap(i);return true;}
-        public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!Room.CanConfigure)return false;Room.SelectMode(i);return true;}
+        public void CycleMap(int step)
+        {
+            int at=Room.MapIndex;for(int i=0;i<catalog.maps.Length;i++){at=(at+step+catalog.maps.Length)%catalog.maps.Length;if(!catalog.maps[at].SupportsMode(SelectedModeId))continue;Room.SelectMap(at);return;}
+        }
+        public void CycleMode(int step)
+        {
+            int at=Room.ModeIndex;for(int i=0;i<catalog.modes.Length;i++){at=(at+step+catalog.modes.Length)%catalog.modes.Length;if(!catalog.modes[at].available||!Array.Exists(catalog.maps,m=>m.SupportsMode(catalog.modes[at].id)))continue;Room.SelectMode(at);return;}
+        }
+        public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!Room.CanConfigure||!catalog.maps[i].SupportsMode(SelectedModeId))return false;Room.SelectMap(i);return true;}
+        public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!Room.CanConfigure||!catalog.modes[i].available||!Array.Exists(catalog.maps,m=>m.SupportsMode(id)))return false;Room.SelectMode(i);return true;}
         public bool CanStart=>Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost;
         public bool StartPending=>Room.LaunchPending;
         public void StartOrCancel(){if(!CanStart)return;if(Room.LaunchPending)Room.CancelLaunch();else Room.Launch();}

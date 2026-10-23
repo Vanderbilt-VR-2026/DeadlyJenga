@@ -18,7 +18,7 @@ namespace DeadlyJenga.Modes
         {
             if(session==null||session.MenuOpen||frame.players==null)return;
             MatchPlayerFrame self=null;foreach(var row in frame.players)if(row.id==LocalActorId){self=row;break;}
-            if(self==null||self.role!="spectator")return;
+            if(!DemoSpectating&&(self==null||self.role!="spectator"))return;
             int step=0;var keyboard=Keyboard.current;
             if(!session.IsVR&&keyboard!=null){if(keyboard.leftArrowKey.wasPressedThisFrame)step=-1;if(keyboard.rightArrowKey.wasPressedThisFrame)step=1;}
             if(session.IsVR)
@@ -27,11 +27,12 @@ namespace DeadlyJenga.Modes
                 if(device.TryGetFeatureValue(CommonUsages.primary2DAxis,out Vector2 axis))
                 {if(Mathf.Abs(axis.x)<.3f)spectatorStickArmed=true;else if(spectatorStickArmed&&Mathf.Abs(axis.x)>.7f){step=axis.x<0?-1:1;spectatorStickArmed=false;}}
             }
-            if(step!=0)NextSpectator(step);
+            if(step!=0){if(DemoSpectating)CycleDemoWatched(step);else NextSpectator(step);}
         }
         void LateUpdate(){TickCamera();}
         void TickCamera()
         {
+            if(DemoSpectating){TickDemoSpectator();return;}
             if(session==null||!NetworkActors.Alive(session.Player)||frame.players==null)return;
             MatchPlayerFrame self=null;foreach(var row in frame.players)if(row.id==LocalActorId){self=row;break;}
             var source=session.Player.ViewCamera;

@@ -17,10 +17,27 @@ namespace DeadlyJenga.CastlePrototype
             var copy=match.Rules.Copy();bool was=GUI.enabled;GUI.enabled=match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo);
             if(GUILayout.Button("Start / restart round"))match.StartRound();
             GUILayout.Label("Mode: "+copy.mode+"  ·  "+match.Frame.phase);
+            GUI.enabled=was;
+            if(GUILayout.Button(DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned?"Hide full standings after closing this menu":"Show full standings after closing this menu"))DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned=!DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned;
+            if(copy.mode==GameModeKind.CaptureFlag&&match.Frame.flags.Length>2&&GUILayout.Button("Track next enemy flag"))DeadlyJenga.Presentation.CandyMatchHud.FlagFocusIndex++;
+            GUI.enabled=was&&match.Authority;
             var mystery=match as IMysteryControls;
             if(mystery?.Active==true)
             {
+                GUI.enabled=was;
+                if(GUILayout.Button("Next body report page after closing this menu"))DeadlyJenga.Presentation.CandyMysteryView.ReportPage++;
                 GUI.enabled=was;GUILayout.Label("Your private role: "+mystery.Personal.role);
+                if(match is IMatchReviewControls review&&review.DevelopmentReviewEnabled)
+                {
+                    GUILayout.Label("DEVELOPMENT REVIEW · ROLE SPOILERS · REMOVE FOR RELEASE");
+                    foreach(var role in new[]{MysteryRole.Murderer,MysteryRole.Sheriff})
+                    {
+                        string id=review.PlayerInRole(role);var player=match.Frame.players.FirstOrDefault(p=>p.id==id);
+                        GUI.enabled=was&&player!=null&&player.alive&&!player.dying;
+                        if(GUILayout.Button("Watch "+role+": "+(player?.name??"not assigned")+(player!=null&&!player.alive?" · fallen":"")))review.WatchPlayer(id);
+                    }
+                    GUI.enabled=was;
+                }
                 if(mystery.Personal.role==MysteryRole.Murderer||mystery.Personal.role==MysteryRole.Sheriff){bool special=GUILayout.Toggle(mystery.Personal.specialAttack,"Use special punch");if(special!=mystery.Personal.specialAttack)mystery.SetSpecialAttack(special);}
                 foreach(string hazard in mystery.Personal.disasterChoices)if(GUILayout.Button((mystery.Personal.veto?"Veto ":"Trigger ")+hazard))mystery.ChooseDisaster(hazard);
                 GUI.enabled=was&&match.Authority;
@@ -31,6 +48,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(old!=JsonUtility.ToJson(tune))mystery.ConfigureMystery(tune);
             }
             GUI.enabled=was&&match.Authority;
+            GUILayout.Label("Live HUD prioritizes the mode objective. Full standings stay available on demand; final results include contributions.");
+            if(GUILayout.Button("Restore recommended defaults for this mode"))copy=ModeDefaults.Create(copy.mode);
             if(GUILayout.Button("Next game mode"))copy=ModeDefaults.Create((GameModeKind)(((int)copy.mode+1)%Enum.GetValues(typeof(GameModeKind)).Length));
             GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             if(GUILayout.Button("Scene skin: "+CandySceneSkins.Names[CandyMatchVisualsSkin(copy.environmentSkin)]))copy.environmentSkin=CandySceneSkins.Names[(CandyMatchVisualsSkin(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];
@@ -47,6 +66,9 @@ namespace DeadlyJenga.CastlePrototype
             GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             GUILayout.Label("Rule changes apply to this session. Start a new round after changing team or mode setup.");
             string before=JsonUtility.ToJson(match.Rules);
+            bool islandEffects=GUILayout.Toggle(copy.island!=IslandRule.Walkable,"Island effects (sinking, slowing or island death)");
+            if(islandEffects!=(copy.island!=IslandRule.Walkable))copy.island=islandEffects?IslandRule.Sink:IslandRule.Walkable;
+            if(!islandEffects)GUILayout.Label("Island ground is safe and movement stays normal. Ocean and other game rules still apply.");
             foreach(var f in fields)
             {
                 if(f.Name=="mode"||f.Name=="environmentSkin")continue;string label=Label(f.Name);

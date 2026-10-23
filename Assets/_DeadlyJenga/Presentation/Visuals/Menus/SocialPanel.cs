@@ -8,6 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     public static class SocialPanel
     {
         static Vector2 scroll;
+        static GUIStyle captionStyle;
         static string selected = "";
         static string test="Can you help me find a safe way up?";
 
@@ -56,7 +57,12 @@ namespace DeadlyJenga.CastlePrototype
         // Subtitles at the bottom of the screen while playing.
         public static void DrawCaption(ISocialControls social)
         {
-            GUI.Label(new Rect(20, Screen.height - 62, Mathf.Max(200, Screen.width - 40), 50), social.Caption);
+            float scale=Mathf.Min(Screen.width/1280f,Screen.height/800f);
+            captionStyle??=new GUIStyle(GUI.skin.box){wordWrap=true,alignment=TextAnchor.MiddleCenter,normal={textColor=Color.white,background=CandyHudVisuals.Rounded}};
+            captionStyle.fontSize=Mathf.Max(10,Mathf.RoundToInt(14*scale));
+            var old=GUI.backgroundColor;GUI.backgroundColor=new Color(.08f,.025f,.14f,.86f);
+            GUI.Box(new Rect(Screen.width*.5f-230*scale,Screen.height*.5f+356*scale,460*scale,36*scale),social.Caption,captionStyle);
+            GUI.backgroundColor=old;
         }
     }
 }

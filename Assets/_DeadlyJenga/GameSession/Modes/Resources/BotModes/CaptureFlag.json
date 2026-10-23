@@ -1,0 +1,208 @@
+{
+  "schemaVersion": 1,
+  "id": "capture-flag",
+  "description": "Return carried flags; recover the home flag; reserve defenders and escorts; remaining actors attack. Arrival never fabricates pickup or capture.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "repel",
+      "query": "close-threats",
+      "skill": "Attack",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3.5,
+      "radius": 1.1,
+      "timeout": 12,
+      "retry": 2,
+      "commitment": 1,
+      "exclude": [
+        "carrying"
+      ]
+    },
+    {
+      "id": "return",
+      "query": "return-enemy-flag",
+      "skill": "Travel",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "require": [
+        "carrying-enemy"
+      ],
+      "completeWhen": "scored",
+      "utility": 3,
+      "radius": 1.2,
+      "timeout": 240
+    },
+    {
+      "id": "restore",
+      "query": "return-own-flag",
+      "skill": "Travel",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "require": [
+        "carrying-own"
+      ],
+      "completeWhen": "own-flag-home",
+      "utility": 3,
+      "radius": 1.2,
+      "timeout": 240
+    },
+    {
+      "id": "recover-visible",
+      "query": "hostile-carriers",
+      "skill": "Attack",
+      "tier": 1,
+      "exclude": [
+        "carrying"
+      ],
+      "minimum": 1,
+      "maximum": 6,
+      "fraction": 0.3,
+      "utility": 2,
+      "radius": 1,
+      "timeout": 60
+    },
+    {
+      "id": "recover-dropped",
+      "query": "own-dropped-flag",
+      "skill": "Travel",
+      "tier": 1,
+      "exclude": [
+        "carrying"
+      ],
+      "completeWhen": "carrying-own",
+      "minimum": 1,
+      "maximum": 2,
+      "fraction": 0.1,
+      "utility": 2,
+      "radius": 0.7,
+      "timeout": 120
+    },
+    {
+      "id": "protect-carrier",
+      "query": "escort-threats",
+      "skill": "Attack",
+      "exclude": [
+        "carrying"
+      ],
+      "tier": 1,
+      "maximum": 2,
+      "fraction": 0.1,
+      "utility": 1.8,
+      "radius": 1,
+      "timeout": 20
+    },
+    {
+      "id": "intercept-home",
+      "query": "home-threats",
+      "skill": "Attack",
+      "exclude": [
+        "carrying"
+      ],
+      "tier": 1,
+      "maximum": 2,
+      "fraction": 0.1,
+      "utility": 1.2,
+      "radius": 1,
+      "timeout": 20
+    },
+    {
+      "id": "escort",
+      "query": "friendly-carriers",
+      "skill": "Escort",
+      "exclude": [
+        "carrying"
+      ],
+      "minimum": 1,
+      "maximum": 2,
+      "fraction": 0.1,
+      "utility": 1.4,
+      "radius": 2.5,
+      "timeout": 120
+    },
+    {
+      "id": "guard-home",
+      "query": "home",
+      "skill": "Guard",
+      "exclude": [
+        "carrying",
+        "own-flag-missing"
+      ],
+      "minimum": 1,
+      "maximum": 4,
+      "fraction": 0.2,
+      "utility": 0.8,
+      "radius": 2.5,
+      "timeout": 180
+    },
+    {
+      "id": "recover-search",
+      "query": "stolen-flag-search",
+      "skill": "Travel",
+      "exclude": [
+        "carrying"
+      ],
+      "minimum": 1,
+      "maximum": 4,
+      "fraction": 0.2,
+      "utility": 1.2,
+      "radius": 0.8,
+      "timeout": 45,
+      "completeWhen": "visited"
+    },
+    {
+      "id": "flag",
+      "query": "enemy-flags",
+      "skill": "Travel",
+      "exclude": [
+        "carrying"
+      ],
+      "completeWhen": "carrying-enemy",
+      "maximum": 100,
+      "utility": 2.2,
+      "radius": 0.7,
+      "timeout": 180,
+      "minimum": 1
+    },
+    {
+      "id": "pressure-base",
+      "query": "enemy-bases",
+      "skill": "Travel",
+      "exclude": [
+        "carrying"
+      ],
+      "maximum": 100,
+      "utility": 0.4,
+      "radius": 0.8,
+      "timeout": 120,
+      "completeWhen": "visited"
+    },
+    {
+      "id": "patrol",
+      "query": "patrol",
+      "skill": "Travel",
+      "completeWhen": "visited",
+      "exclude": [
+        "carrying"
+      ],
+      "maximum": 4,
+      "fraction": 0.1,
+      "utility": 0.25,
+      "radius": 0.8,
+      "timeout": 45
+    }
+  ]
+}

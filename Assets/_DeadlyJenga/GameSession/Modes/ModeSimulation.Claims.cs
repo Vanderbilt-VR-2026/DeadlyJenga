@@ -15,6 +15,7 @@ namespace DeadlyJenga.Modes
         readonly Dictionary<int,Claim> claims=new Dictionary<int,Claim>();
         public int OwnerOf(int block)=>claims.TryGetValue(block,out var c)?c.frame.owner:-1;
         public float ProgressOf(int block)=>claims.TryGetValue(block,out var c)?c.frame.progress:0;
+        public float EmptySecondsOf(int block)=>claims.TryGetValue(block,out var c)?c.emptySeconds:0;
         void TickClaims(float seconds)
         {
             foreach(var c in claims.Values)System.Array.Clear(c.occupants,0,c.occupants.Length);
@@ -57,6 +58,9 @@ namespace DeadlyJenga.Modes
         }
         void SetOwner(Claim c,int owner)
         {
+            if(owner>=0&&owner!=c.frame.owner)
+                foreach(var participant in players.Values)
+                    if(participant.present&&participant.frame.alive&&!participant.frame.dying&&participant.grounded&&participant.frame.team==owner&&participant.frame.standingBlock==c.frame.block)participant.frame.blocksClaimed++;
             c.frame.owner=owner;c.frame.claimant=owner;c.frame.progress=owner<0?0:1;
             OwnershipChanged?.Invoke(c.frame.block,owner);
         }

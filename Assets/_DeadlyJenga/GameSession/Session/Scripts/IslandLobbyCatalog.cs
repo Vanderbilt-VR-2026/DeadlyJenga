@@ -7,7 +7,8 @@ namespace DeadlyJenga.CastlePrototype
     public sealed class IslandLobbyCatalog : ScriptableObject
     {
         [Serializable] public sealed class Map
-        { public string id="castle", title="Candy Castle", scenePath; public GameObject mapPrefab; public int recommendedPlayers=10; public string recommendedMode="demo"; }
+        { public string id="castle", title="Candy Castle", scenePath; public GameObject mapPrefab; public int recommendedPlayers=10; public string recommendedMode="demo"; public bool walkableIsland; public string[] supportedModes=Array.Empty<string>();
+            public bool SupportsMode(string modeId)=>supportedModes==null||supportedModes.Length==0||Array.IndexOf(supportedModes,modeId)>=0; }
         [Serializable] public sealed class Mode
         { public string id="demo", title="Demo", description="Full sandbox controls, AI survivors and giant hands."; public bool available=true; }
         [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")] public MonoBehaviour survivorPrefab;
@@ -31,6 +32,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             var list=new System.Collections.Generic.List<Map>(maps??Array.Empty<Map>());
             string scene=Array.Find(maps??Array.Empty<Map>(),m=>m!=null&&!string.IsNullOrEmpty(m.scenePath))?.scenePath;
+            AddMap(list,"castle-gaps","Candy Castle Â· Long Blocks and Gaps","demo",10,scene);
+            AddMap(list,"castle-catwalks","Candy Castle · Catwalks","demo",10,scene);
+            AddMap(list,"castle-four-keeps","Candy Castle · Four Keeps","demo",10,scene);
             AddMap(list,"ctf","Lollipop Fortresses","ctf",12,scene);
             AddMap(list,"infection","Infection Spire","infection",12,scene);
             AddMap(list,"survival","Storm Cathedral","survival",12,scene);
@@ -38,25 +42,29 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"koth","Crown Summit","hill",12,scene);
             AddMap(list,"tickets","Last Stand Citadel","teamtickets",12,scene);
             AddMap(list,"buildup","Beacon Scaffold Ascent","demo",10,scene);
+            AddMap(list,"christmas-town","Christmas Candy Town","ctf",16,scene,true);
+            AddMap(list,"powerup-test","Powerup Test Island","demo",1,scene);
             maps=list.ToArray();
         }
-        static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene)
+        static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)
         {
-            string id="mode-"+family;if(list.Exists(map=>map!=null&&map.id==id))return;
+            string id="mode-"+family;
+            var existing=list.Find(map=>map!=null&&map.id==id);
+            if(existing!=null){if(walkableIsland)existing.walkableIsland=true;return;}
             var prefab=Resources.Load<GameObject>("ModeMaps/Mode_"+family);
-            if(prefab)list.Add(new Map{id=id,title=title,scenePath=scene,mapPrefab=prefab,recommendedMode=mode,recommendedPlayers=population});
+            if(prefab)list.Add(new Map{id=id,title=title,scenePath=scene,mapPrefab=prefab,recommendedMode=mode,recommendedPlayers=population,walkableIsland=walkableIsland});
         }
 
         public void EnsureSupportedModes()
         {
             var list=new System.Collections.Generic.List<Mode>(modes??Array.Empty<Mode>());
-            AddMode(list,"survival","Last Survivor","Stay above the ocean and outlast the other survivors.");
-            AddMode(list,"hill","King of the Hill","Reach the highest safe region; pushing and disasters move the fight.");
-            AddMode(list,"blockcontrol","Color Control","Stand on blocks to claim them and earn team points.");
-            AddMode(list,"ctf","Lollipop Capture","Steal enemy lollipops and carry them home. Win by two.");
-            AddMode(list,"infection","Infection","Eliminated players return as infected. Survive as long as possible.");
-            AddMode(list,"teamtickets","Last Team Standing","Teams share a limited pool of respawns.");
-            AddMode(list,"mystery","Murder Mystery","A hidden murderer, a sheriff, body reports and colored trails.");
+            AddMode(list,"survival","Disaster Survival","Outlast the others while disasters tear the tower apart.");
+            AddMode(list,"hill","King of the Hill","Hold the crown zone to score. Push rivals off the summit.");
+            AddMode(list,"blockcontrol","Color Control","Claim blocks for your team and hold territory to earn points.");
+            AddMode(list,"ctf","Capture the Flag","Steal an enemy flag and bring it home while defending yours.");
+            AddMode(list,"infection","Infection","Survive the infected; eliminated survivors join the hunt.");
+            AddMode(list,"teamtickets","Last Team Standing","Spend team respawns wisely. Be the last team left.");
+            AddMode(list,"mystery","Murder Mystery","Find the hidden murderer, protect survivors and trust the sheriff.");
             modes=list.ToArray();
         }
         static void AddMode(System.Collections.Generic.List<Mode> list,string id,string title,string description)
@@ -65,8 +73,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3");
-                foreach(var map in maps)content.Append("|map:").Append(map.id);
+                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2");
+                foreach(var map in maps)content.Append("|map:").Append(map.id).Append(":").Append(string.Join(",",map.supportedModes??Array.Empty<string>()));
                 foreach(var mode in modes)content.Append("|mode:").Append(mode.id).Append(':').Append(mode.available);
                 using(var hash=System.Security.Cryptography.SHA256.Create())
                 {

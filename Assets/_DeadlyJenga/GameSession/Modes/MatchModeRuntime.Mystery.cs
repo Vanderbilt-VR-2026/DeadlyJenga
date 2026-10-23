@@ -35,7 +35,7 @@ namespace DeadlyJenga.Modes
         {
             mystery=null;reviving.Clear();corpseDeaths.Clear();footprintNext.Clear();
             ClearMysteryBodies();trailFrames.Clear();trailCells.Clear();footprintLast.Clear();mysteryStrikes.Clear();
-            witnessedMurderers.Clear();
+            witnessedMurderers.Clear();unavailableBadges.Clear();
             if(!Active)return;
             mysteryRound=UnityEngine.Random.Range(1,int.MaxValue);
             rolePreferences[LocalActorId]=MysteryChoices.RequestedRole;
@@ -57,7 +57,7 @@ namespace DeadlyJenga.Modes
                 string helper=pair.Key,target=pair.Value.target;
                 if(Time.time-pair.Value.seen>.4f||!mystery.IsDowned(target)||!mystery.Alive(helper)||!Close(helper,FindActor(target)?.transform.position??Vector3.positiveInfinity)){reviving.Remove(helper);continue;}
                 if(Time.time-pair.Value.start<Mathf.Max(.2f,Rules.mystery.reviveSeconds))continue;
-                if(mystery.Revive(helper,target)){simulation.Find(target).frame.role="survivor";RestoreMysteryHealth(target);}
+                if(mystery.Revive(helper,target)){simulation.Find(helper).frame.revives++;simulation.Find(target).frame.role="survivor";RestoreMysteryHealth(target);}
                 reviving.Remove(helper);
             }
             if(mystery.Winner.Length>0)simulation.FinishMystery(mystery.Winner);
@@ -149,7 +149,7 @@ namespace DeadlyJenga.Modes
             if(command.StartsWith("report:"))
             {
                 string id=command.Substring(7);var body=mystery.Public().bodies.FirstOrDefault(b=>b.id==id);
-                if(body!=null&&Close(sender,body.position)){mystery.Report(sender,id,simulation.Find(sender).frame.color);if(body.sheriff)mystery.RecoverSheriff(sender,id);}return;
+                if(body!=null&&Close(sender,body.position)){if(mystery.Report(sender,id,simulation.Find(sender).frame.color))simulation.Find(sender).frame.bodyReports++;if(body.sheriff)mystery.RecoverSheriff(sender,id);}return;
             }
             if(command.StartsWith("suspect:"))
             {
