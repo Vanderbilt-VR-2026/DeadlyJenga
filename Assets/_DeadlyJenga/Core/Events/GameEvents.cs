@@ -19,6 +19,10 @@ namespace DeadlyJenga.Core
         public static event Action RoundEnded;
         public static event Action<GameObject> SessionStarted;                // the session object; menus and HUDs attach here
         public static event Action<GameObject> LobbyStarted;                  // the lobby object (also ILobbyControls); its terminals attach here
+        public static event Action<GameObject, float> BlockCracked;           // block, stress
+        public static event Action<GameObject, Vector3, Vector3> BlockBroken; // block, where it was, its velocity
+        public static event Action<float> RewindStarted;                      // seconds being rewound
+        public static event Action RewindEnded;
 
         public static void RaiseBlockHit(Vector3 position, float strength) => BlockHit?.Invoke(position, strength);
         public static void RaisePushed(GameObject who, Vector3 force) => Pushed?.Invoke(who, force);
@@ -33,6 +37,10 @@ namespace DeadlyJenga.Core
         public static void RaiseRoundEnded() => RoundEnded?.Invoke();
         public static void RaiseSessionStarted(GameObject session) => SessionStarted?.Invoke(session);
         public static void RaiseLobbyStarted(GameObject lobby) => LobbyStarted?.Invoke(lobby);
+        public static void RaiseBlockCracked(GameObject block, float stress) => BlockCracked?.Invoke(block, stress);
+        public static void RaiseBlockBroken(GameObject block, Vector3 position, Vector3 velocity) => BlockBroken?.Invoke(block, position, velocity);
+        public static void RaiseRewindStarted(float seconds) => RewindStarted?.Invoke(seconds);
+        public static void RaiseRewindEnded() => RewindEnded?.Invoke();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()
@@ -40,6 +48,7 @@ namespace DeadlyJenga.Core
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
             RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null; LobbyStarted = null;
+            BlockCracked = null; BlockBroken = null; RewindStarted = null; RewindEnded = null;
         }
     }
 }

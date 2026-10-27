@@ -11,7 +11,7 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 467180e826c745cca7fc7ac7ea37837b, type: 3}
   m_Name: DisasterCatalog
-  m_EditorClassIdentifier:
+  m_EditorClassIdentifier: 
   prefabs:
   - {fileID: 100000, guid: 22b14e80b38b4428a8357a45c9697e90, type: 3}
   - {fileID: 100000, guid: 2bd3de0eaf544283b907c9f870508145, type: 3}
@@ -22,3 +22,4 @@ MonoBehaviour:
   - {fileID: 100000, guid: 17d8a57e04cc4394b1732ca5e50cc2fd, type: 3}
   - {fileID: 100000, guid: 52d10c6a066e4fef8cd130d9e5a97bea, type: 3}
   - {fileID: 100000, guid: 98cf89da2bdd4cf4898a650b7fe11242, type: 3}
+  - {fileID: 4818407085821146737, guid: 6dac399f2214c56419c2245a27503365, type: 3}

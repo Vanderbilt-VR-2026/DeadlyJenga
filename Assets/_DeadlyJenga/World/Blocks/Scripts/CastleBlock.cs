@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
-    public sealed class CastleBlock : MonoBehaviour, IClimbable, IPushable
+    public sealed partial class CastleBlock : MonoBehaviour, IClimbable, IPushable, IBreakable
     {
         public const int SurvivorLayer = Layers.Survivor, BlockLayer = Layers.Block, SurfaceLayer = Layers.Surface;
         public CastleBlockAppearance appearance;
