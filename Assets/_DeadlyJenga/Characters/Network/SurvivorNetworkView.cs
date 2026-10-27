@@ -43,7 +43,7 @@ namespace DeadlyJenga.CharacterNetwork
                 if (!avatar || !avatar.visualPrefab) return;
                 rig = Instantiate(avatar.visualPrefab, transform); rig.ownerCamera = null;
             }
-            rig.gameObject.SetActive(active); rig.SetColor(color);
+            rig.gameObject.SetActive(active); rig.SetColor(color & 0xFF); CandyCharacterLook.For(rig).Apply((color >> 8) - 1);
             if (!initialized) { frame = target; initialized = true; }
             UpdateHazardTarget();
         }

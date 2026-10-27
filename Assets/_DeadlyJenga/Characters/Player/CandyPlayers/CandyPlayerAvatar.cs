@@ -38,7 +38,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!visualPrefab)visualPrefab=Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
             if(!visualPrefab){enabled=false;Debug.LogError("Build candy player assets first.",this);return;}
             Rig=Instantiate(visualPrefab,transform);Rig.name="Candy player body (shared views)";Rig.ownerCamera=remoteDriven?null:viewCamera;
-            ColorIndex=Random.Range(0,Rig.style.colors.Length);Rig.SetColor(ColorIndex);
+            SetColor(Random.Range(0,Rig.style.colors.Length));
             if(!remoteDriven)
             {
                 tracking=GetComponent<CandyTrackingSource>();if(!tracking)tracking=gameObject.AddComponent<CandyTrackingSource>();
@@ -47,8 +47,14 @@ namespace DeadlyJenga.CandyPlayers
                 farRays=GetComponentsInChildren<XRRayInteractor>(true);
             }
         }
-        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(!remoteDriven)NetworkActors.Local.Add(this);}
-        void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);}
+        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(!remoteDriven)NetworkActors.Local.Add(this);PlayerLooks.Changed+=OnLookChanged;}
+        void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);PlayerLooks.Changed-=OnLookChanged;}
+        // Character design: players wear the one they picked, bots get a random one.
+        bool IsBot=>GetComponent<CastleBotBrain>();
+        void Start(){if(!remoteDriven)SetDesign(IsBot?Random.Range(0,CandyCharacterDesigns.Count):PlayerLooks.Chosen);}
+        void OnLookChanged(){if(!remoteDriven&&!IsBot)SetDesign(PlayerLooks.Chosen);}
+        public int Design=>Mathf.Max(0,(ColorIndex>>8)-1);
+        public void SetDesign(int design)=>SetColor((ColorIndex&0xFF)|((design+1)<<8));
 
         // INetworkActor: what other players see of this survivor (the player's or a bot's).
         CastleBotBrain bot;
@@ -58,7 +64,13 @@ namespace DeadlyJenga.CandyPlayers
         public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,ReadFrame(),ColorIndex);
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
-        public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}
+        // The synced color value carries the design too: low byte = color, next byte = design + 1 (0 = keep the current design).
+        public void SetColor(int index)
+        {
+            int design=index>>8;if(design==0)design=ColorIndex>>8;
+            ColorIndex=(index&0xFF)|(design<<8);
+            if(Rig){Rig.SetColor(index&0xFF);CandyCharacterLook.For(Rig).Apply(design-1);}
+        }
         public void OverridePose(CandyAvatarFrame frame){overridden=frame;overridePose=true;}
         public void ClearPoseOverride(){overridePose=false;}
         public CandyAvatarFrame ReadFrame()
