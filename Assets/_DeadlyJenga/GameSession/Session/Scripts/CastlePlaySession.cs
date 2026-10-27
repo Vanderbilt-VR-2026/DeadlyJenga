@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     // Runs the match: creates the local survivor and hand, switches between them, respawns,
     // starts bots and networking. Talks to every other box only through Core.
     [DefaultExecutionOrder(200)]
-    public sealed class CastlePlaySession : MonoBehaviour, ISessionInfo, IWorldAuthority, IPostGameResults, ISeaSpiritControls
+    public sealed partial class CastlePlaySession : MonoBehaviour, ISessionInfo, IWorldAuthority, IPostGameResults, ISeaSpiritControls
     {
         [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")]
         public MonoBehaviour survivorPrefab;
@@ -30,8 +30,8 @@ namespace DeadlyJenga.CastlePrototype
         public bool PlayingHand { get; private set; }
         public bool MenuOpen { get; private set; }
         IPlayableCharacter Active => PlayingHand ? Hand : Player;
-        public bool IsVR => NetworkActors.Alive(Active) && Active.IsVR;
-        public Camera ActiveCamera => Modes && Modes.OverrideCamera ? Modes.OverrideCamera : NetworkActors.Alive(Active) ? Active.ViewCamera : null;
+        public bool IsVR => VisitingLobby ? visitLobby.IsVR : NetworkActors.Alive(Active) && Active.IsVR;
+        public Camera ActiveCamera => VisitingLobby ? visitLobby.ActiveCamera : Modes && Modes.OverrideCamera ? Modes.OverrideCamera : NetworkActors.Alive(Active) ? Active.ViewCamera : null;
         public DeadlyJenga.Modes.MatchModeRuntime Modes { get; private set; }
         public PostGameReport LatestReport => Modes ? Modes.LatestReport : null;
         ISeaSpiritControls seaSpirit;
@@ -41,10 +41,11 @@ namespace DeadlyJenga.CastlePrototype
         public void SetSeaSpirit(bool active)
         {
             if(!Ready)return;
-            if(active&&Modes&&Modes.Rules.mode!=GameModeKind.Demo)return;
+            if(active&&!CanEditWorld)return;
             var previousView=ActiveCamera;
             var entrance=previousView?new Pose(previousView.transform.position,previousView.transform.rotation):default;
             if(active&&!PlayingHand)SetRole(true);
+            if(active&&!PlayingHand)return;
             if(active&&!SeaSpiritActive&&previousView&&Hand.ViewCamera)
             {
                 var camera=Hand.ViewCamera;var rig=camera.transform.parent;
@@ -72,6 +73,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void Start()
         {
+            IslandLobby.Persistent?.ParkForMatch();
             Services.Session = this;
             arrivalPending=true;travelInputHeld=MatchSetup.FromLobby;
             GameEvents.Eliminated += OnEliminated;
@@ -114,6 +116,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
+            CloseLobbyVisit(false);
             seaSpirit?.SetSeaSpirit(false);
             if (ReferenceEquals(Services.Session, this)) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
@@ -126,6 +129,9 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool value) { focused = value; if (!value && Ready) SetMenu(true); }
         public void SetRole(bool hand)
         {
+            if(VisitingLobby)return;
+            if(Modes&&Modes.Rules.mode!=GameModeKind.Demo&&Modes.Authority)
+            {bool accepted=Modes.SetDevelopmentHand(hand);if(hand&&!accepted)return;}
             if(Modes&&Modes.DemoSpectating)Modes.SetDemoSpectating(false);
             if(!hand&&SeaSpiritActive)seaSpirit.SetSeaSpirit(false);
             PlayingHand = hand;
@@ -173,6 +179,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ResetCastle() => ResetMap();
         public void SetMenu(bool open)
         {
+            if(VisitingLobby){visitLobby.SetMenu(open);return;}
             MenuOpen = open;
             bool suspended = travelInputHeld || open || !focused || (Network && Network.WaitingForWorld) || (Modes && Modes.DemoSpectating);
             Player.InputSuspended = suspended;
@@ -182,7 +189,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            if (!Ready) return;
+            if (!Ready || VisitingLobby) return;
             if(arrivalPending&&(!Network||!Network.WaitingForWorld))
             {
                 arrivalPending=false;if(travelInputHeld)travelReleaseAt=Time.unscaledTime+.8f;
@@ -191,7 +198,7 @@ namespace DeadlyJenga.CastlePrototype
             if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
             var k = Keyboard.current;
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
-            if ((!Modes||Modes.Rules.mode==GameModeKind.Demo)&&!(Modes&&Modes.DemoSpectating)&&!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
+            if ((!Modes||Modes.Rules.mode==GameModeKind.Demo||CanEditWorld)&&!(Modes&&Modes.DemoSpectating)&&!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);

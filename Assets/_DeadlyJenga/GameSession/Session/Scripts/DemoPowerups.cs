@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         public static bool Spawn(CastlePlaySession session,bool speed)
         {
             bool success=session&&session.Demo?.CanCommand==true&&(MatchRuntime.Current as IEquipmentRuntime)?.SpawnEquipment(speed?EquipmentKind.Speed:EquipmentKind.Jump)==true;
-            return Message(success?"Powerup spawned. Walk near it; confirm a swap if your slot is occupied.":"Return to your survivor in Demo and make space ahead.",success);
+            return Message(success?"Powerup spawned. Walk near it; confirm a swap if your slot is occupied.":"Use a living survivor, keep space ahead, and check host permissions.",success);
         }
     }
 }

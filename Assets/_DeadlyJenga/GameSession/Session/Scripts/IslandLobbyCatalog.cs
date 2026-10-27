@@ -44,6 +44,12 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"buildup","Beacon Scaffold Ascent","demo",10,scene);
             AddMap(list,"christmas-town","Christmas Candy Town","ctf",16,scene,true);
             AddMap(list,"powerup-test","Powerup Test Island","demo",1,scene);
+            AddMap(list,"cantina","Amber Cantina","demo",1,scene,true);
+            var cantina=list.Find(m=>m.id=="mode-cantina");
+            if(cantina!=null)cantina.supportedModes=new[]{"demo"};
+            AddMap(list,"tiki-resort","Waterfront Tiki Resort","demo",1,scene,true);
+            var tiki=list.Find(m=>m.id=="mode-tiki-resort");
+            if(tiki!=null)tiki.supportedModes=new[]{"demo"};
             maps=list.ToArray();
         }
         static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)
@@ -73,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2");
+                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2|persistent-lobby-1|mayhem-enemies-2");
                 foreach(var map in maps)content.Append("|map:").Append(map.id).Append(":").Append(string.Join(",",map.supportedModes??Array.Empty<string>()));
                 foreach(var mode in modes)content.Append("|mode:").Append(mode.id).Append(':').Append(mode.available);
                 using(var hash=System.Security.Cryptography.SHA256.Create())

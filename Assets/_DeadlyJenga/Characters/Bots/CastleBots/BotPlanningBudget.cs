@@ -15,16 +15,16 @@ namespace DeadlyJenga.CastleBots
         sealed class Account { public float at, edges = 4, senses = 1; }
         static readonly Dictionary<int, Account> owners = new Dictionary<int, Account>();
         static readonly Stopwatch watch = new Stopwatch();
-        static int frame = -1;
+        static int frame = -1, workDepth;
         static float remainingEdges, remainingSenses;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         public static void Reset()
         {
             owners.Clear(); frame = -1; remainingEdges = 40; remainingSenses = 8;
-            EdgesUsed = SensingUsed = 0; watch.Reset();
+            EdgesUsed = SensingUsed = 0; workDepth = 0; watch.Reset();
         }
-        static Account Begin(int owner, int population)
+        static void BeginFrame()
         {
             if (frame != Time.frameCount)
             {
@@ -33,8 +33,12 @@ namespace DeadlyJenga.CastleBots
                 float dt = Mathf.Min(.1f, Time.deltaTime);
                 remainingEdges = Mathf.Min(MaximumEdgesPerFrame, remainingEdges + dt * EdgesPerSecond);
                 remainingSenses = Mathf.Min(MaximumSensingPerFrame, remainingSenses + dt * SensesPerSecond);
-                if (owners.Count > Mathf.Max(256, population * 4)) owners.Clear();
             }
+        }
+        static Account Begin(int owner, int population)
+        {
+            BeginFrame();
+            if (owners.Count > Mathf.Max(256, population * 4)) owners.Clear();
             if (!owners.TryGetValue(owner, out var a)) owners[owner] = a = new Account { at = Time.time };
             float elapsed = Mathf.Clamp(Time.time - a.at, 0, 1); a.at = Time.time;
             a.edges = Mathf.Min(64, a.edges + elapsed * EdgesPerSecond / Mathf.Max(1, population));
@@ -54,7 +58,7 @@ namespace DeadlyJenga.CastleBots
             if (remainingSenses < 1 || a.senses < 1 || watch.Elapsed.TotalMilliseconds >= MaximumMillisecondsPerFrame) return false;
             remainingSenses--; a.senses--; SensingUsed++; return true;
         }
-        public static void BeginWork() => watch.Start();
-        public static void EndWork() => watch.Stop();
+        public static void BeginWork() { BeginFrame();if(workDepth++==0)watch.Start(); }
+        public static void EndWork() { if(workDepth>0&&--workDepth==0)watch.Stop(); }
     }
 }

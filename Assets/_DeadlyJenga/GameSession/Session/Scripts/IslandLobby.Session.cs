@@ -16,7 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool MenuSelectHeld => false;
         public bool CanEditWorld => Room&&Room.LocalIsLobbyHost;
         public void ResetMap() { }
-        public ISurvivorBotPopulation SurvivorBots => null;
+        public ISurvivorBotPopulation SurvivorBots => lobbyBots;
         public IBotPopulation HandBots => null;
         public IMultiplayerControls Multiplayer => null;
         public IDemoControls Demo => null;

@@ -6,6 +6,9 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
+    path: Assets/_DeadlyJenga/GameSession/Session/Scenes/Home.unity
+    guid: 9a55f6beb59e1814db9594f8bbb325c3
+  - enabled: 1
     path: Assets/_DeadlyJenga/GameSession/Session/Scenes/Lobby.unity
     guid: a71f0f4a8b7194537b2803eb8689ba69
   - enabled: 0
@@ -21,17 +24,8 @@ EditorBuildSettings:
     path: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterEvan2.unity
     guid: 3c2f648a77b54ee19c3062d9c7a9b2fb
   - enabled: 1
-    path: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke1.unity
-    guid: 37cf3e207b7a479b813597c2895628e3
-  - enabled: 1
-    path: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke2.unity
-    guid: 27abeb6705bc4c59ae121d35c4011722
-  - enabled: 1
-    path: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb1.unity
-    guid: 17007e237b7d474ba596e719c2fedb9b
-  - enabled: 1
-    path: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb2.unity
-    guid: f98d259817e549b5929d5b0de945ca10
+    path: Assets/_DeadlyJenga/World/Maps/Drafts/Andy.unity
+    guid: cf7f1f2cf4335b745b7791b910f47575
   m_configObjects:
     com.unity.dt.app-ui: {fileID: 11400000, guid: 1b1c20d82303e4b5781c3ef50ac1449f, type: 2}
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}

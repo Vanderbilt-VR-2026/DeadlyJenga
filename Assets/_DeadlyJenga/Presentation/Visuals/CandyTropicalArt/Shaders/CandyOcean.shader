@@ -53,6 +53,7 @@ Shader "Candy Tropical/Ocean"
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
             float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain;
             CBUFFER_END
+            #include "CandySurgeSurface.hlsl"
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float wave:TEXCOORD2;float fog:TEXCOORD3;UNITY_VERTEX_OUTPUT_STEREO};
@@ -91,7 +92,8 @@ Shader "Candy Tropical/Ocean"
                 Wave(float2(.94,.342),11,amplitude*.55,p,time,offset,dx,dz);
                 Wave(float2(-.6,.8),7.5,amplitude*.3,p,time*.87,offset,dx,dz);
                 Wave(float2(.24,-.971),17,amplitude*.15,p,time*.68,offset,dx,dz);
-                o.world=world+offset;o.normal=normalize(cross(dz,dx));o.wave=offset.y;
+                float3 wake=_SurgeHeight>.001?(CandySurgeWakeSample(world.xz)+CandySurgeOuterSample(world.xz)):0;
+                o.world=world+offset+float3(0,wake.x,0);o.normal=normalize(cross(dz,dx)+float3(wake.y,0,wake.z));o.wave=offset.y+wake.x;
                 o.positionCS=TransformWorldToHClip(o.world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
             }
             float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -99,16 +101,6 @@ Shader "Candy Tropical/Ocean"
             half4 frag(Varyings i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
-                float surgeCoverage=0;
-                if(_SurgeHeight>.001)
-                {
-                    float2 delta=i.world.xz-_SurgeOrigin.xz;
-                    float t=dot(delta,_SurgeDirection.xz)/max(.01,_SurgeDepth)+.5;
-                    float across=abs(dot(delta,float2(_SurgeDirection.z,-_SurgeDirection.x)))/max(.01,_SurgeWidth*.5);
-                    float shape=t<.72?smoothstep(0,.72,t):1-smoothstep(.72,1,t);
-                    float elevation=_SurgeHeight*shape*(1-smoothstep(.85,1,across));
-                    surgeCoverage=smoothstep(0,.4,elevation);clip(.4-elevation);
-                }
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
                 float depth=max(.01,i.world.y-TerrainHeight(i.world.xz)),deep=smoothstep(.15,3.2,depth);
                 float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;
@@ -127,10 +119,11 @@ Shader "Candy Tropical/Ocean"
                 float spec=pow(nh,55)*.3+pow(nh,18)*.025;
                 color+=light.color*spec*_Shine*light.shadowAttenuation;
                 // No thresholded white speckles or repeating crossed sparkle pattern.
-                float foam=0;
+                float foam=CandySurgeWhitecaps(i.world.xz);
+                color=lerp(color,_Foam.rgb,foam);
                 color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,saturate(fresnel*.82+foam));
-                return half4(color,alpha*(1-surgeCoverage));
+                return half4(color,alpha);
             }
             ENDHLSL
         }

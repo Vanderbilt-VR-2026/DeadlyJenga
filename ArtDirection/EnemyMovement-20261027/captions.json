@@ -1,0 +1,80 @@
+[
+  {
+    "kind": "jaguar",
+    "file": "jaguar-front.png",
+    "title": "Jaguar \u00b7 Front view",
+    "note": "Actual live enemy spawned through the game enemy population."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-side.png",
+    "title": "Jaguar \u00b7 Side view",
+    "note": "Unmodified runtime mesh and materials, on a temporary inspection platform."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-moving.png",
+    "title": "Jaguar \u00b7 Walking / running",
+    "note": "Staged forward input through the actual shared CharacterController motor; not an autonomous navigation test."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-jump.png",
+    "title": "Jaguar \u00b7 Airborne close-up",
+    "note": "A real jump from the motor input command, photographed just after takeoff."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-jump-wide.png",
+    "title": "Jaguar \u00b7 Jump with ground reference",
+    "note": "Wider camera on the same real jump; this is early ascent, not maximum jump height."
+  },
+  {
+    "kind": "mushroom",
+    "file": "mushroom-front.png",
+    "title": "Mushroom \u00b7 Front view",
+    "note": "Actual live enemy spawned through the game enemy population."
+  },
+  {
+    "kind": "mushroom",
+    "file": "mushroom-side.png",
+    "title": "Mushroom \u00b7 Side view",
+    "note": "Unmodified runtime mesh and materials, on a temporary inspection platform."
+  },
+  {
+    "kind": "mushroom",
+    "file": "mushroom-moving.png",
+    "title": "Mushroom \u00b7 Walking / running",
+    "note": "Staged forward input through the actual shared CharacterController motor; not an autonomous navigation test."
+  },
+  {
+    "kind": "mushroom",
+    "file": "mushroom-jump.png",
+    "title": "Mushroom \u00b7 Airborne close-up",
+    "note": "A real jump from the motor input command, photographed just after takeoff."
+  },
+  {
+    "kind": "mushroom",
+    "file": "mushroom-jump-wide.png",
+    "title": "Mushroom \u00b7 Jump with ground reference",
+    "note": "Wider camera on the same real jump; this is early ascent, not maximum jump height."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-melee-posture.png",
+    "title": "Jaguar \u00b7 Melee-state inspection",
+    "note": "A windup state was requested on the real rig, but this picture still shows a low posture. The upright transition was not verified by this capture."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-hurt.png",
+    "title": "Jaguar \u00b7 Damage fill",
+    "note": "Actual damage applied to the live enemy. Gray health fill rises from feet toward head."
+  },
+  {
+    "kind": "jaguar",
+    "file": "jaguar-hairball.png",
+    "title": "Jaguar \u00b7 Start of death effect",
+    "note": "Early frame immediately after actual elimination. This is not a completed hairball transformation."
+  }
+]

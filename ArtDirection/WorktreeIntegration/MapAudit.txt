@@ -1,0 +1,131 @@
+Integrated worktree map audit. Actual Unity Resources and isolated scene instantiation.
+PASS runtime lobby catalog loads
+PASS Candy Castle game scene resolves
+PASS MapDrafterEvan1 game scene resolves
+PASS MapDrafterEvan2 game scene resolves
+PASS MapDrafterLuke1 game scene resolves
+PASS MapDrafterLuke2 game scene resolves
+PASS MapDrafterKaleb1 game scene resolves
+PASS MapDrafterKaleb2 game scene resolves
+PASS Crown of Giants · Study game scene resolves
+PASS Crown of Giants · Study has no missing scripts
+PASS Crown of Giants · Study has a world provider
+PASS Terrace City · Study game scene resolves
+PASS Terrace City · Study has no missing scripts
+PASS Terrace City · Study has a world provider
+PASS Falling Viaduct · Study game scene resolves
+PASS Falling Viaduct · Study has no missing scripts
+PASS Falling Viaduct · Study has a world provider
+PASS Hollow Megakeeps · Study game scene resolves
+PASS Hollow Megakeeps · Study has no missing scripts
+PASS Hollow Megakeeps · Study has a world provider
+PASS Crown Archipelago · Grand game scene resolves
+PASS Crown Archipelago · Grand has no missing scripts
+PASS Crown Archipelago · Grand has a world provider
+PASS Terrace Mountain · Grand game scene resolves
+PASS Terrace Mountain · Grand has no missing scripts
+PASS Terrace Mountain · Grand has a world provider
+PASS Ribbon Skyways · Grand game scene resolves
+PASS Ribbon Skyways · Grand has no missing scripts
+PASS Ribbon Skyways · Grand has a world provider
+PASS Megakeep District · Grand game scene resolves
+PASS Megakeep District · Grand has no missing scripts
+PASS Megakeep District · Grand has a world provider
+PASS Festival of Giants · Hybrid game scene resolves
+PASS Festival of Giants · Hybrid has no missing scripts
+PASS Festival of Giants · Hybrid has a world provider
+PASS Festival of Giants - City game scene resolves
+PASS Festival of Giants - City has no missing scripts
+PASS Festival of Giants - City has a world provider
+PASS Festival City - Packed Shapes game scene resolves
+PASS Festival City - Packed Shapes has no missing scripts
+PASS Festival City - Packed Shapes has a world provider
+PASS Festival City - Surface Mesh game scene resolves
+PASS Festival City - Surface Mesh has no missing scripts
+PASS Festival City - Surface Mesh has a world provider
+PASS Festival City - Optimized game scene resolves
+PASS Festival City - Optimized has no missing scripts
+PASS Festival City - Optimized has a world provider
+PASS Andy game scene resolves
+PASS Crown Workshop game scene resolves
+PASS Crown Workshop imported prefab reference resolves
+PASS Crown Workshop has no missing scripts
+PASS Crown Workshop has a world provider
+PASS Crown Workshop uses its own workshop implementation
+PASS Crown Workshop generates physical members
+PASS Crown Workshop provides a finite spawn
+PASS Crown Workshop layout round trip
+PASS Terrace Workshop game scene resolves
+PASS Terrace Workshop imported prefab reference resolves
+PASS Terrace Workshop has no missing scripts
+PASS Terrace Workshop has a world provider
+PASS Terrace Workshop uses its own workshop implementation
+PASS Terrace Workshop generates physical members
+PASS Terrace Workshop provides a finite spawn
+PASS Terrace Workshop layout round trip
+PASS Viaduct Workshop game scene resolves
+PASS Viaduct Workshop imported prefab reference resolves
+PASS Viaduct Workshop has no missing scripts
+PASS Viaduct Workshop has a world provider
+PASS Viaduct Workshop uses its own workshop implementation
+PASS Viaduct Workshop generates physical members
+PASS Viaduct Workshop provides a finite spawn
+PASS Viaduct Workshop layout round trip
+PASS Megakeep Workshop game scene resolves
+PASS Megakeep Workshop imported prefab reference resolves
+PASS Megakeep Workshop has no missing scripts
+PASS Megakeep Workshop has a world provider
+PASS Megakeep Workshop uses its own workshop implementation
+PASS Megakeep Workshop generates physical members
+PASS Megakeep Workshop provides a finite spawn
+PASS Megakeep Workshop layout round trip
+PASS Crown Constellation game scene resolves
+PASS Crown Constellation imported prefab reference resolves
+PASS Crown Constellation has no missing scripts
+PASS Crown Constellation has a world provider
+PASS Crown Constellation uses its own workshop implementation
+PASS Crown Constellation generates physical members
+PASS Crown Constellation provides a finite spawn
+PASS Crown Constellation layout round trip
+PASS Terrace Metropolis game scene resolves
+PASS Terrace Metropolis imported prefab reference resolves
+PASS Terrace Metropolis has no missing scripts
+PASS Terrace Metropolis has a world provider
+PASS Terrace Metropolis uses its own workshop implementation
+PASS Terrace Metropolis generates physical members
+PASS Terrace Metropolis provides a finite spawn
+PASS Terrace Metropolis layout round trip
+PASS Skywater Viaduct game scene resolves
+PASS Skywater Viaduct imported prefab reference resolves
+PASS Skywater Viaduct has no missing scripts
+PASS Skywater Viaduct has a world provider
+PASS Skywater Viaduct uses its own workshop implementation
+PASS Skywater Viaduct generates physical members
+PASS Skywater Viaduct provides a finite spawn
+PASS Skywater Viaduct layout round trip
+PASS Grand Hollow Keeps game scene resolves
+PASS Grand Hollow Keeps imported prefab reference resolves
+PASS Grand Hollow Keeps has no missing scripts
+PASS Grand Hollow Keeps has a world provider
+PASS Grand Hollow Keeps uses its own workshop implementation
+PASS Grand Hollow Keeps generates physical members
+PASS Grand Hollow Keeps provides a finite spawn
+PASS Grand Hollow Keeps layout round trip
+PASS Candy Archipelago game scene resolves
+PASS Candy Archipelago imported prefab reference resolves
+PASS Candy Archipelago has no missing scripts
+PASS Candy Archipelago has a world provider
+PASS Candy Archipelago uses its own workshop implementation
+PASS Candy Archipelago generates physical members
+PASS Candy Archipelago provides a finite spawn
+PASS Candy Archipelago layout round trip
+PASS Breakwater Village game scene resolves
+PASS Breakwater Village imported prefab reference resolves
+PASS Breakwater Village has no missing scripts
+PASS Breakwater Village has a world provider
+PASS Breakwater Village generates physical members
+PASS Breakwater Village provides a finite spawn
+PASS Breakwater Village layout round trip
+PASS map IDs are unique
+PASS Breakwater and all nine workshop maps are selectable
+COMPLETE prefabMaps=23 failures=0

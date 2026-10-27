@@ -1,0 +1,304 @@
+{
+  "scope": "Authored catalog plus runtime additions; prefab availability and mode eligibility remain owned by the session.",
+  "maps": [
+    {
+      "id": "castle",
+      "title": "Candy Castle",
+      "collection": "main"
+    },
+    {
+      "id": "MapDrafterEvan1",
+      "title": "MapDrafterEvan1",
+      "collection": "experimental"
+    },
+    {
+      "id": "MapDrafterEvan2",
+      "title": "MapDrafterEvan2",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-crown-study",
+      "title": "\"Crown of Giants \\xB7 Study\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-terrace-study",
+      "title": "\"Terrace City \\xB7 Study\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-viaduct-study",
+      "title": "\"Falling Viaduct \\xB7 Study\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-keep-study",
+      "title": "\"Hollow Megakeeps \\xB7 Study\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-crown-grand",
+      "title": "\"Crown Archipelago \\xB7 Grand\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-terrace-grand",
+      "title": "\"Terrace Mountain \\xB7 Grand\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-viaduct-grand",
+      "title": "\"Ribbon Skyways \\xB7 Grand\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-keep-grand",
+      "title": "\"Megakeep District \\xB7 Grand\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-festival-megastructure",
+      "title": "\"Festival of Giants \\xB7 Hybrid\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-festival-city",
+      "title": "Festival of Giants - City",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-festival-city-packed",
+      "title": "Festival City - Packed Shapes",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-festival-city-surface-mesh",
+      "title": "Festival City - Surface Mesh",
+      "collection": "experimental"
+    },
+    {
+      "id": "sparse-festival-city-optimized",
+      "title": "Festival City - Optimized",
+      "collection": "experimental"
+    },
+    {
+      "id": "andy",
+      "title": "Andy",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-crown",
+      "title": "Crown Workshop",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-terraces",
+      "title": "Terrace Workshop",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-viaduct",
+      "title": "Viaduct Workshop",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-megakeeps",
+      "title": "Megakeep Workshop",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-crown-grand",
+      "title": "Crown Constellation",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-terraces-grand",
+      "title": "Terrace Metropolis",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-viaduct-grand",
+      "title": "Skywater Viaduct",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-megakeeps-grand",
+      "title": "Grand Hollow Keeps",
+      "collection": "experimental"
+    },
+    {
+      "id": "workshop-archipelago",
+      "title": "Candy Archipelago",
+      "collection": "experimental"
+    },
+    {
+      "id": "breakwater-village",
+      "title": "Breakwater Village",
+      "collection": "main"
+    },
+    {
+      "id": "mayhem-foundry",
+      "title": "\"Mayhem Foundry \\xB7 Ten Districts\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "city-tower-exhibition",
+      "title": "\"City Buildings 11\\u201320\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "tower-lab-island",
+      "title": "\"Tower Laboratory 1\\u201310\"",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-tideway",
+      "title": "Tideway Metropolis",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-double-loop",
+      "title": "Double-Loop Exchange",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-caldera",
+      "title": "Caldera Switchback City",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-broken-crown",
+      "title": "Broken Crown Capital",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-harbor-loom",
+      "title": "Harbor Loom",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-lantern-ravine",
+      "title": "Lantern Ravine",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-canopy-borough",
+      "title": "Canopy Borough",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-bookfall",
+      "title": "Bookfall Boulevard",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-three-hearts",
+      "title": "Three Hearts City",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-rising-spine",
+      "title": "The Rising Spine",
+      "collection": "experimental"
+    },
+    {
+      "id": "epic-honeycomb-hive",
+      "title": "Honeycomb Beehive",
+      "collection": "main"
+    },
+    {
+      "id": "epic-cloud-carnival",
+      "title": "Cotton Candy Cloud Carnival",
+      "collection": "main"
+    },
+    {
+      "id": "epic-candy-glass-cloud",
+      "title": "Candy Glass Above Clouds",
+      "collection": "main"
+    },
+    {
+      "id": "mode-castle-gaps",
+      "title": "Candy Castle \u00c2\u00b7 Long Blocks and Gaps",
+      "collection": "experimental",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-castle-catwalks",
+      "title": "Candy Castle \u00b7 Catwalks",
+      "collection": "experimental",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-castle-four-keeps",
+      "title": "Candy Castle \u00b7 Four Keeps",
+      "collection": "experimental",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-ctf",
+      "title": "Lollipop Fortresses",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-infection",
+      "title": "Infection Spire",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-survival",
+      "title": "Storm Cathedral",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-territory",
+      "title": "Color Courtyards",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-koth",
+      "title": "Crown Summit",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-tickets",
+      "title": "Last Stand Citadel",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-buildup",
+      "title": "Beacon Scaffold Ascent",
+      "collection": "experimental",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-christmas-town",
+      "title": "Christmas Candy Town",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-powerup-test",
+      "title": "Powerup Test Island",
+      "collection": "experimental",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-cantina",
+      "title": "Amber Cantina",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    },
+    {
+      "id": "mode-tiki-resort",
+      "title": "Waterfront Tiki Resort",
+      "collection": "main",
+      "source": "runtime catalog addition when prefab exists"
+    }
+  ]
+}

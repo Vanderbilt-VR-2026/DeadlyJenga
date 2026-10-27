@@ -18,6 +18,8 @@ namespace DeadlyJenga.CastlePrototype
         CastleBlock block;
         public Rigidbody Body => (block ? block : block = GetComponent<CastleBlock>()).Body;
 
+        void Awake() { block = GetComponent<CastleBlock>(); block.RegisterMagnet(this); }
+
         public bool TryPush(Vector3 velocity)
         {
             if (!Structure) return false;

@@ -72,7 +72,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var setting=Setting(slot);if(setting==null||Details==null)return "";var value=setting.read(Details.Setup);
             if(setting.type==typeof(int)&&setting.options!=null)value=setting.options[Mathf.Clamp((int)value,0,setting.options.Length-1)];
-            float fill=setting.type==typeof(float)||setting.type==typeof(int)?Mathf.InverseLerp(setting.min,setting.max,Convert.ToSingle(setting.read(Details.Setup))):0;if(slot<setupFills.Count)setupFills[slot].rectTransform.sizeDelta=new Vector2(fill*560,5);
+            float fill=setting.type==typeof(float)||setting.type==typeof(int)?Mathf.InverseLerp(setting.min,setting.max,Convert.ToSingle(setting.read(Details.Setup))):0;if(slot<setupFills.Count)setupFills[slot].rectTransform.sizeDelta=new Vector2(fill*760,5);
             return setting.label+"\n"+(value is float f?f.ToString("0.##"):value is bool b?b?"ON":"OFF":value?.ToString());
         }
         void Adjust(int slot,int step)

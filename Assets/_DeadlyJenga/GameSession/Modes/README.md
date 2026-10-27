@@ -27,11 +27,11 @@ The selected metric labels both the live top ten and final results. Only the lea
 
 ### Murder Mystery
 
-Select Murder Mystery in the lobby. The personal role preference stays on the local device until it is sent privately to the game server. The server assigns one murderer and one sheriff; role overrides remain available in the demo mode panel. At least three total participants are filled for this mode. Ordinary punches deal eight damage; special punches are toggled with Q on desktop or through the mode panel. Only the special swing displays its red blade or blue hammer.
+Select Murder Mystery in the lobby. The personal role preference stays on the local device until it is sent privately to the game server. The server assigns one murderer and one sheriff; role overrides remain available in the demo mode panel. At least three total participants are filled for this mode. Ordinary punches deal eight damage; special punches are toggled with Q on desktop or through the mode panel. Only the special swing displays its red blade or blue revolver.
 
 Innocents win if the murderer dies or the eight-minute timer expires. The murderer wins when no capable innocent remains. A sheriff is eliminated after two innocent kills. An innocent's lethal attack against a non-murderer eliminates the attacker and leaves the victim downed. Hold E, trigger or pinch near a downed player for the configured revive time. Downed players cannot jump, climb or vault and cannot survive landing on the island. Natural deaths use the shared death transition; murderer kills leave copies of the current avatar that settle, attach to their support and release if that support turns nearly upside down.
 
-E or trigger/pinch reports a nearby body. A murderer must wait five seconds before reporting their own kill. Reporting a fallen sheriff also allows an innocent to recover the vacant sheriff role. During the first thirty seconds after reporting, look at a nearby colored footprint and interact to register one suspicion vote. At most three distinct suspected colors are displayed. Old reports fade but remain available. Sheriff names remain restricted to close inspection.
+E or trigger/pinch reports a nearby body. A murderer must wait five seconds before reporting their own kill. Collecting the fallen sheriff’s dropped revolver, rather than reporting the body, allows an innocent to recover the vacant sheriff role. During the first thirty seconds after reporting, look at a nearby colored footprint and interact to register one suspicion vote. At most three distinct suspected colors are displayed. Old reports fade but remain available. Sheriff names remain restricted to close inspection.
 
 The sheriff receives three disaster candidates ten seconds before the first forty-five-second offer, vetoes one, and the murderer chooses one of the remaining two. Timeouts choose automatically. Later murderer offers are scheduled sixty to one hundred twenty seconds after the previous selection, with the sheriff's veto window included in that interval. Number keys 1–3 select candidates on desktop; headset users look at the candidate row and select.
 
@@ -75,7 +75,7 @@ directly by other systems remain independent of pickup inventory.
 Murder Mystery assigns role weapons into the same slot. Undrawn role-issued
 equipment is omitted from public snapshots and hidden by character visuals.
 Drawing a role weapon uses the existing Mystery special-attack rules; collecting
-a sword or sheriff hammer from the test map grants a generic damage weapon, not
+a sword or sheriff revolver from the test map grants a generic damage weapon, not
 a secret role. Role changes update or remove the issued equipment. Migration
 restores public inventory/pickups; a restarted Mystery clears the old ledger.
 
@@ -89,3 +89,20 @@ Validation: AvatarEnemyChecks also runs EquipmentChecks (actual Game scene,
 physical damage/cover fixtures, inventory/drop lifecycle and remote render
 reconstruction). Reports and captures go to Logs/Validation. The Photon check
 uses two runners inside one Editor; it does not certify two physical devices.
+
+
+### Revolver and rotating rifle
+The serialized `SheriffHammer` equipment identity is retained for existing assets and network IDs; its behavior and model are now the Sheriff Revolver. It has a 90 m / 85 damage pistol mode (.75 s cooldown), or seven 10-damage pellets over 18 m (.28 s cooldown). Mystery role-issued shots preserve grace, role secrecy, lethal-special rules and innocent-kill penalties. A single death drop occurs before respawn, even when concealed; collecting it promotes an eligible innocent to sheriff. Reporting alone does not duplicate the weapon.
+
+The dual rifle switches between a seven-pellet shotgun (.20 s cooldown) and long rifle (.65 s). Switching either gun imposes a .4 s firing lock without shortening an existing cooldown. The rifle's two barrel/optic assemblies roll 180 degrees together. Rifle traversal restrictions remain unchanged.
+
+Desktop: V draws/stows, left mouse fires, R changes mode on the revolver/rifle, and holding right mouse aims and zooms (blaster 1.5x, revolver/shotgun 2x, rifle 4x). VR: dominant trigger draws/fires or stows near the holster, other trigger changes mode, grip plus physical eye alignment uses the optic. Scope magnification uses one local 384-square texture at up to 30 Hz only while aligned. It never changes the headset's eye projection. Physical reticles remain usable without the extra scope render. Device comfort/performance require headset testing.
+
+### Bots noticing exposed weapons
+A drawn red murder blade is an observable threat before anyone attacks. Every quarter-second, living bots check drawn blades within 15 metres, in their forward view, with unobstructed sight and the existing perception recognition delay. This uses the exposed equipment state, not the carrier's private role. A concealed weapon, weapon behind cover, or the sheriff's blue revolver does not reveal an unknown murderer.
+
+Innocents use the existing safe-footing escape route; sheriffs use their existing attack behavior. The close-contact repel objective can still produce defensive punches when the threat reaches melee distance. Witness memory survives holstering, but following a hidden opponent uses only the existing short-lived last-seen position, never a live hidden transform. Round reset clears the witness memory.
+
+
+### Mystery replays
+Victims receive a private replay cue after an authoritative murderer kill; the public match frame contains no replay cue until Victory/Results. At round end, the murderer view is shown, with a sheriff view alongside it when the sheriff killed the murderer. Presentation records bounded 10 Hz poses/block transforms and interpolates a skippable ten-second reconstruction. It never renders a recording camera during the live round. See ArtDirection/CandyPolishReplay/Implementation.md for budgets, controls, limitations and verification evidence.

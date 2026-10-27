@@ -1,0 +1,15 @@
+Isolated native 6098-block cathedral physics; original prefab collision, mass and damping; dt=.02. No rendering, bots, proxies or game FPS claim.
+300 idle steps; remove a bottom support patch + pull a block for 200 steps; northbound tsunami forces for 200 steps.
+BEGIN profile=0 solver=80/20 initialCollision=ContinuousDynamic
+IDLE maxDrop=0.2115 maxXZ=0.1508 maxAngle=0.000 sleeping=6051 removed=46
+RESULT idle median=12.19ms p90=19.97ms collapse median=10.88ms p90=15.86ms wave median=15.83ms p90=20.74ms fallen>2m=1166 maxHeight=178.82
+BEGIN profile=1 solver=80/20 initialCollision=Discrete
+IDLE maxDrop=0.2115 maxXZ=0.1508 maxAngle=0.000 sleeping=6051 removed=46
+RESULT idle median=9.61ms p90=16.68ms collapse median=9.72ms p90=12.73ms wave median=13.61ms p90=23.65ms fallen>2m=1173 maxHeight=178.82
+BEGIN profile=2 solver=80/20 initialCollision=ContinuousDynamic
+IDLE maxDrop=0.2115 maxXZ=0.1508 maxAngle=0.000 sleeping=6051 removed=46
+RESULT idle median=8.72ms p90=14.48ms collapse median=10.16ms p90=13.44ms wave median=18.15ms p90=26.09ms fallen>2m=1043 maxHeight=178.82
+BEGIN profile=3 solver=80/20 initialCollision=Discrete
+IDLE maxDrop=0.2115 maxXZ=0.1508 maxAngle=0.000 sleeping=6051 removed=46
+RESULT idle median=12.45ms p90=21.12ms collapse median=11.28ms p90=24.03ms wave median=17.30ms p90=24.09ms fallen>2m=1043 maxHeight=178.82
+COMPLETE

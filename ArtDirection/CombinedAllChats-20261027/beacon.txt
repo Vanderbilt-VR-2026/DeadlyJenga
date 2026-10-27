@@ -1,0 +1,64 @@
+Combined integration regression
+PASS Actual lobby loads
+PASS Local player exists
+PASS World strand shader imports without shader errors
+PASS Reentry fixture obtains the live travel controller
+PASS New departure replaces arrival visuals immediately
+PASS Replacement snapshots the newly added traveller
+PASS Duplicate active departure keeps its controller
+PASS Deferred obsolete cleanup preserves the replacement owner
+PASS Reentry fixture obtains the live travel controller
+PASS New departure replaces finishing visuals immediately
+PASS Replacement snapshots the newly added traveller
+PASS Duplicate active departure keeps its controller
+PASS Deferred obsolete cleanup preserves the replacement owner
+PASS Reentry fixtures clean up their final controller
+PASS Actual lobby survivor bots are available for departure coverage
+PASS Departure event creates the world beacon
+MEASURE columns=11 expected=11 snapshottedBots=9 liveBots=9 controllers=1 arriving=False
+MEASURE targets=Persistent lobby survivor#-3342 | Candy NPC 2 — Balanced#-14272 | Candy NPC 6 — Balanced#-21968 | Remote human selection fixture#-23366 | Candy NPC 4 — Balanced#-14832 | Candy NPC 9 — Balanced#-23084 | Candy NPC 5 — Balanced#-21708 | Candy NPC 8 — Balanced#-22558 | Candy NPC 3 — Balanced#-14540 | Candy NPC 7 — Balanced#-22298 | Candy NPC 1 — Balanced#-13926
+PASS Local player, remote survivor and every active lobby bot receive exactly one departure column
+PASS Every lobby bot has its own exterior-visible departure strands
+PASS Inactive actors and flying hands are excluded
+PASS All human and bot strands share one mesh and material
+PASS Remote human has an exterior-visible column on this client
+PASS Column begins at its own player's position
+PASS Effect adds no physics bodies or colliders
+PASS Effect adds no dynamic lights
+PASS Filaments do not add shadow rendering
+PASS Column is a bounded small shared mesh
+PASS Screen stays clear during the summoning phase
+PASS Repeated departure cue does not duplicate the beacon
+PASS Light collar follows the actual lifted player
+PASS Actual interior player camera exists
+MEASURE interior changed-pixel fraction=0.3871
+PASS Strands render from inside while leaving most scenery visible
+PASS Soft white fade begins only at the end
+PASS White covers the scene change
+PASS Cancellation removes all columns and the fade
+PASS Actual lobby can start the game
+PASS Existing gameplay still physically lifts the player
+PASS Real departure reaches playable Game scene
+PASS GameSession attaches initial arrival motion without changing the session controller
+PASS Open initial spawn begins a real ten-metre descent
+PASS White departure changes into arrival presentation
+PASS Actual game survivor bots spawned
+PASS Every initial game bot receives exactly one arrival strand column
+PASS Arrival strands end just above the character rather than reaching the sky
+MEASURE arrival high=69.842 y=67.365 destination=59.842 progress=0.498 active=True fade=0.000
+PASS The actual character moves downward while the white fade clears
+MEASURE arrival fade=0.000 drop remaining=7.523 active=True
+PASS Soft white clears during the descent
+PASS Short strands follow the falling character without a frame of position lag
+PASS Open arrival lands at its intended spawn point
+PASS The initial drop does not inflict fall damage
+PASS Arrival clears old world columns and the white fade
+PASS A repeated ready cue does not replay the initial spawn
+PASS A ceiling limits the arrival to the available clearance below it
+PASS Covered arrival lands without moving through the roof
+PASS A very low ceiling keeps the player safely at the spawn point
+PASS Zero-clearance arrival still completes
+PASS Removing the ceiling restores the open route
+PASS A new obstruction during descent stops the player above it without tunnelling
+PASS Trigger-only volumes do not block an open arrival route
+PASS Another gameplay teleport cancels arrival without pulling the character back into the drop

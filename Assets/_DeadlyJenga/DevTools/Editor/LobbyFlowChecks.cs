@@ -26,23 +26,28 @@ namespace DeadlyJenga.DevTools.Editor
     public static class LobbyFlowChecks
     {
         const string Key="LobbyFlowChecks";
-        static string Report=>ProjectPath.Report("LobbyFlow.txt");
+        static string Report=>ProjectPath.Report(SessionState.GetBool(Key+"PreviewOnly",false)?"WardrobePreview.txt":"LobbyFlow.txt");
         static int errors;static NetworkRunner probe;
         static LobbyFlowChecks()
         {
-            EditorApplication.update+=()=>{var request=ProjectPath.Report("LobbyFlow.request");if(File.Exists(request)&&!EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating){File.Delete(request);Run();}};
+            EditorApplication.update+=()=>
+            {
+                string pid=System.Diagnostics.Process.GetCurrentProcess().Id.ToString();var preview=ProjectPath.Report("WardrobePreviewExpansionMain.request");bool only=File.Exists(preview)&&File.ReadAllText(preview).Trim()==pid+":isolated1";
+                var request=only?preview:ProjectPath.Report("LobbyFlowExpansionMain.request");
+                if(File.Exists(request)&&(only||File.ReadAllText(request).Trim()==pid+":expanded4")&&!EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating){File.Delete(request);SessionState.SetBool(Key+"PreviewOnly",only);Run();}
+            };
             EditorApplication.playModeStateChanged+=state=>
             {
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode){errors=0;AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();SessionState.SetBool(Key+"Locked",true);Application.logMessageReceived+=Log;EditorApplication.delayCall+=()=>{var root=new GameObject("Lobby flow check");Object.DontDestroyOnLoad(root);root.AddComponent<LobbyFlowDriver>().StartCoroutine(Guard(Check()));};}
-                if(state==PlayModeStateChange.EnteredEditMode){Unlock();Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);string original=SessionState.GetString(Key+"Original","");if(File.Exists(original))EditorSceneManager.OpenScene(original);}
+                if(state==PlayModeStateChange.EnteredEditMode){Unlock();Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);SessionState.SetBool(Key+"PreviewOnly",false);string original=SessionState.GetString(Key+"Original","");if(File.Exists(original))EditorSceneManager.OpenScene(original);}
             };
         }
         static void Unlock(){if(!SessionState.GetBool(Key+"Locked",false))return;SessionState.SetBool(Key+"Locked",false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();}
         [MenuItem("Tools/Deadly Jenga/Validation/Check Lobby Flow")]
         public static void Run()
         {
-            File.WriteAllText(Report,"Lobby local-host, identity, admin and two-runner checks\n");SessionState.SetString(Key+"Original",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);SessionState.SetBool(Key,true);
+            File.WriteAllText(Report,SessionState.GetBool(Key+"PreviewOnly",false)?"Isolated wardrobe render check\n":"Expanded lobby v4: offline bots, customizer, identity and two-runner checks\n");SessionState.SetString(Key+"Original",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType type)
@@ -69,15 +74,30 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator Check()
         {
             yield return new WaitForSecondsRealtime(1);
-            var lobby=IslandLobby.Current;var room=lobby.Room;var details=(ILobbyDetails)lobby;var view=lobby.View();lobby.SetMenu(true);
+            var lobby=IslandLobby.Current;
+            yield return Until(()=>lobby.SurvivorBots?.Count==9,"Offline lobby fills to nine bots plus the local player");
+            var room=lobby.Room;var details=(ILobbyDetails)lobby;var view=lobby.View();lobby.SetMenu(true);
             Require(!room.Connected&&lobby.IsHost&&lobby.CanConfigure&&lobby.CanStart&&lobby.JoinEnabled,"Solo arrival can start and configure immediately while JOIN remains available, without a Fusion room");
+            view.SetWardrobeOpen(true);yield return null;
+            Require((bool)typeof(IslandLobbyView).GetField("wardrobeOpen",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(view),"Customizer opens on the actual lobby avatar");
+            typeof(IslandLobbyView).GetMethod("SetWardrobeCategory",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(view,new object[]{1});
+            if(SessionState.GetBool(Key+"PreviewOnly",false))
+            {
+                var flags=BindingFlags.Instance|BindingFlags.NonPublic;var camera=(Camera)typeof(IslandLobbyView).GetField("wardrobeCamera",flags).GetValue(view);var render=typeof(IslandLobbyView).GetMethod("PresentWardrobe",flags);
+                Color Sample(){var oldTarget=RenderTexture.active;RenderTexture.active=camera.targetTexture;var pixel=new Texture2D(1,1,TextureFormat.RGB24,false);pixel.ReadPixels(new Rect(camera.targetTexture.width/2,camera.targetTexture.height/2,1,1),0,0);pixel.Apply();var result=pixel.GetPixel(0,0);Object.Destroy(pixel);RenderTexture.active=oldTarget;return result;}
+                render.Invoke(view,null);var beforePixel=Sample();var obstruction=GameObject.CreatePrimitive(PrimitiveType.Cube);obstruction.name="Preview occlusion regression fixture";obstruction.transform.position=camera.transform.position+camera.transform.forward*.35f;obstruction.transform.localScale=Vector3.one*.5f;
+                render.Invoke(view,null);var afterPixel=Sample();Require(Vector4.Distance(beforePixel,afterPixel)<.03f,"A world object directly in front of the preview cannot obscure the avatar");Object.Destroy(obstruction);
+                Require(!lobby.Player.gameObject.GetComponent<IModeActor>().Visual.GetComponentsInChildren<Renderer>().Any(r=>r.gameObject.layer==31),"Preview rendering restores the original avatar layers");
+            }
+            ScreenCapture.CaptureScreenshot(ProjectPath.Report("Expanded-Customizer.png"));yield return new WaitForSecondsRealtime(.4f);view.SetWardrobeOpen(false);
+            if(SessionState.GetBool(Key+"PreviewOnly",false)){Require(errors==0,"Isolated wardrobe rendering finishes without runtime errors");File.AppendAllText(Report,"COMPLETE: actual offline lobby, avatar-only preview and restored renderer layers.\n");yield break;}
             string noun=room.LocalIdentity.noun;Require(details.Participants.Count==1&&lobby.Player.gameObject.GetComponent<IModeActor>().DisplayName==room.LocalIdentity.displayName,"Solo character receives its color-and-noun identity in the lobby");
             Require(view.InvokeChoice("map-current"),"Map dropdown opens");yield return null;
-            Require(view.GetComponentsInChildren<Text>().Any(t=>t.text=="CHOOSE MAP"),"Dropdown displays the map list");view.InvokeChoice("picker-0");yield return null;
+            Require(view.GetComponentsInChildren<Text>().Any(t=>t.text.Contains("CHOOSE MAP")),"Dropdown displays the map list");view.InvokeChoice("picker-0");yield return null;
             Require(view.GetComponentsInChildren<RawImage>().Any(p=>p.texture),"Castle map uses an existing screenshot preview");
-            view.InvokeChoice("mode-current");yield return null;int ctf=details.Modes.ToList().FindIndex(m=>m.id=="ctf");view.InvokeChoice("picker-"+ctf);yield return null;
-            Require(room.Setup.rules.mode==GameModeKind.CaptureFlag,"Game mode picker applies its default rules");
-            view.InvokeChoice("mode-settings");yield return null;int before=room.Setup.population;view.InvokeChoice("setting-plus-0");Require(room.Setup.population==before+1,"World-space lobby settings update the actual launch setup");view.InvokeChoice("setup-back");
+            Require(view.InvokeChoice("mode-current"),"Two-column mode picker opens");yield return null;int ctf=details.Modes.Where(m=>m.available&&m.id!="survival"&&m.id!="infection"&&m.id!="mystery"&&m.id!="demo").ToList().FindIndex(m=>m.id=="ctf");Require(ctf>=0&&view.InvokeChoice("mode-card-"+ctf),"Visible CTF card receives selection");yield return null;
+            Require(room.Setup.rules.mode==GameModeKind.CaptureFlag,"Game mode picker applies its default rules (selected="+details.SelectedModeId+", slot="+ctf+")");
+            Require(view.InvokeChoice("picker-0"),"Mode selection proceeds through its responsive map picker");yield return null;Require(view.InvokeChoice("mode-settings"),"Mode settings open after choosing the map");yield return null;int before=room.Setup.population;Require(view.InvokeChoice("setting-plus-0"),"Population increase receives its UI command");Require(room.Setup.population==before+1,"World-space lobby settings update the actual launch setup");view.InvokeChoice("setup-back");
             room.SelectMode(0);var setup=details.Setup;setup.population=10;setup.rules.punchDamage=23;setup.movement.gripSeconds=7;details.ConfigureSetup(setup);
             Require(room.Setup.rules.punchDamage==23&&MatchSetup.GripSeconds==7,"Mode and stamina tuning persist in launch settings");
             var simulation=new ModeSimulation(ModeSimulation.Defaults(GameModeKind.CaptureFlag));simulation.Register("one",ModeNames.Colors[3],false,true);simulation.PreserveIdentity("one","Trainer");simulation.Register("two",ModeNames.Colors[3],false,false);simulation.PreserveIdentity("two","Trainer");
@@ -92,7 +112,7 @@ namespace DeadlyJenga.DevTools.Editor
             try
             {
                 config.PeerMode=NetworkProjectConfig.PeerModes.Multiple;
-                yield return Done(room.Host(),"Real Photon room creation completes");Require(room.IsHost&&room.HumanCount==1&&lobby.JoinEnabled,"Published solo room reports one connected player and keeps code entry active");
+                yield return Done(room.Host(),"Real Photon room creation completes");yield return Until(()=>lobby.SurvivorBots?.Count==0,"Hosting removes all offline lobby bots");Require(room.IsHost&&room.HumanCount==1&&lobby.JoinEnabled,"Published solo room reports one connected player and keeps code entry active");
                 var go=new GameObject("Independent lobby guest");probe=go.AddComponent<NetworkRunner>();var client=probe;var callbacks=new NetworkDelegates();IslandRoomConnection.LobbyState received=null;int packets=0;var actor=lobby.Capture("forged");
                 callbacks.OnReliableDataReceived=(runner,source,key,bytes)=>
                 {

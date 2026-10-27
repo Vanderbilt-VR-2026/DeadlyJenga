@@ -118,6 +118,14 @@ namespace DeadlyJenga.Modes
             if(!people.TryGetValue(id,out var p)||!p.alive||p.downed||p.role!=MysteryRole.Innocent||people.Values.Any(v=>v.alive&&v.role==MysteryRole.Sheriff)||!bodies.TryGetValue(bodyId,out var body)||!body.frame.sheriff||body.frame.lost||body.badgeTaken)return false;
             p.role=MysteryRole.Sheriff;body.badgeTaken=true;return true;
         }
+        public bool CanRecoverDroppedSheriff(string id)=>people.TryGetValue(id,out var p)&&p.alive&&!p.downed&&p.role==MysteryRole.Innocent&&!people.Values.Any(v=>v.alive&&v.role==MysteryRole.Sheriff);
+        public bool RecoverDroppedSheriff(string id)
+        {
+            if(!CanRecoverDroppedSheriff(id))return false;
+            people[id].role=MysteryRole.Sheriff;
+            foreach(var body in bodies.Values)if(body.frame.sheriff)body.badgeTaken=true;
+            return true;
+        }
         public bool Report(string id,string bodyId,Color finderColor)
         {
             if(!people.TryGetValue(id,out var p)||!p.alive||p.downed||!bodies.TryGetValue(bodyId,out var body)||body.frame.lost||body.frame.reported)return false;

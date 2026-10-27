@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastleBots
         public int EnemyCount=>bots.Count(b=>b&&b.GetComponent<CastleEnemyActor>());
         public GameObject SpawnEnemy(EnemySpawnSettings settings)
         {
-            if(settings==null||(settings.archetypeId!="panther"&&settings.archetypeId!="jaguar")||float.IsNaN(settings.hitDamage)||float.IsInfinity(settings.hitDamage)||EnemyCount>=32||MatchRuntime.Current?.Authority!=true)return null;
+            if(settings==null||(settings.archetypeId!="panther"&&settings.archetypeId!="jaguar"&&settings.archetypeId!="mushroom"&&settings.archetypeId!="longhand"&&settings.archetypeId!="gum-brute")||float.IsNaN(settings.hitDamage)||float.IsInfinity(settings.hitDamage)||EnemyCount>=32||MatchRuntime.Current?.Authority!=true)return null;
             return SpawnBot(settings)?.gameObject;
         }
         public void ClearEnemies()

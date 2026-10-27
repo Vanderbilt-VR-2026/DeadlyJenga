@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "id": "murder-mystery",
-  "description": "Use own role and observed special strikes. Pursue, flee, report bodies, revive and recover badges through validated commands; never infer unknown private identities.",
+  "description": "Use own role, visibly drawn red blades and observed special strikes. Innocents flee visible threats and may repel at close contact; sheriffs confront observed threats. Pursue, report bodies, revive and recover badges through validated commands; never infer concealed private identities.",
   "objectives": [
     {
       "id": "survive",
@@ -89,6 +89,24 @@
       "utility": 0.4,
       "radius": 0.8,
       "timeout": 45
+    },
+    {
+      "id": "collect-equipment",
+      "query": "pickups",
+      "skill": "Travel",
+      "interaction": "collect-pickup",
+      "completeWhen": "pickup-collected",
+      "tier": 0,
+      "maximum": 1,
+      "utility": 0.45,
+      "radius": 1,
+      "timeout": 25,
+      "retry": 8,
+      "commitment": 2,
+      "exclude": [
+        "carrying",
+        "threat-near"
+      ]
     }
   ]
 }

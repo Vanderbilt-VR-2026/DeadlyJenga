@@ -106,6 +106,7 @@ namespace DeadlyJenga.CastleBots
                 MovementState=BotMovementState.Disabled;StationaryReason="Round or life state";idleFor=0;DesiredSpeed=0;return default;
             }
             traversalProgress.Observe(transform.position,motor.Grounded,Time.time,Mathf.Clamp(motor.EffectiveWalkSpeed*.04f,.03f,.12f));
+            PrepareBotWeapon();
             var command=ReadMovementCommand(motor,dt);
             bool fighting=ReadCombatCommand(ref command);
             var action=BotActionKind.Explore;
@@ -175,27 +176,29 @@ namespace DeadlyJenga.CastleBots
         {
             if(desired.sqrMagnitude<.001f){steeringVelocity=Vector3.zero;return desired;}
             Vector3 separation=Vector3.zero;int considered=0;
+            var origin=transform.position;var direction=desired.normalized;
             foreach(var other in Population.Bots)
             {
-                if(!other||other==this||other.Respawning||Mathf.Abs(other.transform.position.y-transform.position.y)>.45f)continue;
-                var delta=Vector3.ProjectOnPlane(transform.position-other.transform.position,Vector3.up);
-                float distance=delta.magnitude;
-                if(distance>.9f)continue;
+                if(!other||other==this||other.Respawning||Mathf.Abs(other.transform.position.y-origin.y)>.45f)continue;
+                var delta=Vector3.ProjectOnPlane(origin-other.transform.position,Vector3.up);
+                float squared=delta.sqrMagnitude;if(squared>.81f)continue;
+                float distance=Mathf.Sqrt(squared);
                 if(++considered>12)break;
                 if(distance>.02f)
                 {
                     separation+=delta/distance*(.9f-distance);
-                    if(Vector3.Dot(other.transform.forward,desired.normalized)<-.5f&&Mathf.Abs(Vector3.Dot(delta/distance,desired.normalized))>.7f)
-                        separation+=Vector3.Cross(Vector3.up,desired.normalized)*.4f;
+                    if(Vector3.Dot(other.transform.forward,direction)<-.5f&&Mathf.Abs(Vector3.Dot(delta/distance,direction))>.7f)
+                        separation+=Vector3.Cross(Vector3.up,direction)*.4f;
                 }
             }
             var candidate=Vector3.ClampMagnitude(desired+Vector3.ClampMagnitude(separation,.5f),desired.magnitude);
             float step=Mathf.Max(.2f,Motor.EffectiveWalkSpeed*dt*1.5f);
             var end=transform.position+candidate.normalized*step;
-            if(CastleBotNavigation.Walkable(Motor,transform.position,end))desired=candidate;
+            var testedEnd=end;bool walkable=CastleBotNavigation.Walkable(Motor,transform.position,end);
+            if(walkable)desired=candidate;
             steeringVelocity=Vector3.MoveTowards(steeringVelocity,desired,dt*8);
             end=transform.position+steeringVelocity.normalized*step;
-            if(!CastleBotNavigation.Walkable(Motor,transform.position,end))steeringVelocity=desired;
+            if(!(end.Equals(testedEnd)?walkable:CastleBotNavigation.Walkable(Motor,transform.position,end)))steeringVelocity=desired;
             return steeringVelocity;
         }
         void SmoothWalkingRoute()

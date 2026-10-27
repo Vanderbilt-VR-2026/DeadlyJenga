@@ -46,6 +46,8 @@ namespace DeadlyJenga.DevTools.Editor
                         var bytes=CastleFusionWire.Decompress(data.ToArray());
                         var frame=JsonUtility.FromJson<MatchFrame>(Encoding.UTF8.GetString(bytes));
                         if(!ModeFrameValidation.Frame(frame,blockCount))throw new Exception("Production validator rejected transported match frame");
+                        if(frame.demoRespawnEquipment!=baseline.demoRespawnEquipment)throw new Exception("Respawn equipment policy changed across the transport");
+                        if(baseline.weaponProjectiles.Any(p=>p.kind==EquipmentKind.RocketLauncher)&&!frame.weaponProjectiles.Any(p=>p.kind==EquipmentKind.RocketLauncher))throw new Exception("Rocket projectile state was lost in transport");
                         receivedThrust=frame.equipment.Any(e=>e.kind==EquipmentKind.PoweredArmor&&e.thrust);
                     }
                     catch(Exception e){failure=e.ToString();}

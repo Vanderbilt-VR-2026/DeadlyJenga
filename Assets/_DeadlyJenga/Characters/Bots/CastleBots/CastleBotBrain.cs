@@ -26,6 +26,7 @@ namespace DeadlyJenga.CastleBots
         readonly List<CastleBotLanding> candidates=new List<CastleBotLanding>(96);
         CastleBotLanding goal;
         CandyPlayerAvatar avatar;
+        CastleBotEmotes poseEmotes;
         bool hasGoal;
         float nextPlan,nextSense,waitUntil,nextJump,respawnAt,progressAt,goalSince;
         Vector3 progressPosition;
@@ -129,7 +130,15 @@ namespace DeadlyJenga.CastleBots
             // Cosmetic social gesture; the shared rig still drives vault contact hands.
             if(Time.time<waitUntil&&Personality.goofiness>.5f&&!Motor.Vaulting)
             {frame.left.position=frame.head+transform.right*(-.2f*frame.scale)+Vector3.up*.08f*frame.scale;frame.left.rotation=transform.rotation*Quaternion.Euler(-65,0,0);}
-            avatar.OverridePose(frame);avatar.RefreshExternal(Time.deltaTime);avatar.ClearPoseOverride();
+            if(!poseEmotes)poseEmotes=GetComponent<CastleBotEmotes>();
+            avatar.Rig.BeginPoseComposition();
+            try
+            {
+                avatar.OverridePose(frame);
+                try{avatar.RefreshExternal(Time.deltaTime);}finally{avatar.ClearPoseOverride();}
+                if(poseEmotes&&poseEmotes.isActiveAndEnabled)poseEmotes.ComposePose();
+            }
+            finally{avatar.Rig.EndPoseComposition();}
         }
         bool GoalSafe()
         {
@@ -138,6 +147,13 @@ namespace DeadlyJenga.CastleBots
             return CastleBotNavigation.Landing(Motor,goal.Point,out _);
         }
         void Plan()
+        {
+            if(!BotPlanningBudget.TrySense(Mathf.RoundToInt(Seed/7.193f)-1,Population.Count)){nextPlan=Time.time+.12f;return;}
+            BotPlanningBudget.BeginWork();
+            try { PlanWork(); }
+            finally { BotPlanningBudget.EndWork(); }
+        }
+        void PlanWork()
         {
             hasGoal=false;
             if(journey.Count>0&&TakeWaypoint())return;
@@ -173,7 +189,7 @@ namespace DeadlyJenga.CastleBots
             }
             planner=new CastleBotJourneyPlanner(this,tripDestination);Intent="Planning stepping stones";
             // Get moving on a safe local step while the longer search is spread over frames.
-            LocalFallback();
+            LocalFallbackWork();
         }
         bool TakeWaypoint()
         {
@@ -333,7 +349,7 @@ namespace DeadlyJenga.CastleBots
                 // that point and mistake the intended gap for an unsafe approach.
                 float lookAhead=Mathf.Min(distance,Mathf.Max(.15f,motor.EffectiveWalkSpeed*.15f));
                 safeAhead=CastleBotNavigation.Ground(transform.position+direction*lookAhead+Vector3.up*.25f,.65f,out _);
-                obstacle=Physics.Raycast(transform.position+Vector3.up*.3f,direction,Mathf.Min(distance,Mathf.Max(.4f,motor.vaultReach)),CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore);
+                obstacle=Physics.Raycast(transform.position+Vector3.up*.3f,direction,Mathf.Min(distance,Mathf.Max(.4f,motor.vaultReach)),CastleBotNavigation.QueryMask,QueryTriggerInteraction.Ignore);
             }
             float pace=Mathf.Min(1,Personality.pace*variation);
             if(diagnostics)DebugState+=" route="+goal.route+" distance="+distance+" rise="+(destination.y-transform.position.y)+" ahead="+safeAhead+" obstacle="+obstacle+" angle="+Vector3.Angle(transform.forward,direction);

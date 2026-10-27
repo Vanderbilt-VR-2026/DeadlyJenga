@@ -1,0 +1,12 @@
+Actual combined current-source Unity validation
+PHASE actual Marina UI, wardrobe, collision and scene round-trip
+PASS Marina remains the default integrated lobby
+PHASE actual summoning and initial arrival regression
+PHASE mushroom glaze and movement-render regression
+PASS Imported shader has no errors: CandyScenery/CandyAvatarHealth
+PASS Imported shader has no errors: CandyScenery/CandySummoningColumn
+PASS Imported shader has no errors: MayhemMarina/MarinaWater
+PASS Imported shader has no errors: CandyScenery/CandyStormMist
+PASS Imported shader has no errors: CandyScenery/CandyStormFunnel
+PASS Combined actual runtime emitted zero errors
+COMPLETE failed=False errors=0 rootChecks=7

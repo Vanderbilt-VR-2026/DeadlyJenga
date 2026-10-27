@@ -96,7 +96,8 @@ namespace DeadlyJenga.CandyArt
         }
         void StationStands()
         {
-            for(int i=0;i<3;i++)
+            // Host and map terminals supply their own flat wall cabinets.
+            for(int i=0;i<1;i++)
             {
                 var p=new Vector3((i-1)*3.05f,.52f,i==1?1.8f:1);
                 Rounded(p,new Vector3(i==0?1.6f:1.45f,.1f,.8f),i==0?3:i==1?2:1);

@@ -1,0 +1,7 @@
+GPU shader preview; not a gameplay or headset test.
+PASS age=0.06 visiblePixels=110728
+PASS age=0.35 visiblePixels=537405
+PASS age=1.05 visiblePixels=543100
+PASS age=1.6 visiblePixels=272099
+PASS age=2.2 visiblePixels=0
+COMPLETE

@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Collections.Generic;
 using UnityEngine;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyPlayers;
@@ -10,9 +11,13 @@ namespace DeadlyJenga.CharacterNetwork
     // Someone else's flying hand on this machine. On the host it is a real physics hand that
     // touches the castle, and its actual bones are sent on to everyone else. Elsewhere it just
     // shows the host's palm and finger poses.
-    public sealed class HandNetworkView : MonoBehaviour, INetworkActorView, ISeaSpiritView
+    public sealed class HandNetworkView : MonoBehaviour, INetworkActorView, ISeaSpiritView, IFlyingState
     {
         public CandyPhysicalHand Hand { get; private set; }
+        public Vector3 Velocity=>Hand&&Hand.bodies.Length>0?Hand.bodies[0].linearVelocity:Vector3.zero;
+        public Transform Anchor=>seaActive&&bust?bust:Hand&&Hand.bodies.Length>0?Hand.bodies[0].transform:transform;
+        public bool Interactive=>Hand&&Hand.IsInteractive&&!suspended;
+        public IReadOnlyList<Rigidbody> ContactBodies=>Hand?Hand.bodies:null;
         NetworkContext context;
         CandyHandSettings handSettings;
         CandyHandPose target;

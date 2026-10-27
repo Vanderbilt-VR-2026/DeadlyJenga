@@ -1,0 +1,43 @@
+Actual MapDrafterEvan1.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=343.62ms p90=421.69ms frames=57 batches=160 triangles=1824088 awake=64
+  dormant=6018 released=0
+  Physics.SyncTransforms mean=3671272 ns
+  Physics.Simulate mean=34612121 ns
+  Main Thread mean=350404818 ns
+  BehaviourUpdate mean=100123096 ns
+  GC Allocated In Frame mean=3048287 bytes
+  DJ.CrateBatches mean=16686989 ns
+  DJ.WetEffects mean=2270 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=1350.69ms p90=1626.44ms frames=16 batches=347 triangles=2687531 awake=1534
+  dormant=3992 released=2106
+  Physics.SyncTransforms mean=19854194 ns
+  Physics.Simulate mean=274776563 ns
+  Main Thread mean=1236413169 ns
+  BehaviourUpdate mean=279804500 ns
+  GC Allocated In Frame mean=8132471 bytes
+  DJ.CrateBatches mean=21691469 ns
+  DJ.WetEffects mean=878819 ns
+  DJ.BotThreat mean=25268988 ns
+  DJ.WalkingSources mean=25167494 ns
+  DJ.Tsunami mean=19494225 ns
+  DJ.BotDestination mean=58899325 ns
+  DJ.BotGeometry mean=19579981 ns
+  DJ.DeathDeform mean=0 ns
+PASS Naturally settled large map suspends most blocks
+PASS Dormant blocks retain original body identity and climbing ability
+PASS Dormant original colliders retain bounds for world queries
+PASS Shared survivor surfaces resolve to the original climbable block
+PASS Push releases the original block before applying force
+FAIL System.Exception: Released original block moves under independent physics
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance.Require (System.Boolean pass, System.String message) [0x00024] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:128
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance+<GroupChecks>d__12.MoveNext () [0x003b7] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:149
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance+<Guard>d__9.MoveNext () [0x00040] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:74
+COMPLETE runtimeErrors=0

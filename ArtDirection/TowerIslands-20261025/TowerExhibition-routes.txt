@@ -1,0 +1,7 @@
+Tower Laboratory 1–10 production Game.unity. Desktop Editor; not headset/network certification.
+CENSUS bodies=104 shapes=1878 joints=6 unified=True
+quiet whole island: frames=174 mean=23.08ms / 43.3FPS p95=26.99ms; uncapped desktop Editor, not Quest.
+PASS production motor district 1 ramp/landing checkpoints=8/8 feet=(-249.68, 12.78, -101.00)
+PASS production motor district 10 ramp/landing checkpoints=8/8 feet=(232.80, 13.18, 102.00)
+PASS simulated VR motor clear-face climb across first floor band: attached=True rise=3.56m; no tracked headset.
+Focused follow-up: 16cm waypoint tolerance (well inside the landing), three setup frames, explicit flight-bearing section selection. No wave or demolition repeated. COMPLETE runtimeErrors=0

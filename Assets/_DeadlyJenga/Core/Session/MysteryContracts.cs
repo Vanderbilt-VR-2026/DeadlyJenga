@@ -16,6 +16,7 @@ namespace DeadlyJenga.Core
     // Sent only to its owner. Never include this in a public match frame.
     [Serializable] public sealed class MysteryPrivateFrame
     {
+        public MysteryReplayCue replay;
         public MysteryRole role;
         public bool specialAttack;
         public int mistakes;

@@ -12,7 +12,7 @@ namespace DeadlyJenga.CastlePrototype
             if(float.IsNaN(maxDistance)||float.IsInfinity(maxDistance))return false;
             float distance=Mathf.Clamp(maxDistance,0,5);if(distance<.05f)return false;
             var ray=new Ray(viewCamera.transform.position,viewCamera.transform.forward);
-            int mask=~((1<<gameObject.layer)|(1<<Layers.Block));
+            int mask=TraversalCollision.Mask;
             if(!Physics.SphereCast(ray,.09f,out var hit,distance,mask,QueryTriggerInteraction.Ignore)||!(hit.collider is BoxCollider box))return false;
             if(!LookEdge(box,hit.point,out var edge))return false;
             float along=Vector3.Dot(edge-ray.origin,ray.direction);

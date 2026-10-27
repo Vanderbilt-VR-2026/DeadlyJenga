@@ -1,0 +1,130 @@
+SPARSE STRUCTURE MAP STUDY â€” 23 October 2026
+
+Nine selectable map prefabs are integrated into this laptop's current lobby catalog.
+Choose game mode, then select the named map in the lobby. Existing maps remain available.
+The new map names end in Study, Grand, or Hybrid.
+
+WHAT WAS BUILT
+Crown of Giants / Crown Archipelago: stacked giant pylons and wide bearing caps carry
+loose, long catwalks. Alternating intermediate connections create different routes on
+successive tiers. Six crown districts chain together in the grand map.
+Terrace City / Terrace Mountain: broad stacked masses form low-contact-count ascending
+ridges around a courtyard. Roof seams, cover and perimeter notches break up the surface.
+Falling Viaduct / Ribbon Skyways: a grid of slimmer pylons at staggered heights supports
+individual spans. Changing upper connections makes support loss affect different routes.
+Hollow Megakeeps / Megakeep District: four corner piers, crossed lintels and ring floors
+create hollow towers, joined across multiple levels. Nine towers form the grand district.
+Festival of Giants: an outer keep-and-viaduct circuit surrounds inner crown crossings and
+low terraces. Intermediate bearing seats split long spans. Physical sloped ramps and
+steps provide two different ground approaches. The layout uses varied rectangular sizes;
+ramps are rotated solid boxes with matching collision geometry. No triangle meshes are
+claimed in this version.
+
+MAP BUDGETS (moving structural members, not total Unity object/collider counts)
+Map                         Members   Authored width x depth (m)   Height (m)
+Crown study                    58          52.4 x 38.2                 19
+Terrace study                  72          82.4 x 82.4                 13
+Viaduct study                 145         103.4 x 48.2                 19
+Keep study                    175          60.6 x 51.0                 25
+Crown grand                   562         164.4 x 94.2                 43
+Terrace grand                 548         194.4 x 194.4                37
+Viaduct grand                 602         191.4 x 68.2                 43
+Keep grand                    675          96.6 x 87.0                 49
+Festival hybrid               512         223.2 x 138.8                51.3
+These counts are much smaller than the earlier 6,098-member cathedral, but these are
+different layouts/workloads. The count comparison is not an equivalent-scene FPS gain.
+
+WHAT THE PHYSICS TESTS TAUGHT US
+Every member is an independent dynamic, gravity-driven production CastleBlock. Only the
+sand foundation is static. There are no bonds, stabilizing joints, magnetic attraction,
+scripted collapse triggers, or supported-body kinematic shortcuts.
+All nine layouts passed deterministic generation, no initial penetrations, horizontal
+bearing checks, eight seconds of native settling, standing spawn clearance, and deliberate
+support-loss response. Ramps additionally settled at their authored rotation; the overlap
+check uses oriented boxes rather than treating their bounding boxes as solid geometry.
+All bodies were asleep after settling. Maximum observed drift was 0.1488 m; maximum tilt change was 1.585 degrees.
+
+Crown: removing one ground pylon displaced 13 members in the study. Strong cascade with
+few bodies; broad caps provide good routes, but giant pieces resist a weak local impact.
+Terrace: the corresponding removal displaced one upper mass. Best containment and lowest
+wave cost in these samples. The tradeoff is less dramatic chain collapse and fewer narrow
+escape routes. A giant moving mass can also trap space rather than make small debris.
+Viaduct: removing one support displaced eight members in the study, 13 in the grand.
+Most exposed chain-collapse routes, but narrow piers and long spans leave fewer recovery
+options. A tsunami waking the whole grid remains expensive despite the modest count.
+Keep: one missing corner stayed up through redistributed bearings. Removing the adjacent
+corner displaced 41 study members / 67 grand members. This is useful structural redundancy,
+not failed destruction. Costs more bodies and creates tall wall/climb sections.
+Hybrid: one corner survived; two adjacent corner losses displaced 59 members. Initial
+settling drift was 0.0715 m. Mixing durable low routes with vulnerable high routes provides
+more variation than using every district with the same failure behavior.
+These tests demonstrate physical responses. Fun, route mastery and balanced game rounds
+still need human playtesting; they cannot be established by a support-removal script.
+
+SHORT ACTUAL GAME.UNITY EDITOR SAMPLES
+Map                Bots  Median bots only (ms)  Median bots + tsunami (ms)  Wave p90 (ms)
+Crown study         16          30.66                    36.69                 254.79
+Terrace study       16          32.87                    35.22                  45.56
+Viaduct study       16          30.79                    46.31                  63.10
+Keep study          16          30.97                    71.47                 117.05
+Crown grand         16          32.63                    70.53                 486.31
+Terrace grand       16          32.74                    32.90                  46.17
+Viaduct grand       16          35.91                    89.73                 579.43
+Keep grand          16          41.38                    81.18                 495.51
+Festival hybrid     32          56.42                    75.30                 606.08
+These are brief unfocused Editor observations, with real bots, their collision surfaces,
+normal production block components, rendering and the actual tsunami prefab. Wave force
+and height were retained; warning/approach startup was shortened. Different footprint
+coverage, frame spikes, Editor overhead and samples as short as 31 frames limit comparisons.
+The terrace study idle sample was a 186.42 ms transition outlier; full raw reports retain
+that result. No controlled old-map A/B speedup or Quest frame-rate claim is being made.
+All requested bots spawned. Most samples showed all bots moving >0.5 m in four seconds;
+viaduct grand showed 15/16. This does not prove navigation or objective completion.
+
+The hybrid's early seven-second wave observation woke almost all bodies but moved none
+more than 0.5 m. Its broad footprint, heavy members and elevated routes mean that this
+sample does NOT establish a destructive full-map tsunami collapse. Deliberate support loss
+did establish gravity-driven failure. Longer wave traversal and direct hand/weapon damage
+are useful next playtests before changing member masses or hazard balance.
+
+RECOMMENDATION
+Start human comparison with Terrace City, Crown of Giants and Falling Viaduct. Terraces
+provide the most economical large playable area in these observations; crowns give stronger
+mayhem per support failure; viaducts add exposed traversal. Use keeps as selective landmarks,
+rather than filling every district with them. Festival is the ambitious mixed experiment.
+The grand maps intentionally explore scale and are not performance-certified shipping maps.
+The remaining spike problem needs separate profiling of whole-map hazard wakeups, character
+collision surfaces and rendering/scripts. Sparse architecture reduces the number of moving
+members but does not itself make hundreds of simultaneously awake members VR-safe.
+
+IMPLEMENTATION AND VALIDATION
+World / Maps: SparseStructureLayout and SparseStructureMap own geometry, gravity bodies,
+world queries, a ground foundation, reset, stable body order, replica suspension and underwater
+cleanup. DevTools / Editor: SparseStructureTools builds only when explicitly requested,
+registers map choices, runs checks and records actual Unity images. The current GameSession
+lobby catalog contains the nine prefab entries; no Game/Lobby scene was saved. Core unchanged.
+The task branch starts at latest origin/main. The working laptop already has the prefab-map
+lobby infrastructure that legacy main lacks; the builder reports that dependency and leaves
+legacy catalogs alone. The current working project has the maps integrated.
+
+All three final validation runs completed with zero failures and zero runtime Unity errors.
+The disaster setup validator passed for all 11 registered map-aware disaster prefabs.
+Serialization checks cover invalid count/scale rejection, replica/authority and stable count.
+They do not replace a two-player network session. No networking implementation was changed.
+No Quest/headset run, long survival soak, full objective round, or live multiplayer run was done.
+
+REPRODUCING
+Unity menu: Tools > Deadly Jenga > Maps > Build and Check Sparse Structure Studies,
+Build and Check Grand Sparse Structures, or Build and Check Festival Hybrid.
+These commands rebuild only the new map prefabs/catalog entries, open Game temporarily for
+validation, write Logs/Validation evidence, then restore the previously loaded scenes.
+They refuse runtime validation if the loaded scenes contain unsaved changes.
+Source: Assets/_DeadlyJenga/World/Maps/Scripts/SparseStructureLayout.cs
+Map prefabs: Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-*.prefab
+
+IMAGES
+All images in this folder are direct Unity camera renders, not generated concepts.
+Grand and hybrid -intact files show undamaged maps; -wave files show the sampled wave state.
+The four Study images without suffix show the tsunami sample, not intact authoring previews.
+-isolated files show the rebuilt test layout after serialized-layout checks.
+The small white flying-hand model visible in some captures is the actual test player.

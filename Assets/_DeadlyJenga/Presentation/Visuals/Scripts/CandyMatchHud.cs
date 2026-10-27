@@ -60,6 +60,7 @@ namespace DeadlyJenga.Presentation
         }
         void Update()
         {
+            if((Services.Session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(canvas)canvas.enabled=false;return;}
             var session=Services.Session;var match=MatchRuntime.Current;if(session==null||match?.Frame==null)return;
             if(!canvas)Build();if(camera!=session.ActiveCamera||vr!=session.IsVR){camera=session.ActiveCamera;vr=session.IsVR;Configure();}
             var spectator=session.Demo as ISpectatorControls;
@@ -191,12 +192,15 @@ namespace DeadlyJenga.Presentation
             foreach(var p in f.players)
             {
                 if(p.id==local||!p.alive||shown>=40)continue;
-                var point=p.viewPosition+Vector3.up*.28f;
+                var root=MatchRuntime.Current.FindParticipantRoot(p.id);
+                var flyer=root?root.GetComponent<IFlyingState>():null;
+                var focus=flyer?.ContactBodies!=null&&flyer.ContactBodies.Count>0&&flyer.ContactBodies[0]?flyer.ContactBodies[0].position:flyer?.Anchor?flyer.Anchor.position:p.viewPosition;
+                var point=focus+Vector3.up*(flyer!=null?.6f:.28f);
                 var screen=camera.WorldToViewportPoint(point);
                 if(screen.z<=0||screen.x<0||screen.x>1||screen.y<0||screen.y>1)continue;
-                float distance=Vector3.Distance(camera.transform.position,p.viewPosition);
+                float distance=Vector3.Distance(camera.transform.position,focus);
                 if(competitive&&distance>15||teamMode&&distance>65)continue;
-                bool visible=NameVisible(p.viewPosition,MatchRuntime.Current.FindParticipantRoot(p.id));
+                bool visible=NameVisible(focus,root);
                 if(visible)plateSeen[p.id]=Time.unscaledTime;
                 if(!teamMode&&!visible&&(competitive||!plateSeen.TryGetValue(p.id,out float seen)||Time.unscaledTime-seen>2))continue;
                 shown++;active.Add(p.id);

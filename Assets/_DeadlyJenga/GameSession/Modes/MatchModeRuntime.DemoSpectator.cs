@@ -16,6 +16,12 @@ namespace DeadlyJenga.Modes
         Quaternion demoHeadNeutral;
         Vector3 demoHeadOrigin;
         int demoOffset;
+        public bool SetDevelopmentHand(bool active)
+        {
+            if(!Authority||!simulation.SetDevelopmentHand(LocalActorId,active))return false;
+            nextSample=0;ruleCache.Clear();
+            return true;
+        }
         static readonly Rect[] Quadrants={new Rect(0,.5f,.5f,.5f),new Rect(.5f,.5f,.5f,.5f),new Rect(0,0,.5f,.5f),new Rect(.5f,0,.5f,.5f)};
 
         public void SetDemoSpectating(bool active)

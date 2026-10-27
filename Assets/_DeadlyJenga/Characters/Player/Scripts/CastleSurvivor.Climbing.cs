@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
             climbHold=climbCooldown=climbElapsed=climbGroundRest=climbStun=0;climbMustRelease=false;
             if(refill)GripRemaining=1;
         }
-        int ClimbMask=>1<<Layers.Surface;
+        int ClimbMask=>TraversalCollision.ClimbMask;
         bool ClimbFace(Vector3 origin,Vector3 direction,float distance,out RaycastHit hit)
         {
             if(!Physics.Raycast(origin,direction,out hit,distance,ClimbMask,QueryTriggerInteraction.Ignore))return false;

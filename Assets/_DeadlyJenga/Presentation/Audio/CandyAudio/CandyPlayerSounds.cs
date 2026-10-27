@@ -5,7 +5,7 @@ namespace DeadlyJenga.CandyAudio
 {
     public static class CandyPlayerSounds
     {
-        public static readonly CandySound[] Sounds={CandySound.PlayerPain,CandySound.PlayerDeath,CandySound.SuitThruster,CandySound.SuitIgnition,CandySound.SuitShutdown};
+        public static readonly CandySound[] Sounds={CandySound.PlayerPain,CandySound.PlayerDeath,CandySound.SuitThruster,CandySound.SuitIgnition,CandySound.SuitShutdown,CandySound.PlayerHeal};
         static readonly Dictionary<CandySound,AudioClip[]> clips=new Dictionary<CandySound,AudioClip[]>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()=>clips.Clear();

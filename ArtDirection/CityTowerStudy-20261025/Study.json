@@ -1,0 +1,137 @@
+{
+  "status": "Ten new city-like concept proposals, numbered 11–20. No Unity maps or physics assets were changed or tested.",
+  "budgetStatus": "Body and collider ranges are provisional authoring allowances for the entire named building or complex, including stairs and bearings. They are not counts from constructed assets or FPS predictions.",
+  "concepts": [
+    {
+      "id":11,"name":"Crownline Offices","height":60,"bodies":"22–34","colliders":"170–270","risk":"Lower–medium",
+      "identity":"A stepped downtown office tower: broad street podium, regular window bays, narrower upper tiers and a compact crown.",
+      "open":"The bottom two levels form an open columned lobby and cross-block passage. Every fourth level opens into a recessed office terrace; large unglazed bays reveal the usable floors without making the whole tower a bare rack.",
+      "structure":"Use three- or four-floor box-frame sections, with columns stacked directly above columns. Keep each setback over a broad lower seat. Upper stages narrow rather than balancing on decorative overhangs; a few loose bearing shoes define meaningful failure bands.",
+      "routes":"A switchback at the rear and a straight clear climb rib on one side reach the crown. Terrace floors stop inside the climb plane. The open lobby has two street exits and does not funnel everyone through one doorway.",
+      "damage":"An upper tier can unseat while the podium remains a covered street. A fallen office section makes a boxy tunnel and roof ramp; keep enough space beside the tower for that section to land.",
+      "cost":"City identity comes mostly from silhouette and large facade openings. Window recess shading and a crown pattern belong in the visual mesh; avoid individual window colliders and a loose brick facade.",
+      "test":"Test the podium carrying a single loaded office section, a player moving through both lobby exits, and loss of each setback shoe. Check the full climb strip against every decorative floor band.",
+      "look":"A recognizable stepped early skyscraper reinterpreted in cherry-red floors, warm cream/mint structural piers and a lavender crown. Three distinct setback heights, broad open ground portico, oversized regular open window bays, no historical ornament or tiny windows.",
+      "close":"Stand just outside the double-height ground lobby looking through its piers to a stair and daylight at the opposite street; show a cutaway corner above with several office floors, a recessed rest terrace and the straight unobstructed climb rib.",
+      "labels":["Open street lobby","Clear climb rib","Multi-floor section"],"sources":["SOM","AHMM"]
+    },
+    {
+      "id":12,"name":"Lantern Court Apartments","height":45,"bodies":"28–44","colliders":"210–330","risk":"Medium",
+      "identity":"A U-shaped apartment block around a tall courtyard, with repeated residential bays, a street arch and a recognizable stepped roofline.",
+      "open":"Most of the central space is an outdoor courtyard. Open galleries face inward; a few deep alcoves provide enclosed-feeling rooms without furnishing hundreds of apartments. The street arch reveals activity inside.",
+      "structure":"Build three independently bearing wings from three-floor L or straight cassettes. Short loose gallery bridges join selected floors. The wings need their own broad feet; a bridge is a traversable connection, not an assumed tensile brace holding a wing upright.",
+      "routes":"Two corner stairs serve opposite sides of the court, with optional bridges, short drops and courtyard climbs between them. Use recessed loggias rather than repeated outward balcony shelves on the designated climbing faces.",
+      "damage":"Losing a gallery bridge breaks a shortcut while the corner stairs remain. A tipped wing can span part of the courtyard, converting it into a layered covered passage instead of erasing the whole building at once.",
+      "cost":"The U plan has more parts than a single slab but offers excellent useful space. Group walls and galleries per cassette, and use a few repeated large bay shapes. Keep garden dressing sparse and visual-only.",
+      "test":"Test each wing alone, then the U with bridges. Walk all routes around the court before and after removing one bridge. Check that a fallen wing leaves at least one outward escape.",
+      "look":"A substantial urban U-shaped apartment block, warm coral exterior with cream/mint piers and lavender inward galleries, repeated large open residential window bays and stepped roof terraces. The courtyard is a huge playable void, not filled with a garden model. A broad rectangular street arch passes through the front wing.",
+      "close":"A courtyard-level view through the entry arch, showing open inward galleries, two visible corner stairs, a short elevated bridge and large shaded alcoves. Show that balconies/loggias are recessed behind outer structural strips, not projecting lips.",
+      "labels":["Street arch","Open courtyard galleries","Independent stair corners"],"sources":["SkyHabitat","Valley"]
+    },
+    {
+      "id":13,"name":"Split Atrium Hotel","height":54,"bodies":"30–46","colliders":"220–350","risk":"Medium",
+      "identity":"Two hotel wings flank a narrow atrium, with a broad arrival canopy, repeated room-sized bays and a shared rooftop lounge silhouette.",
+      "open":"The atrium extends vertically through the hotel, alternating sheltered landings and open sky courts. Several rooms are represented by deep open bays; the central void carries the drama instead of many tiny corridors.",
+      "structure":"Each wing is a stack of independently stable four-floor frame sections. Cross-bridges sit on broad end bearings and may be lost separately. Keep the entry canopy a large integral or simply supported piece, not many small attached tiles.",
+      "routes":"A stair in each wing connects frequent landings, with three broad crossover bridges at differing heights. Give both halves a street exit; losing a bridge must not make the hotel a one-way dead end.",
+      "damage":"One crossover may fall into the atrium and become a sloping route to a lower floor. A wing can tilt away while the other stays usable. A collapse into the courtyard is a risk to test, not a promised convenient bridge.",
+      "cost":"Repeated bays can be mostly render detail around a small number of collision walls. Do not create physics hotel doors, beds or glass panes merely to explain the building type.",
+      "test":"Check both wings without the crossover pieces, every bridge-to-floor transition, and safe exits when the lowest bridge is removed. Test debris accumulation in the atrium.",
+      "look":"A twin-wing urban hotel with repeated large window bays, a generous entrance canopy, slim full-height central atrium and an open rooftop lounge. Shiny turquoise/cream structural wings with red floor accents and lavender stairs. It should feel like a hotel complex rather than two abstract ladder sticks.",
+      "close":"Look upward from the large open hotel atrium: shaded room alcoves, two opposite stairs and broad bridges at three different heights, daylight reaching the ground. Keep the base visible and the arrival court open; no furniture clutter.",
+      "labels":["Daylit atrium","Two independent stairs","Loose crossover bridge"],"sources":["SkyHabitat","SOM"]
+    },
+    {
+      "id":14,"name":"Switchback Parking Tower","height":30,"bodies":"16–28","colliders":"120–210","risk":"Lower–medium",
+      "identity":"An unmistakable open parking garage: broad rectangular decks, sturdy columns, a ramp visibly rising between floors and an oversized top-deck opening.",
+      "open":"The sides remain mostly open, with occasional broad solid panels for cover. Double-height pockets and corner cutouts keep it from reading as an identical stack of pancakes. Cars are not needed for its identity or gameplay.",
+      "structure":"Use two-floor deck-and-pier sections supported on aligned piers. Integrate paired ramp flights and their flat upper/lower pads into each section. The transition between sections must include the ramp opening rather than putting a solid slab across it.",
+      "routes":"The wide vehicle-style ramps are the easy route. A compact corner stair/climb spine is a shorter alternative. Open edges create controlled drop choices and views onto neighboring streets.",
+      "damage":"A tilted two-floor section becomes a large incline with cover underneath. Removing one section can expose a lower deck or connect the garage to a street-level ruin.",
+      "cost":"A relatively economical city filler: flat decks and large piers can use simple boxes. Low body count still needs contact profiling where decks stack. Painted lane markings stay in materials, not separate objects or colliders.",
+      "test":"Walk both directions on every ramp and around each turn, especially at small height changes. Compare one, three and five two-floor sections under lateral impacts. Verify an underside does not block the ascending route.",
+      "look":"A substantial open-sided urban parking garage, seven to ten generous deck levels, large chunky piers, split-level double-height pockets, visible broad switchback ramps through reserved floor openings and a partly open rooftop. Candy mint/cream structure, red floor edges recessed behind climb piers, lavender ramp surfaces. No cars, traffic signs or miniature props.",
+      "close":"Inside an open parking deck looking along a wide ramp to a bright flat turn landing, with overhead headroom, a second route at a corner stair and neighboring floors visible through the large side openings. Clear roof opening over the ascending flight.",
+      "labels":["Wide ramp route","Flat turn + floor opening","Open decks, solid cover bays"],"sources":["Parking"]
+    },
+    {
+      "id":15,"name":"Central Exchange","height":48,"bodies":"28–46","colliders":"210–340","risk":"Medium–high",
+      "identity":"A transit-station concourse with two unequal office towers: a long low hall anchors the street while the towers provide a familiar city skyline.",
+      "open":"A large covered pedestrian concourse runs through the podium. Raised platform-like streets and a mezzanine overlook it; there are multiple entrances from the surrounding blocks. No simulated trains are required.",
+      "structure":"Make the concourse roof a deep, inhabited transfer frame supported on broad pier pairs. Put tower bearing lines over those piers, not on the unsupported middle of a decorative canopy. Segment the hall into a few long rigid sections with separate tower stacks.",
+      "routes":"Wide concourse ramps reach a mezzanine and split toward the two tower stairs. Keep a street-level path independent of the towers, and connect surrounding blocks at low and mid-height rather than only at the roofs.",
+      "damage":"A hall section may settle into a covered ramp while a tower remains. Tower debris can close one entrance and open a new street crossing. The concourse must retain alternate exits around potential fall zones.",
+      "cost":"The long hall can touch many other pieces and wake a large assembly. It is an anchor building to use once, not a cheap repeated filler. Tracks and information panels should be visual cues only.",
+      "test":"Load a single transfer frame with the intended tower mass before building the complex. Test bearing alignment, hall exits, loss of one pier and the largest plausible tower fall into the concourse.",
+      "look":"A city transport interchange: a broad long low concourse with chunky portal openings and two unequal rectangular office towers rising over aligned broad supports at its ends. Open public mezzanines and platform-like walkways visible beneath. Warm cream/coral hall, mint and turquoise towers, lavender ramps. Train-station vibe without trains, cables or detailed machinery.",
+      "close":"Pedestrian view under the enormous open concourse roof, looking along platform-like streets past thick aligned supports to daylight. Broad ramps reach a mezzanine and the two tower stairs. Show usable sheltered open space, not an empty sealed station facade.",
+      "labels":["Through-concourse","Tower over real support line","Mezzanine street"],"sources":["SOM","Parking"]
+    },
+    {
+      "id":16,"name":"Lantern City Hall","height":42,"bodies":"18–30","colliders":"140–230","risk":"Lower–medium",
+      "identity":"A civic hall with a broad arcade, a taller square clock/lantern tower and a stepped ceremonial roof. It reads as a town landmark without needing realistic historic ornament.",
+      "open":"The lower hall is a roofed public square between large piers. Open upper galleries look into it, and the tower has an airy lantern room at its top. Some upper rooms remain wall-backed to create contrast with the plaza.",
+      "structure":"Use a few deep hall frames and a separate broadly seated tower stack. The clock is a visual face on a large wall section; its hands and trim do not become physics parts. Any arch-like opening can be cut into a rigid compound section instead of assembled from many loose voussoirs.",
+      "routes":"Two broad side stairs connect the public square to galleries. One continues into the clock tower, while an exterior clear climb rib offers the quick route. The plaza stays traversable when an upper gallery is lost.",
+      "damage":"An arcade frame can become a covered obstacle across the square. The clock tower may lose an upper band independently of the public hall, producing a memorable skyline change without flattening all civic space.",
+      "cost":"Big entrances, roofline and a clock graphic establish identity cheaply. Avoid masonry-by-brick construction and a mechanically simulated clock. Use readable low-frequency forms.",
+      "test":"Test the tower's own base separately from the hall roof; it must not rely on a thin decorative canopy. Walk both plaza exits and verify top-out at the lantern room.",
+      "look":"A stylized civic city hall: broad three-level arcaded public hall, generous square entrances, a stepped square clock tower on one side, large simple clock face and an airy lantern crown. Candy cream, warm coral and mint piers, lavender interior stairs, shiny toy material. Simplified contemporary civic massing, no historical carving or tiny brickwork.",
+      "close":"Inside the roofed public square looking through its tall arcade to an adjoining street. Show upper open galleries, wide stair landings, the base of the clock tower and alternating sheltered and open spaces. A small white gummy avatar establishes scale.",
+      "labels":["Roofed public square","Open gallery route","Independent clock-tower stack"],"sources":["SOM","AHMM"]
+    },
+    {
+      "id":17,"name":"Foundry Lofts","height":39,"bodies":"20–34","colliders":"150–250","risk":"Lower–medium",
+      "identity":"A tall converted factory or warehouse: large repetitive window bays, deep floor plates, a sawtooth roof and a compact rooftop service box.",
+      "open":"Use lofty two-storey work halls, missing facade bays and a central loading court. The facade has enough solid piers and wall-backed alcoves to read as a building, with generous open areas between them.",
+      "structure":"Build three-floor factory cassettes with deep perimeter ribs and a limited number of interior piers. Roof sawteeth are a few integral angled surfaces, not many loose panels. Keep load lines aligned through the open loading level.",
+      "routes":"A broad loading ramp connects the street to the first raised hall. Internal switchbacks link work floors; the loading court provides a climb/drop shortcut with frequent rest ledges inside the wall plane.",
+      "damage":"A factory cassette can tip into a long covered workshop ruin. A roof section may slide onto a neighboring terrace, while the loading court changes from a void into layered cover.",
+      "cost":"The appearance of brick or ribbed cladding can live entirely in a shared material. Do not turn every apparent window mullion or sawtooth roof strip into a separate collider.",
+      "test":"Check loading-ramp clearance, the undercut ground floor carrying the complete stack, and a fallen cassette's side exits. Test roof pieces without adding tiny loose debris.",
+      "look":"A chunky urban factory converted to lofts, twelve or thirteen floor levels organized into tall work halls, huge repeated open window bays and broad solid piers, a simple sawtooth roof and a recessed loading court. Warm candy terracotta/cream structure with mint accents and lavender stairs, broad smooth toy-plastic surfaces instead of literal small bricks.",
+      "close":"A view from the loading court into a double-height factory hall with large column bays, a broad loading ramp and an internal mezzanine stair. Show a partly open facade and a wall-backed sheltered alcove, with daylight through the sawtooth roof opening.",
+      "labels":["Double-height work hall","Loading court shortcut","Few large roof sections"],"sources":["AHMM","Parking"]
+    },
+    {
+      "id":18,"name":"Skygarden Residences","height":60,"bodies":"30–48","colliders":"230–370","risk":"Medium",
+      "identity":"A residential tower with two offset-looking shoulders, deep recessed loggias and occasional shared sky gardens, ending in a stepped residential crown.",
+      "open":"Large terrace courts replace selected floors in the silhouette. Open loggias and a few bridges provide glimpses through the building while other broad facade panels keep the apartment-tower identity.",
+      "structure":"Create the apparent irregularity with a small family of balanced three-floor sections. Keep upper mass over actual bearing lines; an attractive offset cannot be credited as stable merely because a real-world precedent uses structural ties.",
+      "routes":"A reliable inner stair crosses garden courts at rest levels. An outside climb strip stays continuous and slightly proud of recessed balcony edges. Selected short bridges let players change shoulder without forcing everyone onto the same path.",
+      "damage":"One shoulder section can tilt into a garden court and create a new sloped connection, while the other shoulder retains a route. Do not design every terrace as a debris-catching bowl.",
+      "cost":"Variety should come from reusing three or four section shapes, not unique physics geometry at every floor. Trees, planters and rail details are sparse visual dressing; use broad openings instead of many small rail colliders.",
+      "test":"Check every upper sub-stack's centre of mass, every balcony band along the climb route, and escape from a partially filled sky court. Test without any visual planting to confirm the gray box still reads and plays clearly.",
+      "look":"A recognizable high-rise apartment building with a restrained stepped silhouette, two shoulders, deep recessed loggias and three large shared sky-garden voids. Strong straight structural strips extend beyond the recessed floor edges. Candy mint/turquoise and warm cream surfaces with coral floor accents and lavender stairs. A few broad stylized plants only, no detailed foliage or many protruding balconies.",
+      "close":"A player-height view across a generous sky court, showing a sheltered apartment alcove, the open sky beyond, a broad flat stair landing and a short bridge to the other shoulder. Recessed balconies stay behind the uninterrupted climb strip.",
+      "labels":["Recessed loggias","Sky-court rest level","Continuous climb strip"],"sources":["SkyHabitat","Valley"]
+    },
+    {
+      "id":19,"name":"Harbor Waterworks","height":42,"bodies":"14–24","colliders":"110–190","risk":"Medium",
+      "identity":"A city utility water tower: a broad faceted tank-like crown on a strong open support stage, with a service stair and an accessible lookout level.",
+      "open":"The support stage is an open vertical pavilion with intermediate landings. The tank silhouette contains an accessible hollow gallery and a large open service court rather than a solid inaccessible ball.",
+      "structure":"Use one or two deep tied support sections under a hollow tank section. The upper body needs a broad annular or multi-point bearing. Model the tank with a small number of faceted convex parts; water is an optional visual surface, not a new fluid simulation.",
+      "routes":"A stair wraps within the open supports, with flat rests. A separate vertical service rib supplies the climb route. An opening in the crown leads to a flat lookout gallery without a sharp overhanging lip.",
+      "damage":"An unseated tank can tip into a large hollow shelter or bridge between nearby low roofs. Its fall corridor must be planned; a round-looking body can roll and trap players if the escape openings are too small.",
+      "cost":"A memorable industrial marker from relatively few large shapes. A faceted tank is simpler than a smooth concave shell, but its hollow interior still needs multiple colliders. Avoid simulated pipes and railings.",
+      "test":"Test the support frame with the complete tank mass, entry into the crown, and side exits with the tank resting on different facets. Profile a toppled tank containing representative debris.",
+      "look":"An iconic city waterworks tower: a broad octagonal tank-like crown above a strong open four-leg service tower with several intermediate landing levels. The crown is partially cut open to reveal a playable gallery and lookout court, with a simple low roof rim. Shiny candy turquoise/cream tank, coral landings and mint supports, lavender internal stair. No tiny pipes, cables or machinery.",
+      "close":"From an intermediate service landing look up through the open supports to the tank's accessible gallery and large doorway, with a wrapping stair and a flat rest in view. Another opening through the crown reveals daylight and a usable interior rather than a solid tank.",
+      "labels":["Open service landings","Hollow playable crown","Broad tank bearing"],"sources":["Silo","AHMM"]
+    },
+    {
+      "id":20,"name":"Gateway Headquarters","height":66,"bodies":"36–54","colliders":"270–420","risk":"Medium–high",
+      "identity":"Two substantial office towers frame a city avenue and share a high two-floor bridge building, creating a recognizable corporate gateway silhouette.",
+      "open":"A broad street remains open between the towers. Lower porticos, mid-height courts and the inhabited skybridge supply sheltered and open spaces at several heights, not just a distant rooftop connection.",
+      "structure":"Both towers must stand independently. The skybridge is a rigid inhabited bar resting on wide end seats; it is not an invisible structural tie. Keep its loads over tower support lines and allow a comprehensible loss-of-bearing event.",
+      "routes":"Separate stairs in each tower reach multiple crossover opportunities at lower levels and the upper bridge. Provide a route to each side's roof if the bridge is gone. Street-level traversal remains independent of the high connection.",
+      "damage":"A bridge can lose one seat, swing or slide under ordinary contact, then rest on a deliberately positioned lower roof or fall into the avenue. Its convenient landing is a test goal, not guaranteed physics. One tower can survive the other's failure.",
+      "cost":"This is an entire paired landmark complex, so its budget is higher than one filler building. Use it once as a skyline anchor. No long chains of suspension joints are needed for the first loose-bearing prototype.",
+      "test":"Prove each tower alone, then one supported bridge. Test loss of each seat and impact at midspan, every bridge transition, and whether the avenue has exits outside the largest falling-piece sweep.",
+      "look":"A recognizable paired corporate headquarters gateway: two substantial stepped rectangular office towers, with repeated large facade bays and a high inhabited two-storey skybridge spanning an avenue between them. Broad lower porticos and two mid-height recessed courts. Candy mint/cream structural frames, turquoise/coral building masses and lavender stairs. Neither tower leans; avoid a gravity-defying CCTV loop or tiny window curtain wall.",
+      "close":"View from a mid-height recessed court toward the broad end bearing of the inhabited skybridge, showing its open internal corridor and stairs, the independent opposite tower and the city avenue far below. Show a lower roof that could receive a displaced bridge, without drawing a guaranteed collapse.",
+      "labels":["Independent tower stacks","Inhabited bridge on end seats","Avenue stays open below"],"sources":["SkyHabitat","SOM"]
+    }
+  ]
+}
+

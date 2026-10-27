@@ -16,6 +16,18 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Optional magnetic draft layout. Leave empty for the existing castle.")]
         public MagneticDraftMap magneticMap;
         public float mass = 40;
+        [Tooltip("Experimental shared groups for naturally sleeping blocks. Disabled by default: current Editor measurements regress overall frame time.")]
+        public bool groupRestingBlocks;
+        [Min(1)] public int physicsGroupThreshold = 1500;
+        public CastlePhysicsGroups PhysicsGroups { get; private set; }
+        [Header("Debris cleanup")]
+        public bool sinkDisplacedDebris = true, shatterHeavyImpacts = true;
+        public bool visualFastDebris = true;
+        [Min(.1f)] public float debrisSinkSpeed = 2;
+        [Min(8)] public float shatterImpactSpeed = 18;
+        [Min(12)] public float visualDebrisSpeed = 20;
+        [Min(20)] public float visualDebrisAcceleration = 180;
+        public CastleDebris Debris { get; private set; }
         public readonly List<Rigidbody> Bodies = new List<Rigidbody>();
         [SerializeField, HideInInspector] Transform generatedRoot;
         public float LastBuildMilliseconds { get; private set; }
@@ -34,7 +46,7 @@ namespace DeadlyJenga.CastlePrototype
         void RetireSubmergedBlocks()
         {
             if(Services.Session is IWorldAuthority authority&&!authority.HasWorldAuthority)return;
-            int count=Mathf.Min(32,Bodies.Count);
+            int count=Mathf.Min(Bodies.Count,Mathf.Max(32,Mathf.CeilToInt(Bodies.Count/8f)));
             for(int n=0;n<count;n++)
             {
                 int i=debrisCursor++%Bodies.Count;var body=Bodies[i];
@@ -111,12 +123,16 @@ namespace DeadlyJenga.CastlePrototype
         public void SetReplica(bool replica)
         {
             if (magneticMap && magneticMap.Structure) { magneticMap.Structure.SetReplica(replica); return; }
+            if (PhysicsGroups) PhysicsGroups.SetReplica(replica);
             foreach (var body in Bodies)
             {
                 if (!body) continue;
+                if (replica) body.collisionDetectionMode = CollisionDetectionMode.Discrete;
                 body.isKinematic = replica;
+                if (!replica && blockPrefab) body.collisionDetectionMode = blockPrefab.GetComponent<Rigidbody>().collisionDetectionMode;
                 body.interpolation = replica ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             }
+            if (Debris) Debris.SetReplica(replica);
         }
 
         // IMapFootprint: the bottom course of the castle, for the sand around it
@@ -154,12 +170,14 @@ namespace DeadlyJenga.CastlePrototype
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
             {
-                if (!body || Vector3.Dot(body.transform.up, Vector3.up) < .95f) continue;
+                if (!body || !body.gameObject.activeInHierarchy || Vector3.Dot(body.transform.up, Vector3.up) < .95f) continue;
                 var col = body.GetComponent<Collider>();
+                if (!col) col = body.GetComponentInChildren<Collider>();
+                if (!col || !col.enabled || col.isTrigger || !col.gameObject.activeInHierarchy) continue;
                 if (col.bounds.max.y > highest) { highest = col.bounds.max.y; best = col; }
             }
-            return best ? best.attachedRigidbody.position + Vector3.up * (best.bounds.extents.y + .08f)
-                : foundation.position + Vector3.up * .6f;
+            return best ? new Vector3(best.bounds.center.x, best.bounds.max.y + .08f, best.bounds.center.z)
+                : (foundation ? foundation.position : transform.position) + Vector3.up * .6f;
         }
 
         // The ocean: eliminate anything that falls below the kill height.
@@ -191,6 +209,7 @@ namespace DeadlyJenga.CastlePrototype
                 generatedRoot.gameObject.SetActive(false);
                 if (Application.isPlaying) Destroy(generatedRoot.gameObject); else DestroyImmediate(generatedRoot.gameObject);
             }
+            PhysicsGroups=null;Debris=null;
             Bodies.Clear();submergedSince.Clear();debrisCursor=0;
             generatedRoot = new GameObject("Generated Castle Blocks").transform;
             generatedRoot.SetParent(transform, false);
@@ -235,6 +254,19 @@ namespace DeadlyJenga.CastlePrototype
                 Bodies.Add(body);
             }
             Physics.SyncTransforms();
+            if (Application.isPlaying && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
+            {
+                PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();
+                PhysicsGroups.Initialize(Bodies);
+            }
+            if(Application.isPlaying && Bodies.Count>0 && (sinkDisplacedDebris || shatterHeavyImpacts))
+            {
+                Debris=generatedRoot.gameObject.AddComponent<CastleDebris>();
+                Debris.SinkDebris=sinkDisplacedDebris;Debris.ShatterOnImpact=shatterHeavyImpacts;
+                Debris.SinkSpeed=debrisSinkSpeed;Debris.ImpactSpeed=shatterImpactSpeed;
+                Debris.VisualFastDebris=visualFastDebris;Debris.VisualSpeed=visualDebrisSpeed;Debris.AccelerationThreshold=visualDebrisAcceleration;
+                Debris.Initialize(Bodies,PhysicsGroups);
+            }
             // Let gravity settle the tower naturally: do not hide instability by sleeping it at spawn.
             LastBuildMilliseconds = (Time.realtimeSinceStartup - started) * 1000;
         }

@@ -86,7 +86,7 @@ namespace DeadlyJenga.Presentation
                     reportedBodies.Add(body.id);
                     if(focusedReports.Contains(body.id))Marker("body:"+body.id,body.position+Vector3.up*.8f,"BODY #"+number+" · REPORTED",1);
                 }
-                else if(body.sheriff)Marker("body:"+body.id,body.position+Vector3.up*.8f,"SHERIFF BADGE",1);
+                else if(body.sheriff)Marker("body:"+body.id,body.position+Vector3.up*.8f,"FALLEN SHERIFF",1);
                 else if(close)Marker("body:"+body.id,body.position+Vector3.up*.5f,"UNREPORTED BODY",1);
             }
             foreach(string id in mystery.Clues.downed)
@@ -98,7 +98,7 @@ namespace DeadlyJenga.Presentation
             if(!blocked)
             {
                 if(currentRevive!=null){prompt.text=vr?"Hold trigger / pinch to revive":"HOLD E TO REVIVE";if(Time.unscaledTime>=nextCommand){nextCommand=Time.unscaledTime+.15f;mystery.Revive(currentRevive,held);}}
-                else if(nearbyBody!=null&&(!nearbyBody.reported||nearbyBody.sheriff&&own.role==MysteryRole.Innocent)){prompt.text=(vr?"TRIGGER / PINCH":"E")+(nearbyBody.sheriff&&own.role==MysteryRole.Innocent?" · REPORT / TRY BADGE RECOVERY":" · REPORT BODY");if(pressed)mystery.ReportBody(nearbyBody.id);}
+                else if(nearbyBody!=null&&(!nearbyBody.reported||nearbyBody.sheriff&&own.role==MysteryRole.Innocent)){prompt.text=(vr?"TRIGGER / PINCH":"E")+(nearbyBody.sheriff&&own.role==MysteryRole.Innocent?" · REPORT BODY · Collect the nearby revolver":" · REPORT BODY");if(pressed)mystery.ReportBody(nearbyBody.id);}
                 else if(nearbyBody?.reported==true&&nearbyBody.reportedAge<=match.Rules.mystery.suspicionSeconds)
                 {
                     var trail=NearestTrail(mystery,nearbyBody.position);
@@ -167,7 +167,7 @@ namespace DeadlyJenga.Presentation
             bool sheriffAlert=Time.unscaledTime<sheriffNoticeUntil;
             CandyHudCards.Visible(notice,bodyAlert||sheriffAlert);
             if(bodyAlert)notice.text="BODY #"+BodyNumber(latest.id)+" REPORTED\n"+CandyHudContent.Safe(latest.name,24)+"\n"+(latest.lost?"Body lost":CandyHudContent.Direction(eye,latest.position));
-            else if(sheriffAlert)notice.text="SHERIFF HAS FALLEN\nFind the badge marker.\nApproach it to recover the sheriff's role.";
+            else if(sheriffAlert)notice.text="SHERIFF HAS FALLEN\nFind the dropped blue revolver.\nPick it up to become the sheriff.";
         }
         void OnDestroy(){if(root)Destroy(root.gameObject);}
     }

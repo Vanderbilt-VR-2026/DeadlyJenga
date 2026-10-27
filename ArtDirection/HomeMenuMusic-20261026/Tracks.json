@@ -1,0 +1,106 @@
+{
+  "method": "Original local composition and deterministic stereo synthesis; no successful cloud music generations or downloaded music/samples. MIDI files approximate synth timbres with General MIDI patch assignments.",
+  "recommended": "01-candy-catastrophe",
+  "tracks": [
+    {
+      "id": "01-candy-catastrophe",
+      "title": "Candy Catastrophe",
+      "direction": "My proposed primary title theme",
+      "bpm": 112,
+      "seconds": 85.71429166666667,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.757540475815915,
+      "rmsDbFS": -18.601620669096054,
+      "loopBoundaryDelta": 0.003058956004679203,
+      "events": 1380,
+      "files": {
+        "wav": "01-candy-catastrophe.wav",
+        "mp3": "01-candy-catastrophe.mp3",
+        "mid": "01-candy-catastrophe.mid"
+      },
+      "sha256": "9fcfb1611a6bb2b2257cd98dcbf8fb71f86bc2e18312648d874a4ad8bc3e1bef"
+    },
+    {
+      "id": "02-one-block-from-trouble",
+      "title": "One Block from Trouble",
+      "direction": "Sneaky, mischievous funk",
+      "bpm": 120,
+      "seconds": 80.0,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -6.468519019133536,
+      "rmsDbFS": -18.58881085307391,
+      "loopBoundaryDelta": 0.001066664233803749,
+      "events": 1443,
+      "files": {
+        "wav": "02-one-block-from-trouble.wav",
+        "mp3": "02-one-block-from-trouble.mp3",
+        "mid": "02-one-block-from-trouble.mid"
+      },
+      "sha256": "addf858ea6a6fb9de466195895b83f98ee798edd255b7a6671625bb9991cd049"
+    },
+    {
+      "id": "03-cloud-nine-collapse",
+      "title": "Cloud Nine Collapse",
+      "direction": "Beautiful, floating candy-cloud atmosphere",
+      "bpm": 96,
+      "seconds": 100.0,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.5466553756195065,
+      "rmsDbFS": -18.621006435946555,
+      "loopBoundaryDelta": 0.0016516558825969696,
+      "events": 914,
+      "files": {
+        "wav": "03-cloud-nine-collapse.wav",
+        "mp3": "03-cloud-nine-collapse.mp3",
+        "mid": "03-cloud-nine-collapse.mid"
+      },
+      "sha256": "420b19b4b291cf59ad9e0a7582528d34c668c1900257efcc88b038fd40943493"
+    },
+    {
+      "id": "04-pocket-apocalypse",
+      "title": "Pocket-Sized Apocalypse",
+      "direction": "Epic mayhem, with a playful grin",
+      "bpm": 128,
+      "seconds": 75.0,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.297036811484491,
+      "rmsDbFS": -18.577766284399278,
+      "loopBoundaryDelta": 0.0012777242809534073,
+      "events": 1325,
+      "files": {
+        "wav": "04-pocket-apocalypse.wav",
+        "mp3": "04-pocket-apocalypse.mp3",
+        "mid": "04-pocket-apocalypse.mid"
+      },
+      "sha256": "00f8c18bc92aeb19bf69229d1b86d62a1c5ff073a17e25203f341a64f8f995d0"
+    },
+    {
+      "id": "05-last-splash-club",
+      "title": "The Last Splash Club",
+      "direction": "Relaxed, social island groove",
+      "bpm": 104,
+      "seconds": 92.3076875,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.703108382840455,
+      "rmsDbFS": -18.57648846198242,
+      "loopBoundaryDelta": 0.005143661051988602,
+      "events": 1311,
+      "files": {
+        "wav": "05-last-splash-club.wav",
+        "mp3": "05-last-splash-club.mp3",
+        "mid": "05-last-splash-club.mid"
+      },
+      "sha256": "734a72bbd38246a852f0b450260dc65ad17d86be21bb0a73f2d0f2c39f26cab9"
+    }
+  ]
+}

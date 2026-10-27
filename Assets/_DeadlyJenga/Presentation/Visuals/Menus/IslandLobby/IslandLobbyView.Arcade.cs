@@ -47,6 +47,8 @@ namespace DeadlyJenga.CastlePrototype
             Box(joinStation,"CRT top bezel",new Vector3(0,405,35),new Vector3(1070,95,160),red);
             Box(joinStation,"CRT bottom bezel",new Vector3(0,-405,35),new Vector3(1070,95,160),red);
             joinStation.GetComponent<Image>().color=new Color(.025f,.014f,.05f);
+            foreach(var choice in choices)if(choice.button.transform.IsChildOf(joinStation))
+            {choice.label.fontSize=32;choice.label.resizeTextMaxSize=32;choice.label.resizeTextMinSize=24;}
             var stripe=joinStation.Find("Candy accent");if(stripe)stripe.gameObject.SetActive(false);
             joinFace.RearOffset=.19f;joinFace.Refresh();
             lobby.AddBlocker(joinStation,new Vector3(0,0,70),new Vector3(1140,880,210));

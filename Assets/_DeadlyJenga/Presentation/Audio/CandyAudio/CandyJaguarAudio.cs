@@ -177,6 +177,7 @@ namespace DeadlyJenga.CandyAudio
             int owner=17;foreach(char c in item.actor??"")owner=unchecked(owner*31+c);
             var engine=CandyAudioEngine.Instance;
             if(engine&&engine.Play(cue,item.position,item.strength,owner,.96f+(uint)owner%9*.01f))PlayedActions++;
+            if(engine&&item.action==EnemyActionKind.Attack)engine.Play(CandySound.WeaponSword,item.position,.7f,owner);
         }
     }
 }

@@ -3,56 +3,56 @@
   "clips": [
     {
       "name": "WeaponRifle-01.wav",
-      "sha256": "0232dbf8cf46ad9c00be29cb5dae0202d8d7a6e104e9ad696227baa423df655b",
+      "sha256": "5e1ad0b4b388ffa825c7fc944c8bff1364f5fda23aca196aa56e2bf53b8db0a8",
       "seconds": 0.85,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponRifle-02.wav",
-      "sha256": "b2512685ff96cfce2639327f2f2d1a0fd6ed87672bc0e5e92ec8f1f7041e193d",
+      "sha256": "f41beb8694346b8f89d6e1be803883a0327f086006a700e03eebae4417a53ea2",
       "seconds": 0.85,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponRifle-03.wav",
-      "sha256": "b8ea07cdea97b56f9a38fc0b85f16c73717e1636002b567a90deb5c8953b5fac",
+      "sha256": "bbcfedcc574baef63f57fdfc53e7de2057e6b9d81deb7a6c13abdab59228287d",
       "seconds": 0.85,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponRifle-04.wav",
-      "sha256": "80193b034f9c51e03bcd0927c2ae17cc8861ab30443f26015f25bf7f930bee14",
+      "sha256": "8e87ff9a0deb1f68722aa5ac5a93f6ce45f790c40eaea0bb9c40e7bc3a46a094",
       "seconds": 0.85,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponShotgun-01.wav",
-      "sha256": "f7aab6acdbb7a876c917fd24e87acabf754233b49155205f32ef1a41a0ec523f",
+      "sha256": "5d447b41d00f3b0f85533db2d817c34394ffda014678585f69889bc0c0b06c0e",
       "seconds": 1.25,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponShotgun-02.wav",
-      "sha256": "8c5989cc09c8bd2dbb9a0ea4a1e0393c1cc8aab9e72d5b2bfc243cba69f5fbfb",
+      "sha256": "4e345597fb17a3e2849d454a7f22ca1d67918a99aee7006725c6a2a2f9c7c1b7",
       "seconds": 1.25,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponShotgun-03.wav",
-      "sha256": "a5368034c9876f8808e276bfb0c3b8487a5412fe562cdb4bafc352938b891a73",
+      "sha256": "eb425a6f60701308eccbe3460e383f96f0a18f15a014161146dcb28b33727347",
       "seconds": 1.25,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponShotgun-04.wav",
-      "sha256": "b3dd814baa852db5e56c54e5a04a1f0947dfbbc181568277702522fe35ffc196",
+      "sha256": "559dd047e10292356e86594f977c9b9b716cddf38702e6507c1278de52479141",
       "seconds": 1.25,
       "rate": 32000,
       "channels": 1
@@ -87,28 +87,28 @@
     },
     {
       "name": "WeaponTransform-01.wav",
-      "sha256": "b87cd5c1093184c3aa908c8bdb2283e84ff26ca99105e555242e65480491c3c3",
+      "sha256": "f59f97d1ed8e5ff9d66b92a4ed6f5bad990f4da73c9224ba682dff32ff3fb9b6",
       "seconds": 0.65,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponTransform-02.wav",
-      "sha256": "3c105edefff39831aaaf6d17f20fae1a816466d9002b9c75ee304a8fae799086",
+      "sha256": "875ec85edcd6d75b476c3360f76737cc93b727f9f655fe1df8613d49a99e212b",
       "seconds": 0.65,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponTransform-03.wav",
-      "sha256": "f7cc78eb31d13cb20122d55fb883cd1667e4f4262d5d2331754563c3ac626a25",
+      "sha256": "54db65f658aa0ded6da9fccb2aeeee175828477a83627f1dd6f8c1feee2d71c4",
       "seconds": 0.65,
       "rate": 32000,
       "channels": 1
     },
     {
       "name": "WeaponTransform-04.wav",
-      "sha256": "1b15e99a58ded595ac60e05dd811336d7158bf5dab07f2fd7658c3cf502300c7",
+      "sha256": "c23872a199734ac83cc9fb08c86f863eecf023a45dc1e9fbd54c76b1fc7552cc",
       "seconds": 0.65,
       "rate": 32000,
       "channels": 1

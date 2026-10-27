@@ -5,13 +5,13 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
-    // Runs after the shared bot/avatar presentation. These are cosmetic poses only:
-    // no movement commands, colliders, forces, root motion or changes to vault grips.
+    // The brain composes these cosmetic gestures before the final avatar pose.
+    // Movement, collision and vault grips stay with the motor.
     [DefaultExecutionOrder(250)]
     [DisallowMultipleComponent]
-    public sealed class CastleBotEmotes : MonoBehaviour
+    public sealed partial class CastleBotEmotes : MonoBehaviour
     {
-        public enum Emote { FriendlyWave, TotallyMeantThat, Phew, WhatWasThat, GolfClap, JustChilling, NopeNopeNope, TinyVictoryDance }
+        public enum Emote { FriendlyWave, TotallyMeantThat, Phew, WhatWasThat, GolfClap, JustChilling, NopeNopeNope, TinyVictoryDance, BackOff, YouScareMe, StayAway, HandsUp, PleaseNo, DontTrustYou, WatchingYou, WhoWasThat, OverThere, SawTheWeapon, RunForIt, HelpMe, ThatWasClose, BarelyEscaped, Shaking, DeepBreath, SafeAtLast, HideHere, FollowMe, StayTogether, TrustMe, NotMe, Confused, Thinking, Investigating, Suspicious, FoundSomething, BodyFound, Grieving, Avenging, ReadyToFight, BringItOn, OnFire, Unstoppable, NiceShot, Respect, Oops, MyBad, FacePalm, Disappointed, Angry, Frustrated, Laughing, Cheering, JumpForJoy, AirGuitar, RobotDance, DiscoPoint, Salute, Bow, ThumbsUp, ThumbsDown, HeartHands, HighFive, Stretch, Exhausted, NeedHelp, ComeHere, GoAway, ThankYou, GoodGame, VictoryPose }
         [Range(0,2)] public float frequency=1;
         public float minimumCooldown=8;
         public bool contextualReactions=true;
@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastleBots
         bool Chance(float probability)=>RandomSource.NextDouble()<Mathf.Clamp01(probability);
         float Goofiness=>brain&&brain.Personality?brain.Personality.goofiness:.2f;
         bool IdleOnly(Emote emote)=>emote==Emote.WhatWasThat||emote==Emote.JustChilling||emote==Emote.TinyVictoryDance||emote==Emote.GolfClap;
-        bool CanPose()=>brain&&brain.isActiveAndEnabled&&brain.Motor&&!brain.Respawning&&brain.Motor.Grounded&&!brain.Motor.Vaulting&&avatar&&avatar.Rig&&avatar.Rig.gameObject.activeInHierarchy;
+        bool CanPose()=>brain&&brain.isActiveAndEnabled&&brain.Motor&&!brain.Respawning&&brain.Motor.Grounded&&!brain.Motor.Vaulting&&!brain.Motor.Climbing&&avatar&&avatar.Rig&&avatar.Rig.gameObject.activeInHierarchy;
 
         public bool TryPlay(Emote emote,bool ignoreCooldown=false)
         {
@@ -63,19 +63,20 @@ namespace DeadlyJenga.CastleBots
             if(active&&(!CanPose()||IdleOnly(current)&&speed>.65f||Time.time-began>=duration))active=false;
             if(Time.time<nextSense)return;nextSense=Time.time+.25f;
             if(!CanPose()||active||Time.time<nextAllowed||frequency<=0)return;
+            if(TryContextReaction())return;
             float danger=brain.Population?brain.Population.ThreatCost(transform.position):0;
             if(danger>.7f)lastDanger=Time.time;
             if(contextualReactions)
             {
-                if(danger>.9f&&Chance(.08f+Goofiness*.14f)){Attempt(Emote.NopeNopeNope,"Mayhem nearby");return;}
+                if(danger>.9f&&Chance(.08f+Goofiness*.14f)){Attempt(Pick(Emote.NopeNopeNope,Emote.RunForIt,Emote.Shaking,Emote.HelpMe,Emote.OverThere,Emote.HideHere),"Mayhem nearby");return;}
                 if(danger<.25f&&Time.time-lastDanger<3)nearMissUntil=Time.time+2;
                 if(Time.time<nearMissUntil&&Chance(.15f+Goofiness*.25f))
                 {
-                    Attempt(Chance(.5f)?Emote.Phew:Emote.TotallyMeantThat,"Survived a scare, landing or vault");
+                    Attempt(Pick(Emote.Phew,Emote.TotallyMeantThat,Emote.DeepBreath,Emote.SafeAtLast,Emote.ThatWasClose,Emote.BarelyEscaped,Emote.JumpForJoy),"Survived a scare, landing or vault");
                     if(active){nearMissUntil=-100;lastDanger=-100;return;}
                 }
                 bool near=NearSomeone();
-                if(near&&!wasNear&&Chance(.3f+Goofiness*.4f)){Attempt(Emote.FriendlyWave,"Ran into another player");wasNear=near;if(active)return;}
+                if(near&&!wasNear&&Chance(.3f+Goofiness*.4f)){Attempt(Pick(Emote.FriendlyWave,Emote.Salute,Emote.HighFive,Emote.ThumbsUp,Emote.Respect,Emote.ComeHere),"Ran into another player");wasNear=near;if(active)return;}
                 wasNear=near;
             }
             if(Time.time>=nextAmbient)
@@ -83,7 +84,7 @@ namespace DeadlyJenga.CastleBots
                 nextAmbient=Time.time+Range(12,30)/Mathf.Max(.25f,frequency);
                 if(Chance(.25f+Goofiness*.6f))
                 {
-                    Emote emote=speed>.45f?Emote.FriendlyWave:(Emote)random.Next(0,8);
+                    Emote emote=speed>.45f?Pick(Emote.FriendlyWave,Emote.ComeHere,Emote.Salute,Emote.FollowMe,Emote.StayTogether):Pick(Emote.Thinking,Emote.Stretch,Emote.RobotDance,Emote.DiscoPoint,Emote.AirGuitar,Emote.Bow,Emote.HeartHands,Emote.JustChilling,Emote.Laughing,Emote.GolfClap,Emote.Confused,Emote.WhatWasThat);
                     Attempt(emote,"Just vibing");
                 }
             }
@@ -98,7 +99,8 @@ namespace DeadlyJenga.CastleBots
                 if(bot&&bot!=brain&&!bot.Respawning&&(bot.transform.position-transform.position).sqrMagnitude<radius*radius)return true;
             return false;
         }
-        void LateUpdate()
+        // Composed by the brain before the single final rig pass.
+        public void ComposePose()
         {
             if(!active||!CanPose())return;
             float t=Time.time-began;
@@ -108,8 +110,8 @@ namespace DeadlyJenga.CastleBots
             Vector3 l=new Vector3(-.27f,.83f,.06f),r=new Vector3(.27f,.83f,.06f);
             Vector3 lr=new Vector3(80,0,10),rr=new Vector3(80,0,-10);
             float lc=.12f,rc=.12f,pitch=0,roll=0;
-            float wave=Mathf.Sin(t*12),bounce=Mathf.Sin(t*8);
-            switch(current)
+            float motion=1+((int)current%5)*.06f;float wave=Mathf.Sin(t*12*motion),bounce=Mathf.Sin(t*8*motion);
+            switch(PoseFamily(current))
             {
                 case Emote.FriendlyWave:
                     r=new Vector3(.34f+.07f*wave,1.65f,.12f);rr=new Vector3(-70,0,-15+wave*22);pitch=-3;break;
@@ -128,10 +130,11 @@ namespace DeadlyJenga.CastleBots
                 default:
                     l=new Vector3(-.35f,1.12f+bounce*.15f,.15f);r=new Vector3(.35f,1.12f-bounce*.15f,.15f);lr=new Vector3(-30,0,-20);rr=new Vector3(-30,0,20);roll=bounce*8;lc=rc=.7f;break;
             }
-            frame.left=BlendHand(frame.left,l,lr,lc,true,frame,weight);frame.right=BlendHand(frame.right,r,rr,rc,false,frame,weight);
+            ExpandedPose(t,ref l,ref r,ref lr,ref rr,ref lc,ref rc,ref pitch,ref roll);
+            var weapon=GetComponent<IEquipmentControls>()?.Equipment;if(weapon==null||!weapon.drawn){frame.left=BlendHand(frame.left,l,lr,lc,true,frame,weight);frame.right=BlendHand(frame.right,r,rr,rc,false,frame,weight);}
             frame.headRotation=Quaternion.Slerp(frame.headRotation,frame.headRotation*Quaternion.Euler(pitch,0,roll),weight);
             // deltaTime=0 retains the locomotion phase advanced by CastleBotBrain.
-            avatar.Rig.ApplyFrame(frame,brain.Motor.Grounded,0);
+            avatar.ApplyCosmeticFrame(frame);
         }
         CandyHandPose BlendHand(CandyHandPose hand,Vector3 local,Vector3 euler,float curl,bool left,CandyAvatarFrame frame,float weight)
         {
@@ -156,7 +159,8 @@ namespace DeadlyJenga.CastleBots
             }
             return result;
         }
-        void OnDisable(){active=false;}
+        void OnEnable(){GameEvents.Damaged+=ReactDamage;GameEvents.Eliminated+=ReactElimination;}
+        void OnDisable(){active=false;GameEvents.Damaged-=ReactDamage;GameEvents.Eliminated-=ReactElimination;}
         [ContextMenu("Preview/Wave (Play Mode)")]void PreviewWave()=>TryPlay(Emote.FriendlyWave,true);
         [ContextMenu("Preview/Totally Meant That (Play Mode)")]void PreviewCelebrate()=>TryPlay(Emote.TotallyMeantThat,true);
         [ContextMenu("Preview/Phew (Play Mode)")]void PreviewPhew()=>TryPlay(Emote.Phew,true);

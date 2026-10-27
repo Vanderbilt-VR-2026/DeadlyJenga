@@ -1,0 +1,780 @@
+{
+  "count": 54,
+  "runtime_catalog": true,
+  "rows": [
+    {
+      "id": "castle",
+      "state": "link",
+      "source": "ArtDirection/CandyTropical/Results/candy-castle.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/castle.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1100
+      ],
+      "sha256": "ec7b8d9fa68c608babc3a009a8878c1ab2c29351e7f2a8ce2e5d7241a97f8e9c",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "MapDrafterEvan1",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/MapDrafterEvan1.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/MapDrafterEvan1.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "161ce5e3a484aa047398d6708e896dc6a3b5efde447df439501497b035ae28d8",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "MapDrafterEvan2",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/MapDrafterEvan2.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/MapDrafterEvan2.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "d8bf82688aed18b1898a916e40262b9a2fe3a2284f43afb7f123bda0a9e2c9cc",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "sparse-crown-study",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-crown-study.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-crown-study.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "101a437e02c394eccc7f45c5f4851edada808573ffe0ed05e55196eead6839fc",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-terrace-study",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-terrace-study.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-terrace-study.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "cc81bdac7fc58b69513280bebfc931709001ca8df225ea07753e9ed891cd24de",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-viaduct-study",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-viaduct-study.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-viaduct-study.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "4e1bb1ec8589524183fb2e0976502050b631cefb6ce22d2b942ae0a26ff1b5a5",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-keep-study",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-keep-study.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-keep-study.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "c99fb4d54da6cd341e6e44e5a88d75dbf7eb46174e53f8d6b4faa7a5df4965dc",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-crown-grand",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-crown-grand-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-crown-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "91f39970f3dbdb37bfa142ff47b15c89175d3050a8fb5d250b890732ee565b89",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-terrace-grand",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-terrace-grand-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-terrace-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "50db2a2f93520540b34e544a5ec11d77d2c79f15fe2f0fd5c3bad66b98c0726e",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-viaduct-grand",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-viaduct-grand-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-viaduct-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "7344b86cac634e92d27fab8f4e5256fc25db3f94d404c35347d878f5156e85b2",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-keep-grand",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-keep-grand-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-keep-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "33d1a88aa75fc7ead37bfc02e3f93dc3a2bcce10615152381f9ad3f9d1ec2275",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-festival-megastructure",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-festival-megastructure-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-festival-megastructure.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "d985fc4d623eda823fcd9ddff4e568dd30115aebc408d802368dbe64d0d506b2",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-festival-city",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-festival-city-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-festival-city.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "b76534f5a9a25cd5a11ee9a98caced6be4240576789c58d31950b0ae56e3102f",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-festival-city-packed",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-festival-city-packed-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-festival-city-packed.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "401264e9966b11c1fae9743644043482eb55f054831f31acda9f5420ff1d7ba5",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-festival-city-surface-mesh",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-festival-city-surface-mesh-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-festival-city-surface-mesh.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "c33b626321f36a5bf0c08fd45571c76fedbd4cfdf79d3370ecb4cdde0809bfb7",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "sparse-festival-city-optimized",
+      "state": "link",
+      "source": "Logs/Validation/Sparse-festival-city-optimized-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/sparse-festival-city-optimized.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "23bc403df08cab7bd87b8e27a9e563e6fb2535ab10338d4fab8b8fec12588022",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "andy",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/andy.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/andy.png",
+      "meta_exists": true,
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; accurate empty sandbox island (no structures authored)",
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "49c3b000984ae4d07f6bf7d46ceeb68684017bf39b4f587e9f981f1aece90ee4"
+    },
+    {
+      "id": "workshop-crown",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-crown.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-crown.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "9dfff3fb020c2638b2f9089d12002a10763401f40ba6debefcf74215a261597e",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-terraces",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-terraces.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-terraces.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "f8e6187daabcfca30ea3cb06cd28f446822cf1883257f350b37c02ae226cd69f",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-viaduct",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-viaduct.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-viaduct.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "8793baf07d33b0cd699120aec988cad64f40db6432377295a303b3b08f7c30f7",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-megakeeps",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-megakeeps.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-megakeeps.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "78fc4cedd047159ad374766fd3006b75828d34a9c21ca0494f98d1bb557b6e7a",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-crown-grand",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-crown-grand.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-crown-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "6ff1df3b1b20f050c25ad3a38b346c8ea9fe04ecde4721c9331e60cfa8fc0b08",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-terraces-grand",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-terraces-grand.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-terraces-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "2a3602c4fdd9ba9b5f3656849b6b53b4fbb7625cee0e3826297062668eeff1ed",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-viaduct-grand",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-viaduct-grand.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-viaduct-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "a314a75ba73d8faca5eecc6ee73121f7895f227bc13e3ca64e2e86d141183e1f",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-megakeeps-grand",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-megakeeps-grand.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-megakeeps-grand.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "95b00a6579b16f62b653c599cd2e5b413ce89abf01b9156ec8375d35377d698d",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "workshop-archipelago",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-archipelago.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/workshop-archipelago.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "8d32ea370f6373b622651e83294513c30b2024c16209982ad594c35a2022e030",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "breakwater-village",
+      "state": "link",
+      "source": "ArtDirection/BreakwaterVillage/01-village-before.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/breakwater-village.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1100
+      ],
+      "sha256": "3b3dbe6f454ee05fb874b2372f5d5676eff5cc274c1707ab869398f4fdda7b6a",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "mayhem-foundry",
+      "state": "retain",
+      "source": "Logs/Validation/Foundry-island-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mayhem-foundry.png",
+      "meta_exists": true,
+      "dimensions": [
+        1400,
+        900
+      ],
+      "sha256": "44eb98e213de011286153e4b62fe1c22336d509c7b65f16f8bc6451c501ab611",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "city-tower-exhibition",
+      "state": "retain",
+      "source": "Logs/Validation/CityExhibition-island-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/city-tower-exhibition.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1000
+      ],
+      "sha256": "98335964998d6cfff3539f6f41f683c94087a8f621f1e77d7e1a0264e5c02c02",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "tower-lab-island",
+      "state": "retain",
+      "source": "Logs/Validation/TowerExhibition-island-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/tower-lab-island.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1000
+      ],
+      "sha256": "bdccb71e7458e42104d4f076032d2821d001024649fc3b78ce06d6528bdb9f23",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-tideway",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-01-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-tideway.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "cc09bc215d63cd615425d946018aa941aece2a3aecf9bbb340e3736f11952db6",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-double-loop",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-02-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-double-loop.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "2c12b3ba1522c8d333eca4f399a26d712e9adfe7eb3020b6f02ef18518536b45",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-caldera",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-03-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-caldera.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "3349beb7b8553ede6cae1f9ad8caf9d46ab0b42af7e9f4cb8f9fe9b9111cdd12",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-broken-crown",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-04-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-broken-crown.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "656f34884ef83be38995faef9a87e74bbe63b490890d2dcf3cb3e1a693472ec4",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-harbor-loom",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-05-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-harbor-loom.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "f3ffafc1bc5a8d209e0eec02dc3ddab56670d7d37a7b153feda16d4d06171354",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-lantern-ravine",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-06-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-lantern-ravine.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "79c2b2bd0004e03031d19e6ea3ef96b629855ea1c865943930f3df9f0455de60",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-canopy-borough",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-07-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-canopy-borough.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "a6a1a21520afc15a569987017bf1b5ed9f9cd945976da726e779c6295ea37056",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-bookfall",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-08-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-bookfall.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "2b6e984eb437bb9008e16cdae326a6ed4a04e5148e5fd51cf692d53566bb2fbe",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-three-hearts",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-09-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-three-hearts.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "e263f425c2c98acdd99f51ad80f77db5ef4047636073b84dcdac5d19b3973db5",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "epic-rising-spine",
+      "state": "retain",
+      "source": "Logs/Validation/EpicCity-10-intact.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/epic-rising-spine.png",
+      "meta_exists": true,
+      "dimensions": [
+        1600,
+        1050
+      ],
+      "sha256": "85baefe4f8d4116b2faaa108fdd50377e52acbb3797c038963bd5fb8d4d9bdac",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "mode-castle-gaps",
+      "state": "link",
+      "source": "Logs/Validation/Castle-Long-Blocks-and-Gaps.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-castle-gaps.png",
+      "meta_exists": true,
+      "dimensions": [
+        960,
+        720
+      ],
+      "sha256": "237b366a7d0f16b243dda8eca23c9da9f8cccb56cb02de22e53c99f90423ba1f",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "mode-castle-catwalks",
+      "state": "link",
+      "source": "Logs/Validation/castle-catwalks.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-castle-catwalks.png",
+      "meta_exists": true,
+      "dimensions": [
+        960,
+        720
+      ],
+      "sha256": "b1059abedcc5d3fd631a666b294e36d02fbedb0b142c194845e712a79fc4b074",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "mode-castle-four-keeps",
+      "state": "link",
+      "source": "Logs/Validation/castle-four-keeps.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-castle-four-keeps.png",
+      "meta_exists": true,
+      "dimensions": [
+        960,
+        720
+      ],
+      "sha256": "f5006a81de8824ffbf9c755b78a3760eebe4d90896f7e127a65a54dc81577d5e",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "mode-ctf",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-ctf.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-ctf.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "4efd2dd005d7f57de35fb33addc13f691164e3793a8b2d265c60f373fce46efc",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-infection",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-infection.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-infection.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "1e27563fc14805877b16d783230513af4338f0e129816a5593c428f30ecca636",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-survival",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-survival.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-survival.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "033f3ba594ae85411af0b4679417900b09aedaa51dd8672d225b023207368737",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-territory",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-territory.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-territory.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "d82cd39c8b5ea7ae62027b4e0f0d657201c291b8f0daf89d0ec1bab533e6ef0f",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-koth",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-koth.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-koth.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "59ef47a33776ee18288bef850276d84fbd7a32d8a5a83cf9e69e26fb957788b3",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-tickets",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-tickets.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-tickets.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "1753022ea4ba91a46a765c0b7a4256d58211dd871eee204a293d1ad13d694728",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-buildup",
+      "state": "capture",
+      "source": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-buildup.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-buildup.png",
+      "meta_exists": true,
+      "dimensions": [
+        1280,
+        800
+      ],
+      "sha256": "423477e64d7cfbd0c0931ddd89649dacdcb24da370cb83c313ef4d1fb14f671d",
+      "source_kind": "isolated Unity Editor preview scene render",
+      "review": "visually reviewed; authored map geometry present"
+    },
+    {
+      "id": "mode-christmas-town",
+      "state": "capture",
+      "source": "ArtDirection/EpicCityCinematics-20261026/preview-mode-christmas-town.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-christmas-town.png",
+      "meta_exists": true,
+      "dimensions": [
+        1920,
+        1200
+      ],
+      "sha256": "c57dcc6743b09b0e74f18ca709b093498de25e69c8edcc36bdc474e6760dc3fc",
+      "source_kind": "actual Game.unity runtime render, imported after returning to Edit Mode",
+      "review": "town-focused actual runtime Christmas scene; visually reviewed by cinematic agent and root"
+    },
+    {
+      "id": "mode-powerup-test",
+      "state": "capture",
+      "source": "ArtDirection/EpicCityCinematics-20261026/preview-mode-powerup-test.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-powerup-test.png",
+      "meta_exists": true,
+      "dimensions": [
+        1920,
+        1200
+      ],
+      "sha256": "81f6d29a9a3ba2ecadcc4d31f9560483191cc4cf54b66da831968e6e8016cf29",
+      "source_kind": "actual Game.unity runtime render, imported after returning to Edit Mode",
+      "review": "actual runtime Powerup Test Island with 23 station pickups confirmed; visually reviewed by cinematic agent and root"
+    },
+    {
+      "id": "mode-cantina",
+      "state": "link",
+      "source": "Logs/Validation/Cantina-overview.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-cantina.png",
+      "meta_exists": true,
+      "dimensions": [
+        1400,
+        900
+      ],
+      "sha256": "f54681832b322088145b5b7039438c3751416a99da057b6faadda6f562b470f6",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    },
+    {
+      "id": "mode-tiki-resort",
+      "state": "link",
+      "source": "Logs/Validation/Tiki-overview.png",
+      "asset": "Assets/_DeadlyJenga/Presentation/Resources/LobbyPreviews/mode-tiki-resort.png",
+      "meta_exists": true,
+      "dimensions": [
+        1400,
+        900
+      ],
+      "sha256": "e2111157395cd98f213a1e64e39c139edc05e1c584972a5b2ea7c79eda17a4df",
+      "source_kind": "existing rendered Unity image",
+      "review": "existing rendered image retained or linked"
+    }
+  ],
+  "limitations": [
+    "19 newly captured previews use isolated editor scenes showing authored geometry and game materials without match actors, mode-only markers or runtime effects.",
+    "Christmas and Powerup Test previews were replaced with actual Game.unity runtime captures.",
+    "Quest headset display and interaction not tested."
+  ],
+  "counts": {
+    "effective_selectable_maps": 54,
+    "previously_linked": 13,
+    "existing_captures_newly_linked": 20,
+    "new_editor_captures": 21,
+    "missing": 0,
+    "invalid_png": 0,
+    "missing_meta": 0,
+    "isolated_editor_previews_remaining": 19,
+    "isolated_previews_replaced_by_runtime_captures": 2
+  },
+  "verification": "54 PNGs decoded/verified with matching Unity .meta files. Actual Game.unity runtime audit loaded all 54 exact-ID LobbyPreviews resources with missing=0. Shared Resources loader used by lobby terminal, desktop demo map rows and VR demo map rows. Supplemental runtime Powerup Test capture confirmed 23 real stations.",
+  "runtime_evidence": "ArtDirection/EpicCityCinematics-20261026/preview-resources.txt"
+}

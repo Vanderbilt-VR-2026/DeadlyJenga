@@ -16,8 +16,8 @@ namespace DeadlyJenga.CastlePrototype
         void BuildRoomStation()
         {
             var l=lobby;hostStation=Terminal("HOST",new Vector3(0,StationY,StationZ),0,new Vector2(800,900),CandyHudVisuals.Mint);
-            roomCount=Label(hostStation,"0 CONNECTED",515,40,800,80);roomCount.fontStyle=FontStyle.Bold;
-            hostCode=Label(hostStation,"",265,40,720,70);
+            roomCount=Label(hostStation,"0 CONNECTED",300,32,800,40);roomCount.fontStyle=FontStyle.Bold;
+            hostCode=Label(hostStation,"",245,36,720,60);
             Add(hostStation,"host",()=>"CREATE JOIN CODE",150,l.Host,()=>l.CanHost,0,700,105,()=>!l.Connected);
             Add(hostStation,"region",()=>"REGION: "+l.Region.ToUpperInvariant()+"  ·  CHANGE",65,l.NextRegion,()=>l.CanHost,0,650,50,()=>!l.Connected);
             Add(hostStation,"invite-all",()=>"INVITE NEARBY",-25,l.InviteNearby,()=>l.CanInvite,0,700,100);
@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void UpdateRoomStation()
         {
-            roomCount.text=(Details?.ConnectedCount??(lobby.Connected?1:0))+" CONNECTED";
+            roomCount.text=lobby.Busy?"CONNECTING":lobby.Connected?(Details?.ConnectedCount??1)+" CONNECTED":"PRIVATE ISLAND";
             if(lobby.IsHost&&RequestId!=null){var who=Details.Participants.FirstOrDefault(p=>p.id==RequestId);requestLabel.text=(who?.displayName??"A player")+" requests host";}else requestLabel.text="";
         }
     }

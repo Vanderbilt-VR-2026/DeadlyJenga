@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!21 &2100000
+Material:
+  serializedVersion: 8
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Candy Glass Above Clouds dark
+  m_Shader: {fileID: 4800000, guid: 1591c89a994156948ac02464faa61143, type: 3}
+  m_Parent: {fileID: 0}
+  m_ModifiedSerializedProperties: 0
+  m_ValidKeywords: []
+  m_InvalidKeywords: []
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 1
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_LockedProperties: 
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs:
+    - _DetailTex:
+        m_Texture: {fileID: 2800000, guid: 12e7c457a3921c74f8e6a15031e479b7, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _EnvironmentCube:
+        m_Texture: {fileID: 8900000, guid: ac150504dc293cc4bb420081e5dbc1b4, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    m_Ints: []
+    m_Floats:
+    - _DetailStrength: 1
+    - _Glow: 0
+    - _Metallic: 0
+    - _Pattern: 1
+    - _Scale: 1
+    - _Smoothness: 0.35
+    - _Stripes: 0.35
+    m_Colors:
+    - _Accent: {r: 0.23, g: 0.11, b: 0.03, a: 1}
+    - _BaseColor: {r: 0.09, g: 0.045, b: 0.018, a: 1}
+    - _CloudRadius: {r: 0, g: 0, b: 0, a: 0}
+  m_BuildTextureStacks: []
+  m_AllowLocking: 1

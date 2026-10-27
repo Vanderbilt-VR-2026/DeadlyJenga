@@ -1,0 +1,40 @@
+Actual Game.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Shared-object contract fixture resolves distinct original owners for each collider
+PASS An unregistered collider uses its ordinary parent component
+PASS Survivor colliders keep their exact original block owners
+PASS Survivor colliders use fewer shared kinematic bodies
+PASS Original tower survives settling without sinking or shattering
+PASS Native setting keeps independent block physics
+PASS Shared survivor collider follows actual block translation and rotation before motor queries
+PASS A severe actual rigidbody impact shatters and retires the block
+PASS High-speed downward debris enters swept ballistic simulation
+PASS Forecast high-speed debris switches to trigger-only visual motion before applying its push
+PASS Visual debris carries its momentum without a dynamic collision body
+PASS Approaching observer restores native collision, climbing and motion
+PASS Swept ballistic contact shatters and retires its original block
+PASS Ordinary short drops do not shatter blocks
+PASS Displaced debris visibly sinks through ground and deactivates after burial
+PASS Shattered and buried blocks keep their original network indices
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Shared-object contract fixture resolves distinct original owners for each collider
+PASS An unregistered collider uses its ordinary parent component
+PASS Survivor colliders keep their exact original block owners
+PASS Survivor colliders use fewer shared kinematic bodies
+PASS Naturally settled test map groups most blocks
+PASS Dormant blocks retain original body identity and climbing ability
+PASS Dormant original colliders retain bounds for world queries
+PASS Shared survivor surfaces resolve to the original climbable block
+PASS Shared collider resolves original body, push and hazard motion
+PASS Push releases the original block before applying force
+PASS Released original block moves under independent physics
+PASS Shared survivor collider follows actual block translation and rotation before motor queries
+PASS Replica suspends every original block for authoritative pose playback
+PASS Authority recovery restores every original dynamic body
+PASS Dormancy, push and authority changes preserve network block indices
+PASS Released bodies restore original collision detection
+PASS Map/disaster authoring validation runs
+PASS Map/disaster authoring validation runs
+COMPLETE runtimeErrors=0

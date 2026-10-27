@@ -9,7 +9,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
-    public sealed class CastleHandBotBrain:MonoBehaviour,IFlyingHandInputSource,ICandyHandPoseSource
+    public sealed partial class CastleHandBotBrain:MonoBehaviour,IFlyingHandInputSource,ICandyHandPoseSource
     {
         public CastleHandBotPersonality Personality;
         public CastleHandActor Actor {get;private set;}
@@ -35,8 +35,11 @@ namespace DeadlyJenga.CastleBots
         int commandFrame=-1;
         Vector3 outward=Vector3.back,strikeTo,approach,targetStart;
         readonly RaycastHit[] approachHits=new RaycastHit[64];
-        readonly List<Rigidbody> fallbackBlocks=new List<Rigidbody>();
-        float fallbackScanAt;
+        static readonly List<Rigidbody> fallbackBlocks=new List<Rigidbody>();
+        static float fallbackScanAt;
+        static IWorldQuery fallbackWorld;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetFallback(){fallbackBlocks.Clear();fallbackWorld=null;fallbackScanAt=0;}
         Rigidbody failedTarget;
         float retryAfter;
         readonly HashSet<CandyPhysicalHand> separatedHands=new HashSet<CandyPhysicalHand>();
@@ -105,9 +108,9 @@ namespace DeadlyJenga.CastleBots
             var blocks=session.world.Blocks;
             if(blocks==null||blocks.Count==0)
             {
-                if(Time.time>=fallbackScanAt)
+                if(!ReferenceEquals(fallbackWorld,session.world)||Time.time>=fallbackScanAt)
                 {
-                    fallbackBlocks.Clear();fallbackScanAt=Time.time+3;
+                    fallbackBlocks.Clear();fallbackWorld=session.world;fallbackScanAt=Time.time+3;
                     foreach(var body in FindObjectsByType<Rigidbody>(FindObjectsSortMode.None))
                     {
                         foreach(var collider in body.GetComponentsInChildren<Collider>())
@@ -116,8 +119,10 @@ namespace DeadlyJenga.CastleBots
                 }
                 blocks=fallbackBlocks;
             }
-            foreach(var rb in blocks)
+            int castBudget=16,start=Mathf.Abs((int)(seed*1000)+Attacks*97+Time.frameCount/43)%Mathf.Max(1,blocks.Count);
+            for(int sample=0;sample<Mathf.Min(96,blocks.Count);sample++)
             {
+                var rb=blocks[(start+sample*Mathf.Max(1,blocks.Count/96))%blocks.Count];
                 if(!rb||!rb.gameObject.activeInHierarchy||(!rb.isKinematic&&rb.linearVelocity.magnitude>5))continue;
                 if(rb.isKinematic && rb.GetComponent<IDamageable>()==null)continue;
                 if(Reserved(rb))continue;
@@ -136,6 +141,7 @@ namespace DeadlyJenga.CastleBots
                     var direction=rb.rotation*(face==0?Vector3.forward:face==1?Vector3.back:face==2?Vector3.right:face==3?Vector3.left:face==4?Vector3.up:Vector3.down);
                     if(Mathf.Abs(direction.y)>.55f||Vector3.Dot(direction,radial.normalized)<.3f)continue;
                     if(Vector3.Dot(direction,side.normalized)<.1f)continue;
+                    if(castBudget--<=0)break;
                     if(ClearApproach(rb,direction)){best=score;choice=rb;normal=direction;break;}
                 }
             }
@@ -175,7 +181,7 @@ namespace DeadlyJenga.CastleBots
             if(Paused){Intent="Paused";return;}
             if(Target&&!Target.gameObject.activeInHierarchy)Target=null;
             if(!Target&&Time.time>=nextChoice)PickTarget();
-            if(!Target){Intent="Finding an exposed block";return;}
+            if(!Target){HarassSurvivors();return;}
             foreach(var ability in abilities)if(ability.TryAct(this,Target,out flight,out pose)){Intent="Using hand ability";return;}
             float elapsed=Time.time-phaseAt,desiredCurl=.1f;
             var physical=Bridge.PhysicalHand;

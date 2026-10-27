@@ -10,13 +10,15 @@ namespace DeadlyJenga.CastlePrototype
     {
         string setupPage="main",previewId,modePreviewId;
         int pickerOffset;
-        const int PickerPageSize=7;
+        readonly MapCategoryPicker lobbyMapPicker=new MapCategoryPicker();
+        const int PickerPageSize=10;
         RawImage mapPreview,modePreview;
         Text previewMissing,mapCaption,modeCaption,gameHint,modeMissing,modeDescription,pvpCategory,survivalCategory;
         LobbyOption[] pvpModes=Array.Empty<LobbyOption>(),survivalModes=Array.Empty<LobbyOption>(),allModes=Array.Empty<LobbyOption>(),mapOptions=Array.Empty<LobbyOption>();
         string optionsMode;float nextOptionsRefresh;
         readonly System.Collections.Generic.Dictionary<string,Texture2D> modeTextures=new System.Collections.Generic.Dictionary<string,Texture2D>();
         readonly RawImage[] modePictures=new RawImage[8];
+        RawImage browserMapPreview;Text browserMapName,browserMapMissing;string browserMapId;
         readonly Text[] modeDescriptions=new Text[8],modePictureMissing=new Text[8];
         Choice GameChoice(string id,Func<string> title,float y,Action action,float x=0,float width=730,float height=64)
             =>Add(setupStation,id,title,y,action,()=>lobby.CanConfigure,x,width,height,()=>setupPage=="main");
@@ -41,12 +43,12 @@ namespace DeadlyJenga.CastlePrototype
             var teamChoice=GameChoice("human-team",()=>Details?.SelectedModeId=="mystery"?"MY SECRET ROLE: "+MysteryChoices.RequestedRole:MatchChoices.SameHumanTeam?"HUMANS: SAME TEAM":"HUMANS: RANDOM TEAMS",-265,()=>{if(Details.SelectedModeId=="mystery")MysteryChoices.RequestedRole=(MysteryRole)(((int)MysteryChoices.RequestedRole+1)%4);else{var s=Details.Setup;s.sameHumanTeam=!s.sameHumanTeam;Details.ConfigureSetup(s);}},0,780,50);
             teamChoice.enabled=()=>Details?.SelectedModeId=="mystery"||lobby.CanConfigure;
             GameChoice("player-target",()=>"PLAYERS: "+(Details?.Setup.population??MatchChoices.BotTarget)+"  ·  HUMANS + BOTS",-330,()=>{var s=Details.Setup;int[] list={10,15,25,50,100};s.population=list[(Array.IndexOf(list,s.population)+1)%list.Length];Details.ConfigureSetup(s);},0,780,50);
-            GameChoice("launch",()=>lobby.StartPending?"CANCEL START":"START GAME",-415,lobby.StartOrCancel,0,780,90).enabled=()=>lobby.CanStart;
+            GameChoice("launch",()=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true?"RETURN TO MATCH":lobby.StartPending?"CANCEL START":"START GAME",-415,lobby.StartOrCancel,0,780,90).enabled=()=>lobby.CanStart;
             setupHint=Label(setupStation,"",-495,20,810,42);setupHint.color=CandyHudVisuals.Muted;
             gameHint=Label(setupStation,"",400,30,780,70);
             for(int i=0;i<PickerPageSize;i++)
             {
-                int slot=i;Add(setupStation,"picker-"+i,()=>PickerTitle(slot),275-i*86,()=>Pick(slot),()=>lobby.CanConfigure&&PickerOption(slot)?.available==true,0,780,70,()=>setupPage=="maps"&&PickerOption(slot)!=null);
+                int slot=i;Add(setupStation,"picker-"+i,()=>PickerTitle(slot),275-i*86,()=>Pick(slot),()=>PickerRow(slot)?.map==null||lobby.CanConfigure&&PickerOption(slot)?.available==true,0,780,70,()=>setupPage=="maps"&&PickerRow(slot)!=null);
             }
             BuildModeCards();
             Add(setupStation,"picker-previous",()=>"< PREVIOUS",-390,()=>pickerOffset=Mathf.Max(0,pickerOffset-PageSize),()=>pickerOffset>0,-215,380,60,()=>setupPage=="maps"||setupPage=="modes");
@@ -57,20 +59,25 @@ namespace DeadlyJenga.CastlePrototype
         void CycleSetup(bool map,int step)
         {
             if(Details==null||!lobby.CanConfigure)return;
-            RefreshModeOptions(true);var options=map?mapOptions:allModes;if(options.Length==0)return;
             string selected=map?Details.SelectedMapId:Details.SelectedModeId;
+            RefreshModeOptions(true);
+            bool experimental=MapBrowseStatus.Experimental(mapOptions.FirstOrDefault(o=>o.id==selected));
+            var options=map?mapOptions.Where(o=>MapBrowseStatus.Experimental(o)==experimental).ToArray():allModes;if(options.Length==0)return;
             int at=0;for(int i=0;i<options.Length;i++)if(options[i].id==selected){at=i;break;}
             for(int i=0;i<options.Length;i++){at=(at+step+options.Length)%options.Length;if(!options[at].available)continue;if(map)lobby.SelectMap(options[at].id);else lobby.SelectMode(options[at].id);return;}
         }
-        void OpenPicker(string page){RefreshModeOptions(true);setupPage=page;pickerOffset=0;}
+        void OpenPicker(string page){RefreshModeOptions(true);setupPage=page;if(page=="maps")browserMapId=null;pickerOffset=page=="maps"?lobbyMapPicker.HeaderIndex/PickerPageSize*PickerPageSize:0;}
         int PageSize=>setupPage=="modes"?4:PickerPageSize;
-        int PickerPages=>Mathf.Max(1,Mathf.CeilToInt((setupPage=="modes"?Mathf.Max(ModeColumn(false).Length,ModeColumn(true).Length):mapOptions.Length)/(float)PageSize));
-        LobbyOption PickerOption(int slot){int index=pickerOffset+slot;return index>=0&&index<mapOptions.Length?mapOptions[index]:null;}
-        string PickerTitle(int slot){var p=PickerOption(slot);return p==null?"":p.title+(p.available?"":" - COMING SOON");}
+        int PickerPages=>Mathf.Max(1,Mathf.CeilToInt((setupPage=="modes"?Mathf.Max(ModeColumn(false).Length,ModeColumn(true).Length):lobbyMapPicker.Rows.Count)/(float)PageSize));
+        MapCategoryPicker.Row PickerRow(int slot){int index=pickerOffset+slot;return index>=0&&index<lobbyMapPicker.Rows.Count?lobbyMapPicker.Rows[index]:null;}
+        LobbyOption PickerOption(int slot)=>PickerRow(slot)?.map;
+        string PickerTitle(int slot){var row=PickerRow(slot);return row==null?"":lobbyMapPicker.Title(row);}
         void Pick(int slot)
         {
-            var p=PickerOption(slot);if(p==null||!p.available)return;
-            if(lobby.SelectMap(p.id))setupPage="main";
+            var row=PickerRow(slot);if(row==null)return;
+            if(row.map==null){lobbyMapPicker.Toggle(row);pickerOffset=lobbyMapPicker.HeaderIndex/PageSize*PageSize;return;}
+            if(!lobby.CanConfigure||!row.map.available)return;
+            if(lobby.SelectMap(row.map.id))setupPage="main";
         }
         static bool SurvivalMode(string id)=>id=="survival"||id=="infection"||id=="mystery"||id=="demo";
         LobbyOption[] ModeColumn(bool survival)=>survival?survivalModes:pvpModes;
@@ -79,6 +86,8 @@ namespace DeadlyJenga.CastlePrototype
             var details=Details;if(details==null)return;
             if(!force&&allModes.Length>0&&optionsMode==details.SelectedModeId&&Time.unscaledTime<nextOptionsRefresh)return;
             allModes=details.Modes?.ToArray()??Array.Empty<LobbyOption>();mapOptions=details.Maps?.ToArray()??Array.Empty<LobbyOption>();
+            lobbyMapPicker.Update(mapOptions,details.SelectedMapId);
+            if(setupPage=="maps")pickerOffset=Mathf.Min(pickerOffset,(PickerPages-1)*PageSize);
             optionsMode=details.SelectedModeId;nextOptionsRefresh=Time.unscaledTime+.5f;var modes=allModes;
             pvpModes=modes.Where(p=>p.available&&!SurvivalMode(p.id)).ToArray();
             survivalModes=modes.Where(p=>p.available&&SurvivalMode(p.id)).OrderBy(p=>p.id=="demo"?1:0).ToArray();
@@ -90,11 +99,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PickModeCard(int slot)
         {
-            var option=ModeCardOption(slot);if(option!=null&&option.available&&lobby.SelectMode(option.id))OpenPicker("maps");
+            var option=ModeCardOption(slot);if(option!=null&&option.available)lobby.SelectMode(option.id);
         }
         RawImage Picture(RectTransform parent,string name,float x,float y,float width,float height)
         {
-            var go=new GameObject(name,typeof(RectTransform),typeof(RawImage));go.transform.SetParent(parent,false);
+            bool rounded=setupStation&&(parent==setupStation||parent.IsChildOf(setupStation));
+            var go=new GameObject(name,typeof(RectTransform),rounded?typeof(LobbyTerminalPicture):typeof(RawImage));go.transform.SetParent(parent,false);
             var image=go.GetComponent<RawImage>();image.raycastTarget=false;image.rectTransform.sizeDelta=new Vector2(width,height);image.rectTransform.anchoredPosition=new Vector2(x,y);return image;
         }
         void BuildModeCards()
@@ -113,24 +123,74 @@ namespace DeadlyJenga.CastlePrototype
                 modeDescriptions[i]=Label(rect,"",-26,21,230,72);modeDescriptions[i].rectTransform.anchoredPosition=new Vector2(65,-26);modeDescriptions[i].color=CandyHudVisuals.Muted;
             }
         }
-        string ModeCardTitle(int slot){var p=ModeCardOption(slot);return p==null?"":(p.id=="demo"?"SANDBOX - ":"")+p.title;}
+        string ModeCardTitle(int slot){var p=ModeCardOption(slot);return p==null?"":p.id=="demo"?"DEMO / SANDBOX":p.title;}
         void UpdateGameStation()
         {
             RefreshModeOptions();
             bool main=setupPage=="main";
             mapPreview.gameObject.SetActive(main);modePreview.gameObject.SetActive(main);mapCaption.gameObject.SetActive(main);modeCaption.gameObject.SetActive(main);modeDescription.gameObject.SetActive(main);setupHint.gameObject.SetActive(main);
-            if(Details!=null&&previewId!=Details.SelectedMapId){previewId=Details.SelectedMapId;SetPicture(mapPreview,Resources.Load<Texture2D>("LobbyPreviews/"+previewId),330,210);}
-            if(Details!=null&&modePreviewId!=Details.SelectedModeId){modePreviewId=Details.SelectedModeId;SetPicture(modePreview,ModePicture(modePreviewId),330,210);}
+            if(Details!=null&&previewId!=Details.SelectedMapId){previewId=Details.SelectedMapId;SetPicture(mapPreview,MapPreviewImages.Get(previewId),440,138);}
+            if(Details!=null&&modePreviewId!=Details.SelectedModeId){modePreviewId=Details.SelectedModeId;SetPicture(modePreview,ModePicture(modePreviewId),440,138);}
             previewMissing.gameObject.SetActive(main&&!mapPreview.texture);modeMissing.gameObject.SetActive(main&&!modePreview.texture);
-            modeDescription.text=allModes.FirstOrDefault(p=>p.id==Details?.SelectedModeId)?.description??"";
+            modeDescription.text=CandyBrief(allModes.FirstOrDefault(p=>p.id==Details?.SelectedModeId)?.description??"");
             pvpCategory.gameObject.SetActive(setupPage=="modes");survivalCategory.gameObject.SetActive(setupPage=="modes");
             if(setupPage=="modes")for(int i=0;i<modePictures.Length;i++)
             {
                 var option=ModeCardOption(i);var texture=option!=null?ModePicture(option.id):null;
-                SetPicture(modePictures[i],texture,116,116);
-                modePictureMissing[i].gameObject.SetActive(!texture);modeDescriptions[i].text=option?.description??"";
+                SetPicture(modePictures[i],texture,118,118);
+                modePictures[i].uvRect=new Rect(0,0,1,1);
+                modePictureMissing[i].gameObject.SetActive(!texture);modeDescriptions[i].text=CandyBrief(option?.description??"",true);
             }
+            UpdateMapBrowserPreview();
             gameHint.text=setupPage=="maps"||setupPage=="modes"?(setupPage=="maps"?"2 - CHOOSE MAP":"1 - CHOOSE GAME MODE")+"  -  "+(pickerOffset/PageSize+1)+" / "+PickerPages:setupPage=="settings"?"DEMO / MODE SETTINGS":"";gameHint.gameObject.SetActive(!main);
+        }
+        void UpdateModeCardFocus(string choiceId)
+        {
+            int focused=-1;
+            if(setupPage=="modes")
+            {
+                if(choiceId!=null&&choiceId.StartsWith("mode-card-",StringComparison.Ordinal)&&int.TryParse(choiceId.Substring(10),out int slot)&&ModeCardOption(slot)!=null)focused=slot;
+                if(focused<0)for(int i=0;i<8;i++)if(ModeCardOption(i)?.id==Details?.SelectedModeId&&ModeCardOption(i)!=null){focused=i;break;}
+            }
+            for(int i=0;i<8;i++)
+            {
+                var choice=CandyChoice("mode-card-"+i);if(choice==null)continue;
+                var rect=(RectTransform)choice.button.transform;bool focus=i==focused;
+                float scale=focus?1.45f:1;
+                rect.localScale=Vector3.MoveTowards(rect.localScale,Vector3.one*scale,Time.unscaledDeltaTime*10);
+                float x=i<4?-255:255,y=190-i%4*144;
+                rect.anchoredPosition3D=focus?new Vector3(i<4?-180:180,Mathf.Clamp(y,-219,161),-12):new Vector3(x,y,0);
+                if(focus&&rect.GetSiblingIndex()!=rect.parent.childCount-1)rect.SetAsLastSibling();
+            }
+        }
+        void PreviewMapChoice(string choiceId)
+        {
+            if(setupPage!="maps"||string.IsNullOrEmpty(choiceId)||!choiceId.StartsWith("picker-",StringComparison.Ordinal))return;
+            if(int.TryParse(choiceId.Substring(7),out int slot))
+            {
+                var option=PickerOption(slot);if(option!=null)UpdateMapBrowserPreview(option.id);
+            }
+        }
+        void UpdateMapBrowserPreview(string id=null)
+        {
+            if(!browserMapPreview)return;
+            bool visible=setupPage=="maps";
+            browserMapPreview.gameObject.SetActive(visible);browserMapName.gameObject.SetActive(visible);
+            if(!visible){browserMapMissing.gameObject.SetActive(false);return;}
+            id=id??browserMapId??Details?.SelectedMapId;
+            if(browserMapId!=id||!browserMapPreview.texture)
+            {
+                browserMapId=id;var texture=MapPreviewImages.Get(id);
+                SetPicture(browserMapPreview,texture,940,290);
+                if(texture)
+                {
+                    float aspect=texture.width/(float)texture.height;
+                    browserMapPreview.rectTransform.sizeDelta=new Vector2(Mathf.Min(940,290*aspect),Mathf.Min(290,940/aspect));
+                    browserMapPreview.uvRect=new Rect(0,0,1,1);
+                }
+                browserMapName.text=mapOptions.FirstOrDefault(m=>m.id==id)?.title??"Choose a map";
+            }
+            browserMapMissing.gameObject.SetActive(!browserMapPreview.texture);
         }
         Texture2D ModePicture(string id)
         {
@@ -141,6 +201,7 @@ namespace DeadlyJenga.CastlePrototype
         static void SetPicture(RawImage image,Texture2D texture,float width,float height)
         {
             image.texture=texture;image.enabled=texture;
+            if(image is LobbyTerminalPicture){CandyFillPicture(image,width,height);return;}
             if(texture){float aspect=texture.width/(float)texture.height;image.rectTransform.sizeDelta=new Vector2(Mathf.Min(width,height*aspect),Mathf.Min(height,width/aspect));}
         }
     }

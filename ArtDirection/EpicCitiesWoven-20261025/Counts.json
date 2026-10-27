@@ -1,0 +1,92 @@
+[
+  {
+    "number": 1,
+    "name": "Tideway Metropolis",
+    "bodies": 108,
+    "shapes": 1071,
+    "routes": 44,
+    "elevated": 27,
+    "lower": 14
+  },
+  {
+    "number": 2,
+    "name": "Double-Loop Exchange",
+    "bodies": 125,
+    "shapes": 1086,
+    "routes": 50,
+    "elevated": 33,
+    "lower": 16
+  },
+  {
+    "number": 3,
+    "name": "Caldera Switchback City",
+    "bodies": 91,
+    "shapes": 704,
+    "routes": 15,
+    "elevated": 10,
+    "lower": 4
+  },
+  {
+    "number": 4,
+    "name": "Broken Crown Capital",
+    "bodies": 107,
+    "shapes": 936,
+    "routes": 44,
+    "elevated": 24,
+    "lower": 16
+  },
+  {
+    "number": 5,
+    "name": "Harbor Loom",
+    "bodies": 131,
+    "shapes": 1042,
+    "routes": 58,
+    "elevated": 38,
+    "lower": 18
+  },
+  {
+    "number": 6,
+    "name": "Lantern Ravine",
+    "bodies": 86,
+    "shapes": 797,
+    "routes": 21,
+    "elevated": 12,
+    "lower": 4
+  },
+  {
+    "number": 7,
+    "name": "Canopy Borough",
+    "bodies": 95,
+    "shapes": 1090,
+    "routes": 32,
+    "elevated": 22,
+    "lower": 8
+  },
+  {
+    "number": 8,
+    "name": "Bookfall Boulevard",
+    "bodies": 108,
+    "shapes": 897,
+    "routes": 43,
+    "elevated": 25,
+    "lower": 16
+  },
+  {
+    "number": 9,
+    "name": "Three Hearts City",
+    "bodies": 122,
+    "shapes": 1078,
+    "routes": 47,
+    "elevated": 24,
+    "lower": 16
+  },
+  {
+    "number": 10,
+    "name": "The Rising Spine",
+    "bodies": 84,
+    "shapes": 740,
+    "routes": 30,
+    "elevated": 15,
+    "lower": 9
+  }
+]

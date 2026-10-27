@@ -7,7 +7,7 @@ namespace DeadlyJenga.CharacterNetwork
 {
     // Someone else's survivor (a player or bot) on this machine. No camera, no input.
     // On the host it can also be hit by hazards: pushes and damage go to its owner through the network.
-    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, IPushable, IDamageable, IHazardMotion, IModeActor, IEnemyActor
+    public sealed class SurvivorNetworkView : MonoBehaviour, INetworkActorView, IPushable, IDamageable, IHazardMotion, IModeActor, IEnemyActor, IEnemyPose
     {
         NetworkContext context;
         CandyPlayerRig rig;
@@ -17,6 +17,7 @@ namespace DeadlyJenga.CharacterNetwork
         EnemySpawnSettings enemy;
         byte blaster;Transform blasterModel;CandyWeaponVisual weaponVisual;
         public bool IsEnemy=>enemy!=null;
+        public bool PreparingMelee=>enemy?.preparingMelee==true;
         public string ArchetypeId=>enemy?.archetypeId;
         public float HitDamage=>enemy?.hitDamage??0;
         public void Despawn() { }
@@ -57,7 +58,7 @@ namespace DeadlyJenga.CharacterNetwork
         public void ApplyModeRules(ModeRules rules) { }
 
         public Vector3 HazardVelocity => velocity;
-        public float Health => 100;
+        public float Health => (enemy?.healthRatio??1)*100;
         public float MaxHealth => 100;
         bool CanBeHit => context.host && !suspended && active && context.sendImpact != null && context.actorId != null;
         public void Push(Vector3 force, GameObject source) { if (CanBeHit) context.sendImpact(context.actorId, force, 0); }
@@ -86,6 +87,7 @@ namespace DeadlyJenga.CharacterNetwork
                 rig = Instantiate(avatar.visualPrefab, transform); rig.ownerCamera = null;
             }
             rig.gameObject.SetActive(active); rig.SetColor(color);rig.SetAppearance(appearance);
+            if(IsEnemy&&(ArchetypeId=="longhand"||ArchetypeId=="gum-brute")&&!GetComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>())gameObject.AddComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>();
             if (!initialized) { frame = target; initialized = true; }
             UpdateHazardTarget();
         }

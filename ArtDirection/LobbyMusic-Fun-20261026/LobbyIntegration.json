@@ -1,0 +1,19 @@
+{
+  "track": "Ready, Set, Splash",
+  "unityAsset": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyMenuMusic/ReadySetSplash-Lobby.wav",
+  "sha256": "b68f7ff5dc3dfd83c9a31a9943ebb6bb44a3f2e9130fcefcf35ed62e131538a3",
+  "scope": "LobbyStarted-owned stereo looping source, stopped on disable and scene unload. Preserves music volume controls. World music suppressed while active.",
+  "validation": {
+    "compiledPresentationAssemblyContainsBothMusicComponents": true,
+    "installedAudioMatchesApprovedTrack": true,
+    "streamingStereoImporter": true,
+    "homeRuntimeEvidence": "Logs/Validation/HomeMusicChecks-before-lobby-integration.txt",
+    "lobbyRuntimePlayback": "Passed in actual lobby; see runtimeValidation",
+    "headsetTested": false
+  },
+  "runtimeValidation": {
+    "report": "Logs/Validation/HomeMusicChecks.txt",
+    "result": "PASS: Home and lobby autoplay, looping, scene cleanup, return Home, and actual Game transition; zero runtime errors.",
+    "headsetTested": false
+  }
+}

@@ -57,8 +57,13 @@ namespace DeadlyJenga.CandyAudio
         bool Audible(CandyAudioCue cue,Vector3 position,bool local)=>local||Listener&&(position-Listener.position).sqrMagnitude<cue.maxDistance*cue.maxDistance;
         public bool Play(CandySound sound,Vector3 position,float intensity=1,int owner=0,float pitch=1,bool local=false)
         {
-            if(!bank||!FindCue(sound,out var cue)||!Audible(cue,position,local)){Culled++;return false;}
-            long key=((long)owner<<8)^(int)sound;float now=Time.unscaledTime;
+            if(!bank||!FindCue(sound,out var cue)){Culled++;return false;}
+            return PlayCue(cue,position,intensity,owner,pitch,local);
+        }
+        public bool PlayCue(CandyAudioCue cue,Vector3 position,float intensity=1,int owner=0,float pitch=1,bool local=false)
+        {
+            if(!bank||cue==null||!cue.enabled||!Audible(cue,position,local)){Culled++;return false;}
+            long key=((long)owner<<32)^(uint)cue.sound;float now=Time.unscaledTime;
             if(cooldowns.TryGetValue(key,out float until)&&now<until){Culled++;return false;}
             tokens=Mathf.Min(bank.eventsPerSecond,tokens+(now-tokenAt)*bank.eventsPerSecond);tokenAt=now;
             if(tokens<1||cue.bus==CandyBus.World&&tokens<4){Culled++;return false;}
@@ -138,6 +143,7 @@ namespace DeadlyJenga.CandyAudio
                 // Stop can reach the audio thread after this frame; a released
                 // voice must not be mixed using the cue that was just cleared.
                 if(voice.cue==null){if(voice.source.isPlaying)voice.source.Stop();continue;}
+                if((CandyHomeMusic.Active||CandyLobbyMusic.Active)&&voice.cue.sound==CandySound.Music){voice.source.Stop();voice.cue=null;continue;}
                 if(!voice.source.isPlaying)continue;
                 if(voice.looping)
                 {

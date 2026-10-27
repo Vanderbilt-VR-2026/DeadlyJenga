@@ -20,7 +20,7 @@ namespace DeadlyJenga.Modes
         public bool BlasterTestingEnabled=>Authority?blasterTesting:frame.blaster?.testingEnabled==true;
         public void SetBlasterTesting(bool enabled)
         {
-            if(!Authority||Rules.mode!=GameModeKind.Demo)return;
+            if(!Authority)return;
             blasterTesting=enabled;
             if(enabled&&!equipment.ContainsKey(LocalActorId))
             {
@@ -46,7 +46,7 @@ namespace DeadlyJenga.Modes
         bool FireBlaster(string id,BlasterCommand command)
         {
             var actor=FindActor(id);var p=simulation.Find(id);
-            if(EquipmentFor(id).kind!=EquipmentKind.Blaster||!EquipmentFor(id).drawn||!blasterTesting||Rules.mode!=GameModeKind.Demo||simulation.Phase!=RoundPhase.Playing||actor==null||p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||simulation.CarriesFlag(id)||plasma.Count>=64||command==null)return false;
+            if(EquipmentFor(id).kind!=EquipmentKind.Blaster||!EquipmentFor(id).drawn||!blasterTesting||simulation.Phase!=RoundPhase.Playing||actor==null||p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||simulation.CarriesFlag(id)||plasma.Count>=64||command==null)return false;
             if(!Finite(command.position)||!Finite(command.forward)||command.forward.sqrMagnitude<.5f||command.forward.sqrMagnitude>2||Vector3.Distance(command.position,actor.ViewPose.position)>2)return false;
             if(shotCooldowns.TryGetValue(id,out var ready)&&Time.time<ready)return false;
             if(Physics.Linecast(actor.ViewPose.position,command.position,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return false;
@@ -107,7 +107,7 @@ namespace DeadlyJenga.Modes
             }
             plasmaBlocks.Clear();var blocks=Services.World?.Blocks;if(blocks==null)return;
             foreach(var body in blocks)if(body&&(body.worldCenterOfMass-point).sqrMagnitude<BlastRadius*BlastRadius&&plasmaBlocks.Add(body))
-            {var delta=body.worldCenterOfMass-point;float distance=delta.magnitude;if(!Physics.Raycast(point,delta.normalized,out var hit,distance,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)||hit.rigidbody==body)body.GetComponent<IPushable>()?.Push((delta.normalized+Vector3.up*.2f)*Mathf.Lerp(4,1,distance/BlastRadius),source.gameObject);}
+            {var delta=body.worldCenterOfMass-point;float distance=delta.magnitude;if(!Physics.Raycast(point,delta.normalized,out var hit,distance,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)||HitAbilities.Get<Rigidbody>(hit.collider)==body)body.GetComponent<IPushable>()?.Push((delta.normalized+Vector3.up*.2f)*Mathf.Lerp(4,1,distance/BlastRadius),source.gameObject);}
         }
         BlasterFrame CaptureBlaster()
         {

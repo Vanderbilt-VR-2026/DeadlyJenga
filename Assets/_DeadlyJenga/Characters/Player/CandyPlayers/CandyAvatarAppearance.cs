@@ -6,7 +6,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyPlayerAvatar : IAvatarAppearance
     {
         const string AppearanceKey="CandyAvatar.Accessories.v1";
-        public const AvatarAccessory SupportedAccessories=(AvatarAccessory)65535;
+        public const AvatarAccessory SupportedAccessories=(AvatarAccessory)uint.MaxValue;
         [SerializeField] AvatarAppearance appearance;
         public AvatarAppearance Appearance=>appearance;
         public AvatarAppearance EquippedAppearance
@@ -16,12 +16,12 @@ namespace DeadlyJenga.CandyPlayers
         public static AvatarAppearance SanitizeAppearance(AvatarAppearance value)
         {
             value.accessories&=SupportedAccessories;
-            if((byte)value.skin>6)value.skin=0;if((byte)value.hair>12)value.hair=0;if((byte)value.eyewear>7)value.eyewear=0;
-            value.clothing&=(AvatarClothing)511;return value;
+            if((byte)value.skin>(byte)AvatarSkin.DiscoAlien)value.skin=0;if((byte)value.hair>15)value.hair=0;if((byte)value.eyewear>15)value.eyewear=0;
+            value.clothing&=(AvatarClothing)16383;return value;
         }
-        public static uint StyleBits(AvatarAppearance value)=> (uint)value.skin|((uint)value.hair<<3)|((uint)value.eyewear<<7)|((uint)value.clothing<<10)|(value.poweredArmor?1u<<19:0);
+        public static uint StyleBits(AvatarAppearance value)=> ((uint)value.skin&7)|((uint)value.hair<<3)|(((uint)value.eyewear&7)<<7)|(((uint)value.clothing&511)<<10)|(value.poweredArmor?1u<<19:0)|(((uint)value.skin>>3)<<20)|(((uint)value.eyewear>>3)<<24)|(((uint)value.clothing>>9)<<25);
         public static AvatarAppearance WithStyle(AvatarAppearance value,uint bits)
-        {value.skin=(AvatarSkin)(bits&7);value.hair=(AvatarHair)((bits>>3)&15);value.eyewear=(AvatarEyewear)((bits>>7)&7);value.clothing=(AvatarClothing)((bits>>10)&511);value.poweredArmor=(bits&(1u<<19))!=0;return SanitizeAppearance(value);}
+        {value.skin=(AvatarSkin)((bits&7)|(((bits>>20)&15)<<3));value.hair=(AvatarHair)((bits>>3)&15);value.eyewear=(AvatarEyewear)(((bits>>7)&7)|(((bits>>24)&1)<<3));value.clothing=(AvatarClothing)(((bits>>10)&511)|(((bits>>25)&31)<<9));value.poweredArmor=(bits&(1u<<19))!=0;return SanitizeAppearance(value);}
         void LoadAppearance()
         {
             if(OwnAppearance){appearance.accessories=(AvatarAccessory)(uint)PlayerPrefs.GetInt(AppearanceKey,0)&SupportedAccessories;

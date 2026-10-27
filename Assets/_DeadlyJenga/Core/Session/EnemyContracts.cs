@@ -7,6 +7,8 @@ namespace DeadlyJenga.Core
     {
         public string archetypeId="panther";
         public float hitDamage=20;
+        public bool preparingMelee;
+        public float healthRatio=1;
     }
     public interface IEnemyActor
     {
@@ -14,6 +16,15 @@ namespace DeadlyJenga.Core
         string ArchetypeId { get; }
         float HitDamage { get; }
         void Despawn();
+    }
+    public interface IEnemyPose
+    {
+        bool PreparingMelee { get; }
+    }
+    public interface IEnemyMovement
+    {
+        bool CanClimb { get; }
+        float JumpMultiplier { get; }
     }
     public interface IEnemyPopulation
     {

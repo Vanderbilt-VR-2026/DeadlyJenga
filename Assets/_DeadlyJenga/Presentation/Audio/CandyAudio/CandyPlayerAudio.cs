@@ -27,6 +27,9 @@ namespace DeadlyJenga.CandyAudio
             var p=transform.position;var d=p-previous;previous=p;float dt=Mathf.Max(.001f,Time.deltaTime);
             if(d.magnitude>4){stepTravel=0;fallSpeed=0;airtime=0;grounded=motor.Grounded;Sound(CandySound.Respawn,p,.45f);return;}
             bool nearby=CandyAudioWorld.Near(p,70);
+            var actor=GetComponent<IModeActor>();var weapon=actor!=null?(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(actor.ActorId):null;
+            if(nearby&&actor?.Alive==true&&weapon?.triggerHeld==true&&weapon.drawn&&(weapon.kind==EquipmentKind.WristLaser||weapon.kind==EquipmentKind.NeedleDrill||weapon.kind==EquipmentKind.ChainGun||weapon.kind==EquipmentKind.Chainsaw))
+                engine.Loop(weapon.kind==EquipmentKind.WristLaser?CandySound.SuitThruster:CandySound.WeaponTransform,transform,.35f,motor.IsLocal,Mathf.Lerp(.65f,1.4f,weapon.charge));
             // Local breathing uses the reserved voice pool and the Character/master mixer.
             // Stop requesting on menu, role change, disable or full stamina: the pool fades out.
             if(motor.IsLocal&&!motor.InputPaused&&motorBehaviour.isActiveAndEnabled)
@@ -85,7 +88,7 @@ namespace DeadlyJenga.CandyAudio
         void OnEmoted(GameObject who,string emote)
         {
             if(who!=gameObject||motor==null||CandyJaguarAudio.IsJaguar(this)||!CandyAudioEngine.Instance||!CandyAudioWorld.Near(transform.position,70))return;
-            if(Enum.TryParse<CandySound>(emote,out var cue))Sound(cue,transform.position+Vector3.up*motor.Height*.85f,.7f);
+            if(Enum.TryParse<CandySound>(emote,out var cue))Sound(cue,transform.position+Vector3.up*motor.Height*.85f,.7f);else CandySignatureSounds.PlayEmote(who,emote);
         }
     }
 }

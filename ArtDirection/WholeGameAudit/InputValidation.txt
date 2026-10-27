@@ -1,0 +1,11 @@
+PASS Input-only HMD keeps desktop mode 
+SKIP Desktop keyboard/mouse and hand flight: batch mode cannot acquire mouse capture. Run this suite interactively for those checks.
+PASS XR left stick walks 
+PASS XR A jumps 
+PASS XR Y opens world menu 
+PASS Tracked gaze reaches the real Resume button before trigger angle=0
+PASS Gaze plus trigger activates Resume without changing role trigger=1 gazeBeforePress=True menuOpen=False hand=False
+PASS XR B switches role 
+PASS VR inspection preserves the tracked camera and suspends player input 
+PASS Closed-menu controller context actions remain interactive 
+Uses synthetic Input System devices in the real Unity player loop; no physical headset was available.

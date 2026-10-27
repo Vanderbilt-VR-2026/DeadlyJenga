@@ -1,0 +1,13 @@
+Current direction, following user clarification
+
+The structures remain abstract physics playgrounds. Their existing shapes determine which surfaces receive grain, porosity, striation, iridescence and patterned wear.
+
+Different structural forms within one map receive different material families. Different faces of one piece can also differ: quiet opaque tops, expressive sides, detailed undersides, grained posts.
+
+Sparse visual attachments can include shell clusters, short leaves, seed pods, small crystal nubs and chunky joint caps. These are concepts for art children of existing pieces, without separate rigidbodies or colliders. Do not place them on walking tops, climbing grip faces, stair slots or critical sight lines. Their rendering cost still needs measurement.
+
+Use surface texture/normal detail for gills, grain, glaze cracks, fossils, bubbles and fibers before adding geometry. The AI macro views exaggerate depth and rounding; they are art references, not geometry specifications or a requirement for transparent surfaces.
+
+No decorative element adds support, changes traversal, changes physics, or turns a visual material into a new hazard. Fictional city-building uses are deliberately excluded.
+
+This folder contains generated review concepts only. No Unity materials, meshes, scenes or gameplay settings have been changed.

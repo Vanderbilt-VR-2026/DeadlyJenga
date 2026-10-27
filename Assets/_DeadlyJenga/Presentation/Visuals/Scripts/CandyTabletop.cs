@@ -31,6 +31,7 @@ namespace DeadlyJenga.Presentation
             var spirit = Services.Session as ISeaSpiritControls;
             if (spirit == null) { Status = "Sea spirit controls unavailable"; return; }
             spirit.SetSeaSpirit(true);
+            if(!spirit.SeaSpiritActive){Status="Host permission and a living survivor are required for sea spirit.";return;}
             camera = Services.Session.ActiveCamera;
             origin = camera ? camera.GetComponentInParent<XROrigin>() : null;
             if (!origin) { Status = "Tracked observer origin unavailable"; return; }

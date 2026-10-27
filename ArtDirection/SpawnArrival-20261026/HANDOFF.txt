@@ -1,0 +1,12 @@
+Spawn arrival and approved dense summoning beacon
+GameSession/Session: new independent PlayerSpawnArrival component. Existing CastlePlaySession remains untouched.
+Presentation/Visuals: short player-following arrival strands, reversed flow, white reveal.
+DevTools/Editor: 47 actual Unity assertions passed, zero runtime errors; real lobby departure and playable Game.
+Open initial spawn: full body clearance capsule -> 10m descent. Ceilings shorten it or keep the player at the destination.
+Per-step sweeps stop at newly introduced solids. Triggers ignored. No landing damage. Other gameplay teleports cancel it.
+Arrival motion and reveal use bounded frame steps so a loading hitch cannot hide the whole drop behind white.
+No Core, package, project-setting, scene or networking-protocol changes. Quest and actual two-client behavior remain unverified.
+Use source-manifest hashes. Apply either full combined-source patch OR incremental dense3 patch, never both.
+The artifact contains only nine task-owned source/meta files plus this gallery/report; no inherited overlay is included.
+
+Bot follow-up: include local survivor population and remote survivor bots in departure and arrival columns. Poll the existing population only during travel for delayed spawns; one shared mesh/material, no extra physics. No bot movement or spawn-rule changes. 47 actual editor checks passed.

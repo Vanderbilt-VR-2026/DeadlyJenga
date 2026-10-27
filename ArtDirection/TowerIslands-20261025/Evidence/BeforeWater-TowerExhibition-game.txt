@@ -1,0 +1,20 @@
+Tower Laboratory 1–10 production Game.unity. Desktop Editor; not headset/network certification.
+CENSUS bodies=104 shapes=1878 joints=6 unified=True
+quiet whole island: frames=137 mean=41.72ms / 24.0FPS p95=49.04ms; uncapped desktop Editor, not Quest.
+REVIEW production motor district 1 ramp/landing checkpoints=7/8 feet=(-249.62, 12.78, -101.00)
+PASS production motor district 2 ramp/landing checkpoints=8/8 feet=(-121.68, 12.79, -117.00)
+PASS production motor district 3 ramp/landing checkpoints=8/8 feet=(6.40, 12.79, -120.50)
+PASS production motor district 4 ramp/landing checkpoints=8/8 feet=(134.40, 12.78, -116.00)
+PASS production motor district 5 ramp/landing checkpoints=8/8 feet=(262.32, 12.79, -120.50)
+PASS production motor district 6 ramp/landing checkpoints=8/8 feet=(-233.61, 15.78, 102.00)
+PASS production motor district 7 ramp/landing checkpoints=8/8 feet=(-121.60, 12.79, 103.00)
+PASS production motor district 8 ramp/landing checkpoints=5/5 feet=(-6.34, 8.79, 108.00)
+PASS production motor district 9 ramp/landing checkpoints=8/8 feet=(134.38, 12.79, 78.00)
+ROUTE 9 no standard flight; separate mechanism route
+PASS simulated VR motor clear-face climb across first floor band: attached=True rise=3.56m; no tracked headset.
+32 requested bots / quiet whole island: frames=71 mean=70.10ms / 14.3FPS p95=120.82ms; uncapped desktop Editor, not Quest.
+Bots spawned=32 moved>.5m=32
+32 bots + actual tsunami: frames=1391 mean=83.64ms / 12.0FPS p95=125.25ms; uncapped desktop Editor, not Quest.
+Wave completed=True moved>.5m=1/104; production default height/speed/force.
+Separate DEMOLITION trial: reset intact map, one 22m/s X + 9m/s Z off-centre pulse per district, applied 4m above lower section COM. No bots. Moved>.5m=81/104. Not a production disaster or FPS benchmark.
+COMPLETE runtimeErrors=0

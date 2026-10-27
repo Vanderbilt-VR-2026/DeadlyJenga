@@ -8,36 +8,22 @@ namespace DeadlyJenga.CastlePrototype
         {
             EnsureKeyboardArt();
             var root=new GameObject(game?"Mode controller computer":"Host controller computer");
-            root.transform.SetParent(transform,false);root.transform.position=new Vector3(screen.position.x,0,.70f);
+            root.transform.SetParent(transform,false);
+            root.transform.SetPositionAndRotation(new Vector3(screen.position.x,0,screen.position.z),screen.rotation);
             Color accent=game?new Color(.85f,.35f,.18f):new Color(.08f,.57f,.46f);
-            Box(root.transform,"Grounded computer pedestal",new Vector3(0,.43f,.14f),new Vector3(1.55f,1.16f,.75f),accent);
-            Box(root.transform,"Dark control deck",new Vector3(0,1.03f,-.04f),new Vector3(1.62f,.12f,.88f),new Color(.025f,.035f,.065f));
-            Box(root.transform,"Monitor support",new Vector3(0,1.39f,.55f),new Vector3(.25f,.70f,.18f),accent);
-            Box(root.transform,"Candy deck rim",new Vector3(0,1,-.49f),new Vector3(1.6f,.05f,.045f),accent*1.3f);
-            lobby.AddBlocker(root.transform,new Vector3(0,.48f,.07f),new Vector3(1.62f,1.22f,.95f));
-            // These oversized controls are scenery, not extra UI or input targets.
-            if(game)
-            {
-                Ellipsoid(root.transform,"Joystick socket",new Vector3(-.41f,1.10f,-.06f),new Vector3(.46f,.06f,.46f),Color.black);
-                Box(root.transform,"Joystick stem",new Vector3(-.41f,1.27f,-.06f),new Vector3(.075f,.32f,.075f),new Color(.28f,.32f,.37f));
-                Ellipsoid(root.transform,"Joystick candy grip",new Vector3(-.41f,1.44f,-.06f),new Vector3(.29f,.29f,.29f),accent);
-                string[] names={"A","B","X","Y"};Color[] colors={new Color(.12f,.9f,.35f),new Color(1,.12f,.18f),new Color(.15f,.48f,1),new Color(1,.8f,.08f)};
-                Vector3[] offsets={new Vector3(0,0,-.19f),new Vector3(.19f,0,0),new Vector3(-.19f,0,0),new Vector3(0,0,.19f)};
-                for(int i=0;i<4;i++)
-                {
-                    var position=new Vector3(.40f,1.14f,-.06f)+offsets[i];
-                    Ellipsoid(root.transform,"Decorative "+names[i]+" button",position,new Vector3(.19f,.09f,.19f),colors[i]);
-                    var label=new GameObject(names[i]+" legend");label.transform.SetParent(root.transform,false);label.transform.localPosition=position+Vector3.up*.055f;label.transform.localRotation=Quaternion.Euler(90,0,0);
-                    var text=label.AddComponent<TextMesh>();text.text=names[i];text.fontSize=48;text.characterSize=.045f;text.anchor=TextAnchor.MiddleCenter;text.color=Color.white;
-                }
-            }
-            else
-            {
-                Box(root.transform,"D-pad horizontal",new Vector3(-.4f,1.15f,-.06f),new Vector3(.54f,.13f,.18f),new Color(.065f,.08f,.12f));
-                Box(root.transform,"D-pad vertical",new Vector3(-.4f,1.15f,-.06f),new Vector3(.18f,.13f,.54f),new Color(.065f,.08f,.12f));
-                Ellipsoid(root.transform,"Scroll wheel",new Vector3(.40f,1.18f,-.06f),new Vector3(.24f,.29f,.56f),new Color(.25f,.28f,.35f));
-                for(int i=0;i<11;i++)Box(root.transform,"Scroll wheel grip "+i,new Vector3(.4f,1.327f,-.29f+i*.046f),new Vector3(.25f,.018f,.018f),accent);
-            }
+            float width=screen.rect.width*Mathf.Abs(screen.lossyScale.x);
+            float top=screen.position.y-screen.rect.height*Mathf.Abs(screen.lossyScale.y)*.5f+.10f;
+            float height=top+.08f;
+            Box(root.transform,"Flat grounded terminal wall",new Vector3(0,(top-.08f)*.5f,.09f),new Vector3(width,height,.18f),accent);
+            Box(root.transform,"Flush control panel",new Vector3(0,top*.52f,-.008f),new Vector3(width-.14f,top*.73f,.016f),new Color(.025f,.035f,.065f));
+            Box(root.transform,"Panel divider",new Vector3(0,top*.52f,-.02f),new Vector3(.018f,top*.52f,.008f),accent*.7f);
+            lobby.AddBlocker(root.transform,new Vector3(0,(top-.08f)*.5f,.09f),new Vector3(width,height,.18f));
+            var controls=new GameObject("Vertical controller face").transform;
+            controls.SetParent(root.transform,false);controls.localPosition=new Vector3(0,top*.52f,-.05f);
+            float fit=Mathf.Min((width-.28f)/1.8f,top*.70f/.72f);
+            controls.localScale=Vector3.one*Mathf.Max(.25f,fit);
+            BuildControllerArtwork(controls,game,game?CandyPeach:CandyMint);
+            ApplyControllerFinish(root.transform.Find("Flush control panel").gameObject,false);
         }
         void Ellipsoid(Transform parent,string name,Vector3 position,Vector3 size,Color color)
         {

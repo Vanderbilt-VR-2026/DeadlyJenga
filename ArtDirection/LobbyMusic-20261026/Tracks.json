@@ -1,0 +1,66 @@
+{
+  "method": "Three original locally composed and synthesized lobby proposals. No external samples. Not installed as lobby music.",
+  "recommended": "01-dockside-momentum",
+  "tracks": [
+    {
+      "id": "01-dockside-momentum",
+      "title": "Dockside Momentum",
+      "direction": "Recommended lobby direction: a warm coastal breakbeat, rubber bass and restrained plastic hook",
+      "bpm": 116,
+      "seconds": 82.758625,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -6.003699368008015,
+      "rmsDbFS": -18.59695621338569,
+      "loopBoundaryDelta": 0.0005158290732651949,
+      "events": 1108,
+      "files": {
+        "wav": "01-dockside-momentum.wav",
+        "mp3": "01-dockside-momentum.mp3",
+        "mid": "01-dockside-momentum.mid"
+      },
+      "sha256": "ebc4bdea1137a233abc96671bca2865ddfd1c49ef5b3ba41c907ec283915ad7d"
+    },
+    {
+      "id": "02-plastic-palms",
+      "title": "Plastic Palms",
+      "direction": "Social island groove: plucked chords, hollow clacks and relaxed bass syncopation",
+      "bpm": 108,
+      "seconds": 88.88889583333334,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.455100931883305,
+      "rmsDbFS": -18.588045141768987,
+      "loopBoundaryDelta": 0.002109111286699772,
+      "events": 1225,
+      "files": {
+        "wav": "02-plastic-palms.wav",
+        "mp3": "02-plastic-palms.mp3",
+        "mid": "02-plastic-palms.mid"
+      },
+      "sha256": "66bdd483ab74ee64943491853682bd3ecfcaee2e7148d7cb483333830660171a"
+    },
+    {
+      "id": "03-ready-when-you-are",
+      "title": "Ready When You Are",
+      "direction": "A more competitive lobby pulse: crisp backbeat, candy-glass accents and patient low-end drive",
+      "bpm": 124,
+      "seconds": 77.41935416666666,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.9377450052699015,
+      "rmsDbFS": -18.5879125793533,
+      "loopBoundaryDelta": 0.00026556849479675293,
+      "events": 1080,
+      "files": {
+        "wav": "03-ready-when-you-are.wav",
+        "mp3": "03-ready-when-you-are.mp3",
+        "mid": "03-ready-when-you-are.mid"
+      },
+      "sha256": "c378bd75375e6373cc1e1b3916abb803a4ab7111883ea9125ad05aac84b19666"
+    }
+  ]
+}

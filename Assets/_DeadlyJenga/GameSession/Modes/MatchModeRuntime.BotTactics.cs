@@ -21,6 +21,11 @@ namespace DeadlyJenga.Modes
         public static bool BlockRefreshed(bool grounded,int standing,int block,int owner,int team,float emptySeconds)
             => grounded&&block>=0&&team>=0&&standing==block&&owner==team&&emptySeconds<=.05f;
         public static bool MysteryHostile(MysteryRole self,bool witnessed) => self==MysteryRole.Murderer||witnessed;
+        public static bool NoticeDrawnWeapon(Vector3 observer,Quaternion facing,Vector3 target)
+        {
+            var delta=target-observer;
+            return delta.sqrMagnitude<=225&&(delta.sqrMagnitude<.01f||Vector3.Dot(facing*Vector3.forward,delta.normalized)>.15f);
+        }
     }
 
     public sealed partial class MatchModeRuntime
@@ -44,7 +49,7 @@ namespace DeadlyJenga.Modes
                 if(visits.Count>4096)visits.Clear();
             }
             void Known(BotDirectorActor actor)
-            {knownHostiles.Clear();Hostiles(actor,knownHostiles);}
+            {knownHostiles.Clear();if(owner.MysteryActive){if(!mysteries.TryGetValue(actor.id,out var goals)){goals=new List<BotObjective>();owner.CollectMystery(actor.id,goals,publicMystery);mysteries[actor.id]=goals;}foreach(var goal in goals)if(goal.kind==BotObjectiveKind.Attack||goal.kind==BotObjectiveKind.Evade)knownHostiles.Add(goal);}else Hostiles(actor,knownHostiles);}
             bool TestTactic(string name,BotDirectorActor actor,BotDirectorTarget target)
             {
                 switch(name)

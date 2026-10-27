@@ -14,7 +14,7 @@ namespace DeadlyJenga.CandyPlayers
                 (Runtime as IPoweredEquipmentRuntime)?.RequestThrust(active);thrustRequested=active;nextThrustRefresh=Time.unscaledTime+.5f;
             }
         }
-        bool suitTriggerReleased;
+        bool suitTriggerReleased,suitWasFlying;float suitTakeoffUntil;
         bool SuitShootingLeft
         {
             get
@@ -59,15 +59,16 @@ namespace DeadlyJenga.CandyPlayers
                 if(!state.drawn||flightHand.tracked&&Vector3.Distance(flightHand.position,hip.position)<.30f*Scale)
                 {SetEquipped(!state.drawn);suitTriggerReleased=false;return;}
             }
-            if(!state.drawn){SetSuitThrust(false);return;}
-            bool jets=vr?flightHand.tracked&&flightTrigger.IsPressed()&&suitTriggerReleased:Keyboard.current?.spaceKey.isPressed==true;
+            if(!state.drawn){SetSuitThrust(false);suitWasFlying=false;return;}
+            bool jets=true;
             SetSuitThrust(jets);
             if(jets)
             {
-                // Feet supply lift, the controller palm tilts the thrust. Motion still uses the capsule motor.
-                var steer=vr?flightHand.rotation*Vector3.up:avatar.viewCamera.transform.forward;
-                var acceleration=Vector3.up*(motor.gravity+9)+Vector3.ProjectOnPlane(steer,Vector3.up)*13;
-                motor.ApplyPoweredFlight(acceleration,Time.deltaTime);
+                if(!suitWasFlying){suitWasFlying=true;suitTakeoffUntil=Time.time+.55f;}
+                var steer=vr&&flightHand.tracked?flightHand.rotation*Vector3.forward:avatar.viewCamera.transform.forward;
+                bool boost=vr?flightTrigger.IsPressed()&&suitTriggerReleased:Keyboard.current?.spaceKey.isPressed==true;
+                float climb=vr?(boost?Mathf.Clamp(steer.y*4,-3,4):0):((Keyboard.current?.eKey.isPressed==true?3:0)-(Keyboard.current?.qKey.isPressed==true?3:0));
+                motor.ApplyHoverFlight((boost?Vector3.ProjectOnPlane(steer,Vector3.up)*5:Vector3.zero)+Vector3.up*climb,Time.deltaTime,Time.time<suitTakeoffUntil);
             }
             bool shooting=vr?shootHand.tracked&&shootHand.skeletonTracked&&(SuitShootingLeft?avatar.tracking.LeftPinching:avatar.tracking.RightPinching):Mouse.current?.leftButton.isPressed==true&&Cursor.lockState==CursorLockMode.Locked;
             // Two-controller rigs retain a support-trigger fallback when optical hand tracking is unavailable.

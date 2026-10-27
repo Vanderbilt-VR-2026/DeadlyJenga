@@ -6,6 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleWorldMenu
     {
+        Button wildlifeButton;BoxCollider wildlifeTarget;
         Button scaffoldButton;
         BoxCollider scaffoldTarget;
         Text scaffoldLabel;
@@ -13,8 +14,16 @@ namespace DeadlyJenga.CastlePrototype
         BoxCollider mapTarget,exitTarget,spectateTarget,endTarget,inspectionTarget;
         bool mapPage,spectatePage;
         int mapOffset;
+        readonly MapCategoryPicker vrMapPicker=new MapCategoryPicker();
+        readonly RawImage[] mapThumbnails=new RawImage[15];
         void BuildMapControls()
         {
+            for(int i=0;i<buttons.Length;i++)
+            {
+                var image=new GameObject("Map thumbnail",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(buttons[i].transform,false);mapThumbnails[i]=image.GetComponent<RawImage>();mapThumbnails[i].raycastTarget=false;mapThumbnails[i].rectTransform.anchoredPosition=new Vector2(209,0);image.SetActive(false);
+            }
+            wildlifeButton=HeaderButton("Wildlife",0,out wildlifeTarget);
+            ((RectTransform)wildlifeButton.transform).anchoredPosition=new Vector2(0,510);
             inspectionButton=HeaderButton("Third person",0,out inspectionTarget);
             mapButton=HeaderButton("Maps",-232,out mapTarget);
             spectateButton=HeaderButton("Spectate",-116,out spectateTarget);
@@ -32,7 +41,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool PointMapControls(Camera camera,bool pressed)
         {
+            for(int i=0;i<mapThumbnails.Length;i++){mapThumbnails[i].gameObject.SetActive(false);labels[i].rectTransform.sizeDelta=new Vector2(472,46);labels[i].rectTransform.anchoredPosition=new Vector2(20,0);}
+            if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return true;
             var ray=new Ray(camera.transform.position,camera.transform.forward);
+            bool wildlifeHover=wildlifeTarget.Raycast(ray,out _,4);
+            wildlifeButton.image.color=wildlifeHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
+            if(pressed&&wildlifeHover){DeadlyJenga.Presentation.CandyWildlifePanel.Open(session);return true;}
             var inspection=CandyThirdPersonInspection.For(session);bool canInspect=inspection?.CanInspect==true;
             inspectionButton.gameObject.SetActive(DemoMode);inspectionTarget.enabled=canInspect;
             bool inspectHover=DemoMode&&canInspect&&inspectionTarget.Raycast(ray,out _,4);
@@ -47,13 +61,14 @@ namespace DeadlyJenga.CastlePrototype
             exitButton.image.color=exitHover?CandyHudVisuals.Mint:CandyHudVisuals.Peach;
             mapButton.image.color=mapHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
             spectateButton.image.color=spectateHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
-            if(pressed&&exitHover){MatchRuntime.Current?.ReturnToLobby();return true;}
+            if(pressed&&exitHover){var visit=session as ILobbyMatchVisitControls;if(visit?.CanVisitLobby==true)visit.VisitLobby();else MatchRuntime.Current?.ReturnToLobby();return true;}
             if(pressed&&mapHover){mapPage=!mapPage;spectatePage=false;mapOffset=0;pressed=false;}
             if(pressed&&spectateHover){spectatePage=!spectatePage;mapPage=false;pressed=false;}
             if(spectatePage){PointSpectatePage(camera,pressed);return true;}
             if(!mapPage)return false;
             scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
-            var maps=Demo as IDemoMapControls;var options=maps?.Maps;
+            var maps=Demo as IDemoMapControls;vrMapPicker.Update(maps?.Maps,maps?.CurrentMapId);var options=vrMapPicker.Rows;
+            mapOffset=Mathf.Clamp(mapOffset,0,Mathf.Max(0,(options.Count-1)/12*12));
             heading.text="CHANGE MAP\n"+(maps?.MapStatus??"Maps are unavailable");
             for(int i=0;i<buttons.Length;i++)
             {
@@ -63,12 +78,20 @@ namespace DeadlyJenga.CastlePrototype
                 buttons[i].gameObject.SetActive(shown);if(!shown)continue;
                 targets[i].enabled=true;
                 var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,46);
-                bool enabled=!map||maps.CanSelectMap&&options[index].available&&options[index].id!=maps.CurrentMapId;
-                labels[i].text=i==0?"Back":i==13?"Previous maps":i==14?"More maps":options[index].title+(options[index].id==maps.CurrentMapId?" · current":"");
+                var row=map?options[index]:null;
+                mapThumbnails[i].gameObject.SetActive(false);
+                labels[i].rectTransform.sizeDelta=new Vector2(500,46);labels[i].rectTransform.anchoredPosition=Vector2.zero;
+                if(row?.map!=null)
+                {
+                    var picture=MapPreviewImages.Get(row.map.id);mapThumbnails[i].texture=picture;mapThumbnails[i].gameObject.SetActive(picture);
+                    if(picture){float fit=Mathf.Min(100f/picture.width,40f/picture.height);mapThumbnails[i].rectTransform.sizeDelta=new Vector2(picture.width*fit,picture.height*fit);labels[i].rectTransform.sizeDelta=new Vector2(350,46);labels[i].rectTransform.anchoredPosition=new Vector2(-40,0);}
+                }
+                bool enabled=!map||row.map==null||maps.CanSelectMap&&row.map.available&&row.map.id!=maps.CurrentMapId;
+                labels[i].text=i==0?"Back":i==13?"Previous maps":i==14?"More maps":vrMapPicker.Title(row);
                 bool hover=enabled&&targets[i].Raycast(ray,out _,4);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:enabled?Color.white:CandyHudVisuals.Muted;
-                if(hover&&pressed){if(i==0)mapPage=false;else if(i==13)mapOffset-=12;else if(i==14)mapOffset+=12;else maps.SelectMap(options[index].id);break;}
+                if(hover&&pressed){if(i==0)mapPage=false;else if(i==13)mapOffset-=12;else if(i==14)mapOffset+=12;else if(row.map==null){vrMapPicker.Toggle(row);mapOffset=vrMapPicker.HeaderIndex/12*12;}else maps.SelectMap(row.map.id);break;}
             }
-            help.text="Changing maps restarts the map. Connected players follow the host.";
+            help.text="Changing maps restarts the map. Expand category headings to browse. Connected players follow the host.";
             transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();return true;
         }
         void PointSpectatePage(Camera camera,bool pressed)
@@ -80,7 +103,7 @@ namespace DeadlyJenga.CastlePrototype
             var ray=new Ray(camera.transform.position,camera.transform.forward);
             for(int i=0;i<buttons.Length;i++)
             {
-                bool shown=i<=4||spoilers&&i<=6||i==7&&Demo?.DemoMode==true;buttons[i].gameObject.SetActive(shown);if(!shown)continue;
+                bool shown=i<=4||spoilers&&i<=6||i==7&&DemoMode;buttons[i].gameObject.SetActive(shown);if(!shown)continue;
                 targets[i].enabled=true;var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,46);
                 labels[i].text=i==0?"Back":i==1?(controls?.Spectating==true?"Return to your character":"Start spectating"):i==2?"Previous player":i==3?"Next player":controls?.FourViews==true?"Four views (desktop only)":"Single POV · four views on desktop";
                 bool enabled=i==0||controls!=null&&(i==1?(controls.CanSpectate||controls.Spectating):i==4?controls.CanUseFourViews:controls.Spectating);

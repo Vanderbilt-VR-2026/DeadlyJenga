@@ -102,7 +102,7 @@ namespace DeadlyJenga.CastleSocial
             if(Time.unscaledTime>=nextThreat)
             {
                 nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
-                foreach(var body in Services.World.Blocks)if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
+                foreach(var body in Services.World?.Blocks??System.Array.Empty<Rigidbody>())if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
                 if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
             }
             if(Time.unscaledTime>=nextMetadata&&Agents.Count>0)

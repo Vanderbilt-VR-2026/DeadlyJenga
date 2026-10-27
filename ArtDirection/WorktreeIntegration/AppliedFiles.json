@@ -1,0 +1,719 @@
+[
+  {
+    "source": "ArtDirection/BotPowerupsAndCombat.md",
+    "target": "ArtDirection\\BotPowerupsAndCombat.md"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/00-authored-village.png",
+    "target": "ArtDirection\\BreakwaterVillage\\00-authored-village.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/01-village-before.png",
+    "target": "ArtDirection\\BreakwaterVillage\\01-village-before.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/02-main-street-before.png",
+    "target": "ArtDirection\\BreakwaterVillage\\02-main-street-before.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/03-inn-before.png",
+    "target": "ArtDirection\\BreakwaterVillage\\03-inn-before.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/04-cottage-before.png",
+    "target": "ArtDirection\\BreakwaterVillage\\04-cottage-before.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/05-courtyard-before.png",
+    "target": "ArtDirection\\BreakwaterVillage\\05-courtyard-before.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/06-village-after-earthquake.png",
+    "target": "ArtDirection\\BreakwaterVillage\\06-village-after-earthquake.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/07-street-after-earthquake.png",
+    "target": "ArtDirection\\BreakwaterVillage\\07-street-after-earthquake.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/08-village-after-meteors.png",
+    "target": "ArtDirection\\BreakwaterVillage\\08-village-after-meteors.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/09-inn-after-meteors.png",
+    "target": "ArtDirection\\BreakwaterVillage\\09-inn-after-meteors.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/10-game-social-bots.png",
+    "target": "ArtDirection\\BreakwaterVillage\\10-game-social-bots.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/11-game-after-earthquake.png",
+    "target": "ArtDirection\\BreakwaterVillage\\11-game-after-earthquake.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/12-game-after-meteors.png",
+    "target": "ArtDirection\\BreakwaterVillage\\12-game-after-meteors.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/13-Death-Full-Size.png",
+    "target": "ArtDirection\\BreakwaterVillage\\13-Death-Full-Size.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/13-Death-Melt-Middle.png",
+    "target": "ArtDirection\\BreakwaterVillage\\13-Death-Melt-Middle.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/13-Death-Melt-Start.png",
+    "target": "ArtDirection\\BreakwaterVillage\\13-Death-Melt-Start.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/13-Death-Puddle.png",
+    "target": "ArtDirection\\BreakwaterVillage\\13-Death-Puddle.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/13-Death-Ragdoll.png",
+    "target": "ArtDirection\\BreakwaterVillage\\13-Death-Ragdoll.png"
+  },
+  {
+    "source": "ArtDirection/BreakwaterVillage/Physics-results.txt",
+    "target": "ArtDirection\\BreakwaterVillage\\Physics-results.txt"
+  },
+  {
+    "source": "ArtDirection/CandyAudio/WEAPON_CLIP_MANIFEST.json",
+    "target": "ArtDirection\\CandyAudio\\WEAPON_CLIP_MANIFEST.json"
+  },
+  {
+    "source": "ArtDirection/CandyAudio/generate_weapon_audio.py",
+    "target": "ArtDirection\\CandyAudio\\generate_weapon_audio.py"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Bots/CastleBots/CastleBotActions.cs",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Bots\\CastleBots\\CastleBotActions.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Bots/CastleBots/CastleBotCombat.cs",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Bots\\CastleBots\\CastleBotCombat.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Bots/CastleBots/CastleBotWeapons.cs",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Bots\\CastleBots\\CastleBotWeapons.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Bots/CastleBots/CastleBotWeapons.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Bots\\CastleBots\\CastleBotWeapons.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyEquipment.cs",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Player\\CandyPlayers\\CandyEquipment.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyWeaponVisual.Firearms.cs",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Player\\CandyPlayers\\CandyWeaponVisual.Firearms.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyWeaponVisual.Firearms.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Player\\CandyPlayers\\CandyWeaponVisual.Firearms.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyWeaponVisual.cs",
+    "target": "Assets\\_DeadlyJenga\\Characters\\Player\\CandyPlayers\\CandyWeaponVisual.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Core/Session/EquipmentContracts.cs",
+    "target": "Assets\\_DeadlyJenga\\Core\\Session\\EquipmentContracts.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Core/Session/ModeContracts.cs",
+    "target": "Assets\\_DeadlyJenga\\Core\\Session\\ModeContracts.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Core/Session/PowerupSpawnContracts.cs",
+    "target": "Assets\\_DeadlyJenga\\Core\\Session\\PowerupSpawnContracts.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Core/Session/PowerupSpawnContracts.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Core\\Session\\PowerupSpawnContracts.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BotObjectiveContractChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BotObjectiveContractChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BreakwaterVillageBuilder.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BreakwaterVillageBuilder.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BreakwaterVillageBuilder.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BreakwaterVillageBuilder.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BreakwaterVillageChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BreakwaterVillageChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BreakwaterVillageChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BreakwaterVillageChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BreakwaterVillagePlayChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BreakwaterVillagePlayChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/BreakwaterVillagePlayChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\BreakwaterVillagePlayChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/FirearmNetworkChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\FirearmNetworkChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/FirearmNetworkChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\FirearmNetworkChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/FirearmUpgradeChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\FirearmUpgradeChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/FirearmUpgradeChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\FirearmUpgradeChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/PowerupBotChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\PowerupBotChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/PowerupBotChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\PowerupBotChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/PowerupBotMysteryChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\PowerupBotMysteryChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/PowerupBotMysteryChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\PowerupBotMysteryChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/PowerupBotNetworkChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\PowerupBotNetworkChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/PowerupBotNetworkChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\PowerupBotNetworkChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/SparseStructurePlayChecks.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\WorkshopStructurePlayChecks.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/SparseStructurePlayChecks.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\WorkshopStructurePlayChecks.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/SparseStructureStudy.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\WorkshopStructureStudy.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Editor/SparseStructureStudy.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Editor\\WorkshopStructureStudy.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Scripts/LateFrameTestInput.cs",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Scripts\\LateFrameTestInput.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/DevTools/Scripts/LateFrameTestInput.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\DevTools\\Scripts\\LateFrameTestInput.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.Actions.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.Actions.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.BotTactics.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.BotTactics.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.Equipment.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.Equipment.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.Mystery.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.Mystery.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.MysteryBots.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.MysteryBots.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.ObjectiveDirector.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.ObjectiveDirector.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.PickupObjectives.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.PickupObjectives.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.PickupObjectives.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.PickupObjectives.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.PowerupSpawns.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.PowerupSpawns.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.PowerupSpawns.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.PowerupSpawns.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MatchModeRuntime.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MatchModeRuntime.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/ModeFrameValidation.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\ModeFrameValidation.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/MysterySimulation.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\MysterySimulation.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/BlockControl.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\BlockControl.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/CaptureFlag.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\CaptureFlag.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/Demo.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\Demo.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/Infection.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\Infection.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/KingOfHill.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\KingOfHill.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/MurderMystery.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\MurderMystery.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/Survival.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\Survival.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Modes/Resources/BotModes/TeamTickets.json",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Modes\\Resources\\BotModes\\TeamTickets.json"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Session/Editor/DraftMapCleanup.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Session\\Editor\\DraftMapCleanup.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Session/Editor/DraftMapCleanup.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Session\\Editor\\DraftMapCleanup.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Session/Editor/MapDraftValidation.cs",
+    "target": "Assets\\_DeadlyJenga\\GameSession\\Session\\Editor\\MapDraftValidation.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/CandyWeaponFeedback.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\CandyWeaponFeedback.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponRifle-01.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponRifle-01.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponRifle-02.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponRifle-02.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponRifle-03.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponRifle-03.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponRifle-04.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponRifle-04.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponShotgun-01.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponShotgun-01.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponShotgun-02.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponShotgun-02.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponShotgun-03.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponShotgun-03.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponShotgun-04.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponShotgun-04.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponTransform-01.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponTransform-01.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponTransform-02.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponTransform-02.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponTransform-03.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponTransform-03.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyAudio/Weapons/WeaponTransform-04.wav",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Audio\\CandyAudio\\Resources\\CandyAudio\\Weapons\\WeaponTransform-04.wav"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Copper fixtures.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Copper fixtures.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Copper fixtures.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Copper fixtures.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Coral pink.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Coral pink.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Coral pink.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Coral pink.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Depth-tested lettering.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Depth-tested lettering.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Depth-tested lettering.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Depth-tested lettering.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Espresso.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Espresso.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Espresso.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Espresso.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Flat textured sand.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Flat textured sand.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Flat textured sand.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Flat textured sand.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Honey timber.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Honey timber.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Honey timber.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Honey timber.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Lagoon mint.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Lagoon mint.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Lagoon mint.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Lagoon mint.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Mango.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Mango.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Mango.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Mango.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Mulberry inn.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Mulberry inn.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Mulberry inn.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Mulberry inn.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Opaque sky glass.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Opaque sky glass.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Opaque sky glass.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Opaque sky glass.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Palm leaves.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Palm leaves.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Palm leaves.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Palm leaves.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Vanilla trim.mat",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Vanilla trim.mat"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Materials/Vanilla trim.mat.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Materials\\Vanilla trim.mat.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Meshes.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Meshes.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Meshes/Soft candy box.asset",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Meshes\\Soft candy box.asset"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Meshes/Soft candy box.asset.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Meshes\\Soft candy box.asset.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Textures.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Textures.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Textures/Fine sand grain.asset",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Textures\\Fine sand grain.asset"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/BreakwaterVillage/Textures/Fine sand grain.asset.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\BreakwaterVillage\\Textures\\Fine sand grain.asset.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/DeathAndInspection.md",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\DeathAndInspection.md"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CandyDemoHud.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CandyDemoHud.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CandyPowerupSpawnPanel.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CandyPowerupSpawnPanel.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CandyPowerupSpawnPanel.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CandyPowerupSpawnPanel.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CastleWorldMenu.PowerupSpawns.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CastleWorldMenu.PowerupSpawns.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CastleWorldMenu.PowerupSpawns.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CastleWorldMenu.PowerupSpawns.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CastleWorldMenu.Powerups.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CastleWorldMenu.Powerups.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/CastleWorldMenu.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Menus\\CastleWorldMenu.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Resources/VillageLettering.shader",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Resources\\VillageLettering.shader"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Resources/VillageLettering.shader.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Resources\\VillageLettering.shader.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandyEquipmentView.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\CandyEquipmentView.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandyGunSights.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\CandyGunSights.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandyGunSights.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\CandyGunSights.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandyMatchVisuals.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\CandyMatchVisuals.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandyMysteryView.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\CandyMysteryView.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/VillageFlatScenery.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\VillageFlatScenery.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/VillageFlatScenery.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\VillageFlatScenery.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/VillageSignLettering.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\VillageSignLettering.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/VillageSignLettering.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\VillageSignLettering.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/VisualDeathRagdoll.cs",
+    "target": "Assets\\_DeadlyJenga\\Presentation\\Visuals\\Scripts\\VisualDeathRagdoll.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Blocks/Scripts/VillageExtraSurfaces.cs",
+    "target": "Assets\\_DeadlyJenga\\World\\Blocks\\Scripts\\VillageExtraSurfaces.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Blocks/Scripts/VillageExtraSurfaces.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Blocks\\Scripts\\VillageExtraSurfaces.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Blocks/Scripts/VillagePiece.cs",
+    "target": "Assets\\_DeadlyJenga\\World\\Blocks\\Scripts\\VillagePiece.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Blocks/Scripts/VillagePiece.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Blocks\\Scripts\\VillagePiece.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Drafts/Andy.unity",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Drafts\\Andy.unity"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Drafts/Andy.unity.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Drafts\\Andy.unity.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_breakwater-village.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_breakwater-village.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_breakwater-village.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_breakwater-village.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-archipelago.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-archipelago.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-archipelago.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-archipelago.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-crown.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-crown.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-crown.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-crown.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-megakeeps-grand.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-megakeeps-grand.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-megakeeps-grand.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-megakeeps-grand.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-megakeeps.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-megakeeps.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-megakeeps.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-megakeeps.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-terraces-grand.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-terraces-grand.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-terraces-grand.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-terraces-grand.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-terraces.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-terraces.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-terraces.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-terraces.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-viaduct.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-viaduct.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-viaduct.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-viaduct.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Scripts/BreakwaterVillageMap.cs",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\BreakwaterVillageMap.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Scripts/BreakwaterVillageMap.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\BreakwaterVillageMap.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Scripts/SparseStructureMap.cs",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\WorkshopStructureMap.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Scripts/SparseStructureMap.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\WorkshopStructureMap.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Scripts/SparseStructureLayout.cs",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\WorkshopStructureLayout.cs"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Scripts/SparseStructureLayout.cs.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\WorkshopStructureLayout.cs.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-crown-grand.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-crown-grand.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-crown-grand.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-crown-grand.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-viaduct-grand.prefab",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-viaduct-grand.prefab"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_sparse-viaduct-grand.prefab.meta",
+    "target": "Assets\\_DeadlyJenga\\World\\Maps\\Resources\\ModeMaps\\Mode_workshop-viaduct-grand.prefab.meta"
+  },
+  {
+    "source": "Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset",
+    "target": "Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset",
+    "catalogAdded": 11
+  }
+]

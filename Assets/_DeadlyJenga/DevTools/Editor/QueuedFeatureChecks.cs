@@ -29,12 +29,12 @@ namespace DeadlyJenga.DevTools.Editor
             EditorApplication.update+=()=>{
                 var request=ProjectPath.Report("QueuedFeatures.request");
                 if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
-                SessionState.SetBool(Key+"CastleOnly",File.ReadAllText(request).Trim()=="castle");File.Delete(request);Run();
+                if(!ValidationRunGate.TryAcquire(Key))return;SessionState.SetBool(Key+"CastleOnly",File.ReadAllText(request).Trim()=="castle");File.Delete(request);Run();
             };
             EditorApplication.playModeStateChanged+=state=>{
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode){checks=errors=0;Application.logMessageReceived+=Log;AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();EditorApplication.delayCall+=()=>new GameObject("Queued feature checks").AddComponent<QueuedFeatureDriver>().StartCoroutine(Guard());}
-                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();SessionState.SetBool(Key,false);SessionState.SetBool(Key+"CastleOnly",false);EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);File.AppendAllText(Report,"PASS Original scenes and choices restored\n");}
+                if(state==PlayModeStateChange.EnteredEditMode){ValidationRunGate.Release(Key);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();SessionState.SetBool(Key,false);SessionState.SetBool(Key+"CastleOnly",false);EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);File.AppendAllText(Report,"PASS Original scenes and choices restored\n");}
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Queued Features")]

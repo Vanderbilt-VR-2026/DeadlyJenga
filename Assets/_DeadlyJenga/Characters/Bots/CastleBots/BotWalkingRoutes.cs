@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
@@ -8,6 +9,7 @@ namespace DeadlyJenga.CastleBots
     // Shared walking corridors. The character motor, not NavMeshAgent, moves the body.
     public sealed class BotWalkingRoutes : System.IDisposable
     {
+        static readonly ProfilerMarker DJWalkingSourcesMarker = new ProfilerMarker("DJ.WalkingSources");
         readonly List<NavMeshBuildSource> sources = new List<NavMeshBuildSource>();
         readonly List<NavMeshBuildMarkup> markup = new List<NavMeshBuildMarkup>();
         NavMeshPath path;
@@ -23,6 +25,7 @@ namespace DeadlyJenga.CastleBots
 
         public void Refresh(CastleBotBrain bot)
         {
+            using var measurement = DJWalkingSourcesMarker.Auto();
             if (bot == null || Services.World == null || Time.time < nextScan) return;
             nextScan = Time.time + 1;
             if (!ReferenceEquals(world, Services.World)) { Dispose(); world = Services.World; signature = 0; }
@@ -37,22 +40,30 @@ namespace DeadlyJenga.CastleBots
             settings.overrideTileSize = true; settings.tileSize = 128;
             var bounds = world.PlayableBounds; bounds.Expand(8);
             sources.Clear();
-            NavMeshBuilder.CollectSources(bounds, CastleBotNavigation.Mask, NavMeshCollectGeometry.PhysicsColliders, 0, markup, sources);
-            int hash = Mathf.RoundToInt(settings.agentRadius*1000)*31+Mathf.RoundToInt(settings.agentHeight*1000);
+            NavMeshBuilder.CollectSources(bounds, CastleBotNavigation.QueryMask, NavMeshCollectGeometry.PhysicsColliders, 0, markup, sources);
+            int hash = Mathf.RoundToInt(settings.agentRadius*1000)*31+Mathf.RoundToInt(settings.agentHeight*1000)^BotGeometrySamples.MeshRevision;
             for (int i = sources.Count - 1; i >= 0; i--)
             {
                 var source = sources[i]; var collider = source.component as Collider;
-                if (!collider || collider.isTrigger || collider.GetComponentInParent<CastleBotBrain>() || collider.GetComponentInParent<DeadlyJenga.CastlePrototype.CastleHandActor>()) { sources.RemoveAt(i); continue; }
-                var body = collider.attachedRigidbody;
+                if (!collider || collider.isTrigger) { sources.RemoveAt(i); continue; }
+                bool surface = Climbables.TryGet(collider, out var climbable);
+                // Characters obstruct one another locally; they are not walking geometry to bake.
+                if (!surface && (collider is CharacterController || collider.GetComponentInParent<IPlayableCharacter>()!=null || collider.GetComponentInParent<IMovementState>()!=null || collider.GetComponentInParent<IFlyingState>()!=null || collider.GetComponentInParent<IModeActor>()!=null || collider.GetComponentInParent<DeadlyJenga.CandyPhysicsHands.CandyPhysicalHand>())) { sources.RemoveAt(i); continue; }
+                var body = surface ? climbable.Body : collider.attachedRigidbody;
                 if (body && !body.isKinematic && (body.linearVelocity.sqrMagnitude > .16f || body.angularVelocity.sqrMagnitude > .16f)) { sources.RemoveAt(i); continue; }
                 unchecked
                 {
                     int item=collider.GetInstanceID();
-                    var p = collider.bounds.center;
+                    var p = collider.bounds.center;var angles=collider.transform.eulerAngles;
                     item = item * 31 + Mathf.RoundToInt(p.x * 5); item = item * 31 + Mathf.RoundToInt(p.y * 5); item = item * 31 + Mathf.RoundToInt(p.z * 5);
-                    item = item * 31 + Mathf.RoundToInt(collider.transform.eulerAngles.x);
-                    item = item * 31 + Mathf.RoundToInt(collider.transform.eulerAngles.y);
-                    item = item * 31 + Mathf.RoundToInt(collider.transform.eulerAngles.z);
+                    item = item * 31 + Mathf.RoundToInt(angles.x);
+                    item = item * 31 + Mathf.RoundToInt(angles.y);
+                    item = item * 31 + Mathf.RoundToInt(angles.z);
+                    item=item*31+(int)source.shape;item=item*31+source.size.GetHashCode();
+                    var scale=collider.transform.lossyScale;
+                    item=item*31+Mathf.RoundToInt(scale.x*1000);item=item*31+Mathf.RoundToInt(scale.y*1000);item=item*31+Mathf.RoundToInt(scale.z*1000);
+                    item=item*31+(source.sourceObject?source.sourceObject.GetInstanceID():0);
+                    if(source.sourceObject is Mesh mesh){item=item*31+mesh.bounds.GetHashCode();item=item*31+mesh.vertexCount;}
                     hash ^= item;
                 }
             }

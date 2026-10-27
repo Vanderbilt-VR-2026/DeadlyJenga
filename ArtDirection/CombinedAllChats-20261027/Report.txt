@@ -1,0 +1,24 @@
+Combined chat integration — October 27, 2026
+
+All final pending handoffs are integrated into the canonical DeadlyJenga project: Longhand/Gum Brute enemies; final summoning/arrival and mushroom visuals; storm/tsunami visuals and sound gallery. These join the previously integrated weapon/iron-suit visuals, Marina lobby, UI, persistence and bot changes. Canceled jaguar fur and unvalidated World force changes were excluded as their owners requested.
+
+Fixed during integration:
+- World/Maps: SafeSpawnPoint handles destroyed, missing, disabled, inactive and trigger colliders, supports an offset child collider, and has a finite fallback if no foundation exists. Eight targeted query fixtures passed.
+- Presentation/Visuals: a fresh departure replaces an old arrival/fading travel controller. Duplicate active departures remain suppressed. Eleven added lifecycle assertions passed alongside the original checks.
+- DevTools/Editor: saved the beacon lifecycle regression and diagnostics. The isolated combined test harness explicitly restores population after Marina's deliberate solo test; this was a harness assumption, not a gameplay bot defect. No Core additions.
+
+Actual Unity 6000.3.23f1 desktop validation in isolated slot 7:
+- 50 enemy checks, including combat/death and two real Photon peers using a transport fixture.
+- 64 Marina checks, including UI/wardrobe, real movement/physics, PLAY to Game, lobby visit, match resume and full lobby return.
+- 58 travel/arrival checks including ceilings, new obstructions, teleport cancellation and bot arrival strands.
+- 15 mushroom appearance, damage-glaze and real motor checks using staged input.
+- Actual tsunami and tornado command smoke: six survivor bots, eight seconds each, stop controls, finite respawn queries; zero runtime errors.
+- Five imported presentation shaders supported without shader errors.
+- Objective contracts: 120 assertions; these are fixtures, not autonomous gameplay proof.
+- Disaster catalog validator: 11 registered map-aware prefabs passed.
+
+The initial combined run intentionally remains in initial-combined.txt, including its caught beacon failure. The later affected run in final-affected.txt passed with zero runtime errors; the revised beacon suite also passed. The next harness failure inherited a solo population and was corrected before the passing run. Previously passing enemy/disaster phases were not needlessly repeated.
+
+5915 canonical Assets/Packages/ProjectSettings files match the tested isolated copy byte-for-byte. Recovery files are intentionally excluded. 82 final handoff paths were hash-verified, with the debug fixes superseding their original handoff versions. Original worktrees, edits and private integration backups are preserved. git diff --check passed; no commits, pushes, branch changes, package changes or resets.
+
+Limits: canonical open editor was not driven; validation used its matching isolated source. No Quest headset test, full two-machine match/travel test, exhaustive all-map playthrough or new reliable FPS comparison is claimed. The Photon test is transport-focused; mushroom motion uses staged input.

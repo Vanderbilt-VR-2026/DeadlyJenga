@@ -37,6 +37,7 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 transitioning=true;
+                IslandLobby.Persistent?.ParkForMatch();
                 if(networked)Runner.LoadScene(SceneRef.FromIndex(scene),LoadSceneMode.Single);
                 else SceneManager.LoadScene(scene);
             }

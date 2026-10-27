@@ -1,0 +1,25 @@
+{
+  "tool": "built-in image_gen",
+  "assets": [
+    {
+      "file": "MarinaWood.png",
+      "prompt": "Use case: stylized-concept. Asset type: seamless square game material BASE COLOR texture for the golden honey teak and warm varnished wood used in the approved Mayhem Marina lobby concept. Produce a single square tileable wood surface viewed perfectly orthographically from directly above. Premium warm golden-brown teak, subtle elongated fine grain and soft thin organic fibers, restrained variation, smooth lacquered boat-deck wood. This is raw albedo for a Unity physically based material: absolutely no lighting direction, no shadows, no specular glare, no perspective, no raised edges, no ambient occlusion, no furniture or objects, no plank borders or gaps (the plank joints will be modeled separately). Medium subtly stylized tactile game texture, not flat cartoon stripes and not a noisy photograph. Uniform physical grain scale across image, grain runs vertically, seamless on all four sides, no frame, labels or text.",
+      "source": "exec-1b27f3df-6b66-437c-b03b-4fd292b6328e.png"
+    },
+    {
+      "file": "MarinaStone.png",
+      "prompt": "Use case: stylized-concept. Asset type: single seamless square BASE COLOR texture for a polished warm ivory porcelain/limestone terrace in Mayhem Marina, a premium shiny plastic/candy-style Unity game. Perfectly top-down orthographic raw material albedo only, no objects, no perspective, no ambient occlusion, no light/shadow, no glints, no grid or grout or tile edges (those are separate modeled geometry). Predominantly clean creamy ivory with extremely subtle pale peach marbling and very faint fine mineral pores, softly organic, elegant warm off-white stone. It should be quiet and restrained, not busy dramatic marble and not gray concrete. Tileable on all sides with consistent brightness, no central feature, no frame, no text.",
+      "source": "exec-0b5595c6-fa63-467b-95c9-bb363a6d4742.png"
+    },
+    {
+      "file": "MarinaSky.png",
+      "prompt": "Asset type: seamless 360-degree equirectangular SKYBOX panorama texture for the Mayhem Marina Unity game lobby. Generate a single exact 2:1 landscape panorama in equirectangular latitude-longitude projection, covering the full sphere, with left and right edges continuous and top and bottom converging correctly for skybox mapping. Use the reference only for the beautiful sunny pale-blue sky, fluffy warm ivory cloud formations with delicate peach-lit rims, and premium stylized 3D light quality. Do NOT include the reference's buildings, characters, island, foliage, text, bridges or towers. Sky only. The horizontal horizon sits exactly halfway down the image. Upper hemisphere: beautiful clean light cerulean blue, large sculptural creamy white cumulus clouds mostly in the lower 25 degrees above horizon, some airy open blue sky above, soft peach warm sunlight from one side. Refined tropical adventure-game atmosphere, inviting and luminous, not sunset orange, not purple carnival clouds, not stormy, not a cartoon drawing. Avoid hard tiny sun disks. The bottom hemisphere is a simple soft pale-blue atmospheric gradient continuing the horizon color, with no ground or photographed ocean texture. Soft believable cloud shading, richly detailed forms, no fake lens flare, no text, no watermark. This is an environment texture to be wrapped on a sphere, NOT a flat promotional scenery picture or a cubemap contact sheet.",
+      "source": "exec-a652b8e5-9f4c-4e6b-988d-f294bec48b5e.png"
+    }
+  ],
+  "approvedReferences": [
+    "References/Approved-overview.png",
+    "References/Approved-arrival.png"
+  ],
+  "notes": "Original concept images and generated textures are distinct from actual Unity captures. Sky texture is native 1774x887, surface textures1254x1254; no4K claim."
+}

@@ -38,6 +38,24 @@
       "utility": 1,
       "radius": 0.65,
       "timeout": 120
+    },
+    {
+      "id": "collect-equipment",
+      "query": "pickups",
+      "skill": "Travel",
+      "interaction": "collect-pickup",
+      "completeWhen": "pickup-collected",
+      "tier": 0,
+      "maximum": 1,
+      "utility": 0.45,
+      "radius": 1,
+      "timeout": 25,
+      "retry": 8,
+      "commitment": 2,
+      "exclude": [
+        "carrying",
+        "threat-near"
+      ]
     }
   ]
 }

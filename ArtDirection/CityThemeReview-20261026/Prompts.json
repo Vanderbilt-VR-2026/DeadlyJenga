@@ -1,0 +1,36 @@
+{
+  "tool": "Built-in image_gen",
+  "prompts": [
+    {
+      "mapId": "epic-tideway",
+      "prompt": "Use case: style-transfer. Create a landscape art-direction comparison board for the Unity game map \"Tideway Metropolis\", using the attached actual screenshot as EDIT TARGET. Exactly THREE stacked horizontal widescreen panels, full width, same view repeated, in a tall landscape-friendly contact sheet, legible thin title band per panel. Each panel must preserve the screenshot's open skeletal towers, flat floor slabs, bridges, pillars, low pavilions, voids, proportions, island silhouette, terrain elevation, and camera. Only change surface textures/materials/colors, lighting, existing ground and water and sky. No conventional closed buildings, windows filling voids, new trees, props, railings, walls, supports, stairs or geometry. Remove debugging text labels. Keep playful polished candy/toy Unity style with readable restrained texture detail. It must look like feasible in-engine materials, not cinematic photoreal architecture. All floors opaque, routes visible even at night. Panel A title \"Coral Deco Riviera\": Seafoam enamel columns; coral stucco slab sides; cream terrazzo walking tops; thin brass edge inlays. Apricot sunset sky; pale shell-sand island; turquoise ocean with warm reflections. Keep undercrofts bright ivory. The skyline reads as a glamorous seaside resort.. Panel B title \"Midnight Cassette Coast\": Ink-blue lacquer columns; plum concrete; cyan route-edge strips and restrained hot-pink accent panels, silver deck tops. Violet midnight sky with peach horizon; dark paved island; indigo ocean with thin neon-colored reflections. Strong cool ambient fill preserves silhouettes; no rain required.. Panel C title \"Moonlit Tidal Porcelain\": Deep teal glazed columns; ivory ceramic decks with cobalt wave-pattern side bands; tiny turquoise bioluminescent seams. Silver moon haze; pale limestone island; near-black ocean with luminous blue shoreline. Never make walking slabs transparent.. All three camera/framing identical, show entire original frame in each panel, do not simply crop screenshot into thirds. Include small \"AI ART CONCEPT / GEOMETRY REFERENCE\" label."
+    },
+    {
+      "mapId": "epic-double-loop"
+    },
+    {
+      "mapId": "epic-caldera"
+    },
+    {
+      "mapId": "epic-broken-crown"
+    },
+    {
+      "mapId": "epic-harbor-loom"
+    },
+    {
+      "mapId": "epic-lantern-ravine"
+    },
+    {
+      "mapId": "epic-canopy-borough"
+    },
+    {
+      "mapId": "epic-bookfall"
+    },
+    {
+      "mapId": "epic-three-hearts"
+    },
+    {
+      "mapId": "epic-rising-spine"
+    }
+  ]
+}

@@ -138,9 +138,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 connecting=new CancellationTokenSource(TimeSpan.FromSeconds(30));var cancellation=connecting;
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion;
+                var config=MigrationConfig();
                 var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,
                     EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
-                    Config=MigrationConfig(),Scene=new NetworkSceneInfo(),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget}}:null});
+                    Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget}}:null});
                 if(attempt!=generation)return;
                 if(!result.Ok){Status="Connection failed: "+result.ShutdownReason+". Check code, region and Internet, then retry.";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
                 else{Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);PublishSelection();nextMigrationSnapshot=0;if(host)await PushMigration();}
@@ -158,8 +159,8 @@ namespace DeadlyJenga.CastlePrototype
             callbacks.OnPlayerJoined=(_,player)=>{nextMigrationSnapshot=0;};
             callbacks.OnPlayerLeft=(_,player)=>{DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());};
             callbacks.OnShutdown=(ended,reason)=>{if(Runner==ended&&!Migrating&&reason!=ShutdownReason.HostMigration)Disconnected(reason.ToString());};Runner.AddCallbacks(callbacks);
-            callbacks.OnSceneLoadStart=_=>{ApplySceneSelection();transitioning=true;MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.MapId=Catalog.maps[MapIndex].id;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;};
-            callbacks.OnSceneLoadDone=_=>{SwitchingMap=false;if(SceneManager.GetActiveScene().name=="Lobby")transitioning=false;};
+            callbacks.OnSceneLoadStart=_=>{if(Departing||IslandLobby.Persistent&&IslandLobby.Persistent.MatchResident)IslandLobby.Persistent?.ParkForMatch();ApplySceneSelection();transitioning=true;MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.MapId=Catalog.maps[MapIndex].id;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;};
+            callbacks.OnSceneLoadDone=_=>{SwitchingMap=false;if(IslandLobby.Current)transitioning=false;};
             callbacks.OnHostMigration=(old,token)=>{if(!leaving&&old==Runner)_=Migrate(old,token);};
         }
         void ApplySceneSelection()
@@ -330,7 +331,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             CancelDeparture();
             pendingGameMap=null;SwitchingMap=false;mapAcks.Clear();
-            if(!this)return;bool inGame=SceneManager.GetActiveScene().name!="Lobby";Status="Disconnected: "+reason;
+            if(!this)return;string scene=SceneManager.GetActiveScene().name;bool inGame=!IslandLobby.Current&&scene!="Home";Status="Disconnected: "+reason;
             connecting?.Dispose();connecting=null;
             if(IslandLobby.Current&&IslandLobby.Current.Voice)IslandLobby.Current.Voice.ResetLobbyAudio();
             if(Runner){Runner.RemoveCallbacks(callbacks);Destroy(Runner.gameObject);}Runner=null;peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;HostSelected=false;SharedDemoControls=false;LaunchPending=false;Busy=false;leaving=false;transitioning=false;

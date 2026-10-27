@@ -1,0 +1,10 @@
+City Buildings 11–20 production Game.unity. Desktop Editor; not headset/network certification.
+CENSUS bodies=100 shapes=1380 joints=0 unified=True
+quiet whole island: frames=69 mean=57.83ms / 17.3FPS p95=35.75ms; first phase-boundary sample omitted; uncapped desktop Editor, not Quest.
+Traversal covered by the preceding full suite and focused follow-up; this repeat checks only the new cached water loading. Geometry and physical mass unchanged.
+32 requested bots / quiet whole island: frames=79 mean=62.91ms / 15.9FPS p95=93.19ms; first phase-boundary sample omitted; uncapped desktop Editor, not Quest.
+Bots spawned=32 moved>.5m=32
+32 bots + actual tsunami: frames=1427 mean=83.58ms / 12.0FPS p95=107.34ms; first phase-boundary sample omitted; uncapped desktop Editor, not Quest.
+Wave completed=True moved>.5m=12/100; production default height/speed/force.
+Separate DEMOLITION trial: reset intact map, one 22m/s X + 9m/s Z off-centre pulse per district, applied 4m above lower section COM. No bots. Moved>.5m=67/100. Not a production disaster or FPS benchmark.
+COMPLETE runtimeErrors=0

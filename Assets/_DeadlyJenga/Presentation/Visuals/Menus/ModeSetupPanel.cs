@@ -11,6 +11,16 @@ namespace DeadlyJenga.CastlePrototype
     public static class ModeSetupPanel
     {
         static readonly FieldInfo[] fields=typeof(ModeRules).GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>f.Name!="carryingFlag"&&f.Name!="sinking"&&f.Name!="sinkProgress"&&f.Name!="downed"&&f.Name!="mystery").ToArray();
+        static int ruleGroup;
+        static readonly string[] groups={"Round / scoring","Combat / health","Movement / traversal","World / disasters"};
+        static int Group(string name)
+        {
+            name=name.ToLowerInvariant();
+            if(name.Contains("punch")||name.Contains("health")||name.Contains("death")||name.Contains("damage")||name.Contains("friendly")||name.Contains("dagger"))return 1;
+            if(name.Contains("jump")||name.Contains("climb")||name.Contains("vault")||name.Contains("move")||name.Contains("grip")||name.Contains("stamina")||name.Contains("drain")||name.Contains("recover"))return 2;
+            if(name.Contains("disaster")||name.Contains("island")||name.Contains("water")||name.Contains("environment"))return 3;
+            return 0;
+        }
         public static void Draw()
         {
             var match=MatchRuntime.Current;if(match==null){GUILayout.Label("Match rules are starting...");return;}
@@ -54,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
             GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             if(GUILayout.Button("Scene skin: "+CandySceneSkins.Names[CandyMatchVisualsSkin(copy.environmentSkin)]))copy.environmentSkin=CandySceneSkins.Names[(CandyMatchVisualsSkin(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];
             if(GUILayout.Button("Temporary team hand power"))match.ActivateHandPower(copy.handPowerSeconds);
-            GUI.enabled=was&&copy.mode==GameModeKind.Demo;
+            GUI.enabled=was&&(match.Authority||Services.Session?.Demo?.CanCommand==true);
             var spirit=Services.Session as ISeaSpiritControls;
             if(spirit!=null)
             {
@@ -69,9 +79,10 @@ namespace DeadlyJenga.CastlePrototype
             bool islandEffects=GUILayout.Toggle(copy.island!=IslandRule.Walkable,"Island effects (sinking, slowing or island death)");
             if(islandEffects!=(copy.island!=IslandRule.Walkable))copy.island=islandEffects?IslandRule.Sink:IslandRule.Walkable;
             if(!islandEffects)GUILayout.Label("Island ground is safe and movement stays normal. Ocean and other game rules still apply.");
+            if(GUILayout.Button("Advanced rules: "+groups[ruleGroup]+"  ▾"))ruleGroup=(ruleGroup+1)%groups.Length;
             foreach(var f in fields)
             {
-                if(f.Name=="mode"||f.Name=="environmentSkin")continue;string label=Label(f.Name);
+                if(f.Name=="mode"||f.Name=="environmentSkin"||Group(f.Name)!=ruleGroup)continue;string label=Label(f.Name);
                 if(f.FieldType==typeof(bool))f.SetValue(copy,GUILayout.Toggle((bool)f.GetValue(copy),label));
                 else if(f.FieldType.IsEnum){var value=(Enum)f.GetValue(copy);if(GUILayout.Button(label+": "+value)){var all=Enum.GetValues(f.FieldType);f.SetValue(copy,all.GetValue((Array.IndexOf(all,value)+1)%all.Length));}}
                 else if(f.FieldType==typeof(float)||f.FieldType==typeof(int))

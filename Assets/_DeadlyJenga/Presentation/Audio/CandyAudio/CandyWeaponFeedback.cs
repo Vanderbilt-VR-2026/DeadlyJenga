@@ -40,11 +40,13 @@ namespace DeadlyJenga.CandyAudio
         void Present(EquipmentActionFrame item)
         {
             ConsumedActions++;
-            if(item.action==EquipmentAction.Shot&&item.kind==EquipmentKind.DualRifle)
+            if(item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.DualRifle||item.kind==EquipmentKind.SheriffHammer||item.kind>EquipmentKind.PoweredArmor&&!EquipmentSpecifications.Get(item.kind).melee&&item.kind!=EquipmentKind.WristLaser&&item.endpoints.Length>0))
             {
                 var camera=Services.Session?.ActiveCamera;
-                if(camera&&(camera.transform.position-item.position).sqrMagnitude<90*90)trails.Fire(item.position,item.endpoints,item.shotgun);
+                if(camera&&(camera.transform.position-item.position).sqrMagnitude<90*90){if(item.kind==EquipmentKind.NeedleDrill)trails.FireNeedles(item.position,item.endpoints);else trails.Fire(item.position,item.endpoints,item.shotgun);}
             }
+            bool global=item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.MurderSword||item.kind==EquipmentKind.SheriffHammer)&&MatchRuntime.Current?.Frame.rules.mode==GameModeKind.MurderMystery;
+            if(item.kind>EquipmentKind.PoweredArmor||global||item.action==EquipmentAction.Reload){CandySignatureSounds.PlayWeapon(item,global);return;}
             var engine=CandyAudioEngine.Instance;if(!engine)return;
             CandySound sound;
             switch(item.action)
@@ -57,9 +59,9 @@ namespace DeadlyJenga.CandyAudio
                 case EquipmentAction.ModeSwitch:sound=CandySound.WeaponTransform;break;
                 case EquipmentAction.Impact:sound=CandySound.WeaponPlasmaImpact;break;
                 case EquipmentAction.Shot:
-                    sound=item.kind==EquipmentKind.DualRifle?(item.shotgun?CandySound.WeaponShotgun:CandySound.WeaponRifle):
+                    sound=item.kind>EquipmentKind.PoweredArmor?(EquipmentSpecifications.Get(item.kind).melee?CandySound.WeaponSword:item.kind==EquipmentKind.WristLaser?CandySound.WeaponBlaster:item.kind==EquipmentKind.RocketLauncher||item.kind==EquipmentKind.GrenadeLauncher?CandySound.WeaponShotgun:CandySound.WeaponRifle):item.kind==EquipmentKind.DualRifle?(item.shotgun?CandySound.WeaponShotgun:CandySound.WeaponRifle):
                         (item.kind==EquipmentKind.Blaster||item.kind==EquipmentKind.PoweredArmor)?CandySound.WeaponBlaster:item.kind==EquipmentKind.MurderSword?CandySound.WeaponSword:
-                        item.kind==EquipmentKind.SheriffHammer?CandySound.WeaponHammer:CandySound.WeaponBoxing;break;
+                        item.kind==EquipmentKind.SheriffHammer?(item.shotgun?CandySound.WeaponShotgun:CandySound.WeaponRifle):CandySound.WeaponBoxing;break;
                 default:return;
             }
             float pitch=item.action==EquipmentAction.ModeSwitch?(item.shotgun?.88f:1.12f):1;

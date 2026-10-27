@@ -18,10 +18,10 @@ namespace DeadlyJenga.CastlePrototype
         public int ConnectedCount=>Room.Connected?Room.HumanCount:0;
         public Transform ParticipantRoot(string id)
         {if(id==Room.LocalLobbyId)return Player?.transform;return peers.TryGetValue(id,out var peer)&&peer is Component c&&c?c.transform:null;}
-        public void RequestHost()=>Room.RequestHost();
-        public void ReviewHostRequest(string id,bool accept)=>Room.ReviewHostRequest(id,accept);
+        public void RequestHost(){if(!VisitingLobby)Room.RequestHost();}
+        public void ReviewHostRequest(string id,bool accept){if(!VisitingLobby)Room.ReviewHostRequest(id,accept);}
         public LobbySetup Setup=>Room.Setup;
-        public void ConfigureSetup(LobbySetup value)=>Room.ConfigureSetup(value);
+        public void ConfigureSetup(LobbySetup value){if(CanConfigure)Room.ConfigureSetup(value);}
         void ApplyLobbyIdentities()
         {
             foreach(var p in Participants)

@@ -38,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype
         void LateUpdate()
         {
             if (session == null || !worldMenu) return;
-            bool show = session.MenuOpen && session.IsVR && MatchRuntime.Current?.Frame.phase != RoundPhase.Results;
+            bool show = (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && session.MenuOpen && session.IsVR && MatchRuntime.Current?.Frame.phase != RoundPhase.Results;
             var view = session.ActiveCamera;
             if (show != shown || show && (view != lastCamera || session.PlayingHand != lastHand))
             {

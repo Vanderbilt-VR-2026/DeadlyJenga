@@ -101,6 +101,7 @@ namespace DeadlyJenga.CandyPlayers
             GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;
         }
+        public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
         void PointOnHover(ref CandyHandPose hand, bool isLeft)
         {
             if(!tracking || !hand.tracked || hand.skeletonTracked)return;

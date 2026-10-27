@@ -1,0 +1,27 @@
+ACTUAL A/B/C RESULTS AND DECISION
+Original city preserved; both copies passed 8-second settling, no-initial-penetration checks, exact authored part equality, real support-loss response, invalid serialization/replica/authority checks and complete production-motor walking routes. Hall 45/45, House 29/29, Gate 28/28 in both copies. Removing one Hall ground section displaced 28 other Hall members in each. Zero validation failures and zero Unity runtime errors.
+
+Fresh same-session comparison (median frame milliseconds / equivalent FPS; p90 is slow-frame time):
+festival-city
+  No bots: 33.67 ms / 29.7 FPS; p90 51.38 ms; samples 84.
+  32 bots: 72.42 ms / 13.8 FPS; p90 107.98 ms; samples 55.
+  32 bots + actual tsunami: 156.42 ms / 6.4 FPS; p90 1233.03 ms; samples 77.
+festival-city-packed
+  No bots: 22.36 ms / 44.7 FPS; p90 26.96 ms; samples 129.
+  32 bots: 55.29 ms / 18.1 FPS; p90 74.31 ms; samples 68.
+  32 bots + actual tsunami: 124.26 ms / 8.0 FPS; p90 1101.38 ms; samples 102.
+festival-city-surface-mesh
+  No bots: 24.21 ms / 41.3 FPS; p90 34.80 ms; samples 115.
+  32 bots: 57.20 ms / 17.5 FPS; p90 89.72 ms; samples 64.
+  32 bots + actual tsunami: 188.25 ms / 5.3 FPS; p90 1408.53 ms; samples 70.
+
+Packed Shapes removes 832 GameObjects while preserving all 633 independent physical bodies and all 1,049 structural collision shapes. It reduced median frame time by 33.6% idle, 23.7% with bots and 20.6% with bots plus tsunami in this run. This is about 26% higher equivalent FPS under the wave, not a claim of 26% less total physics work or a guaranteed Quest speedup. Large 1.1-second p90 stalls remain.
+Surface Mesh has the same GameObject reduction and further removes 416 player-collision shapes, but measured 188.25ms under the wave versus Packed's 124.26ms and the baseline's 156.42ms. Reject it as the preferred optimization on this evidence. Its smaller shape count did not produce better stress performance. Additional mesh query/update cost is a hypothesis, not a measured marker attribution.
+
+RECOMMENDATION
+Use Festival City - Packed Shapes as the preferred experimental copy; keep the original and Surface Mesh copy available for reproducible comparison. Do not silently replace the original or claim Quest readiness. Next investigate eliminating/localizing duplicated character collision, with proper moving-support and overlap-recovery tests, then profile room rendering and compiled bot navigation. Larger welded/static-release assemblies are separate gameplay/framework decisions.
+
+RAW CENSUS
+CENSUS festival-city: dynamic bodies=633; physical shapes=1049; map GameObjects=2217; new-section proxy shapes=517; proxy GameObjects=517; new-section box shapes=467; convex flights=50.
+CENSUS festival-city-packed: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=517; proxy GameObjects=101; new-section box shapes=467; convex flights=50.
+CENSUS festival-city-surface-mesh: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=101; proxy GameObjects=101; new-section box shapes=467; convex flights=50.

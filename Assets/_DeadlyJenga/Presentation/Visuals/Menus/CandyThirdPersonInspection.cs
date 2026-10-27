@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
             return driver;
         }
 
-        public bool CanInspect => session?.Demo?.DemoMode == true && !session.PlayingHand &&
+        public bool CanInspect => (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && session?.Demo != null && (session.Demo.DemoMode || session.Demo.CanCommand) && !session.PlayingHand &&
             session.Player != null && (session.Demo as ISpectatorControls)?.Spectating != true &&
             MatchRuntime.Current?.Frame.phase != RoundPhase.Results;
 

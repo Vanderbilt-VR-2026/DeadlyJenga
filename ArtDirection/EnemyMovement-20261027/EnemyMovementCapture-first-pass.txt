@@ -1,0 +1,17 @@
+Enemy movement capture started 2026-10-26T23:54:37.9603291-05:00
+PASS Actual Game session loaded
+PASS Real enemy population available
+PASS Spawned actual jaguar
+PASS jaguar climb setting recorded
+MEASURE jaguar scale=0.5 jumpHeight=1.82 multiplier=1
+PASS jaguar moves through real character motor using staged forward input
+PASS jaguar leaves ground through real jump command
+PASS Spawned actual mushroom
+PASS mushroom climb setting recorded
+MEASURE mushroom scale=0.65 jumpHeight=9.1 multiplier=5
+PASS mushroom moves through real character motor using staged forward input
+FAIL System.InvalidOperationException: mushroom leaves ground through real jump command
+  at DeadlyJenga.DevTools.Editor.EnemyMovementCapture.Require (System.Boolean value, System.String message) [0x00024] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\aligned-slot-03\Assets\_DeadlyJenga\DevTools\Editor\EnemyMovementCapture.cs:66 
+  at DeadlyJenga.DevTools.Editor.EnemyMovementCapture+<Validate>d__13.MoveNext () [0x0072a] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\aligned-slot-03\Assets\_DeadlyJenga\DevTools\Editor\EnemyMovementCapture.cs:98 
+  at DeadlyJenga.DevTools.Editor.EnemyMovementCapture.Tick () [0x001c2] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\aligned-slot-03\Assets\_DeadlyJenga\DevTools\Editor\EnemyMovementCapture.cs:43 
+COMPLETE; errors=1. Actual desktop Editor; remote actor selection uses an explicit fixture. No Quest or two-client verification.

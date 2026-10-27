@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -9,6 +10,7 @@ namespace DeadlyJenga.CastleBots
 {
     public sealed partial class CastleBotPopulation : MonoBehaviour, ISurvivorBotPopulation, IEnemyPopulation
     {
+        static readonly ProfilerMarker DJBotThreatMarker = new ProfilerMarker("DJ.BotThreat");
         public BotWorld Session {get;private set;}
         public int targetPopulation=10;
         [Tooltip("Supply the host's connected human count here when integrating multiplayer.")]
@@ -17,14 +19,30 @@ namespace DeadlyJenga.CastleBots
         public float deathHeight=-6,respawnDelay=2;
         public int SelectedPreset {get;private set;}
         public string SelectedName=>profiles[SelectedPreset].displayName;
-        public int Count=>bots.Count(b=>b&&!b.GetComponent<CastleEnemyActor>());
+        public int Count
+        {
+            get
+            {
+                if(countFrame!=Time.frameCount||countSize!=bots.Count||countSerial!=serial)
+                {
+                    countFrame=Time.frameCount;countSize=bots.Count;countSerial=serial;
+                    cachedCount=bots.Count(b=>b&&!b.GetComponent<CastleEnemyActor>());
+                }
+                return cachedCount;
+            }
+        }
+        int countFrame=-1,countSize=-1,countSerial=-1,cachedCount;
+        int spawnFrame=-1,spawnBlockCount;
+        IWorldQuery spawnWorld;
+        Rigidbody spawnFirst;
+        readonly List<Vector3> spawnSamples=new List<Vector3>(18);
         public int Capacity=>int.MaxValue;
         public int FillCapacity=>Mathf.Max(0,targetPopulation-humanPlayers);
         public IReadOnlyList<CastleBotBrain> Bots=>bots;
         public string Status {get;private set;}="";
         readonly List<CastleBotBrain> bots=new List<CastleBotBrain>();
         readonly List<CastleBotLanding> spawnSites=new List<CastleBotLanding>();
-        readonly List<Vector3> hazards=new List<Vector3>();
+        readonly FallingBlockThreats hazards=new FallingBlockThreats();
         readonly Collider[] nearbySurvivors=new Collider[16];
         CastleBotPersonality[] profiles;
         bool ownsProfiles;
@@ -40,7 +58,7 @@ namespace DeadlyJenga.CastleBots
         static Vector3Int CrowdCell(Vector3 point)=>new Vector3Int(Mathf.FloorToInt(point.x/2),Mathf.FloorToInt(point.y/2),Mathf.FloorToInt(point.z/2));
         public void Initialize(BotWorld session)
         {
-            Session=session;handBridge=session.Hand.GetComponent<DeadlyJenga.CandyPhysicsHands.CandyFlyingHandBridge>();profiles=Resources.LoadAll<CastleBotPersonality>("CastleBots").OrderBy(p=>p.displayName).ToArray();
+            Session=session;handBridge=session.Hand?session.Hand.GetComponent<DeadlyJenga.CandyPhysicsHands.CandyFlyingHandBridge>():null;profiles=Resources.LoadAll<CastleBotPersonality>("CastleBots").OrderBy(p=>p.displayName).ToArray();
             if(profiles.Length==0){ownsProfiles=true;profiles=new CastleBotPersonality[4];for(int i=0;i<4;i++)profiles[i]=CastleBotPersonality.Create(i);}
             staging=new GameObject("Inactive NPC assembly").transform;staging.SetParent(transform,false);staging.gameObject.SetActive(false);
         }
@@ -60,6 +78,7 @@ namespace DeadlyJenga.CastleBots
             motor.transform.SetParent(null,true);motor.RefreshMode();
             // Disabled cameras still supply the shared controller's facing and avatar head pose.
             brain.Initialize(this,motor,profiles[SelectedPreset],serial);
+            if(enemy==null&&avatar)avatar.ApplyAppearance(BotSpawnAppearance.Pick());
             if(enemy==null&&motor.GetComponent<ISocialBot>()==null)motor.gameObject.AddComponent<SocialBotDriver>();
             motor.jumpHeight=Session.Player.jumpHeight;
             if(!(enemy!=null?PlaceEnemy(brain):Place(brain))){motor.gameObject.SetActive(false);Destroy(motor.gameObject);Status="No clear, stable spawn surface — try rebuilding the castle";return null;}
@@ -68,21 +87,37 @@ namespace DeadlyJenga.CastleBots
         public bool Place(CastleBotBrain bot)
         {
             if(bot.GetComponent<CastleEnemyActor>())return PlaceEnemy(bot);
-            spawnSites.Clear();Physics.SyncTransforms();
-            var samples=new List<Vector3>(18);
-            foreach(var rb in Session.world.Blocks)
+            Physics.SyncTransforms();
+            var map=Session.world;var first=map.Blocks.Count>0?map.Blocks[0]:null;
+            if(spawnFrame!=Time.frameCount||!ReferenceEquals(spawnWorld,map)||spawnFirst!=first||spawnBlockCount!=map.Blocks.Count)
             {
-                if(!rb||!rb.gameObject.activeInHierarchy||!rb.isKinematic&&rb.linearVelocity.magnitude>1)continue;
-                var box=rb.GetComponent<BoxCollider>();if(!box)continue;
-                CastleBotNavigation.SurfaceSamples(rb,box,samples);
-                foreach(var p in samples)
+                spawnFrame=Time.frameCount;spawnWorld=map;spawnFirst=first;spawnBlockCount=map.Blocks.Count;
+                spawnSites.Clear();
+                foreach(var rb in map.Blocks)
                 {
-                    spawnSites.Add(new CastleBotLanding{surface=rb.transform,local=rb.transform.InverseTransformPoint(p),score=p.y});
+                    if(!rb||!rb.gameObject.activeInHierarchy||!rb.isKinematic&&rb.linearVelocity.magnitude>1)continue;
+                    BotGeometrySamples.Fill(rb,spawnSamples);
+                    var anchor=rb.transform;var inverse=anchor.worldToLocalMatrix;
+                    foreach(var p in spawnSamples)
+                        spawnSites.Add(new CastleBotLanding{surface=anchor,body=rb,local=inverse.MultiplyPoint3x4(p),score=p.y});
+                }
+                spawnSites.Sort((a,b)=>b.score.CompareTo(a.score));
+            }
+            if(spawnSites.Count==0)
+            {
+                for(int sample=0;sample<32;sample++)
+                {
+                    float angle=sample*2.399963f;float radius=1.5f+sample%5;
+                    var candidate=map.SafeSpawnPoint()+new Vector3(Mathf.Sin(angle)*radius,0,Mathf.Cos(angle)*radius);
+                    if(!CastleBotNavigation.Landing(bot.Motor,candidate,out var ground))continue;
+                    var point=ground.point+Vector3.up*.06f;
+                    if(bots.Any(other=>other&&other!=bot&&!other.Respawning&&(other.transform.position-point).sqrMagnitude<1))continue;
+                    bot.Motor.Teleport(point,Quaternion.Euler(0,sample*137.5f,0));return true;
                 }
             }
-            spawnSites.Sort((a,b)=>b.score.CompareTo(a.score));
             foreach(var site in spawnSites)
             {
+                if(!site.surface||!site.surface.gameObject.activeInHierarchy||site.body&&!site.body.isKinematic&&site.body.linearVelocity.magnitude>1)continue;
                 var p=site.Point;
                 if(!CastleBotNavigation.Landing(bot.Motor,p,out var hit))continue;
                 p=hit.point+Vector3.up*.06f;
@@ -135,18 +170,14 @@ namespace DeadlyJenga.CastleBots
         }
         public float ThreatCost(Vector3 point)
         {
+            using var measurement = DJBotThreatMarker.Auto();
             float cost=BotHazardRisk.Cost(point)+(Session.HandBots?Session.HandBots.ThreatCost(point):0);
             if(Session.PlayingHand&&Session.Hand.gameObject.activeInHierarchy)
             {
                 Vector3 position=handBridge&&handBridge.PhysicalHand&&handBridge.PhysicalHand.IsInteractive?handBridge.PhysicalHand.bodies[0].position:Session.Hand.motor.transform.position;
                 cost+=Mathf.Max(0,7-Vector3.Distance(point,position))*.5f;
             }
-            foreach(var predicted in hazards)
-            {
-                if(predicted.y<point.y-.5f||predicted.y>point.y+8)continue;
-                float dx=predicted.x-point.x,dz=predicted.z-point.z,d2=dx*dx+dz*dz;
-                if(d2<9)cost+=(3-Mathf.Sqrt(d2))*.8f;
-            }
+            cost+=hazards.Cost(point);
             return cost;
         }
         public float Crowding(Vector3 point,CastleBotBrain self)

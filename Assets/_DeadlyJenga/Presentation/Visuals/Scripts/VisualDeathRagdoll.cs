@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
@@ -7,6 +8,7 @@ namespace DeadlyJenga.Presentation
     // Cosmetic Verlet skeleton. It queries scenery but adds no colliders, bodies or forces.
     sealed class VisualDeathRagdoll
     {
+        static readonly ProfilerMarker Deformation = new ProfilerMarker("DJ.DeathDeform");
         sealed class Joint
         {
             public Vector3 origin,position,previous,direction;
@@ -21,11 +23,16 @@ namespace DeadlyJenga.Presentation
             public Renderer renderer;
             public Vector3[] origin,normal,vertices,normals;
             public BoneWeight[] weights;
-            public int[] bones;
+            public int[] bones,single;
+            public Matrix4x4[] localPoses,normalPoses;
+            public Vector3 initialPosition;
+            public Quaternion initialRotation;
+            public Bounds bounds;
             public int nearest;
         }
         readonly List<Joint> joints=new List<Joint>();
         readonly List<Skin> skins=new List<Skin>();
+        readonly Matrix4x4[] poses;
         readonly Dictionary<Transform,int> indices=new Dictionary<Transform,int>();
         readonly RaycastHit[] hits=new RaycastHit[32];
         readonly float radius;
@@ -78,6 +85,7 @@ namespace DeadlyJenga.Presentation
                 joints.Add(new Joint{origin=bounds.center,position=bounds.center,previous=bounds.center-new Vector3(.004f,0,.003f)});
             foreach(var joint in joints)
                 joint.direction=joint.child>=0?joints[joint.child].origin-joint.origin:joint.parent>=0?joint.origin-joints[joint.parent].origin:Vector3.up;
+            poses=new Matrix4x4[joints.Count];
         }
         static string ParentName(string name)
         {
@@ -100,20 +108,26 @@ namespace DeadlyJenga.Presentation
         }
         public void Attach(Renderer source,Transform target,Mesh mesh)
         {
-            var vertices=mesh.vertices;var normals=mesh.normals;
-            var skin=new Skin{mesh=mesh,transform=target,renderer=target.GetComponent<Renderer>(),origin=new Vector3[vertices.Length],normal=new Vector3[vertices.Length],vertices=vertices,normals=new Vector3[vertices.Length]};
-            for(int i=0;i<vertices.Length;i++)
-            {
-                skin.origin[i]=target.TransformPoint(vertices[i]);
-                skin.normal[i]=i<normals.Length?target.TransformDirection(normals[i]):Vector3.up;
-            }
+            var skin=new Skin{mesh=mesh,transform=target,renderer=target.GetComponent<Renderer>(),initialPosition=target.position,initialRotation=target.rotation,bounds=mesh.bounds};
             float best=float.PositiveInfinity;
             for(int i=0;i<joints.Count;i++){float d=(joints[i].origin-source.bounds.center).sqrMagnitude;if(d<best){best=d;skin.nearest=i;}}
             if(source is SkinnedMeshRenderer rig&&rig.sharedMesh)
             {
                 skin.weights=rig.sharedMesh.boneWeights;skin.bones=new int[rig.bones.Length];
                 for(int i=0;i<rig.bones.Length;i++)skin.bones[i]=rig.bones[i]&&indices.TryGetValue(rig.bones[i],out int index)?index:skin.nearest;
-                if(skin.weights.Length!=vertices.Length)skin.weights=null;
+                if(skin.weights.Length!=mesh.vertexCount||mesh.vertexCount==0)skin.weights=null;
+            }
+            if(skin.weights!=null)
+            {
+                mesh.MarkDynamic();var vertices=mesh.vertices;var normals=mesh.normals;
+                skin.origin=new Vector3[vertices.Length];skin.normal=new Vector3[vertices.Length];skin.vertices=vertices;skin.normals=new Vector3[vertices.Length];skin.single=new int[vertices.Length];
+                skin.localPoses=new Matrix4x4[joints.Count];skin.normalPoses=new Matrix4x4[joints.Count];
+                for(int i=0;i<vertices.Length;i++)
+                {
+                    skin.origin[i]=target.TransformPoint(vertices[i]);skin.normal[i]=i<normals.Length?target.TransformDirection(normals[i]):Vector3.up;
+                    var w=skin.weights[i];float total=w.weight0+w.weight1+w.weight2+w.weight3;
+                    skin.single[i]=total<=.001f?skin.nearest:w.weight1==0&&w.weight2==0&&w.weight3==0?skin.bones[w.boneIndex0]:-1;
+                }
             }
             skins.Add(skin);
         }
@@ -123,7 +137,8 @@ namespace DeadlyJenga.Presentation
             Vector3 next=support.TransformPoint(supportLocal),delta=next-supportWorld;supportWorld=next;
             if(delta.sqrMagnitude<.00000001f)return Vector3.zero;
             foreach(var joint in joints){joint.position+=delta;joint.previous+=delta;}
-            GroundHeight+=delta.y;Deform();return delta;
+            foreach(var skin in skins)skin.transform.position+=delta;
+            GroundHeight+=delta.y;Bounds=new Bounds(Bounds.center+delta,Bounds.size);return delta;
         }
         public void Step(float dt)
         {
@@ -183,8 +198,8 @@ namespace DeadlyJenga.Presentation
                 Vector3 direction=joint.child>=0?joints[joint.child].position-joint.position:joint.parent>=0?joint.position-joints[joint.parent].position:Vector3.up;
                 joint.rotation=joint.direction.sqrMagnitude>.000001f&&direction.sqrMagnitude>.000001f?Quaternion.FromToRotation(joint.direction,direction):Quaternion.identity;
             }
-            Deform();
         }
+        public void Present()=>Deform();
         bool Scenery(RaycastHit hit)
         {
             if(!hit.collider||hit.collider.isTrigger)return false;
@@ -192,35 +207,59 @@ namespace DeadlyJenga.Presentation
         }
         void RememberSupport(RaycastHit hit)
         {support=hit.collider.transform;supportLocal=support.InverseTransformPoint(hit.point);supportWorld=hit.point;GroundHeight=hit.point.y;}
-        Vector3 Point(int index,Vector3 origin)=>joints[index].position+joints[index].rotation*(origin-joints[index].origin);
-        Vector3 Normal(int index,Vector3 normal)=>joints[index].rotation*normal;
+        Vector3 Point(int index,Vector3 origin)=>poses[index].MultiplyPoint3x4(origin);
+        void Weighted(Skin skin,int vertex,int bone,float weight,ref Vector3 p,ref Vector3 n)
+        {
+            if(weight<=0)return;
+            int index=skin.bones[bone];p+=skin.localPoses[index].MultiplyPoint3x4(skin.origin[vertex])*weight;n+=skin.normalPoses[index].MultiplyVector(skin.normal[vertex])*weight;
+        }
+        static Bounds WorldBounds(Bounds local,Transform transform)
+        {
+            var matrix=transform.localToWorldMatrix;var e=local.extents;
+            var x=matrix.MultiplyVector(Vector3.right*e.x);var y=matrix.MultiplyVector(Vector3.up*e.y);var z=matrix.MultiplyVector(Vector3.forward*e.z);
+            var extents=new Vector3(Mathf.Abs(x.x)+Mathf.Abs(y.x)+Mathf.Abs(z.x),Mathf.Abs(x.y)+Mathf.Abs(y.y)+Mathf.Abs(z.y),Mathf.Abs(x.z)+Mathf.Abs(y.z)+Mathf.Abs(z.z));
+            return new Bounds(matrix.MultiplyPoint3x4(local.center),extents*2);
+        }
         void Deform()
         {
-            bool first=true;Bounds bounds=default;
+            using var measurement=Deformation.Auto();
+            for(int i=0;i<joints.Count;i++)
+            {var joint=joints[i];poses[i]=Matrix4x4.TRS(joint.position-joint.rotation*joint.origin,joint.rotation,Vector3.one);}
+            Vector3 minimum=Vector3.one*float.PositiveInfinity,maximum=Vector3.one*float.NegativeInfinity;
             foreach(var skin in skins)
             {
-                for(int i=0;i<skin.vertices.Length;i++)
+                if(skin.weights==null)
+                    skin.transform.SetPositionAndRotation(Point(skin.nearest,skin.initialPosition),joints[skin.nearest].rotation*skin.initialRotation);
+                else
                 {
-                    Vector3 p,n;
-                    if(skin.weights!=null)
+                    var inverse=skin.transform.worldToLocalMatrix;
+                    var inverseRotation=Quaternion.Inverse(skin.transform.rotation);
+                    for(int j=0;j<joints.Count;j++)
+                    {skin.localPoses[j]=inverse*poses[j];skin.normalPoses[j]=Matrix4x4.Rotate(inverseRotation*joints[j].rotation);}
+                    Vector3 localMin=Vector3.one*float.PositiveInfinity,localMax=Vector3.one*float.NegativeInfinity;
+                    for(int i=0;i<skin.vertices.Length;i++)
                     {
-                        var w=skin.weights[i];float total=w.weight0+w.weight1+w.weight2+w.weight3;
-                        if(total>.001f)
+                        Vector3 p,n;
+                        int single=skin.single[i];
+                        if(single>=0)
+                        {p=skin.localPoses[single].MultiplyPoint3x4(skin.origin[i]);n=skin.normalPoses[single].MultiplyVector(skin.normal[i]);}
+                        else
                         {
-                            int a=skin.bones[w.boneIndex0],b=skin.bones[w.boneIndex1],c=skin.bones[w.boneIndex2],d=skin.bones[w.boneIndex3];
-                            p=(Point(a,skin.origin[i])*w.weight0+Point(b,skin.origin[i])*w.weight1+Point(c,skin.origin[i])*w.weight2+Point(d,skin.origin[i])*w.weight3)/total;
-                            n=Normal(a,skin.normal[i])*w.weight0+Normal(b,skin.normal[i])*w.weight1+Normal(c,skin.normal[i])*w.weight2+Normal(d,skin.normal[i])*w.weight3;
+                            var w=skin.weights[i];float total=w.weight0+w.weight1+w.weight2+w.weight3;
+                            p=n=Vector3.zero;
+                            Weighted(skin,i,w.boneIndex0,w.weight0,ref p,ref n);Weighted(skin,i,w.boneIndex1,w.weight1,ref p,ref n);
+                            Weighted(skin,i,w.boneIndex2,w.weight2,ref p,ref n);Weighted(skin,i,w.boneIndex3,w.weight3,ref p,ref n);p/=total;
                         }
-                        else{p=Point(skin.nearest,skin.origin[i]);n=Normal(skin.nearest,skin.normal[i]);}
+                        skin.vertices[i]=p;skin.normals[i]=n.normalized;
+                        localMin=Vector3.Min(localMin,p);localMax=Vector3.Max(localMax,p);
                     }
-                    else{p=Point(skin.nearest,skin.origin[i]);n=Normal(skin.nearest,skin.normal[i]);}
-                    skin.vertices[i]=skin.transform.InverseTransformPoint(p);skin.normals[i]=skin.transform.InverseTransformDirection(n.normalized);
-                    if(first){bounds=new Bounds(p,Vector3.zero);first=false;}else bounds.Encapsulate(p);
+                    skin.bounds=new Bounds((localMin+localMax)*.5f,localMax-localMin);
+                    skin.mesh.vertices=skin.vertices;skin.mesh.normals=skin.normals;skin.mesh.bounds=skin.bounds;
+                    skin.renderer.localBounds=new Bounds(skin.bounds.center,skin.bounds.size+Vector3.one*radius*24);
                 }
-                skin.mesh.vertices=skin.vertices;skin.mesh.normals=skin.normals;skin.mesh.RecalculateBounds();
-                skin.renderer.localBounds=new Bounds(skin.mesh.bounds.center,skin.mesh.bounds.size+Vector3.one*radius*24);
+                var world=WorldBounds(skin.bounds,skin.transform);minimum=Vector3.Min(minimum,world.min);maximum=Vector3.Max(maximum,world.max);
             }
-            Bounds=bounds;
+            if(skins.Count>0)Bounds=new Bounds((minimum+maximum)*.5f,maximum-minimum);
         }
     }
 }

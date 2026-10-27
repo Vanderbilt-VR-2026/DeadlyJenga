@@ -1,0 +1,182 @@
+{
+  "scope": "Ten alternatives for one coherent epic map, not ten more exhibition islands. Review-only: no game source, scenes or map assets changed.",
+  "recommendation": "Start with 01 Tideway Metropolis. Borrow 02's independent crossing arrangement and one small 07 canopy district. Keep 08's hinged wing as an optional later experiment. Preserve 01's S-shaped identity rather than assembling all ten alternatives into one confused map.",
+  "evidence": [
+    {
+      "title": "City Buildings 11–20",
+      "bodies": 100,
+      "shapes": 1380,
+      "joints": 0,
+      "editorIdleFPS": 15.9,
+      "editorWaveFPS": 12,
+      "normalWaveMoved": 12,
+      "strongImpactMoved": 67,
+      "source": "../TowerIslands-20261025/Review.md",
+      "lesson": "Existing cassettes work as physical building pieces; body count alone did not solve frame rate. Default tsunami rarely collapses them."
+    },
+    {
+      "title": "Tower Laboratory 1–10",
+      "bodies": 104,
+      "shapes": 1878,
+      "joints": 6,
+      "editorIdleFPS": 14.9,
+      "editorWaveFPS": 11.8,
+      "normalWaveMoved": 2,
+      "strongImpactMoved": 81,
+      "source": "../TowerIslands-20261025/Review.md",
+      "lesson": "Experimental forms need extra clearance and collider work. Kissing Towers and Bookfall have specific tested behavior, not universal predictable collapse."
+    },
+    {
+      "title": "Mayhem Foundry",
+      "bodies": 669,
+      "shapes": 2096,
+      "joints": 8,
+      "source": "../MayhemFoundry/Facts.json",
+      "lesson": "Use its branching, ribbon, portal and receiving-court ideas selectively. Do not import its entire ten-district population into the city."
+    }
+  ],
+  "sources": [
+    {
+      "id": "linked",
+      "title": "Steven Holl Architects — Linked Hybrid",
+      "url": "https://www.stevenholl.com/project/beijing-linked-hybrid/",
+      "fact": "The architects describe a porous complex with passages at ground level and a connected upper loop of skybridges.",
+      "application": "Use independent low and middle circulation networks, with several ways between them. Borrow spatial organization, not the building's real structural system."
+    },
+    {
+      "id": "habitat",
+      "title": "Safdie Architects — Habitat 67",
+      "url": "https://www.safdiearchitects.com/projects/habitat-67",
+      "fact": "The project combines stepped modules, terraces and continuous elevated pedestrian streets. Its modules are structurally connected using systems including post-tensioning and welding.",
+      "application": "Let a roof become the next district's street, but replace real cantilevers and structural ties with visible broad compression bearings or rigid fabricated cassettes. Loose game blocks cannot inherit the real project's tensile behavior."
+    },
+    {
+      "id": "valley",
+      "title": "MVRDV — Valley",
+      "url": "https://www.mvrdv.com/projects/233/valley",
+      "fact": "The complex combines unequal towers with public ascent into an elevated valley and a covered street-like atrium.",
+      "application": "Treat negative space between buildings as the main level: a low street, covered grotto and raised court are useful playable places, even without enclosed rooms."
+    },
+    {
+      "id": "finals",
+      "title": "Embark — THE FINALS Update 7.3.0, destruction section",
+      "url": "https://www.reachthefinals.com/patchnotes/730",
+      "fact": "The update describes knock-on building damage, keeping heavily damaged level design playable, and clearer damage visuals.",
+      "application": "Judge intact, partly damaged and heavily damaged layouts separately. Use readable section seams and receiving spaces. This is a design precedent, not an assertion that our engine has Embark's destruction features."
+    },
+    {
+      "id": "battlefield",
+      "title": "EA / DICE — Battlefield Labs: Destruction",
+      "url": "https://www.ea.com/games/battlefield/news/battlefield-labs-destruction",
+      "fact": "DICE frames destruction as a way to alter routes and tactical cover, with clear visual/audio language and testing of collateral damage.",
+      "application": "Every major failure should change a choice: open a view, interrupt a shortcut, reveal a court or create cover. Do not optimize only for dramatic total flattening."
+    },
+    {
+      "id": "physx",
+      "title": "NVIDIA — PhysX Best Practices",
+      "url": "https://nvidia-omniverse.github.io/PhysX/physx/5.1.1/docs/BestPractices.html",
+      "fact": "The guide discusses simplifying scenes, reducing shape complexity, difficult jointed systems, sleeping piles, and divergence between platforms.",
+      "application": "Budget shapes, contacts, joints and awake bodies alongside body count. Avoid huge hinge networks and unsupported performance promises. Its native SDK advice is conceptual guidance; Unity does not expose every option directly."
+    },
+    {
+      "id": "unity",
+      "title": "Unity — enhanced physics performance",
+      "url": "https://unity.com/how-to/enhanced-physics-performance-smooth-gameplay",
+      "fact": "Unity recommends physics profiling and using suitable collision geometry and simulation settings.",
+      "application": "Verify costs in the production Game scene before expanding the approved composition. A visually simpler map can remain CPU-bound for reasons outside its structures."
+    }
+  ],
+  "rules": [
+    {
+      "title": "Build neighborhoods around movement",
+      "text": "Compose 6–9 dominant building masses with shared street edges and local courts. Include a 0–4 m street band, 8–16 m mezzanine band and selective 24–32 m crossings. Only a few landmarks reach 48–64 m. Connect neighboring roofs directly where practical; a player should not descend to sand after every building."
+    },
+    {
+      "title": "Make height change frequent, not compulsory",
+      "text": "Use roughly 4 m floor intervals from the tested kit, with useful rest landings and clear stair openings. Give each main district two independently supported ascent routes. Prefer 3–5 m circulation widths and broad turning pads; verify using the actual scaled capsule. Secondary expert jumps must never be the sole connection."
+    },
+    {
+      "title": "Climbing faces must outrun floor edges",
+      "text": "On designated exterior ascent faces, continuous vertical ribs extend beyond the slab envelope; floor bands sit behind them. Remove the Festival red-lip obstruction as collision geometry, not just as a color change. Review images are not precise collision drawings; some illustrated edges still need this correction in authoring."
+    },
+    {
+      "title": "Short routes between layers",
+      "text": "The current source defaults include 4.6 m/s desktop walking, 1.82 m jump height and a 38-degree slope-grip angle; settings, VR mode and effects can change these. At that baseline 20 m is about 4.3 seconds and 300 m is about 65 seconds before obstacles. Avoid an enormous empty exhibition island: concentrate encounters within connected neighborhoods and reserve the beach as a perimeter, not mandatory commuting."
+    },
+    {
+      "title": "Shelter comes from useful solids",
+      "text": "Pillars alone do not provide reliable gunfire or disaster shelter. Add a few large wall panels, deep porticos and roofed corners per district. Keep several open sides and daylight slots. Check actual game shelter queries separately from whether an image looks shaded."
+    },
+    {
+      "title": "Use separately stable physical sections",
+      "text": "Start with two- or three-floor cassettes and aligned, broad real bearings. Keep each upper section's projected center of mass within its support polygon at rest. A bridge sits on both end seats and is not an invisible tensile brace. No magnetic support, floating anchor or giant static structural core is assumed."
+    },
+    {
+      "title": "Design fall space, then test it",
+      "text": "Reserve 15–30 m local receiving courts beside lower vulnerable wings, with at least two spatially separate detours. These courts do not guarantee containment of a 60 m tower. A whole-stack topple can sweep much farther: run whole-building impacts in multiple directions and reject layouts that regularly seal every exit. Collapse biases come from mass, supports, gaps and catches, not scripted teleporting."
+    },
+    {
+      "title": "A tilted thing is not automatically a good route",
+      "text": "A 6 m rise over 12 m horizontal run is about 26.6 degrees; the same rise over 6 m is 45 degrees. The latter may slide under current defaults. Bookfall's previously observed roughly 67.6-degree stop is a climb/cover experiment, not a comfortable walking ramp. Give rubble broad usable faces, and never require a specific accidental landing to finish a route."
+    },
+    {
+      "title": "Limit cascading contact regions",
+      "text": "Stagger break seams and leave expansion gaps so neighboring stacks do not rest against one another. Use a few short loose bridge spans rather than island-wide beams or long joint chains. Shared walking connectivity should not require every district to be mechanically locked into one giant contact network."
+    },
+    {
+      "title": "Retain meaningful ruins",
+      "text": "Keep large settled cassettes while they provide cover or routes. Small fragments may be brief visual effects; any later cleanup must respect standing players, objective items and required connections. Do not promise that instantly deleting most rubble will preserve the desired mayhem."
+    },
+    {
+      "title": "Control views with form",
+      "text": "Give each district a recognizable silhouette and opening pattern, supported by color. Bend streets and offset upper galleries to interrupt map-wide shots. Use daylight courts for orientation and a few deep bays for hiding. More upper floor area must not turn into complete surveillance of all low routes."
+    },
+    {
+      "title": "Targets are ceilings, not FPS predictions",
+      "text": "Per-concept allowances below are provisional authoring ceilings for structural bodies, collision shapes and joints. They include loose supports and connectors, exclude characters and the base island, and are not measured asset counts. If the full route layout exceeds them, reduce floor splitting and secondary masses before widening the budget. No Quest frame-rate estimate is established here."
+    }
+  ],
+  "implementation": [
+    {
+      "stage": "1 · Prove a connected slice",
+      "deliver": "Build three adjacent building masses, one local court, two ascent systems, one supported bridge and the low street. Target no more than 32 structural bodies / 320 shapes / 0 joints. Verify traversal, contacts and collapse before cloning."
+    },
+    {
+      "stage": "2 · Establish the two route networks",
+      "deliver": "Author the low route and middle loop with the actual player capsule. Remove each shortcut and ascent in turn. Test bidirectional travel, controller/headroom clearance, and an exterior climb across every floor band."
+    },
+    {
+      "stage": "3 · Add the skyline selectively",
+      "deliver": "Expand toward the chosen map's ceiling, with one dominant peak, two secondary peaks, low waterfront buildings and deliberate open gaps. Preserve the existing original maps; add a new map ID only when implementation is requested."
+    },
+    {
+      "stage": "4 · Validate physical aftermath",
+      "deliver": "For each district: remove a support, hit low and high from several directions, lose a bridge, then apply production tsunami. Use multiple runs/seeds and intact/partial/heavy damage snapshots. Report actual accessible routes and rubble contact counts; do not substitute generated aftermath art."
+    },
+    {
+      "stage": "5 · Profile the whole production game",
+      "deliver": "Run the same camera and settings at 0, 16, 32 and 50 bots; separate idle, normal tsunami and severe impact. Record main-thread physics time, contacts, awake bodies, bot/query time, draw calls, allocations, frame-time median/p95/p99 and reset behavior. Measure real-player movement through rubble. Compare to existing maps in controlled runs."
+    },
+    {
+      "stage": "6 · Balance modes and device comfort",
+      "deliver": "Use travel-time measurements for CTF spawn/flag choices, multiple contest heights for hill modes, shelter distribution for disasters and tighter active districts for Murder Mystery. Test real two-player networking and a Quest headset before claiming device readiness. Avoid forced camera movement on collapsing floors."
+    }
+  ],
+  "acceptance": [
+    "Zero significant initial penetrations, no spontaneous long-term creep and sleep behavior comparable with the proven isolated prototypes.",
+    "Each main neighborhood reachable from two independently supported approaches before damage; no single high bridge is the only city connection.",
+    "After representative local failures, remaining objectives/spawns remain reachable or are handled explicitly by mode rules. Heavy whole-city destruction is assessed separately.",
+    "Stair holes, turning pads, landing lips and climb ribs checked with real motors, not only geometry sampling.",
+    "Default tsunami judged independently from the stronger demolition impulse. Existing sturdy sections do not automatically become wave-sensitive.",
+    "Structural allowances met, then actual production frame times and device comfort measured. No approval based on body count alone."
+  ],
+  "imageReview": "All ten boards were generated with the built-in image tool using an actual Unity capture as a style reference. They show spatial intent, not exact imported meshes, calibrated scale, physics outcomes or measured budgets. The plan governs traversal, bearings, climb lips and cost where the illustrations simplify or contradict those details.",
+  "rejected": [
+    "Importing all 20 full towers plus all Foundry districts: repeats the exhibition sprawl and greatly increases contact/shape load.",
+    "Magnets to hold the city together: unnecessary for the proposed compression-supported forms and would add tuning and support behavior.",
+    "Real-building cantilevers copied as loose blocks: architecture precedents often rely on reinforcement, post-tensioning or fixed connections absent in our loose physics.",
+    "Rolling Borough as a foundation for occupied high towers: a moving base adds instability and navigation cost. Its curved silhouette can inspire a low isolated feature later.",
+    "Counterweight Sky Harbor as a city-wide mechanism: preserve its tiered harbor silhouette first; defer its jointed balancing mechanism.",
+    "One keystone that destroys the whole map, one mandatory summit route, or promises that every collapse makes a perfect bridge."
+  ]
+}

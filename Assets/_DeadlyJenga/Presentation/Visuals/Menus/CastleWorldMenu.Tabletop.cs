@@ -12,7 +12,7 @@ namespace DeadlyJenga.CastlePrototype
             HideDisasterSliders();transform.position=camera.transform.position+openingForward*1.6f;
             var spirit=Services.Session as ISeaSpiritControls;var board=CandyTabletop.Current;
             string[] entries={"Back to match rules",spirit!=null&&spirit.SeaSpiritActive?"Return from sea spirit":"Become sea spirit","Place / reposition tabletop island","Confirm board placement","Toggle passthrough / game", "Board width: "+(board?board.Width.ToString("0.0"):"--"),"Table height: "+(board?board.Height.ToString("0.00"):"--"),"Forward: "+(board?board.Forward.ToString("0.0"):"--"),"Side: "+(board?board.Side.ToString("0.0"):"--"),"Recenter sea spirit","Exit tabletop"};
-            for(int i=0;i<buttons.Length;i++){bool show=i<entries.Length;buttons[i].gameObject.SetActive(show);targets[i].enabled=show&&(i==0||MatchRuntime.Current?.Rules.mode==GameModeKind.Demo);if(show)labels[i].text=entries[i];}
+            for(int i=0;i<buttons.Length;i++){bool show=i<entries.Length;buttons[i].gameObject.SetActive(show);targets[i].enabled=show&&(i==0||i==10||CanCommand);if(show)labels[i].text=entries[i];}
             Physics.SyncTransforms();var ray=new Ray(camera.transform.position,camera.transform.forward);
             for(int i=0;i<entries.Length;i++)
             {

@@ -1,0 +1,51 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\aligned-slot-03",
+  "baseline": "reconciled combined-source 20261026",
+  "validation": {
+    "kind": "actual-unity-editor",
+    "passed": true,
+    "checks": 23,
+    "report": "SummoningBeaconChecks.txt",
+    "sha256": "42295245f49a59dd1d6503c468bcad66ad857b773df2c3f141bc460144d04f40",
+    "two_client": "not tested; actor-selection fixture only",
+    "quest": "not tested"
+  },
+  "files": [
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySessionTravel.cs",
+      "sha256": "2c953006ca94ad90aa27433577d80c8d0e508b1d2dd8f202ed92d0f7b330fa3d",
+      "baseline_sha256": "b810cc61cfe30a9444289f4d1a467c4d1fadccc64aab1ebf9cf319ee89cb9f5f"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySummoningColumn.cs",
+      "sha256": "32ee69ba43ae3371e5ae871f93826aee90458f07beeac9c7c58ef4cfc2395a94",
+      "baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySummoningColumn.cs.meta",
+      "sha256": "d571f7be5039a387e0587b24fee5b758ea89c9df32829a963ccef1521cfab92a",
+      "baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Resources/CandyScenery/CandySummoningColumn.shader",
+      "sha256": "87e4614dde92e8a6fcb6a914a133e68d9e6dd9e85e057abd16bb8df53fa18d0b",
+      "baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Resources/CandyScenery/CandySummoningColumn.shader.meta",
+      "sha256": "518dbd15072b380186fd084c30b24aa4c096b48efdc012f7de24dc3a766a6838",
+      "baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/DevTools/Editor/SummoningBeaconChecks.cs",
+      "sha256": "915eab60557a532764b8e85cee36de7cf945eebf81e45bc9a006b1d44ee57fc5",
+      "baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/DevTools/Editor/SummoningBeaconChecks.cs.meta",
+      "sha256": "fab09906f79f2fb63501d7e34830b0caaf29014b54b7752c4ec850022add3e49",
+      "baseline_sha256": null
+    }
+  ],
+  "integration": "Pending safe serial integration; canonical has not been edited by this task."
+}

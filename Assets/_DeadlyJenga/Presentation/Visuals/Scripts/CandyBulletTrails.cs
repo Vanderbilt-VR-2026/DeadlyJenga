@@ -50,6 +50,10 @@ namespace DeadlyJenga.Presentation
                 bullet.trail.SetPosition(0,start);bullet.trail.SetPosition(1,start);active.Add(bullet);
             }
         }
+        public void FireNeedles(Vector3 start,Vector3[] endpoints)
+        {
+            Fire(start,endpoints,false);if(active.Count==0)return;var needle=active[active.Count-1];needle.head.localScale=new Vector3(.012f,.012f,.30f);needle.trail.widthMultiplier=.009f;var color=new Color(.72f,.80f,.87f);tint.Clear();tint.SetColor(BaseColor,color);tint.SetColor(ColorId,color);needle.headRenderer.SetPropertyBlock(tint);needle.trail.startColor=needle.trail.endColor=color;
+        }
         static bool Finite(Vector3 p)=>!float.IsNaN(p.sqrMagnitude)&&!float.IsInfinity(p.sqrMagnitude);
         Bullet Create()
         {

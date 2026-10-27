@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
             switch(command.action)
             {
                 case CastleDemoAction.AdvanceScaffold:
-                    if (!session.CanEditWorld || MatchSetup.ModeId != "demo" || !(DeadlyJenga.Core.Services.World is DeadlyJenga.Core.IBuildUpControls buildUp) || !buildUp.CanAdvance) return false;
+                    if (!session.CanEditWorld || !(DeadlyJenga.Core.Services.World is DeadlyJenga.Core.IBuildUpControls buildUp) || !buildUp.CanAdvance) return false;
                     buildUp.AdvanceStage(); break;
                 case CastleDemoAction.StopDisasters:if(!DemoDisasters.CanTrigger(session))return false;DemoDisasters.StopAll(session);break;
                 case CastleDemoAction.Disaster:return DemoDisasters.Execute(session,command.rules,command.tuneWave?(float?)command.waveSpeed:null,command.tuneWave?(float?)command.waveForce:null,command.hazardValues);

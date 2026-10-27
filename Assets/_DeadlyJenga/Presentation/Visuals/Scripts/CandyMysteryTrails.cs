@@ -33,20 +33,20 @@ namespace DeadlyJenga.Presentation
             while(seen<limit)
             {
                 var trail=mystery.Trails[seen++];first=mystery.Trails[0];var blocks=Services.World?.Blocks;
-                if(blocks==null||trail.block<0||trail.block>=blocks.Count||!blocks[trail.block])continue;
+                if(blocks==null||trail.block<-1||trail.block>=blocks.Count||trail.block>=0&&!blocks[trail.block])continue;
                 string color=ColorUtility.ToHtmlStringRGB(trail.color),key=trail.block+":"+color;
                 if(!open.TryGetValue(key,out var batch)||!batch.root||batch.prints>=64)
                 {
                     if(!materials.TryGetValue(color,out var material)){material=new Material(Shader.Find("Universal Render Pipeline/Lit"));material.SetColor("_BaseColor",trail.color);material.SetFloat("_Smoothness",.7f);materials[color]=material;}
-                    var go=new GameObject("Visual - colored footprints",typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(blocks[trail.block].transform,false);var mesh=new Mesh{name="Batched mystery footprints"};mesh.MarkDynamic();go.GetComponent<MeshFilter>().sharedMesh=mesh;var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;
+                    var go=new GameObject("Visual - colored footprints",typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(trail.block>=0?blocks[trail.block].transform:transform,false);var mesh=new Mesh{name="Batched mystery footprints"};mesh.MarkDynamic();go.GetComponent<MeshFilter>().sharedMesh=mesh;var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=material;renderer.shadowCastingMode=ShadowCastingMode.Off;
                     batch=new Batch{root=go.transform,mesh=mesh,renderer=renderer};batches.Add(batch);open[key]=batch;
                 }
-                var block=blocks[trail.block].transform;
+                var block=trail.block>=0?blocks[trail.block].transform:null;
                 var localNormal=trail.normal.sqrMagnitude>.1f?trail.normal.normalized:Vector3.up;
-                var normal=block.TransformDirection(localNormal).normalized;
-                var rotation=block.rotation*Quaternion.FromToRotation(Vector3.up,localNormal)*Quaternion.Euler(0,trail.yaw,0);
+                var normal=block?block.TransformDirection(localNormal).normalized:localNormal;
+                var rotation=(block?block.rotation:Quaternion.identity)*Quaternion.FromToRotation(Vector3.up,localNormal)*Quaternion.Euler(0,trail.yaw,0);
                 float scale=FootScale(trail.color);
-                var point=block.TransformPoint(trail.point);
+                var point=block?block.TransformPoint(trail.point):trail.point;
                 for(int side=-1;side<=1;side+=2)
                 {
                     var center=point+normal*.006f+rotation*Vector3.right*(side*.12f*scale);

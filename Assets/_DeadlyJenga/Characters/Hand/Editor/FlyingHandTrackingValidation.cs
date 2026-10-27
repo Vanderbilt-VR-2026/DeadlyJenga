@@ -33,8 +33,8 @@ namespace DeadlyJenga.HandValidation
             EditorApplication.playModeStateChanged += Changed;
             EditorApplication.update+=()=>
             {
-                var request=ProjectPath.Report("FlyingHandTracking.request");
-                if(!File.Exists(request)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
+                var request=ProjectPath.Report("FlyingHandTrackingExpansionMain.request");
+                if(!File.Exists(request)||File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString()+":expanded2"||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 File.Delete(request);Run();
             };
             EditorApplication.delayCall += () =>
@@ -232,19 +232,18 @@ namespace DeadlyJenga.HandValidation
             File.AppendAllText(Report,"FLIGHT fixture focus before="+typeof(FlyingHandController).GetField("focused",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(motor)+" application="+Application.isFocused+"\n");
             motor.SendMessage("OnApplicationFocus",true);
             var tracking=actor.GetComponent<CandyTrackingSource>();
-            tracking.enabled=false;
-            var left=typeof(CandyTrackingSource).GetField("left",BindingFlags.Instance|BindingFlags.NonPublic);
+            var steeringInput=new Poses();tracking.LeftPoseSource=steeringInput;
             var steering=new Poses().pose;steering.skeleton=CandyHandSkeleton.Rest(true);
             var open=steering.skeleton;
             var pinch=open;pinch.SetJoint(3,pinch.Joint(7)+Vector3.right*.015f);
             pinch.SetJoint(2,pinch.Joint(3)+Vector3.back*.025f);pinch.SetJoint(1,pinch.Joint(2)+Vector3.back*.025f);
-            left.SetValue(tracking,steering);
+            steeringInput.pose=steering;
             motor.ControlModeOverride=ControlMode.VR;
             bridge.PoseSource=input;
             yield return Wait(.2f);
-            steering.skeleton=pinch;left.SetValue(tracking,steering);
+            steering.skeleton=pinch;steeringInput.pose=steering;
             yield return Wait(.1f);
-            steering.position+=Vector3.forward*.15f;left.SetValue(tracking,steering);
+            steering.position+=Vector3.forward*.15f;steeringInput.pose=steering;
             yield return Wait(.4f);
             File.AppendAllText(Report,"FLIGHT move="+motor.MoveInput+" velocity="+motor.Body.linearVelocity+" mode="+motor.ActiveControlMode+" suspended="+motor.InputSuspended+" source="+tracking.HasHandTracking+" valid="+CandyHandTransition.IsValidPose(steering)+"\n");
             Check(motor.MoveInput.y>.99f&&motor.Body.linearVelocity.z>.1f,"Tracked source through bridge drives real flight motor forward");
@@ -254,8 +253,8 @@ namespace DeadlyJenga.HandValidation
             motor.InputSuspended=false;
             yield return Wait(.1f);
             Check(motor.MoveInput==Vector2.zero,"Motor does not resume held pinch after suspension");
-            steering.skeletonTracked=false;left.SetValue(tracking,steering);
-            typeof(CandyTrackingSource).GetField("right",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(tracking,new Poses().pose);
+            steering.skeletonTracked=false;steeringInput.pose=steering;
+            tracking.RightPoseSource=new Poses();yield return Wait(.1f);
             Check(!bridge.TryReadFlightInput(out _),"A controller in the steering hand does not get swallowed by gesture flight");
             CheckControllerBindings(motor);
             CheckFlightResponse(motor,actor.follow);

@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
@@ -7,12 +8,14 @@ namespace DeadlyJenga.Presentation
 {
     public sealed class CandyWaterContactEffects:MonoBehaviour
     {
+        static readonly ProfilerMarker DJWetEffectsMarker = new ProfilerMarker("DJ.WetEffects");
         sealed class Wet
-        {public Renderer original,overlay;public float until,lastSplash;public MaterialPropertyBlock properties=new MaterialPropertyBlock();}
+        {public Renderer original,overlay;public float until,lastSplash,wetness=-1;public MaterialPropertyBlock properties=new MaterialPropertyBlock();}
         public static CandyWaterContactEffects Current {get;private set;}
         public int WetRendererCount=>wet.Count;
         readonly Dictionary<Renderer,Wet> wet=new Dictionary<Renderer,Wet>();
         readonly List<Renderer> remove=new List<Renderer>();
+        readonly List<MeshRenderer> receivers=new List<MeshRenderer>();
         readonly Collider[] overlaps=new Collider[96];readonly RaycastHit[] sweep=new RaycastHit[96];
         readonly HashSet<Rigidbody> touched=new HashSet<Rigidbody>();
         Material coating,sprayMaterial;ParticleSystem spray;IWorldQuery world;int cursor,seed;float nextScan,nextDrip;int budgetFrame,newCoatings,splashes;
@@ -49,7 +52,8 @@ namespace DeadlyJenga.Presentation
             if(budgetFrame!=Time.frameCount){budgetFrame=Time.frameCount;newCoatings=splashes=0;}
             var visual=body.GetComponent<IClimbable>()?.Visual;if(!visual)return;
             bool emit=false;
-            foreach(var renderer in visual.GetComponentsInChildren<MeshRenderer>())
+            visual.GetComponentsInChildren(receivers);
+            foreach(var renderer in receivers)
             {
                 if(renderer.name=="Visual - drying water stain")continue;
                 var filter=renderer.GetComponent<MeshFilter>();if(!filter||!filter.sharedMesh)continue;
@@ -64,7 +68,7 @@ namespace DeadlyJenga.Presentation
                 }
                 item.until=Time.time+25;
                 if(splash&&Time.time-item.lastSplash>.3f){emit=true;item.lastSplash=Time.time;}
-                item.properties.SetFloat("_Wetness",1);item.overlay.SetPropertyBlock(item.properties);
+                if(item.wetness!=1){item.wetness=1;item.properties.SetFloat("_Wetness",1);item.overlay.SetPropertyBlock(item.properties);}
             }
             if(emit)Splash(point);
         }
@@ -88,13 +92,16 @@ namespace DeadlyJenga.Presentation
         void Clear(){foreach(var item in wet.Values)if(item.overlay)Destroy(item.overlay.gameObject);wet.Clear();cursor=0;}
         void LateUpdate()
         {
+            using var measurement = DJWetEffectsMarker.Auto();
             if(!ReferenceEquals(world,Services.World)){Clear();world=Services.World;}
             remove.Clear();
             foreach(var pair in wet)
             {
                 var item=pair.Value;if(!item.original||!item.overlay||Time.time>=item.until){remove.Add(pair.Key);continue;}
-                item.overlay.enabled=item.original.enabled&&item.original.gameObject.activeInHierarchy;
-                item.properties.SetFloat("_Wetness",Mathf.Clamp01((item.until-Time.time)/8));item.overlay.SetPropertyBlock(item.properties);
+                bool visible=item.original.enabled&&item.original.gameObject.activeInHierarchy;
+                if(item.overlay.enabled!=visible)item.overlay.enabled=visible;
+                float wetness=Mathf.Clamp01((item.until-Time.time)/8);
+                if(item.wetness!=wetness){item.wetness=wetness;item.properties.SetFloat("_Wetness",wetness);item.overlay.SetPropertyBlock(item.properties);}
             }
             foreach(var renderer in remove)Remove(renderer);
             if(world==null||Time.time<nextScan||Tracked.Waves.Count==0)return;nextScan=Time.time+.08f;

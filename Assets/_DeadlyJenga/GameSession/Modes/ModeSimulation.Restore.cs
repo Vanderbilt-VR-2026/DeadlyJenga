@@ -35,7 +35,7 @@ namespace DeadlyJenga.Modes
                 p.observedSeconds=source.heightObservedSeconds;p.heightIntegral=source.averageHeight*p.observedSeconds;
             }
             foreach(var t in frame.teams)if(t.id>=0&&t.id<teams.Count){var target=teams[t.id];target.points=t.points;target.captures=t.captures;target.tickets=t.tickets;target.ownedBlocks=t.ownedBlocks;}
-            flags.Clear();foreach(var f in frame.flags)flags.Add(new FlagFrame{team=f.team,home=f.home,position=f.position,carrier=f.carrier,atHome=f.atHome});
+            flags.Clear();foreach(var f in frame.flags)flags.Add(new FlagFrame{team=f.team,home=f.home,position=f.position,carrier=string.IsNullOrEmpty(f.carrier)?null:f.carrier,atHome=f.atHome});
             claims.Clear();foreach(var f in frame.claims){var c=new Claim();c.frame.block=f.block;c.frame.owner=f.owner;c.frame.claimant=f.claimant;c.frame.progress=f.progress;c.emptySeconds=f.emptySeconds;claims[f.block]=c;}
             Elapsed=frame.elapsed;Hill=frame.hill;Winner=frame.winner;WinnerTeam=frame.winnerTeam;Phase=frame.phase;
             phaseTime=Phase==RoundPhase.Countdown?Mathf.Max(0,Rules.countdownSeconds-frame.remaining):0;sequence=frame.revision;

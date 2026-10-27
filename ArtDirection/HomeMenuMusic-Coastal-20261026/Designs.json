@@ -1,0 +1,29 @@
+{
+  "method": "Four original tactile coastal variations of the approved Critical Mass composition. No external samples.",
+  "tracks": [
+    {
+      "id": "01-critical-mass-shorebreak",
+      "title": "Critical Mass / Shorebreak",
+      "bpm": 132,
+      "direction": "Closest to the approved track: punchy breakbeat, warm elastic bass, hollow plastic lead and coastal air"
+    },
+    {
+      "id": "02-critical-mass-candy-current",
+      "title": "Critical Mass / Candy Current",
+      "bpm": 128,
+      "direction": "Glossy candy identity: thick glass-resonator hook, rubbery low end and clacking tactile percussion"
+    },
+    {
+      "id": "03-critical-mass-tidal-pressure",
+      "title": "Critical Mass / Tidal Pressure",
+      "bpm": 132,
+      "direction": "Ocean mayhem: deeper bass, weighty drums, muted metallic hook and wave-like swells"
+    },
+    {
+      "id": "04-critical-mass-sunlit-chaos",
+      "title": "Critical Mass / Sunlit Chaos",
+      "bpm": 124,
+      "direction": "Warmer island energy: plucked string body, wide airy chords and syncopated hand percussion"
+    }
+  ]
+}

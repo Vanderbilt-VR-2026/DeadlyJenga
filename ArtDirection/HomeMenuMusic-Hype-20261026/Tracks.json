@@ -1,0 +1,106 @@
+{
+  "method": "Original local electronic compositions and synthesis. No external samples. Revision emphasizes game-launch energy instead of cute mallet melodies.",
+  "recommended": "01-critical-mass",
+  "tracks": [
+    {
+      "id": "01-critical-mass",
+      "title": "Critical Mass",
+      "direction": "Main-menu pick: aggressive electro-breakbeat, distorted bass and a broad synth hook",
+      "bpm": 132,
+      "seconds": 58.1818125,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.17128182156909,
+      "rmsDbFS": -18.671645956056672,
+      "loopBoundaryDelta": 0.0008667828515172005,
+      "events": 1143,
+      "files": {
+        "wav": "01-critical-mass.wav",
+        "mp3": "01-critical-mass.mp3",
+        "mid": "01-critical-mass.mid"
+      },
+      "sha256": "2f014ff83e279772b65836629da325431934b0bccb5ef220f7a2354667e6f10a"
+    },
+    {
+      "id": "02-collapse-protocol",
+      "title": "Collapse Protocol",
+      "direction": "Industrial arena groove: crunchy low riffs, half-time impacts and racing arpeggios",
+      "bpm": 140,
+      "seconds": 54.857145833333334,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.005503933970049,
+      "rmsDbFS": -18.649091475239523,
+      "loopBoundaryDelta": 0.0021866261959075928,
+      "events": 1297,
+      "files": {
+        "wav": "02-collapse-protocol.wav",
+        "mp3": "02-collapse-protocol.mp3",
+        "mid": "02-collapse-protocol.mid"
+      },
+      "sha256": "54508762b08d6baef30f2998555ca28ca4b68f289e1a5d312971ae270bc981ad"
+    },
+    {
+      "id": "03-overdrive-island",
+      "title": "Overdrive Island",
+      "direction": "Arcade drum and bass: fast broken drums, rolling bass and wide euphoric chords",
+      "bpm": 174,
+      "seconds": 44.1379375,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.266723851807209,
+      "rmsDbFS": -18.640501418971795,
+      "loopBoundaryDelta": 0.001188395544886589,
+      "events": 1043,
+      "files": {
+        "wav": "03-overdrive-island.wav",
+        "mp3": "03-overdrive-island.mp3",
+        "mid": "03-overdrive-island.mid"
+      },
+      "sha256": "bd2f12853e7968d92f9a9d35741ce0811793338f7616b0bbff74850147fe5d86"
+    },
+    {
+      "id": "04-neon-aftershock",
+      "title": "Neon Aftershock",
+      "direction": "Electro-rock/synthwave: heavy toms, driving octaves and an anthemic low synth lead",
+      "bpm": 118,
+      "seconds": 65.08475,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.482221023610497,
+      "rmsDbFS": -18.61336918384246,
+      "loopBoundaryDelta": 0.0011459365487098694,
+      "events": 1231,
+      "files": {
+        "wav": "04-neon-aftershock.wav",
+        "mp3": "04-neon-aftershock.mp3",
+        "mid": "04-neon-aftershock.mid"
+      },
+      "sha256": "ca8dc3f51fdaa8f416f24a725d3d0451997a3d78370f612c91670d4c67d12ff3"
+    },
+    {
+      "id": "05-chaos-engine",
+      "title": "Chaos Engine",
+      "direction": "Bass-house launch energy: four-on-the-floor, growling syncopated bass and sharp stabs",
+      "bpm": 128,
+      "seconds": 60.0,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -2.860271227056293,
+      "rmsDbFS": -18.678012892331807,
+      "loopBoundaryDelta": 0.0012787599116563797,
+      "events": 1045,
+      "files": {
+        "wav": "05-chaos-engine.wav",
+        "mp3": "05-chaos-engine.mp3",
+        "mid": "05-chaos-engine.mid"
+      },
+      "sha256": "c4011f2a69e56e1e98a02a2a31d993d0af028e7b4769532401fe8d2bce2e0835"
+    }
+  ]
+}

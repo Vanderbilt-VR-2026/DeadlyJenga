@@ -25,14 +25,15 @@ namespace DeadlyJenga.Modes
         bool MysteryActive=>Active&&mystery!=null;
         public MysteryPrivateFrame Personal=>Authority&&MysteryActive?mystery.Personal(LocalActorId):personal;
         public MysteryPublicFrame Clues=>frame.mystery;
-        public string CaptureSecret(string id)=>JsonUtility.ToJson(MysteryActive?mystery.Personal(id):new MysteryPrivateFrame());
+        public string CaptureSecret(string id)=>JsonUtility.ToJson(ReplaySecret(id));
         public void ReceiveSecret(string json)
         {
             if(Authority||json==null||json.Length>8192)return;
-            try{var value=JsonUtility.FromJson<MysteryPrivateFrame>(json);if(value!=null&&Enum.IsDefined(typeof(MysteryRole),value.role)&&value.disasterChoices!=null&&value.disasterChoices.Length<=3)personal=value;}catch{}
+            try{var value=JsonUtility.FromJson<MysteryPrivateFrame>(json);if(value!=null&&Enum.IsDefined(typeof(MysteryRole),value.role)&&value.disasterChoices!=null&&value.disasterChoices.Length<=3&&ModeFrameValidation.Replay(value.replay))personal=value;}catch{}
         }
         void BeginMystery()
         {
+            ResetMysteryReplay();
             mystery=null;reviving.Clear();corpseDeaths.Clear();footprintNext.Clear();
             ClearMysteryBodies();trailFrames.Clear();trailCells.Clear();footprintLast.Clear();mysteryStrikes.Clear();
             witnessedMurderers.Clear();unavailableBadges.Clear();
@@ -93,14 +94,17 @@ namespace DeadlyJenga.Modes
             if(Time.time<nextMysteryTrail)return;nextMysteryTrail=Time.time+.15f;
             foreach(var pair in actors)
             {
-                var actor=pair.Value;if(!NetworkActors.Alive(actor)||!mystery.Alive(pair.Key)||mystery.IsDowned(pair.Key)||!actor.Grounded||!actor.StandingBody||!blockIds.TryGetValue(actor.StandingBody,out int index))continue;
+                var actor=pair.Value;if(!NetworkActors.Alive(actor)||!mystery.Alive(pair.Key)||mystery.IsDowned(pair.Key)||!actor.Grounded)continue;
+                int index=-1;if(actor.StandingBody)blockIds.TryGetValue(actor.StandingBody,out index);
+                if(actor.StandingBody&&!blockIds.ContainsKey(actor.StandingBody))index=-1;
                 if(footprintNext.TryGetValue(pair.Key,out var next)&&Time.time<next)continue;
-                var point=actor.transform.position;if(footprintLast.TryGetValue(pair.Key,out var last)&&(point-last).sqrMagnitude<.36f)continue;
+                var point=actor.transform.position;if(Physics.Raycast(point+Vector3.up*.15f,Vector3.down,out var floor,.5f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))point=floor.point;
+                if(footprintLast.TryGetValue(pair.Key,out var last)&&(point-last).sqrMagnitude<.36f)continue;
                 footprintLast[pair.Key]=point;footprintNext[pair.Key]=Time.time+.25f;
-                var local=actor.StandingBody.transform.InverseTransformPoint(point);Color color=simulation.Find(pair.Key).frame.color;
+                var local=index>=0?actor.StandingBody.transform.InverseTransformPoint(point):point;Color color=simulation.Find(pair.Key).frame.color;
                 string cell=index+":"+Mathf.RoundToInt(local.x*3)+":"+Mathf.RoundToInt(local.y*3)+":"+Mathf.RoundToInt(local.z*3)+":"+ColorUtility.ToHtmlStringRGB(color);
                 if(trailFrames.Count>=100000||!trailCells.Add(cell))continue;
-                var trail=new MysteryTrailFrame{block=index,point=local,normal=actor.StandingBody.transform.InverseTransformDirection(actor.StandingNormal),yaw=actor.transform.eulerAngles.y-actor.StandingBody.rotation.eulerAngles.y,color=color};mystery.AddTrail(trail);trailFrames.Add(trail);
+                var trail=new MysteryTrailFrame{block=index,point=local,normal=index>=0?actor.StandingBody.transform.InverseTransformDirection(actor.StandingNormal):actor.StandingNormal,yaw=actor.transform.eulerAngles.y-(index>=0?actor.StandingBody.rotation.eulerAngles.y:0),color=color};mystery.AddTrail(trail);trailFrames.Add(trail);
             }
         }
         [Serializable] public sealed class TrailPacket {public int revision;public MysteryTrailFrame[] trails;}
@@ -113,7 +117,7 @@ namespace DeadlyJenga.Modes
         {
             if(Authority||json==null||json.Length>64000)return;
             try{var packet=JsonUtility.FromJson<TrailPacket>(json);if(packet?.trails==null||packet.trails.Length>64)return;if(packet.revision!=receivedMysteryRound){trailFrames.Clear();receivedMysteryRound=packet.revision;}
-                foreach(var t in packet.trails){if(t==null||t.sequence<=trailFrames.Count||t.block<0||t.block>=(Services.World?.Blocks?.Count??0)||!float.IsFinite(t.point.sqrMagnitude)||!float.IsFinite(t.normal.sqrMagnitude)||!float.IsFinite(t.yaw))continue;if(t.sequence!=trailFrames.Count+1)return;trailFrames.Add(t);}}
+                foreach(var t in packet.trails){if(t==null||t.sequence<=trailFrames.Count||t.block<-1||t.block>=(Services.World?.Blocks?.Count??0)||!float.IsFinite(t.point.sqrMagnitude)||!float.IsFinite(t.normal.sqrMagnitude)||!float.IsFinite(t.yaw))continue;if(t.sequence!=trailFrames.Count+1)return;trailFrames.Add(t);}}
             catch{}
         }
         void MysteryRequest(string value)
@@ -149,14 +153,14 @@ namespace DeadlyJenga.Modes
             if(command.StartsWith("report:"))
             {
                 string id=command.Substring(7);var body=mystery.Public().bodies.FirstOrDefault(b=>b.id==id);
-                if(body!=null&&Close(sender,body.position)){if(mystery.Report(sender,id,simulation.Find(sender).frame.color))simulation.Find(sender).frame.bodyReports++;if(body.sheriff)mystery.RecoverSheriff(sender,id);}return;
+                if(body!=null&&Close(sender,body.position)){if(mystery.Report(sender,id,simulation.Find(sender).frame.color))simulation.Find(sender).frame.bodyReports++;}return;
             }
             if(command.StartsWith("suspect:"))
             {
                 var parts=command.Substring(8).Split(new[]{':'},2);if(parts.Length!=2||!int.TryParse(parts[0],out int index))return;
                 var trail=mystery.Trail(index);var body=mystery.Public().bodies.FirstOrDefault(b=>b.id==parts[1]);var blocks=Services.World?.Blocks;
-                if(trail==null||body==null||blocks==null||trail.block<0||trail.block>=blocks.Count||!blocks[trail.block])return;
-                var point=blocks[trail.block].transform.TransformPoint(trail.point);
+                if(trail==null||body==null||blocks==null||trail.block<-1||trail.block>=blocks.Count||trail.block>=0&&!blocks[trail.block])return;
+                var point=trail.block<0?trail.point:blocks[trail.block].transform.TransformPoint(trail.point);
                 if(Close(sender,point)&&(point-body.position).sqrMagnitude<=Rules.mystery.trailRadius*Rules.mystery.trailRadius)mystery.Suspect(sender,body.id,index);
             }
         }
@@ -185,7 +189,7 @@ namespace DeadlyJenga.Modes
             if(result==MysteryHit.Blocked)return true;
             if(mystery.IsDowned(victim)){RestoreMysteryHealth(victim);simulation.Find(victim).frame.role="downed";}
             else
-            {if(murdered)corpseDeaths.Add(victim);simulation.Kill(victim,attacker);FinishMysteryHealth(victim,FindActor(attacker)?.gameObject);}
+            {RecordMysteryReplay(attacker,victim,murdered);if(murdered)corpseDeaths.Add(victim);simulation.Kill(victim,attacker);FinishMysteryHealth(victim,FindActor(attacker)?.gameObject);}
             if(!mystery.Alive(attacker)){simulation.Kill(attacker,null);FinishMysteryHealth(attacker,null);}
             return true;
         }

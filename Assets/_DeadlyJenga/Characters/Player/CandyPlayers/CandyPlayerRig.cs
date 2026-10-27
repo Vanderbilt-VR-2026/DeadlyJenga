@@ -51,22 +51,25 @@ namespace DeadlyJenga.CandyPlayers
         {
             var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;
             copy.bodyRenderer.enabled=copy.headRenderer.enabled=true;copy.bodyRenderer.SetPropertyBlock(colorProperties);copy.headRenderer.SetPropertyBlock(colorProperties);
-            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments)copiedAttachments.Tint(copy);
+            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
             var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
-        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();}
+        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
+        bool firstPersonOverride;
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
         {
             var spectator=Services.Session?.Demo as ISpectatorControls;
             var watched=spectator?.WatchedRoot(camera);
             bool firstPerson=camera==ownerCamera||(watched&&transform.IsChildOf(watched));
+            if(!firstPerson&&!firstPersonOverride)return;
+            firstPersonOverride=firstPerson;
             if(headRenderer)headRenderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
             SetFirstPersonBody(firstPerson);
             if(attachments)attachments.FirstPerson(this,firstPerson);
         }
-        void AfterCamera(ScriptableRenderContext context,Camera camera){RestoreFirstPersonBody();if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;if(attachments)attachments.FirstPerson(this,false);}
+        void AfterCamera(ScriptableRenderContext context,Camera camera){if(!firstPersonOverride)return;firstPersonOverride=false;RestoreFirstPersonBody();if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;if(attachments)attachments.FirstPerson(this,false);}
         public void SetColor(int index)
         {
             if(!style)return;var color=hasTint?tint:style.ColorAt(index);
@@ -78,8 +81,19 @@ namespace DeadlyJenga.CandyPlayers
             colorIndex=index;currentMaterial=style.material;currentColor=color;currentSmoothness=style.smoothness;
             if(attachments)attachments.Tint(this);
         }
+        bool composingPose,pendingPose,pendingGrounded;
+        float pendingDelta;
+        CandyAvatarFrame pendingFrame;
+        public void BeginPoseComposition(){composingPose=true;pendingPose=false;pendingDelta=0;}
+        public void EndPoseComposition()
+        {
+            composingPose=false;
+            if(!pendingPose)return;
+            pendingPose=false;ApplyFrame(pendingFrame,pendingGrounded,pendingDelta);
+        }
         public void ApplyFrame(CandyAvatarFrame frame,bool grounded=true,float deltaTime=0)
         {
+            if(composingPose){pendingFrame=frame;pendingGrounded=grounded;pendingDelta+=deltaTime;pendingPose=true;return;}
             if(!bodyRenderer)BuildModel();
             if(colorIndex!=int.MinValue)SetColor(colorIndex);
             float scale=Mathf.Max(.1f,frame.scale);

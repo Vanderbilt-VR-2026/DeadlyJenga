@@ -1,0 +1,86 @@
+{
+  "method": "Locally composed and synthesized. Critical Mass hook and breakbeat retained, with redesigned timbres and coastal texture.",
+  "recommended": "01-critical-mass-shorebreak",
+  "tracks": [
+    {
+      "id": "01-critical-mass-shorebreak",
+      "title": "Critical Mass / Shorebreak",
+      "direction": "Closest to the approved track: punchy breakbeat, warm elastic bass, hollow plastic lead and coastal air",
+      "bpm": 132,
+      "seconds": 58.1818125,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.226204874735028,
+      "rmsDbFS": -18.651454330413618,
+      "loopBoundaryDelta": 0.0009560771286487579,
+      "events": 1199,
+      "files": {
+        "wav": "01-critical-mass-shorebreak.wav",
+        "mp3": "01-critical-mass-shorebreak.mp3",
+        "mid": "01-critical-mass-shorebreak.mid"
+      },
+      "sha256": "7c01d3e4711b2defde0848b81ffd70cd533b37c34e9c2281ee6803b10b79db8c"
+    },
+    {
+      "id": "02-critical-mass-candy-current",
+      "title": "Critical Mass / Candy Current",
+      "direction": "Glossy candy identity: thick glass-resonator hook, rubbery low end and clacking tactile percussion",
+      "bpm": 128,
+      "seconds": 60.0,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.492325712633116,
+      "rmsDbFS": -18.63719057811268,
+      "loopBoundaryDelta": 0.002012556418776512,
+      "events": 1171,
+      "files": {
+        "wav": "02-critical-mass-candy-current.wav",
+        "mp3": "02-critical-mass-candy-current.mp3",
+        "mid": "02-critical-mass-candy-current.mid"
+      },
+      "sha256": "c938a8819467c6147c5d5a642f94e6865a6b8a6b039a797d664005a1f46e08f2"
+    },
+    {
+      "id": "03-critical-mass-tidal-pressure",
+      "title": "Critical Mass / Tidal Pressure",
+      "direction": "Ocean mayhem: deeper bass, weighty drums, muted metallic hook and wave-like swells",
+      "bpm": 132,
+      "seconds": 58.1818125,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.5396072979486455,
+      "rmsDbFS": -18.640281173463105,
+      "loopBoundaryDelta": 0.001012556254863739,
+      "events": 1143,
+      "files": {
+        "wav": "03-critical-mass-tidal-pressure.wav",
+        "mp3": "03-critical-mass-tidal-pressure.mp3",
+        "mid": "03-critical-mass-tidal-pressure.mid"
+      },
+      "sha256": "c1e0b98080fe40d715e04973208cee45d16a37a0e727ee9d17e2ae4efd07629f"
+    },
+    {
+      "id": "04-critical-mass-sunlit-chaos",
+      "title": "Critical Mass / Sunlit Chaos",
+      "direction": "Warmer island energy: plucked string body, wide airy chords and syncopated hand percussion",
+      "bpm": 124,
+      "seconds": 61.93547916666667,
+      "bars": 32,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -4.235407189822507,
+      "rmsDbFS": -18.64470984494107,
+      "loopBoundaryDelta": 0.001569582149386406,
+      "events": 1367,
+      "files": {
+        "wav": "04-critical-mass-sunlit-chaos.wav",
+        "mp3": "04-critical-mass-sunlit-chaos.mp3",
+        "mid": "04-critical-mass-sunlit-chaos.mid"
+      },
+      "sha256": "2f0685b9464e75b15e748d8d8df36b6869ad6c37a90d70ad44ce89cd6f2c5f5b"
+    }
+  ]
+}

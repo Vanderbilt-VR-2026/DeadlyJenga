@@ -52,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public string Status => string.IsNullOrEmpty(DemoPowerups.Status)?DemoDisasters.Status:DemoPowerups.Status;
         IBuildUpControls BuildUp => Services.World as IBuildUpControls;
-        public bool Available => DemoMode && BuildUp?.Available == true;
+        public bool Available => BuildUp?.Available == true;
         public int Stage => BuildUp?.Stage ?? 0;
         public int StageCount => BuildUp?.StageCount ?? 0;
         public bool Delivering => BuildUp?.Delivering ?? false;

@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -8,6 +9,7 @@ namespace DeadlyJenga.CandyArt
     [DefaultExecutionOrder(500)]
     public sealed class CandyCrateBatchRenderer : MonoBehaviour
     {
+        static readonly ProfilerMarker DJCrateBatchesMarker = new ProfilerMarker("DJ.CrateBatches");
         static CandyCrateBatchRenderer instance;
         readonly Dictionary<CandyCrateVisual, Entry> visuals = new Dictionary<CandyCrateVisual, Entry>();
         bool supported;
@@ -18,6 +20,9 @@ namespace DeadlyJenga.CandyArt
             public Batch batch;
             public float refreshAt;
             public bool hidden;
+            public Transform transform;
+            public Matrix4x4 matrix;
+            public bool hasMatrix;
         }
         readonly Dictionary<(Mesh, Material, int, ShadowCastingMode, bool, uint), Batch> batches =
             new Dictionary<(Mesh, Material, int, ShadowCastingMode, bool, uint), Batch>();
@@ -44,7 +49,7 @@ namespace DeadlyJenga.CandyArt
                 go.hideFlags=HideFlags.DontSave;
                 instance=go.AddComponent<CandyCrateBatchRenderer>();
             }
-            instance.visuals[visual]=new Entry{visual=visual,renderer=visual.Renderer};
+            instance.visuals[visual]=new Entry{visual=visual,renderer=visual.Renderer,transform=visual.Renderer.transform};
         }
         internal static void Unregister(CandyCrateVisual visual)
         {if(instance)instance.visuals.Remove(visual);}
@@ -73,6 +78,7 @@ namespace DeadlyJenga.CandyArt
         }
         void LateUpdate()
         {
+            using var measurement = DJCrateBatchesMarker.Auto();
             foreach(var entry in visuals.Values)
             {
                 if(Time.unscaledTime>=entry.refreshAt)
@@ -84,7 +90,12 @@ namespace DeadlyJenga.CandyArt
                 if(entry.hidden!=batch){entry.renderer.forceRenderingOff=batch;entry.hidden=batch;}
                 if(!batch)continue;
                 var group=entry.batch;
-                group.matrices[group.count++]=entry.renderer.localToWorldMatrix;
+                if(!entry.hasMatrix||entry.transform.hasChanged)
+                {
+                    entry.matrix=entry.renderer.localToWorldMatrix;entry.hasMatrix=true;
+                    entry.transform.hasChanged=false;
+                }
+                group.matrices[group.count++]=entry.matrix;
                 if(group.count==group.matrices.Length)group.Flush();
             }
             foreach(var group in batches.Values)group.Flush();

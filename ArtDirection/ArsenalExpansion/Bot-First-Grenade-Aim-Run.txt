@@ -1,0 +1,80 @@
+Random spawning, native support/expiry, real bot collection, ordinary weapon skill fixtures and production Mystery witness acceptance.
+PASS Actual Game starts
+PASS Nonfinite configuration is rejected without mutation
+PASS Duplicate item weights are rejected
+PASS Notice policy has varied, non-universal interest across actors
+PASS Interest does not reroll every frame
+PASS Range policy uses long rifle at range and hysteresis near mode boundaries
+PASS Random spawner accepts exposed tier 0
+PASS Active random pickup cap is respected
+PASS Random spawner accepts exposed tier 1
+PASS Active random pickup cap is respected
+PASS 100% rifle weight produces only the chosen type
+PASS Random spawner accepts exposed tier 2
+PASS Active random pickup cap is respected
+PASS Pickup follows its actual moving support
+PASS Existing random pickups expire even with spawning disabled
+PASS Zero total weight pauses spawning
+PASS Collector spawns on a walkable fixture surface: Spawned Candy NPC 1 — Balanced
+PASS Fixture includes a noticed valuable pickup
+PASS Production director and ordinary movement collect a real pickup
+PASS Director records actual collection as success rather than arrival
+PASS Bot equipment API rejects a human actor
+PASS Actual bot pickup grants Speed
+PASS Collected speed powerup changes the actual bot movement multiplier
+PASS Actual bot pickup grants Jump
+PASS Collected jump powerup changes the actual bot jump height
+PASS Previous plasma drains before testing Blaster
+PASS Actual bot pickup grants Blaster
+PASS Actual bot skill damages a physical target using Blaster
+PASS Authoritative bot weapon fire observed for Blaster
+WEAPON Blaster: damage=33.4 reason=Reacting and settling aim
+PASS Previous plasma drains before testing MurderSword
+PASS Actual bot pickup grants MurderSword
+PASS Actual bot skill damages a physical target using MurderSword
+PASS Authoritative bot weapon fire observed for MurderSword
+WEAPON MurderSword: damage=60.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing SheriffHammer
+PASS Actual bot pickup grants SheriffHammer
+PASS Actual bot skill damages a physical target using SheriffHammer
+PASS Authoritative bot weapon fire observed for SheriffHammer
+WEAPON SheriffHammer: damage=85.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing DualRifle
+PASS Actual bot pickup grants DualRifle
+PASS Actual bot skill damages a physical target using DualRifle
+PASS Authoritative bot weapon fire observed for DualRifle
+WEAPON DualRifle: damage=55.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing BoxingGlove
+PASS Actual bot pickup grants BoxingGlove
+PASS Actual bot skill damages a physical target using BoxingGlove
+PASS Authoritative bot weapon fire observed for BoxingGlove
+WEAPON BoxingGlove: damage=80.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing PoweredArmor
+PASS Actual bot pickup grants PoweredArmor
+PASS Actual bot skill damages a physical target using PoweredArmor
+PASS Authoritative bot weapon fire observed for PoweredArmor
+WEAPON PoweredArmor: damage=33.1 reason=Reacting and settling aim
+PASS Previous plasma drains before testing RocketLauncher
+PASS Actual bot pickup grants RocketLauncher
+PASS Actual bot skill damages a physical target using RocketLauncher
+PASS Authoritative bot weapon fire observed for RocketLauncher
+WEAPON RocketLauncher: damage=88.1 reason=Reacting and settling aim
+PASS Previous plasma drains before testing DualUzi
+PASS Actual bot pickup grants DualUzi
+PASS Actual bot skill damages a physical target using DualUzi
+PASS Authoritative bot weapon fire observed for DualUzi
+WEAPON DualUzi: damage=9.0 reason=Reacting and settling aim
+PASS Previous plasma drains before testing ChainGun
+PASS Actual bot pickup grants ChainGun
+PASS Actual bot skill damages a physical target using ChainGun
+PASS Authoritative bot weapon fire observed for ChainGun
+WEAPON ChainGun: damage=10.0 reason=Reacting and settling aim
+PASS Previous plasma drains before testing GrenadeLauncher
+PASS Actual bot pickup grants GrenadeLauncher
+FAIL Actual bot skill damages a physical target using GrenadeLauncher · Reacting and settling aim / weapon-fixture grounded=True inventory={"actor":"bot:86625e26e5b54156a89fc845ef3d1242","kind":12,"drawn":true,"leftHanded":false,"shotgun":false,"roleIssued":false,"thrust":false,"builtIn":false,"triggerHeld":false,"activePower":0,"charge":0.0,"remaining":20.0} shots=21 muzzle=(150.11, 10.88, 150.54) target=(150.00, 10.43, 170.00)
+FAIL System.Exception: Actual bot skill damages a physical target using GrenadeLauncher · Reacting and settling aim / weapon-fixture grounded=True inventory={"actor":"bot:86625e26e5b54156a89fc845ef3d1242","kind":12,"drawn":true,"leftHanded":false,"shotgun":false,"roleIssued":false,"thrust":false,"builtIn":false,"triggerHeld":false,"activePower":0,"charge":0.0,"remaining":20.0} shots=21 muzzle=(150.11, 10.88, 150.54) target=(150.00, 10.43, 170.00)
+  at DeadlyJenga.DevTools.Editor.PowerupBotChecks.Check (System.Boolean ok, System.String label) [0x0003a] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\PowerupBotChecks.cs:80 
+  at DeadlyJenga.DevTools.Editor.PowerupBotChecks+<Until>d__18.MoveNext () [0x00068] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\PowerupBotChecks.cs:82 
+  at DeadlyJenga.DevTools.Editor.PowerupBotChecks+<Guard>d__19.MoveNext () [0x00073] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\PowerupBotChecks.cs:88 
+Shared firearm aiming fixture completed; see FirearmAimShared.txt.
+COMPLETE checks=63 errors=0 failed=True. Native fixture surfaces and actual Game modes; no Quest test.

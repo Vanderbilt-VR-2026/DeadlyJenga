@@ -1,0 +1,107 @@
+{
+  "status": "Eight requested setting concepts; not implemented Unity environments",
+  "concepts": [
+    {
+      "id": "honeycomb-hive",
+      "mapId": "epic-canopy-borough",
+      "mapName": "Canopy Borough",
+      "number": 7,
+      "title": "Inside the Honeycomb",
+      "description": "An enormous warmly lit beehive surrounds the abstract branching structures. Existing slab edges become thick wax with hex-cell surface patterns, columns dark pollen-dusted wood, and undersides amber honey membranes. Low courts use pale wax/honey mixtures, tall skyline dark propolis-like resin. Sparse honey drips, small comb patches and bees decorate external edges; routes remain matte and clear.",
+      "palette": [
+        "#e4b147",
+        "#a37135",
+        "#e8cf8b"
+      ],
+      "scene": "The actual map sits ON the floor of a colossal honeycomb beehive, fully surrounded by distant curved golden wax cell walls and softly backlit translucent amber honeycomb ceiling. Outside scenery not tropical ocean: distant honey-colored void/shimmer beyond the map's playable edge, clearly boundary-like. The island footprint is a slightly concave broad wax floor. The actual branching crown slabs KEEP their rectangular outlines and holes, but show BIG hexagonal cell textures on wax sides; opaque pale buttery walkable tops, amber gilled undersides. Use different wax families by structure: center crown rich golden-orange and dark rough wooden posts, west pale beeswax with pollen yellow, east smoky amber resin with near-black posts, tall skinny skyline deep brown glossy propolis sides with cream tops. Low courtyards and folded pavilions pale wax with small attached patches of hexagonal comb on OUTSIDE corners; a few slow bees nearby, tiny pollen clusters and restrained short thick honey drips underneath external lips. Never put honey obstacles on walking tops. No replacing rectangular decks by hexagonal platforms, no new traversable structures. Cozy magical macro scale, rich toy-like wax translucency only on side accents, warm light through cell walls with enough fill to read voids. Bees tiny relative structures, no swarm clutter."
+    },
+    {
+      "id": "cotton-carnival",
+      "mapId": "epic-three-hearts",
+      "mapName": "Three Hearts City",
+      "number": 9,
+      "title": "Carnival on a Cotton-Candy Cloud",
+      "description": "The structural clusters stand on one giant pink-and-blue cloud. Towers mix striped candy enamel, star-speckled ceramic, glossy sugar resin and warm metallic joints. Low pavilions receive scalloped trims and sparse pennants; ribbons and tiny bulbs sit on exterior edges. Distant carnival silhouettes belong to the backdrop.",
+      "palette": [
+        "#e9a7c4",
+        "#99cbd6",
+        "#e3bd70"
+      ],
+      "scene": "The actual whole map sits on ONE enormous fluffy cotton-candy cloud, rosy pink underside and pale blue/vanilla top with visible spun-sugar fibers. Broad actual footprint preserved, with cloud puff skirt only outside boundary. Background is a vast pastel twilight sky with sunlit peach clouds and distant carnival balloon shapes / faint faraway Ferris-wheel silhouette as SKY BACKDROP ONLY; no ocean visible. Existing central catch tower remains abstract OPEN slabs: opaque vanilla matte top faces, glossy raspberry sugar-resin sides, dark blueberry posts with sparse gold star markings. Northwest gateway frame uses warm red/cream candy stripe SIDE patterns and yellow joint caps; north spiral cluster uses pale aqua and white ceramic with tiny lavender glitter; northeast paired stacks peach/lilac glazed sides. Lower courts are candy-molded mint, strawberry and cream, DIFFERENT per cluster. A few short decorative scalloped edge trims under outside lips, sparse triangles of pennant ribbon attached only along outer deck edges without blocking gaps, tiny round warm bulb caps at select joints. Three thin decorative floating balloons in distant background, not dense particle confetti. Fun unmistakable carnival atmosphere with playful polish and rich textures; no actual giant wheel or booth geometry replacing our open structures. Keep original block shapes, paths, catch ledges and climbing fronts clear. Fog/lighting never hides lower paths; danger at cloud edge should remain visible. No city fa\u00e7ades or enclosed buildings."
+    },
+    {
+      "id": "lilypad-jungle",
+      "mapId": "epic-harbor-loom",
+      "mapName": "Harbor Loom",
+      "number": 5,
+      "title": "Lilypad in the Jungle",
+      "description": "The woven low structures sit on a colossal waxy lilypad above a jungle pond. Slab families mix leaf-veined green, aged reed fiber, water-polished stone and iridescent dragonfly-shell accents. Dew beads, tiny flowers and short root fibers stay outside the playable routes.",
+      "palette": [
+        "#4f9363",
+        "#bfaa75",
+        "#6dabb2"
+      ],
+      "scene": "The actual map sits on ONE massive floating lilypad in a luminous jungle pond, map occupying its broad flat center. A clearly visible round waxy pad edge with a characteristic notch can extend visually outside the existing playable footprint, not cut any route. Island surface is waxy dark-to-lime green with huge radial veins, gentle rim outside map. Surrounding pond is deep jade with turquoise reflections; giant ferns, bromeliads, broad jungle leaves and ancient tree roots in DISTANT BACKDROP, strong warm sun shafts through humid sky. No dense jungle trees inside pathways. Original tall narrow stacks: dark water-polished stone posts, pale matte slabs with iridescent blue-green insect-shell sides, a few small shell plates outside post backs. Existing broad low stacked slabs: woven reed-textured sides and warm pale wood tops; stepped structure: translucent-looking jade leaf SIDE faces, opaque light green tops, bark posts. Low courts and bridge side strips get leaf-vein patterns with cream walking tops; colors differentiated by shape. A few dew beads on nonwalking side edges, tiny pink flower buds at OUTSIDE bases, sparse short reed/root fibers hanging under exterior corners. Keep all original rectangular slabs, bridges, open voids and level counts. No new lilypad platforms under individual towers. Macro-scale magical jungle world with frog/dragonfly silhouettes far away optional, not living hazards."
+    },
+    {
+      "id": "jungle-leaf-branch",
+      "mapId": "epic-rising-spine",
+      "mapName": "The Rising Spine",
+      "number": 10,
+      "title": "A World on One Jungle Leaf",
+      "description": "The elevation sequence follows a giant leaf's central vein while the whole map remains on its broad surface. Lower slabs use rough bark and curled-leaf textures; mid structures amber resin and seedpod patterns; upper stacks pale leaf skeleton and iridescent beetle-shell details. The immense branch and jungle canopy form the surrounding backdrop.",
+      "palette": [
+        "#638546",
+        "#b39b5c",
+        "#9abfb3"
+      ],
+      "scene": "The actual whole map rests on ONE gigantic broad jungle leaf attached to a colossal tree branch. Keep the original island's broad playable footprint; leaf margins and tip extend outside it as visual skirt. The actual gentle terrain rise is translated into the leaf's raised central vein beneath the existing ascent sequence, no rerouting or replacing geometry. Surrounding background is a deep jungle canopy: enormous tree limb and bark below leaf, distant out-of-focus giant leaves and shafts of golden light; open green atmospheric air below edge, no ocean. World feels tiny at insect scale. Existing lowest wide structures have dark fibrous bark posts, opaque cream wood-grain tops, mossy green leaf-vein sides. Middle stepped relay has amber resin side plates with trapped bubble patterns and warm seed-pod ridges on existing posts. Highest tall ring stack has pale porous leaf-skeleton posts, opaque muted green tops, iridescent beetle-shell blue-green side plates; contrasting secondary skyline dark brown and ochre. Low folded courts vary pressed-leaf green, pale rough wood and russet dry-leaf sides by height. Bridges quiet pale wood tops, stem-vein side lines. Sparse small seed-pod husks and short leaf tendrils attached beneath EXTERIOR edges; small iridescent shell ovals on outward posts. Do not put real vines across climbing faces; no literal treehouses, hut fa\u00e7ades, new supporting roots or extra platforms. All original open shapes and gaps intact."
+    },
+    {
+      "id": "playground-sandbox",
+      "mapId": "epic-bookfall",
+      "mapName": "Bookfall Boulevard",
+      "number": 8,
+      "title": "Forgotten Toys in the Sandbox",
+      "description": "The map becomes an abstract construction toy in a real playground sandbox. Broad panels receive crayon marks and stamped molded-plastic textures; stacked slabs contrast worn painted wood, colored rubber and sand-scuffed metal. A few toy-sized corner screws and playful badges attach to the pieces; bucket, shovel and playground forms sit beyond the playable boundary.",
+      "palette": [
+        "#dfac69",
+        "#7199bb",
+        "#cc7d6c"
+      ],
+      "scene": "The actual map sits inside a huge wooden-edged PLAYGROUND SANDBOX seen at tiny toy scale. Broad original island footprint is sand with subtle raked patterns and small footprints TEXTURE outside structure bases, not dunes changing movement. Surrounding backdrop: sunlit playground grass, faraway swing-set legs, a colorful slide in soft focus. A big red toy bucket and yellow shovel lie beyond the map's boundary in the sand, with timber sandbox border beyond; not among routes. Bright warm afternoon, blue sky, NO ocean. Original broad Book Wing vertical panels get chunky worn blue/red/ochre molded-plastic faces with large soft crayon scribbles and simple stamped star/circle motifs, no writing. Their slab tops are opaque scuffed birch wood, posts navy rubberized plastic. Zipper tall stack alternates pale wood and warm orange plastic slab side families on dark metal posts, maintaining staggered silhouette. Civic ring tower contrasts chipped red/cream painted wood. Low pavilions are distinct mint rubber sides, faded yellow molded plastic and warm red wooden blocks, quiet pale walking tops. Sparse large-toy-scale screw caps at EXTERIOR joints and a few flat colored toy badges on outside post backs; no actual dolls or figures replacing towers. Sand grains, scratches, wood endgrain, rounded toy finish detail but keep original squared slab silhouettes and level counts. Original open frames not realistic buildings. Clear sunny tactile nostalgia, structure colors varied rather than uniform."
+    },
+    {
+      "id": "western-ravine",
+      "mapId": "epic-lantern-ravine",
+      "mapName": "Lantern Ravine",
+      "number": 6,
+      "title": "Sunset in the Old West",
+      "description": "The existing ravine frames become a weathered frontier construction with sun-bleached plank grain, dark timber posts, iron bands and faded red or turquoise paint. Leaning frames get contrasting pale boards and dark iron; low pavilions use rough sandstone and porch-like wood textures. Sparse horseshoe plates, a few lanterns and short rope loops add western cues without enclosing the open frames.",
+      "palette": [
+        "#a97c4d",
+        "#c69b79",
+        "#7f9fa1"
+      ],
+      "scene": "The actual map sits on dusty sandy ground in an OLD WESTERN COWBOY landscape, red-rock canyon cliffs and mesas far beyond the original island boundary, warm sunset peach sky, NO tropical ocean visible; low dusty atmospheric valley around the isolated playable footprint. Existing open slab towers stay obviously abstract open frames, NOT fake buildings with new walls. Leaning compression structures: very dark weathered square timber columns, light sunbleached plank-grain opaque deck tops, faded red and turquoise side faces, a few broad black iron strap details on EXTERIOR joints. Tall ridge stack: warm rusty corrugated-metal SIDE pattern, pale wood tops, dark iron posts. High ring-capped stack: faded cream painted wood with muted red edges, tiny external lantern at one or two outward joints only. West stepped structures: rough sandstone posts and honey wood decks; low ravine pavilions use differing warm timber, clay-red worn paint, muted green wood and pale dusty stone. Some low slab side panels can have one small weathered horseshoe badge or sheriff-star motif, NO giant fa\u00e7ade signs or city-function labels. Sparse short rope loops on post backs, small metal corner caps, a handful of low decorative dry-grass tufts beside EXTERIOR base corners only. Keep grip fronts, stairs, deck tops, gaps and original bridge routes unobstructed. Nearby decorative wagon wheel partially visible outside playable area as backdrop prop, optional. Rich wood endgrain, nail-head accents and aged paint provide western atmosphere; avoid turning the frame geometry into saloons, houses or enclosed streets."
+    },
+    {
+      "id": "blue-sky-candy-glass",
+      "title": "Candy Glass Above the Clouds",
+      "description": "Three Hearts City on a soft white cloud in a beautiful clear light-blue sky. Red, green and purple blocks are shiny translucent hard candy, with rounded glossy edges, colored refraction and tiny trapped bubbles. The cloud is white rather than pink carnival candy.",
+      "scene": "Place the actual original whole map on one beautiful broad fluffy WHITE CLOUD, ivory white sunlit top and subtle cool blue shadows underneath, floating in a vast BEAUTIFUL LIGHT BLUE daytime sky with a few soft distant white clouds. No carnival, no balloons, no ocean, no pink twilight. The original slabs, posts and bridges are all delicious-looking SHINY SEE-THROUGH CANDY GLASS in THREE vibrant colors: cherry RED, emerald/lime GREEN and grape PURPLE. Distribute these by existing structural clusters and pieces, with green posts/red slabs on some clusters, purple posts/green slabs on others and ruby/purple variation on low pavilions; the original abstract building forms remain clearly distinguishable. Material looks biteable like thick polished fruit drops or translucent gummy-hard-candy hybrid: saturated translucent BODY with lighter edges, slight soft bevels, internal little bubbles, subtle syrupy striations, believable colored refraction and a few small bright specular highlights. It MUST actually look see-through, not opaque painted candy, opaque frosting or metallic. You can see the neighboring structure silhouettes through thicker colored pieces, with stronger saturation in thick edges. Tops also made of candy glass for this ART exploration: keep surface contours and edge highlights legible. Sparse rounded sugar beads only at a few outside joints, no heavy decoration. Strong clean sunlight, gentle soft contact shadows on white cloud. Main focus bright blue sky, white cloud, juicy red green purple transparent pieces.",
+      "mapId": "epic-three-hearts",
+      "mapName": "Three Hearts City",
+      "number": 9
+    },
+    {
+      "id": "tiny-moon-candy-glass",
+      "title": "Candy Glass on a Tiny Moon",
+      "description": "The same Three Hearts City and red/green/purple candy-glass materials on a small cratered moon, with a curved pale-gray limb, deep starry space and a distant blue planet. A broad gentle cap under the original structures keeps the layout recognizable.",
+      "scene": "Place the SAME actual whole-map layout on top of a TINY ROUND MOON, so the pale gray curved lunar horizon and strongly rounded spherical limb are clearly visible below and around the map: a charming little-planet diorama, NOT a giant flat gray island. The original map occupies a broad gently curved nearly level cap on the upper moon, and the tiny moon sphere is visible below; structures retain their original upright axis and bridge connections, not wrapped radially around the sphere. Moon is fine powdery ivory-gray regolith with shallow impact crater textures and a few distant small rocks OUTSIDE routes. Dark midnight-blue space backdrop with fine scattered stars and a distant small blue planet on one side, sunlit pale crescent light on moon's edge; ample soft fill so bottom routes stay readable. The SAME RED GREEN PURPLE translucent biteable CANDY-GLASS blocks: ruby red, emerald/lime green and grape purple, varied by cluster, thick glossy slightly softened edges, tiny trapped bubbles, colored refraction. They must look transparent polished fruit-candy chunks rather than opaque plastic, metal or realistic buildings. Moon surface matte and neutral to make the colorful candy shimmer. Sparse sugar-bead exterior joint details. No astronauts, rockets, flags, space buildings, helmets or extra gameplay objects. No new physical craters in paths. All familiar abstract open slab towers and low structures remain the reference.",
+      "mapId": "epic-three-hearts",
+      "mapName": "Three Hearts City",
+      "number": 9
+    }
+  ]
+}

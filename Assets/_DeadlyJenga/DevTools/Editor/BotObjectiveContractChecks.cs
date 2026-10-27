@@ -36,8 +36,8 @@ namespace DeadlyJenga.DevTools.Editor
         static void Poll()
         {
             if (EditorApplication.isCompiling || EditorApplication.isUpdating || EditorApplication.isPlayingOrWillChangePlaymode) return;
-            string request = ProjectPath.Report("BotObjectiveContracts.request");
-            if (!File.Exists(request)) return;
+            string request = ProjectPath.Report("BotObjectiveContractsExpansionMain.request");
+            if (!File.Exists(request)||File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString()+":expanded1") return;
             File.Delete(request); Run();
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Bot Objective Contracts")]
@@ -164,7 +164,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             public bool SupportsQuery(string name)=>true;
             public bool SupportsCondition(string name)=>true;
-            public bool SupportsInteraction(string name)=>false;
+            public bool SupportsInteraction(string name)=>name=="collect-pickup";
             public bool Test(string name,BotDirectorActor actor,BotDirectorTarget target)=>false;
             public void Query(string name,BotDirectorActor actor,List<BotDirectorTarget> results)
             {

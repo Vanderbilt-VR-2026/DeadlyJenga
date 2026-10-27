@@ -1,0 +1,912 @@
+Actual Unity lobby / Game solo validation. Project: C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\slot-01
+Connected and guest screens additionally use explicitly labeled presentation stand-ins; no networking/headset claim.
+PASS Actual lobby starts
+PASS Actual lobby presentation builds
+PASS All three terminals use approved design
+PASS Existing wardrobe kept separate
+PASS Visual/hit target agree: main / code
+PASS Readable font minimum: main / code
+PASS Button contained by screen: main / code
+PASS Visual/hit target agree: main / join
+PASS Readable font minimum: main / join
+PASS Button contained by screen: main / join
+PASS Visual/hit target agree: main / detect-nearby
+PASS Readable font minimum: main / detect-nearby
+PASS Button contained by screen: main / detect-nearby
+PASS Visual/hit target agree: main / host
+PASS Readable font minimum: main / host
+PASS Button contained by screen: main / host
+PASS Visual/hit target agree: main / region
+PASS Readable font minimum: main / region
+PASS Button contained by screen: main / region
+PASS Visual/hit target agree: main / invite-all
+PASS Readable font minimum: main / invite-all
+PASS Button contained by screen: main / invite-all
+PASS Visual/hit target agree: main / mode-current
+PASS Readable font minimum: main / mode-current
+PASS Button contained by screen: main / mode-current
+PASS Visual/hit target agree: main / map-current
+PASS Readable font minimum: main / map-current
+PASS Button contained by screen: main / map-current
+PASS Visual/hit target agree: main / island-effects
+PASS Readable font minimum: main / island-effects
+PASS Button contained by screen: main / island-effects
+PASS Visual/hit target agree: main / mode-settings
+PASS Readable font minimum: main / mode-settings
+PASS Button contained by screen: main / mode-settings
+PASS Visual/hit target agree: main / human-team
+PASS Readable font minimum: main / human-team
+PASS Button contained by screen: main / human-team
+PASS Visual/hit target agree: main / player-target
+PASS Readable font minimum: main / player-target
+PASS Button contained by screen: main / player-target
+PASS Visual/hit target agree: main / launch
+PASS Readable font minimum: main / launch
+PASS Button contained by screen: main / launch
+PASS Visual/hit target agree: main / population-minus
+PASS Readable font minimum: main / population-minus
+PASS Button contained by screen: main / population-minus
+PASS Visual/hit target agree: main / population-plus
+PASS Readable font minimum: main / population-plus
+PASS Button contained by screen: main / population-plus
+PASS No overlapping buttons: main / code / join
+PASS No overlapping buttons: main / code / detect-nearby
+PASS No overlapping buttons: main / join / detect-nearby
+PASS No overlapping buttons: main / host / region
+PASS No overlapping buttons: main / host / invite-all
+PASS No overlapping buttons: main / region / invite-all
+PASS No overlapping buttons: main / mode-current / map-current
+PASS No overlapping buttons: main / mode-current / island-effects
+PASS No overlapping buttons: main / mode-current / mode-settings
+PASS No overlapping buttons: main / mode-current / human-team
+PASS No overlapping buttons: main / mode-current / player-target
+PASS No overlapping buttons: main / mode-current / launch
+PASS No overlapping buttons: main / mode-current / population-minus
+PASS No overlapping buttons: main / mode-current / population-plus
+PASS No overlapping buttons: main / map-current / island-effects
+PASS No overlapping buttons: main / map-current / mode-settings
+PASS No overlapping buttons: main / map-current / human-team
+PASS No overlapping buttons: main / map-current / player-target
+PASS No overlapping buttons: main / map-current / launch
+PASS No overlapping buttons: main / map-current / population-minus
+PASS No overlapping buttons: main / map-current / population-plus
+PASS No overlapping buttons: main / island-effects / mode-settings
+PASS No overlapping buttons: main / island-effects / human-team
+PASS No overlapping buttons: main / island-effects / player-target
+PASS No overlapping buttons: main / island-effects / launch
+PASS No overlapping buttons: main / island-effects / population-minus
+PASS No overlapping buttons: main / island-effects / population-plus
+PASS No overlapping buttons: main / mode-settings / human-team
+PASS No overlapping buttons: main / mode-settings / player-target
+PASS No overlapping buttons: main / mode-settings / launch
+PASS No overlapping buttons: main / mode-settings / population-minus
+PASS No overlapping buttons: main / mode-settings / population-plus
+PASS No overlapping buttons: main / human-team / player-target
+PASS No overlapping buttons: main / human-team / launch
+PASS No overlapping buttons: main / human-team / population-minus
+PASS No overlapping buttons: main / human-team / population-plus
+PASS No overlapping buttons: main / player-target / launch
+PASS No overlapping buttons: main / launch / population-minus
+PASS No overlapping buttons: main / launch / population-plus
+PASS No overlapping buttons: main / population-minus / population-plus
+PASS Actual numeric/letter/hyphen keyboard routes through lobby
+PASS Actual backspace works
+PASS Actual clear works
+PASS Invalid code cannot trigger join
+PASS Region-prefixed code renders without truncation: US-ABC234
+PASS Region-prefixed code renders without truncation: EU-ABC234XYZ
+PASS Mode picker opens
+PASS Visual/hit target agree: modes / code
+PASS Readable font minimum: modes / code
+PASS Button contained by screen: modes / code
+PASS Visual/hit target agree: modes / join
+PASS Readable font minimum: modes / join
+PASS Button contained by screen: modes / join
+PASS Visual/hit target agree: modes / detect-nearby
+PASS Readable font minimum: modes / detect-nearby
+PASS Button contained by screen: modes / detect-nearby
+PASS Visual/hit target agree: modes / host
+PASS Readable font minimum: modes / host
+PASS Button contained by screen: modes / host
+PASS Visual/hit target agree: modes / region
+PASS Readable font minimum: modes / region
+PASS Button contained by screen: modes / region
+PASS Visual/hit target agree: modes / invite-all
+PASS Readable font minimum: modes / invite-all
+PASS Button contained by screen: modes / invite-all
+PASS Visual/hit target agree: modes / mode-card-0
+PASS Readable font minimum: modes / mode-card-0
+PASS Button contained by screen: modes / mode-card-0
+PASS Visual/hit target agree: modes / mode-card-1
+PASS Readable font minimum: modes / mode-card-1
+PASS Button contained by screen: modes / mode-card-1
+PASS Visual/hit target agree: modes / mode-card-2
+PASS Readable font minimum: modes / mode-card-2
+PASS Button contained by screen: modes / mode-card-2
+PASS Visual/hit target agree: modes / mode-card-3
+PASS Readable font minimum: modes / mode-card-3
+PASS Button contained by screen: modes / mode-card-3
+PASS Visual/hit target agree: modes / mode-card-4
+PASS Readable font minimum: modes / mode-card-4
+PASS Button contained by screen: modes / mode-card-4
+PASS Visual/hit target agree: modes / mode-card-5
+PASS Readable font minimum: modes / mode-card-5
+PASS Button contained by screen: modes / mode-card-5
+PASS Visual/hit target agree: modes / mode-card-6
+PASS Readable font minimum: modes / mode-card-6
+PASS Button contained by screen: modes / mode-card-6
+PASS Visual/hit target agree: modes / mode-card-7
+PASS Readable font minimum: modes / mode-card-7
+PASS Button contained by screen: modes / mode-card-7
+PASS Visual/hit target agree: modes / setup-back
+PASS Readable font minimum: modes / setup-back
+PASS Button contained by screen: modes / setup-back
+PASS Visual/hit target agree: modes / mode-confirm
+PASS Readable font minimum: modes / mode-confirm
+PASS Button contained by screen: modes / mode-confirm
+PASS No overlapping buttons: modes / code / join
+PASS No overlapping buttons: modes / code / detect-nearby
+PASS No overlapping buttons: modes / join / detect-nearby
+PASS No overlapping buttons: modes / host / region
+PASS No overlapping buttons: modes / host / invite-all
+PASS No overlapping buttons: modes / region / invite-all
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-1
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-2
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-3
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-4
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-5
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-6
+PASS No overlapping buttons: modes / mode-card-0 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-0 / setup-back
+PASS No overlapping buttons: modes / mode-card-0 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-1 / mode-card-2
+PASS No overlapping buttons: modes / mode-card-1 / mode-card-3
+PASS No overlapping buttons: modes / mode-card-1 / mode-card-4
+PASS No overlapping buttons: modes / mode-card-1 / mode-card-5
+PASS No overlapping buttons: modes / mode-card-1 / mode-card-6
+PASS No overlapping buttons: modes / mode-card-1 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-1 / setup-back
+PASS No overlapping buttons: modes / mode-card-1 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-2 / mode-card-3
+PASS No overlapping buttons: modes / mode-card-2 / mode-card-4
+PASS No overlapping buttons: modes / mode-card-2 / mode-card-5
+PASS No overlapping buttons: modes / mode-card-2 / mode-card-6
+PASS No overlapping buttons: modes / mode-card-2 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-2 / setup-back
+PASS No overlapping buttons: modes / mode-card-2 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-3 / mode-card-4
+PASS No overlapping buttons: modes / mode-card-3 / mode-card-5
+PASS No overlapping buttons: modes / mode-card-3 / mode-card-6
+PASS No overlapping buttons: modes / mode-card-3 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-3 / setup-back
+PASS No overlapping buttons: modes / mode-card-3 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-4 / mode-card-5
+PASS No overlapping buttons: modes / mode-card-4 / mode-card-6
+PASS No overlapping buttons: modes / mode-card-4 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-4 / setup-back
+PASS No overlapping buttons: modes / mode-card-4 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-5 / mode-card-6
+PASS No overlapping buttons: modes / mode-card-5 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-5 / setup-back
+PASS No overlapping buttons: modes / mode-card-5 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-6 / mode-card-7
+PASS No overlapping buttons: modes / mode-card-6 / setup-back
+PASS No overlapping buttons: modes / mode-card-6 / mode-confirm
+PASS No overlapping buttons: modes / mode-card-7 / setup-back
+PASS No overlapping buttons: modes / mode-card-7 / mode-confirm
+PASS No overlapping buttons: modes / setup-back / mode-confirm
+PASS Mode selection stays visible for confirmation
+PASS Mode confirmation advances to map picker
+PASS Visual/hit target agree: maps / code
+PASS Readable font minimum: maps / code
+PASS Button contained by screen: maps / code
+PASS Visual/hit target agree: maps / join
+PASS Readable font minimum: maps / join
+PASS Button contained by screen: maps / join
+PASS Visual/hit target agree: maps / detect-nearby
+PASS Readable font minimum: maps / detect-nearby
+PASS Button contained by screen: maps / detect-nearby
+PASS Visual/hit target agree: maps / host
+PASS Readable font minimum: maps / host
+PASS Button contained by screen: maps / host
+PASS Visual/hit target agree: maps / region
+PASS Readable font minimum: maps / region
+PASS Button contained by screen: maps / region
+PASS Visual/hit target agree: maps / invite-all
+PASS Readable font minimum: maps / invite-all
+PASS Button contained by screen: maps / invite-all
+PASS Visual/hit target agree: maps / picker-0
+PASS Readable font minimum: maps / picker-0
+PASS Button contained by screen: maps / picker-0
+PASS Visual/hit target agree: maps / picker-1
+PASS Readable font minimum: maps / picker-1
+PASS Button contained by screen: maps / picker-1
+PASS Visual/hit target agree: maps / picker-2
+PASS Readable font minimum: maps / picker-2
+PASS Button contained by screen: maps / picker-2
+PASS Visual/hit target agree: maps / picker-3
+PASS Readable font minimum: maps / picker-3
+PASS Button contained by screen: maps / picker-3
+PASS Visual/hit target agree: maps / picker-4
+PASS Readable font minimum: maps / picker-4
+PASS Button contained by screen: maps / picker-4
+PASS Visual/hit target agree: maps / picker-5
+PASS Readable font minimum: maps / picker-5
+PASS Button contained by screen: maps / picker-5
+PASS Visual/hit target agree: maps / picker-6
+PASS Readable font minimum: maps / picker-6
+PASS Button contained by screen: maps / picker-6
+PASS Visual/hit target agree: maps / picker-previous
+PASS Readable font minimum: maps / picker-previous
+PASS Button contained by screen: maps / picker-previous
+PASS Visual/hit target agree: maps / picker-next
+PASS Readable font minimum: maps / picker-next
+PASS Button contained by screen: maps / picker-next
+PASS Visual/hit target agree: maps / setup-back
+PASS Readable font minimum: maps / setup-back
+PASS Button contained by screen: maps / setup-back
+PASS No overlapping buttons: maps / code / join
+PASS No overlapping buttons: maps / code / detect-nearby
+PASS No overlapping buttons: maps / join / detect-nearby
+PASS No overlapping buttons: maps / host / region
+PASS No overlapping buttons: maps / host / invite-all
+PASS No overlapping buttons: maps / region / invite-all
+PASS No overlapping buttons: maps / picker-0 / picker-1
+PASS No overlapping buttons: maps / picker-0 / picker-2
+PASS No overlapping buttons: maps / picker-0 / picker-3
+PASS No overlapping buttons: maps / picker-0 / picker-4
+PASS No overlapping buttons: maps / picker-0 / picker-5
+PASS No overlapping buttons: maps / picker-0 / picker-6
+PASS No overlapping buttons: maps / picker-0 / picker-previous
+PASS No overlapping buttons: maps / picker-0 / picker-next
+PASS No overlapping buttons: maps / picker-0 / setup-back
+PASS No overlapping buttons: maps / picker-1 / picker-2
+PASS No overlapping buttons: maps / picker-1 / picker-3
+PASS No overlapping buttons: maps / picker-1 / picker-4
+PASS No overlapping buttons: maps / picker-1 / picker-5
+PASS No overlapping buttons: maps / picker-1 / picker-6
+PASS No overlapping buttons: maps / picker-1 / picker-previous
+PASS No overlapping buttons: maps / picker-1 / picker-next
+PASS No overlapping buttons: maps / picker-1 / setup-back
+PASS No overlapping buttons: maps / picker-2 / picker-3
+PASS No overlapping buttons: maps / picker-2 / picker-4
+PASS No overlapping buttons: maps / picker-2 / picker-5
+PASS No overlapping buttons: maps / picker-2 / picker-6
+PASS No overlapping buttons: maps / picker-2 / picker-previous
+PASS No overlapping buttons: maps / picker-2 / picker-next
+PASS No overlapping buttons: maps / picker-2 / setup-back
+PASS No overlapping buttons: maps / picker-3 / picker-4
+PASS No overlapping buttons: maps / picker-3 / picker-5
+PASS No overlapping buttons: maps / picker-3 / picker-6
+PASS No overlapping buttons: maps / picker-3 / picker-previous
+PASS No overlapping buttons: maps / picker-3 / picker-next
+PASS No overlapping buttons: maps / picker-3 / setup-back
+PASS No overlapping buttons: maps / picker-4 / picker-5
+PASS No overlapping buttons: maps / picker-4 / picker-6
+PASS No overlapping buttons: maps / picker-4 / picker-previous
+PASS No overlapping buttons: maps / picker-4 / picker-next
+PASS No overlapping buttons: maps / picker-4 / setup-back
+PASS No overlapping buttons: maps / picker-5 / picker-6
+PASS No overlapping buttons: maps / picker-5 / picker-previous
+PASS No overlapping buttons: maps / picker-5 / picker-next
+PASS No overlapping buttons: maps / picker-5 / setup-back
+PASS No overlapping buttons: maps / picker-6 / picker-previous
+PASS No overlapping buttons: maps / picker-6 / picker-next
+PASS No overlapping buttons: maps / picker-6 / setup-back
+PASS No overlapping buttons: maps / picker-previous / picker-next
+PASS No overlapping buttons: maps / picker-previous / setup-back
+PASS No overlapping buttons: maps / picker-next / setup-back
+PASS Back returns to setup
+PASS All existing settings remain accessible
+PASS Visual/hit target agree: settings / code
+PASS Readable font minimum: settings / code
+PASS Button contained by screen: settings / code
+PASS Visual/hit target agree: settings / join
+PASS Readable font minimum: settings / join
+PASS Button contained by screen: settings / join
+PASS Visual/hit target agree: settings / detect-nearby
+PASS Readable font minimum: settings / detect-nearby
+PASS Button contained by screen: settings / detect-nearby
+PASS Visual/hit target agree: settings / host
+PASS Readable font minimum: settings / host
+PASS Button contained by screen: settings / host
+PASS Visual/hit target agree: settings / region
+PASS Readable font minimum: settings / region
+PASS Button contained by screen: settings / region
+PASS Visual/hit target agree: settings / invite-all
+PASS Readable font minimum: settings / invite-all
+PASS Button contained by screen: settings / invite-all
+PASS Visual/hit target agree: settings / setup-back
+PASS Readable font minimum: settings / setup-back
+PASS Button contained by screen: settings / setup-back
+PASS Visual/hit target agree: settings / setting-value-0
+PASS Readable font minimum: settings / setting-value-0
+PASS Button contained by screen: settings / setting-value-0
+PASS Visual/hit target agree: settings / setting-minus-0
+PASS Readable font minimum: settings / setting-minus-0
+PASS Button contained by screen: settings / setting-minus-0
+PASS Visual/hit target agree: settings / setting-plus-0
+PASS Readable font minimum: settings / setting-plus-0
+PASS Button contained by screen: settings / setting-plus-0
+PASS Visual/hit target agree: settings / setting-value-1
+PASS Readable font minimum: settings / setting-value-1
+PASS Button contained by screen: settings / setting-value-1
+PASS Visual/hit target agree: settings / setting-minus-1
+PASS Readable font minimum: settings / setting-minus-1
+PASS Button contained by screen: settings / setting-minus-1
+PASS Visual/hit target agree: settings / setting-plus-1
+PASS Readable font minimum: settings / setting-plus-1
+PASS Button contained by screen: settings / setting-plus-1
+PASS Visual/hit target agree: settings / setting-value-2
+PASS Readable font minimum: settings / setting-value-2
+PASS Button contained by screen: settings / setting-value-2
+PASS Visual/hit target agree: settings / setting-minus-2
+PASS Readable font minimum: settings / setting-minus-2
+PASS Button contained by screen: settings / setting-minus-2
+PASS Visual/hit target agree: settings / setting-plus-2
+PASS Readable font minimum: settings / setting-plus-2
+PASS Button contained by screen: settings / setting-plus-2
+PASS Visual/hit target agree: settings / setting-value-3
+PASS Readable font minimum: settings / setting-value-3
+PASS Button contained by screen: settings / setting-value-3
+PASS Visual/hit target agree: settings / setting-minus-3
+PASS Readable font minimum: settings / setting-minus-3
+PASS Button contained by screen: settings / setting-minus-3
+PASS Visual/hit target agree: settings / setting-plus-3
+PASS Readable font minimum: settings / setting-plus-3
+PASS Button contained by screen: settings / setting-plus-3
+PASS Visual/hit target agree: settings / setting-value-4
+PASS Readable font minimum: settings / setting-value-4
+PASS Button contained by screen: settings / setting-value-4
+PASS Visual/hit target agree: settings / setting-minus-4
+PASS Readable font minimum: settings / setting-minus-4
+PASS Button contained by screen: settings / setting-minus-4
+PASS Visual/hit target agree: settings / setting-plus-4
+PASS Readable font minimum: settings / setting-plus-4
+PASS Button contained by screen: settings / setting-plus-4
+PASS Visual/hit target agree: settings / setting-value-5
+PASS Readable font minimum: settings / setting-value-5
+PASS Button contained by screen: settings / setting-value-5
+PASS Visual/hit target agree: settings / setting-minus-5
+PASS Readable font minimum: settings / setting-minus-5
+PASS Button contained by screen: settings / setting-minus-5
+PASS Visual/hit target agree: settings / setting-plus-5
+PASS Readable font minimum: settings / setting-plus-5
+PASS Button contained by screen: settings / setting-plus-5
+PASS Visual/hit target agree: settings / settings-next
+PASS Readable font minimum: settings / settings-next
+PASS Button contained by screen: settings / settings-next
+PASS No overlapping buttons: settings / code / join
+PASS No overlapping buttons: settings / code / detect-nearby
+PASS No overlapping buttons: settings / join / detect-nearby
+PASS No overlapping buttons: settings / host / region
+PASS No overlapping buttons: settings / host / invite-all
+PASS No overlapping buttons: settings / region / invite-all
+PASS No overlapping buttons: settings / setup-back / setting-value-0
+PASS No overlapping buttons: settings / setup-back / setting-minus-0
+PASS No overlapping buttons: settings / setup-back / setting-plus-0
+PASS No overlapping buttons: settings / setup-back / setting-value-1
+PASS No overlapping buttons: settings / setup-back / setting-minus-1
+PASS No overlapping buttons: settings / setup-back / setting-plus-1
+PASS No overlapping buttons: settings / setup-back / setting-value-2
+PASS No overlapping buttons: settings / setup-back / setting-minus-2
+PASS No overlapping buttons: settings / setup-back / setting-plus-2
+PASS No overlapping buttons: settings / setup-back / setting-value-3
+PASS No overlapping buttons: settings / setup-back / setting-minus-3
+PASS No overlapping buttons: settings / setup-back / setting-plus-3
+PASS No overlapping buttons: settings / setup-back / setting-value-4
+PASS No overlapping buttons: settings / setup-back / setting-minus-4
+PASS No overlapping buttons: settings / setup-back / setting-plus-4
+PASS No overlapping buttons: settings / setup-back / setting-value-5
+PASS No overlapping buttons: settings / setup-back / setting-minus-5
+PASS No overlapping buttons: settings / setup-back / setting-plus-5
+PASS No overlapping buttons: settings / setup-back / settings-next
+PASS No overlapping buttons: settings / setting-value-0 / setting-minus-0
+PASS No overlapping buttons: settings / setting-value-0 / setting-plus-0
+PASS No overlapping buttons: settings / setting-value-0 / setting-value-1
+PASS No overlapping buttons: settings / setting-value-0 / setting-minus-1
+PASS No overlapping buttons: settings / setting-value-0 / setting-plus-1
+PASS No overlapping buttons: settings / setting-value-0 / setting-value-2
+PASS No overlapping buttons: settings / setting-value-0 / setting-minus-2
+PASS No overlapping buttons: settings / setting-value-0 / setting-plus-2
+PASS No overlapping buttons: settings / setting-value-0 / setting-value-3
+PASS No overlapping buttons: settings / setting-value-0 / setting-minus-3
+PASS No overlapping buttons: settings / setting-value-0 / setting-plus-3
+PASS No overlapping buttons: settings / setting-value-0 / setting-value-4
+PASS No overlapping buttons: settings / setting-value-0 / setting-minus-4
+PASS No overlapping buttons: settings / setting-value-0 / setting-plus-4
+PASS No overlapping buttons: settings / setting-value-0 / setting-value-5
+PASS No overlapping buttons: settings / setting-value-0 / setting-minus-5
+PASS No overlapping buttons: settings / setting-value-0 / setting-plus-5
+PASS No overlapping buttons: settings / setting-value-0 / settings-next
+PASS No overlapping buttons: settings / setting-minus-0 / setting-plus-0
+PASS No overlapping buttons: settings / setting-minus-0 / setting-value-1
+PASS No overlapping buttons: settings / setting-minus-0 / setting-minus-1
+PASS No overlapping buttons: settings / setting-minus-0 / setting-plus-1
+PASS No overlapping buttons: settings / setting-minus-0 / setting-value-2
+PASS No overlapping buttons: settings / setting-minus-0 / setting-minus-2
+PASS No overlapping buttons: settings / setting-minus-0 / setting-plus-2
+PASS No overlapping buttons: settings / setting-minus-0 / setting-value-3
+PASS No overlapping buttons: settings / setting-minus-0 / setting-minus-3
+PASS No overlapping buttons: settings / setting-minus-0 / setting-plus-3
+PASS No overlapping buttons: settings / setting-minus-0 / setting-value-4
+PASS No overlapping buttons: settings / setting-minus-0 / setting-minus-4
+PASS No overlapping buttons: settings / setting-minus-0 / setting-plus-4
+PASS No overlapping buttons: settings / setting-minus-0 / setting-value-5
+PASS No overlapping buttons: settings / setting-minus-0 / setting-minus-5
+PASS No overlapping buttons: settings / setting-minus-0 / setting-plus-5
+PASS No overlapping buttons: settings / setting-minus-0 / settings-next
+PASS No overlapping buttons: settings / setting-plus-0 / setting-value-1
+PASS No overlapping buttons: settings / setting-plus-0 / setting-minus-1
+PASS No overlapping buttons: settings / setting-plus-0 / setting-plus-1
+PASS No overlapping buttons: settings / setting-plus-0 / setting-value-2
+PASS No overlapping buttons: settings / setting-plus-0 / setting-minus-2
+PASS No overlapping buttons: settings / setting-plus-0 / setting-plus-2
+PASS No overlapping buttons: settings / setting-plus-0 / setting-value-3
+PASS No overlapping buttons: settings / setting-plus-0 / setting-minus-3
+PASS No overlapping buttons: settings / setting-plus-0 / setting-plus-3
+PASS No overlapping buttons: settings / setting-plus-0 / setting-value-4
+PASS No overlapping buttons: settings / setting-plus-0 / setting-minus-4
+PASS No overlapping buttons: settings / setting-plus-0 / setting-plus-4
+PASS No overlapping buttons: settings / setting-plus-0 / setting-value-5
+PASS No overlapping buttons: settings / setting-plus-0 / setting-minus-5
+PASS No overlapping buttons: settings / setting-plus-0 / setting-plus-5
+PASS No overlapping buttons: settings / setting-plus-0 / settings-next
+PASS No overlapping buttons: settings / setting-value-1 / setting-minus-1
+PASS No overlapping buttons: settings / setting-value-1 / setting-plus-1
+PASS No overlapping buttons: settings / setting-value-1 / setting-value-2
+PASS No overlapping buttons: settings / setting-value-1 / setting-minus-2
+PASS No overlapping buttons: settings / setting-value-1 / setting-plus-2
+PASS No overlapping buttons: settings / setting-value-1 / setting-value-3
+PASS No overlapping buttons: settings / setting-value-1 / setting-minus-3
+PASS No overlapping buttons: settings / setting-value-1 / setting-plus-3
+PASS No overlapping buttons: settings / setting-value-1 / setting-value-4
+PASS No overlapping buttons: settings / setting-value-1 / setting-minus-4
+PASS No overlapping buttons: settings / setting-value-1 / setting-plus-4
+PASS No overlapping buttons: settings / setting-value-1 / setting-value-5
+PASS No overlapping buttons: settings / setting-value-1 / setting-minus-5
+PASS No overlapping buttons: settings / setting-value-1 / setting-plus-5
+PASS No overlapping buttons: settings / setting-value-1 / settings-next
+PASS No overlapping buttons: settings / setting-minus-1 / setting-plus-1
+PASS No overlapping buttons: settings / setting-minus-1 / setting-value-2
+PASS No overlapping buttons: settings / setting-minus-1 / setting-minus-2
+PASS No overlapping buttons: settings / setting-minus-1 / setting-plus-2
+PASS No overlapping buttons: settings / setting-minus-1 / setting-value-3
+PASS No overlapping buttons: settings / setting-minus-1 / setting-minus-3
+PASS No overlapping buttons: settings / setting-minus-1 / setting-plus-3
+PASS No overlapping buttons: settings / setting-minus-1 / setting-value-4
+PASS No overlapping buttons: settings / setting-minus-1 / setting-minus-4
+PASS No overlapping buttons: settings / setting-minus-1 / setting-plus-4
+PASS No overlapping buttons: settings / setting-minus-1 / setting-value-5
+PASS No overlapping buttons: settings / setting-minus-1 / setting-minus-5
+PASS No overlapping buttons: settings / setting-minus-1 / setting-plus-5
+PASS No overlapping buttons: settings / setting-minus-1 / settings-next
+PASS No overlapping buttons: settings / setting-plus-1 / setting-value-2
+PASS No overlapping buttons: settings / setting-plus-1 / setting-minus-2
+PASS No overlapping buttons: settings / setting-plus-1 / setting-plus-2
+PASS No overlapping buttons: settings / setting-plus-1 / setting-value-3
+PASS No overlapping buttons: settings / setting-plus-1 / setting-minus-3
+PASS No overlapping buttons: settings / setting-plus-1 / setting-plus-3
+PASS No overlapping buttons: settings / setting-plus-1 / setting-value-4
+PASS No overlapping buttons: settings / setting-plus-1 / setting-minus-4
+PASS No overlapping buttons: settings / setting-plus-1 / setting-plus-4
+PASS No overlapping buttons: settings / setting-plus-1 / setting-value-5
+PASS No overlapping buttons: settings / setting-plus-1 / setting-minus-5
+PASS No overlapping buttons: settings / setting-plus-1 / setting-plus-5
+PASS No overlapping buttons: settings / setting-plus-1 / settings-next
+PASS No overlapping buttons: settings / setting-value-2 / setting-minus-2
+PASS No overlapping buttons: settings / setting-value-2 / setting-plus-2
+PASS No overlapping buttons: settings / setting-value-2 / setting-value-3
+PASS No overlapping buttons: settings / setting-value-2 / setting-minus-3
+PASS No overlapping buttons: settings / setting-value-2 / setting-plus-3
+PASS No overlapping buttons: settings / setting-value-2 / setting-value-4
+PASS No overlapping buttons: settings / setting-value-2 / setting-minus-4
+PASS No overlapping buttons: settings / setting-value-2 / setting-plus-4
+PASS No overlapping buttons: settings / setting-value-2 / setting-value-5
+PASS No overlapping buttons: settings / setting-value-2 / setting-minus-5
+PASS No overlapping buttons: settings / setting-value-2 / setting-plus-5
+PASS No overlapping buttons: settings / setting-value-2 / settings-next
+PASS No overlapping buttons: settings / setting-minus-2 / setting-plus-2
+PASS No overlapping buttons: settings / setting-minus-2 / setting-value-3
+PASS No overlapping buttons: settings / setting-minus-2 / setting-minus-3
+PASS No overlapping buttons: settings / setting-minus-2 / setting-plus-3
+PASS No overlapping buttons: settings / setting-minus-2 / setting-value-4
+PASS No overlapping buttons: settings / setting-minus-2 / setting-minus-4
+PASS No overlapping buttons: settings / setting-minus-2 / setting-plus-4
+PASS No overlapping buttons: settings / setting-minus-2 / setting-value-5
+PASS No overlapping buttons: settings / setting-minus-2 / setting-minus-5
+PASS No overlapping buttons: settings / setting-minus-2 / setting-plus-5
+PASS No overlapping buttons: settings / setting-minus-2 / settings-next
+PASS No overlapping buttons: settings / setting-plus-2 / setting-value-3
+PASS No overlapping buttons: settings / setting-plus-2 / setting-minus-3
+PASS No overlapping buttons: settings / setting-plus-2 / setting-plus-3
+PASS No overlapping buttons: settings / setting-plus-2 / setting-value-4
+PASS No overlapping buttons: settings / setting-plus-2 / setting-minus-4
+PASS No overlapping buttons: settings / setting-plus-2 / setting-plus-4
+PASS No overlapping buttons: settings / setting-plus-2 / setting-value-5
+PASS No overlapping buttons: settings / setting-plus-2 / setting-minus-5
+PASS No overlapping buttons: settings / setting-plus-2 / setting-plus-5
+PASS No overlapping buttons: settings / setting-plus-2 / settings-next
+PASS No overlapping buttons: settings / setting-value-3 / setting-minus-3
+PASS No overlapping buttons: settings / setting-value-3 / setting-plus-3
+PASS No overlapping buttons: settings / setting-value-3 / setting-value-4
+PASS No overlapping buttons: settings / setting-value-3 / setting-minus-4
+PASS No overlapping buttons: settings / setting-value-3 / setting-plus-4
+PASS No overlapping buttons: settings / setting-value-3 / setting-value-5
+PASS No overlapping buttons: settings / setting-value-3 / setting-minus-5
+PASS No overlapping buttons: settings / setting-value-3 / setting-plus-5
+PASS No overlapping buttons: settings / setting-value-3 / settings-next
+PASS No overlapping buttons: settings / setting-minus-3 / setting-plus-3
+PASS No overlapping buttons: settings / setting-minus-3 / setting-value-4
+PASS No overlapping buttons: settings / setting-minus-3 / setting-minus-4
+PASS No overlapping buttons: settings / setting-minus-3 / setting-plus-4
+PASS No overlapping buttons: settings / setting-minus-3 / setting-value-5
+PASS No overlapping buttons: settings / setting-minus-3 / setting-minus-5
+PASS No overlapping buttons: settings / setting-minus-3 / setting-plus-5
+PASS No overlapping buttons: settings / setting-minus-3 / settings-next
+PASS No overlapping buttons: settings / setting-plus-3 / setting-value-4
+PASS No overlapping buttons: settings / setting-plus-3 / setting-minus-4
+PASS No overlapping buttons: settings / setting-plus-3 / setting-plus-4
+PASS No overlapping buttons: settings / setting-plus-3 / setting-value-5
+PASS No overlapping buttons: settings / setting-plus-3 / setting-minus-5
+PASS No overlapping buttons: settings / setting-plus-3 / setting-plus-5
+PASS No overlapping buttons: settings / setting-plus-3 / settings-next
+PASS No overlapping buttons: settings / setting-value-4 / setting-minus-4
+PASS No overlapping buttons: settings / setting-value-4 / setting-plus-4
+PASS No overlapping buttons: settings / setting-value-4 / setting-value-5
+PASS No overlapping buttons: settings / setting-value-4 / setting-minus-5
+PASS No overlapping buttons: settings / setting-value-4 / setting-plus-5
+PASS No overlapping buttons: settings / setting-value-4 / settings-next
+PASS No overlapping buttons: settings / setting-minus-4 / setting-plus-4
+PASS No overlapping buttons: settings / setting-minus-4 / setting-value-5
+PASS No overlapping buttons: settings / setting-minus-4 / setting-minus-5
+PASS No overlapping buttons: settings / setting-minus-4 / setting-plus-5
+PASS No overlapping buttons: settings / setting-minus-4 / settings-next
+PASS No overlapping buttons: settings / setting-plus-4 / setting-value-5
+PASS No overlapping buttons: settings / setting-plus-4 / setting-minus-5
+PASS No overlapping buttons: settings / setting-plus-4 / setting-plus-5
+PASS No overlapping buttons: settings / setting-plus-4 / settings-next
+PASS No overlapping buttons: settings / setting-value-5 / setting-minus-5
+PASS No overlapping buttons: settings / setting-value-5 / setting-plus-5
+PASS No overlapping buttons: settings / setting-value-5 / settings-next
+PASS No overlapping buttons: settings / setting-minus-5 / setting-plus-5
+PASS No overlapping buttons: settings / setting-minus-5 / settings-next
+PASS No overlapping buttons: settings / setting-plus-5 / settings-next
+PASS Settings adjustment action works
+PASS Settings command reaches actual lobby setup
+PASS Settings back works
+STAGED PRESENTATION FIXTURES: connected host, guest, host requests, nearby rooms. No Photon commands sent.
+PASS Create room command routed to presentation stand-in
+PASS Visual/hit target agree: connected / code
+PASS Readable font minimum: connected / code
+PASS Button contained by screen: connected / code
+PASS Visual/hit target agree: connected / join
+PASS Readable font minimum: connected / join
+PASS Button contained by screen: connected / join
+PASS Visual/hit target agree: connected / detect-nearby
+PASS Readable font minimum: connected / detect-nearby
+PASS Button contained by screen: connected / detect-nearby
+PASS Visual/hit target agree: connected / region
+PASS Readable font minimum: connected / region
+PASS Button contained by screen: connected / region
+PASS Visual/hit target agree: connected / invite-all
+PASS Readable font minimum: connected / invite-all
+PASS Button contained by screen: connected / invite-all
+PASS Visual/hit target agree: connected / shared-controls
+PASS Readable font minimum: connected / shared-controls
+PASS Button contained by screen: connected / shared-controls
+PASS Visual/hit target agree: connected / abandon-host
+PASS Readable font minimum: connected / abandon-host
+PASS Button contained by screen: connected / abandon-host
+PASS Visual/hit target agree: connected / mode-current
+PASS Readable font minimum: connected / mode-current
+PASS Button contained by screen: connected / mode-current
+PASS Visual/hit target agree: connected / map-current
+PASS Readable font minimum: connected / map-current
+PASS Button contained by screen: connected / map-current
+PASS Visual/hit target agree: connected / island-effects
+PASS Readable font minimum: connected / island-effects
+PASS Button contained by screen: connected / island-effects
+PASS Visual/hit target agree: connected / mode-settings
+PASS Readable font minimum: connected / mode-settings
+PASS Button contained by screen: connected / mode-settings
+PASS Visual/hit target agree: connected / human-team
+PASS Readable font minimum: connected / human-team
+PASS Button contained by screen: connected / human-team
+PASS Visual/hit target agree: connected / player-target
+PASS Readable font minimum: connected / player-target
+PASS Button contained by screen: connected / player-target
+PASS Visual/hit target agree: connected / launch
+PASS Readable font minimum: connected / launch
+PASS Button contained by screen: connected / launch
+PASS Visual/hit target agree: connected / population-minus
+PASS Readable font minimum: connected / population-minus
+PASS Button contained by screen: connected / population-minus
+PASS Visual/hit target agree: connected / population-plus
+PASS Readable font minimum: connected / population-plus
+PASS Button contained by screen: connected / population-plus
+PASS No overlapping buttons: connected / code / join
+PASS No overlapping buttons: connected / code / detect-nearby
+PASS No overlapping buttons: connected / join / detect-nearby
+PASS No overlapping buttons: connected / region / invite-all
+PASS No overlapping buttons: connected / region / shared-controls
+PASS No overlapping buttons: connected / region / abandon-host
+PASS No overlapping buttons: connected / invite-all / shared-controls
+PASS No overlapping buttons: connected / invite-all / abandon-host
+PASS No overlapping buttons: connected / shared-controls / abandon-host
+PASS No overlapping buttons: connected / mode-current / map-current
+PASS No overlapping buttons: connected / mode-current / island-effects
+PASS No overlapping buttons: connected / mode-current / mode-settings
+PASS No overlapping buttons: connected / mode-current / human-team
+PASS No overlapping buttons: connected / mode-current / player-target
+PASS No overlapping buttons: connected / mode-current / launch
+PASS No overlapping buttons: connected / mode-current / population-minus
+PASS No overlapping buttons: connected / mode-current / population-plus
+PASS No overlapping buttons: connected / map-current / island-effects
+PASS No overlapping buttons: connected / map-current / mode-settings
+PASS No overlapping buttons: connected / map-current / human-team
+PASS No overlapping buttons: connected / map-current / player-target
+PASS No overlapping buttons: connected / map-current / launch
+PASS No overlapping buttons: connected / map-current / population-minus
+PASS No overlapping buttons: connected / map-current / population-plus
+PASS No overlapping buttons: connected / island-effects / mode-settings
+PASS No overlapping buttons: connected / island-effects / human-team
+PASS No overlapping buttons: connected / island-effects / player-target
+PASS No overlapping buttons: connected / island-effects / launch
+PASS No overlapping buttons: connected / island-effects / population-minus
+PASS No overlapping buttons: connected / island-effects / population-plus
+PASS No overlapping buttons: connected / mode-settings / human-team
+PASS No overlapping buttons: connected / mode-settings / player-target
+PASS No overlapping buttons: connected / mode-settings / launch
+PASS No overlapping buttons: connected / mode-settings / population-minus
+PASS No overlapping buttons: connected / mode-settings / population-plus
+PASS No overlapping buttons: connected / human-team / player-target
+PASS No overlapping buttons: connected / human-team / launch
+PASS No overlapping buttons: connected / human-team / population-minus
+PASS No overlapping buttons: connected / human-team / population-plus
+PASS No overlapping buttons: connected / player-target / launch
+PASS No overlapping buttons: connected / launch / population-minus
+PASS No overlapping buttons: connected / launch / population-plus
+PASS No overlapping buttons: connected / population-minus / population-plus
+PASS Connected host actions replace offline help
+PASS Guest can request host and cannot launch
+PASS Host request command routed
+PASS Guest setup remains readable
+PASS Visual/hit target agree: host-request / code
+PASS Readable font minimum: host-request / code
+PASS Button contained by screen: host-request / code
+PASS Visual/hit target agree: host-request / join
+PASS Readable font minimum: host-request / join
+PASS Button contained by screen: host-request / join
+PASS Visual/hit target agree: host-request / detect-nearby
+PASS Readable font minimum: host-request / detect-nearby
+PASS Button contained by screen: host-request / detect-nearby
+PASS Visual/hit target agree: host-request / region
+PASS Readable font minimum: host-request / region
+PASS Button contained by screen: host-request / region
+PASS Visual/hit target agree: host-request / invite-all
+PASS Readable font minimum: host-request / invite-all
+PASS Button contained by screen: host-request / invite-all
+PASS Visual/hit target agree: host-request / shared-controls
+PASS Readable font minimum: host-request / shared-controls
+PASS Button contained by screen: host-request / shared-controls
+PASS Visual/hit target agree: host-request / abandon-host
+PASS Readable font minimum: host-request / abandon-host
+PASS Button contained by screen: host-request / abandon-host
+PASS Visual/hit target agree: host-request / request-accept
+PASS Readable font minimum: host-request / request-accept
+PASS Button contained by screen: host-request / request-accept
+PASS Visual/hit target agree: host-request / request-deny
+PASS Readable font minimum: host-request / request-deny
+PASS Button contained by screen: host-request / request-deny
+PASS Visual/hit target agree: host-request / mode-current
+PASS Readable font minimum: host-request / mode-current
+PASS Button contained by screen: host-request / mode-current
+PASS Visual/hit target agree: host-request / map-current
+PASS Readable font minimum: host-request / map-current
+PASS Button contained by screen: host-request / map-current
+PASS Visual/hit target agree: host-request / island-effects
+PASS Readable font minimum: host-request / island-effects
+PASS Button contained by screen: host-request / island-effects
+PASS Visual/hit target agree: host-request / mode-settings
+PASS Readable font minimum: host-request / mode-settings
+PASS Button contained by screen: host-request / mode-settings
+PASS Visual/hit target agree: host-request / human-team
+PASS Readable font minimum: host-request / human-team
+PASS Button contained by screen: host-request / human-team
+PASS Visual/hit target agree: host-request / player-target
+PASS Readable font minimum: host-request / player-target
+PASS Button contained by screen: host-request / player-target
+PASS Visual/hit target agree: host-request / launch
+PASS Readable font minimum: host-request / launch
+PASS Button contained by screen: host-request / launch
+PASS Visual/hit target agree: host-request / population-minus
+PASS Readable font minimum: host-request / population-minus
+PASS Button contained by screen: host-request / population-minus
+PASS Visual/hit target agree: host-request / population-plus
+PASS Readable font minimum: host-request / population-plus
+PASS Button contained by screen: host-request / population-plus
+PASS No overlapping buttons: host-request / code / join
+PASS No overlapping buttons: host-request / code / detect-nearby
+PASS No overlapping buttons: host-request / join / detect-nearby
+PASS No overlapping buttons: host-request / region / invite-all
+PASS No overlapping buttons: host-request / region / shared-controls
+PASS No overlapping buttons: host-request / region / abandon-host
+PASS No overlapping buttons: host-request / region / request-accept
+PASS No overlapping buttons: host-request / region / request-deny
+PASS No overlapping buttons: host-request / invite-all / shared-controls
+PASS No overlapping buttons: host-request / invite-all / abandon-host
+PASS No overlapping buttons: host-request / invite-all / request-accept
+PASS No overlapping buttons: host-request / invite-all / request-deny
+PASS No overlapping buttons: host-request / shared-controls / abandon-host
+PASS No overlapping buttons: host-request / shared-controls / request-accept
+PASS No overlapping buttons: host-request / shared-controls / request-deny
+PASS No overlapping buttons: host-request / abandon-host / request-accept
+PASS No overlapping buttons: host-request / abandon-host / request-deny
+PASS No overlapping buttons: host-request / request-accept / request-deny
+PASS No overlapping buttons: host-request / mode-current / map-current
+PASS No overlapping buttons: host-request / mode-current / island-effects
+PASS No overlapping buttons: host-request / mode-current / mode-settings
+PASS No overlapping buttons: host-request / mode-current / human-team
+PASS No overlapping buttons: host-request / mode-current / player-target
+PASS No overlapping buttons: host-request / mode-current / launch
+PASS No overlapping buttons: host-request / mode-current / population-minus
+PASS No overlapping buttons: host-request / mode-current / population-plus
+PASS No overlapping buttons: host-request / map-current / island-effects
+PASS No overlapping buttons: host-request / map-current / mode-settings
+PASS No overlapping buttons: host-request / map-current / human-team
+PASS No overlapping buttons: host-request / map-current / player-target
+PASS No overlapping buttons: host-request / map-current / launch
+PASS No overlapping buttons: host-request / map-current / population-minus
+PASS No overlapping buttons: host-request / map-current / population-plus
+PASS No overlapping buttons: host-request / island-effects / mode-settings
+PASS No overlapping buttons: host-request / island-effects / human-team
+PASS No overlapping buttons: host-request / island-effects / player-target
+PASS No overlapping buttons: host-request / island-effects / launch
+PASS No overlapping buttons: host-request / island-effects / population-minus
+PASS No overlapping buttons: host-request / island-effects / population-plus
+PASS No overlapping buttons: host-request / mode-settings / human-team
+PASS No overlapping buttons: host-request / mode-settings / player-target
+PASS No overlapping buttons: host-request / mode-settings / launch
+PASS No overlapping buttons: host-request / mode-settings / population-minus
+PASS No overlapping buttons: host-request / mode-settings / population-plus
+PASS No overlapping buttons: host-request / human-team / player-target
+PASS No overlapping buttons: host-request / human-team / launch
+PASS No overlapping buttons: host-request / human-team / population-minus
+PASS No overlapping buttons: host-request / human-team / population-plus
+PASS No overlapping buttons: host-request / player-target / launch
+PASS No overlapping buttons: host-request / launch / population-minus
+PASS No overlapping buttons: host-request / launch / population-plus
+PASS No overlapping buttons: host-request / population-minus / population-plus
+PASS Incoming host request actions available
+PASS Review request command routed
+PASS Visual/hit target agree: discovery / code
+PASS Readable font minimum: discovery / code
+PASS Button contained by screen: discovery / code
+PASS Visual/hit target agree: discovery / join
+PASS Readable font minimum: discovery / join
+PASS Button contained by screen: discovery / join
+PASS Visual/hit target agree: discovery / detect-nearby
+PASS Readable font minimum: discovery / detect-nearby
+PASS Button contained by screen: discovery / detect-nearby
+PASS Visual/hit target agree: discovery / nearby-room-0
+PASS Readable font minimum: discovery / nearby-room-0
+PASS Button contained by screen: discovery / nearby-room-0
+PASS Visual/hit target agree: discovery / nearby-room-1
+PASS Readable font minimum: discovery / nearby-room-1
+PASS Button contained by screen: discovery / nearby-room-1
+PASS Visual/hit target agree: discovery / nearby-room-2
+PASS Readable font minimum: discovery / nearby-room-2
+PASS Button contained by screen: discovery / nearby-room-2
+PASS Visual/hit target agree: discovery / nearby-next
+PASS Readable font minimum: discovery / nearby-next
+PASS Button contained by screen: discovery / nearby-next
+PASS Visual/hit target agree: discovery / code-instead
+PASS Readable font minimum: discovery / code-instead
+PASS Button contained by screen: discovery / code-instead
+PASS Visual/hit target agree: discovery / host
+PASS Readable font minimum: discovery / host
+PASS Button contained by screen: discovery / host
+PASS Visual/hit target agree: discovery / region
+PASS Readable font minimum: discovery / region
+PASS Button contained by screen: discovery / region
+PASS Visual/hit target agree: discovery / invite-all
+PASS Readable font minimum: discovery / invite-all
+PASS Button contained by screen: discovery / invite-all
+PASS Visual/hit target agree: discovery / mode-current
+PASS Readable font minimum: discovery / mode-current
+PASS Button contained by screen: discovery / mode-current
+PASS Visual/hit target agree: discovery / map-current
+PASS Readable font minimum: discovery / map-current
+PASS Button contained by screen: discovery / map-current
+PASS Visual/hit target agree: discovery / island-effects
+PASS Readable font minimum: discovery / island-effects
+PASS Button contained by screen: discovery / island-effects
+PASS Visual/hit target agree: discovery / mode-settings
+PASS Readable font minimum: discovery / mode-settings
+PASS Button contained by screen: discovery / mode-settings
+PASS Visual/hit target agree: discovery / human-team
+PASS Readable font minimum: discovery / human-team
+PASS Button contained by screen: discovery / human-team
+PASS Visual/hit target agree: discovery / player-target
+PASS Readable font minimum: discovery / player-target
+PASS Button contained by screen: discovery / player-target
+PASS Visual/hit target agree: discovery / launch
+PASS Readable font minimum: discovery / launch
+PASS Button contained by screen: discovery / launch
+PASS Visual/hit target agree: discovery / population-minus
+PASS Readable font minimum: discovery / population-minus
+PASS Button contained by screen: discovery / population-minus
+PASS Visual/hit target agree: discovery / population-plus
+PASS Readable font minimum: discovery / population-plus
+PASS Button contained by screen: discovery / population-plus
+PASS No overlapping buttons: discovery / code / join
+PASS No overlapping buttons: discovery / code / detect-nearby
+PASS No overlapping buttons: discovery / code / nearby-room-0
+PASS No overlapping buttons: discovery / code / nearby-room-1
+PASS No overlapping buttons: discovery / code / nearby-room-2
+PASS No overlapping buttons: discovery / code / nearby-next
+PASS No overlapping buttons: discovery / code / code-instead
+PASS No overlapping buttons: discovery / join / detect-nearby
+PASS No overlapping buttons: discovery / join / nearby-room-0
+PASS No overlapping buttons: discovery / join / nearby-room-1
+PASS No overlapping buttons: discovery / join / nearby-room-2
+PASS No overlapping buttons: discovery / join / nearby-next
+PASS No overlapping buttons: discovery / join / code-instead
+PASS No overlapping buttons: discovery / detect-nearby / nearby-room-0
+PASS No overlapping buttons: discovery / detect-nearby / nearby-room-1
+PASS No overlapping buttons: discovery / detect-nearby / nearby-room-2
+PASS No overlapping buttons: discovery / detect-nearby / nearby-next
+PASS No overlapping buttons: discovery / detect-nearby / code-instead
+PASS No overlapping buttons: discovery / nearby-room-0 / nearby-room-1
+PASS No overlapping buttons: discovery / nearby-room-0 / nearby-room-2
+PASS No overlapping buttons: discovery / nearby-room-0 / nearby-next
+PASS No overlapping buttons: discovery / nearby-room-0 / code-instead
+PASS No overlapping buttons: discovery / nearby-room-1 / nearby-room-2
+PASS No overlapping buttons: discovery / nearby-room-1 / nearby-next
+PASS No overlapping buttons: discovery / nearby-room-1 / code-instead
+PASS No overlapping buttons: discovery / nearby-room-2 / nearby-next
+PASS No overlapping buttons: discovery / nearby-room-2 / code-instead
+PASS No overlapping buttons: discovery / nearby-next / code-instead
+PASS No overlapping buttons: discovery / host / region
+PASS No overlapping buttons: discovery / host / invite-all
+PASS No overlapping buttons: discovery / region / invite-all
+PASS No overlapping buttons: discovery / mode-current / map-current
+PASS No overlapping buttons: discovery / mode-current / island-effects
+PASS No overlapping buttons: discovery / mode-current / mode-settings
+PASS No overlapping buttons: discovery / mode-current / human-team
+PASS No overlapping buttons: discovery / mode-current / player-target
+PASS No overlapping buttons: discovery / mode-current / launch
+PASS No overlapping buttons: discovery / mode-current / population-minus
+PASS No overlapping buttons: discovery / mode-current / population-plus
+PASS No overlapping buttons: discovery / map-current / island-effects
+PASS No overlapping buttons: discovery / map-current / mode-settings
+PASS No overlapping buttons: discovery / map-current / human-team
+PASS No overlapping buttons: discovery / map-current / player-target
+PASS No overlapping buttons: discovery / map-current / launch
+PASS No overlapping buttons: discovery / map-current / population-minus
+PASS No overlapping buttons: discovery / map-current / population-plus
+PASS No overlapping buttons: discovery / island-effects / mode-settings
+PASS No overlapping buttons: discovery / island-effects / human-team
+PASS No overlapping buttons: discovery / island-effects / player-target
+PASS No overlapping buttons: discovery / island-effects / launch
+PASS No overlapping buttons: discovery / island-effects / population-minus
+PASS No overlapping buttons: discovery / island-effects / population-plus
+PASS No overlapping buttons: discovery / mode-settings / human-team
+PASS No overlapping buttons: discovery / mode-settings / player-target
+PASS No overlapping buttons: discovery / mode-settings / launch
+PASS No overlapping buttons: discovery / mode-settings / population-minus
+PASS No overlapping buttons: discovery / mode-settings / population-plus
+PASS No overlapping buttons: discovery / human-team / player-target
+PASS No overlapping buttons: discovery / human-team / launch
+PASS No overlapping buttons: discovery / human-team / population-minus
+PASS No overlapping buttons: discovery / human-team / population-plus
+PASS No overlapping buttons: discovery / player-target / launch
+PASS No overlapping buttons: discovery / launch / population-minus
+PASS No overlapping buttons: discovery / launch / population-plus
+PASS No overlapping buttons: discovery / population-minus / population-plus
+PASS World-space pointing hits and invokes nearby room
+PASS Actual Start Game command accepted
+PASS Actual Game scene enters solo from new terminal
+PASS No runtime errors
+COMPLETE checks=908 runtimeErrors=0 editorServiceErrors=0 failed=False. Desktop Editor; headset not tested.

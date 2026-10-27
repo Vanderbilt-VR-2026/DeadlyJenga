@@ -1,0 +1,126 @@
+{
+  "status": "Research and design proposals. No new tower has been built or physics-tested in Unity.",
+  "budgetStatus": "Rigidbody and collider ranges are early authoring allowances including routes, bearings and loose supports, not measured counts or FPS predictions.",
+  "concepts": [
+    {
+      "id": 1, "name": "Sky Tree", "height": 72, "floors": "24 vertical levels", "footprint": "34 × 34 m", "bodies": "24–36", "colliders": "220–340", "joints": "0", "risk": "Lower", "priority": "First prototype",
+      "idea": "Six four-storey Y-shaped cassettes. Three deep spine walls form both the load path and the edges of open vertical courtyards. Floors sit between the spines rather than projecting past their outer climbing faces.",
+      "surprise": "A very tall, apparently complicated tower is mostly six rigid inhabited sections. The spaces between its three wings supply rooms, cover and vertical views without constructing separate rooms from small blocks.",
+      "bearing": "The three spine ends must meet broad, aligned bearing patches on the cassette below. The upper assembly's projected centre of mass must remain inside their support triangle. Visual wings do not count as support unless their colliders actually touch.",
+      "routes": "An internal switchback links 3 m floor intervals; exterior spine strips offer a separate climb-and-rest route. Every third or fourth level opens into a sky court with at least two exits. Stair slots and turning pads belong to the rigid cassette and remain aligned if it tilts.",
+      "failure": "Removing a bearing shoe first tilts or unseats one cassette. Its floors and spine can bridge onto a neighboring wing while other sections remain usable. A single cassette cannot crumble internally unless a later, bounded fracture system is deliberately added.",
+      "cost": "Few moving sections, but their internal floors and stairs still need many simple shapes. Avoid one collider per decorative rib. Do not make all six cassettes one body or every small hit becomes an all-or-nothing event.",
+      "test": "Check one-, three- and six-cassette versions. Remove each of the three shoes in turn, test a player on the outermost floor, then hit at lower and mid-height. Reject spontaneous seating creep or an outer climb strip interrupted by a floor lip.",
+      "anchors": ["Three real bearing patches", "Four floors per rigid section", "Open sky court + route choice"],
+      "sources": ["SOM", "CTBUH", "UnityCompound"]
+    },
+    {
+      "id": 2, "name": "Zipper Spire", "height": 60, "floors": "18 vertical levels", "footprint": "30 × 24 m", "bodies": "20–32", "colliders": "150–240", "joints": "0", "risk": "Lower–medium", "priority": "First prototype",
+      "idea": "Six mirrored three-floor folded sections alternate their long side. A broad central bearing spine carries the stack, while deep occupied wings and stair streets form a broken zigzag skyline.",
+      "surprise": "The dramatic offset is partly a silhouette, not a truly off-balance load. A heavier spine and a shorter opposite wing keep each section's centre of mass over its bearing while the exposed stair street reads as a diagonal city climbing into the sky.",
+      "bearing": "Author the actual collider mass distribution and measure it. Alternating silhouettes do not cancel an unstable intermediate stage automatically. Both the complete stack and every upper sub-stack need a valid support polygon.",
+      "routes": "A wide diagonal stair street ascends one face, then crosses a flat sheltered landing before reversing. A second route uses the straight spine face. Keep balcony edges recessed and widen turns rather than adding little red shelves outside the wall.",
+      "failure": "An unseated folded cassette becomes a large sloping street with a sheltered underside. Neighboring offsets can catch it and create a new traverse. Catching is a desired possibility, not a guaranteed scripted landing.",
+      "cost": "The folded shell can be one compound body per section. Keep the stair flights and their upper/lower pads integral. The main compromise is chunky destruction: a whole three-floor street moves together.",
+      "test": "Numerically check each upper stack's centre of mass before native simulation. Test both mirrored orientations, complete the full switchback path with the production motor, and test collapse in the direction with the least visual clearance.",
+      "anchors": ["Broad centred bearing spine", "Mirrored three-floor cassettes", "Flat turns between diagonal streets"],
+      "sources": ["Safdie", "Interlace", "UnityCompound"]
+    },
+    {
+      "id": 3, "name": "Spiral Lantern", "height": 68, "floors": "16 main landings + intermediate rests", "footprint": "30 × 30 m", "bodies": "24–38", "colliders": "300–480", "joints": "0", "risk": "Medium", "priority": "Route experiment",
+      "idea": "Stack large open lantern shells containing two opposing broad ramp ribbons around a central atrium. One ribbon supports steady ascent, the other supplies passing, alternate approaches and escape.",
+      "surprise": "The tower's circulation becomes its architecture. Looking through the hollow core reveals players above and below; a player can change ribbons at open landings instead of following a single endless stairwell.",
+      "bearing": "Use four or eight broad vertical ribs with flat seats between shells. The spiral surfaces are integral to their shell; they are not loose sloping plates expected to stand by friction alone. Keep opposite ribbons roughly balanced around the axis.",
+      "routes": "Start with 20–28 degree ramps, flat rest/turn platforms, and a visible gap between successive ribbons. A front elevation can conceal headroom clashes: check the full capsule sweep along both curves. Leave full-height atrium escape gaps at selected levels.",
+      "failure": "A displaced shell becomes a tilted circular gallery or a faceted tunnel when it lands. Internal routes may remain partly useful, but it must not become a sealed rolling trap.",
+      "cost": "This is not the cheapest concept. Curved ramps and hollow ring floors need several convex pieces each. A faceted octagon is preferable to a smooth tube with dozens of physics faces; share repeated meshes and spend visual detail in the render mesh.",
+      "test": "Build one half-turn first and walk it in both directions. Test two players passing, a knocked shell at 15/30/60 degree orientations, and debris escaping through its open sides. Compare contact count against the much simpler Zipper Spire at the same height.",
+      "anchors": ["Broad rib seats between shells", "Two opposing route ribbons", "Open atrium / escape gaps"],
+      "sources": ["UnityCompound", "UnityPerformance", "GDC"]
+    },
+    {
+      "id": 4, "name": "Cross-Block Relay", "height": 72, "floors": "24 vertical levels", "footprint": "38 × 38 m", "bodies": "24–40", "colliders": "180–280", "joints": "0", "risk": "Lower–medium", "priority": "First prototype",
+      "idea": "Six four-storey inhabited box-girder bars alternate X and Z orientation. Each upper bar bears near its midpoint on the lower bar's broad central crossing, with independent stairs and rooftop cross-streets.",
+      "surprise": "The same giant piece is a high-rise neighborhood while standing and a long covered bridge after falling. Its unusually long shape makes collapse create useful horizontal infrastructure rather than just a rubble pile.",
+      "bearing": "Keep the centre of mass of each upper assembly over the real central crossing. Four short bearing shoes can distribute contact there. Large balanced overhangs are carried by the rigidity of each fabricated bar, not by an imaginary tensile bond between loose parts.",
+      "routes": "Two internal stair lanes change sides at central crossing courts. Ends provide lookout rooms and short drop routes, while a second central climb route avoids a single stair chokepoint. Reserve stair openings through the upper floors.",
+      "failure": "A shoe loss rotates a bar into a neighboring tower or the ground, opening a roof street and a tunnel below. Give long bars clear fall corridors so they do not collide with every district at once.",
+      "cost": "A promising ratio of occupied space to moving bodies. Long bars can still touch many neighbors and have expensive broad bounds. Limit simultaneous bridge contacts; do not populate their shells with individual window colliders.",
+      "test": "Test a single 34 m bar on its intended centre seat, then a two-bar cross and the full stack. Check every upper assembly's centre of mass, lateral impacts, stair holes and the usefulness of a fallen bar with the player motor.",
+      "anchors": ["Broad centre crossing", "One bar = four playable floors", "Fallen bar becomes covered street"],
+      "sources": ["Interlace", "Safdie", "GDC"]
+    },
+    {
+      "id": 5, "name": "Cage Cathedral", "height": 66, "floors": "21–24 split levels", "footprint": "30 × 30 m", "bodies": "22–36", "colliders": "280–440", "joints": "0", "risk": "Medium", "priority": "Silhouette / ruin experiment",
+      "idea": "Three large open octagonal cage sections contain multi-level galleries and internal stairs. Deep diagonal ribs are integrated into each section, with visible loose shoes marking the separable horizontal bands.",
+      "surprise": "The hollow skyscraper can tip into a large faceted arcade. A destroyed tower is still a traversable place, and its octagonal outside offers more resting orientations than a smooth cylinder.",
+      "bearing": "Diagrid appearance alone provides no extra Unity stiffness. Each cage section is one actual rigid body; the section-to-section seats carry the load. Model only ribs needed for collision, plus a straight internal climb strip protected from diagonal interruptions.",
+      "routes": "Split galleries face a tall central nave. A stair lane near one rib and a second climbing lane near another prevent a single blocked gallery from sealing the tower. Large side portals give escape after rolling.",
+      "failure": "A shoe loss can peel one cage off the stack. It may tip onto a broad facet and become a long covered maze. Rolling direction, trapped players and high-impact contact bursts are important risks.",
+      "cost": "Very low main section count does not imply low cost: diagonal ribs, ring galleries and stairs can produce hundreds of contact shapes. This is a visual landmark candidate, not a default tower to duplicate fifty times.",
+      "test": "Profile one cage upright and resting on three different side facets, with players and loose blocks inside. Test multiple portal exits. If collision cost is high, replace decorative diagonal physics with a simpler inner collision frame.",
+      "anchors": ["Loose shoes define failure bands", "Rigid cage; no fake diagrid strength", "Side portals survive a sideways landing"],
+      "sources": ["Arup", "UnityCompound", "UnityPerformance"]
+    },
+    {
+      "id": 6, "name": "Drop-Stop Tower", "height": 60, "floors": "12 cassette floors + four sky courts", "footprint": "30 × 30 m", "bodies": "28–44", "colliders": "190–300", "joints": "0 proposed", "risk": "Medium–high", "priority": "Best unusual mechanism to prototype",
+      "idea": "Four broad frame bays contain three-floor cassettes. Each cassette rests on removable shoes above lower physical catch shoulders. Losing a shoe allows a short drop or tilt before the backup geometry catches the cassette.",
+      "surprise": "Damage changes floor alignment instead of always deleting the tower. A formerly easy crossing becomes a climb; a formerly unreachable roof comes within drop range. The same amount of geometry supplies more than one map state.",
+      "bearing": "Four widely spaced catch shoulders and broad cassette feet are real contact surfaces. Begin with a 1–1.5 m drop, large side clearances and no tight sliding guide. A one-shoe failure can skew and jam; a free clean vertical descent is not assured.",
+      "routes": "Keep a separate spine stair outside the moving cassette's sweep. Provide a route to both its high and low resting positions, plus an escape opening before it drops. Never put the sole mandatory exit in a crush gap.",
+      "failure": "A short staged drop changes connections while much of the frame remains. Subsequent frame damage can still produce full collapse. Sound and visual warnings would need to announce movement through the existing event/presentation boundary.",
+      "cost": "No slider joints are required for the first experiment. More bearings create more contacts, and repeated settling could keep bodies awake. Physical catch stops are worth testing because they worked better than an unsupported joint limit in the existing harbor.",
+      "test": "Prototype one bay before any tower. Remove only the left shoe, only the right, both, and one while a player stands at each corner. Reject persistent jamming, ejected players, body penetration, or unsafe sole-route pinch points. Then try two stacked bays.",
+      "anchors": ["Removable load shoes", "Backup catch shoulders", "Independent escape spine"],
+      "sources": ["LocalFoundry", "UnityCompound", "GDC"]
+    },
+    {
+      "id": 7, "name": "Saddle Beacon", "height": 58, "floors": "17–19 landings", "footprint": "36 × 28 m", "bodies": "20–32", "colliders": "130–220", "joints": "0", "risk": "Lower–medium", "priority": "First prototype",
+      "idea": "Three tapered multi-floor trestles stack on broad crown saddles. Each has two inclined side frames with open rungs, stair landings and large triangular interior spaces. Upper stages are narrower and seated directly above the load paths below.",
+      "surprise": "The tower is mostly three giant structural trestles rather than hundreds of columns. An inclined exterior wall becomes an obvious escape slope when a stage falls, while the spaces underneath remain sheltered and readable.",
+      "bearing": "Deep tied trestles are rigid manufactured sections. Broad, shallow saddles provide contact and lateral stops without tight interlocking hooks. Do not count a pointed A-frame tip as a robust support seat.",
+      "routes": "Stairs zigzag across the triangular void with flat turning pads. The inclined exterior supplies a second approach and opportunities to jump across the open center. Keep visual horizontal bands inside the climb plane.",
+      "failure": "A removed saddle or foot shoe can tip one whole stage onto its diagonal side, creating a tent-like ramp with covered space underneath. The taper makes the base broader than the upper tower without turning the entire build into a solid pyramid.",
+      "cost": "Potentially one of the simpler collision layouts. Most shapes can be long boxes with a small number of convex stair sections. Overly tight saddles or many separate diagonal sticks would erase the benefit.",
+      "test": "Test a single trestle with the upper stage's intended mass, then all three stages. Impact across both the wide and narrow base directions. Check standing headroom near the taper and every saddle transition with the real motor.",
+      "anchors": ["Broad crown saddle, not point contact", "Several floors inside one trestle", "Inclined face becomes escape ramp"],
+      "sources": ["SOM", "UnityCompound", "LocalFoundry"]
+    },
+    {
+      "id": 8, "name": "Chalice Stack", "height": 63, "floors": "Seven large courts + spiral rests", "footprint": "42 × 42 m", "bodies": "22–36", "colliders": "250–400", "joints": "0", "risk": "Medium", "priority": "Spatial variety experiment",
+      "idea": "Seven shallow octagonal bowl courts rise around a hollow bearing sleeve. Each bowl has walkable inclined sides, a broad annular landing, three open support ribs and a wrapping route to the next court.",
+      "surprise": "The inside of the tower is a sequence of giant outdoor rooms. The walls are also slopes to traverse, and a tipped bowl can become a sheltered hillside rather than an unusable solid chunk.",
+      "bearing": "Use broad annular or three-point sleeve seats; never stack bowls on tiny stems. The shallow shell is a rigid section assembled from convex pieces. Its centre remains open, and radial openings must connect the internal courts to the outside.",
+      "routes": "Target shallow side slopes and flat rim landings. A wrapping stair around the hollow sleeve gains the remaining height; the bowl's slope alone is not a full route to the next story. Interrupt the rim where it crosses an exterior climb strip.",
+      "failure": "An unseated bowl tilts, shedding players and debris through wide radial gaps. It can lean against another bowl to create a new ramp. Fully closed bowls are deliberately avoided because they collect bodies and blocks.",
+      "cost": "Concavity requires several physics shapes. Wide bowls can accumulate debris, so leave large spill gaps and preserve cleanup below the island. Faceted, open shells are preferable to smooth, tightly tessellated cups.",
+      "test": "Walk the entire ascent on one bowl plus its sleeve, then stack two. Drop representative blocks into the court and verify they can escape. Profile a tipped bowl full of debris before increasing height to seven courts.",
+      "anchors": ["Broad hollow sleeve bearing", "Shallow slopes + flat courts", "Large debris spill gaps"],
+      "sources": ["UnityCompound", "Safdie", "GDC"]
+    },
+    {
+      "id": 9, "name": "Bookfall Keep", "height": 66, "floors": "18–21 levels across paired wings", "footprint": "38 × 32 m plus swing exclusion", "bodies": "26–42", "colliders": "210–340", "joints": "Up to 6 hinges", "risk": "High", "priority": "Wild-card mechanics experiment",
+      "idea": "Paired inhabited ladder wings hinge to stacked movable support frames. A small initial outward lean gives gravity a known direction; removable physical wedges keep each wing at its standing stop. Selected wings can open into long inclined structures.",
+      "surprise": "The flat outer spine of a building becomes a bridge or escape ramp. Its former horizontal floors become ledges and underside cover. The interesting transformation comes from which surface becomes walkable, not from an animation swapping meshes.",
+      "bearing": "Use real hinges attached to dynamic frames, broad feet and physical stops. Design the receiving roof from the wing length and final angle; a 22 m wing at 65 degrees from vertical reaches about 20 m outward and 9.3 m above its hinge. It does not magically dock to any nearby roof.",
+      "routes": "Keep the standing stairs and a protected frame route usable before release. Mark the large swing volume and provide escape courts beyond it. A side that becomes the new ramp must be flat and wide enough to traverse when open.",
+      "failure": "A released wing rotates outward under gravity and strikes its receiving bearing or the terrain. There must be ordinary full-collapse failure if its support frame is also hit. Maximum-angle joint limits alone are not a reliable quiet resting support.",
+      "cost": "Large lever arms, moving player supports, joints and impacts make this a high-risk option despite modest body count. Start with a single hinge; keep joint-connected masses in the same order of magnitude and avoid chains of tiny supports under huge wings.",
+      "test": "Prototype one 12 m wing first, then 22 m. Test release with players on different floors, stop impacts, receiving-roof misses, a toppled frame and a wing swept through debris. Reject persistent joint jitter or launch forces. Do not build the 66 m version until these pass.",
+      "anchors": ["Physical wedge + movable hinge frame", "Flat spine becomes new walking face", "Real receiving stop / swing clearance"],
+      "sources": ["PhysXJoints", "LocalFoundry", "GDC"]
+    },
+    {
+      "id": 10, "name": "Kissing Towers", "height": 72, "floors": "24 paired levels", "footprint": "40 × 28 m", "bodies": "22–36", "colliders": "240–380", "joints": "0 initially; optional foot hinges later", "risk": "High", "priority": "Wild-card compression experiment",
+      "idea": "Two slightly inward-leaning multi-floor towers meet through a large compression shim at their crowns. Broad foot cradles share a dynamic tied raft to resist spreading. Interior floors are compensated to be level in the intended standing pose.",
+      "surprise": "A skyline-sized gate is also a compression arch. A visible piece at its top can change the fate of two inhabited buildings; the central void becomes a shifting canyon if the contact is lost.",
+      "bearing": "The crown contact pushes; it cannot pull. The raft/cradles must resist the corresponding foot thrust. This differs fundamentally from copying CCTV's continuous steel loop, which has structural connections the loose game towers would not possess. A decorative skybridge does not make the pair stable.",
+      "routes": "Each half needs its own stair/climb route and side exits, so losing the crown does not merely trap everyone in the middle. Put the apex crossing behind a broad landing and let players see the shim from several safe approaches.",
+      "failure": "A removed or displaced crown shim can start inward rotation and a scissors-like collapse. Either half may also slide or topple outward under other loads. A visually attractive symmetrical fall is not guaranteed.",
+      "cost": "Potentially economical, but sensitive to crown seating, base spread and the assembly sequence. Splitting each half into several sections introduces more bearing stability work. Avoid many interlocking catches and long chains of joints.",
+      "test": "Start with two single-body 12 m halves on a tied raft. Test crown removal, one-sided impact and loss of one cradle. Only then try sectional halves and taller versions. Measure the support reactions and actual friction behavior; do not approve it from a still image.",
+      "anchors": ["Compression shim, not tensile bridge", "Tied foot raft resists spreading", "Independent routes in each half"],
+      "sources": ["Arup", "PhysXJoints", "GDC"]
+    }
+  ]
+}

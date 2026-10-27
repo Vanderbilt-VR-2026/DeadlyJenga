@@ -7,6 +7,7 @@ using Fusion;
 using Fusion.Photon.Realtime;
 using Fusion.Sockets;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using P=DeadlyJenga.CastlePrototype.CastleLanProtocol;
 using Object=UnityEngine.Object;
 
@@ -40,8 +41,10 @@ namespace DeadlyJenga.DevTools.Editor
                     catch(Exception e){failure=e.ToString();}
                 };
                 guest.AddCallbacks(callbacks);var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=primary.Region;app.AppVersion=(app.AppVersion??"")+"/"+catalog.NetworkVersion;
-                var join=guest.StartGame(new StartGameArgs{GameMode=GameMode.Client,SessionName=primary.Code,EnableClientSessionCreation=false,CustomPhotonAppSettings=app,Scene=new NetworkSceneInfo(),SceneManager=guest.gameObject.AddComponent<NetworkSceneManagerDefault>()});
+                var guestScenes=new NetworkSceneInfo();guestScenes.AddSceneRef(SceneRef.FromIndex(SceneUtility.GetBuildIndexByScenePath(ProjectPath.Find("Lobby.unity"))),LoadSceneMode.Additive);
+                var join=guest.StartGame(new StartGameArgs{GameMode=GameMode.Client,SessionName=primary.Code,EnableClientSessionCreation=false,CustomPhotonAppSettings=app,Scene=guestScenes,SceneManager=guest.gameObject.AddComponent<NetworkSceneManagerDefault>()});
                 yield return Until(()=>join.IsCompleted,"Independent selector client finishes connecting",45,check);check(join.Result.Ok,"Second real Photon peer joins the production lobby");Physics.simulationMode=oldPhysics;
+                yield return Until(()=>!guest.SceneManager.IsBusy&&!primary.Runner.SceneManager.IsBusy,"Both peer scene managers finish the initial lobby scene",30,check);
                 guest.SendReliableDataToServer(ReliableKey.FromInts(0x49534C44,1,0,0),Array.Empty<byte>());
                 yield return Until(()=>snapshots>0||failure!=null,"Guest receives the production lobby selection packet",15,check);check(failure==null,"Production map/mode packet decodes and validates on the second peer");
                 int capture=Array.FindIndex(catalog.modes,m=>m.id=="ctf"),hill=Array.FindIndex(catalog.modes,m=>m.id=="hill");

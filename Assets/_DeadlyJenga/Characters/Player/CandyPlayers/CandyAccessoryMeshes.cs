@@ -39,9 +39,10 @@ namespace DeadlyJenga.CandyPlayers
                 case AvatarAccessory.RabbitEars:
                     for(int s=-1;s<=1;s+=2)b.Sphere(new Vector3(s*.115f,.37f,0),new Vector3(.07f,.25f,.045f),Quaternion.Euler(0,0,s*-12));break;
                 case AvatarAccessory.SkeletonMask:
-                    for(int s=-1;s<=1;s+=2){b.Ring(new Vector3(s*.10f,.035f,.217f),.078f,.025f,Quaternion.identity);b.Sphere(new Vector3(s*.15f,-.08f,.17f),new Vector3(.075f,.045f,.065f));}
-                    b.Sphere(new Vector3(0,.15f,.12f),new Vector3(.19f,.08f,.13f));
-                    for(int i=0;i<7;i++)b.Box(new Vector3((i-3)*.037f,-.135f,.20f),new Vector3(.027f,.075f,.055f));break;
+                    b.Sphere(new Vector3(0,.055f,-.065f),new Vector3(.185f,.175f,.125f));
+                    for(int side=-1;side<=1;side+=2){b.Ring(new Vector3(side*.085f,.015f,.12f),.061f,.025f,Quaternion.identity);b.Sphere(new Vector3(side*.145f,-.065f,.09f),new Vector3(.045f,.035f,.06f));}
+                    b.Box(new Vector3(0,.10f,.10f),new Vector3(.29f,.055f,.06f));b.Box(new Vector3(0,-.145f,.065f),new Vector3(.23f,.025f,.09f));
+                    for(int tooth=0;tooth<7;tooth++)b.Box(new Vector3((tooth-3)*.027f,-.11f,.12f),new Vector3(.020f,.050f,.025f));break;
                 case AvatarAccessory.TopHat:
                     b.Cone(new Vector3(0,.175f,0),new Vector3(0,.20f,0),.31f,.31f,32);
                     b.Cone(new Vector3(0,.20f,0),new Vector3(0,.49f,0),.175f,.19f,24);
@@ -59,6 +60,22 @@ namespace DeadlyJenga.CandyPlayers
                 case AvatarAccessory.LongNose:b.Cone(new Vector3(0,-.015f,.17f),new Vector3(0,-.015f,.64f),.047f,.009f,16);break;
                 case AvatarAccessory.StrongJaw:
                     b.Wedge(new Vector3(-.215f,-.04f,.15f),new Vector3(.215f,-.04f,.15f),new Vector3(-.14f,-.235f,.13f),new Vector3(.14f,-.235f,.13f),.10f);break;
+                case AvatarAccessory.Crown:
+                    b.Ring(new Vector3(0,.22f,0),.20f,.025f,Quaternion.Euler(90,0,0));for(int i=0;i<8;i++){float a=i*Mathf.PI/4;b.Cone(new Vector3(Mathf.Cos(a)*.20f,.22f,Mathf.Sin(a)*.20f),new Vector3(Mathf.Cos(a)*.20f,.38f,Mathf.Sin(a)*.20f),.04f,0,4);}break;
+                case AvatarAccessory.Halo:b.Ring(new Vector3(0,.36f,0),.22f,.018f,Quaternion.Euler(90,0,0));break;
+                case AvatarAccessory.CatEars:for(int side=-1;side<=1;side+=2)b.Cone(new Vector3(side*.15f,.14f,0),new Vector3(side*.22f,.39f,0),.09f,0,4);break;
+                case AvatarAccessory.Headphones:for(int side=-1;side<=1;side+=2)b.Sphere(new Vector3(side*.22f,0,0),new Vector3(.055f,.11f,.08f));b.Ring(new Vector3(0,.08f,0),.23f,.018f,Quaternion.identity);break;
+                case AvatarAccessory.CowboyHat:b.Sphere(new Vector3(0,.20f,0),new Vector3(.37f,.025f,.29f));b.Sphere(new Vector3(0,.27f,0),new Vector3(.18f,.14f,.16f));break;
+                case AvatarAccessory.PirateHat:b.Wedge(new Vector3(-.32f,.20f,.05f),new Vector3(.32f,.20f,.05f),new Vector3(-.13f,.45f,-.02f),new Vector3(.13f,.45f,-.02f),.12f);break;
+                case AvatarAccessory.Beanie:b.Sphere(new Vector3(0,.18f,-.01f),new Vector3(.23f,.13f,.22f));b.Sphere(new Vector3(0,.34f,0),Vector3.one*.06f);break;
+                case AvatarAccessory.ChefHat:b.Cone(new Vector3(0,.16f,0),new Vector3(0,.37f,0),.18f,.19f,16);for(int i=0;i<5;i++){float a=i*Mathf.PI*.4f;b.Sphere(new Vector3(Mathf.Cos(a)*.12f,.40f,Mathf.Sin(a)*.12f),Vector3.one*.12f);}break;
+                case AvatarAccessory.VikingHelmet:b.Sphere(new Vector3(0,.15f,0),new Vector3(.23f,.13f,.21f));for(int side=-1;side<=1;side+=2)b.Cone(new Vector3(side*.17f,.17f,0),new Vector3(side*.36f,.36f,0),.065f,0,10);break;
+                case AvatarAccessory.PartyHat:b.Cone(new Vector3(0,.16f,0),new Vector3(.03f,.57f,0),.17f,0,16);break;
+                case AvatarAccessory.PropellerCap:b.Sphere(new Vector3(0,.18f,0),new Vector3(.22f,.08f,.21f));b.Beam(new Vector3(0,.22f,0),new Vector3(0,.36f,0),.015f);b.Box(new Vector3(0,.37f,0),new Vector3(.48f,.015f,.07f));break;
+                case AvatarAccessory.FlowerCrown:for(int i=0;i<12;i++){float a=i*Mathf.PI/6;for(int petal=0;petal<5;petal++){float t=petal*Mathf.PI*.4f;b.Sphere(new Vector3(Mathf.Cos(a)*.21f+Mathf.Cos(t)*.025f,.17f+Mathf.Sin(t)*.025f,Mathf.Sin(a)*.21f),Vector3.one*.018f);}}break;
+                case AvatarAccessory.RobotAntenna:b.Beam(new Vector3(0,.18f,0),new Vector3(0,.46f,0),.016f);b.Sphere(new Vector3(0,.46f,0),Vector3.one*.055f);break;
+                case AvatarAccessory.ButterflyWings:case AvatarAccessory.AngelWings:case AvatarAccessory.DragonWings:
+                    for(int side=-1;side<=1;side+=2){float reach=option==AvatarAccessory.DragonWings?.90f:.65f;b.Wedge(new Vector3(side*.10f,1.2f,-.17f),new Vector3(side*reach,1.52f,-.30f),new Vector3(side*.11f,.72f,-.18f),new Vector3(side*reach,.72f,-.34f),.04f);if(option==AvatarAccessory.AngelWings)for(int feather=0;feather<6;feather++)b.Sphere(new Vector3(side*(.25f+feather*.07f),1.15f-feather*.04f,-.32f),new Vector3(.07f,.26f,.025f));}break;
                 case AvatarAccessory.PantherHead:
                     for(int s=-1;s<=1;s+=2){b.Sphere(new Vector3(s*.16f,.19f,-.015f),new Vector3(.082f,.105f,.05f));b.Sphere(new Vector3(s*.072f,-.06f,.20f),new Vector3(.09f,.065f,.09f));b.Beam(new Vector3(s*.04f,.055f,.21f),new Vector3(s*.16f,.08f,.17f),.027f);}
                     b.Sphere(new Vector3(0,-.035f,.28f),new Vector3(.045f,.032f,.033f));break;
@@ -81,6 +98,75 @@ namespace DeadlyJenga.CandyPlayers
                 for(int y=0;y<=rings;y++)for(int x=0;x<=sides;x++){float t=Mathf.PI*y/rings,a=Mathf.PI*2*x/sides;vertices.Add(center+q*Vector3.Scale(radii,new Vector3(Mathf.Sin(t)*Mathf.Cos(a),Mathf.Cos(t),Mathf.Sin(t)*Mathf.Sin(a))));}
                 for(int y=0;y<rings;y++)for(int x=0;x<sides;x++){int a=start+y*(sides+1)+x;Quad(a,a+1,a+sides+2,a+sides+1);}
             }
+            List<Vector3> pumpkinNormals;
+            public void CarvedPumpkin()
+            {
+                pumpkinNormals=new List<Vector3>();
+                var holes=new List<Vector2[]> {
+                    new[]{new Vector2(.04f,.075f),new Vector2(.20f,.13f),new Vector2(.165f,.015f)},
+                    new[]{new Vector2(-.04f,.075f),new Vector2(-.20f,.13f),new Vector2(-.165f,.015f)}
+                };
+                float[] x={-.21f,-.16f,-.11f,-.055f,0,.055f,.11f,.16f,.21f};
+                float[] top={-.065f,-.095f,-.065f,-.10f,-.07f,-.10f,-.065f,-.095f,-.065f};
+                float[] bottom={-.065f,-.17f,-.14f,-.19f,-.15f,-.19f,-.14f,-.17f,-.065f};
+                for(int i=0;i<x.Length-1;i++)holes.Add(new[]{new Vector2(x[i],top[i]),new Vector2(x[i+1],top[i+1]),new Vector2(x[i+1],bottom[i+1]),new Vector2(x[i],bottom[i])});
+                foreach(var hole in holes)
+                {float area=0;for(int i=0;i<hole.Length;i++)area+=Cross(hole[i],hole[(i+1)%hole.Length]);if(area<0)System.Array.Reverse(hole);}
+                const int rows=24,cols=64;
+                Vector3 Point(int y,int column)
+                {
+                    float t=Mathf.PI*y/rows,a=Mathf.PI*2*column/cols,r=1+.045f*Mathf.Cos(a*10);
+                    return new Vector3(Mathf.Sin(t)*Mathf.Cos(a)*.31f*r,Mathf.Cos(t)*.29f,Mathf.Sin(t)*Mathf.Sin(a)*.285f*r);
+                }
+                for(int y=0;y<rows;y++)for(int column=0;column<cols;column++)
+                {
+                    var a=Point(y,column);var b=Point(y,column+1);var c=Point(y+1,column+1);var d=Point(y+1,column);
+                    PumpkinPatch(new List<Vector3>{a,b,c},holes);PumpkinPatch(new List<Vector3>{a,c,d},holes);
+                }
+            }
+            static float Cross(Vector2 a,Vector2 b)=>a.x*b.y-a.y*b.x;
+            static List<Vector3> ClipEdge(List<Vector3> polygon,Vector2 a,Vector2 b,bool inside)
+            {
+                var result=new List<Vector3>();if(polygon.Count==0)return result;
+                var previous=polygon[polygon.Count-1];float oldDistance=Cross(b-a,(Vector2)previous-a);bool oldInside=inside?oldDistance>=0:oldDistance<=0;
+                foreach(var point in polygon)
+                {
+                    float distance=Cross(b-a,(Vector2)point-a);bool current=inside?distance>=0:distance<=0;
+                    if(current!=oldInside)result.Add(Vector3.Lerp(previous,point,oldDistance/(oldDistance-distance)));
+                    if(current)result.Add(point);previous=point;oldDistance=distance;oldInside=current;
+                }
+                return result;
+            }
+            void PumpkinPatch(List<Vector3> triangle,List<Vector2[]> holes)
+            {
+                var pieces=new List<List<Vector3>>{triangle};
+                if((triangle[0].z+triangle[1].z+triangle[2].z)/3>.12f)foreach(var hole in holes)
+                {
+                    var outside=new List<List<Vector3>>();
+                    foreach(var piece in pieces)
+                    {
+                        var remaining=piece;
+                        for(int i=0;i<hole.Length&&remaining.Count>=3;i++)
+                        {
+                            if((hole[i]-hole[(i+1)%hole.Length]).sqrMagnitude<1e-12f)continue;
+                            var cut=ClipEdge(remaining,hole[i],hole[(i+1)%hole.Length],false);if(cut.Count>=3)outside.Add(cut);
+                            remaining=ClipEdge(remaining,hole[i],hole[(i+1)%hole.Length],true);
+                        }
+                    }
+                    pieces=outside;
+                }
+                foreach(var polygon in pieces)
+                {
+                    int start=vertices.Count;
+                    foreach(var p in polygon){vertices.Add(p);pumpkinNormals.Add(new Vector3(p.x/(.31f*.31f),p.y/(.29f*.29f),p.z/(.285f*.285f)).normalized);}
+                    foreach(var p in polygon){vertices.Add(p*.96f);pumpkinNormals.Add(-new Vector3(p.x/(.31f*.31f),p.y/(.29f*.29f),p.z/(.285f*.285f)).normalized);}
+                    for(int i=1;i<polygon.Count-1;i++)
+                    {
+                        if(Vector3.Cross(polygon[i]-polygon[0],polygon[i+1]-polygon[0]).sqrMagnitude<1e-13f)continue;
+                        triangles.AddRange(new[]{start,start+i,start+i+1,start+polygon.Count,start+polygon.Count+i+1,start+polygon.Count+i});
+                    }
+                }
+            }
             public void Cone(Vector3 from,Vector3 to,float r0,float r1,int sides)
             {
                 int start=vertices.Count;var q=Quaternion.FromToRotation(Vector3.up,(to-from).normalized);
@@ -101,7 +187,7 @@ namespace DeadlyJenga.CandyPlayers
                 int s=vertices.Count;foreach(var p in new[]{a,b,d,c})vertices.Add(p+Vector3.forward*depth*.5f);foreach(var p in new[]{a,b,d,c})vertices.Add(p-Vector3.forward*depth*.5f);
                 Quad(s,s+3,s+2,s+1);Quad(s+4,s+5,s+6,s+7);for(int i=0;i<4;i++)Quad(s+i,s+(i+1)%4,s+4+(i+1)%4,s+4+i);
             }
-            public Mesh Mesh(string name){var mesh=new Mesh{name="Candy attachment - "+name};mesh.SetVertices(vertices);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();mesh.RecalculateBounds();return mesh;}
+            public Mesh Mesh(string name){var mesh=new Mesh{name="Candy attachment - "+name};mesh.indexFormat=vertices.Count>65535?UnityEngine.Rendering.IndexFormat.UInt32:UnityEngine.Rendering.IndexFormat.UInt16;mesh.SetVertices(vertices);mesh.SetTriangles(triangles,0);if(pumpkinNormals!=null)mesh.SetNormals(pumpkinNormals);else mesh.RecalculateNormals();var uv=new List<Vector2>(vertices.Count);var normals=mesh.normals;for(int i=0;i<vertices.Count;i++){var v=vertices[i];var n=normals[i];uv.Add(Mathf.Abs(n.x)>Mathf.Abs(n.y)&&Mathf.Abs(n.x)>Mathf.Abs(n.z)?new Vector2(v.z,v.y)*4:Mathf.Abs(n.y)>Mathf.Abs(n.z)?new Vector2(v.x,v.z)*4:new Vector2(v.x,v.y)*4);}mesh.SetUVs(0,uv);mesh.RecalculateTangents();mesh.RecalculateBounds();return mesh;}
         }
     }
 }

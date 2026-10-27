@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     // The three terminals: JOIN (code, nearby rooms, invitations), HOST, and MAP + MODE.
     public sealed partial class IslandLobbyView
     {
-        const float StationY = 2.5f, StationZ = 1f, StationScale = .0022f;
+        const float StationY = 1.95f, StationZ = 1f, StationScale = .0022f;
         RectTransform joinStation,hostStation,setupStation;
         LobbyTerminalFaces joinFace,setupFace;
         Text joinHint,hostHint,setupHint,hostCode;
@@ -34,12 +34,14 @@ namespace DeadlyJenga.CastlePrototype
             StyleJoinArcade();
             BuildRoomStation();
             BuildGameStation();
+            FitTerminal(hostStation,new Vector2(1000,800),1.20f,.84f);
+            FitTerminal(setupStation,new Vector2(1100,820),1.22f,.74f);
             BuildControlCabinet(hostStation,false);
             BuildControlCabinet(setupStation,true);
         }        void UpdateStations()
         {
             joinFace.Opacity=1;setupFace.Opacity=lobby.IsHost?1:.38f;UpdateRoomStation();UpdateGameStation();
-            hostCode.gameObject.SetActive(true);hostCode.text=lobby.HostCode;
+            hostCode.gameObject.SetActive(lobby.Connected&&!lobby.Busy);hostCode.text=lobby.HostCode;
             hostHint.text=lobby.HostHint;setupHint.text=lobby.SetupHint;joinHint.text=lobby.JoinHint;
             if(codeKeyboard!=Keyboard.current){if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;codeKeyboard=Keyboard.current;if(codeKeyboard!=null)codeKeyboard.onTextInput+=CodeText;}
             if(lobby.CodeFocused&&codeKeyboard!=null)
@@ -49,6 +51,17 @@ namespace DeadlyJenga.CastlePrototype
                 if(codeKeyboard.escapeKey.wasPressedThisFrame)lobby.UnfocusCode();
             }
             UpdateKeyboardTouches();
+            UpdateCandyDesign();
+        }
+        void FitTerminal(RectTransform screen,Vector2 size,float x,float y)
+        {
+            screen.sizeDelta=size;
+            foreach(var rect in screen.GetComponentsInChildren<RectTransform>(true))if(rect!=screen)
+            {
+                rect.anchoredPosition=Vector2.Scale(rect.anchoredPosition,new Vector2(x,y));rect.sizeDelta=Vector2.Scale(rect.sizeDelta,new Vector2(x,y));
+                if(rect.TryGetComponent<BoxCollider>(out var hit)){hit.size=Vector3.Scale(hit.size,new Vector3(x,y,1));hit.center=Vector3.Scale(hit.center,new Vector3(x,y,1));}
+            }
+            screen.GetComponent<LobbyTerminalFaces>().Refresh();
         }
         void CodeText(char value){if(lobby!=null&&lobby.CodeFocused)lobby.TypeCode(value);}
         RectTransform Terminal(string title,Vector3 position,float yaw,Vector2 size,Color accent)

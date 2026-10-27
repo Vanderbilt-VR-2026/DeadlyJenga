@@ -1,0 +1,10 @@
+Actual Unity URP Editor renders; isolated Game scene copy; no simulation; no image generation or image retouching.
+No live disaster/scene/prefab was changed. No headset or frame-rate validation.
+tornado-sculpted: 2401 vertices; 4608 triangles; 1 renderers; 1 materials; colliders=0; rigidbodies=0
+tornado-ribbons: 3757 vertices; 6624 triangles; 4 renderers; 2 materials; colliders=0; rigidbodies=0
+tsunami-lagoon: 3977 vertices; 7680 triangles; 1 renderers; 1 materials; colliders=0; rigidbodies=0
+tsunami-whitewater: 3977 vertices; 7680 triangles; 1 renderers; 1 materials; colliders=0; rigidbodies=0
+Deadly Jenga/Prototypes/Practical Funnel: supported=True; errors=False
+Deadly Jenga/Prototypes/Practical Surge: supported=True; errors=False
+One shared 256x256 RGBA 2D mask with mipmaps. Zero 3D textures, particles, transparent passes, screen refraction, volumetric clouds or additional physics. Surface motion is UV animation; mesh shapes are fixed. Tsunami height profile preserves the production 0.72 crest and 15% side taper. Opaque water is an explicit visual tradeoff; no transparency promised.
+Complete.

@@ -70,7 +70,9 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static void State(PlayModeStateChange state)
         {
+            if(state==PlayModeStateChange.EnteredEditMode&&SessionState.GetBool(Key+"Locked",false)){SessionState.SetBool(Key+"Locked",false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();}
             if(state!=PlayModeStateChange.EnteredEditMode||!SessionState.GetBool(Key+"Restore",false))return;
+            ValidationRunGate.Release(Key);
             SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Restore",false);
             EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes);
             SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));
@@ -84,7 +86,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 string request=ProjectPath.Report("BotCombat.request");
                 if(!EditorApplication.isPlayingOrWillChangePlaymode&&!EditorApplication.isCompiling&&!EditorApplication.isUpdating&&File.Exists(request))
-                {string input=File.ReadAllText(request);File.Delete(request);Begin(input.TrimStart().StartsWith("{")?JsonUtility.FromJson<Request>(input).cases:AllCases);}
+                {if(!ValidationRunGate.TryAcquire(Key))return;string input=File.ReadAllText(request);File.Delete(request);Begin(input.TrimStart().StartsWith("{")?JsonUtility.FromJson<Request>(input).cases:AllCases);}
                 return;
             }
             if(!EditorApplication.isPlaying||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
@@ -92,6 +94,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if(!initialized)
                 {
+                    AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();SessionState.SetBool(Key+"Locked",true);
                     initialized=true;stage=-1;phase=failures=errors=0;boot=EditorApplication.timeSinceStartup;
                     Cases=JsonUtility.FromJson<Request>(SessionState.GetString(Key+"Cases","")).cases;
                     Time.captureFramerate=60;Time.timeScale=1;Application.targetFrameRate=60;
@@ -137,7 +140,7 @@ namespace DeadlyJenga.DevTools.Editor
             var mode=name.StartsWith("carrier")||name=="ctf-contact"?GameModeKind.CaptureFlag:name=="hill-hit"||name=="hill-contact"?GameModeKind.KingOfHill:name=="territory-push"||name=="territory-contact"?GameModeKind.BlockControl:name=="infection-conversion"||name=="survivor-repel"?GameModeKind.Infection:name.StartsWith("mystery-")?GameModeKind.MurderMystery:name=="survival-option"?GameModeKind.Survival:GameModeKind.TeamTickets;
             var rules=ModeSimulation.Defaults(mode);
             fixtureMode=mode;
-            rules.countdownSeconds=0;rules.roundSeconds=0;rules.automaticDisasters=false;
+            rules.defaultDagger=false;rules.countdownSeconds=0;rules.roundSeconds=0;rules.automaticDisasters=false;
             rules.starterInfected=false;rules.mystery.attackGraceSeconds=0;
             if(Cases[stage]=="disabled")rules.punchEnabled=false;
             if(name=="survival-option")rules.punchEnabled=true;

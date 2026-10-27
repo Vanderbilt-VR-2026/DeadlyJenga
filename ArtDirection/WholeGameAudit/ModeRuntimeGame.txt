@@ -1,0 +1,102 @@
+Actual Game scene mode integration
+PASS Actual Game creates playable demo and physical world
+PASS Keyboard avatar does not receive tracked-controller calibration
+PASS Both keyboard palms face forward rather than down
+AVATAR neckTop=60.2616 headBottom=60.23661 feet=(4.44, 59.93, 4.44) eyes=(4.44, 60.73, 4.44) rigScale=(0.50, 0.50, 0.50)
+PASS Actual skinned head overlaps torso neck instead of floating above it
+PASS Head remains connected when looking up and down
+PASS Rendered full-health avatar stays colored above cutoff; pale layer appears only after damage
+PASS Spawned population bot enters authoritative mode roster and objective actor registry
+PASS Authority resume restores recreated local bot health before fresh observation
+PASS Runtime-only lobby catalog exposes all six real mode prefabs and recommendations without editing asset
+PASS Chunk damage animates through intermediate health color instead of stepping instantly
+PASS Health color quickly settles at actual health
+PASS Health cutoff follows airborne avatar every frame
+PASS Demo health zero persists with death disabled
+PASS Death camera override preserves local actor identity
+PASS Respawn preserves generated name and local control identity
+PASS Actual map foundation collider is enabled
+PASS Find capsule-clear perimeter point on actual island foundation
+SINK CONTACT feet=(0.00, 0.01, 16.13) grounded=True surface=Fixed Foundation body= view=(0.00, 0.81, 16.13) water=0.08 phase=Playing island=Sink dying=False
+PASS Sinking slows movement, disables jump, permits ledge vault and is replicated in frame
+PASS Jump cannot escape sinking foundation
+PASS Water crossing hides immediately between five-Hz death samples
+PASS Drowning view never shows underneath ocean/map
+PASS Demo flying-hand switch restores a live Display 1 camera after death-camera use
+PASS Actual flying hand accepts Digit1 as Pointer with session-owned cursor
+PASS Selected Pointer reaches the physical hand target through smooth transition
+PHYSICAL Digit1 maximum finger angle error=0.0 interactive=True
+PASS Actual physical fingers follow Pointer rather than only updating its input value
+PASS Actual flying hand accepts Digit2 as Cup with session-owned cursor
+PASS Selected Cup reaches the physical hand target through smooth transition
+PHYSICAL Digit2 maximum finger angle error=1.5 interactive=True
+PASS Actual physical fingers follow Cup rather than only updating its input value
+PASS Actual flying hand accepts Digit3 as Fist with session-owned cursor
+PASS Selected Fist reaches the physical hand target through smooth transition
+PHYSICAL Digit3 maximum finger angle error=1.7 interactive=True
+PASS Actual physical fingers follow Fist rather than only updating its input value
+PASS Actual flying hand accepts Digit4 as Flat with session-owned cursor
+PASS Selected Flat reaches the physical hand target through smooth transition
+PHYSICAL Digit4 maximum finger angle error=3.2 interactive=True
+PASS Actual physical fingers follow Flat rather than only updating its input value
+PASS Actual flying hand accepts Digit5 as Peace with session-owned cursor
+PASS Selected Peace reaches the physical hand target through smooth transition
+PHYSICAL Digit5 maximum finger angle error=4.2 interactive=True
+PASS Actual physical fingers follow Peace rather than only updating its input value
+PASS Actual flying hand accepts Digit6 as Spread with session-owned cursor
+PASS Selected Spread reaches the physical hand target through smooth transition
+PHYSICAL Digit6 maximum finger angle error=0.7 interactive=True
+PASS Actual physical fingers follow Spread rather than only updating its input value
+PASS Actual flying hand accepts Numpad1 as Pointer with session-owned cursor
+PASS Selected Pointer reaches the physical hand target through smooth transition
+PHYSICAL Numpad1 maximum finger angle error=5.7 interactive=True
+PASS Actual physical fingers follow Pointer rather than only updating its input value
+PASS Actual flying hand accepts Numpad2 as Cup with session-owned cursor
+PASS Selected Cup reaches the physical hand target through smooth transition
+PHYSICAL Numpad2 maximum finger angle error=6.0 interactive=True
+PASS Actual physical fingers follow Cup rather than only updating its input value
+PASS Actual flying hand accepts Numpad3 as Fist with session-owned cursor
+PASS Selected Fist reaches the physical hand target through smooth transition
+PHYSICAL Numpad3 maximum finger angle error=5.9 interactive=True
+PASS Actual physical fingers follow Fist rather than only updating its input value
+PASS Actual flying hand accepts Numpad4 as Flat with session-owned cursor
+PASS Selected Flat reaches the physical hand target through smooth transition
+PHYSICAL Numpad4 maximum finger angle error=3.0 interactive=True
+PASS Actual physical fingers follow Flat rather than only updating its input value
+PASS Actual flying hand accepts Numpad5 as Peace with session-owned cursor
+PASS Selected Peace reaches the physical hand target through smooth transition
+PHYSICAL Numpad5 maximum finger angle error=4.0 interactive=True
+PASS Actual physical fingers follow Peace rather than only updating its input value
+PASS Actual flying hand accepts Numpad6 as Spread with session-owned cursor
+PASS Selected Spread reaches the physical hand target through smooth transition
+PHYSICAL Numpad6 maximum finger angle error=4.6 interactive=True
+PASS Actual physical fingers follow Spread rather than only updating its input value
+PASS Typing numbers while menu is open cannot change the hand pose
+PASS Session-owned cursor also permits click-to-clench
+PASS Releasing mouse unclenches the selected pose
+PASS Returning from flying hand restores survivor camera
+PASS Switching while ocean override is active cannot disable the hand camera
+PASS Competitive countdown freezes movement, jump and climbing
+PASS Host retains usable Disasters page during competitive game modes
+PASS Territory round begins with every physical block neutral
+PASS Live slider changes preserve round time and captured ownership
+PASS Next competitive round rebuilds actual displaced map geometry
+PASS Remote actor root position follows serialized network feet
+PASS Remote proxy damage is tracked by authoritative health rather than constant proxy Health
+PASS Actual authority restoration seeds remote health before subsequent damage
+KEY INPUT temporaryDevice=true enabled=True updateSawPress=True role=spectator
+SPECTATOR INPUT before=fixture-peer-a after=fixture-peer-b menu=False vr=False alivePeers=fixture-peer-a,fixture-peer-b
+PASS Desktop spectator arrow changes watched living player
+PASS Spectator overrides view while retaining local actor identity
+PASS Spectator follows live remote view between five-Hz match samples
+PASS Completed actual round exposes report and results presentation
+PASS Results prevent continued combat and movement
+PASS Migrated results preserve full authoritative duration and survival totals with sampled-history disclosure
+PASS Client mode frame binds remote bot proxy for nameplates, team and health presentation
+PASS Selected mode map prefab actually replaces world through MatchSetup
+PASS Shelter route spawns an ordinary bot on the uncovered initial platform
+PASS Shelter-route bot begins genuinely exposed to the sky
+PASS Ordinary bot follows a real route into standing-clear acid-rain shelter without test movement or damage
+PASS Return to lobby loads actual starting scene
+PASS No runtime errors or exceptions during actual scene checks
+COMPLETE failures=0; errors=0. No physical headset or second Fusion peer used.

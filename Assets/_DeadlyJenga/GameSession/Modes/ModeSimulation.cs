@@ -59,6 +59,7 @@ namespace DeadlyJenga.Modes
             if (mode == GameModeKind.TeamTickets) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.Eliminations; r.roundSeconds=600; r.tickets=30; }
             if (mode == GameModeKind.Infection) { r.healthEnabled=true; r.punchEnabled=true; r.starterInfected=true; r.roundSeconds=300; r.metric=ScoreMetric.SurvivalTime; }
             if (mode == GameModeKind.MurderMystery) { r.healthEnabled=true; r.punchEnabled=true; r.punchDamage=8; r.punchDistance=.7f; r.roundSeconds=480; r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.metric=ScoreMetric.AliveStatus; }
+            r.defaultDagger=mode==GameModeKind.KingOfHill||mode==GameModeKind.BlockControl||mode==GameModeKind.CaptureFlag||mode==GameModeKind.TeamTickets;
             return r;
         }
         public void Configure(ModeRules input)
@@ -221,8 +222,23 @@ namespace DeadlyJenga.Modes
         {
             var p=Find(id);if(p==null||!p.frame.alive||p.frame.dying||Phase!=RoundPhase.Playing)return;
             DropFlags(id);
-            p.previousRole=p.frame.role;p.frame.role="hand";p.powerUntil=Elapsed+Mathf.Clamp(duration,1,120);
+            if(p.frame.role!="hand"||string.IsNullOrEmpty(p.previousRole))p.previousRole=p.frame.role;p.frame.role="hand";p.powerUntil=Elapsed+Mathf.Clamp(duration,1,120);
             Eliminated?.Invoke(id,EliminationOutcome.FlyingHand);
+        }
+        public bool SetDevelopmentHand(string id,bool active)
+        {
+            var p=Find(id);if(p==null||!p.frame.alive||p.frame.dying)return false;
+            if(active)
+            {
+                if(p.frame.role=="hand")return true;
+                DropFlags(id);p.previousRole=p.frame.role;p.frame.role="hand";p.powerUntil=0;
+            }
+            else if(p.frame.role=="hand")
+            {
+                p.frame.role=string.IsNullOrEmpty(p.previousRole)?"survivor":p.previousRole;
+                p.previousRole=null;p.powerUntil=0;
+            }
+            return true;
         }
         void CheckWinner()
         {

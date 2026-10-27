@@ -28,7 +28,11 @@ namespace DeadlyJenga.Modes
             var p=simulation.Find(id);if(p==null||!p.present||!p.frame.alive||p.frame.dying||transitionUntil.ContainsKey(id))return;
             bool lethal=remoteHealth.Damage(id,damage,Rules.deathEnabled);
             p.frame.health=remoteHealth.Read(id);
-            if(lethal)simulation.Kill(id,sourceId);
+            if(lethal)
+            {
+                if(MysteryActive&&sourceId!=null)RecordMysteryReplay(sourceId,id,mystery.Role(sourceId)==MysteryRole.Murderer);
+                simulation.Kill(id,sourceId);
+            }
         }
         void ObserveRemoteFall(string id,IModeActor actor)
         {

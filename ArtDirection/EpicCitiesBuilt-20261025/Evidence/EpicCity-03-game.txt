@@ -1,0 +1,16 @@
+Caldera Switchback City production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=86 shapes=634 routes=10 elevated=9 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Bowl entry arcade position=(-59.79, 5.03, -120.50)
+PASS production motor first flight Low bowl terraces position=(60.32, 5.04, -116.60)
+PASS production motor first flight East switchback position=(125.32, 9.04, -26.60)
+PASS production motor first flight High east crown position=(110.32, 17.04, 81.40)
+PASS production motor first flight Bowl lantern position=(5.32, 13.04, 106.40)
+PASS production motor first flight High west crown position=(-99.79, 17.03, 73.00)
+PASS production motor first flight West switchback position=(-119.68, 9.04, -21.60)
+32 bots / quiet frames=66 average=16.7FPS p95=78.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=32
+32 bots + tsunami frames=598 average=7.5FPS p95=561.4ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=45/86. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=46/86. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=86 runtimeErrorsSoFar=0

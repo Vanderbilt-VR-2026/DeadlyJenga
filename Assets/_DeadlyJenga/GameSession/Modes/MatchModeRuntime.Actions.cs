@@ -18,14 +18,16 @@ namespace DeadlyJenga.Modes
         public bool Punch(string id,Vector3 origin,Vector3 direction,float speed)
         {
             if(float.IsNaN(speed)||float.IsInfinity(speed)||float.IsNaN(origin.sqrMagnitude)||float.IsInfinity(origin.sqrMagnitude)||float.IsNaN(direction.sqrMagnitude)||float.IsInfinity(direction.sqrMagnitude))return false;
-            var held=EquipmentFor(id);if(held.drawn&&!held.roleIssued)return false;
+            var held=EquipmentFor(id);if(held.builtIn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});if(held.drawn&&!held.roleIssued)return false;
+            if(held.drawn&&held.kind==EquipmentKind.SheriffHammer)return AttackEquipment(id,held,new EquipmentCommand{action="attack",position=origin,forward=direction});
             var p=simulation.Find(id);var source=FindActor(id);
             if(p==null||source==null||!p.frame.alive||p.frame.role=="hand"||simulation.Phase!=RoundPhase.Playing||!RulesFor(source.gameObject).punchEnabled||simulation.CarriesFlag(id)||Time.time<p.nextPunch||speed<.4f||speed>50)return false;
             if((origin-source.ViewPose.position).sqrMagnitude>9||direction.sqrMagnitude<.1f)return false;
-            p.nextPunch=Time.time+Rules.punchCooldown;direction.Normalize();
+            p.nextPunch=Time.time+RulesFor(source.gameObject).punchCooldown;direction.Normalize();
             AnnounceMysteryStrike(id);
             if(held.roleIssued&&held.drawn)AnnounceEquipment(id,held,EquipmentAction.Shot,origin);
-            IModeActor target=null;float nearest=2.2f;
+            var enemy=source.gameObject.GetComponent<IEnemyActor>();
+            IModeActor target=null;float nearest=enemy?.IsEnemy==true&&enemy.ArchetypeId=="longhand"?3.4f:2.2f;
             foreach(var pair in actors)
             {
                 if(pair.Key==id)continue;
@@ -99,7 +101,7 @@ namespace DeadlyJenga.Modes
             if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
             if(id==LocalActorId)
             {
-                if(outcome==EliminationOutcome.FlyingHand){session.SetRole(true);return;}
+                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRole(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
                 if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
                 if(session.PlayingHand)session.SetRole(false);
             }
@@ -116,8 +118,10 @@ namespace DeadlyJenga.Modes
             else actor.gameObject.GetComponent<ITeleportable>()?.Teleport(point,rotation);
             actor.ApplyModeRules(RulesFor(actor.gameObject));
         }
+        readonly Dictionary<string,Pose> powerReturnOverrides=new Dictionary<string,Pose>();
         public Pose OutcomeSpawn(string id)
         {
+            if(powerReturnOverrides.TryGetValue(id,out var powerReturn)){powerReturnOverrides.Remove(id);return powerReturn;}
             if(MysteryActive&&mystery.IsDowned(id)){var actor=FindActor(id);if(actor!=null)return new Pose(actor.transform.position,actor.transform.rotation);}
             var p=simulation.Find(id);var point=SpawnPoint(p?.frame.team??-1,ParticipantOrdinal(p),p?.frame.role??"survivor");
             var direction=Vector3.ProjectOnPlane((Services.World?.Center??Vector3.zero)-point,Vector3.up);
@@ -127,11 +131,31 @@ namespace DeadlyJenga.Modes
         {
             int n=0;foreach(var p in simulation.Participants){if(p==target)break;if(!ModeSimulation.TeamMode(Rules.mode)||p.frame.team==target?.frame.team)n++;}return n;
         }
-        void OnPowerFinished(string id)=>ApplyOutcome(id,EliminationOutcome.Respawn);
+        void OnPowerFinished(string id)
+        {
+            var root=FindParticipantRoot(id);
+            var flyer=root?root.GetComponent<IFlyingState>():null;
+            var near=flyer?.ContactBodies!=null&&flyer.ContactBodies.Count>0&&flyer.ContactBodies[0]?flyer.ContactBodies[0].position:flyer?.Anchor?flyer.Anchor.position:root?root.position:Services.World.SafeSpawnPoint();
+            var point=SafeHandReturn(near);if(id!=LocalActorId)powerReturnOverrides[id]=new Pose(point,Quaternion.identity);ApplyOutcome(id,EliminationOutcome.Respawn);
+            if(id==LocalActorId)session.Player.Place(point,Quaternion.identity);
+        }
+        Vector3 SafeHandReturn(Vector3 near)
+        {
+            for(int i=0;i<37;i++)
+            {
+                float angle=i*2.399963f,radius=i==0?0:2+i/12*3;
+                var origin=near+new Vector3(Mathf.Sin(angle)*radius,3,Mathf.Cos(angle)*radius);
+                if(!Physics.Raycast(origin,Vector3.down,out var hit,160,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)||hit.normal.y<.65f)continue;
+                if(Rules.island!=IslandRule.Walkable&&!Climbables.TryGet(hit.collider,out _))continue;
+                var point=hit.point+Vector3.up*.06f;
+                if(!Physics.CheckCapsule(point+Vector3.up*.28f,point+Vector3.up*1.5f,.25f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return point;
+            }
+            return Services.World.SafeSpawnPoint();
+        }
         public void ApplyRemoteOutcome(EliminationOutcome outcome,Vector3 spawn,Quaternion rotation,string role)
         {
             if(Authority||session==null)return;
-            if(outcome==EliminationOutcome.FlyingHand){session.SetRole(true);return;}
+            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRole(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
             if(outcome==EliminationOutcome.Spectator)return;
             if(session.PlayingHand)session.SetRole(false);
             session.Player.Place(spawn,rotation);
@@ -143,6 +167,7 @@ namespace DeadlyJenga.Modes
             if(phase==RoundPhase.Playing){ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
             if(phase==RoundPhase.Victory)
             {
+                FinishMysteryReplay();
                 CaptureStats();
                 FinishReport();
                 GameEvents.RaiseRoundEnded();

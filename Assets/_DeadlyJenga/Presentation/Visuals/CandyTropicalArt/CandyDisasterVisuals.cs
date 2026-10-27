@@ -88,9 +88,6 @@ namespace DeadlyJenga.CandyArt
         }
         void OnEnable()=>GameEvents.BlockHit+=MeteorContact;
         void OnDisable(){RestoreIce();ClearCharred();GameEvents.BlockHit-=MeteorContact;ClearObjects();}
-        void OnDestroy(){RestoreIce();DestroyObjects();DestroyFire();foreach(var m in new[]{coral,lemon,lavender,aqua,lime})if(m)Destroy(m);if(sphere)Destroy(sphere);if(funnel)Destroy(funnel);}
+        void OnDestroy(){RestoreIce();DestroyObjects();DestroyFire();foreach(var m in new[]{coral,lemon,lavender,aqua,lime,shardMaterial})if(m)Destroy(m);if(sphere)Destroy(sphere);if(funnel)Destroy(funnel);if(shard)Destroy(shard);}
     }
 }
-
-
-

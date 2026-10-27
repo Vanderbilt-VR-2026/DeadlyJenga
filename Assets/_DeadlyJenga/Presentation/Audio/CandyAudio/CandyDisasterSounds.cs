@@ -38,6 +38,7 @@ namespace DeadlyJenga.CandyAudio
                 float air=mid-low,body=low*3,signal;
                 switch(kind)
                 {
+                    case CandySound.PushImpact: signal=(body*1.8f+air*.8f)*Mathf.Exp(-t*30)+Mathf.Sin(t*2*Mathf.PI*115)*.42f*Mathf.Exp(-t*28)+Mathf.Sin(t*2*Mathf.PI*730)*.1f*Mathf.Exp(-t*85);break;
                     case CandySound.LobbyLaunch: signal=(air*.6f+body*.3f+Mathf.Sin(2*Mathf.PI*(65*t+310*t*t))*.12f)*(.2f+.8f*u);break;
                     case CandySound.SpawnSlam: signal=(body*.75f+air*.45f)*Mathf.Exp(-t*17)+Mathf.Sin(2*Mathf.PI*(42*t+18*(1-Mathf.Exp(-t*18))))*.6f*Mathf.Exp(-t*8);break;
                     case CandySound.DisasterHorn: signal=.36f*Mathf.Sin(t*2*Mathf.PI*91)+.18f*Mathf.Sin(t*2*Mathf.PI*137)+body*.12f;break;

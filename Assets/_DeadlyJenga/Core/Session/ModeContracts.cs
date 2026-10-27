@@ -18,6 +18,7 @@ namespace DeadlyJenga.Core
         public SpawnRule spawn;
         public ScoreMetric metric;
         public int teamCount = 2, tickets = 50, flagTarget = 3;
+        public bool defaultDagger;
         public bool sameHumanTeam, punchEnabled, healthEnabled, deathEnabled = true, fallDamage;
         public bool friendlyFire;
         public bool flagWinByTwo = true, starterInfected, enemyClimbBlocked;
@@ -107,9 +108,18 @@ namespace DeadlyJenga.Core
         public string carrier;
         public bool atHome = true;
     }
+    [Serializable] public sealed class ExpressionFrame {public int id;public string actor,name;public Vector3 position;public float remaining;}
     [Serializable]
     public sealed class MatchFrame
     {
+        public int expressionSequence;
+        public ExpressionFrame[] expressions=Array.Empty<ExpressionFrame>();
+        public EquipmentKind demoRespawnEquipment;
+        public EquipmentProjectileFrame[] weaponProjectiles=Array.Empty<EquipmentProjectileFrame>();
+        public MysteryReplayCue mysteryReplay;
+        public PowerupSpawnSettings powerupSpawns=new PowerupSpawnSettings();
+        public int randomPickupCount;
+        public float nextPowerupIn;
         public string enemyActionEpoch="";
         public int enemyActionSequence;
         public EnemyActionFrame[] enemyActions=Array.Empty<EnemyActionFrame>();

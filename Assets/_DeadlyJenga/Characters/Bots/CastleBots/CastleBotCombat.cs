@@ -42,7 +42,11 @@ namespace DeadlyJenga.CastleBots
         }
         bool ReadCombatCommand(ref CastleBotCommand command)
         {
-            using(CombatMarker.Auto())return BuildCombatCommand(ref command);
+            using(CombatMarker.Auto())
+            {
+                if(HandleWeaponCombat(ref command,out bool fighting))return fighting;
+                return BuildCombatCommand(ref command);
+            }
         }
         bool BuildCombatCommand(ref CastleBotCommand command)
         {
@@ -76,7 +80,8 @@ namespace DeadlyJenga.CastleBots
                 nextCombatStep=Time.time+.24f;
                 hasCombatStep=FindCombatStep(feet,target.ViewPose.rotation*Vector3.forward,targetRules?.carryingFlag==true,out combatStep);
             }
-            bool range=BotCombatPolicy.InReach(origin,contact);
+            var enemyProfile=GetComponent<CastleEnemyActor>();
+            bool range=enemyProfile?(contact-origin).sqrMagnitude<enemyProfile.StrikeReach*enemyProfile.StrikeReach:BotCombatPolicy.InReach(origin,contact);
             // Reaching an opponent does not require walking to their floor or jumping after them.
             if((!range||shield)&&(!hasCombatStep||Mathf.Abs(feet.y-transform.position.y)>.65f))
             {combatWindup=-1;CombatState=BotCombatState.Approach;CombatReason="Need a physical route";return false;}
@@ -94,7 +99,7 @@ namespace DeadlyJenga.CastleBots
             {combatWindup=-1;CombatState=BotCombatState.Recover;CombatReason="Reaction or punch recovery";return true;}
             if((combatWindup<0||Time.time>=combatWindup)&&!ClearPunch(target,origin,aim))
             {combatWindup=-1;PunchesWithheld++;CombatState=BotCombatState.Face;CombatReason="Another actor intercepts the punch";nextCombatStep=Time.time+.1f;combatReady=Time.time+.2f;combatRepositionUntil=Time.time+.6f;return true;}
-            if(combatWindup<0)combatWindup=Time.time+Mathf.Lerp(.12f,.2f,Mathf.Repeat(Seed,.83f));
+            if(combatWindup<0)combatWindup=Time.time+Mathf.Max(enemyProfile?enemyProfile.Windup:0,Mathf.Lerp(.12f,.2f,Mathf.Repeat(Seed,.83f)));
             CombatState=BotCombatState.Windup;CombatReason="Wind up, rechecking range and line of sight";
             if(Time.time<combatWindup)return true;
             PunchAttempts++;
@@ -106,7 +111,7 @@ namespace DeadlyJenga.CastleBots
 
         bool ClearPunch(IModeActor desired,Vector3 origin,Vector3 aim)
         {
-            int count=Physics.OverlapSphereNonAlloc(origin,2.2f,combatBodies,1<<Layers.Survivor,QueryTriggerInteraction.Collide);
+            int count=Physics.OverlapSphereNonAlloc(origin,GetComponent<CastleEnemyActor>()?.StrikeReach+ .15f??2.2f,combatBodies,1<<Layers.Survivor,QueryTriggerInteraction.Collide);
             if(count==combatBodies.Length)return false;
             float nearest=(desired.transform.position+Vector3.up*.6f-origin).magnitude;
             for(int i=0;i<count;i++)

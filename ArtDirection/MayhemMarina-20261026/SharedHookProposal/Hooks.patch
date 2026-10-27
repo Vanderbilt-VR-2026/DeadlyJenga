@@ -1,0 +1,161 @@
+--- a/Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.cs
++++ b/Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.cs
+@@ -14,6 +14,10 @@
+     [DefaultExecutionOrder(210)]
+     public sealed partial class IslandLobbyView : MonoBehaviour
+     {
++        partial void BuildMayhemMarina();
++        partial void UpdateMayhemMarina();
++        partial void DisposeMayhemMarina();
++        partial void MarinaInteractionRange(ref float distance);
+         ILobbyControls lobby;
+         ISessionInfo session;
+         IPlayableCharacter Player=>session.Player;
+@@ -42,7 +46,8 @@
+             BuildTerminals();
+             BuildCandyDesign();
+             BuildWardrobe();
+-            BuildTVWall();
++            BuildTVWall();
++            BuildMayhemMarina();
+         }
+         void BuildIsland()
+         {
+@@ -68,6 +73,7 @@
+             if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
+             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
++            UpdateMayhemMarina();
+             if(UpdateWardrobe())return;
+             bool pressed=select.WasPressedThisFrame()||Player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
+             Ray ray=!Player.IsVR&&session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+@@ -86,14 +92,14 @@
+         }
+         public void Point(Ray ray,bool pressed,bool held=false)
+         {
+-            Choice nearest=null;float distance=4;Vector3 selectionPoint=default;
++            Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
+             foreach(var choice in choices)
+             {
+                 bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
+                 bool usable=choice.enabled==null||choice.enabled();choice.button.interactable=usable;choice.collider.enabled=usable;
+                 if(choice.title!=null)choice.label.text=choice.title();
+                 PaintCandyChoice(choice,false,usable);
+-                if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,4)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
++                if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
+                 if(choice.physical)choice.button.image.color=Color.clear;
+                 if(choice.physical)UpdatePhysicalKey(choice,false);
+             }
+@@ -117,6 +123,7 @@
+         {
+             GameEvents.Emoted-=LobbyResidenceChanged;
+             if(lobbySun)Destroy(lobbySun.gameObject);
++            DisposeMayhemMarina();
+             DisposeWardrobe();
+             DisposeCandyDesign();
+             DisposeControllerArtwork();
+--- a/Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.Wardrobe.cs
++++ b/Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.Wardrobe.cs
+@@ -28,7 +28,7 @@
+ 
+         static readonly string[] wardrobeCategories={"ADD ONS","SKINS","HAIR","EYEWEAR","CLOTHING"};
+ 
+-        readonly Vector3 wardrobeCenter=new Vector3(0,.65f,-5.3f);
++        Vector3 wardrobeCenter=new Vector3(0,.65f,-5.3f);
+ 
+         readonly System.Collections.Generic.List<Tuple<RectTransform,Action>> wardrobeButtons=new System.Collections.Generic.List<Tuple<RectTransform,Action>>();
+ 
+--- a/Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.cs
++++ b/Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.cs
+@@ -15,6 +15,11 @@
+     [DefaultExecutionOrder(200)]
+     public sealed partial class IslandLobby : MonoBehaviour, ISessionInfo, IWorldQuery
+     {
++        Vector3 lobbyLayoutCenter=Vector3.zero,lobbyLayoutSpawn=new Vector3(0,.5f,-3.5f);
++        float lobbyLayoutTop=.45f,lobbyLayoutRadius=9,lobbyLayoutReturnDistance=30;
++        Bounds lobbyLayoutBounds=new Bounds(Vector3.up*2,new Vector3(18,4,18));
++        partial void ConfigureMayhemMarinaLobby();
++        static partial void MayhemMarinaSpawn(int slot,ref Vector3 point);
+         public IslandLobbyCatalog catalog;
+         public static IslandLobby Current {get;private set;}
+         public IPlayableCharacter Player {get;private set;}
+@@ -34,15 +39,15 @@
+             SetMenu(MenuOpen);
+         }
+         public IReadOnlyList<Rigidbody> Blocks=>Array.Empty<Rigidbody>();
+-        public Vector3 Center=>transform.position;
+-        public float TopHeight=>.45f;
+-        public float Radius=>9;
+-        public Bounds PlayableBounds=>new Bounds(Center+Vector3.up*2,new Vector3(18,4,18));
++        public Vector3 Center=>transform.TransformPoint(lobbyLayoutCenter);
++        public float TopHeight=>transform.position.y+lobbyLayoutTop;
++        public float Radius=>lobbyLayoutRadius;
++        public Bounds PlayableBounds=>new Bounds(transform.TransformPoint(lobbyLayoutBounds.center),lobbyLayoutBounds.size);
+         public int PeerCount=>peers.Count;
+         public DeadlyJenga.CastleSocial.SocialWorld Voice {get;private set;}
+         public float WaterHeight(Vector3 p)=>-.12f;
+         public bool IsSheltered(Vector3 p)=>false;
+-        public Vector3 SafeSpawnPoint()=>Center+new Vector3(0,.5f,-3.5f);
++        public Vector3 SafeSpawnPoint()=>transform.TransformPoint(lobbyLayoutSpawn);
+         // Other players on the island, shown by Characters' remote views (Core's INetworkActorView).
+         readonly Dictionary<string,INetworkActorView> peers=new Dictionary<string,INetworkActorView>();
+         InputAction menu;bool focused=true;
+@@ -72,7 +77,7 @@
+                 if(Player==null){Debug.LogError("Island lobby survivor prefab needs an IPlayableCharacter.",this);enabled=false;return;}
+                 Player.gameObject.name="Persistent lobby survivor";Player.ViewCamera.clearFlags=CameraClearFlags.Skybox;
+                 if(!match){Room.PrepareSoloIdentity();ApplyLobbyIdentities();}
+-                BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);
++                ConfigureMayhemMarinaLobby();BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);
+                 Player.Place(SafeSpawnPoint(),Quaternion.identity);
+                 if(!match)
+                 {
+@@ -105,7 +110,7 @@
+                 return;
+             }
+             var feet=Player.transform.position;
+-            if(feet.y<-.9f||(feet-Center).sqrMagnitude>900)Player.Place(SafeSpawnPoint(),Quaternion.identity);
++            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)Player.Place(SafeSpawnPoint(),Quaternion.identity);
+             var keyboard=Keyboard.current;
+             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
+             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
+@@ -115,7 +120,7 @@
+             if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation){nextLobbyPopulation=Time.unscaledTime+1;bool offline=HomeSession.AutofillLobby&&!Room.Connected&&!Room.Busy&&!Room.Departing;lobbyBots.AutoFill=false;lobbyBots.Running=offline;if(!offline){if(lobbyBots.Count>0)lobbyBots.Clear();}else{lobbyBots.SetHumanPlayerCount(1);lobbyBots.TargetPopulation=10;lobbyBots.FillToTarget();}}
+         }
+         public static Vector3 SpawnPoint(int slot)
+-        {float angle=(Math.Abs(slot)%10)*2.399963f;return (Persistent?Persistent.Center:Vector3.zero)+new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);}
++        {float angle=(Math.Abs(slot)%10)*2.399963f;var point=(Persistent?Persistent.Center:Vector3.zero)+new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);MayhemMarinaSpawn(slot,ref point);return point;}
+         public void SpawnAt(P.Pose pose){Player.Place(pose.position,pose.rotation);ClearPeers();}
+         public void SetMenu(bool open)
+         {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
+--- a/Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.Controls.cs
++++ b/Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.Controls.cs
+@@ -14,6 +14,8 @@
+ 
+         public MonoBehaviour EnvironmentPrefab=>catalog?catalog.environmentPrefab:null;
+         public ScriptableObject Art=>catalog?catalog.art:null;
++        readonly System.Collections.Generic.List<GameObject> layoutCollision=new();
++        partial void MayhemMarinaFloor(GameObject floor,Mesh mesh,Transform pose);
+         GameObject flatFloor;
+         // A flat floor at sand height, so the island stays walkable without Presentation.
+         void BuildFlatFloor()
+@@ -24,15 +26,17 @@
+         public void SetFloor(Mesh mesh,Transform pose)
+         {
+             if(!mesh||!pose)return;
+-            var floor=Collider("Island floor (sand shape)",pose);floor.AddComponent<MeshCollider>().sharedMesh=mesh;
+-            if(flatFloor)Destroy(flatFloor);
++            foreach(var previous in layoutCollision)if(previous){previous.SetActive(false);Destroy(previous);}
++            layoutCollision.Clear();
++            var floor=Collider("Island floor (sand shape)",pose);floor.AddComponent<MeshCollider>().sharedMesh=mesh;MayhemMarinaFloor(floor,mesh,pose);
++            if(flatFloor){flatFloor.SetActive(false);Destroy(flatFloor);}
+         }
+         public void AddBlocker(Transform pose,Vector3 center,Vector3 size)
+         {if(!pose)return;var box=Collider("Island blocker · "+pose.name,pose).AddComponent<BoxCollider>();box.center=center;box.size=size;}
+         GameObject Collider(string name,Transform pose)
+         {
+             var go=new GameObject(name);go.layer=pose.gameObject.layer;   // world-space copy of the pose; unloads with the scene
+-            go.transform.SetPositionAndRotation(pose.position,pose.rotation);go.transform.localScale=pose.lossyScale;return go;
++            go.transform.SetPositionAndRotation(pose.position,pose.rotation);go.transform.localScale=pose.lossyScale;go.transform.SetParent(transform,true);layoutCollision.Add(go);return go;
+         }
+ 
+         // Join terminal

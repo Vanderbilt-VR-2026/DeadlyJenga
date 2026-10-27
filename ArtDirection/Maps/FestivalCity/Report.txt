@@ -1,0 +1,40 @@
+FESTIVAL OF GIANTS - CITY
+Experimental playable copy, 23 October 2026
+
+Select "Festival of Giants - City" in the lobby map choices. Original Festival of Giants - Hybrid remains available. Its prefab YAML is identical to the preserved previous-task version after normalizing line endings. Runtime validation also compares all 512 original members: positions, rotations and sizes remain unchanged.
+
+PLACEMENT AND ROUTES
+Lantern Hall is inside the east bay at (65,-4), in the requested open area. Its roof beacon reaches 65.65m. Two connections enter the existing elevated streets; internal seated ramp flights climb from 1.25m to 58.75m, with intermediate galleries every 2.5m and balcony belts at three heights.
+Setback House is inside the west bay at (-65,2). The upper tower narrows above the 20m terrace, with a lower wing and an east street connection. Internal ramps reach 38.75m.
+The Gate Towers are just beyond the north perimeter, at (-12,82) and (12,82). They sit on the same continuous foundation/island. A ground promenade joins the original footprint; crossing flights ascend between the towers, and a high cross street connects to the existing north route at 31.25m. No separate island, teleport or suspended anchor is used.
+
+STRUCTURAL DESIGN
+633 independent dynamic rigidbodies, versus 512 originally (+121 / 23.6%). 1049 real solid colliders, plus the survivor collision proxies required by the existing controller collision architecture. Overall authored footprint 223.2 x 159.4m.
+New room walls/floors are manufactured 10m sections with four galleries, not hundreds of individual window bricks. Thin convex ramp prisms and bridges remain independent seated members. Closed arched window panels are visual art over actual solid walls; they are not traversable holes.
+All physical members obey gravity with no stabilizing joints, magnets or forced collapse animations. The fixed island foundation is the existing map convention. New sections expose climb/push and hazard motion; they do not yet implement block pulling or territory ownership gameplay. No Core contracts were added.
+
+ACTUAL UNITY VALIDATION
+Game.unity entered Play Mode, zero runtime errors and zero validation failures.
+Eight-second isolated settle: maximum original/member drift 0.0702m, maximum tilt 0.163 degrees; all 633 bodies asleep. No initial solid penetrations.
+Removing one of four Hall ground sections displaced 28 other Hall members by >0.5m under native gravity. Original corner keep redundancy also behaves physically: removing the second adjacent support displaced 59 members.
+Production CharacterController/movement motor traversed all scripted routes with no jumping or climbing: Hall 45/45 waypoints, House 29/29, Gate 28/28. The harness feeds real walking inputs in .02s substeps at 2x clock; only initial placement per route teleports. This verifies physical walkability, not autonomous bot route planning or headset comfort.
+Bot geometry sampling includes actual compound-box faces and convex ramp triangles. Final nearby-surface filtering uses actual collider bounds, so upper galleries and long members are not discarded because their rigidbody root is distant.
+Layout serialization validation, invalid-count/scale rejection, replica suspension and authority recovery passed. No live two-player session or Quest headset was tested.
+Disaster setup validator passed for all 11 hazards.
+
+FRAME OBSERVATIONS (UNFOCUSED EDITOR, SHARED LAPTOP)
+Identical short samples: idle 3s; 32 bots 4s; actual tsunami 25s after 2s lead-in. Same default force/height; different map footprint changes wave coverage. Multiple Unity processes were active, so these are noisy observations, not isolated hardware benchmarks or Quest certification.
+Original Festival: idle median 21.06ms; 32 bots 52.92ms; bots+tsunami median 104.26ms / p90 604.40ms.
+City: idle median 31.91ms; 32 bots 70.08ms; bots+tsunami median 168.07ms / p90 1329.71ms.
+30/32 city bots changed position by >0.5m during the short observation. 41/633 city members moved >0.5m during the wave sample, versus 31/512 originally. This is movement observation, not mode-objective completion.
+The city costs more than the original and severe wave spikes remain. It is an experimental structural/route variant, not a demonstrated performance improvement. The final bounds-filter navigation regression and removal of an unnecessary dependency happened after these frame samples; they do not change authored geometry. Those small source changes were compiled and checked separately.
+
+FILES AND INTEGRATION
+World / Maps: copied layout, compound physical members, map prefab, footprint/spawn/replica support.
+Characters / Bots: sample compound/ramp surfaces using only Core and Unity; recognize nearby geometry by collider bounds.
+DevTools / Editor: explicit authoring and native/runtime checks, traversal harness and actual Unity screenshots. Tools never save Lobby.unity or Game.unity.
+GameSession catalog: adds one selectable city entry, retaining the existing entries. No GameSession source changes.
+Task branch world/maps-festival-city carries the scoped changes; the primary working project contains the integrated copy. Main was fetched/merged before completion. Existing unrelated local changes are preserved. No push, PR or transfer-branch merge was performed.
+
+PICTURES
+The four *intact.png images are actual warmed-up Unity Game captures, not AI concept images. The wave image shows the actual tsunami test result after the sample. Raw iterative reports remain in Logs/Validation; older isolated previews can contain previously queued batch draws and are not the review images.

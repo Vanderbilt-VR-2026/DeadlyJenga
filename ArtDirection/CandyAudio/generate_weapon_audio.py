@@ -39,24 +39,31 @@ def generate(name,take,duration):
             u=t-start
             return 0 if u<0 else amp*math.sin(2*math.pi*f*shift*u)*math.exp(-decay*u)*(1-math.exp(-u*1500))
         if name in ('WeaponRifle','WeaponShotgun'):
-            heavy=name=='WeaponShotgun'; decay=7 if heavy else 13
-            # Low candy cannon chest, bright snap, layered pressure crack, springy action.
-            a=(2.5 if heavy else 1.5)*smooth*math.exp(-t*decay)+n*.6*math.exp(-t*110)
-            a+=tone(62 if heavy else 110,9 if heavy else 17,amp=.65)
-            a+=tone(137 if heavy else 224,15,amp=.3)+tone(470,45,amp=.3)
-            a+=tone(480,35,.19 if heavy else .12,.22)+tone(730,50,.28 if heavy else .18,.12)
-            # Soft late reflections create body without harsh sustained high-frequency noise.
-            for delay in (.055,.11,.19):
-                if t>=delay:a+=smooth*.22*math.exp(-(t-delay)*14)
+            heavy=name=='WeaponShotgun'
+            # Pressure wave, sharp report, low chest and a short mechanical pump cycle.
+            a=smooth*(4.6 if heavy else 2.9)*math.exp(-t*(13 if heavy else 20))
+            a+=n*(1.05 if heavy else .9)*math.exp(-t*150)
+            a+=tone(51 if heavy else 83,13 if heavy else 18,amp=1.0)
+            a+=tone(108 if heavy else 173,23,amp=.44)+tone(1250,90,amp=.24)
+            for delay,gain in ((.035,.40),(.072,.24),(.13,.14)):
+                if t>=delay:a+=smooth*gain*math.exp(-(t-delay)*22)
+            # Distinct rack-back, sliding grit, then a solid breech lock before the next shot.
+            for start,freq,gain in ((.14,310,.36),(.235,145,.60)):
+                u=t-start
+                if u>=0:a+=smooth*gain*math.exp(-u*48)+tone(freq,50,start,gain)
+            if .15<t<.225:a+=n*.13*math.sin((t-.15)/.075*math.pi)
         elif name=='WeaponBlaster':
             phase=2*math.pi*(690*t-460*t*t)
             a=.48*math.sin(phase)*math.exp(-t*7)+tone(94,9,amp=.35)+smooth*.8*math.exp(-t*24)
             a+=tone(1120,18,.035,.15)
         elif name=='WeaponTransform':
-            a=tone(210,20,0,.45)+tone(680,24,.08,.35)+tone(920,27,.16,.4)
-            a+=tone(108,18,.27,.6)+tone(1600,30,.31,.16)
-            a+=math.sin(2*math.pi*(160*t+550*t*t))*math.exp(-t*7)*.18
-            a+=smooth*math.exp(-abs(t-.26)*35)*.7
+            # Motor winds the carriage through a half turn, two pawls catch, heavy lock closes.
+            a=tone(74,15,amp=.65)+tone(740,40,.025,.25)
+            u=max(0,t-.04)
+            a+=math.sin(2*math.pi*(170*u+980*u*u))*.22*math.exp(-u*5)*(t>.04)
+            for start,freq,gain in ((.12,420,.35),(.24,610,.38),(.34,82,.95),(.36,1380,.22)):
+                a+=tone(freq,32,start,gain)
+                if t>=start:a+=smooth*gain*math.exp(-(t-start)*50)
         elif name in ('WeaponSword','WeaponBoxing','WeaponHammer'):
             a=smooth*math.exp(-abs(t-.1)*24)*1.8+tone(105 if name=='WeaponBoxing' else 340,19,.11,.45)
             a+=tone(820 if name=='WeaponSword' else 190,22,.14,.22)

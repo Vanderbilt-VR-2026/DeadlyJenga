@@ -1,0 +1,44 @@
+{
+  "date": "2026-10-27T11:36:06.121648",
+  "source_files_equal": 5915,
+  "source_differences": [],
+  "excluded": "Assets/_Recovery and its metadata; intentionally not copied",
+  "final_integrated_files_verified": 82,
+  "suite_counts": {
+    "beacon": {
+      "pass_lines": 58,
+      "failed_assertion": false
+    },
+    "enemy": {
+      "pass_lines": 50,
+      "failed_assertion": false
+    },
+    "final-affected": {
+      "pass_lines": 7,
+      "failed_assertion": false
+    },
+    "initial-combined": {
+      "pass_lines": 17,
+      "failed_assertion": true
+    },
+    "marina": {
+      "pass_lines": 64,
+      "failed_assertion": false
+    },
+    "mushroom": {
+      "pass_lines": 15,
+      "failed_assertion": false
+    },
+    "objective": {
+      "pass_lines": 13,
+      "failed_assertion": false
+    }
+  },
+  "runtime_project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\slot-07",
+  "canonical": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga",
+  "canonical_editor_playmode_run": false,
+  "quest_tested": false,
+  "committed_or_pushed": false,
+  "disaster_catalog_validation": "passed: 11 registered map-aware prefabs",
+  "objective_contract_assertions": 120
+}

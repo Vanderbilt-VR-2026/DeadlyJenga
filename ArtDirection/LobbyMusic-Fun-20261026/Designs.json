@@ -1,0 +1,22 @@
+{
+  "tracks": [
+    {
+      "id": "01-bubblegum-boardwalk",
+      "title": "Bubblegum Boardwalk",
+      "bpm": 124,
+      "direction": "Recommended: bright major-key coastal breakbeat, chunky rubber bass and a confident plastic riff"
+    },
+    {
+      "id": "02-ready-set-splash",
+      "title": "Ready, Set, Splash",
+      "bpm": 128,
+      "direction": "A playful ready-up groove: punchy dance drums, glassy chord stabs and cheeky rhythmic answers"
+    },
+    {
+      "id": "03-plastic-paradise",
+      "title": "Plastic Paradise",
+      "bpm": 120,
+      "direction": "Sunny island party: plucked rhythmic chords, percussive call-and-response and a lively bass line"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "checks": [
+    {
+      "id": "01-bubblegum-boardwalk",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -17.07,
+      "truePeakDbTP": -5.83
+    },
+    {
+      "id": "02-ready-set-splash",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.92,
+      "truePeakDbTP": -5.13
+    },
+    {
+      "id": "03-plastic-paradise",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -17.11,
+      "truePeakDbTP": -5.83
+    }
+  ],
+  "scope": "Automated file, decode, silence, peak and synthesis-loop-boundary checks. No in-game or headset audition performed. Musical loop suitability remains an audition decision."
+}

@@ -32,6 +32,7 @@ namespace DeadlyJenga.Modes
         void LateUpdate(){TickCamera();}
         void TickCamera()
         {
+            if(session&&session.VisitingLobby){if(modeCamera)modeCamera.enabled=false;OverrideCamera=null;return;}
             if(DemoSpectating){TickDemoSpectator();return;}
             if(session==null||!NetworkActors.Alive(session.Player)||frame.players==null)return;
             MatchPlayerFrame self=null;foreach(var row in frame.players)if(row.id==LocalActorId){self=row;break;}

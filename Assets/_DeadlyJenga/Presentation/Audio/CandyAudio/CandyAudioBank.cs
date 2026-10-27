@@ -18,7 +18,7 @@ namespace DeadlyJenga.CandyAudio
         WeaponSwap,WeaponDrop,WeaponSword,WeaponHammer,WeaponBoxing,WeaponPlasmaImpact,
         JaguarIdle,JaguarChuff,JaguarGrowl,JaguarAlert,JaguarAttack,JaguarHurt,JaguarDeath,JaguarFootfall,JaguarLand,
         PlayerPain,PlayerDeath,
-        SuitThruster,SuitIgnition,SuitShutdown
+        SuitThruster,SuitIgnition,SuitShutdown,PlayerHeal
     }
     public enum CandyBus { World,Character,Ambience,Music,UI }
     [Serializable]

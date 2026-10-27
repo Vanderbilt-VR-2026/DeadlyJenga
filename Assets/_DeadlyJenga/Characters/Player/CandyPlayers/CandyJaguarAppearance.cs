@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyPlayers
         Transform tail;
         AvatarAccessory applied;
         Vector3 previous;
-        float gait;
+        float gait,quadruped;
         Material originalBody, originalHead;
         MaterialPropertyBlock pigment;
         public int PieceCount => pieces.Count;
@@ -109,19 +109,25 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(!rig)return;Refresh();
             float speed=Vector3.Distance(transform.position,previous)/Mathf.Max(.001f,Time.deltaTime);previous=transform.position;gait+=Time.deltaTime*(1.8f+Mathf.Min(speed,6)*1.3f);
+            var actor=rig.GetComponentInParent<IEnemyActor>();var movement=rig.GetComponentInParent<IMovementState>();
+            if(actor?.IsEnemy==true){bool upright=rig.GetComponentInParent<IEnemyPose>()?.PreparingMelee==true||movement?.Climbing==true;quadruped=Mathf.MoveTowards(quadruped,upright?0:1,Time.deltaTime*5);rig.PoseQuadruped(quadruped,gait*2,movement?.Grounded??true);}
             if(tail)tail.localRotation=Quaternion.Euler(Mathf.Sin(gait*.6f)*5,Mathf.Sin(gait)*18,Mathf.Sin(gait*.7f)*6);
         }
         void Refresh()
         {
             if((applied&AvatarAccessory.PantherHead)==0)return;
             pigment??=new MaterialPropertyBlock();
-            foreach(var renderer in new[]{rig.bodyRenderer,rig.headRenderer})
-            {
-                // Presentation may temporarily install the texture-aware health shader.
-                if(!renderer.sharedMaterial||!renderer.sharedMaterial.HasProperty("_Health"))renderer.sharedMaterial=fur;
-                renderer.GetPropertyBlock(pigment);pigment.SetColor("_BaseColor",Color.white);pigment.SetTexture("_BaseMap",FurTexture());
-                pigment.SetTexture("_BumpMap",fur.GetTexture("_BumpMap"));pigment.SetFloat("_BumpScale",.35f);pigment.SetFloat("_Smoothness",.24f);renderer.SetPropertyBlock(pigment);
-            }
+            RefreshCoat(rig.bodyRenderer);RefreshCoat(rig.headRenderer);
+        }
+        void RefreshCoat(SkinnedMeshRenderer renderer)
+        {
+            // Preserve the health shader and unrelated per-renderer properties.
+            if(renderer.sharedMaterial!=fur&&(!renderer.sharedMaterial||!renderer.sharedMaterial.HasProperty("_Health")))renderer.sharedMaterial=fur;
+            renderer.GetPropertyBlock(pigment);
+            var normal=fur.GetTexture("_BumpMap");
+            if(pigment.GetColor("_BaseColor")==Color.white&&pigment.GetTexture("_BaseMap")==FurTexture()&&pigment.GetTexture("_BumpMap")==normal&&pigment.GetFloat("_BumpScale")==.35f&&pigment.GetFloat("_Smoothness")==.24f)return;
+            pigment.SetColor("_BaseColor",Color.white);pigment.SetTexture("_BaseMap",FurTexture());
+            pigment.SetTexture("_BumpMap",normal);pigment.SetFloat("_BumpScale",.35f);pigment.SetFloat("_Smoothness",.24f);renderer.SetPropertyBlock(pigment);
         }
         void Clear()
         {

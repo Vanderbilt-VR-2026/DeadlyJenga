@@ -9,36 +9,51 @@ namespace DeadlyJenga.Modes
     {
         readonly Dictionary<string,HashSet<string>> witnessedMurderers=new Dictionary<string,HashSet<string>>();
         readonly HashSet<string> unavailableBadges=new HashSet<string>();
+        readonly List<string> drawnMysteryBlades=new List<string>();
         float nextMysteryBots;
         void TickMysteryBots()
         {
             if(Time.time<nextMysteryBots)return;nextMysteryBots=Time.time+.25f;
             var clues=mystery.Public();
+            drawnMysteryBlades.Clear();
+            foreach(var item in equipment.Values)if(item.drawn&&item.kind==EquipmentKind.MurderSword)drawnMysteryBlades.Add(item.actor);
             foreach(var p in simulation.Participants)
             {
                 if(!p.present||!p.frame.bot||!mystery.Alive(p.frame.id)||mystery.IsDowned(p.frame.id))continue;
                 string id=p.frame.id;
                 var role=mystery.Role(id);
                 if(!witnessedMurderers.TryGetValue(id,out var known)){known=new HashSet<string>();witnessedMurderers[id]=known;}
+                if(role!=MysteryRole.Murderer)foreach(string armedId in drawnMysteryBlades)
+                {
+                    if(armedId==id)continue;var armed=simulation.Find(armedId);
+                    if(armed==null||!armed.present||!armed.frame.alive||armed.frame.dying||mystery.IsDowned(armedId))continue;
+                    if(!ModeBotTactics.NoticeDrawnWeapon(p.frame.position,p.frame.viewRotation,armed.frame.position)||!VisibleToActor(p.frame,armed.frame))continue;
+                    if(ObserveOpponent(p.frame,armed.frame,out _))known.Add(armedId);
+                }
                 foreach(var strike in mysteryStrikes)if(strike.Value>Time.time&&mystery.Role(strike.Key)==MysteryRole.Murderer&&strike.Key!=id)
                 {var attacker=simulation.Find(strike.Key);if(attacker!=null&&(attacker.frame.position-p.frame.position).sqrMagnitude<225&&VisibleTo(p.frame.position,attacker.frame.position))known.Add(strike.Key);}
                 foreach(var body in clues.bodies)if(Close(id,body.position))
                 {
                     mystery.Report(id,body.id,p.frame.color);
-                    if(body.sheriff&&role==MysteryRole.Innocent&&!mystery.RecoverSheriff(id,body.id))unavailableBadges.Add(id+"/"+body.id);
+                    if(body.sheriff&&role==MysteryRole.Innocent)
+                    {
+                        var gun=pickups.FirstOrDefault(x=>x.kind==EquipmentKind.SheriffHammer&&(x.position-body.position).sqrMagnitude<4);
+                        if(gun==null||!mystery.CanRecoverDroppedSheriff(id))unavailableBadges.Add(id+"/"+body.id);
+                        else if(gun.availableIn<=0)TakeEquipment(id,gun.id,true);
+                    }
                     if(body.reported&&role!=MysteryRole.Murderer)
                         for(int t=trailFrames.Count-1;t>=Mathf.Max(0,trailFrames.Count-128);t--)
                         {
                             var trail=trailFrames[t];var blocks=Services.World?.Blocks;
-                            if(blocks==null||trail.block<0||trail.block>=blocks.Count||!blocks[trail.block]||trail.color==p.frame.color)continue;
-                            var point=blocks[trail.block].transform.TransformPoint(trail.point);
+                            if(blocks==null||trail.block<-1||trail.block>=blocks.Count||trail.block>=0&&!blocks[trail.block]||trail.color==p.frame.color)continue;
+                            var point=trail.block<0?trail.point:blocks[trail.block].transform.TransformPoint(trail.point);
                             if((point-body.position).sqrMagnitude<=Rules.mystery.trailRadius*Rules.mystery.trailRadius&&Close(id,point))
                             {ReceiveMysteryCommand(id,"suspect:"+trail.sequence+":"+body.id);break;}
                         }
                 }
                 if(role!=MysteryRole.Murderer)foreach(var target in simulation.Participants)if(mystery.IsDowned(target.frame.id)&&Close(id,target.frame.position))ReceiveMysteryCommand(id,"revive:"+target.frame.id);
                 bool attacking=botDirector!=null&&botDirector.TryGet(id,out var assignment,out _)&&assignment.kind==BotObjectiveKind.Attack;
-                mystery.SetSpecial(id,attacking);
+                if(!attacking)mystery.SetSpecial(id,false);
                 var personal=mystery.Personal(id);
                 if(personal.disasterChoices.Length>0&&personal.choiceRemaining>0)
                 {
@@ -66,7 +81,8 @@ namespace DeadlyJenga.Modes
                 if(role==MysteryRole.Murderer)
                 {
                     if(!attackReady)continue;
-                    int witnesses=0;foreach(var observer in simulation.Participants)if(observer!=self&&observer!=p&&observer.present&&mystery.Alive(observer.frame.id)&&VisibleToActor(self.frame,observer.frame)&&(observer.frame.position-p.frame.position).sqrMagnitude<64&&VisibleTo(observer.frame.position,p.frame.position))witnesses++;
+                    int witnesses=0,checkedWitnesses=0;foreach(var observer in simulation.Participants)
+                    {if(observer==self||observer==p||!observer.present||!mystery.Alive(observer.frame.id)||(observer.frame.position-p.frame.position).sqrMagnitude>=64)continue;if(++checkedWitnesses>8)break;if(VisibleToActor(self.frame,observer.frame)&&VisibleTo(observer.frame.position,p.frame.position)&&++witnesses>=3)break;}
                     AddGoal(goals,"stalk:"+p.frame.id,BotObjectiveKind.Attack,observed,visible?actor.gameObject:null,1,.9f/(1+witnesses*.4f));
                 }
                 else if(ModeBotTactics.MysteryHostile(role,known?.Contains(p.frame.id)==true))

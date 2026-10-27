@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using UnityEngine;
 using DeadlyJenga.CastlePrototype;
@@ -9,11 +10,14 @@ namespace DeadlyJenga.CastleBots
     // collision/trajectory checks are lazy and limited per bot per frame.
     public sealed class CastleBotJourneyPlanner
     {
+        static readonly ProfilerMarker DJBotDestinationMarker = new ProfilerMarker("DJ.BotDestination");
+        static readonly ProfilerMarker DJBotGeometryMarker = new ProfilerMarker("DJ.BotGeometry");
         sealed class Snapshot
         {
             public IWorldQuery generator;
             public Rigidbody first;
             public float at,minY=float.PositiveInfinity,maxY=float.NegativeInfinity;
+            public readonly List<(Rigidbody body,int version,bool included)> bodies=new();
             public readonly List<CastleBotLanding> nodes=new List<CastleBotLanding>();
             public readonly Dictionary<Vector3Int,List<int>> cells=new Dictionary<Vector3Int,List<int>>();
         }
@@ -21,42 +25,64 @@ namespace DeadlyJenga.CastleBots
         static Vector3Int Cell(Vector3 p)=>new Vector3Int(Mathf.FloorToInt(p.x/3),Mathf.FloorToInt(p.y/3),Mathf.FloorToInt(p.z/3));
         static Snapshot Geometry(IWorldQuery generator)
         {
+            using var measurement = DJBotGeometryMarker.Auto();
             var first=generator.Blocks.Count>0?generator.Blocks[0]:null;
             if(shared!=null&&shared.generator==generator&&shared.first==first&&Time.time-shared.at<1)return shared;
+            bool same=shared!=null&&shared.generator==generator&&shared.first==first&&shared.bodies.Count==generator.Blocks.Count;
+            var samples=geometryScratch;
+            for(int i=0;i<generator.Blocks.Count;i++)
+            {
+                var rb=generator.Blocks[i];bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
+                if(included)BotGeometrySamples.Fill(rb,samples);
+                if(same){var old=shared.bodies[i];if(old.body!=rb||old.included!=included||included&&old.version!=BotGeometrySamples.Version(rb))same=false;}
+            }
+            if(same){shared.at=Time.time;return shared;}
             var graph=new Snapshot{generator=generator,first=first,at=Time.time};
-            var samples=new List<Vector3>(18);
             foreach(var rb in generator.Blocks)
             {
-                if(!rb||!rb.gameObject.activeInHierarchy||!rb.isKinematic&&rb.linearVelocity.magnitude>1.2f)continue;
-                var box=rb.GetComponent<BoxCollider>();if(!box)continue;
-                CastleBotNavigation.SurfaceSamples(rb,box,samples);
+                bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
+                graph.bodies.Add((rb,rb?BotGeometrySamples.Version(rb):0,included));
+                if(!included)continue;
+                BotGeometrySamples.Fill(rb,samples);
+                var anchor=rb.transform;var inverse=anchor.worldToLocalMatrix;
                 foreach(var p in samples)
                 {
-                    var local=rb.transform.InverseTransformPoint(p);
-                    int id=graph.nodes.Count;graph.nodes.Add(new CastleBotLanding{surface=rb.transform,body=rb,local=local});
+                    var local=inverse.MultiplyPoint3x4(p);
+                    int id=graph.nodes.Count;graph.nodes.Add(new CastleBotLanding{surface=anchor,body=rb,local=local});
                     var cell=Cell(p);if(!graph.cells.TryGetValue(cell,out var list))graph.cells[cell]=list=new List<int>();list.Add(id);
                     graph.minY=Mathf.Min(graph.minY,p.y);graph.maxY=Mathf.Max(graph.maxY,p.y);
                 }
             }
             shared=graph;return graph;
         }
+        static readonly List<Vector3> geometryScratch=new(64);
+        static readonly Dictionary<Rigidbody,Matrix4x4> destinationMatrices=new();
+        static readonly List<CastleBotLanding> destinationRanks=new(25);
         public static Vector3 ChooseDestination(CastleBotBrain bot,int trip)
         {
+            using var measurement = DJBotDestinationMarker.Auto();
             var graph=Geometry(bot.Population.Session.world);var p=bot.Personality;var feet=bot.transform.position;
             float fraction=Mathf.Repeat(bot.Seed*.173f+trip*.618034f,1);
             float targetY=Mathf.Lerp(feet.y,Mathf.Lerp(graph.minY,graph.maxY,fraction),p.verticalVariety);
             Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
-            var ranked=new List<CastleBotLanding>();
+            var ranked=destinationRanks;ranked.Clear();destinationMatrices.Clear();
             foreach(var node in graph.nodes)
             {
-                var point=node.Point;if(Vector3.Distance(point,feet)<3)continue;
+                if(!node.body||!node.surface)continue;
+                if(!destinationMatrices.TryGetValue(node.body,out var matrix))destinationMatrices[node.body]=matrix=node.surface.localToWorldMatrix;
+                var point=matrix.MultiplyPoint3x4(node.local);float distance=Vector3.Distance(point,feet);if(distance<3)continue;
                 var candidate=node;
                 candidate.score=-Mathf.Abs(point.y-targetY)*.45f+Vector3.Dot(Vector3.ProjectOnPlane(point-feet,Vector3.up).normalized,bearing)*2;
+                float exploration=Mathf.Min(16,distance)*.025f*p.exploration;
+                if(ranked.Count==24&&candidate.score+exploration<ranked[23].score-.0001f)continue;
                 candidate.score-=bot.Population.ThreatCost(point)*(1+p.survivalPriority)+bot.RevisitCost(node.body);
-                candidate.score+=Mathf.Min(16,Vector3.Distance(point,feet))*.025f*p.exploration;
-                ranked.Add(candidate);
+                candidate.score+=exploration;
+                if(ranked.Count==24&&candidate.score<=ranked[23].score)continue;
+                int insert=ranked.Count;
+                while(insert>0&&candidate.score>ranked[insert-1].score)insert--;
+                ranked.Insert(insert,candidate);
+                if(ranked.Count>24)ranked.RemoveAt(24);
             }
-            ranked.Sort((a,b)=>b.score.CompareTo(a.score));
             for(int i=0;i<Mathf.Min(24,ranked.Count);i++)if(CastleBotNavigation.Landing(bot.Motor,ranked[i].Point,out _))return ranked[i].Point;
             return feet+bearing*5;
         }
@@ -77,7 +103,7 @@ namespace DeadlyJenga.CastleBots
             foreach(var candidate in candidates)
             {
                 if(inspected++>=2048||tested>=32)break;var p=candidate.Point;
-                if(!BotTraversalCache.Landing(bot.Motor,p)||Physics.Raycast(p+Vector3.up*.15f,Vector3.up,8,CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore))continue;
+                if(!BotTraversalCache.Landing(bot.Motor,p)||Physics.Raycast(p+Vector3.up*.15f,Vector3.up,8,CastleBotNavigation.QueryMask,QueryTriggerInteraction.Ignore))continue;
                 tested++;
                 // Open consecutive steps distinguish an ascending approach from another roof.
                 var cell=Cell(p);bool ascending=false;
@@ -88,7 +114,7 @@ namespace DeadlyJenga.CastleBots
                     {
                         var q=graph.nodes[index].Point;float rise=q.y-p.y;
                         if(rise<.8f||rise>2.5f||Vector3.ProjectOnPlane(q-p,Vector3.up).sqrMagnitude>12||!BotTraversalCache.Landing(bot.Motor,q))continue;
-                        if(Physics.Raycast(q+Vector3.up*.15f,Vector3.up,6,CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore))continue;
+                        if(Physics.Raycast(q+Vector3.up*.15f,Vector3.up,6,CastleBotNavigation.QueryMask,QueryTriggerInteraction.Ignore))continue;
                         if(CastleBotNavigation.TryLink(bot.Motor,p,q,out _,out _)){ascending=true;break;}
                     }
                 }
@@ -121,7 +147,7 @@ namespace DeadlyJenga.CastleBots
                 foreach(var node in options)
                 {
                     if(inspected++>=16)break;var q=node.Point;
-                    if(!BotTraversalCache.Landing(bot.Motor,q)||Physics.Raycast(q+Vector3.up*.15f,Vector3.up,6,CastleBotNavigation.Mask,QueryTriggerInteraction.Ignore))continue;
+                    if(!BotTraversalCache.Landing(bot.Motor,q)||Physics.Raycast(q+Vector3.up*.15f,Vector3.up,6,CastleBotNavigation.QueryMask,QueryTriggerInteraction.Ignore))continue;
                     if(!BotTraversalCache.TryLink(bot.Motor,cursor,q,out _,out _))continue;
                     cursor=q;advanced=true;break;
                 }

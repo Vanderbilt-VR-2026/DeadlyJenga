@@ -19,6 +19,7 @@ namespace DeadlyJenga.Presentation
         static void Listen() => GameEvents.SessionStarted += go => {if(!go.GetComponent<CandyResultsHud>())go.AddComponent<CandyResultsHud>();};
         void Update()
         {
+            if((Services.Session as ILobbyMatchVisitControls)?.VisitingLobby==true){visible=false;if(canvas)canvas.gameObject.SetActive(false);return;}
             var match = MatchRuntime.Current; var session = Services.Session;
             if (match == null || session == null) return;
             var frame = match.Frame;

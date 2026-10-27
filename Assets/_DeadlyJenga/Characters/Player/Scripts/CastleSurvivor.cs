@@ -64,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
             Capsule = GetComponent<CharacterController>();
             authoredJumpHeight = jumpHeight;
             gameObject.layer = Layers.Survivor;
-            Capsule.excludeLayers = 1 << Layers.Block;
+            Capsule.excludeLayers = TraversalCollision.Unified?0:1<<Layers.Block;
             tracker = viewCamera.GetComponent<TrackedPoseDriver>();
             headActions=ConfigureHeadTracking(tracker);
             move = new InputAction("Walk", InputActionType.Value, "<XRController>{LeftHand}/primary2DAxis");
@@ -78,8 +78,12 @@ namespace DeadlyJenga.CastlePrototype
 
         public void RefreshMode()
         {
-            UnityEngine.SubsystemManager.GetSubsystems(displays);
-            bool running = displays.Exists(d => d.running);
+            bool running = false;
+            if(!externallyDriven&&controlMode==ControlMode.Auto)
+            {
+                UnityEngine.SubsystemManager.GetSubsystems(displays);
+                running=displays.Exists(d=>d.running);
+            }
             bool vr = !externallyDriven && (controlMode == ControlMode.VR || (controlMode == ControlMode.Auto && running));
             playerScale = Mathf.Clamp(playerScale,.1f,2f);
             if (modeReady && vr == IsVR && Mathf.Approximately(appliedScale,playerScale)) return;
@@ -107,6 +111,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
+            Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RefreshMode();
             if (IsVR)
             {
@@ -180,6 +185,8 @@ namespace DeadlyJenga.CastlePrototype
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
             if (dt <= 0 || !Capsule.enabled) return;
+            Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
+            RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();
             if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt))return;
@@ -237,6 +244,7 @@ namespace DeadlyJenga.CastlePrototype
                 slopeVelocity=Vector3.MoveTowards(Vector3.ProjectOnPlane(slopeVelocity,Vector3.up),Vector3.zero,1.5f*dt);
             }
             float effectiveGravity=gravity*DisasterGravity(out float fallLimit);
+            if(Time.time<hoverUntil){effectiveGravity=0;slopeVelocity=hoverVelocity;verticalSpeed=hoverVertical;}
             if(verticalSpeed < -fallLimit)verticalSpeed=-fallLimit;
             if(!float.IsPositiveInfinity(fallLimit))peakFallSpeed=Mathf.Min(peakFallSpeed,fallLimit);
             float fall = verticalSpeed * dt - .5f * effectiveGravity * dt * dt;
@@ -259,7 +267,7 @@ namespace DeadlyJenga.CastlePrototype
         void ProbeGround()
         {
             Vector3 feet=Feet;bool wasGrounded=Grounded;
-            int mask=~((1<<gameObject.layer)|(1<<Layers.Block));
+            int mask=TraversalCollision.Mask;
             int count=Physics.SphereCastNonAlloc(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,Vector3.down,groundContacts,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
             bool contact=false;RaycastHit hit=default;float best=float.NegativeInfinity;
             for(int i=0;i<count;i++)
@@ -321,10 +329,10 @@ namespace DeadlyJenga.CastlePrototype
             for (float probeHeight = .12f; probeHeight <= 1.15f; probeHeight += .25f)
             {
                 if (!Physics.Raycast(feet + offset + Vector3.up * probeHeight, forward, out var face,
-                    vaultReach, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) continue;
+                    vaultReach, TraversalCollision.Mask, QueryTriggerInteraction.Ignore) || Mathf.Abs(face.normal.y) > .35f) continue;
                 Vector3 inside = face.point + forward * (Capsule.radius + Mathf.Clamp(vaultLandingDepth, .04f, .6f));
                 Vector3 above = new Vector3(inside.x, feet.y + maxRise + .15f, inside.z);
-                if (!Physics.Raycast(above, Vector3.down, out top, maxRise + .3f, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore)
+                if (!Physics.Raycast(above, Vector3.down, out top, maxRise + .3f, TraversalCollision.Mask, QueryTriggerInteraction.Ignore)
                     || top.collider != face.collider || top.normal.y < .85f) continue;
                 float rise = top.point.y - feet.y;
                 if (rise < .08f || rise > maxRise) continue;
@@ -335,7 +343,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (!ClearPath(feet + Vector3.up * .04f, lifted) || !ClearPath(lifted, destinationFeet)) continue;
                 target = destinationFeet - (Feet - transform.position);
                 candidateGrip=new Vector3(face.point.x,top.point.y,face.point.z);candidateNormal=top.normal;candidateForward=forward;
-                if(Climbables.TryGet(top.collider,out var owner)&&owner.Visual)
+                if(!TraversalCollision.Unified&&Climbables.TryGet(top.collider,out var owner)&&owner.Visual)
                 {
                     float maxY=float.NegativeInfinity;
                     foreach(var mesh in owner.Visual.GetComponentsInChildren<MeshFilter>())
@@ -355,14 +363,14 @@ namespace DeadlyJenga.CastlePrototype
         {
             float r = Capsule.radius * .95f;
             return !Physics.CheckCapsule(feet + Vector3.up * (r + .03f), feet + Vector3.up * (Capsule.height - r),
-                r, ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore);
+                r, TraversalCollision.Mask, QueryTriggerInteraction.Ignore);
         }
         bool ClearPath(Vector3 start, Vector3 end)
         {
             Vector3 delta = end - start; float r = Capsule.radius * .95f;
             return delta.magnitude < .001f || !Physics.CapsuleCast(start + Vector3.up * (r + .03f),
                 start + Vector3.up * (Capsule.height - r), r, delta.normalized, delta.magnitude,
-                ~((1 << gameObject.layer) | (1 << Layers.Block)), QueryTriggerInteraction.Ignore);
+                TraversalCollision.Mask, QueryTriggerInteraction.Ignore);
         }
         public bool TryStartVault()
         {

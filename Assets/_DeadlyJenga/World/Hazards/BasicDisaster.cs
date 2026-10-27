@@ -146,7 +146,7 @@ namespace DeadlyJenga.World.Hazards
         protected void Affect(Collider collider,Vector3 impulse,float damage)
         {
             if(!collider)return;
-            var push=collider.GetComponentInParent<IPushable>();var health=collider.GetComponentInParent<IDamageable>();var body=collider.attachedRigidbody;
+            var push=HitAbilities.Get<IPushable>(collider);var health=HitAbilities.Get<IDamageable>(collider);var body=HitAbilities.Get<Rigidbody>(collider);
             object key=(object)push??(object)health??body;
             if(key==null||!receivers.Add(key))return;
             if(impulse.sqrMagnitude>0)

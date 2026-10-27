@@ -19,8 +19,9 @@ namespace DeadlyJenga.CandyPlayers
             for(int i=0;i<14;i++)
             {
                 var rb=bones[i].gameObject.AddComponent<Rigidbody>();rb.mass=i==0?1:.1f;rb.linearDamping=2;rb.angularDamping=3;rb.maxDepenetrationVelocity=1;rb.collisionDetectionMode=CollisionDetectionMode.ContinuousDynamic;parts.Add(rb);
-                var capsule=bones[i].gameObject.AddComponent<CapsuleCollider>();capsule.radius=i==0?.15f:i==1?.18f:.05f;capsule.height=i==0?.8f:i==1?.36f:Mathf.Max(.12f,lengths[i]);capsule.center=i==0?Vector3.up*.8f:Vector3.up*lengths[i]*.5f;
-                if(i==0)rb.constraints=RigidbodyConstraints.FreezePositionX|RigidbodyConstraints.FreezePositionZ;
+                bones[i].gameObject.layer=Layers.Survivor;
+                var capsule=bones[i].gameObject.AddComponent<CapsuleCollider>();capsule.includeLayers=(1<<Layers.Block)|(1<<Layers.Surface)|1;capsule.layerOverridePriority=100;capsule.radius=i==0?.15f:i==1?.18f:.05f;capsule.height=i==0?.8f:i==1?.36f:Mathf.Max(.12f,lengths[i]);capsule.center=i==0?Vector3.up*.8f:Vector3.up*lengths[i]*.5f;
+                if(i==0)rb.constraints=RigidbodyConstraints.None;
                 else
                 {
                     int parent=i==3?2:i==4?3:i==6?5:i==7?6:i==9?8:i==10?9:i==12?11:i==13?12:0;

@@ -57,13 +57,13 @@ namespace DeadlyJenga.CastlePrototype
             key.keyVisual.localPosition=new Vector3(0,0,-35+depression);key.label.rectTransform.anchoredPosition3D=new Vector3(0,0,-67+depression);
             key.keyProperties ??= new MaterialPropertyBlock();
             bool lit=enabled&&(hover||depression>0);
-            Color color=!enabled?new Color(.28f,.035f,.07f):key.keyColor;
+            Color color=!enabled?new Color(.18f,.14f,.25f):key.keyColor;
             key.keyProperties.SetColor("_BaseColor",color);
-            key.keyProperties.SetColor("_EmissionColor",lit?new Color(1,.08f,.16f)*1.8f:Color.black);
+            key.keyProperties.SetColor("_EmissionColor",lit?CandyMint*1.2f:Color.black);
             key.keyRenderer.SetPropertyBlock(key.keyProperties);
             key.keyGlow.enabled=key.keyGlowSoft.enabled=lit;
             key.keyGlow.rectTransform.anchoredPosition3D=key.keyGlowSoft.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);
-            if(key.keyIcon){key.keyIcon.color=new Color(1,1,1,enabled?1:.5f);key.keyIcon.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);}
+            if(key.keyIcon){key.keyIcon.color=enabled?CandyForeground(key.keyColor):CandyMuted;key.keyIcon.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);}
         }
         void UpdateKeyboardTouches()
         {

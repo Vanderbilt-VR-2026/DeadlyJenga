@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR.Hands;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CandyPlayers
 {
@@ -13,6 +14,8 @@ namespace DeadlyJenga.CandyPlayers
         // Controller roots identify the matching UI interactors; they are aim poses, not palms.
         public Transform leftController, rightController;
         public CandyPlayerStyle style;
+        public ICandyHandPoseSource LeftPoseSource {get;set;}
+        public ICandyHandPoseSource RightPoseSource {get;set;}
         public bool RightPinchPressed{get;private set;}
         public bool RightPinching{get;private set;}
         public bool LeftMenuPressed{get;private set;}
@@ -48,7 +51,8 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(subsystem==null||!subsystem.running)
             {SubsystemManager.GetSubsystems(subsystems);subsystem=subsystems.Find(s=>s.running);}
-            left=Read(true,lp,lr,lt);right=Read(false,rp,rr,rt);
+            left=LeftPoseSource!=null?(LeftPoseSource.TryGetPose(out var l)?l:default):Read(true,lp,lr,lt);
+            right=RightPoseSource!=null?(RightPoseSource.TryGetPose(out var r)?r:default):Read(false,rp,rr,rt);
         }
         CandyHandPose Read(bool isLeft,InputAction position,InputAction rotation,InputAction tracked)
         {

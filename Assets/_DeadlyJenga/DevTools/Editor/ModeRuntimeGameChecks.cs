@@ -33,14 +33,17 @@ namespace DeadlyJenga.DevTools.Editor
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode)
                 {
+                    AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();SessionState.SetBool(Key+"Locked",true);
                     failures=errors=0;Application.logMessageReceived+=Log;
                     EditorApplication.delayCall+=()=>{var driver=new GameObject("Mode integration test driver");Object.DontDestroyOnLoad(driver);driver.AddComponent<ModeGameCheckDriver>().StartCoroutine(Guard(SessionState.GetBool(Key+"ShelterOnly",false)?ShelterCheck():Check()));};
                 }
                 if(state==PlayModeStateChange.EnteredEditMode)
                 {
+                    ValidationRunGate.Release(Key);
+                    if(SessionState.GetBool(Key+"Locked",false)){SessionState.SetBool(Key+"Locked",false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();}
                     Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);
                     if(SessionState.GetBool(Key+"Batch",false))EditorApplication.Exit(SessionState.GetInt(Key+"Failures",1)==0?0:1);
-                    else {var original=SessionState.GetString(Key+"Original","");if(File.Exists(original)&&!SessionState.GetBool(Key+"ShelterOnly",false))EditorSceneManager.OpenScene(original);}
+                    else if(!SessionState.GetBool(Key+"ShelterOnly",false)){var saved=JsonUtility.FromJson<ShelterScenes>(SessionState.GetString(Key+"SavedScenes",""));if(saved?.scenes!=null)EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"SavedChoices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"SavedLobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"SavedLocal",false);}
                     if(SessionState.GetBool(Key+"ShelterOnly",false))
                     {
                         var saved=JsonUtility.FromJson<ShelterScenes>(SessionState.GetString(Key+"SavedScenes",""));
@@ -61,8 +64,9 @@ namespace DeadlyJenga.DevTools.Editor
         static void PollShelter()
         {
             if(EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode||SpectatorVideoCapture.Busy)return;
+            string full=ProjectPath.Report("ModeRuntimeGame.request");if(File.Exists(full)){if(!ValidationRunGate.TryAcquire(Key))return;File.Delete(full);Run();return;}
             string request=ProjectPath.Report("BotShelter.request");if(!File.Exists(request))return;
-            File.Delete(request);RunShelterOnly();
+            if(!ValidationRunGate.TryAcquire(Key))return;File.Delete(request);RunShelterOnly();
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Demo Bot Shelter")]
         public static void RunShelterOnly()
@@ -105,6 +109,12 @@ namespace DeadlyJenga.DevTools.Editor
         static void Begin(bool batch)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Leave Play Mode before running the mode fixture.");
+            var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&UnityEngine.SceneManagement.SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
+            if(!SessionState.GetBool(Key+"ShelterOnly",false))
+            {
+                SessionState.SetString(Key+"SavedScenes",JsonUtility.ToJson(new ShelterScenes{scenes=scenes}));SessionState.SetString(Key+"SavedChoices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
+                SessionState.SetBool(Key+"SavedLobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"SavedLocal",MatchSetup.StartLocalSession);
+            }
             File.WriteAllText(Report,"Actual Game scene mode integration\n");
             SessionState.SetString(Key+"Original",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);
             SessionState.SetBool(Key+"Batch",batch);SessionState.SetBool(Key,true);SessionState.SetInt(Key+"Failures",1);
@@ -250,7 +260,7 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(.3f);runtime.StartRound();ClearBots(session);
             CheckThat(runtime.Frame.phase==RoundPhase.Countdown&&!runtime.RulesFor(player.gameObject).canJump&&runtime.RulesFor(player.gameObject).moveScale==0,"Competitive countdown freezes movement, jump and climbing");
             yield return Until(()=>runtime.Frame.phase==RoundPhase.Playing,"Competitive countdown completes");
-            CheckThat(Enumerable.Range(0,8).Any(i=>(string)pageName.Invoke(hud,new object[]{i})=="Disasters")&&DemoDisasters.CanTrigger(session),"Host retains usable Disasters page during competitive game modes");
+            CheckThat(DemoMenuSections.Sections.SelectMany(s=>s).Contains("Disasters")&&DemoDisasters.CanTrigger(session),"Host retains usable Disasters page during competitive game modes");
             var block=Services.World.Blocks.OrderByDescending(b=>b.position.y).First();var blockCollider=block.GetComponent<Collider>();
             CheckThat(Services.World.Blocks.All(b=>b.GetComponent<IBlockOwnership>()?.OwnerTeam==-1),"Territory round begins with every physical block neutral");
             player.Place(new Vector3(blockCollider.bounds.center.x,blockCollider.bounds.max.y+.04f,blockCollider.bounds.center.z),Quaternion.identity);

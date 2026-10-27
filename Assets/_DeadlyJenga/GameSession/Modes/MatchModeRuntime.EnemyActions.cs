@@ -10,18 +10,27 @@ namespace DeadlyJenga.Modes
         const int EnemyActionCapacity=64;
         const float EnemyActionLifetime=1.2f;
         readonly List<EnemyActionFrame> enemyActionHistory=new List<EnemyActionFrame>(EnemyActionCapacity);
+        readonly List<ExpressionFrame> expressions=new List<ExpressionFrame>();
+        readonly Dictionary<string,float> expressionCooldown=new Dictionary<string,float>();
+        int expressionSequence;
         string enemyActionEpoch;
         int enemyActionSequence;
         void InitializeEnemyActions()
         {
             enemyActionEpoch=Guid.NewGuid().ToString("N");enemyActionSequence=0;
-            EnemyActions.Occurred+=AnnounceEnemyAction;GameEvents.Damaged+=EnemyDamaged;GameEvents.Eliminated+=EnemyDied;
+            GameEvents.Emoted+=AnnounceExpression;EnemyActions.Occurred+=AnnounceEnemyAction;GameEvents.Damaged+=EnemyDamaged;GameEvents.Eliminated+=EnemyDied;
             PublishEnemyActions();
         }
         void ClearEnemyActions()
         {
-            EnemyActions.Occurred-=AnnounceEnemyAction;GameEvents.Damaged-=EnemyDamaged;GameEvents.Eliminated-=EnemyDied;
+            GameEvents.Emoted-=AnnounceExpression;EnemyActions.Occurred-=AnnounceEnemyAction;GameEvents.Damaged-=EnemyDamaged;GameEvents.Eliminated-=EnemyDied;
             enemyActionHistory.Clear();
+        }
+        void AnnounceExpression(GameObject who,string name)
+        {
+            if(!Authority||!who||string.IsNullOrEmpty(name)||name.Length>64)return;var actor=who.GetComponent<IModeActor>();if(actor==null||!actor.Alive)return;
+            if(expressionCooldown.TryGetValue(actor.ActorId,out float until)&&Time.time<until)return;expressionCooldown[actor.ActorId]=Time.time+2;
+            if(expressions.Count>=32)expressions.RemoveAt(0);expressions.Add(new ExpressionFrame{id=++expressionSequence,actor=actor.ActorId,name=name,position=actor.ViewPose.position,remaining=3});
         }
         void EnemyDamaged(GameObject who,float amount)
         {if(amount>0)AnnounceEnemyAction(who,EnemyActionKind.Hurt,Mathf.Clamp(amount/25,.4f,1));}
@@ -44,6 +53,7 @@ namespace DeadlyJenga.Modes
         void TickEnemyActions(float dt)
         {
             if(!Authority){enemyActionHistory.Clear();return;}
+            for(int i=expressions.Count-1;i>=0;i--){expressions[i].remaining-=Mathf.Max(0,dt);if(expressions[i].remaining<=0)expressions.RemoveAt(i);}
             for(int i=enemyActionHistory.Count-1;i>=0;i--){enemyActionHistory[i].remaining-=Mathf.Max(0,dt);if(enemyActionHistory[i].remaining<=0)enemyActionHistory.RemoveAt(i);}
         }
         void PublishEnemyActions()
@@ -52,11 +62,11 @@ namespace DeadlyJenga.Modes
             frame.enemyActionEpoch=enemyActionEpoch??"";frame.enemyActionSequence=enemyActionSequence;
             var copy=new EnemyActionFrame[enemyActionHistory.Count];
             for(int i=0;i<copy.Length;i++){var item=enemyActionHistory[i];copy[i]=new EnemyActionFrame{id=item.id,actor=item.actor,archetype=item.archetype,action=item.action,position=item.position,strength=item.strength,remaining=item.remaining};}
-            frame.enemyActions=copy;
+            frame.enemyActions=copy;frame.expressionSequence=expressionSequence;frame.expressions=expressions.ToArray();
         }
         void RestoreEnemyActions(MatchFrame saved)
         {
-            enemyActionHistory.Clear();
+            enemyActionHistory.Clear();expressions.Clear();expressionCooldown.Clear();expressionSequence=saved?.expressionSequence??0;
             enemyActionEpoch=!string.IsNullOrEmpty(saved?.enemyActionEpoch)?saved.enemyActionEpoch:Guid.NewGuid().ToString("N");
             enemyActionSequence=Mathf.Max(0,saved?.enemyActionSequence??0);
         }
