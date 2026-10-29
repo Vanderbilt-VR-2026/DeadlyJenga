@@ -102,6 +102,8 @@ namespace DeadlyJenga.CastlePrototype
             GUI.Label(new Rect(93,23,700,45),"DEADLY JENGA  /  DEMO",title);
             GUI.Label(new Rect(95,71,775,30),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
+            if(PlayerLooks.Names.Length>0&&Button(new Rect(515,28,222,51),"Body: "+PlayerLooks.ChosenName+"  >",CandyHudVisuals.Card))PlayerLooks.Chosen++;
+            if(HandLooks.Names.Length>0&&Button(new Rect(744,28,212,51),"Hand: "+HandLooks.ChosenName+"  >",CandyHudVisuals.Card))HandLooks.Chosen++;
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=PageName(i)=="Friends"&&session.Multiplayer!=null&&session.Multiplayer.HasPending;

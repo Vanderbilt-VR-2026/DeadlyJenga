@@ -18,6 +18,7 @@ namespace DeadlyJenga.CharacterNetwork
         CandyHandPose target;
         Pose[] bones = Array.Empty<Pose>();
         bool left, active, hasTarget, suspended;
+        int look;
         float size;
 
         public HandNetworkView Init(NetworkContext networkContext) { context = networkContext; return this; }
@@ -29,13 +30,13 @@ namespace DeadlyJenga.CharacterNetwork
         public Vector3 NetworkPosition => Hand ? Hand.transform.position : target.position;
         public void WriteState(BinaryWriter w)
         {
-            if (Hand) CharacterWire.WriteHand(w, Hand.left, Hand.GeometrySize, Hand.Target, Hand.bodies);
-            else CharacterWire.WriteHand(w, left, size, target, bones);
+            if (Hand) CharacterWire.WriteHand(w, Hand.left, Hand.GeometrySize, Hand.Target, Hand.bodies, look);
+            else CharacterWire.WriteHand(w, left, size, target, bones, look);
         }
 
         public void ReadState(BinaryReader r, bool isActive)
         {
-            CharacterWire.ReadHand(r, out bool newLeft, out float newSize, out var newTarget, out var newBones);
+            CharacterWire.ReadHand(r, out bool newLeft, out float newSize, out var newTarget, out var newBones, out look);
             var bridge = Template;
             // The host decides every hand's size and handedness.
             if (context.host && bridge) { newSize = bridge.settings.size; newLeft = bridge.useLeftHand; }
@@ -49,6 +50,7 @@ namespace DeadlyJenga.CharacterNetwork
                 Hand = Instantiate(bridge.prefab, transform); Hand.settings = handSettings; Hand.left = left; Hand.Build(target);
             }
             Hand.gameObject.SetActive(active);
+            CandyHandLook.For(Hand).Apply(look);
             Hand.SetTarget(target, context.host && active ? 1 : 0);
             if (context.host) Hand.SetInteractive(active);
         }

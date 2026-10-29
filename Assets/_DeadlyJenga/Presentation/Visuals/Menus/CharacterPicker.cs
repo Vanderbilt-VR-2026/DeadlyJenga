@@ -6,18 +6,17 @@ using DeadlyJenga.CandyAudio;
 namespace DeadlyJenga.CastlePrototype
 {
     // Pick your character design whenever the menu is open (lobby or match).
-    // VR: a small panel beside the menu, look at an arrow and select. Desktop: a bar at the bottom.
-    // Only reads and sets Core's PlayerLooks; Characters puts the design on the avatar.
+    // VR: a small panel beside the menu, look at an arrow and select. Desktop: a button in the menu header (CandyDemoHud).
+    // Only reads and sets Core's PlayerLooks and HandLooks; Characters puts the designs on the bodies.
     public sealed class CharacterPicker : MonoBehaviour
     {
         static CharacterPicker instance;
         Canvas panel;
-        Text title;
-        Image[] arrows = new Image[2];
-        BoxCollider[] hits = new BoxCollider[2];
+        readonly Text[] names = new Text[2];             // row 0 survivor, row 1 giant hand
+        readonly Image[] arrows = new Image[4];          // previous/next per row
+        readonly BoxCollider[] hits = new BoxCollider[4];
         bool shown;
         Vector3 side;
-        GUIStyle barStyle, buttonStyle;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -30,25 +29,30 @@ namespace DeadlyJenga.CastlePrototype
 
         void Awake() => Build();
 
-        void Build()
+void Build()
         {
             var go = new GameObject("Character picker panel", typeof(RectTransform));
             go.transform.SetParent(transform, false);
             panel = go.AddComponent<Canvas>(); panel.renderMode = RenderMode.WorldSpace;
-            var rect = (RectTransform)go.transform; rect.sizeDelta = new Vector2(440, 190); go.transform.localScale = Vector3.one * .0018f;
+            var rect = (RectTransform)go.transform; rect.sizeDelta = new Vector2(440, 330); go.transform.localScale = Vector3.one * .0018f;
             var bg = go.AddComponent<Image>(); bg.sprite = CandyHudVisuals.Pill; bg.type = Image.Type.Sliced; bg.color = CandyHudVisuals.Ink;
-            Label("CHARACTER", new Vector2(0, 62), 20).color = CandyHudVisuals.Muted;
-            title = Label("", new Vector2(0, 0), 34);
-            Label("look at an arrow · select", new Vector2(0, -62), 17).color = CandyHudVisuals.Muted;
-            for (int i = 0; i < 2; i++)
+            for (int row = 0; row < 2; row++)
             {
-                var b = new GameObject(i == 0 ? "Previous" : "Next", typeof(RectTransform), typeof(Image), typeof(BoxCollider));
-                b.transform.SetParent(go.transform, false);
-                var r = (RectTransform)b.transform; r.sizeDelta = new Vector2(70, 70); r.anchoredPosition = new Vector2(i == 0 ? -170 : 170, 0);
-                arrows[i] = b.GetComponent<Image>(); arrows[i].sprite = CandyHudVisuals.Pill; arrows[i].type = Image.Type.Sliced; arrows[i].color = CandyHudVisuals.Card;
-                hits[i] = b.GetComponent<BoxCollider>(); hits[i].size = new Vector3(70, 70, 4); hits[i].isTrigger = true;
-                var t = Label(i == 0 ? "<" : ">", Vector2.zero, 40); t.transform.SetParent(b.transform, false); t.rectTransform.anchoredPosition = Vector2.zero;
+                float y = row == 0 ? 75 : -55;
+                Label(row == 0 ? "SURVIVOR" : "GIANT HAND", new Vector2(0, y + 45), 20).color = CandyHudVisuals.Muted;
+                names[row] = Label("", new Vector2(0, y), 32);
+                for (int i = 0; i < 2; i++)
+                {
+                    int k = row * 2 + i;
+                    var b = new GameObject(i == 0 ? "Previous" : "Next", typeof(RectTransform), typeof(Image), typeof(BoxCollider));
+                    b.transform.SetParent(go.transform, false);
+                    var r = (RectTransform)b.transform; r.sizeDelta = new Vector2(64, 64); r.anchoredPosition = new Vector2(i == 0 ? -175 : 175, y);
+                    arrows[k] = b.GetComponent<Image>(); arrows[k].sprite = CandyHudVisuals.Pill; arrows[k].type = Image.Type.Sliced; arrows[k].color = CandyHudVisuals.Card;
+                    hits[k] = b.GetComponent<BoxCollider>(); hits[k].size = new Vector3(64, 64, 4); hits[k].isTrigger = true;
+                    var t = Label(i == 0 ? "<" : ">", Vector2.zero, 38); t.transform.SetParent(b.transform, false); t.rectTransform.anchoredPosition = Vector2.zero;
+                }
             }
+            Label("look at an arrow · select", new Vector2(0, -140), 17).color = CandyHudVisuals.Muted;
             go.SetActive(false);
         }
 
@@ -62,14 +66,14 @@ namespace DeadlyJenga.CastlePrototype
             return t;
         }
 
-        void Pick(int step)
+void Pick(int row, int step)
         {
-            PlayerLooks.Chosen += step;
+            if (row == 0) PlayerLooks.Chosen += step; else HandLooks.Chosen += step;
             var e = CandyAudioEngine.Instance;
             if (e && e.Listener) e.Play(CandySound.UiClick, e.Listener.position, .5f, GetInstanceID(), 1, true);
         }
 
-        void LateUpdate()
+void LateUpdate()
         {
             var session = Services.Session;
             var cam = session?.ActiveCamera;
@@ -77,13 +81,14 @@ namespace DeadlyJenga.CastlePrototype
             if (show != shown) { panel.gameObject.SetActive(show); shown = show; if (show) Place(cam, true); }
             if (!show) return;
             Place(cam, false);
-            title.text = PlayerLooks.ChosenName;
+            names[0].text = PlayerLooks.ChosenName;
+            names[1].text = HandLooks.ChosenName;
             var ray = new Ray(cam.transform.position, cam.transform.forward);
-            for (int i = 0; i < 2; i++)
+            for (int k = 0; k < 4; k++)
             {
-                bool hover = hits[i].Raycast(ray, out _, 4);
-                arrows[i].color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;
-                if (hover && session.MenuSelectPressed) Pick(i == 0 ? -1 : 1);
+                bool hover = hits[k].Raycast(ray, out _, 4);
+                arrows[k].color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;
+                if (hover && session.MenuSelectPressed) Pick(k / 2, k % 2 == 0 ? -1 : 1);
             }
         }
 
@@ -102,16 +107,6 @@ namespace DeadlyJenga.CastlePrototype
             Physics.SyncTransforms();
         }
 
-        void OnGUI()
-        {
-            var session = Services.Session;
-            if (session == null || !session.MenuOpen || session.IsVR || PlayerLooks.Names.Length == 0) return;
-            barStyle ??= new GUIStyle(GUI.skin.box) { fontSize = 18, alignment = TextAnchor.MiddleCenter };
-            buttonStyle ??= new GUIStyle(GUI.skin.button) { fontSize = 22 };
-            float w = 420, h = 54, x = (Screen.width - w) * .5f, y = Screen.height - h - 16;
-            GUI.Box(new Rect(x, y, w, h), "Character:  " + PlayerLooks.ChosenName, barStyle);
-            if (GUI.Button(new Rect(x + 6, y + 6, 46, h - 12), "<", buttonStyle)) Pick(-1);
-            if (GUI.Button(new Rect(x + w - 52, y + 6, 46, h - 12), ">", buttonStyle)) Pick(1);
-        }
+
     }
 }

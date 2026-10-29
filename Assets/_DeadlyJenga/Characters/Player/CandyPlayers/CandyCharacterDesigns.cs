@@ -231,7 +231,7 @@ namespace DeadlyJenga.CandyPlayers
             if (bone == head) headRenderers.Add(r);
         }
 
-        static Mesh Mesh(PrimitiveType shape)
+        public static Mesh Mesh(PrimitiveType shape)
         {
             if (meshes.TryGetValue(shape, out var mesh) && mesh) return mesh;
             var temp = GameObject.CreatePrimitive(shape);
@@ -240,7 +240,7 @@ namespace DeadlyJenga.CandyPlayers
             return meshes[shape] = mesh;
         }
 
-        static Material Material(Color color, CandyLook look)
+        public static Material Material(Color color, CandyLook look)
         {
             string key = look + ColorUtility.ToHtmlStringRGBA(color);
             if (materials.TryGetValue(key, out var m) && m) return m;

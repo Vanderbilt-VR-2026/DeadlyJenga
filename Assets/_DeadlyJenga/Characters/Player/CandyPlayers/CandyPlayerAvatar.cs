@@ -51,7 +51,7 @@ namespace DeadlyJenga.CandyPlayers
         void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);PlayerLooks.Changed-=OnLookChanged;}
         // Character design: players wear the one they picked, bots get a random one.
         bool IsBot=>GetComponent<CastleBotBrain>();
-        void Start(){if(!remoteDriven)SetDesign(IsBot?Random.Range(0,CandyCharacterDesigns.Count):PlayerLooks.Chosen);}
+        void Start(){if(IsBot)SetDesign(Random.Range(1,CandyCharacterDesigns.Count));else if(!remoteDriven)SetDesign(PlayerLooks.Chosen);}
         void OnLookChanged(){if(!remoteDriven&&!IsBot)SetDesign(PlayerLooks.Chosen);}
         public int Design=>Mathf.Max(0,(ColorIndex>>8)-1);
         public void SetDesign(int design)=>SetColor((ColorIndex&0xFF)|((design+1)<<8));

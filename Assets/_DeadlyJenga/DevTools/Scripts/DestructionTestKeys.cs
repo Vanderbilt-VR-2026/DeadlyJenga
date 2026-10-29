@@ -7,7 +7,7 @@ using DeadlyJenga.Destruction;
 namespace DeadlyJenga.CastlePrototype
 {
     // Editor keys for the destruction systems.
-    // F5 break the block in the middle of the screen, F6 rewind 4 s, F7 play the replay, F8 breaking on/off.
+    // F5 break the block in the middle of the screen, F6 rewind 4 s, F7 play the replay, F9 breaking on/off.
     public sealed class DestructionTestKeys : MonoBehaviour
     {
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -27,7 +27,7 @@ namespace DeadlyJenga.CastlePrototype
             if (k.f6Key.wasPressedThisFrame)
                 Debug.Log(Services.Rewind != null && Services.Rewind.Rewind(4) ? "Rewinding 4 s" : "Can't rewind (not host, or nothing recorded yet)");
             if (k.f7Key.wasPressedThisFrame && CollapseReplay.Instance) CollapseReplay.Instance.PlayNow();
-            if (k.f8Key.wasPressedThisFrame && BlockStressEngine.Instance)
+            if (k.f9Key.wasPressedThisFrame && BlockStressEngine.Instance)
             {
                 var engine = BlockStressEngine.Instance;
                 engine.breakingEnabled = !engine.breakingEnabled;

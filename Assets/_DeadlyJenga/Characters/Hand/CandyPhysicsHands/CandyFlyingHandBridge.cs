@@ -105,6 +105,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             // No reset on reacquisition: the dynamic hand returns through bounded drives.
             physical.SetInteractive(transition.Strength>0&&!actor.motor.InputSuspended);
             physical.skin.enabled=physical.IsInteractive||(actor.motor.InputSuspended&&transition.Strength>0);
+            CandyHandLook.For(physical).Apply(Look);
             if(transition.Mode==CandyHandMode.Inactive){physical.gameObject.SetActive(false);}
         }
         // Respawn/rebuild only: release contacts before discarding the old rig. Never moves a held block.
@@ -119,16 +120,19 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);Destroy(physical.gameObject);physical=null;}
             transition=new CandyHandTransition();trackedGeometry=false;anchored=false;
         }
+        // Hand design: the player's pick, or a random one for an AI hand.
+        int botLook=-1;
+        public int Look{get{if(!actor||!actor.motor.externallyDriven)return HandLooks.Chosen;if(botLook<0)botLook=Random.Range(1,CandyHandDesigns.Count);return botLook;}}
         // INetworkActor: what other players see of this hand (the player's or a bot's).
         public string NetworkKind => NetworkKinds.Hand;
         public bool NetworkActive => physical ? physical.gameObject.activeInHierarchy && physical.skin && physical.skin.enabled : actor && !actor.motor.externallyDriven;
         public Vector3 NetworkPosition => physical ? physical.transform.position : actor ? actor.motor.transform.position : transform.position;
         public void WriteState(BinaryWriter w)
         {
-            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies); return; }
+            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies, Look); return; }
             var at = actor ? actor.motor.transform : transform;
             var rest = new CandyHandPose { position = at.position, rotation = at.rotation, tracked = true, skeleton = CandyHandSkeleton.Rest(useLeftHand) };
-            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null);
+            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null, Look);
         }
         void OnEnable(){NetworkActors.Local.Add(this);}
         void OnDisable(){NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
