@@ -6,6 +6,7 @@ namespace DeadlyJenga.Destruction
 {
     // Records the tower and everyone on it. After a big collapse (or when a round ends)
     // it plays the last few seconds back in slow motion as a small hologram in front of the player.
+    // By default it only plays when a round ends or on demand (F7), never mid-play.
     public sealed class CollapseReplay : MonoBehaviour
     {
         public static CollapseReplay Instance { get; private set; }
@@ -19,6 +20,7 @@ namespace DeadlyJenga.Destruction
         public float distance = 1.3f;
         public float spinSpeed = 12;       // degrees per second
         [Header("What counts as a collapse")]
+        public bool autoOnCollapse = false;   // off: the replay only plays at round end or on F7
         public int collapseBreaks = 8;
         public float collapseWindow = 3;
         public float movingFraction = .15f;
@@ -75,7 +77,7 @@ namespace DeadlyJenga.Destruction
         {
             breaks.Enqueue(Time.time);
             while (breaks.Count > 0 && Time.time - breaks.Peek() > collapseWindow) breaks.Dequeue();
-            if (breaks.Count >= collapseBreaks) Pending(settleDelay);
+            if (autoOnCollapse && breaks.Count >= collapseBreaks) Pending(settleDelay);
         }
 
         void OnRoundEnded() { readyAt = 0; Pending(1.5f); }
@@ -135,7 +137,7 @@ namespace DeadlyJenga.Destruction
                 if (m is Component c && c && f.flyerCount < MaxActors) f.flyers[f.flyerCount++] = c.transform.position;
             head = (head + 1) % frames.Length;
             count = Mathf.Min(count + 1, frames.Length);
-            if (alive > 0 && moving > alive * movingFraction) Pending(settleDelay);
+            if (autoOnCollapse && alive > 0 && moving > alive * movingFraction) Pending(settleDelay);
         }
 
         void Begin()
