@@ -18,7 +18,7 @@ namespace DeadlyJenga.CharacterNetwork
         CandyHandPose target;
         Pose[] bones = Array.Empty<Pose>();
         bool left, active, hasTarget, suspended;
-        int look;
+        int look, lastTaunt;
         float size;
 
         public HandNetworkView Init(NetworkContext networkContext) { context = networkContext; return this; }
@@ -50,7 +50,10 @@ namespace DeadlyJenga.CharacterNetwork
                 Hand = Instantiate(bridge.prefab, transform); Hand.settings = handSettings; Hand.left = left; Hand.Build(target);
             }
             Hand.gameObject.SetActive(active);
-            CandyHandLook.For(Hand).Apply(look);
+            CandyHandLook.For(Hand).Apply(look & 0x0F);
+            int taunt = look >> 4;
+            if (taunt != lastTaunt && taunt > 0 && taunt <= Emotes.Hand.Length) GameEvents.RaiseEmoted(Hand.gameObject, Emotes.Hand[taunt - 1]);
+            lastTaunt = taunt;
             Hand.SetTarget(target, context.host && active ? 1 : 0);
             if (context.host) Hand.SetInteractive(active);
         }

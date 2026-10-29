@@ -44,6 +44,8 @@ namespace DeadlyJenga.CastlePrototype
         public string ActionStatus { get; private set; } = "Ready";
         public CharacterController Capsule { get; private set; }
         readonly List<UnityEngine.XR.XRDisplaySubsystem> displays = new List<UnityEngine.XR.XRDisplaySubsystem>();
+        static int syncedFrame = -1;
+        static readonly List<MeshFilter> vaultMeshes = new List<MeshFilter>();
         InputAction move, turn, jump;
         TrackedPoseDriver tracker;
         float verticalSpeed, pitch, lastGrounded = -100, airborneSince;
@@ -170,7 +172,8 @@ namespace DeadlyJenga.CastlePrototype
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
             if (dt <= 0 || !Capsule.enabled) return;
-            Physics.SyncTransforms();
+            // One physics sync per frame is shared by every survivor (character moves update physics themselves).
+            if (syncedFrame != Time.frameCount) { Physics.SyncTransforms(); syncedFrame = Time.frameCount; }
             if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended,dt))return;
             if (Vaulting) { AdvanceVault(dt); return; }
             if (support && Grounded)
@@ -289,7 +292,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(Climbables.TryGet(top.collider,out var owner)&&owner.Visual)
                 {
                     float maxY=float.NegativeInfinity;
-                    foreach(var mesh in owner.Visual.GetComponentsInChildren<MeshFilter>())
+                    owner.Visual.GetComponentsInChildren(vaultMeshes);
+                    foreach(var mesh in vaultMeshes)
                     {
                         if(!mesh.sharedMesh)continue;
                         var bounds=mesh.sharedMesh.bounds;var matrix=owner.Anchor.worldToLocalMatrix*mesh.transform.localToWorldMatrix;

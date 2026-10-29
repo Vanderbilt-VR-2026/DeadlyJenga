@@ -51,7 +51,7 @@ namespace DeadlyJenga.CandyPlayers
         void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);PlayerLooks.Changed-=OnLookChanged;}
         // Character design: players wear the one they picked, bots get a random one.
         bool IsBot=>GetComponent<CastleBotBrain>();
-        void Start(){if(IsBot)SetDesign(Random.Range(1,CandyCharacterDesigns.Count));else if(!remoteDriven)SetDesign(PlayerLooks.Chosen);}
+        void Start(){if(!GetComponent<SurvivorMoments>())gameObject.AddComponent<SurvivorMoments>();if(IsBot)SetDesign(Random.Range(1,CandyCharacterDesigns.Count));else if(!remoteDriven)SetDesign(PlayerLooks.Chosen);}
         void OnLookChanged(){if(!remoteDriven&&!IsBot)SetDesign(PlayerLooks.Chosen);}
         public int Design=>Mathf.Max(0,(ColorIndex>>8)-1);
         public void SetDesign(int design)=>SetColor((ColorIndex&0xFF)|((design+1)<<8));
@@ -61,13 +61,16 @@ namespace DeadlyJenga.CandyPlayers
         public string NetworkKind=>NetworkKinds.Survivor;
         public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
         public Vector3 NetworkPosition=>transform.position;
-        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,ReadFrame(),ColorIndex);
+        // Third byte of the synced color value: the emote showing right now (index + 1, or 0).
+        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,ReadFrame(),(ColorIndex&0xFFFF)|(Moments?Moments.NetworkBits<<16:0));
+        SurvivorMoments moments;
+        SurvivorMoments Moments=>moments?moments:moments=GetComponent<SurvivorMoments>();
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
         // The synced color value carries the design too: low byte = color, next byte = design + 1 (0 = keep the current design).
         public void SetColor(int index)
         {
-            int design=index>>8;if(design==0)design=ColorIndex>>8;
+            int design=(index>>8)&0xFF;if(design==0)design=(ColorIndex>>8)&0xFF;
             ColorIndex=(index&0xFF)|(design<<8);
             if(Rig){Rig.SetColor(index&0xFF);CandyCharacterLook.For(Rig).Apply(design-1);}
         }

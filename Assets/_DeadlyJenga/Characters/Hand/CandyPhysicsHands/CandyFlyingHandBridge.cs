@@ -122,6 +122,9 @@ namespace DeadlyJenga.CandyPhysicsHands
         }
         // Hand design: the player's pick, or a random one for an AI hand.
         int botLook=-1;
+        HandTaunts taunts;
+        // Network byte: low 4 bits = design, high 4 bits = taunt showing (index + 1).
+        int NetworkLook{get{if(!taunts){taunts=GetComponent<HandTaunts>();if(!taunts)taunts=gameObject.AddComponent<HandTaunts>();}return (Look&0x0F)|(taunts.NetworkBits<<4);}}
         public int Look{get{if(!actor||!actor.motor.externallyDriven)return HandLooks.Chosen;if(botLook<0)botLook=Random.Range(1,CandyHandDesigns.Count);return botLook;}}
         // INetworkActor: what other players see of this hand (the player's or a bot's).
         public string NetworkKind => NetworkKinds.Hand;
@@ -129,12 +132,12 @@ namespace DeadlyJenga.CandyPhysicsHands
         public Vector3 NetworkPosition => physical ? physical.transform.position : actor ? actor.motor.transform.position : transform.position;
         public void WriteState(BinaryWriter w)
         {
-            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies, Look); return; }
+            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies, NetworkLook); return; }
             var at = actor ? actor.motor.transform : transform;
             var rest = new CandyHandPose { position = at.position, rotation = at.rotation, tracked = true, skeleton = CandyHandSkeleton.Rest(useLeftHand) };
-            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null, Look);
+            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null, NetworkLook);
         }
-        void OnEnable(){NetworkActors.Local.Add(this);}
+        void OnEnable(){NetworkActors.Local.Add(this);if(!GetComponent<HandTaunts>())gameObject.AddComponent<HandTaunts>();}
         void OnDisable(){NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
         void OnDestroy(){if(physical)Destroy(physical.gameObject);}
     }

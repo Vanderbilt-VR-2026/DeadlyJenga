@@ -27,7 +27,8 @@ namespace DeadlyJenga.Destruction
         IReadOnlyList<Rigidbody> source;
         Rigidbody first;
         int sourceCount;
-        float crackSoundAt, breakSoundAt;
+        float crackSoundAt, breakSoundAt, nextScan;
+        readonly List<int> strained = new List<int>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatic() => Instance = null;
@@ -91,12 +92,24 @@ namespace DeadlyJenga.Destruction
                 if (c.go.activeSelf && Time.time > c.until) c.go.SetActive(false);
         }
 
-        void LateUpdate()
+void LateUpdate()
         {
             Refresh();
-            foreach (var band in bands) band.Clear();
-            for (int i = 0; i < breakables.Count; i++)
+            // Finding strained blocks scans the whole tower, so do it 10x a second; drawing them stays every frame.
+            if (Time.time >= nextScan)
             {
+                nextScan = Time.time + .1f;
+                strained.Clear();
+                for (int i = 0; i < breakables.Count; i++)
+                {
+                    var b = breakables[i];
+                    if (b != null && boxes[i] && !b.Broken && b.Stress >= glowFrom) strained.Add(i);
+                }
+            }
+            foreach (var band in bands) band.Clear();
+            foreach (int i in strained)
+            {
+                if (i >= breakables.Count) continue;
                 var b = breakables[i]; var box = boxes[i];
                 if (b == null || !box || b.Broken) continue;
                 float s = b.Stress;
@@ -109,7 +122,7 @@ namespace DeadlyJenga.Destruction
             var red = glow[2].color;
             red.a = .35f + .3f * Mathf.PingPong(Time.time * 4, 1);
             SetColor(glow[2], red);
-            for (int b = 0; b < 3; b++) Draw(cube, glow[b], bands[b]);
+            for (int b = 0; b < 3; b++) if (bands[b].Count > 0) Draw(cube, glow[b], bands[b]);
         }
 
         void OnCracked(GameObject block, float stress)

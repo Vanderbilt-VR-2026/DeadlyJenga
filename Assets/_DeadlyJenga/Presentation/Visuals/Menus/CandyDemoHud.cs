@@ -82,6 +82,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnGUI()
         {
+            // Screen GUI is invisible in a headset and allocates every frame (garbage collection hitches), so skip it in VR.
+            if(Ready&&session.IsVR)return;
             if(Ready&&!session.MenuOpen&&session.Social!=null&&session.Social.ShowCaption)SocialPanel.DrawCaption(session.Social);
             if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen)return;
             Styles();var old=GUI.matrix;var skin=GUI.skin;var tint=GUI.color;int depth=GUI.depth;

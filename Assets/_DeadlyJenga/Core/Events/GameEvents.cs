@@ -23,6 +23,7 @@ namespace DeadlyJenga.Core
         public static event Action<GameObject, Vector3, Vector3> BlockBroken; // block, where it was, its velocity
         public static event Action<float> RewindStarted;                      // seconds being rewound
         public static event Action RewindEnded;
+        public static event Action<GameObject, Vector3, Color, string, bool> BodyBurst; // who, where, body color, display name, is it the local player (looks only)
 
         public static void RaiseBlockHit(Vector3 position, float strength) => BlockHit?.Invoke(position, strength);
         public static void RaisePushed(GameObject who, Vector3 force) => Pushed?.Invoke(who, force);
@@ -41,6 +42,7 @@ namespace DeadlyJenga.Core
         public static void RaiseBlockBroken(GameObject block, Vector3 position, Vector3 velocity) => BlockBroken?.Invoke(block, position, velocity);
         public static void RaiseRewindStarted(float seconds) => RewindStarted?.Invoke(seconds);
         public static void RaiseRewindEnded() => RewindEnded?.Invoke();
+        public static void RaiseBodyBurst(GameObject who, Vector3 position, Color color, string name, bool local) => BodyBurst?.Invoke(who, position, color, name, local);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset()
@@ -48,7 +50,7 @@ namespace DeadlyJenga.Core
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
             RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null; LobbyStarted = null;
-            BlockCracked = null; BlockBroken = null; RewindStarted = null; RewindEnded = null;
+            BlockCracked = null; BlockBroken = null; RewindStarted = null; RewindEnded = null; BodyBurst = null;
         }
     }
 }
