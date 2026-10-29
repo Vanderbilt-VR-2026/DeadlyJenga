@@ -1,0 +1,32 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\slot-02",
+  "kind": "actual-unity-editor-staged-renders",
+  "capture_report": "Capture.txt",
+  "resolution": [
+    1920,
+    1080
+  ],
+  "changes": [
+    "Darker transparent tornado core, larger turbulent crown, retained 80 fog quads",
+    "Shared ocean and tsunami swells spanning up to 80m beyond the main wave",
+    "Irregular whitecaps and stronger breaking-crest foam; repeating first pass rejected"
+  ],
+  "gameplay_crest_unchanged": true,
+  "visual_chop_max_m": 0.65,
+  "physics_objects_added": 0,
+  "shader_errors": false,
+  "main_editor_used": false,
+  "integration": "Preserved in owned test-only slot02; safe cutover required.",
+  "limitations": [
+    "Fixed poses, no physics in captures",
+    "Spray intentionally excluded from stills",
+    "No Quest or FPS test",
+    "Preview renderers can sort transparencies differently from runtime instancing"
+  ],
+  "game_solo": {
+    "passed": true,
+    "report": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\slot-02\\Logs\\Validation\\FogWaterDisasterPreview-Runtime.txt",
+    "sha256": "25397478335f341292906cb6bdbc453f9b15cfdae9d3d3acc0b56761840af362"
+  },
+  "editor_closed": true
+}

@@ -1,0 +1,32 @@
+Actual MapDrafterEvan1.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=193.96ms p90=321.14ms frames=90 batches=160 triangles=1824088 awake=64
+  Physics.SyncTransforms mean=2394464 ns
+  Physics.Simulate mean=23161539 ns
+  Main Thread mean=221429237 ns
+  BehaviourUpdate mean=65330728 ns
+  GC Allocated In Frame mean=1824690 bytes
+  DJ.CrateBatches mean=11309246 ns
+  DJ.WetEffects mean=1721 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=709.02ms p90=1344.53ms frames=26 batches=330 triangles=2573390 awake=3435
+  Physics.SyncTransforms mean=20849615 ns
+  Physics.Simulate mean=162071358 ns
+  Main Thread mean=748760050 ns
+  BehaviourUpdate mean=222247485 ns
+  GC Allocated In Frame mean=6318552 bytes
+  DJ.CrateBatches mean=18516962 ns
+  DJ.WetEffects mean=876077 ns
+  DJ.BotThreat mean=28022885 ns
+  DJ.WalkingSources mean=22564362 ns
+  DJ.Tsunami mean=22583296 ns
+  DJ.BotDestination mean=55313812 ns
+  DJ.BotGeometry mean=16752865 ns
+  DJ.DeathDeform mean=0 ns
+COMPLETE runtimeErrors=0

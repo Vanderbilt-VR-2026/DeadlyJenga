@@ -34,11 +34,12 @@ void Build()
             var go = new GameObject("Character picker panel", typeof(RectTransform));
             go.transform.SetParent(transform, false);
             panel = go.AddComponent<Canvas>(); panel.renderMode = RenderMode.WorldSpace;
-            var rect = (RectTransform)go.transform; rect.sizeDelta = new Vector2(440, 330); go.transform.localScale = Vector3.one * .0018f;
+            var rect = (RectTransform)go.transform; rect.sizeDelta = new Vector2(440, 210); go.transform.localScale = Vector3.one * .0018f;
             var bg = go.AddComponent<Image>(); bg.sprite = CandyHudVisuals.Pill; bg.type = Image.Type.Sliced; bg.color = CandyHudVisuals.Ink;
-            for (int row = 0; row < 2; row++)
+            // Survivor looks come from the avatar appearance system, so this panel only picks the giant hand.
+            for (int row = 1; row < 2; row++)
             {
-                float y = row == 0 ? 75 : -55;
+                float y = -10;
                 Label(row == 0 ? "SURVIVOR" : "GIANT HAND", new Vector2(0, y + 45), 20).color = CandyHudVisuals.Muted;
                 names[row] = Label("", new Vector2(0, y), 32);
                 for (int i = 0; i < 2; i++)
@@ -52,7 +53,7 @@ void Build()
                     var t = Label(i == 0 ? "<" : ">", Vector2.zero, 38); t.transform.SetParent(b.transform, false); t.rectTransform.anchoredPosition = Vector2.zero;
                 }
             }
-            Label("look at an arrow · select", new Vector2(0, -140), 17).color = CandyHudVisuals.Muted;
+            Label("look at an arrow · select", new Vector2(0, -80), 17).color = CandyHudVisuals.Muted;
             go.SetActive(false);
         }
 
@@ -77,14 +78,13 @@ void LateUpdate()
         {
             var session = Services.Session;
             var cam = session?.ActiveCamera;
-            bool show = session != null && session.MenuOpen && session.IsVR && cam && PlayerLooks.Names.Length > 0;
+            bool show = session != null && session.MenuOpen && session.IsVR && cam && HandLooks.Names.Length > 0;
             if (show != shown) { panel.gameObject.SetActive(show); shown = show; if (show) Place(cam, true); }
             if (!show) return;
             Place(cam, false);
-            names[0].text = PlayerLooks.ChosenName;
             names[1].text = HandLooks.ChosenName;
             var ray = new Ray(cam.transform.position, cam.transform.forward);
-            for (int k = 0; k < 4; k++)
+            for (int k = 2; k < 4; k++)
             {
                 bool hover = hits[k].Raycast(ray, out _, 4);
                 arrows[k].color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;

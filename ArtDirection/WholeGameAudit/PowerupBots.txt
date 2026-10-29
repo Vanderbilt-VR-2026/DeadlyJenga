@@ -1,0 +1,96 @@
+Random spawning, native support/expiry, real bot collection, ordinary weapon skill fixtures and production Mystery witness acceptance.
+PASS Actual Game starts
+PASS Nonfinite configuration is rejected without mutation
+PASS Duplicate item weights are rejected
+PASS Notice policy has varied, non-universal interest across actors
+PASS Interest does not reroll every frame
+PASS Range policy uses long rifle at range and hysteresis near mode boundaries
+PASS Random spawner accepts exposed tier 0
+PASS Active random pickup cap is respected
+PASS Random spawner accepts exposed tier 1
+PASS Active random pickup cap is respected
+PASS 100% rifle weight produces only the chosen type
+PASS Random spawner accepts exposed tier 2
+PASS Active random pickup cap is respected
+PASS Pickup follows its actual moving support
+PASS Existing random pickups expire even with spawning disabled
+PASS Zero total weight pauses spawning
+PASS Collector spawns on a walkable fixture surface: Spawned Candy NPC 1 — Balanced
+PASS Fixture includes a noticed valuable pickup
+PASS Production director and ordinary movement collect a real pickup
+PASS Director records actual collection as success rather than arrival
+PASS Bot equipment API rejects a human actor
+PASS Actual bot pickup grants Speed
+PASS Collected speed powerup changes the actual bot movement multiplier
+PASS Actual bot pickup grants Jump
+PASS Collected jump powerup changes the actual bot jump height
+PASS Previous plasma drains before testing Blaster
+PASS Actual bot pickup grants Blaster
+PASS Actual bot skill damages a physical target using Blaster
+PASS Authoritative bot weapon request accepted for Blaster
+WEAPON Blaster: damage=33.4 reason=Reacting and settling aim
+PASS Previous plasma drains before testing DualRifle
+PASS Actual bot pickup grants DualRifle
+PASS Actual bot skill damages a physical target using DualRifle
+PASS Authoritative bot weapon request accepted for DualRifle
+WEAPON DualRifle: damage=55.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing SheriffHammer
+PASS Actual bot pickup grants SheriffHammer
+PASS Actual bot skill damages a physical target using SheriffHammer
+PASS Authoritative bot weapon request accepted for SheriffHammer
+WEAPON SheriffHammer: damage=85.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing MurderSword
+PASS Actual bot pickup grants MurderSword
+PASS Actual bot skill damages a physical target using MurderSword
+PASS Authoritative bot weapon request accepted for MurderSword
+WEAPON MurderSword: damage=60.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing BoxingGlove
+PASS Actual bot pickup grants BoxingGlove
+PASS Actual bot skill damages a physical target using BoxingGlove
+PASS Authoritative bot weapon request accepted for BoxingGlove
+WEAPON BoxingGlove: damage=80.0 reason=Authoritative weapon shot accepted
+PASS Previous plasma drains before testing PoweredArmor
+PASS Actual bot pickup grants PoweredArmor
+PASS Actual bot skill damages a physical target using PoweredArmor
+PASS Authoritative bot weapon request accepted for PoweredArmor
+WEAPON PoweredArmor: damage=33.2 reason=Reacting and settling aim
+PASS Actual bot pickup grants DualRifle
+PASS Bot selects shotgun for a nearby target
+PASS Travel assignment makes the bot holster its rifle
+PASS Holstering restores traversal permissions
+PASS Bot withholds gunfire through solid cover
+PASS Configuration, inventory and random pickup metadata survive validated JSON
+DIRECTOR peak=19.640ms; this is a fixture sample, not a many-bot FPS benchmark.
+PASS Actual random-pickup snapshot passes production validation
+PASS Actual random-pickup snapshot passes production validation
+PASS Actual random-pickup snapshot passes production validation
+FIXTURE NOTE Fusion multiple-peer empty-scene diagnostic; transport assertions remain enabled.
+PASS Actual Photon powerup host connects
+FIXTURE NOTE Fusion multiple-peer empty-scene diagnostic; transport assertions remain enabled.
+PASS A second actual Photon peer joins
+PASS Real Photon channel preserves random state packet 0
+PASS Real Photon channel preserves random state packet 1
+PASS Real Photon channel preserves random state packet 2
+PASS Mystery fixture can spawn four participants: Spawned Candy NPC 4 — Balanced
+PASS drawn-weapon fixture has a sheriff and innocent
+PASS drawing behind the sheriff does not reveal a concealed role
+PASS drawn blade behind solid cover is not recognized
+PASS unobstructed concealed murderer remains unknown
+PASS legitimate sheriff weapon is actually drawn in the sight fixture
+PASS innocent does not flee merely because the sheriff draws a blue revolver
+PASS sheriff confronts a visible drawn blade before any attack
+PASS innocent receives an escape objective from seeing the drawn blade alone
+PASS weapon recognition occurs before any special strike
+PASS ordinary innocent motor actually runs away from the visible weapon
+PASS lost sight retains no live hidden-attacker transform
+PASS weapon recognition respects its bounded distance
+PASS Production Mystery has sheriff and innocent witnesses
+PASS Sheriff does not acquire an attack on an unrevealed murderer by reading the secret role
+PASS Unthreatened sheriff keeps the role weapon concealed
+PASS Actual murderer special attack triggers a witnessable strike
+PASS A sheriff bot draws and fires its revolver after witnessing the actual attack
+PASS Production sheriff weapon eliminates the witnessed murderer
+PASS A witnessing innocent receives an escape route instead of pursuing an unknown role
+OWN FEATURE CHECKS COMPLETE
+Shared firearm aiming fixture completed; see FirearmAimShared.txt.
+COMPLETE checks=83 errors=0 failed=False. Native fixture surfaces and actual Game modes; no Quest test.

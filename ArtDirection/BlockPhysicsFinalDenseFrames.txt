@@ -1,0 +1,63 @@
+Actual MapDrafterEvan1.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=60.44ms p90=75.41ms frames=130 batches=160 triangles=1824088 awake=0
+  sinking=0 sunk=0 shattered=0 visual=0 converted=0 restored=0 active=6098
+  Physics.SyncTransforms mean=36806 ns
+  Physics.Simulate mean=2425400 ns
+  Main Thread mean=60951978 ns
+  BehaviourUpdate mean=27368152 ns
+  GC Allocated In Frame mean=218726 bytes
+  DJ.CrateBatches mean=6352692 ns
+  DJ.WetEffects mean=1580 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=850.18ms p90=3072.04ms frames=24 batches=288 triangles=2325242 awake=5806
+  sinking=35 sunk=62 shattered=1 visual=0 converted=2 restored=0 active=6035
+  Physics.SyncTransforms mean=9440183 ns
+  Physics.Simulate mean=850934888 ns
+  Main Thread mean=1303139063 ns
+  BehaviourUpdate mean=201108967 ns
+  GC Allocated In Frame mean=2943869 bytes
+  DJ.CrateBatches mean=23444696 ns
+  DJ.WetEffects mean=1825783 ns
+  DJ.BotThreat mean=6790342 ns
+  DJ.WalkingSources mean=26978346 ns
+  DJ.Tsunami mean=50577067 ns
+  DJ.BotDestination mean=13296354 ns
+  DJ.BotGeometry mean=10598233 ns
+  DJ.DeathDeform mean=15542850 ns
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Survivor colliders keep their exact original block owners
+PASS Survivor colliders use fewer shared kinematic bodies
+PASS Original tower survives settling without sinking or shattering
+PASS Native setting keeps independent block physics
+PASS Shared survivor collider follows actual block translation and rotation before motor queries
+PASS A severe actual rigidbody impact shatters and retires the block
+PASS High-speed downward debris enters swept ballistic simulation
+PASS Forecast high-speed debris switches to trigger-only visual motion before applying its push
+PASS Visual debris carries its momentum without a dynamic collision body
+PASS Approaching observer restores native collision, climbing and motion
+PASS Swept ballistic contact shatters and retires its original block
+PASS Ordinary short drops do not shatter blocks
+PASS Displaced debris visibly sinks through ground and deactivates after burial
+PASS Shattered and buried blocks keep their original network indices
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Survivor colliders keep their exact original block owners
+PASS Survivor colliders use fewer shared kinematic bodies
+PASS Naturally settled large map suspends most blocks
+PASS Dormant blocks retain original body identity and climbing ability
+PASS Dormant original colliders retain bounds for world queries
+PASS Shared survivor surfaces resolve to the original climbable block
+PASS Shared collider resolves original body, push and hazard motion
+FAIL System.Exception: Colliders on the same shared object retain distinct logical owners
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance.Require (System.Boolean pass, System.String message) [0x00024] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:129
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance+<GroupChecks>d__12.MoveNext () [0x006fd] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:170
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance+<Guard>d__9.MoveNext () [0x00040] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:74
+COMPLETE runtimeErrors=0

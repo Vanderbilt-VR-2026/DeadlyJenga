@@ -66,6 +66,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         {if(NetworkProjectConfig.Global.PeerMode==NetworkProjectConfig.PeerModes.Multiple&&message.EndsWith("PeerModes.Multiple requires a scene to be set in StartGameArgs.Scene. Set a scene or disable Multiple Peer mode in the NetworkProjectConfig."))return;if(expectCancelledJoin&&message.Contains("StartGame Failed:")&&message.Contains("ShutdownReason: OperationCanceled"))return;if(type==UnityEngine.LogType.Exception||type==UnityEngine.LogType.Error||type==UnityEngine.LogType.Assert)errors.Add(message);}
         static void Finish(bool failed=false)
         {SessionState.SetBool(Key+"Done",true);SessionState.SetBool(Key+"Failed",failed);foreach(var hook in pausedCompileHooks)CompilationPipeline.compilationStarted+=hook;pausedCompileHooks.Clear();if(SessionState.GetBool(Key+"Locked",false)){SessionState.SetBool(Key+"Locked",false);EditorApplication.UnlockReloadAssemblies();}EditorApplication.ExitPlaymode();}
+        [MenuItem("Tools/Deadly Jenga/Validation/Check Island Networking")]
         public static void RunBatch()
         {
             var link=AssetDatabase.FindAssets("FusionMigration.link").Select(AssetDatabase.GUIDToAssetPath).FirstOrDefault(p=>Path.GetFileName(p)=="FusionMigration.link.xml");
@@ -98,14 +99,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Assert(lobby.Survivor()&&lobby.Survivor().GetComponent<CandyPlayerAvatar>().Rig,"Current survivor prefab spawns a complete avatar on the island.");
             Assert(lobby.Survivor().Grounded,"Character settles on the actual 3D sand collider.");
             Assert(Object.FindObjectsByType<Camera>(FindObjectsSortMode.None).Count(c=>c.enabled)==1,"Only the shared character camera is active; no second XR rig.");
-            Assert(lobby.catalog.maps.Length>=1&&lobby.catalog.maps[0].id=="castle"&&lobby.catalog.modes.Length==2,"Catalog retains Castle, Demo and Placeholder alongside additional maps.");
+            Assert(lobby.catalog.maps.Length>=1&&lobby.catalog.maps[0].id=="castle"&&lobby.catalog.modes.Any(m=>m.id=="demo")&&lobby.catalog.modes.Any(m=>m.id=="placeholder")&&lobby.catalog.modes.Any(m=>m.id=="ctf"),"Catalog retains Castle, Demo and Placeholder and exposes the new competitive modes.");
             var catalogCopy=Object.Instantiate(lobby.catalog);string networkVersion=catalogCopy.NetworkVersion;
             catalogCopy.maps=(IslandLobbyCatalog.Map[])catalogCopy.maps.Clone();
             catalogCopy.maps=catalogCopy.maps.Concat(new[]{new IslandLobbyCatalog.Map{id="integration-only-map"}}).ToArray();
             Assert(catalogCopy.NetworkVersion!=networkVersion,"Catalog additions change network compatibility instead of reinterpreting older map indices");Object.Destroy(catalogCopy);
             Assert(!lobby.View().InvokeChoice("mode-placeholder")&&!lobby.View().InvokeChoice("launch"),"Mode, map and launch controls are locked before hosting.");
             Assert(lobby.View().Environment.profile!=lobby.catalog.art&&lobby.View().Environment.profile.islandRadius==8,"Lobby uses a runtime art profile; castle art stays unchanged.");
-            Assert(lobby.View().Environment.sandRenderer.GetComponent<MeshCollider>()&&!lobby.View().Environment.sandRenderer.GetComponent<Rigidbody>(),"Sand is 3D static collision terrain, with no island rigidbody.");
+            var sand=lobby.View().Environment.sandRenderer;
+            var sandMesh=sand.GetComponent<MeshFilter>().sharedMesh;
+            Assert(Object.FindObjectsByType<MeshCollider>(FindObjectsSortMode.None).Any(c=>c.sharedMesh==sandMesh&&!c.attachedRigidbody&&Vector3.Distance(c.transform.position,sand.transform.position)<.01f),"Gameplay owns the matching 3D static sand collider, with no island rigidbody.");
             Assert(!lobby.Voice.MicrophoneInput.Capturing&&lobby.Voice.Settings.mode==SocialOperatingMode.Offline,"Lobby voice is opt-in and independent of AI inference.");
             for(int i=0;i<100;i++){string address=IslandRoomAddress.Create("us");AssertAddress(address);}
             Assert(!IslandRoomAddress.TryParse("BAD","us",out _,out _)&&!IslandRoomAddress.TryParse("xx-ABC234","us",out _,out _),"Invalid code and unknown region are rejected.");
@@ -146,6 +149,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 probe.AddCallbacks(callbacks);var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=primary.Region;app.AppVersion=(app.AppVersion??"")+"/"+lobby.catalog.NetworkVersion;
                 var join=probe.StartGame(new StartGameArgs{GameMode=GameMode.Client,SessionName=primary.Code,EnableClientSessionCreation=false,CustomPhotonAppSettings=app,Scene=new NetworkSceneInfo(),SceneManager=probeObject.AddComponent<NetworkSceneManagerDefault>()});
                 yield return TaskDone(join,"Independent Photon client joins the host code");Assert(join.Result.Ok,"Client joins the same Fusion session: "+join.Result.ShutdownReason);
+                MatchSetup.BotTarget=15;
+                yield return Until(()=>secondary.SessionInfo.Properties.TryGetValue("population",out var value)&&(int)value==15,"Live lobby population selection reaches independent Fusion client");
                 secondary.SendReliableDataToServer(ReliableKey.FromInts(0x49534C44,1,0,0),Array.Empty<byte>());
                 yield return Until(()=>snapshots>0,"Client receives lobby welcome before sending pose");
                 var actorData=lobby.Capture("forged-id");DeadlyJenga.CandyPlayers.CandyAvatarFrame frame;int forgedColor;using(var stateReader=DeadlyJenga.CastlePrototype.CastleLanProtocol.StateReader(actorData))DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(stateReader,out frame,out forgedColor);Vector3 delta=new Vector3(-1.6f,0,.4f);frame.feet+=delta;frame.head+=delta;frame.left.position+=delta;frame.right.position+=delta;using(var stateStream=new System.IO.MemoryStream()){using(var stateWriter=new System.IO.BinaryWriter(stateStream))DeadlyJenga.CharacterNetwork.CharacterWire.WriteSurvivor(stateWriter,frame,forgedColor);actorData.state=stateStream.ToArray();}
@@ -188,27 +193,37 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if(kind==2)runner.SendReliableDataToPlayer(source,ReliableKey.FromInts(channel,4,serial,0),Array.Empty<byte>());
                 };
                 probe.AddCallbacks(hostCallbacks);string migrationCode=IslandRoomAddress.Create(primary.Region);
-                var hostStart=probe.StartGame(new StartGameArgs{GameMode=GameMode.Host,SessionName=migrationCode,PlayerCount=10,CustomPhotonAppSettings=app,Config=IslandRoomConnection.MigrationConfig(),Scene=new NetworkSceneInfo(),SceneManager=probeObject.AddComponent<NetworkSceneManagerDefault>()});
+                var hostStart=probe.StartGame(new StartGameArgs{GameMode=GameMode.Host,SessionName=migrationCode,PlayerCount=10,CustomPhotonAppSettings=app,Config=IslandRoomConnection.MigrationConfig(),Scene=new NetworkSceneInfo(),SceneManager=probeObject.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=new Dictionary<string,SessionProperty>{{"population",25}}});
                 yield return TaskDone(hostStart,"Independent migration host starts");Assert(hostStart.Result.Ok,"Migration host connected");
                 yield return TaskDone(primary.Join(migrationCode),"Production client joins the migration host");
                 yield return Until(()=>primary.SharedDemoControls,"Host lobby permissions reach the actual client");
+                yield return Until(()=>MatchSetup.BotTarget==25,"Production guest receives the host's population target");
                 Assert(!primary.IsHost&&Vector3.Distance(lobby.Player.transform.position,IslandLobby.SpawnPoint(primary.Runner.LocalPlayer.RawEncoded))<1,"Joining client spawns at the host-assigned island spot");
                 var snapshot=probe.PushHostMigrationSnapshot();yield return TaskDone(snapshot,"Host uploads migration snapshot");Assert(snapshot.Result,"Photon accepts the migration snapshot");
-                yield return new WaitForSeconds(3);var oldRunner=primary.Runner;
+                yield return new WaitForSeconds(3);var oldRunner=primary.Runner;var oldPlayer=oldRunner.LocalPlayer;
                 yield return TaskDone(probe.Shutdown(),"Original host leaves");Object.Destroy(probeObject);probe=null;
                 yield return Until(()=>primary.IsHost&&!primary.Busy&&primary.Runner!=oldRunner,"Remaining player automatically becomes host using the production migration path",65);
                 Assert(primary.Code==migrationCode&&primary.SharedDemoControls,"Host handover preserves room code and shared Demo permissions");
+                Assert(MatchSetup.BotTarget==25,"Population choice survives production host migration");
+                Assert(primary.Runner.LocalPlayer==oldPlayer,"Stable Fusion player identity survives host migration for mode scores and team assignments.");
                 yield return TaskDone(primary.Leave(),"Migrated host leaves cleanly");
 
             }
             finally{if(probe){_=probe.Shutdown();Object.Destroy(probe.gameObject);}config.PeerMode=original;}
+            MatchSetup.BotTarget=10;
             yield return TaskDone(lobby.Room.Host(),"Host reconnects with a fresh runner in normal single-peer mode");Assert(lobby.Room.IsHost,"Rehosting succeeds after leaving.");
             var connection=lobby.Room;lobby.View().InvokeChoice("launch");
             yield return Until(()=>Object.FindFirstObjectByType<CastlePlaySession>()&&Object.FindFirstObjectByType<CastlePlaySession>().Network,"Host launch enters the actual castle Game scene",60);
             var session=Object.FindFirstObjectByType<CastlePlaySession>();yield return new WaitForSeconds(1);
             Assert(!IslandLobby.Current&&session.Network.IsFusion&&connection.IsHost,"Same host runner survives lobby -> castle without duplicate lobby characters.");
             Assert(session.GetComponent<CandyDemoHud>()&&session.GetComponent<SocialWorld>(),"Original detailed in-game demo HUD and social voice system remain installed.");
+            yield return Until(()=>session.SurvivorBots.Count+session.Network.HumanCount==10,"Lobby Demo launch fills selected total with humans plus bots");
             Assert(session.Bots().SpawnBot()&&session.Hands().SpawnHand(),"Host can still spawn a survivor and giant hand in Castle Demo.");
+            yield return new WaitForSeconds(.3f);
+            var botMember=session.SurvivorBots.Members.First();
+            string botId=botMember.GetComponent<ISocialBot>()?.NetworkId??botMember.GetComponent<IModeActor>()?.ActorId;
+            var botSnapshot=P.DecodeWorld(session.Network.FusionCaptureWorld());
+            Assert(!string.IsNullOrEmpty(botId)&&botSnapshot.actors.Count(a=>a.id==botId&&a.kind==NetworkKinds.Survivor)==1,"Driven survivor bot is captured exactly once with its canonical identity for joined peers.");
             using(var sender=new IslandDiscovery(appId,protocol,0))
             {
                 var invite=JsonUtility.FromJson<IslandDiscovery.Message>(System.Text.Encoding.UTF8.GetString(sender.EncodePresence(IslandRoomAddress.Create("us"),1)));
@@ -227,11 +242,18 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Assert(proxy.GetComponentsInChildren<CapsuleCollider>().Any(c=>c.enabled&&c.isTrigger)&&proxy.GetComponentsInChildren<Camera>(true).Length==0,"Remote survivor exposes a host hazard target without owning a camera");
             var impacts=(System.Collections.IDictionary)typeof(CastleFusionSession).GetField("disasterImpacts",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(sync);
             ((IPushable)proxyView).Push(Vector3.forward,proxyObject);Assert(impacts.Contains("integration-peer"),"Host remote-survivor impact is routed to the owning player");impacts.Clear();proxyView.Suspend();((IPushable)proxyView).Push(Vector3.forward,proxyObject);
-            Assert(!impacts.Contains("integration-peer")&&!proxy.GetComponentsInChildren<CapsuleCollider>().Any(c=>c.enabled),"Suspended remote actors cannot receive stale disaster impacts");Object.Destroy(proxyObject);
+            Assert(!impacts.Contains("integration-peer")&&!proxy.GetComponentsInChildren<CapsuleCollider>().Any(c=>c.enabled),"Suspended remote actors cannot receive stale disaster impacts");
+            session.Modes.RegisterRemote("integration-peer",proxyObject);yield return new WaitForSeconds(.3f);
+            Assert(session.Modes.Frame.players.Any(p=>p.id=="integration-peer"),"Migration fixture includes a human roster row absent from the resumed runner.");Object.Destroy(proxyObject);
             Assert(DemoDisasters.Execute(session,"Tsunami")&&DeadlyJenga.Core.Tracked.Waves.Any(w=>w.Wave.active),"A real host disaster publishes active shared wave state");
             var first=DeadlyJenga.Core.Services.World.Blocks[0];var originalPosition=first.position;
             sync.Demo.target=14;sync.Demo.handLimit=7;sync.Demo.autoFill=false;
+            var savedBotIds=session.SurvivorBots.Members.Select(b=>b.GetComponent<ISocialBot>().NetworkId).OrderBy(x=>x).ToArray();
+            int savedHandCount=session.HandBots.Count;
             sync.PauseForMigration();Assert(DeadlyJenga.Core.Tracked.Waves.Count==0,"Host migration cancels active disasters and clears wave sources");Assert(first.isKinematic,"Physics freezes while host transfer is in progress");sync.ResumeAfterMigration(connection.Runner);
+            yield return new WaitForSeconds(.3f);
+            Assert(savedBotIds.SequenceEqual(session.SurvivorBots.Members.Select(b=>b.GetComponent<ISocialBot>().NetworkId).OrderBy(x=>x))&&session.HandBots.Count==savedHandCount,"Migration recreates the same bot identities and hand count without duplicates.");
+            Assert(!session.Modes.Frame.players.Any(p=>p.id=="integration-peer")&&session.Modes.Frame.players.Any(p=>p.id==connection.Runner.LocalPlayer.ToString()),"Host promotion removes absent human roster entries and retains its active local identity.");
             Assert(!first.isKinematic&&Vector3.Distance(first.position,originalPosition)<.01f,"Host resume retains block positions and restores physics authority");
             Assert(session.Bots().targetPopulation==14&&session.Bots().Capacity==int.MaxValue,"Host handover preserves the fill target and uncapped spawning");
             int beforeBots=session.Bots().Count;sync.Request(new CastleDemoCommand{action=CastleDemoAction.AddSurvivor});Assert(session.Bots().Count==beforeBots+1,"Demo command path executes through the authority");
@@ -246,10 +268,19 @@ namespace DeadlyJenga.CastlePrototype.Editor
             Assert(!first.isKinematic&&Vector3.Distance(DeadlyJenga.Core.Services.World.Blocks[0].position,fallenPosition)<.01f,"Client-to-host promotion restores the last fallen-block arrangement instead of rebuilding the castle");
             Assert(session.GetComponent<SocialWorld>().IsAuthority,"AI voice authority follows the promoted physics host");
 
-            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);session.SetMenu(true);menu.Show(true,session.Survivor().viewCamera);
+            var competitive=ModeDefaults.Create(GameModeKind.KingOfHill);competitive.automaticDisasters=false;session.Modes.Configure(competitive);yield return new WaitForSeconds(.3f);
+            int toggle=Enumerable.Range(0,session.Demo.DisasterCount).First(session.Demo.DisasterIsToggle);
+            session.Demo.LaunchDisaster(toggle);yield return null;
+            Assert(session.GetComponentsInChildren<MonoBehaviour>().OfType<IHazard>().Any(h=>h.Active),"Competitive Fusion host launches disaster through the actual UI command path");
+            session.Demo.Run(DemoCommand.StopDisasters);yield return null;
+            Assert(!session.GetComponentsInChildren<MonoBehaviour>().OfType<IHazard>().Any(h=>h.Active),"Competitive host can stop disasters through the UI command path");
+            var menu=Object.FindFirstObjectByType<CastleWorldMenu>(FindObjectsInactive.Include);session.SetMenu(true);menu.Show(true,session.Survivor().viewCamera);yield return null;
             var buttons=(UnityEngine.UI.Button[])typeof(CastleWorldMenu).GetField("buttons",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu);
+            Assert(buttons[14].gameObject.activeInHierarchy,"VR host retains Disasters button during competitive game mode");
             Assert(buttons.Length>=14,"Headset demo menu retains original controls and host tuning alongside new pages.");
             session.Survivor().viewCamera.transform.LookAt(buttons[13].transform);menu.Point(session.Survivor().viewCamera,true);menu.Point(session.Survivor().viewCamera,false);
+            Assert((bool)typeof(CastleWorldMenu).GetField("modePage",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu),"Gaze/trigger opens the new match and scenery page.");
+            session.Survivor().viewCamera.transform.LookAt(buttons[10].transform);menu.Point(session.Survivor().viewCamera,true);menu.Point(session.Survivor().viewCamera,false);
             Assert((bool)typeof(CastleWorldMenu).GetField("tuningPage",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(menu),"Gaze/trigger opens the in-game host tuning page.");
             float capacity=session.Survivor().climbGripSeconds;session.Survivor().viewCamera.transform.LookAt(buttons[1].transform);menu.Point(session.Survivor().viewCamera,true);
             Assert(session.Survivor().climbGripSeconds>capacity,"Host tuning modifies the live stamina capacity in game.");menu.Show(false,session.Survivor().viewCamera);

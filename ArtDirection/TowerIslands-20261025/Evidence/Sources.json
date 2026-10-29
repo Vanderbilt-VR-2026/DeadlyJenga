@@ -1,0 +1,34 @@
+{
+  "unity": "6000.3.23f1",
+  "native_districts": 20,
+  "sources": [
+    {
+      "source": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\TowerExhibitionMap.cs",
+      "sha256": "f2a0f961684aed9e44f3d9b7b8523962b8f3bab938ed818b69653b48dd79cdc4",
+      "native_runner_identical": true
+    },
+    {
+      "source": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\TowerExhibitionLayout.cs",
+      "sha256": "44a2df02f76853e663129b9c3edc50d811793ede3ced21b0c2b31dba4285d804",
+      "native_runner_identical": true
+    },
+    {
+      "source": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\TowerExhibitionLayout.Towers.cs",
+      "sha256": "50b2beb039606573ff4559568d693ca83b865cc52c310bbfa6bcd79234eff3d1",
+      "native_runner_identical": true
+    },
+    {
+      "source": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\TowerSectionWaterLoad.cs",
+      "sha256": "d38005cca3a032fe3a4741185b95388d95ee4e25298442f1c408c5612cd1cae2",
+      "native_runner_identical": true
+    },
+    {
+      "source": "Assets\\_DeadlyJenga\\World\\Maps\\Scripts\\MayhemStructuralMember.cs",
+      "sha256": "6c88778e839a959bf98d1aee06f29d32616b413c7c358fc76188dc6d9d251d04",
+      "native_runner_identical": true
+    }
+  ],
+  "flight_samples": 11132,
+  "turn_samples": 3822,
+  "render_only_fix_after_production_capture": "Ramp winding reversed without changing convex points or absolute volume; native geometry and source compilation repeated."
+}

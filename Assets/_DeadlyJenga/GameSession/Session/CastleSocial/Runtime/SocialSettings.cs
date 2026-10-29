@@ -17,6 +17,7 @@ namespace DeadlyJenga.CastleSocial
         [Range(0,1)] public float spatialBlend;
         public SocialMicrophoneProfile microphoneEffects=new SocialMicrophoneProfile();
         public bool usePerIdentityMic=true;
+        public OnDeviceConversationSettings onDevice=new OnDeviceConversationSettings();
         public void ResetDefaults(){configuration=SocialConfiguration.Defaults();}
     }
 }

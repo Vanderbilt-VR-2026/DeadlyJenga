@@ -1,0 +1,13 @@
+Real Game hover, rifle, cosmetics and private Mystery replay checks.
+PASS Actual Lobby starts
+PASS All three authored terminals exist
+PASS All terminals are parallel
+PASS Mode screen is wider and its top is below 2.9 metres
+PASS Host screen is widened and shortened
+PASS Join screen is lowered with larger button type
+PASS Single readable face controller: JOIN
+PASS Single readable face controller: HOST
+PASS Single readable face controller: MAP + MODE
+PASS Retro controls project perpendicularly out of vertical cabinet faces
+PASS Joystick points toward the player, not upward
+COMPLETE checks=11 runtimeErrors=0 failed=False. Desktop runtime; headset not tested.

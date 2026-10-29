@@ -10,5 +10,5 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 233359b020b7a6b4f8db0d4e7629ae36, type: 3}
-  m_Name: Anti-Gravity
+  m_Name: Low Gravity
   m_EditorClassIdentifier:

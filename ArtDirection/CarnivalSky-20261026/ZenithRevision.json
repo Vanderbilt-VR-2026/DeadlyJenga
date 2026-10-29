@@ -1,0 +1,6 @@
+{
+  "tool": "Built-in image_gen",
+  "source": "exec-cd29ad0f-c7c5-4cf0-a2ce-164be807f6d0.png",
+  "replaces": "up face: original generated image had a false sunset band at the edge",
+  "prompt": "A single square production videogame cubemap UP face, camera looking STRAIGHT VERTICALLY UP at zenith through a 90 degree rectilinear lens. Entire image is a gorgeous soft periwinkle lavender BLUE SKY, delicate wispy peach pink and pale rosy cloud filaments sweeping overhead, fluffy soft lilac wisps around the edges, airy open blue-lavender middle. Beautiful high quality stylized 3D animation film lighting, cotton candy color palette, luminous delicate pastel cloud detail. Every part of all four edges is still BLUE LAVENDER SKY with delicate pale pink wisps, no bright golden band anywhere. The light source is well outside the frame. Absolutely NO sun, sunset horizon, yellow light band, cream yellow clouds, cloud sea, carnival, ground, objects, silhouettes, lettering or borders. No horizon at ANY edge. This is overhead sky ONLY, not a landscape scene. Generate at highest native square resolution available."
+}

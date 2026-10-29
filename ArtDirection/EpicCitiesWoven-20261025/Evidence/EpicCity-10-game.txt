@@ -1,0 +1,27 @@
+The Rising Spine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=84 shapes=740 routes=30 elevated=15 lowerStructures=9 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=2 Folded street terrace 2, Folded street terrace 7
+PASS production motor first flight Seaside low market position=(-134.68, 5.04, -95.60)
+PASS production motor first flight First spine terrace position=(-49.68, 5.04, -96.60)
+PASS production motor first flight Middle crown position=(40.21, 9.03, -71.00)
+PASS production motor first flight Inland civic summit position=(130.32, 15.04, -43.60)
+PASS production motor first flight Headland shoulder position=(130.32, 13.04, 58.40)
+PASS production motor first flight Secondary skyline position=(40.32, 11.04, 66.40)
+PASS production motor first flight Lower cross-grain arcade position=(-49.68, 7.04, 58.40)
+PASS production motor first flight Waterfront landmark position=(-134.68, 5.04, 11.40)
+PASS production motor first flight Stepped portico 1 position=(-63.60, 5.04, -12.82)
+PASS production motor first flight Folded street terrace 2 position=(40.32, 5.04, -3.60)
+PASS production motor first flight Open market arcade 3 position=(-118.60, 5.04, -143.32)
+PASS production motor first flight Split courtyard pavilion 4 position=(15.32, 5.04, -132.60)
+PASS production motor first flight Branch mesa walk 5 position=(51.30, 5.04, -125.22)
+PASS production motor first flight Stepped portico 6 position=(116.32, 5.04, -118.60)
+PASS production motor first flight Folded street terrace 7 position=(-118.60, 5.04, 65.68)
+PASS production motor first flight Open market arcade 8 position=(-104.68, 5.04, 109.40)
+PASS production motor first flight Split courtyard pavilion 9 position=(-38.60, 5.04, 119.68)
+12 bots / quiet frames=112 average=28.0FPS p95=43.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved>.5m=12
+12 bots + tsunami frames=259 average=16.5FPS p95=102.4ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved>.5m=5/84. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=58/84. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=84 runtimeErrorsSoFar=0

@@ -1,0 +1,48 @@
+{
+  "tornado": [
+    {
+      "id": "tornado-storm-sculpt",
+      "name": "Sculpted storm",
+      "tag": "Recommended",
+      "description": "A readable dark spiral, a softer asymmetric crown, and a broad low dust skirt. Thick storm volume with lighter torn edges.",
+      "route": "Keep a compact funnel mesh, add spiral surface detail and a fixed set of soft edge wisps. No new physics bodies."
+    },
+    {
+      "id": "tornado-candy-cyclone",
+      "name": "Candy cyclone",
+      "tag": "More stylized",
+      "description": "Pearlescent wind ribbons with glimpses of red, green and purple debris. More open negative space and a visibly twisting silhouette.",
+      "route": "Use a few animated ribbon meshes and instanced debris. Transparency would need an overdraw check on Quest."
+    },
+    {
+      "id": "tornado-supercell",
+      "name": "Towering supercell",
+      "tag": "Most imposing",
+      "description": "A broad low cloud canopy feeds a powerful curved funnel. Dense ground contact and a darker core create a much stronger sense of scale.",
+      "route": "Use layered cloud geometry and baked shading rather than a volumetric fluid simulation."
+    }
+  ],
+  "tsunami": [
+    {
+      "id": "tsunami-turquoise-breaker",
+      "name": "Turquoise breaker",
+      "tag": "Recommended",
+      "description": "Deep blue weight at the foot, luminous turquoise toward the crest, and irregular white foam tearing down the steep face.",
+      "route": "Retain the existing GPU wave surface and collision profile; add crest and streak masks, with tightly capped spray."
+    },
+    {
+      "id": "tsunami-liquid-glass",
+      "name": "Liquid candy glass",
+      "tag": "Candy material direction",
+      "description": "Clear saturated aqua, broad juicy highlights, subtle bubbles and a thin lace-like white lip. The water feels dense and glossy.",
+      "route": "Use depth color and reflection cues first; true screen refraction and transparency would need separate GPU profiling."
+    },
+    {
+      "id": "tsunami-whitewater-wall",
+      "name": "Whitewater wall",
+      "tag": "Most violent",
+      "description": "A jagged, frothy leading crest, layered sheets of foam, and chunky spray give the wave visible destructive weight.",
+      "route": "Keep the same wave envelope; animate foam in the shader and reuse a bounded spray pool."
+    }
+  ]
+}

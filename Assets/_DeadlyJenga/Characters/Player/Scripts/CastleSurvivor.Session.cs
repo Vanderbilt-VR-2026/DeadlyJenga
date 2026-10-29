@@ -47,7 +47,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (!Capsule) return;
             float margin = Mathf.Max(shortfall, Capsule.radius + Capsule.stepOffset + Capsule.skinWidth + .02f);
-            jumpHeight = Mathf.Max(.1f, stepHeight - margin);
+            // Small pavement steps must not shrink the character's normal jump.
+            jumpHeight = Mathf.Max(authoredJumpHeight, stepHeight - margin);
         }
 
         [Serializable]

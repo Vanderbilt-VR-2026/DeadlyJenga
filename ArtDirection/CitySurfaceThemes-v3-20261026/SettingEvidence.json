@@ -1,0 +1,78 @@
+{
+  "concepts": 8,
+  "boards": [
+    {
+      "id": "honeycomb-hive",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-ff583cc8-1273-4557-b723-6a9aff13bc2d.png",
+      "dimensions": [
+        1683,
+        935
+      ],
+      "sha256": "3be5869fc2f17dcb037e64fadb4728e5a3a1e97039687b4fe79fd47418ff89a8"
+    },
+    {
+      "id": "cotton-carnival",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-fb5992c6-8ebc-4980-b42e-0bb4f30075a4.png",
+      "dimensions": [
+        1586,
+        992
+      ],
+      "sha256": "6035e773f974353204801cb0b999a1794dea8094c6e5b47162904e3a7c9c5d33"
+    },
+    {
+      "id": "lilypad-jungle",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-bd6f0410-b0f6-442b-970c-d8e2901a414d.png",
+      "dimensions": [
+        1672,
+        940
+      ],
+      "sha256": "d04e0850c026f6c09f9b4e7ece43be9de356367afca9e6af42d46658c20b7f4e"
+    },
+    {
+      "id": "jungle-leaf-branch",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-7b066814-7fcf-47a1-93b6-11a81fef704e.png",
+      "dimensions": [
+        1586,
+        992
+      ],
+      "sha256": "119171957aa99a9552f6d1c31f91756caa885eecceeda33d65770c3793af4167"
+    },
+    {
+      "id": "playground-sandbox",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-cfd4fcd6-2913-49f2-8df1-f99c6240bfef.png",
+      "dimensions": [
+        1672,
+        941
+      ],
+      "sha256": "8ab526a65843eaa5aeffbc328700e1d2d89f8f9930738d6cbdeb76b741bf9243"
+    },
+    {
+      "id": "western-ravine",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-2731621b-1f36-468a-94b7-f3585881971a.png",
+      "dimensions": [
+        1672,
+        940
+      ],
+      "sha256": "1facb474ed3578d5383c91e233f236269e260dcbea22feaa6f633f7f6c7521d0"
+    },
+    {
+      "id": "blue-sky-candy-glass",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-c946367b-da85-4dbf-8fee-4446bf1d289c.png",
+      "dimensions": [
+        1548,
+        1016
+      ],
+      "sha256": "e1288dbb3160357783abd70513e2cf6f9721a8ab9f2757f9e3598616f3030266"
+    },
+    {
+      "id": "tiny-moon-candy-glass",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-796a22aa-9536-4164-b7dc-2468aad0bce4.png",
+      "dimensions": [
+        1548,
+        1016
+      ],
+      "sha256": "3693ee685d2791d656e747fb457acab7cb5027c6e50cd705bcb7e1d09239cc82"
+    }
+  ],
+  "verification": "All eight images visually inspected; PNG integrity and original reference paths checked. AI artwork, not implemented Unity assets."
+}

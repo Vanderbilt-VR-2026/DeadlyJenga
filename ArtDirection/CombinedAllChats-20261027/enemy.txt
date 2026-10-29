@@ -1,0 +1,51 @@
+Combined integration regression
+PASS Game solo starts
+PASS Actual enemy population available
+PASS Unknown archetype rejected
+PASS Perimeter spawns longhand
+PASS Gameplay identity longhand
+PASS Procedural model attaches longhand
+PASS Model adds no colliders longhand
+PASS Distinct movement and recovery longhand
+PASS Authoritative enemy damage longhand
+PASS Longhand reach
+PASS Codec round trip longhand
+PASS Conflicting enemy flags rejected longhand
+PASS Perimeter spawns gum-brute
+PASS Gameplay identity gum-brute
+PASS Procedural model attaches gum-brute
+PASS Model adds no colliders gum-brute
+PASS Distinct movement and recovery gum-brute
+PASS Authoritative enemy damage gum-brute
+PASS Brute heavy shove
+PASS Codec round trip gum-brute
+PASS Conflicting enemy flags rejected gum-brute
+PASS Ordinary human payload remains compatible without enemy metadata
+PASS Both enemy species coexist
+PASS Photon host startup
+PASS Photon host connected
+PASS Photon guest startup
+PASS Second Photon peer connected
+PASS Reliable enemy payload received
+PASS Remote decoder accepts actor payload: 
+PASS Reliable enemy payload received
+PASS Remote decoder accepts actor payload: 
+PASS Both enemy archetypes transported between real Photon peers
+PASS Remote procedural model created
+PASS Remote procedural model created
+PASS Fixture inside physical strike range longhand
+PASS Authoritative strike accepted longhand
+PASS Actual victim health loss longhand
+PASS Authoritative recovery blocks repeated strike longhand
+PASS Fixture inside physical strike range gum-brute
+PASS Authoritative strike accepted gum-brute
+PASS Actual victim health loss gum-brute
+PASS Authoritative recovery blocks repeated strike gum-brute
+PASS Finite navigation state
+PASS Finite navigation state
+PASS Both enemies remain alive before clearing
+PASS Enemy clear leaves population clean
+PASS Death check spawns longhand
+PASS Actual elimination creates nonempty candy splat longhand
+PASS Death check spawns gum-brute
+PASS Actual elimination creates nonempty candy splat gum-brute

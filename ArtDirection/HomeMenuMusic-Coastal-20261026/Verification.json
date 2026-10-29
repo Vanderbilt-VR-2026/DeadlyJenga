@@ -1,0 +1,37 @@
+{
+  "checks": [
+    {
+      "id": "01-critical-mass-shorebreak",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.91,
+      "truePeakDbTP": -4.05
+    },
+    {
+      "id": "02-critical-mass-candy-current",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.92,
+      "truePeakDbTP": -4.43
+    },
+    {
+      "id": "03-critical-mass-tidal-pressure",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.9,
+      "truePeakDbTP": -4.35
+    },
+    {
+      "id": "04-critical-mass-sunlit-chaos",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.93,
+      "truePeakDbTP": -4.11
+    }
+  ],
+  "scope": "Automated file, decode, silence, peak and synthesis-loop-boundary checks. No in-game or headset audition performed. Musical loop suitability remains an audition decision."
+}

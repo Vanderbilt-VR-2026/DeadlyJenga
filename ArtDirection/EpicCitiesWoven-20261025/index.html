@@ -1,0 +1,300 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deadly Jenga · Woven cities correction</title><style>body{margin:0;background:#111b2c;color:#ecf2ff;font:17px/1.6 system-ui,sans-serif}main{max-width:1550px;margin:auto;padding:45px 5vw}h1{font-size:46px;line-height:1.15}a{color:#9df3d5}.note,details{padding:18px;background:#213149}.note{border-left:4px solid #ffc77b}.shots{display:grid;grid-template-columns:1fr 1fr;gap:16px}figure{margin:0}img{width:100%;height:auto}figcaption{font-size:14px;color:#c7d4ed}article{padding-top:30px;border-top:1px solid #40516c;margin-top:40px}table{border-collapse:collapse;width:100%}th,td{text-align:left;padding:12px;border-bottom:1px solid #40516c}.scroll{overflow:auto}pre{white-space:pre-wrap;font:14px/1.6 monospace}details{margin-top:20px}summary{cursor:pointer}@media(max-width:800px){.shots{grid-template-columns:1fr}h1{font-size:34px}}</style></head><body><main><header><p>DEADLY JENGA · CORRECTED BUILT MAPS</p><h1>A lower city woven through the skyline</h1><p>The previous pass left tower clusters separated by broad bare spaces. These revisions add physical folded terraces, open market arcades, split courtyard pavilions, branching mesa walks and stepped porticos between them. Low roofs connect to neighboring low roofs and tower floors; ground passages remain beneath and between the structures.</p><p>Choose <b>Epic connected cities</b> in the lobby or demo map picker. Existing IDs are retained; these are revised versions of the same ten maps.</p><p><a href="EpicCitiesWovenReview.zip">Download the comparison gallery and evidence</a></p><p class="note">All pictures below are actual Unity game captures. Each before/after pair uses the same camera. The 16-second wave exposure is a targeted geometry and behavior check with 12 bots; it is not the earlier full-wave 32-bot benchmark, and its timings should not be compared with that run. Headset, live multiplayer and competitive mode balance remain unverified.</p></header><div class="scroll"><table><thead><tr><th>Map</th><th>Added lower structures</th><th>Elevated connections</th><th>Moving bodies</th><th>Collision shapes</th></tr></thead><tbody><tr><th><a href="#city-1">Tideway Metropolis</a></th><td>14</td><td>8 → 27</td><td>67 → 108</td><td>1071</td></tr><tr><th><a href="#city-2">Double-Loop Exchange</a></th><td>16</td><td>11 → 33</td><td>83 → 125</td><td>1086</td></tr><tr><th><a href="#city-3">Caldera Switchback City</a></th><td>4</td><td>9 → 10</td><td>86 → 91</td><td>704</td></tr><tr><th><a href="#city-4">Broken Crown Capital</a></th><td>16</td><td>6 → 24</td><td>67 → 107</td><td>936</td></tr><tr><th><a href="#city-5">Harbor Loom</a></th><td>18</td><td>10 → 38</td><td>77 → 131</td><td>1042</td></tr><tr><th><a href="#city-6">Lantern Ravine</a></th><td>4</td><td>6 → 12</td><td>68 → 86</td><td>797</td></tr><tr><th><a href="#city-7">Canopy Borough</a></th><td>8</td><td>10 → 22</td><td>69 → 95</td><td>1090</td></tr><tr><th><a href="#city-8">Bookfall Boulevard</a></th><td>16</td><td>8 → 25</td><td>69 → 108</td><td>897</td></tr><tr><th><a href="#city-9">Three Hearts City</a></th><td>16</td><td>4 → 24</td><td>74 → 122</td><td>1078</td></tr><tr><th><a href="#city-10">The Rising Spine</a></th><td>9</td><td>5 → 15</td><td>55 → 84</td><td>740</td></tr></tbody></table></div><p>One compact lower building moves as a rigid section, including its stairs and folded circulation. This limits additional body count; its floors do not fracture individually. The original skyline and selected fall courts remain. Lower buildings occupy collision-checked pockets rather than every square metre of the island.</p><p>Native checks cover initial inter-body overlaps, 15-second settling, full-size stair clearance, replica state and demolition. Production checks cover real player ascent, bot activity, short tsunami exposure and map reload/reset. <a href="Evidence/NativePhysics.txt">Read the native report</a>.</p><article id="city-1"><h2>01 · Tideway Metropolis</h2><p>14 added lower buildings · 8 → 27 elevated connections · 67 → 108 moving bodies</p><div class="shots"><figure><a href="Captures/01-before.png"><img loading="lazy" src="Captures/01-before.png" alt="Tideway Metropolis: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/01-intact.png"><img loading="lazy" src="Captures/01-intact.png" alt="Tideway Metropolis: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/01-tsunami.png"><img loading="lazy" src="Captures/01-tsunami.png" alt="Tideway Metropolis: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/01-impact.png"><img loading="lazy" src="Captures/01-impact.png" alt="Tideway Metropolis: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/01-concept.png" alt="Original concept illustration for Tideway Metropolis"></details><details><summary>Actual runtime checks</summary><pre>Tideway Metropolis production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=108 shapes=1071 routes=44 elevated=27 lowerStructures=14 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=2 Folded street terrace 1, Split courtyard pavilion 13
+PASS production motor first flight Harbor sheds position=(-109.68, 5.04, -105.60)
+PASS production motor first flight Quay terraces position=(-29.68, 5.04, -106.60)
+PASS production motor first flight Lantern Court position=(84.68, 5.04, -76.40)
+PASS production motor first flight Branching plaza position=(-99.68, 5.04, 14.40)
+PASS production motor first flight Civic lantern position=(5.32, 5.04, -8.60)
+PASS production motor first flight Crownline offices position=(110.32, 5.04, -8.60)
+PASS production motor first flight High street decks position=(-69.68, 5.04, 88.40)
+PASS production motor first flight Gateway headland position=(44.32, 5.04, 90.40)
+PASS production motor first flight Folded street terrace 1 position=(81.35, 5.04, -47.87)
+PASS production motor first flight Open market arcade 2 position=(76.40, 5.04, 44.68)
+PASS production motor first flight Split courtyard pavilion 3 position=(0.32, 5.04, 119.40)
+PASS production motor first flight Branch mesa walk 4 position=(-10.35, 5.04, 69.93)
+PASS production motor first flight Stepped portico 5 position=(-109.43, 5.04, 68.65)
+PASS production motor first flight Folded street terrace 6 position=(-47.18, 5.04, -41.10)
+PASS production motor first flight Open market arcade 7 position=(44.82, 5.04, 41.40)
+PASS production motor first flight Split courtyard pavilion 8 position=(-8.60, 5.04, 33.68)
+PASS production motor first flight Branch mesa walk 9 position=(-55.98, 5.04, 42.06)
+PASS production motor first flight Stepped portico 10 position=(33.83, 5.04, -47.75)
+PASS production motor first flight Folded street terrace 11 position=(-118.60, 5.04, -143.32)
+PASS production motor first flight Open market arcade 12 position=(-38.60, 5.04, -143.32)
+PASS production motor first flight Split courtyard pavilion 13 position=(130.32, 5.04, -118.60)
+PASS production motor first flight Branch mesa walk 14 position=(130.32, 5.04, 41.40)
+12 bots / quiet frames=33 average=8.3FPS p95=131.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=104 average=6.5FPS p95=134.2ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=0/108. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=85/108. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=108 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-2"><h2>02 · Double-Loop Exchange</h2><p>16 added lower buildings · 11 → 33 elevated connections · 83 → 125 moving bodies</p><div class="shots"><figure><a href="Captures/02-before.png"><img loading="lazy" src="Captures/02-before.png" alt="Double-Loop Exchange: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/02-intact.png"><img loading="lazy" src="Captures/02-intact.png" alt="Double-Loop Exchange: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/02-tsunami.png"><img loading="lazy" src="Captures/02-tsunami.png" alt="Double-Loop Exchange: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/02-impact.png"><img loading="lazy" src="Captures/02-impact.png" alt="Double-Loop Exchange: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/02-concept.png" alt="Original concept illustration for Double-Loop Exchange"></details><details><summary>Actual runtime checks</summary><pre>Double-Loop Exchange production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=125 shapes=1086 routes=50 elevated=33 lowerStructures=16 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=0 
+PASS production motor first flight Seaward arcade position=(-114.68, 5.04, -76.60)
+PASS production motor first flight Low court hotel position=(-125.68, 5.04, 25.40)
+PASS production motor first flight West lantern position=(-29.68, 5.04, 81.40)
+PASS production motor first flight Exchange south position=(20.32, 5.04, -53.60)
+PASS production motor first flight Exchange north position=(20.32, 5.04, 41.40)
+PASS production motor first flight Inland court position=(96.40, 5.04, 54.68)
+PASS production motor first flight Market hall position=(120.32, 5.04, -80.60)
+PASS production motor first flight Beach walk position=(-29.68, 5.04, -131.60)
+PASS production motor first flight Open market arcade 1 position=(-137.68, 5.04, -23.60)
+PASS production motor first flight Split courtyard pavilion 2 position=(-43.35, 5.04, 39.93)
+PASS production motor first flight Branch mesa walk 3 position=(55.32, 5.04, -6.10)
+PASS production motor first flight Stepped portico 4 position=(15.12, 5.04, -110.90)
+PASS production motor first flight Folded street terrace 5 position=(-91.98, 5.04, -120.90)
+PASS production motor first flight Open market arcade 6 position=(-14.68, 5.04, -6.10)
+PASS production motor first flight Split courtyard pavilion 7 position=(70.32, 5.04, 40.90)
+PASS production motor first flight Branch mesa walk 8 position=(56.40, 5.04, -97.82)
+PASS production motor first flight Stepped portico 9 position=(-47.18, 5.04, -28.60)
+PASS production motor first flight Folded street terrace 10 position=(1.40, 5.04, 103.18)
+PASS production motor first flight Open market arcade 11 position=(-81.14, 5.04, -22.10)
+PASS production motor first flight Split courtyard pavilion 12 position=(-146.60, 5.04, -115.32)
+PASS production motor first flight Branch mesa walk 13 position=(41.40, 5.04, -136.32)
+PASS production motor first flight Stepped portico 14 position=(95.32, 5.04, -139.60)
+PASS production motor first flight Folded street terrace 15 position=(-143.35, 5.04, 69.43)
+PASS production motor first flight Open market arcade 16 position=(-89.83, 5.04, 96.25)
+12 bots / quiet frames=82 average=20.8FPS p95=64.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=11
+12 bots + tsunami frames=186 average=12.4FPS p95=113.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=0/125. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=95/125. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=125 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-3"><h2>03 · Caldera Switchback City</h2><p>4 added lower buildings · 9 → 10 elevated connections · 86 → 91 moving bodies</p><div class="shots"><figure><a href="Captures/03-before.png"><img loading="lazy" src="Captures/03-before.png" alt="Caldera Switchback City: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/03-intact.png"><img loading="lazy" src="Captures/03-intact.png" alt="Caldera Switchback City: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/03-tsunami.png"><img loading="lazy" src="Captures/03-tsunami.png" alt="Caldera Switchback City: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/03-impact.png"><img loading="lazy" src="Captures/03-impact.png" alt="Caldera Switchback City: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/03-concept.png" alt="Original concept illustration for Caldera Switchback City"></details><details><summary>Actual runtime checks</summary><pre>Caldera Switchback City production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=91 shapes=704 routes=15 elevated=10 lowerStructures=4 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=3 Split courtyard pavilion 1, Branch mesa walk 2, Stepped portico 3
+PASS production motor first flight Bowl entry arcade position=(-59.79, 5.03, -120.50)
+PASS production motor first flight Low bowl terraces position=(60.32, 5.04, -116.60)
+PASS production motor first flight East switchback position=(125.32, 9.04, -26.60)
+PASS production motor first flight High east crown position=(110.32, 17.04, 81.40)
+PASS production motor first flight Bowl lantern position=(5.32, 13.04, 106.40)
+PASS production motor first flight High west crown position=(-99.79, 17.03, 73.00)
+PASS production motor first flight West switchback position=(-119.68, 9.04, -21.60)
+PASS production motor first flight Split courtyard pavilion 1 position=(2.82, 5.04, 13.90)
+PASS production motor first flight Branch mesa walk 2 position=(37.90, 5.04, 16.18)
+PASS production motor first flight Stepped portico 3 position=(-111.68, 5.04, -118.60)
+PASS production motor first flight Folded street terrace 4 position=(102.40, 5.04, -115.32)
+12 bots / quiet frames=120 average=30.0FPS p95=42.6ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=249 average=15.8FPS p95=76.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=3/91. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=53/91. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=91 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-4"><h2>04 · Broken Crown Capital</h2><p>16 added lower buildings · 6 → 24 elevated connections · 67 → 107 moving bodies</p><div class="shots"><figure><a href="Captures/04-before.png"><img loading="lazy" src="Captures/04-before.png" alt="Broken Crown Capital: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/04-intact.png"><img loading="lazy" src="Captures/04-intact.png" alt="Broken Crown Capital: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/04-tsunami.png"><img loading="lazy" src="Captures/04-tsunami.png" alt="Broken Crown Capital: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/04-impact.png"><img loading="lazy" src="Captures/04-impact.png" alt="Broken Crown Capital: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/04-concept.png" alt="Original concept illustration for Broken Crown Capital"></details><details><summary>Actual runtime checks</summary><pre>Broken Crown Capital production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=107 shapes=936 routes=44 elevated=24 lowerStructures=16 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=3 Folded street terrace 3, Split courtyard pavilion 5, Folded street terrace 8
+PASS production motor first flight South bazaar position=(-64.68, 5.04, -125.60)
+PASS production motor first flight Court entry terraces position=(70.32, 5.04, -121.60)
+PASS production motor first flight Eastern civic gateway position=(115.40, 5.04, 5.68)
+PASS production motor first flight Crown north-east position=(90.32, 5.04, 91.40)
+PASS production motor first flight Off-center civic beacon position=(-19.68, 5.04, 81.40)
+PASS production motor first flight West crown segment position=(-114.79, 5.03, 39.00)
+PASS production motor first flight West arcade position=(-114.68, 5.04, -66.60)
+PASS production motor first flight Branch mesa walk 1 position=(-11.10, 5.04, -89.82)
+PASS production motor first flight Stepped portico 2 position=(-13.35, 5.04, -143.57)
+PASS production motor first flight Folded street terrace 3 position=(61.65, 5.04, -40.57)
+PASS production motor first flight Open market arcade 4 position=(96.40, 5.04, 53.68)
+PASS production motor first flight Split courtyard pavilion 5 position=(21.40, 5.04, 117.68)
+PASS production motor first flight Branch mesa walk 6 position=(-67.18, 5.04, 58.90)
+PASS production motor first flight Stepped portico 7 position=(-135.68, 5.04, -13.60)
+PASS production motor first flight Folded street terrace 8 position=(-114.43, 5.04, -118.35)
+PASS production motor first flight Open market arcade 9 position=(-56.10, 5.04, -17.82)
+PASS production motor first flight Split courtyard pavilion 10 position=(-51.18, 5.04, -62.10)
+PASS production motor first flight Branch mesa walk 11 position=(-47.10, 5.04, 23.18)
+PASS production motor first flight Stepped portico 12 position=(-1.18, 5.04, -41.10)
+PASS production motor first flight Folded street terrace 13 position=(34.62, 5.04, -52.30)
+PASS production motor first flight Open market arcade 14 position=(45.42, 5.04, 21.50)
+PASS production motor first flight Split courtyard pavilion 15 position=(71.40, 5.04, 0.68)
+PASS production motor first flight Branch mesa walk 16 position=(10.47, 5.04, 36.55)
+12 bots / quiet frames=107 average=26.8FPS p95=48.9ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=251 average=15.7FPS p95=91.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=4/107. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=79/107. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=107 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-5"><h2>05 · Harbor Loom</h2><p>18 added lower buildings · 10 → 38 elevated connections · 77 → 131 moving bodies</p><div class="shots"><figure><a href="Captures/05-before.png"><img loading="lazy" src="Captures/05-before.png" alt="Harbor Loom: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/05-intact.png"><img loading="lazy" src="Captures/05-intact.png" alt="Harbor Loom: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/05-tsunami.png"><img loading="lazy" src="Captures/05-tsunami.png" alt="Harbor Loom: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/05-impact.png"><img loading="lazy" src="Captures/05-impact.png" alt="Harbor Loom: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/05-concept.png" alt="Original concept illustration for Harbor Loom"></details><details><summary>Actual runtime checks</summary><pre>Harbor Loom production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=131 shapes=1042 routes=58 elevated=38 lowerStructures=18 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=1 Folded street terrace 12
+PASS production motor first flight Dry-dock foundry position=(-114.68, 5.04, -95.60)
+PASS production motor first flight Lower quay position=(-24.68, 5.04, -106.60)
+PASS production motor first flight Harbor lantern position=(70.32, 5.04, -108.60)
+PASS production motor first flight West shipping offices position=(-104.79, 5.03, 9.00)
+PASS production motor first flight Cross-dock interchange position=(0.32, 5.04, -1.60)
+PASS production motor first flight East shipping offices position=(110.32, 5.04, -3.60)
+PASS production motor first flight Upper shipyard position=(-94.68, 5.04, 99.40)
+PASS production motor first flight High loom anchor position=(10.32, 5.04, 101.40)
+PASS production motor first flight North quay position=(115.32, 5.04, 98.40)
+PASS production motor first flight Stepped portico 1 position=(-69.68, 5.04, -70.60)
+PASS production motor first flight Folded street terrace 2 position=(8.90, 5.04, -74.82)
+PASS production motor first flight Open market arcade 3 position=(90.32, 5.04, -56.10)
+PASS production motor first flight Split courtyard pavilion 4 position=(133.82, 5.04, 48.90)
+PASS production motor first flight Branch mesa walk 5 position=(62.82, 5.04, 129.40)
+PASS production motor first flight Stepped portico 6 position=(-56.10, 5.04, 132.68)
+PASS production motor first flight Folded street terrace 7 position=(-85.68, 5.04, 53.90)
+PASS production motor first flight Open market arcade 8 position=(-130.68, 5.04, -43.60)
+PASS production motor first flight Split courtyard pavilion 9 position=(-66.10, 5.04, -20.82)
+PASS production motor first flight Branch mesa walk 10 position=(41.40, 5.04, 30.18)
+PASS production motor first flight Stepped portico 11 position=(5.32, 5.04, 51.40)
+PASS production motor first flight Folded street terrace 12 position=(53.09, 5.04, 66.71)
+PASS production motor first flight Open market arcade 13 position=(-29.99, 5.04, 50.95)
+PASS production motor first flight Split courtyard pavilion 14 position=(23.46, 5.04, -40.12)
+PASS production motor first flight Branch mesa walk 15 position=(-104.68, 5.04, -139.60)
+PASS production motor first flight Stepped portico 16 position=(-64.68, 5.04, -132.60)
+PASS production motor first flight Folded street terrace 17 position=(-38.60, 5.04, -143.32)
+PASS production motor first flight Open market arcade 18 position=(15.32, 5.04, -139.60)
+12 bots / quiet frames=111 average=27.9FPS p95=43.4ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=181 average=11.6FPS p95=93.4ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=4/131. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=98/131. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=131 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-6"><h2>06 · Lantern Ravine</h2><p>4 added lower buildings · 6 → 12 elevated connections · 68 → 86 moving bodies</p><div class="shots"><figure><a href="Captures/06-before.png"><img loading="lazy" src="Captures/06-before.png" alt="Lantern Ravine: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/06-intact.png"><img loading="lazy" src="Captures/06-intact.png" alt="Lantern Ravine: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/06-tsunami.png"><img loading="lazy" src="Captures/06-tsunami.png" alt="Lantern Ravine: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/06-impact.png"><img loading="lazy" src="Captures/06-impact.png" alt="Lantern Ravine: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/06-concept.png" alt="Original concept illustration for Lantern Ravine"></details><details><summary>Actual runtime checks</summary><pre>Lantern Ravine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=86 shapes=797 routes=21 elevated=12 lowerStructures=4 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=0 
+PASS production motor first flight Ravine mouth lantern position=(-94.68, 5.04, -113.60)
+PASS production motor first flight Low west terraces position=(-109.68, 9.04, -26.60)
+PASS production motor first flight West stepping homes position=(-94.68, 11.04, 91.40)
+PASS production motor first flight Eastern office ridge position=(105.29, 9.12, -108.62)
+PASS production motor first flight Ravine compression gateway position=(102.00, 13.44, 33.66)
+PASS production motor first flight High ravine beacon position=(105.32, 13.04, 106.40)
+PASS production motor first flight Low mouth arcade position=(5.32, 5.04, -120.60)
+PASS production motor first flight Inland saddle position=(5.32, 9.04, 98.40)
+PASS production motor first flight Folded street terrace 1 position=(-11.10, 5.04, -10.32)
+PASS production motor first flight Open market arcade 2 position=(-49.18, 5.04, -17.60)
+PASS production motor first flight Split courtyard pavilion 3 position=(7.64, 5.04, 44.53)
+PASS production motor first flight Branch mesa walk 4 position=(-3.92, 5.04, -58.45)
+12 bots / quiet frames=130 average=32.6FPS p95=37.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=11
+12 bots + tsunami frames=212 average=13.8FPS p95=95.2ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=10/86. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=51/86. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=86 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-7"><h2>07 · Canopy Borough</h2><p>8 added lower buildings · 10 → 22 elevated connections · 69 → 95 moving bodies</p><div class="shots"><figure><a href="Captures/07-before.png"><img loading="lazy" src="Captures/07-before.png" alt="Canopy Borough: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/07-intact.png"><img loading="lazy" src="Captures/07-intact.png" alt="Canopy Borough: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/07-tsunami.png"><img loading="lazy" src="Captures/07-tsunami.png" alt="Canopy Borough: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/07-impact.png"><img loading="lazy" src="Captures/07-impact.png" alt="Canopy Borough: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/07-concept.png" alt="Original concept illustration for Canopy Borough"></details><details><summary>Actual runtime checks</summary><pre>Canopy Borough production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=95 shapes=1090 routes=32 elevated=22 lowerStructures=8 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=0 
+PASS production motor first flight Canopy market position=(-104.68, 5.04, -115.60)
+PASS production motor first flight Daylight court position=(19.68, 5.04, -86.40)
+PASS production motor first flight Sunlit entry terraces position=(115.32, 5.04, -116.60)
+PASS production motor first flight West branching crown position=(-104.68, 5.04, 9.40)
+PASS production motor first flight Central branching crown position=(10.80, 5.04, 0.10)
+PASS production motor first flight East branching crown position=(115.48, 5.04, -9.30)
+PASS production motor first flight Shaded upper arcade position=(-104.68, 5.04, 98.40)
+PASS production motor first flight Canopy skyline marker position=(5.32, 5.04, 101.40)
+PASS production motor first flight Maker hall position=(115.32, 5.04, 99.40)
+PASS production motor first flight Open market arcade 1 position=(60.32, 5.04, 129.40)
+PASS production motor first flight Split courtyard pavilion 2 position=(-63.60, 5.04, 132.68)
+PASS production motor first flight Branch mesa walk 3 position=(-8.60, 5.04, 56.68)
+PASS production motor first flight Stepped portico 4 position=(-56.13, 5.04, 59.85)
+PASS production motor first flight Folded street terrace 5 position=(62.75, 5.04, -83.67)
+PASS production motor first flight Open market arcade 6 position=(41.72, 5.04, 62.36)
+PASS production motor first flight Split courtyard pavilion 7 position=(56.65, 5.04, -140.07)
+PASS production motor first flight Branch mesa walk 8 position=(-71.60, 5.04, -75.32)
+12 bots / quiet frames=46 average=11.5FPS p95=65.6ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=11
+12 bots + tsunami frames=119 average=8.1FPS p95=123.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=8/95. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=62/95. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=95 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-8"><h2>08 · Bookfall Boulevard</h2><p>16 added lower buildings · 8 → 25 elevated connections · 69 → 108 moving bodies</p><div class="shots"><figure><a href="Captures/08-before.png"><img loading="lazy" src="Captures/08-before.png" alt="Bookfall Boulevard: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/08-intact.png"><img loading="lazy" src="Captures/08-intact.png" alt="Bookfall Boulevard: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/08-tsunami.png"><img loading="lazy" src="Captures/08-tsunami.png" alt="Bookfall Boulevard: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/08-impact.png"><img loading="lazy" src="Captures/08-impact.png" alt="Bookfall Boulevard: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/08-concept.png" alt="Original concept illustration for Bookfall Boulevard"></details><details><summary>Actual runtime checks</summary><pre>Bookfall Boulevard production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=108 shapes=897 routes=43 elevated=25 lowerStructures=16 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=2 Folded street terrace 9, Folded street terrace 14
+PASS production motor first flight Boulevard civic tower position=(-124.68, 5.04, -73.60)
+PASS production motor first flight Western book court position=(-39.68, 5.04, -74.60)
+PASS production motor first flight Eastern book court position=(44.68, 5.04, -55.40)
+PASS production motor first flight Zipper skyline position=(145.21, 5.03, 28.00)
+PASS production motor first flight Maker hall position=(60.32, 5.04, 34.40)
+PASS production motor first flight Northern book court position=(-34.68, 5.04, 35.40)
+PASS production motor first flight Parallel escape arcade position=(-124.68, 5.04, 38.40)
+PASS production motor first flight Split courtyard pavilion 1 position=(-96.10, 5.04, -42.32)
+PASS production motor first flight Branch mesa walk 2 position=(-6.10, 5.04, -35.32)
+PASS production motor first flight Stepped portico 3 position=(121.40, 5.04, -20.32)
+PASS production motor first flight Folded street terrace 4 position=(48.60, 5.04, -20.52)
+PASS production motor first flight Open market arcade 5 position=(102.82, 5.04, 59.40)
+PASS production motor first flight Split courtyard pavilion 6 position=(19.82, 5.04, 36.40)
+PASS production motor first flight Branch mesa walk 7 position=(-93.60, 5.04, 70.18)
+PASS production motor first flight Stepped portico 8 position=(-65.95, 5.04, -0.47)
+PASS production motor first flight Folded street terrace 9 position=(-9.65, 5.04, 82.67)
+PASS production motor first flight Open market arcade 10 position=(-104.68, 5.04, -118.60)
+PASS production motor first flight Split courtyard pavilion 11 position=(-78.60, 5.04, -115.32)
+PASS production motor first flight Branch mesa walk 12 position=(-24.68, 5.04, -118.60)
+PASS production motor first flight Stepped portico 13 position=(1.40, 5.04, -115.32)
+PASS production motor first flight Folded street terrace 14 position=(55.32, 5.04, -118.60)
+PASS production motor first flight Open market arcade 15 position=(81.40, 5.04, -115.32)
+PASS production motor first flight Split courtyard pavilion 16 position=(90.32, 5.04, -78.60)
+12 bots / quiet frames=116 average=29.3FPS p95=40.6ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=355 average=23.1FPS p95=49.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=1/108. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=73/108. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=108 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-9"><h2>09 · Three Hearts City</h2><p>16 added lower buildings · 4 → 24 elevated connections · 74 → 122 moving bodies</p><div class="shots"><figure><a href="Captures/09-before.png"><img loading="lazy" src="Captures/09-before.png" alt="Three Hearts City: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/09-intact.png"><img loading="lazy" src="Captures/09-intact.png" alt="Three Hearts City: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/09-tsunami.png"><img loading="lazy" src="Captures/09-tsunami.png" alt="Three Hearts City: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/09-impact.png"><img loading="lazy" src="Captures/09-impact.png" alt="Three Hearts City: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/09-concept.png" alt="Original concept illustration for Three Hearts City"></details><details><summary>Actual runtime checks</summary><pre>Three Hearts City production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=122 shapes=1078 routes=47 elevated=24 lowerStructures=16 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=0 
+PASS production motor first flight Business heart position=(-125.68, 5.04, 55.40)
+PASS production motor first flight Civic heart position=(5.21, 5.03, 104.50)
+PASS production motor first flight Lantern Court heart position=(100.40, 5.04, 75.68)
+PASS production motor first flight Harbor terraces position=(120.32, 5.04, -81.60)
+PASS production motor first flight Waterfront heart position=(25.32, 5.04, -120.60)
+PASS production motor first flight Market entry position=(-89.68, 5.04, -81.60)
+PASS production motor first flight Exchange catch tower position=(21.24, 6.02, -8.00)
+PASS production motor first flight Branch mesa walk 1 position=(-40.18, 5.04, 81.40)
+PASS production motor first flight Stepped portico 2 position=(31.55, 5.04, 67.33)
+PASS production motor first flight Folded street terrace 3 position=(96.82, 5.04, -13.60)
+PASS production motor first flight Open market arcade 4 position=(143.57, 5.04, -14.85)
+PASS production motor first flight Split courtyard pavilion 5 position=(58.90, 5.04, -60.32)
+PASS production motor first flight Branch mesa walk 6 position=(-21.35, 5.04, -70.57)
+PASS production motor first flight Stepped portico 7 position=(-94.68, 5.04, -11.10)
+PASS production motor first flight Folded street terrace 8 position=(-37.28, 5.04, 33.80)
+PASS production motor first flight Open market arcade 9 position=(-59.90, 5.04, -5.62)
+PASS production motor first flight Split courtyard pavilion 10 position=(60.32, 5.04, 21.40)
+PASS production motor first flight Branch mesa walk 11 position=(4.60, 5.04, 32.48)
+PASS production motor first flight Stepped portico 12 position=(-47.13, 5.04, -48.55)
+PASS production motor first flight Folded street terrace 13 position=(33.84, 5.04, -66.82)
+PASS production motor first flight Open market arcade 14 position=(42.83, 5.04, -22.22)
+PASS production motor first flight Split courtyard pavilion 15 position=(-123.55, 5.04, -120.27)
+PASS production motor first flight Branch mesa walk 16 position=(-78.60, 5.04, -129.32)
+12 bots / quiet frames=114 average=28.5FPS p95=47.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=318 average=20.7FPS p95=78.8ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=15/122. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=71/122. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=122 runtimeErrorsSoFar=0
+</pre></details></article><article id="city-10"><h2>10 · The Rising Spine</h2><p>9 added lower buildings · 5 → 15 elevated connections · 55 → 84 moving bodies</p><div class="shots"><figure><a href="Captures/10-before.png"><img loading="lazy" src="Captures/10-before.png" alt="The Rising Spine: Previous sparse build"></a><figcaption>Previous sparse build</figcaption></figure><figure><a href="Captures/10-intact.png"><img loading="lazy" src="Captures/10-intact.png" alt="The Rising Spine: Revised: physical lower structures woven in"></a><figcaption>Revised: physical lower structures woven in</figcaption></figure><figure><a href="Captures/10-tsunami.png"><img loading="lazy" src="Captures/10-tsunami.png" alt="The Rising Spine: Targeted 16-second tsunami exposure, 12 bots"></a><figcaption>Targeted 16-second tsunami exposure, 12 bots</figcaption></figure><figure><a href="Captures/10-impact.png"><img loading="lazy" src="Captures/10-impact.png" alt="The Rising Spine: Separate stronger demolition after reset"></a><figcaption>Separate stronger demolition after reset</figcaption></figure></div><details><summary>Approved concept reference — illustration</summary><img loading="lazy" src="Captures/10-concept.png" alt="Original concept illustration for The Rising Spine"></details><details><summary>Actual runtime checks</summary><pre>The Rising Spine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=84 shapes=740 routes=30 elevated=15 lowerStructures=9 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=2 Folded street terrace 2, Folded street terrace 7
+PASS production motor first flight Seaside low market position=(-134.68, 5.04, -95.60)
+PASS production motor first flight First spine terrace position=(-49.68, 5.04, -96.60)
+PASS production motor first flight Middle crown position=(40.21, 9.03, -71.00)
+PASS production motor first flight Inland civic summit position=(130.32, 15.04, -43.60)
+PASS production motor first flight Headland shoulder position=(130.32, 13.04, 58.40)
+PASS production motor first flight Secondary skyline position=(40.32, 11.04, 66.40)
+PASS production motor first flight Lower cross-grain arcade position=(-49.68, 7.04, 58.40)
+PASS production motor first flight Waterfront landmark position=(-134.68, 5.04, 11.40)
+PASS production motor first flight Stepped portico 1 position=(-63.60, 5.04, -12.82)
+PASS production motor first flight Folded street terrace 2 position=(40.32, 5.04, -3.60)
+PASS production motor first flight Open market arcade 3 position=(-118.60, 5.04, -143.32)
+PASS production motor first flight Split courtyard pavilion 4 position=(15.32, 5.04, -132.60)
+PASS production motor first flight Branch mesa walk 5 position=(51.30, 5.04, -125.22)
+PASS production motor first flight Stepped portico 6 position=(116.32, 5.04, -118.60)
+PASS production motor first flight Folded street terrace 7 position=(-118.60, 5.04, 65.68)
+PASS production motor first flight Open market arcade 8 position=(-104.68, 5.04, 109.40)
+PASS production motor first flight Split courtyard pavilion 9 position=(-38.60, 5.04, 119.68)
+12 bots / quiet frames=112 average=28.0FPS p95=43.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved&gt;.5m=12
+12 bots + tsunami frames=259 average=16.5FPS p95=102.4ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved&gt;.5m=5/84. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=58/84. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=84 runtimeErrorsSoFar=0
+</pre></details></article></main></body></html>

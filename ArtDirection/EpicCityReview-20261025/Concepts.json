@@ -1,0 +1,235 @@
+{
+  "status": "Ten alternative concept proposals; not built or physics-tested.",
+  "concepts": [
+    {
+      "id": 1,
+      "name": "Tideway Metropolis",
+      "tag": "Best overall starting point",
+      "shape": "An S-shaped dry tidal boulevard cuts diagonally through a compact city on one continuous oval island. Low waterfront sheds and open markets in the foreground rise through courtyard apartments and parking terraces to a single tall gateway-office pair at the rear. Two unequal intermediate landmarks, a branching Sky Tree and a city-hall lantern, interrupt the skyline. Several broad mid-height crossings stitch BOTH bends of the S together. This is a clustered asymmetrical coastal city with distinct low and high neighborhoods, NOT twenty detached towers.",
+      "motifs": "11 Crownline Offices; 12 Lantern Court; 14 Parking; 16 City Hall; 20 Gateway; 1 Sky Tree; Folded Ribbon; Skyrail Shipyard; breakwater harbor.",
+      "route": "The S street is the readable low route; a counter-running mezzanine loop crosses it at 8–16 m; scarce high bridges at 24–32 m offer shortcuts. Taller roofs are rewards, not the only connection.",
+      "collapse": "Buildings lean toward two generous pocket courts off the S bends. Loose short crossings may become ramps or cover, but a separate route outside each fall area stays available. Keep one high district usable after a local collapse.",
+      "risk": "Low–medium relative to the set; paired gateway must not dominate all sightlines.",
+      "budget": [
+        88,
+        950,
+        0
+      ],
+      "peak": 56,
+      "footprint": "300 × 250 m",
+      "inset": "A low courtyard wing tipped into its adjacent pocket court, creating a tilted covered passage while the outside S boulevard remains visible and passable.",
+      "labels": [
+        "Three connected height bands",
+        "Fall court beside main route",
+        "Low harbor to high skyline"
+      ]
+    },
+    {
+      "id": 2,
+      "name": "Double-Loop Exchange",
+      "tag": "Best route redundancy",
+      "shape": "A large bow-tie urban block forms two unequal open courtyards on one island. The smaller seaward court is lower, sunny and wide; the inland court is taller and partly sheltered. Two off-center exchange towers flank the narrow waist, with an open ground arch AND a mid-level crossing. Apartment galleries, hotel wings, ramped garage terraces and a crown bazaar form incomplete perimeter blocks with multiple street gates. Clearly visible figure-eight circulation at different heights, not a solid wall ring.",
+      "motifs": "15 Central Exchange; 13 Split Atrium Hotel; 12 Lantern Court; 14 Parking; 3 Spiral Lantern; Reciprocal Crown Bazaar.",
+      "route": "Each court has its own ground loop and mid-height loop. Two spatially separate waist crossings connect them; an outside coastal lane avoids both. Crossing heights differ to prevent one sightline controlling everything.",
+      "collapse": "A court wing can fill one part of one loop while the other courtyard remains a viable arena. A lost upper waist bridge removes a shortcut but cannot sever the entire map.",
+      "risk": "Medium: the waist must have real route redundancy, not two bridges on the same vulnerable support.",
+      "budget": [
+        92,
+        1000,
+        0
+      ],
+      "peak": 52,
+      "footprint": "290 × 240 m",
+      "inset": "One upper waist bridge fallen diagonally into a courtyard; the second, lower crossing and the ground arch remain visibly independent.",
+      "labels": [
+        "Two unequal courtyard loops",
+        "Independent waist crossings",
+        "Sheltered lower street"
+      ]
+    },
+    {
+      "id": 3,
+      "name": "Caldera Switchback City",
+      "tag": "Best continuous ascent",
+      "shape": "A broad dry bowl inside a continuous island, surrounded by a broken spiral of stepped open buildings. The spiral rises from a low seaward opening to two unequal inland skyline peaks. Make it a terraced hillside city, not a pyramid or wedding cake: rectangular courtyards, cut-through porticos, branching ramps and abrupt breaks in the spiral. Crownline office at one high end, Saddle Beacon at the other, broad parking terraces halfway up, and a low cathedral-like arcade partly crosses the bowl.",
+      "motifs": "14 Parking; 18 Skygarden; 7 Saddle Beacon; 2 Zipper; 5 Cage Cathedral; Terrace Mountain; Folded Ribbon.",
+      "route": "A segmented, legible ascent follows inhabited terraces, with several short down-and-across chords. Two switchback stairs and a climbing rib connect each major terrace; no enormous smooth continuous ramp is assumed.",
+      "collapse": "A low-side section can settle downslope into the empty bowl. Upper pieces may become slopes but can also jam: leave cross-bowl ground exits and broad receiving space. Avoid a funnel where all debris reaches one pinch point.",
+      "risk": "Medium–high: slopes invite persistent sliding; test each terrace and contact seam before multiplying them.",
+      "budget": [
+        82,
+        900,
+        0
+      ],
+      "peak": 60,
+      "footprint": "300 × 270 m",
+      "inset": "Two stepped cassettes tilted into a wide dry inner bowl while the upper peripheral promenade and a ground chord remain intact.",
+      "labels": [
+        "Ascent through terraces",
+        "Cross-bowl shortcuts",
+        "Receiving space below"
+      ]
+    },
+    {
+      "id": 4,
+      "name": "The Broken Crown Capital",
+      "tag": "Best clear landmark and arena",
+      "shape": "An incomplete faceted ring of urban buildings surrounds a large offset civic square, with three generous radial street openings and an off-center 60m lantern tower. Ring buildings vary strongly in height: a low bazaar, a medium U-shaped hotel, one tall office wedge and a hollow cathedral gateway. Only selected floors bridge gaps; the whole ring is not one solid structure. Outer low market canopies and a terraced shoreline form a second loose circulation band.",
+      "motifs": "16 City Hall; 11 Offices; 13 Hotel; 8 Chalice; 5 Cathedral; Broken-Ring Canyon; Reciprocal Crown Bazaar.",
+      "route": "Two incomplete rings linked by diagonal streets make several loops. The civic square has offset cover islands rather than one empty firing field; upper crossings reveal only pieces of it.",
+      "collapse": "Radial breaks act as cascade breaks. One ring segment can tip outward into a side yard without pulling the opposite district down. Falling crown fragments alter the square edge, not every approach.",
+      "risk": "Medium: arena sightlines and accidental ring-wide contact chains need deliberate breaks.",
+      "budget": [
+        80,
+        880,
+        0
+      ],
+      "peak": 60,
+      "footprint": "280 × 270 m",
+      "inset": "One crown segment tipped outward away from the civic square, with the radial street gap interrupting the collapse chain.",
+      "labels": [
+        "Three radial escape streets",
+        "Off-center skyline marker",
+        "Ring segments fail separately"
+      ]
+    },
+    {
+      "id": 5,
+      "name": "Harbor Loom",
+      "tag": "Best unusual interconnected layout",
+      "shape": "A waterfront city woven from three broad inhabited ribbons: a low shipping arcade, an intermediate offset viaduct, and a higher line of roof streets. They braid by crossing at separated heights, never as an impossible knot. Open foundry halls, a waterworks lantern, unequal office bars and short branch-mesa crowns occupy the crossing nodes. The entire sandy shoreline is ONE connected island. Parallel urban bands curve gently along a shallow dry dock and have frequent cross-streets, not an endless narrow bridge.",
+      "motifs": "17 Foundry; 19 Waterworks; 4 Cross-Block Relay; 20 Gateway; Skyrail Shipyard; Ribbon Skyways; Branch Mesa.",
+      "route": "Fast routes run lengthwise, protected short routes cut through halls, and broad crosslinks occur near each node. A ground street follows every ribbon, so losing the viaduct never strands a whole neighborhood.",
+      "collapse": "Short simply supported bridge spans fall independently between broad seats. A collapsed span can create a screen or incline at a dock edge. Avoid long rigid bars colliding with half the map or a vast suspended joint chain.",
+      "risk": "Medium: too many crossing surfaces can become visually confusing; height and shape cues must be unmistakable.",
+      "budget": [
+        86,
+        920,
+        0
+      ],
+      "peak": 48,
+      "footprint": "330 × 220 m",
+      "inset": "A single elevated dock span resting obliquely between the dry dock edge and a lower quay, with an independent cross-street beside it.",
+      "labels": [
+        "Braided routes, separate heights",
+        "Short independent spans",
+        "Covered dock halls"
+      ]
+    },
+    {
+      "id": 6,
+      "name": "Lantern Ravine",
+      "tag": "Best dramatic vertical combat",
+      "shape": "Two broken terraced urban ridges enclose a sinuous dry ravine on one island. The left ridge is a lower stepping housing quarter; the right ridge rises into three unequal office/hotel landmarks. Three very different crossing points: a broad low arcade, a mid-level inhabited saddle and one high gateway bridge. A waterworks crown anchors the seaward mouth. The ravine floor has cover, turnoffs, side steps and daylight; it is a playable street, not an empty deadly canyon. A peripheral coast route connects both sides.",
+      "motifs": "13 Hotel; 18 Skygarden; 19 Waterworks; 10 Kissing Towers; 7 Saddle Beacon; Hollow Megakeeps.",
+      "route": "The ravine bends block full-length firing lanes. Each crossing has its own pair of ascent routes and a detour at another height. Stagger upper windows so one position cannot see every crossing.",
+      "collapse": "A short lower wing can fall into one widened ravine bay. Keep other bays wide and the outer coast loop out of that local fall footprint. Test a whole ridge slumping rather than assuming only isolated pieces move.",
+      "risk": "High: falling structures can plug the ravine; ground bypasses and blunt catch terraces are essential.",
+      "budget": [
+        90,
+        980,
+        0
+      ],
+      "peak": 64,
+      "footprint": "310 × 230 m",
+      "inset": "One low wing settled into a widened ravine bay, with a surviving mid crossing above and the outer shore route visible around the district.",
+      "labels": [
+        "Bending ravine blocks sightlines",
+        "Crossings at three heights",
+        "Outer coast bypass"
+      ]
+    },
+    {
+      "id": 7,
+      "name": "Canopy Borough",
+      "tag": "Best open-and-sheltered mixture",
+      "shape": "A dense but porous island city beneath offset branching structural canopies. Three large Y-crown buildings at different heights interleave with a taller office lantern, low foundry sheds, a court apartment block and chunky stepped terraces. Under the overlapping upper wings are shaded streets and open column courts, not forest scenery. The canopy is interrupted by tall daylight slots and generous missing pieces, so players can read both the skyline and streets. Several upper roofs make a broken branching promenade.",
+      "motifs": "1 Sky Tree; 11 Offices; 12 Lantern Court; 17 Foundry; Branch Mesa Forest; Crown of Giants; Interleaved Bookends.",
+      "route": "Lower arcade routes offer cover, mid-height Y forks offer decisions, and a few open upper terraces expose players. Each fork points to a different landmark; frequent stairs reconnect the layers.",
+      "collapse": "One branch crown can rotate off its real bearings into a reserved open yard, exposing the shaded lower space and making a new roof-edge route. Do not let intertwined crowns wedge indefinitely above occupied lanes.",
+      "risk": "Medium–high: overhead visual density and compound-shape contact counts can erase the body savings.",
+      "budget": [
+        84,
+        940,
+        0
+      ],
+      "peak": 54,
+      "footprint": "290 × 260 m",
+      "inset": "A fallen Y-shaped crown on the edge of a daylight court, opening a new patch of sky above the lower arcade while a second canopy remains.",
+      "labels": [
+        "Playable shaded streets",
+        "Daylight slots orient players",
+        "Branch roofs become terrain"
+      ]
+    },
+    {
+      "id": 8,
+      "name": "Bookfall Boulevard",
+      "tag": "Best physical transformation experiment",
+      "shape": "A long bending civic boulevard lined with asymmetrical chunky building wings, not a row of identical books. Three lower hinged inhabited book-wings face broad side courtyards; tall independent city hall and zipper office landmarks rise at opposite ends. Open garage decks, a sawtooth foundry hall and a low crown market connect them. Hinged wings are staggered along the boulevard rather than stacked above each other. Their broad lower catch terraces and separate escape stairs are visible.",
+      "motifs": "9 Bookfall Keep; 2 Zipper; 16 City Hall; 14 Parking; 17 Foundry; Interleaved Bookends; Domino Portal.",
+      "route": "The boulevard bends around the civic hall and has a parallel lower arcade. Each book-wing starts with a normal stair route and can later offer a steep optional climb, while adjacent independent stairs remain.",
+      "collapse": "Three experimental hinges have bounded sweep spaces and catches. Wings may make tilted cover after release; they must not be required to settle at a walkable slope. Loose neighboring sections still move ordinarily.",
+      "risk": "High: hinges and sweep clearance are the major experiment. Include a zero-hinge alternative using short loose wings before committing.",
+      "budget": [
+        78,
+        900,
+        3
+      ],
+      "peak": 52,
+      "footprint": "320 × 210 m",
+      "inset": "A single inhabited book-wing resting on its broad catch at an angle beside the boulevard, with players taking a separate low arcade around it.",
+      "labels": [
+        "Bounded wing sweep",
+        "Independent escape stair",
+        "Street changes after release"
+      ]
+    },
+    {
+      "id": 9,
+      "name": "Three Hearts City",
+      "tag": "Best for varied game modes",
+      "shape": "A coherent triangular coastal city with three unequal connected civic neighborhoods around a shared low market crossing. One is a tall gateway/business district, one a medium lantern courtyard quarter, and one a broad low foundry/parking waterfront. Two overlapping street loops cross through the shared center, while offset roof bridges connect neighboring districts directly. Buildings sit along shared streets and courts, not on three separate pads or islands. A few portal frames and folded terraces knit the seams.",
+      "motifs": "20 Gateway; 15 Exchange; 6 Drop-Stop; 3 Spiral Lantern; 14 Parking; 17 Foundry; Keystone Vault; Domino Portal.",
+      "route": "Each neighborhood has two outward street connections, a covered center approach and an optional high bypass. Objective placements can use different centers without making the map a single chokepoint.",
+      "collapse": "Independent local receiving courts keep one neighborhood's disaster from becoming a compulsory whole-city failure. A drop-stop building can lose a short vertical stage while neighboring streets continue.",
+      "risk": "Low–medium: geometry is conventional, but three-sided routes need careful distance balancing for two-team play.",
+      "budget": [
+        94,
+        1000,
+        0
+      ],
+      "peak": 56,
+      "footprint": "300 × 280 m",
+      "inset": "One district partly collapsed with a stopped cassette and rubble cover, while the two street connections to the shared market still exist.",
+      "labels": [
+        "Three distinct districts",
+        "Two overlapping city loops",
+        "Local collapse, wider city survives"
+      ]
+    },
+    {
+      "id": 10,
+      "name": "The Rising Spine",
+      "tag": "Best large-scale skyline journey",
+      "shape": "A diagonal stepped city-street spine rises across a continuous island from a low seaside market to a tall inland civic headland. It meanders in a broad zigzag and branches through neighborhoods on BOTH sides. Short portal viaducts, roof terraces, office steps, hollow courts and low vaulted halls create a continuous urban section, punctuated by two distinct secondary towers. Some sections cross over the low street, creating covered underpasses; clear side escape alleys prevent a wall-like barrier. Do not make a single gigantic solid ramp or one repetitive line of blocks.",
+      "motifs": "4 Cross-Block Relay; 6 Drop-Stop; 8 Chalice; 11 Offices; 18 Skygarden; 19 Waterworks; Folded Ribbon; Domino Portal; Counterweight Harbor silhouette without mandatory joints.",
+      "route": "A sequence of short ascent segments links low, medium and high streets. Cross-grain stairs and shallow lower streets let players change sides without completing the full climb. Peak access always has a detour.",
+      "collapse": "Physical cascade breaks between spine segments limit domino reach. A lost high segment changes a local saddle, while lower cross-grain streets survive. Avoid balancing the whole city on one keystone.",
+      "risk": "Medium: a linear skyline can create long travel and exposed sightlines; side loops and terrain folds must shorten encounters.",
+      "budget": [
+        88,
+        960,
+        0
+      ],
+      "peak": 64,
+      "footprint": "340 × 230 m",
+      "inset": "A short upper spine segment fallen across a side court, leaving lower crossing streets and a surviving secondary peak as the new route choices.",
+      "labels": [
+        "Low-to-high city journey",
+        "Cross-grain routes at each step",
+        "Gaps arrest cascade spread"
+      ]
+    }
+  ]
+}

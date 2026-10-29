@@ -19,35 +19,51 @@ namespace DeadlyJenga.CastlePrototype
             EnsureKeyboardArt();
             var go=new GameObject("Giant piano keyboard",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);
             var yaw=panel.rotation;
-            go.transform.SetPositionAndRotation(panel.position+yaw*new Vector3(0,-.88f,-.95f),yaw*Quaternion.Euler(65,0,0));go.transform.localScale=Vector3.one*.0024f;
+            go.transform.SetPositionAndRotation(new Vector3(panel.position.x,.94f,.55f),yaw*Quaternion.Euler(40,0,0));
+            go.transform.localScale=Vector3.one*(1000*StationScale/1680);
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
-            var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.18f,.08f,.32f));
+            var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
             lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));   // the lobby makes the piano solid
+            BuildArcadeCabinet();
             string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM-"};
             for(int row=0;row<rows.Length;row++)
             for(int col=0;col<rows[row].Length;col++)
             {
                 char c=rows[row][col];float x=(col-(rows[row].Length-1)*.5f)*150;
-                PhysicalKey("key-"+c,c.ToString(),x,225-row*120,134,()=>{lobby.FocusCode();lobby.TypeCode(c);},()=>lobby.JoinEnabled,new Color(.79f,.68f,1));
+                PhysicalKey("key-"+c,c.ToString(),x,225-row*120,134,()=>{lobby.FocusCode();lobby.TypeCode(c);},()=>lobby.JoinEnabled,new Color(.92f,.04f,.12f));
             }
-            PhysicalKey("backspace","ERASE",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(1,.72f,.63f));
-            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.72f,.63f));
-            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,CandyHudVisuals.Mint);
+            var back=PhysicalKey("backspace","\u232b",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
+            back.label.enabled=false;
+            var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
+            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
+            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
         }
-        void PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
+        Choice PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
             var key=Add(piano,id,()=>title,y,action,enabled,x,width,100);key.physical=true;key.keyColor=color;key.button.image.color=Color.clear;
             key.collider.size=new Vector3(width,100,68);key.collider.center=new Vector3(0,0,-35);
             key.keyRenderer=Box(key.button.transform,"Rounded keycap",new Vector3(0,0,-35),new Vector3(width,100,60),color);key.keyVisual=key.keyRenderer.transform;
-            key.keyProperties=new MaterialPropertyBlock();key.label.fontSize=44;key.label.resizeTextMaxSize=44;key.label.fontStyle=FontStyle.Bold;key.label.color=CandyHudVisuals.Ink;key.label.rectTransform.anchoredPosition3D=new Vector3(0,0,-67);
+            key.keyProperties=new MaterialPropertyBlock();key.label.fontSize=44;key.label.resizeTextMaxSize=44;key.label.fontStyle=FontStyle.Bold;key.label.color=Color.white;key.label.rectTransform.anchoredPosition3D=new Vector3(0,0,-67);
+            Image Glow(string name,float padding,float alpha)
+            {
+                var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(key.button.transform,false);var glow=go.GetComponent<Image>();glow.sprite=CandyHudVisuals.Pill;glow.type=Image.Type.Sliced;glow.fillCenter=false;glow.raycastTarget=false;glow.color=new Color(1,.62f,.68f,alpha);glow.rectTransform.sizeDelta=new Vector2(width+padding,100+padding);glow.rectTransform.anchoredPosition3D=new Vector3(0,0,-68);glow.enabled=false;return glow;
+            }
+            key.keyGlowSoft=Glow("Soft selection glow",44,.3f);key.keyGlow=Glow("Bright selection rim",22,1);
+            return key;
         }
         void UpdatePhysicalKey(Choice key,bool hover)
         {
             bool enabled=key.enabled==null||key.enabled();float depression=Time.unscaledTime<key.pressedUntil?13:0;
             key.keyVisual.localPosition=new Vector3(0,0,-35+depression);key.label.rectTransform.anchoredPosition3D=new Vector3(0,0,-67+depression);
             key.keyProperties ??= new MaterialPropertyBlock();
-            Color color=!enabled?new Color(.16f,.13f,.22f):hover||depression>0?CandyHudVisuals.Mint:key.keyColor;
-            key.keyProperties.SetColor("_BaseColor",color);key.keyRenderer.SetPropertyBlock(key.keyProperties);
+            bool lit=enabled&&(hover||depression>0);
+            Color color=!enabled?new Color(.18f,.14f,.25f):key.keyColor;
+            key.keyProperties.SetColor("_BaseColor",color);
+            key.keyProperties.SetColor("_EmissionColor",lit?CandyMint*1.2f:Color.black);
+            key.keyRenderer.SetPropertyBlock(key.keyProperties);
+            key.keyGlow.enabled=key.keyGlowSoft.enabled=lit;
+            key.keyGlow.rectTransform.anchoredPosition3D=key.keyGlowSoft.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);
+            if(key.keyIcon){key.keyIcon.color=enabled?CandyForeground(key.keyColor):CandyMuted;key.keyIcon.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);}
         }
         void UpdateKeyboardTouches()
         {
@@ -79,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
         void EnsureKeyboardArt()
         {
             if(!keyboardMesh)keyboardMesh=RoundedBox();
-            if(!keyboardMaterial){keyboardMaterial=new Material(localArt.purple);keyboardMaterial.name="Lobby candy stations (runtime)";keyboardMaterial.SetFloat("_Smoothness",.85f);}
+            if(!keyboardMaterial){keyboardMaterial=new Material(localArt.purple);keyboardMaterial.name="Lobby candy stations (runtime)";keyboardMaterial.SetFloat("_Smoothness",.85f);keyboardMaterial.EnableKeyword("_EMISSION");keyboardMaterial.SetColor("_EmissionColor",Color.black);}
         }
         Renderer Box(Transform parent,string name,Vector3 position,Vector3 scale,Color color)
         {

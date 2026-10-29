@@ -1,0 +1,48 @@
+Actual Game.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=616 bots=0 wave=False
+median=21.25ms p90=25.70ms frames=240 batches=121 triangles=701484 awake=0
+  sinking=0 sunk=0 shattered=0 visual=0 converted=0 restored=0 active=616
+  Physics.SyncTransforms mean=20467 ns
+  Physics.Simulate mean=428292 ns
+  Main Thread mean=22164305 ns
+  BehaviourUpdate mean=3046083 ns
+  GC Allocated In Frame mean=187517 bytes
+  DJ.CrateBatches mean=719811 ns
+  DJ.WetEffects mean=1693 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=616 bots=32 wave=True
+median=98.32ms p90=189.05ms frames=172 batches=324 triangles=1546747 awake=608
+  sinking=21 sunk=314 shattered=119 visual=0 converted=249 restored=8 active=183
+  Physics.SyncTransforms mean=5260644 ns
+  Physics.Simulate mean=16107161 ns
+  Main Thread mean=115842790 ns
+  BehaviourUpdate mean=25728985 ns
+  GC Allocated In Frame mean=594534 bytes
+  DJ.CrateBatches mean=1270084 ns
+  DJ.WetEffects mean=1249732 ns
+  DJ.BotThreat mean=738623 ns
+  DJ.WalkingSources mean=393451 ns
+  DJ.Tsunami mean=4005463 ns
+  DJ.BotDestination mean=716120 ns
+  DJ.BotGeometry mean=424117 ns
+  DJ.DeathDeform mean=0 ns
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Original tower survives settling without sinking or shattering
+PASS Native setting keeps independent block physics
+PASS A severe actual rigidbody impact shatters and retires the block
+PASS High-speed downward debris enters swept ballistic simulation
+PASS Forecast high-speed debris switches to trigger-only visual motion before applying its push
+PASS Visual debris carries its momentum without a dynamic collision body
+PASS Approaching observer restores native collision, climbing and motion
+PASS Swept ballistic contact shatters and retires its original block
+PASS Ordinary short drops do not shatter blocks
+PASS Displaced debris visibly sinks through ground and deactivates after burial
+PASS Shattered and buried blocks keep their original network indices
+PASS Map/disaster authoring validation runs
+COMPLETE runtimeErrors=0

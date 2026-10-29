@@ -1,0 +1,81 @@
+Real Game player grants, inventory replacement, VR menu entries and ordinary bot spawning.
+PASS solo Game initializes
+PASS demo menu command grants Speed
+PASS one slot contains Speed
+PASS grant respects dominant hand
+PASS weapon arrives drawn: Speed
+PASS repeating Speed refreshes without duplicate drops
+PASS demo menu command grants Jump
+PASS one slot contains Jump
+PASS grant respects dominant hand
+PASS weapon arrives drawn: Jump
+PASS replacement drops previous item once
+PASS repeating Jump refreshes without duplicate drops
+PASS demo menu command grants Blaster
+PASS one slot contains Blaster
+PASS grant respects dominant hand
+PASS weapon arrives drawn: Blaster
+PASS replacement drops previous item once
+PASS repeating Blaster refreshes without duplicate drops
+PASS demo menu command grants MurderSword
+PASS one slot contains MurderSword
+PASS grant respects dominant hand
+PASS weapon arrives drawn: MurderSword
+PASS replacement drops previous item once
+PASS repeating MurderSword refreshes without duplicate drops
+PASS demo menu command grants SheriffHammer
+PASS one slot contains SheriffHammer
+PASS grant respects dominant hand
+PASS weapon arrives drawn: SheriffHammer
+PASS replacement drops previous item once
+PASS repeating SheriffHammer refreshes without duplicate drops
+PASS demo menu command grants DualRifle
+PASS one slot contains DualRifle
+PASS grant respects dominant hand
+PASS weapon arrives drawn: DualRifle
+PASS replacement drops previous item once
+PASS repeating DualRifle refreshes without duplicate drops
+PASS demo menu command grants BoxingGlove
+PASS one slot contains BoxingGlove
+PASS grant respects dominant hand
+PASS weapon arrives drawn: BoxingGlove
+PASS replacement drops previous item once
+PASS repeating BoxingGlove refreshes without duplicate drops
+PASS demo menu command grants PoweredArmor
+PASS one slot contains PoweredArmor
+PASS grant respects dominant hand
+PASS weapon arrives drawn: PoweredArmor
+PASS replacement drops previous item once
+PASS repeating PoweredArmor refreshes without duplicate drops
+PASS invalid equipment is rejected
+PASS ordinary bot spawns
+PASS ordinary bot spawns
+PASS ordinary bot spawns
+PASS ordinary bot spawns
+PASS ordinary bot spawns
+PASS ordinary bot spawns
+PASS spawned bot has exactly one cosmetic choice
+PASS cosmetic survives existing style serialization
+PASS spawned bot has exactly one cosmetic choice
+PASS cosmetic survives existing style serialization
+PASS spawned bot has exactly one cosmetic choice
+PASS cosmetic survives existing style serialization
+PASS spawned bot has exactly one cosmetic choice
+PASS cosmetic survives existing style serialization
+PASS spawned bot has exactly one cosmetic choice
+PASS cosmetic survives existing style serialization
+PASS spawned bot has exactly one cosmetic choice
+PASS cosmetic survives existing style serialization
+PASS repositioning bots retains their cosmetic
+PASS bot cosmetics do not overwrite the player's wardrobe
+PASS VR menu exposes grant control for Speed
+PASS VR menu exposes grant control for Jump
+PASS VR menu exposes grant control for Blaster
+PASS VR menu exposes grant control for MurderSword
+PASS VR menu exposes grant control for SheriffHammer
+PASS VR menu exposes grant control for DualRifle
+PASS VR menu exposes grant control for BoxingGlove
+PASS VR menu exposes grant control for PoweredArmor
+PASS instant grant is unavailable outside Demo
+PASS no runtime errors
+COMPLETE checks=79 runtimeErrors=0 failed=False. Desktop runtime; headset not tested.

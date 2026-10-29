@@ -1,0 +1,74 @@
+[
+  {
+    "file": "PlayerPain-01.wav",
+    "seconds": 0.42,
+    "peak": 0.77996826171875,
+    "rms": 0.09351876634135105
+  },
+  {
+    "file": "PlayerPain-02.wav",
+    "seconds": 0.42,
+    "peak": 0.77996826171875,
+    "rms": 0.08258671152578113
+  },
+  {
+    "file": "PlayerPain-03.wav",
+    "seconds": 0.42,
+    "peak": 0.77996826171875,
+    "rms": 0.08478948261442029
+  },
+  {
+    "file": "PlayerPain-04.wav",
+    "seconds": 0.42,
+    "peak": 0.77996826171875,
+    "rms": 0.08144161010153264
+  },
+  {
+    "file": "PlayerDeath-01.wav",
+    "seconds": 1.18,
+    "peak": 0.77996826171875,
+    "rms": 0.061193010391261224
+  },
+  {
+    "file": "PlayerDeath-02.wav",
+    "seconds": 1.18,
+    "peak": 0.77996826171875,
+    "rms": 0.05704552076079865
+  },
+  {
+    "file": "PlayerDeath-03.wav",
+    "seconds": 1.18,
+    "peak": 0.77996826171875,
+    "rms": 0.06993233730630194
+  },
+  {
+    "file": "PlayerDeath-04.wav",
+    "seconds": 1.18,
+    "peak": 0.77996826171875,
+    "rms": 0.0597539771295439
+  },
+  {
+    "file": "PlayerHeal-01.wav",
+    "seconds": 0.64,
+    "peak": 0.77996826171875,
+    "rms": 0.1616369233223007
+  },
+  {
+    "file": "PlayerHeal-02.wav",
+    "seconds": 0.64,
+    "peak": 0.77996826171875,
+    "rms": 0.16038404998657926
+  },
+  {
+    "file": "PlayerHeal-03.wav",
+    "seconds": 0.64,
+    "peak": 0.77996826171875,
+    "rms": 0.16238777918960226
+  },
+  {
+    "file": "PlayerHeal-04.wav",
+    "seconds": 0.64,
+    "peak": 0.77996826171875,
+    "rms": 0.16160204734274788
+  }
+]

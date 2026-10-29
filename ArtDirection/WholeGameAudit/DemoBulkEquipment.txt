@@ -1,0 +1,56 @@
+Actual host bulk equipment, life-only and persistent respawn integration.
+PASS solo Game initializes
+PASS Host and three bots start with respawn grants off
+PASS Current-life bulk grant accepted
+PASS Every living survivor receives one rifle
+PASS Bulk grant creates no replacement pickup pile
+PASS Current-life grant leaves automatic respawn grants off
+PASS Killed bot drops exactly one granted rifle
+PASS Current-life weapon does not return on actual bot respawn
+PASS Now plus every respawn accepted
+PASS Persistent grant equips everyone immediately and publishes setting
+PASS Actual bot respawn restores chosen weapon
+PASS Persistent respawn does not duplicate the death drop
+PASS New survivor bots inherit the active respawn loadout
+PASS Player may replace weapon during the same life
+PASS Respawn policy does not overwrite a mid-life weapon swap
+PASS Actual local player respawn also restores chosen loadout
+PASS Snapshot JSON preserves valid automatic equipment policy
+PASS Authority-state restore preserves automatic equipment policy
+PASS Stop future grants without clearing held gear
+PASS Stopping grants leaves current-life gear intact
+PASS Stopped policy stays stopped on the next real respawn
+PASS Invalid policy requests are rejected
+PASS Persistent policy can be selected again
+PASS Demo round restart preserves policy and rearms survivors
+PASS Competitive modes clear and reject demo-wide loadouts
+PASS Competitive snapshots cannot carry a demo loadout policy
+PASS Returning to demo cannot resurrect a previous session policy
+PASS All-mode objective, scoring and Mystery rule regressions pass
+PASS Non-authoritative runtime cannot grant or set a global policy
+PASS Transport fixture selects a persistent suit loadout
+PASS Transport fixture creates real active suit state
+PASS Actual thrust and stopped suit frames pass production validation
+PASS Transport fixture captures actual active and stopped suit state
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent Photon suit host startup completes
+PASS Real Photon suit host connects
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent Photon suit guest startup completes
+PASS Second real Photon peer joins the suit room
+PASS Suit state packet 0 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 0
+PASS Remote peer receives active suit thrust
+PASS Suit state packet 1 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 1
+PASS Remote peer receives stopped suit thrust
+PASS Suit state packet 2 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 2
+PASS Duplicate stopped packet cannot restart remote jets
+PASS Photon suit guest shuts down
+PASS Photon suit host shuts down
+PASS Temporary multiple-peer and physics settings are restored
+PASS Transport fixture stops future loadouts after verification
+PASS VR menu exists
+PASS Actual VR menu exposes target, life policy and stop controls
+COMPLETE checks=52 runtimeErrors=0 failed=False. Desktop runtime; headset not tested.

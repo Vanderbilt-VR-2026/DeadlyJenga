@@ -1,0 +1,93 @@
+Lobby browser / beacon checks started 2026-10-26T16:16:12.5145457-05:00
+PASS Actual lobby starts
+PASS Actual lobby presentation builds
+PASS Main and experimental dropdowns both exist
+PASS Nested categories preserved for main maps
+PASS Unique categorized map: castle
+PASS Unique categorized map: mode-ctf
+PASS Unique categorized map: mode-infection
+PASS Unique categorized map: mode-survival
+PASS Unique categorized map: mode-territory
+PASS Unique categorized map: mode-koth
+PASS Unique categorized map: mode-tickets
+PASS Unique categorized map: breakwater-village
+PASS Unique categorized map: mode-christmas-town
+PASS Unique categorized map: mode-cantina
+PASS Unique categorized map: mode-tiki-resort
+PASS Unique categorized map: epic-honeycomb-hive
+PASS Unique categorized map: epic-cloud-carnival
+PASS Unique categorized map: epic-candy-glass-cloud
+PASS Nested categories preserved for experiments
+PASS Unique categorized map: mode-castle-gaps
+PASS Unique categorized map: mode-castle-catwalks
+PASS Unique categorized map: mode-castle-four-keeps
+PASS Unique categorized map: mode-buildup
+PASS Unique categorized map: sparse-festival-megastructure
+PASS Unique categorized map: sparse-festival-city
+PASS Unique categorized map: sparse-festival-city-packed
+PASS Unique categorized map: sparse-festival-city-surface-mesh
+PASS Unique categorized map: sparse-festival-city-optimized
+PASS Unique categorized map: sparse-crown-study
+PASS Unique categorized map: sparse-terrace-study
+PASS Unique categorized map: sparse-viaduct-study
+PASS Unique categorized map: sparse-keep-study
+PASS Unique categorized map: sparse-crown-grand
+PASS Unique categorized map: sparse-terrace-grand
+PASS Unique categorized map: sparse-viaduct-grand
+PASS Unique categorized map: sparse-keep-grand
+PASS Unique categorized map: mayhem-foundry
+PASS Unique categorized map: city-tower-exhibition
+PASS Unique categorized map: tower-lab-island
+PASS Unique categorized map: workshop-crown
+PASS Unique categorized map: workshop-terraces
+PASS Unique categorized map: workshop-viaduct
+PASS Unique categorized map: workshop-megakeeps
+PASS Unique categorized map: workshop-crown-grand
+PASS Unique categorized map: workshop-terraces-grand
+PASS Unique categorized map: workshop-viaduct-grand
+PASS Unique categorized map: workshop-megakeeps-grand
+PASS Unique categorized map: workshop-archipelago
+PASS Unique categorized map: MapDrafterEvan1
+PASS Unique categorized map: MapDrafterEvan2
+PASS Unique categorized map: andy
+PASS Unique categorized map: mode-powerup-test
+PASS Unique categorized map: epic-tideway
+PASS Unique categorized map: epic-double-loop
+PASS Unique categorized map: epic-caldera
+PASS Unique categorized map: epic-broken-crown
+PASS Unique categorized map: epic-harbor-loom
+PASS Unique categorized map: epic-lantern-ravine
+PASS Unique categorized map: epic-canopy-borough
+PASS Unique categorized map: epic-bookfall
+PASS Unique categorized map: epic-three-hearts
+PASS Unique categorized map: epic-rising-spine
+PASS Every catalog map remains reachable exactly once
+PASS Current experimental map opens its collection and category
+PASS Runtime mode-prefixed test maps are experimental
+PASS Approved art map remains in main library: epic-honeycomb-hive
+PASS Approved art map remains in main library: epic-cloud-carnival
+PASS Approved art map remains in main library: epic-candy-glass-cloud
+PASS Lobby opens the categorized map picker
+ERROR ArgumentOutOfRangeException: Index was out of range. Must be non-negative and less than the size of the collection.
+Parameter name: index
+System.Collections.Generic.List`1[T].get_Item (System.Int32 index) (at <d49d4cb128564ee1b54a84338c98d353>:0)
+UnityEditor.Search.SearchDatabase+<EnumerateAll>d__81.MoveNext () (at <05cfe4d3ac8d48a0ae226c6ad1e43a17>:0)
+System.Linq.Enumerable.TryGetFirst[TSource] (System.Collections.Generic.IEnumerable`1[T] source, System.Boolean& found) (at <e1f614c5eede4689988594bcb9796955>:0)
+System.Linq.Enumerable.First[TSource] (System.Collections.Generic.IEnumerable`1[T] source) (at <e1f614c5eede4689988594bcb9796955>:0)
+UnityEditor.Search.SearchDatabase.GetDefaultSearchDatabase () (at <05cfe4d3ac8d48a0ae226c6ad1e43a17>:0)
+UnityEditor.Search.SearchInit.IndexationOnStartup () (at <05cfe4d3ac8d48a0ae226c6ad1e43a17>:0)
+UnityEditor.EditorApplication.Internal_CallDelayFunctions () (at <a1c4aa6b1d6f4d71b2e529a0fc32c2fd>:0)
+
+PASS Lobby experimental dropdown expands into categories
+PASS Aurora transit shader imports and compiles
+PASS Departure event attaches the new beacon
+PASS Transition uses aurora material rather than liquid curtain
+PASS Transition does not intercept UI input
+PASS Cancellation clears the beacon and its material
+PASS Local lobby can start the selected game
+PASS Real lobby departure loads playable Game scene
+PASS Arrival removes beacon after revealing the game
+PASS Desktop demo menu exists
+PASS Desktop demo uses both map collections
+PASS VR demo uses the same categorized collections
+COMPLETE; errors=1. Desktop Editor only; headset audio not verified.

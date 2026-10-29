@@ -1,0 +1,14 @@
+Arsenal expansion: actual Game mechanics, categorized menus and model captures.
+PASS Actual Game initializes
+PASS Target bot spawns
+PASS Every serialized equipment kind has one shared specification
+PASS Existing equipment wire identities stay unchanged
+PASS Demo grant equips RocketLauncher
+PASS Granted weapon is drawn: RocketLauncher
+PASS Authoritative attack accepted for RocketLauncher
+FAIL Travelling projectile publishes for RocketLauncher
+FAIL System.InvalidOperationException: Travelling projectile publishes for RocketLauncher
+  at DeadlyJenga.DevTools.Editor.ArsenalExpansionChecks.Check (System.Boolean pass, System.String label) [0x0003a] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\ArsenalExpansionChecks.cs:70 
+  at DeadlyJenga.DevTools.Editor.ArsenalExpansionChecks+<Test>d__13.MoveNext () [0x007e3] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\ArsenalExpansionChecks.cs:112 
+  at DeadlyJenga.DevTools.Editor.ArsenalExpansionChecks+<Guard>d__12.MoveNext () [0x00040] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\ArsenalExpansionChecks.cs:77 
+COMPLETE checks=8 runtimeErrors=0 failed=True. Desktop runtime; headset not tested.

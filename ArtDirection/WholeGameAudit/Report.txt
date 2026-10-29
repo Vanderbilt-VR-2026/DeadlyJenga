@@ -1,0 +1,73 @@
+Demo bulk loadouts and whole-game regression audit - 2026-10-24
+
+USE
+Open the running Demo menu: Play > Give weapons / powerups.
+Choose Target: ALL PLAYERS + BOTS, choose THIS LIFE ONLY or NOW + EVERY RESPAWN,
+then scroll down to choose an item. The same options exist in the world-space VR
+Powerups > Give equipment page. Stop respawn grants disables future grants while
+leaving currently held equipment intact. Commands require the Demo host.
+
+BEHAVIOR
+Living survivor players and regular bots receive the chosen item immediately.
+Every-respawn mode also covers new survivor arrivals. Enemy NPCs and giant hands
+are excluded. One inventory slot is retained. Bulk grants replace inventory
+without generating old-item pickup piles; deaths still drop held equipment.
+A mid-life pickup or swap is not overwritten by the respawn policy. Timed powers
+retain their normal lifetime. Current-life grants disable the previous automatic
+policy. Demo round restarts retain the policy; changing to competitive modes
+clears it. Snapshots preserve and validate the policy across authority restore.
+
+CHANGED BOXES
+Core/Session: approved optional IDemoLoadoutControls interface and additive
+MatchFrame.demoRespawnEquipment field.
+GameSession/Modes: authoritative bulk grants, bounded 10-Hz new-life detection,
+snapshot restore/validation, and a reused equipment tick buffer replacing a
+per-frame dictionary array allocation.
+Presentation/Visuals: desktop and world-space menu target, duration and stop
+controls, with sufficient scroll range for every item.
+DevTools/Editor: regression coverage, serialized validation startup, preserved
+scene/choice restoration, and stronger aiming/assertion failure reporting.
+
+VERIFIED
+DemoBulkEquipment.txt: 52 checks, zero runtime errors, failed=False. Actual Game
+host, three bots, deaths/respawns, newcomer, swaps, stop policy, mode changes,
+invalid requests, JSON/authority restore, menu construction, real Photon packet
+transport between two peers, and desktop menu screenshot.
+BotCombat.txt: all 29 combat cases passed; zero failures/runtime errors. Ordinary
+motors and authoritative outcomes, including production contact decisions.
+QueuedFeatures.txt: 116 checks, zero runtime errors. Actual Game, isolated dynamic
+PhysX, gap motor trials, skin/armor overlays, wire roundtrip, third-person camera,
+ragdoll/liquefaction, shader compilation and synthetic XR input.
+ModeRuntimeGame.txt: 84 PASS lines, zero failures/errors. Health/death, sinking and
+vault permissions, identity, mode flow, remote proxy state, flags/territory,
+spectating, restored authority/results, map changes, shelter route and lobby return.
+PowerupBots.txt: 83 checks, zero errors and no feature failures. Actual collection,
+all six weapon kinds damaging physical targets, timed power effects, range-mode
+selection, traversal restored by holstering, cover withholding, random pickup
+support/expiry, real Photon packet transport, and Mystery witness behavior.
+FirearmAim.txt: corrected focused rerun, 20 checks, zero runtime errors, failed=False.
+Measured desktop magnification: blaster 1.5x, revolver 2x, rifle 4x, shotgun 1x.
+BotObjectiveContracts.txt: 120 director/contract assertions.
+ModeCriteria.txt: 55 mode-criteria assertions.
+MysteryRules.txt: rule-model checks passed.
+AssetAndAssemblyAudit.json: 519 serialized assets, 2785 script references,
+zero missing script GUIDs, zero conflicting imported GUIDs, zero box-reference
+violations. 313 matching unimported Samples~ template GUIDs are recorded separately.
+
+VALIDATION ISSUES RESOLVED
+Initial simultaneous test startup was interrupted and restored. A validation gate
+now serializes the participating request runners. The first bulk run searched only
+active objects for the normally inactive VR menu; its fixture was corrected and
+the full bulk suite reran successfully. The shared aiming fixture retained an old
+2x shotgun expectation after the nonmagnifying red-dot design shipped; that
+expectation is corrected, magnification tolerance is tighter, and shared failures
+now propagate. Descriptively named first-run reports are retained for traceability.
+
+LIMITS
+These checks do not establish that every possible game bug is fixed. No physical
+Quest/headset, device build, full two-player Multiplayer Play Mode gameplay match,
+or new many-bot/tsunami FPS benchmark was performed. Two actual Photon peers tested
+production packet compression/validation and delivery; that is not full multiplayer
+gameplay certification. Synthetic XR device tests are not headset verification.
+No scene assets were saved/regenerated. Existing local work was preserved. No Git
+commit, merge, push, package upgrade, or project settings edit was requested here.

@@ -1,0 +1,3 @@
+Abandoned after user clarification: do not treat the abstract open structures as literal offices, hotels or city institutions.
+Current direction: ../CitySurfaceThemes-v3-20261026/index.html
+No v2 material scheme was implemented in Unity.

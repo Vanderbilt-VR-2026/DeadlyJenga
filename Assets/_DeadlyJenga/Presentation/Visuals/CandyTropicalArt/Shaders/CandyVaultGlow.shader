@@ -2,8 +2,8 @@ Shader "DeadlyJenga/Candy Vault Glow"
 {
     Properties
     {
-        [HDR] _Tint("Tint", Color) = (.25,.75,1,.32)
-        _Brightness("Brightness", Float) = 1.2
+        [HDR] _Tint("Tint", Color) = (.025,.22,1,.95)
+        _Brightness("Brightness", Float) = 3.2
     }
     SubShader
     {
@@ -40,8 +40,8 @@ Shader "DeadlyJenga/Candy Vault Glow"
                 float rim = saturate(1 - abs(input.uv.y - .5) * 2);
                 float shine = pow(rim, 12);
                 float ends = smoothstep(0, .12, input.uv.x) * smoothstep(0, .12, 1 - input.uv.x);
-                return half4(lerp(_Tint.rgb, half3(.8,.95,1), shine * .65) * _Brightness,
-                    _Tint.a * ends * (rim * rim * .55 + shine * .45));
+                return half4(lerp(_Tint.rgb, half3(.2,.5,1), shine * .45) * _Brightness,
+                    _Tint.a * ends * (rim * rim * .7 + shine * .3));
             }
             ENDHLSL
         }

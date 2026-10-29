@@ -1,0 +1,35 @@
+{
+  "method": "Original local electronic compositions. Revised after feedback that the initial proposals sounded too juvenile. No external music or samples.",
+  "tracks": [
+    {
+      "id": "01-critical-mass",
+      "title": "Critical Mass",
+      "bpm": 132,
+      "direction": "Main-menu pick: aggressive electro-breakbeat, distorted bass and a broad synth hook"
+    },
+    {
+      "id": "02-collapse-protocol",
+      "title": "Collapse Protocol",
+      "bpm": 140,
+      "direction": "Industrial arena groove: crunchy low riffs, half-time impacts and racing arpeggios"
+    },
+    {
+      "id": "03-overdrive-island",
+      "title": "Overdrive Island",
+      "bpm": 174,
+      "direction": "Arcade drum and bass: fast broken drums, rolling bass and wide euphoric chords"
+    },
+    {
+      "id": "04-neon-aftershock",
+      "title": "Neon Aftershock",
+      "bpm": 118,
+      "direction": "Electro-rock/synthwave: heavy toms, driving octaves and an anthemic low synth lead"
+    },
+    {
+      "id": "05-chaos-engine",
+      "title": "Chaos Engine",
+      "bpm": 128,
+      "direction": "Bass-house launch energy: four-on-the-floor, growling syncopated bass and sharp stabs"
+    }
+  ]
+}

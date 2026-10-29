@@ -9,6 +9,10 @@ namespace DeadlyJenga.CastleBots
         [Range(.5f,6)]public float flightSpeed=3;
         [Range(1,10)]public float recoverySeconds=4;
         [Range(.4f,2)]public float attackSeconds=.9f;
+        [Header("Contact attack")]
+        [Range(1,10)] public float pushSpeed=4.5f;
+        [Range(1,8)] public float pushDistance=4;
+        [Range(.05f,1)] public float settleSeconds=.18f;
         public static CastleHandBotPersonality Create(int i)
         {
             var p=CreateInstance<CastleHandBotPersonality>();

@@ -1,0 +1,15 @@
+{
+  "source": "../HomeMenuMusic-Coastal-20261026/01-critical-mass-shorebreak.wav",
+  "trimStartSeconds": 4,
+  "durationSeconds": 54.181813,
+  "unityAsset": "Assets/_DeadlyJenga/Presentation/Audio/CandyAudio/Resources/CandyMenuMusic/Shorebreak-Home.wav",
+  "sha256": "90fdf1092c61bcf77cfc50a0114e3c008348b8330ca62bb0162cfc13da66998b",
+  "integration": "CandyHomeMusic listens to Core HomeStarted, owns a nonpersistent stereo looping source on the home root, and stops on disable/destroy. Existing world music is suppressed while home music is active.",
+  "loopDeClickMs": 10,
+  "loopSampleBoundaryDelta": 0.0,
+  "runtimeValidation": {
+    "report": "Logs/Validation/HomeMusicChecks.txt",
+    "result": "PASS: Home and lobby autoplay, looping, scene cleanup, return Home, and actual Game transition; zero runtime errors.",
+    "headsetTested": false
+  }
+}

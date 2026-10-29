@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "id": "01-candy-catastrophe",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -17.02,
+      "truePeakDbTP": -4.74
+    },
+    {
+      "id": "02-one-block-from-trouble",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -17.07,
+      "truePeakDbTP": -6.46
+    },
+    {
+      "id": "03-cloud-nine-collapse",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.75,
+      "truePeakDbTP": -4.54
+    },
+    {
+      "id": "04-pocket-apocalypse",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -17.05,
+      "truePeakDbTP": -5.29
+    },
+    {
+      "id": "05-last-splash-club",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.87,
+      "truePeakDbTP": -5.65
+    }
+  ],
+  "scope": "Automated file, decode, silence, peak and synthesis-loop-boundary checks. No in-game or headset audition performed. Musical loop suitability remains an audition decision."
+}

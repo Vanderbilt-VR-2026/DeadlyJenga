@@ -1,0 +1,28 @@
+Mayhem Foundry production Game.unity smoke / traversal / bots / tsunami. Desktop Editor; not Quest or live network certification.
+CENSUS bodies=669 colliders=2097 GameObjects=2819 joints=8 unified=True sharedModels=169 sharedConvexMeshes=51 submittedInstances=753 structuralDraws=92
+EDITOR [early idle / settling] median=31.24ms p95=672.64ms n=37. Unfocused desktop Editor, no FPS cap; not a device prediction.
+PASS production motor Bookend ascent 11/11 landings; feet=(-300.70, 12.14, -161.50)
+PASS production motor Portal ascent 5/5 landings; feet=(44.00, 12.99, -32.20)
+PASS production motor Harbor stair-to-leaf 9/9 landings; feet=(41.51, 12.34, 121.40)
+PASS VR motor climbs flush bookend through floor band: attached=True rise=2.84m. Simulator motor only, no tracked headset.
+EDITOR [settled idle] median=26.48ms p95=31.93ms n=144. Unfocused desktop Editor, no FPS cap; not a device prediction.
+EDITOR [32 requested bots / quiet] median=66.55ms p95=187.06ms n=59. Unfocused desktop Editor, no FPS cap; not a device prediction.
+BOT OBSERVATION spawned=32 moved>.5m=32; short movement observation only.
+COUNTER Physics.Simulate mean=14.429 ms/frame (nested scopes)
+COUNTER Main Thread mean=84.661 ms/frame (nested scopes)
+COUNTER GC Allocated In Frame mean=840942.458 bytes/frame
+COUNTER DJ.CrateBatches mean=0.007 ms/frame (nested scopes)
+COUNTER DJ.WetEffects mean=0.003 ms/frame (nested scopes)
+COUNTER DJ.BotThreat mean=8.467 ms/frame (nested scopes)
+COUNTER DJ.WalkingSources mean=2.521 ms/frame (nested scopes)
+COUNTER DJ.Tsunami mean=0.000 ms/frame (nested scopes)
+COUNTER DJ.BotDestination mean=14.089 ms/frame (nested scopes)
+COUNTER DJ.BotGeometry mean=1.905 ms/frame (nested scopes)
+COUNTER DJ.DeathDeform mean=0.000 ms/frame (nested scopes)
+COUNTER DJ.UnifiedRecovery mean=0.195 ms/frame (nested scopes)
+COUNTER DJ.StructureBatches mean=2.112 ms/frame (nested scopes)
+COUNTER DJ.CityCleanup mean=0.000 ms/frame (nested scopes)
+EDITOR [32 bots / nearby district view] median=59.97ms p95=133.41ms n=55. Unfocused desktop Editor, no FPS cap; not a device prediction.
+EDITOR [bots + actual tsunami / full route or 120 second limit] median=72.85ms p95=247.17ms n=1000. Unfocused desktop Editor, no FPS cap; not a device prediction.
+WAVE full route completed=True; members moved>.5m=363/669. Default height, force and speed retained.
+COMPLETE runtimeErrors=0

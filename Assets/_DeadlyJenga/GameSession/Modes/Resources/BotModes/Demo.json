@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "demo",
+  "description": "Explore and socialize freely when unassigned; active hazards may request a safe refuge through the shared objective director.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "collect-equipment",
+      "query": "pickups",
+      "skill": "Travel",
+      "interaction": "collect-pickup",
+      "completeWhen": "pickup-collected",
+      "tier": 0,
+      "maximum": 1,
+      "utility": 0.45,
+      "radius": 1,
+      "timeout": 25,
+      "retry": 8,
+      "commitment": 2,
+      "exclude": [
+        "carrying",
+        "threat-near"
+      ]
+    }
+  ]
+}

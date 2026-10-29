@@ -1,0 +1,9 @@
+Excerpt: ungrouped 80/20 and 60/12 profiles from the first comparison.
+Isolated native 6098-block cathedral physics; original prefab collision, mass and damping; dt=.02. No rendering, bots, proxies or game FPS claim.
+300 idle steps; remove a bottom support patch + pull a block for 200 steps; northbound tsunami forces for 200 steps.
+BEGIN 80/20 grouped=False collision=ContinuousDynamic
+IDLE maxDrop=0.2115 maxXZ=0.1508 maxAngle=0.000 sleeping=6051 removed=46
+RESULT idle median=10.58ms p90=18.00ms collapse median=10.77ms p90=14.76ms wave median=15.79ms p90=19.22ms dormant=0 released=0 fallen>2m=1166 maxHeight=178.82
+BEGIN 60/12 grouped=False collision=ContinuousDynamic
+IDLE maxDrop=0.2890 maxXZ=0.2483 maxAngle=0.231 sleeping=5341 removed=46
+RESULT idle median=10.80ms p90=16.12ms collapse median=9.33ms p90=14.37ms wave median=15.01ms p90=28.96ms dormant=0 released=0 fallen>2m=1199 maxHeight=178.80

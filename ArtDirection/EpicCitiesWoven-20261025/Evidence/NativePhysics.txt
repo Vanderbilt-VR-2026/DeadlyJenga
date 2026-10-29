@@ -1,0 +1,72 @@
+Actual native Unity 6000.3.23f1 isolated physical-map checks. Not production Game, FPS or Quest.
+
+MAP 1 Tideway Metropolis bodies=108 shapes=1071 sites=22 routes=44 elevated=27 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.053 tilt=0.00 awake=0
+Full-size ascent capsule samples=1680 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=84/108
+
+MAP 2 Double-Loop Exchange bodies=125 shapes=1086 sites=24 routes=50 elevated=33 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.055 tilt=0.00 awake=0
+Full-size ascent capsule samples=1670 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=91/125
+
+MAP 3 Caldera Switchback City bodies=91 shapes=704 sites=11 routes=15 elevated=10 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.023 tilt=0.00 awake=0
+Full-size ascent capsule samples=830 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=49/91
+
+MAP 4 Broken Crown Capital bodies=107 shapes=936 sites=23 routes=44 elevated=24 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.053 tilt=0.00 awake=0
+Full-size ascent capsule samples=1390 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=76/107
+
+MAP 5 Harbor Loom bodies=131 shapes=1042 sites=27 routes=58 elevated=38 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.054 tilt=0.00 awake=0
+Full-size ascent capsule samples=1520 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=95/131
+
+MAP 6 Lantern Ravine bodies=86 shapes=797 sites=12 routes=21 elevated=12 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.054 tilt=0.00 awake=0
+Full-size ascent capsule samples=1150 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=52/86
+
+MAP 7 Canopy Borough bodies=95 shapes=1090 sites=17 routes=32 elevated=22 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.054 tilt=0.00 awake=0
+Full-size ascent capsule samples=1610 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=61/95
+
+MAP 8 Bookfall Boulevard bodies=108 shapes=897 sites=23 routes=43 elevated=25 joints=3
+Initial overlaps>.04m=0
+15s settle drift=0.053 tilt=0.00 awake=0
+Full-size ascent capsule samples=1330 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=73/108
+
+MAP 9 Three Hearts City bodies=122 shapes=1078 sites=23 routes=47 elevated=24 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.054 tilt=0.00 awake=0
+Full-size ascent capsule samples=1660 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=72/122
+
+MAP 10 The Rising Spine bodies=84 shapes=740 sites=17 routes=30 elevated=15 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.053 tilt=0.00 awake=0
+Full-size ascent capsule samples=1080 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=56/84
+COMPLETE issues=0

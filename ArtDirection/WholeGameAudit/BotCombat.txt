@@ -1,0 +1,73 @@
+Real Game scene combat fixtures with six controlled bots. Mechanics cases supply an initial goal; production contact cases use real mode facts/director after normal perception settles. Ordinary motors, cooldowns, geometry and authoritative outcomes. Full natural matches are separate checks.
+BEGIN approach-face-hit
+PASS approach-face-hit seconds=0.900 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(102.97, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN too-close
+PASS too-close seconds=0.633 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(99.79, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN sustained-combat
+PASS sustained-combat seconds=2.767 health=46 attempts=3 damageEvents=3 victimPushes=3 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.58, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN hill-hit
+PASS hill-hit seconds=0.633 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN territory-push
+PASS territory-push seconds=0.633 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN infection-conversion
+PASS infection-conversion seconds=0.633 health=0 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN mystery-murder
+PASS mystery-murder seconds=0.733 health=0 attempts=1 damageEvents=0 victimPushes=0 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.10, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN airborne-opponent
+PASS airborne-opponent seconds=0.667 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.10, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN gap-reach
+PASS gap-reach seconds=0.433 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.00, 14.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+Ground probe: rounded lip=True diagonal corner=True unsupported-air rejected=True vertical-wall rejected=True ordinary lip=True radius=0.12 scale=0.5
+BEGIN ground-lip
+PASS ground-lip seconds=0.067 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(100.00, 13.98, 101.07) allyPushes=0 reason=No valid visible attack target
+BEGIN wall
+PASS wall seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(99.07, 10.01, 101.13) allyPushes=0 reason=No valid visible attack target
+BEGIN remembered-only
+PASS remembered-only seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(101.50, 10.01, 99.77) allyPushes=0 reason=No valid visible attack target
+BEGIN unleased-target
+PASS unleased-target seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(92.26, 10.01, 92.93) allyPushes=0 reason=No valid visible attack target
+BEGIN friendly-target
+PASS friendly-target seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(101.48, 10.01, 99.78) allyPushes=0 reason=No valid visible attack target
+BEGIN ally-interception
+PASS ally-interception seconds=1.267 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=1 windup=True flank=False changed=False climbed=False productionContact=False position=(101.43, 10.01, 101.15) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN disabled
+PASS disabled seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(101.49, 10.01, 99.78) allyPushes=0 reason=No valid visible attack target
+BEGIN carrier-attacker
+PASS carrier-attacker seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(101.49, 10.01, 99.78) allyPushes=0 reason=No valid visible attack target
+BEGIN carrier-flank
+PASS carrier-flank seconds=0.850 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=True changed=False climbed=False productionContact=False position=(101.24, 10.01, 100.86) allyPushes=0 reason=Strike requested through ordinary motor
+BEGIN cancel-windup
+PASS cancel-windup seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=True flank=False changed=True climbed=False productionContact=False position=(92.51, 10.01, 94.32) allyPushes=0 reason=No valid visible attack target
+BEGIN dodge-windup
+PASS dodge-windup seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=True flank=False changed=True climbed=False productionContact=False position=(108.84, 10.01, 100.00) allyPushes=0 reason=No valid visible attack target
+FIXTURE cancel-climb: one initial physical Climb goal on a supported 4m test surface. Once the normal motor grips, revoke its strategic lease. Only ordinary movement may finish the mantle.
+BEGIN cancel-climb
+Climb lease revoked after real grip at (101.66, 10.01, 100.00)
+PASS cancel-climb seconds=2.450 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=True climbed=True productionContact=False position=(102.24, 14.04, 100.00) allyPushes=0 reason=No valid visible attack target
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN hill-contact
+PASS hill-contact seconds=0.650 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN territory-contact
+PASS territory-contact seconds=0.650 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN ctf-contact
+PASS ctf-contact seconds=0.650 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN survivor-repel
+PASS survivor-repel seconds=0.650 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN retreat-repel
+PASS retreat-repel seconds=0.650 health=82 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN mystery-unknown-contact
+PASS mystery-unknown-contact seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(97.65, 10.01, 97.53) allyPushes=0 reason=No valid visible attack target
+Murderer made a real visible special strike into empty space during initial observation; observer knowledge must come from normal witness processing.
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN mystery-repel
+PASS mystery-repel seconds=0.617 health=92 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN survival-option
+PASS survival-option seconds=0.617 health=100 attempts=1 damageEvents=0 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+COMPLETE failures=0 runtimeErrors=0. Desktop fixtures only; no headset or second peer.
+PASS Original scene setup and match choices restored.

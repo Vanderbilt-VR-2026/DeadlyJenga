@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             {
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode){errors=0;Application.logMessageReceived+=Log;EditorApplication.delayCall+=()=>Object.FindFirstObjectByType<CastlePlaySession>().StartCoroutine(Guard(Check()));}
-                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);string original=SessionState.GetString(Key+"Original","");if(File.Exists(original))EditorSceneManager.OpenScene(original);}
+                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);string original=SessionState.GetString(Key+"Original","");if(File.Exists(original))EditorSceneManager.OpenScene(original);if(Application.isBatchMode)EditorApplication.Exit(File.ReadAllText(ProjectPath.Report("AllDisasters.txt")).Contains("FAIL ")||errors>0?1:0);}
             };
         }
         [MenuItem("Tools/Deadly Jenga/Test All Disasters")]
@@ -46,6 +46,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetString(Key+"Original",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
+        public static void RunBatch()=>Run();
         static void Log(string message,string trace,LogType type){if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),"ERROR "+message+"\n"+trace+"\n");}}
         static void Require(bool ok,string message){File.AppendAllText(ProjectPath.Report("AllDisasters.txt"),(ok?"PASS ":"FAIL ")+message+"\n");if(!ok)throw new Exception(message);}
         static IEnumerator Guard(IEnumerator test)
@@ -75,7 +76,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             for(int i=0;i<8;i++)
             {var go=GameObject.CreatePrimitive(PrimitiveType.Cube);go.transform.SetParent(root.transform,false);go.transform.localPosition=new Vector3(0,1+i*2,0);go.transform.localScale=Vector3.one*2;go.layer=Layers.Block;var rb=go.AddComponent<Rigidbody>();rb.useGravity=false;map.blocks.Add(rb);}
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.transform.SetParent(root.transform,false);floor.transform.localPosition=Vector3.down;floor.transform.localScale=new Vector3(60,1,60);floor.layer=Layers.Surface;
-            var roof=GameObject.CreatePrimitive(PrimitiveType.Cube);roof.transform.SetParent(root.transform,false);roof.transform.localPosition=new Vector3(6,6,0);roof.transform.localScale=new Vector3(4,1,4);roof.layer=Layers.Block;
+            var roof=GameObject.CreatePrimitive(PrimitiveType.Cube);roof.transform.SetParent(root.transform,false);roof.transform.localPosition=new Vector3(6,6,0);roof.transform.localScale=new Vector3(6,1,6);roof.layer=Layers.Block;
             var exposed=Probe(root.transform,new Vector3(-6,2,0));var sheltered=Probe(root.transform,new Vector3(6,2,0));
             Physics.SyncTransforms();GameObject instance=null;
             try
@@ -107,6 +108,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                             if(f.kind=="PlanetKillerMeteor")Require(f.points.Length==1&&f.points[0].size>=40,"Planet killer is one massive sphere");
                             int impacts=0;Action<Vector3,float> hit=(_,__)=>impacts++;GameEvents.BlockHit+=hit;Step(hazard,900);GameEvents.BlockHit-=hit;
                             Require(impacts>0,f.kind+" swept collisions produce impacts");
+                        }
+                        else if(f.kind=="PowerOutage")Require(f.blocks.Length>0&&f.blocks.Length<=map.blocks.Count,"Power outage publishes a bounded selection of neon blocks without fake physics");
+                        else if(f.kind=="Vampire")
+                        {
+                            Require(exposed.Health==health,"Vampire exposure grace prevents immediate damage");
+                            Step(hazard,60);
+                            Require(exposed.Health<health,"Vampire sunlight exposure damages players after its grace period");
+                            Require(sheltered.Health==safeHealth,"Angled solid cover protects against Vampire sunlight");
                         }
                         else if(f.kind=="AcidRain")Require(exposed.Health<health&&sheltered.Health==safeHealth,"Acid damages exposed players while shelter protects them");
                         else Require((exposed.impulse-before).sqrMagnitude>0,f.kind+" affects the player ability stand-in");

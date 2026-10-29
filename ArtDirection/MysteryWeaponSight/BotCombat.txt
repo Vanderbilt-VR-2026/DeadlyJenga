@@ -1,0 +1,12 @@
+Real Game scene combat fixtures with six controlled bots. Mechanics cases supply an initial goal; production contact cases use real mode facts/director after normal perception settles. Ordinary motors, cooldowns, geometry and authoritative outcomes. Full natural matches are separate checks.
+BEGIN mystery-murder
+PASS mystery-murder seconds=0.683 health=0 attempts=1 damageEvents=0 victimPushes=0 withheld=0 windup=True flank=False changed=False climbed=False productionContact=False position=(100.01, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN mystery-unknown-contact
+PASS mystery-unknown-contact seconds=4.000 health=100 attempts=0 damageEvents=0 victimPushes=0 withheld=0 windup=False flank=False changed=False climbed=False productionContact=False position=(96.28, 10.01, 96.44) allyPushes=0 reason=No valid visible attack target
+Murderer made a real visible special strike into empty space during initial observation; observer knowledge must come from normal witness processing.
+PRODUCTION contact policy: initial pair remains still for .9s of ordinary perception, then actual mode facts/director choose the target. No knowledge or attack assignment is injected.
+BEGIN mystery-repel
+PASS mystery-repel seconds=0.667 health=92 attempts=1 damageEvents=1 victimPushes=1 withheld=0 windup=True flank=False changed=False climbed=False productionContact=True position=(100.00, 10.01, 100.00) allyPushes=0 reason=Strike requested through ordinary motor
+COMPLETE failures=0 runtimeErrors=0. Desktop fixtures only; no headset or second peer.
+PASS Original scene setup and match choices restored.

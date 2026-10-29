@@ -1,0 +1,16 @@
+FANTASY MAP MATERIAL / LIGHTING PASS — 2026-10-26
+
+Scope: Presentation / Visuals; DevTools / Editor; material references on the three existing World / Maps prefab variants.
+No Core change. No pipeline, package, project settings or scene edits.
+
+HONEYCOMB: beeswax cell relief, warm cream highlights, amber honey, elongated wood grain, gold slab edging, honey drips. Warm amber key, brown/gold ground bounce and restrained distance haze.
+CARNIVAL: quiet blueberry posts with deliberate gold stars; mint / raspberry ribbon icing and vanilla surfaces; narrow gold edge trim and small luminous bulbs. Peach key, lavender/pink ambient and pastel haze.
+GLASS: saturated red / green / purple fruit glass, denser grazing color, polished reflection, tiny embedded bubbles. Clear daylight and very light blue atmospheric perspective.
+
+Rounded meshes replace visual box geometry only. Contact boxes, custom convex collision, body masses, joints and source layout remain owned by World and unchanged. Custom convex visual pieces keep their original geometry.
+Each theme has one 256px-per-face HDR reflection cubemap baked in the explicit editor builder from its own existing sky. No realtime reflection cameras, new physics objects, per-bulb lights, texture downloads or packages.
+Wood grain and fine beeswax detail use two native 1254px built-in imagegen assets, imported at 1024 with mipmaps. Prompts and project paths are in TextureGeneration.json. Wax-cell relief, candy ribbons, glass bubbles and cloud detail are procedural. All surface mapping follows the moving structure's local coordinates.
+Subtle bloom / color grade (without sky-changing tonemapping) are desktop only; they are disabled for VR. No depth of field or motion blur.
+The visual pass adds GPU mesh/shader/postprocessing work; it is not claimed as an FPS improvement. Quest appearance and performance still require actual hardware testing.
+
+Verification: see Runtime.txt and complete.txt for the latest actual production Game Play Mode run. Screenshot filenames are actual Unity captures, not generated images or paintovers.

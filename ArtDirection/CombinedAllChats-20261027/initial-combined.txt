@@ -1,0 +1,32 @@
+Actual combined current-source Unity validation
+PHASE actual Game enemies, strikes, death and two real Photon peers
+PASS Production enemy regression executes
+PHASE collapse-spawn regression fixtures
+PASS Colliderless debris and absent foundation have a finite fallback
+PASS Intact upright block supplies its real surface
+PASS Disabled collider is not a spawn surface
+PASS Trigger is not a spawn surface
+PASS Inactive debris is not a spawn surface
+PASS Destroyed collider during collapse does not throw
+PASS Compound child collider uses its actual upper bound
+PASS Regression query does not replace the active world
+PHASE destructive wave and storm smoke
+PASS Game demo controls remain available
+LAUNCH Tsunami: Tsunami: triggered / toggled.
+PASS Active world survives tsunami
+PASS Finite respawn point after tsunami
+LAUNCH Tornado: Tornado: triggered / toggled.
+PASS Active world survives tornado
+PASS Finite respawn point after tornado
+PASS Both real tsunami and tornado command paths launch
+PASS Short disaster smoke with bots has no runtime errors
+PHASE actual Marina UI, wardrobe, collision and scene round-trip
+PASS Marina remains the default integrated lobby
+PHASE actual summoning and initial arrival regression
+FAIL System.InvalidOperationException: Local player, remote survivor and every active lobby bot receive exactly one departure column
+  at DeadlyJenga.DevTools.Editor.SummoningBeaconChecks.Require (System.Boolean value, System.String message) [0x00024] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\slot-07\Assets\_DeadlyJenga\DevTools\Editor\SummoningBeaconChecks.cs:66 
+  at DeadlyJenga.DevTools.Editor.SummoningBeaconChecks+<Validate>d__15.MoveNext () [0x003c8] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\slot-07\Assets\_DeadlyJenga\DevTools\Editor\SummoningBeaconChecks.cs:97 
+  at DeadlyJenga.DevTools.Editor.CombinedAllChatsChecks+<Flatten>d__13.MoveNext () [0x00169] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\slot-07\Assets\_DeadlyJenga\DevTools\Editor\CombinedAllChatsChecks.cs:51 
+  at DeadlyJenga.DevTools.Editor.CombinedAllChatsChecks+<Flatten>d__13.MoveNext () [0x00072] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\slot-07\Assets\_DeadlyJenga\DevTools\Editor\CombinedAllChatsChecks.cs:53 
+  at DeadlyJenga.DevTools.Editor.CombinedAllChatsChecks.Tick () [0x0002a] in C:\Users\evanp\Documents\Codex\Projects\deadlyjenga-unity-pool\slot-07\Assets\_DeadlyJenga\DevTools\Editor\CombinedAllChatsChecks.cs:45 
+COMPLETE failed=True errors=0 rootChecks=17

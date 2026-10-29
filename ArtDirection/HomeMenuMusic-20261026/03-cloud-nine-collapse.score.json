@@ -1,0 +1,8241 @@
+{
+  "title": "Cloud Nine Collapse",
+  "bpm": 96,
+  "bars": 40,
+  "beats": 160,
+  "sections": [
+    "A - opening hook",
+    "A2 - playful variation",
+    "B - lighter contrast",
+    "A3 - full return",
+    "A4 - breathing room and loop pickup"
+  ],
+  "events": [
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 0.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 0.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 0.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 0.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 0,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 2.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": -0.0034,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 1.5019,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 2.4962,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 0,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 2.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 2,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 0.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 0.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 1.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 1.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 2.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 2.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 3.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 3.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 4.0,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 4.035,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 4.07,
+      "midi": 70,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 4.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 4,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 6.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 4.4988,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 5.4947,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 7.0006,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 4,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 6.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 6,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 4.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 4.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 5.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 5.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 6.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 6.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 7.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 7.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 8.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 8.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 8.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 8.105,
+      "midi": 69,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 8,
+      "midi": 42,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 10.5,
+      "midi": 49,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 7.9972,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 9.5054,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 10.7501,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 8,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 10.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 10,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 8.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 8.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 9.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 9.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 10.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 10.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 11.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 11.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 12.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 12.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 12.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 12.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 12,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 14.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 11.9986,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 13.2526,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 14.501,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 15.2521,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 12,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 14.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 14,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 12.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 12.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 13.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 13.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 14.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 14.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 15.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 15.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 15.65,
+      "midi": 78,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 16.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 16.035,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 16.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 16.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 16,
+      "midi": 49,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 18.5,
+      "midi": 56,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 16.0016,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 17.4998,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 18.5013,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 16,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 18.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 18,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 16.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 16.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 17.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 17.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 18.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 18.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 19.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 19.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 20.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 20.035,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 20.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 20.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 20,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 22.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 20.4978,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 21.4993,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 23.001,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 20,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 22.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 22,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 20.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 20.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 21.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 21.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 22.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 22.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 23.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 23.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 24.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 24.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 24.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 24.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 24,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 26.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 23.9964,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 25.5005,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 26.7495,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 24,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 26.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 26,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 24.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 24.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 25.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 25.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 26.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 26.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 27.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 27.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 28.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 28.035,
+      "midi": 62,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 28.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 28.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 28,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 30.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 27.9996,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 29.2512,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 30.505,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 31.2551,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 28,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 30.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 30,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 28.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 28.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 29.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 29.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 30.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 30.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 31.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 31.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 30.75,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 25,
+      "pan": -0.3
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 31.25,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 30,
+      "pan": -0.04999999999999999
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 31.5,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 35,
+      "pan": 0.2
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 31.65,
+      "midi": 76,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 32.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 32.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 32.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 32.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 32.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 32.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 32.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 32.045,
+      "midi": 71,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 32,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 34.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 32.001,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 33.5036,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 34.4984,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 32,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 34.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 34,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 32.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 32.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 33.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 33.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 34.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 34.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 35.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 35.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 36.0,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 36.0,
+      "midi": 63,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 36.035,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 36.015,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 36.07,
+      "midi": 70,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 36.03,
+      "midi": 70,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 36.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 36.045,
+      "midi": 73,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 36,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 38.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 36.502,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 37.5031,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 39.003,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 38.65,
+      "midi": 78,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 39.0,
+      "midi": 82,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 39.35,
+      "midi": 75,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 36,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 38.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 38,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 36.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 36.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 37.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 37.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 38.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 38.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 39.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 39.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 40.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 40.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 40.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 40.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 40.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 40.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 40.105,
+      "midi": 69,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 40.045,
+      "midi": 69,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 40,
+      "midi": 42,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 42.5,
+      "midi": 49,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 40.0031,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 41.5045,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 42.7485,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 40,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 42.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 42,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 40.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 40.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 41.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 41.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 42.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 42.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 43.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 43.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 44.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 44.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 44.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 44.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 44.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 44.03,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 44.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 44.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 44,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 46.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 43.9988,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 45.2472,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 46.5042,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 47.2488,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 46.65,
+      "midi": 76,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 47.0,
+      "midi": 78,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 47.35,
+      "midi": 71,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 44,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 46.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 46,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 44.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 44.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 45.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 45.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 46.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 46.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 47.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 47.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 47.65,
+      "midi": 78,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 48.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 48.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 48.035,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 48.015,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 48.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 48.03,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 48.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 48.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 48,
+      "midi": 49,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 50.5,
+      "midi": 56,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 47.9987,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 49.5031,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 50.5016,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 48,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 50.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 50,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 48.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 48.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 49.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 49.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 50.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 50.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 51.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 51.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 52.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 52.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 52.035,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 52.015,
+      "midi": 63,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 52.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 52.03,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 52.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 52.045,
+      "midi": 73,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 52,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 54.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 52.5035,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 53.5028,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 54.9952,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 54.65,
+      "midi": 75,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 55.0,
+      "midi": 78,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 55.35,
+      "midi": 73,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 52,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 54.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 54,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 52.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 52.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 53.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 53.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 54.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 54.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 55.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 55.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 56.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 56.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 56.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 56.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 56.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 56.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 56.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 56.045,
+      "midi": 71,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 56,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 58.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 55.9986,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 57.4966,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 58.7474,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 56,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 58.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 58,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 56.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 56.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 57.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 57.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 58.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 58.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 59.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 59.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 60.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 60.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 60.035,
+      "midi": 62,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 60.015,
+      "midi": 62,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 60.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 60.03,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 60.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 60.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 60,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 62.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 59.9944,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 61.2482,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 62.5021,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 63.2547,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 62.65,
+      "midi": 74,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 63.0,
+      "midi": 76,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 63.35,
+      "midi": 71,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 60,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 62.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 62,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 60.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 60.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 61.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 61.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 62.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 62.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 63.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 63.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 62.75,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 25,
+      "pan": -0.3
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 63.25,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 30,
+      "pan": -0.04999999999999999
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 63.5,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 35,
+      "pan": 0.2
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 63.65,
+      "midi": 76,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 64.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 64.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 64.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 64.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 64.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 64.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 64.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 64.045,
+      "midi": 71,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 64,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 66.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 64.0028,
+      "midi": 73,
+      "gate": 0.9,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 65.5049,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 64,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 66.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 66,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 64.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 65.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 66.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 67.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 68.0,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 68.0,
+      "midi": 63,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 68.035,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 68.015,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 68.07,
+      "midi": 70,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 68.03,
+      "midi": 70,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 68.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 68.045,
+      "midi": 73,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 68,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 70.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 68.4975,
+      "midi": 68,
+      "gate": 0.6,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 69.4966,
+      "midi": 66,
+      "gate": 0.65,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 68,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 70.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 70,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 68.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 69.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 70.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 71.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 72.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 72.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 72.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 72.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 72.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 72.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 72.105,
+      "midi": 69,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 72.045,
+      "midi": 69,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 72,
+      "midi": 42,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 74.5,
+      "midi": 49,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 72.0045,
+      "midi": 69,
+      "gate": 0.85,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 73.4997,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 72,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 74.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 74,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 72.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 73.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 74.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 75.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 76.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 76.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 76.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 76.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 76.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 76.03,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 76.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 76.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 76,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 78.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 76.002,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 77.2487,
+      "midi": 66,
+      "gate": 0.5,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 79.2501,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 76,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 78.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 78,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 76.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 77.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 78.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 79.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 79.65,
+      "midi": 78,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 80.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 80.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 80.035,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 80.015,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 80.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 80.03,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 80.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 80.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 80,
+      "midi": 49,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 82.5,
+      "midi": 56,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 79.9948,
+      "midi": 73,
+      "gate": 0.9,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 81.4986,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 80,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 82.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 82,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 80.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 81.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 82.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 83.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 84.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 84.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 84.035,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 84.015,
+      "midi": 63,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 84.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 84.03,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 84.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 84.045,
+      "midi": 73,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 84,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 86.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 84.5059,
+      "midi": 68,
+      "gate": 0.6,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 85.5024,
+      "midi": 66,
+      "gate": 0.65,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 84,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 86.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 86,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 84.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 85.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 86.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 87.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 88.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 88.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 88.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 88.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 88.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 88.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 88.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 88.045,
+      "midi": 71,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 88,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 90.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 87.9975,
+      "midi": 68,
+      "gate": 0.85,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 89.501,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 88,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 90.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 90,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 88.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 89.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 90.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 91.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 92.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 92.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 92.035,
+      "midi": 62,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 92.015,
+      "midi": 62,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 92.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 92.03,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 92.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 92.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 92,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 94.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 91.9971,
+      "midi": 74,
+      "gate": 0.75,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 93.2533,
+      "midi": 66,
+      "gate": 0.5,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 95.245,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 92,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 94.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 72,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 94,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 92.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 93.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 94.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 95.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 94.75,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 25,
+      "pan": -0.3
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 95.25,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 30,
+      "pan": -0.04999999999999999
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 95.5,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 35,
+      "pan": 0.2
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 95.65,
+      "midi": 76,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 96.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 96.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 96.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 96.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 96.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 96.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 96.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 96.045,
+      "midi": 71,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 96,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 98.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 96.0009,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 97.5006,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 98.4954,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 96,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 98.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 98,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 96.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 96.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 97.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 97.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 98.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 98.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 99.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 99.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 100.0,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 100.0,
+      "midi": 63,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 100.035,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 100.015,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 100.07,
+      "midi": 70,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 100.03,
+      "midi": 70,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 100.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 100.045,
+      "midi": 73,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 100,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 102.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 100.5053,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 101.5032,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 103.0006,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 102.65,
+      "midi": 78,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 103.0,
+      "midi": 82,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 103.35,
+      "midi": 75,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 100,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 102.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 102,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 100.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 100.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 101.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 101.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 102.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 102.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 103.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 103.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 104.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 104.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 104.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 104.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 104.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 104.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 104.105,
+      "midi": 69,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 104.045,
+      "midi": 69,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 104,
+      "midi": 42,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 106.5,
+      "midi": 49,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 104.0035,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 105.4944,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 106.7558,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 104,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 106.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 106,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 104.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 104.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 105.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 105.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 106.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 106.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 107.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 107.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 108.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 108.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 108.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 108.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 108.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 108.03,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 108.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 108.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 108,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 110.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 107.9991,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 109.252,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 110.4956,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 111.2508,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 110.65,
+      "midi": 76,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 111.0,
+      "midi": 78,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 111.35,
+      "midi": 71,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 108,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 110.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 110,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 108.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 108.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 109.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 109.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 110.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 110.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 111.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 111.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 111.65,
+      "midi": 78,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 112.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 112.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 112.035,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 112.015,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 112.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 112.03,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 112.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 112.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 112,
+      "midi": 49,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 114.5,
+      "midi": 56,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 111.9995,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 113.4982,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 114.504,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 112,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 114.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 114,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 112.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 112.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 113.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 113.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 114.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 114.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 115.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 115.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 116.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 116.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 116.035,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 116.015,
+      "midi": 63,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 116.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 116.03,
+      "midi": 66,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 116.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 116.045,
+      "midi": 73,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 116,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 118.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 116.4949,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 117.5035,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 119.0013,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 118.65,
+      "midi": 75,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 119.0,
+      "midi": 78,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 119.35,
+      "midi": 73,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 116,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 118.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 118,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 116.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 116.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 117.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 117.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 118.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 118.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 119.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 119.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 120.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 120.0,
+      "midi": 61,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 120.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 120.015,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 120.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 120.03,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 120.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 120.045,
+      "midi": 71,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 120,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 122.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 120.003,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 121.504,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 122.7448,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 120,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 122.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 122,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 120.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 120.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 121.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 121.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 122.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 122.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 123.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 123.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 124.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 124.0,
+      "midi": 59,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 124.035,
+      "midi": 62,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 124.015,
+      "midi": 62,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 124.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 124.03,
+      "midi": 64,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": 0.5
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 124.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "pad",
+      "instrument": "pad",
+      "beat": 124.045,
+      "midi": 68,
+      "gate": 3.8,
+      "velocity": 6,
+      "pan": -0.5
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 124,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 126.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 124.0047,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 125.2494,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 126.4952,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 127.2447,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 126.65,
+      "midi": 74,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 127.0,
+      "midi": 76,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "answer",
+      "instrument": "marimba",
+      "beat": 127.35,
+      "midi": 71,
+      "gate": 0.28,
+      "velocity": 25,
+      "pan": 0.29
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 124,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 126.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 126,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 124.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 124.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 125.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 125.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 126.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 126.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 127.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 127.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 126.75,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 25,
+      "pan": -0.3
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 127.25,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 30,
+      "pan": -0.04999999999999999
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 127.5,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 35,
+      "pan": 0.2
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 127.65,
+      "midi": 76,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 128.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 128.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 128.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 128.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 128,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 130.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 127.9993,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 129.5046,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 130.4964,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 128,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 130.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 130,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 128.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 128.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 129.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 129.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 130.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 130.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 131.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 131.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 132.0,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 132.035,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 132.07,
+      "midi": 70,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 132.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 132,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 134.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 132.5033,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 133.5013,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 134.9992,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 132,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 134.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 134,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 132.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 132.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 133.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 133.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 134.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 134.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 135.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 135.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 136.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 136.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 136.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 136.105,
+      "midi": 69,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 136,
+      "midi": 42,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 138.5,
+      "midi": 49,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 136.0051,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 137.4962,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 138.7508,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 136,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 138.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 138,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 136.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 136.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 137.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 137.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 138.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 138.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 139.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 139.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 140.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 140.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 140.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 140.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 140,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 142.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 140.0005,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 141.253,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 142.4966,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 62,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 140,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 142.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 142,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 140.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 140.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 141.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 141.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 142.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 142.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 143.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 143.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 143.65,
+      "midi": 78,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 144.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 144.035,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 144.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 144.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 144,
+      "midi": 49,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 146.5,
+      "midi": 56,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 144.0049,
+      "midi": 69,
+      "gate": 0.9,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 145.5001,
+      "midi": 71,
+      "gate": 0.5,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 146.5043,
+      "midi": 76,
+      "gate": 1,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 144,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 146.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 146,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 144.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 144.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 145.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 145.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 146.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 146.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 147.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 147.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 148.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 148.035,
+      "midi": 63,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 148.07,
+      "midi": 66,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 148.105,
+      "midi": 73,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 148,
+      "midi": 47,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 150.5,
+      "midi": 54,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 148.505,
+      "midi": 75,
+      "gate": 0.6,
+      "velocity": 59,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 149.4975,
+      "midi": 76,
+      "gate": 0.65,
+      "velocity": 57,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 150.9996,
+      "midi": 71,
+      "gate": 0.75,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 148,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 150.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 150,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 148.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 148.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 149.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 149.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 150.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 150.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 151.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 151.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 152.0,
+      "midi": 61,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 152.035,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 152.07,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 152.105,
+      "midi": 71,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 152,
+      "midi": 45,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 154.5,
+      "midi": 52,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 152.0002,
+      "midi": 73,
+      "gate": 0.85,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 153.4941,
+      "midi": 71,
+      "gate": 0.6,
+      "velocity": 56,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 154.753,
+      "midi": 68,
+      "gate": 0.65,
+      "velocity": 55,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 152,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 154.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 154,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 152.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 152.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 153.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 153.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 154.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 154.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 155.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 155.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 156.0,
+      "midi": 59,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 156.035,
+      "midi": 62,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 156.07,
+      "midi": 64,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": 0.38
+    },
+    {
+      "part": "chords",
+      "instrument": "rhodes",
+      "beat": 156.105,
+      "midi": 68,
+      "gate": 2.6,
+      "velocity": 21,
+      "pan": -0.38
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 156,
+      "midi": 40,
+      "gate": 1.4,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "bass",
+      "instrument": "bass",
+      "beat": 158.5,
+      "midi": 47,
+      "gate": 0.8,
+      "velocity": 75,
+      "pan": 0
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 155.9984,
+      "midi": 68,
+      "gate": 0.75,
+      "velocity": 58,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 157.2534,
+      "midi": 76,
+      "gate": 0.5,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 158.502,
+      "midi": 73,
+      "gate": 0.45,
+      "velocity": 61,
+      "pan": -0.06
+    },
+    {
+      "part": "lead",
+      "instrument": "glass",
+      "beat": 159.2533,
+      "midi": 71,
+      "gate": 0.35,
+      "velocity": 60,
+      "pan": -0.06
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 156,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "kick",
+      "beat": 158.5,
+      "midi": 36,
+      "gate": 0.12,
+      "velocity": 87,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "rim",
+      "beat": 158,
+      "midi": 37,
+      "gate": 0.12,
+      "velocity": 61,
+      "pan": 0
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 156.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 156.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 157.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 157.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 158.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 158.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "hat",
+      "beat": 159.0,
+      "midi": 42,
+      "gate": 0.12,
+      "velocity": 21,
+      "pan": 0.24
+    },
+    {
+      "part": "drums",
+      "instrument": "shaker",
+      "beat": 159.545,
+      "midi": 70,
+      "gate": 0.12,
+      "velocity": 36,
+      "pan": -0.22
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 158.75,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 25,
+      "pan": -0.3
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 159.25,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 30,
+      "pan": -0.04999999999999999
+    },
+    {
+      "part": "drums",
+      "instrument": "tom",
+      "beat": 159.5,
+      "midi": 47,
+      "gate": 0.12,
+      "velocity": 35,
+      "pan": 0.2
+    },
+    {
+      "part": "plastic",
+      "instrument": "plastic",
+      "beat": 159.65,
+      "midi": 76,
+      "gate": 0.13,
+      "velocity": 15,
+      "pan": -0.35
+    }
+  ]
+}

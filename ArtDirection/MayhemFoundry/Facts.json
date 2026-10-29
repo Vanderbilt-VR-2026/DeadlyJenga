@@ -1,0 +1,135 @@
+{
+  "map": "mayhem-foundry",
+  "bodies": 669,
+  "colliders": 2096,
+  "fixedGroundColliders": 1,
+  "hinges": 8,
+  "districts": [
+    {
+      "id": 0,
+      "name": "Interleaved Bookends",
+      "bodies": 42,
+      "colliders": 258,
+      "maxDrift": 0.3331,
+      "maxTilt": 0.0,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Balanced three-floor combs, with open cantilever bays, flush exterior spine faces, and alternating ramp lanes. A fallen comb becomes a bridge with upright cover."
+    },
+    {
+      "id": 1,
+      "name": "Branch Mesa Forest",
+      "bodies": 59,
+      "colliders": 101,
+      "maxDrift": 0.3338,
+      "maxTilt": 0.0,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Three broad branches per crown, supported by separate legs. Multiple stacked crowns form shaded courts and elevated forks. One approach flight per crown avoids neighboring legs."
+    },
+    {
+      "id": 2,
+      "name": "Broken-Ring Canyon",
+      "bodies": 31,
+      "colliders": 247,
+      "maxDrift": 0.3377,
+      "maxTilt": 0.0,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Rotating C terraces around open atria. Fixed corner supports and exterior flights preserve the void; bridges attach to clear side galleries rather than solid corner piers."
+    },
+    {
+      "id": 3,
+      "name": "Folded Ribbon Gorge",
+      "bodies": 145,
+      "colliders": 181,
+      "maxDrift": 0.4677,
+      "maxTilt": 3.076,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Rigid folded plates form ridges, gullies and covered spaces. Slender loose links cross between crests. Removing a support changes the slope and the routes beneath it."
+    },
+    {
+      "id": 4,
+      "name": "Reciprocal Crown Bazaar",
+      "bodies": 150,
+      "colliders": 198,
+      "maxDrift": 0.3626,
+      "maxTilt": 0.973,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Eight mutually bearing beams per crown, plus internal mezzanine rings on inward pier landings. The exterior climb faces remain clear. No glued joints or magnetic stabilization."
+    },
+    {
+      "id": 5,
+      "name": "Skyrail Shipyard",
+      "bodies": 43,
+      "colliders": 163,
+      "maxDrift": 0.2255,
+      "maxTilt": 1.868,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Two-deck rigid trusses with a central upper-deck opening for the rising internal flight. Separate piers and loose cross-links turn falling corridors into covered ramps."
+    },
+    {
+      "id": 6,
+      "name": "Domino Portal Quarter",
+      "bodies": 49,
+      "colliders": 392,
+      "maxDrift": 0.3299,
+      "maxTilt": 0.0,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Tall portal pages with open frames, alternating front/back ramp lanes, and H-shaped street junctions. Shared junction bodies avoid overlapping independent bridge branches."
+    },
+    {
+      "id": 7,
+      "name": "Keystone Vault District",
+      "bodies": 80,
+      "colliders": 146,
+      "maxDrift": 0.4276,
+      "maxTilt": 1.696,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "32/8",
+      "idea": "Five-piece compression arches with flared bearing feet, movable tied thrust cradles and raised keystone seats. The deck loads the keystone so removing it produces a real failure."
+    },
+    {
+      "id": 8,
+      "name": "Rolling Borough",
+      "bodies": 32,
+      "colliders": 144,
+      "maxDrift": 0.1384,
+      "maxTilt": 0.247,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/4",
+      "idea": "Hollow octagonal drums with two internal floors, faceted shells and loose cradles. A moved cradle lets a drum tip; lateral impacts can change which surfaces act as floors."
+    },
+    {
+      "id": 9,
+      "name": "Counterweight Sky Harbor",
+      "bodies": 38,
+      "colliders": 266,
+      "maxDrift": 0.2734,
+      "maxTilt": 1.517,
+      "rmsSpeed": 0.0,
+      "awake": 0,
+      "solver": "12/16",
+      "idea": "Eight bascule leaves hinged to dynamic frames, loose heel weights and lower landing blocks. Separated rear stair lanes reach the leaves; removing a weight lets gravity lower the nose."
+    }
+  ],
+  "sourceSHA256": {
+    "MayhemFoundryMap.cs": "2e35f4f11d2da2f42686f8c89cafebef5bb2f2f089768cc84d519d4b2c81301d",
+    "MayhemStructuralMember.cs": "6c88778e839a959bf98d1aee06f29d32616b413c7c358fc76188dc6d9d251d04",
+    "MayhemStructureLayout.cs": "cf271e3686df5cb583c7b75031a2f2f375ab96f56ac7b79986ba50bc0a6df9f3",
+    "MayhemStructureLayout.Mechanisms.cs": "fc12768003c7ac5be4d2a294e3e99e63ff44604f6df64d53216d83bbd063a427"
+  }
+}

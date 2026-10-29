@@ -1,0 +1,232 @@
+START isolated native Unity 6000.3.23f1 geometry, same project physics settings. No production bots or frame-rate claims.
+
+DISTRICT 11 Crownline Offices solver=16/8 bodies=7 colliders=104
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=26.77..180.77 resistance=0.762..5.147 colliderLookup=True
+SETTLE 15s maxDrift=0.0267m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/7 meanNativeStep=0.080ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=130 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=345 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1146 capsuleClear=1012 halfMetreBands=107. Surface coverage, not route completion.
+Target 0001 · Crownline Offices · Setback office floors pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 12 Lantern Court Apartments solver=16/8 bodies=18 colliders=201
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=3.32..191.91 resistance=0.650..7.234 colliderLookup=True
+SETTLE 15s maxDrift=0.0212m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/18 meanNativeStep=0.088ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=234 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=897 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2177 capsuleClear=1830 halfMetreBands=65. Surface coverage, not route completion.
+Target 0001 · Lantern Court Apartments · Courtyard apartment wing pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=11
+
+DISTRICT 13 Split Atrium Hotel solver=16/8 bodies=13 colliders=171
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=7.67..174.84 resistance=0.788..5.998 colliderLookup=True
+SETTLE 15s maxDrift=0.0236m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/13 meanNativeStep=0.093ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=208 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=690 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1692 capsuleClear=1398 halfMetreBands=85. Surface coverage, not route completion.
+Target 0001 · Split Atrium Hotel · Independent hotel wing pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=9
+
+DISTRICT 14 Switchback Parking Tower solver=16/8 bodies=4 colliders=61
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=28.70..186.74 resistance=0.738..4.802 colliderLookup=True
+SETTLE 15s maxDrift=0.0210m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/4 meanNativeStep=0.069ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=78 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=207 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=765 capsuleClear=669 halfMetreBands=64. Surface coverage, not route completion.
+Target 0001 · Switchback Parking Tower · Open parking switchback deck pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=3
+
+DISTRICT 15 Central Exchange solver=16/8 bodies=11 colliders=148
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=17.15..172.31 resistance=0.800..8.037 colliderLookup=True
+SETTLE 15s maxDrift=0.0243m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/11 meanNativeStep=0.069ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=182 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=575 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1454 capsuleClear=1190 halfMetreBands=85. Surface coverage, not route completion.
+Target 0001 · Central Exchange · Exchange west tower pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 16 Lantern City Hall solver=16/8 bodies=9 colliders=119
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=8.40..170.57 resistance=0.808..6.451 colliderLookup=True
+SETTLE 15s maxDrift=0.0237m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/9 meanNativeStep=0.083ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=130 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=414 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1163 capsuleClear=915 halfMetreBands=72. Surface coverage, not route completion.
+Target 0001 · Lantern City Hall · Civic arcade pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 17 Foundry Lofts solver=16/8 bodies=5 colliders=64
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=28.52..185.66 resistance=0.742..4.832 colliderLookup=True
+SETTLE 15s maxDrift=0.0466m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/5 meanNativeStep=0.088ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=78 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=207 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=810 capsuleClear=703 halfMetreBands=67. Surface coverage, not route completion.
+Target 0001 · Foundry Lofts · Tall factory hall pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=4
+
+DISTRICT 18 Skygarden Residences solver=16/8 bodies=15 colliders=209
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=5.14..168.82 resistance=0.731..6.913 colliderLookup=True
+SETTLE 15s maxDrift=0.0263m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/15 meanNativeStep=0.072ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=260 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=782 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2132 capsuleClear=1739 halfMetreBands=106. Surface coverage, not route completion.
+Target 0001 · Skygarden Residences · Recessed residential galleries pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=9
+
+DISTRICT 19 Harbor Waterworks solver=16/8 bodies=5 colliders=85
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=17.58..169.15 resistance=0.815..7.838 colliderLookup=True
+SETTLE 15s maxDrift=0.0228m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/5 meanNativeStep=0.094ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=91 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=253 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=948 capsuleClear=750 halfMetreBands=79. Surface coverage, not route completion.
+Target 0001 · Harbor Waterworks · Waterworks service tower pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=4
+
+DISTRICT 20 Gateway Headquarters solver=16/8 bodies=13 colliders=218
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=23.14..174.04 resistance=0.792..5.954 colliderLookup=True
+SETTLE 15s maxDrift=0.0270m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/13 meanNativeStep=0.088ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=273 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=736 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2167 capsuleClear=1776 halfMetreBands=108. Surface coverage, not route completion.
+Target 0001 · Gateway Headquarters · Independent headquarters stack pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=10
+
+DISTRICT 1 Sky Tree solver=16/8 bodies=7 colliders=379
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=49.60..490.29 resistance=0.650..2.778 colliderLookup=True
+SETTLE 15s maxDrift=0.0223m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/7 meanNativeStep=0.072ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=468 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=1242 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=4005 capsuleClear=3132 halfMetreBands=127. Surface coverage, not route completion.
+Target 0001 · Sky Tree · Three-wing sky-tree section pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 2 Zipper Spire solver=16/8 bodies=6 colliders=116
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=23.95..170.19 resistance=0.810..5.755 colliderLookup=True
+SETTLE 15s maxDrift=0.0242m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/6 meanNativeStep=0.074ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=130 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=345 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1224 capsuleClear=1013 halfMetreBands=106. Surface coverage, not route completion.
+Target 0001 · Zipper Spire · Mirrored zipper street pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=5
+
+DISTRICT 3 Spiral Lantern solver=16/8 bodies=7 colliders=229
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=27.20..243.95 resistance=0.650..5.067 colliderLookup=True
+SETTLE 15s maxDrift=0.0226m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/7 meanNativeStep=0.095ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=312 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=828 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2601 capsuleClear=1999 halfMetreBands=127. Surface coverage, not route completion.
+Target 0001 · Spiral Lantern · Two-ribbon lantern shell pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 4 Cross-Block Relay solver=16/8 bodies=7 colliders=145
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=30.40..211.24 resistance=0.652..4.533 colliderLookup=True
+SETTLE 15s maxDrift=0.0255m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/7 meanNativeStep=0.073ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=156 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=414 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1737 capsuleClear=1638 halfMetreBands=127. Surface coverage, not route completion.
+Target 0001 · Cross-Block Relay · Alternating inhabited box girder pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 5 Cage Cathedral solver=16/8 bodies=6 colliders=211
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=27.20..282.70 resistance=0.650..5.067 colliderLookup=True
+SETTLE 15s maxDrift=0.0224m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/6 meanNativeStep=0.075ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=260 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=690 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2609 capsuleClear=1681 halfMetreBands=106. Surface coverage, not route completion.
+Target 0001 · Cage Cathedral · Open cathedral cage pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=5
+
+DISTRICT 6 Drop-Stop Tower solver=16/8 bodies=25 colliders=189
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=11.62..202.53 resistance=0.650..3.907 colliderLookup=True
+SETTLE 15s maxDrift=0.0291m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/25 meanNativeStep=0.077ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=156 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=644 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2033 capsuleClear=1464 halfMetreBands=89. Surface coverage, not route completion.
+MECHANISM Removable drop shoe otherMoved>.5m=2
+DROP 1.502m speed=0.000
+Target 0001 · Drop-Stop Tower · Escape spine pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=11
+
+DISTRICT 7 Saddle Beacon solver=16/8 bodies=5 colliders=97
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=27.90..303.41 resistance=0.650..4.940 colliderLookup=True
+SETTLE 15s maxDrift=0.0219m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/5 meanNativeStep=0.067ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=104 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=276 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1163 capsuleClear=813 halfMetreBands=85. Surface coverage, not route completion.
+Target 0001 · Saddle Beacon · Inhabited tapered trestle pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=4
+
+DISTRICT 8 Chalice Stack solver=16/8 bodies=7 colliders=115
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=28.80..153.68 resistance=0.897..4.785 colliderLookup=True
+SETTLE 15s maxDrift=0.0240m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/7 meanNativeStep=0.108ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=78 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=276 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1329 capsuleClear=1020 halfMetreBands=85. Surface coverage, not route completion.
+Target 0001 · Chalice Stack · Hollow sleeve and ascent pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=6
+
+DISTRICT 9 Bookfall Keep solver=16/8 bodies=24 colliders=233
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=31.75..627.30 resistance=0.650..4.341 colliderLookup=True
+SETTLE 15s maxDrift=0.0211m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/24 meanNativeStep=0.073ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=286 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=759 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2760 capsuleClear=2444 halfMetreBands=106. Surface coverage, not route completion.
+MECHANISM Wing receiving foot otherMoved>.5m=1
+WING 0008 · Bookfall Keep · Hinged inhabited book wing rotationFromAuthored=66.85 speed=0.000
+WING 0011 · Bookfall Keep · Hinged inhabited book wing rotationFromAuthored=0.00 speed=0.000
+WING 0014 · Bookfall Keep · Hinged inhabited book wing rotationFromAuthored=0.00 speed=0.000
+WING 0017 · Bookfall Keep · Hinged inhabited book wing rotationFromAuthored=0.00 speed=0.000
+WING 0020 · Bookfall Keep · Hinged inhabited book wing rotationFromAuthored=0.00 speed=0.000
+WING 0023 · Bookfall Keep · Hinged inhabited book wing rotationFromAuthored=0.00 speed=0.000
+Target 0001 · Bookfall Keep · Independent bookfall support spine pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=19
+
+DISTRICT 10 Kissing Towers solver=16/8 bodies=10 colliders=164
+GEOMETRY overlaps>.04m=0 deepest=0.000
+WATER cached exposure m2=67.84..198.34 resistance=0.695..2.031 colliderLookup=True
+SETTLE 15s maxDrift=0.0317m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/10 meanNativeStep=0.081ms. Native-only timing, not FPS.
+FULL-SIZE TURN CAPSULE samples=208 blocked=0
+FULL-SIZE ROUTE CAPSULE height=1.7 radius=.24 flightSamples=552 blocked=0 (clearance only, not the production motor)
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2541 capsuleClear=1085 halfMetreBands=86. Surface coverage, not route completion.
+MECHANISM Loose crown compression keystone otherMoved>.5m=4
+Target 0000 · Kissing Towers · Tied compression raft pulse22/9 offset4m
+IMPACT 22m/s X + 9m/s Z, offset4m lower member moved>.5m=9
+COMPLETE selected districts; gravity, collisions and native support release. No bots, gameplay movement, networking or tsunami in this isolated runner.

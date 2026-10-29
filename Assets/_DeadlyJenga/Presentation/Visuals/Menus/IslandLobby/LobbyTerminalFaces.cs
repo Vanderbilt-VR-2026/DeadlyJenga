@@ -11,6 +11,7 @@ namespace DeadlyJenga.CastlePrototype
         RectTransform rearRect;
         public bool ShowingFront {get;private set;}
         public float Opacity {get;set;}=1;
+        public float RearOffset {get;set;}=.012f;
         public void Build(Camera camera,string title,Color accent,Vector2 size)
         {
             eye=camera;front=gameObject.AddComponent<CanvasGroup>();
@@ -35,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
             ShowingFront=Vector3.Dot(eye.transform.position-transform.position,transform.forward)<=0;
             front.alpha=ShowingFront?Opacity:0;front.blocksRaycasts=front.interactable=ShowingFront&&Opacity>.5f;
             rear.alpha=ShowingFront?0:1;rear.blocksRaycasts=false;
-            rearRect.SetPositionAndRotation(transform.position+transform.forward*.012f,transform.rotation*Quaternion.Euler(0,180,0));
+            rearRect.SetPositionAndRotation(transform.position+transform.forward*RearOffset,transform.rotation*Quaternion.Euler(0,180,0));
             rearRect.localScale=transform.localScale;rearRect.sizeDelta=((RectTransform)transform).sizeDelta;
         }
         void OnDestroy(){if(rearRect)Destroy(rearRect.gameObject);}

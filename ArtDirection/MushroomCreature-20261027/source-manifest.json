@@ -1,0 +1,32 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\aligned-slot-03",
+  "runtime_checks": 12,
+  "runtime_errors": 0,
+  "core_changes": false,
+  "network_protocol_changes": false,
+  "quest_tested": false,
+  "two_client_tested": false,
+  "integration": "pending serial integration",
+  "files": [
+    {
+      "path": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyAvatarAttachments.cs",
+      "sha256": "9e6a6b32e0d7aacd3c19828d01cd1fc298df2cb42520f434a4d3ad7dc9bf74d2",
+      "baseline_sha256": "66048507b8924065642a71dddee7fb70f0b21ac2264f5ccfc4fc589b107046c2"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyAvatarWardrobe.Expanded.cs",
+      "sha256": "263a6b340840aea4e3379de5cac292bfb0fdd0ab4b9a88127582f718cdcaeec0",
+      "baseline_sha256": "71d1975a4987c9eeaaddd6f3a6991c8943f508d1d7ac94ef37b57f19ac27445f"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyMushroomAppearance.cs",
+      "sha256": "2dd172efa06dcaf4a63985f2b9b31f22ee08df0ec8c37da1b33b6a800507785f",
+      "baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Characters/Player/CandyPlayers/CandyMushroomAppearance.cs.meta",
+      "sha256": "42d4f0ac7b863ff7f998be1ebc51888040ab574e3781e7d15741dddd2f988900",
+      "baseline_sha256": null
+    }
+  ]
+}

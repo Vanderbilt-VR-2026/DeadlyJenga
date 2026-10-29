@@ -10,7 +10,7 @@ using System.IO;
 namespace DeadlyJenga.CandyPlayers
 {
     [DefaultExecutionOrder(100)]
-    public sealed class CandyPlayerAvatar : MonoBehaviour, INetworkActor
+    public sealed partial class CandyPlayerAvatar : MonoBehaviour, INetworkActor
     {
         public CandyPlayerRig visualPrefab;
         public CastleSurvivor survivor;
@@ -38,23 +38,23 @@ namespace DeadlyJenga.CandyPlayers
             if(!visualPrefab)visualPrefab=Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
             if(!visualPrefab){enabled=false;Debug.LogError("Build candy player assets first.",this);return;}
             Rig=Instantiate(visualPrefab,transform);Rig.name="Candy player body (shared views)";Rig.ownerCamera=remoteDriven?null:viewCamera;
-            SetColor(Random.Range(0,Rig.style.colors.Length));
+            if(!GetComponent<CandyEquipment>())gameObject.AddComponent<CandyEquipment>();
+            ColorIndex=Random.Range(0,Rig.style.colors.Length);Rig.SetColor(ColorIndex);LoadAppearance();
             if(!remoteDriven)
             {
+                if(survivor&&!survivor.externallyDriven&&!GetComponent<CandyBlaster>())gameObject.AddComponent<CandyBlaster>();
                 tracking=GetComponent<CandyTrackingSource>();if(!tracking)tracking=gameObject.AddComponent<CandyTrackingSource>();
                 tracking.trackingOrigin=trackingOrigin;tracking.style=Rig.style;
                 nearRays=GetComponentsInChildren<NearFarInteractor>(true);
                 farRays=GetComponentsInChildren<XRRayInteractor>(true);
             }
         }
-        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(!remoteDriven)NetworkActors.Local.Add(this);PlayerLooks.Changed+=OnLookChanged;}
-        void OnDisable(){Application.onBeforeRender-=BeforeRender;wasVaulting=false;NetworkActors.Local.Remove(this);PlayerLooks.Changed-=OnLookChanged;}
-        // Character design: players wear the one they picked, bots get a random one.
-        bool IsBot=>GetComponent<CastleBotBrain>();
-        void Start(){if(!GetComponent<SurvivorMoments>())gameObject.AddComponent<SurvivorMoments>();if(IsBot)SetDesign(Random.Range(1,CandyCharacterDesigns.Count));else if(!remoteDriven)SetDesign(PlayerLooks.Chosen);}
-        void OnLookChanged(){if(!remoteDriven&&!IsBot)SetDesign(PlayerLooks.Chosen);}
-        public int Design=>Mathf.Max(0,(ColorIndex>>8)-1);
-        public void SetDesign(int design)=>SetColor((ColorIndex&0xFF)|((design+1)<<8));
+        void OnEnable(){Application.onBeforeRender+=BeforeRender;if(survivor)survivor.PunchRequested+=BeginPunch;if(!remoteDriven)NetworkActors.Local.Add(this);}
+        void OnDisable(){Application.onBeforeRender-=BeforeRender;if(survivor)survivor.PunchRequested-=BeginPunch;ResetPunch();wasVaulting=false;NetworkActors.Local.Remove(this);}
+        // Emotes and the elimination burst live on SurvivorMoments (looks come from the avatar appearance system).
+        void Start(){if(!GetComponent<SurvivorMoments>())gameObject.AddComponent<SurvivorMoments>();}
+        SurvivorMoments moments;
+        SurvivorMoments Moments=>moments?moments:moments=GetComponent<SurvivorMoments>();
 
         // INetworkActor: what other players see of this survivor (the player's or a bot's).
         CastleBotBrain bot;
@@ -62,23 +62,27 @@ namespace DeadlyJenga.CandyPlayers
         public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
         public Vector3 NetworkPosition=>transform.position;
         // Third byte of the synced color value: the emote showing right now (index + 1, or 0).
-        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,ReadFrame(),(ColorIndex&0xFFFF)|(Moments?Moments.NetworkBits<<16:0));
-        SurvivorMoments moments;
-        SurvivorMoments Moments=>moments?moments:moments=GetComponent<SurvivorMoments>();
+        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,survivor&&survivor.externallyDriven&&LastFrame.scale>0?LastFrame:ReadFrame(),(ColorIndex&0xFF)|(Moments?Moments.NetworkBits<<16:0),EquippedAppearance,GetComponent<IEnemyActor>(),GetComponent<IBlasterControls>());
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
-        // The synced color value carries the design too: low byte = color, next byte = design + 1 (0 = keep the current design).
-        public void SetColor(int index)
+        public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}
+        public void SetExactColor(Color color)
         {
-            int design=(index>>8)&0xFF;if(design==0)design=(ColorIndex>>8)&0xFF;
-            ColorIndex=(index&0xFF)|(design<<8);
-            if(Rig){Rig.SetColor(index&0xFF);CandyCharacterLook.For(Rig).Apply(design-1);}
+            if(!Rig||!Rig.style)return;
+            float distance=float.PositiveInfinity;int best=0;
+            for(int i=0;i<Rig.style.colors.Length;i++)
+            {
+                var c=Rig.style.colors[i];float d=(new Vector3(c.r,c.g,c.b)-new Vector3(color.r,color.g,color.b)).sqrMagnitude;
+                if(d<distance){distance=d;best=i;}
+            }
+            SetColor(best);
         }
         public void OverridePose(CandyAvatarFrame frame){overridden=frame;overridePose=true;}
         public void ClearPoseOverride(){overridePose=false;}
         public CandyAvatarFrame ReadFrame()
         {
-            if(overridePose)return overridden;
+            if (Showcasing) return ReadShowcaseFrame();
+            if(overridePose){var posed=overridden;ApplyPunch(ref posed);GetComponent<CandyEquipment>()?.PoseHands(ref posed);return posed;}
             float scale=survivor?survivor.playerScale:trackingOrigin?Mathf.Abs(trackingOrigin.lossyScale.y):1;
             scale=Mathf.Max(.1f,scale);
             Transform head=viewCamera?viewCamera.transform:transform;
@@ -98,8 +102,11 @@ namespace DeadlyJenga.CandyPlayers
             frame.left=left.tracked?left:Rest(true);frame.right=right.tracked?right:Rest(false);
             PointOnHover(ref frame.left, true);
             PointOnHover(ref frame.right, false);
+            ApplyPunch(ref frame);
+            GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;
         }
+        public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
         void PointOnHover(ref CandyHandPose hand, bool isLeft)
         {
             if(!tracking || !hand.tracked || hand.skeletonTracked)return;
@@ -122,7 +129,7 @@ namespace DeadlyJenga.CandyPlayers
         void Present(float dt)
         {
             if(!Rig)return;
-            Rig.calibration=!remoteDriven&&(!survivor||!survivor.externallyDriven)?CandyAvatarCalibration.Current:null;
+            Rig.calibration=!remoteDriven&&survivor&&survivor.IsVR&&!survivor.externallyDriven?CandyAvatarCalibration.Current:null;
             var frame=ReadFrame();
             bool climbing=survivor&&!survivor.IsVR&&survivor.Climbing;
             if(climbing)

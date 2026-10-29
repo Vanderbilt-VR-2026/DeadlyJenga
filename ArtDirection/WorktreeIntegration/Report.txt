@@ -1,0 +1,33 @@
+Worktree integration — 2026-10-24
+
+Scope: inspected all 19 other registered worktrees, including their committed changes, tracked working changes and untracked task files. The integration manifest records imported paths. Original worktrees remain intact.
+
+The primary project already contained the earlier wardrobe/armor/styles, weapons/suit, jaguar, audio, HUD/picker, orbit terminals, death melt, traversal, disaster and physics work. Older snapshots were not allowed to replace later combined implementations. The only wholly absent paths came from worktree 07ee.
+
+Imported missing work:
+- Breakwater Village, furnished social-to-danger island, its native breakable structures, appearance assets, lettering and flat sand.
+- Andy, a blank playable island. Unity verified and removed the four empty Luke/Kaleb drafts; Evan's two maps were preserved.
+- Nine alternate loose-structure maps: Crown Workshop, Terrace Workshop, Viaduct Workshop, Megakeep Workshop, Crown Constellation, Terrace Metropolis, Skywater Viaduct, Grand Hollow Keeps and Candy Archipelago.
+- Random block power-up spawning, weighted types, lifetime/limits, desktop/VR settings, bot collection objectives and bot weapon handling.
+- Sheriff revolver, rotating rifle/shotgun carriage and optics, local sights/zoom, improved firearm sounds, death drops and sheriff-role handoff.
+- Death-ragdoll deformation optimizations, usage documentation and associated validation tools.
+
+The alternate structure generator conflicted with the existing SparseStructureMap/Layout names and two prefab paths. Its types and resources are now WorkshopStructureMap/Layout and workshop-* IDs. Both frameworks remain selectable, including the optimized Festival City. Two cloned prefab catalog references were explicitly relinked after Unity gave the copies distinct identities.
+
+Core integration is additive: the existing source work's power-up spawn settings/controls, bot equipment commands and pickup/frame metadata. No new bespoke Core contract was designed for this integration. No package changes or source-worktree physics settings were imported. The build-scene change registers Andy and removes only the verified empty drafts.
+
+Safety: 251 existing conflicting/deleted-candidate files were backed up before integration to C:/Users/evanp/Documents/Codex/IntegrationBackups/DeadlyJenga/BeforeIntegration-20261024-152507.zip. The inventory, source manifest and original status also live beside that backup. The live working project retains its other pre-existing changes. No push or transfer-branch merge was performed.
+
+Validation:
+- Unity compilation succeeded.
+- Map audit: all 23 structure/village prefab maps resolve; no missing scripts. Newly imported geometry, finite spawns and save/load round trips passed. IDs are unique.
+- Actual Game runtime: nine workshop maps, Breakwater Village and optimized Festival City load through production selection, retain valid bodies after ticks, and use the intended implementations. Breakwater starts Murder Mystery with actual bots. Zero runtime errors.
+- Bot objective contracts: 120 assertions passed.
+- Random spawning/bot equipment: 71 checks passed, zero runtime errors, including actual collection/damage, secret-role witness behavior and two real Photon transport peers.
+- Firearms: 46 checks passed, zero runtime errors, including modes, cover, optics, death drops/role recovery and two actual Photon transport peers. Fixed the imported editor-runner lifecycle flag/restoration and reran to a confirmed clean completion. First-run diagnostics retained separately.
+- Shared firearm aim checks passed. All 52 audio clip checksums match their manifest.
+
+Breakwater actual Game acceptance passed: eight real bots, stable initial structures, earthquake and meteor damage, finite body positions, two successful native-connection resets and zero runtime errors. Fresh runtime captures were visually checked; see ArtDirection/BreakwaterVillage and BreakwaterPlay.txt.
+
+Tests are desktop Unity Editor checks. Two in-editor Photon peers are not two physical devices. Quest tracking, controller comfort, performance and a two-headset gameplay session remain unverified. The short map smoke does not certify every collapse path or FPS.
+

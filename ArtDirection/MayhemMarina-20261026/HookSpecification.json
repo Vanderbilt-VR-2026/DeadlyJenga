@@ -1,0 +1,31 @@
+{
+  "presentationFile": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.cs",
+  "presentationHooks": [
+    "Declare optional partial void BuildMayhemMarina(); partial void UpdateMayhemMarina(); partial void DisposeMayhemMarina(); partial void MarinaInteractionRange(ref float distance);",
+    "Call BuildMayhemMarina() at end of Build(), after BuildWardrobe().",
+    "Call UpdateMayhemMarina() at start of Update() after lobby/player validity guard, before UpdateWardrobe().",
+    "Call DisposeMayhemMarina() at beginning of OnDestroy(), before DisposeWardrobe().",
+    "In Point(): float distance=4; MarinaInteractionRange(ref distance); use current distance instead of literal4 in collider.Raycast.",
+    "In Point() foreach: skip only choices whose parent hierarchy is inactive (not the button itself; button visibility must remain reevaluable). E.g if(!choice.button || !choice.button.transform.parent.gameObject.activeInHierarchy)continue;"
+  ],
+  "wardrobeFile": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.Wardrobe.cs",
+  "wardrobeHooks": [
+    "Remove readonly from wardrobeCenter; keep original default. New scoped partial adapter will relocate field/pod/panel after original BuildWardrobe and reuse existing orbit customizer."
+  ],
+  "sessionFile": "Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.cs",
+  "sessionHooks": [
+    "Declare fields with current defaults: Vector3 lobbyLayoutCenter=Vector3.zero,lobbyLayoutSpawn=new Vector3(0,.5f,-3.5f); float lobbyLayoutTop=.45f,lobbyLayoutRadius=9,lobbyLayoutReturnDistance=30; Bounds lobbyLayoutBounds=new Bounds(Vector3.up*2,new Vector3(18,4,18));",
+    "Declare optional partial void ConfigureMayhemMarinaLobby(); static partial void MayhemMarinaSpawn(int slot,ref Vector3 point);",
+    "At Awake, before BuildFlatFloor(): ConfigureMayhemMarinaLobby().",
+    "Center/TopHeight/Radius/PlayableBounds/SafeSpawnPoint return the matching layout fields.",
+    "Update fall/boundary guard uses lobbyLayoutReturnDistance*lobbyLayoutReturnDistance instead of900; fall threshold can stay-.9f.",
+    "SpawnPoint(int slot): preserve old calculation in a local point, call MayhemMarinaSpawn(slot,ref point), return point. Default behavior stays unchanged without new partial."
+  ],
+  "controlsFile": "Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.Controls.cs",
+  "controlsHooks": [
+    "Track all Collider() created GameObjects in owned list; parent them under IslandLobby transform with world pose preserved for cleanup.",
+    "SetFloor() replaces all prior tracked floor/blocker copies before constructing new floor. This allows new presentation layout to replace old floor+cabinet positions instead of leaving invisible collision across inlet.",
+    "Declare optional partial void MayhemMarinaFloor(GameObject floor,Mesh mesh,Transform pose); call it after assigning new floor MeshCollider. New scoped session partial adds Core IClimbable marker and appropriate surface layer.",
+    "No Core additions, packages, scene saves, or UI redesign in these hooks. All appearance/layout logic stays in new scoped Marina folders."
+  ]
+}

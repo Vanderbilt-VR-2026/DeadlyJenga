@@ -28,7 +28,12 @@ namespace DeadlyJenga.CastlePrototype
             if(packet?.frames==null||packet.frames.Length>32)throw new System.IO.InvalidDataException("Invalid disaster frame list");
             foreach(var source in remoteDisasters)DisasterStates.Active.Remove(source);remoteDisasters.Clear();
             foreach(var frame in packet.frames)
-            {if(frame==null||frame.points?.Length>128||frame.blocks?.Length>20000)throw new System.IO.InvalidDataException("Invalid disaster detail");frame.sampledAt=Time.time;var source=new RemoteDisaster{frame=frame,received=Time.unscaledTime};remoteDisasters.Add(source);DisasterStates.Active.Add(source);}
+            {
+                if(frame==null||frame.points?.Length>128||frame.blocks?.Length>20000||frame.burns?.Length>20000)throw new System.IO.InvalidDataException("Invalid disaster detail");
+                if(frame.burns!=null)foreach(var burn in frame.burns)
+                    if(burn.block<0||burn.block>=20000||!float.IsFinite(burn.flameRemaining)||!float.IsFinite(burn.smokeRemaining)||burn.flameRemaining<0||burn.flameRemaining>120||burn.smokeRemaining<0||burn.smokeRemaining>90)throw new System.IO.InvalidDataException("Invalid block burn state");
+                frame.sampledAt=Time.time;var source=new RemoteDisaster{frame=frame,received=Time.unscaledTime};remoteDisasters.Add(source);DisasterStates.Active.Add(source);
+            }
         }
         [Serializable] sealed class Impact { public Vector3 push; public float damage; }
         readonly Dictionary<string, Impact> disasterImpacts = new Dictionary<string, Impact>();
@@ -66,15 +71,18 @@ namespace DeadlyJenga.CastlePrototype
             if (frame.active && !Tracked.Waves.Contains(remoteWave)) Tracked.Waves.Add(remoteWave);
             if (!frame.active) Tracked.Waves.Remove(remoteWave);
         }
-        public void QueueDisasterImpact(string actorId, Vector3 push, float damage)
+        public void QueueDisasterImpact(string actorId, Vector3 push, float damage) => QueueDisasterImpact(actorId,push,damage,true);
+        void QueueDisasterImpact(string actorId, Vector3 push, float damage,bool recordHealth)
         {
-            if (!IsHost || closing) return;
+            if (!IsHost || closing || session&&session.Modes&&session.Modes.Frame.phase!=RoundPhase.Playing) return;
+            if(recordHealth&&damage>0){ConnectModes();modeRuntime?.RecordRemoteDamage(actorId,damage);}
             if (!disasterImpacts.TryGetValue(actorId, out var impact)) disasterImpacts[actorId] = impact = new Impact();
             impact.push = Vector3.ClampMagnitude(impact.push + push, 20);
             impact.damage = Mathf.Clamp(impact.damage + damage, 0, 10000);
         }
         void FlushDisasterImpacts()
         {
+            if(session&&session.Modes&&session.Modes.Frame.phase!=RoundPhase.Playing){disasterImpacts.Clear();return;}
             foreach (var pair in peers)
                 if (pair.Value.ready && disasterImpacts.TryGetValue(pair.Key.ToString(), out var impact))
                     Send(pair.Key, DisasterImpact, System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(impact)), ++sequence);
@@ -83,7 +91,7 @@ namespace DeadlyJenga.CastlePrototype
         void ReceiveDisasterImpact(byte[] bytes)
         {
             var impact = JsonUtility.FromJson<Impact>(System.Text.Encoding.UTF8.GetString(bytes));
-            if (impact == null || !session || !NetworkActors.Alive(session.Player) || session.PlayingHand) return;
+            if (impact == null || !session || session.Modes&&session.Modes.Frame.phase!=RoundPhase.Playing || !NetworkActors.Alive(session.Player) || session.PlayingHand) return;
             if (float.IsNaN(impact.push.sqrMagnitude) || float.IsInfinity(impact.push.sqrMagnitude) ||
                 float.IsNaN(impact.damage) || float.IsInfinity(impact.damage)) return;
             var push = Vector3.ClampMagnitude(impact.push,30);

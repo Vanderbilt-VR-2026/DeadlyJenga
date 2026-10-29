@@ -1,0 +1,12 @@
+Requested empty-draft cleanup and Andy setup
+VERIFIED EMPTY Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke1.unity
+VERIFIED EMPTY Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke2.unity
+VERIFIED EMPTY Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb1.unity
+VERIFIED EMPTY Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb2.unity
+REMOVED Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke1.unity
+REMOVED Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke2.unity
+REMOVED Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb1.unity
+REMOVED Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb2.unity
+CREATED Andy: blank playable island, Demo default, walkable ground.
+PRESERVED MapDrafterEvan1 and MapDrafterEvan2.
+PASS catalog and build scenes reference Andy and no deleted drafts.

@@ -1,0 +1,57 @@
+Actual MapDrafterEvan1.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=277.67ms p90=373.82ms frames=29 batches=160 triangles=1824088 awake=64
+  sinking=0 sunk=0 shattered=0 visual=0 converted=0 restored=0 active=6098
+  Physics.SyncTransforms mean=3195183 ns
+  Physics.Simulate mean=29029676 ns
+  Main Thread mean=277688707 ns
+  BehaviourUpdate mean=77734038 ns
+  GC Allocated In Frame mean=2349914 bytes
+  DJ.CrateBatches mean=12125221 ns
+  DJ.WetEffects mean=1945 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=1685.53ms p90=3381.19ms frames=24 batches=278 triangles=2199398 awake=4663
+  sinking=50 sunk=48 shattered=1 visual=0 converted=0 restored=0 active=6049
+  Physics.SyncTransforms mean=89320546 ns
+  Physics.Simulate mean=960374504 ns
+  Main Thread mean=2101199508 ns
+  BehaviourUpdate mean=289047900 ns
+  GC Allocated In Frame mean=6467404 bytes
+  DJ.CrateBatches mean=27287533 ns
+  DJ.WetEffects mean=1913617 ns
+  DJ.BotThreat mean=11343325 ns
+  DJ.WalkingSources mean=32647317 ns
+  DJ.Tsunami mean=68625417 ns
+  DJ.BotDestination mean=27201283 ns
+  DJ.BotGeometry mean=25151779 ns
+  DJ.DeathDeform mean=10226096 ns
+PASS Original tower survives settling without sinking or shattering
+PASS Native setting keeps independent block physics
+PASS A severe actual rigidbody impact shatters and retires the block
+PASS High-speed downward debris enters swept ballistic simulation
+PASS Forecast high-speed debris switches to trigger-only visual motion before applying its push
+PASS Visual debris carries its momentum without a dynamic collision body
+PASS Approaching observer restores native collision, climbing and motion
+PASS Swept ballistic contact shatters and retires its original block
+PASS Ordinary short drops do not shatter blocks
+PASS Displaced debris visibly sinks through ground and deactivates after burial
+PASS Shattered and buried blocks keep their original network indices
+PASS Naturally settled large map suspends most blocks
+PASS Dormant blocks retain original body identity and climbing ability
+PASS Dormant original colliders retain bounds for world queries
+PASS Shared survivor surfaces resolve to the original climbable block
+PASS Push releases the original block before applying force
+PASS Released original block moves under independent physics
+PASS Replica suspends every original block for authoritative pose playback
+PASS Authority recovery restores every original dynamic body
+PASS Dormancy, push and authority changes preserve network block indices
+PASS Released bodies restore original collision detection
+PASS Map/disaster authoring validation runs
+PASS Map/disaster authoring validation runs
+COMPLETE runtimeErrors=0

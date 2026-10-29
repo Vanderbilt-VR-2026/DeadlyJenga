@@ -1,0 +1,1092 @@
+Actual MapDrafterEvan1.unity; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=62.51ms p90=83.85ms frames=121 batches=160 triangles=1824088 awake=0
+  sinking=0 sunk=0 shattered=0 visual=0 converted=0 restored=0 active=6098
+  Physics.SyncTransforms mean=41901 ns
+  Physics.Simulate mean=2765222 ns
+  Main Thread mean=65288660 ns
+  BehaviourUpdate mean=29160358 ns
+  GC Allocated In Frame mean=223908 bytes
+  DJ.CrateBatches mean=6806735 ns
+  DJ.WetEffects mean=1682 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=973.79ms p90=2806.52ms frames=24 batches=277 triangles=2260021 awake=5023
+  sinking=38 sunk=59 shattered=14 visual=1 converted=11 restored=1 active=6025
+  Physics.SyncTransforms mean=9479617 ns
+  Physics.Simulate mean=833138904 ns
+  Main Thread mean=1332536942 ns
+  BehaviourUpdate mean=239347054 ns
+  GC Allocated In Frame mean=3272026 bytes
+  DJ.CrateBatches mean=23972700 ns
+  DJ.WetEffects mean=1076883 ns
+  DJ.BotThreat mean=19429317 ns
+  DJ.WalkingSources mean=31939471 ns
+  DJ.Tsunami mean=53426879 ns
+  DJ.BotDestination mean=38636146 ns
+  DJ.BotGeometry mean=14497546 ns
+  DJ.DeathDeform mean=9887413 ns
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Survivor colliders keep their exact original block owners
+PASS Survivor colliders use fewer shared kinematic bodies
+PASS Shared survivor collider follows actual block translation and rotation before motor queries
+PASS Original tower survives settling without sinking or shattering
+PASS Native setting keeps independent block physics
+PASS A severe actual rigidbody impact shatters and retires the block
+PASS High-speed downward debris enters swept ballistic simulation
+PASS Forecast high-speed debris switches to trigger-only visual motion before applying its push
+PASS Visual debris carries its momentum without a dynamic collision body
+PASS Approaching observer restores native collision, climbing and motion
+PASS Swept ballistic contact shatters and retires its original block
+PASS Ordinary short drops do not shatter blocks
+PASS Displaced debris visibly sinks through ground and deactivates after burial
+PASS Shattered and buried blocks keep their original network indices
+PASS Hit lookup accepts a missing collider
+PASS Ordinary collider lookup retains original abilities and body
+PASS Survivor colliders keep their exact original block owners
+PASS Survivor colliders use fewer shared kinematic bodies
+PASS Shared survivor collider follows actual block translation and rotation before motor queries
+PASS Naturally settled large map suspends most blocks
+FAIL System.InvalidOperationException: Sequence contains no elements
+  at System.Linq.Enumerable.First[TSource] (System.Collections.Generic.IEnumerable`1[T] source) [0x00010] in <e1f614c5eede4689988594bcb9796955>:0
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance+<GroupChecks>d__12.MoveNext () [0x00528] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:161
+  at DeadlyJenga.DevTools.Editor.DenseWavePerformance+<Guard>d__9.MoveNext () [0x00040] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\DenseWavePerformance.cs:74
+COMPLETE runtimeErrors=0
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.
+ERROR MissingReferenceException: The object of type 'UnityEngine.Rigidbody' has been destroyed but you are still trying to access it.
+Your script should either check if it is null or you should not destroy the object.

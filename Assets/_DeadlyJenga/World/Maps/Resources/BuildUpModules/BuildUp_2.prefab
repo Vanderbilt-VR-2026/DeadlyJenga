@@ -1,0 +1,3928 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &5764724350141902316
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 6322410207657040920}
+  - component: {fileID: 4950202304121162867}
+  m_Layer: 0
+  m_Name: BuildUp_2
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &6322410207657040920
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5764724350141902316}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2611086710554033326}
+  - {fileID: 4312340485813402578}
+  - {fileID: 8929156582182007501}
+  - {fileID: 7246648578005939423}
+  - {fileID: 2733243267715023591}
+  - {fileID: 7877355725643878650}
+  - {fileID: 8773704894874012976}
+  - {fileID: 5631592269214969122}
+  - {fileID: 8615450981347273474}
+  - {fileID: 7258134291436455662}
+  - {fileID: 8139310972085837723}
+  - {fileID: 8676997001572803217}
+  - {fileID: 5011530798321798864}
+  - {fileID: 1358220299569818114}
+  - {fileID: 8651891719545231481}
+  - {fileID: 8160243665732868918}
+  - {fileID: 3325622720441114971}
+  - {fileID: 5626533889796408852}
+  - {fileID: 5238229587643113714}
+  - {fileID: 5855315971938706760}
+  - {fileID: 538615366206422263}
+  - {fileID: 7905812404011450157}
+  - {fileID: 2412442531912709159}
+  - {fileID: 7317990546899290594}
+  - {fileID: 8558677835673559198}
+  - {fileID: 1543392360931434034}
+  - {fileID: 5149725526447808636}
+  - {fileID: 8159457882191536293}
+  - {fileID: 2533773423120041105}
+  - {fileID: 2420822806270444946}
+  - {fileID: 139296314379682858}
+  - {fileID: 2334373929616159675}
+  - {fileID: 3623734785759183849}
+  - {fileID: 6341398718015000017}
+  - {fileID: 513051111400649229}
+  - {fileID: 7277707442418349407}
+  - {fileID: 2109264052693850636}
+  - {fileID: 6176717189239144803}
+  - {fileID: 3196950868615257941}
+  - {fileID: 2750995541403297641}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4950202304121162867
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5764724350141902316}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8d2d4007cbaf060408155f0e355350c8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.ScaffoldModule
+  footprintCells: {x: 4, y: 4}
+  socket: {x: 0, y: 0, z: 0}
+--- !u!1001 &64040045216743372
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 2,3,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4765796948786806749}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2334373929616159675 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 64040045216743372}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3912852911213854821 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 64040045216743372}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4765796948786806749
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3912852911213854821}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &80683436080433637
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,3,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6852581288674378594}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2420822806270444946 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 80683436080433637}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4012742183909029452 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 80683436080433637}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6852581288674378594
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4012742183909029452}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &143111467213551696
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,2,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 339898212096315714}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2412442531912709159 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 143111467213551696}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3986483873306773497 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 143111467213551696}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &339898212096315714
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3986483873306773497}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &265462980124756198
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,3,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5850223317733471313}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2533773423120041105 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 265462980124756198}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3819518426264647503 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 265462980124756198}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5850223317733471313
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3819518426264647503}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &340770724126912729
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,0,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 4809836335703365072}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2611086710554033326 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 340770724126912729}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3608530926124240752 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 340770724126912729}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &4809836335703365072
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3608530926124240752}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &389762480514977424
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 1,0,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 828400169998337280}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2733243267715023591 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 389762480514977424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3730682535732359481 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 389762480514977424}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &828400169998337280
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3730682535732359481}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &480661897158978334
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,4,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5658264782592181234}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &2750995541403297641 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 480661897158978334}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &3460204443498419383 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 480661897158978334}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5658264782592181234
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3460204443498419383}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &926335574368801570
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,4,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7682218101620873104}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &3196950868615257941 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 926335574368801570}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4212479344368757899 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 926335574368801570}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7682218101620873104
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4212479344368757899}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &1053882526346734892
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,1,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3068309225286714051}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &3325622720441114971 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 1053882526346734892}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &4039340170475541125 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 1053882526346734892}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3068309225286714051
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4039340170475541125}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &1354685439777705886
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,3,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3279019373165365296}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &2621787485429198903 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 1354685439777705886}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3279019373165365296
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2621787485429198903}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &3623734785759183849 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 1354685439777705886}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &1972113186367633317
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,0,1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5726591841028589474}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &3310392668206663692 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 1972113186367633317}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5726591841028589474
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3310392668206663692}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &4312340485813402578 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 1972113186367633317}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &2407237699290286173
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 1,3,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 945757003138552635}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &139296314379682858 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 2407237699290286173}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1713200777870850036 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 2407237699290286173}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &945757003138552635
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1713200777870850036}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &2853138013059858042
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,4,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7399833424309089773}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &513051111400649229 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 2853138013059858042}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1240419545371558355 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 2853138013059858042}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7399833424309089773
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1240419545371558355}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &2882114087581642880
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,1,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8740762498450339607}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &538615366206422263 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 2882114087581642880}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1248035407543242537 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 2882114087581642880}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8740762498450339607
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1248035407543242537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &3629767738788570741
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,0,1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3347603087985330149}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &356132296373311964 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 3629767738788570741}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3347603087985330149
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 356132296373311964}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &1358220299569818114 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 3629767738788570741}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &3886012195395441221
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,2,1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6418157272673247001}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &235129915587685868 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 3886012195395441221}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6418157272673247001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 235129915587685868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &1543392360931434034 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 3886012195395441221}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &4450476549051668091
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,4,2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8524548193649820318}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &823593850707913170 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4450476549051668091}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8524548193649820318
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 823593850707913170}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &2109264052693850636 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4450476549051668091}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &4906562739383384232
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,0,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1185528463665272503}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &7246648578005939423 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4906562739383384232}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8266680619834492673 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4906562739383384232}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1185528463665272503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8266680619834492673}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &4917027006074964633
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 2,0,1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6732047689865423031}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &7258134291436455662 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4917027006074964633}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8255785224056845616 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4917027006074964633}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6732047689865423031
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8255785224056845616}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &4934050665848699176
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,4,1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1133155782890075049}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &7277707442418349407 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4934050665848699176}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8275362225732617857 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4934050665848699176}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1133155782890075049
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8275362225732617857}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &4974332497776493973
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,2,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3246551827916126503}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &7317990546899290594 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4974332497776493973}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8333589933087013436 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 4974332497776493973}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &3246551827916126503
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8333589933087013436}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &5562454419821671258
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,1,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 5056209351212261802}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &7905812404011450157 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5562454419821671258}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8907966388892585203 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5562454419821671258}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &5056209351212261802
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8907966388892585203}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &5608993537553833101
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 1,0,1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 539350318536040937}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &7877355725643878650 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5608993537553833101}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &8897317424489161508 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5608993537553833101}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &539350318536040937
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8897317424489161508}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &5796832666861081580
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 2,0,2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7237191352143850817}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7412017279126793285 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5796832666861081580}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7237191352143850817
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7412017279126793285}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8139310972085837723 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5796832666861081580}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5888978563605763905
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,0,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8674535125303395155}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7428511819319666920 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5888978563605763905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8674535125303395155
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7428511819319666920}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8160243665732868918 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5888978563605763905}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &5889282361697676498
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,2,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 2833607653422788272}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7427656191015965563 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5889282361697676498}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &2833607653422788272
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7427656191015965563}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &8159457882191536293 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 5889282361697676498}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6215056035974737129
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,2,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6348168026416345759}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &6984777770515665728 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6215056035974737129}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6348168026416345759
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6984777770515665728}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &8558677835673559198 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6215056035974737129}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6275453446443345781
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 2,0,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8367690810824963114}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7041476148840880348 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6275453446443345781}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8367690810824963114
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7041476148840880348}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8615450981347273474 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6275453446443345781}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6383686452514657294
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,0,2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8445072629679424500}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7942612414356679591 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6383686452514657294}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8445072629679424500
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7942612414356679591}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8651891719545231481 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6383686452514657294}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6407560556632305382
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 2,0,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7078012921016393786}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7945054020733047119 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6407560556632305382}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7078012921016393786
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7945054020733047119}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8676997001572803217 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6407560556632305382}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6432458245611012423
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 1,0,2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1449838601584965601}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &8064280454169575150 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6432458245611012423}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1449838601584965601
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8064280454169575150}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8773704894874012976 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6432458245611012423}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &6587750538798153402
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,0,2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7112346859473852094}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &7909128945113088275 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6587750538798153402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7112346859473852094
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7909128945113088275}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!4 &8929156582182007501 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 6587750538798153402}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &7280719816101036711
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,0,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7167582748035428022}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &5011530798321798864 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7280719816101036711}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6027200518614678798 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7280719816101036711}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7167582748035428022
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6027200518614678798}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &7489865204932668427
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,2,2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1920474645815085224}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &5149725526447808636 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7489865204932668427}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &5863654080305140642 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7489865204932668427}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1920474645815085224
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5863654080305140642}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &7509530973115493509
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 1,1,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6433592326117602003}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &5238229587643113714 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7509530973115493509}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6816633765417046828 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7509530973115493509}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6433592326117602003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6816633765417046828}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &7967903959245130339
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,1,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 6813297277836306295}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &5626533889796408852 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7967903959245130339}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6358260815798629834 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7967903959245130339}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &6813297277836306295
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6358260815798629834}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!1001 &7971855094077186389
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 1,0,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: 61e7fd6e08d03ec40ba156c96ddac57b, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1152807522453699821}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!4 &5631592269214969122 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7971855094077186389}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &6345304769045831420 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 7971855094077186389}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1152807522453699821
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6345304769045831420}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 3
+  foundationAnchor: 1
+--- !u!1001 &8197847057448102207
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 5
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 2,1,0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1659923700100892453}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &5145961395051206294 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 8197847057448102207}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1659923700100892453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5145961395051206294}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &5855315971938706760 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 8197847057448102207}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8448404504668867860
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 9
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 0,4,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8246507556916869307}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &4868525112360661693 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 8448404504668867860}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &8246507556916869307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4868525112360661693}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &6176717189239144803 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 8448404504668867860}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1001 &8685178847556649382
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 6322410207657040920}
+    m_Modifications:
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 7
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2587665379365104570, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: m_Name
+      value: Magnetic cube 3,3,3
+      objectReference: {fileID: 0}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: appearance
+      value: 
+      objectReference: {fileID: 11400000, guid: 97e1029922ece5b42951b0bdbbeb0c1e, type: 2}
+    - target: {fileID: 5303435970745274603, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      propertyPath: sectionMaterial
+      value: 
+      objectReference: {fileID: 2100000, guid: b84f7f320174c5240b85eac532fe62c7, type: 2}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 7247573243764487081}
+  m_SourcePrefab: {fileID: 100100000, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+--- !u!1 &5632119449073204751 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3940292234519936937, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 8685178847556649382}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7247573243764487081
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5632119449073204751}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 059937d15ea75e8428d4b401a73fc534, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.MagneticBlock
+  strength: 1
+  foundationAnchor: 0
+--- !u!4 &6341398718015000017 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2343798891440180343, guid: 73f13b96e15c328409ff4a28346364ae, type: 3}
+  m_PrefabInstance: {fileID: 8685178847556649382}
+  m_PrefabAsset: {fileID: 0}

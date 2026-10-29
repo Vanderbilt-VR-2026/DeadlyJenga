@@ -1,0 +1,11 @@
+Real Game hover, rifle, cosmetics and private Mystery replay checks.
+PASS solo Game initializes
+PASS Grant DualRifle
+PASS Draw DualRifle
+PASS Rifle accepts a near-edge shot
+FAIL Generous rifle trace hits capsule edge
+FAIL System.InvalidOperationException: Generous rifle trace hits capsule edge
+  at DeadlyJenga.DevTools.Editor.CandyPolishReplayChecks.Check (System.Boolean pass, System.String label) [0x0003a] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\CandyPolishReplayChecks.cs:63 
+  at DeadlyJenga.DevTools.Editor.CandyPolishReplayChecks+<Test>d__14.MoveNext () [0x0057b] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\CandyPolishReplayChecks.cs:100 
+  at DeadlyJenga.DevTools.Editor.CandyPolishReplayChecks+<Guard>d__11.MoveNext () [0x00039] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\CandyPolishReplayChecks.cs:72 
+COMPLETE checks=5 runtimeErrors=0 failed=True. Desktop runtime; headset not tested.

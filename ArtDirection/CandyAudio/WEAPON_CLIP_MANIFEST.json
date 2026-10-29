@@ -1,0 +1,369 @@
+{
+  "provenance": "Original deterministic synthesis; no external recordings.",
+  "clips": [
+    {
+      "name": "WeaponRifle-01.wav",
+      "sha256": "5e1ad0b4b388ffa825c7fc944c8bff1364f5fda23aca196aa56e2bf53b8db0a8",
+      "seconds": 0.85,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponRifle-02.wav",
+      "sha256": "f41beb8694346b8f89d6e1be803883a0327f086006a700e03eebae4417a53ea2",
+      "seconds": 0.85,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponRifle-03.wav",
+      "sha256": "bbcfedcc574baef63f57fdfc53e7de2057e6b9d81deb7a6c13abdab59228287d",
+      "seconds": 0.85,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponRifle-04.wav",
+      "sha256": "8e87ff9a0deb1f68722aa5ac5a93f6ce45f790c40eaea0bb9c40e7bc3a46a094",
+      "seconds": 0.85,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponShotgun-01.wav",
+      "sha256": "5d447b41d00f3b0f85533db2d817c34394ffda014678585f69889bc0c0b06c0e",
+      "seconds": 1.25,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponShotgun-02.wav",
+      "sha256": "4e345597fb17a3e2849d454a7f22ca1d67918a99aee7006725c6a2a2f9c7c1b7",
+      "seconds": 1.25,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponShotgun-03.wav",
+      "sha256": "eb425a6f60701308eccbe3460e383f96f0a18f15a014161146dcb28b33727347",
+      "seconds": 1.25,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponShotgun-04.wav",
+      "sha256": "559dd047e10292356e86594f977c9b9b716cddf38702e6507c1278de52479141",
+      "seconds": 1.25,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBlaster-01.wav",
+      "sha256": "4b9d9160be6f870215fcb551b4616032a4e9e44086b6f5e8b28011b8b098457b",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBlaster-02.wav",
+      "sha256": "fab47eee1378629a15ffa5e2262a39e248c16639f21f37aa71cb8b63cc089db2",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBlaster-03.wav",
+      "sha256": "5d484b4a8db8515787672cc47c1667f03628741c6d91bb53abf8b9041e444f10",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBlaster-04.wav",
+      "sha256": "73079de094e7404510f9458d73a26f47e164c72ac8d54bfd452419d475ffe7a3",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponTransform-01.wav",
+      "sha256": "f59f97d1ed8e5ff9d66b92a4ed6f5bad990f4da73c9224ba682dff32ff3fb9b6",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponTransform-02.wav",
+      "sha256": "875ec85edcd6d75b476c3360f76737cc93b727f9f655fe1df8613d49a99e212b",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponTransform-03.wav",
+      "sha256": "54db65f658aa0ded6da9fccb2aeeee175828477a83627f1dd6f8c1feee2d71c4",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponTransform-04.wav",
+      "sha256": "c23872a199734ac83cc9fb08c86f863eecf023a45dc1e9fbd54c76b1fc7552cc",
+      "seconds": 0.65,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDraw-01.wav",
+      "sha256": "7da720e403ec4df0a07e46cde96fa7c1164aedd5cb4a937b5e00da3fe081c504",
+      "seconds": 0.34,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDraw-02.wav",
+      "sha256": "382390f9f16fff3dea64bd468dc1520decac630c0af6d6c36106c4d2bd4f91d9",
+      "seconds": 0.34,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDraw-03.wav",
+      "sha256": "80b5945544216fee39dbac410ea2982bd38e62e4911d081f51cf07f7265d243c",
+      "seconds": 0.34,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDraw-04.wav",
+      "sha256": "9aaeabc0e36809c0e9bdd6b6d1256db481dfeb35f325a2b2afd58d19e323e22d",
+      "seconds": 0.34,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHolster-01.wav",
+      "sha256": "3a3f04da3627e35faf2721d22d12015bbb385bf9371fd9b250e14f7f4ee812a1",
+      "seconds": 0.3,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHolster-02.wav",
+      "sha256": "f4a1e2d9a94d5fd5bc0cc32f8115cffd84c3b19cc08a4820940527599e97d223",
+      "seconds": 0.3,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHolster-03.wav",
+      "sha256": "7b632dee0805e3f1198d1e915f5c3a05fac922965c637a1374b99cd0d6f87a46",
+      "seconds": 0.3,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHolster-04.wav",
+      "sha256": "2433c403be87794035701267f07d5df7c77bcb216a1230db6b69f4642ae1264f",
+      "seconds": 0.3,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPickup-01.wav",
+      "sha256": "60f124e37f4a07c06216abeb624d74089b43e6ad30fe4e58098157b0b2483861",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPickup-02.wav",
+      "sha256": "2ab1fc830f86ce9e61ada8375406e55c104a60c8f09bc3e551507fd6b705bfe3",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPickup-03.wav",
+      "sha256": "f2ddd39286a1667862d1c342f2db31e7b096b88217c153e17cf1143e574f6812",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPickup-04.wav",
+      "sha256": "f43e059dfe0d47dcbda05c3f09a1536f314d6af81cc4d9d06163b985974268ad",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSwap-01.wav",
+      "sha256": "978e1ecc3e67e630556c60e3199639f574649faa5c00e3f98484b146f52593ed",
+      "seconds": 0.55,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSwap-02.wav",
+      "sha256": "86deb40e95ebcb3c5e045baaea6116787f3796526fbbcc2573d0f003128c6602",
+      "seconds": 0.55,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSwap-03.wav",
+      "sha256": "da2feac65dd22cbd1fbd9a7ade8b498b11331a63d1a104335e239346afeb45aa",
+      "seconds": 0.55,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSwap-04.wav",
+      "sha256": "72e846ea3a4f6b8aa5265b6ed60815955da845245911642e5e659043ba2c98dc",
+      "seconds": 0.55,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDrop-01.wav",
+      "sha256": "5b859052b9e196765a58975874caba42a2e266591e58b09b96c963f76bfb1015",
+      "seconds": 0.4,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDrop-02.wav",
+      "sha256": "eee92bd0e942c0413602c577261d7dee3fc4db1234004a0185d0c315fa5b48c2",
+      "seconds": 0.4,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDrop-03.wav",
+      "sha256": "fac750c62e5927b4c785a266fe0e22515f3b0b1fd3915c8f5591c0abef3c19d6",
+      "seconds": 0.4,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponDrop-04.wav",
+      "sha256": "83956d9ff8ea45d77472fa996d209f2f098dbc8e80dc6531fd9f84f8ba0c8cf4",
+      "seconds": 0.4,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSword-01.wav",
+      "sha256": "6dde3264c72d3284cf56737b52717feac83178fac5e11b9b0c5b26817f84cda2",
+      "seconds": 0.38,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSword-02.wav",
+      "sha256": "72d0b41151be084c1c051794c2c0c413cc5d5619ce2c23044c95cbd50769eb4f",
+      "seconds": 0.38,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSword-03.wav",
+      "sha256": "cc994e329d7f0c92c92c851067ea254752d93703360d881a9e5f4feec716effd",
+      "seconds": 0.38,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponSword-04.wav",
+      "sha256": "a9f190f8f014d11a6f568fabd658c0e33a79173791d2495d9e63c8ffa4dff642",
+      "seconds": 0.38,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHammer-01.wav",
+      "sha256": "47c8f84f087a9dcc073bd7c7e6ef862343fa2739406c32dd801856b4d836b6dd",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHammer-02.wav",
+      "sha256": "5dde2aa58f92c8c97ff24abfe6a95dfbe9a7100e7cf36b3ff20ed6feee7782a0",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHammer-03.wav",
+      "sha256": "bceebc37dbeb816f01efb85f222faff8bc62400e42e590345495c3e5da019341",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponHammer-04.wav",
+      "sha256": "a67d8419de84ab65c78d9e9614df760ed00aedb8bd649a447d9da8449f1383ed",
+      "seconds": 0.48,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBoxing-01.wav",
+      "sha256": "a205ac8d6181b815b166d321f3ec86c22f9651f5d373560324e6740ac9238084",
+      "seconds": 0.42,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBoxing-02.wav",
+      "sha256": "5a29be128d45eb65ab88fe987450ae3781f15f5e8218162ef0b7337f27f0536d",
+      "seconds": 0.42,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBoxing-03.wav",
+      "sha256": "0ca20bab40fcf942f98d2feb2bec71d780aedf9f95c1ac9ae7c013d45f9e663a",
+      "seconds": 0.42,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponBoxing-04.wav",
+      "sha256": "2b8cdb58010075c81b509bb11b418b8eebf1c2501c1ae6e0db6dbb8abfe35043",
+      "seconds": 0.42,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPlasmaImpact-01.wav",
+      "sha256": "02ee4737804c147f5e103e011715a1eb5d01006a4e77e0b835457ea8a589f54a",
+      "seconds": 0.7,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPlasmaImpact-02.wav",
+      "sha256": "a0106608f892be745f68b0861c89315c4a1600d052e4a354085b9aad93c5150b",
+      "seconds": 0.7,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPlasmaImpact-03.wav",
+      "sha256": "b5e723154433594e4f32062840e013932f9162ea25cc0716f59eb2b58240e2dc",
+      "seconds": 0.7,
+      "rate": 32000,
+      "channels": 1
+    },
+    {
+      "name": "WeaponPlasmaImpact-04.wav",
+      "sha256": "54f5a8df8ac2ca0fecc229d07bf9a22f737220656b9df7d1f81349f30f2c3a50",
+      "seconds": 0.7,
+      "rate": 32000,
+      "channels": 1
+    }
+  ]
+}

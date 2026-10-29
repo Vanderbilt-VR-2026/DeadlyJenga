@@ -1,0 +1,1 @@
+PASS 55 mode criteria model assertions. Closed-menu XR input requires CheckClosedMenuInputPlay in Play Mode. No headset claim.

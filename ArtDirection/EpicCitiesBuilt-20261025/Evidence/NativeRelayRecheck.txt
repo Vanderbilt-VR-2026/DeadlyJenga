@@ -1,0 +1,16 @@
+Actual native Unity 6000.3.23f1 isolated physical-map checks. Not production Game, FPS or Quest.
+
+MAP 5 Harbor Loom bodies=77 shapes=620 sites=9 routes=12 elevated=10 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.054 tilt=0.00 awake=0
+Full-size ascent capsule samples=790 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=47/77
+
+MAP 10 The Rising Spine bodies=55 shapes=518 sites=8 routes=11 elevated=5 joints=0
+Initial overlaps>.04m=0
+15s settle drift=0.053 tilt=0.00 awake=0
+Full-size ascent capsule samples=710 blocked=0 
+Contracts wrongCountRejected=True replica=True originalColliders=True
+Separate 14m/s X + 5m/s Z off-center demolition moved>.5m=34/55
+COMPLETE issues=0

@@ -235,6 +235,50 @@ PASS Unique cue: BreathExhausted
 PASS Variation count: BreathExhausted
 PASS Usable mono clip: BreathExhausted
 PASS Valid spatial range: BreathExhausted
-PASS All defined gameplay cues have bank mappings or supported synthesized breathing defaults.
+PASS Usable fallback cue: DisasterHorn
+PASS Usable fallback cue: DisasterTension
+PASS Usable fallback cue: WaveImpact
+PASS Usable fallback cue: WaveSpray
+PASS Usable fallback cue: PuddleDrain
+PASS Usable fallback cue: AcidSizzle
+PASS Usable fallback cue: AcidBurn
+PASS Usable fallback cue: CycloneWind
+PASS Usable fallback cue: EarthRumble
+PASS Usable fallback cue: FireCrackle
+PASS Usable fallback cue: MeteorWhistle
+PASS Usable fallback cue: MeteorImpact
+PASS Usable fallback cue: PowerDown
+PASS Usable fallback cue: PowerUp
+PASS Usable fallback cue: FingerFlex
+PASS Usable fallback cue: HandSwirl
+PASS Usable fallback cue: PushImpact
+PASS Usable fallback cue: ClaimWin
+PASS Usable fallback cue: IslandSink
+PASS Usable fallback cue: VampireSizzle
+PASS Usable fallback cue: LobbyLaunch
+PASS Usable fallback cue: SpawnSlam
+PASS Usable fallback cue: WeaponRifle
+PASS Usable fallback cue: WeaponShotgun
+PASS Usable fallback cue: WeaponBlaster
+PASS Usable fallback cue: WeaponTransform
+PASS Usable fallback cue: WeaponDraw
+PASS Usable fallback cue: WeaponHolster
+PASS Usable fallback cue: WeaponPickup
+PASS Usable fallback cue: WeaponSwap
+PASS Usable fallback cue: WeaponDrop
+PASS Usable fallback cue: WeaponSword
+PASS Usable fallback cue: WeaponHammer
+PASS Usable fallback cue: WeaponBoxing
+PASS Usable fallback cue: WeaponPlasmaImpact
+PASS Usable fallback cue: JaguarIdle
+PASS Usable fallback cue: JaguarChuff
+PASS Usable fallback cue: JaguarGrowl
+PASS Usable fallback cue: JaguarAlert
+PASS Usable fallback cue: JaguarAttack
+PASS Usable fallback cue: JaguarHurt
+PASS Usable fallback cue: JaguarDeath
+PASS Usable fallback cue: JaguarFootfall
+PASS Usable fallback cue: JaguarLand
+PASS All defined gameplay cues have bank mappings or usable fallback clips.
 PASS Bounded default voice pool (48 or fewer).
 Clips: 122; cues: 38

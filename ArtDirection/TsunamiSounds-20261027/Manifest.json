@@ -1,0 +1,60 @@
+{
+  "source": "Actual AudioClip PCM exported by Unity",
+  "clips": [
+    {
+      "sound": "DisasterHorn",
+      "seconds": "2.3",
+      "samples": "50715",
+      "channels": "1",
+      "frequency": "22050",
+      "loop": "False",
+      "source": "current synthesized fallback",
+      "sha256": "fe739d3a96511adbfe994c0c1c8ab4f0f7567d6adcdfd9866aee7a3482aef8fe",
+      "file": "DisasterHorn.wav"
+    },
+    {
+      "sound": "DisasterTension",
+      "seconds": "2.4",
+      "samples": "52921",
+      "channels": "1",
+      "frequency": "22050",
+      "loop": "True",
+      "source": "current synthesized fallback",
+      "sha256": "2337a6d23f1f7b40433ea04e6f91d34cdb73352a88e1fcf823776ab8565de7ec",
+      "file": "DisasterTension.wav"
+    },
+    {
+      "sound": "WaveImpact",
+      "seconds": "0.7",
+      "samples": "15435",
+      "channels": "1",
+      "frequency": "22050",
+      "loop": "False",
+      "source": "current synthesized fallback",
+      "sha256": "5bf1325cdd9b9d9f8300c92a87ff93d73ee308eb445728ed7ef32a210e88b548",
+      "file": "WaveImpact.wav"
+    },
+    {
+      "sound": "WaveSpray",
+      "seconds": "0.7",
+      "samples": "15435",
+      "channels": "1",
+      "frequency": "22050",
+      "loop": "False",
+      "source": "current synthesized fallback",
+      "sha256": "48679a611d30853c1dc2bc8c7cfcfbc3aa0c8ffba830774028d7d5f8a7456952",
+      "file": "WaveSpray.wav"
+    },
+    {
+      "sound": "PuddleDrain",
+      "seconds": "0.7",
+      "samples": "15435",
+      "channels": "1",
+      "frequency": "22050",
+      "loop": "False",
+      "source": "current synthesized fallback",
+      "sha256": "a4c9920a3fe01140d794710304dbff698abd287e40f9a063ad64edbb4dddea7d",
+      "file": "PuddleDrain.wav"
+    }
+  ]
+}

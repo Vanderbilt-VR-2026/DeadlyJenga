@@ -1,0 +1,61 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\aligned-slot-03",
+  "kind": "actual Unity desktop screenshots of live runtime enemy models",
+  "capture_driver": "staged movement through real motor; no autonomous navigation claim",
+  "mushroom_retry": "initial one-shot jump missed; grounded-gated retry succeeded",
+  "unverified": "jaguar upright melee transition, actual climb, autonomous combat decisions, headset",
+  "files": [
+    {
+      "path": "jaguar-front.png",
+      "sha256": "62e751f369d83a762c9b961e93a10e0db1dd17c2a9a27eee4b82e81846a91918"
+    },
+    {
+      "path": "jaguar-side.png",
+      "sha256": "10084563899ca365fc1db16c23ae94f5f9e58db5bda2af0620680fc7d1d612fd"
+    },
+    {
+      "path": "jaguar-moving.png",
+      "sha256": "0a76eb1af33dc4a9ea862b591e5c4323541776ceb8875d17b81065579e802e48"
+    },
+    {
+      "path": "jaguar-jump.png",
+      "sha256": "3812f4b3ad9aad73c9d5d0d7095822849a63cdcf6e747f02485903ab38a63013"
+    },
+    {
+      "path": "jaguar-jump-wide.png",
+      "sha256": "9b6da28c26b6feaee10465ad577cdf80dce8800665613642f3c9df68c1214090"
+    },
+    {
+      "path": "mushroom-front.png",
+      "sha256": "029f582da594e3d0f444b4afa8ebe54d1d435c6b5bc60a39a6820abf29aef4d3"
+    },
+    {
+      "path": "mushroom-side.png",
+      "sha256": "6763c8760e956dc488d0d851c13fbb0c593f411d8cfc32ead0ec9e653bcf9a6f"
+    },
+    {
+      "path": "mushroom-moving.png",
+      "sha256": "7de584cb67ef34361b929af4ac491a81baa57cc0736ea495231c6d1f40ff10d2"
+    },
+    {
+      "path": "mushroom-jump.png",
+      "sha256": "ab585d6c1d9a2a8d2e48b5e19b9e6675dbe21f56128a288d61b85372d408ab22"
+    },
+    {
+      "path": "mushroom-jump-wide.png",
+      "sha256": "1e93184a3d518ac248830fd3f8732ae4650fe9328a55895f0678ee709ddd5b04"
+    },
+    {
+      "path": "jaguar-melee-posture.png",
+      "sha256": "f1d9b18c8e3ed2e8a5b5bd723abb0afc4cd906b4472a35d90bc3aa5a304f817f"
+    },
+    {
+      "path": "jaguar-hurt.png",
+      "sha256": "78eef0b1a4a1fc04941f0086c38de286407f40c9ec4aacae2185c82493784f3b"
+    },
+    {
+      "path": "jaguar-hairball.png",
+      "sha256": "3ecaf56e8cb15d7d2f4a9513d4679123381b53c77b00c1b699fad39de5c2db61"
+    }
+  ]
+}

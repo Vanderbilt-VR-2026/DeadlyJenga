@@ -27,6 +27,7 @@ The rules of the match and who is playing. Uses only Core: the map (Services.Wor
   reads it; check for those edits if Photon Fusion is ever upgraded.
 
 ## Rules
+- Before adding or changing bot objectives for a mode, read Modes/AGENTS.md and Modes/BotObjectives/README.md. New objectives normally extend definitions/facts rather than the bot controller. Invalid definitions and contract checks must fail explicitly.
 - Only GameSession may edit or save Lobby.unity and Game.unity.
 - Game.unity is a container. Change other boxes' prefabs in their own box.
 - Modes start and stop hazards only through IHazard, from a list of hazard prefabs.

@@ -1,0 +1,16 @@
+PASS Tornado uses exact close capture
+PASS Three tornado proposals listed
+PASS Tsunami uses exact close capture
+PASS Three tsunami proposals listed
+PASS Selecting a card updates comparison
+PASS Redesign-only control
+PASS Current-only control
+PASS Before-after slider control
+PASS Image exists: tornado-storm-sculpt
+PASS Image exists: tornado-candy-cyclone
+PASS Image exists: tornado-supercell
+PASS Image exists: tsunami-turquoise-breaker
+PASS Image exists: tsunami-liquid-glass
+PASS Image exists: tsunami-whitewater-wall
+PASS Actual Game capture run completed
+Static file and simulated DOM checks only; live browser preview blocked by local file URL policy.

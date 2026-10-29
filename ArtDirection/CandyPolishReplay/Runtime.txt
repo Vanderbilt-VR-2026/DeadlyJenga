@@ -1,0 +1,60 @@
+Real Game hover, rifle, cosmetics and private Mystery replay checks.
+PASS solo Game initializes
+PASS Grant DualRifle
+PASS Draw DualRifle
+PASS Rifle accepts a near-edge shot
+PASS Generous rifle trace hits capsule edge
+PASS Shotgun accepts first shot
+PASS Shotgun accepts next shot at .22 seconds
+PASS Shotgun retains seven visible pellets
+PASS Both barrels and both optics always exist on carriage
+PASS Rotating rifle scope provides underside pump grip
+PASS Barrel visibly interpolates during half turn
+PASS Carriage finishes full half turn
+PASS Back sling has a genuinely diagonal upward barrel and back mount
+PASS Blaster attaches at upper thigh
+PASS Grant PoweredArmor
+PASS Draw PoweredArmor
+PASS Capsule takes off then holds altitude without holding trigger
+PASS Hover flight steers with bounded velocity
+PASS Four imported physical candy cues: PlayerPain
+PASS Four imported physical candy cues: PlayerDeath
+PASS Four imported physical candy cues: PlayerHeal
+PASS Stereo-compatible translucent plasma shader imports
+PASS Actual local damage produces red peripheral streak feedback
+PASS Actual health restoration produces green recovery feedback
+PASS Ten-second bounded pose history records during ordinary Game
+MEASURED pose sampling: 571 nodes; mean 0.684 ms per 10 Hz sample. Small runtime fixture, not a stress or Quest benchmark.
+PASS Recording creates no extra render camera
+PASS Murderer performs actual lethal strike
+PASS Victim receives private murderer kill-cam cue
+PASS Living sheriff / public snapshot cannot read victim replay cue
+PASS Actual innocent death starts local replay playback
+PASS Live camera skips rendering the world hidden behind replay UI
+PASS Playback copies contain no collision or physics
+PASS Murderer perspective renders into a real replay texture
+PASS Private wire JSON preserves victim cue
+PASS Sheriff shoots murderer through ordinary role weapon
+PASS Sheriff victory publishes two-perspective final replay
+PASS Final replay travels in validated public results frame
+PASS Final replay replaces kill-cam with split screen
+PASS Validator rejects public role-revealing replay during live play
+PASS Replay automatically releases its cameras and textures
+PASS Replay restores the original live camera culling mask
+PASS Replay transport uses validated actual live and results snapshots
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Replay host connects through real Photon transport
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent replay guest joins the real Photon room
+PASS Replay packet 0 crosses actual public 12 channel and validates
+PASS Correct replay visibility at transport step 0
+PASS Replay packet 1 crosses actual private 15 channel and validates
+PASS Correct replay visibility at transport step 1
+PASS Replay packet 2 crosses actual private 15 channel and validates
+PASS Correct replay visibility at transport step 2
+PASS Replay packet 3 crosses actual public 12 channel and validates
+PASS Correct replay visibility at transport step 3
+PASS Replay packet 4 crosses actual public 12 channel and validates
+PASS Correct replay visibility at transport step 4
+PASS Replay transport restores peer and physics settings
+COMPLETE checks=55 runtimeErrors=0 failed=False. Desktop runtime; headset not tested.

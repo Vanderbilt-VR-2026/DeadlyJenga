@@ -1,10 +1,11 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    public sealed class CandyPlayerRig : MonoBehaviour
+    public sealed partial class CandyPlayerRig : MonoBehaviour, IMysteryBodySource, IAvatarSurfacePalette
     {
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
@@ -15,36 +16,94 @@ namespace DeadlyJenga.CandyPlayers
         MaterialPropertyBlock colorProperties;
         Material currentMaterial;
         Color currentColor;
+        [SerializeField] bool hasTint;
+        [SerializeField] Color tint;
         float currentSmoothness;
         int colorIndex=int.MinValue;
         Vector3 previousFeet;
         float walkPhase;
         float locomotionSpeed;
         public Transform LeftPalm=>bones[4];
+        public Transform HeadAnchor=>bones[1];
+        public Transform BodyAnchor=>bones[0];
+        CandyAvatarAttachments attachments;
+        public void SetAppearance(AvatarAppearance appearance)
+        {
+            if(!attachments)attachments=GetComponent<CandyAvatarAttachments>();
+            if(!attachments)attachments=gameObject.AddComponent<CandyAvatarAttachments>();
+            attachments.Apply(this,appearance);
+        }
+        public void SetTint(Color color)
+        {
+            hasTint=true;tint=color;
+            if(currentColor==color)return;
+            colorProperties??=new MaterialPropertyBlock();colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style?style.smoothness:.78f);
+            bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);currentColor=color;
+            if(attachments)attachments.Tint(this);
+        }
         public Transform RightPalm=>bones[7];
+        public Transform AppearanceBone(int index)=>bones[index];
+        public Color BaseAppearanceColor=>hasTint?tint:style?style.ColorAt(colorIndex):Color.white;
+        public void ApplyBodyPalette(Color color){colorProperties??=new MaterialPropertyBlock();bodyRenderer.GetPropertyBlock(colorProperties);colorProperties.SetColor("_BaseColor",color);bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);}
         public int ColorIndex=>colorIndex;
         public int BoneCount=>bones?.Length??0;
-        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();}
+        public IMysteryBody CreateMysteryBody()
+        {
+            var copy=Instantiate(this);copy.name="Candy mystery body";copy.ownerCamera=null;copy.enabled=false;
+            copy.bodyRenderer.enabled=copy.headRenderer.enabled=true;copy.bodyRenderer.SetPropertyBlock(colorProperties);copy.headRenderer.SetPropertyBlock(colorProperties);
+            var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
+            var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
+        }
+        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
-        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
+        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
+        bool firstPersonOverride;
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
-        {if(headRenderer)headRenderer.shadowCastingMode=camera==ownerCamera?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;}
-        void AfterCamera(ScriptableRenderContext context,Camera camera){if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;}
+        {
+            var spectator=Services.Session?.Demo as ISpectatorControls;
+            var watched=spectator?.WatchedRoot(camera);
+            bool firstPerson=camera==ownerCamera||(watched&&transform.IsChildOf(watched));
+            if(!firstPerson&&!firstPersonOverride)return;
+            firstPersonOverride=firstPerson;
+            if(headRenderer)headRenderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
+            SetFirstPersonBody(firstPerson);
+            if(attachments)attachments.FirstPerson(this,firstPerson);
+        }
+        void AfterCamera(ScriptableRenderContext context,Camera camera){if(!firstPersonOverride)return;firstPersonOverride=false;RestoreFirstPersonBody();if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;if(attachments)attachments.FirstPerson(this,false);}
         public void SetColor(int index)
         {
-            if(!style)return;var color=style.ColorAt(index);
+            if(!style)return;var color=hasTint?tint:style.ColorAt(index);
             if(index==colorIndex&&currentMaterial==style.material&&currentColor==color&&currentSmoothness==style.smoothness)return;
             colorProperties??=new MaterialPropertyBlock();
             bodyRenderer.sharedMaterial=style.material;headRenderer.sharedMaterial=style.material;
             colorProperties.SetColor("_BaseColor",color);colorProperties.SetFloat("_Smoothness",style.smoothness);
             bodyRenderer.SetPropertyBlock(colorProperties);headRenderer.SetPropertyBlock(colorProperties);
             colorIndex=index;currentMaterial=style.material;currentColor=color;currentSmoothness=style.smoothness;
+            if(attachments)attachments.Tint(this);
+        }
+        bool composingPose,pendingPose,pendingGrounded;
+        float pendingDelta;
+        CandyAvatarFrame pendingFrame;
+        public void BeginPoseComposition(){composingPose=true;pendingPose=false;pendingDelta=0;}
+        public void EndPoseComposition()
+        {
+            composingPose=false;
+            if(!pendingPose)return;
+            pendingPose=false;ApplyFrame(pendingFrame,pendingGrounded,pendingDelta);
         }
         public void ApplyFrame(CandyAvatarFrame frame,bool grounded=true,float deltaTime=0)
         {
+            if(composingPose){pendingFrame=frame;pendingGrounded=grounded;pendingDelta+=deltaTime;pendingPose=true;return;}
             if(!bodyRenderer)BuildModel();
             if(colorIndex!=int.MinValue)SetColor(colorIndex);
             float scale=Mathf.Max(.1f,frame.scale);
+            var actor=GetComponentInParent<IModeActor>();bool downed=actor!=null&&MatchRuntime.Current?.RulesFor(actor.gameObject).downed==true;
+            if(downed)
+            {
+                frame.head=frame.feet+Vector3.up*.62f*scale+frame.headRotation*Vector3.forward*.3f*scale;
+                frame.left.position=frame.feet+transform.forward*.5f*scale-transform.right*.23f*scale+Vector3.up*.12f*scale;
+                frame.right.position=frame.feet+transform.forward*.5f*scale+transform.right*.23f*scale+Vector3.up*.12f*scale;
+            }
             var fit=calibration;
             // Work on the frame copy; the tracked/network poses remain untouched.
             if(fit!=null)
@@ -63,8 +122,10 @@ namespace DeadlyJenga.CandyPlayers
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
             bones[0].localPosition=torsoOffset;bones[0].localRotation=Quaternion.identity;bones[0].localScale=new Vector3(width,crouch,1);
-            bones[1].SetPositionAndRotation(frame.head+frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))*scale,frame.headRotation);
+            var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
+            bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
+            if(attachments)attachments.RefreshPalette(this);
             if(deltaTime>0){locomotionSpeed=Vector3.ProjectOnPlane(frame.feet-previousFeet,Vector3.up).magnitude/deltaTime;previousFeet=frame.feet;walkPhase+=Mathf.Min(locomotionSpeed,6)*deltaTime*6;}
             float speed=locomotionSpeed;
             float stride=grounded?Mathf.Clamp01(speed/2)*.13f:0;
@@ -93,6 +154,7 @@ namespace DeadlyJenga.CandyPlayers
                 }
             }
             bodyRenderer.localBounds=new Bounds(new Vector3(0,1,0),new Vector3(6,5,6));
+            if(downed){bones[0].localRotation=Quaternion.Euler(65,0,0);bones[0].localPosition=new Vector3(0,.05f,.28f);}
         }
         static Quaternion Orientation(Vector3 delta,Vector3 normal)
         {

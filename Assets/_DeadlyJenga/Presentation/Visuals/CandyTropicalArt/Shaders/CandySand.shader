@@ -5,6 +5,7 @@ Shader "Candy Tropical/Sand"
         _BaseColor("Warm molded sand",Color)=(.86,.67,.4,1)
         _WaterHeight("Water surface",Float)=.08
         _Grain("Sand grain",Range(0,1))=.55
+        _ScenicStyle("Scenic style",Float)=0
     }
     SubShader
     {
@@ -22,7 +23,7 @@ Shader "Candy Tropical/Sand"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
-            float4 _BaseColor;float _WaterHeight,_Grain;
+            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle;
             CBUFFER_END
             struct Attributes{float4 positionOS:POSITION;float3 normalOS:NORMAL;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float fog:TEXCOORD2;UNITY_VERTEX_OUTPUT_STEREO};
@@ -41,6 +42,9 @@ Shader "Candy Tropical/Sand"
                 Light light=GetMainLight(TransformWorldToShadowCoord(i.world));
                 float3 color=_BaseColor.rgb*lerp(.92,1.06,noise(p*.4));
                 color*=1+(grain-.5)*micro*.2+(grit-.5)*micro*.08;
+                if(_ScenicStyle>2.5&&_ScenicStyle<3.5)color*=lerp(.95,1.12,noise(p*.7));
+                if(_ScenicStyle>.5&&_ScenicStyle<1.5)color*=lerp(.55,1.2,noise(p*1.7));
+                if(_ScenicStyle>3.5)color=lerp(color,float3(.88,.98,1),pow(saturate(noise(p*.9)),3)*.5);
                 float submerged=max(0,_WaterHeight-i.world.y);
                 color=lerp(color,color*float3(.64,.89,.88),saturate(submerged*.25));
                 float3 illumination=SampleSH(n)*.82+light.color*saturate(dot(n,light.direction))*light.shadowAttenuation*.72;

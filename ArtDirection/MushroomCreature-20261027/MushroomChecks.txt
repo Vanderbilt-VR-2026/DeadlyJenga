@@ -1,0 +1,16 @@
+Enemy movement capture started 2026-10-27T00:26:39.2816971-05:00
+PASS Actual Game session loaded
+PASS Real enemy population available
+PASS Spawned actual mushroom
+PASS Compact mushroom shell uses six renderers
+PASS Original humanoid body and head are hidden
+PASS Creature shell adds no colliders
+PASS Original mushroom jump and traversal settings preserved
+PASS mushroom climb setting recorded
+MEASURE mushroom scale=0.65 jumpHeight=9.1 multiplier=5
+PASS mushroom moves through real character motor using staged forward input
+MEASURE before jump grounded=True inputSuspended=False canJump=True
+PASS mushroom leaves ground through real jump command
+PASS Switching to a regular appearance restores the original avatar
+PASS Switching back reuses the mushroom shell without duplicates
+COMPLETE; errors=0. Actual desktop Editor; staged driver input and temporary inspection arena. No Quest or autonomous navigation verification.

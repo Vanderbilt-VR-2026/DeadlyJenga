@@ -1,0 +1,17 @@
+Lantern Ravine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=68 shapes=681 routes=11 elevated=6 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Ravine mouth lantern position=(-94.68, 5.04, -113.60)
+PASS production motor first flight Low west terraces position=(-109.68, 9.04, -26.60)
+PASS production motor first flight West stepping homes position=(-94.68, 11.04, 91.40)
+PASS production motor first flight Eastern office ridge position=(105.19, 9.34, -108.60)
+PASS production motor first flight Ravine compression gateway position=(102.00, 13.44, 33.66)
+PASS production motor first flight High ravine beacon position=(105.32, 13.04, 106.40)
+PASS production motor first flight Low mouth arcade position=(5.32, 5.04, -120.60)
+PASS production motor first flight Inland saddle position=(5.32, 9.04, 98.40)
+32 bots / quiet frames=26 average=6.6FPS p95=203.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=32
+32 bots + tsunami frames=489 average=5.8FPS p95=957.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=28/68. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=42/68. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=68 runtimeErrorsSoFar=0

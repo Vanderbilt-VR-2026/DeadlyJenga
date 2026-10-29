@@ -1,0 +1,17 @@
+The Rising Spine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=55 shapes=518 routes=11 elevated=5 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Seaside low market position=(-134.68, 5.04, -95.60)
+PASS production motor first flight First spine terrace position=(-49.68, 5.04, -96.60)
+PASS production motor first flight Middle crown position=(40.21, 9.03, -71.00)
+PASS production motor first flight Inland civic summit position=(130.32, 15.04, -43.60)
+PASS production motor first flight Headland shoulder position=(130.32, 13.04, 58.40)
+PASS production motor first flight Secondary skyline position=(40.32, 11.04, 66.40)
+PASS production motor first flight Lower cross-grain arcade position=(-49.68, 7.04, 58.40)
+PASS production motor first flight Waterfront landmark position=(-134.68, 5.04, 11.40)
+32 bots / quiet frames=63 average=15.9FPS p95=79.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=32
+32 bots + tsunami frames=670 average=10.0FPS p95=204.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=30/55. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=37/55. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=55 runtimeErrorsSoFar=0

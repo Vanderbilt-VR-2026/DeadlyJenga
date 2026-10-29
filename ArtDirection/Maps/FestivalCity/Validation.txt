@@ -1,0 +1,80 @@
+Sparse structural maps · city
+Real Unity isolated rigidbody simulation; not GPU/FPS, bot, headset or live network certification.
+MAP festival-city: 633 bodies; 223.2 x 159.4m; height 65.7m; gravity only, no bonds or joints.
+PASS festival-city: explicit map body budget <=1000
+PASS festival-city: finite positive geometry
+PASS festival-city: deterministic stable member order
+NOTE city compound overlap/bearing checks are deferred to real convex-collider runtime validation.
+PASS festival-city: selectable map prefab saved
+REGISTERED map choices in Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset
+AUTHORING COMPLETE failures=0. Runtime validation pending. No team scene was saved.
+PASS festival-city: all authored members use independent dynamic gravity
+PASS festival-city: no stabilizing joints
+PASS festival-city: compound/flight solid shapes do not initially penetrate: 
+PASS festival-city: original 512 Festival members retain their exact layout before city additions
+PASS festival-city: every member exposes a root collider for existing mode queries
+CITY member count=633; real solid collider count=1049 (excludes survivor proxies)
+SETTLE festival-city: 8s; maximum drift=0.0702m; tilt=0.163deg; awake=0/633.
+CITY DRIFT 214 · floor sector: 0.0702 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 212 · upper lintel: 0.0697 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 208 · keep pier: 0.0670 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 207 · keep pier: 0.0664 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 202 · floor sector: 0.0656 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 418 · rest cap: 0.0648 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 213 · floor sector: 0.0643 velocity=(0.00, 0.00, 0.00)
+CITY DRIFT 217 · floor sector: 0.0639 velocity=(0.00, 0.00, 0.00)
+PASS festival-city: unforced structure stays within .5m / 5deg during settling
+PASS festival-city: safe spawn has standing capsule clearance
+COLLAPSE festival-city: remove member 0; moved>.5m=0; native physics average settled=0.305ms/step, collapse=3.285ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS festival-city: redundant keep has a second independently removable bearing
+REDUNDANCY festival-city: one corner survived; removing adjacent corner 1 moved 59 members >.5m.
+PASS festival-city: real bearing loss produces gravity-driven displacement without scripted failure
+CITY BEARING LOSS: removing 1/4 ground room sections displaced 28 other Hall members >.5m under native gravity.
+PASS festival-city: new Hall responds physically to lost supports
+PASS festival-city: invalid network count leaves live layout unchanged
+PASS festival-city: invalid network scale rejected
+PASS festival-city: replica suspends independent simulation
+PASS festival-city: authority recovery restores dynamic bodies
+PASS festival-city: serialized layout rebuild retains stable member count
+NOTE final city review images are captured after the normal Game frame warm-up; isolated preview can contain queued batch draws.
+EDITOR FRAMES festival-megastructure [idle, no bots]: median=21.06ms; p90=24.40ms; n=123; bots=0; active=512; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES festival-megastructure [bots, no wave]: median=52.92ms; p90=71.27ms; n=74; bots=32; active=512; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-megastructure: spawned 32/32; 32 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-megastructure [bots + actual tsunami]: median=104.26ms; p90=604.40ms; n=150; bots=32; active=512; awake=487. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT festival-megastructure: 31/512 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+EDITOR FRAMES festival-city [idle, no bots]: median=31.91ms; p90=47.97ms; n=86; bots=0; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+CITY WALK progress Lantern Hall 0/45
+CITY WALK progress Lantern Hall 5/45
+CITY WALK progress Lantern Hall 10/45
+CITY WALK progress Lantern Hall 15/45
+CITY WALK progress Lantern Hall 20/45
+CITY WALK progress Lantern Hall 25/45
+CITY WALK progress Lantern Hall 30/45
+CITY WALK progress Lantern Hall 35/45
+CITY WALK progress Lantern Hall 40/45
+CITY WALK progress Lantern Hall 45/45
+PASS city production motor walked Lantern Hall at 2x clock without jump/climb: 45/45 landings; feet=(62.50, 58.75, 1.13)
+CITY WALK state calls=4564 paused=False grounded=True angle=0 health=100 status=Spawned on top
+CITY WALK progress Setback House 0/29
+CITY WALK progress Setback House 5/29
+CITY WALK progress Setback House 10/29
+CITY WALK progress Setback House 15/29
+CITY WALK progress Setback House 20/29
+CITY WALK progress Setback House 25/29
+PASS city production motor walked Setback House at 2x clock without jump/climb: 29/29 landings; feet=(-66.50, 38.76, 5.13)
+CITY WALK state calls=2550 paused=False grounded=True angle=0 health=100 status=Spawned on top
+CITY WALK progress Gate Towers 0/28
+CITY WALK progress Gate Towers 5/28
+CITY WALK progress Gate Towers 10/28
+CITY WALK progress Gate Towers 15/28
+CITY WALK progress Gate Towers 20/28
+CITY WALK progress Gate Towers 25/28
+PASS city production motor walked Gate Towers at 2x clock without jump/climb: 28/28 landings; feet=(0.00, 31.25, 67.20)
+CITY WALK state calls=3853 paused=False grounded=True angle=0.05233916 health=100 status=Spawned on top
+PASS city bot geometry samples actual convex flight surfaces: 400
+EDITOR FRAMES festival-city [bots, no wave]: median=70.08ms; p90=108.48ms; n=54; bots=32; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-city: spawned 32/32; 30 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-city [bots + actual tsunami]: median=168.07ms; p90=1329.71ms; n=72; bots=32; active=633; awake=617. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT festival-city: 41/633 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+RUNTIME COMPLETE failures=0; Unity runtime errors=0. Actual Game.unity entered Play Mode; no live headset/network peers tested.

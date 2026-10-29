@@ -1,0 +1,26 @@
+{
+  "read_only_source": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\slot-06",
+  "files": [
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.cs",
+      "before_sha256": "10a0351fec766fa135e63d1ae0cc353703f010c5bdb161049339adec22cb192a",
+      "after_sha256": "4f80ce9aee9be1492f8fb4d789453370464a8349774b734799e4b22b23be8de4"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Menus/IslandLobby/IslandLobbyView.Wardrobe.cs",
+      "before_sha256": "43e5f8b5623c3fe547b637b190a7373a422673adf207d7c778454dd980f9bdd2",
+      "after_sha256": "0e6a3d2c23550fb1da7f2b3fa10ca3fcd0a7c96950f9ba98b493a19b3b7ddf0a"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.cs",
+      "before_sha256": "f777fc5901752506396eaea2de46e40c41164b1d9f8e7662eb38312fb546a558",
+      "after_sha256": "d3b127da85d52c3dbf5fb44cfc5ad00282c451eeaead44d8670176998f664c5a"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/GameSession/Session/Scripts/IslandLobby.Controls.cs",
+      "before_sha256": "f1d6d079d81bada46a24e9494c0b11245cb94ff6b72854ba05d47ad63923dc6e",
+      "after_sha256": "036ad04d85649720408d00aacee0e89a6d77521a90ddbac7cfca810f31e8d23d"
+    }
+  ],
+  "note": "Proposal only. No shared source files edited. Transform-relative points preserve slot6 persistent lobby offset."
+}

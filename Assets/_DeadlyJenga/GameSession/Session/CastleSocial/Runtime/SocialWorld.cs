@@ -30,6 +30,8 @@ namespace DeadlyJenga.CastleSocial
         public SocialSpeechClient Speech {get;private set;}
         public IVoicePlayer Playback {get;private set;}   // Presentation plays the voices (Core's VoicePlayback)
         public SocialMicrophone MicrophoneInput {get;private set;}
+        public OnDeviceConversation OnDevice {get;private set;}
+        int botAudioSequence,interruptedThrough;
         List<SocialIdentity> pool;SocialConfiguration lastValid;int nextIdentity,eventSerial,metadataIndex;float nextScan,nextTick,nextMetadata,nextThreat;bool lastAuthority=true;
         readonly Dictionary<string,int> sequences=new Dictionary<string,int>();readonly Dictionary<string,float> lastVoice=new Dictionary<string,float>();
         readonly Dictionary<string,(float start,int count)> rates=new Dictionary<string,(float,int)>();
@@ -41,6 +43,7 @@ namespace DeadlyJenga.CastleSocial
             MicrophoneInput=gameObject.AddComponent<SocialMicrophone>();MicrophoneInput.Initialize(this);
             if(session.Network){session.Network.SocialReceived+=Receive;session.Network.ParticipantLeft+=Left;}
             if(!ApplyConfiguration()){Settings.ResetDefaults();ApplyConfiguration();}
+            OnDevice=gameObject.AddComponent<OnDeviceConversation>();OnDevice.Initialize(this);
             gameObject.AddComponent<SocialDemonstrationRecorder>().Initialize(this);
         }
         public void Initialize(IslandLobby lobby)
@@ -99,7 +102,7 @@ namespace DeadlyJenga.CastleSocial
             if(Time.unscaledTime>=nextThreat)
             {
                 nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
-                foreach(var body in Services.World.Blocks)if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
+                foreach(var body in Services.World?.Blocks??System.Array.Empty<Rigidbody>())if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
                 if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
             }
             if(Time.unscaledTime>=nextMetadata&&Agents.Count>0)
@@ -133,12 +136,26 @@ namespace DeadlyJenga.CastleSocial
         public void HumanTranscript(string speaker,string text,string utterance,bool final)
         {
             if(!IsAuthority)return;
-            Director.Publish(new SocialEvent{id="human:"+speaker+":"+utterance,kind=SocialEventKind.HumanSpeech,human=true,speaker=speaker,text=text,time=Time.unscaledTime,salience=final?1:.45,topic="humans"});
+            if(OnDevice&&OnDevice.Requested&&!final)return;
+            string recipient=null;
+            if(OnDevice&&OnDevice.Requested)
+            {
+                var addressed=Agents.FirstOrDefault(a=>a&&text.IndexOf(a.State.identity.name,StringComparison.OrdinalIgnoreCase)>=0);
+                if(!addressed&&TryPosition(speaker,out var from))addressed=Agents.Where(a=>a&&!a.State.muted).OrderBy(a=>(a.transform.position-from).sqrMagnitude).FirstOrDefault();
+                if(addressed)
+                {
+                    recipient=addressed.State.identity.id;addressed.State.focus=speaker;
+                    addressed.State.Remember(new SocialEvent{id="human:"+speaker+":"+utterance,speaker=speaker,text=text,human=true,kind=SocialEventKind.HumanSpeech,time=Time.unscaledTime},Config.memoryLimit,Config.retainHumanText);
+                    OnDevice.Respond(addressed.State.identity,speaker,text);
+                }
+                return;
+            }
+            Director.Publish(new SocialEvent{recipient=recipient,id="human:"+speaker+":"+utterance,kind=SocialEventKind.HumanSpeech,human=true,speaker=speaker,text=text,time=Time.unscaledTime,salience=final?1:.45,topic="humans"});
         }
         void OnSpeech(SocialSpeech intent)
         {
             if(!Director.bots.TryGetValue(intent.botId,out var state))return;
-            Caption=state.identity.name+" [AI]: "+intent.text;SendNotice(new SocialNotice{kind="caption",id=intent.botId,text=intent.text,name=state.identity.name,topic=intent.topic});
+            if(!OnDevice||!OnDevice.Requested){Caption=state.identity.name+" [AI]: "+intent.text;SendNotice(new SocialNotice{kind="caption",id=intent.botId,text=intent.text,name=state.identity.name,topic=intent.topic});}
             Speech.Speak(intent,state.identity);
             var agent=Agents.FirstOrDefault(a=>a&&a.State==state);if(agent&&NetworkActors.Alive(agent.Bot))agent.Bot.PlayEmote(state.emotion.fear>.6?SocialEmote.Scared:SocialEmote.Friendly);
         }
@@ -149,6 +166,7 @@ namespace DeadlyJenga.CastleSocial
         public void SendAudio(SocialAudioPacket packet,bool human)
         {
             if(human){packet.speaker=LocalParticipantId;Activity(packet.speaker,packet);}
+            if(!human)packet.sequence=++botAudioSequence;
             var bytes=packet.Encode();SendPacket(bytes);
             if(!human)Playback.Accept(packet.speaker,packet.samples,packet.end);
         }
@@ -167,6 +185,7 @@ namespace DeadlyJenga.CastleSocial
                 if(bytes[0]==5)
                 {
                     var p=SocialAudioPacket.Decode(bytes);if(IsAuthority)p.speaker=source;
+                    if(!IsAuthority&&p.speaker.StartsWith("social:")&&p.sequence<=interruptedThrough)return;
                     if(sequences.TryGetValue(p.speaker,out int last)&&p.sequence<=last)return;sequences[p.speaker]=p.sequence;
                     // The host alone can originate bot speech; client-supplied IDs
                     // are replaced with the authenticated connection's human ID.
@@ -175,6 +194,7 @@ namespace DeadlyJenga.CastleSocial
                 else if(bytes[0]==6&&!IsAuthority)
                 {
                     var n=JsonUtility.FromJson<SocialNotice>(Encoding.UTF8.GetString(bytes,1,bytes.Length-1));if(n==null||string.IsNullOrEmpty(n.id)||n.id.Length>96)return;
+                    if(n.kind=="interrupt"){interruptedThrough=Math.Max(interruptedThrough,(int)n.at);foreach(var ai in Participants.Keys.ToArray())Playback.Remove(ai);}
                     if(n.kind=="identity"&&Participants.Count<100)Participants[n.id]=n;
                     if(n.kind=="caption")Caption=SocialText.Clean(n.name,32)+" [AI]: "+SocialText.Safe(n.text);
                     if(n.kind=="removed"){Participants.Remove(n.id);Playback.Remove(n.id);}
@@ -187,6 +207,7 @@ namespace DeadlyJenga.CastleSocial
             if(!rates.TryGetValue(source,out var rate)||Time.unscaledTime-rate.start>=1)rate=(Time.unscaledTime,0);
             rate.count++;rates[source]=rate;return rate.count<=(source=="host"?1024:80);
         }
+        public void InterruptBotAudio(){foreach(var agent in Agents)if(agent)Playback?.Remove(agent.State.identity.id);if(IsAuthority)SendNotice(new SocialNotice{kind="interrupt",id="social:all",at=botAudioSequence});}
         void SendNotice(SocialNotice notice)
         {byte[] json=Encoding.UTF8.GetBytes(JsonUtility.ToJson(notice));if(json.Length>15000)return;var packet=new byte[json.Length+1];packet[0]=6;Buffer.BlockCopy(json,0,packet,1,json.Length);SendPacket(packet);}
         void Left(string id){Director?.RemoveHuman(id);Speech.ForgetHuman(id);Playback.Remove(id);sequences.Remove(id);lastVoice.Remove(id);rates.Remove(id);}
