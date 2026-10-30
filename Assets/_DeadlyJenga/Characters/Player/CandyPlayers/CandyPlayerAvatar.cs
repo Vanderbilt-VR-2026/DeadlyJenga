@@ -51,13 +51,18 @@ namespace DeadlyJenga.CandyPlayers
         }
         void OnEnable(){Application.onBeforeRender+=BeforeRender;if(survivor)survivor.PunchRequested+=BeginPunch;if(!remoteDriven)NetworkActors.Local.Add(this);}
         void OnDisable(){Application.onBeforeRender-=BeforeRender;if(survivor)survivor.PunchRequested-=BeginPunch;ResetPunch();wasVaulting=false;NetworkActors.Local.Remove(this);}
+        // Emotes and the elimination burst live on SurvivorMoments (looks come from the avatar appearance system).
+        void Start(){if(!GetComponent<SurvivorMoments>())gameObject.AddComponent<SurvivorMoments>();}
+        SurvivorMoments moments;
+        SurvivorMoments Moments=>moments?moments:moments=GetComponent<SurvivorMoments>();
 
         // INetworkActor: what other players see of this survivor (the player's or a bot's).
         CastleBotBrain bot;
         public string NetworkKind=>NetworkKinds.Survivor;
         public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
         public Vector3 NetworkPosition=>transform.position;
-        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,survivor&&survivor.externallyDriven&&LastFrame.scale>0?LastFrame:ReadFrame(),ColorIndex,EquippedAppearance,GetComponent<IEnemyActor>(),GetComponent<IBlasterControls>());
+        // Third byte of the synced color value: the emote showing right now (index + 1, or 0).
+        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,survivor&&survivor.externallyDriven&&LastFrame.scale>0?LastFrame:ReadFrame(),(ColorIndex&0xFF)|(Moments?Moments.NetworkBits<<16:0),EquippedAppearance,GetComponent<IEnemyActor>(),GetComponent<IBlasterControls>());
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
         public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}

@@ -46,6 +46,7 @@ namespace DeadlyJenga.CastlePrototype
         public string ActionStatus { get; private set; } = "Ready";
         public CharacterController Capsule { get; private set; }
         readonly List<UnityEngine.XR.XRDisplaySubsystem> displays = new List<UnityEngine.XR.XRDisplaySubsystem>();
+        static readonly List<MeshFilter> vaultMeshes = new List<MeshFilter>();
         InputAction move, turn, jump;
         TrackedPoseDriver tracker;
         float verticalSpeed, pitch, lastGrounded = -100, airborneSince;
@@ -346,7 +347,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(!TraversalCollision.Unified&&Climbables.TryGet(top.collider,out var owner)&&owner.Visual)
                 {
                     float maxY=float.NegativeInfinity;
-                    foreach(var mesh in owner.Visual.GetComponentsInChildren<MeshFilter>())
+                    owner.Visual.GetComponentsInChildren(vaultMeshes);
+                    foreach(var mesh in vaultMeshes)
                     {
                         if(!mesh.sharedMesh)continue;
                         var bounds=mesh.sharedMesh.bounds;var matrix=owner.Anchor.worldToLocalMatrix*mesh.transform.localToWorldMatrix;
