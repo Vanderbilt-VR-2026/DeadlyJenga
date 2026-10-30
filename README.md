@@ -22,7 +22,7 @@ It contains working APK, demo videos, as well as more details regarding the info
 - We have made bright blue glowing edges around nearby ledges that can be vaulted.  They appear from far away but give that indication that makes a player feel more confident that the game will recognize their vault attempt.  The only objects players might be interacting with to get them in their hands are weapons, but we felt it would be smoother to have them just work on the usual mechanic where walking into them grants them to you.  This is because our game is very fast paced and so stopping to manually grab a powerup/gadget felt out of place.
 - While consistently debugging and testing VR controls remains a big weakspot relative to our humongous content creation, we suspect significant work is going to be put into making this experience less nauseating for users given the amount of jumps and 360 turns the game requires.  The entire control setup may need to change as a result.
 
-  These are the significant implemented additions and changes in Sprint 3:
+##  These are the significant implemented additions and changes in Sprint 3:
 - Home screen: Added a separate starting menu before the lobby, with local play, hosting, joining and demo entry.
 - Home music: Added the trimmed, looping Shorebreak track, which stops when leaving Home.
 - New default lobby: Built Mayhem Marina, with a coastal clubhouse, social spaces and integrated lobby functions; preserved the previous lobby as a backup.
