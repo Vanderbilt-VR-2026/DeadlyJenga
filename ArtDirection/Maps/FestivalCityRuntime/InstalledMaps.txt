@@ -1,0 +1,43 @@
+Installed structure map integration: actual Unity asset/catalog loading.
+PASS lobby catalog loads from runtime Resources
+PASS sparse-crown-study prefab and generator dependencies load
+PASS sparse-crown-study selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-crown-study available in Sandbox / Demo
+PASS sparse-terrace-study prefab and generator dependencies load
+PASS sparse-terrace-study selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-terrace-study available in Sandbox / Demo
+PASS sparse-viaduct-study prefab and generator dependencies load
+PASS sparse-viaduct-study selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-viaduct-study available in Sandbox / Demo
+PASS sparse-keep-study prefab and generator dependencies load
+PASS sparse-keep-study selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-keep-study available in Sandbox / Demo
+PASS sparse-crown-grand prefab and generator dependencies load
+PASS sparse-crown-grand selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-crown-grand available in Sandbox / Demo
+PASS sparse-terrace-grand prefab and generator dependencies load
+PASS sparse-terrace-grand selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-terrace-grand available in Sandbox / Demo
+PASS sparse-viaduct-grand prefab and generator dependencies load
+PASS sparse-viaduct-grand selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-viaduct-grand available in Sandbox / Demo
+PASS sparse-keep-grand prefab and generator dependencies load
+PASS sparse-keep-grand selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-keep-grand available in Sandbox / Demo
+PASS sparse-festival-megastructure prefab and generator dependencies load
+PASS sparse-festival-megastructure selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-festival-megastructure available in Sandbox / Demo
+PASS sparse-festival-city prefab and generator dependencies load
+PASS sparse-festival-city selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-festival-city available in Sandbox / Demo
+PASS sparse-festival-city-packed prefab and generator dependencies load
+PASS sparse-festival-city-packed selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-festival-city-packed available in Sandbox / Demo
+PASS sparse-festival-city-surface-mesh prefab and generator dependencies load
+PASS sparse-festival-city-surface-mesh selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-festival-city-surface-mesh available in Sandbox / Demo
+PASS sparse-festival-city-optimized prefab and generator dependencies load
+PASS sparse-festival-city-optimized selectable catalog entry targets this prefab and a valid game scene
+PASS sparse-festival-city-optimized available in Sandbox / Demo
+PASS Lobby scene references the verified catalog
+COMPLETE failures=0. No scenes or prefabs modified.

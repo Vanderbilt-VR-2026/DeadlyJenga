@@ -14,7 +14,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
     public static class MapDraftValidation
     {
         const string Key = "MapDraftValidation";
-        static readonly string[] Drafts = { "MapDrafterEvan1", "MapDrafterEvan2", "MapDrafterLuke1", "MapDrafterLuke2", "MapDrafterKaleb1", "MapDrafterKaleb2" };
+        static string[] Drafts => AssetDatabase.FindAssets("t:Scene")
+            .Select(AssetDatabase.GUIDToAssetPath)
+            .Select(Path.GetFileNameWithoutExtension)
+            .Where(name => name.StartsWith("MapDrafter", StringComparison.Ordinal) || name == "Andy")
+            .OrderBy(name => name, StringComparer.Ordinal).ToArray();
         static readonly string[] Scenes = Drafts.Concat(new[] { "Game", "Lobby" }).ToArray();
         static double started;
         static bool checking;
@@ -63,9 +67,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 var scene = EditorSceneManager.OpenScene(path);
                 var world = Object.FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None).First(x => x is IWorldQuery);
                 var settings = new SerializedObject(world);
-                bool cathedral=settings.FindProperty("settings.cathedral")?.boolValue==true;
-                settings.FindProperty("environmentOnly").boolValue = !cathedral;
-                settings.FindProperty("generateOnStart").boolValue = cathedral;
+                bool hasContent=settings.FindProperty("settings.cathedral")?.boolValue==true || settings.FindProperty("magneticMap")?.objectReferenceValue!=null;
+                settings.FindProperty("environmentOnly").boolValue = !hasContent;
+                settings.FindProperty("generateOnStart").boolValue = hasContent;
                 settings.ApplyModifiedPropertiesWithoutUndo();
                 var session = Object.FindFirstObjectByType<CastlePlaySession>();
                 if (!session) session = new GameObject("Draft Demo Session").AddComponent<CastlePlaySession>();
@@ -76,7 +80,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 data.FindProperty("overviewCamera").objectReferenceValue = Camera.main;
                 data.ApplyModifiedPropertiesWithoutUndo();
                 EditorSceneManager.SaveScene(scene);
-                var entry = maps.Find(x => x.id == name);
+                var entry = maps.Find(x => x.id == name || x.scenePath == path);
                 if (entry == null) { entry = new IslandLobbyCatalog.Map { id = name }; maps.Add(entry); }
                 entry.title = name;
                 entry.scenePath = path;
@@ -109,7 +113,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (SessionState.GetBool(Key + "Failed", false) || index == Scenes.Length)
             {
                 bool failed = SessionState.GetBool(Key + "Failed", false);
-                File.AppendAllText(Report, failed ? "FAILED\n" : "PASSED: all eight scenes; no runtime errors.\n");
+                File.AppendAllText(Report, failed ? "FAILED\n" : "PASSED: all " + Scenes.Length + " scenes; no runtime errors.\n");
                 SessionState.SetBool(Key, false);
                 if (Application.isBatchMode) EditorApplication.Exit(failed ? 1 : 0);
                 return;
@@ -136,12 +140,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Require(world != null && world.PlayableBounds.size.sqrMagnitude > 0, "world has valid playable bounds");
                 Require(RenderSettings.skybox, "skybox is assigned");
                 Require(GameObject.Find("Survivor (local)") || GameObject.Find("Lobby survivor (current character prefab)"), "local player spawns");
-                if(index==0&&world.Blocks.Count>0)
+                if(Scenes[index]=="MapDrafterEvan1")
                 {
                     Require(world.TopHeight>=120,"Evan 1 cathedral reports its tower height");
                     Require(((ISyncedWorld)world).SaveLayout().Contains("\"cathedral\":true"),"Evan 1 preserves its cathedral layout in network settings");
                     Require(world.Blocks.All(b=>b&&!b.isKinematic&&b.useGravity),"Evan 1 uses dynamic prefab blocks");
                 }
+                else if (Scenes[index]=="MapDrafterEvan2")
+                    Require(world.Blocks.Count>0,"Evan 2 preserves its authored magnetic structure");
                 else if (index < Drafts.Length)
                 {
                     Require(world.Blocks.Count == 0, "map starts without blocks");
@@ -160,7 +166,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     var lobby = Object.FindFirstObjectByType<IslandLobby>();
                     foreach (string name in Drafts)
                     {
-                        var entry = lobby.catalog.maps.Single(x => x.id == name);
+                        var entry = lobby.catalog.maps.Single(x => Path.GetFileNameWithoutExtension(x.scenePath) == name);
                         Require(SceneUtility.GetBuildIndexByScenePath(entry.scenePath) >= 0, name + " is registered for launch");
                         Require(lobby.GetComponentsInChildren<RectTransform>(true).Any(x=>x.name=="map-current"),name+" is available through the compact map selector");
                     }

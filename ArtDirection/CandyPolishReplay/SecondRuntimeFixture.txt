@@ -1,0 +1,35 @@
+Real Game hover, rifle, cosmetics and private Mystery replay checks.
+PASS solo Game initializes
+PASS Grant DualRifle
+PASS Draw DualRifle
+PASS Rifle accepts a near-edge shot
+PASS Generous rifle trace hits capsule edge
+PASS Shotgun accepts first shot
+PASS Shotgun accepts next shot at .22 seconds
+PASS Shotgun retains seven visible pellets
+PASS Both barrels and both optics always exist on carriage
+PASS Rotating rifle scope provides underside pump grip
+PASS Barrel visibly interpolates during half turn
+PASS Carriage finishes full half turn
+PASS Back sling has a genuinely diagonal upward barrel and back mount
+PASS Blaster attaches at upper thigh
+PASS Grant PoweredArmor
+PASS Draw PoweredArmor
+PASS Capsule takes off then holds altitude without holding trigger
+PASS Hover flight steers with bounded velocity
+PASS Four imported physical candy cues: PlayerPain
+PASS Four imported physical candy cues: PlayerDeath
+PASS Four imported physical candy cues: PlayerHeal
+PASS Stereo-compatible translucent plasma shader imports
+PASS Ten-second bounded pose history records during ordinary Game
+PASS Recording creates no extra render camera
+PASS Murderer performs actual lethal strike
+ERROR MissingComponentException: There is no 'MeshFilter' attached to the "Visual - nameplate" game object, but a script is trying to access it.
+You probably need to add a MeshFilter to the game object "Visual - nameplate". Or your script needs to check if the component is attached before using it.
+PASS Victim receives private murderer kill-cam cue
+FAIL Living sheriff / public snapshot cannot read victim replay cue
+FAIL System.InvalidOperationException: Living sheriff / public snapshot cannot read victim replay cue
+  at DeadlyJenga.DevTools.Editor.CandyPolishReplayChecks.Check (System.Boolean pass, System.String label) [0x0003a] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\CandyPolishReplayChecks.cs:63 
+  at DeadlyJenga.DevTools.Editor.CandyPolishReplayChecks+<Test>d__14.MoveNext () [0x00f6d] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\CandyPolishReplayChecks.cs:133 
+  at DeadlyJenga.DevTools.Editor.CandyPolishReplayChecks+<Guard>d__11.MoveNext () [0x00039] in C:\Users\evanp\Documents\Codex\Projects\DeadlyJenga\Assets\_DeadlyJenga\DevTools\Editor\CandyPolishReplayChecks.cs:72 
+COMPLETE checks=27 runtimeErrors=1 failed=True. Desktop runtime; headset not tested.

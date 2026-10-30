@@ -1,0 +1,289 @@
+Actual Game session with a small fixture world: all-mode equipment, menus, hazards, hand switching and two-peer snapshot transport.
+PASS Actual Game scene initializes
+PASS Round-start character transitions finish in Demo
+PASS Host demo commands available in Demo
+PASS Self grant Speed in Demo
+PASS Self grant Jump in Demo
+PASS Self grant Blaster in Demo
+PASS Self grant MurderSword in Demo
+PASS Self grant SheriffHammer in Demo
+PASS Self grant DualRifle in Demo
+PASS Self grant BoxingGlove in Demo
+PASS Self grant PoweredArmor in Demo
+PASS Self grant RocketLauncher in Demo
+PASS Self grant DualUzi in Demo
+PASS Self grant ChainGun in Demo
+PASS Self grant GrenadeLauncher in Demo
+PASS Self grant WristLaser in Demo
+PASS Self grant NeedleDrill in Demo
+PASS Self grant StockPistol in Demo
+PASS Self grant SawStaff in Demo
+PASS Self grant BarbedBat in Demo
+PASS Self grant Chainsaw in Demo
+PASS Self grant LaserClaws in Demo
+PASS Self grant FlamingMarshmallow in Demo
+PASS Self grant LaserAxe in Demo
+PASS Self grant Dagger in Demo
+PASS Persistent everyone grant in Demo
+PASS Players and bots receive the item in Demo
+PASS Production snapshot accepts active loadout in Demo
+PASS Demo hand switch updates mode state in Demo
+PASS Returning from hand restores mode role in Demo
+PASS Ground pickup command in Demo
+PASS Recurring grant can be stopped in Demo
+PASS Round-start character transitions finish in Survival
+PASS Host demo commands available in Survival
+PASS Self grant Speed in Survival
+PASS Self grant Jump in Survival
+PASS Self grant Blaster in Survival
+PASS Self grant MurderSword in Survival
+PASS Self grant SheriffHammer in Survival
+PASS Self grant DualRifle in Survival
+PASS Self grant BoxingGlove in Survival
+PASS Self grant PoweredArmor in Survival
+PASS Self grant RocketLauncher in Survival
+PASS Self grant DualUzi in Survival
+PASS Self grant ChainGun in Survival
+PASS Self grant GrenadeLauncher in Survival
+PASS Self grant WristLaser in Survival
+PASS Self grant NeedleDrill in Survival
+PASS Self grant StockPistol in Survival
+PASS Self grant SawStaff in Survival
+PASS Self grant BarbedBat in Survival
+PASS Self grant Chainsaw in Survival
+PASS Self grant LaserClaws in Survival
+PASS Self grant FlamingMarshmallow in Survival
+PASS Self grant LaserAxe in Survival
+PASS Self grant Dagger in Survival
+PASS Persistent everyone grant in Survival
+PASS Players and bots receive the item in Survival
+PASS Production snapshot accepts active loadout in Survival
+PASS Demo hand switch updates mode state in Survival
+PASS Returning from hand restores mode role in Survival
+PASS Ground pickup command in Survival
+PASS Recurring grant can be stopped in Survival
+PASS Round-start character transitions finish in KingOfHill
+PASS Host demo commands available in KingOfHill
+PASS Self grant Speed in KingOfHill
+PASS Self grant Jump in KingOfHill
+PASS Self grant Blaster in KingOfHill
+PASS Self grant MurderSword in KingOfHill
+PASS Self grant SheriffHammer in KingOfHill
+PASS Self grant DualRifle in KingOfHill
+PASS Self grant BoxingGlove in KingOfHill
+PASS Self grant PoweredArmor in KingOfHill
+PASS Self grant RocketLauncher in KingOfHill
+PASS Self grant DualUzi in KingOfHill
+PASS Self grant ChainGun in KingOfHill
+PASS Self grant GrenadeLauncher in KingOfHill
+PASS Self grant WristLaser in KingOfHill
+PASS Self grant NeedleDrill in KingOfHill
+PASS Self grant StockPistol in KingOfHill
+PASS Self grant SawStaff in KingOfHill
+PASS Self grant BarbedBat in KingOfHill
+PASS Self grant Chainsaw in KingOfHill
+PASS Self grant LaserClaws in KingOfHill
+PASS Self grant FlamingMarshmallow in KingOfHill
+PASS Self grant LaserAxe in KingOfHill
+PASS Self grant Dagger in KingOfHill
+PASS Persistent everyone grant in KingOfHill
+PASS Players and bots receive the item in KingOfHill
+PASS Production snapshot accepts active loadout in KingOfHill
+PASS Demo hand switch updates mode state in KingOfHill
+PASS Returning from hand restores mode role in KingOfHill
+PASS Ground pickup command in KingOfHill
+PASS Recurring grant can be stopped in KingOfHill
+PASS Round-start character transitions finish in BlockControl
+PASS Host demo commands available in BlockControl
+PASS Self grant Speed in BlockControl
+PASS Self grant Jump in BlockControl
+PASS Self grant Blaster in BlockControl
+PASS Self grant MurderSword in BlockControl
+PASS Self grant SheriffHammer in BlockControl
+PASS Self grant DualRifle in BlockControl
+PASS Self grant BoxingGlove in BlockControl
+PASS Self grant PoweredArmor in BlockControl
+PASS Self grant RocketLauncher in BlockControl
+PASS Self grant DualUzi in BlockControl
+PASS Self grant ChainGun in BlockControl
+PASS Self grant GrenadeLauncher in BlockControl
+PASS Self grant WristLaser in BlockControl
+PASS Self grant NeedleDrill in BlockControl
+PASS Self grant StockPistol in BlockControl
+PASS Self grant SawStaff in BlockControl
+PASS Self grant BarbedBat in BlockControl
+PASS Self grant Chainsaw in BlockControl
+PASS Self grant LaserClaws in BlockControl
+PASS Self grant FlamingMarshmallow in BlockControl
+PASS Self grant LaserAxe in BlockControl
+PASS Self grant Dagger in BlockControl
+PASS Persistent everyone grant in BlockControl
+PASS Players and bots receive the item in BlockControl
+PASS Production snapshot accepts active loadout in BlockControl
+PASS Demo hand switch updates mode state in BlockControl
+PASS Returning from hand restores mode role in BlockControl
+PASS Ground pickup command in BlockControl
+PASS Recurring grant can be stopped in BlockControl
+PASS Round-start character transitions finish in CaptureFlag
+PASS Host demo commands available in CaptureFlag
+PASS Self grant Speed in CaptureFlag
+PASS Self grant Jump in CaptureFlag
+PASS Self grant Blaster in CaptureFlag
+PASS Self grant MurderSword in CaptureFlag
+PASS Self grant SheriffHammer in CaptureFlag
+PASS Self grant DualRifle in CaptureFlag
+PASS Self grant BoxingGlove in CaptureFlag
+PASS Self grant PoweredArmor in CaptureFlag
+PASS Self grant RocketLauncher in CaptureFlag
+PASS Self grant DualUzi in CaptureFlag
+PASS Self grant ChainGun in CaptureFlag
+PASS Self grant GrenadeLauncher in CaptureFlag
+PASS Self grant WristLaser in CaptureFlag
+PASS Self grant NeedleDrill in CaptureFlag
+PASS Self grant StockPistol in CaptureFlag
+PASS Self grant SawStaff in CaptureFlag
+PASS Self grant BarbedBat in CaptureFlag
+PASS Self grant Chainsaw in CaptureFlag
+PASS Self grant LaserClaws in CaptureFlag
+PASS Self grant FlamingMarshmallow in CaptureFlag
+PASS Self grant LaserAxe in CaptureFlag
+PASS Self grant Dagger in CaptureFlag
+PASS Persistent everyone grant in CaptureFlag
+PASS Players and bots receive the item in CaptureFlag
+PASS Production snapshot accepts active loadout in CaptureFlag
+PASS Restored CTF simulation normalizes uncarried flags
+PASS CTF snapshot still rejects an unknown carrier
+PASS Production guest decoder normalizes uncarried CTF flags
+PASS Demo hand switch updates mode state in CaptureFlag
+PASS Returning from hand restores mode role in CaptureFlag
+PASS Ground pickup command in CaptureFlag
+PASS Recurring grant can be stopped in CaptureFlag
+PASS Round-start character transitions finish in Infection
+PASS Host demo commands available in Infection
+PASS Self grant Speed in Infection
+PASS Self grant Jump in Infection
+PASS Self grant Blaster in Infection
+PASS Self grant MurderSword in Infection
+PASS Self grant SheriffHammer in Infection
+PASS Self grant DualRifle in Infection
+PASS Self grant BoxingGlove in Infection
+PASS Self grant PoweredArmor in Infection
+PASS Self grant RocketLauncher in Infection
+PASS Self grant DualUzi in Infection
+PASS Self grant ChainGun in Infection
+PASS Self grant GrenadeLauncher in Infection
+PASS Self grant WristLaser in Infection
+PASS Self grant NeedleDrill in Infection
+PASS Self grant StockPistol in Infection
+PASS Self grant SawStaff in Infection
+PASS Self grant BarbedBat in Infection
+PASS Self grant Chainsaw in Infection
+PASS Self grant LaserClaws in Infection
+PASS Self grant FlamingMarshmallow in Infection
+PASS Self grant LaserAxe in Infection
+PASS Self grant Dagger in Infection
+PASS Persistent everyone grant in Infection
+PASS Players and bots receive the item in Infection
+PASS Production snapshot accepts active loadout in Infection
+PASS Demo hand switch updates mode state in Infection
+PASS Returning from hand restores mode role in Infection
+PASS Ground pickup command in Infection
+PASS Recurring grant can be stopped in Infection
+PASS Round-start character transitions finish in TeamTickets
+PASS Host demo commands available in TeamTickets
+PASS Self grant Speed in TeamTickets
+PASS Self grant Jump in TeamTickets
+PASS Self grant Blaster in TeamTickets
+PASS Self grant MurderSword in TeamTickets
+PASS Self grant SheriffHammer in TeamTickets
+PASS Self grant DualRifle in TeamTickets
+PASS Self grant BoxingGlove in TeamTickets
+PASS Self grant PoweredArmor in TeamTickets
+PASS Self grant RocketLauncher in TeamTickets
+PASS Self grant DualUzi in TeamTickets
+PASS Self grant ChainGun in TeamTickets
+PASS Self grant GrenadeLauncher in TeamTickets
+PASS Self grant WristLaser in TeamTickets
+PASS Self grant NeedleDrill in TeamTickets
+PASS Self grant StockPistol in TeamTickets
+PASS Self grant SawStaff in TeamTickets
+PASS Self grant BarbedBat in TeamTickets
+PASS Self grant Chainsaw in TeamTickets
+PASS Self grant LaserClaws in TeamTickets
+PASS Self grant FlamingMarshmallow in TeamTickets
+PASS Self grant LaserAxe in TeamTickets
+PASS Self grant Dagger in TeamTickets
+PASS Persistent everyone grant in TeamTickets
+PASS Players and bots receive the item in TeamTickets
+PASS Production snapshot accepts active loadout in TeamTickets
+PASS Demo hand switch updates mode state in TeamTickets
+PASS Returning from hand restores mode role in TeamTickets
+PASS Ground pickup command in TeamTickets
+PASS Recurring grant can be stopped in TeamTickets
+PASS Round-start character transitions finish in MurderMystery
+PASS Host demo commands available in MurderMystery
+PASS Self grant Speed in MurderMystery
+PASS Self grant Jump in MurderMystery
+PASS Self grant Blaster in MurderMystery
+PASS Self grant MurderSword in MurderMystery
+PASS Self grant SheriffHammer in MurderMystery
+PASS Self grant DualRifle in MurderMystery
+PASS Self grant BoxingGlove in MurderMystery
+PASS Self grant PoweredArmor in MurderMystery
+PASS Self grant RocketLauncher in MurderMystery
+PASS Self grant DualUzi in MurderMystery
+PASS Self grant ChainGun in MurderMystery
+PASS Self grant GrenadeLauncher in MurderMystery
+PASS Self grant WristLaser in MurderMystery
+PASS Self grant NeedleDrill in MurderMystery
+PASS Self grant StockPistol in MurderMystery
+PASS Self grant SawStaff in MurderMystery
+PASS Self grant BarbedBat in MurderMystery
+PASS Self grant Chainsaw in MurderMystery
+PASS Self grant LaserClaws in MurderMystery
+PASS Self grant FlamingMarshmallow in MurderMystery
+PASS Self grant LaserAxe in MurderMystery
+PASS Self grant Dagger in MurderMystery
+PASS Persistent everyone grant in MurderMystery
+PASS Players and bots receive the item in MurderMystery
+PASS Production snapshot accepts active loadout in MurderMystery
+PASS Demo hand switch updates mode state in MurderMystery
+PASS Returning from hand restores mode role in MurderMystery
+PASS Ground pickup command in MurderMystery
+PASS Recurring grant can be stopped in MurderMystery
+PASS CTF persistent loadout selected
+PASS Real CTF respawn reapplies the selected item
+PASS Catalog supplies gravity disaster
+PASS Disaster starts while CTF is active
+PASS Disaster is actually active
+PASS Demo stop command ends the active disaster
+PASS CTF suit snapshot fixture starts real thrust
+PASS Actual thrust and stopped suit frames pass production validation
+PASS Transport fixture captures actual active and stopped suit state
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent Photon suit host startup completes
+PASS Real Photon suit host connects
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent Photon suit guest startup completes
+PASS Second real Photon peer joins the suit room
+PASS Suit state packet 0 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 0
+PASS Remote peer receives active suit thrust
+PASS Suit state packet 1 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 1
+PASS Remote peer receives stopped suit thrust
+PASS Suit state packet 2 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 2
+PASS Duplicate stopped packet cannot restart remote jets
+PASS Photon suit guest shuts down
+PASS Photon suit host shuts down
+PASS Temporary multiple-peer and physics settings are restored
+PASS Non-authoritative runtimes cannot grant or spawn items
+PASS Actual desktop equipment card is enabled during CTF
+PASS Actual desktop card gives the requested item during CTF
+PASS Consistent font and short-header text fit
+PASS Custom mint/lavender buttons do not leak dark text into settings forms
+PASS Actual world-space equipment menu is enabled during CTF
+PASS Bot objective authoring contracts remain valid
+PASS No runtime errors
+COMPLETE checks=285 runtimeErrors=0 failed=False. Desktop runtime; headset not tested.

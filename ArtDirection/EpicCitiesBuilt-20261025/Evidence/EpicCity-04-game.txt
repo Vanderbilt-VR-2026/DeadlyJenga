@@ -1,0 +1,16 @@
+Broken Crown Capital production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=67 shapes=588 routes=10 elevated=6 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight South bazaar position=(-64.68, 5.04, -125.60)
+PASS production motor first flight Court entry terraces position=(70.32, 5.04, -121.60)
+PASS production motor first flight Eastern civic gateway position=(115.40, 5.04, 5.68)
+PASS production motor first flight Crown north-east position=(90.32, 5.04, 91.40)
+PASS production motor first flight Off-center civic beacon position=(-19.68, 5.04, 81.40)
+PASS production motor first flight West crown segment position=(-114.79, 5.03, 39.00)
+PASS production motor first flight West arcade position=(-114.68, 5.04, -66.60)
+32 bots / quiet frames=67 average=16.8FPS p95=79.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=30
+32 bots + tsunami frames=583 average=7.8FPS p95=395.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=34/67. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=38/67. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=67 runtimeErrorsSoFar=0

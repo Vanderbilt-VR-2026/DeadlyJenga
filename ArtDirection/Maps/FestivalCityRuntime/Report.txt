@@ -1,0 +1,44 @@
+FESTIVAL CITY RUNTIME OPTIMIZATIONS — 24 OCTOBER 2026
+
+USE
+Select Festival City - Optimized. Original Festival City and Packed Shapes are preserved. This new copy retains the same 633 independent structural bodies, authored parts, masses, solver settings and ramp/room geometry. No global project physics settings, packages or saved team scenes were changed.
+
+IMPLEMENTED
+Core/Services: the explicitly approved ITraversalCollisionWorld.UsesOriginalColliders read-only capability.
+World/Maps and Blocks: original structural colliders provide character collision on the new map, removing all 1,049 duplicate map survivor shapes and their copy-update work. Ordinary blocks and compound rooms register their actual colliders. Global collision policy restores on map exit. Original maps retain their existing proxies and masks.
+Characters/Player: world-aware walking, grounding, climbing, vault and ledge-look masks; active-mode capsule layer configuration before roomscale motion; bounded overlap recovery for dynamic walls, since the native CharacterController does not provide equivalent dynamic recovery by itself. The recovery helper's capsule collider is disabled and only used for explicit penetration computation. Other maps retain their old query policy.
+Characters/Bots: native transform/property calls in compound and ramp sampling are replaced by per-shape matrix/rotation/size/center reuse. Sampling positions and face/long-span coverage are retained. Navigation/ceiling/route queries follow the explicit world collision capability, including newer working-project walking-route and planner code.
+Presentation/Visuals: runtime instancing for repeated room meshes and submeshes, with ordinary renderer fallback for unique or low-count models, material property blocks, unsupported instancing or API failure. Only groups with at least three instances are batched. Materials are cloned; original resources remain untouched. Source material properties are propagated. Gameplay remains independent of this component.
+World/Maps: room-aware debris adapter for all generated members. It uses full compound bounds and the existing 18m/s impact / 20m/s fast-debris policies, with a 2s creation grace period, displacement/contact checks, conservative player/hand/view guards, bounded swept motion and observer-triggered native restoration. Displaced unoccupied debris reaching static ground can sink at 2m/s. Burial cancels if new structural contact or a nearby observer appears. Stable body indices remain. Gameplay impact announcements use existing Core events; no particles, sound or UI are emitted by World.
+Cleanup is conservative in multiplayer: more than one human disables these retirement/ballistic decisions until a complete remote occupancy policy is available. Native physics remains active. This avoids deleting geometry near unobserved remote people; it also means the single-player cleanup saving is not promised online.
+
+VALIDATION
+43 passing assertions; zero validation failures and zero Unity runtime errors.
+All three full tower routes passed with the production motor: Hall 45/45, House 29/29, Gate 28/28. Initial placement per route is the only teleport; the driver uses actual controller collision and .02s movement substeps.
+Additional real-runtime fixtures passed: no player pushing of a free dynamic wall; wall obstruction and grounded walking; recovery from initially overlapping a dynamic wall; translating/rotating platform carry; VR-mode structural-layer vaulting and climbing; bounded vault motion; climb release preserving camera rotation; actual fast-debris conversion and observer restoration; real high-speed impact retirement; actual ground sinking; stable body indices; replica/authority transitions; instanced room submission; returning to the original collision policy/matrix.
+Native isolated simulation: 8s settling, maximum drift .0700m, maximum tilt .163 degrees, all 633 bodies asleep. No initial penetrating authored members. Removing one Hall base section displaced 28 other Hall members; original keep support loss displaced 59. Authored city data equality, invalid layout count/scale rejection and serialized rebuild passed. Disaster setup validator passed.
+The first observer fixture failed because its manually disabled motor was not in Tracked.Movers. The corrected fixture explicitly registers that stand-in while disabled and removes it during teardown. Final observer restoration passed; no failure was suppressed. Initial and corrected evidence is retained.
+
+FRESH PERFORMANCE COMPARISON
+The final performance-only run creates fresh maps and skips traversal/replica/debris fixtures. Those functional checks can change native contact caches and time history, so their subsequent timings are retained as diagnostics rather than used as the final pair. This is not a claim that every earlier slowdown was explained by fixtures; noisy Editor runs and physics trajectories also vary.
+Both final maps include the global sampling/mask integration code; the pair primarily compares the new collision/render/cleanup profile. The before/after benefit of global sampling alone is not separately claimed.
+festival-city-packed
+  No bots/disasters: 24.15ms / 41.4 median-based FPS; p90 37.24ms; n=110.
+  32 bots: 46.51ms / 21.5 median-based FPS; p90 71.50ms; n=79.
+  32 bots + actual tsunami: 121.36ms / 8.2 median-based FPS; p90 1114.26ms; n=97.
+festival-city-optimized
+  No bots/disasters: 24.02ms / 41.6 median-based FPS; p90 30.28ms; n=120.
+  32 bots: 50.42ms / 19.8 median-based FPS; p90 81.32ms; n=74.
+  32 bots + actual tsunami: 107.74ms / 9.3 median-based FPS; p90 1091.91ms; n=104.
+Final stress median frame time improved 11.2% (about 12.6% higher equivalent FPS). Idle was effectively unchanged; the bot-only sample was about 8.4% slower in frame time. The improvement is modest and not a consistent win in every condition. One-second stalls remain.
+Physics.SyncTransforms mean fell from 3.731ms to 1.462ms per sampled wave frame. Physics.Simulate remained dominant: 156.553ms to 147.143ms mean per rendered frame, including multiple fixed steps; those are not per-step timings. Recovery averaged .219ms, hybrid room batches .814ms, and cleanup 1.425ms in the final optimized wave sample. These markers nest; do not add them as independent totals. Shader batching submits 27 groups in the final scene rather than 109 for the initial unrestricted instancing version.
+Final wave cleanup retired 11 sinking members; no fast conversions or impact shatters occurred in that wave sample. Fast conversion, restoration and impact paths were verified in controlled production-body fixtures; their existence is not counted as a measured wave FPS saving.
+Feature-isolated probes are included in FeatureIsolation.txt. Direct collision, batching, cleanup and recovery-off diagnostic were exercised separately; recovery is ON in the shipped profile. The recovery-off diagnostic is not an accepted gameplay configuration.
+
+LIMITS AND FOLLOW-UP
+Short unfocused laptop Editor samples with other Unity processes active, not standalone or Quest benchmarks. Wall-clock wave windows and budgeted bot decisions do not make physics trajectories identical. Absolute FPS and small differences are noisy. The earlier estimated 10–16 FPS result did not materialize consistently; the final stress pair was 8.2 to 9.3 FPS.
+ADB reported no connected device. No headset tracking/controller, Quest GPU/thermal, live two-player or latency/loss session was tested. VR-mode fixtures exercise the production motor in Editor; they are not a headset claim. Network wire formats and actor kinds were not changed. Replica/authority behavior and stable world indices were exercised locally.
+The remaining bottleneck is native simulation and catch-up during active contact, with additional bot/query and allocation costs. This patch preserves current solver/CCD settings and collapse behavior. It does not claim Quest readiness or solve the 72 FPS target.
+
+INTEGRATION
+Task branch world/maps-city-runtime-optimization contains scoped additions and common-version patches on top of our own prior city commits and latest main. The live working project includes the changes without resetting other work. Newer existing planner, walking-route and ledge-look files in that working project receive query-mask substitutions as well; their unrelated implementations are not imported into the older task branch. WorkingSource.zip preserves the integrated touched source files for review. No push/PR or transfer-branch merge was performed.

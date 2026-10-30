@@ -20,7 +20,9 @@ namespace DeadlyJenga.CastlePrototype
             var info = sessionObject.GetComponent<ISessionInfo>();
             if (info == null) return;
             if (!sessionObject.GetComponent<CandyDemoHud>()) sessionObject.AddComponent<CandyDemoHud>();
+            if (!sessionObject.GetComponent<DeadlyJenga.CandyArt.ScaffoldPresentation>()) sessionObject.AddComponent<DeadlyJenga.CandyArt.ScaffoldPresentation>();
             if (info.Player != null && !info.Player.gameObject.GetComponent<CandyStaminaHud>()) info.Player.gameObject.AddComponent<CandyStaminaHud>();
+            if(info.Player!=null&&!info.Player.gameObject.GetComponent<PowerupHud>())info.Player.gameObject.AddComponent<PowerupHud>();
             var driver = sessionObject.GetComponent<SessionPresentation>();
             if (!driver) driver = sessionObject.AddComponent<SessionPresentation>();
             driver.Init(info);
@@ -36,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype
         void LateUpdate()
         {
             if (session == null || !worldMenu) return;
-            bool show = session.MenuOpen && session.IsVR;
+            bool show = (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && session.MenuOpen && session.IsVR && MatchRuntime.Current?.Frame.phase != RoundPhase.Results;
             var view = session.ActiveCamera;
             if (show != shown || show && (view != lastCamera || session.PlayingHand != lastHand))
             {

@@ -24,6 +24,9 @@ namespace FlyingHand
         public Vector2 DesktopLookDelta { get; private set; }
         // The host demo owns menus and possession; the reusable motor keeps its own input bindings.
         public bool InputSuspended { get; set; }
+        [Header("Water boundary")]
+        public bool keepAboveWater = true;
+        [Min(0)] public float wristSubmersion = .35f;
         [HideInInspector] public bool externallyDriven;
         public IFlyingHandInputSource InputDriver {get;set;}
         public ITrackedFlightInputSource TrackedInputDriver {get;set;}
@@ -67,6 +70,8 @@ namespace FlyingHand
         Vector3 smoothedInput;
         float smoothedYaw;
         bool focused = true;
+        public bool DesktopInputAllowed => focused && !InputSuspended && !externallyDriven && ActiveControlMode == ControlMode.Desktop &&
+            (!captureDesktopCursor || Cursor.lockState == CursorLockMode.Locked);
 
         void Awake() { Body = GetComponent<Rigidbody>(); ConfigureBody(); }
         public void ConfigureBody()
@@ -233,6 +238,7 @@ namespace FlyingHand
         }
         void FixedUpdate()
         {
+            ClampWaterBoundary();
             if(!externallyDriven&&ActiveControlMode==ControlMode.VR)
             {
                 var headingVR=Quaternion.Euler(0,Body.rotation.eulerAngles.y,0);
@@ -260,6 +266,14 @@ namespace FlyingHand
             velocity.y = Mathf.Clamp(velocity.y, -maximumVerticalSpeed, maximumVerticalSpeed);
             Body.linearVelocity = Vector3.ClampMagnitude(velocity, maximumSpeed);
             Body.angularVelocity = new Vector3(0, Mathf.Clamp(Body.angularVelocity.y, -Body.maxAngularVelocity, Body.maxAngularVelocity), 0);
+        }
+        public void ClampWaterBoundary()
+        {
+            if (!keepAboveWater || !Body || DeadlyJenga.Core.Services.World == null) return;
+            float floor = DeadlyJenga.Core.Services.World.WaterHeight(Body.position) - Mathf.Max(0, wristSubmersion);
+            if (Body.position.y >= floor) return;
+            var position = Body.position; position.y = floor; Body.position = position;
+            var velocity = Body.linearVelocity; velocity.y = Mathf.Max(0, velocity.y); Body.linearVelocity = velocity;
         }
     }
 }

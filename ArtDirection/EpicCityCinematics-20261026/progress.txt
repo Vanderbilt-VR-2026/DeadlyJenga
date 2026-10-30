@@ -1,0 +1,10 @@
+epic-tideway 3 captures; 108 bodies; lower buildings=14
+epic-double-loop 3 captures; 125 bodies; lower buildings=16
+epic-caldera 3 captures; 91 bodies; lower buildings=4
+epic-broken-crown 3 captures; 107 bodies; lower buildings=16
+epic-harbor-loom 3 captures; 131 bodies; lower buildings=18
+epic-lantern-ravine 3 captures; 86 bodies; lower buildings=4
+epic-canopy-borough 3 captures; 95 bodies; lower buildings=8
+epic-bookfall 3 captures; 108 bodies; lower buildings=16
+epic-three-hearts 3 captures; 122 bodies; lower buildings=16
+epic-rising-spine 3 captures; 84 bodies; lower buildings=9

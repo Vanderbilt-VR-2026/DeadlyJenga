@@ -1,0 +1,22 @@
+{
+  "tracks": [
+    {
+      "id": "01-dockside-momentum",
+      "title": "Dockside Momentum",
+      "bpm": 116,
+      "direction": "Recommended lobby direction: a warm coastal breakbeat, rubber bass and restrained plastic hook"
+    },
+    {
+      "id": "02-plastic-palms",
+      "title": "Plastic Palms",
+      "bpm": 108,
+      "direction": "Social island groove: plucked chords, hollow clacks and relaxed bass syncopation"
+    },
+    {
+      "id": "03-ready-when-you-are",
+      "title": "Ready When You Are",
+      "bpm": 124,
+      "direction": "A more competitive lobby pulse: crisp backbeat, candy-glass accents and patient low-end drive"
+    }
+  ]
+}

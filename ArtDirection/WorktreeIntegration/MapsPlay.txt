@@ -1,0 +1,40 @@
+Actual Game runtime launch of imported map variants, followed by Mystery on Breakwater. Short smoke, not FPS, collapse or headset certification.
+PASS solo Game initializes
+PASS workshop-crown loads through production map selection
+PASS workshop-crown uses intended implementation
+PASS workshop-crown keeps valid physical bodies after live ticks
+PASS workshop-terraces loads through production map selection
+PASS workshop-terraces uses intended implementation
+PASS workshop-terraces keeps valid physical bodies after live ticks
+PASS workshop-viaduct loads through production map selection
+PASS workshop-viaduct uses intended implementation
+PASS workshop-viaduct keeps valid physical bodies after live ticks
+PASS workshop-megakeeps loads through production map selection
+PASS workshop-megakeeps uses intended implementation
+PASS workshop-megakeeps keeps valid physical bodies after live ticks
+PASS workshop-crown-grand loads through production map selection
+PASS workshop-crown-grand uses intended implementation
+PASS workshop-crown-grand keeps valid physical bodies after live ticks
+PASS workshop-terraces-grand loads through production map selection
+PASS workshop-terraces-grand uses intended implementation
+PASS workshop-terraces-grand keeps valid physical bodies after live ticks
+PASS workshop-viaduct-grand loads through production map selection
+PASS workshop-viaduct-grand uses intended implementation
+PASS workshop-viaduct-grand keeps valid physical bodies after live ticks
+PASS workshop-megakeeps-grand loads through production map selection
+PASS workshop-megakeeps-grand uses intended implementation
+PASS workshop-megakeeps-grand keeps valid physical bodies after live ticks
+PASS workshop-archipelago loads through production map selection
+PASS workshop-archipelago uses intended implementation
+PASS workshop-archipelago keeps valid physical bodies after live ticks
+PASS breakwater-village loads through production map selection
+PASS breakwater-village uses intended implementation
+PASS breakwater-village keeps valid physical bodies after live ticks
+PASS sparse-festival-city-optimized loads through production map selection
+PASS sparse-festival-city-optimized uses intended implementation
+PASS sparse-festival-city-optimized keeps valid physical bodies after live ticks
+PASS Breakwater starts Murder Mystery on the walkable island
+PASS Mystery has actual survivor bots
+PASS runtime reports no errors
+COMPLETE
+EXIT runtimeErrors=0

@@ -1,0 +1,57 @@
+{
+  "setup": {
+    "title": "Mode + Map",
+    "image": "Actual-Setup.png",
+    "staged": false
+  },
+  "join": {
+    "title": "Join",
+    "image": "Actual-Join.png",
+    "staged": false
+  },
+  "code": {
+    "title": "Code entry",
+    "image": "Actual-Join-Code.png",
+    "staged": false
+  },
+  "host": {
+    "title": "Host",
+    "image": "Actual-Host-Offline.png",
+    "staged": false
+  },
+  "modes": {
+    "title": "Mode browser",
+    "image": "Actual-Modes.png",
+    "staged": false
+  },
+  "maps": {
+    "title": "Map browser",
+    "image": "Actual-Maps.png",
+    "staged": false
+  },
+  "settings": {
+    "title": "Settings",
+    "image": "Actual-Settings.png",
+    "staged": false
+  },
+  "connected": {
+    "title": "Connected host",
+    "image": "Staged-Host-Connected.png",
+    "staged": true
+  },
+  "guest": {
+    "title": "Guest controls",
+    "image": "Staged-Host-Guest.png",
+    "staged": true
+  },
+  "request": {
+    "title": "Host request",
+    "image": "Staged-Host-Request.png",
+    "staged": true
+  },
+  "nearby": {
+    "title": "Nearby rooms",
+    "image": "Staged-Join-Nearby.png",
+    "staged": true
+  }
+}

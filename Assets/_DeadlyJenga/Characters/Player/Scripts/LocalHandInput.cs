@@ -15,6 +15,8 @@ public struct HandPoseInput : INetworkInput
     public Quaternion HeadRotation;
     public float AvatarScale;
     public uint HandFlags;
+    public uint AvatarAccessories;
+    public uint AvatarStyle;
     public CandyHandSkeleton LeftSkeleton,RightSkeleton;
 }
 
@@ -75,7 +77,7 @@ public class LocalHandInput : MonoBehaviour, DeadlyJenga.Core.ILocalPlayerInput
             candyAvatar.RefreshNow();var frame=candyAvatar.LastFrame;
             pose=new HandPoseInput{RootPosition=frame.feet,RootRotation=Quaternion.Euler(0,frame.headRotation.eulerAngles.y,0),HeadPosition=frame.head,HeadRotation=frame.headRotation,AvatarScale=frame.scale,
                 LeftPosition=frame.left.position,LeftRotation=frame.left.rotation,RightPosition=frame.right.position,RightRotation=frame.right.rotation,LeftSkeleton=frame.left.skeleton,RightSkeleton=frame.right.skeleton,
-                HandFlags=(frame.left.skeletonTracked?1u:0)|(frame.right.skeletonTracked?2u:0)|(frame.left.tracked?4u:0)|(frame.right.tracked?8u:0)};
+                AvatarStyle=CandyPlayerAvatar.StyleBits(candyAvatar.Appearance),AvatarAccessories=(uint)candyAvatar.Appearance.accessories,HandFlags=(frame.left.skeletonTracked?1u:0)|(frame.right.skeletonTracked?2u:0)|(frame.left.tracked?4u:0)|(frame.right.tracked?8u:0)};
             return true;
         }
         if (!leftVisual || !rightVisual) return false;

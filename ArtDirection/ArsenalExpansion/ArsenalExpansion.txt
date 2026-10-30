@@ -1,0 +1,161 @@
+Arsenal expansion: actual Game mechanics, categorized menus and model captures.
+PASS Actual Game initializes
+PASS Target bot spawns
+PASS Every serialized equipment kind has one shared specification
+PASS Existing equipment wire identities stay unchanged
+PASS Demo grant equips RocketLauncher
+PASS Granted weapon is drawn: RocketLauncher
+PASS Authoritative attack accepted for RocketLauncher
+PASS Travelling projectile publishes immediately for RocketLauncher
+PASS Physical target takes damage from RocketLauncher
+PASS Snapshot validates after RocketLauncher
+PASS Demo grant equips DualUzi
+PASS Granted weapon is drawn: DualUzi
+PASS Physical target takes damage from DualUzi
+PASS Snapshot validates after DualUzi
+PASS Demo grant equips ChainGun
+PASS Granted weapon is drawn: ChainGun
+PASS Held trigger accepted for ChainGun
+PASS No early damage before spin-up: ChainGun
+PASS Physical target takes damage from ChainGun
+PASS Snapshot validates after ChainGun
+PASS Demo grant equips GrenadeLauncher
+PASS Granted weapon is drawn: GrenadeLauncher
+PASS Authoritative attack accepted for GrenadeLauncher
+PASS Travelling projectile publishes immediately for GrenadeLauncher
+PASS Physical target takes damage from GrenadeLauncher
+PASS Snapshot validates after GrenadeLauncher
+PASS Demo grant equips WristLaser
+PASS Granted weapon is drawn: WristLaser
+PASS Physical target takes damage from WristLaser
+PASS Snapshot validates after WristLaser
+PASS Demo grant equips NeedleDrill
+PASS Granted weapon is drawn: NeedleDrill
+PASS Held trigger accepted for NeedleDrill
+PASS No early damage before spin-up: NeedleDrill
+PASS Physical target takes damage from NeedleDrill
+PASS Snapshot validates after NeedleDrill
+PASS Demo grant equips StockPistol
+PASS Granted weapon is drawn: StockPistol
+PASS Physical target takes damage from StockPistol
+PASS Snapshot validates after StockPistol
+PASS Demo grant equips SawStaff
+PASS Granted weapon is drawn: SawStaff
+PASS Authoritative attack accepted for SawStaff
+PASS Physical target takes damage from SawStaff
+PASS Snapshot validates after SawStaff
+PASS Demo grant equips BarbedBat
+PASS Granted weapon is drawn: BarbedBat
+PASS Authoritative attack accepted for BarbedBat
+PASS Physical target takes damage from BarbedBat
+PASS Snapshot validates after BarbedBat
+PASS Demo grant equips Chainsaw
+PASS Granted weapon is drawn: Chainsaw
+PASS Physical target takes damage from Chainsaw
+PASS Snapshot validates after Chainsaw
+PASS Demo grant equips LaserClaws
+PASS Granted weapon is drawn: LaserClaws
+PASS Authoritative attack accepted for LaserClaws
+PASS Physical target takes damage from LaserClaws
+PASS Snapshot validates after LaserClaws
+PASS Demo grant equips FlamingMarshmallow
+PASS Granted weapon is drawn: FlamingMarshmallow
+PASS Authoritative attack accepted for FlamingMarshmallow
+PASS Physical target takes damage from FlamingMarshmallow
+PASS Snapshot validates after FlamingMarshmallow
+PASS Demo grant equips LaserAxe
+PASS Granted weapon is drawn: LaserAxe
+PASS Authoritative attack accepted for LaserAxe
+PASS Physical target takes damage from LaserAxe
+PASS Snapshot validates after LaserAxe
+PASS Demo grant equips Dagger
+PASS Granted weapon is drawn: Dagger
+PASS Authoritative attack accepted for Dagger
+PASS Physical target takes damage from Dagger
+PASS Snapshot validates after Dagger
+PASS Stock pistol switches to burst mode
+PASS One held burst fires exactly three rounds
+PASS Chainsaw switches to wheel launcher
+PASS One-second charged chainsaw launches a travelling wheel
+PASS Axe switches to full-width laser
+PASS Axe laser attack accepted
+PASS Axe beam damages a physical target at range
+PASS Wrist laser equips
+PASS Continuous beam deals repeated damage and stops on release
+PASS Configured mode supplies an always-ready fallback dagger
+PASS Fallback dagger inflicts its stronger PvP melee damage
+PASS Fallback dagger respects dominant-hand selection
+PASS Speed power equips beside fallback dagger
+PASS Movement power keeps the fallback blade visible and applies its real effect
+PASS A carried timed power still requires normal swap confirmation
+PASS Jump power coexists with the blade
+PASS Combined fallback and timed-power snapshot validates
+PASS Authority restore keeps the timed power beneath the fallback weapon
+PASS Timed-power expiry returns to the ordinary fallback blade
+PASS Pickup weapon replaces fallback dagger
+PASS Fallback dagger does not generate a ground drop
+PASS PvP defaults use daggers while Mystery keeps role weapons
+PASS Snapshot fixture equips charged weapon
+PASS Charge progress is replicated as finite bounded data
+PASS Malformed charge snapshot is rejected
+PASS Random spawner exposes every item weight
+PASS Existing objective contracts pass
+PASS Transport fixture equips rocket launcher
+PASS Transport fixture launches a rocket
+PASS Immediate snapshot includes an airborne rocket
+PASS Authority restore retains airborne rocket state
+PASS Transport fixture equips active suit beside airborne rocket
+PASS Actual thrust and stopped suit frames pass production validation
+PASS Transport fixture captures actual active and stopped suit state
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent Photon suit host startup completes
+PASS Real Photon suit host connects
+TRANSPORT FIXTURE NOTE: empty scene multiple-peer diagnostic; packet test, not replicated gameplay scene.
+PASS Independent Photon suit guest startup completes
+PASS Second real Photon peer joins the suit room
+PASS Suit state packet 0 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 0
+PASS Remote peer receives active suit thrust
+PASS Suit state packet 1 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 1
+PASS Remote peer receives stopped suit thrust
+PASS Suit state packet 2 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 2
+PASS Duplicate stopped packet cannot restart remote jets
+PASS Photon suit guest shuts down
+PASS Photon suit host shuts down
+PASS Temporary multiple-peer and physics settings are restored
+PASS Detailed collider-free model: RocketLauncher
+PASS Live pickup geometry catalog includes RocketLauncher
+PASS Detailed collider-free model: DualUzi
+PASS Live pickup geometry catalog includes DualUzi
+PASS Detailed collider-free model: ChainGun
+PASS Live pickup geometry catalog includes ChainGun
+PASS Detailed collider-free model: GrenadeLauncher
+PASS Live pickup geometry catalog includes GrenadeLauncher
+PASS Detailed collider-free model: WristLaser
+PASS Live pickup geometry catalog includes WristLaser
+PASS Detailed collider-free model: NeedleDrill
+PASS Live pickup geometry catalog includes NeedleDrill
+PASS Detailed collider-free model: StockPistol
+PASS Live pickup geometry catalog includes StockPistol
+PASS Detailed collider-free model: SawStaff
+PASS Live pickup geometry catalog includes SawStaff
+PASS Detailed collider-free model: BarbedBat
+PASS Live pickup geometry catalog includes BarbedBat
+PASS Detailed collider-free model: Chainsaw
+PASS Live pickup geometry catalog includes Chainsaw
+PASS Detailed collider-free model: LaserClaws
+PASS Live pickup geometry catalog includes LaserClaws
+PASS Detailed collider-free model: FlamingMarshmallow
+PASS Live pickup geometry catalog includes FlamingMarshmallow
+PASS Detailed collider-free model: LaserAxe
+PASS Live pickup geometry catalog includes LaserAxe
+PASS Detailed collider-free model: Dagger
+PASS Live pickup geometry catalog includes Dagger
+PASS Four main tabs retain disasters and niche powerup controls
+PASS VR menu exists
+PASS VR root shows exactly the four requested main categories
+PASS Static-cloud pickup shader compiles
+PASS No unexpected runtime errors
+COMPLETE checks=157 runtimeErrors=0 failed=False. Desktop runtime; headset not tested.

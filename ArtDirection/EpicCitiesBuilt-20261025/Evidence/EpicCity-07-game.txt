@@ -1,0 +1,18 @@
+Canopy Borough production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=69 shapes=894 routes=12 elevated=10 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Canopy market position=(-104.68, 5.04, -115.60)
+PASS production motor first flight Daylight court position=(19.68, 5.04, -86.40)
+PASS production motor first flight Sunlit entry terraces position=(115.32, 5.04, -116.60)
+PASS production motor first flight West branching crown position=(-104.68, 5.04, 9.40)
+PASS production motor first flight Central branching crown position=(10.80, 5.04, 0.10)
+PASS production motor first flight East branching crown position=(115.48, 5.04, -9.30)
+PASS production motor first flight Shaded upper arcade position=(-104.68, 5.04, 98.40)
+PASS production motor first flight Canopy skyline marker position=(5.32, 5.04, 101.40)
+PASS production motor first flight Maker hall position=(115.32, 5.04, 99.40)
+32 bots / quiet frames=75 average=18.8FPS p95=78.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=30
+32 bots + tsunami frames=563 average=6.6FPS p95=549.8ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=42/69. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=32/69. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=69 runtimeErrorsSoFar=0

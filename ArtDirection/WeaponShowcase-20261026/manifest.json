@@ -1,0 +1,1014 @@
+{
+    "captured": "2026-10-26T13:55:31.3017385-05:00",
+    "evidence": "Actual Unity Game scene lighting; production CandyWeaponVisual and CandyPlayerRig, staged poses. No weapon art changes.",
+    "shots": [
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "Blaster-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "Blaster-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "Blaster-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "Blaster-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "Blaster-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "Blaster-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "Blaster",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "Blaster-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "MurderSword-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "MurderSword-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "MurderSword-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "MurderSword-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "MurderSword-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "MurderSword-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "MurderSword",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "MurderSword-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Weapon 1",
+            "file": "SheriffHammer-Primary-Weapon-1.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Weapon 2",
+            "file": "SheriffHammer-Primary-Weapon-2.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Weapon 3",
+            "file": "SheriffHammer-Primary-Weapon-3.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Held 1",
+            "file": "SheriffHammer-Primary-Held-1.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Held 2",
+            "file": "SheriffHammer-Primary-Held-2.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Held 3",
+            "file": "SheriffHammer-Primary-Held-3.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Primary",
+            "view": "Holstered",
+            "file": "SheriffHammer-Primary-Holstered.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Weapon 1",
+            "file": "SheriffHammer-Alternate-Weapon-1.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Weapon 2",
+            "file": "SheriffHammer-Alternate-Weapon-2.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Weapon 3",
+            "file": "SheriffHammer-Alternate-Weapon-3.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Held 1",
+            "file": "SheriffHammer-Alternate-Held-1.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Held 2",
+            "file": "SheriffHammer-Alternate-Held-2.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Held 3",
+            "file": "SheriffHammer-Alternate-Held-3.jpg"
+        },
+        {
+            "weapon": "SheriffHammer",
+            "mode": "Alternate",
+            "view": "Holstered",
+            "file": "SheriffHammer-Alternate-Holstered.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Weapon 1",
+            "file": "DualRifle-Primary-Weapon-1.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Weapon 2",
+            "file": "DualRifle-Primary-Weapon-2.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Weapon 3",
+            "file": "DualRifle-Primary-Weapon-3.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Held 1",
+            "file": "DualRifle-Primary-Held-1.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Held 2",
+            "file": "DualRifle-Primary-Held-2.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Held 3",
+            "file": "DualRifle-Primary-Held-3.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Primary",
+            "view": "Holstered",
+            "file": "DualRifle-Primary-Holstered.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Weapon 1",
+            "file": "DualRifle-Alternate-Weapon-1.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Weapon 2",
+            "file": "DualRifle-Alternate-Weapon-2.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Weapon 3",
+            "file": "DualRifle-Alternate-Weapon-3.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Held 1",
+            "file": "DualRifle-Alternate-Held-1.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Held 2",
+            "file": "DualRifle-Alternate-Held-2.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Held 3",
+            "file": "DualRifle-Alternate-Held-3.jpg"
+        },
+        {
+            "weapon": "DualRifle",
+            "mode": "Alternate",
+            "view": "Holstered",
+            "file": "DualRifle-Alternate-Holstered.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "BoxingGlove-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "BoxingGlove-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "BoxingGlove-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "BoxingGlove-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "BoxingGlove-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "BoxingGlove-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "BoxingGlove",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "BoxingGlove-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "RocketLauncher-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "RocketLauncher-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "RocketLauncher-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "RocketLauncher-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "RocketLauncher-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "RocketLauncher-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "RocketLauncher",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "RocketLauncher-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "DualUzi-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "DualUzi-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "DualUzi-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "DualUzi-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "DualUzi-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "DualUzi-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "DualUzi",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "DualUzi-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "ChainGun-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "ChainGun-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "ChainGun-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "ChainGun-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "ChainGun-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "ChainGun-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "ChainGun",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "ChainGun-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "GrenadeLauncher-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "GrenadeLauncher-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "GrenadeLauncher-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "GrenadeLauncher-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "GrenadeLauncher-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "GrenadeLauncher-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "GrenadeLauncher",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "GrenadeLauncher-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "WristLaser-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "WristLaser-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "WristLaser-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "WristLaser-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "WristLaser-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "WristLaser-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "WristLaser",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "WristLaser-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "NeedleDrill-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "NeedleDrill-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "NeedleDrill-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "NeedleDrill-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "NeedleDrill-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "NeedleDrill-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "NeedleDrill",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "NeedleDrill-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Weapon 1",
+            "file": "StockPistol-Primary-Weapon-1.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Weapon 2",
+            "file": "StockPistol-Primary-Weapon-2.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Weapon 3",
+            "file": "StockPistol-Primary-Weapon-3.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Held 1",
+            "file": "StockPistol-Primary-Held-1.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Held 2",
+            "file": "StockPistol-Primary-Held-2.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Held 3",
+            "file": "StockPistol-Primary-Held-3.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Primary",
+            "view": "Holstered",
+            "file": "StockPistol-Primary-Holstered.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Weapon 1",
+            "file": "StockPistol-Alternate-Weapon-1.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Weapon 2",
+            "file": "StockPistol-Alternate-Weapon-2.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Weapon 3",
+            "file": "StockPistol-Alternate-Weapon-3.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Held 1",
+            "file": "StockPistol-Alternate-Held-1.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Held 2",
+            "file": "StockPistol-Alternate-Held-2.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Held 3",
+            "file": "StockPistol-Alternate-Held-3.jpg"
+        },
+        {
+            "weapon": "StockPistol",
+            "mode": "Alternate",
+            "view": "Holstered",
+            "file": "StockPistol-Alternate-Holstered.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "SawStaff-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "SawStaff-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "SawStaff-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "SawStaff-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "SawStaff-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "SawStaff-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "SawStaff",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "SawStaff-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "BarbedBat-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "BarbedBat-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "BarbedBat-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "BarbedBat-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "BarbedBat-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "BarbedBat-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "BarbedBat",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "BarbedBat-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Weapon 1",
+            "file": "Chainsaw-Primary-Weapon-1.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Weapon 2",
+            "file": "Chainsaw-Primary-Weapon-2.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Weapon 3",
+            "file": "Chainsaw-Primary-Weapon-3.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Held 1",
+            "file": "Chainsaw-Primary-Held-1.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Held 2",
+            "file": "Chainsaw-Primary-Held-2.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Held 3",
+            "file": "Chainsaw-Primary-Held-3.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Primary",
+            "view": "Holstered",
+            "file": "Chainsaw-Primary-Holstered.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Weapon 1",
+            "file": "Chainsaw-Alternate-Weapon-1.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Weapon 2",
+            "file": "Chainsaw-Alternate-Weapon-2.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Weapon 3",
+            "file": "Chainsaw-Alternate-Weapon-3.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Held 1",
+            "file": "Chainsaw-Alternate-Held-1.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Held 2",
+            "file": "Chainsaw-Alternate-Held-2.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Held 3",
+            "file": "Chainsaw-Alternate-Held-3.jpg"
+        },
+        {
+            "weapon": "Chainsaw",
+            "mode": "Alternate",
+            "view": "Holstered",
+            "file": "Chainsaw-Alternate-Holstered.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "LaserClaws-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "LaserClaws-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "LaserClaws-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "LaserClaws-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "LaserClaws-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "LaserClaws-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "LaserClaws",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "LaserClaws-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "FlamingMarshmallow-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "FlamingMarshmallow-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "FlamingMarshmallow-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "FlamingMarshmallow-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "FlamingMarshmallow-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "FlamingMarshmallow-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "FlamingMarshmallow",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "FlamingMarshmallow-Default-Holstered.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Weapon 1",
+            "file": "LaserAxe-Primary-Weapon-1.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Weapon 2",
+            "file": "LaserAxe-Primary-Weapon-2.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Weapon 3",
+            "file": "LaserAxe-Primary-Weapon-3.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Held 1",
+            "file": "LaserAxe-Primary-Held-1.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Held 2",
+            "file": "LaserAxe-Primary-Held-2.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Held 3",
+            "file": "LaserAxe-Primary-Held-3.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Primary",
+            "view": "Holstered",
+            "file": "LaserAxe-Primary-Holstered.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Weapon 1",
+            "file": "LaserAxe-Alternate-Weapon-1.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Weapon 2",
+            "file": "LaserAxe-Alternate-Weapon-2.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Weapon 3",
+            "file": "LaserAxe-Alternate-Weapon-3.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Held 1",
+            "file": "LaserAxe-Alternate-Held-1.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Held 2",
+            "file": "LaserAxe-Alternate-Held-2.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Held 3",
+            "file": "LaserAxe-Alternate-Held-3.jpg"
+        },
+        {
+            "weapon": "LaserAxe",
+            "mode": "Alternate",
+            "view": "Holstered",
+            "file": "LaserAxe-Alternate-Holstered.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Weapon 1",
+            "file": "Dagger-Default-Weapon-1.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Weapon 2",
+            "file": "Dagger-Default-Weapon-2.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Weapon 3",
+            "file": "Dagger-Default-Weapon-3.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Held 1",
+            "file": "Dagger-Default-Held-1.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Held 2",
+            "file": "Dagger-Default-Held-2.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Held 3",
+            "file": "Dagger-Default-Held-3.jpg"
+        },
+        {
+            "weapon": "Dagger",
+            "mode": "Default",
+            "view": "Holstered",
+            "file": "Dagger-Default-Holstered.jpg"
+        }
+    ]
+}

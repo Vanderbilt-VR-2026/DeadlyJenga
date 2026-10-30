@@ -1,0 +1,16 @@
+Three Hearts City production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=74 shapes=703 routes=11 elevated=4 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Business heart position=(-125.68, 5.04, 55.40)
+PASS production motor first flight Civic heart position=(5.21, 5.03, 104.50)
+PASS production motor first flight Lantern Court heart position=(100.40, 5.04, 75.68)
+PASS production motor first flight Harbor terraces position=(120.32, 5.04, -81.60)
+PASS production motor first flight Waterfront heart position=(25.32, 5.04, -120.60)
+PASS production motor first flight Market entry position=(-89.68, 5.04, -81.60)
+PASS production motor first flight Exchange catch tower position=(21.24, 6.02, -8.00)
+32 bots / quiet frames=58 average=14.7FPS p95=92.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=31
+32 bots + tsunami frames=595 average=10.0FPS p95=232.9ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=39/74. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=23/74. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=74 runtimeErrorsSoFar=0

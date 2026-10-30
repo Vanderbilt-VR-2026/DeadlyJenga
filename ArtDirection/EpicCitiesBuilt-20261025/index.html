@@ -1,0 +1,169 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Deadly Jenga · Ten Built Cities</title><style>body{margin:0;background:#101a29;color:#e9f2ff;font:17px/1.6 system-ui,sans-serif}main{max-width:1550px;margin:auto;padding:45px 5vw}h1{font-size:48px;line-height:1.1}h2{margin-bottom:8px}a{color:#9ff0cb}header p{max-width:1050px}.note{border-left:4px solid #ffc985;padding:18px;background:#263046}.table{overflow:auto}table{border-collapse:collapse;width:100%;font-size:15px}td,th{text-align:left;padding:12px;border-bottom:1px solid #40516c}article{border-top:1px solid #40516c;padding-top:24px;margin:40px 0}.shots{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}figure{margin:0}img{width:100%;height:auto}figcaption{color:#b8c9e0;font-size:14px}details{padding:18px;background:#17263b;margin-top:18px}summary{cursor:pointer;color:#cdb9ff}pre{white-space:pre-wrap;font:14px/1.6 ui-monospace,monospace}li{margin:12px 0}@media(max-width:900px){.shots{grid-template-columns:1fr}h1{font-size:35px}}</style></head><body><main><header><p>DEADLY JENGA · BUILT MAPS · OCTOBER 2026</p><h1>Ten connected epic cities</h1><p>All ten are separate selectable maps. In the lobby, choose Mode → Map → <b>Epic connected cities</b>. In the desktop demo menu, choose Game Controls → Maps; the VR map menu uses the same category.</p><p><a href="EpicCitiesBuiltReview.zip" download>Download screenshots and evidence</a> · <a href="../EpicCityReview-20261025/index.html">Original concept review</a></p><p class="note">These are actual production Game captures. The ordinary tsunami and stronger reset/demolition trial are separate tests. Desktop Editor timings are specific to this laptop and camera. The measured frame rates remain low: these builds pass the listed behavior checks, but are not performance-certified. No Quest or two-player certification is claimed.</p></header><div class="table"><table><thead><tr><th>Map</th><th>Bodies</th><th>Shapes</th><th>Elevated links</th><th>32-bot quiet FPS</th><th>32-bot wave FPS</th></tr></thead><tbody><tr><th><a href="#map-1">01 Tideway Metropolis</a></th><td>67</td><td>744</td><td>8</td><td>9.5</td><td>6.1</td></tr><tr><th><a href="#map-2">02 Double-Loop Exchange</a></th><td>83</td><td>729</td><td>11</td><td>17.4</td><td>7.0</td></tr><tr><th><a href="#map-3">03 Caldera Switchback City</a></th><td>86</td><td>634</td><td>9</td><td>16.7</td><td>7.5</td></tr><tr><th><a href="#map-4">04 Broken Crown Capital</a></th><td>67</td><td>588</td><td>6</td><td>16.8</td><td>7.8</td></tr><tr><th><a href="#map-5">05 Harbor Loom</a></th><td>77</td><td>620</td><td>10</td><td>14.7</td><td>7.2</td></tr><tr><th><a href="#map-6">06 Lantern Ravine</a></th><td>68</td><td>681</td><td>6</td><td>6.6</td><td>5.8</td></tr><tr><th><a href="#map-7">07 Canopy Borough</a></th><td>69</td><td>894</td><td>10</td><td>18.8</td><td>6.6</td></tr><tr><th><a href="#map-8">08 Bookfall Boulevard</a></th><td>69</td><td>548</td><td>8</td><td>17.2</td><td>10.7</td></tr><tr><th><a href="#map-9">09 Three Hearts City</a></th><td>74</td><td>703</td><td>4</td><td>14.7</td><td>10.0</td></tr><tr><th><a href="#map-10">10 The Rising Spine</a></th><td>55</td><td>518</td><td>5</td><td>15.9</td><td>10.0</td></tr></tbody></table></div><h2>What was built</h2><p>Independently moving multi-floor sections, real open stair slots, clear climbing ribs, bearing rafts, loose bridges, physical intermediate supports, and one continuous shore-matched terrain collider per island. Caldera, Lantern Ravine and Rising Spine have actual ground elevation. Bookfall has three hinged wings with receiving feet and physical catches; Three Hearts includes the drop-stop assembly.</p><p>The images were interpreted as playable structures rather than copied as exact engineering drawings. Multi-floor cassettes move as units; their individual stairs, piers and floor strips do not each fracture separately. Some proposed bridges remain ground streets when a safe bearing route cannot fit. Heights and spans were adapted to verified collision clearance.</p><h2>Verification and limits</h2><ul><li>All ten passed native geometry, settling and full-size ascent sampling; a focused relay follow-up is retained separately from the earlier full report.</li><li>Production reports below cover real survivor motors, 32 bots, a default-force tsunami, stronger demolition, layout roundtrip and reset.</li><li>No Core contract, global solver setting, package or gameplay scene was changed. Existing maps were preserved.</li><li>Mode-specific competitive balancing and real Quest/multiplayer sessions remain follow-up work. A large playable map is not automatically balanced for every population and mode.</li></ul><article id="map-1"><h2>01 · Tideway Metropolis</h2><p>8 districts · 67 structural bodies · 744 collision shapes · 8 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-01-intact.png"><img src="Captures/EpicCity-01-intact.png" alt="Tideway Metropolis: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-01-tsunami.png"><img src="Captures/EpicCity-01-tsunami.png" alt="Tideway Metropolis: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-01-impact.png"><img src="Captures/EpicCity-01-impact.png" alt="Tideway Metropolis: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Tideway Metropolis production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=67 shapes=744 routes=11 elevated=8 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Harbor sheds position=(-109.68, 5.04, -105.60)
+PASS production motor first flight Quay terraces position=(-29.68, 5.04, -106.60)
+PASS production motor first flight Lantern Court position=(84.68, 5.04, -76.40)
+PASS production motor first flight Branching plaza position=(-99.68, 5.04, 14.40)
+PASS production motor first flight Civic lantern position=(5.32, 5.04, -8.60)
+PASS production motor first flight Crownline offices position=(110.32, 5.04, -8.60)
+PASS production motor first flight High street decks position=(-69.68, 5.04, 88.40)
+PASS production motor first flight Gateway headland position=(44.32, 5.04, 90.40)
+32 bots / quiet frames=38 average=9.5FPS p95=142.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=32
+32 bots + tsunami frames=486 average=6.1FPS p95=876.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=31/67. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=36/67. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=67 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-2"><h2>02 · Double-Loop Exchange</h2><p>8 districts · 83 structural bodies · 729 collision shapes · 11 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-02-intact.png"><img src="Captures/EpicCity-02-intact.png" alt="Double-Loop Exchange: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-02-tsunami.png"><img src="Captures/EpicCity-02-tsunami.png" alt="Double-Loop Exchange: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-02-impact.png"><img src="Captures/EpicCity-02-impact.png" alt="Double-Loop Exchange: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Double-Loop Exchange production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=83 shapes=729 routes=12 elevated=11 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Seaward arcade position=(-114.68, 5.04, -76.60)
+PASS production motor first flight Low court hotel position=(-125.68, 5.04, 25.40)
+PASS production motor first flight West lantern position=(-29.68, 5.04, 81.40)
+PASS production motor first flight Exchange south position=(20.32, 5.04, -53.60)
+PASS production motor first flight Exchange north position=(20.32, 5.04, 41.40)
+PASS production motor first flight Inland court position=(96.40, 5.04, 54.68)
+PASS production motor first flight Market hall position=(120.32, 5.04, -80.60)
+PASS production motor first flight Beach walk position=(-29.68, 5.04, -131.60)
+32 bots / quiet frames=69 average=17.4FPS p95=76.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=32
+32 bots + tsunami frames=587 average=7.0FPS p95=706.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=46/83. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=56/83. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=83 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-3"><h2>03 · Caldera Switchback City</h2><p>7 districts · 86 structural bodies · 634 collision shapes · 9 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-03-intact.png"><img src="Captures/EpicCity-03-intact.png" alt="Caldera Switchback City: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-03-tsunami.png"><img src="Captures/EpicCity-03-tsunami.png" alt="Caldera Switchback City: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-03-impact.png"><img src="Captures/EpicCity-03-impact.png" alt="Caldera Switchback City: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Caldera Switchback City production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=86 shapes=634 routes=10 elevated=9 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Bowl entry arcade position=(-59.79, 5.03, -120.50)
+PASS production motor first flight Low bowl terraces position=(60.32, 5.04, -116.60)
+PASS production motor first flight East switchback position=(125.32, 9.04, -26.60)
+PASS production motor first flight High east crown position=(110.32, 17.04, 81.40)
+PASS production motor first flight Bowl lantern position=(5.32, 13.04, 106.40)
+PASS production motor first flight High west crown position=(-99.79, 17.03, 73.00)
+PASS production motor first flight West switchback position=(-119.68, 9.04, -21.60)
+32 bots / quiet frames=66 average=16.7FPS p95=78.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=32
+32 bots + tsunami frames=598 average=7.5FPS p95=561.4ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=45/86. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=46/86. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=86 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-4"><h2>04 · Broken Crown Capital</h2><p>7 districts · 67 structural bodies · 588 collision shapes · 6 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-04-intact.png"><img src="Captures/EpicCity-04-intact.png" alt="Broken Crown Capital: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-04-tsunami.png"><img src="Captures/EpicCity-04-tsunami.png" alt="Broken Crown Capital: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-04-impact.png"><img src="Captures/EpicCity-04-impact.png" alt="Broken Crown Capital: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Broken Crown Capital production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=67 shapes=588 routes=10 elevated=6 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight South bazaar position=(-64.68, 5.04, -125.60)
+PASS production motor first flight Court entry terraces position=(70.32, 5.04, -121.60)
+PASS production motor first flight Eastern civic gateway position=(115.40, 5.04, 5.68)
+PASS production motor first flight Crown north-east position=(90.32, 5.04, 91.40)
+PASS production motor first flight Off-center civic beacon position=(-19.68, 5.04, 81.40)
+PASS production motor first flight West crown segment position=(-114.79, 5.03, 39.00)
+PASS production motor first flight West arcade position=(-114.68, 5.04, -66.60)
+32 bots / quiet frames=67 average=16.8FPS p95=79.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=30
+32 bots + tsunami frames=583 average=7.8FPS p95=395.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=34/67. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=38/67. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=67 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-5"><h2>05 · Harbor Loom</h2><p>9 districts · 77 structural bodies · 620 collision shapes · 10 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-05-intact.png"><img src="Captures/EpicCity-05-intact.png" alt="Harbor Loom: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-05-tsunami.png"><img src="Captures/EpicCity-05-tsunami.png" alt="Harbor Loom: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-05-impact.png"><img src="Captures/EpicCity-05-impact.png" alt="Harbor Loom: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Harbor Loom production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=77 shapes=620 routes=12 elevated=10 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Dry-dock foundry position=(-114.68, 5.04, -95.60)
+PASS production motor first flight Lower quay position=(-24.68, 5.04, -106.60)
+PASS production motor first flight Harbor lantern position=(70.32, 5.04, -108.60)
+PASS production motor first flight West shipping offices position=(-104.79, 5.03, 9.00)
+PASS production motor first flight Cross-dock interchange position=(0.32, 5.04, -1.60)
+PASS production motor first flight East shipping offices position=(110.32, 5.04, -3.60)
+PASS production motor first flight Upper shipyard position=(-94.68, 5.04, 99.40)
+PASS production motor first flight High loom anchor position=(10.32, 5.04, 101.40)
+PASS production motor first flight North quay position=(115.32, 5.04, 98.40)
+32 bots / quiet frames=57 average=14.7FPS p95=92.2ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=32
+32 bots + tsunami frames=555 average=7.2FPS p95=727.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=48/77. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=47/77. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=77 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-6"><h2>06 · Lantern Ravine</h2><p>8 districts · 68 structural bodies · 681 collision shapes · 6 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-06-intact.png"><img src="Captures/EpicCity-06-intact.png" alt="Lantern Ravine: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-06-tsunami.png"><img src="Captures/EpicCity-06-tsunami.png" alt="Lantern Ravine: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-06-impact.png"><img src="Captures/EpicCity-06-impact.png" alt="Lantern Ravine: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Lantern Ravine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=68 shapes=681 routes=11 elevated=6 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Ravine mouth lantern position=(-94.68, 5.04, -113.60)
+PASS production motor first flight Low west terraces position=(-109.68, 9.04, -26.60)
+PASS production motor first flight West stepping homes position=(-94.68, 11.04, 91.40)
+PASS production motor first flight Eastern office ridge position=(105.19, 9.34, -108.60)
+PASS production motor first flight Ravine compression gateway position=(102.00, 13.44, 33.66)
+PASS production motor first flight High ravine beacon position=(105.32, 13.04, 106.40)
+PASS production motor first flight Low mouth arcade position=(5.32, 5.04, -120.60)
+PASS production motor first flight Inland saddle position=(5.32, 9.04, 98.40)
+32 bots / quiet frames=26 average=6.6FPS p95=203.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=32
+32 bots + tsunami frames=489 average=5.8FPS p95=957.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=28/68. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=42/68. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=68 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-7"><h2>07 · Canopy Borough</h2><p>9 districts · 69 structural bodies · 894 collision shapes · 10 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-07-intact.png"><img src="Captures/EpicCity-07-intact.png" alt="Canopy Borough: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-07-tsunami.png"><img src="Captures/EpicCity-07-tsunami.png" alt="Canopy Borough: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-07-impact.png"><img src="Captures/EpicCity-07-impact.png" alt="Canopy Borough: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Canopy Borough production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=69 shapes=894 routes=12 elevated=10 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Canopy market position=(-104.68, 5.04, -115.60)
+PASS production motor first flight Daylight court position=(19.68, 5.04, -86.40)
+PASS production motor first flight Sunlit entry terraces position=(115.32, 5.04, -116.60)
+PASS production motor first flight West branching crown position=(-104.68, 5.04, 9.40)
+PASS production motor first flight Central branching crown position=(10.80, 5.04, 0.10)
+PASS production motor first flight East branching crown position=(115.48, 5.04, -9.30)
+PASS production motor first flight Shaded upper arcade position=(-104.68, 5.04, 98.40)
+PASS production motor first flight Canopy skyline marker position=(5.32, 5.04, 101.40)
+PASS production motor first flight Maker hall position=(115.32, 5.04, 99.40)
+32 bots / quiet frames=75 average=18.8FPS p95=78.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=30
+32 bots + tsunami frames=563 average=6.6FPS p95=549.8ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=42/69. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=32/69. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=69 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-8"><h2>08 · Bookfall Boulevard</h2><p>7 districts · 69 structural bodies · 548 collision shapes · 8 elevated connections · 3 joints</p><div class="shots"><figure><a href="Captures/EpicCity-08-intact.png"><img src="Captures/EpicCity-08-intact.png" alt="Bookfall Boulevard: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-08-tsunami.png"><img src="Captures/EpicCity-08-tsunami.png" alt="Bookfall Boulevard: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-08-impact.png"><img src="Captures/EpicCity-08-impact.png" alt="Bookfall Boulevard: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Bookfall Boulevard production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=69 shapes=548 routes=10 elevated=8 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Boulevard civic tower position=(-124.68, 5.04, -73.60)
+PASS production motor first flight Western book court position=(-39.68, 5.04, -74.60)
+PASS production motor first flight Eastern book court position=(44.68, 5.04, -55.40)
+PASS production motor first flight Zipper skyline position=(145.21, 5.03, 28.00)
+PASS production motor first flight Maker hall position=(60.32, 5.04, 34.40)
+PASS production motor first flight Northern book court position=(-34.68, 5.04, 35.40)
+PASS production motor first flight Parallel escape arcade position=(-124.68, 5.04, 38.40)
+32 bots / quiet frames=68 average=17.2FPS p95=75.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=30
+32 bots + tsunami frames=719 average=10.7FPS p95=155.8ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=38/69. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=40/69. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=69 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-9"><h2>09 · Three Hearts City</h2><p>7 districts · 74 structural bodies · 703 collision shapes · 4 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-09-intact.png"><img src="Captures/EpicCity-09-intact.png" alt="Three Hearts City: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-09-tsunami.png"><img src="Captures/EpicCity-09-tsunami.png" alt="Three Hearts City: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-09-impact.png"><img src="Captures/EpicCity-09-impact.png" alt="Three Hearts City: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>Three Hearts City production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=74 shapes=703 routes=11 elevated=4 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Business heart position=(-125.68, 5.04, 55.40)
+PASS production motor first flight Civic heart position=(5.21, 5.03, 104.50)
+PASS production motor first flight Lantern Court heart position=(100.40, 5.04, 75.68)
+PASS production motor first flight Harbor terraces position=(120.32, 5.04, -81.60)
+PASS production motor first flight Waterfront heart position=(25.32, 5.04, -120.60)
+PASS production motor first flight Market entry position=(-89.68, 5.04, -81.60)
+PASS production motor first flight Exchange catch tower position=(21.24, 6.02, -8.00)
+32 bots / quiet frames=58 average=14.7FPS p95=92.3ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=31
+32 bots + tsunami frames=595 average=10.0FPS p95=232.9ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=39/74. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=23/74. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=74 runtimeErrorsSoFar=0
+</pre></details></article><article id="map-10"><h2>10 · The Rising Spine</h2><p>8 districts · 55 structural bodies · 518 collision shapes · 5 elevated connections · 0 joints</p><div class="shots"><figure><a href="Captures/EpicCity-10-intact.png"><img src="Captures/EpicCity-10-intact.png" alt="The Rising Spine: Intact · production Game" loading="lazy"></a><figcaption>Intact · production Game</figcaption></figure><figure><a href="Captures/EpicCity-10-tsunami.png"><img src="Captures/EpicCity-10-tsunami.png" alt="The Rising Spine: After default-force tsunami" loading="lazy"></a><figcaption>After default-force tsunami</figcaption></figure><figure><a href="Captures/EpicCity-10-impact.png"><img src="Captures/EpicCity-10-impact.png" alt="The Rising Spine: Separate stronger demolition" loading="lazy"></a><figcaption>Separate stronger demolition</figcaption></figure></div><details><summary>Actual runtime report</summary><pre>The Rising Spine production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=55 shapes=518 routes=11 elevated=5 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Seaside low market position=(-134.68, 5.04, -95.60)
+PASS production motor first flight First spine terrace position=(-49.68, 5.04, -96.60)
+PASS production motor first flight Middle crown position=(40.21, 9.03, -71.00)
+PASS production motor first flight Inland civic summit position=(130.32, 15.04, -43.60)
+PASS production motor first flight Headland shoulder position=(130.32, 13.04, 58.40)
+PASS production motor first flight Secondary skyline position=(40.32, 11.04, 66.40)
+PASS production motor first flight Lower cross-grain arcade position=(-49.68, 7.04, 58.40)
+PASS production motor first flight Waterfront landmark position=(-134.68, 5.04, 11.40)
+32 bots / quiet frames=63 average=15.9FPS p95=79.0ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved&gt;.5m=32
+32 bots + tsunami frames=670 average=10.0FPS p95=204.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved&gt;.5m=30/55. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved&gt;.5m=37/55. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=55 runtimeErrorsSoFar=0
+</pre></details></article><footer><a href="Evidence/NativeFinal.txt">Native final results</a> · <a href="Evidence/NativeFullRaw.txt">Raw full run</a> · <a href="Evidence/NativeRelayRecheck.txt">Focused relay recheck</a> · <a href="Evidence/SourceSHA256.json">Source hashes</a></footer></main></body></html>

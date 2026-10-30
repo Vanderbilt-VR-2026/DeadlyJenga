@@ -1,0 +1,107 @@
+Sparse structural maps · grand
+Real Unity isolated rigidbody simulation; not GPU/FPS, bot, headset or live network certification.
+MAP crown-grand: 562 bodies; 164.4 x 94.2m; height 43.0m; gravity only, no bonds or joints.
+PASS crown-grand: explicit map body budget <=1000
+PASS crown-grand: finite positive geometry
+PASS crown-grand: deterministic stable member order
+PASS crown-grand: no penetrating members 
+PASS crown-grand: each raised center is inside its actual bearing polygon 
+PASS crown-grand: selectable map prefab saved
+MAP terrace-grand: 548 bodies; 194.4 x 194.4m; height 37.0m; gravity only, no bonds or joints.
+PASS terrace-grand: explicit map body budget <=1000
+PASS terrace-grand: finite positive geometry
+PASS terrace-grand: deterministic stable member order
+PASS terrace-grand: no penetrating members 
+PASS terrace-grand: each raised center is inside its actual bearing polygon 
+PASS terrace-grand: selectable map prefab saved
+MAP viaduct-grand: 602 bodies; 191.4 x 68.2m; height 43.0m; gravity only, no bonds or joints.
+PASS viaduct-grand: explicit map body budget <=1000
+PASS viaduct-grand: finite positive geometry
+PASS viaduct-grand: deterministic stable member order
+PASS viaduct-grand: no penetrating members 
+PASS viaduct-grand: each raised center is inside its actual bearing polygon 
+PASS viaduct-grand: selectable map prefab saved
+MAP keep-grand: 675 bodies; 96.6 x 87.0m; height 49.0m; gravity only, no bonds or joints.
+PASS keep-grand: explicit map body budget <=1000
+PASS keep-grand: finite positive geometry
+PASS keep-grand: deterministic stable member order
+PASS keep-grand: no penetrating members 
+PASS keep-grand: each raised center is inside its actual bearing polygon 
+PASS keep-grand: selectable map prefab saved
+REGISTERED map choices in Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset
+AUTHORING COMPLETE failures=0. Runtime validation pending. No team scene was saved.
+PASS crown-grand: all authored members use independent dynamic gravity
+PASS crown-grand: no stabilizing joints
+SETTLE crown-grand: 8s; maximum drift=0.1488m; tilt=1.585deg; awake=0/562.
+PASS crown-grand: unforced structure stays within .5m / 5deg during settling
+PASS crown-grand: safe spawn has standing capsule clearance
+COLLAPSE crown-grand: remove member 0; moved>.5m=17; native physics average settled=0.624ms/step, collapse=3.147ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS crown-grand: real bearing loss produces gravity-driven displacement without scripted failure
+PASS crown-grand: invalid network count leaves live layout unchanged
+PASS crown-grand: invalid network scale rejected
+PASS crown-grand: replica suspends independent simulation
+PASS crown-grand: authority recovery restores dynamic bodies
+PASS crown-grand: serialized layout rebuild retains stable member count
+PASS terrace-grand: all authored members use independent dynamic gravity
+PASS terrace-grand: no stabilizing joints
+SETTLE terrace-grand: 8s; maximum drift=0.0128m; tilt=0.000deg; awake=0/548.
+PASS terrace-grand: unforced structure stays within .5m / 5deg during settling
+PASS terrace-grand: safe spawn has standing capsule clearance
+COLLAPSE terrace-grand: remove member 0; moved>.5m=1; native physics average settled=0.668ms/step, collapse=0.757ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS terrace-grand: real bearing loss produces gravity-driven displacement without scripted failure
+PASS terrace-grand: invalid network count leaves live layout unchanged
+PASS terrace-grand: invalid network scale rejected
+PASS terrace-grand: replica suspends independent simulation
+PASS terrace-grand: authority recovery restores dynamic bodies
+PASS terrace-grand: serialized layout rebuild retains stable member count
+PASS viaduct-grand: all authored members use independent dynamic gravity
+PASS viaduct-grand: no stabilizing joints
+SETTLE viaduct-grand: 8s; maximum drift=0.0932m; tilt=0.168deg; awake=0/602.
+PASS viaduct-grand: unforced structure stays within .5m / 5deg during settling
+PASS viaduct-grand: safe spawn has standing capsule clearance
+COLLAPSE viaduct-grand: remove member 0; moved>.5m=13; native physics average settled=0.293ms/step, collapse=1.949ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS viaduct-grand: real bearing loss produces gravity-driven displacement without scripted failure
+PASS viaduct-grand: invalid network count leaves live layout unchanged
+PASS viaduct-grand: invalid network scale rejected
+PASS viaduct-grand: replica suspends independent simulation
+PASS viaduct-grand: authority recovery restores dynamic bodies
+PASS viaduct-grand: serialized layout rebuild retains stable member count
+PASS keep-grand: all authored members use independent dynamic gravity
+PASS keep-grand: no stabilizing joints
+SETTLE keep-grand: 8s; maximum drift=0.1119m; tilt=0.000deg; awake=0/675.
+PASS keep-grand: unforced structure stays within .5m / 5deg during settling
+PASS keep-grand: safe spawn has standing capsule clearance
+COLLAPSE keep-grand: remove member 0; moved>.5m=0; native physics average settled=0.289ms/step, collapse=3.369ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS keep-grand: redundant keep has a second independently removable bearing
+REDUNDANCY keep-grand: one corner survived; removing adjacent corner 1 moved 67 members >.5m.
+PASS keep-grand: real bearing loss produces gravity-driven displacement without scripted failure
+PASS keep-grand: invalid network count leaves live layout unchanged
+PASS keep-grand: invalid network scale rejected
+PASS keep-grand: replica suspends independent simulation
+PASS keep-grand: authority recovery restores dynamic bodies
+PASS keep-grand: serialized layout rebuild retains stable member count
+EDITOR FRAMES crown-grand [idle, no bots]: median=34.65ms; p90=40.97ms; n=88; bots=0; active=562; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES crown-grand [bots, no wave]: median=32.63ms; p90=45.07ms; n=117; bots=16; active=562; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION crown-grand: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES crown-grand [bots + actual tsunami]: median=70.53ms; p90=486.31ms; n=43; bots=16; active=562; awake=562. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT crown-grand: 58/562 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+EDITOR FRAMES terrace-grand [idle, no bots]: median=21.72ms; p90=23.97ms; n=136; bots=0; active=548; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES terrace-grand [bots, no wave]: median=32.74ms; p90=44.61ms; n=117; bots=16; active=548; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION terrace-grand: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES terrace-grand [bots + actual tsunami]: median=32.90ms; p90=46.17ms; n=137; bots=16; active=548; awake=104. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT terrace-grand: 18/548 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+EDITOR FRAMES viaduct-grand [idle, no bots]: median=27.73ms; p90=33.68ms; n=111; bots=0; active=602; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES viaduct-grand [bots, no wave]: median=35.91ms; p90=60.16ms; n=97; bots=16; active=602; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION viaduct-grand: spawned 16/16; 15 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES viaduct-grand [bots + actual tsunami]: median=89.73ms; p90=579.43ms; n=31; bots=16; active=602; awake=602. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT viaduct-grand: 6/602 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+EDITOR FRAMES keep-grand [idle, no bots]: median=29.67ms; p90=49.93ms; n=90; bots=0; active=675; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES keep-grand [bots, no wave]: median=41.38ms; p90=66.56ms; n=81; bots=16; active=675; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION keep-grand: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES keep-grand [bots + actual tsunami]: median=81.18ms; p90=495.51ms; n=37; bots=16; active=675; awake=675. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT keep-grand: 13/675 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+RUNTIME COMPLETE failures=0; Unity runtime errors=0. Actual Game.unity entered Play Mode; no live headset/network peers tested.

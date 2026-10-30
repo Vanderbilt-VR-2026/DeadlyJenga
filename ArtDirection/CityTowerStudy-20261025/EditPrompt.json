@@ -1,0 +1,6 @@
+{
+  "method": "built-in image_gen edit",
+  "input": "11-concept.png",
+  "output": "11-concept-v2.png",
+  "prompt": "Edit only the single annotation label currently reading 'Recessed climb rib' to read exactly 'Clear climb rib'. Preserve the entire two-panel image, both views, all geometry, colors, lighting, other text and arrow position. Do not add/remove anything else."
+}

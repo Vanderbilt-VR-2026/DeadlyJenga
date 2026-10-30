@@ -1,0 +1,25 @@
+Actual two-peer Photon lobby selection test with integrated Marina; no Quest hardware or full two-client match-travel claim.
+PASS Actual Home scene loaded for peer validation
+PASS Actual integrated Marina loaded for two-peer test
+PASS Production lobby Photon host finishes connecting
+PASS Production lobby owns a real host room
+PASS Independent selector client finishes connecting
+PASS Second real Photon peer joins the production lobby
+PASS Connected Marina practice toys remain static on shared lobby
+PASS Both peer scene managers finish the initial lobby scene
+PASS Guest receives the production lobby selection packet
+PASS Production map/mode packet decodes and validates on the second peer
+PASS Host selects Capture the Flag through the real lobby service
+PASS Host mode-first selection replicates to the second peer
+PASS Host selects a map whose recommendation differs from the chosen mode
+PASS Host map selection replicates after mode selection
+PASS Map selection never overwrites the selected mode on either peer
+PASS Authenticated non-host peer cannot forge a mode selection
+PASS Host can change mode after selecting a map
+PASS Updated host mode reaches the guest
+PASS All selection packets use the existing production lobby codec
+PASS Selector guest shuts down
+PASS Production host leaves cleanly
+PASS Temporary two-peer and physics settings restore after selector validation
+PASS Original Marina remains usable after both peers leave
+COMPLETE failed=False runtimeErrors=0

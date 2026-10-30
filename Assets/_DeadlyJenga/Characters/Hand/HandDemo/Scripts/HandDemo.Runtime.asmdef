@@ -2,6 +2,7 @@
   "name": "HandDemo.Runtime",
   "rootNamespace": "FlyingHand",
   "references": [
+    "DeadlyJenga.Core",
     "Unity.InputSystem",
     "Unity.XR.CoreUtils"
   ],

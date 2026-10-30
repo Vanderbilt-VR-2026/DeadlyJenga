@@ -1,0 +1,111 @@
+Dense castle physics and debris pipeline â€” 2026-10-23
+
+Scope
+World/Blocks: impact retirement, island burial, guarded ballistic debris and an experimental resting-group implementation.
+World/Maps: map-level settings, stable body indices and proportional underwater cleanup.
+World/Hazards/Tsunami: existing IHazardMotion allows a query-only moving body to receive wave pushes.
+Presentation/Visuals: bounded cosmetic shatter chips.
+DevTools/Editor: solver comparison, grouping comparison and actual Game/map performance/behavior fixtures.
+Core/Abilities: explicitly approved HitAbilities.Get<T>(Collider), kept in its own Core PR #108.
+GameSession/Modes: plasma line of sight resolves logical block identity through the lookup.
+No package changes, ProjectSettings edits or scene/prefab regeneration.
+
+Solver experiment
+Actual 6,098-block cathedral layout; original box shape, mass, collision material, damping and ContinuousDynamic collision mode.
+An isolated PhysicsScene receives 300 settling steps, 200 support-removal/pull steps and 200 wave-force steps at dt=.02.
+These native physics timings exclude scripts, rendering, survivor proxies and bots; they are not FPS.
+Maximum unforced movement after six simulated seconds:
+80/20: drop .2115m, horizontal .1508m; 6,051 sleeping bodies.
+60/12: drop .2890m, horizontal .2483m; 5,341 sleeping bodies, with no useful idle speed improvement.
+40/8: drop .4199m, horizontal .5177m; 4,047 sleeping bodies.
+24/4: drop .7478m, horizontal 1.5673m; 1,964 sleeping bodies.
+16/2: drop 4.5999m, horizontal 10.3215m; the untouched structure already collapses.
+8/2: drop 72.0935m, horizontal 32.0781m; catastrophic spontaneous collapse.
+Decision: retain the original per-map solver settings. Lowering the tall tower globally is not a safe optimization.
+Raw evidence: BlockSolverMeasurements.txt and BlockGroupingFirstExperiment60.txt.
+
+Shared survivor collision bodies (enabled)
+Real blocks keep their original independent Rigidbody, mass, collider, solver and network index.
+Only the one-way survivor collision copies share kinematic bodies, in spatial cells with at most 32 colliders each.
+Every collider retains its own transform, shape and original IClimbable registration. HitAbilities maps all hit abilities back to that original owner.
+Copies update once per rendered frame before player/bot motors, rather than once per physics substep plus once per frame.
+Dirty copies synchronize together before character, hazard and weapon queries. Untouched copies do not rewrite physics poses.
+No structural block is welded, anchored, forced asleep or given stronger support by this default path.
+Translation/rotation, ordinary and shared-owner queries, proxy lifetimes, rebuild and authority transitions are covered by explicit runtime checks.
+
+Experimental mass grouping (disabled)
+Only naturally sleeping, nearly unmoved groups may combine. Dynamic compounds preserve total mass and gravity.
+Support loss, motion beyond 2cm/.25 degrees, exposed wave contact, strong hits, other disasters or an interactive flying hand restore original blocks.
+Deeply covered members can contribute gentle wave impulses with exact mass-weighted force and torque.
+Original bodies and indices remain stable; release restores point velocity, spin and original collision detection.
+This experiment did not improve wave physics time: 15.60ms reference -> 19.01ms grouped in the isolated 6,098-block fixture.
+The reference/grouped fallen counts were 1,166/1,173, with top remaining centers 178.82m/178.83m.
+Earlier kinematic and duplicate-shape prototypes also failed actual Editor performance. Their raw reports are retained.
+Decision: groupRestingBlocks stays OFF. The default optimization groups only survivor collision copies.
+The first shared-proxy run exposed an experimental teardown null-reference and a test-order conflict; both were repaired before final validation.
+
+Default cleanup behavior
+shatterHeavyImpacts: a normal contact speed of at least 18m/s AND impulse/mass of at least 6m/s retires the block.
+A two-second map-creation grace period prevents initialization contacts from qualifying.
+sinkDisplacedDebris: only displaced or rotated debris reaching real static ground qualifies; untouched tower foundations do not.
+Burial uses kinematic movement at 2m/s and deactivates the block once its top is below the ground.
+Submerged cleanup still requires two seconds fully underwater, but its scan budget now covers any map in approximately .8 simulated seconds.
+Neither cleanup path removes entries from the map's Bodies list. Rebuild restores the original layout and resets all state.
+
+Fast visual debris
+visualFastDebris defaults on, coupled to impact shattering. Default speed threshold: 20m/s.
+Incoming IPushable forces are checked before AddForce. Acceleration >=180m/sÂ² can qualify a projected speed of at least 18m/s.
+Acceleration alone never removes structural support: the block must already be displaced/rotated and clear of other solids.
+Full native physics remains near tracked movers, match players, interactive hands and the viewing camera, using an expanded swept-path envelope (8m solo, 16m multiplayer/hands), character size, forecast vertical movement and predicted flying-hand motion.
+An incomplete multiplayer roster prevents conversion. Authority stays with the existing host; replicas do not simulate a second debris trajectory.
+Converted blocks retain a trigger hull for hazard queries, disable their climbable surface and suspend solid contact solving and CCD.
+One conservative swept box per rendered update covers the complete ballistic movement segment, including gravity curvature and changing orientation bounds.
+Strong contacts shatter and transfer a bounded momentum estimate through IPushable; gentle contacts or saturated query buffers restore native physics.
+Approaching players/viewers restore original collision mode, velocity, angular velocity and climbing before contact.
+Other active disasters restore native simulation, preserving low-gravity and earthquake behavior.
+This is a deliberate approximation for distant disposable debris: visual-only pieces do not collide with one another, and conservative sweep bounds may shatter slightly early.
+
+Presentation
+Shattering announces the existing BlockHit event. Presentation renders eight-face candy chips with shared instancing.
+The combined cosmetic fragment list is bounded at 384 entries. Chips have no colliders, rigidbodies or gameplay effects and expire after .65s.
+No new dynamic fragment bodies are spawned. Presentation can be removed without changing the cleanup rules.
+BlockHit is an existing local announcement; a separate reliable network event for cosmetic shatter bursts was not added.
+
+Use
+Select the active CastleGenerator in Unity's Inspector. The debris toggles, speed and impact thresholds are under Debris cleanup.
+Change settings before Rebuild/Reset Map; the generated runtime manager receives a snapshot of those settings.
+The original solver settings remain in effect. Experimental grouping requires explicitly checking groupRestingBlocks.
+Explicit terminal-driven test requests use Logs/Validation/DenseWave.request; no scene is saved and the prior scene setup/choices are restored on exit.
+For comparable later-wave runs, use labels grouping-native-late-reference-dense and grouping-native-late-cleanup-dense.
+Both settle for eight simulated seconds, warm the wave for eight, then sample eight simulated seconds with the same seed and initial 32 bots.
+
+Verification and device limits
+The original solver remains 80/20 for the cathedral (other maps keep their own original settings).
+Reducing positional iterations destabilized the untouched tower. Reducing velocity iterations did not reliably improve wave cost.
+Discrete-only and reduced rubble-iteration experiments did not justify changing the default CCD/solver behavior; reduced rubble iterations changed the collapse count materially.
+Matched later-wave reference: median 1660.93ms, p90 4132.49ms; settled median 234.90ms.
+First shared-survivor-body run: settled median 62.51ms, p90 83.85ms; wave+32 bots median 973.79ms, p90 2806.52ms.
+These are actual Editor frames with the same layout/seed and eight simulated seconds of wave warmup followed by eight simulated seconds sampled.
+The extreme scene still runs poorly: native physics for thousands of independent slowly moving blocks remains dominant. No high-FPS or Quest claim follows from this improvement.
+Final measured performance and runtime assertion results are recorded separately beside this audit.
+Editor CPU/frame evidence is not a Quest performance measurement. Headset behavior and an actual two-player session still require device validation.
+
+Remaining architectural limits
+Cheap ballistic motion only helps genuinely fast, displaced, clear debris. Most tsunami-loaded tower blocks are slow and still support other blocks.
+Treating those as cosmetic, forcing sleep, hiding contacts or lowering solver precision globally would change the collapse or traversal rules.
+The current body list is also the stable authority/network identity; replacing all original bodies with compound-only identities needs a broader contract and networking migration.
+That larger design should be benchmarked with collapse/traversal acceptance fixtures before replacing the current independent-body model.
+A shorter maximum physics catch-up budget can improve visible frame pacing by slowing simulation under load; it is not a free physics speedup and was not applied.
+
+Final verification — 2026-10-23
+Two shared-proxy performance runs measured 62.51/60.44ms settled medians versus 234.90ms reference (roughly 4x FPS).
+Wave + 32 bots medians were 973.79/850.18ms versus 1660.93ms reference (41–49% less frame time).
+Final run p90 was 3072.04ms versus 4132.49ms reference; transform-sync average fell from about 90ms to 9.4ms per frame.
+Cleanup alone had measured 1685.53ms median, so the substantial new gain comes with shared survivor collision bodies and once-per-frame copy updates.
+Raw performance reports retain subsequent failed test-fixture assumptions; those failures are not counted as successful acceptance checks.
+The final normal Game.unity contract run passed every check with runtimeErrors=0. It tested native defaults and explicitly lowered the experimental grouping threshold only for its second test pass.
+The shared-object identity test uses an explicit synthetic collider wrapper with actual map-block owners. Separate checks query the real map's survivor colliders and moving block geometry.
+Actual production blocks supplied the impact, spinning swept-debris, observer-restoration and ground-burial tests; no substitute physics actors were used for those behavior checks.
+Replica/authority transitions preserved original body indices and restored collision detection. Validate Disaster Setup ran successfully.
+No multiplayer wire format changed. A live two-player session, Quest hardware performance, and headset traversal were not verified.
+Raw final acceptance: BlockPhysicsFinalGameContracts.txt. Raw performance: BlockPhysicsFinalDenseFrames.txt and BlockPhysicsSharedProxyFirstRun.txt.

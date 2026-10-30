@@ -1,0 +1,17 @@
+{
+  "status": "Concept review only. No live effect appearance changed.",
+  "capture": "Fresh production Game Play Mode captures will be saved in this folder.",
+  "source_findings": [
+    "Tornado funnel is an opaque mesh. Its shader computes alpha but returns 1, so tint alpha does not soften the silhouette.",
+    "Tsunami is a GPU-deformed surface with capped collision-free spray. Its material properties are copied from the ocean each frame."
+  ],
+  "implementation_limits": [
+    "Appearance ideas are not measured performance improvements. Quest needs device GPU profiling.",
+    "Maintain the existing tsunami surface/collision profile for a visual-only implementation. A true overturning barrel would require a separate collision decision.",
+    "Avoid layering large transparent surfaces over the entire screen."
+  ],
+  "sources": [
+    "https://learn.unity.com/course/doozyui-related-tutorials/tutorial/optimizing-graphics-in-unity",
+    "https://developer.android.com/games/optimize/materials"
+  ]
+}

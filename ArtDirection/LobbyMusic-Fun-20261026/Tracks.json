@@ -1,0 +1,66 @@
+{
+  "method": "Original bright lobby revision following feedback that the earlier tracks were too depressing. New major-key compositions and locally synthesized instruments. No external samples. Ready Set Splash is configured as the lobby loop.",
+  "recommended": "02-ready-set-splash",
+  "tracks": [
+    {
+      "id": "01-bubblegum-boardwalk",
+      "title": "Bubblegum Boardwalk",
+      "direction": "Recommended: bright major-key coastal breakbeat, chunky rubber bass and a confident plastic riff",
+      "bpm": 124,
+      "seconds": 77.41935416666666,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.915992441506698,
+      "rmsDbFS": -18.583544651938094,
+      "loopBoundaryDelta": 0.0003330409526824951,
+      "events": 1712,
+      "files": {
+        "wav": "01-bubblegum-boardwalk.wav",
+        "mp3": "01-bubblegum-boardwalk.mp3",
+        "mid": "01-bubblegum-boardwalk.mid"
+      },
+      "sha256": "7ab900a500fbe25d6b467ce5535c64162093f46669f888051a3c9bdaddfc9a18"
+    },
+    {
+      "id": "02-ready-set-splash",
+      "title": "Ready, Set, Splash",
+      "direction": "A playful ready-up groove: punchy dance drums, glassy chord stabs and cheeky rhythmic answers",
+      "bpm": 128,
+      "seconds": 75.0,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.185859320001546,
+      "rmsDbFS": -18.548720055557858,
+      "loopBoundaryDelta": 0.0013113515451550484,
+      "events": 1696,
+      "files": {
+        "wav": "02-ready-set-splash.wav",
+        "mp3": "02-ready-set-splash.mp3",
+        "mid": "02-ready-set-splash.mid"
+      },
+      "sha256": "b68f7ff5dc3dfd83c9a31a9943ebb6bb44a3f2e9130fcefcf35ed62e131538a3"
+    },
+    {
+      "id": "03-plastic-paradise",
+      "title": "Plastic Paradise",
+      "direction": "Sunny island party: plucked rhythmic chords, percussive call-and-response and a lively bass line",
+      "bpm": 120,
+      "seconds": 80.0,
+      "bars": 40,
+      "sampleRate": 48000,
+      "channels": 2,
+      "peakDbFS": -5.842979679081335,
+      "rmsDbFS": -18.565336649193295,
+      "loopBoundaryDelta": 0.0010695080272853374,
+      "events": 1566,
+      "files": {
+        "wav": "03-plastic-paradise.wav",
+        "mp3": "03-plastic-paradise.mp3",
+        "mid": "03-plastic-paradise.mid"
+      },
+      "sha256": "85f8ccc62c066285e28aa29824fa5cdafd533babf24e90903a92d01c5214f875"
+    }
+  ]
+}

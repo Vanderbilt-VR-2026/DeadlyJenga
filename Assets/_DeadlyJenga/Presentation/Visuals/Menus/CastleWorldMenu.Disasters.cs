@@ -35,7 +35,7 @@ namespace DeadlyJenga.CastlePrototype
         void PointDisasterPage(Camera camera,bool pressed,bool held)
         {
             EnsureDisasterSliders();HideDisasterSliders();
-            int count=Demo!=null?Demo.DisasterCount:0;bool allowed=CanCommand;
+            int count=Demo!=null?Demo.DisasterCount:0;bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
             {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(540,46);}
@@ -56,6 +56,8 @@ namespace DeadlyJenga.CastlePrototype
                 ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",220,allowed);
                 for(int i=0;i<definitions.Count&&i<8;i++)
                 {
+                    if(definitions[i].whole&&definitions[i].min==0&&definitions[i].max==1)
+                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),158-i*60,allowed);continue;}
                     var slider=disasterSliders[i];var p=definitions[i];syncingDisasterSliders=true;slider.minValue=p.min;slider.maxValue=p.max;slider.wholeNumbers=p.whole;slider.SetValueWithoutNotify(values[i]);syncingDisasterSliders=false;
                     slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,158-i*60);UpdateCaption(i,disasterSelection);
                 }
@@ -75,6 +77,7 @@ namespace DeadlyJenga.CastlePrototype
                 else if(i==12){if(disasterSelection>=0)disasterSelection=-1;else disasterPage=false;}
                 else if(i==13)disasterOffset=Mathf.Max(0,disasterOffset-9);
                 else if(i==14)disasterOffset+=9;
+                else if(i==11&&switchParameter>=0)Demo.SetDisasterValue(disasterSelection,switchParameter,Demo.DisasterValues(disasterSelection)[switchParameter]>.5f?0:1);
                 else if(disasterSelection>=0&&i==1)disasterStatus=Demo.LaunchDisaster(disasterSelection);
                 else if(i>=1&&i<=9){disasterSelection=disasterOffset+i-1;disasterStatus="";}
                 break;

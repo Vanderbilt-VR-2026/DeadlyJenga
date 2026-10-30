@@ -17,18 +17,17 @@ namespace DeadlyJenga.CandyPlayers
         }
         public static CandyHandSkeleton Rest(bool left,float curl=0)
         {
-            var data=new CandyHandSkeleton();float sign=left?1:-1;
-            for(int finger=0;finger<5;finger++)for(int joint=0;joint<4;joint++)
+            var data=new CandyHandSkeleton();float sign=left?1:-1;curl=Mathf.Clamp01(curl);
+            for(int finger=0;finger<5;finger++)
             {
-                Vector3 p;
-                if(finger==0)p=new Vector3(sign*(.033f+joint*.009f),-.008f-joint*.003f,.012f+joint*.018f);
-                else
+                Vector3 p=finger==0?new Vector3(sign*.033f,-.008f,.012f):new Vector3(sign*(.028f-(finger-1)*.019f),-.004f,.05f);
+                data.SetJoint(finger*4,p);float length=finger==4?.051f:finger==2?.076f:.067f;
+                for(int joint=0;joint<3;joint++)
                 {
-                    float length=finger==4?.051f:finger==2?.076f:.067f;
-                    float bend=curl*joint/3f;
-                    p=new Vector3(sign*(.028f-(finger-1)*.019f),-.004f-Mathf.Sin(bend*Mathf.PI*.7f)*length*.45f,.05f+joint*length/3f*Mathf.Cos(bend*Mathf.PI*.55f));
+                    var segment=finger==0?new Vector3(sign*.009f,-.003f,.018f):Vector3.forward*(length/3);
+                    var rotation=finger==0?Quaternion.Euler(curl*20,-sign*curl*(joint+1)*20,0):Quaternion.Euler(curl*(joint+1)*30,0,0);
+                    p+=rotation*segment;data.SetJoint(finger*4+joint+1,p);
                 }
-                data.SetJoint(finger*4+joint,p);
             }
             return data;
         }

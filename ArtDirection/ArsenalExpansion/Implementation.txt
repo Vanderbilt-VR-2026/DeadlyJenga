@@ -1,0 +1,90 @@
+DEMO MENU AND ARSENAL EXPANSION - 2026-10-24
+
+MENUS
+The desktop Demo menu now has Personal Controls, Bot Controls, Game Controls and
+Misc. Each tab has a category dropdown. Equipment lists can be filtered to all,
+powers, ranged or melee. Advanced mode-rule fields are grouped by round/scoring,
+combat/health, movement/traversal and world/disasters. Existing options remain in
+their owning panels: character/third-person/spectating, survivor and hand bots,
+voice, jaguars, mode/maps/disasters, resets, scaffold delivery, powerup weights,
+networking, audio, comfort, stamina, HUD/standings and control help.
+The VR root has the same four groups. Item grants and random-spawn weights are
+paged so every new item is accessible with the gaze/trigger menu.
+
+USE
+Personal Controls > Equipment: grant one item to yourself.
+Bot Controls > Bot equipment: give every survivor player and bot an item for this
+life, or now and every respawn. Stop respawn grants preserves held equipment.
+Game Controls > Ground pickups: spawn a collectible. Powerup spawning opens the
+weighted random-spawn settings, now containing all equipment types.
+Desktop: V draws/holsters; click attacks; hold for automatic/continuous/charging
+weapons; R changes supported modes. VR: dominant trigger draws/fires; trigger
+near holster stows; other trigger changes supported modes; support grip aims
+heavy two-hand weapons. VR melee uses hand movement; claws support both hands.
+
+NEW WEAPONS
+Rocket launcher: shoulder launcher inspired by the supplied references, travelling
+rocket, splash damage and push, back sling when stowed.
+Dual Uzis: paired hand models and alternating automatic fire.
+Chain gun: rotating barrel cluster, spin-up, sustained fire.
+Grenade launcher: ballistic projectiles and blast damage; bots calculate elevation.
+Wrist laser: forearm-mounted emitter, continuous beam/damage while held.
+Needle drill: cordless-drill form, one-second spin-up, visible metal needles.
+Stock pistol: C96-style pistol with wooden shoulder stock, full auto / three-round burst.
+Saw staff: spinning large serrated wheel on a handle.
+Barbed bat: wooden bat with coiled wire and protruding nails.
+Chainsaw: contact cutting / one-second charged flying-wheel mode.
+Laser claws: three short blades on each hand.
+Flaming marshmallow: white marshmallow, flame shapes and stick melee.
+Titan laser axe: large blade / wide laser mode.
+PvP dagger: stronger fallback melee, enabled by default for CTF, King of the Hill,
+Block Control and Last Team Standing. Mystery and Infection retain their existing
+role behavior. Default dagger is a mode rule, requires punching enabled, does not
+consume/drop an inventory item, and stays usable during speed/jump powers. Timed
+powers retain swap/drop/expiry behavior and survive authority restoration.
+
+PICKUPS
+A translucent irregular static cloud replaces the solid beacon. Weapon previews
+use geometry/material data from the same character models, scaled to fit inside.
+Jump is bright green; speed is bright blue. Armor uses the actual armor overlay
+geometry. Models rotate for readability. Visuals add no gameplay colliders.
+
+IMPLEMENTATION
+Approved additive Core changes: 14 equipment IDs appended after the old IDs,
+shared equipment specification/model data, projectile and charge/trigger data,
+IHeldEquipmentRuntime, optional defaultDagger rule, and activePower data allowing
+fallback melee alongside a timed movement power. Existing IDs and commands stay.
+GameSession/Modes owns authoritative damage, charge/cooldowns, burst limits,
+projectiles/explosions, pickup policy, schema checks and restoration. Projectiles
+are capped at 64, use swept nonalloc queries, start moving after their birth frame,
+check initial overlaps, and stop at blocking geometry. Held-trigger heartbeats
+expire safely. Presentation owns effects/audio/menus. Characters owns input,
+hand/holster placement, model geometry and generic bot weapon execution. New models
+are combined by color/material and cache meshes, retaining moving assemblies.
+
+VALIDATION
+ArsenalExpansion.txt: 157 checks, runtimeErrors=0, failed=False. Real Game scene,
+physical target damage from all 14 additions, mode switching, spin-up withholding,
+exactly three burst shots, travelling projectiles, beam release, fallback dagger
+with actual movement boosts, swap/expiry/restoration, malformed state rejection,
+real two-peer Photon packet transport including a live rocket snapshot, menu
+coverage, collider-free model checks and compiled cloud shader. Editor setup and
+match choices restored. PowerupBots.txt: 171 checks, errors=0, failed=False. Ordinary bot skill damages
+physical targets with all 20 weapons (six existing plus fourteen additions),
+including ballistic grenades and charged flying chainsaw wheels. Also covers
+pickup support/expiry, timed movement effects, mode selection, holstering/cover,
+real Photon pickup-state transport, Mystery witness behavior, all model geometry,
+live pickup previews, and exclusion of jaguars from fallback daggers.
+FirearmAimShared.txt: existing blaster, revolver, rifle and shotgun aiming passes.
+The new cloud shader includes the project's stereo instancing macros and imported
+without shader errors after the final run. No physical headset verification.
+Updated model and pickup captures are in this folder.
+First-run reports are retained with descriptive names for the corrected projectile
+birth timing, explosion-particle initialization and bot ballistic-aim issues.
+
+LIMITS
+No physical Quest/headset test or new many-bot FPS benchmark was performed.
+Two actual Photon peers verify production state transport; this is not a full
+headset-to-headset multiplayer gameplay certification. Models are stylized runtime
+geometry based on the references. No scenes were saved/regenerated, no packages
+were changed, and no Git commit/push was requested.

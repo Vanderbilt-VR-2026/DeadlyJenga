@@ -1,0 +1,146 @@
+[
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\03c2\\DeadlyJenga",
+    "head": "10d4ce1869ede50aecb7a5f10a363be185d9088f",
+    "counts": {
+      "same": 41,
+      "different": 29
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\07ee\\DeadlyJenga",
+    "head": "10d4ce1869ede50aecb7a5f10a363be185d9088f",
+    "counts": {
+      "same": 1800,
+      "new": 122,
+      "different": 71,
+      "delete": 8
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\1282\\DeadlyJenga",
+    "head": "10d4ce1869ede50aecb7a5f10a363be185d9088f",
+    "counts": {
+      "same": 872,
+      "different": 38
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\castle-xr-audit\\DeadlyJenga",
+    "head": "1124fd329eebc7acd4f716260937bf40104480a6",
+    "counts": {
+      "same": 1802,
+      "different": 50
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\epic-structure-maps\\DeadlyJenga",
+    "head": "8f0f9bd24a3464eeec845875388868f23da3b331",
+    "counts": {
+      "same": 105,
+      "different": 7
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\jaguar-avatar-audio\\DeadlyJenga",
+    "head": "906dcb7d221f72e1aa4faafb3ef46d8dd8f45798",
+    "counts": {
+      "same": 971,
+      "different": 92
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\lobby-orbit-terminals\\DeadlyJenga",
+    "head": "96b5ca9efb277de92ebd637936e6c68515edeb47",
+    "counts": {
+      "same": 1101,
+      "different": 135
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\mode-picture-picker\\DeadlyJenga",
+    "head": "dbf80dc0c75eea86954a31a1e27ed1d168dbc109",
+    "counts": {
+      "same": 1166,
+      "different": 135
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\movement-ledge-view\\DeadlyJenga",
+    "head": "bdca4f0aa48868146cf60f289ae909a88ff23da3",
+    "counts": {
+      "same": 1089,
+      "different": 137
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\physics-hit-abilities\\DeadlyJenga",
+    "head": "e3ac42c3be8b8e3d977c4f9ac9ccb8cb83a0339d",
+    "counts": {
+      "same": 2
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\ragdoll-melt-controls\\DeadlyJenga",
+    "head": "13e79da9d687b2a5505d24bae9e5c4cb592ec800",
+    "counts": {
+      "same": 960,
+      "different": 92
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\tidal-gravity-review\\DeadlyJenga",
+    "head": "fca97045c0ad24c6f138a7b801feb94c68850a80",
+    "counts": {
+      "same": 938,
+      "different": 87
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\tidal-kaiju-review\\DeadlyJenga",
+    "head": "c004fed73ea91479104a4ffbd6aa3394d36d54b5",
+    "counts": {
+      "same": 925,
+      "different": 99
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\tidal-wet-review\\DeadlyJenga",
+    "head": "62068fda636aab77aad1fcb5afc80a5257d3b751",
+    "counts": {
+      "same": 927,
+      "different": 94
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\weapon-sound-tracers\\DeadlyJenga",
+    "head": "771bb4bc0f48e576f0bf46b1a08f4d4a6db2f659",
+    "counts": {
+      "same": 1124,
+      "different": 89
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\.codex\\worktrees\\weapons-suit-polish\\DeadlyJenga",
+    "head": "c660d9831a4c76fe2e0bac6cbbfd5007733c8e61",
+    "counts": {
+      "same": 1151,
+      "different": 126
+    }
+  },
+  {
+    "tree": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-codex-worktrees\\task-1",
+    "head": "3167797def687cbed001bd561575aad1bce9504a",
+    "counts": {}
+  },
+  {
+    "tree": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-codex-worktrees\\task-2",
+    "head": "3167797def687cbed001bd561575aad1bce9504a",
+    "counts": {}
+  },
+  {
+    "tree": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-codex-worktrees\\task-3",
+    "head": "3167797def687cbed001bd561575aad1bce9504a",
+    "counts": {}
+  }
+]

@@ -34,6 +34,10 @@ namespace DeadlyJenga.CandyAudio
             foreach(var cue in bank.cues)if(cue!=null)cues[cue.sound]=cue;
             // Bank-authored recordings override the lightweight original breath defaults.
             foreach(var sound in CandyBreathing.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyBreathing.DefaultCue(sound);
+            foreach(var sound in CandyDisasterSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyDisasterSounds.DefaultCue(sound);
+            foreach(var sound in CandyWeaponSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyWeaponSounds.DefaultCue(sound);
+            foreach(var sound in CandyJaguarSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyJaguarSounds.DefaultCue(sound);
+            foreach(var sound in CandyPlayerSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyPlayerSounds.DefaultCue(sound);
             for(int i=0;i<bank.oneShotVoices+bank.loopVoices;i++)
             {
                 var go=new GameObject("Pooled candy voice "+i);go.transform.SetParent(transform,false);
@@ -53,8 +57,13 @@ namespace DeadlyJenga.CandyAudio
         bool Audible(CandyAudioCue cue,Vector3 position,bool local)=>local||Listener&&(position-Listener.position).sqrMagnitude<cue.maxDistance*cue.maxDistance;
         public bool Play(CandySound sound,Vector3 position,float intensity=1,int owner=0,float pitch=1,bool local=false)
         {
-            if(!bank||!FindCue(sound,out var cue)||!Audible(cue,position,local)){Culled++;return false;}
-            long key=((long)owner<<8)^(int)sound;float now=Time.unscaledTime;
+            if(!bank||!FindCue(sound,out var cue)){Culled++;return false;}
+            return PlayCue(cue,position,intensity,owner,pitch,local);
+        }
+        public bool PlayCue(CandyAudioCue cue,Vector3 position,float intensity=1,int owner=0,float pitch=1,bool local=false)
+        {
+            if(!bank||cue==null||!cue.enabled||!Audible(cue,position,local)){Culled++;return false;}
+            long key=((long)owner<<32)^(uint)cue.sound;float now=Time.unscaledTime;
             if(cooldowns.TryGetValue(key,out float until)&&now<until){Culled++;return false;}
             tokens=Mathf.Min(bank.eventsPerSecond,tokens+(now-tokenAt)*bank.eventsPerSecond);tokenAt=now;
             if(tokens<1||cue.bus==CandyBus.World&&tokens<4){Culled++;return false;}
@@ -121,10 +130,11 @@ namespace DeadlyJenga.CandyAudio
         void Update()
         {
             if(bank!=current)Rebuild();if(!bank)return;
+            var activeView=DeadlyJenga.Core.Services.Session?.ActiveCamera;if(activeView)Listener=activeView.transform;
             if(Time.unscaledTime>=nextListener)
             {
-                nextListener=Time.unscaledTime+.5f;Listener=null;
-                foreach(var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))if(listener.isActiveAndEnabled){Listener=listener.transform;break;}
+                nextListener=Time.unscaledTime+.5f;
+                if(!activeView){Listener=null;foreach(var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))if(listener.isActiveAndEnabled){Listener=listener.transform;break;}}
                 if(cooldowns.Count>4096)cooldowns.Clear();
             }
             focusGain=Mathf.MoveTowards(focusGain,focus?1:0,Time.unscaledDeltaTime*4);ActiveVoices=0;
@@ -133,6 +143,7 @@ namespace DeadlyJenga.CandyAudio
                 // Stop can reach the audio thread after this frame; a released
                 // voice must not be mixed using the cue that was just cleared.
                 if(voice.cue==null){if(voice.source.isPlaying)voice.source.Stop();continue;}
+                if((CandyHomeMusic.Active||CandyLobbyMusic.Active)&&voice.cue.sound==CandySound.Music){voice.source.Stop();voice.cue=null;continue;}
                 if(!voice.source.isPlaying)continue;
                 if(voice.looping)
                 {

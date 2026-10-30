@@ -1,0 +1,16 @@
+# Candy weapon audio and visible ammunition
+
+Original synthesis matches the short, elastic Candy palette. Four distinct takes each cover rifle, shotgun, alien plasma, rifle transformation, drawing, holstering, collection, swapping, dropping, sword, hammer, boxing glove and plasma impact. The shotgun layers a low cannon chest, pressure crack, action clacks and restrained reflections; the rifle uses a tighter snap and spring return. No third-party recordings are used.
+
+Run `python ArtDirection/CandyAudio/generate_weapon_audio.py` to verify or create missing clips. `--force` regenerates only these weapon recordings. WAV files are mono 32 kHz; the manifest records provenance and SHA256. Existing audio-bank cues can override any fallback cue independently. All use the normal Character bus, global master/mute settings, distance culling, voice priorities and bounded pool.
+
+The visible ammunition renderer accepts a cast origin and hit/range endpoints to draw cosmetic moving luminous heads and short trails. Rifle is cyan and shotgun pellets amber. The projectile's visual travel does not delay, repeat or change damage. At most 224 visual bullets are pooled; no colliders, rigidbodies, lights, per-shot materials or particle collisions are created.
+
+The host publishes accepted Shot, Draw, Holster, Pickup, Swap, Drop, ModeSwitch and plasma Impact events through the approved additive EquipmentActionFrame contract. The presentation observer consumes these events and launches rifle / shotgun heads at the exact authoritative cast endpoints; rejected commands produce no event. Mystery role weapon swings use the same stream when drawn. There are at most 32 recent actions, retained for 0.8 game seconds. Each stream has a session epoch and monotonically increasing sequence; round and map resets clear transients without rewinding that sequence, so the first new-round shot is retained. New observers and changed epochs establish a silent baseline; duplicate snapshots do not replay actions. Authority handoff preserves the epoch / highest sequence, clears old transient history, and delivers the first new action normally. Gun audio and visual bullets do not depend on predicting local commands.
+
+Weapon events are short-lived: packets delayed beyond the retention window can omit cues. Rendering is cosmetic; hitscan damage still occurs at the original authoritative cast time. Actual headset spatial mix, multiplayer latency perception and Quest performance need device listening/profiling.
+
+
+Powered armor uses the same authoritative equipment slot and accepted plasma events as the blaster. Draw/holster plays ignition/shutdown; replicated thrust state drives one pooled jet loop per actor, including remote actors. A half-second keepalive expires after 1.2 seconds without refresh; holster, death, round reset and authority restoration clear thrust.
+
+PlayerPain and PlayerDeath have four original stylized vocal takes each. Direct character events respond immediately; remote match snapshots supply health and death transitions. First snapshots are silent and repeated snapshots do not replay reactions. Hurt reactions are limited to one per .38 seconds and death to one per .7 seconds; jaguar actors retain their separate creature suite. F8 Sound Studio exposes all new cues for mix/recording replacement.

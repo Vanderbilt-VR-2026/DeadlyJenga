@@ -1,0 +1,19 @@
+{
+  "mainMaps": [
+    "epic-honeycomb-hive",
+    "epic-cloud-carnival",
+    "epic-candy-glass-cloud"
+  ],
+  "experimentalPrefixes": ["mapdrafter", "sparse-", "workshop-", "epic-"],
+  "experimentalMaps": [
+    "andy",
+    "mayhem-foundry",
+    "city-tower-exhibition",
+    "tower-lab-island",
+    "castle-gaps",
+    "castle-catwalks",
+    "castle-four-keeps",
+    "powerup-test",
+    "buildup"
+  ]
+}

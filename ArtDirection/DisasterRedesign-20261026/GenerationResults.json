@@ -1,0 +1,44 @@
+[
+  {
+    "id": "tornado-storm-sculpt",
+    "source": "C:/Users/evanp/.codex/generated_images/01a17909-bde5-7560-8c0a-3009f42ae471/exec-dfb3bdfb-14de-45db-b5fb-fbe72cbeeaa8.png",
+    "output": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga/ArtDirection/DisasterRedesign-20261026/tornado-storm-sculpt.png",
+    "reference": "tornado-current-close.png",
+    "method": "built-in image generation / screenshot edit"
+  },
+  {
+    "id": "tornado-candy-cyclone",
+    "source": "C:/Users/evanp/.codex/generated_images/01a17909-bde5-7560-8c0a-3009f42ae471/exec-04114141-41be-47fa-baa9-f93dfe8b3e05.png",
+    "output": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga/ArtDirection/DisasterRedesign-20261026/tornado-candy-cyclone.png",
+    "reference": "tornado-current-close.png",
+    "method": "built-in image generation / screenshot edit"
+  },
+  {
+    "id": "tornado-supercell",
+    "source": "C:/Users/evanp/.codex/generated_images/01a17909-bde5-7560-8c0a-3009f42ae471/exec-d32b3f40-a926-48b4-be44-606734a7b768.png",
+    "output": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga/ArtDirection/DisasterRedesign-20261026/tornado-supercell.png",
+    "reference": "tornado-current-close.png",
+    "method": "built-in image generation / screenshot edit"
+  },
+  {
+    "id": "tsunami-turquoise-breaker",
+    "source": "C:/Users/evanp/.codex/generated_images/01a17909-bde5-7560-8c0a-3009f42ae471/exec-799e32bd-2f43-4548-a893-fca12d268a4a.png",
+    "output": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga/ArtDirection/DisasterRedesign-20261026/tsunami-turquoise-breaker.png",
+    "reference": "tsunami-current-close.png",
+    "method": "built-in image generation / screenshot edit"
+  },
+  {
+    "id": "tsunami-liquid-glass",
+    "source": "C:/Users/evanp/.codex/generated_images/01a17909-bde5-7560-8c0a-3009f42ae471/exec-fe6a80cf-d2a5-4d4a-9aea-061eb909efa4.png",
+    "output": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga/ArtDirection/DisasterRedesign-20261026/tsunami-liquid-glass.png",
+    "reference": "tsunami-current-close.png",
+    "method": "built-in image generation / screenshot edit"
+  },
+  {
+    "id": "tsunami-whitewater-wall",
+    "source": "C:/Users/evanp/.codex/generated_images/01a17909-bde5-7560-8c0a-3009f42ae471/exec-1961b419-c73d-4157-ad0d-3868bdacafb8.png",
+    "output": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga/ArtDirection/DisasterRedesign-20261026/tsunami-whitewater-wall.png",
+    "reference": "tsunami-current-close.png",
+    "method": "built-in image generation / screenshot edit"
+  }
+]

@@ -1,0 +1,4 @@
+Editor previews only; no simulation.
+epic-honeycomb-hive: source zero normals=2460; final invalid normals=0; bodies=95
+epic-cloud-carnival: source zero normals=2592; final invalid normals=0; bodies=122
+epic-candy-glass-cloud: source zero normals=2592; final invalid normals=0; bodies=122

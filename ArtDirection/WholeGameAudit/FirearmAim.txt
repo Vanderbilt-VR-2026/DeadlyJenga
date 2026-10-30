@@ -1,0 +1,26 @@
+Actual Game firearm, death drop, Mystery handoff and local zoom checks.
+PASS Game initializes
+PASS Aim fixture equips Blaster
+ZOOM aiming=True fov=50 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 1.5x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+PASS Aim fixture equips SheriffHammer
+ZOOM aiming=True fov=37.5 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 2x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+PASS Aim fixture equips DualRifle
+ZOOM aiming=True fov=18.75 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 4x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+ZOOM aiming=True fov=75 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 1x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+COMPLETE checks=20 runtimeErrors=0 failed=False. No headset test. Photon transport is checked with two actual peers, not two physical headsets.

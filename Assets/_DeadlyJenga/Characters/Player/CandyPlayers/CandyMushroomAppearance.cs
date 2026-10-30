@@ -1,0 +1,146 @@
+using System.Collections.Generic;
+using DeadlyJenga.Core;
+using UnityEngine;
+using UnityEngine.Rendering;
+
+namespace DeadlyJenga.CandyPlayers
+{
+    // A compact visual shell on the original survivor. The motor and collider stay unchanged.
+    [DefaultExecutionOrder(310)]
+    public sealed class CandyMushroomAppearance : MonoBehaviour
+    {
+        static readonly Dictionary<string,Mesh> meshes=new Dictionary<string,Mesh>();
+        static Material capMaterial,creamMaterial,darkMaterial,shoeMaterial,sporeMaterial;
+        readonly List<Renderer> renderers=new List<Renderer>();
+        CandyPlayerRig rig;
+        Transform root,cap,leftFoot,rightFoot;
+        IMovementState movement;
+        Vector3 previous;
+        float phase;
+        bool active;
+        public int RendererCount=>renderers.Count;
+
+        public void Apply(CandyPlayerRig target,bool show,bool skeleton)
+        {
+            rig=target;
+            if(!show)
+            {
+                if(root)root.gameObject.SetActive(false);
+                if(active){rig.bodyRenderer.enabled=true;rig.headRenderer.enabled=!skeleton;}
+                active=false;enabled=false;return;
+            }
+            if(!root)Build();
+            active=true;enabled=true;root.gameObject.SetActive(true);
+            rig.bodyRenderer.enabled=false;rig.headRenderer.enabled=false;
+            movement=GetComponentInParent<IMovementState>();previous=transform.position;
+        }
+        void Build()
+        {
+            EnsureMaterials();
+            root=new GameObject("Visual - mushroom creature").transform;root.SetParent(transform,false);
+            cap=new GameObject("Cap wobble").transform;cap.SetParent(root,false);
+            Add("broad toffee cap",cap,capMaterial,CapMesh);
+            Add("cream stem gills eyes and fangs",cap,creamMaterial,()=>BuildMesh("cream",b=>{
+                b.Sphere(new Vector3(0,.44f,0),new Vector3(.35f,.27f,.30f));
+                b.Cone(new Vector3(0,.64f,0),new Vector3(0,.73f,0),.66f,.71f,28);
+                for(int side=-1;side<=1;side+=2){
+                    b.Sphere(new Vector3(side*.20f,1.03f,.655f),new Vector3(.125f,.20f,.047f));
+                    b.Cone(new Vector3(side*.13f,.79f,.723f),new Vector3(side*.13f,.70f,.724f),.033f,0,8);
+                }
+            }));
+            Add("pupils brows and scowl",cap,darkMaterial,()=>BuildMesh("face",b=>{
+                for(int side=-1;side<=1;side+=2){
+                    b.Sphere(new Vector3(side*.20f,1.015f,.703f),new Vector3(.052f,.105f,.024f));
+                    b.Beam(new Vector3(side*.075f,1.20f,.71f),new Vector3(side*.35f,1.29f,.615f),.043f);
+                }
+                for(int i=0;i<8;i++){
+                    float x=-.22f+i*.055f,n=x+.055f;
+                    b.Beam(new Vector3(x,.755f+.055f*(1-x*x/.05f),.72f),new Vector3(n,.755f+.055f*(1-n*n/.05f),.72f),.015f);
+                }
+            }));
+            Add("amber spore pores",cap,sporeMaterial,()=>BuildMesh("pores",b=>{
+                for(int side=-1;side<=1;side+=2){
+                    b.Sphere(new Vector3(side*.58f,1.07f,.40f),new Vector3(.072f,.052f,.035f));
+                    b.Sphere(new Vector3(side*.40f,1.34f,.25f),new Vector3(.070f,.025f,.050f));
+                }
+                b.Sphere(new Vector3(0,1.54f,.03f),new Vector3(.065f,.018f,.07f));
+            }));
+            for(int side=0;side<2;side++)
+            {
+                var pivot=new GameObject(side==0?"Left chunky foot":"Right chunky foot").transform;pivot.SetParent(root,false);
+                pivot.localPosition=new Vector3(side==0?-.33f:.33f,.14f,.10f);
+                Add("rounded chocolate shoe",pivot,shoeMaterial,()=>BuildMesh("shoe",b=>{
+                    b.Sphere(new Vector3(0,0,.075f),new Vector3(.29f,.14f,.37f));
+                    b.Sphere(new Vector3(0,.045f,-.10f),new Vector3(.22f,.14f,.20f));
+                }));
+                if(side==0)leftFoot=pivot;else rightFoot=pivot;
+            }
+        }
+        void Add(string id,Transform parent,Material material,System.Func<Mesh> create)
+        {
+            if(!meshes.TryGetValue(id,out var mesh)||!mesh){mesh=create();meshes[id]=mesh;}
+            var part=new GameObject("Visual - "+id,typeof(MeshFilter),typeof(MeshRenderer));part.transform.SetParent(parent,false);
+            part.GetComponent<MeshFilter>().sharedMesh=mesh;var renderer=part.GetComponent<MeshRenderer>();renderer.sharedMaterial=material;
+            var properties=new MaterialPropertyBlock();properties.SetColor("_BaseColor",material.GetColor("_BaseColor"));properties.SetFloat("_Smoothness",material.GetFloat("_Smoothness"));properties.SetFloat("_CandyGlaze",material==capMaterial?.85f:material==shoeMaterial?.70f:.45f);renderer.SetPropertyBlock(properties);
+            renderers.Add(renderer);
+        }
+        static Mesh BuildMesh(string name,System.Action<CandyAccessoryMeshes.Builder> build)
+        {var b=new CandyAccessoryMeshes.Builder();build(b);var mesh=b.Mesh("Mushroom "+name);SmoothSeams(mesh);return mesh;}
+        static void SmoothSeams(Mesh mesh)
+        {
+            var vertices=mesh.vertices;var normals=mesh.normals;
+            var sums=new Dictionary<Vector3Int,Vector3>();
+            Vector3Int Key(Vector3 v)=>new Vector3Int(Mathf.RoundToInt(v.x*10000),Mathf.RoundToInt(v.y*10000),Mathf.RoundToInt(v.z*10000));
+            for(int i=0;i<vertices.Length;i++){var key=Key(vertices[i]);sums.TryGetValue(key,out var normal);sums[key]=normal+normals[i];}
+            for(int i=0;i<vertices.Length;i++)normals[i]=sums[Key(vertices[i])].normalized;
+            mesh.normals=normals;mesh.RecalculateTangents();
+        }
+        static Mesh CapMesh()
+        {
+            var control=new[]{new Vector2(0,.65f),new Vector2(.68f,.65f),new Vector2(.87f,.76f),new Vector2(.88f,.91f),new Vector2(.73f,1.16f),new Vector2(.46f,1.40f),new Vector2(.18f,1.54f),new Vector2(0,1.57f)};
+            var profile=new List<Vector2>();
+            for(int i=0;i<control.Length-1;i++)for(int step=0;step<4;step++){
+                float t=step*.25f,t2=t*t,t3=t2*t;var a=control[Mathf.Max(0,i-1)];var b=control[i];var c=control[i+1];var d=control[Mathf.Min(control.Length-1,i+2)];
+                var point=.5f*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t2+(-a+3*b-3*c+d)*t3);
+                point.x=Mathf.Clamp(point.x,0,.90f);point.y=Mathf.Clamp(point.y,b.y,c.y);profile.Add(point);
+            }
+            profile.Add(control[control.Length-1]);
+            const int sides=40;var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();
+            for(int row=0;row<profile.Count;row++)for(int side=0;side<=sides;side++){
+                float a=side*Mathf.PI*2/sides;vertices.Add(new Vector3(Mathf.Cos(a)*profile[row].x,profile[row].y,Mathf.Sin(a)*profile[row].x*.82f));uv.Add(new Vector2(side/(float)sides,row/(float)(profile.Count-1)));
+                if(row==0||side==sides)continue;int v=row*(sides+1)+side;
+                triangles.AddRange(new[]{v,v+1,v-sides-1,v+1,v-sides,v-sides-1});
+            }
+            var mesh=new Mesh{name="Shared mushroom cap"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();SmoothSeams(mesh);mesh.RecalculateBounds();return mesh;
+        }
+        static void EnsureMaterials()
+        {
+            if(capMaterial)return;
+            Material Make(string name,Color color,float gloss){var m=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Mushroom - "+name,enableInstancing=true};m.SetColor("_BaseColor",color);m.SetFloat("_Smoothness",gloss);return m;}
+            capMaterial=Make("toffee cap",new Color(.56f,.205f,.075f),.94f);
+            creamMaterial=Make("vanilla cream",new Color(1,.89f,.65f),.83f);
+            darkMaterial=Make("espresso expression",new Color(.038f,.019f,.025f),.88f);
+            shoeMaterial=Make("dark chocolate feet",new Color(.20f,.065f,.055f),.95f);
+            sporeMaterial=Make("amber spore pores",new Color(1,.62f,.12f),.96f);
+        }
+        void LateUpdate()
+        {
+            if(!active||!rig)return;
+            rig.bodyRenderer.enabled=false;rig.headRenderer.enabled=false;
+            float scale=Mathf.Max(.1f,transform.lossyScale.y);
+            float distance=Vector3.ProjectOnPlane(transform.position-previous,Vector3.up).magnitude;previous=transform.position;
+            float speed=distance/Mathf.Max(.001f,Time.deltaTime);phase+=Mathf.Min(distance/scale,.25f)*9;
+            bool grounded=movement?.Grounded??true;float stride=grounded?Mathf.Clamp01(speed/2):0;
+            float wave=Mathf.Sin(phase);
+            for(int side=0;side<2;side++){
+                float w=side==0?wave:-wave;var foot=side==0?leftFoot:rightFoot;
+                foot.localPosition=new Vector3(side==0?-.33f:.33f,.14f+(grounded?Mathf.Max(0,w)*.10f*stride:.10f),.10f+(grounded?w*.12f*stride:-.08f));
+                foot.localRotation=Quaternion.Euler(grounded?-w*14*stride:-22,side==0?-9:9,0);
+            }
+            cap.localPosition=Vector3.up*(grounded?Mathf.Abs(wave)*.025f*stride:0);
+            cap.localRotation=Quaternion.Euler(grounded?0:-5,0,grounded?wave*3*stride:0);
+        }
+        public void FirstPerson(bool firstPerson)
+        {foreach(var renderer in renderers)if(renderer)renderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;}
+    }
+}

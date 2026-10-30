@@ -1,0 +1,42 @@
+[
+  {
+    "width": 3,
+    "rise": 4,
+    "run": 11,
+    "old_signed_volume": -4.620000000000005,
+    "new_signed_volume": 4.620000000000005,
+    "identical_convex_points": true,
+    "identical_absolute_volume": true,
+    "outward_faces": true
+  },
+  {
+    "width": 3,
+    "rise": 5,
+    "run": 11,
+    "old_signed_volume": -4.620000000000005,
+    "new_signed_volume": 4.620000000000005,
+    "identical_convex_points": true,
+    "identical_absolute_volume": true,
+    "outward_faces": true
+  },
+  {
+    "width": 2.5,
+    "rise": 0.7,
+    "run": 2,
+    "old_signed_volume": -0.7000000000000002,
+    "new_signed_volume": 0.7000000000000002,
+    "identical_convex_points": true,
+    "identical_absolute_volume": true,
+    "outward_faces": true
+  },
+  {
+    "width": 20,
+    "rise": 0.7,
+    "run": 2,
+    "old_signed_volume": -5.600000000000001,
+    "new_signed_volume": 5.600000000000001,
+    "identical_convex_points": true,
+    "identical_absolute_volume": true,
+    "outward_faces": true
+  }
+]

@@ -1,0 +1,179 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &277859616114040504
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2068021551702645644}
+  - component: {fileID: 2533713050373064411}
+  m_Layer: 0
+  m_Name: Continuous shore-matched island foundation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2068021551702645644
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 277859616114040504}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 9071439930581122335}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &2533713050373064411
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 277859616114040504}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 59c98b8bef197984c9636774124f1f35, type: 2}
+--- !u!1 &8173941214903448956
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 9071439930581122335}
+  - component: {fileID: 7716517377939562208}
+  m_Layer: 0
+  m_Name: Mode_city-tower-exhibition
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &9071439930581122335
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8173941214903448956}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2068021551702645644}
+  - {fileID: 4745553099731572682}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7716517377939562208
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8173941214903448956}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a5df16bf59d2d5a478c3a94cdeedf47b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.TowerExhibitionMap
+  city: 1
+  district: -1
+  palette:
+  - {fileID: 2100000, guid: 35207b99935cf484e911de43acac2332, type: 2}
+  - {fileID: 2100000, guid: e1afec4df1f1bb64290ecee7c4abbac1, type: 2}
+  - {fileID: 2100000, guid: f0aca928b0ac0b64ca437d0404746afa, type: 2}
+  - {fileID: 2100000, guid: 333e20265768d1a4aaa329da40567911, type: 2}
+  friction: {fileID: 13400000, guid: 194d9f5483b630840955a7f1d488ab6f, type: 2}
+  foundation: {fileID: 2068021551702645644}
+  islandCollision: {fileID: 4300000, guid: 59c98b8bef197984c9636774124f1f35, type: 2}
+  generateOnStart: 1
+  solverIterations: 16
+  velocityIterations: 8
+  waterReferenceArea: 12.25
+  minimumWaterResistance: 0.65
+--- !u!1001 &3401351184597527213
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 9071439930581122335}
+    m_Modifications:
+    - target: {fileID: 7344809805670391297, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_Name
+      value: Visual
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+--- !u!4 &4745553099731572682 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 7993767873385020775, guid: 5ef0e85c48767de4dbee3f423adfd8e9, type: 3}
+  m_PrefabInstance: {fileID: 3401351184597527213}
+  m_PrefabAsset: {fileID: 0}

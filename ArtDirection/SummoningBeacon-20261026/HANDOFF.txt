@@ -1,0 +1,9 @@
+Player-centered summoning beacon, dense refinement revision 3.
+128 wider strands (was 44), radius .46m (was .72m), matching smaller rings.
+4544 vertices, one shared mesh/material; no physics or dynamic lights.
+Presentation/Visuals runtime; existing DevTools/Editor checks. No Core changes.
+Actual Unity desktop: 23 checks passed, zero runtime errors, real Lobby -> playable Game.
+Current screenshots included. BeforeDense3 contains previous 44-strand captures.
+Inspection poses are held; remote selection uses a fixture. Quest and two clients not tested.
+Apply only listed source/meta files after comparing baseline hashes; preserve unrelated canonical work.
+Based on October 26 combined-source/files overlay. Integration pending; canonical untouched.

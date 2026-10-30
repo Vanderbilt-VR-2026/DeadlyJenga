@@ -1,0 +1,1419 @@
+{
+  "serializedAssetsScanned": 519,
+  "scriptReferencesChecked": 2785,
+  "missingScriptGUIDs": [],
+  "duplicateGUIDs": [],
+  "boxReferenceViolations": [],
+  "assemblies": [
+    {
+      "assembly": "DeadlyJenga.Characters",
+      "references": [
+        "DeadlyJenga.Core",
+        "HandDemo.Runtime",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Hands",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.OpenXR",
+        "Fusion.Unity"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Core",
+      "references": []
+    },
+    {
+      "assembly": "DeadlyJenga.DevTools",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.World",
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.Presentation",
+        "DeadlyJenga.GameSession",
+        "HandDemo.Runtime",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.GameSession",
+      "references": [
+        "DeadlyJenga.Core",
+        "Fusion.Unity",
+        "Fusion.Addons.Physics",
+        "Photon.Realtime",
+        "Unity.InputSystem"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Presentation",
+      "references": [
+        "DeadlyJenga.Core",
+        "Unity.InputSystem",
+        "UnityEngine.UI",
+        "Unity.TextMeshPro",
+        "Unity.XR.Interaction.Toolkit",
+        "Unity.XR.ARFoundation",
+        "Unity.XR.CoreUtils",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.World",
+      "references": [
+        "DeadlyJenga.Core"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Maps.Editor",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.World"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.World.Editor",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.World"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Blocks.Editor",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.World"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Presentation.Editor",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.Presentation"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.GameSession.Editor",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.GameSession"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.DevTools.Editor",
+      "references": [
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "DeadlyJenga.World",
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.Presentation",
+        "DeadlyJenga.Presentation.Editor",
+        "DeadlyJenga.GameSession",
+        "DeadlyJenga.DevTools",
+        "HandDemo.Runtime",
+        "Fusion.Unity",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils",
+        "Unity.XR.Management",
+        "Unity.XR.Management.Editor",
+        "Unity.XR.OpenXR",
+        "UnityEngine.UI",
+        "Photon.Realtime",
+        "Unity.XR.OpenXR.Editor",
+        "Unity.RenderPipelines.Core.Runtime",
+        "Unity.RenderPipelines.Universal.Runtime"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Core.Editor",
+      "references": []
+    },
+    {
+      "assembly": "DeadlyJenga.Player.Validation",
+      "references": [
+        "DeadlyJenga.Characters",
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "HandDemo.Runtime"
+      ]
+    },
+    {
+      "assembly": "DeadlyJenga.Hand.Validation",
+      "references": [
+        "DeadlyJenga.Characters",
+        "HandDemo.Runtime",
+        "DeadlyJenga.Core",
+        "DeadlyJenga.Core.Editor",
+        "Unity.InputSystem"
+      ]
+    },
+    {
+      "assembly": "HandDemo.Runtime",
+      "references": [
+        "DeadlyJenga.Core",
+        "Unity.InputSystem",
+        "Unity.XR.CoreUtils"
+      ]
+    }
+  ],
+  "nonImportedSampleTemplateDuplicates": [
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Affordances.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Affordances.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Audio.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Audio.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Key Functions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Key Functions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\KeyboardDemo.unity.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\KeyboardDemo.unity.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Layouts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Layouts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Materials.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Materials.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Models.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Models.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Unity.XR.Interaction.Toolkit.Samples.SpatialKeyboard.asmdef.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Unity.XR.Interaction.Toolkit.Samples.SpatialKeyboard.asmdef.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\AffordanceThemes.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\AffordanceThemes.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Animations.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Animations.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoScene.unity.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoScene.unity.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Editor.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Editor.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Filters.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Filters.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Shaders.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Shaders.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\StarterAssets.asmdef.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\StarterAssets.asmdef.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Textures.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Textures.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\TunnelingVignette.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\TunnelingVignette.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\XRI Default Input Actions.inputactions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\XRI Default Input Actions.inputactions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Editor.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Editor.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\InteractionSimulator.asmdef.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\InteractionSimulator.asmdef.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Scripts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Scripts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\XR Interaction Controller Controls.inputactions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\XR Interaction Controller Controls.inputactions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\XR Interaction Hand Controls.inputactions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\XR Interaction Hand Controls.inputactions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\XR Interaction Simulator Controls.inputactions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\XR Interaction Simulator Controls.inputactions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\XR Interaction Simulator.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\XR Interaction Simulator.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Editor\\InteractionSimulator.Editor.asmdef.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Editor\\InteractionSimulator.Editor.asmdef.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Editor\\XRInteractionSimulatorProjectValidation.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Editor\\XRInteractionSimulatorProjectValidation.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Fist Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Fist Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Grab Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Grab Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Open Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Open Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Pinch Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Pinch Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Poke Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Poke Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Resting Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Resting Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Hand Expressions\\Thumb Expression Capture.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Hand Expressions\\Thumb Expression Capture.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Scripts\\XRInteractionSimulatorInputFeedbackUI.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Scripts\\XRInteractionSimulatorInputFeedbackUI.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\Scripts\\XRInteractionSimulatorPlayModeMenu.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\Scripts\\XRInteractionSimulatorPlayModeMenu.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\General.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\General.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Headset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Headset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Highlight.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Highlight.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Modes.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Modes.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\XR Interaction Simulator UI.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\XR Interaction Simulator UI.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\BothControllers.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\BothControllers.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\ControllerLeft.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\ControllerLeft.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\ControllerRight.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\ControllerRight.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\LeftController.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\LeftController.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\LeftControllerOutline@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\LeftControllerOutline@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\RightController.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\RightController.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Controller\\RightControllerOutline@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Controller\\RightControllerOutline@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\General\\bg.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\General\\bg.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\General\\SwitchIcon.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\General\\SwitchIcon.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\Grab.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\Grab.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\Hands.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\Hands.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\Hand_Left.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\Hand_Left.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\Hand_Right.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\Hand_Right.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\LeftHandOutline@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\LeftHandOutline@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\LeftHandOutlineThin@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\LeftHandOutlineThin@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\Pinch.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\Pinch.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\Poke.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\Poke.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\RightHandOutline@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\RightHandOutline@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Hands\\RightHandOutlineThin@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Hands\\RightHandOutlineThin@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Headset\\HeadsetOutline.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Headset\\HeadsetOutline.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Headset\\HeadsetOutline@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Headset\\HeadsetOutline@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Highlight\\highlight_head.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Highlight\\highlight_head.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Highlight\\highlight_rect_horizontal.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Highlight\\highlight_rect_horizontal.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Highlight\\highlight_rect_vertical.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Highlight\\highlight_rect_vertical.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Highlight\\RoundedHighlight.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Highlight\\RoundedHighlight.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Modes\\MirrorMode@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Modes\\MirrorMode@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Modes\\NavigationMode@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Modes\\NavigationMode@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\BackRotate@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\BackRotate@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\ForwardRotate@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\ForwardRotate@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\LeftRotate@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\LeftRotate@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\RightRotate@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\RightRotate@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\RotateDownArrow.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\RotateDownArrow.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\RotateLeftArrow.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\RotateLeftArrow.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\RotateRightArrow.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\RotateRightArrow.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Rotate\\RotateUpArrow.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Rotate\\RotateUpArrow.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate\\TranslateBack@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate\\TranslateBack@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate\\TranslateDown.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate\\TranslateDown.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate\\TranslateForward@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate\\TranslateForward@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate\\TranslateLeft@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate\\TranslateLeft@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate\\TranslateRight@2x.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate\\TranslateRight@2x.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\XR Interaction Simulator\\UI\\Translate\\TranslateUp.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\XR Interaction Simulator\\UI\\Translate\\TranslateUp.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\AffordanceThemes\\ControllerPokeSphereScale.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\AffordanceThemes\\ControllerPokeSphereScale.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\AffordanceThemes\\HighlightInteractionColor.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\AffordanceThemes\\HighlightInteractionColor.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\AffordanceThemes\\HighlightStrengthInteraction.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\AffordanceThemes\\HighlightStrengthInteraction.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\AffordanceThemes\\PokeSphereColor.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\AffordanceThemes\\PokeSphereColor.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\AffordanceThemes\\PokeSphereInteraction.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\AffordanceThemes\\PokeSphereInteraction.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Animations\\ArrowBounce.anim.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Animations\\ArrowBounce.anim.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Animations\\Climb Teleport Arrow.controller.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Animations\\Climb Teleport Arrow.controller.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\AffordanceThemes.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\AffordanceThemes.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Audio.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Audio.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Materials.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Materials.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Scripts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Scripts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Settings.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Settings.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Textures.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Textures.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Editor\\Scripts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Editor\\Scripts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Editor\\StarterAssets.Editor.asmdef.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Editor\\StarterAssets.Editor.asmdef.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Filters\\AnyGazedAtTeleportAnchorFilter.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Filters\\AnyGazedAtTeleportAnchorFilter.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\Controller_Grey.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\Controller_Grey.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\Controller_White.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\Controller_White.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\Flat Blue.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\Flat Blue.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\FresnelHighlight.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\FresnelHighlight.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\Interactable.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\Interactable.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\MaterialPipelineHandler.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\MaterialPipelineHandler.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\Telport Anchor.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\Telport Anchor.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\Telport Area.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\Telport Area.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Materials\\UI-NoZTest.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Materials\\UI-NoZTest.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models\\BlinkVisual.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models\\BlinkVisual.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models\\Pinch_Pointer_LOD0.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models\\Pinch_Pointer_LOD0.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models\\Primitive_Cylinder.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models\\Primitive_Cylinder.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models\\Primitive_Wedge.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models\\Primitive_Wedge.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models\\Reticle_Torus.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models\\Reticle_Torus.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Models\\UniversalController.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Models\\UniversalController.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Affordances.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Affordances.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Controllers.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Controllers.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Permissions Manager.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Permissions Manager.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Teleport.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Teleport.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\XR Origin (XR Rig).prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\XR Origin (XR Rig).prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Continuous Move.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Continuous Move.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Continuous Turn.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Continuous Turn.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Dynamic Move.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Dynamic Move.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Left Controller InputActionManager.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Left Controller InputActionManager.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Left Grab Move.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Left Grab Move.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Right Controller InputActionManager.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Right Controller InputActionManager.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Right Grab Move.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Right Grab Move.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default Snap Turn.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default Snap Turn.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Presets\\XRI Default XR UI Input Module.preset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Presets\\XRI Default XR UI Input Module.preset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\ClimbTeleportDestinationIndicator.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\ClimbTeleportDestinationIndicator.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\ControllerAnimator.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\ControllerAnimator.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\ControllerInputActionManager.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\ControllerInputActionManager.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\DestroySelf.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\DestroySelf.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\DynamicMoveProvider.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\DynamicMoveProvider.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\GazeInputManager.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\GazeInputManager.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\MaterialPipelineHandler.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\MaterialPipelineHandler.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\ObjectSpawner.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\ObjectSpawner.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\PermissionsManager.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\PermissionsManager.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\PlatformUnderstanding.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\PlatformUnderstanding.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\RotationAxisLockGrabTransformer.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\RotationAxisLockGrabTransformer.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\TeleportVolumeAnchorAffordanceStateLink.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\TeleportVolumeAnchorAffordanceStateLink.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\ToggleColorToggler.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\ToggleColorToggler.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\ToggleComponentZone.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\ToggleComponentZone.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Scripts\\XRPokeFollowAffordance.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Scripts\\XRPokeFollowAffordance.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Shaders\\BiRP_Fresnel.shader.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Shaders\\BiRP_Fresnel.shader.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Shaders\\Interactable.shadergraph.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Shaders\\Interactable.shadergraph.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Shaders\\UI-NoZTest.shader.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Shaders\\UI-NoZTest.shader.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Shaders\\Unlit_Fresnel.shadergraph.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Shaders\\Unlit_Fresnel.shadergraph.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Shaders\\Unlit_ShaderGraph.shadergraph.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Shaders\\Unlit_ShaderGraph.shadergraph.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Textures\\DefaultMaterial_AO.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Textures\\DefaultMaterial_AO.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\TunnelingVignette\\TunnelingVignette.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\TunnelingVignette\\TunnelingVignette.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\TunnelingVignette\\TunnelingVignette.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\TunnelingVignette\\TunnelingVignette.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\TunnelingVignette\\TunnelingVignette.shader.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\TunnelingVignette\\TunnelingVignette.shader.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\TunnelingVignette\\TunnelingVignetteHemisphere.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\TunnelingVignette\\TunnelingVignetteHemisphere.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\TunnelingVignette\\TunnelingVignetteSG.shadergraph.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\TunnelingVignette\\TunnelingVignetteSG.shadergraph.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Affordances\\HighlightInteractionAffordance.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Affordances\\HighlightInteractionAffordance.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Affordances\\PokePointerAffordance.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Affordances\\PokePointerAffordance.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Controllers\\XR Controller Left.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Controllers\\XR Controller Left.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Controllers\\XR Controller Right.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Controllers\\XR Controller Right.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Direct Interactor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Direct Interactor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Gaze Interactor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Gaze Interactor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Left_NearFarInteractor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Left_NearFarInteractor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Poke Interactor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Poke Interactor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Ray Interactor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Ray Interactor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Right_NearFarInteractor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Right_NearFarInteractor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Interactors\\Teleport Interactor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Interactors\\Teleport Interactor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Teleport\\Blocking Teleport Reticle.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Teleport\\Blocking Teleport Reticle.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Teleport\\Climb Teleport Arrow.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Teleport\\Climb Teleport Arrow.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Prefabs\\Teleport\\Directional Teleport Reticle.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Prefabs\\Teleport\\Directional Teleport Reticle.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\Editor\\Scripts\\StarterAssetsSampleProjectValidation.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\Editor\\Scripts\\StarterAssetsSampleProjectValidation.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\AffordanceThemes\\InteractionColor.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\AffordanceThemes\\InteractionColor.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Audio\\Button Pop.wav.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Audio\\Button Pop.wav.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Materials\\Concrete Dark Blue.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Materials\\Concrete Dark Blue.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Materials\\Concrete Grey.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Materials\\Concrete Grey.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Materials\\Concrete Light Blue.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Materials\\Concrete Light Blue.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Materials\\Lit White.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Materials\\Lit White.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Materials\\MaterialPipelineHandler.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Materials\\MaterialPipelineHandler.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Blaster.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Blaster.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Blaster_Long.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Blaster_Long.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Cylinder.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Cylinder.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Pyramid.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Pyramid.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Tapered_Cylinder.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Tapered_Cylinder.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Torus.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Torus.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Torus_Cut.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\Primitive_Torus_Cut.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Models\\PushButton.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Models\\PushButton.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Far Grab Samples.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Far Grab Samples.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Gaze Interactables.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Gaze Interactables.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\GazeActivationZone.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\GazeActivationZone.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables Sample.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables Sample.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\InteractionAffordance.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\InteractionAffordance.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Poke Interactions Sample.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Poke Interactions Sample.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleportation Environment.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleportation Environment.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI Sample.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI Sample.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Scripts\\IncrementUIText.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Scripts\\IncrementUIText.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Scripts\\MultiAnchorTeleportReticle.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Scripts\\MultiAnchorTeleportReticle.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Settings\\GazeTeleportAnchorFilter.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Settings\\GazeTeleportAnchorFilter.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Settings\\TeleportDestinationSettings.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Settings\\TeleportDestinationSettings.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Asset.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Asset.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Checkmark.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Checkmark.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Circle_60x60 Outline 4.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Circle_60x60 Outline 4.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Circle_60x60_Horizontal.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Circle_60x60_Horizontal.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Forward.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Forward.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\LegibilityMask.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\LegibilityMask.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Round Radius 4 Outline.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Round Radius 4 Outline.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Sprites\\Round Radius 4.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Sprites\\Round Radius 4.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Textures\\Concrete_Albedo.tif.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Textures\\Concrete_Albedo.tif.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Textures\\Concrete_Metallic.tif.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Textures\\Concrete_Metallic.tif.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Textures\\Concrete_Normal.tif.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Textures\\Concrete_Normal.tif.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Climb Sample.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Climb Sample.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Climbing Wall.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Climbing Wall.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\ClimbTeleportReticle.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\ClimbTeleportReticle.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Ladder.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Ladder.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Multi Floor Ladder.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Multi Floor Ladder.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Single Floor Ladder.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Climb\\Single Floor Ladder.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Blaser-Long.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Blaser-Long.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Blaser.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Blaser.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Confetti.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Confetti.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Cube.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Cube.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Cylinder.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Cylinder.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Pot.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Pot.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Push Button.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Push Button.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Torus-Cut.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Torus-Cut.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Torus.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Interactables\\Torus.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport\\Snap Teleport Anchor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport\\Snap Teleport Anchor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport\\Teleport Anchor.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport\\Teleport Anchor.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport\\Teleport Area.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\Teleport\\Teleport Area.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Dropdown.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Dropdown.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Icon Button.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Icon Button.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Icon Toggle.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Icon Toggle.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Interactive Controls.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Interactive Controls.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\MinMaxSlider.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\MinMaxSlider.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\ModalSingleButton.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\ModalSingleButton.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Scroll UI Sample.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Scroll UI Sample.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Text Toggle.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\Text Toggle.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\TextButton.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Starter Assets\\DemoSceneAssets\\Prefabs\\UI\\TextButton.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Affordances\\BlendShapeAffordance.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Affordances\\BlendShapeAffordance.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Affordances\\GrabHandleColorAffordanceTheme.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Affordances\\GrabHandleColorAffordanceTheme.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Affordances\\ScaleHandleColorAffordanceTheme.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Affordances\\ScaleHandleColorAffordanceTheme.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Audio\\Button_22_click.wav.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Audio\\Button_22_click.wav.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\SpatialKeyboard.Editor.asmdef.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\SpatialKeyboard.Editor.asmdef.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Key Functions\\Hide Function.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Key Functions\\Hide Function.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Key Functions\\Key Code Function.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Key Functions\\Key Code Function.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Key Functions\\Layout Function.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Key Functions\\Layout Function.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Key Functions\\Shift Key Function.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Key Functions\\Shift Key Function.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Key Functions\\Value Key Function.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Key Functions\\Value Key Function.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Layouts\\LayoutAlphaNumeric.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Layouts\\LayoutAlphaNumeric.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Layouts\\LayoutSymbols.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Layouts\\LayoutSymbols.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Materials\\GrabHandle.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Materials\\GrabHandle.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Materials\\MaterialPipelineHandler.asset.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Materials\\MaterialPipelineHandler.asset.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Materials\\ScaleHandle.mat.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Materials\\ScaleHandle.mat.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Models\\CurvedHandle.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Models\\CurvedHandle.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Models\\CurvedHandleWedge.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Models\\CurvedHandleWedge.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Models\\Spatial Panel Manipulator Model.fbx.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Models\\Spatial Panel Manipulator Model.fbx.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\Input Field Global Keyboard.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\Input Field Global Keyboard.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\Input Field World Keyboard.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\Input Field World Keyboard.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\Scale Handle.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\Scale Handle.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\XRI Global Keyboard Manager.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\XRI Global Keyboard Manager.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\XRI Keyboard Key.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\XRI Keyboard Key.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\XRI Keyboard.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\XRI Keyboard.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Prefabs\\XRI Spatial Keyboard.prefab.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Prefabs\\XRI Spatial Keyboard.prefab.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\GlobalNonNativeKeyboard.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\GlobalNonNativeKeyboard.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyboardBatchFollow.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyboardBatchFollow.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyboardOptimizer.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyboardOptimizer.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunction.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunction.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunctions.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunctions.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\XRKeyboard.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\XRKeyboard.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\XRKeyboardConfig.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\XRKeyboardConfig.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\XRKeyboardDisplay.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\XRKeyboardDisplay.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\XRKeyboardEvents.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\XRKeyboardEvents.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\XRKeyboardKey.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\XRKeyboardKey.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\XRKeyboardLayout.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\XRKeyboardLayout.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\#+=.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\#+=.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\ABC.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\ABC.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\Circle 64x64 Horizontal.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\Circle 64x64 Horizontal.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\Circle 64x64 Outline Horizontal.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\Circle 64x64 Outline Horizontal.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\KeyboardIconAtlas.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\KeyboardIconAtlas.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\Round Radius 42.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\Round Radius 42.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Sprites\\Round Radius Outline 42.png.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Sprites\\Round Radius Outline 42.png.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunctions\\HideFunction.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunctions\\HideFunction.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunctions\\KeyCodeFunction.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunctions\\KeyCodeFunction.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunctions\\LayoutFunction.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunctions\\LayoutFunction.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunctions\\ShiftFunction.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunctions\\ShiftFunction.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Scripts\\KeyFunctions\\ValueKeyFunction.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Scripts\\KeyFunctions\\ValueKeyFunction.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\KeyboardOptimizerEditor.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\KeyboardOptimizerEditor.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\KeyMappingPropertyDrawer.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\KeyMappingPropertyDrawer.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\SpatialKeyboardSampleProjectValidation.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\SpatialKeyboardSampleProjectValidation.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardConfigEditor.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardConfigEditor.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardDisplayEditor.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardDisplayEditor.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardEditor.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardEditor.cs.meta"
+    ],
+    [
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Assets\\Samples\\XR Interaction Toolkit\\3.3.2\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardKeyEditor.cs.meta",
+      "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga\\Library\\PackageCache\\com.unity.xr.interaction.toolkit@8a8cfde33e41\\Samples~\\Spatial Keyboard\\Editor\\Scripts\\XRKeyboardKeyEditor.cs.meta"
+    ]
+  ]
+}

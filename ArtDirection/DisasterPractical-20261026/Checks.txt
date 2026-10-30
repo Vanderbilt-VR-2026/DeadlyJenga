@@ -1,0 +1,5 @@
+PASS: 26 local gallery references exist.
+PASS: 8 full-HD Unity capture PNGs.
+PASS: both URP shaders supported with no reported errors.
+PASS: capture report complete.
+Browser visual preview was not performed; saved images inspected directly.

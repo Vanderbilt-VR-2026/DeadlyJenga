@@ -58,7 +58,7 @@ namespace DeadlyJenga.CandyAudio
             float height=Mathf.Max(0,engine.Listener.position.y-WaterHeight);
             engine.Loop(CandySound.BeachWind,engine.Listener,Mathf.Lerp(.12f,.7f,exposure)*Mathf.Lerp(.7f,1,Mathf.Clamp01(height/35)),true,1,1-exposure);
             engine.Loop(CandySound.Surf,engine.Listener,Mathf.Lerp(.65f,.16f,Mathf.Clamp01(height/45)),true,1,(1-exposure)*.6f);
-            if(musicEnabled)engine.Loop(CandySound.Music,transform,Mathf.Lerp(1,.78f,tension),true);
+            if(musicEnabled&&!CandyHomeMusic.Active&&!CandyLobbyMusic.Active)engine.Loop(CandySound.Music,transform,Mathf.Lerp(1,.78f,tension),true);
             tension=Mathf.MoveTowards(tension,0,Time.deltaTime*.1f);
         }
         public void Lean(Vector3 position,float amount)

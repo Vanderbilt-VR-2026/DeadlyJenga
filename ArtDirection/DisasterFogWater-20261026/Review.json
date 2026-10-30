@@ -1,0 +1,26 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-02",
+  "evidence": "Actual Unity Editor snapshots and Game solo smoke check of a current-source test overlay; not a committed-baseline certification.",
+  "source_provenance": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-02\\Logs\\Validation\\FogWaterSourceProvenance.json",
+  "runtime_passed": true,
+  "runtime_report": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-02\\Logs\\Validation\\FogWaterDisasterPreview-Runtime.txt",
+  "render_report": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-02\\ArtDirection\\DisasterFogWater-20261026\\Capture.txt",
+  "images": [
+    "tornado-close.png",
+    "tornado-through-fog.png",
+    "tornado-wide.png",
+    "tsunami-close.png",
+    "tsunami-waterline.png",
+    "tsunami-wide.png"
+  ],
+  "image_size": [
+    1920,
+    1080
+  ],
+  "core_changed": false,
+  "gameplay_physics_changed": false,
+  "headset_tested": false,
+  "fps_tested": false,
+  "integration": "Not integrated: test-only slot, preserve overlay. Canonical pre-routing feature edits retained; subsequent fixes are in the targeted patch.",
+  "refinement_patch": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-02\\Logs\\Validation\\FogWaterLaterRefinements.patch"
+}

@@ -70,7 +70,9 @@ namespace DeadlyJenga.CastleBots
         void Update()
         {
             hands.RemoveAll(h=>!h);
-            for(int i=0;i<hands.Count;i++)if(hands[i].Actor.motor.transform.position.y<-10||Vector3.Distance(hands[i].Actor.motor.transform.position,Session.world.Center)>180)Place(hands[i],i+1);
+            if(Session==null||Session.world==null)return;
+            float maximumDistance=Mathf.Max(180,Session.world.PlayableBounds.size.magnitude+30);
+            for(int i=0;i<hands.Count;i++)if(hands[i].Actor.motor.transform.position.y<Session.world.WaterHeight(hands[i].Actor.motor.transform.position)-5||Vector3.Distance(hands[i].Actor.motor.transform.position,Session.world.Center)>maximumDistance)Place(hands[i],i+1);
         }
         void OnDestroy()
         {

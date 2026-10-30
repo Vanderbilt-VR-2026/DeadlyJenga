@@ -1,0 +1,19 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-05",
+  "snapshot": "f8a0888f40d84b1ba37468130c1067f9",
+  "files": 7216,
+  "source_head": "10d4ce1869ede50aecb7a5f10a363be185d9088f",
+  "snapshot_type": "Uncommitted current-source overlay; not the committed baseline",
+  "editor_launched": true,
+  "runtime_validation": "Complete: all feature assertions passed; zero reported errors in final run.",
+  "prior_evidence": "Earlier canonical run passed map reachability/classification before another validation interrupted it. Beacon runtime, cancellation, arrival and final images remain unverified.",
+  "terminal_coordination": "Hash-verified focused cleanup applied and rendered in the final own-editor run; join stand/keyboard supports retained.",
+  "core_changes": "None",
+  "editor_pid": 131480,
+  "feature_checks_passed": true,
+  "passed_assertions": 82,
+  "headset_verified": false,
+  "integration": "Isolated current-source worktree only; owned patch saved, not merged or pushed.",
+  "editor_closed": true,
+  "editor_closed_verified_by_pool": true
+}

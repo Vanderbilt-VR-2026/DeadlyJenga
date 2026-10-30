@@ -1,0 +1,27 @@
+Canopy Borough production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=95 shapes=1090 routes=32 elevated=22 lowerStructures=8 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=0 
+PASS production motor first flight Canopy market position=(-104.68, 5.04, -115.60)
+PASS production motor first flight Daylight court position=(19.68, 5.04, -86.40)
+PASS production motor first flight Sunlit entry terraces position=(115.32, 5.04, -116.60)
+PASS production motor first flight West branching crown position=(-104.68, 5.04, 9.40)
+PASS production motor first flight Central branching crown position=(10.80, 5.04, 0.10)
+PASS production motor first flight East branching crown position=(115.48, 5.04, -9.30)
+PASS production motor first flight Shaded upper arcade position=(-104.68, 5.04, 98.40)
+PASS production motor first flight Canopy skyline marker position=(5.32, 5.04, 101.40)
+PASS production motor first flight Maker hall position=(115.32, 5.04, 99.40)
+PASS production motor first flight Open market arcade 1 position=(60.32, 5.04, 129.40)
+PASS production motor first flight Split courtyard pavilion 2 position=(-63.60, 5.04, 132.68)
+PASS production motor first flight Branch mesa walk 3 position=(-8.60, 5.04, 56.68)
+PASS production motor first flight Stepped portico 4 position=(-56.13, 5.04, 59.85)
+PASS production motor first flight Folded street terrace 5 position=(62.75, 5.04, -83.67)
+PASS production motor first flight Open market arcade 6 position=(41.72, 5.04, 62.36)
+PASS production motor first flight Split courtyard pavilion 7 position=(56.65, 5.04, -140.07)
+PASS production motor first flight Branch mesa walk 8 position=(-71.60, 5.04, -75.32)
+12 bots / quiet frames=46 average=11.5FPS p95=65.6ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved>.5m=11
+12 bots + tsunami frames=119 average=8.1FPS p95=123.1ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved>.5m=8/95. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=62/95. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=95 runtimeErrorsSoFar=0

@@ -1,0 +1,11 @@
+Ten connected epic cities. Explicit asset build; existing maps preserved.
+1 Tideway Metropolis bodies=108 shapes=1071 sites=22 lowerStructures=14 elevated=27 ground=(368.23, 0.00, 367.44)
+2 Double-Loop Exchange bodies=125 shapes=1086 sites=24 lowerStructures=16 elevated=33 ground=(374.23, 0.00, 373.44)
+3 Caldera Switchback City bodies=91 shapes=704 sites=11 lowerStructures=4 elevated=10 ground=(368.23, 12.00, 367.44)
+4 Broken Crown Capital bodies=107 shapes=936 sites=23 lowerStructures=16 elevated=24 ground=(368.23, 0.00, 367.44)
+5 Harbor Loom bodies=131 shapes=1042 sites=27 lowerStructures=18 elevated=38 ground=(374.23, 0.00, 373.44)
+6 Lantern Ravine bodies=86 shapes=797 sites=12 lowerStructures=4 elevated=12 ground=(368.23, 8.00, 367.44)
+7 Canopy Borough bodies=95 shapes=1090 sites=17 lowerStructures=8 elevated=22 ground=(374.23, 0.00, 373.44)
+8 Bookfall Boulevard bodies=108 shapes=897 sites=23 lowerStructures=16 elevated=25 ground=(376.23, 0.00, 375.44)
+9 Three Hearts City bodies=122 shapes=1078 sites=23 lowerStructures=16 elevated=24 ground=(368.23, 0.00, 367.44)
+10 The Rising Spine bodies=84 shapes=740 sites=17 lowerStructures=9 elevated=15 ground=(381.23, 10.00, 380.44)

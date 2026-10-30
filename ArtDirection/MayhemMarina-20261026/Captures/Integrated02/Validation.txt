@@ -1,0 +1,80 @@
+Actual Unity lobby geometry and integration checks. Staged avatar rigs are used for cinematic views; they are not measured bot behavior.
+PASS Actual Home scene loaded
+PASS Actual Lobby scene and Presentation loaded
+PASS Eighteen actual physics practice blocks built
+PASS Marina geometry completed without errors
+PASS Authored solid collision mesh present
+Architecture renderTriangles=483960; collisionTriangles=26188; integration=True
+PASS Arrival has real solid support
+PASS Wardrobe has real solid support
+PASS Play interaction has real solid support
+PASS Lounge has real solid support
+PASS Roof terrace has real solid support
+PASS Central inlet has no invisible legacy sand floor
+PASS Curved pavilion roof blocks upward passage through its underside
+PASS Larger marina lobby bounds and safe spawn active
+PASS GameSession gray-box floor supports configured Marina spawn without art
+PASS Live Marina facade is active
+PASS Mode card opens existing full mode picker
+PASS Facade yields to detail picker
+PASS Detail picker can return to facade
+PASS Map card opens existing category browser
+PASS Map browser can return
+PASS marina-host opens existing controls
+PASS marina-host can return
+PASS marina-join opens existing controls
+PASS marina-join can return
+PASS marina-settings opens existing controls
+PASS marina-settings can return
+PASS Actual UI ray can close detail from eight meters
+PASS Style quick travel opens wardrobe
+PASS Wardrobe remains open at new boutique position
+PASS Existing wardrobe entry is interactive
+PASS Wardrobe applies cosmetic through existing appearance contract
+PASS Boutique mirror has a live rendered character texture
+PASS Closing wardrobe restores facade
+PASS Hidden JOIN terminal has no orphan rear canvas
+PASS Hidden HOST terminal has no orphan rear canvas
+PASS Hidden MODE + MAP terminal has no orphan rear canvas
+PASS Hidden WARDROBE terminal has no orphan rear canvas
+PASS Marina releases its global sky when parked
+PASS Marina restores its coastal lighting when resumed
+WALK arrival pier and bridge at=(988.80, 1.32, 985.70) target=(989.00, 1.40, 986.00) status=Spawned on top
+PASS arrival pier and bridge waypoint 1 reached by actual survivor motor
+PASS arrival pier and bridge remains supported
+WALK arrival pier and bridge at=(989.90, 1.34, 990.56) target=(990.00, 1.40, 991.00) status=Spawned on top
+PASS arrival pier and bridge waypoint 2 reached by actual survivor motor
+PASS arrival pier and bridge remains supported
+WALK arrival pier and bridge at=(990.39, 1.34, 996.58) target=(990.50, 1.40, 997.00) status=Spawned on top
+PASS arrival pier and bridge waypoint 3 reached by actual survivor motor
+PASS arrival pier and bridge remains supported
+WALK arrival pier and bridge at=(992.21, 1.37, 1003.17) target=(992.30, 1.40, 1003.50) status=Spawned on top
+PASS arrival pier and bridge waypoint 4 reached by actual survivor motor
+PASS arrival pier and bridge remains supported
+WALK upper terrace ramp at=(979.00, 3.99, 1016.55) target=(979.00, 4.20, 1017.00) status=Spawned on top
+PASS upper terrace ramp waypoint 1 reached by actual survivor motor
+PASS upper terrace ramp remains supported
+PASS Existing real character rig available
+POOL BEFORE canPush=True frozen=False position=(1017.00, 2.46, 992.57) simulation=FixedUpdate timescale=1
+POOL AFTER position=(1018.11, 2.25, 992.57) velocity=(0.05, -1.08, 0.00) frozen=False displacement=1.133754
+PASS Practice tower responds to real physics pushes
+PASS Practice tower reset restores layout
+CAPTURE Marina-Hero.png 2560x1440 actual Unity
+CAPTURE Marina-Overview.png 2560x1440 actual Unity
+CAPTURE Marina-Arrival.png 2560x1440 actual Unity
+CAPTURE Marina-Lounge.png 2560x1440 actual Unity
+CAPTURE Marina-Wardrobe.png 2560x1440 actual Unity
+CAPTURE Marina-Terrace.png 2560x1440 actual Unity
+PASS Actual lobby selects a short solo demo session
+PASS Marina PLAY requests the normal departure flow
+PASS PLAY reaches actual Game.unity
+PASS Actual match player and physical map remain functional
+PASS Persistent Marina player is parked during the match
+PASS Parked Marina does not replace match sky
+PASS Match menu can visit the same Marina
+PASS Lobby visit preserves the running match world
+PASS Return to match restores match control
+PASS Round return reuses the original Marina
+PASS Returned Marina remains usable
+PASS Returned player is at the supported Marina spawn
+COMPLETE failed=False runtimeErrors=0

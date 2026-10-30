@@ -1,0 +1,285 @@
+{
+  "status": "Revised: structure-specific district art concepts; not implemented Unity materials",
+  "maps": [
+    {
+      "id": "epic-tideway",
+      "name": "Tideway Metropolis",
+      "fit": "The harbor–civic–office–headland loop has eight named anchors; its low woven buildings should read as neighborhoods around those anchors.",
+      "themes": [
+        [
+          "Riviera Working Waterfront",
+          "Harbor sheds at southwest: weathered honey teak frames and rusty red roof faces, a working fish market. Quay terraces at south: cream limestone, cobalt tile strips. Lantern Court at southeast: coral plaster and tiled blue court. Civic lantern at center: white porcelain columns, gold-lined warm ivory floors; the one luminous civic landmark. Crownline offices at east: dark petrol-blue frames, pale aqua slab faces, brushed silver tops. Branching plaza west: mint-glazed supports, ochre paving with radial mosaic motifs. High street decks northwest: chalk stucco with faded pink sides. Gateway headland northeast: vermilion columns with cream deck faces, a recognizable port gateway. Lower arcades nearest harbor inherit teak/red; those nearest civic lantern use ivory/cobalt; those nearest offices use petrol/aqua. Bridges transition at support joints, not randomly by block. Shell-sand island, apricot evening sky, turquoise sea. Collapse produces distinctly recognizable dark office frames, pale civic slabs and honey market fragments.",
+          "#136779",
+          "#ef9a83",
+          "#e7c484"
+        ],
+        [
+          "Rainforest Tide Observatory",
+          "Harbor sheds: dark tarred timber and green copper slab faces, ecological field workshops. Quay terraces: gray limestone with tide-mark side textures. Civic lantern: pale jade glazed support frame, warm amber slab edges, an observation beacon. Crownline offices: dark bark columns and pale leaf-green deck tops, a raised research district. Branching plaza: richest moss-green radial surfaces with tree-ring textures on the existing branch slabs. Lantern Court: cream stone and turquoise patterned floor sides, an open collecting court. High street decks: cool lichen-gray; gateway headland: oxidized copper and amber bands. Assign low market arcades near western plaza to bark/moss, central split courts to jade/cream, eastern porticos to copper/gray. Keep vegetation entirely as low-relief surface patterns, no new trees. Dark earth island with pale traversable streets; blue-green ocean; warm humid cloudy morning. Ruins become moss-marked timber, mineral and copper districts rather than uniform green rubble.",
+          "#285448",
+          "#b0cbb4",
+          "#bd8a51"
+        ],
+        [
+          "Orbital Arrival District",
+          "Harbor sheds: graphite frames and orange-white panel faces, cargo arrival halls. Quay terraces: silver walking slabs with broad blue docking bands. Civic lantern: pearl-white frame and violet energy-pattern sides, a central communications exchange. Crownline offices: cobalt frames and icy-blue ceramic decks, habitation stacks. Gateway headland: amber frame with black side-panel chevrons, a navigation gantry. Branching plaza: magenta and graphite patterned radial decks, an inter-terminal transfer court. Lantern Court: pale lavender and white public district; high street decks: slate and cobalt. Cargo-side low buildings orange/graphite, civic courtyards pearl/violet, residence-side arcades cobalt/white. Routes share silver tops with district-colored side strips. Dark basalt island remains continuous; navy ocean and starry violet horizon with distant planet. Toppled chunks retain clear cargo/civic/residential identities.",
+          "#df974d",
+          "#c5badc",
+          "#4775aa"
+        ]
+      ]
+    },
+    {
+      "id": "epic-double-loop",
+      "name": "Double-Loop Exchange",
+      "fit": "Its larger seaward loop and compact inland loop meet at Exchange south/north. Treat them as two connected urban systems, not two arbitrary stripe colors.",
+      "themes": [
+        [
+          "Night Market Meets Financial Exchange",
+          "Seaward arcade and beach walk: turquoise painted concrete and warm cream tops. Low court hotel: faded peach frame faces and brass side bands. West lantern: warm red-and-ivory tiled landmark. Exchange south: broad silver decks with wine-red supports, a public interchange. Exchange north: dark navy supports and pearl deck faces, a taller financial anchor. Inland court: celadon tiles and clean white columns. Market hall: teak and orange enamel. Low structures along seaward circuit are weathered market stalls and hotel courts; inland ones are quieter glazed office annexes. The shared link between north and south uses gray tops and alternating brass/celadon side bands only at district boundaries. Purple-blue twilight, charcoal paved island, cobalt ocean; warm outer loop versus cooler inland loop remains visible in rubble.",
+          "#cd7962",
+          "#254565",
+          "#76bdb0"
+        ],
+        [
+          "Monastery and Maker Quarter",
+          "Seaward arcade/beach walk: chalk-white limestone with cobalt inset patterns. Low court hotel: warm sandy plaster and muted teal. West lantern: deep ultramarine columns with a pale gold patterned crown slab. Exchange south/north: ivory stone frame and dark walnut surfaces, workshop and archive towers respectively; north gets burgundy fine-line side panels. Inland court: pale terracotta and cream. Market hall: reddish timber and ochre ceramics. Low split courts become contemplative ivory/cobalt courtyards on the outer loop; low market arcades on inner loop become warm wood/terracotta craft halls. A neutral limestone route unifies both circuits. Dry white mineral island, bright soft sky, muted blue-green sea; distinct masonry and timber debris.",
+          "#d9c9a5",
+          "#496b99",
+          "#925943"
+        ],
+        [
+          "Two-Species Alien Embassy",
+          "Seaward arcade, beach walk and hotel: chalky pale aqua coral-pattern ceramic with dark indigo columns. West lantern: soft turquoise seams, rounded motifs painted on existing faces. Exchange south: warm copper frame and cream sides; Exchange north: cool obsidian frame and violet sides, the two diplomatic towers. Inland court and market hall: angular amber/copper surface pattern versus the outer loop's organic aqua pattern. Shared bridges have neutral gray tops and a clear paired copper/aqua side treatment. Low outer courtyards use shell-like bands; inner porticos use geometric circuit tiles; do not add alien props or change shapes. Lilac island, peach alien sky, dark teal ocean; collision fragments visibly mix the two material cultures.",
+          "#8dcac1",
+          "#aa783f",
+          "#7b5a97"
+        ]
+      ]
+    },
+    {
+      "id": "epic-caldera",
+      "name": "Caldera Switchback City",
+      "fit": "The low bowl entry, east/west switchbacks, elevated crowns and bowl lantern already form an ascent. Design changes with elevation and sides of the bowl.",
+      "themes": [
+        [
+          "Thermal Bath City Above a Quarry",
+          "Low bowl terraces and bowl entry arcade: warm rough buff stone with dark mineral-water stain bands on slab sides. East switchback: pale travertine with turquoise side glazing. West switchback: ochre timber-toned deck tops and creamy stone posts, a drier residential ascent. High east crown: clean ivory slabs with pale blue trim, a bathhouse skyline. High west crown/saddle: coarse golden limestone and copper edges, the quarry-side civic terraces. Bowl lantern: deep turquoise frame and amber side insets, a thermal works landmark. Lower woven courts in bowl are rough stone; on shoulders they become increasingly clean tile. Existing higher ground stays mineral cream; sea is jade; clear cool morning. No added pools or terrain changes. Falling clean upper tiles contrast mineral-stained lower fragments.",
+          "#d6c39b",
+          "#4ba7ad",
+          "#a9774f"
+        ],
+        [
+          "Volcanic Forge and Weather Station",
+          "Entry arcade and low terraces: soot-dark iron frames with rusty orange side panels, workshop floor. East switchback: broad pale ash-concrete walking slabs with dark steel supports. West switchback: burgundy glazed ceramic sides and brown stone columns, workers' quarter. High east crown: cold gray ceramic panels and cyan route bands, weather instrument tower suggested by surface graphics. High west crown: black basalt frame with copper-red slab edges, foundry lookout. Bowl lantern: ivory columns with a warm ember-orange slab core, emergency beacon. Low buildings near east use gray engineering panels; west courts use red clay; bowl markets use rusty iron. Charcoal island with painted volcanic strata, copper sky, dark blue sea. No actual lava or extra hazards. Collapse mixes heavy black frames, red quarter slabs and pale station plates.",
+          "#383e47",
+          "#a34f3b",
+          "#83b5bc"
+        ],
+        [
+          "Amber Desert Pilgrimage",
+          "Entry arcade: dusty red sandstone frame; low terraces: pale tan stone with broad caravan-stripe side textures. East switchback: blue glazed tiles and cream columns; west switchback: dark cedar grain and ochre slabs. High east crown: deep cobalt frame with gold-pattern side faces, observatory district. High west saddle: pale chalk frame with rust-red side panels, sanctuary terrace. Bowl lantern: bright ivory and muted green copper, a solitary wayfinding landmark. Lower streets progress from rough red market stone to polished blue-white courts at height; keep branch routes the same neutral sand tops. Rust island terrain, amber sky, ink-blue sea at the existing boundary. Broad surface differentiation signals the climb rather than new towers or props; fallen crown pieces remain blue/gold or chalk/rust.",
+          "#a96f4b",
+          "#315d94",
+          "#d7c69c"
+        ]
+      ]
+    },
+    {
+      "id": "epic-broken-crown",
+      "name": "Broken Crown Capital",
+      "fit": "An off-center civic beacon and separated crown fragments surround a bazaar. The art should make the broken ring feel like distinct institutions around a shared public center.",
+      "themes": [
+        [
+          "Palace, Bazaar and Civic Ruins",
+          "South bazaar: dark reddish wood and saffron slab faces. Court entry terraces: chalk limestone and turquoise side tiles. Eastern civic gateway: pale rose plaster with dark teal columns. Crown northeast/offices: cobalt frame with ivory deck plates, a formal administrative quarter. Off-center civic beacon: warm white frame and narrow gold mosaic sides, the unique ceremonial anchor. West crown segment/chalice: emerald ceramic columns with aubergine slab faces, a garden-palace fragment. West arcade: dusty pink stone and dark walnut. Low market arcades south inherit timber/saffron; inner courts become ivory mosaic; western branch walks inherit emerald/aubergine. Shared sand-colored tops avoid confusing routes. Golden afternoon, pale stone island and blue sea. Each crown fragment remains identifiable after falling.",
+          "#c1974f",
+          "#367b70",
+          "#776080"
+        ],
+        [
+          "Abandoned Civic World Fair",
+          "South bazaar: weathered orange enamel with cream tops. Eastern gateway: faded turquoise posts and white geometric panel sides, an exhibition entrance. Northeast crown: pale aluminum and cornflower-blue sides, technology hall. Civic beacon: red-orange glossy frame with silver bands, the iconic fair tower. West chalice segment: plum supports and pale yellow sides, an arts pavilion. Entry terraces/west arcade: worn cream concrete and scattered block-scale colored tile panels. Lower woven buildings inherit neighboring exhibition colors; central courts are neutral terrazzo with simple radial surface motifs. Late blue hour, old concrete island, slate ocean; restrained luminous side seams only on beacon and gateway. Debris reads as fallen pavilions, not one-colored wreckage.",
+          "#dc7652",
+          "#78b5ba",
+          "#8b759b"
+        ],
+        [
+          "Lunar Capital in Three Ages",
+          "Bazaar and west arcade: rough dark basalt frame and rust ceramic faces, oldest settlement. Entry terraces: chalk-gray stone and muted red border patterns. Eastern gateway: bone-white panel faces with graphite supports, second-generation civic district. Northeast office crown: cool blue ceramic with silver slab tops, newer capital. Civic beacon: ivory and violet patterned sides, shared central institution. West chalice: aged bronze and jade glaze, preserved old palace. Low courts near each crown share that era's surface wear and pattern language; central links neutral charcoal with ivory walking bands. Pale lunar-soil island and dark sapphire water, silver-blue sky with large distant moon. Three material ages remain visually legible when structures tumble.",
+          "#555d66",
+          "#8ba9c7",
+          "#ad916a"
+        ]
+      ]
+    },
+    {
+      "id": "epic-harbor-loom",
+      "name": "Harbor Loom",
+      "fit": "Dry dock, lower quay, harbor lantern, two shipping offices, cross-dock interchange, upper shipyard, high anchor and north quay form a believable working port.",
+      "themes": [
+        [
+          "Tropical Shipwright City",
+          "Dry-dock foundry and upper shipyard: rich teak frames, faded vermilion and orange slab faces, lighter worn timber tops. Lower quay/north quay: pale limestone with blue tide-line sides. West shipping offices: seafoam painted supports and cream deck sides. East shipping offices: navy lacquer supports and sun-yellow panels, a rival dock company. Cross-dock interchange: charcoal supports, warm gray tops and broad ochre transfer stripes. Harbor lantern: white tile columns and turquoise bands, a maritime beacon. High loom anchor: dark wood posts and copper/cream slab sides, the port authority. Low arcades near yards use wood/red; office-side courts use each office's paint; central split courts use gray/ochre. Aqua sea, honey sand island, tropical sunset. Fallen company-colored frames and red timber pieces tell which neighborhood fell.",
+          "#ae6247",
+          "#4a8998",
+          "#d0ac66"
+        ],
+        [
+          "Cold-Water Industrial Harbor",
+          "Yards/foundry: oxide-red steel columns, dark galvanized slabs. Lower and north quays: gray concrete with worn blue-green side lines. West offices: pale green painted steel with ivory floors; east offices: navy steel with muted yellow slab faces. Cross-dock: dark gray grained deck tops with wide pale transfer bands. Harbor lantern: cream ceramic and red side bands, high-visibility navigation landmark. High loom anchor: silver-gray frame and cobalt deck edges. Lower market halls become rusty yard annexes or pale green office courts by proximity. Storm-break sky, wet-looking dark island and slate sea, no new rain physics. Wreckage contrasts red yard frames, gray crossing plates and pale beacon tiles.",
+          "#8e5548",
+          "#75958e",
+          "#4e6d86"
+        ],
+        [
+          "Pearl Farm Meets Orbital Freight",
+          "Lower quay/harbor lantern: chalky pearl-white columns with blue-green ceramic faces, ocean research facilities. Dry dock/upper yard: graphite frame and orange panel faces, heavy cargo area. West shipping offices: soft lavender frame with shell-pattern ivory sides; east offices: cobalt frame with silver faces, offworld freight operator. Cross-dock interchange: neutral pearl tops with alternating aqua/orange sides where routes meet. High loom anchor: indigo frame and luminous pale violet deck edges, communications hub. North quay: muted mint and gray. Low buildings interpolate between shell ceramic on water-facing districts and industrial orange/gray inland; no giant shell props. Lilac island, mauve sky, teal sea. Strong soft-pearl versus hard-industrial debris mixture.",
+          "#bac8ce",
+          "#c5844f",
+          "#5c689c"
+        ]
+      ]
+    },
+    {
+      "id": "epic-lantern-ravine",
+      "name": "Lantern Ravine",
+      "fit": "The low mouth, west terraces/homes, east office ridge, leaning compression gateway and high beacon can read as two contrasting sides of a shared ravine.",
+      "themes": [
+        [
+          "Lantern Market Below the Cloud Monastery",
+          "Ravine mouth lantern and low mouth arcade: weathered red-brown timber posts with warm amber and crimson slab sides, night-market entry. Low west terraces: warm terracotta and cream. West stepping homes: faded rose/plaster and honey wood, small residential terraces. Eastern office ridge: cold dark blue stone posts and pale gray-blue decks, quiet upper institution. Compression gateway: deep indigo columns with light limestone tops and warm gold side patterns, ceremonial crossing. High ravine beacon: bright ivory tile frame with amber side insets, sole high glowing landmark. Inland saddle: pale stone with muted teal. Low woven buildings on west inherit warm homes/market palettes; east use cool slate courts. Burnt-orange terrain slopes and dark blue sea under blue-hour sky. Ruins preserve the warm inhabited west and cool monumental east.",
+          "#9f5c48",
+          "#344e74",
+          "#e1bd79"
+        ],
+        [
+          "Rainforest Relay Across a Lost Valley",
+          "Mouth lantern: jade ceramic and warm gold sides, active research outpost. Low mouth arcade: tarred wood and copper faces. Low west terraces/homes: rough mossy limestone and bark, oldest reclaimed district. Eastern ridge: clean ivory-gray panels and oxidized teal columns, newer scientific frames. Compression gateway: dark weathered purple stone with subtle cyan fungal vein patterns on side faces, the ancient bridge anchor. High beacon: pearl-gray and mint luminous seams, modern relay. Inland saddle: muted green stone. Low western courtyards get moss/leaf-litter textures; eastern arcades get clean copper/cream, central gateway courts mix both. Existing terrain becomes dark earth and exposed pale rock through texture only; violet sky, blue-black ocean. No vines/trees obstructing passages. Debris visibly mixes old mossed stone and clean relay plates.",
+          "#3b6250",
+          "#b9c6bd",
+          "#6b68a5"
+        ],
+        [
+          "Polar Harbor and Aurora Listening Ridge",
+          "Mouth lantern/arcade: muted red shipping enamel and dark gray columns, coastal supply station. West terraces/homes: aged timber sides, pale cream snow-dusted tops, blue-gray supports. Eastern office ridge: navy steel and ice-blue slab faces, communications labs. Compression gateway: dark petrol columns with lilac frost side patterns and orange crossing bands. High beacon: pale silver frame and cyan deck sides, the listening tower. Inland saddle: cream stone and orange markings. Lower west buildings are timber shelters; lower east pavilions are silver/navy labs, both with bright opaque walking tops. Existing island frosted by textures, navy sea, softly lit green aurora sky; no ice traction changes. Fallen timber huts contrast cold laboratory plates.",
+          "#845a58",
+          "#627b92",
+          "#b0c6c1"
+        ]
+      ]
+    },
+    {
+      "id": "epic-canopy-borough",
+      "name": "Canopy Borough",
+      "fit": "The three Sky Tree branching crowns, central height, sunlit entry, shaded arcade, market and maker hall support a city of distinct roof neighborhoods.",
+      "themes": [
+        [
+          "Three Canopy Villages",
+          "West branching crown: dark walnut posts and moss-jade side faces, forest craft quarter. Central branching crown: rich teak columns, honey stone tops and deep green carved-looking sides, ceremonial common canopy. East branching crown: pale bamboo-grain posts and faded coral side panels, a sunnier dwelling quarter. Canopy skyline marker: ivory stone and dark green tiled slab faces, a watch landmark rising above all three. Daylight court: cream limestone with broad green mosaic sides; sunlit entry terraces: pale ochre. Canopy market: dark wood and saffron; maker hall: red timber and clay. Lower courts west inherit walnut/jade; central porticos honey/green; east split pavilions bamboo/coral. Low ground is leaf-litter texture, brighter paths, teal ocean and soft morning sky. No extra canopy meshes; existing branch roofs create the canopy. Collapse creates recognizable three neighborhood material families.",
+          "#49745b",
+          "#c3a16c",
+          "#be8070"
+        ],
+        [
+          "Garment District Under Painted Awnings",
+          "West crown: indigo columns with burgundy woven-pattern slab sides, dye quarter. Central crown: dark blue columns with saffron and cream geometric side motifs, shared covered exchange. East crown: teal frame and dusty pink sides, tailoring quarter. Skyline office marker: muted silver and deep plum, guild administration. Daylight court: ivory terrazzo; entry terraces: faded rose concrete. Market hall: ochre timber; maker hall: dark walnut and orange enamel. Low arcades near each crown inherit distinct textile-side motifs at large readable scale; walking tops remain cream or gray. Roofs are rigid existing slabs with fabric-inspired textures, never curtains or added hanging cloth. Warm sunset, worn neutral island, purple ocean. Broken canopy plates look like distinct patterned architectural fragments.",
+          "#3c5374",
+          "#c69a48",
+          "#a86b83"
+        ],
+        [
+          "Solar Orchard Cooperative",
+          "West crown: terracotta columns and sage side panels with broad orchard motifs. Central crown: cream columns, ochre tops and dark blue solar-cell graphics on vertical slabs, energy exchange. East crown: pale green frame and apricot side panels, civic housing. Skyline marker: ivory posts and cobalt deck sides, control tower. Market: warm wood and orange; maker hall: galvanized blue-gray and jade; daylight court: chalk terrazzo with leaf-green edge pattern; shaded upper arcade: sage/cream. Lower western buildings retain terracotta/agricultural tones, central ones cream/cobalt, eastern courts green/apricot. Dry grassy island texture, clean blue sky and muted turquoise sea. No new plants or panels; all motifs on existing faces. Fallen solar-marked plates remain distinct from clay residential frames.",
+          "#9c6b51",
+          "#8da58b",
+          "#4f7699"
+        ]
+      ]
+    },
+    {
+      "id": "epic-bookfall",
+      "name": "Bookfall Boulevard",
+      "fit": "Three Book Wing courts, the Zipper skyline, a civic lantern, maker hall and parallel escape arcade should each exploit their particular slab shapes.",
+      "themes": [
+        [
+          "The Bookbinders' Capital",
+          "Western book court: burgundy bookcloth slab tops, cream page-edge sides, dark walnut posts. Eastern book court: forest-green cloth and warmer parchment edges. Northern book court: muted midnight-blue cloth, ivory page sides; existing floor plates read as books without adding thickness. Zipper skyline: graphite posts and alternating brass/ivory slab-side bands, a tall printing/binding machine district, not another book stack. Boulevard civic tower: pale limestone frame and ruby enamel side faces, a public library beacon. Maker hall: copper-brown sides and charcoal posts, print workshop. Parallel escape arcade: neutral pale stone, the quiet route. Low woven pavilions next to each court share its cloth color but use plain cream walking tops; nearest maker hall use walnut/copper. Warm paper island, amber afternoon sky, ink-blue sea. When toppled, colored 'covers' and striped page sides make rubble memorable.",
+          "#813f4c",
+          "#45644f",
+          "#c1a574"
+        ],
+        [
+          "Music Press and Night Radio City",
+          "Western book court: black lacquer columns with red-orange record-sleeve side panels and ivory tops. Eastern court: plum and pale silver, another sleeve-stack district. Northern court: deep teal and cream, music archive. Zipper skyline: dark metal with alternating amber/silver teeth-like side stripes, mechanical record press. Civic tower: midnight-blue frame with pale violet panels, radio headquarters; keep its open floors. Maker hall: rust steel and red enamel. Escape arcade: cool gray walking slabs and blue supports. Low arcades near courts use broad sleeve-art geometric prints on sides, maker-side courts use industrial metal, radio-side porticos use restrained violet emission. Dark paved island and indigo sea, blue/magenta dusk. No added loudspeaker discs; sound motifs remain flat textures. Debris combines colorful sleeve plates and dark machinery frames.",
+          "#cc6b4f",
+          "#775b89",
+          "#427481"
+        ],
+        [
+          "Porcelain Studio and Glaze Quarter",
+          "Western book court: cream posts and cobalt floral-geometric slab sides, celadon tops. Eastern court: ultramarine posts and terracotta print sides, ivory tops. Northern court: jade posts and pale-blue patterned sides. Zipper skyline: deep blue frame and alternating pale bisque/blue slab edges, kiln rack skyline. Civic lantern: pearl-white supports with restrained warm gold side motifs, gallery landmark. Maker hall: dark burnt-clay columns and rough ochre slabs, pottery workshop. Escape arcade: plain limestone, navigation relief from pattern. Low pavilions are differentiated by nearby studio glaze colors; bridges are mostly matte cream with destination-color sides. Chalky island, clean sky, deep cobalt ocean. No porcelain dishes added: existing flat slabs suggest drying trays. Collapse yields beautiful differing glaze colors with clearly opaque unglazed tops.",
+          "#3f5e94",
+          "#9abbb0",
+          "#b67a58"
+        ]
+      ]
+    },
+    {
+      "id": "epic-three-hearts",
+      "name": "Three Hearts City",
+      "fit": "A business gateway, spiral civic heart, hotel court, waterfront hall and central catch tower form distinct urban centers around one exchange.",
+      "themes": [
+        [
+          "Business, Civic and Waterfront City",
+          "Business heart/gateway at northwest: charcoal-blue frame, silver slabs and restrained teal panel faces. Civic heart/spiral north: ivory limestone posts and warm copper side bands following its rising sequence. Lantern Court hotel northeast: faded rose plaster and cream tile, hospitality district. Waterfront heart/foundry south: rich timber posts, ochre and faded red faces, public market. Exchange catch tower center: pale limestone frame and mint edge bands; maintain visible broad catch ledges, the shared transport hub. Harbor terraces southeast: gray stone/cobalt; market entry southwest: sandy plaster and terracotta. Lower neighborhoods inherit nearby business/navy, civic/ivory, hotel/rose or waterfront/timber identities; connecting tops neutral warm gray. Golden morning, muted sandy island, teal sea. Fallen districts remain visually attributable, with central catch slabs staying pale.",
+          "#33576a",
+          "#bd9270",
+          "#ba7f85"
+        ],
+        [
+          "Tri-Culture Embassy Port",
+          "Business gateway: obsidian supports and angular amber ceramic side patterns, industrial embassy. Civic spiral: pearl-white posts and turquoise organic-line sides, ocean embassy. Hotel court: dark plum supports with pale violet and gold sides, ceremonial guest quarter. Waterfront hall: blue-green metal and silver, shared arrival market. Exchange catch tower: neutral ivory and thin paired amber/turquoise/violet side panels at connections only, a unifying truce landmark. Harbor terraces: slate/blue; market entry: warm gray/copper. Low courts follow nearest embassy surface pattern without adding walls or props. Dark basalt island and dark teal ocean, violet sky with distant planet. Distinct materials make the three major centers legible before and after collapse.",
+          "#b28b52",
+          "#5eb4af",
+          "#9580ac"
+        ],
+        [
+          "Chocolate Factory and Festival Capital",
+          "Business gateway: dark cocoa posts and pale caramel sides, packaging district. Civic spiral: vanilla ceramic frame and raspberry-sugar side patterns, festival landmark. Hotel court: pistachio supports and cream/peach panels, confection guesthouse. Waterfront foundry: warm copper and orange candy-glaze sides, cooking workshops. Exchange catch tower: cream frame with restrained dark chocolate stripes and pale mint catch-deck tops, common sorting exchange. Harbor terraces: biscuit tan/blue; market entry: strawberry-red/cream. Low pavilions near production use copper/orange, hotel-side courts pistachio, civic courts vanilla/raspberry. Biscuit-textured island, peach sky, blue-green ocean. Use candy materials on architectural faces, no giant sweet props. The catch tower and production machinery remain distinct from pink civic ruins.",
+          "#704b3b",
+          "#bd6e86",
+          "#a7b48b"
+        ]
+      ]
+    },
+    {
+      "id": "epic-rising-spine",
+      "name": "The Rising Spine",
+      "fit": "The seaside low market rises through terraces and a middle relay to an elevated civic summit; the return side has a secondary skyline and a waterfront landmark.",
+      "themes": [
+        [
+          "From Working Port to Cloud Palace",
+          "Seaside low market: dark teak frames and faded red slab faces. Waterfront landmark/waterworks: seafoam supports and cream/cobalt side tiles, coastal works. First spine terrace: rough buff limestone and rusty copper sides. Middle crown/relay: patinated green columns and pale ivory decks, the administrative ascent. Inland civic summit: clean alabaster columns with restrained gold side lines, the brightest and palest anchor. Headland shoulder: cream stone and pale sage. Secondary skyline: dark blue-gray posts and silver sides, a modern business return route. Lower cross-grain arcade: weathered timber and warm gray. Low woven buildings change from wood/red near sea to buff/copper midway and ivory/gold at height. Existing island remains continuous chalk/earth texture; silver-blue sea, clear sky with a cloud bank below the distant horizon only. Fallen summit slabs stand out among dark port fragments.",
+          "#955f4a",
+          "#5a9384",
+          "#e7dfc3"
+        ],
+        [
+          "Monsoon Trade City and Mountain Archive",
+          "Low market: reddish wood and mustard side faces. Waterfront landmark: cobalt enamel and white tile. First terrace: terracotta sides with dark gray posts. Middle relay crown: oxidized teal support frame and copper deck faces, trading exchange. Civic summit: cool ivory stone and indigo patterned slab sides, high archive. Headland shoulder: warm sandstone and moss trim. Secondary skyline: charcoal steel and rain-gray decks, commercial office district. Lower arcade: teal timber and pale stone. Low structures near market are wood/ochre, near relay copper/teal, near archive ivory/indigo; path tops stay warm gray. Island earth is ochre with dark wet-looking textures, sea green, warm break in storm sky. No actual rainfall needed. Toppled archive plates, copper relay frames and terracotta markets retain strong differences.",
+          "#ab7951",
+          "#3e7d79",
+          "#5e6d99"
+        ],
+        [
+          "Alien Settlement Climbing a Fossil Ridge",
+          "Seaside market/foundry: dark graphite supports and rusty orange panels, old landing workshops. Waterfront landmark: pale bone ceramic and jade side bands, water-processing frames. First terrace: gray mineral slab tops and amber sides. Middle relay crown: dark violet posts and muted turquoise patterned sides, bio-signal exchange. Inland summit: bone-ivory columns and blue crystalline side panels, high observatory. Secondary skyline: metallic teal supports and silver slabs, newer research district. Headland shoulder: pale porous mineral texture and lavender faces. Lower arcade: weathered orange-gray. Low buildings near landing use industrial orange/gray; middle courts mix violet/teal; high porticos use ivory/blue. No extra fossil ribs or spikes; patterns only on existing pieces. Purple-gray island, ink-teal ocean, indigo aurora sky. Ruins visually record old machinery, living relay and crystalline summit.",
+          "#ad8058",
+          "#78638f",
+          "#b9cece"
+        ]
+      ]
+    }
+  ]
+}

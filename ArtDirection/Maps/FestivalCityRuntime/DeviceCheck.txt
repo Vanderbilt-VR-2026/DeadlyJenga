@@ -1,0 +1,1 @@
+ADB devices: no connected devices. Quest validation unavailable.

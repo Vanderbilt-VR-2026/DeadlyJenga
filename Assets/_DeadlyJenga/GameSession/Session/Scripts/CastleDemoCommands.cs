@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum CastleDemoAction { Rebuild, AddSurvivor, FillSurvivors, NextSurvivor, ClearSurvivors, AddHand, NextHand, ClearHands, Stamina, Disaster, StopDisasters }
+    public enum CastleDemoAction { Rebuild, AddSurvivor, FillSurvivors, NextSurvivor, ClearSurvivors, AddHand, NextHand, ClearHands, Stamina, Disaster, StopDisasters, AdvanceScaffold }
     [Serializable] public sealed class CastleDemoCommand
     {
         public CastleDemoAction action;
@@ -25,6 +25,9 @@ namespace DeadlyJenga.CastlePrototype
             if(command==null||!Enum.IsDefined(typeof(CastleDemoAction),command.action))return false;
             switch(command.action)
             {
+                case CastleDemoAction.AdvanceScaffold:
+                    if (!session.CanEditWorld || !(DeadlyJenga.Core.Services.World is DeadlyJenga.Core.IBuildUpControls buildUp) || !buildUp.CanAdvance) return false;
+                    buildUp.AdvanceStage(); break;
                 case CastleDemoAction.StopDisasters:if(!DemoDisasters.CanTrigger(session))return false;DemoDisasters.StopAll(session);break;
                 case CastleDemoAction.Disaster:return DemoDisasters.Execute(session,command.rules,command.tuneWave?(float?)command.waveSpeed:null,command.tuneWave?(float?)command.waveForce:null,command.hazardValues);
                 case CastleDemoAction.Rebuild:session.ResetCastle();break;

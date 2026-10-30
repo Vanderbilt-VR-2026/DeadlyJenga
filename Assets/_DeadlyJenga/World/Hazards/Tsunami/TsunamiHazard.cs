@@ -1,3 +1,4 @@
+using Unity.Profiling;
 using System.Collections.Generic;
 using UnityEngine;
 using DeadlyJenga.Core;
@@ -6,6 +7,7 @@ namespace DeadlyJenga.World.Hazards
 {
     public sealed class TsunamiHazard : MapHazard, IWaveState, IWaveTuning, IDemoHazard
     {
+        static readonly ProfilerMarker DJTsunamiMarker = new ProfilerMarker("DJ.Tsunami");
         [Header("Shape (metres)")]
         [Min(.1f)] public float height = 22;
         [Min(1)] public float depth = 28;
@@ -128,6 +130,7 @@ namespace DeadlyJenga.World.Hazards
 
         void FixedUpdate()
         {
+            using var measurement = DJTsunamiMarker.Auto();
             if (!Active) return;
             if (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority) { End(); return; }
             age += Time.fixedDeltaTime;
@@ -149,22 +152,24 @@ namespace DeadlyJenga.World.Hazards
             for (int i = 0; i < count; i++)
             {
                 var collider = hits[i];
+                hits[i] = null;
                 if (!targets.TryGetValue(collider, out var target))
                 {
-                    target = new Target { push = collider.GetComponentInParent<IPushable>(), damage = collider.GetComponentInParent<IDamageable>(),
-                        motion = collider.GetComponentInParent<IHazardMotion>(), resistance = collider.GetComponentInParent<IWaterResistance>(), body = collider.attachedRigidbody };
+                    target = new Target { push = HitAbilities.Get<IPushable>(collider), damage = HitAbilities.Get<IDamageable>(collider),
+                        motion = HitAbilities.Get<IHazardMotion>(collider), resistance = HitAbilities.Get<IWaterResistance>(collider), body = HitAbilities.Get<Rigidbody>(collider) };
                     targets.Add(collider, target);
                 }
                 var pushable = target.push;
                 object receiver = (object)pushable ?? target.damage;
                 if (receiver == null || touched.Contains(receiver)) continue;
-                Vector3 point = collider.bounds.center;
+                var bounds = collider.bounds;
+                Vector3 point = bounds.center;
                 float surface = SurfaceHeight(Wave, point);
-                float submerged = Mathf.Clamp01((surface - collider.bounds.min.y) / Mathf.Max(.1f, collider.bounds.size.y));
+                float submerged = Mathf.Clamp01((surface - bounds.min.y) / Mathf.Max(.1f, bounds.size.y));
                 if (submerged <= 0 || respectShelter && world.IsSheltered(point)) continue;
                 touched.Add(receiver); LastTargetCount++;
                 var body = target.body;
-                if (body && body.isKinematic) continue;
+                if (body && body.isKinematic && target.motion == null) continue;
                 float resistance = target.resistance?.WaterResistance ??
                     (body ? body.mass / blockReferenceMass : 1);
                 resistance = Mathf.Max(.1f, resistance);

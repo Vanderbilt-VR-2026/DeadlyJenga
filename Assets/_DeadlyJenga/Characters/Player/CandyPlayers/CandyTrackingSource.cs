@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR.Hands;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CandyPlayers
 {
@@ -13,6 +14,8 @@ namespace DeadlyJenga.CandyPlayers
         // Controller roots identify the matching UI interactors; they are aim poses, not palms.
         public Transform leftController, rightController;
         public CandyPlayerStyle style;
+        public ICandyHandPoseSource LeftPoseSource {get;set;}
+        public ICandyHandPoseSource RightPoseSource {get;set;}
         public bool RightPinchPressed{get;private set;}
         public bool RightPinching{get;private set;}
         public bool LeftMenuPressed{get;private set;}
@@ -32,7 +35,7 @@ namespace DeadlyJenga.CandyPlayers
             rp=Action("<XRController>{RightHand}/devicePosition");rr=Action("<XRController>{RightHand}/deviceRotation");rt=Action("<XRController>{RightHand}/isTracked");
         }
         void OnEnable(){lp.Enable();lr.Enable();lt.Enable();rp.Enable();rr.Enable();rt.Enable();Application.onBeforeRender+=ReadLatest;}
-        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();Application.onBeforeRender-=ReadLatest;}
+        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();Application.onBeforeRender-=ReadLatest;left=right=default;RightPinchPressed=RightPinching=LeftMenuPressed=LeftPinching=previousRight=previousMenu=false;}
         void OnDestroy(){lp.Dispose();lr.Dispose();lt.Dispose();rp.Dispose();rr.Dispose();rt.Dispose();}
         void Update()
         {
@@ -48,7 +51,8 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(subsystem==null||!subsystem.running)
             {SubsystemManager.GetSubsystems(subsystems);subsystem=subsystems.Find(s=>s.running);}
-            left=Read(true,lp,lr,lt);right=Read(false,rp,rr,rt);
+            left=LeftPoseSource!=null?(LeftPoseSource.TryGetPose(out var l)?l:default):Read(true,lp,lr,lt);
+            right=RightPoseSource!=null?(RightPoseSource.TryGetPose(out var r)?r:default):Read(false,rp,rr,rt);
         }
         CandyHandPose Read(bool isLeft,InputAction position,InputAction rotation,InputAction tracked)
         {
@@ -85,7 +89,7 @@ namespace DeadlyJenga.CandyPlayers
         }
         public CandyHandPose WorldHand(bool isLeft)
         {
-            var hand=isLeft?left:right;
+            var hand=isActiveAndEnabled?(isLeft?left:right):default;
             // The XR rig's controller transforms use pointer/aim poses for UI rays.
             // Render the palm from devicePosition/deviceRotation (grip pose) instead;
             // aim rotation has a device-specific tilt and is not the wrist orientation.

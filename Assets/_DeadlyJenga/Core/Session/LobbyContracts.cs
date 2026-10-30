@@ -9,11 +9,12 @@ namespace DeadlyJenga.Core
         public static MatchRules Rules = new MatchRules();
         public static string ModeId = "demo", MapId = "castle";   // ids from the lobby catalog
         public static int BotTarget = 10;      // population, including the local player
+        public static bool SameHumanTeam;
         public static int HandCount;           // AI hands
         public static int SurvivorPreset, HandPreset;
 
         [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void Reset() { Rules = new MatchRules(); ModeId = "demo"; MapId = "castle"; BotTarget = 10; HandCount = 0; SurvivorPreset = 0; HandPreset = 0; }
+        static void Reset() { Rules = new MatchRules(); ModeId = "demo"; MapId = "castle"; BotTarget = 10; SameHumanTeam = false; HandCount = 0; SurvivorPreset = 0; HandPreset = 0; }
     }
 
     // The island lobby's three terminals (join, host, map + mode) as Presentation draws them.

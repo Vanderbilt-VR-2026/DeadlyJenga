@@ -1,0 +1,53 @@
+{
+  "time": "2026-10-26T20:09:02.810704",
+  "project_tested": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-01",
+  "canonical_target": "C:/Users/evanp/Documents/Codex/Projects/DeadlyJenga",
+  "tests": [
+    {
+      "name": "CandyTerminalDesign.txt",
+      "sha256": "4d111590390d7dfd8c4def9d3afd2a71c7fe67572a86b1e6d7cbf407f1fd45ec",
+      "pass_lines": 908,
+      "complete": "COMPLETE checks=908 runtimeErrors=0 editorServiceErrors=0 failed=False. Desktop Editor; headset not tested."
+    },
+    {
+      "name": "DeathPaint.txt",
+      "sha256": "60578c6385e8d823658e21ffae8838341c167339b017a4636d4b19febcd0e364",
+      "pass_lines": 5,
+      "complete": "COMPLETE"
+    },
+    {
+      "name": "EveryModeDemo.txt",
+      "sha256": "05e7ee0bb1d646473217b566824a2b8101eec932419cf4bcab68a0968929f031",
+      "pass_lines": 285,
+      "complete": "COMPLETE checks=285 runtimeErrors=0 failed=False. Desktop runtime; headset not tested."
+    },
+    {
+      "name": "LobbyBrowserBeaconChecks.txt",
+      "sha256": "e13da8c4e0cf93ab3e21988f48d3a2d7028a8b99741645d4db7d987833b0c80b",
+      "pass_lines": 83,
+      "complete": "COMPLETE; errors=0. Desktop Editor only; headset audio not verified."
+    },
+    {
+      "name": "MegablockTower-runtime.txt",
+      "sha256": "9368977eb9a9a31446939aa0350a7463595ad2340a1bafe5d8761f75b66d6963",
+      "pass_lines": 211,
+      "complete": "COMPLETE failures=0 runtimeErrors=0"
+    }
+  ],
+  "changes": [
+    "CTF carrier normalization and demo regression harness",
+    "Revised tornado/ocean/tsunami visuals",
+    "Megablock Tower, catalog preview, stair/vault fixes",
+    "Lobby beacon layering and duplicate prop cleanup",
+    "Candy Arcade terminal redesign",
+    "Character-color death paint retained and GPU validated",
+    "Weapon first-pass gallery preserved; clean retakes incomplete"
+  ],
+  "limits": [
+    "Actual Unity desktop Editor tests; no Quest/headset validation",
+    "Game scene tests include stand-ins where each report labels them",
+    "Two-peer packet transport is not full two-player Game validation",
+    "Shared Editor tower stress: 14.9 FPS base, 8.0 FPS 32 bots, 3.0 FPS 32 bots + tsunami; not standalone/Quest results",
+    "Current source stays uncommitted; no branch switching or push"
+  ]
+}

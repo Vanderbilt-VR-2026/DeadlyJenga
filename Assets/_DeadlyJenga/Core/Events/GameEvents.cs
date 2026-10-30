@@ -17,6 +17,9 @@ namespace DeadlyJenga.Core
         public static event Action<GameObject, string> Emoted;              // who, emote name
         public static event Action RoundStarted;
         public static event Action RoundEnded;
+        public static event Action<float> DepartureStarted;
+        public static event Action<GameObject> HomeStarted;
+        public static void RaiseHomeStarted(GameObject home) => HomeStarted?.Invoke(home);
         public static event Action<GameObject> SessionStarted;                // the session object; menus and HUDs attach here
         public static event Action<GameObject> LobbyStarted;                  // the lobby object (also ILobbyControls); its terminals attach here
 
@@ -31,6 +34,7 @@ namespace DeadlyJenga.Core
         public static void RaiseEmoted(GameObject who, string emote) => Emoted?.Invoke(who, emote);
         public static void RaiseRoundStarted() => RoundStarted?.Invoke();
         public static void RaiseRoundEnded() => RoundEnded?.Invoke();
+        public static void RaiseDepartureStarted(float seconds) => DepartureStarted?.Invoke(seconds);
         public static void RaiseSessionStarted(GameObject session) => SessionStarted?.Invoke(session);
         public static void RaiseLobbyStarted(GameObject lobby) => LobbyStarted?.Invoke(lobby);
 
@@ -40,6 +44,7 @@ namespace DeadlyJenga.Core
             BlockHit = null; Pushed = null; Damaged = null; Eliminated = null;
             EffectStarted = null; EffectEnded = null; HazardStarted = null; HazardEnded = null;
             RoundStarted = null; RoundEnded = null; Emoted = null; SessionStarted = null; LobbyStarted = null;
+            DepartureStarted=null; HomeStarted=null;
         }
     }
 }

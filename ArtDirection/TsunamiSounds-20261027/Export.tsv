@@ -1,0 +1,6 @@
+sound	seconds	samples	channels	frequency	loop	source
+DisasterHorn	2.3	50715	1	22050	False	current synthesized fallback
+DisasterTension	2.4	52921	1	22050	True	current synthesized fallback
+WaveImpact	0.7	15435	1	22050	False	current synthesized fallback
+WaveSpray	0.7	15435	1	22050	False	current synthesized fallback
+PuddleDrain	0.7	15435	1	22050	False	current synthesized fallback

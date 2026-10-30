@@ -1,0 +1,51 @@
+Actual Game firearm, death drop, Mystery handoff and local zoom checks.
+PASS Game initializes
+PASS Physical target spawns
+PASS Revolver occupies the existing single inventory slot
+DIAGNOSTIC equipment={"actor":"local","kind":5,"drawn":true,"leftHanded":false,"shotgun":false,"roleIssued":false,"thrust":false,"remaining":20.0} menu=False alive=True focused=True climb=False vault=False phase=Playing muzzle=(150.12, 10.75, 120.44) eye=(150.00, 10.81, 120.00)
+PASS Revolver long-range shot accepted
+PASS Pistol deals 85 damage at 30 metres
+PASS Long-range revolver endpoint validates in transported action frame
+PASS Rapid revolver shotgun shot accepted
+PASS Revolver shotgun damage is bounded to seven 10-damage pellets
+PASS Revolver shotgun transports seven valid visible endpoints
+PASS Rapid shotgun can fire again after .31 seconds
+PASS Solid cover blocks revolver pellets
+PASS Rifle swaps through the same slot
+PASS Rifle has a rotating barrel carriage
+PASS Mode switch prevents firing through its transition
+PASS Barrels and attached optics turn a full 180 degrees
+PASS Both mode-specific optics travel with their barrel
+ZOOM aiming=True fov=18.75009 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 4x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+PASS Actual pistol and shotgun revolver frames pass production validation
+PASS Transport fixture captures actual pistol and shotgun revolver state
+TRANSPORT FIXTURE NOTE Empty-scene multiple-peer diagnostic; this fixture tests reliable packets, not replicated gameplay scenes.
+PASS Independent Photon firearm host startup completes
+PASS Real Photon firearm host connects
+TRANSPORT FIXTURE NOTE Empty-scene multiple-peer diagnostic; this fixture tests reliable packets, not replicated gameplay scenes.
+PASS Independent Photon firearm guest startup completes
+PASS Second real Photon peer joins the firearm room
+PASS Firearm state packet 0 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 0
+PASS Remote peer receives precision revolver mode
+PASS Firearm state packet 1 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 1
+PASS Remote peer receives rapid shotgun revolver mode
+PASS Firearm state packet 2 crosses real Photon channel 12
+PASS Transported action packet passes production decompression and validation: 2
+PASS Duplicate snapshot preserves shotgun mode
+PASS Photon firearm guest shuts down
+PASS Photon firearm host shuts down
+PASS Temporary multiple-peer and physics settings are restored
+PASS Mystery issues the new revolver while keeping it concealed
+PASS Holstered sheriff death drops exactly one revolver
+PASS Sheriff's revolver drops at his death/body position
+PASS Repeated elimination callback cannot duplicate the drop
+PASS An innocent recovers both the physical gun and sheriff role
+PASS Recovering consumes the dropped weapon
+PASS Sheriff can swap the revolver into a physical ground pickup
+PASS A living sheriff can retrieve his own swapped revolver

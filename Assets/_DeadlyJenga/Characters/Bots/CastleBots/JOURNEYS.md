@@ -1,5 +1,8 @@
 # Survivor trips and gap traversal
 
+> Historical notes for the earlier planner. See README.md for the current shared navigation, action/transit pipeline and validation commands.
+
+
 This replaces the original one-hop, height-rewarded wandering with trips through a live surface graph. Nine sample points per stable crate include launch/landing positions near its edges. A frame-sliced search joins walk, jump, jump-and-vault, lower drop, and drop-and-catch links; it can take intermediate sideways steps and replan a useful partial route rather than requiring a whole-castle route in one search.
 
 Vault links check a physical face at an airborne intercept, including capsule clearance before the catch and clearance for the actual lift-over motion. A face does not have to be within vault reach while the bot is still on its starting platform. Downward links can walk off under a low ceiling, cross a gap and catch a lower lip. Execution still uses the original survivor movement/jump inputs and its real TryFindLedge query. No new jump, flight, position teleport or easier vault mechanic is granted to bots.

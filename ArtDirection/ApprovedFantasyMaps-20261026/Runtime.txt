@@ -1,0 +1,5 @@
+Actual production Game Play Mode; desktop Editor; no headset or network test.
+PASS epic-honeycomb-hive: picker, load, material shaders, spawn, 95 original bodies; decorations=58; contacts=1090; rounded=95; visual vertices=198540; triangles=267960; baked reflection assigned; reset and layout roundtrip.
+PASS epic-cloud-carnival: picker, load, material shaders, spawn, 122 original bodies; decorations=71; contacts=1078; rounded=122; visual vertices=193968; triangles=261192; baked reflection assigned; reset and layout roundtrip.
+PASS epic-candy-glass-cloud: picker, load, material shaders, spawn, 122 original bodies; decorations=0; contacts=1078; rounded=122; visual vertices=193968; triangles=261192; baked reflection assigned; reset and layout roundtrip.
+PASS switch to original: theme removed and ocean rendering restored.

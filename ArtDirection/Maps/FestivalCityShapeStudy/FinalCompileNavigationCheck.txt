@@ -1,0 +1,1 @@
+City navigation regression: PASS. Upper gallery (56.08, 8.75, 1.78) is >6m above its body root; sampled and accepted by actual collider bounds. Far-away geometry rejected=True; ordinary block retained=True. No Play Mode/headset inference.

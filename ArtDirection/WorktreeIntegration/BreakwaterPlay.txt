@@ -1,0 +1,67 @@
+Actual Game.unity, real player, actual bots and normal disaster FixedUpdate lifecycle. Desktop Editor only; no headset or two-player claim.
+PASS actual solo player and hand initialized
+PASS registered lobby map resolves and loads in Game
+PASS actual Game quiet village connections remain intact
+PASS eight real survivor bots spawned
+FRAME social + 8 bots median=49.84ms p90=83.10ms; 60 Editor frames, not device FPS; awake=0
+  Physics.SyncTransforms mean=378583 ns
+  Physics.Simulate mean=727163 ns
+  Main Thread mean=53162853 ns
+  BehaviourUpdate mean=23193493 ns
+  GC Allocated In Frame mean=500417 bytes
+  DJ.CrateBatches mean=6878 ns
+  DJ.WetEffects mean=2793 ns
+  DJ.BotThreat mean=1018715 ns
+  DJ.WalkingSources mean=347682 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=1118947 ns
+  DJ.BotGeometry mean=418452 ns
+  DJ.DeathDeform mean=7820955 ns
+  DJ.UnifiedRecovery mean=0 ns
+  DJ.StructureBatches mean=3898 ns
+  DJ.CityCleanup mean=0 ns
+PASS earthquake begins through normal map validation
+Earthquake broken connections=227
+PASS live earthquake changes building structure
+FRAME after live earthquake + bots median=49.34ms p90=70.55ms; 60 Editor frames, not device FPS; awake=219
+  Physics.SyncTransforms mean=1415922 ns
+  Physics.Simulate mean=4093630 ns
+  Main Thread mean=50432528 ns
+  BehaviourUpdate mean=14859577 ns
+  GC Allocated In Frame mean=374759 bytes
+  DJ.CrateBatches mean=6538 ns
+  DJ.WetEffects mean=1803 ns
+  DJ.BotThreat mean=651672 ns
+  DJ.WalkingSources mean=353432 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=656858 ns
+  DJ.BotGeometry mean=321135 ns
+  DJ.DeathDeform mean=1168028 ns
+  DJ.UnifiedRecovery mean=0 ns
+  DJ.StructureBatches mean=3888 ns
+  DJ.CityCleanup mean=0 ns
+PASS session reset restores native structures
+Meteor broken connections=37
+PASS live meteor shower changes structure
+FRAME after live meteors + bots median=33.14ms p90=173.66ms; 60 Editor frames, not device FPS; awake=0
+  Physics.SyncTransforms mean=410628 ns
+  Physics.Simulate mean=762467 ns
+  Main Thread mean=50906292 ns
+  BehaviourUpdate mean=20357360 ns
+  GC Allocated In Frame mean=324747 bytes
+  DJ.CrateBatches mean=7085 ns
+  DJ.WetEffects mean=1652 ns
+  DJ.BotThreat mean=498840 ns
+  DJ.WalkingSources mean=313528 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=995808 ns
+  DJ.BotGeometry mean=167298 ns
+  DJ.DeathDeform mean=13144243 ns
+  DJ.UnifiedRecovery mean=0 ns
+  DJ.StructureBatches mean=3647 ns
+  DJ.CityCleanup mean=0 ns
+PASS all member positions finite after live hazards
+PASS second reset after meteors restores connections
+PASS no runtime errors during Game scene test
+COMPLETE desktop Game scene checks. Quest and two-player multiplayer remain unverified.
+Runtime errors=0

@@ -13,6 +13,8 @@ public class NetworkHands : NetworkBehaviour
     [Networked] public uint CandyHandFlags{get;set;}
     [Networked] public float CandyScale{get;set;}
     [Networked] public int CandyColor{get;set;}
+    [Networked] public uint CandyAccessories{get;set;}
+    [Networked] public uint CandyStyle{get;set;}
     CandyPlayerRig candyRig;
 
     public override void Spawned()
@@ -44,6 +46,8 @@ public class NetworkHands : NetworkBehaviour
         rightHand.transform.SetPositionAndRotation(pose.RightPosition, pose.RightRotation);
         CandyHeadPosition=pose.HeadPosition;CandyHeadRotation=pose.HeadRotation;
         CandyScale=Mathf.Max(.1f,pose.AvatarScale);CandyHandFlags=pose.HandFlags;
+        CandyStyle=CandyPlayerAvatar.StyleBits(CandyPlayerAvatar.WithStyle(default,pose.AvatarStyle));
+        CandyAccessories=pose.AvatarAccessories&(uint)CandyPlayerAvatar.SupportedAccessories;
         CandyLeftSkeleton=pose.LeftSkeleton;CandyRightSkeleton=pose.RightSkeleton;
     }
     public override void Render()
@@ -52,6 +56,7 @@ public class NetworkHands : NetworkBehaviour
         if(Object.HasInputAuthority)
         {var local=FindFirstObjectByType<LocalHandInput>();if(local&&local.TryGetComponent<CandyPlayerAvatar>(out var avatar))avatar.SetColor(CandyColor);return;}
         candyRig.SetColor(CandyColor);
+        candyRig.SetAppearance(CandyPlayerAvatar.WithStyle(new DeadlyJenga.Core.AvatarAppearance{accessories=(DeadlyJenga.Core.AvatarAccessory)CandyAccessories},CandyStyle));
         candyRig.ApplyFrame(new CandyAvatarFrame{feet=transform.position,head=CandyHeadPosition,headRotation=CandyHeadRotation,scale=Mathf.Max(.1f,CandyScale),
             left=new CandyHandPose{position=leftHand.transform.position,rotation=leftHand.transform.rotation,skeleton=CandyLeftSkeleton,skeletonTracked=(CandyHandFlags&1)!=0,tracked=true},
             right=new CandyHandPose{position=rightHand.transform.position,rotation=rightHand.transform.rotation,skeleton=CandyRightSkeleton,skeletonTracked=(CandyHandFlags&2)!=0,tracked=true}},true,Time.deltaTime);

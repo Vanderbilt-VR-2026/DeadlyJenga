@@ -1,0 +1,8 @@
+Fresh production Game Play Mode captures; current materials and shaders. 2026-10-26T12:49:19.6543164-05:00
+Tornado: triggered / toggled.
+Captured tornado-current.png; position=(80.67, 85.01, -88.74); target=(0.00, 32.58, 4.02); FOV=52
+Captured tornado-current-close.png; position=(0.00, 11.78, 87.26); target=(0.00, 29.33, 6.01); FOV=52
+Tsunami: triggered / toggled.
+Captured tsunami-current.png; position=(50.81, 56.89, -56.02); target=(-26.35, 18.22, 0.09); FOV=54
+Captured tsunami-current-close.png; position=(-1.21, 6.08, -20.62); target=(-52.70, 8.26, 0.17); FOV=56
+COMPLETE: two current disasters, four 1920x1080 captures. No visual implementation changed.

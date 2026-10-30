@@ -1,0 +1,129 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using DeadlyJenga.Core;
+using DeadlyJenga.CastlePrototype;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.SceneManagement;
+using Object=UnityEngine.Object;
+
+namespace DeadlyJenga.DevTools.Editor
+{
+    [InitializeOnLoad] public static class CombinedAllChatsChecks
+    {
+        const string Key="CombinedAllChatsChecks";
+        static IEnumerator run;static int errors,checks;static bool failed;static double began;
+        static string Report=>ProjectPath.Report("CombinedAllChats.txt");
+        static CombinedAllChatsChecks(){EditorApplication.update+=Tick;EditorApplication.playModeStateChanged+=State;}
+        public static void RunAuthoring(){if(!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))throw new InvalidOperationException("Disaster validator unavailable");File.WriteAllText(ProjectPath.Report("CombinedAuthoring.txt"),"PASS Existing disaster catalog validator completed on integrated source\n");EditorApplication.Exit(0);}
+        public static void RunBeaconOnly(){SessionState.SetBool(Key+"BeaconOnly",true);RunFocused();}
+        public static void RunFocused(){SessionState.SetBool(Key+"Focused",true);RunBatch();}
+        public static void RunBatch()
+        {
+            if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Editor already playing");
+            BotObjectiveContractChecks.Run();if(!BotObjectiveContractChecks.LastPassed)throw new InvalidOperationException("Objective contracts failed");
+            File.WriteAllText(Report,"Actual combined current-source Unity validation\n");
+            foreach(string name in new[]{"LonghandBruteChecks.txt","MayhemMarina.txt","SummoningBeaconChecks.txt","EnemyMovementCapture.txt"})File.WriteAllText(ProjectPath.Report(name),"Combined integration regression\n");
+            MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.MapId="mode-christmas-town";MatchSetup.ModeId="demo";MatchSetup.BotTarget=2;MatchSetup.HandCount=0;
+            SessionState.SetBool(Key,true);EditorSceneManager.OpenScene(ProjectPath.Find(SessionState.GetBool(Key+"BeaconOnly",false)?"Lobby.unity":SessionState.GetBool(Key+"Focused",false)?"Home.unity":"Game.unity"));EditorApplication.EnterPlaymode();
+        }
+        static void State(PlayModeStateChange state)
+        {
+            if(!SessionState.GetBool(Key,false))return;
+            if(state==PlayModeStateChange.EnteredPlayMode)
+            {errors=checks=0;failed=false;began=EditorApplication.timeSinceStartup;Application.logMessageReceived+=Log;Application.runInBackground=true;AudioListener.volume=0;AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();run=Flatten(Validate());}
+            if(state==PlayModeStateChange.EnteredEditMode)
+            {Application.logMessageReceived-=Log;run=null;SessionState.SetBool(Key,false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();File.AppendAllText(Report,$"COMPLETE failed={failed} errors={errors} rootChecks={checks}\n");EditorApplication.Exit(failed||errors>0?2:0);}
+        }
+        static void Log(string message,string stack,LogType type)
+        {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+message+"\n"+stack+"\n");}}
+        static void Tick()
+        {
+            if(run==null)return;
+            try{if(EditorApplication.timeSinceStartup-began>720)throw new TimeoutException("Combined suite wall-clock limit");if(run.MoveNext())return;}
+            catch(Exception e){failed=true;File.AppendAllText(Report,"FAIL "+e+"\n");}
+            (run as IDisposable)?.Dispose();run=null;EditorApplication.ExitPlaymode();
+        }
+        static IEnumerator Flatten(IEnumerator source)
+        {
+            while(source.MoveNext())
+            {
+                if(source.Current is IEnumerator nested){var inner=Flatten(nested);while(inner.MoveNext())yield return inner.Current;}
+                else if(source.Current is AsyncOperation operation){while(!operation.isDone)yield return null;}
+                else if(source.Current is WaitForSeconds delay){var field=typeof(WaitForSeconds).GetField("m_Seconds",BindingFlags.Instance|BindingFlags.NonPublic);float seconds=field!=null?(float)field.GetValue(delay):.2f;yield return Wait(seconds);}
+                else yield return source.Current;
+            }
+        }
+        static IEnumerator Private(Type type,string method)
+        {var m=type.GetMethod(method,BindingFlags.NonPublic|BindingFlags.Static);if(m==null)throw new MissingMethodException(type.Name,method);return (IEnumerator)m.Invoke(null,null);}
+        static void Check(bool value,string label){checks++;File.AppendAllText(Report,(value?"PASS ":"FAIL ")+label+"\n");if(!value)throw new InvalidOperationException(label);}
+        static IEnumerator Wait(float seconds){float end=Time.realtimeSinceStartup+seconds;while(Time.realtimeSinceStartup<end)yield return null;}
+        static IEnumerator Validate()
+        {
+            if(!SessionState.GetBool(Key+"Focused",false))
+            {
+                File.AppendAllText(Report,"PHASE actual Game enemies, strikes, death and two real Photon peers\n");
+                yield return Private(typeof(LonghandBruteChecks),"Validate");
+                Check(File.ReadAllText(ProjectPath.Report("LonghandBruteChecks.txt")).Contains("PASS"),"Production enemy regression executes");
+                File.AppendAllText(Report,"PHASE collapse-spawn regression fixtures\n");yield return SpawnRegression();
+                File.AppendAllText(Report,"PHASE destructive wave and storm smoke\n");yield return DisasterSmoke();
+                yield return SceneManager.LoadSceneAsync(Path.GetFileNameWithoutExtension(ProjectPath.Find("Home.unity")));
+            }
+            File.AppendAllText(Report,"PHASE actual Marina UI, wardrobe, collision and scene round-trip\n");
+            if(!SessionState.GetBool(Key+"BeaconOnly",false))yield return Private(typeof(MayhemMarinaChecks),"Run");
+            Check(IslandLobby.Current&&IslandLobby.Current.Radius>30,"Marina remains the default integrated lobby");
+            File.AppendAllText(Report,"PHASE actual summoning and initial arrival regression\n");
+            float ready=Time.realtimeSinceStartup+60;while(!IslandLobby.Current&&Time.realtimeSinceStartup<ready)yield return null;
+            var lobbyDetails=(ILobbyDetails)IslandLobby.Current;var setup=lobbyDetails.Setup;setup.population=3;lobbyDetails.ConfigureSetup(setup);
+            var old=Object.FindFirstObjectByType<DeadlyJenga.Presentation.CandySessionTravel>();
+            if(old){var flags=BindingFlags.Instance|BindingFlags.NonPublic;File.AppendAllText(Report,"BEACON before regression arriving="+old.Arriving+" finishing="+typeof(DeadlyJenga.Presentation.CandySessionTravel).GetField("finishing",flags).GetValue(old)+" columns="+Object.FindObjectsByType<DeadlyJenga.Presentation.CandySummoningColumn>(FindObjectsSortMode.None).Length+"\n");}
+            yield return Private(typeof(SummoningBeaconChecks),"Validate");
+            File.AppendAllText(Report,"PHASE mushroom glaze and movement-render regression\n");
+            yield return Private(typeof(EnemyMovementCapture),"Validate");
+            foreach(string name in new[]{"CandyScenery/CandyAvatarHealth","CandyScenery/CandySummoningColumn","MayhemMarina/MarinaWater","CandyScenery/CandyStormMist","CandyScenery/CandyStormFunnel"})
+            {var shader=Resources.Load<Shader>(name);Check(shader&&shader.isSupported&&!ShaderUtil.ShaderHasError(shader),"Imported shader has no errors: "+name);}
+            Check(errors==0,"Combined actual runtime emitted zero errors");
+        }
+        static IEnumerator SpawnRegression()
+        {
+            var prior=Services.World;var host=new GameObject("Inactive collapse-spawn regression query");host.SetActive(false);host.transform.position=new Vector3(1800,5,1800);var generator=host.AddComponent<CastleGenerator>();generator.generateOnStart=false;
+            var block=new GameObject("Colliderless debris regression");block.transform.position=new Vector3(1800,20,1800);var body=block.AddComponent<Rigidbody>();body.isKinematic=true;generator.Bodies.Add(body);generator.Bodies.Add(null);
+            try
+            {
+                Check(Vector3.Distance(generator.SafeSpawnPoint(),host.transform.position+Vector3.up*.6f)<.001f,"Colliderless debris and absent foundation have a finite fallback");
+                var shape=block.AddComponent<BoxCollider>();shape.size=Vector3.one*2;Physics.SyncTransforms();
+                Check(Mathf.Abs(generator.SafeSpawnPoint().y-21.08f)<.01f,"Intact upright block supplies its real surface");
+                shape.enabled=false;Check(generator.SafeSpawnPoint().y<10,"Disabled collider is not a spawn surface");
+                shape.enabled=true;shape.isTrigger=true;Check(generator.SafeSpawnPoint().y<10,"Trigger is not a spawn surface");
+                shape.isTrigger=false;block.SetActive(false);Check(generator.SafeSpawnPoint().y<10,"Inactive debris is not a spawn surface");block.SetActive(true);
+                Object.Destroy(shape);yield return null;Check(generator.SafeSpawnPoint().y<10,"Destroyed collider during collapse does not throw");
+                var child=new GameObject("Offset compound collider");child.transform.SetParent(block.transform,false);child.transform.localPosition=Vector3.up*3;child.AddComponent<BoxCollider>();Physics.SyncTransforms();
+                Check(Mathf.Abs(generator.SafeSpawnPoint().y-23.58f)<.01f,"Compound child collider uses its actual upper bound");
+                Check(ReferenceEquals(Services.World,prior),"Regression query does not replace the active world");
+            }
+            finally{Object.Destroy(block);Object.Destroy(host);}
+        }
+        static IEnumerator DisasterSmoke()
+        {
+            var session=Object.FindFirstObjectByType<CastlePlaySession>();Check(session&&session.Demo!=null,"Game demo controls remain available");
+            var demo=session.Demo;session.SurvivorBots.AutoFill=false;
+            for(int i=0;i<4;i++)demo.Run(DemoCommand.AddSurvivor);
+            int launched=0;
+            for(int i=0;i<demo.DisasterCount;i++)
+            {
+                string label=demo.DisasterLabel(i).ToLowerInvariant();
+                if(!label.Contains("tsunami")&&!label.Contains("tornado"))continue;
+                File.AppendAllText(Report,"LAUNCH "+demo.DisasterLabel(i)+": "+demo.LaunchDisaster(i)+"\n");yield return Wait(8);launched++;
+                var world=Services.World;Check(world!=null,"Active world survives "+label);var point=world.SafeSpawnPoint();Check(!float.IsNaN(point.sqrMagnitude)&&!float.IsInfinity(point.sqrMagnitude),"Finite respawn point after "+label);
+                demo.Run(DemoCommand.StopDisasters);yield return Wait(.3f);
+            }
+            Check(launched==2,"Both real tsunami and tornado command paths launch");demo.Run(DemoCommand.ClearSurvivors);
+            Check(errors==0,"Short disaster smoke with bots has no runtime errors");
+        }
+    }
+}

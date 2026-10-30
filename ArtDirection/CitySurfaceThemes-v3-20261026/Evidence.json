@@ -1,0 +1,97 @@
+{
+  "maps": 10,
+  "themeConcepts": 30,
+  "boardFiles": [
+    {
+      "mapId": "epic-tideway",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-da55aad3-d581-4302-930a-6d2f20cc2b4a.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "5f5f36d09c2fcf1f6b0bd45431feba2c1b1218c58a9a0870e2e1e813bf2c039b"
+    },
+    {
+      "mapId": "epic-double-loop",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-11ea5a78-bb7c-4eb7-8384-c28db1927dd6.png",
+      "size": [
+        1536,
+        1024
+      ],
+      "sha256": "d31712ad66a883aa261686446790ed82763699a39939f59b283aa1dcdf79655b"
+    },
+    {
+      "mapId": "epic-caldera",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-a4ead704-131c-4453-bc6a-eab76ab93f4a.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "61429423370da8b1299de06257135ef6cfcf3224a3aa7c9d43654ac28ab1f8f0"
+    },
+    {
+      "mapId": "epic-broken-crown",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-d9a17266-48ac-44c7-b479-fab1bd83568c.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "542f840ba911f84ce293498845fe25e05e7702e16e059e1ef0a98a3cc68c8ff8"
+    },
+    {
+      "mapId": "epic-harbor-loom",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-080e4ed9-a30d-4a7b-87a3-875a775f2a96.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "22f34bab14cb4520043506843f037b184a01a0c71a1c38e61ee0124e95603492"
+    },
+    {
+      "mapId": "epic-lantern-ravine",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-52723a7c-3a8f-46a8-bb3c-f13f27bd597d.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "ef734f4c3fc039333e6062b745f029b90a3b25cd852e3987b692f7e6ab433e38"
+    },
+    {
+      "mapId": "epic-canopy-borough",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-2f6be6b0-a5d7-4481-a2dc-a1e043700a8d.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "54f4d83ea6060ae40cb56e08b6b8b3d610126783e6424096e7d8a3c154b124d6"
+    },
+    {
+      "mapId": "epic-bookfall",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-a4e264b8-5914-4251-870c-86a4112a963f.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "2838a56d2793c8307a3740dd856726417272b7b8e680cf241b4b556520a574d8"
+    },
+    {
+      "mapId": "epic-three-hearts",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-a89a6c16-993c-4fdc-b211-14b62cc279cf.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "006ca2664ea3beaebb3cf4db62be11f83197082fc03f909f74c84d551653be58"
+    },
+    {
+      "mapId": "epic-rising-spine",
+      "source": "C:\\Users\\evanp\\.codex\\generated_images\\01a15b7f-e888-7441-b57f-c1bfb58790db\\exec-07c420a5-12e8-4998-93d4-f5ed082113a4.png",
+      "size": [
+        1548,
+        1016
+      ],
+      "sha256": "984597b53b55e54e2ba91e8df1e4cb1f99f6c08aca7d9169a175ca80b1bf9c11"
+    }
+  ],
+  "verification": "All board PNGs decoded; forty original image references and static gallery links exist; images visually inspected as returned by image_gen. AI geometry can drift; not in-engine evidence."
+}

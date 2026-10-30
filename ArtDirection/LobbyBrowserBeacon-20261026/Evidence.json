@@ -1,0 +1,55 @@
+{
+  "kind": "actual-unity-editor-current-source-copy",
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\DeadlyJenga-unity-pool\\slot-05",
+  "snapshot": "f8a0888f40d84b1ba37468130c1067f9",
+  "source_head_at_snapshot": "10d4ce1869ede50aecb7a5f10a363be185d9088f",
+  "test_only_overlay": true,
+  "report": "Checks.txt",
+  "report_sha256": "8d381faa35ffdf22670f0246c678cbe9b699e34d5ae1bcbc369abbbf23868b74",
+  "feature_checks_passed": true,
+  "errors": 0,
+  "passed_assertions": 82,
+  "captures": [
+    {
+      "file": "Aurora-Beacon-40.png",
+      "sha256": "c172ca2ddae730e50ff938a3d970bc33eb58d94303bf6de38b08d755bf715096",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Aurora-Beacon-65.png",
+      "sha256": "100a132873056a0560cdde1dadfc34ec7f9e86bff0df1b08c13409eed11ea28c",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Aurora-Beacon-92.png",
+      "sha256": "62890978ab445085dca71ab1b16e88ba76f1ca8b27462ae620e2e3bc7ef42e5b",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Demo-Experimental-Maps.png",
+      "sha256": "58e76f2157d9100deff888c4dd4de00a4decfe760cf524d195a8fb1510e214f6",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Lobby-Experimental-Maps.png",
+      "sha256": "f010555d3db23c62d6e9376d857b251bd1cd93e5c6237c9dc0931c8332db0120",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Lobby-Host-Flat-Panel.png",
+      "sha256": "829e57ac3e051a18414bd32a9cb6e77bbd746ca8ed7a25314834693f134dfb17",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Lobby-Mode-Flat-Panel.png",
+      "sha256": "a980eb1ae9b0e5f6599cbe3df73a630c6ef7c92d7dd1134eb8d6295246a8316f",
+      "captured_after_run_start": true
+    },
+    {
+      "file": "Lobby-Terminals-Updated.png",
+      "sha256": "ec4b40d60a4cda2a5bc4a74f3cfa04b8b792e154a4443f2409230b33b300cded",
+      "captured_after_run_start": true
+    }
+  ],
+  "headset_verified": false
+}

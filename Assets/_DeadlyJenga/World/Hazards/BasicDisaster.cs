@@ -38,6 +38,13 @@ namespace DeadlyJenga.World.Hazards
             var p=new List<DisasterParameter>();
             switch(Kind)
             {
+                case "PowerOutage":
+                    p.Add(new DisasterParameter("bulbs","Neon blocks",0,150,24,"",true));
+                    p.Add(new DisasterParameter("rim","Edge glow reach",2,30,9,"m"));break;
+                case "Vampire":
+                    p.Add(new DisasterParameter("damage","Sunlight damage",0,40,9,"HP/s"));
+                    p.Add(new DisasterParameter("delay","Exposure grace",.1f,3,.55f,"s"));
+                    p.Add(new DisasterParameter("elevation","Sun elevation",10,85,45,"°"));break;
                 case "MeteorShower":
                     p.Add(new DisasterParameter("size","Average diameter",.5f,15,3,"m"));
                     p.Add(new DisasterParameter("deviation","Size deviation",0,6,1,"m"));
@@ -62,11 +69,17 @@ namespace DeadlyJenga.World.Hazards
                     p.Add(new DisasterParameter("damage","Exposed damage",0,40,6,"HP/s"));
                     p.Add(new DisasterParameter("density","Rain density",10,600,180,"drops/s"));break;
                 case "AntiGravity":
-                    p.Add(new DisasterParameter("lift","Upward acceleration",0,40,24,"m/s²"));
-                    p.Add(new DisasterParameter("drift","Sideways drift",0,8,2,"m/s²"));break;
+                    p.Add(new DisasterParameter("gravity","Gravity remaining",.05f,1,.18f,"×"));
+                    p.Add(new DisasterParameter("fallSpeed","Maximum falling speed",1,20,4,"m/s"));break;
             }
             p.Add(new DisasterParameter("warning","Warning time",0,15,3,"s"));
-            if(!Toggle&&Kind!="PlanetKillerMeteor")p.Add(new DisasterParameter("duration","Duration",3,120,Kind=="Fire"?60:25,"s"));
+            if(!Toggle&&Kind!="PlanetKillerMeteor")p.Add(new DisasterParameter("duration",Kind=="Fire"?"Spread duration":"Duration",3,120,Kind=="Fire"?60:25,"s"));
+            if(Kind=="Fire")
+            {
+                p.Add(new DisasterParameter("burnSeconds","Block burn time",3,120,30,"s"));
+                p.Add(new DisasterParameter("neverEnd","Never end",0,1,0,"",true));
+                p.Add(new DisasterParameter("smokeSeconds","Smoke after burnout",0,90,20,"s"));
+            }
             return p.ToArray();
         }
         protected override void BeginHazard(IWorldQuery map,Bounds bounds,float intensity,float seconds)
@@ -81,20 +94,47 @@ namespace DeadlyJenga.World.Hazards
             capturedAt=-1;
             if(Services.Session is IWorldAuthority authority&&!authority.HasWorldAuthority){End();return;}
             float dt=Time.fixedDeltaTime;age+=dt;
-            if(!Toggle&&Kind!="PlanetKillerMeteor"&&age>=V("warning")+V("duration")){End();return;}
+            if(!Toggle&&Kind!="PlanetKillerMeteor"&&Kind!="Fire"&&age>=V("warning")+V("duration")){End();return;}
             if(age<V("warning"))return;
-            if(!started){started=true;if(Kind=="Fire")SeedFire();}
+            if(!started){started=true;if(Kind=="Fire")SeedFire();if(Kind=="PowerOutage")SeedLights();}
             if(Kind=="MeteorShower"||Kind=="PlanetKillerMeteor")TickMeteors(dt);
+            if(Kind=="AntiGravity")TickGravity(dt);
             if(age<nextTick)return;
             nextTick=age+.1f;
             switch(Kind)
             {
+                case "Vampire":TickSun(.1f);break;
                 case "Icey":ApplyIce();break;
-                case "Fire":TickFire(.1f);break;
+                case "Fire":TickFire(.1f);if(started&&burning.Count==0)End();break;
                 case "Tornado":TickTornado(.1f);break;
                 case "Earthquake":TickEarthquake(.1f);break;
                 case "AcidRain":TickRain(.1f);break;
-                case "AntiGravity":TickGravity(.1f);break;
+            }
+        }
+        readonly Dictionary<IDamageable,float> sunlight = new Dictionary<IDamageable,float>();
+        void SeedLights()
+        {
+            var ids = new List<int>();
+            for(int i=0;i<world.Blocks.Count;i++)if(world.Blocks[i])ids.Add(i);
+            int count=Mathf.Min(ids.Count,Mathf.RoundToInt(V("bulbs")));
+            for(int i=0;i<count;i++){int j=UnityEngine.Random.Range(i,ids.Count);int swap=ids[i];ids[i]=ids[j];ids[j]=swap;burning.Add(ids[i]);}
+        }
+        void TickSun(float dt)
+        {
+            float elevation=V("elevation")*Mathf.Deg2Rad;
+            var towardSun=new Vector3(.6f*Mathf.Cos(elevation),Mathf.Sin(elevation),.8f*Mathf.Cos(elevation));
+            int n=Physics.OverlapBoxNonAlloc(area.center,area.extents+Vector3.one*5,hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Ignore);
+            receivers.Clear();
+            for(int i=0;i<n;i++)
+            {
+                var health=hits[i].GetComponentInParent<IDamageable>();
+                if(health==null||!receivers.Add(health))continue;
+                var eye=hits[i].bounds.center+Vector3.up*hits[i].bounds.extents.y*.65f;
+                bool exposed=!Physics.Raycast(eye,towardSun,1000,1<<Layers.Block,QueryTriggerInteraction.Ignore);
+                sunlight.TryGetValue(health,out float accumulated);
+                accumulated=Mathf.MoveTowards(accumulated,exposed?V("delay")+1:0,dt);
+                sunlight[health]=accumulated;
+                if(exposed&&accumulated>=V("delay"))health.Damage(V("damage")*dt*strength,gameObject);
             }
         }
         protected int Query(Vector3 center,float radius)
@@ -106,7 +146,7 @@ namespace DeadlyJenga.World.Hazards
         protected void Affect(Collider collider,Vector3 impulse,float damage)
         {
             if(!collider)return;
-            var push=collider.GetComponentInParent<IPushable>();var health=collider.GetComponentInParent<IDamageable>();var body=collider.attachedRigidbody;
+            var push=HitAbilities.Get<IPushable>(collider);var health=HitAbilities.Get<IDamageable>(collider);var body=HitAbilities.Get<Rigidbody>(collider);
             object key=(object)push??(object)health??body;
             if(key==null||!receivers.Add(key))return;
             if(impulse.sqrMagnitude>0)
@@ -136,9 +176,14 @@ namespace DeadlyJenga.World.Hazards
         void TickRain(float dt)=>AffectPlayers(Vector3.zero,V("damage")*dt,true);
         void TickGravity(float dt)
         {
-            foreach(var b in world.Blocks)if(b&&!b.isKinematic)
-            {var drift=new Vector3(Mathf.Sin(age*.7f+b.position.z),0,Mathf.Cos(age*.6f+b.position.x))*V("drift");b.AddForce((-Physics.gravity+Vector3.up*V("lift")+drift)*dt*strength,ForceMode.VelocityChange);}
-            AffectPlayers(Vector3.up*V("lift")*dt,0,false);
+            float scale=Mathf.Clamp(V("gravity"),.05f,1);
+            foreach(var b in world.Blocks)if(b&&!b.isKinematic&&b.useGravity&&!b.IsSleeping())
+            {
+                // Cancel only part of natural gravity, every physics step. Never add lift.
+                b.AddForce(-Physics.gravity*(1-scale),ForceMode.Acceleration);
+                var velocity=b.linearVelocity;
+                if(velocity.y < -V("fallSpeed")){velocity.y=-V("fallSpeed");b.linearVelocity=velocity;}
+            }
         }
         void AffectPlayers(Vector3 impulse,float damage,bool sheltered)
         {
@@ -160,13 +205,14 @@ namespace DeadlyJenga.World.Hazards
             if(!Active)return null;
             if(capturedAt==Time.frameCount&&cached!=null)return cached;
             capturedAt=Time.frameCount;
-            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=meteors.ToArray(),blocks=burning.ToArray()};
+            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
         }
         protected override void EndHazard()
         {
-            DisasterStates.Active.Remove(this);
+            if(Kind=="Fire")foreach(int id in burning)Scorch(id);
+            DisasterStates.Active.Remove(this);sunlight.Clear();
             foreach(var pair in originals)if(pair.Key&&pair.Key.sharedMaterial==ice)pair.Key.sharedMaterial=pair.Value;
-            originals.Clear();if(ice)Destroy(ice);ice=null;meteors.Clear();burning.Clear();heat.Clear();lastContact.Clear();lastFireDamage.Clear();blockIds.Clear();ignited.Clear();meteorClock=0;launched=false;
+            originals.Clear();if(ice)Destroy(ice);ice=null;meteors.Clear();burning.Clear();heat.Clear();lastContact.Clear();lastFireDamage.Clear();blockIds.Clear();ignited.Clear();fireStarted.Clear();fireScars=null;meteorClock=0;launched=false;
         }
     }
 }

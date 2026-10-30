@@ -31,6 +31,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         public float GeometrySize=>builtSize;
         // AI fingers follow their joints instead of pulling independently through a contacted block.
         public bool JointDrivenFingers {get;set;}
+        public bool ReplicatedBones {get;set;}
         public void RebuildInactive(CandyHandPose pose)
         {
             if(active)throw new System.InvalidOperationException("Release contacts before resizing the hand.");
@@ -72,9 +73,9 @@ namespace DeadlyJenga.CandyPhysicsHands
                 if(JointDrivenFingers)
                 {
                     joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Limited;
-                    joint.lowAngularXLimit=new SoftJointLimit{limit=-80};
-                    joint.highAngularXLimit=new SoftJointLimit{limit=80};
-                    float swing=i<=3?40:20;
+                    joint.lowAngularXLimit=new SoftJointLimit{limit=-25};
+                    joint.highAngularXLimit=new SoftJointLimit{limit=25};
+                    float swing=i<=3?25:10;
                     joint.angularYLimit=new SoftJointLimit{limit=swing};joint.angularZLimit=new SoftJointLimit{limit=swing};
                 }
                 joint.enableCollision=false;joint.enablePreprocessing=true;joint.projectionMode=JointProjectionMode.None;
@@ -123,6 +124,11 @@ namespace DeadlyJenga.CandyPhysicsHands
             foreach(var c in contacts)c.enabled=value;
             foreach(var b in bodies){if(!value&&!b.isKinematic){b.linearVelocity=Vector3.zero;b.angularVelocity=Vector3.zero;}b.isKinematic=!value;}
         }
+        public void IgnoreContactsWith(CandyPhysicalHand other)
+        {
+            if(!other||contacts==null||other.contacts==null)return;
+            foreach(var a in contacts)foreach(var b in other.contacts)if(a&&b)Physics.IgnoreCollision(a,b);
+        }
         public bool CanActivate()
         {
             ActivationReason="";
@@ -136,7 +142,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     if(count==activationOverlaps.Length){ActivationReason="Overlap query full";return false;}
                     for(int i=0;i<count;i++)
                     {
-                        var other=activationOverlaps[i];if(other.transform.IsChildOf(transform)||Physics.GetIgnoreLayerCollision(c.gameObject.layer,other.gameObject.layer))continue;
+                        var other=activationOverlaps[i];if(other.transform.IsChildOf(transform)||Physics.GetIgnoreLayerCollision(c.gameObject.layer,other.gameObject.layer)||Physics.GetIgnoreCollision(c,other))continue;
                         if(Physics.ComputePenetration(c,c.transform.position,c.transform.rotation,other,other.transform.position,other.transform.rotation,out _,out float depth)&&depth>.001f*builtSize){ActivationReason=c.name+" intersects "+other.name+" by "+depth.ToString("F5")+"m";return false;}
                     }
                 }
@@ -147,7 +153,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         void FixedUpdate(){StepDrives(Time.fixedDeltaTime);}
         public void StepDrives(float dt)
         {
-            if(!settings||bodies==null)return;
+            if(ReplicatedBones||!settings||bodies==null)return;
             if(NetworkPreview)
             {
                 for(int i=0;i<bodies.Length;i++)
@@ -177,7 +183,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     Desired(Target,parent,out _,out var parentRotation);
                     Quaternion relative=Quaternion.Inverse(parentRotation)*q;
                     joints[i-1].targetRotation=Quaternion.Inverse(relative)*referenceRelative[i-1];
-                    joints[i-1].slerpDrive=new JointDrive{positionSpring=settings.rotationSpring,positionDamper=settings.rotationDamping,maximumForce=settings.fingerTorque*Strength};
+                    joints[i-1].slerpDrive=new JointDrive{positionSpring=settings.rotationSpring*(JointDrivenFingers?6:1),positionDamper=settings.rotationDamping*(JointDrivenFingers?2.5f:1),maximumForce=settings.fingerTorque*Strength};
                     continue;
                 }
                 var error=q*Quaternion.Inverse(rb.rotation);if(error.w<0)error=new Quaternion(-error.x,-error.y,-error.z,-error.w);error.ToAngleAxis(out float angle,out Vector3 axis);if(angle>180)angle-=360;

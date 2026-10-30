@@ -1,0 +1,72 @@
+{
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\aligned-slot-03",
+  "baseline": "October 26 reconciled combined-source/files overlay; alternative incremental patch based on preserved dense3 ZIP",
+  "files": [
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySessionTravel.cs",
+      "sha256": "b40af5b253aae097a0e6bc04b4ff31bff3dccfe10eb4e071e8a5509d63223418",
+      "combined_baseline_sha256": "b810cc61cfe30a9444289f4d1a467c4d1fadccc64aab1ebf9cf319ee89cb9f5f",
+      "dense3_baseline_sha256": "2c953006ca94ad90aa27433577d80c8d0e508b1d2dd8f202ed92d0f7b330fa3d"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySummoningColumn.cs",
+      "sha256": "5611124d15de339ee7e2efe73665e56668e65347c47597cc8f1bc1766ca4ab55",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": "9aa9f7cccf88d3b091fb57195ab775bf1814e40ea36473fcab6b372837abb574"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySummoningColumn.cs.meta",
+      "sha256": "d571f7be5039a387e0587b24fee5b758ea89c9df32829a963ccef1521cfab92a",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": "d571f7be5039a387e0587b24fee5b758ea89c9df32829a963ccef1521cfab92a"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Resources/CandyScenery/CandySummoningColumn.shader",
+      "sha256": "5c616b4d847ff4351bbd695e4fffc8133c33a243a250a7fd0ff0c6c98c30e119",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": "87e4614dde92e8a6fcb6a914a133e68d9e6dd9e85e057abd16bb8df53fa18d0b"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/Presentation/Resources/CandyScenery/CandySummoningColumn.shader.meta",
+      "sha256": "518dbd15072b380186fd084c30b24aa4c096b48efdc012f7de24dc3a766a6838",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": "518dbd15072b380186fd084c30b24aa4c096b48efdc012f7de24dc3a766a6838"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/DevTools/Editor/SummoningBeaconChecks.cs",
+      "sha256": "da4f6e637a73a92d0efee42c8fcc6d6294af7b4af7a7c123a8dd6eb895295144",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": "915eab60557a532764b8e85cee36de7cf945eebf81e45bc9a006b1d44ee57fc5"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/DevTools/Editor/SummoningBeaconChecks.cs.meta",
+      "sha256": "fab09906f79f2fb63501d7e34830b0caaf29014b54b7752c4ec850022add3e49",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": "fab09906f79f2fb63501d7e34830b0caaf29014b54b7752c4ec850022add3e49"
+    },
+    {
+      "path": "Assets/_DeadlyJenga/GameSession/Session/Scripts/PlayerSpawnArrival.cs",
+      "sha256": "4f87b8445608adacdfd8e93bc404805cc0cd5e6974a19f4c105acb997cf01682",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": null
+    },
+    {
+      "path": "Assets/_DeadlyJenga/GameSession/Session/Scripts/PlayerSpawnArrival.cs.meta",
+      "sha256": "394a254e5b51d83fd8eab0ea59580bddc513e84d793c8fe911fcb4cac55d45d5",
+      "combined_baseline_sha256": null,
+      "dense3_baseline_sha256": null
+    }
+  ],
+  "validation": {
+    "kind": "actual-unity-editor",
+    "passed": true,
+    "checks": 47,
+    "report": "SummoningBeaconChecks.txt",
+    "sha256": "bf837129dee7f3f314819127c0853f62ea78d64a4e37257f688b6169e830a18c",
+    "quest_tested": false,
+    "two_client_tested": false
+  },
+  "core_changes": false,
+  "integration": "Pending safe serial integration; canonical source not changed by this task.",
+  "bot_strands": "Active survivor bots included in lobby departure and initial game arrival; shared mesh/material; bot movement and spawn rules unchanged."
+}

@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "id": "survival",
+  "description": "Seek supported elevated ground and immediate hazard refuge. Hold useful ground while it remains safe.",
+  "objectives": [
+    {
+      "id": "survive",
+      "query": "hazard-refuge",
+      "skill": "Guard",
+      "tier": 3,
+      "personal": true,
+      "maximum": 1,
+      "radius": 0.7,
+      "timeout": 30
+    },
+    {
+      "id": "repel",
+      "query": "close-threats",
+      "skill": "Attack",
+      "tier": 2,
+      "personal": true,
+      "maximum": 1,
+      "utility": 3.5,
+      "radius": 1.1,
+      "timeout": 12,
+      "retry": 2,
+      "commitment": 1,
+      "exclude": [
+        "carrying"
+      ]
+    },
+    {
+      "id": "high-ground",
+      "query": "high-ground",
+      "skill": "Travel",
+      "maximum": 10,
+      "fraction": 0.15,
+      "utility": 1,
+      "radius": 0.65,
+      "timeout": 120
+    },
+    {
+      "id": "collect-equipment",
+      "query": "pickups",
+      "skill": "Travel",
+      "interaction": "collect-pickup",
+      "completeWhen": "pickup-collected",
+      "tier": 0,
+      "maximum": 1,
+      "utility": 0.45,
+      "radius": 1,
+      "timeout": 25,
+      "retry": 8,
+      "commitment": 2,
+      "exclude": [
+        "carrying",
+        "threat-near"
+      ]
+    }
+  ]
+}

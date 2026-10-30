@@ -1,0 +1,14 @@
+Actual Unity URP Editor renders of revised production visuals. Isolated Game scene; fixed disaster poses; no physics simulation or AI-generated images.
+Tornado: production funnel + 80 pooled/instanced mist quads; transparent shader; no ribbon meshes. Capture converts draw submissions to isolated renderers only for the preview.
+_Deep matches ocean: RGBA(0.015, 0.320, 0.650, 1.000)
+_Shallow matches ocean: RGBA(0.035, 0.820, 0.780, 1.000)
+_Foam matches ocean: RGBA(0.880, 1.000, 0.970, 1.000)
+_Reflection matches ocean: RGBA(0.380, 0.720, 0.960, 1.000)
+_Horizon matches ocean: RGBA(0.480, 0.860, 1.000, 1.000)
+Tsunami: production surface grid 6305 vertices; surrounding wave patch; shared ocean/wave swells and normal displacement; production ocean colors/reflections. Spray excluded from these stills so it cannot conceal seams.
+PASS: stop clears ocean wave state and hides the wave patch.
+PASS: shader supported, no errors: Candy Tropical/Storm Funnel
+PASS: shader supported, no errors: Candy Tropical/Storm Mist
+PASS: shader supported, no errors: Candy Tropical/Ocean
+PASS: shader supported, no errors: Candy Tropical/Tsunami
+No gameplay forces/colliders or Core changes. No Quest/FPS claim. Complete.

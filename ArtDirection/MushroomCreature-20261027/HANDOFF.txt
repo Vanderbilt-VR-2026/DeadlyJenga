@@ -1,0 +1,4 @@
+Mushroom creature appearance, Characters/Player.
+Broad toffee cap, expressive eyes, fangs, cream stem and chunky chocolate feet. Six shared-mesh renderers; no new physics. Existing MushroomSprite appearance ID handles remote construction without wire changes.
+Attachments toggles shell and restores humanoid body on skin changes. Wardrobe no longer adds the old humanoid mushroom cap/eyes for this skin.
+Actual Game checks and staged walking/jumping passed with zero errors. No Quest or actual two-client test. Apply focused patch against baseline hashes; canonical untouched.

@@ -1,0 +1,124 @@
+Sparse structural maps Â· city-profile
+Real Unity isolated rigidbody simulation; not GPU/FPS, bot, headset or live network certification.
+MAP festival-city-optimized: 633 bodies; 223.2 x 159.4m; height 65.7m; gravity only, no bonds or joints.
+PASS festival-city-optimized: explicit map body budget <=1000
+PASS festival-city-optimized: finite positive geometry
+PASS festival-city-optimized: deterministic stable member order
+NOTE city compound overlap/bearing checks are deferred to real convex-collider runtime validation.
+PASS festival-city-optimized: selectable map prefab saved
+REGISTERED map choices in Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset
+AUTHORING COMPLETE failures=0. Runtime validation pending. No team scene was saved.
+PROFILE packed; recovery disabled is diagnostic only, not a release configuration.
+EDITOR FRAMES festival-city-packed [idle, no bots]: median=27.19ms; p90=49.40ms; n=92; bots=0; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+CENSUS festival-city-packed: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=517; proxy GameObjects=101; new-section box shapes=467; convex flights=50.
+EDITOR FRAMES festival-city-packed [bots, no wave]: median=52.10ms; p90=82.36ms; n=70; bots=32; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-city-packed: spawned 32/32; 32 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-city-packed [bots + actual tsunami]: median=201.88ms; p90=1352.38ms; n=60; bots=32; active=633; awake=618. Short unfocused Editor samples, not Quest/GPU certification.
+CPU Physics.SyncTransforms mean=4.152 ms/frame (nested)
+CPU Physics.Simulate mean=286.216 ms/frame (nested)
+CPU Main Thread mean=422.236 ms/frame (nested)
+CPU GC Allocated In Frame mean=1183421.950 bytes
+CPU DJ.CrateBatches mean=0.009 ms/frame (nested)
+CPU DJ.WetEffects mean=1.373 ms/frame (nested)
+CPU DJ.BotThreat mean=5.767 ms/frame (nested)
+CPU DJ.WalkingSources mean=2.794 ms/frame (nested)
+CPU DJ.Tsunami mean=6.710 ms/frame (nested)
+CPU DJ.BotDestination mean=9.130 ms/frame (nested)
+CPU DJ.BotGeometry mean=3.047 ms/frame (nested)
+CPU DJ.DeathDeform mean=0.000 ms/frame (nested)
+CPU DJ.UnifiedRecovery mean=0.000 ms/frame (nested)
+CPU DJ.StructureBatches mean=0.004 ms/frame (nested)
+WAVE DISPLACEMENT festival-city-packed: 43/633 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+PROFILE direct; recovery disabled is diagnostic only, not a release configuration.
+EDITOR FRAMES festival-city-optimized [idle, no bots]: median=21.77ms; p90=27.83ms; n=131; bots=0; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+CENSUS festival-city-optimized: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=0; proxy GameObjects=0; new-section box shapes=467; convex flights=50.
+EDITOR FRAMES festival-city-optimized [bots, no wave]: median=50.12ms; p90=82.83ms; n=74; bots=32; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-city-optimized: spawned 32/32; 32 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-city-optimized [bots + actual tsunami]: median=111.71ms; p90=1204.18ms; n=86; bots=32; active=633; awake=617. Short unfocused Editor samples, not Quest/GPU certification.
+CPU Physics.SyncTransforms mean=1.526 ms/frame (nested)
+CPU Physics.Simulate mean=194.438 ms/frame (nested)
+CPU Main Thread mean=301.219 ms/frame (nested)
+CPU GC Allocated In Frame mean=1026986.453 bytes
+CPU DJ.CrateBatches mean=0.007 ms/frame (nested)
+CPU DJ.WetEffects mean=1.640 ms/frame (nested)
+CPU DJ.BotThreat mean=3.588 ms/frame (nested)
+CPU DJ.WalkingSources mean=1.392 ms/frame (nested)
+CPU DJ.Tsunami mean=4.327 ms/frame (nested)
+CPU DJ.BotDestination mean=5.754 ms/frame (nested)
+CPU DJ.BotGeometry mean=2.583 ms/frame (nested)
+CPU DJ.DeathDeform mean=0.000 ms/frame (nested)
+CPU DJ.UnifiedRecovery mean=0.270 ms/frame (nested)
+CPU DJ.StructureBatches mean=0.003 ms/frame (nested)
+CPU DJ.CityCleanup mean=0.000 ms/frame (nested)
+WAVE DISPLACEMENT festival-city-optimized: 41/633 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+CITY CLEANUP converted=0; restored=0; shattered=0; sunk=0; structural draws=0.
+PROFILE batch; recovery disabled is diagnostic only, not a release configuration.
+EDITOR FRAMES festival-city-optimized [idle, no bots]: median=28.05ms; p90=39.13ms; n=101; bots=0; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+CENSUS festival-city-optimized: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=0; proxy GameObjects=0; new-section box shapes=467; convex flights=50.
+EDITOR FRAMES festival-city-optimized [bots, no wave]: median=50.31ms; p90=79.34ms; n=73; bots=32; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-city-optimized: spawned 32/32; 32 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-city-optimized [bots + actual tsunami]: median=118.83ms; p90=1109.04ms; n=104; bots=32; active=633; awake=614. Short unfocused Editor samples, not Quest/GPU certification.
+CPU Physics.SyncTransforms mean=1.549 ms/frame (nested)
+CPU Physics.Simulate mean=140.956 ms/frame (nested)
+CPU Main Thread mean=238.837 ms/frame (nested)
+CPU GC Allocated In Frame mean=929701.587 bytes
+CPU DJ.CrateBatches mean=0.007 ms/frame (nested)
+CPU DJ.WetEffects mean=1.027 ms/frame (nested)
+CPU DJ.BotThreat mean=4.670 ms/frame (nested)
+CPU DJ.WalkingSources mean=0.934 ms/frame (nested)
+CPU DJ.Tsunami mean=4.206 ms/frame (nested)
+CPU DJ.BotDestination mean=6.776 ms/frame (nested)
+CPU DJ.BotGeometry mean=1.927 ms/frame (nested)
+CPU DJ.DeathDeform mean=0.000 ms/frame (nested)
+CPU DJ.UnifiedRecovery mean=0.285 ms/frame (nested)
+CPU DJ.StructureBatches mean=1.354 ms/frame (nested)
+CPU DJ.CityCleanup mean=0.000 ms/frame (nested)
+WAVE DISPLACEMENT festival-city-optimized: 49/633 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+CITY CLEANUP converted=0; restored=0; shattered=0; sunk=0; structural draws=109.
+PROFILE cleanup; recovery disabled is diagnostic only, not a release configuration.
+EDITOR FRAMES festival-city-optimized [idle, no bots]: median=22.20ms; p90=28.09ms; n=128; bots=0; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+CENSUS festival-city-optimized: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=0; proxy GameObjects=0; new-section box shapes=467; convex flights=50.
+EDITOR FRAMES festival-city-optimized [bots, no wave]: median=54.63ms; p90=80.92ms; n=54; bots=32; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-city-optimized: spawned 32/32; 30 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-city-optimized [bots + actual tsunami]: median=107.94ms; p90=1066.84ms; n=109; bots=32; active=623; awake=607. Short unfocused Editor samples, not Quest/GPU certification.
+CPU Physics.SyncTransforms mean=1.403 ms/frame (nested)
+CPU Physics.Simulate mean=138.384 ms/frame (nested)
+CPU Main Thread mean=228.309 ms/frame (nested)
+CPU GC Allocated In Frame mean=908288.550 bytes
+CPU DJ.CrateBatches mean=0.007 ms/frame (nested)
+CPU DJ.WetEffects mean=0.952 ms/frame (nested)
+CPU DJ.BotThreat mean=4.061 ms/frame (nested)
+CPU DJ.WalkingSources mean=1.004 ms/frame (nested)
+CPU DJ.Tsunami mean=3.784 ms/frame (nested)
+CPU DJ.BotDestination mean=6.032 ms/frame (nested)
+CPU DJ.BotGeometry mean=1.336 ms/frame (nested)
+CPU DJ.DeathDeform mean=0.000 ms/frame (nested)
+CPU DJ.UnifiedRecovery mean=0.210 ms/frame (nested)
+CPU DJ.StructureBatches mean=0.004 ms/frame (nested)
+CPU DJ.CityCleanup mean=1.607 ms/frame (nested)
+WAVE DISPLACEMENT festival-city-optimized: 50/633 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+CITY CLEANUP converted=0; restored=0; shattered=0; sunk=10; structural draws=0.
+PROFILE no-recovery; recovery disabled is diagnostic only, not a release configuration.
+EDITOR FRAMES festival-city-optimized [idle, no bots]: median=23.43ms; p90=28.93ms; n=112; bots=0; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+CENSUS festival-city-optimized: dynamic bodies=633; physical shapes=1049; map GameObjects=1801; new-section proxy shapes=0; proxy GameObjects=0; new-section box shapes=467; convex flights=50.
+EDITOR FRAMES festival-city-optimized [bots, no wave]: median=52.71ms; p90=84.06ms; n=71; bots=32; active=633; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-city-optimized: spawned 32/32; 32 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-city-optimized [bots + actual tsunami]: median=100.54ms; p90=1161.29ms; n=108; bots=32; active=633; awake=617. Short unfocused Editor samples, not Quest/GPU certification.
+CPU Physics.SyncTransforms mean=1.585 ms/frame (nested)
+CPU Physics.Simulate mean=140.810 ms/frame (nested)
+CPU Main Thread mean=232.372 ms/frame (nested)
+CPU GC Allocated In Frame mean=911290.019 bytes
+CPU DJ.CrateBatches mean=0.007 ms/frame (nested)
+CPU DJ.WetEffects mean=0.935 ms/frame (nested)
+CPU DJ.BotThreat mean=3.642 ms/frame (nested)
+CPU DJ.WalkingSources mean=1.225 ms/frame (nested)
+CPU DJ.Tsunami mean=3.536 ms/frame (nested)
+CPU DJ.BotDestination mean=5.638 ms/frame (nested)
+CPU DJ.BotGeometry mean=1.509 ms/frame (nested)
+CPU DJ.DeathDeform mean=0.000 ms/frame (nested)
+CPU DJ.UnifiedRecovery mean=0.000 ms/frame (nested)
+CPU DJ.StructureBatches mean=0.003 ms/frame (nested)
+CPU DJ.CityCleanup mean=0.000 ms/frame (nested)
+WAVE DISPLACEMENT festival-city-optimized: 43/633 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+CITY CLEANUP converted=0; restored=0; shattered=0; sunk=0; structural draws=0.
+PROFILE COMPLETE runtime errors=0

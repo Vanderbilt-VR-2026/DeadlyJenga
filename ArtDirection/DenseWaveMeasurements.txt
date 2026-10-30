@@ -1,0 +1,386 @@
+Windows Unity Editor evidence, 2026-10-23. Not a Quest or GPU certification.
+Short sample windows; inspect frame counts and awake-body counts before comparing.
+Intermediate measurements are retained to show run-to-run variability.
+
+===== baseline =====
+Actual Game scene; long-block castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=616 bots=0 wave=False
+median=21.42ms p90=26.14ms frames=240 batches=121 triangles=701484 awake=0
+  Physics.SyncTransforms mean=154190 ns
+  Physics.Simulate mean=831662 ns
+  Main Thread mean=21805912 ns
+  BehaviourUpdate mean=2965735 ns
+  GC Allocated In Frame mean=175871 bytes
+  DJ.CrateBatches mean=1020682 ns
+  DJ.WetEffects mean=1655 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+PHASE 1 blocks=616 bots=0 wave=True
+median=40.12ms p90=57.34ms frames=141 batches=129 triangles=729206 awake=612
+  Physics.SyncTransforms mean=1405868 ns
+  Physics.Simulate mean=4408118 ns
+  Main Thread mean=42593472 ns
+  BehaviourUpdate mean=5245026 ns
+  GC Allocated In Frame mean=354545 bytes
+  DJ.CrateBatches mean=1139816 ns
+  DJ.WetEffects mean=917799 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=3224829 ns
+PHASE 2 blocks=616 bots=32 wave=False
+median=60.15ms p90=96.88ms frames=92 batches=301 triangles=5040645 awake=120
+  Physics.SyncTransforms mean=2249821 ns
+  Physics.Simulate mean=4716902 ns
+  Main Thread mean=65068736 ns
+  BehaviourUpdate mean=23159233 ns
+  GC Allocated In Frame mean=717553 bytes
+  DJ.CrateBatches mean=1359907 ns
+  DJ.WetEffects mean=3324 ns
+  DJ.BotThreat mean=1074476 ns
+  DJ.WalkingSources mean=464411 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=2998534 ns
+  DJ.BotGeometry mean=718655 ns
+PHASE 3 blocks=616 bots=32 wave=True
+median=93.19ms p90=185.24ms frames=56 batches=320 triangles=5836586 awake=614
+  Physics.SyncTransforms mean=3762225 ns
+  Physics.Simulate mean=11986409 ns
+  Main Thread mean=103525416 ns
+  BehaviourUpdate mean=25754741 ns
+  GC Allocated In Frame mean=1287880 bytes
+  DJ.CrateBatches mean=1342309 ns
+  DJ.WetEffects mean=1754552 ns
+  DJ.BotThreat mean=1893073 ns
+  DJ.WalkingSources mean=531148 ns
+  DJ.Tsunami mean=9083175 ns
+  DJ.BotDestination mean=3974163 ns
+  DJ.BotGeometry mean=891071 ns
+COMPLETE runtimeErrors=0
+
+===== optimized =====
+Actual Game scene; castle (dense label selects cathedral); 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=616 bots=0 wave=False
+median=22.34ms p90=28.08ms frames=240 batches=121 triangles=701484 awake=0
+  Physics.SyncTransforms mean=162658 ns
+  Physics.Simulate mean=863566 ns
+  Main Thread mean=23052148 ns
+  BehaviourUpdate mean=3230125 ns
+  GC Allocated In Frame mean=181703 bytes
+  DJ.CrateBatches mean=760765 ns
+  DJ.WetEffects mean=1690 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 1 blocks=616 bots=0 wave=True
+median=54.84ms p90=76.93ms frames=108 batches=129 triangles=729043 awake=612
+  Physics.SyncTransforms mean=1972540 ns
+  Physics.Simulate mean=7175809 ns
+  Main Thread mean=55173989 ns
+  BehaviourUpdate mean=6766611 ns
+  GC Allocated In Frame mean=256069 bytes
+  DJ.CrateBatches mean=1309593 ns
+  DJ.WetEffects mean=1133401 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=2952880 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 2 blocks=616 bots=32 wave=False
+median=47.94ms p90=73.59ms frames=113 batches=295 triangles=1373120 awake=0
+  Physics.SyncTransforms mean=1491027 ns
+  Physics.Simulate mean=2339161 ns
+  Main Thread mean=53048088 ns
+  BehaviourUpdate mean=18765712 ns
+  GC Allocated In Frame mean=551132 bytes
+  DJ.CrateBatches mean=1021243 ns
+  DJ.WetEffects mean=3333 ns
+  DJ.BotThreat mean=370412 ns
+  DJ.WalkingSources mean=385053 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=546697 ns
+  DJ.BotGeometry mean=335339 ns
+PHASE 3 blocks=616 bots=32 wave=True
+median=131.26ms p90=203.74ms frames=43 batches=322 triangles=1585257 awake=609
+  Physics.SyncTransforms mean=6124607 ns
+  Physics.Simulate mean=18386940 ns
+  Main Thread mean=138883777 ns
+  BehaviourUpdate mean=36587247 ns
+  GC Allocated In Frame mean=984439 bytes
+  DJ.CrateBatches mean=1751895 ns
+  DJ.WetEffects mean=2645719 ns
+  DJ.BotThreat mean=3021307 ns
+  DJ.WalkingSources mean=903156 ns
+  DJ.Tsunami mean=7753070 ns
+  DJ.BotDestination mean=5629312 ns
+  DJ.BotGeometry mean=938709 ns
+COMPLETE runtimeErrors=0
+
+===== final =====
+Actual Game scene; castle (dense label selects cathedral); 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=616 bots=0 wave=False
+median=22.87ms p90=31.47ms frames=240 batches=121 triangles=701484 awake=0
+  Physics.SyncTransforms mean=186211 ns
+  Physics.Simulate mean=1001945 ns
+  Main Thread mean=24089999 ns
+  BehaviourUpdate mean=3313246 ns
+  GC Allocated In Frame mean=181315 bytes
+  DJ.CrateBatches mean=764992 ns
+  DJ.WetEffects mean=1689 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 1 blocks=616 bots=0 wave=True
+median=46.22ms p90=67.35ms frames=127 batches=129 triangles=729588 awake=612
+  Physics.SyncTransforms mean=1673326 ns
+  Physics.Simulate mean=5334225 ns
+  Main Thread mean=47268980 ns
+  BehaviourUpdate mean=6052692 ns
+  GC Allocated In Frame mean=239894 bytes
+  DJ.CrateBatches mean=1182770 ns
+  DJ.WetEffects mean=835581 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=2254767 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 2 blocks=616 bots=32 wave=False
+median=63.95ms p90=100.40ms frames=88 batches=314 triangles=1502837 awake=156
+  Physics.SyncTransforms mean=2402761 ns
+  Physics.Simulate mean=7262791 ns
+  Main Thread mean=68081561 ns
+  BehaviourUpdate mean=21818135 ns
+  GC Allocated In Frame mean=521630 bytes
+  DJ.CrateBatches mean=1199124 ns
+  DJ.WetEffects mean=3340 ns
+  DJ.BotThreat mean=822880 ns
+  DJ.WalkingSources mean=399231 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=1505052 ns
+  DJ.BotGeometry mean=304125 ns
+PHASE 3 blocks=616 bots=32 wave=True
+median=79.07ms p90=112.44ms frames=73 batches=321 triangles=1585182 awake=610
+  Physics.SyncTransforms mean=3163303 ns
+  Physics.Simulate mean=8396170 ns
+  Main Thread mean=80971067 ns
+  BehaviourUpdate mean=22218916 ns
+  GC Allocated In Frame mean=624909 bytes
+  DJ.CrateBatches mean=1272140 ns
+  DJ.WetEffects mean=1163600 ns
+  DJ.BotThreat mean=1470593 ns
+  DJ.WalkingSources mean=461429 ns
+  DJ.Tsunami mean=3276440 ns
+  DJ.BotDestination mean=2255653 ns
+  DJ.BotGeometry mean=442877 ns
+PASS Actual population avatars have a detail controller
+PASS Near external avatar retains full detail
+PASS Distant actual avatar selects the shared reduced mesh
+PASS A nearby secondary observer preserves full detail for split-screen
+PASS Local owner keeps original first-person mesh at every distance
+Post-sample runtime fixture results are provided separately under runtime and dense-final.
+
+===== dense-baseline =====
+Actual Game scene; castle (dense label selects cathedral); 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=706.71ms p90=904.50ms frames=9 batches=160 triangles=1824088 awake=1942
+  Physics.SyncTransforms mean=30649922 ns
+  Physics.Simulate mean=169935767 ns
+  Main Thread mean=618036867 ns
+  BehaviourUpdate mean=87254678 ns
+  GC Allocated In Frame mean=2680960 bytes
+  DJ.CrateBatches mean=18758344 ns
+  DJ.WetEffects mean=2667 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 1 blocks=6098 bots=0 wave=True
+median=627.73ms p90=666.95ms frames=10 batches=161 triangles=1831768 awake=1250
+  Physics.SyncTransforms mean=17361410 ns
+  Physics.Simulate mean=132088120 ns
+  Main Thread mean=524591790 ns
+  BehaviourUpdate mean=88293290 ns
+  GC Allocated In Frame mean=2704834 bytes
+  DJ.CrateBatches mean=18191140 ns
+  DJ.WetEffects mean=276210 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=16602320 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 2 blocks=6098 bots=32 wave=False
+median=634.90ms p90=2853.17ms frames=5 batches=361 triangles=6939816 awake=712
+  Physics.SyncTransforms mean=12430360 ns
+  Physics.Simulate mean=530739880 ns
+  Main Thread mean=922704260 ns
+  BehaviourUpdate mean=153298760 ns
+  GC Allocated In Frame mean=3664171 bytes
+  DJ.CrateBatches mean=21716800 ns
+  DJ.WetEffects mean=2740 ns
+  DJ.BotThreat mean=175180 ns
+  DJ.WalkingSources mean=30998120 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=2011.43ms p90=2726.11ms frames=4 batches=363 triangles=6947598 awake=1708
+  Physics.SyncTransforms mean=18357100 ns
+  Physics.Simulate mean=614152750 ns
+  Main Thread mean=1384862775 ns
+  BehaviourUpdate mean=465264900 ns
+  GC Allocated In Frame mean=24697888 bytes
+  DJ.CrateBatches mean=21213400 ns
+  DJ.WetEffects mean=375525 ns
+  DJ.BotThreat mean=98955700 ns
+  DJ.WalkingSources mean=19596900 ns
+  DJ.Tsunami mean=6422875 ns
+  DJ.BotDestination mean=285910875 ns
+  DJ.BotGeometry mean=55440025 ns
+COMPLETE runtimeErrors=0
+
+===== dense-final =====
+Actual Game scene; castle (dense label selects cathedral); 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PHASE 0 blocks=6098 bots=0 wave=False
+median=719.18ms p90=913.58ms frames=9 batches=160 triangles=1824088 awake=1942
+  Physics.SyncTransforms mean=32336022 ns
+  Physics.Simulate mean=165599533 ns
+  Main Thread mean=637088556 ns
+  BehaviourUpdate mean=86647900 ns
+  GC Allocated In Frame mean=2686057 bytes
+  DJ.CrateBatches mean=16817344 ns
+  DJ.WetEffects mean=2189 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 1 blocks=6098 bots=0 wave=True
+median=585.46ms p90=635.85ms frames=11 batches=161 triangles=1831768 awake=1250
+  Physics.SyncTransforms mean=17339909 ns
+  Physics.Simulate mean=127428491 ns
+  Main Thread mean=510120409 ns
+  BehaviourUpdate mean=83872136 ns
+  GC Allocated In Frame mean=2654248 bytes
+  DJ.CrateBatches mean=16145009 ns
+  DJ.WetEffects mean=301464 ns
+  DJ.BotThreat mean=0 ns
+  DJ.WalkingSources mean=0 ns
+  DJ.Tsunami mean=8428836 ns
+  DJ.BotDestination mean=0 ns
+  DJ.BotGeometry mean=0 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 2 blocks=6098 bots=32 wave=False
+median=701.24ms p90=2382.73ms frames=5 batches=359 triangles=2686601 awake=712
+  Physics.SyncTransforms mean=14523840 ns
+  Physics.Simulate mean=450940260 ns
+  Main Thread mean=867511500 ns
+  BehaviourUpdate mean=173155300 ns
+  GC Allocated In Frame mean=6038270 bytes
+  DJ.CrateBatches mean=20670460 ns
+  DJ.WetEffects mean=3140 ns
+  DJ.BotThreat mean=13368820 ns
+  DJ.WalkingSources mean=30409740 ns
+  DJ.Tsunami mean=0 ns
+  DJ.BotDestination mean=37500180 ns
+  DJ.BotGeometry mean=12942100 ns
+  DJ.DeathDeform mean=0 ns
+PHASE 3 blocks=6098 bots=32 wave=True
+median=752.39ms p90=2859.95ms frames=5 batches=362 triangles=2694300 awake=1250
+  Physics.SyncTransforms mean=14609220 ns
+  Physics.Simulate mean=491847040 ns
+  Main Thread mean=1005397420 ns
+  BehaviourUpdate mean=254587500 ns
+  GC Allocated In Frame mean=6044661 bytes
+  DJ.CrateBatches mean=22886780 ns
+  DJ.WetEffects mean=352940 ns
+  DJ.BotThreat mean=54140600 ns
+  DJ.WalkingSources mean=34752160 ns
+  DJ.Tsunami mean=4920540 ns
+  DJ.BotDestination mean=105132860 ns
+  DJ.BotGeometry mean=12608520 ns
+  DJ.DeathDeform mean=0 ns
+PASS Actual population avatars have a detail controller
+PASS Near external avatar retains full detail
+PASS Distant actual avatar selects the shared reduced mesh
+PASS A nearby secondary observer preserves full detail for split-screen
+PASS Local owner keeps original first-person mesh at every distance
+PASS Crate batch manager is live (hidden runtime object)
+PASS Active block artwork is registered for instancing
+PASS Cached instancing matrix follows translation and rotation of an actual physics block
+PASS Cached instancing matrix follows scale changes
+PASS Death snapshot retains real skinned geometry and articulated skeleton
+PASS Ragdoll begins at the original avatar size
+PASS Optimized deformation keeps a finite full-size ragdoll before melting
+PASS Ragdoll melts into its puddle, dries and releases itself
+COMPLETE runtimeErrors=0
+
+===== regressions =====
+Deterministic algorithm and mesh regressions. These timings are CPU microbenchmarks, not game FPS.
+PASS Spatial danger scores match the exhaustive scan for 2052 queries, including signed cell boundaries and height limits
+CPU 6102 threats x 2052 queries: exhaustive=289.93ms indexed=4.31ms checksum=882.4243
+PASS Clearing removes all threats
+PASS Pooled index rebuild restores the original score
+PASS Planning budget grants an initial sensing credit
+PASS Nested planning work cannot bypass the existing CPU time limit
+PASS Traversal samples match the original at 128 translated, rotated, scaled and offset collider poses
+PASS Candy Body.asset source is readable
+PASS Detail 1 reduces Candy Body.asset vertices: 39309 -> 8374, triangles 77884 -> 18002
+PASS Reduced triangle indices are valid
+PASS Reduced positions stay finite
+PASS All reduced skin weights remain normalized
+PASS Bind poses and conservative skin bounds remain exact
+PASS All matching avatars reuse the reduced mesh
+PASS Detail 2 reduces Candy Body.asset vertices: 39309 -> 4983, triangles 77884 -> 11828
+PASS Reduced triangle indices are valid
+PASS Reduced positions stay finite
+PASS All reduced skin weights remain normalized
+PASS Bind poses and conservative skin bounds remain exact
+PASS All matching avatars reuse the reduced mesh
+PASS Original near/first-person geometry is unchanged
+PASS Candy Head.asset source is readable
+PASS Detail 1 reduces Candy Head.asset vertices: 1025 -> 890, triangles 1920 -> 1776
+PASS Reduced triangle indices are valid
+PASS Reduced positions stay finite
+PASS All reduced skin weights remain normalized
+PASS Bind poses and conservative skin bounds remain exact
+PASS All matching avatars reuse the reduced mesh
+PASS Detail 2 reduces Candy Head.asset vertices: 1025 -> 758, triangles 1920 -> 1520
+PASS Reduced triangle indices are valid
+PASS Reduced positions stay finite
+PASS All reduced skin weights remain normalized
+PASS Bind poses and conservative skin bounds remain exact
+PASS All matching avatars reuse the reduced mesh
+PASS Original near/first-person geometry is unchanged
+PASS Executed Tools/Deadly Jenga/Test Tsunami Forces
+PASS Executed Tools/Deadly Jenga/Test Disaster Map Contract
+PASS Executed Tools/Deadly Jenga/Validate Disaster Setup
+COMPLETE checks=37
+
+===== runtime =====
+Actual Game scene; castle (dense label selects cathedral); 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.
+PASS Actual population avatars have a detail controller
+PASS Near external avatar retains full detail
+PASS Distant actual avatar selects the shared reduced mesh
+PASS A nearby secondary observer preserves full detail for split-screen
+PASS Local owner keeps original first-person mesh at every distance
+PASS Crate batch manager is live (hidden runtime object)
+PASS Active block artwork is registered for instancing
+PASS Cached instancing matrix follows translation and rotation of an actual physics block
+PASS Cached instancing matrix follows scale changes
+PASS Death snapshot retains real skinned geometry and articulated skeleton
+PASS Ragdoll begins at the original avatar size
+PASS Optimized deformation keeps a finite full-size ragdoll before melting
+PASS Ragdoll melts into its puddle, dries and releases itself
+COMPLETE runtimeErrors=0
+
+===== Actual CTF acceptance =====
+PASS CaptureFlag seconds=178.033 bots=6 moved=6 hillSeconds=0.000 owned=0 captures=1 infected=0->0 botKills=2 damageEvents=36 damagedBots=5 actions=escort|flag|free-explore|guard-home|patrol|pressure-base|protect-carrier|recover-search|recover-visible|repel|return
+Finished failures=0 runtimeErrors=0. Desktop only.
+PASS Original scene setup restored; match choices reapplied.
+
+Final integrated Game smoke (including XR discovery shortcut): 13 live checks passed, runtimeErrors=0.

@@ -24,6 +24,7 @@ May use: Core only. Ask the map through Services.World (IWorldQuery), never Worl
 - Climbing and vaulting use IClimbable via Climbables.TryGet, never CastleBlock.
 
 ## Rules
+- Bot objectives arrive through Core. When extending their execution, read GameSession/Modes/AGENTS.md and GameSession/Modes/BotObjectives/README.md. Keep game-mode decisions out of Characters. Preserve optional IBotObjectiveExecution compatibility, assignment-token checks and the distinction between arrival and gameplay success.
 - Never call HUD, audio or session code. Raise GameEvents or expose read-only values.
 - Never draw UI. Settings are exposed as values (ISurvivorSettings.CurrentRules) and
   Presentation draws them. Reading XR Interaction Toolkit interactor state (e.g. a ray hovering

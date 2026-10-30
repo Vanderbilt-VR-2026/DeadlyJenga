@@ -1,0 +1,103 @@
+Sparse structural maps · moderate
+Real Unity isolated rigidbody simulation; not GPU/FPS, bot, headset or live network certification.
+MAP crown-study: 58 bodies; 52.4 x 38.2m; height 19.0m; gravity only, no bonds or joints.
+PASS crown-study: explicit map body budget <=1000
+PASS crown-study: finite positive geometry
+PASS crown-study: deterministic stable member order
+PASS crown-study: no penetrating members 
+PASS crown-study: each raised center is inside its actual bearing polygon 
+PASS crown-study: selectable map prefab saved
+MAP terrace-study: 72 bodies; 82.4 x 82.4m; height 13.0m; gravity only, no bonds or joints.
+PASS terrace-study: explicit map body budget <=1000
+PASS terrace-study: finite positive geometry
+PASS terrace-study: deterministic stable member order
+PASS terrace-study: no penetrating members 
+PASS terrace-study: each raised center is inside its actual bearing polygon 
+PASS terrace-study: selectable map prefab saved
+MAP viaduct-study: 145 bodies; 103.4 x 48.2m; height 19.0m; gravity only, no bonds or joints.
+PASS viaduct-study: explicit map body budget <=1000
+PASS viaduct-study: finite positive geometry
+PASS viaduct-study: deterministic stable member order
+PASS viaduct-study: no penetrating members 
+PASS viaduct-study: each raised center is inside its actual bearing polygon 
+PASS viaduct-study: selectable map prefab saved
+MAP keep-study: 175 bodies; 60.6 x 51.0m; height 25.0m; gravity only, no bonds or joints.
+PASS keep-study: explicit map body budget <=1000
+PASS keep-study: finite positive geometry
+PASS keep-study: deterministic stable member order
+PASS keep-study: no penetrating members 
+PASS keep-study: each raised center is inside its actual bearing polygon 
+PASS keep-study: selectable map prefab saved
+REGISTERED map choices in Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset
+AUTHORING COMPLETE failures=0. Runtime validation pending. No team scene was saved.
+PASS crown-study: all authored members use independent dynamic gravity
+PASS crown-study: no stabilizing joints
+SETTLE crown-study: 8s; maximum drift=0.0124m; tilt=0.000deg; awake=0/58.
+PASS crown-study: unforced structure stays within .5m / 5deg during settling
+PASS crown-study: safe spawn has standing capsule clearance
+COLLAPSE crown-study: remove member 0; moved>.5m=13; native physics average settled=0.134ms/step, collapse=0.394ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS crown-study: real bearing loss produces gravity-driven displacement without scripted failure
+PASS crown-study: invalid network count leaves live layout unchanged
+PASS crown-study: invalid network scale rejected
+PASS crown-study: replica suspends independent simulation
+PASS crown-study: authority recovery restores dynamic bodies
+PASS crown-study: serialized layout rebuild retains stable member count
+PASS terrace-study: all authored members use independent dynamic gravity
+PASS terrace-study: no stabilizing joints
+SETTLE terrace-study: 8s; maximum drift=0.0001m; tilt=0.000deg; awake=0/72.
+PASS terrace-study: unforced structure stays within .5m / 5deg during settling
+PASS terrace-study: safe spawn has standing capsule clearance
+COLLAPSE terrace-study: remove member 0; moved>.5m=1; native physics average settled=0.068ms/step, collapse=0.123ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS terrace-study: real bearing loss produces gravity-driven displacement without scripted failure
+PASS terrace-study: invalid network count leaves live layout unchanged
+PASS terrace-study: invalid network scale rejected
+PASS terrace-study: replica suspends independent simulation
+PASS terrace-study: authority recovery restores dynamic bodies
+PASS terrace-study: serialized layout rebuild retains stable member count
+PASS viaduct-study: all authored members use independent dynamic gravity
+PASS viaduct-study: no stabilizing joints
+SETTLE viaduct-study: 8s; maximum drift=0.0094m; tilt=0.000deg; awake=0/145.
+PASS viaduct-study: unforced structure stays within .5m / 5deg during settling
+PASS viaduct-study: safe spawn has standing capsule clearance
+COLLAPSE viaduct-study: remove member 0; moved>.5m=8; native physics average settled=0.113ms/step, collapse=1.100ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS viaduct-study: real bearing loss produces gravity-driven displacement without scripted failure
+PASS viaduct-study: invalid network count leaves live layout unchanged
+PASS viaduct-study: invalid network scale rejected
+PASS viaduct-study: replica suspends independent simulation
+PASS viaduct-study: authority recovery restores dynamic bodies
+PASS viaduct-study: serialized layout rebuild retains stable member count
+PASS keep-study: all authored members use independent dynamic gravity
+PASS keep-study: no stabilizing joints
+SETTLE keep-study: 8s; maximum drift=0.0264m; tilt=0.000deg; awake=0/175.
+PASS keep-study: unforced structure stays within .5m / 5deg during settling
+PASS keep-study: safe spawn has standing capsule clearance
+COLLAPSE keep-study: remove member 0; moved>.5m=0; native physics average settled=0.132ms/step, collapse=0.630ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS keep-study: redundant keep has a second independently removable bearing
+REDUNDANCY keep-study: one corner survived; removing adjacent corner 1 moved 41 members >.5m.
+PASS keep-study: real bearing loss produces gravity-driven displacement without scripted failure
+PASS keep-study: invalid network count leaves live layout unchanged
+PASS keep-study: invalid network scale rejected
+PASS keep-study: replica suspends independent simulation
+PASS keep-study: authority recovery restores dynamic bodies
+PASS keep-study: serialized layout rebuild retains stable member count
+EDITOR FRAMES crown-study [idle, no bots]: median=23.23ms; p90=26.61ms; n=130; bots=0; active=58; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES crown-study [bots, no wave]: median=30.66ms; p90=36.44ms; n=129; bots=16; active=58; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION crown-study: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES crown-study [bots + actual tsunami]: median=36.69ms; p90=254.79ms; n=64; bots=16; active=58; awake=58. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES terrace-study [idle, no bots]: median=186.42ms; p90=286.87ms; n=19; bots=0; active=72; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES terrace-study [bots, no wave]: median=32.87ms; p90=46.54ms; n=115; bots=16; active=72; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION terrace-study: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES terrace-study [bots + actual tsunami]: median=35.22ms; p90=45.56ms; n=138; bots=16; active=72; awake=52. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES viaduct-study [idle, no bots]: median=29.29ms; p90=45.07ms; n=98; bots=0; active=145; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES viaduct-study [bots, no wave]: median=30.79ms; p90=36.60ms; n=127; bots=16; active=145; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION viaduct-study: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES viaduct-study [bots + actual tsunami]: median=46.31ms; p90=63.10ms; n=102; bots=16; active=145; awake=145. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES keep-study [idle, no bots]: median=19.31ms; p90=22.84ms; n=150; bots=0; active=175; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES keep-study [bots, no wave]: median=30.97ms; p90=36.18ms; n=127; bots=16; active=175; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION keep-study: spawned 16/16; 16 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES keep-study [bots + actual tsunami]: median=71.47ms; p90=117.05ms; n=66; bots=16; active=175; awake=175. Short unfocused Editor samples, not Quest/GPU certification.
+RUNTIME COMPLETE failures=0; Unity runtime errors=0. Actual Game.unity entered Play Mode; no live headset/network peers tested.

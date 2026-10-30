@@ -1,0 +1,307 @@
+Deadly Jenga performance investigation â€” 2026-10-23
+
+SCOPE AND EVIDENCE
+
+Investigated the real Unity Game session with the long-block/gaps castle (616
+blocks), 0 or 32 real survivor bots, and an identically seeded northbound tsunami.
+Also exercised the existing 6,098-block cathedral scene. No synthetic actor or
+physics replacement was used in the gameplay benchmarks. The benchmark preserves
+and restores scenes, match choices, timing and frame-cap settings. It never saves
+Game, Lobby or the cathedral scene.
+
+These are short, unfocused Windows Editor measurements, with the menu open, not
+Quest frame-rate promises. UnityStats triangle/batch counts can include multiple
+passes. Editor overhead and other applications are present. Seeded physics and
+wall-clock-limited bot planning do not make trajectories deterministic across
+runs. Active-body counts, actual population, sample counts and p90 values are
+retained in the raw reports. The dense baseline has very few samples because its
+frames are exceptionally long; treat it as a bottleneck diagnosis, not a precise
+FPS comparison. CPU recorder markers are not additive independent costs: some
+nest, and physics can run multiple fixed steps during one rendered frame.
+
+Raw reports: Logs/Validation/DenseWave-*.txt. These generated logs are ignored by
+Git. The reusable, explicit tools live in DevTools/Editor/DenseWavePerformance.cs
+and DenseWaveChecks.cs. Profiling is activated only by its menu or request file;
+there is no automatic test run when Unity loads.
+
+WHY TSUNAMI + BLOCKS + BOTS COMPOUND
+
+1. Every structural block is a real dynamic rigidbody with a box collider. It also
+   owns an independent kinematic survivor-collision proxy. Those proxies preserve
+   one-way character collision: players can stand on crates without physically
+   pushing the tower. Moving crates update both the dynamic simulation and proxy
+   poses. A wave wakes resting bodies and generates new contacts as blocks collide.
+2. The normal castle uses 20 position / 8 velocity solver iterations per block.
+   The cathedral explicitly uses 80 / 20 to keep its tall loose courses stable;
+   four-keep supports use 60 / 16. These overrides greatly exceed the project's
+   6 / 1 defaults. Cost is not simply proportional to those ratios, but thousands
+   of simultaneously active contact bodies are intrinsically expensive.
+3. Long frames cause several FixedUpdate simulations before the next image. Each
+   step repeats tsunami impacts, proxy updates, contacts and solver work. That
+   catch-up amplifies an initial CPU/render stall. Reducing the global fixed rate
+   or maximum catch-up time would alter hand response, falling and time fidelity.
+4. Falling debris feeds bot hazard prediction. Previously, each danger-score query
+   scanned every predicted falling block. Each bot could score tens of thousands
+   of sampled landing positions, giving a product of bot count, landing count and
+   falling-block count. Destination ranking also allocated and sorted the entire
+   candidate list just to inspect its best 24 results.
+5. Navigation scans the same geometry. Survivor proxies are kinematic even when
+   their real blocks are falling; the old navigation filter consequently treated
+   those moving blocks as stable walkable sources.
+6. The ordinary body mesh contains 77,884 triangles plus a 1,920-triangle head.
+   Skinning and shadow passes multiply this across bots. Distant bodies previously
+   retained their close-up finger detail. Extra spectator cameras multiply view
+   rendering again.
+7. Wetting adds transparent overlay surfaces and spray after impacts. The existing
+   limits already bound these to 192 coatings, 240 contact-spray particles, 72 wave
+   spray particles, and per-frame creation/emission budgets. Water has no mesh
+   collider, fluid simulation or particle collision, so those are not the culprit.
+8. Simultaneous deaths add another workload: articulated visual ragdolls deform
+   skinned snapshots at 30 visual steps per second, followed by shader melting.
+   This work does not apply gameplay forces, but its CPU cost can coincide with a
+   destructive wave. It previously performed native inverse-transform calls per
+   vertex, including the original high-resolution hands.
+
+IMPLEMENTED WITHOUT CHANGING GAME RULES
+
+- Characters/Bots: FallingBlockThreats indexes predicted debris in 3-metre X/Z
+  cells. A score visits only the nine possibly relevant cells and retains the
+  original vertical window, radius, distance falloff and additive danger score.
+  Lists are pooled between the existing 5 Hz prediction rebuilds. A dense pile
+  in the queried cells still requires scoring its genuinely nearby debris. No threats are
+  silently dropped. Deterministic comparison covers signed boundaries and heights.
+- Characters/Bots: destination selection keeps a sorted top-24 shortlist rather
+  than allocating and sorting every sample. Every candidate is still scored;
+  equal-score ties may choose another equally ranked point.
+- Characters/Bots: surface sampling caches collider dimensions, scale, rotation
+  and transform matrices once per body instead of repeatedly crossing the native
+  Unity API for every sample. Cached inverse matrices are also used when creating
+  shared landing geometry and spawn candidates. Rotated/scaled/offset collider
+  regression cases compare against the original algorithm.
+- Characters/Bots: same-frame spawns reuse sampled and ranked spawn geometry.
+  Each spawn still synchronizes physics and checks live stability, landing room
+  and occupancy. Cache invalidation includes frame, map, first body and count.
+- Characters/Bots: survivor count is cached within a frame and invalidated by list
+  size and spawn serial, avoiding repeated whole-population component scans during
+  sensing and graph-edge checks.
+- Characters/Bots: full destination planning now participates in the existing
+  sensing credits and 4 ms planning-work budget. Previously only selected fallback
+  and graph-edge work was timed. Nested work scopes now keep their outer timer
+  running. Movement, traversal, collision, combat and objective assignment tokens
+  are unchanged. Heavy new plans may wait for their time slice; one indivisible
+  geometry build can still overrun the soft budget. This is not a hard real-time
+  guarantee or a cap on all motor work.
+- Characters/Bots: walking-source stability is checked against the climbable's
+  actual body, rather than its kinematic proxy. Registered surfaces avoid redundant
+  bot/hand component searches, and rotation is read once per source. Source sorting
+  remains stable for Unity's incremental navigation hashing.
+- Characters/Player: explicit desktop/VR modes and externally driven bots skip
+  XR subsystem discovery, whose result can only affect Auto mode. Auto mode still
+  checks live subsystem state, preserving headset startup/hotplug behavior.
+- Characters/Player: external bodies use shared reduced skin meshes at distance.
+  Body detail changes from 39,309 vertices / 77,884 triangles to 8,374 / 18,002,
+  then 4,983 / 11,828. Near bodies and local first-person geometry remain original.
+  The closest active game camera chooses detail, protecting split-screen views.
+  Original bind poses, skeletons, conservative bounds, materials, accessories and
+  gameplay collision remain intact. Hysteresis reduces visible LOD oscillation.
+  Simplification merges nearby vertices within matching skin partitions; it is a
+  small intentional distant visual approximation, not a replacement avatar.
+  Shared meshes are released when the last rig is destroyed or runtime resets.
+- World/Blocks: magnetic capability is cached instead of probing for an absent
+  MagneticBlock on every wave push. MagneticBlock registers itself on Awake, so
+  adding the component after the block is created still works.
+- World/Hazards/Tsunami: each candidate's bounds are read once instead of three
+  times, and used overlap-buffer references are released. Surface profile, force
+  integration, resistance, speed cap, deduplication, authority and damage rules
+  remain unchanged.
+- Presentation/Visuals: water receivers use a reused component list instead of
+  allocating an array on each soak. Unchanged fully-wet shader properties and
+  unchanged visibility flags are no longer written every frame. Drying, cap,
+  splashes, world cleanup and material ownership stay intact.
+- Presentation/Visuals: instanced crate matrices are reused until their visual
+  transform changes. Rendering still uses the same meshes, materials and physics
+  bodies; moving, rotating and scaling blocks must update the cached matrices.
+- Presentation/Visuals: visual ragdoll deformation caches inverse position and
+  rotation transforms once per skin per step instead of twice per vertex. The
+  full-size birth pose, articulated motion, melt timing, puddle and drying remain.
+- Added inexpensive DJ.* profiler markers around the identified work so future
+  captures can separate geometry, danger scoring, destination selection, water,
+  crate submission and death deformation.
+
+OTHER SYSTEMS REVIEWED
+
+- Global physics already disables automatic transform synchronization and enables
+  collision-callback reuse. Those recommended optimizations were already present;
+  changing them again cannot explain a new speedup. The fixed step is about
+  20 ms and maximum catch-up is about 333 ms, allowing roughly 16 physics steps
+  after a sufficiently long stall. Explicit synchronization is
+  still needed around spawn/placement and must not be removed indiscriminately.
+- Ocean retirement, disaster candidates and most effect queries already use bounded
+  nonallocating buffers. Removing submerged blocks also removes their colliders
+  and collision proxies from active play; their network indices remain stable.
+- Crate artwork already has near/mid/far geometry and instancing. Custom property
+  blocks can require normal rendering instead; fire/ice/custom art combinations
+  should therefore be captured separately. Coatings are separate transparent art.
+- Audio already pools voices, culls by listener distance, rate-limits events and
+  reuses collision callbacks. There is still per-block audio/update/contact work,
+  and periodic component discovery scans the map. Tiny tsunami pushes also raise
+  the public push event. Removing those events would change observable behavior,
+  so this investigation preserves them.
+- Other disaster art already batches many repeated meshes and caps smoke/fragments.
+  Expensive transparent shader coverage, screen resolution, shadows, additional
+  lights, MSAA and stereo rendering still need an actual GPU capture. Triangle
+  reduction alone does not establish a GPU frame-time reduction.
+- Match and objective updates still have allocations in snapshots and report/UI
+  structures. They must retain information restrictions and authoritative results.
+  The mode director's 120-assertion contract gate is run after planning changes.
+- Multiplayer sends full compressed world poses at up to 10 Hz, shared across
+  recipients for each send. Capture allocates pose/activity arrays and actor state
+  streams; clients decode and apply the world. Thousands of block poses and bot
+  skeletons can add CPU, bandwidth and reliable-message latency. The solo benchmark
+  does not measure that cost, and this patch changes no wire format.
+- Spawning/full map rebuilding still instantiates bodies, proxies, visuals and
+  audio observers. That is a separate loading hitch from steady gameplay. Same-
+  frame spawn reuse helps bot placement but does not remove map construction.
+
+LARGER REDESIGNS AND THEIR IMPLICATIONS
+
+A. Highest priority: stress-test lower/adaptive per-body solver budgets.
+   Trial 80/20 versus lower values on cathedral towers, with identical drop,
+   pull, wave, support-removal and long idle tests. Assess tower drift, collapse
+   timing, penetrations, tunneling and multiplayer agreement before shipping.
+   Reducing air/debris iterations while restoring contact-critical supports may
+   help, but the first landing contact also needs enough iterations. Do not
+   promise the original tower stability with an arbitrary solver reduction.
+
+B. Reduce simultaneously simulated bodies through structural clusters.
+   Resting connected sections could share a body and split on a validated hit or
+   support failure. This can substantially change the body/contact scaling, but
+   a section would no longer bend/collapse exactly like independent loose crates.
+   Grabbing, support rules, inertia, block IDs, proxy placement, replicated
+   topology, late joins and rebuild determinism all need explicit design/testing.
+   This is the likely large architectural win if huge loose towers are required
+   on standalone Quest; it cannot be presented as a free optimization.
+
+C. Redesign survivor collision proxies or their active region.
+   Current one-way collision doubles the body/collider population. A robust
+   near-character proxy pool or custom motor sweep against real block geometry
+   could remove most far proxy updates. It must still support all bots, high-speed
+   pushes, moving platforms, teleports, vault/climb queries, VR hands and scene
+   changes. Navigation cannot lose distant structural geometry when proxies are
+   disabled. Simply deleting proxies or colliding CharacterControllers with the
+   dynamic tower breaks current movement/force behavior.
+
+D. Incremental, budgeted geometry generation and planning snapshots.
+   The shared graph is still built synchronously when its one-second cache expires.
+   Staging spatial updates and publishing immutable snapshots can bound spikes;
+   jobs could operate on copied plain data, never arbitrary Unity objects from a
+   worker. Active searches must keep a valid old snapshot. Stale/moving landings
+   must still be checked against live physics. Scheduling introduces freshness/
+   responsiveness tradeoffs and needs many-bot objective progress tests.
+
+E. GPU death skinning / crowds and tighter rendering submission.
+   Animate the visual ragdoll's bone transforms and retain GPU skinning instead of
+   deforming every baked vertex on the CPU. Preserve full-size snapshots, custom
+   attachments, coat textures, changing support, puddle location and cleanup.
+   Spatially organized crate instance batches or per-camera GPU instance culling
+   could improve occlusion; main-camera-only culling would incorrectly remove
+   off-camera shadow casters or objects visible in another spectator view.
+
+F. Delta/keyframe world replication and pooled serialization.
+   Send changed/active block poses between acknowledged keyframes, quantize where
+   justified and pool buffers. Version the protocol, define recovery after lost
+   deltas and preserve stable IDs, joins, host migration and disconnected peers.
+   This requires actual two-player loss/latency tests. No network change was made
+   here, avoiding an untested synchronization redesign in a solo perf patch.
+
+G. Device-specific quality and content budgets.
+   Compare one spectator camera versus four, shadows on/off, transparent coverage,
+   render scale and avatar counts on Quest 3. A 72 Hz target permits about 13.9 ms
+   for the whole frame (90 Hz about 11.1 ms); these Editor numbers do not establish
+   either target. Keep gameplay/simulation changes separate from cosmetic quality
+   controls. A desktop host and a standalone Quest host may need different maximum
+   dynamic-block and bot budgets. Do not silently reduce populations or disasters.
+
+RECOMMENDED NEXT CAPTURE
+
+Use a Quest development build and a reproducible dense-map run with 0/16/32 bots,
+first without tsunami and then during contact/collapse. Capture CPU main/render
+threads, Physics.Simulate, active dynamic/kinematic bodies, contacts, fixed steps,
+GC bytes, GPU frame time, draw calls and visible/total skin vertices. Repeat the
+worst interval with shadows, wet overlays and extra spectator views independently
+suppressed in a diagnostic build. Then test a solver/cluster prototype. This
+isolates CPU physics, AI, native transform cost and GPU fill rather than guessing
+from an FPS number. No headset or network performance certification is claimed.
+
+PRIMARY REFERENCES CONSULTED
+
+Unity physics optimization: https://unity.com/how-to/enhanced-physics-performance-smooth-gameplay
+Unity asynchronous navigation source hashing/order: https://docs.unity.com/en-us/engine/6000.0/script-reference/unityengine/ai/navmeshbuilder/updatenavmeshdataasync
+Unity profiler counters: https://docs.unity.com/en-us/engine/6000.5/manual/analysis/profiler/counters-reference
+
+RESULTS AND VALIDATION
+616-block map, median / p90 milliseconds (short Editor samples):
+                                     baseline       final sampled
+  Blocks only                        21.42 / 26.14  22.87 / 31.47
+  Blocks + tsunami                   40.12 / 57.34  46.22 / 67.35
+  Blocks + 32 bots                    60.15 / 96.88  63.95 / 100.40
+  Blocks + 32 bots + tsunami          93.19 / 185.24 79.07 / 112.44
+
+An earlier optimized iteration measured 47.94 ms for bots alone but 131.26 ms
+with the wave. Those results are retained in DenseWaveMeasurements.txt rather
+than presenting only favorable numbers. The quiet and bot-only results do not
+establish a consistent improvement. The final combined case improved, but this
+is not a guarantee for every run or hardware configuration.
+
+6,098-block cathedral, median / p90 milliseconds (only 4–11 samples per phase):
+                                     baseline         final sampled
+  Blocks only                        706.71 / 904.50  719.18 / 913.58
+  Blocks + tsunami                   627.73 / 666.95  585.46 / 635.85
+  Blocks + 32 bots                    634.90 / 2853.17 701.24 / 2382.73
+  Blocks + 32 bots + tsunami          2011.43 / 2726.11 752.39 / 2859.95
+
+The dense combined median is lower, but its p90 is NOT improved and remains
+several seconds. Awake-body count at the end also differs (1708 versus 1250).
+It is therefore not an apples-to-apples claim of a guaranteed 2.7x FPS gain.
+The tower is still far too expensive in this cold/collapsing Editor workload.
+
+Dense combined counters provide more actionable evidence:
+  Drawn triangles: about 6.95 million -> 2.69 million (multiple passes possible).
+  Mean managed allocation: about 24.70 MB/frame -> 6.04 MB/frame.
+  Mean destination-selection marker: 285.91 -> 105.13 ms/frame.
+  Mean geometry marker: 55.44 -> 12.61 ms/frame.
+  Mean danger-scoring marker: 98.96 -> 54.14 ms/frame.
+  Mean physics marker: 614.15 -> 491.85 ms/frame; trajectories differ.
+  Mean walking-source marker: 19.60 -> 34.75 ms/frame; still a large spike source.
+
+These markers contain variable invocation counts. They identify remaining
+problems; they are not isolated constant-cost function benchmarks. In particular,
+the soft AI budget cannot interrupt a long single geometry/ranking operation,
+and native navigation collection/update preparation can still stall a frame.
+
+Isolated deterministic danger-score benchmark: 6102 threats x 2052 query points
+measured 289.93 ms exhaustive versus 4.31 ms indexed, approximately 67x faster.
+This is a CPU lookup microbenchmark, not an end-to-end game speedup.
+
+Validation completed so far:
+- All affected Unity assemblies compiled; no C# errors in the task compilation.
+- 37 deterministic regression checks passed, including original danger scores,
+  nested budget timing, traversal sample equivalence at 128 collider poses,
+  reduced-mesh indices/weights/bounds/cache, and original mesh preservation.
+- Existing tsunami force, map-contract and 11-disaster setup validators logged
+  their explicit success messages (not just successful menu invocation).
+- 120 bot objective/director contract assertions passed.
+- 13 live Game-scene checks passed, including full near/local detail, nearest
+  secondary camera, real moving/scaling instancing matrices and the complete
+  full-size ragdoll -> melt -> puddle -> dry/cleanup lifecycle.
+- Dense 32-bot + tsunami run also completed those live checks with zero runtime
+  errors. Original scenes and match choices restored on exit.
+- Actual CTF acceptance passed at about 178 seconds of simulated game time with
+  six bots: real capture, movement and ordinary combat, zero runtime errors. The
+  initial 120-second attempt timed out without a capture (five bots moved and two
+  kills occurred); it is not counted as a passed acceptance run. The normal
+  300-second window allowed the extended run to complete its actual objective.
+- A final explicit-mode XR-discovery shortcut is validated in the final compiled
+  Game smoke run; its small saving is not included in the timing comparisons.
+- No networking protocol, Core contract, global physics settings, package or XR
+  project setting was changed. Quest and two-device performance remain untested.

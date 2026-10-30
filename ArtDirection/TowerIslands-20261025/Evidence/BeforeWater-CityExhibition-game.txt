@@ -1,0 +1,20 @@
+City Buildings 11–20 production Game.unity. Desktop Editor; not headset/network certification.
+CENSUS bodies=100 shapes=1380 joints=0 unified=True
+quiet whole island: frames=76 mean=83.06ms / 12.0FPS p95=34.46ms; uncapped desktop Editor, not Quest.
+REVIEW production motor district 11 ramp/landing checkpoints=7/8 feet=(-249.68, 12.79, -120.00)
+PASS production motor district 12 ramp/landing checkpoints=8/8 feet=(-146.65, 12.79, -129.00)
+PASS production motor district 13 ramp/landing checkpoints=8/8 feet=(-13.65, 12.79, -121.00)
+PASS production motor district 14 ramp/landing checkpoints=8/8 feet=(134.33, 12.79, -121.00)
+PASS production motor district 15 ramp/landing checkpoints=8/8 feet=(239.40, 12.78, -120.00)
+PASS production motor district 16 ramp/landing checkpoints=8/8 feet=(-265.60, 12.79, 100.00)
+PASS production motor district 17 ramp/landing checkpoints=8/8 feet=(-121.67, 12.79, 100.00)
+PASS production motor district 18 ramp/landing checkpoints=8/8 feet=(6.39, 12.79, 102.00)
+PASS production motor district 19 ramp/landing checkpoints=8/8 feet=(134.35, 12.79, 104.00)
+PASS production motor district 20 ramp/landing checkpoints=8/8 feet=(237.35, 12.79, 100.00)
+PASS simulated VR motor clear-face climb across first floor band: attached=True rise=3.56m; no tracked headset.
+32 requested bots / quiet whole island: frames=83 mean=60.78ms / 16.5FPS p95=85.11ms; uncapped desktop Editor, not Quest.
+Bots spawned=32 moved>.5m=32
+32 bots + actual tsunami: frames=1433 mean=77.55ms / 12.9FPS p95=105.98ms; uncapped desktop Editor, not Quest.
+Wave completed=True moved>.5m=6/100; production default height/speed/force.
+Separate DEMOLITION trial: reset intact map, one 22m/s X + 9m/s Z off-centre pulse per district, applied 4m above lower section COM. No bots. Moved>.5m=67/100. Not a production disaster or FPS benchmark.
+COMPLETE runtimeErrors=0

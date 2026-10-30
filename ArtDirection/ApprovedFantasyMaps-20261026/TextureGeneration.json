@@ -1,0 +1,13 @@
+{
+  "tool": "built-in image_gen, no external API or enhancer",
+  "assets": [
+    {
+      "file": "Assets/_DeadlyJenga/Presentation/Visuals/FantasyMaps/Textures/PropolisGrain-v1.png",
+      "prompt": "Production game material texture, seamless tileable square image, flat orthographic texture scan only with no objects, no labels, no perspective or lighting highlights. Rich organic dark brown propolis-coated wood grain for a magical beehive candy game. Long flowing narrow vertical wood fibers, uneven wavy natural grain, subtle amber resin veins and knots, detailed fine pores, sophisticated stylized hand-painted realism. Mostly medium-dark walnut and caramel amber, no sharp black lines, no coarse evenly spaced stripes, no circular plank borders, no boards or seams. Even diffuse unlit lighting, suitable as repeating albedo/color and subtle height detail mapped onto tall wood posts. Fill entire square edge to edge, seamless on all four edges."
+    },
+    {
+      "file": "Assets/_DeadlyJenga/Presentation/Visuals/FantasyMaps/Textures/BeeswaxDetail-v1.png",
+      "prompt": "Production game material texture, seamless tileable square image, flat orthographic texture scan only, no objects, no labels, no perspective, no lighting reflections or shadows. Creamy warm pale beeswax with delicate organic cloudy marbling, tiny irregular wax pores, fine softly mottled ivory and butter-yellow variation and subtle translucent honey speckles. Beautiful polished handmade wax/candy surface, gentle sophisticated detail, not noisy. No hexagon grid, no wood grain, no cracks, no circles or large motifs. Very pale creamy ivory dominant, soft golden variation. Even unlit diffuse albedo suitable for shader tinting and subtle height detail on playable platform tops. Fill the whole square, seamlessly tileable on all four edges."
+    }
+  ]
+}

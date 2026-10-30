@@ -1,0 +1,10 @@
+Enemy movement capture started 2026-10-26T23:58:08.2651787-05:00
+PASS Actual Game session loaded
+PASS Real enemy population available
+PASS Spawned actual mushroom
+PASS mushroom climb setting recorded
+MEASURE mushroom scale=0.65 jumpHeight=9.1 multiplier=5
+PASS mushroom moves through real character motor using staged forward input
+MEASURE before jump grounded=True inputSuspended=False canJump=True
+PASS mushroom leaves ground through real jump command
+COMPLETE; errors=0. Actual desktop Editor; staged driver input and temporary inspection arena. No Quest or autonomous navigation verification.

@@ -1,0 +1,81 @@
+Final native acceptance combines the common ten-district run with targeted rechecks after mezzanine and landing changes. Each section is an actual Unity PhysX run with the production layout/member code, ordinary dynamic bodies and a flat test foundation. Materials are stand-ins; live-game captures use the real project. Native step timings are not FPS.
+
+DISTRICT 0 Interleaved Bookends solver=12/4 bodies=42 colliders=258
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.3331m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/42 meanNativeStep=0.101ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2952 capsuleClear=2432 halfMetreBands=64. Surface coverage, not route completion.
+RELEASE 0000 · Interleaved Bookends · Bookend bearing plinth otherMoved>.5m=2/41
+
+
+DISTRICT 1 Branch Mesa Forest solver=12/4 bodies=59 colliders=101
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.3338m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/59 meanNativeStep=0.112ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1193 capsuleClear=607 halfMetreBands=22. Surface coverage, not route completion.
+RELEASE 0001 · Branch Mesa Forest · Mesa leg otherMoved>.5m=7/58
+
+
+DISTRICT 2 Broken-Ring Canyon solver=12/4 bodies=31 colliders=247
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.3377m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/31 meanNativeStep=0.077ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2621 capsuleClear=1433 halfMetreBands=70. Surface coverage, not route completion.
+RELEASE 0000 · Broken-Ring Canyon · Open C terrace otherMoved>.5m=9/30
+
+
+DISTRICT 3 Folded Ribbon Gorge solver=12/4 bodies=145 colliders=181
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.4677m maxTilt=3.076deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/145 meanNativeStep=0.115ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1560 capsuleClear=864 halfMetreBands=29. Surface coverage, not route completion.
+RELEASE 0004 · Folded Ribbon Gorge · Bearing pier otherMoved>.5m=3/144
+
+
+DISTRICT 4 Reciprocal Crown Bazaar solver=12/4 bodies=150 colliders=198
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.3626m maxTilt=0.973deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/150 meanNativeStep=0.123ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1984 capsuleClear=1060 halfMetreBands=24. Surface coverage, not route completion.
+RELEASE 0001 · Reciprocal Crown Bazaar · Reciprocal outer pier otherMoved>.5m=4/149
+COMPLETE 10 districts; gravity, collisions and native support release. No bots, gameplay movement, networking or tsunami in this isolated runner.
+
+DISTRICT 5 Skyrail Shipyard solver=12/4 bodies=43 colliders=163
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.2255m maxTilt=1.868deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/43 meanNativeStep=0.082ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1844 capsuleClear=978 halfMetreBands=37. Surface coverage, not route completion.
+RELEASE 0001 · Skyrail Shipyard · Bearing pier otherMoved>.5m=3/42
+
+
+DISTRICT 6 Domino Portal Quarter solver=12/4 bodies=49 colliders=392
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.3299m maxTilt=0.000deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/49 meanNativeStep=0.116ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=5227 capsuleClear=4336 halfMetreBands=39. Surface coverage, not route completion.
+RELEASE 0000 · Domino Portal Quarter · Domino portal page otherMoved>.5m=2/48
+
+
+DISTRICT 7 Keystone Vault District solver=32/8 bodies=80 colliders=146
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.4276m maxTilt=1.696deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/80 meanNativeStep=0.407ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=1638 capsuleClear=612 halfMetreBands=37. Surface coverage, not route completion.
+RELEASE 0003 · Keystone Vault District · Loose arch keystone otherMoved>.5m=35/79
+
+
+DISTRICT 8 Rolling Borough solver=12/4 bodies=32 colliders=144
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.1384m maxTilt=0.247deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/32 meanNativeStep=0.070ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=2464 capsuleClear=928 halfMetreBands=34. Surface coverage, not route completion.
+RELEASE 0001 · Rolling Borough · Loose drum cradle otherMoved>.5m=1/31
+
+
+DISTRICT 9 Counterweight Sky Harbor solver=12/16 bodies=38 colliders=266
+GEOMETRY overlaps>.04m=0 deepest=0.000
+SETTLE 15s maxDrift=0.2734m maxTilt=1.517deg rmsSpeed=0.0000m/s moved>.6m=0 awake=0/38 meanNativeStep=0.087ms. Native-only timing, not FPS.
+CONTRACT rootCollider=True registeredClimb=True invalidCountRejected=True replica=True dynamic=True
+PRODUCTION BOT SAMPLER points=3308 capsuleClear=2684 halfMetreBands=48. Surface coverage, not route completion.
+RELEASE 0002 · Counterweight Sky Harbor · Removable heel counterweight otherMoved>.5m=1/37
+COMPLETE 10 districts; gravity, collisions and native support release. No bots, gameplay movement, networking or tsunami in this isolated runner.

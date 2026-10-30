@@ -1,0 +1,50 @@
+fileFormatVersion: 2
+guid: 9f8fb5221e7749749e0c63ca2d53e437
+TextureImporter:
+  externalObjects: {}
+  serializedVersion: 13
+  mipmaps:
+    mipMapMode: 0
+    enableMipMap: 1
+    sRGBTexture: 1
+  isReadable: 0
+  textureFormat: 1
+  maxTextureSize: 1024
+  textureSettings:
+    serializedVersion: 2
+    filterMode: 1
+    aniso: 1
+    mipBias: 0
+    wrapU: 1
+    wrapV: 1
+    wrapW: 1
+  nPOTScale: 0
+  alphaIsTransparency: 0
+  textureType: 0
+  textureShape: 1
+  textureCompression: 1
+  compressionQuality: 70
+  platformSettings:
+  - serializedVersion: 4
+    buildTarget: DefaultTexturePlatform
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 70
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 1024
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 1
+    compressionQuality: 70
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 1
+  userData: User supplied mode artwork
+  assetBundleName:
+  assetBundleVariant:

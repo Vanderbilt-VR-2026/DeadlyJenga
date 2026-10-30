@@ -1,0 +1,237 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &1651196650816925453
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 3941058763196812360}
+  - component: {fileID: 4913568312279180884}
+  - component: {fileID: 8370180220514919249}
+  m_Layer: 0
+  m_Name: Mode_epic-cloud-carnival
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &3941058763196812360
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1651196650816925453}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 2821678834851652140}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4913568312279180884
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1651196650816925453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a29fd681ac40958499fd93197b8628bb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.CastlePrototype.EpicCityMap
+  design: 8
+  palette:
+  - {fileID: 2100000, guid: 40f7178f968edb346a677f67a87f8336, type: 2}
+  - {fileID: 2100000, guid: 2fe2db55d7ae2104289af7010e92bdb0, type: 2}
+  - {fileID: 2100000, guid: 573c627f58d1d6c4c890005ceb85e589, type: 2}
+  - {fileID: 2100000, guid: a61916a11c706c444a49fc6a01bc6d05, type: 2}
+  friction: {fileID: 13400000, guid: 194d9f5483b630840955a7f1d488ab6f, type: 2}
+  foundation: {fileID: 2821678834851652140}
+  islandCollision: {fileID: 4300000, guid: 151eddbdc582cf9408c75cc86b6631a2, type: 2}
+  generateOnStart: 1
+  solverIterations: 16
+  velocityIterations: 8
+  waterReferenceArea: 12.25
+  minimumWaterResistance: 0.65
+--- !u!114 &8370180220514919249
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1651196650816925453}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 071e57eb6b8fcae4684742da56cb3e31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: DeadlyJenga.Presentation::DeadlyJenga.Presentation.FantasyMapArt
+  theme: 1
+  texturedCarnivalSky: 1
+  texturedEnvironmentSky: 0
+  blockMaterials:
+  - {fileID: 2100000, guid: 40f7178f968edb346a677f67a87f8336, type: 2}
+  - {fileID: 2100000, guid: 2fe2db55d7ae2104289af7010e92bdb0, type: 2}
+  - {fileID: 2100000, guid: 573c627f58d1d6c4c890005ceb85e589, type: 2}
+  - {fileID: 2100000, guid: a61916a11c706c444a49fc6a01bc6d05, type: 2}
+  groundMaterial: {fileID: 2100000, guid: cd1c88a11b700bc448f9367100dc794f, type: 2}
+  cloudMaterial: {fileID: 2100000, guid: 36dbb4ceed3f0b84891eaebe5171a819, type: 2}
+  goldMaterial: {fileID: 2100000, guid: e0b22c90198e8d845ab917ba5df5cd23, type: 2}
+  pinkMaterial: {fileID: 2100000, guid: bb89f9f540a817d4e9bf3db86b40435e, type: 2}
+  blueMaterial: {fileID: 2100000, guid: b6dfcde41fe7e1f479c586f1db7a718b, type: 2}
+  darkMaterial: {fileID: 2100000, guid: 21af4f4f375d7c04792119c314f12170, type: 2}
+  skyMaterial: {fileID: 2100000, guid: 4a0a9ffc4f82efd4a8a1e251dc05e377, type: 2}
+  ground: {fileID: 4103648508535596653}
+  halfWidth: 184.11575
+  halfDepth: 183.72241
+--- !u!1 &3678964858286606340
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 4193924806978209037}
+  - component: {fileID: 9193504650079720859}
+  - component: {fileID: 4103648508535596653}
+  m_Layer: 0
+  m_Name: Visual
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &4193924806978209037
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3678964858286606340}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 2821678834851652140}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!33 &9193504650079720859
+MeshFilter:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3678964858286606340}
+  m_Mesh: {fileID: 4300000, guid: 151eddbdc582cf9408c75cc86b6631a2, type: 2}
+--- !u!23 &4103648508535596653
+MeshRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 3678964858286606340}
+  m_Enabled: 1
+  m_CastShadows: 1
+  m_ReceiveShadows: 1
+  m_DynamicOccludee: 1
+  m_StaticShadowCaster: 0
+  m_MotionVectors: 1
+  m_LightProbeUsage: 1
+  m_ReflectionProbeUsage: 1
+  m_RayTracingMode: 2
+  m_RayTraceProcedural: 0
+  m_RayTracingAccelStructBuildFlagsOverride: 0
+  m_RayTracingAccelStructBuildFlags: 1
+  m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
+  m_RenderingLayerMask: 1
+  m_RendererPriority: 0
+  m_Materials:
+  - {fileID: 2100000, guid: 380d8085f7f2b4749b3966bbcc071891, type: 2}
+  m_StaticBatchInfo:
+    firstSubMesh: 0
+    subMeshCount: 0
+  m_StaticBatchRoot: {fileID: 0}
+  m_ProbeAnchor: {fileID: 0}
+  m_LightProbeVolumeOverride: {fileID: 0}
+  m_ScaleInLightmap: 1
+  m_ReceiveGI: 1
+  m_PreserveUVs: 0
+  m_IgnoreNormalsForChartDetection: 0
+  m_ImportantGI: 0
+  m_StitchLightmapSeams: 1
+  m_SelectedEditorRenderState: 3
+  m_MinimumChartSize: 4
+  m_AutoUVMaxDistance: 0.5
+  m_AutoUVMaxAngle: 89
+  m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 0
+  m_MaskInteraction: 0
+  m_AdditionalVertexStreams: {fileID: 0}
+--- !u!1 &9059156610498570645
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2821678834851652140}
+  - component: {fileID: 8368869499892041704}
+  m_Layer: 0
+  m_Name: Shore matched continuous city terrain
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2821678834851652140
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9059156610498570645}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 4193924806978209037}
+  m_Father: {fileID: 3941058763196812360}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!64 &8368869499892041704
+MeshCollider:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 9059156610498570645}
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_LayerOverridePriority: 0
+  m_IsTrigger: 0
+  m_ProvidesContacts: 0
+  m_Enabled: 1
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: 4300000, guid: 151eddbdc582cf9408c75cc86b6631a2, type: 2}

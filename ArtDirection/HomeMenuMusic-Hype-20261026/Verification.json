@@ -1,0 +1,45 @@
+{
+  "checks": [
+    {
+      "id": "01-critical-mass",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.89,
+      "truePeakDbTP": -4.14
+    },
+    {
+      "id": "02-collapse-protocol",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.85,
+      "truePeakDbTP": -4.01
+    },
+    {
+      "id": "03-overdrive-island",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.65,
+      "truePeakDbTP": -4.15
+    },
+    {
+      "id": "04-neon-aftershock",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.68,
+      "truePeakDbTP": -4.45
+    },
+    {
+      "id": "05-chaos-engine",
+      "wav": "48 kHz stereo 24-bit PCM",
+      "mp3Decode": "passed",
+      "silenceLongerThanOneSecond": false,
+      "integratedLUFS": -16.75,
+      "truePeakDbTP": -2.76
+    }
+  ],
+  "scope": "Automated file, decode, silence, peak and synthesis-loop-boundary checks. No in-game or headset audition performed. Musical loop suitability remains an audition decision."
+}

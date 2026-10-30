@@ -3,6 +3,8 @@ using System.IO;
 using UnityEngine;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CandyPhysicsHands;
+using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.CharacterNetwork
 {
@@ -17,7 +19,11 @@ namespace DeadlyJenga.CharacterNetwork
         public static CandyHandPose ReadHandPose(BinaryReader r)
         {
             var p = new CandyHandPose { tracked = r.ReadBoolean(), skeletonTracked = r.ReadBoolean(), position = NetWire.ReadVector(r), rotation = NetWire.ReadRotation(r) };
-            for (int i = 0; i < 20; i++) p.skeleton.SetJoint(i, NetWire.ReadVector(r));
+            for (int i = 0; i < 20; i++)
+            {
+                var joint=NetWire.ReadVector(r);if(joint.sqrMagnitude>.09f)throw new InvalidDataException("Hand joint outside wrist range");
+                p.skeleton.SetJoint(i,joint);
+            }
             return p;
         }
 
@@ -33,6 +39,31 @@ namespace DeadlyJenga.CharacterNetwork
             if (frame.scale < .1f || frame.scale > 2) throw new InvalidDataException("Invalid avatar scale");
             color = r.ReadInt32();
         }
+        const int AppearanceMagic=0x41565031;
+        public static void WriteSurvivor(BinaryWriter w,CandyAvatarFrame frame,int color,AvatarAppearance appearance,IEnemyActor enemy=null,IBlasterControls blaster=null,byte remoteBlaster=0)
+        {
+            WriteSurvivor(w,frame,color);w.Write(AppearanceMagic);w.Write((uint)(appearance.accessories&CandyPlayerAvatar.SupportedAccessories));
+            bool npc=enemy?.IsEnemy==true;w.Write(npc);if(npc)w.Write(Mathf.Clamp(enemy.HitDamage,1,99));
+            w.Write(blaster==null?(byte)(remoteBlaster&3):(byte)((blaster.Drawn?1:0)|(blaster.LeftHanded?2:0)));
+            int archetype=npc?(enemy.ArchetypeId=="mushroom"?1:enemy.ArchetypeId=="longhand"?4:enemy.ArchetypeId=="gum-brute"?8:0):0;
+            w.Write(CandyPlayerAvatar.StyleBits(appearance));w.Write((byte)(archetype|(npc&&enemy is IEnemyPose pose&&pose.PreparingMelee?2:0)));if(npc){var actor=(enemy as Component)?.GetComponent<IModeActor>();w.Write(actor!=null?Mathf.Clamp01(actor.Health/Mathf.Max(1,actor.MaxHealth)):1f);}
+        }
+        public static void ReadSurvivor(BinaryReader r,out CandyAvatarFrame frame,out int color,out AvatarAppearance appearance,out EnemySpawnSettings enemy)
+        {ReadSurvivor(r,out frame,out color,out appearance,out enemy,out _);}
+        public static void ReadSurvivor(BinaryReader r,out CandyAvatarFrame frame,out int color,out AvatarAppearance appearance,out EnemySpawnSettings enemy,out byte blaster)
+        {
+            ReadSurvivor(r,out frame,out color);appearance=default;enemy=null;blaster=0;
+            if(r.BaseStream.Position==r.BaseStream.Length)return;
+            if(r.ReadInt32()!=AppearanceMagic)throw new InvalidDataException("Unknown survivor appearance extension");
+            uint bits=r.ReadUInt32();if((bits&~(uint)CandyPlayerAvatar.SupportedAccessories)!=0)throw new InvalidDataException("Unknown avatar attachment");
+            appearance.accessories=(AvatarAccessory)bits;
+            if(r.ReadBoolean()){float damage=NetWire.ReadNumber(r);if(damage<1||damage>99)throw new InvalidDataException("Invalid enemy damage");enemy=new EnemySpawnSettings{hitDamage=damage};}
+            if(r.BaseStream.Position<r.BaseStream.Length){blaster=r.ReadByte();if((blaster&~3)!=0)throw new InvalidDataException("Invalid blaster flags");}
+            if(r.BaseStream.Position<r.BaseStream.Length){uint style=r.ReadUInt32();if((style&0xC0000000u)!=0||((style&7)|(((style>>20)&15)<<3))>(uint)AvatarSkin.DiscoAlien)throw new InvalidDataException("Invalid avatar style");appearance=CandyPlayerAvatar.WithStyle(appearance,style);}
+            if(r.BaseStream.Position<r.BaseStream.Length){byte archetype=r.ReadByte();if((archetype&~15)!=0||((archetype&13)!=0&&(archetype&13)!=1&&(archetype&13)!=4&&(archetype&13)!=8)||archetype!=0&&enemy==null)throw new InvalidDataException("Invalid enemy archetype");if(enemy!=null){enemy.archetypeId=(archetype&1)!=0?"mushroom":(archetype&4)!=0?"longhand":(archetype&8)!=0?"gum-brute":"panther";enemy.preparingMelee=(archetype&2)!=0;}}
+            if(enemy!=null&&r.BaseStream.Position<r.BaseStream.Length){enemy.healthRatio=NetWire.ReadNumber(r);if(enemy.healthRatio<0||enemy.healthRatio>1)throw new InvalidDataException("Invalid enemy health");}
+            if(r.BaseStream.Position!=r.BaseStream.Length)throw new InvalidDataException("Trailing survivor appearance data");
+        }
 
         // Hand: handedness, size, finger target and (when simulated) the 16 bone poses.
         public static void WriteHand(BinaryWriter w, bool left, float size, CandyHandPose target, Rigidbody[] bodies)
@@ -47,14 +78,64 @@ namespace DeadlyJenga.CharacterNetwork
             int count = bones != null ? bones.Length : 0; w.Write(count);
             for (int i = 0; i < count; i++) NetWire.Write(w, bones[i]);
         }
+        const int SeaMagic=0x53454131;
+        public sealed class SeaFrame
+        {
+            public Pose bust,leftShoulder,rightShoulder;
+            public byte[] left,right;
+        }
+        static byte[] HandBytes(CastleHandActor actor)
+        {
+            using(var stream=new MemoryStream())using(var writer=new BinaryWriter(stream))
+            {
+                actor.GetComponent<CandyFlyingHandBridge>().WriteState(writer);return stream.ToArray();
+            }
+        }
+        public static void WriteSeaSpirit(BinaryWriter w,SeaSpiritController spirit)
+        {
+            WriteSeaSpirit(w,new SeaFrame{bust=new Pose(spirit.BustAnchor.position,spirit.BustAnchor.rotation),
+                leftShoulder=new Pose(spirit.LeftShoulder.position,spirit.LeftShoulder.rotation),
+                rightShoulder=new Pose(spirit.RightShoulder.position,spirit.RightShoulder.rotation),left=HandBytes(spirit.LeftHand),right=HandBytes(spirit.RightHand)});
+        }
+        public static void WriteSeaSpirit(BinaryWriter w,SeaFrame frame)
+        {
+            w.Write(SeaMagic);w.Write((byte)1);NetWire.Write(w,frame.bust);NetWire.Write(w,frame.leftShoulder);NetWire.Write(w,frame.rightShoulder);
+            w.Write(frame.left.Length);w.Write(frame.left);w.Write(frame.right.Length);w.Write(frame.right);
+        }
+        public static SeaFrame ReadSeaSpirit(BinaryReader r)
+        {
+            if(r.BaseStream.Position==r.BaseStream.Length)return null;
+            if(r.ReadInt32()!=SeaMagic||r.ReadByte()!=1)throw new InvalidDataException("Unknown hand extension");
+            var frame=new SeaFrame{bust=NetWire.ReadPose(r),leftShoulder=NetWire.ReadPose(r),rightShoulder=NetWire.ReadPose(r)};
+            ValidateLocation(frame.bust.position);ValidateLocation(frame.leftShoulder.position);ValidateLocation(frame.rightShoulder.position);
+            frame.left=ReadPayload(r);frame.right=ReadPayload(r);return frame;
+        }
+        static byte[] ReadPayload(BinaryReader r)
+        {
+            int count=NetWire.ReadCount(r,2048);var bytes=r.ReadBytes(count);
+            if(bytes.Length!=count)throw new EndOfStreamException();return bytes;
+        }
+        public static void ValidateLocation(Vector3 point)
+        {
+            if(Services.World==null)return;
+            var bounds=Services.World.PlayableBounds;bounds.Expand(Mathf.Max(100,bounds.size.magnitude*4));
+            if(!bounds.Contains(point))throw new InvalidDataException("Hand outside reachable map area");
+        }
         public static void ReadHand(BinaryReader r, out bool left, out float size, out CandyHandPose target, out Pose[] bones)
         {
             left = r.ReadBoolean(); size = NetWire.ReadNumber(r);
             if (size < .1f || size > 100) throw new InvalidDataException("Invalid hand size");
             target = ReadHandPose(r);
+            ValidateLocation(target.position);
+            if(!CandyHandTransition.IsValidPose(target))throw new InvalidDataException("Invalid hand skeleton");
+            for(int j=0;j<20;j++)if(target.skeleton.Joint(j).sqrMagnitude>.09f)throw new InvalidDataException("Hand joint outside wrist range");
             bones = new Pose[NetWire.ReadCount(r, 16)];
             if (bones.Length != 0 && bones.Length != 16) throw new InvalidDataException("Invalid hand bones");
-            for (int i = 0; i < bones.Length; i++) bones[i] = NetWire.ReadPose(r);
+            for (int i = 0; i < bones.Length; i++)
+            {
+                bones[i] = NetWire.ReadPose(r);ValidateLocation(bones[i].position);
+                if(Vector3.Distance(bones[i].position,target.position)>size+5)throw new InvalidDataException("Hand bone outside wrist reach");
+            }
         }
     }
 }

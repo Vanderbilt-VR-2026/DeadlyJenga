@@ -1,0 +1,4 @@
+Mushroom creature with candy glaze. Use full patch if original creature has not been integrated; otherwise use incremental patch. Never apply both.
+Same RGB palette, high gloss and existing health shader reflection sample reused. CandyGlaze defaults zero for unchanged characters. No new textures, renderers, physics, Core or network state.
+Cap curve is subdivided and seam normals are averaged; adds 861 vertices / 1680 triangles to the shared cap mesh. Other shell seams also smoothed.
+15 actual desktop Game checks passed with zero errors: shell, original jump/traversal settings, color/gloss preservation, damage, skin restoration, movement. No Quest FPS or two-client evidence.

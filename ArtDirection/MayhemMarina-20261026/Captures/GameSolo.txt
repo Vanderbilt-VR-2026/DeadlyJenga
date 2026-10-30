@@ -1,0 +1,5 @@
+Actual Game.unity solo smoke test with Marina sources installed; shared lobby hooks remain pending.
+PASS Actual Game.unity session exists
+PASS Game.unity actual solo player is alive
+PASS Game.unity actual map blocks are loaded
+COMPLETE failed=False runtimeErrors=0

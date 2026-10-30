@@ -1,0 +1,32 @@
+Sparse structural maps · hybrid
+Real Unity isolated rigidbody simulation; not GPU/FPS, bot, headset or live network certification.
+MAP festival-megastructure: 512 bodies; 223.2 x 138.8m; height 51.3m; gravity only, no bonds or joints.
+PASS festival-megastructure: explicit map body budget <=1000
+PASS festival-megastructure: finite positive geometry
+PASS festival-megastructure: deterministic stable member order
+PASS festival-megastructure: no penetrating members 
+PASS festival-megastructure: each raised center is inside its actual bearing polygon 
+PASS festival-megastructure: selectable map prefab saved
+REGISTERED map choices in Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset
+AUTHORING COMPLETE failures=0. Runtime validation pending. No team scene was saved.
+PASS festival-megastructure: all authored members use independent dynamic gravity
+PASS festival-megastructure: no stabilizing joints
+SETTLE festival-megastructure: 8s; maximum drift=0.0715m; tilt=0.000deg; awake=0/512.
+PASS festival-megastructure: unforced structure stays within .5m / 5deg during settling
+PASS festival-megastructure: safe spawn has standing capsule clearance
+COLLAPSE festival-megastructure: remove member 0; moved>.5m=0; native physics average settled=0.356ms/step, collapse=1.770ms/step. These timings exclude scripts, bots, rendering and character proxies.
+
+PASS festival-megastructure: redundant keep has a second independently removable bearing
+REDUNDANCY festival-megastructure: one corner survived; removing adjacent corner 1 moved 59 members >.5m.
+PASS festival-megastructure: real bearing loss produces gravity-driven displacement without scripted failure
+PASS festival-megastructure: invalid network count leaves live layout unchanged
+PASS festival-megastructure: invalid network scale rejected
+PASS festival-megastructure: replica suspends independent simulation
+PASS festival-megastructure: authority recovery restores dynamic bodies
+PASS festival-megastructure: serialized layout rebuild retains stable member count
+EDITOR FRAMES festival-megastructure [idle, no bots]: median=42.35ms; p90=105.14ms; n=59; bots=0; active=512; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+EDITOR FRAMES festival-megastructure [bots, no wave]: median=56.42ms; p90=72.24ms; n=71; bots=32; active=512; awake=0. Short unfocused Editor samples, not Quest/GPU certification.
+BOT OBSERVATION festival-megastructure: spawned 32/32; 32 changed position >.5m over 4 wall-clock seconds. This is a short movement observation, not objective or route completion.
+EDITOR FRAMES festival-megastructure [bots + actual tsunami]: median=75.30ms; p90=606.08ms; n=35; bots=32; active=512; awake=510. Short unfocused Editor samples, not Quest/GPU certification.
+WAVE DISPLACEMENT festival-megastructure: 0/512 members moved >.5m during the early wave sample. Default wave force/height retained; route coverage differs by footprint.
+RUNTIME COMPLETE failures=0; Unity runtime errors=0. Actual Game.unity entered Play Mode; no live headset/network peers tested.

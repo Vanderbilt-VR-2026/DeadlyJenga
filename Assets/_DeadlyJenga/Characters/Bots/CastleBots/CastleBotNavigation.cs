@@ -5,7 +5,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
-    public enum CastleBotRoute { Walk, Jump, Vault, Ability, Drop }
+    public enum CastleBotRoute { Walk, Jump, Vault, Ability, Drop, Climb }
     public struct CastleBotLanding
     {
         public Transform surface;
@@ -17,13 +17,46 @@ namespace DeadlyJenga.CastleBots
     }
     public static class CastleBotNavigation
     {
+        public static bool ShouldStageAscent(Vector3 feet,Vector3 destination,bool descendingTransit)
+        {
+            var delta=destination-feet;
+            return !descendingTransit&&delta.y>3&&Vector3.ProjectOnPlane(delta,Vector3.up).magnitude<=Mathf.Max(12,delta.y*1.2f+8);
+        }
         public const int Mask=~((1<<Layers.Survivor)|(1<<Layers.Block));
+        public static int QueryMask=>TraversalCollision.Mask;
         public static bool Ground(Vector3 point,float distance,out RaycastHit hit)
-            =>Physics.Raycast(point,Vector3.down,out hit,distance,Mask,QueryTriggerInteraction.Ignore)&&hit.normal.y>.85f;
+            =>Physics.Raycast(point,Vector3.down,out hit,distance,QueryMask,QueryTriggerInteraction.Ignore)&&hit.normal.y>.4f;
+        public static void SurfaceSamples(Rigidbody body,BoxCollider box,List<Vector3> points)
+        {
+            points.Clear();
+            var anchor=body.transform;var matrix=anchor.localToWorldMatrix;var rotation=anchor.rotation;
+            var size=box.size;var center=box.center;var scale=anchor.lossyScale;
+            for(int face=0;face<6;face++)
+            {
+                int axis=face/2;float sign=face%2==0?1:-1;
+                Vector3 normal=Vector3.zero;normal[axis]=sign;
+                if((rotation*normal).y<.4f)continue;
+                int a=(axis+1)%3,b=(axis+2)%3;
+                for(int x=-1;x<=1;x++)for(int z=-1;z<=1;z++)
+                {
+                    Vector3 local=center;local[axis]+=size[axis]*.5f*sign;
+                    local[a]+=size[a]*x*.37f;local[b]+=size[b]*z*.37f;
+                    points.Add(matrix.MultiplyPoint3x4(local));
+                }
+                int longAxis=size[a]*scale[a]>=size[b]*scale[b]?a:b;
+                int shortAxis=longAxis==a?b:a;
+                if(size[longAxis]*scale[longAxis]>size[shortAxis]*scale[shortAxis]*1.5f)
+                    for(int side=-1;side<=1;side+=2)
+                    {
+                        var local=center;local[axis]+=size[axis]*.5f*sign;local[longAxis]+=size[longAxis]*side*.185f;
+                        points.Add(matrix.MultiplyPoint3x4(local));
+                    }
+            }
+        }
         public static bool Room(CastleSurvivor motor,Vector3 feet)
         {
             float r=motor.Capsule.radius*.95f;
-            return !Physics.CheckCapsule(feet+Vector3.up*(r+.045f),feet+Vector3.up*(motor.StandingHeight-r+.025f),r,Mask,QueryTriggerInteraction.Ignore);
+            return !Physics.CheckCapsule(feet+Vector3.up*(r+.045f),feet+Vector3.up*(motor.StandingHeight-r+.025f),r,QueryMask,QueryTriggerInteraction.Ignore);
         }
         public static Vector3 TopPoint(Rigidbody rb,BoxCollider box,float fraction)
         {
@@ -41,7 +74,7 @@ namespace DeadlyJenga.CastleBots
             for(int i=1;i<=count;i++)
             {
                 var p=Vector3.Lerp(start,end,(float)i/count);
-                if(!Ground(p+Vector3.up*.25f,.55f,out var hit)||Mathf.Abs(hit.point.y-previous)>.18f)return false;
+                if(!Ground(p+Vector3.up*.25f,.55f,out var hit)||Mathf.Abs(hit.point.y-previous)>Mathf.Max(.18f,distance/count*1.5f))return false;
                 previous=hit.point.y;
             }
             return ClearSegment(motor,start+Vector3.up*.06f,end+Vector3.up*.06f);
@@ -49,7 +82,7 @@ namespace DeadlyJenga.CastleBots
         public static bool ClearSegment(CastleSurvivor motor,Vector3 start,Vector3 end)
         {
             var d=end-start;float r=motor.Capsule.radius*.9f;
-            return d.sqrMagnitude<.00001f||!Physics.CapsuleCast(start+Vector3.up*(r+.025f),start+Vector3.up*(motor.StandingHeight-r),r,d.normalized,d.magnitude,Mask,QueryTriggerInteraction.Ignore);
+            return d.sqrMagnitude<.00001f||!Physics.CapsuleCast(start+Vector3.up*(r+.025f),start+Vector3.up*(motor.StandingHeight-r),r,d.normalized,d.magnitude,QueryMask,QueryTriggerInteraction.Ignore);
         }
         public static bool Route(CastleSurvivor motor,Vector3 end,ICastleBotTraversalAbility[] abilities,out CastleBotRoute route)
         {
@@ -57,29 +90,66 @@ namespace DeadlyJenga.CastleBots
             if(abilities!=null)foreach(var ability in abilities)if(ability.CanReach(motor,end)){route=CastleBotRoute.Ability;return true;}
             return false;
         }
+        public static float MaximumDrop(CastleSurvivor motor)
+        {
+            var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
+            if(rules!=null&&!rules.fallDamage)return 12;
+            return rules!=null?Mathf.Max(.5f,rules.fallDamageStart*.9f):motor.jumpHeight+motor.StandingHeight*2;
+        }
         // Evaluates hypothetical graph edges as well as the bot's current position.
         // The speed output is useful for a controlled walk-off to a lower landing.
         public static bool TryLink(CastleSurvivor motor,Vector3 start,Vector3 end,out CastleBotRoute route,out float speed)
         {
-            route=CastleBotRoute.Walk;speed=motor.walkSpeed;
+            route=CastleBotRoute.Walk;speed=motor.EffectiveWalkSpeed;
             float rise=end.y-start.y,distance=Vector3.ProjectOnPlane(end-start,Vector3.up).magnitude;
-            if(distance<.05f||motor.gravity<=0||motor.walkSpeed<=0)return false;
-            if(Mathf.Abs(rise)<.18f&&Walkable(motor,start,end))return true;
-            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise<-(motor.jumpHeight+motor.StandingHeight*2))return false;
+            if(distance<.05f||motor.gravity<=0||motor.EffectiveWalkSpeed<=0)return false;
+            if(Mathf.Abs(rise)<Mathf.Max(.18f,distance*1.4f)&&Walkable(motor,start,end))return true;
+            if(rise>0&&ClimbLink(motor,start,end,out _)){route=CastleBotRoute.Climb;speed=motor.climbSpeed;return true;}
+            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise< -MaximumDrop(motor))return false;
+            var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
             if(rise<-.3f&&DropArc(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
-            if(rise<-.3f&&DropCatch(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
-            speed=motor.walkSpeed;
+            if(rise<-.3f&&(rules==null||rules.canVault)&&DropCatch(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
+            if(rules!=null&&!rules.canJump)return false;
+            speed=motor.EffectiveWalkSpeed;
             float v=Mathf.Sqrt(2*motor.gravity*motor.jumpHeight),disc=v*v-2*motor.gravity*rise;
             if(disc>=0)
             {
                 float duration=(v+Mathf.Sqrt(disc))/motor.gravity;
-                if(distance<=motor.walkSpeed*duration*.96f&&JumpArc(motor,start,end,duration,v))
+                if(distance<=motor.EffectiveWalkSpeed*duration*.96f&&JumpArc(motor,start,end,duration,v))
                 {route=CastleBotRoute.Jump;speed=distance/duration;return true;}
             }
             // A real face may be out of reach at takeoff but reachable near the apex.
             // Search the actual airborne intercept instead of requiring a ground-level face.
-            if(VaultIntercept(motor,start,end,v,out float interceptSpeed)){route=CastleBotRoute.Vault;speed=interceptSpeed;return true;}
+            if((rules==null||rules.canVault)&&VaultIntercept(motor,start,end,v,out float interceptSpeed)){route=CastleBotRoute.Vault;speed=interceptSpeed;return true;}
             return false;
+        }
+        public static bool ClimbLink(CastleSurvivor motor,Vector3 start,Vector3 end,out RaycastHit face)
+        {
+            face=default;
+            var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
+            if(!motor.climbingEnabled||motor.CarryingFlag||rules!=null&&(!rules.canClimb||!rules.canVault))return false;
+            float rise=end.y-start.y;
+            if(!Ground(end+Vector3.up*.18f,.4f,out var top)||top.normal.y<.85f)return false;
+            float reach=motor.Capsule.radius+.48f*motor.playerScale;
+            float budget=motor.climbSpeed*Mathf.Max(.2f,motor.climbGripSeconds)*Mathf.Max(.15f,motor.GripRemaining)*.65f;
+            if(rise<.2f||rise>budget)return false;
+            var flat=Vector3.ProjectOnPlane(end-start,Vector3.up);if(flat.magnitude>Mathf.Max(2,reach+1))return false;
+            Vector3 direction=flat.normalized;if(direction.sqrMagnitude<.1f)return false;
+            if(!Physics.Raycast(start+Vector3.up*motor.StandingHeight*.85f,direction,out face,flat.magnitude+reach,TraversalCollision.ClimbMask,QueryTriggerInteraction.Ignore))return false;
+            if(Mathf.Abs(face.normal.y)>.55f||!Climbables.TryGet(face.collider,out var climbable)||!climbable.CanClimb)return false;
+            if(MatchRuntime.Current!=null&&!MatchRuntime.Current.CanClimb(motor.gameObject,climbable))return false;
+            var normal=face.normal;Vector3 basePoint=face.point+normal*(motor.Capsule.radius+.04f);
+            basePoint.y=start.y;
+            for(float h=motor.StandingHeight*.5f;h<rise-.15f;h+=Mathf.Max(.2f,motor.StandingHeight*.6f))
+            {
+                Vector3 probe=basePoint+Vector3.up*h;
+                bool found=false;
+                for(int offset=-1;offset<=1&&!found;offset++)
+                    found=Physics.Raycast(probe+Vector3.up*(offset*motor.climbSeamReach*motor.playerScale),-normal,out var hit,reach+.2f,TraversalCollision.ClimbMask,QueryTriggerInteraction.Ignore)
+                        &&Mathf.Abs(hit.normal.y)<.55f&&Climbables.TryGet(hit.collider,out var owner)&&owner.CanClimb;
+                if(!found)return false;
+            }
+            return true;
         }
         static bool JumpArc(CastleSurvivor motor,Vector3 start,Vector3 end,float duration,float v)
         {
@@ -98,7 +168,7 @@ namespace DeadlyJenga.CastleBots
             var flat=Vector3.ProjectOnPlane(end-start,Vector3.up);var direction=flat.normalized;
             if(!Ground(end+Vector3.up*.18f,.4f,out var top))return false;
             var faceStart=new Vector3(start.x,top.point.y-.1f,start.z);
-            if(!Physics.Raycast(faceStart,direction,out var face,flat.magnitude+.05f,Mask,QueryTriggerInteraction.Ignore)||face.collider!=top.collider||Mathf.Abs(face.normal.y)>.35f)return false;
+            if(!Physics.Raycast(faceStart,direction,out var face,flat.magnitude+.05f,QueryMask,QueryTriggerInteraction.Ignore)||face.collider!=top.collider||Mathf.Abs(face.normal.y)>.35f)return false;
             float faceDistance=Vector3.Dot(face.point-start,direction);
             float standOff=motor.Capsule.radius+.06f;
             if(faceDistance<standOff)return false;
@@ -108,7 +178,7 @@ namespace DeadlyJenga.CastleBots
             {
                 float t=v/motor.gravity*Mathf.Lerp(.65f,1.65f,sample/6f);
                 float y=start.y+v*t-.5f*motor.gravity*t*t,rise=top.point.y-y;
-                if(rise<.08f||rise>motor.vaultMaxRise-.04f||horizontal/t>motor.walkSpeed*.96f)continue;
+                if(rise<.08f||rise>motor.vaultMaxRise-.04f||horizontal/t>motor.EffectiveWalkSpeed*.96f)continue;
                 var intercept=start+direction*horizontal;intercept.y=y;
                 var last=start+Vector3.up*.06f;bool clear=true;
                 int steps=Mathf.Clamp(Mathf.CeilToInt(horizontal/.3f),6,20);
@@ -134,7 +204,7 @@ namespace DeadlyJenga.CastleBots
             if(!found)return false;
             float clearEdge=edge+motor.Capsule.radius+.04f,fallTime=Mathf.Sqrt(2*(start.y-end.y)/motor.gravity);
             speed=(distance-clearEdge)/Mathf.Max(.01f,fallTime);
-            if(speed<.35f||speed>motor.walkSpeed*.96f)return false;
+            if(speed<.35f||speed>motor.EffectiveWalkSpeed*.96f)return false;
             float leaveTime=clearEdge/speed,total=leaveTime+fallTime;var last=start+Vector3.up*.06f;
             int steps=Mathf.Clamp(Mathf.CeilToInt(distance/.22f),8,28);
             for(int i=1;i<=steps;i++)
@@ -149,7 +219,7 @@ namespace DeadlyJenga.CastleBots
             speed=0;var flat=Vector3.ProjectOnPlane(end-start,Vector3.up);var dir=flat.normalized;
             if(!Ground(end+Vector3.up*.18f,.4f,out var top))return false;
             var faceStart=new Vector3(start.x,top.point.y-.1f,start.z);
-            if(!Physics.Raycast(faceStart,dir,out var face,flat.magnitude+.05f,Mask,QueryTriggerInteraction.Ignore)||face.collider!=top.collider||Mathf.Abs(face.normal.y)>.35f)return false;
+            if(!Physics.Raycast(faceStart,dir,out var face,flat.magnitude+.05f,QueryMask,QueryTriggerInteraction.Ignore)||face.collider!=top.collider||Mathf.Abs(face.normal.y)>.35f)return false;
             float exit=-1;
             for(float d=.1f;d<flat.magnitude;d+=.12f)
                 if(!Ground(start+dir*d+Vector3.up*.2f,.42f,out var hit)||Mathf.Abs(hit.point.y-start.y)>.2f){exit=Mathf.Max(0,d-.12f)+motor.Capsule.radius+.04f;break;}
@@ -161,7 +231,7 @@ namespace DeadlyJenga.CastleBots
                 float rise=Mathf.Lerp(.2f,motor.vaultMaxRise*.8f,sample/2f);
                 float fallTime=Mathf.Sqrt(2*(start.y-top.point.y+rise)/motor.gravity);
                 float trialSpeed=(catchDistance-exit)/fallTime;
-                if(trialSpeed<.35f||trialSpeed>motor.walkSpeed*.96f)continue;
+                if(trialSpeed<.35f||trialSpeed>motor.EffectiveWalkSpeed*.96f)continue;
                 float leave=exit/trialSpeed,total=leave+fallTime;var last=start+Vector3.up*.06f;bool clear=true;
                 int steps=Mathf.Clamp(Mathf.CeilToInt(catchDistance/.22f),8,28);
                 for(int i=1;i<=steps;i++)
@@ -176,18 +246,51 @@ namespace DeadlyJenga.CastleBots
             }
             return false;
         }
+        public static bool GroundStep(CastleBotBrain bot,out CastleBotLanding landing)
+        {
+            landing=default;var motor=bot.Motor;
+            if(!motor.Grounded||!motor.StandingSurface)return false;
+            var delta=Vector3.ProjectOnPlane(bot.TripDestination-bot.transform.position,Vector3.up);if(delta.magnitude<.7f)return false;
+            float best=float.NegativeInfinity;bool found=false;
+            for(int bearing=0;bearing<9;bearing++)
+            {
+                float angle=bearing==0?0:(bearing%2==0?1:-1)*((bearing+1)/2)*40;
+                for(int length=0;length<3;length++)
+                {
+                    float step=Mathf.Min(delta.magnitude-.35f,length==0?2.5f:length==1?1.2f:.6f);
+                    var probe=bot.transform.position+Quaternion.Euler(0,angle,0)*delta.normalized*step;
+                    if(!Ground(probe+Vector3.up*.5f,1,out var floor)||Mathf.Abs(floor.point.y-bot.transform.position.y)>.25f)continue;
+                    if(!Room(motor,floor.point+Vector3.up*.04f)||!Walkable(motor,bot.transform.position,floor.point))continue;
+                    float score=bot.JourneyProgress(floor.point)-Mathf.Abs(angle)*.004f-bot.Population.ThreatCost(floor.point)-bot.RecentStopCost(floor.point)*2-bot.Population.Crowding(floor.point,bot);
+                    if(score<=best)continue;best=score;found=true;
+                    landing=new CastleBotLanding{surface=floor.transform,body=floor.rigidbody,local=floor.transform.InverseTransformPoint(floor.point),route=CastleBotRoute.Walk};
+                }
+            }
+            return found;
+        }
         public static void Nearby(CastleBotBrain bot,List<CastleBotLanding> candidates)
         {
             candidates.Clear();var motor=bot.Motor;var feet=motor.transform.position;
+            var samples=new List<Vector3>(18);
+            var toward=Vector3.ProjectOnPlane(bot.TripDestination-feet,Vector3.up).normalized;
+            if(toward.sqrMagnitude<.1f)toward=bot.WanderDirection;
+            for(int bearing=0;bearing<5;bearing++)
+            {
+                float angle=bearing==0?0:(bearing%2==0?1:-1)*((bearing+1)/2)*35;
+                var direction=Quaternion.Euler(0,angle,0)*toward;
+                var probe=feet+direction*2.5f;
+                if(!Ground(probe+Vector3.up*.8f,1.5f,out var terrain))continue;
+                candidates.Add(new CastleBotLanding{surface=terrain.transform,body=terrain.rigidbody,local=terrain.transform.InverseTransformPoint(terrain.point),score=bot.JourneyProgress(terrain.point)-Mathf.Abs(angle)*.01f-bot.Population.ThreatCost(terrain.point)});
+            }
             foreach(var rb in bot.Population.Session.world.Blocks)
             {
-                if(!rb||!rb.gameObject.activeInHierarchy||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.93f)continue;
-                if(Mathf.Abs(rb.position.y-feet.y)>6||Vector3.ProjectOnPlane(rb.position-feet,Vector3.up).sqrMagnitude>81)continue;
-                var box=rb.GetComponent<BoxCollider>();if(!box)continue;
-                for(int i=-1;i<=1;i++)
+                if(!rb||!rb.gameObject.activeInHierarchy)continue;
+                if(!BotGeometrySamples.Near(rb,feet,6,MaximumDrop(motor)+1,9))continue;
+                BotGeometrySamples.Fill(rb,samples);
+                foreach(var p in samples)
                 {
-                    var p=TopPoint(rb,box,i*.28f);float distance=Vector3.ProjectOnPlane(p-feet,Vector3.up).magnitude,rise=p.y-feet.y;
-                    if(distance<.6f||distance>7||rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise<-(motor.jumpHeight+motor.StandingHeight*2))continue;
+                    float distance=Vector3.ProjectOnPlane(p-feet,Vector3.up).magnitude,rise=p.y-feet.y;
+                    if(distance<.3f||distance>7||rise>Mathf.Max(motor.jumpHeight+motor.vaultMaxRise-.15f,motor.climbSpeed*motor.climbGripSeconds*.65f)||rise< -MaximumDrop(motor))continue;
                     var personality=bot.Personality;
                     float danger=rb.linearVelocity.magnitude*.8f+rb.angularVelocity.magnitude*2;
                     float threat=bot.Population.ThreatCost(p),crowd=bot.Population.Crowding(p,bot);

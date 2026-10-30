@@ -14,7 +14,16 @@ namespace DeadlyJenga.CastleBots
         Vector3 previousMove;
         bool tuned;
 
-        public string NetworkId => "bot:" + Brain.GetInstanceID();
+        string generatedNetworkId;
+        public string NetworkId
+        {
+            get
+            {
+                var actor=GetComponent<IModeActor>();var assigned=actor?.ActorId;
+                if(!string.IsNullOrEmpty(assigned)&&assigned.StartsWith("bot:",StringComparison.Ordinal))return assigned;
+                return generatedNetworkId??(generatedNetworkId="bot:"+Guid.NewGuid().ToString("N"));
+            }
+        }
         public bool Respawning => Brain.Respawning;
         public int Respawns => Brain.Respawns;
         public bool Grounded => Brain.Motor.Grounded;
@@ -37,15 +46,15 @@ namespace DeadlyJenga.CastleBots
             _ = Emotes;
         }
         public void SetBravery(float bravery) { if (personal) personal.bravery = Mathf.Clamp01(bravery); }
-        public void SeekPoint(Vector3 point, float seconds) => Brain.SetJourneyDestination(point, seconds);
+        public void SeekPoint(Vector3 point, float seconds) { if(Brain.AcceptsSocialMovement)Brain.SetJourneyDestination(point, seconds); }
         public float EmoteFrequency { get => Emotes.frequency; set => Emotes.frequency = value; }
         public void PlayEmote(SocialEmote emote) => Emotes.TryPlay(emote == SocialEmote.Scared ? CastleBotEmotes.Emote.NopeNopeNope : CastleBotEmotes.Emote.FriendlyWave);
 
         public CastleBotCommand ReadCommand(CastleSurvivor motor, float dt)
         {
-            var command = Brain.ReadCommand(motor, dt); if (!tuned) return command;
+            var command = Brain.ReadCommand(motor, dt); if (!tuned || !Brain.AcceptsSocialMovement) return command;
             // Keep ballistic/ledge commands exact. Skill only smooths safe grounded walking.
-            if (motor.Grounded && !motor.Vaulting && !command.jump && !motor.Climbing)
+            if (motor.Grounded && !motor.Vaulting && !command.jump && !motor.Climbing && !Brain.PrecisionTraversal)
             {
                 float smooth = 1 - Mathf.Exp(-dt * Mathf.Lerp(7, 18, Skill));
                 previousMove = Vector3.Lerp(previousMove, command.move, smooth); command.move = previousMove;

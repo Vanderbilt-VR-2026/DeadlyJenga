@@ -1,0 +1,74 @@
+ACTUAL UNITY/PHYSX: connected dynamic village, finite native FixedJoints, no magnetic pinning.
+Native fixed-step tests call the real registered disaster implementations under manual stepping. Captures render the actual simulated scene. Timings include physics and fixture bookkeeping; NOT frame rates.
+
+PASS map prefab exists
+Bodies=545 structural=254 native connections=495
+PASS all authored members remain dynamic and climbable
+Initial unjoined structural contact penetrations over 15mm=0
+PHYSICS steps=500 mean=5.966ms incl test bookkeeping
+RESULT 10s quiet settle: brokenConnections=0; structuralMovedOver0.5m=0; maxDisplacement=1.630m; awake=174
+PASS quiet village has no broken connections
+PASS quiet structure remains within 15cm
+PASS invalid layout count rejects without mutation
+JOINT FAILURE THE LANTERN INN/Balcony rail 2: force=117.7 health=5.0
+JOINT FAILURE THE LANTERN INN/Balcony slab 2: force=278.7 health=0.0
+JOINT FAILURE THE LANTERN INN/Balcony slab 2: force=883.5 health=0.0
+JOINT FAILURE THE LANTERN INN/Balcony rail 1: force=3119.3 health=2.8
+PHYSICS steps=180 mean=6.109ms incl test bookkeeping
+PASS severing balcony supports produces actual falling motion
+PASS fracture state is serialized
+PASS replica makes all gameplay bodies kinematic
+PASS clean layout restores
+PHYSICS steps=300 mean=5.246ms incl test bookkeeping
+PASS clean layout settles without residual constraint damage
+PASS actual earthquake validates and begins
+JOINT FAILURE Village lanes and gardens/Rooted breakable palm 4: force=4941.0 health=12.0
+JOINT FAILURE Village lanes and gardens/Rooted breakable palm 3: force=4941.0 health=12.0
+JOINT FAILURE Village lanes and gardens/Rooted breakable palm 2: force=4941.0 health=12.0
+JOINT FAILURE Village lanes and gardens/Rooted breakable palm 1: force=4941.0 health=12.0
+JOINT FAILURE Village lanes and gardens/Rooted breakable palm 0: force=4941.0 health=12.0
+JOINT FAILURE THE LANTERN INN/Striped awning 0: force=1211.8 health=5.0
+JOINT FAILURE THE LANTERN INN/Floor bay 0-3: force=37246.8 health=12.0
+JOINT FAILURE THE LANTERN INN/Floor bay 0-1: force=35651.9 health=12.0
+JOINT FAILURE THE LANTERN INN/Floor bay 1-2: force=20077.7 health=12.0
+JOINT FAILURE Neighbors' shared upper passage/Shared workshop bridge: force=9197.1 health=12.0
+JOINT FAILURE Neighbors' shared upper passage/Shared workshop bridge: force=8057.4 health=12.0
+JOINT FAILURE THE LANTERN INN/Floor bay 1-3: force=21015.3 health=12.0
+JOINT FAILURE THE LANTERN INN/Floor bay 1-0: force=22472.1 health=12.0
+JOINT FAILURE THE LANTERN INN/Floor bay 0-0: force=37715.2 health=12.0
+JOINT FAILURE THE LANTERN INN/Window bay 0-0-0: force=6669.8 health=12.0
+JOINT FAILURE LAGOON COTTAGE/Outside stair flight 1: force=14512.6 health=12.0
+JOINT FAILURE MANGO HOUSE/Outside stair flight 1: force=15479.5 health=12.0
+JOINT FAILURE THE LANTERN INN/Outside stair flight 1: force=8831.2 health=12.0
+JOINT FAILURE MANGO HOUSE/Load-bearing post 0-1: force=18385.6 health=12.0
+JOINT FAILURE THE LANTERN INN/Striped awning 7: force=1304.5 health=5.0
+JOINT FAILURE THE LANTERN INN/Outside stair flight 1: force=10455.8 health=12.0
+JOINT FAILURE THE BUTTON ARCADE/Floor bay 0-1: force=36413.0 health=12.0
+JOINT FAILURE THE COMMON TABLE/Bar roof post: force=4357.2 health=12.0
+JOINT FAILURE LAGOON COTTAGE/Load-bearing post 0-0: force=20644.8 health=12.0
+JOINT FAILURE MANGO HOUSE/Load-bearing post 0-0: force=20436.7 health=12.0
+JOINT FAILURE LAGOON COTTAGE/Load-bearing post 0-3: force=18120.4 health=12.0
+PHYSICS steps=600 mean=12.009ms incl test bookkeeping
+PHYSICS steps=200 mean=11.955ms incl test bookkeeping
+RESULT 12s earthquake + 4s settle: brokenConnections=223; structuralMovedOver0.5m=204; maxDisplacement=9.130m; awake=426
+PASS earthquake breaks actual structural connections
+PHYSICS steps=300 mean=7.433ms incl test bookkeeping
+PASS reset after earthquake settles intact before meteors
+PASS actual meteor shower validates and begins
+PHYSICS steps=1200 mean=7.946ms incl test bookkeeping
+PHYSICS steps=200 mean=7.906ms incl test bookkeeping
+RESULT 24s seeded meteor shower + 4s settle: brokenConnections=61; structuralMovedOver0.5m=9; maxDisplacement=8.640m; awake=88
+PASS meteor shower breaks actual structural connections
+PASS no NaN or infinite body state after disasters
+PHYSICS steps=300 mean=6.740ms incl test bookkeeping
+RESULT post-destruction reset: brokenConnections=0; structuralMovedOver0.5m=0; maxDisplacement=1.630m; awake=0
+PASS reset restores all native connections after destruction
+PHYSICS steps=300 mean=6.663ms incl test bookkeeping
+PASS repeated reset stays intact, cycle 1
+PHYSICS steps=300 mean=5.235ms incl test bookkeeping
+PASS repeated reset stays intact, cycle 2
+PHYSICS steps=300 mean=8.208ms incl test bookkeeping
+PASS repeated reset stays intact, cycle 3
+PASS stable member identities survive reset
+PASS no runtime errors
+PASS native suite. Still requires actual Game scene controls/bots, two-player test and Quest.

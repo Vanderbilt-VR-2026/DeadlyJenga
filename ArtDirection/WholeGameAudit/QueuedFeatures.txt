@@ -1,0 +1,141 @@
+Actual Unity Game, isolated PhysX castle, avatar and synthetic XR regression checks. No physical headset.
+PASS Game initializes
+PASS All mode criteria model regressions pass
+PASS Long castle is independently selectable in the runtime map catalog
+PASS Long castle prefab loads by Resources name
+PASS Copied block retains World physics and a visible gray-box fallback without Presentation art
+PASS Blocks are exactly 50 percent longer with three-metre outer tower gaps
+PASS Outer ring topology is preserved with raised wall landings
+PASS Foundation and disaster bounds expand with the layout
+MEASURE long castle 15s dynamic gravity drift=0.1320783m tilt=0.2825484deg
+PASS Long castle survives 15 seconds of real isolated dynamic physics
+PASS Outer gap fits default VR jump reach within five courses, including body clearance
+PASS Walking off cannot bridge the outer gap within five courses even with capsule overlap
+MEASURE outer gap=3m, analytical VR jump reach at 10m descent=3.989247m, walking overlap bound=2.875231m.
+PASS Actual Game map-switch path loads the independent long castle
+PASS Island environment rebinds to the expanded foundation
+PASS Island sand coverage expands to the copied castle footprint
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s walk drop=1 courses landed=False feet=(0.00, -4.07, 1.65)
+PASS Default VR walking cannot cross at 1 course drop
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s jump drop=1 courses landed=False feet=(0.00, -4.06, 2.87)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s walk drop=2 courses landed=False feet=(0.00, -6.08, 2.02)
+PASS Default VR walking cannot cross at 2 course drop
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s jump drop=2 courses landed=True feet=(0.00, -3.94, 3.03)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s walk drop=3 courses landed=False feet=(0.00, -8.08, 2.34)
+PASS Default VR walking cannot cross at 3 course drop
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s jump drop=3 courses landed=True feet=(0.00, -5.99, 3.36)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s walk drop=4 courses landed=False feet=(0.00, -10.03, 2.61)
+PASS Default VR walking cannot cross at 4 course drop
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s jump drop=4 courses landed=True feet=(0.00, -7.94, 3.63)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s walk drop=5 courses landed=False feet=(0.00, -12.02, 2.86)
+PASS Default VR walking cannot cross at 5 course drop
+PASS Traversal takeoff has physical foot support
+MEASURE motor 2.5m/s jump drop=5 courses landed=True feet=(0.00, -9.99, 3.90)
+PASS Real player motor crosses at 2.5m/s within five courses
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s walk drop=1 courses landed=False feet=(0.00, -4.05, 2.87)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s jump drop=1 courses landed=True feet=(0.00, -1.98, 4.96)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s walk drop=2 courses landed=True feet=(0.00, -4.02, 2.93)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s jump drop=2 courses landed=True feet=(0.00, -3.94, 5.65)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s walk drop=3 courses landed=True feet=(0.00, -5.95, 3.58)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s jump drop=3 courses landed=True feet=(0.00, -5.99, 6.26)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s walk drop=4 courses landed=True feet=(0.00, -7.99, 4.19)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s jump drop=4 courses landed=True feet=(0.00, -7.94, 6.76)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s walk drop=5 courses landed=True feet=(0.00, -9.99, 4.69)
+PASS Traversal takeoff has physical foot support
+MEASURE motor 4.6m/s jump drop=5 courses landed=True feet=(0.00, -9.99, 7.26)
+PASS Real player motor crosses at 4.6m/s within five courses
+PASS Default VR jump reaches the next tower with a one-to-five-course drop (first success 2)
+PASS Skin Default applies to existing rig
+PASS Skin Default preserves collision
+PASS Skin Default preserves the shared 44-bone avatar
+PASS Skin Default and style survive complete actor wire roundtrip
+PASS Skin Snowman applies to existing rig
+PASS Skin Snowman preserves collision
+PASS Skin Snowman preserves the shared 44-bone avatar
+PASS Skin Snowman and style survive complete actor wire roundtrip
+PASS Skin Penguin applies to existing rig
+PASS Skin Penguin preserves collision
+PASS Skin Penguin preserves the shared 44-bone avatar
+PASS Skin Penguin and style survive complete actor wire roundtrip
+PASS Skin Frankenstein applies to existing rig
+PASS Skin Frankenstein preserves collision
+PASS Skin Frankenstein preserves the shared 44-bone avatar
+PASS Skin Frankenstein and style survive complete actor wire roundtrip
+PASS Skin JackOLantern applies to existing rig
+PASS Skin JackOLantern preserves collision
+PASS Skin JackOLantern preserves the shared 44-bone avatar
+PASS Skin JackOLantern and style survive complete actor wire roundtrip
+PASS Skin Witch applies to existing rig
+PASS Skin Witch preserves collision
+PASS Skin Witch preserves the shared 44-bone avatar
+PASS Skin Witch and style survive complete actor wire roundtrip
+PASS Skin Vampire applies to existing rig
+PASS Skin Vampire preserves collision
+PASS Skin Vampire preserves the shared 44-bone avatar
+PASS Skin Vampire and style survive complete actor wire roundtrip
+PASS Armor has palm and sole emitter attachment points
+PASS Armor remains a cosmetic overlay
+PASS Disabled tracking cannot expose cached poses or gestures
+PASS Demo inspection suspends movement and creates a separate orbit camera
+PASS Desktop inspection renders independently of the first-person camera
+PASS Leaving inspection restores camera and movement
+PASS An actual player rig is available for the death snapshot
+PASS Inspection fixture is a living demo survivor with no spectator override
+PASS Third person opens while preserving the stationary player
+PASS Inspection uses a separate camera without a duplicate audio listener
+PASS A detached cosmetic death snapshot is created
+PASS Death starts at zero melt, even if the actor root floor hint is wrong
+PASS Death snapshot retains all source skinned vertices and drawable triangle indices
+PASS Skinned body / limbs occupy the full avatar height rather than collapsing into its root
+PASS The real procedural 44-bone rig has articulated body and finger constraints
+PASS Death snapshot preserves full original body dimensions at birth
+PASS Visual ragdoll creates no gameplay colliders or rigidbodies
+PASS The body ragdolls before liquefaction begins
+PASS Ragdoll geometry stays within three times the original body dimensions
+PASS Ragdoll stays near its death location during the first half-second
+PASS Ragdoll transitions into a gradual melt
+PASS Articulated corpse remains finite after falling
+PASS Liquefaction progresses over several seconds
+PASS A wet puddle remains before it dries
+PASS Dried corpse snapshot releases itself and owned meshes / materials
+PASS Runtime scenery shader compiles: Candy Tropical/Avatar Health
+PASS Runtime scenery shader compiles: Candy Tropical/Engulfing Block Fire
+PASS Runtime scenery shader compiles: Candy Tropical/Charred Block
+PASS Runtime scenery shader compiles: Candy Tropical/Slow Liquid Death
+PASS Runtime scenery shader compiles: Candy Tropical/Disaster Smoke
+PASS Runtime scenery shader compiles: Candy Tropical/Gravity Bubble
+PASS Runtime scenery shader compiles: Candy Tropical/Liquid Curtain
+PASS Runtime scenery shader compiles: Candy Tropical/Meteor Stone
+PASS Runtime scenery shader compiles: Candy Tropical/Neon Outage
+PASS Runtime scenery shader compiles: Candy Tropical/Objective Beacon
+PASS Runtime scenery shader compiles: Candy Tropical/Scaffold Beacon
+PASS Runtime scenery shader compiles: Candy Tropical/Scaffold Oil Glaze
+PASS Runtime scenery shader compiles: Candy Tropical/Scenic Sky
+PASS Runtime scenery shader compiles: Candy Tropical/Scenic Surface
+PASS Runtime scenery shader compiles: Candy Tropical/Ocean Spirit
+PASS Runtime scenery shader compiles: Candy Tropical/Storm Funnel
+PASS Runtime scenery shader compiles: Candy Tropical/Vampire Darkness
+PASS Runtime scenery shader compiles: Candy Tropical/Wet Splash Coating
+PASS Disaster setup validator executes against expanded map support
+PASS Real player loop synthetic controller movement, jump, menu and role regressions pass
+PASS No unexpected runtime errors
+COMPLETE checks=116 runtimeErrors=0
+PASS Original scenes and choices restored

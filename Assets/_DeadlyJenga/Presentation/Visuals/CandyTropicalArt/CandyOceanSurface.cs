@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyArt
 {
@@ -10,7 +11,7 @@ namespace DeadlyJenga.CandyArt
         public CandyArtProfile profile;
         MeshFilter filter;
         int lastResolution;
-        float lastSize,lastExtent;
+        float lastSize,lastExtent,stormExtent;
         static readonly Dictionary<string,Mesh> Cache=new Dictionary<string,Mesh>();
         static readonly HashSet<CandyOceanSurface> Live=new HashSet<CandyOceanSurface>();
         public float ActiveExtent{get;private set;}
@@ -22,6 +23,16 @@ namespace DeadlyJenga.CandyArt
             if(!profile)return;if(!filter)filter=GetComponent<MeshFilter>();
             int resolution=Mathf.Clamp(profile.waterResolution,24,128);
             float size=Mathf.Max(100,profile.oceanSize),extent=Mathf.Min(Mathf.Max(16,profile.waveExtent),size*.4f);
+            bool storm=false;
+            foreach(var source in Tracked.Waves)
+            {
+                var wave=source.Wave;if(!wave.active)continue;storm=true;
+                Vector3 delta=wave.center-transform.position;
+                float reach=Mathf.Max(Mathf.Abs(delta.x),Mathf.Abs(delta.z))+wave.width*.65f+wave.depth*2+70;
+                stormExtent=Mathf.Max(stormExtent,Mathf.Ceil(reach/64)*64);
+            }
+            if(storm){extent=Mathf.Min(size*.4f,Mathf.Max(extent,stormExtent));resolution=128;}
+            else stormExtent=0;
             ActiveExtent=extent;
             if(resolution==lastResolution&&size==lastSize&&extent==lastExtent&&filter.sharedMesh)return;
             string key=resolution+":"+size.ToString("F2")+":"+extent.ToString("F2");

@@ -1,0 +1,29 @@
+{
+  "kind": "actual-unity-editor-dirty-snapshot-evidence",
+  "project": "C:\\Users\\evanp\\Documents\\Codex\\Projects\\deadlyjenga-unity-pool\\slot-04",
+  "snapshot": "b11f7ceca1c8440488cede37cc7ce1aa",
+  "runtime_passed": true,
+  "headset_tested": false,
+  "integration_pending": true,
+  "sha256": {
+    "Logs/Validation/MegablockTower-runtime.txt": "f9a2dc8b6acc02ce0dfcbabe0580fd89d149a71201784ad55245e342405f4dec",
+    "Logs/Validation/MegablockTower-build.txt": "82d509cec88a580397181d97fe36a63719190789757e14871a51e712aadeb011",
+    "Logs/MegablockTower-editor.log": "567fd6f2700d2a59c0b0d2b76c9dff3bba17c899d148d6d97a1f9f70d8e84acc",
+    "ArtDirection/MegablockTowerBuilt-20261026/exterior.png": "02f2e046731d19892de63bbd616367fde373eee3277ebec6ca2456d2ca15170a",
+    "ArtDirection/MegablockTowerBuilt-20261026/ground.png": "6e340933a08a4b4145ce7099859c714124b3da0766abc7ec8bd29f9049ed842f",
+    "ArtDirection/MegablockTowerBuilt-20261026/interior.png": "9b2618270d0a34febc5134b7a42bfe99dc27180e780499e1b1e38884572a0991",
+    "ArtDirection/MegablockTowerBuilt-20261026/room.png": "9d7d261a087e41de7e8104c894d63e33d67cb6c0da5f3eba09e2d2256c9bfe99",
+    "ArtDirection/MegablockTowerBuilt-20261026/window.png": "62c4aea681afe26c8f8494d096379678e2da1995a68a90da85562a9cb2535abe",
+    "ArtDirection/MegablockTowerBuilt-20261026/tsunami.png": "dc206ba7092b69b68bc525f956ad197aa05e55d24383103f964c0f8bf141b3d0",
+    "ArtDirection/MegablockTowerBuilt-20261026/impact.png": "05f66d4e173420de3f20c1dd2210dc6f710759d75a67f72c7be386fbe989e9c9",
+    "ArtDirection/MegablockTowerBuilt-20261026/collapse.png": "474a57ce35181988ba1ade1749bad8f0ab40d2b38ed110239a16e51c4e1f21f7",
+    "Assets/_DeadlyJenga/World/Maps/Scripts/MegablockTowerLayout.cs": "2df6699985abc7314ec3af6d8f93cbd74695333816f6bab1d5dd533b375201aa",
+    "Assets/_DeadlyJenga/World/Maps/Scripts/MegablockTowerMap.cs": "09a511d292f94d1fb732d4ad030a5f34ebe6c70667bc24d03f1aac70c1f4dd6c",
+    "Assets/_DeadlyJenga/World/Maps/Scripts/MayhemStructuralMember.cs": "0dcb157387f9d9d284fec34ba77cdfd299bb20dc805e0bab8d7803d13140c1b2",
+    "Assets/_DeadlyJenga/Characters/Player/Scripts/CastleSurvivor.cs": "57832ca77edb194c9367c6aa1ee78143c489571e5325a04f31bc09b4ff07af29",
+    "Assets/_DeadlyJenga/DevTools/Editor/MegablockTowerBuild.cs": "b00b09b1715194ea073c4cf2a25bdb1dd98243894ce91582d15118c60f4534bc",
+    "Assets/_DeadlyJenga/DevTools/Editor/MegablockTowerChecks.cs": "cf3ccb42c355c13bec6bb394dc00612495053f2dda117fa972f74278adcfbace",
+    "Assets/_DeadlyJenga/World/Maps/Resources/ModeMaps/Mode_megablock-tower.prefab": "10676d7f0f97e0dcd59c76293df2a371d0fa81fecd4625fb571d045c577d221c",
+    "Assets/_DeadlyJenga/GameSession/Session/Resources/IslandLobby/Catalog.asset": "eb09274ad750f8550dc12718db18d797c53d7798ec5724c00e34681db8f978b2"
+  }
+}

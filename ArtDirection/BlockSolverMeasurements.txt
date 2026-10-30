@@ -1,0 +1,18 @@
+Isolated native 6098-block cathedral physics; original prefab collision, mass and damping; dt=.02. No rendering, bots, proxies or game FPS claim.
+300 idle steps; remove a bottom support patch + pull a block for 200 steps; northbound tsunami forces for 200 steps.
+BEGIN 80/20 collision=ContinuousDynamic
+IDLE maxDrop=0.2115 maxXZ=0.1508 maxAngle=0.000 sleeping=6051 removed=46
+RESULT idle median=13.28ms p90=21.63ms collapse median=16.32ms p90=29.05ms wave median=22.72ms p90=46.44ms fallen>2m=1166 maxHeight=178.82
+BEGIN 40/8 collision=ContinuousDynamic
+IDLE maxDrop=0.4199 maxXZ=0.5177 maxAngle=0.388 sleeping=4047 removed=46
+RESULT idle median=12.54ms p90=16.96ms collapse median=9.80ms p90=13.48ms wave median=14.92ms p90=21.13ms fallen>2m=1246 maxHeight=178.71
+BEGIN 24/4 collision=ContinuousDynamic
+IDLE maxDrop=0.7478 maxXZ=1.5673 maxAngle=2.017 sleeping=1964 removed=46
+RESULT idle median=12.67ms p90=16.35ms collapse median=15.16ms p90=28.09ms wave median=14.30ms p90=16.94ms fallen>2m=1346 maxHeight=178.35
+BEGIN 16/2 collision=ContinuousDynamic
+IDLE maxDrop=4.5999 maxXZ=10.3215 maxAngle=45.200 sleeping=1031 removed=46
+RESULT idle median=11.41ms p90=13.27ms collapse median=13.80ms p90=25.62ms wave median=24.72ms p90=34.40ms fallen>2m=2119 maxHeight=130.40
+BEGIN 8/2 collision=ContinuousDynamic
+IDLE maxDrop=72.0935 maxXZ=32.0781 maxAngle=180.000 sleeping=380 removed=46
+RESULT idle median=14.98ms p90=19.47ms collapse median=24.17ms p90=29.58ms wave median=25.94ms p90=32.51ms fallen>2m=3734 maxHeight=78.71
+COMPLETE

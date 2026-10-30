@@ -1,0 +1,545 @@
+{
+    "captured": "2026-10-26T00:43:25.0456343-05:00",
+    "shots": [
+        {
+            "mapId": "epic-tideway",
+            "mapName": "Tideway Metropolis",
+            "file": "epic-tideway-01.png",
+            "title": "Street-level layers",
+            "description": "Folded street terrace 6 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -75.5,
+                "y": 3.549999952316284,
+                "z": -63.5
+            },
+            "target": {
+                "x": -52.5,
+                "y": 4.849999904632568,
+                "z": -32.5
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-tideway",
+            "mapName": "Tideway Metropolis",
+            "file": "epic-tideway-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Civic lantern framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 64.0,
+                "y": 53.349998474121097,
+                "z": -66.63999938964844
+            },
+            "target": {
+                "x": -5.693425464414759e-7,
+                "y": 15.350000381469727,
+                "z": 9.359999656677246
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-tideway",
+            "mapName": "Tideway Metropolis",
+            "file": "epic-tideway-03.png",
+            "title": "Connected rooftops",
+            "description": "Split courtyard pavilion 8 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 59.999996185302737,
+                "y": 57.349998474121097,
+                "z": 79.0
+            },
+            "target": {
+                "x": -0.000002372260723859654,
+                "y": 9.350000381469727,
+                "z": 39.0
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-double-loop",
+            "mapName": "Double-Loop Exchange",
+            "file": "epic-double-loop-01.png",
+            "title": "Street-level layers",
+            "description": "Stepped portico 4 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -13.201013565063477,
+                "y": 3.549999952316284,
+                "z": -133.2989959716797
+            },
+            "target": {
+                "x": 9.798986434936524,
+                "y": 4.849999904632568,
+                "z": -102.29899597167969
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-double-loop",
+            "mapName": "Double-Loop Exchange",
+            "file": "epic-double-loop-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Exchange north framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 70.5999984741211,
+                "y": 53.349998474121097,
+                "z": -37.400001525878909
+            },
+            "target": {
+                "x": 6.600000381469727,
+                "y": 15.350000381469727,
+                "z": 38.599998474121097
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-double-loop",
+            "mapName": "Double-Loop Exchange",
+            "file": "epic-double-loop-03.png",
+            "title": "Connected rooftops",
+            "description": "Open market arcade 6 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 40.0,
+                "y": 57.349998474121097,
+                "z": 42.499996185302737
+            },
+            "target": {
+                "x": -20.0,
+                "y": 9.350000381469727,
+                "z": 2.4999969005584719
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-caldera",
+            "mapName": "Caldera Switchback City",
+            "file": "epic-caldera-01.png",
+            "title": "Street-level layers",
+            "description": "Split courtyard pavilion 1 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -25.500001907348634,
+                "y": 3.549999952316284,
+                "z": -8.5
+            },
+            "target": {
+                "x": -2.5000014305114748,
+                "y": 4.849999904632568,
+                "z": 22.5
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-caldera",
+            "mapName": "Caldera Switchback City",
+            "file": "epic-caldera-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "High west crown framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": -16.400001525878908,
+                "y": 62.470001220703128,
+                "z": -9.800003051757813
+            },
+            "target": {
+                "x": -80.4000015258789,
+                "y": 24.470001220703126,
+                "z": 66.19999694824219
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-caldera",
+            "mapName": "Caldera Switchback City",
+            "file": "epic-caldera-03.png",
+            "title": "Connected rooftops",
+            "description": "Split courtyard pavilion 1 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 57.5,
+                "y": 57.349998474121097,
+                "z": 62.5
+            },
+            "target": {
+                "x": -2.5000014305114748,
+                "y": 9.350000381469727,
+                "z": 22.5
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-broken-crown",
+            "mapName": "Broken Crown Capital",
+            "file": "epic-broken-crown-01.png",
+            "title": "Street-level layers",
+            "description": "Branch mesa walk 1 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -33.5,
+                "y": 3.549999952316284,
+                "z": -61.500003814697269
+            },
+            "target": {
+                "x": -2.5000011920928957,
+                "y": 4.849999904632568,
+                "z": -84.5
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-broken-crown",
+            "mapName": "Broken Crown Capital",
+            "file": "epic-broken-crown-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "West crown segment framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": -28.76000213623047,
+                "y": 53.349998474121097,
+                "z": -49.599998474121097
+            },
+            "target": {
+                "x": -92.76000213623047,
+                "y": 15.350000381469727,
+                "z": 26.399999618530275
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-broken-crown",
+            "mapName": "Broken Crown Capital",
+            "file": "epic-broken-crown-03.png",
+            "title": "Connected rooftops",
+            "description": "Stepped portico 12 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 53.5,
+                "y": 57.349998474121097,
+                "z": 7.5
+            },
+            "target": {
+                "x": -6.5,
+                "y": 9.350000381469727,
+                "z": -32.5
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-harbor-loom",
+            "mapName": "Harbor Loom",
+            "file": "epic-harbor-loom-01.png",
+            "title": "Street-level layers",
+            "description": "Folded street terrace 2 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -13.500001907348633,
+                "y": 3.549999952316284,
+                "z": -46.500003814697269
+            },
+            "target": {
+                "x": 17.499998092651368,
+                "y": 4.849999904632568,
+                "z": -69.5
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-harbor-loom",
+            "mapName": "Harbor Loom",
+            "file": "epic-harbor-loom-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "West shipping offices framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": -11.905387878417969,
+                "y": 53.349998474121097,
+                "z": -72.95296478271485
+            },
+            "target": {
+                "x": -75.90538787841797,
+                "y": 15.350000381469727,
+                "z": 3.047031879425049
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-harbor-loom",
+            "mapName": "Harbor Loom",
+            "file": "epic-harbor-loom-03.png",
+            "title": "Connected rooftops",
+            "description": "Split courtyard pavilion 14 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 92.06088256835938,
+                "y": 57.349998474121097,
+                "z": 5.195964813232422
+            },
+            "target": {
+                "x": 32.06088638305664,
+                "y": 9.350000381469727,
+                "z": -34.80403518676758
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-lantern-ravine",
+            "mapName": "Lantern Ravine",
+            "file": "epic-lantern-ravine-01.png",
+            "title": "Street-level layers",
+            "description": "Branch mesa walk 4 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -32.24399948120117,
+                "y": 3.549999952316284,
+                "z": -80.84693145751953
+            },
+            "target": {
+                "x": -9.243999481201172,
+                "y": 4.849999904632568,
+                "z": -49.84693145751953
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-lantern-ravine",
+            "mapName": "Lantern Ravine",
+            "file": "epic-lantern-ravine-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Ravine compression gateway framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 147.0,
+                "y": 59.43000030517578,
+                "z": -73.4000015258789
+            },
+            "target": {
+                "x": 83.0,
+                "y": 21.43000030517578,
+                "z": 2.6000001430511476
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-lantern-ravine",
+            "mapName": "Lantern Ravine",
+            "file": "epic-lantern-ravine-03.png",
+            "title": "Connected rooftops",
+            "description": "Folded street terrace 1 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 57.5,
+                "y": 57.349998474121097,
+                "z": 35.0
+            },
+            "target": {
+                "x": -2.5,
+                "y": 9.350000381469727,
+                "z": -5.0
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-canopy-borough",
+            "mapName": "Canopy Borough",
+            "file": "epic-canopy-borough-01.png",
+            "title": "Street-level layers",
+            "description": "Branch mesa walk 8 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -94.0,
+                "y": 3.549999952316284,
+                "z": -47.000003814697269
+            },
+            "target": {
+                "x": -63.0,
+                "y": 4.849999904632568,
+                "z": -70.0
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-canopy-borough",
+            "mapName": "Canopy Borough",
+            "file": "epic-canopy-borough-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Central branching crown framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 64.0,
+                "y": 53.349998474121097,
+                "z": -61.119998931884769
+            },
+            "target": {
+                "x": -7.343513175328553e-8,
+                "y": 15.350000381469727,
+                "z": 14.880000114440918
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-canopy-borough",
+            "mapName": "Canopy Borough",
+            "file": "epic-canopy-borough-03.png",
+            "title": "Connected rooftops",
+            "description": "Branch mesa walk 3 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 60.0,
+                "y": 57.349998474121097,
+                "z": 102.0
+            },
+            "target": {
+                "x": -3.0597971090173817e-7,
+                "y": 9.350000381469727,
+                "z": 62.0
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-bookfall",
+            "mapName": "Bookfall Boulevard",
+            "file": "epic-bookfall-01.png",
+            "title": "Street-level layers",
+            "description": "Branch mesa walk 12 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -53.0,
+                "y": 3.549999952316284,
+                "z": -141.0
+            },
+            "target": {
+                "x": -30.0,
+                "y": 4.849999904632568,
+                "z": -110.0
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-bookfall",
+            "mapName": "Bookfall Boulevard",
+            "file": "epic-bookfall-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Zipper skyline framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 171.0,
+                "y": 53.349998474121097,
+                "z": -56.599998474121097
+            },
+            "target": {
+                "x": 107.0,
+                "y": 15.350000381469727,
+                "z": 19.399999618530275
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-bookfall",
+            "mapName": "Bookfall Boulevard",
+            "file": "epic-bookfall-03.png",
+            "title": "Connected rooftops",
+            "description": "Branch mesa walk 2 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 62.5,
+                "y": 57.349998474121097,
+                "z": 10.0
+            },
+            "target": {
+                "x": 2.4999985694885256,
+                "y": 9.350000381469727,
+                "z": -30.0
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-three-hearts",
+            "mapName": "Three Hearts City",
+            "file": "epic-three-hearts-01.png",
+            "title": "Street-level layers",
+            "description": "Branch mesa walk 6 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -43.75126266479492,
+                "y": 3.549999952316284,
+                "z": -42.25127029418945
+            },
+            "target": {
+                "x": -12.751262664794922,
+                "y": 4.849999904632568,
+                "z": -65.25126647949219
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-three-hearts",
+            "mapName": "Three Hearts City",
+            "file": "epic-three-hearts-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Exchange catch tower framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 67.16824340820313,
+                "y": 53.349998474121097,
+                "z": -66.9282455444336
+            },
+            "target": {
+                "x": 3.1682422161102297,
+                "y": 15.350000381469727,
+                "z": 9.071757316589356
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-three-hearts",
+            "mapName": "Three Hearts City",
+            "file": "epic-three-hearts-03.png",
+            "title": "Connected rooftops",
+            "description": "Branch mesa walk 11 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 73.20101165771485,
+                "y": 57.349998474121097,
+                "z": 77.79898834228516
+            },
+            "target": {
+                "x": 13.201009750366211,
+                "y": 9.350000381469727,
+                "z": 37.798988342285159
+            },
+            "fieldOfView": 56.0
+        },
+        {
+            "mapId": "epic-rising-spine",
+            "mapName": "The Rising Spine",
+            "file": "epic-rising-spine-01.png",
+            "title": "Street-level layers",
+            "description": "Split courtyard pavilion 4 with its open ground passage, roof terrace and surrounding skyline.",
+            "camera": {
+                "x": -13.0,
+                "y": 3.549999952316284,
+                "z": -155.0
+            },
+            "target": {
+                "x": 10.0,
+                "y": 4.849999904632568,
+                "z": -124.0
+            },
+            "fieldOfView": 62.0
+        },
+        {
+            "mapId": "epic-rising-spine",
+            "mapName": "The Rising Spine",
+            "file": "epic-rising-spine-02.png",
+            "title": "Landmark and neighborhood",
+            "description": "Inland civic summit framed above the lower network; an art reference for scale and material hierarchy.",
+            "camera": {
+                "x": 167.39999389648438,
+                "y": 60.95000076293945,
+                "z": -101.4000015258789
+            },
+            "target": {
+                "x": 103.4000015258789,
+                "y": 22.950000762939454,
+                "z": -25.399999618530275
+            },
+            "fieldOfView": 53.0
+        },
+        {
+            "mapId": "epic-rising-spine",
+            "mapName": "The Rising Spine",
+            "file": "epic-rising-spine-03.png",
+            "title": "Connected rooftops",
+            "description": "Folded street terrace 2 and its middle-city roof connections, viewed across the low-to-high layers.",
+            "camera": {
+                "x": 95.0,
+                "y": 57.349998474121097,
+                "z": 45.0
+            },
+            "target": {
+                "x": 35.0,
+                "y": 9.350000381469727,
+                "z": 5.0
+            },
+            "fieldOfView": 56.0
+        }
+    ]
+}

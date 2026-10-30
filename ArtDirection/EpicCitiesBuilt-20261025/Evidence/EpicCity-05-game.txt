@@ -1,0 +1,18 @@
+Harbor Loom production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=77 shapes=620 routes=12 elevated=10 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Dry-dock foundry position=(-114.68, 5.04, -95.60)
+PASS production motor first flight Lower quay position=(-24.68, 5.04, -106.60)
+PASS production motor first flight Harbor lantern position=(70.32, 5.04, -108.60)
+PASS production motor first flight West shipping offices position=(-104.79, 5.03, 9.00)
+PASS production motor first flight Cross-dock interchange position=(0.32, 5.04, -1.60)
+PASS production motor first flight East shipping offices position=(110.32, 5.04, -3.60)
+PASS production motor first flight Upper shipyard position=(-94.68, 5.04, 99.40)
+PASS production motor first flight High loom anchor position=(10.32, 5.04, 101.40)
+PASS production motor first flight North quay position=(115.32, 5.04, 98.40)
+32 bots / quiet frames=57 average=14.7FPS p95=92.2ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=32
+32 bots + tsunami frames=555 average=7.2FPS p95=727.7ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=48/77. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=47/77. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=77 runtimeErrorsSoFar=0

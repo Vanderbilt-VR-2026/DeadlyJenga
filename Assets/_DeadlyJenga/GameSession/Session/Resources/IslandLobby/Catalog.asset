@@ -19,24 +19,355 @@ MonoBehaviour:
   - id: castle
     title: Candy Castle
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 0}
+    recommendedPlayers: 10
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
   - id: MapDrafterEvan1
     title: MapDrafterEvan1
     scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterEvan1.unity
+    mapPrefab: {fileID: 0}
+    recommendedPlayers: 10
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
   - id: MapDrafterEvan2
     title: MapDrafterEvan2
     scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterEvan2.unity
-  - id: MapDrafterLuke1
-    title: MapDrafterLuke1
-    scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke1.unity
-  - id: MapDrafterLuke2
-    title: MapDrafterLuke2
-    scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterLuke2.unity
-  - id: MapDrafterKaleb1
-    title: MapDrafterKaleb1
-    scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb1.unity
-  - id: MapDrafterKaleb2
-    title: MapDrafterKaleb2
-    scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/MapDrafterKaleb2.unity
+    mapPrefab: {fileID: 0}
+    recommendedPlayers: 10
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-crown-study
+    title: "Crown of Giants \xB7 Study"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 1694206165412008191, guid: 65d79b78611368d46875a7c082940a3c, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-terrace-study
+    title: "Terrace City \xB7 Study"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5578079619699136061, guid: 98cf3b0784ebb3d48bad504757b15397, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-viaduct-study
+    title: "Falling Viaduct \xB7 Study"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 106665713016331850, guid: ec3820589648fcd41a1f7bf9a5d0e277, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-keep-study
+    title: "Hollow Megakeeps \xB7 Study"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5701418169245210365, guid: 0fe01e0dd75237741b8f06feffcfa46a, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-crown-grand
+    title: "Crown Archipelago \xB7 Grand"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7440637198516240330, guid: 630167b4988997148bcdbd29f81236b2, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-terrace-grand
+    title: "Terrace Mountain \xB7 Grand"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5189844043991489532, guid: a7001f97488df0441a1a639235ed5504, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-viaduct-grand
+    title: "Ribbon Skyways \xB7 Grand"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 6866104629886438231, guid: 09f945da882a2d54b923dceb9ff997f0, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-keep-grand
+    title: "Megakeep District \xB7 Grand"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5011436254661414352, guid: 2bb17271d4dae00429eda0527b0007cd, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-festival-megastructure
+    title: "Festival of Giants \xB7 Hybrid"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 6508001226587757727, guid: 1eec088618ec8a14cb767374272fcecd, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-festival-city
+    title: Festival of Giants - City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 2574160833396344647, guid: f7979289df94be5429a83b75119d99b9, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-festival-city-packed
+    title: Festival City - Packed Shapes
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5652079004361676377, guid: 6ff67943067cb5b4cb8019e7c379a35e, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-festival-city-surface-mesh
+    title: Festival City - Surface Mesh
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 9115669351549638685, guid: a4ee929222eaa6140912037128ba7517, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: sparse-festival-city-optimized
+    title: Festival City - Optimized
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 2385758432452391204, guid: 44cf75ce5c6164141a42d65acc6fc8c5, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
+  - id: andy
+    title: Andy
+    scenePath: Assets/_DeadlyJenga/World/Maps/Drafts/Andy.unity
+    mapPrefab: {fileID: 0}
+    recommendedPlayers: 1
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-crown
+    title: Crown Workshop
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 3523966184837430368, guid: c53bf6e5c6f661a489cb684f9be94d79, type: 3}
+    recommendedPlayers: 12
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-terraces
+    title: Terrace Workshop
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 667411270815278189, guid: ff67b055068b0864e941d4ee073077b6, type: 3}
+    recommendedPlayers: 12
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-viaduct
+    title: Viaduct Workshop
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7121282371635265348, guid: 148bc1a5e4146b143a09b40688f37be2, type: 3}
+    recommendedPlayers: 12
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-megakeeps
+    title: Megakeep Workshop
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7799048959187211517, guid: 0bc02b5433475c94794d80c22988c863, type: 3}
+    recommendedPlayers: 12
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-crown-grand
+    title: Crown Constellation
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7652593332374901850, guid: e61e16ace8bbe8c41aa9c6b225ca5dff, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-terraces-grand
+    title: Terrace Metropolis
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 6441487344732206264, guid: 28c6154ebf1d08645a18739dced05853, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-viaduct-grand
+    title: Skywater Viaduct
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7475511642019644461, guid: a4b07c8725a94ff41b0d3a653d1abd9e, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-megakeeps-grand
+    title: Grand Hollow Keeps
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5299126161754349464, guid: ec567a2d71731bb4f8a325f2e155b127, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: workshop-archipelago
+    title: Candy Archipelago
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 738267197130909495, guid: c517ff08ad6b1714fbfdade7389838da, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: breakwater-village
+    title: Breakwater Village
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 9199631795639117926, guid: acf3df313cb9bff478bdbea4999a43b2, type: 3}
+    recommendedPlayers: 12
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: mayhem-foundry
+    title: "Mayhem Foundry \xB7 Ten Districts"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 6298624783855495618, guid: 64021e285c999414d897b94b69d04791, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: city-tower-exhibition
+    title: "City Buildings 11\u201320"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 8173941214903448956, guid: 611abc0d280f3c047a69129d0e4e0e63, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: tower-lab-island
+    title: "Tower Laboratory 1\u201310"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7298890970000657253, guid: 8ffe187185300ab4584b8252c7b92464, type: 3}
+    recommendedPlayers: 24
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-tideway
+    title: Tideway Metropolis
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7248607488938326920, guid: f5d0b645268d94145ad18040ec4f0891, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-double-loop
+    title: Double-Loop Exchange
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 3966909451604487949, guid: 4f259c16f7f620b468d293e6c651a663, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-caldera
+    title: Caldera Switchback City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 8001058926029173702, guid: 2fe5a3abe25c6d0489435ef1c9c8f2f2, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-broken-crown
+    title: Broken Crown Capital
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 3909839593926392919, guid: 10a1f2683c920294f819cd8d090276e8, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-harbor-loom
+    title: Harbor Loom
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 5933401059649701374, guid: 7e454cfd274654b42bc6a50441da9daf, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-lantern-ravine
+    title: Lantern Ravine
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 8189950240214052550, guid: 3a5254abedc5c8f44b41c18ac284beae, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-canopy-borough
+    title: Canopy Borough
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 6714235438661813954, guid: 5872f58af2e69a7458a0cd5427a1af10, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-bookfall
+    title: Bookfall Boulevard
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 523773413940023956, guid: 785614018f963bf4aacbb4ef2b643424, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-three-hearts
+    title: Three Hearts City
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4121130223730735612, guid: 67a7cffbf830d29459aa42d1080c0326, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-rising-spine
+    title: The Rising Spine
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 1815496499082447018, guid: 955c7b647e6c930418456ecb2ad992ef, type: 3}
+    recommendedPlayers: 32
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-honeycomb-hive
+    title: Honeycomb Beehive
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 6578137040802620087, guid: 62d70088e7766134e9782594f81634d9, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-cloud-carnival
+    title: Cotton Candy Cloud Carnival
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 1651196650816925453, guid: 3967842a0e08228448d17deb9a7c9c70, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: epic-candy-glass-cloud
+    title: Candy Glass Above Clouds
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 4900549641561135372, guid: 3cc809119a6e2034c9665d58c03e59fe, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
+  - id: megablock-tower
+    title: Megablock Tower
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 7503105081048627830, guid: 058d6439eb6db02479ade4df2512d094, type: 3}
+    recommendedPlayers: 16
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes: []
   modes:
   - id: demo
     title: Demo

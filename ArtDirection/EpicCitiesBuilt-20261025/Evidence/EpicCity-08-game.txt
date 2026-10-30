@@ -1,0 +1,16 @@
+Bookfall Boulevard production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=69 shapes=548 routes=10 elevated=8 originalColliders=True
+Active world=EpicCityMap
+PASS production motor first flight Boulevard civic tower position=(-124.68, 5.04, -73.60)
+PASS production motor first flight Western book court position=(-39.68, 5.04, -74.60)
+PASS production motor first flight Eastern book court position=(44.68, 5.04, -55.40)
+PASS production motor first flight Zipper skyline position=(145.21, 5.03, 28.00)
+PASS production motor first flight Maker hall position=(60.32, 5.04, 34.40)
+PASS production motor first flight Northern book court position=(-34.68, 5.04, 35.40)
+PASS production motor first flight Parallel escape arcade position=(-124.68, 5.04, 38.40)
+32 bots / quiet frames=68 average=17.2FPS p95=75.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=32 moved>.5m=30
+32 bots + tsunami frames=719 average=10.7FPS p95=155.8ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Wave completed=True bodies moved>.5m=38/69. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=40/69. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=69 runtimeErrorsSoFar=0

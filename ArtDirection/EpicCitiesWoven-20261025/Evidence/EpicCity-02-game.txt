@@ -1,0 +1,34 @@
+Double-Loop Exchange production Game.unity; actual motor, bots, default-force wave. Not Quest/network certification.
+Bodies=125 shapes=1086 routes=50 elevated=33 lowerStructures=16 originalColliders=True
+Active world=EpicCityMap
+Lower buildings without roof connections=0 
+PASS production motor first flight Seaward arcade position=(-114.68, 5.04, -76.60)
+PASS production motor first flight Low court hotel position=(-125.68, 5.04, 25.40)
+PASS production motor first flight West lantern position=(-29.68, 5.04, 81.40)
+PASS production motor first flight Exchange south position=(20.32, 5.04, -53.60)
+PASS production motor first flight Exchange north position=(20.32, 5.04, 41.40)
+PASS production motor first flight Inland court position=(96.40, 5.04, 54.68)
+PASS production motor first flight Market hall position=(120.32, 5.04, -80.60)
+PASS production motor first flight Beach walk position=(-29.68, 5.04, -131.60)
+PASS production motor first flight Open market arcade 1 position=(-137.68, 5.04, -23.60)
+PASS production motor first flight Split courtyard pavilion 2 position=(-43.35, 5.04, 39.93)
+PASS production motor first flight Branch mesa walk 3 position=(55.32, 5.04, -6.10)
+PASS production motor first flight Stepped portico 4 position=(15.12, 5.04, -110.90)
+PASS production motor first flight Folded street terrace 5 position=(-91.98, 5.04, -120.90)
+PASS production motor first flight Open market arcade 6 position=(-14.68, 5.04, -6.10)
+PASS production motor first flight Split courtyard pavilion 7 position=(70.32, 5.04, 40.90)
+PASS production motor first flight Branch mesa walk 8 position=(56.40, 5.04, -97.82)
+PASS production motor first flight Stepped portico 9 position=(-47.18, 5.04, -28.60)
+PASS production motor first flight Folded street terrace 10 position=(1.40, 5.04, 103.18)
+PASS production motor first flight Open market arcade 11 position=(-81.14, 5.04, -22.10)
+PASS production motor first flight Split courtyard pavilion 12 position=(-146.60, 5.04, -115.32)
+PASS production motor first flight Branch mesa walk 13 position=(41.40, 5.04, -136.32)
+PASS production motor first flight Stepped portico 14 position=(95.32, 5.04, -139.60)
+PASS production motor first flight Folded street terrace 15 position=(-143.35, 5.04, 69.43)
+PASS production motor first flight Open market arcade 16 position=(-89.83, 5.04, 96.25)
+12 bots / quiet frames=82 average=20.8FPS p95=64.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Bots spawned=12 moved>.5m=11
+12 bots + tsunami frames=186 average=12.4FPS p95=113.5ms. Uncapped desktop Editor, not Quest; first boundary sample omitted.
+Targeted 16-second wave exposure; Wave completed=False bodies moved>.5m=0/125. Default height/speed/forces; warning/offshore staging shortened only.
+Separate reset + 14m/s X / 5m/s Z off-center demolition moved>.5m=95/125. Not normal tsunami behavior.
+Layout invalidCountRejected=True validRoundtrip=True resetCount=125 runtimeErrorsSoFar=0

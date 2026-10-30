@@ -19,7 +19,9 @@
 
 # Memory captures and recordings can get very large
 /[Mm]emoryCaptures/
-/[Rr]ecordings/
+/[Rr]ecordings/*
+!/[Rr]ecordings/.gitignore
+!/[Rr]ecordings/README.md
 
 # Uncomment this line to ignore the Asset Store Tools plugin
 # /[Aa]ssets/AssetStoreTools*

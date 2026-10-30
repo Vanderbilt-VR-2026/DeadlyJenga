@@ -1,0 +1,17 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Player summoning beacon • Deadly Jenga</title>
+<style>
+:root{color-scheme:dark;font-family:system-ui,sans-serif;background:#101021;color:#eeedff}body{max-width:1450px;margin:auto;padding:32px}h1{font-size:clamp(28px,4vw,52px);margin-bottom:12px}p{max-width:950px;line-height:1.6;color:#cdcce3}.tag{color:#7af1bf;letter-spacing:.14em;font-size:12px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,550px),1fr));gap:24px}figure{margin:0;background:#19192f;border:1px solid #44415f;border-radius:16px;overflow:hidden}img{display:block;width:100%;height:auto}figcaption{padding:18px;line-height:1.5}strong{display:block;font-size:20px;color:#fff}a{color:#a9ffda}.notes{margin-top:28px;padding:22px;border-left:3px solid #ad7cff;background:#1a1729}
+</style>
+<div class="tag">DEADLY JENGA / ACTUAL UNITY EDITOR CAPTURES</div>
+<h1>A beacon that picks up the player</h1><p><strong>Latest refinement:</strong> 128 wider strands instead of 44; radius reduced from 0.72 m to 0.46 m. The captures below show this much denser version, rendered in Unity. All 23 runtime checks passed. <a href="BeforeDense3/Summoning-Exterior-Lift.png">Compare the previous 44-strand version</a>.</p>
+<p>Translucent green, violet and white strands surround the departing player in the world. A light collar follows the physical upward flight. The view fades to soft white only near the scene change.</p>
+<div class="grid">
+<figure><a href="Summoning-Exterior-Ground.png"><img src="Summoning-Exterior-Ground.png" alt="World-space strands surrounding the player at ground level"></a><figcaption><strong>Outside · launch point</strong>A narrow column centered on this player, with gaps between the flowing strands.</figcaption></figure>
+<figure><a href="Summoning-Exterior-Lift.png"><img src="Summoning-Exterior-Lift.png" alt="Light column and collar around the lifted player"></a><figcaption><strong>Outside · lifted player</strong>The collar follows the player while the column stays connected to the ground.</figcaption></figure>
+<figure><a href="Summoning-Interior.png"><img src="Summoning-Interior.png" alt="First-person view through translucent summoning strands"></a><figcaption><strong>Inside · first-person camera</strong>The same world-space mesh is visible from inside. The scenery remains visible through the gaps.</figcaption></figure>
+<figure><a href="Summoning-Final-White.png"><img src="Summoning-Final-White.png" alt="Final soft white screen fade"></a><figcaption><strong>Final · soft white</strong>The screen fade covers only the end of departure and the scene switch.</figcaption></figure>
+</div>
+<div class="notes"><strong>Capture method</strong><p>These are rendered Editor captures. The three inspection views hold controlled departure phases and player height for comparison. A separate real lobby departure checks upward movement, arrival in playable Game, cancellation and cleanup. Remote-player selection is checked with an explicit actor fixture; this does not establish a two-client or Quest headset test.</p><p><a href="SummoningBeaconChecks.txt">Runtime report</a> · <a href="source-manifest.json">Focused source manifest</a></p></div>

@@ -1,0 +1,17 @@
+[
+  {
+    "path": "Assets/_DeadlyJenga/Presentation/Visuals/Scripts/CandySessionTravel.cs",
+    "snapshot_sha256": "f9afe094d2a0615f474eebe09faea3daa0b0d627c68685dab4408666b4482e15",
+    "tested_sha256": "b810cc61cfe30a9444289f4d1a467c4d1fadccc64aab1ebf9cf319ee89cb9f5f"
+  },
+  {
+    "path": "Assets/_DeadlyJenga/Presentation/Visuals/CandyTropicalArt/CandyLobbyResort.cs",
+    "snapshot_sha256": "4f03b831bb6c33adb2b50d892dee71e564f17dc048388fcae0d0b5907b18a233",
+    "tested_sha256": "9419add3f35ddb5e1e156195872e9c7b5cd3fed84904274ab95863aa4fadd2fa"
+  },
+  {
+    "path": "Assets/_DeadlyJenga/DevTools/Editor/LobbyBrowserBeaconChecks.cs",
+    "snapshot_sha256": "528aabeddc5b303000e7873170e8e598428f349ddbe32036e03a7cb9545ace11",
+    "tested_sha256": "19847b6216d8bf09685bf270f97f81b8ecb368509576ba85fa10cce38bacd604"
+  }
+]

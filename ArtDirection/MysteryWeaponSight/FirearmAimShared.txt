@@ -1,0 +1,24 @@
+PASS Aim fixture equips Blaster
+ZOOM aiming=True fov=50.00029 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 1.5x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+PASS Aim fixture equips SheriffHammer
+ZOOM aiming=True fov=37.50381 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 2x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+PASS Aim fixture equips DualRifle
+ZOOM aiming=True fov=18.75465 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 4x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+ZOOM aiming=True fov=37.50626 original=75 driverFrames=18 menu=False inputPaused=False mouse=True deviceEnabled=True activeCameraIsPlayer=True
+PASS Runtime input fixture executes during LateUpdate
+PASS Holding aim produces 2x desktop zoom
+PASS Opening the menu restores the original camera FOV
+PASS Original input settings and lifetime flags restored without changing the project asset
+SHARED AIM COMPLETE

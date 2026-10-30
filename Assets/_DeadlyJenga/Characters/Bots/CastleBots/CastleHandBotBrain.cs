@@ -1,13 +1,15 @@
 using System.Linq;
+using System.Collections.Generic;
 using UnityEngine;
 using FlyingHand;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CandyPhysicsHands;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastleBots
 {
-    public sealed class CastleHandBotBrain:MonoBehaviour,IFlyingHandInputSource,ICandyHandPoseSource
+    public sealed partial class CastleHandBotBrain:MonoBehaviour,IFlyingHandInputSource,ICandyHandPoseSource
     {
         public CastleHandBotPersonality Personality;
         public CastleHandActor Actor {get;private set;}
@@ -20,13 +22,29 @@ namespace DeadlyJenga.CastleBots
         public bool Paused;
         public Vector3 ContactPosition=>Bridge&&Bridge.PhysicalHand?Bridge.PhysicalHand.bodies[0].position:Actor.motor.transform.position;
         enum Phase{Approach,Windup,Strike,Recover}
+        enum AttackStyle{Poke,Slap,Punch,Scrape,Grip}
+        AttackStyle style;
+        Vector3 tangent;
+        float wristRoll;
+        public string AttackStyleName=>style.ToString();
         Phase phase;
-        float phaseAt,nextChoice,angle,seed,curl=.18f,blockedTime;
+        public bool Preparing => phase==Phase.Windup;
+        public bool Striking => phase==Phase.Strike;
+        public bool Withdrawing => phase==Phase.Recover;
+        float phaseAt,nextChoice,angle,seed,curl=.1f,blockedTime;
         int commandFrame=-1;
         Vector3 outward=Vector3.back,strikeTo,approach,targetStart;
         readonly RaycastHit[] approachHits=new RaycastHit[64];
+        static readonly List<Rigidbody> fallbackBlocks=new List<Rigidbody>();
+        static float fallbackScanAt;
+        static IWorldQuery fallbackWorld;
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetFallback(){fallbackBlocks.Clear();fallbackWorld=null;fallbackScanAt=0;}
         Rigidbody failedTarget;
         float retryAfter;
+        readonly HashSet<CandyPhysicalHand> separatedHands=new HashSet<CandyPhysicalHand>();
+        public bool ClaimingTarget=>Target&&phase!=Phase.Recover&&!Paused;
+        public Vector3 AttackNormal=>outward;
         public int CompletedPushes {get;private set;}
         FlyingHandCommand flight;
         CandyHandPose pose;
@@ -38,7 +56,7 @@ namespace DeadlyJenga.CastleBots
             Actor.motor.InputDriver=this;Bridge.PoseSource=this;Restart();
         }
         public void Restart()
-        {Target=null;phase=Phase.Approach;phaseAt=Time.time;nextChoice=0;commandFrame=-1;blockedTime=0;curl=.18f;if(Bridge)Bridge.ResetExternalRig();}
+        {Target=null;phase=Phase.Approach;phaseAt=Time.time;nextChoice=0;commandFrame=-1;blockedTime=0;curl=.1f;separatedHands.Clear();if(Bridge)Bridge.ResetExternalRig();}
         public void SetTarget(Rigidbody target)
         {
             Target=target;commandFrame=-1;
@@ -49,11 +67,19 @@ namespace DeadlyJenga.CastleBots
         void BeginTarget(Rigidbody target,Vector3 normal)
         {
             Target=target;outward=normal;phase=Phase.Approach;phaseAt=Time.time;blockedTime=0;
+            style=(AttackStyle)((Attacks+Mathf.FloorToInt(seed*7))%5);
+            tangent=Vector3.Cross(Vector3.up,outward).normalized*(Mathf.PerlinNoise(seed,Attacks*.71f)>.5f?1:-1);
+            wristRoll=Mathf.Lerp(-18,18,Mathf.PerlinNoise(seed+3,Attacks*.31f));
             var box=target.GetComponent<Collider>();
             var surface=box?box.ClosestPoint(target.worldCenterOfMass+outward*(box.bounds.size.magnitude+10)):target.position;
             // Local -Y is the palm face; local +Z becomes upright fingers.
-            approach=surface+outward*(Bridge.settings.size*.02f+1.2f)-Vector3.up*(Bridge.settings.size*.02f);
-            strikeTo=approach-outward*1.65f;targetStart=target.position;
+            float size=Bridge.settings.size;
+            float clearance=size*(style==AttackStyle.Punch?.085f:.135f)+.6f;
+            approach=surface+outward*clearance;
+            if(style==AttackStyle.Slap||style==AttackStyle.Scrape)approach+=tangent*size*.045f;
+            strikeTo=approach-outward*Mathf.Max(size*.12f,Personality.pushDistance);
+            if(style==AttackStyle.Slap||style==AttackStyle.Scrape)strikeTo-=tangent*size*.09f;
+            targetStart=target.position;
         }
         bool ClearApproach(Rigidbody target,Vector3 normal)
         {
@@ -75,79 +101,145 @@ namespace DeadlyJenga.CastleBots
         {
             if(!Population||Population.Session==null){Target=null;return;}
             float best=float.NegativeInfinity;Rigidbody choice=null;Vector3 normal=Vector3.back;var session=Population.Session;
-            float survivorHeight=session.Player.gameObject.activeInHierarchy?session.Player.transform.position.y:float.NegativeInfinity;
-            foreach(var bot in session.Bots.Bots)if(bot&&!bot.Respawning)survivorHeight=Mathf.Max(survivorHeight,bot.transform.position.y);
+            if(session.world==null)return;
+            float survivorHeight=session.Player&&session.Player.gameObject.activeInHierarchy?session.Player.transform.position.y:float.NegativeInfinity;
+            if(session.Bots)foreach(var bot in session.Bots.Bots)if(bot&&!bot.Respawning)survivorHeight=Mathf.Max(survivorHeight,bot.transform.position.y);
             if(float.IsNegativeInfinity(survivorHeight))survivorHeight=session.world.TopHeight;
-            foreach(var rb in session.world.Blocks)
+            var blocks=session.world.Blocks;
+            if(blocks==null||blocks.Count==0)
             {
-                if(!rb||!rb.gameObject.activeInHierarchy||rb.linearVelocity.magnitude>3||Vector3.Dot(rb.rotation*Vector3.up,Vector3.up)<.8f)continue;
+                if(!ReferenceEquals(fallbackWorld,session.world)||Time.time>=fallbackScanAt)
+                {
+                    fallbackBlocks.Clear();fallbackWorld=session.world;fallbackScanAt=Time.time+3;
+                    foreach(var body in FindObjectsByType<Rigidbody>(FindObjectsSortMode.None))
+                    {
+                        foreach(var collider in body.GetComponentsInChildren<Collider>())
+                            if(Climbables.TryGet(collider,out var climbable)&&climbable.Body==body){fallbackBlocks.Add(body);break;}
+                    }
+                }
+                blocks=fallbackBlocks;
+            }
+            int castBudget=16,start=Mathf.Abs((int)(seed*1000)+Attacks*97+Time.frameCount/43)%Mathf.Max(1,blocks.Count);
+            for(int sample=0;sample<Mathf.Min(96,blocks.Count);sample++)
+            {
+                var rb=blocks[(start+sample*Mathf.Max(1,blocks.Count/96))%blocks.Count];
+                if(!rb||!rb.gameObject.activeInHierarchy||(!rb.isKinematic&&rb.linearVelocity.magnitude>5))continue;
+                if(rb.isKinematic && rb.GetComponent<IDamageable>()==null)continue;
+                if(Reserved(rb))continue;
                 if(rb==failedTarget&&Time.time<retryAfter)continue;
                 var radial=Vector3.ProjectOnPlane(rb.position-session.world.Center,Vector3.up);
                 var side=Vector3.ProjectOnPlane(ContactPosition-session.world.Center,Vector3.up);
-                if(side.sqrMagnitude>1&&radial.sqrMagnitude>1&&Vector3.Dot(side.normalized,radial.normalized)<.8f)continue;
-                float score=-Mathf.Abs(rb.position.y-(survivorHeight-1.2f))*(.3f+Personality.targetSurvivors)-Vector3.Distance(rb.position,Actor.motor.transform.position)*.025f;
+                if(side.sqrMagnitude>1&&radial.sqrMagnitude>1&&Vector3.Dot(side.normalized,radial.normalized)<.25f)continue;
+                float attackHeight=Mathf.Lerp(session.world.Center.y+2,survivorHeight-1.2f,Mathf.Lerp(.25f,1,Mathf.PerlinNoise(seed,Attacks*.71f)));
+                float score=-Mathf.Abs(rb.position.y-attackHeight)*(.15f+Personality.targetSurvivors*.3f)-Vector3.Distance(rb.position,Actor.motor.transform.position)*.025f;
                 score+=radial.magnitude*.08f+Mathf.PerlinNoise(rb.position.x*.2f+seed,rb.position.y*.2f+Time.time*.02f)*Personality.goofiness;
                 if(radial.sqrMagnitude>.01f)score+=Vector3.Dot(radial.normalized,Quaternion.Euler(0,angle,0)*Vector3.forward)*1.5f;
-                var direction=radial.sqrMagnitude>.01f?radial.normalized:Vector3.back;
-                if(score>best&&ClearApproach(rb,direction)){best=score;choice=rb;normal=direction;}
+                if(score<=best)continue;
+                // Face normals give the broad palm a real contact patch, including rotated debris.
+                for(int face=0;face<6;face++)
+                {
+                    var direction=rb.rotation*(face==0?Vector3.forward:face==1?Vector3.back:face==2?Vector3.right:face==3?Vector3.left:face==4?Vector3.up:Vector3.down);
+                    if(Mathf.Abs(direction.y)>.55f||Vector3.Dot(direction,radial.normalized)<.3f)continue;
+                    if(Vector3.Dot(direction,side.normalized)<.1f)continue;
+                    if(castBudget--<=0)break;
+                    if(ClearApproach(rb,direction)){best=score;choice=rb;normal=direction;break;}
+                }
             }
-            Target=choice;nextChoice=Time.time+2;
+            Target=choice;nextChoice=Time.time+.7f;
             if(choice)BeginTarget(choice,normal);
+        }
+        bool Reserved(Rigidbody candidate)
+        {
+            if(!Population)return false;
+            foreach(var other in Population.Hands)
+                if(other&&other!=this&&other.ClaimingTarget&&Vector3.Distance(other.Target.position,candidate.position)<Bridge.settings.size*.17f)return true;
+            return false;
+        }
+        Vector3 AvoidHands(Vector3 velocity)
+        {
+            if(!Population)return velocity;
+            foreach(var other in Population.Hands)
+            {
+                if(!other||other==this)continue;
+                var otherHand=other.Bridge.PhysicalHand;
+                if(Bridge.PhysicalHand&&otherHand&&separatedHands.Add(otherHand))Bridge.PhysicalHand.IgnoreContactsWith(otherHand);
+                Vector3 delta=ContactPosition-other.ContactPosition;
+                float distance=delta.magnitude,clearance=Bridge.settings.size*.15f;
+                if(distance<clearance)
+                {
+                    Vector3 away=distance>.05f?delta/distance:Quaternion.Euler(0,angle,0)*Vector3.right;
+                    velocity+=away*(clearance-distance)*2.5f;
+                }
+            }
+            return velocity;
         }
         void Compute()
         {
             if(commandFrame==Time.frameCount)return;commandFrame=Time.frameCount;flight=default;
             var motor=Actor.motor;float size=Bridge.settings.size;
-            pose=new CandyHandPose{tracked=!Paused,skeletonTracked=true,position=motor.transform.position,rotation=Quaternion.LookRotation(Vector3.up,outward),skeleton=Articulate(Bridge.useLeftHand,curl)};
+            pose=new CandyHandPose{tracked=!Paused,skeletonTracked=true,position=motor.transform.position,rotation=AttackRotation(),skeleton=AttackSkeleton()};
             if(Paused){Intent="Paused";return;}
             if(Target&&!Target.gameObject.activeInHierarchy)Target=null;
             if(!Target&&Time.time>=nextChoice)PickTarget();
-            if(!Target){Intent="Waiting for a surviving castle";return;}
+            if(!Target){HarassSurvivors();return;}
             foreach(var ability in abilities)if(ability.TryAct(this,Target,out flight,out pose)){Intent="Using hand ability";return;}
-            float elapsed=Time.time-phaseAt,desiredCurl=.18f;
+            float elapsed=Time.time-phaseAt,desiredCurl=.1f;
             var physical=Bridge.PhysicalHand;
             float separation=Vector3.Distance(ContactPosition,motor.transform.position);
             blockedTime=separation>size*.04f?blockedTime+Time.deltaTime:0;
-            if(phase!=Phase.Recover&&(blockedTime>1||elapsed>15||Vector3.Distance(Target.position,targetStart)>size*.15f))
+            if(phase!=Phase.Recover&&((phase==Phase.Approach&&blockedTime>3)||elapsed>12||Vector3.Distance(Target.position,targetStart)>size*.35f))
             {failedTarget=Target;retryAfter=Time.time+12;phase=Phase.Recover;phaseAt=Time.time;}
             switch(phase)
             {
                 case Phase.Approach:
-                    Intent="Placing palm against a block";Destination=approach;
-                    if(physical&&physical.IsInteractive&&Vector3.Distance(ContactPosition,approach)<.3f&&physical.bodies[0].linearVelocity.magnitude<.5f&&Quaternion.Angle(physical.bodies[0].rotation,pose.rotation)<12)
+                    Intent="Reaching fingers toward a block";Destination=approach;
+                    if(physical&&physical.IsInteractive&&Vector3.Distance(ContactPosition,approach)<.9f&&Quaternion.Angle(physical.bodies[0].rotation,pose.rotation)<35)
                     {phase=Phase.Windup;phaseAt=Time.time;}
                     break;
                 case Phase.Windup:
-                    Intent="Settling fingers";Destination=approach;desiredCurl=.3f;
-                    if(elapsed>.6f&&physical&&physical.IsInteractive&&physical.bodies[0].linearVelocity.magnitude<.35f)
+                    Intent="Feeling for contact";Destination=approach;desiredCurl=.14f;
+                    if(elapsed>Personality.settleSeconds&&physical&&physical.IsInteractive)
                     {
                         phase=Phase.Strike;phaseAt=Time.time;
                         targetStart=Target.position;Attacks++;
                     }
                     break;
                 case Phase.Strike:
-                    Intent="Pushing with palm";Destination=strikeTo;desiredCurl=.3f;
-                    bool moved=Vector3.Dot(Target.position-targetStart,-outward)>.25f;
-                    if(moved||elapsed>Personality.attackSeconds+2)
+                    Intent=style+" — following through";Destination=strikeTo;desiredCurl=style==AttackStyle.Grip?.65f:style==AttackStyle.Punch?.8f:.14f;
+                    if(style==AttackStyle.Grip&&elapsed>Personality.attackSeconds*.55f)
+                        Destination=strikeTo+outward*(elapsed-Personality.attackSeconds*.55f)*Mathf.Min(3,Personality.pushSpeed);
+                    bool moved=Vector3.Distance(Target.position,targetStart)>.45f;
+                    if((moved&&elapsed>Personality.attackSeconds)||elapsed>Personality.attackSeconds+1.8f)
                     {if(moved)CompletedPushes++;else{failedTarget=Target;retryAfter=Time.time+12;}phase=Phase.Recover;phaseAt=Time.time;}
                     break;
                 default:
-                    Intent="Releasing and backing away";Destination=approach+outward*.8f;
+                    Intent="Releasing and backing away";Destination=approach+outward*Mathf.Max(2,size*.12f);
                     if(elapsed>Personality.recoverySeconds&&(Vector3.Distance(ContactPosition,Destination)<.5f||elapsed>8))
                     {Target=null;nextChoice=Time.time+.5f;}
                     break;
             }
             Vector3 delta=Destination-motor.transform.position;
-            float speed=phase==Phase.Strike?Mathf.Lerp(.8f,1.5f,Personality.aggression):Mathf.Min(Personality.flightSpeed,2.5f);
-            if(phase==Phase.Approach&&delta.magnitude<2)speed=Mathf.Min(speed,1);
-            var desiredVelocity=Vector3.ClampMagnitude(delta*1.5f,Mathf.Min(speed,motor.maximumSpeed));
+            float speed=phase==Phase.Strike?Personality.pushSpeed*Mathf.Lerp(.75f,1.25f,Personality.aggression):Personality.flightSpeed;
+            var desiredVelocity=Vector3.ClampMagnitude(delta*(phase==Phase.Strike?3:2),Mathf.Min(speed,motor.maximumSpeed));
+            desiredVelocity=Vector3.ClampMagnitude(AvoidHands(desiredVelocity),motor.maximumSpeed);
             var acceleration=(desiredVelocity-motor.Body.linearVelocity)*2+desiredVelocity*motor.drag;
             flight.moveWorld=new Vector3(acceleration.x/Mathf.Max(.1f,motor.thrust),acceleration.y/Mathf.Max(.1f,motor.verticalThrust),acceleration.z/Mathf.Max(.1f,motor.thrust));
             float yaw=Vector3.SignedAngle(motor.transform.forward,-outward,Vector3.up);
             flight.yaw=Mathf.Clamp(yaw/35f,-1,1);
             curl=Mathf.MoveTowards(curl,desiredCurl,Time.deltaTime*.4f);
-            pose.rotation=Quaternion.LookRotation(Vector3.up,outward);
-            pose.skeleton=Articulate(Bridge.useLeftHand,curl);
+            pose.rotation=AttackRotation();
+            pose.skeleton=AttackSkeleton();
+        }
+        Quaternion AttackRotation()
+        {
+            var forward=-outward;
+            float drift=Mathf.Sin(Time.time*1.3f+seed)*Mathf.Lerp(2,9,Personality?Personality.goofiness:.3f);
+            return Quaternion.LookRotation(forward,Vector3.up)*Quaternion.Euler(0,drift,wristRoll);
+        }
+        CandyHandSkeleton AttackSkeleton()
+        {
+            var kind=style==AttackStyle.Poke?DesktopHandPose.Pointer:style==AttackStyle.Punch?DesktopHandPose.Fist:style==AttackStyle.Grip?DesktopHandPose.Cup:DesktopHandPose.Flat;
+            return DesktopHandPoses.Build(Bridge.useLeftHand,kind,style==AttackStyle.Grip?curl*.5f:0);
         }
         public static CandyHandSkeleton Articulate(bool left,float curl)
         {

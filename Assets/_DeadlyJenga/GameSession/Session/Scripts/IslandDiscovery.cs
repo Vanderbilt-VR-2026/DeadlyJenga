@@ -16,7 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         public const int Port = 47738;
         [Serializable] public sealed class Message
         {
-            public string product="DeadlyJenga-Islands", version, sender, name, code, target, kind;
+            public string product="DeadlyJenga-Islands", version, sender, name, code, target, kind, room;
             public int count;
         }
         public sealed class Entry { public Message message; public IPEndPoint endpoint; public float seen; }
@@ -28,7 +28,9 @@ namespace DeadlyJenga.CastlePrototype
         public readonly string Id=Guid.NewGuid().ToString("N");
         public string Status {get;private set;}="Looking on this Wi-Fi network";
         public Entry Invitation {get;private set;}
-        float invitationUntil, nextBeacon, nextInvite, inviteAgain;int inviteRepeats;Message repeatedInvite;
+        float invitationUntil, nextBeacon, nextInvite, inviteAgain;int inviteRepeats;string currentRoom="";
+        readonly List<Message> repeatedInvites=new List<Message>();
+        public int LastInviteRecipients {get;private set;}
         public IReadOnlyList<Entry> Nearby=>entries.Values.Where(e=>!string.IsNullOrEmpty(e.message.code)).OrderBy(e=>e.message.name).ToArray();
         public int AvailablePlayers=>entries.Values.Count(e=>string.IsNullOrEmpty(e.message.code));
         public IslandDiscovery(string app,string protocol,int port=Port)
@@ -44,17 +46,18 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Tick(float now,string code,int count,bool hosting)
         {
+            currentRoom=code??"";
             foreach(var id in entries.Where(p=>now-p.Value.seen>5).Select(p=>p.Key).ToArray())entries.Remove(id);
             if(now>invitationUntil)Invitation=null;
             if(now>=nextBeacon){nextBeacon=now+1;Broadcast(Make("presence",hosting?code:"",count));}
-            if(inviteRepeats>0&&now>=inviteAgain){inviteAgain=now+.7f;inviteRepeats--;Broadcast(repeatedInvite);}
+            if(inviteRepeats>0&&now>=inviteAgain){inviteAgain=now+.7f;inviteRepeats--;foreach(var invite in repeatedInvites)Broadcast(invite);}
             for(int i=0;i<32&&socket.Available>0;i++)
             {
                 var endpoint=new IPEndPoint(IPAddress.Any,0);
                 try{Receive(socket.Receive(ref endpoint),endpoint,now);}catch(SocketException){break;}
             }
         }
-        Message Make(string kind,string code,int count,string target="")=>new Message{version=version,sender=Id,name=SystemInfo.deviceName.Substring(0,Math.Min(32,SystemInfo.deviceName.Length)),kind=kind,code=code,count=count,target=target};
+        Message Make(string kind,string code,int count,string target="")=>new Message{version=version,sender=Id,name=SystemInfo.deviceName.Substring(0,Math.Min(32,SystemInfo.deviceName.Length)),kind=kind,code=code,count=count,target=target,room=currentRoom};
         public bool Receive(byte[] bytes,IPEndPoint endpoint,float now)
         {
             if(bytes==null||bytes.Length==0||bytes.Length>1024)return false;
@@ -73,7 +76,17 @@ namespace DeadlyJenga.CastlePrototype
         void Broadcast(Message m)
         {var data=Encoding.UTF8.GetBytes(JsonUtility.ToJson(m));foreach(var address in broadcasts)try{socket.Send(data,data.Length,new IPEndPoint(address,Port));}catch(SocketException e){Status="Wi-Fi discovery: "+e.SocketErrorCode+". Room codes still work.";}}
         public void InviteAll(string code,int count)
-        {if(Time.unscaledTime<nextInvite)return;nextInvite=Time.unscaledTime+5;repeatedInvite=Make("invite",code,count,"*");Broadcast(repeatedInvite);inviteRepeats=2;inviteAgain=Time.unscaledTime+.7f;Status="Invitation sent to nearby players";}
+        {
+            if(Time.unscaledTime<nextInvite)return;
+            nextInvite=Time.unscaledTime+5;repeatedInvites.Clear();
+            foreach(var pair in entries)
+                if(Time.unscaledTime-pair.Value.seen<=5&&pair.Value.message.room!=code&&pair.Value.message.code!=code)
+                    repeatedInvites.Add(Make("invite",code,count,pair.Key));
+            LastInviteRecipients=repeatedInvites.Count;
+            foreach(var invite in repeatedInvites)Broadcast(invite);
+            inviteRepeats=2;inviteAgain=Time.unscaledTime+.7f;
+            Status="Invites sent to "+LastInviteRecipients+" nearby player"+(LastInviteRecipients==1?"":"s")+(LastInviteRecipients==0?". None detected on this Wi-Fi.":". Delivery is not guaranteed.");
+        }
         public void Dismiss()=>Invitation=null;
         public void Dispose()=>socket.Dispose();
     }
