@@ -159,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var restoreWorld=targetWorld;
             if(!client&&restoreWorld==null)restoreWorld=CaptureWorld();
-            id=newId;fusionClient=client;fusionActors.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
+            id=newId;fusionClient=client;fusionActors.Clear();livePoseAt.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
             if(!client)
             {
                 if(targetWorld!=null)for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]){World.Blocks[i].position=targetWorld.blocks[i].position;World.Blocks[i].rotation=targetWorld.blocks[i].rotation;}
@@ -202,6 +202,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
+        public byte[] FusionCaptureLivePoses()
+        {
+            var actors = new List<P.Actor> { LocalActor() };
+            foreach (var pair in fusionActors) actors.Add(Rebroadcast(pair.Key, pair.Value));
+            return P.Encode(P.Player, writer =>
+            {
+                writer.Write(actors.Count);
+                foreach (var actor in actors) P.Write(writer, actor);
+            });
+        }
         public void FusionApplyWorld(byte[] data)
         {
             var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
@@ -212,14 +222,34 @@ namespace DeadlyJenga.CastlePrototype
                     if(axis.sqrMagnitude>0&&!float.IsNaN(axis.x))migrationAngular[i]=Vector3.ClampMagnitude(axis*(angle*Mathf.Deg2Rad/dt),30);}}
             ApplyWorld(snapshot);
         }
+        readonly Dictionary<string, float> livePoseAt = new Dictionary<string, float>();
+
+        public void FusionApplyLivePoses(byte[] data, IEnumerable<string> activePlayers)
+        {
+            if (!IsClient || !receivedWorld) return;
+            var active = new HashSet<string>(activePlayers);
+            using var reader = P.Reader(data, P.Player);
+            int count = P.Count(reader, 64);
+            for (int i = 0; i < count; i++)
+            {
+                var actor = P.ReadActor(reader);
+                if (actor.id == id || !active.Contains(actor.id)) continue;
+                ShowActor(actor, false);
+                livePoseAt[actor.id] = Time.unscaledTime;
+            }
+        }
+
+        bool HasFreshPose(string playerID) =>
+            livePoseAt.TryGetValue(playerID, out float at) && Time.unscaledTime - at < .5f;
+
         public void FusionReceivePlayer(string playerID, byte[] data)
         {
             using var reader = P.Reader(data, P.Player);
             var actor = P.ReadActor(reader); actor.id = playerID;
-            fusionActors[playerID] = actor;
             ShowActor(actor, true);
+            fusionActors[playerID] = actor;
         }
-        public void FusionRemovePlayer(string playerID) { fusionActors.Remove(playerID); RemoveView(playerID); ParticipantLeft?.Invoke(playerID); }
+        public void FusionRemovePlayer(string playerID) { fusionActors.Remove(playerID); livePoseAt.Remove(playerID); RemoveView(playerID); ParticipantLeft?.Invoke(playerID); }
         public void FusionReceiveSocial(string source,byte[] data) { if(data!=null&&data.Length>0&&data.Length<=16000&&(data[0]==5||data[0]==6))SocialReceived?.Invoke(source,data); }
         public void FusionSuspendPlayer(string playerID) { if (views.TryGetValue(playerID, out var view)) view.Suspend(); }
         public void FusionRender()
@@ -551,8 +581,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
             var present = new HashSet<string>();
-            foreach (var actor in s.actors) { present.Add(actor.id); if (actor.id != id) ShowActor(actor, false); }
-            foreach (var key in views.Keys.Where(key => !present.Contains(key)).ToArray()) RemoveView(key);
+            foreach (var actor in s.actors) { present.Add(actor.id); if (actor.id != id && !HasFreshPose(actor.id)) ShowActor(actor, false); }
+            foreach (var key in views.Keys.Where(key => !present.Contains(key) && !HasFreshPose(key)).ToArray())
+            { livePoseAt.Remove(key); RemoveView(key); }
             if (!receivedWorld)
             {
                 receivedWorld = true; InterpolateWorld(); Physics.SyncTransforms();

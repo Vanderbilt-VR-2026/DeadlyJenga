@@ -9,20 +9,54 @@ using UnityEngine.SceneManagement;
 namespace DeadlyJenga.CastlePrototype
 {
     // Reuses the castle's validated snapshot format and physical remote-hand views.
-    // One outstanding world/pose per peer bounds reliable-stream backpressure.
+    // World transfers are acknowledged. Live poses are superseded by newer samples.
     public sealed partial class CastleFusionSession : MonoBehaviour
     {
         const int Channel = 0x43415354, SocialChannel=0x534F434C;
         readonly Dictionary<PlayerRef,CastleSocialChannel> socialPeers=new Dictionary<PlayerRef,CastleSocialChannel>();
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
-        const int Ready = 1, Welcome = 2, World = 3, Pose = 4, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
-        sealed class Peer { public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
+        const int LivePose = 20, LivePoses = 21, PoseReceipt = 22;
+        const int PoseWindow = 6, MaxPoseSize = 4096;
+        sealed class Peer { public readonly HashSet<int> posesInFlight = new HashSet<int>(); public int lastPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
         CastleLanSession castle;
         CastlePlaySession session;
-        int sequence, waitingPose;
+        int sequence, poseSequence, lastPoseBatch;
+        float nextPoseSend;
+        readonly HashSet<int> posesInFlight = new HashSet<int>();
+
+        void PumpPoses(float now)
+        {
+            if (now < nextPoseSend) return;
+            nextPoseSend = now + 1f / 30;
+            if (!runner.IsServer)
+            {
+                if (welcomed && !castle.WaitingForWorld && posesInFlight.Count < PoseWindow)
+                {
+                    byte[] packet = castle.FusionCapturePlayer();
+                    if (packet.Length <= MaxPoseSize)
+                    {
+                        int serial = ++poseSequence;
+                        posesInFlight.Add(serial);
+                        Send(default, LivePose, packet, serial);
+                    }
+                }
+                return;
+            }
+
+            byte[] batch = null;
+            foreach (var pair in peers)
+            {
+                if (!pair.Value.ready || pair.Value.posesInFlight.Count >= PoseWindow) continue;
+                batch ??= castle.FusionCaptureLivePoses();
+                int serial = ++poseSequence;
+                pair.Value.posesInFlight.Add(serial);
+                Send(pair.Key, LivePoses, batch, serial);
+            }
+        }
         bool welcomed, closing, leavingIntentionally;
         float nextSend, lastWorld;
 
@@ -43,7 +77,7 @@ namespace DeadlyJenga.CastlePrototype
         public void PauseForMigration(){ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
         public void ResumeAfterMigration(NetworkRunner next)
         {
-            peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;welcomed=false;closing=false;nextSend=0;
+            peers.Clear();socialPeers.Clear();socialServer.Clear();posesInFlight.Clear();lastPoseBatch=0;nextPoseSend=0;welcomed=false;closing=false;nextSend=0;
             runner=next;if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
             AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
@@ -129,12 +163,17 @@ namespace DeadlyJenga.CastlePrototype
                             if(modeRuntime&&modeRuntime.Rules.mode==DeadlyJenga.Core.GameModeKind.Demo&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.HasDemoPermission(player.ToString()))modeRuntime.ReceiveAdminCommand(player.ToString(),modeRequest);
                             modeRuntime?.ReceiveCommand(player.ToString(),modeRequest);}
                         else if (kind == WelcomeAck) peer.ready = true;
-                        else if (kind == Pose && peer.ready)
+                        else if (kind == LivePose && peer.ready && payload.Length <= MaxPoseSize)
                         {
-                            castle.FusionReceivePlayer(player.ToString(), payload.ToArray());
-                            peer.lastPose = Time.unscaledTime;
-                            Send(player, Ack, Array.Empty<byte>(), serial);
+                            if (serial > peer.lastPoseSequence)
+                            {
+                                castle.FusionReceivePlayer(player.ToString(), payload.ToArray());
+                                peer.lastPoseSequence = serial;
+                                peer.lastPose = Time.unscaledTime;
+                            }
+                            Send(player, PoseReceipt, Array.Empty<byte>(), serial);
                         }
+                        else if (kind == PoseReceipt) peer.posesInFlight.Remove(serial);
                         else if (kind == Ack && peer.waiting == serial) peer.waiting = 0;
                     }
                 }
@@ -151,6 +190,16 @@ namespace DeadlyJenga.CastlePrototype
                         castle.FusionApplyWorld(CastleFusionWire.Decompress(payload.ToArray())); lastWorld = Time.unscaledTime;
                         Send(default, Ack, Array.Empty<byte>(), serial);
                     }
+                    else if (kind == LivePoses && welcomed && payload.Length <= MaxPoseSize * 64)
+                    {
+                        if (serial > lastPoseBatch && !castle.WaitingForWorld)
+                        {
+                            castle.FusionApplyLivePoses(payload.ToArray(), runner.ActivePlayers.Select(p => p.ToString()));
+                            lastPoseBatch = serial;
+                        }
+                        Send(default, PoseReceipt, Array.Empty<byte>(), serial);
+                    }
+                    else if (kind == PoseReceipt) posesInFlight.Remove(serial);
                     else if(kind==MatchState&&welcomed&&payload.Length<=512000)ReceiveMatch(payload);
                     else if(kind==ModeOutcome&&welcomed&&payload.Length<=1024)ReceiveOutcome(payload);
                     else if(kind==MysterySecret&&welcomed&&payload.Length<=8192){ConnectModes();modeRuntime?.ReceiveSecret(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
@@ -160,7 +209,6 @@ namespace DeadlyJenga.CastlePrototype
                     else if(kind==DisasterImpact&&welcomed&&payload.Length<512)ReceiveDisasterImpact(payload.ToArray());
                     else if(kind==DisasterVisuals&&welcomed&&payload.Length<256*1024)ReceiveDisasters(payload.ToArray());
                     else if(kind==Rules&&welcomed&&payload.Length<4096){authoritativeRules=System.Text.Encoding.UTF8.GetString(payload.ToArray());MatchSetup.ApplyRules(session.Player,authoritativeRules);}
-                    else if (kind == Ack && waitingPose == serial) waitingPose = 0;
                 }
             }
             catch (Exception error)
@@ -176,6 +224,7 @@ namespace DeadlyJenga.CastlePrototype
             if (closing || runner == null || !runner.IsRunning) return;
             castle.FusionRender();ConnectModes();
             float now = Time.unscaledTime;
+            PumpPoses(now);
             if(pendingStamina!=null&&now>=nextStamina){if(CanUseDemoControls)Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(pendingStamina)));pendingStamina=null;nextStamina=now+.2f;}
             if(runner.IsServer){foreach(var pair in socialPeers)if(peers.TryGetValue(pair.Key,out var ready)&&ready.ready)pair.Value.Pump(now,(serial,data)=>SendSocialPacket(pair.Key,1,serial,data));}
             else if(welcomed)socialServer.Pump(now,(serial,data)=>SendSocialPacket(default,1,serial,data));
@@ -209,13 +258,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if (now >= nextSend)
             {
-                nextSend = now + (welcomed ? 1f / 30 : 1f);
+                nextSend = now + 1;
                 if (!welcomed) Send(default, Ready, Array.Empty<byte>());
-                else if (!castle.WaitingForWorld && waitingPose == 0)
-                {
-                    waitingPose = ++sequence;
-                    Send(default, Pose, castle.FusionCapturePlayer(), waitingPose);
-                }
                 if (now - lastWorld > (welcomed ? 20 : 60)) Fail("The host stopped responding. Check your connection and rejoin the room.");
             }
         }

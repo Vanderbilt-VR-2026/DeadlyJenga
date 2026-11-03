@@ -79,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2|persistent-lobby-1|mayhem-enemies-2");
+                var content=new System.Text.StringBuilder(protocolVersion+"|disasters-1|lobby-roster-3|avatar-attachments-1|enemies-1|plasma-1|equipment-1|low-gravity-1|avatar-styles-2|mode-metrics-2|persistent-lobby-1|mayhem-enemies-2|live-poses-1");
                 foreach(var map in maps)content.Append("|map:").Append(map.id).Append(":").Append(string.Join(",",map.supportedModes??Array.Empty<string>()));
                 foreach(var mode in modes)content.Append("|mode:").Append(mode.id).Append(':').Append(mode.available);
                 using(var hash=System.Security.Cryptography.SHA256.Create())
