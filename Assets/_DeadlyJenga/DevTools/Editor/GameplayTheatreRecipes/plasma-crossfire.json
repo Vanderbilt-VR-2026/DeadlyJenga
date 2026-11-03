@@ -1,0 +1,128 @@
+{
+  "title": "Plasma crossfire",
+  "map": "castle",
+  "fps": 24,
+  "width": 960,
+  "height": 540,
+  "warmup": 0.65,
+  "seed": 517,
+  "ffmpeg": "ffmpeg",
+  "cast": [
+    {
+      "id": "red",
+      "color": 0,
+      "customLook": true,
+      "start": {
+        "x": -1.8,
+        "y": 0,
+        "z": 0
+      },
+      "moves": [
+        {
+          "at": 1.55,
+          "duration": 1.5,
+          "lift": 1.1,
+          "to": {
+            "x": -2.5,
+            "y": -2,
+            "z": 1.4
+          }
+        }
+      ]
+    },
+    {
+      "id": "blue",
+      "color": 2,
+      "customLook": true,
+      "start": {
+        "x": 2.3,
+        "y": 0,
+        "z": 0
+      },
+      "moves": [
+        {
+          "at": 1.02,
+          "duration": 1.75,
+          "lift": 0.85,
+          "to": {
+            "x": 3.8,
+            "y": -2.2,
+            "z": -1.6
+          }
+        }
+      ]
+    }
+  ],
+  "shots": [
+    {
+      "name": "Plasma crossing",
+      "subject": "red",
+      "second": "blue",
+      "start": 0,
+      "duration": 3,
+      "from": {
+        "x": 0,
+        "y": 1.8,
+        "z": -5.5
+      },
+      "to": {
+        "x": -1,
+        "y": 1.25,
+        "z": -5
+      },
+      "look": {
+        "x": 0,
+        "y": 0.6,
+        "z": 0
+      },
+      "fov": 48
+    },
+    {
+      "name": "Muzzle and response",
+      "subject": "red",
+      "start": 0.35,
+      "duration": 2.4,
+      "from": {
+        "x": -1.8,
+        "y": 1.1,
+        "z": -2.5
+      },
+      "to": {
+        "x": -1,
+        "y": 1.25,
+        "z": -3
+      },
+      "look": {
+        "x": 1.1,
+        "y": 0.6,
+        "z": 0
+      },
+      "fov": 52
+    }
+  ],
+  "cues": [
+    {
+      "at": 0.14,
+      "action": "gear",
+      "weapon": "Blaster"
+    },
+    {
+      "at": 0.62,
+      "action": "fire",
+      "actor": "red",
+      "target": "blue"
+    },
+    {
+      "at": 1.3,
+      "action": "fire",
+      "actor": "blue",
+      "target": "red"
+    },
+    {
+      "at": 1.95,
+      "action": "fire",
+      "actor": "red",
+      "target": "blue"
+    }
+  ]
+}
