@@ -50,76 +50,97 @@ namespace DeadlyJenga.DevTools.Editor
             var hips = Joint(Hips);
             var leftFoot = Joint(LeftFoot);
             var rightFoot = Joint(RightFoot);
-            var feet = new Vector3(hips.x, Mathf.Min(leftFoot.y, rightFoot.y) - .045f, hips.z);
-            var right = Joint(RightShoulder) - Joint(LeftShoulder);
-            var spine = Joint(Chest) - hips;
-            var forward = Vector3.Cross(right, spine);
+            float lowestAnkle = Mathf.Min(leftFoot.y, rightFoot.y);
+            float firstAnkle = stage.y + Mathf.Min(track[0].joints[LeftFoot].y, track[0].joints[RightFoot].y);
+            var feet = new Vector3(hips.x, stage.y + lowestAnkle - firstAnkle, hips.z);
+            var forward = Vector3.Cross(Joint(RightShoulder) - Joint(LeftShoulder), Joint(Chest) - hips);
             var horizontal = Vector3.ProjectOnPlane(forward, Vector3.up);
             var facing = horizontal.sqrMagnitude > .001f ? Quaternion.LookRotation(horizontal) : root.rotation;
             root.SetPositionAndRotation(feet, facing);
+
             var frame = avatar.ReadFrame();
+            float leftLegLength = SourceLength(LeftHip, LeftKnee, LeftFoot);
+            float rightLegLength = SourceLength(RightHip, RightKnee, RightFoot);
+            var sourceHipCenter = (Joint(LeftHip) + Joint(RightHip)) * .5f;
+            float legLength = (leftLegLength + rightLegLength) * .5f;
+            float hipExtension = (sourceHipCenter.y - lowestAnkle) / Mathf.Max(.001f, legLength);
+            float crouch = Mathf.Lerp(.67f, 1, Mathf.InverseLerp(.56f, .94f, hipExtension));
             frame.feet = feet;
-            frame.head = Joint(Head) + Vector3.up * .08f * frame.scale;
+            frame.head = feet + Vector3.up * (1.58f * frame.scale * crouch);
             frame.headRotation = facing;
-            frame.left = Hand(LeftElbow, LeftHand, true);
-            frame.right = Hand(RightElbow, RightHand, false);
-            avatar.OverridePose(frame);
+            frame.left = Hand(feet + facing * new Vector3(-.23f, 1.12f * crouch, .3f) * frame.scale, facing * Vector3.forward, true);
+            frame.right = Hand(feet + facing * new Vector3(.23f, 1.12f * crouch, .3f) * frame.scale, facing * Vector3.forward, false);
             avatar.ApplyCosmeticFrame(frame);
             var rig = avatar.Rig;
-            if (!rig || rig.BoneCount < 14) throw new InvalidOperationException("The candy stunt rig lacks its body bones.");
-            var torso = rig.BodyAnchor;
-            var leftShoulderAnchor = torso.InverseTransformPoint(rig.AppearanceBone(2).position);
-            var rightShoulderAnchor = torso.InverseTransformPoint(rig.AppearanceBone(5).position);
-            var leftHipAnchor = torso.InverseTransformPoint(rig.AppearanceBone(8).position);
-            var rightHipAnchor = torso.InverseTransformPoint(rig.AppearanceBone(11).position);
-            if (forward.sqrMagnitude > .001f && spine.sqrMagnitude > .001f)
-            {
-                var hipPivot = (leftHipAnchor + rightHipAnchor) * .5f;
-                var shoulderPivot = (leftShoulderAnchor + rightShoulderAnchor) * .5f;
-                var targetHips = (Joint(LeftHip) + Joint(RightHip)) * .5f;
-                var targetShoulders = (Joint(LeftShoulder) + Joint(RightShoulder)) * .5f;
-                var axis = targetShoulders - targetHips;
-                var priorLength = torso.TransformVector(shoulderPivot - hipPivot).magnitude;
-                if (axis.sqrMagnitude > .001f && priorLength > .01f)
-                {
-                    var bodyForward = Vector3.Cross(right, axis);
-                    if (bodyForward.sqrMagnitude > .001f) torso.rotation = Quaternion.LookRotation(bodyForward, axis);
-                    var torsoScale = torso.localScale;
-                    torsoScale.y *= Mathf.Clamp(axis.magnitude / priorLength, .66f, 1.65f);
-                    torso.localScale = torsoScale;
-                    torso.position += targetHips - torso.TransformPoint(hipPivot);
-                }
-            }
-            AimChain(2, torso.TransformPoint(leftShoulderAnchor), Joint(LeftElbow), frame.left.position, frame.left.rotation);
-            AimChain(5, torso.TransformPoint(rightShoulderAnchor), Joint(RightElbow), frame.right.position, frame.right.rotation);
-            AimChain(8, torso.TransformPoint(leftHipAnchor), Joint(LeftKnee), leftFoot, facing);
-            AimChain(11, torso.TransformPoint(rightHipAnchor), Joint(RightKnee), rightFoot, facing);
+            if (!rig || rig.BoneCount < 14)
+                throw new InvalidOperationException("The candy stunt rig lacks its body bones.");
+
+            var leftArm = Retarget(2, LeftShoulder, LeftElbow, LeftHand, false);
+            var rightArm = Retarget(5, RightShoulder, RightElbow, RightHand, false);
+            var leftLeg = Retarget(8, LeftHip, LeftKnee, LeftFoot, true);
+            var rightLeg = Retarget(11, RightHip, RightKnee, RightFoot, true);
+            frame.left = Hand(leftArm.end, leftArm.end - leftArm.hinge, true);
+            frame.right = Hand(rightArm.end, rightArm.end - rightArm.hinge, false);
+            avatar.OverridePose(frame);
+            avatar.ApplyCosmeticFrame(frame);
+            ApplyChain(2, leftArm, frame.left.rotation);
+            ApplyChain(5, rightArm, frame.right.rotation);
+            ApplyChain(8, leftLeg, facing);
+            ApplyChain(11, rightLeg, facing);
             return feet;
 
-            CandyHandPose Hand(int elbow, int wrist, bool left)
+            float SourceLength(int start, int hinge, int end) =>
+                Vector3.Distance(Joint(start), Joint(hinge)) + Vector3.Distance(Joint(hinge), Joint(end));
+
+            (Vector3 start, Vector3 hinge, Vector3 end) Retarget(int index, int sourceStart,
+                int sourceHinge, int sourceEnd, bool leg)
             {
-                var p = Joint(wrist);
-                var direction = p - Joint(elbow);
+                var upper = rig.AppearanceBone(index);
+                var lower = rig.AppearanceBone(index + 1);
+                var endpoint = rig.AppearanceBone(index + 2);
+                // Recover each bind length from the regular rig's current solved length and stretch.
+                float upperLength = Vector3.Distance(upper.position, lower.position) / Mathf.Max(.001f, upper.localScale.y);
+                float lowerLength = Vector3.Distance(lower.position, endpoint.position) / Mathf.Max(.001f, lower.localScale.y);
+                float total = upperLength + lowerLength;
+                float ratio = total / Mathf.Max(.001f, SourceLength(sourceStart, sourceHinge, sourceEnd));
+                var sourceOffset = Joint(sourceEnd) - Joint(sourceStart);
+                var target = upper.position + sourceOffset * ratio;
+                if (leg)
+                    target.y = feet.y + .075f * frame.scale + (Joint(sourceEnd).y - lowestAnkle) * ratio;
+                var delta = target - upper.position;
+                var direction = delta.sqrMagnitude > .00001f ? delta.normalized : facing * Vector3.forward;
+                float distance = Mathf.Clamp(delta.magnitude,
+                    Mathf.Abs(upperLength - lowerLength) + .0005f, Mathf.Max(.001f, total - .0005f));
+                var sourceAxis = sourceOffset.normalized;
+                var pole = Vector3.ProjectOnPlane(Joint(sourceHinge) - Joint(sourceStart), sourceAxis);
+                pole = Vector3.ProjectOnPlane(pole, direction);
+                if (pole.sqrMagnitude < .00001f)
+                    pole = Vector3.ProjectOnPlane(leg ? facing * Vector3.forward : Vector3.down, direction);
+                if (pole.sqrMagnitude < .00001f)
+                    pole = Vector3.ProjectOnPlane(facing * Vector3.right, direction);
+                float along = (upperLength * upperLength - lowerLength * lowerLength + distance * distance) / (2 * distance);
+                float bend = Mathf.Sqrt(Mathf.Max(0, upperLength * upperLength - along * along));
+                return (upper.position, upper.position + direction * along + pole.normalized * bend,
+                    upper.position + direction * distance);
+            }
+
+            CandyHandPose Hand(Vector3 position, Vector3 direction, bool left)
+            {
                 var up = Vector3.ProjectOnPlane(Vector3.up, direction);
                 var rotation = direction.sqrMagnitude > .00001f && up.sqrMagnitude > .00001f
                     ? Quaternion.LookRotation(direction, up) : facing;
-                return new CandyHandPose { tracked = true, skeletonTracked = true, position = p,
+                return new CandyHandPose { tracked = true, skeletonTracked = true, position = position,
                     rotation = rotation, skeleton = CandyHandSkeleton.Rest(left, .68f) };
             }
 
-            void AimChain(int index, Vector3 upper, Vector3 hinge, Vector3 endpoint, Quaternion rotation)
+            void ApplyChain(int index, (Vector3 start, Vector3 hinge, Vector3 end) chain, Quaternion rotation)
             {
-                var upperBone = rig.AppearanceBone(index);
-                var lowerBone = rig.AppearanceBone(index + 1);
-                var end = rig.AppearanceBone(index + 2);
-                float upperLength = Vector3.Distance(upperBone.position, lowerBone.position);
-                float lowerLength = Vector3.Distance(lowerBone.position, end.position);
-                Aim(upperBone, upper, hinge, upperLength);
-                Aim(lowerBone, hinge, endpoint, lowerLength);
-                end.SetPositionAndRotation(endpoint, rotation);
+                Aim(rig.AppearanceBone(index), chain.start, chain.hinge);
+                Aim(rig.AppearanceBone(index + 1), chain.hinge, chain.end);
+                rig.AppearanceBone(index + 2).SetPositionAndRotation(chain.end, rotation);
             }
 
-            void Aim(Transform bone, Vector3 start, Vector3 end, float previousLength)
+            void Aim(Transform bone, Vector3 start, Vector3 end)
             {
                 var direction = end - start;
                 if (direction.sqrMagnitude < .00001f) return;
@@ -127,9 +148,7 @@ namespace DeadlyJenga.DevTools.Editor
                 if (normal.sqrMagnitude < .00001f) normal = Vector3.ProjectOnPlane(Vector3.up, direction);
                 if (normal.sqrMagnitude < .00001f) normal = Vector3.ProjectOnPlane(Vector3.right, direction);
                 bone.SetPositionAndRotation(start, Quaternion.LookRotation(normal, direction));
-                var scale = bone.localScale;
-                scale.y *= direction.magnitude / Mathf.Max(.001f, previousLength);
-                bone.localScale = scale;
+                bone.localScale = Vector3.one;
             }
         }
     }
