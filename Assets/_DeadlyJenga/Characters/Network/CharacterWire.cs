@@ -47,6 +47,7 @@ namespace DeadlyJenga.CharacterNetwork
             w.Write(blaster==null?(byte)(remoteBlaster&3):(byte)((blaster.Drawn?1:0)|(blaster.LeftHanded?2:0)));
             int archetype=npc?(enemy.ArchetypeId=="mushroom"?1:enemy.ArchetypeId=="longhand"?4:enemy.ArchetypeId=="gum-brute"?8:0):0;
             w.Write(CandyPlayerAvatar.StyleBits(appearance));w.Write((byte)(archetype|(npc&&enemy is IEnemyPose pose&&pose.PreparingMelee?2:0)));if(npc){var actor=(enemy as Component)?.GetComponent<IModeActor>();w.Write(actor!=null?Mathf.Clamp01(actor.Health/Mathf.Max(1,actor.MaxHealth)):1f);}
+            if(!npc&&frame.seated)w.Write((byte)1);
         }
         public static void ReadSurvivor(BinaryReader r,out CandyAvatarFrame frame,out int color,out AvatarAppearance appearance,out EnemySpawnSettings enemy)
         {ReadSurvivor(r,out frame,out color,out appearance,out enemy,out _);}
@@ -62,6 +63,11 @@ namespace DeadlyJenga.CharacterNetwork
             if(r.BaseStream.Position<r.BaseStream.Length){uint style=r.ReadUInt32();if((style&0xC0000000u)!=0||((style&7)|(((style>>20)&15)<<3))>(uint)AvatarSkin.DiscoAlien)throw new InvalidDataException("Invalid avatar style");appearance=CandyPlayerAvatar.WithStyle(appearance,style);}
             if(r.BaseStream.Position<r.BaseStream.Length){byte archetype=r.ReadByte();if((archetype&~15)!=0||((archetype&13)!=0&&(archetype&13)!=1&&(archetype&13)!=4&&(archetype&13)!=8)||archetype!=0&&enemy==null)throw new InvalidDataException("Invalid enemy archetype");if(enemy!=null){enemy.archetypeId=(archetype&1)!=0?"mushroom":(archetype&4)!=0?"longhand":(archetype&8)!=0?"gum-brute":"panther";enemy.preparingMelee=(archetype&2)!=0;}}
             if(enemy!=null&&r.BaseStream.Position<r.BaseStream.Length){enemy.healthRatio=NetWire.ReadNumber(r);if(enemy.healthRatio<0||enemy.healthRatio>1)throw new InvalidDataException("Invalid enemy health");}
+            if(r.BaseStream.Position<r.BaseStream.Length&&enemy==null)
+            {
+                if(r.ReadByte()!=1)throw new InvalidDataException("Invalid seated pose flag");
+                frame.seated=true;
+            }
             if(r.BaseStream.Position!=r.BaseStream.Length)throw new InvalidDataException("Trailing survivor appearance data");
         }
 

@@ -24,6 +24,7 @@ namespace DeadlyJenga.CandyPlayers
             return controller?.TryGetChildControl<Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
         }
         static ButtonControl SingleButton(string name)=>SingleController?(Controller(true)??Controller(false))?.TryGetChildControl<ButtonControl>(name):null;
+        public static bool SingleLookHeld=>SingleButton("gripPressed")?.isPressed==true;
         public static bool SinglePrimaryHeld=>SingleButton("primaryButton")?.isPressed==true;
         public static bool SingleModePressed=>SingleButton("primary2DAxisClick")?.wasPressedThisFrame==true;
         public static bool SingleCancelPressed=>SingleButton("gripPressed")?.wasPressedThisFrame==true;

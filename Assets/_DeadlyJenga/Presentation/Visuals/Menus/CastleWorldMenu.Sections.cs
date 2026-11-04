@@ -27,7 +27,7 @@ namespace DeadlyJenga.CastlePrototype
                     Add("Respawn on top",()=>{session.SetRole(false);session.SetMenu(false);},DemoMode);
                     Add("Third person inspection",()=>CandyThirdPersonInspection.For(session).Begin(),CandyThirdPersonInspection.For(session)?.CanInspect==true);
                     var item=session.Player.gameObject.GetComponent<IEquipmentControls>();var gun=session.Player.gameObject.GetComponent<IBlasterControls>();
-                    Add(item?.Equipment.drawn==true?"Holster equipment":"Draw equipment",()=>item?.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
+                    Add(item?.Equipment.drawn==true?"Holster "+item.Equipment.kind:"Draw "+(item?.Equipment.kind.ToString()??"equipment"),()=>item?.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
                     Add("Dominant hand: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),()=>gun?.SetLeftHanded(!gun.LeftHanded),gun!=null);
                     Add("Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),()=>{if(MatchRuntime.Current?.Authority==true)gun?.SetTestingEnabled(!gun.TestingEnabled);},gun!=null&&CanCommand&&MatchRuntime.Current?.Authority==true);
                 }
@@ -51,7 +51,12 @@ namespace DeadlyJenga.CastlePrototype
                     Add("Spawn mushroom enemy",()=>{if(CanCommand)enemies?.SpawnEnemy(new EnemySpawnSettings{archetypeId="mushroom",hitDamage=10});},CanCommand&&enemies!=null);
                     Add("Clear enemy NPCs",()=>{if(CanCommand)enemies?.ClearEnemies();},CanCommand&&enemies!=null);
                 }
-                if(name=="Controls"){Add("VR movement / gestures",()=>comfortPage=true);Add("Stamina / audio / scenery",()=>tuningPage=true);}
+                if(name=="Controls"){Add("VR movement / gestures",()=>comfortPage=true);
+                    var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();
+                    var hand=session.Player.gameObject.GetComponent<IBlasterControls>();
+                    Add("Dominant hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT"),()=>hand?.SetLeftHanded(!hand.LeftHanded),hand!=null);
+                    Add(equipment?.Equipment.drawn==true?"Holster "+equipment.Equipment.kind:"Draw "+(equipment?.Equipment.kind.ToString()??"equipment"),()=>equipment?.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
+                    Add(equipment?.BlocksTraversal==true?"Holster to jump, vault or climb":"Jump: A / pinch. Hold to climb.",()=>{},false);Add("Stamina / audio / scenery",()=>tuningPage=true);}
                 if(name=="Ground pickups")
                 {
                     int max=Mathf.Min(10,EquipmentSpecifications.All.Length-1-equipmentOffset);

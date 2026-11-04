@@ -68,6 +68,12 @@ namespace DeadlyJenga.CandyPhysicsHands
             bool desktop=actor.motor.ActiveControlMode==ControlMode.Desktop;
             Pointer(false);
             bool external=actor.motor.externallyDriven;
+            if(!desktop&&!external&&PoseSource==null&&source)
+            {
+                bool preferred=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",useLeftHand?1:0)!=0;
+                bool chosen=source.WorldHand(preferred).tracked||!source.WorldHand(!preferred).tracked?preferred:!preferred;
+                if(chosen!=useLeftHand){ResetTrackingRig();useLeftHand=chosen;}
+            }
             var raw=source?source.WorldHand(useLeftHand):default;
             if(PoseSource!=null){if(!PoseSource.TryGetPose(out raw))raw=default;}
             else if(external)raw=default;
@@ -88,11 +94,6 @@ namespace DeadlyJenga.CandyPhysicsHands
                     raw.position=actor.motor.transform.position+actor.motor.transform.rotation*((raw.position-trackingAnchor)*settings.size);
                     raw.rotation=actor.motor.transform.rotation*raw.rotation;
                 }
-                if(!raw.skeletonTracked)
-                {
-                    var pointing=CandyHandSkeleton.Rest(useLeftHand,.85f);var open=CandyHandSkeleton.Rest(useLeftHand);
-                    for(int j=0;j<4;j++)pointing.SetJoint(4+j,open.Joint(4+j));raw.skeleton=pointing;
-                }
             }
             transition.Step(raw,mode,useLeftHand,Time.unscaledDeltaTime,settings);
             if(!transition.Initialized)return;
@@ -101,7 +102,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             bool needsTrackedGeometry=transition.Mode==CandyHandMode.HandTracking;
             if(!physical){physical=Instantiate(prefab);physical.name="Contact driven candy hand";physical.settings=settings;physical.left=useLeftHand;physical.JointDrivenFingers=external&&ExternalUsesJointDrives;physical.Build(transition.Pose);trackedGeometry=needsTrackedGeometry;}
             // Wrist movement must stay visible relative to the observer.
-            actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");
+            actor.follow.target=actor.motor.transform;
             actor.follow.positionTarget=null;actor.follow.compactHandView=true;
             if(trackedGeometry!=needsTrackedGeometry&&raw.tracked&&transition.Mode==mode)
             {

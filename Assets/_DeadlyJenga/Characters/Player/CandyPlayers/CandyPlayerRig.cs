@@ -10,6 +10,7 @@ namespace DeadlyJenga.CandyPlayers
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
         public Camera ownerCamera;
+        public bool SeatedVisual {get;set;}
         public CandyAvatarCalibration calibration;
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
@@ -54,7 +55,7 @@ namespace DeadlyJenga.CandyPlayers
             var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
             var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
-        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
+        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&bodyRenderer)bodyRenderer.sharedMesh=CandySmoothHandMesh.SeparateDigitWeights(bodyRenderer.sharedMesh,14,10);if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
         bool firstPersonOverride;
@@ -117,6 +118,8 @@ namespace DeadlyJenga.CandyPlayers
             if(forward.sqrMagnitude<.01f)forward=transform.forward;
             transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            bool seated=(SeatedVisual||frame.seated)&&!downed;
+            if(seated)frame.head.y=frame.feet.y+1.27f*scale;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
@@ -134,7 +137,8 @@ namespace DeadlyJenga.CandyPlayers
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
                 Vector3 hip=transform.TransformPoint(torsoOffset+new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
-                if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f,.36f));
+                else if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
                 int thigh=side==0?8:11;
                 Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);

@@ -123,7 +123,7 @@ namespace DeadlyJenga.CastlePrototype
             else if(comfortPage&&Settings!=null)
             {
                 var p=Settings;var social=session.Social;
-                string[] titles={"Resume","Movement: "+p.MovementLabel,"Right stick: "+p.TurnLabel,p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+" deg / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Left stick moves in both modes","Physical head turns always look around","Seated: A jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
+                string[] titles={"Resume","Movement: "+p.MovementLabel,"Look: "+p.TurnLabel+" (single stick: hold grip)",p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+" deg / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Left stick moves in both modes","Physical head turns always look around","Seated: A jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
                 if(social!=null)
                 {
                     titles[7]=social.MicrophoneOn?"Mute microphone":"Enable microphone (permission)";

@@ -143,12 +143,19 @@ namespace DeadlyJenga.CastlePrototype
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     DetectHybridControls();
                     walking = FilterVRMove(DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick());
-                    ApplyVRTurn(turn.ReadValue<Vector2>().x,Time.deltaTime);
+                    var looking=turn.ReadValue<Vector2>();
+                    if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
+                    {
+                        bool look=vrTurn!=SurvivorVRTurn.PhysicalOnly&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;
+                        looking=look?DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick():Vector2.zero;
+                        if(look)walking=Vector2.zero;
+                    }
+                    ApplyVRLook(looking,Time.deltaTime);
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     var blaster=GetComponent<DeadlyJenga.CandyPlayers.CandyBlaster>();blasterJumpOverride=GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.UsesTriggers==true&&!HasHandTracking;
                     var gestureHand=candyTracking?candyTracking.GestureHand:default;
-                    bool jumpButton=blasterJumpOverride?blaster.JumpHeld:jump.IsPressed();
-                    if(candyTracking&&candyTracking.IsHybrid)jumpButton|=DeadlyJenga.CandyPlayers.HybridXRInput.SinglePrimaryHeld;
+                    bool jumpButton=jump.IsPressed()||(blasterJumpOverride&&blaster&&blaster.JumpHeld);
+                    jumpButton|=DeadlyJenga.CandyPlayers.HybridXRInput.SinglePrimaryHeld;
                     ReadVRJump(gestureHand,jumpButton,out pressed,out held);
                 }
                 else if (Cursor.lockState == CursorLockMode.Locked)

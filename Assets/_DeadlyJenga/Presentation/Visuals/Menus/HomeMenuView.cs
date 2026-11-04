@@ -30,7 +30,8 @@ namespace DeadlyJenga.Presentation
         int slide, nearbyPage;
         readonly List<Button> buttons = new List<Button>();
         readonly List<Button> nearbyButtons = new List<Button>();
-        InputAction trigger, handPosition, handRotation, tracked;
+        InputAction trigger;
+        Button gazeFocus;
         Font font;
         public int SlideIndex => slide;
         public float WhiteFade => white ? white.color.a : 0;
@@ -94,9 +95,6 @@ namespace DeadlyJenga.Presentation
                 events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
             trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.AddBinding("<XRController>{LeftHand}/trigger");trigger.AddBinding("<HandInteraction>{LeftHand}/pinchValue");trigger.AddBinding("<HandInteraction>{RightHand}/pinchValue");trigger.Enable();
-            handPosition=new InputAction("Home pointer position",InputActionType.Value,"<XRController>{RightHand}/devicePosition");handPosition.Enable();
-            handRotation=new InputAction("Home pointer rotation",InputActionType.Value,"<XRController>{RightHand}/deviceRotation");handRotation.Enable();
-            tracked=new InputAction("Home pointer tracked",InputActionType.Button,"<XRController>{RightHand}/isTracked");tracked.Enable();
             pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(vr);
             SetSlide();
         }
@@ -174,7 +172,7 @@ namespace DeadlyJenga.Presentation
         }
         void Point()
         {
-            bool hand=tracked.IsPressed();var ray=new Ray(hand?handPosition.ReadValue<Vector3>():eye.transform.position,hand?handRotation.ReadValue<Quaternion>()*Vector3.forward:eye.transform.forward);
+            if(!eye)return;var ray=new Ray(eye.transform.position,eye.transform.forward);
             var plane=new Plane(frame.forward,frame.position);
             if(!plane.Raycast(ray,out float distance)){pointer.gameObject.SetActive(false);return;}
             pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
@@ -186,6 +184,12 @@ namespace DeadlyJenga.Presentation
                 if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
             }
             pointer.GetComponent<Image>().color=target?Color.white:new Color(.45f,1,.8f);
+            if(target!=gazeFocus)
+            {
+                if(target)target.Select();
+                else if(EventSystem.current&&gazeFocus&&EventSystem.current.currentSelectedGameObject==gazeFocus.gameObject)EventSystem.current.SetSelectedGameObject(null);
+                gazeFocus=target;
+            }
             if(target&&trigger.WasPressedThisFrame())target.onClick.Invoke();
         }
         void SetSlide(){if(slides.Length>0)background.texture=slides[slide];Crop();}
@@ -216,6 +220,6 @@ namespace DeadlyJenga.Presentation
             var text=button.GetComponentInChildren<Text>();text.alignment=TextAnchor.UpperLeft;text.fontSize=29;text.rectTransform.anchoredPosition=new Vector2(9,-14);
             Label(button.transform,subtitle,new Vector2(10,-23),new Vector2(550,36),19,new Color(.82f,.8f,.92f));
         }
-        void OnDestroy(){trigger?.Dispose();handPosition?.Dispose();handRotation?.Dispose();tracked?.Dispose();}
+        void OnDestroy(){trigger?.Dispose();}
     }
 }

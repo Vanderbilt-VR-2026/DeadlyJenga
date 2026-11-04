@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
         IPlayableCharacter Player=>session.Player;
         public CandyEnvironment Environment {get;private set;}
         CandyArtProfile localArt;
-        InputAction select;
+        InputAction select,wardrobeCancel;
         sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;}
         readonly List<Choice> choices=new List<Choice>();
 
@@ -42,7 +42,9 @@ namespace DeadlyJenga.CastlePrototype
             session=info;lobby=controls;
             GameEvents.Emoted+=LobbyResidenceChanged;
             BuildIsland();
-            select=new InputAction("Lobby select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();
+            select=new InputAction("Lobby select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.AddBinding("<XRController>{LeftHand}/trigger");select.Enable();
+            wardrobeCancel=new InputAction("Leave wardrobe",InputActionType.Button,"<XRController>{RightHand}/secondaryButton");
+            wardrobeCancel.AddBinding("<XRController>{LeftHand}/secondaryButton");wardrobeCancel.Enable();
             BuildTerminals();
             BuildCandyDesign();
             BuildWardrobe();
@@ -95,6 +97,7 @@ namespace DeadlyJenga.CastlePrototype
             Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
             foreach(var choice in choices)
             {
+                if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
                 if(!choice.button||!choice.button.transform.parent.gameObject.activeInHierarchy)continue;
                 bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
                 bool usable=choice.enabled==null||choice.enabled();choice.button.interactable=usable;choice.collider.enabled=usable;
@@ -130,7 +133,7 @@ namespace DeadlyJenga.CastlePrototype
             DisposeControllerArtwork();
             if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;
             if(keyboardMaterial)Destroy(keyboardMaterial);if(keyboardMesh)Destroy(keyboardMesh);if(cabinetMesh)Destroy(cabinetMesh);if(consoleSphere)Destroy(consoleSphere);
-            select?.Dispose();if(Environment)Destroy(Environment.gameObject);if(localArt)Destroy(localArt);
+            select?.Dispose();wardrobeCancel?.Dispose();if(Environment)Destroy(Environment.gameObject);if(localArt)Destroy(localArt);
         }
     }
 }

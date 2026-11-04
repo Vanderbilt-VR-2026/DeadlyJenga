@@ -96,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
 
             Label(wardrobePanel,"STEP INTO THE POD TO TRY ATTACHMENTS",420,23,1000,40);
 
-            Add(wardrobePanel,"wardrobe-open",()=>wardrobeOpen?"SAVE & LEAVE PREVIEW":"CUSTOMIZE YOUR AVATAR",-605,()=>SetWardrobeOpen(!wardrobeOpen),()=>AppearanceTarget()!=null,0,950,60);
+            Add(wardrobePanel,"wardrobe-open",()=>wardrobeOpen?"DONE / B OR Y TO EXIT":"CUSTOMIZE YOUR AVATAR",-605,()=>SetWardrobeOpen(!wardrobeOpen),()=>AppearanceTarget()!=null,0,950,60);
 
             for(int i=0;i<12;i++)
 
@@ -135,8 +135,8 @@ namespace DeadlyJenga.CastlePrototype
         int WardrobePages=>(WardrobeCount+11)/12;
         string AccessoryTitle(int index)
         {
-            index+=wardrobePage*12;if(index>=WardrobeCount)return "—";
-            var avatar=wardrobeAvatar??AppearanceTarget();if(avatar==null)return "—";var v=avatar.Appearance;string name;bool chosen;
+            index+=wardrobePage*12;if(index>=WardrobeCount)return "â€”";
+            var avatar=wardrobeAvatar??AppearanceTarget();if(avatar==null)return "â€”";var v=avatar.Appearance;string name;bool chosen;
             switch(wardrobeCategory)
             {
                 case 1:bool armor=index==System.Enum.GetValues(typeof(AvatarSkin)).Length;chosen=armor?v.poweredArmor:(int)v.skin==index;name=armor?"POWERED ARMOR":PrettyName(((AvatarSkin)index).ToString());break;
@@ -177,6 +177,16 @@ namespace DeadlyJenga.CastlePrototype
 
         void ClearAccessories(){if(wardrobeAvatar==null)return;wardrobeAvatar.ApplyAppearance(default);RefreshWardrobeLabels();}
 
+        Vector3 wardrobePanelPosition;
+        Quaternion wardrobePanelRotation;
+        void PlaceWardrobeForEye()
+        {
+            var eye=wardrobePlayer.ViewCamera.transform;
+            var forward=Vector3.ProjectOnPlane(eye.forward,Vector3.up).normalized;
+            if(forward.sqrMagnitude<.01f)forward=wardrobePlayer.transform.forward;
+            wardrobePanel.SetPositionAndRotation(eye.position+forward*1.8f,Quaternion.LookRotation(forward,Vector3.up));
+            Physics.SyncTransforms();
+        }
         public void SetWardrobeOpen(bool open)
 
         {
@@ -199,6 +209,11 @@ namespace DeadlyJenga.CastlePrototype
 
                 if(!Player.IsVR){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;BuildDesktopWardrobe();}
 
+                if(Player.IsVR&&Player.ViewCamera)
+                {
+                    wardrobePanelPosition=wardrobePanel.position;wardrobePanelRotation=wardrobePanel.rotation;
+                    PlaceWardrobeForEye();
+                }
                 PresentWardrobe();
 
             }
@@ -208,6 +223,8 @@ namespace DeadlyJenga.CastlePrototype
             {
 
                 wardrobeOpen=false;
+                if(NetworkActors.Alive(wardrobePlayer)&&wardrobePlayer.IsVR&&wardrobePanel)
+                    wardrobePanel.SetPositionAndRotation(wardrobePanelPosition,wardrobePanelRotation);
 
                 if(wardrobeShowcase!=null&&NetworkActors.Alive(wardrobePlayer))wardrobeShowcase.Showcasing=wardrobeWasShowcasing;
 
@@ -248,9 +265,9 @@ namespace DeadlyJenga.CastlePrototype
 
             DesktopButton(rect,"CLEAR",-240,-145,275,56,ClearAccessories,"Clear");DesktopButton(rect,"RESET VIEW",-240,145,275,56,ResetWardrobeView,"Reset view");
 
-            Label(rect,"Drag preview / arrows: orbit · Scroll / +/-: zoom",-375,18,575,34);
+            Label(rect,"Drag preview / arrows: orbit Â· Scroll / +/-: zoom",-375,18,575,34);
 
-            DesktopButton(rect,"DONE  ·  F TO CLOSE",-315,0,565,70,()=>SetWardrobeOpen(false),"Done");
+            DesktopButton(rect,"DONE  Â·  F TO CLOSE",-315,0,565,70,()=>SetWardrobeOpen(false),"Done");
 
             foreach(var child in wardrobeDesktop.GetComponentsInChildren<Transform>(true))child.gameObject.layer=5;
 
@@ -299,6 +316,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!wardrobeOpen&&wardrobeArmed&&distance<.75f)SetWardrobeOpen(true);
 
             if(!wardrobeOpen)return false;
+            if(Player.IsVR&&(Player.MenuPressed||wardrobeCancel?.WasPressedThisFrame()==true)){SetWardrobeOpen(false);return true;}
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){SetWardrobeOpen(false);return true;}
 
             if(!ReferenceEquals(Player,wardrobePlayer)||distance>2){SetWardrobeOpen(false);return false;}
 

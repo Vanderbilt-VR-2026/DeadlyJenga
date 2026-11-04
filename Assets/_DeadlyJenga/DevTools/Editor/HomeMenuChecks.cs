@@ -58,6 +58,13 @@ namespace DeadlyJenga.DevTools.Editor
             File.AppendAllText(Report,"COMPLETE; logged errors="+errors+". Desktop Editor; headset and separate-device networking not tested.\n");
             EditorApplication.ExitPlaymode();
         }
+        public static void RunQuestFlowBatch()
+        {
+            SessionState.SetBool(Key+"QuestOffline",true);
+            if(string.IsNullOrEmpty(SceneManager.GetActiveScene().path))
+                EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            Start();
+        }
         public static void Start()
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();
@@ -81,6 +88,11 @@ namespace DeadlyJenga.DevTools.Editor
                 var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
                 MatchSetup.MapId=saved.map;MatchSetup.ModeId=saved.mode;MatchSetup.BotTarget=saved.population;
                 EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
+                if(SessionState.GetBool(Key+"QuestOffline",false))
+                {
+                    SessionState.SetBool(Key+"QuestOffline",false);
+                    EditorApplication.Exit(errors==0?0:2);
+                }
             }
         }
         static void Log(string message,string trace,LogType type)
@@ -118,12 +130,89 @@ namespace DeadlyJenga.DevTools.Editor
             home.RandomLobby();
             yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.SurvivorBots?.Count==9,"Random lobby fills to ten including player",50);
             Require(!IslandLobby.Current.Room.Connected,"Random lobby works without an Internet room");
+            if(SessionState.GetBool(Key+"QuestOffline",false))
+            {
+                var lobbyView=Object.FindFirstObjectByType<IslandLobbyView>();
+                Require(lobbyView&&lobbyView.InvokeChoice("mode-current"),"Lobby world terminal opens mode picker");
+                var survivor=IslandLobby.Current.Player.gameObject.GetComponent<CastleSurvivor>();
+                survivor.controlMode=FlyingHand.ControlMode.VR;survivor.RefreshMode();
+                survivor.Place(lobbyView.WardrobePosition+Vector3.up*.04f,Quaternion.Euler(0,80,0));
+                bool oldInput=survivor.InputSuspended;
+                var eye=survivor.ViewCamera;
+                lobbyView.SetWardrobeOpen(true);yield return null;
+                Require(lobbyView.WardrobeOpen&&survivor.InputSuspended&&survivor.ViewCamera==eye,"Wardrobe pauses movement without swapping the tracked eye");
+                var panel=(Transform)typeof(IslandLobbyView).GetField("wardrobePanel",BindingFlags.Instance|BindingFlags.NonPublic).GetValue(lobbyView);
+                var forward=Vector3.ProjectOnPlane(eye.transform.forward,Vector3.up).normalized;
+                Require(Vector3.Dot((panel.position-eye.transform.position).normalized,forward)>.92f,"Wardrobe aligns to the eye line when opened sideways");
+                Require(lobbyView.InvokeChoice("wardrobe-open")&&!lobbyView.WardrobeOpen&&survivor.InputSuspended==oldInput,"Wardrobe Done restores input");
+                lobbyView.SetWardrobeOpen(true);
+                Require(lobbyView.WardrobeOpen,"Wardrobe can re-enter");
+                lobbyView.SetWardrobeOpen(false);
+            }
+
             SceneManager.LoadScene("Home");yield return Until(()=>Object.FindFirstObjectByType<HomeMenuView>(),"Home can reopen");
             home=Object.FindFirstObjectByType<HomeSession>();home.Demo();
             yield return Until(()=>Services.Session?.Demo!=null,"Demo opens actual Game session",60);
             Require(MatchSetup.MapId=="castle"&&MatchSetup.ModeId=="demo","Demo selects original castle and sandbox mode");
             Require(Services.World!=null&&Services.Session.Player!=null,"Castle world and local player initialize");
+
+            if(SessionState.GetBool(Key+"QuestOffline",false))
+            {
+                var session=Services.Session;
+                Require(MatchRuntime.Current is IDemoEquipmentControls grant&&grant.GiveEquipment(EquipmentKind.DualRifle),"Demo grants the real duplex rifle");
+                var player=session.Player.gameObject.GetComponent<CastleSurvivor>();
+                var equipment=player.GetComponent<IEquipmentControls>();
+                equipment.SetEquipped(true);yield return new WaitForSecondsRealtime(.35f);
+                Require(equipment.Equipment.drawn&&equipment.BlocksTraversal,"Drawn duplex blocks traversal");
+                player.controlMode=FlyingHand.ControlMode.VR;player.RefreshMode();session.SetMenu(false);
+                yield return new WaitForSecondsRealtime(.35f);
+                var rifle=player.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Rifle optic");
+                var shotgun=player.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Shotgun optic");
+                Require(rifle&&shotgun,"Both production optic sockets exist on the equipped weapon");
+                var sight=Object.FindFirstObjectByType<CandyGunSights>();
+                Require(sight,"Live sight renderer is active");
+                var flags=BindingFlags.NonPublic|BindingFlags.Instance;
+                var tick=typeof(CandyGunSights).GetMethod("LateUpdate",flags);
+                var lensField=typeof(CandyGunSights).GetField("lens",flags);
+                var camera=player.ViewCamera.transform;var savedCamera=new Pose(camera.position,camera.rotation);
+                bool suspended=player.InputSuspended;
+                try
+                {
+                    player.InputSuspended=false; // The no-headset editor pauses its XR input.
+                    float scopeScale=Mathf.Abs(rifle.lossyScale.z);
+                    camera.SetPositionAndRotation(rifle.position-rifle.forward*(.10f*scopeScale),rifle.rotation);
+                    tick.Invoke(sight,null);
+                    var lens=(GameObject)lensField.GetValue(sight);
+                    string diagnostic=$"VR={session.IsVR} sameCamera={session.ActiveCamera==player.ViewCamera} suspended={player.InputSuspended} menu={session.MenuOpen} mode={equipment.Equipment.shotgun} stereo={player.ViewCamera.stereoEnabled} scale={scopeScale} optic={typeof(CandyGunSights).GetField("optic",flags).GetValue(sight)}";
+                    Require(lens&&lens.activeSelf&&lens.transform.parent==rifle,"Raising the production rifle to the synthetic eye enables the magnifying lens without grip ("+diagnostic+")");
+                    camera.position+=rifle.right*(.10f*scopeScale);tick.Invoke(sight,null);
+                    Require(!lens.activeSelf,"Lateral eye offset hides the magnifying lens");
+                }
+                finally{player.InputSuspended=suspended;camera.SetPositionAndRotation(savedCamera.position,savedCamera.rotation);}
+                equipment.ToggleRifleMode();yield return new WaitForSecondsRealtime(.45f);
+                Require(equipment.Equipment.shotgun&&Mathf.Approximately(sight.Magnification,1),"Shotgun mode uses an unmagnified sight");
+                var carriage=shotgun.parent;var root=carriage.parent;
+                Require(root.InverseTransformPoint(shotgun.position).y>root.InverseTransformPoint(rifle.position).y,"Shotgun red dot rotates into the upper active position");
+                equipment.SetEquipped(false);yield return null;
+                Require(!equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Holstering the duplex releases the traversal restriction");
+                player.controlMode=FlyingHand.ControlMode.Desktop;player.RefreshMode();
+                session.SetRole(true);yield return null;
+                Require(session.PlayingHand&&session.Hand?.ViewCamera,"Flying hand takes camera ownership");
+                var actor=session.Hand.gameObject.GetComponent<CastleHandActor>();
+                var follow=actor.follow;
+                actor.motor.ControlModeOverride=FlyingHand.ControlMode.VR;actor.motor.RefreshControlMode();
+                var trackedEyeRotation=follow.viewCamera.transform.localRotation;
+                follow.SnapToTarget();var heading=follow.transform.rotation;
+                var target=follow.target;target.rotation=Quaternion.Euler(0,60,0)*target.rotation;
+                follow.StepFollow(.5f);
+                Require(Quaternion.Angle(heading,follow.transform.rotation)>20&&Quaternion.Angle(trackedEyeRotation,follow.viewCamera.transform.localRotation)<.01f,"Flying camera follows vehicle yaw without overwriting tracked head rotation");
+                session.SetRole(false);yield return null;
+                Require(!session.PlayingHand&&session.ActiveCamera==session.Player.ViewCamera,"Returning to survivor restores its active camera");
+                MatchRuntime.Current.ReturnToLobby();
+                yield return Until(()=>IslandLobby.Current&&Object.FindFirstObjectByType<IslandLobbyView>(),"Match returns to the real lobby");
+            }
             SceneManager.LoadScene("Home");yield return Until(()=>Object.FindFirstObjectByType<HomeMenuView>(),"Home reopens after Game");
+            if(SessionState.GetBool(Key+"QuestOffline",false))yield break;
             oldPeer=NetworkProjectConfig.Global.PeerMode;peerChanged=true;NetworkProjectConfig.Global.PeerMode=NetworkProjectConfig.PeerModes.Multiple;
             home=Object.FindFirstObjectByType<HomeSession>();home.Host();
             yield return Until(()=>IslandLobby.Current&&IslandRoomConnection.Instance.Connected,"Home Host creates real Photon room and opens lobby",60);

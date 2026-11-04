@@ -32,6 +32,34 @@ namespace DeadlyJenga.CandyPhysicsHands
         // AI fingers follow their joints instead of pulling independently through a contacted block.
         public bool JointDrivenFingers {get;set;}
         public bool ReplicatedBones {get;set;}
+        Mesh originalSkin;
+        static readonly System.Collections.Generic.Dictionary<Mesh,Mesh> leftSkins=new();
+        void FitSkinHandedness()
+        {
+            if(!skin||!skin.sharedMesh)return;
+            if(!originalSkin)originalSkin=CandySmoothHandMesh.SeparateDigitWeights(skin.sharedMesh,1,5);
+            if(!left){skin.sharedMesh=originalSkin;return;}
+            if(!leftSkins.TryGetValue(originalSkin,out var mesh)||!mesh)
+            {
+                mesh=Instantiate(originalSkin);mesh.name=originalSkin.name+" (left)";
+                var vertices=mesh.vertices;var normals=mesh.normals;var tangents=mesh.tangents;
+                for(int i=0;i<vertices.Length;i++)vertices[i].x=-vertices[i].x;
+                for(int i=0;i<normals.Length;i++)normals[i].x=-normals[i].x;
+                for(int i=0;i<tangents.Length;i++){tangents[i].x=-tangents[i].x;tangents[i].w=-tangents[i].w;}
+                mesh.vertices=vertices;mesh.normals=normals;mesh.tangents=tangents;
+                var mirror=Matrix4x4.Scale(new Vector3(-1,1,1));var binds=mesh.bindposes;
+                for(int i=0;i<binds.Length;i++)binds[i]=mirror*binds[i]*mirror;
+                mesh.bindposes=binds;
+                for(int i=0;i<mesh.subMeshCount;i++)
+                {
+                    var indices=mesh.GetTriangles(i);
+                    for(int j=0;j<indices.Length;j+=3)(indices[j+1],indices[j+2])=(indices[j+2],indices[j+1]);
+                    mesh.SetTriangles(indices,i,false);
+                }
+                mesh.RecalculateBounds();leftSkins[originalSkin]=mesh;
+            }
+            skin.sharedMesh=mesh;
+        }
         public void RebuildInactive(CandyHandPose pose)
         {
             if(active)throw new System.InvalidOperationException("Release contacts before resizing the hand.");
@@ -84,7 +112,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             }
             // Internal contacts produce jitter, never gripping force. Ignore only this hand's pairs.
             for(int i=0;i<16;i++)for(int j=i+1;j<16;j++)Physics.IgnoreCollision(contacts[i],contacts[j]);
-            if(skin)skin.sharedMaterial=settings.skin;active=true;SetInteractive(false);
+            FitSkinHandedness();if(skin)skin.sharedMaterial=settings.skin;active=true;SetInteractive(false);
         }
         public static Quaternion SegmentRotation(Vector3 delta,Vector3 normal)
         {var forward=Vector3.ProjectOnPlane(normal,delta.normalized);if(forward.sqrMagnitude<.001f)forward=Vector3.ProjectOnPlane(Vector3.right,delta.normalized);return Quaternion.LookRotation(forward.normalized,delta.normalized);}

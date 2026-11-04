@@ -125,7 +125,7 @@ namespace DeadlyJenga.CharacterNetwork
             if (!hasTarget || !active || !rig) return;
             float t = 1 - Mathf.Exp(-20 * dt);
             frame.feet = Vector3.Lerp(frame.feet, target.feet, t); frame.head = Vector3.Lerp(frame.head, target.head, t);
-            frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale;
+            frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale; frame.seated = target.seated;
             frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
             rig.ApplyFrame(frame, true, dt);
             if (emote != null)

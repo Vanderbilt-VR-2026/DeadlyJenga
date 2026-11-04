@@ -35,7 +35,7 @@ namespace FlyingHand
         CursorLockMode previousCursorLock;
         bool previousCursorVisible;
         bool cursorOwned;
-        [Header("Input System — no pose input")]
+        [Header("Input System â€” no pose input")]
         public InputAction move = new InputAction("Move", InputActionType.Value, "<XRController>{LeftHand}/primary2DAxis", expectedControlType: "Vector2");
         public InputAction turn = new InputAction("Yaw", InputActionType.Value, "<XRController>{RightHand}/primary2DAxis", expectedControlType: "Vector2");
         public InputAction ascend = new InputAction("Ascend", InputActionType.Value, "<XRController>{RightHand}/trigger", expectedControlType: "Axis");
@@ -196,10 +196,17 @@ namespace FlyingHand
                     ? Mathf.Clamp(DesktopLookDelta.x * mouseYawSensitivity / (Time.deltaTime * yawSpeed), -1, 1) : 0;
                 return;
             }
-            bool leftController=false;
-            foreach(var control in move.controls)
-                if(control.device is UnityEngine.InputSystem.XR.XRController xr && xr.isTracked.isPressed){leftController=true;break;}
-            if(!leftController&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
+            UnityEngine.InputSystem.XR.XRController flightController=null;
+            foreach(var device in InputSystem.devices)
+            {
+                if(device is not UnityEngine.InputSystem.XR.XRController candidate||!candidate.isTracked.isPressed||
+                   candidate.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")==null)continue;
+                bool left=false;
+                foreach(var usage in candidate.usages)if(usage==UnityEngine.InputSystem.CommonUsages.LeftHand){left=true;break;}
+                flightController=candidate;
+                if(left)break;
+            }
+            if(flightController==null&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
             {
                 var local=Quaternion.Inverse(Quaternion.Euler(0,Body.rotation.eulerAngles.y,0))*trackedCommand.moveWorld;
                 MoveInput=Vector2.ClampMagnitude(new Vector2(local.x,local.z),1);
@@ -217,7 +224,9 @@ namespace FlyingHand
             if(leftControllerFlight)
             {
                 TrackedInputDriver?.ResetFlightInput();
-                ReadLeftController(leftController?raw:Vector2.zero,leftController?flightUp.ReadValue<float>():0,leftController?flightDown.ReadValue<float>():0,leftController&&flightTurn.IsPressed());
+                float Axis(string name)=>flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
+                var stick=flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
+                ReadLeftController(stick,Axis("trigger"),Axis("grip"),flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton")?.isPressed==true);
                 return;
             }
             MoveInput = raw.sqrMagnitude > stickDeadzone * stickDeadzone ? raw.normalized * Mathf.InverseLerp(stickDeadzone, 1, raw.magnitude) : Vector2.zero;

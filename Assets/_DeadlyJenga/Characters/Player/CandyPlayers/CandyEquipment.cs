@@ -76,7 +76,15 @@ namespace DeadlyJenga.CandyPlayers
             if(state.roleIssued&&MatchRuntime.Current is IMysteryControls mystery)mystery.SetSpecialAttack(value);
             Runtime?.RequestEquipment(value,left,state.shotgun);offhandReady=false;armed=false;motor?.ResetVRJump();
         }
-        public void SetWeaponHand(bool value){left=value;PlayerPrefs.SetInt("CandyBlaster.LeftHanded",left?1:0);PlayerPrefs.Save();Bind();var state=Equipment;Runtime?.RequestEquipment(state.drawn,left,state.shotgun);}
+        public void SetWeaponHand(bool value)
+        {
+            PlayerPrefs.SetInt("CandyBlaster.LeftHanded",value?1:0);PlayerPrefs.Save();ApplyWeaponHand(value);
+        }
+        void ApplyWeaponHand(bool value)
+        {
+            if(left==value)return;
+            left=value;Bind();var state=Equipment;Runtime?.RequestEquipment(state.drawn,left,state.shotgun);
+        }
         public void ToggleRifleMode(){var state=Equipment;if(EquipmentSpecifications.Get(state.kind).modeSwitch){if(Runtime?.RequestEquipment(state.drawn,left,!state.shotgun)==true&&state.kind==EquipmentKind.SheriffHammer)sheriffShotgun=!state.shotgun;}}
         public bool JumpHeld=>UsesTriggers&&Equipment.kind!=EquipmentKind.PoweredArmor&&!(EquipmentSpecifications.Get(Equipment.kind).modeSwitch&&Equipment.drawn)&&!BlocksTraversal&&offTrigger!=null&&offTrigger.IsPressed();
         public Pose GripPose
@@ -150,15 +158,15 @@ namespace DeadlyJenga.CandyPlayers
         public void PoseHands(ref CandyAvatarFrame frame)
         {
             var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||motor&&(motor.Climbing||motor.Vaulting))return;
-            var hand=state.leftHanded?frame.left:frame.right;var pose=GripPose;hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.Rest(state.leftHanded,.88f);hand.skeletonTracked=true;
+            var hand=state.leftHanded?frame.left:frame.right;var pose=GripPose;hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
             if(state.leftHanded)frame.left=hand;else frame.right=hand;
             if((state.kind==EquipmentKind.DualUzi||state.kind==EquipmentKind.LaserClaws)&&!motor.IsVR)
             {
                 var other=state.leftHanded?frame.right:frame.left;other.position=pose.position+pose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale;other.rotation=pose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
             }
-            if(EquipmentSpecifications.Get(state.kind).twoHanded&&(!motor.IsVR||grip.IsPressed()))
+            if(EquipmentSpecifications.Get(state.kind).twoHanded&&(!motor.IsVR||grip.IsPressed()||avatar.tracking&&avatar.tracking.IsHybrid&&(state.leftHanded?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
             {
-                var support=state.leftHanded?frame.right:frame.left;support.position=pose.position+pose.rotation*new Vector3(0,-.015f,.43f)*Scale;support.rotation=pose.rotation;support.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.85f);support.skeletonTracked=true;
+                var support=state.leftHanded?frame.right:frame.left;support.position=pose.position+pose.rotation*new Vector3(0,-.015f,.43f)*Scale;support.rotation=pose.rotation*Quaternion.Euler(0,0,state.leftHanded?-30:30);support.skeleton=CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,0);support.skeletonTracked=true;
                 if(state.leftHanded)frame.right=support;else frame.left=support;
             }
         }
@@ -166,7 +174,12 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(motor&&motor.externallyDriven){UpdatePower(Equipment);return;}
             if(!Local)return;
-            if(motor.IsVR&&avatar.tracking&&avatar.tracking.IsHybrid&&left!=HybridXRInput.SingleControllerLeft)SetWeaponHand(HybridXRInput.SingleControllerLeft);
+            if(motor.IsVR)
+            {
+                bool preferred=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
+                bool effective=HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:preferred;
+                ApplyWeaponHand(effective);
+            }
             var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
             if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
             CheckPickups();
@@ -184,7 +197,7 @@ namespace DeadlyJenga.CandyPlayers
             bool held=vr?trigger.IsPressed():Cursor.lockState==CursorLockMode.Locked&&Mouse.current?.leftButton.isPressed==true;
             if(!held)armed=true;
             if(Keyboard.current?.vKey.wasPressedThisFrame==true)SetEquipped(!state.drawn);
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleCancelPressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleModePressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
             // Trigger near the physical holster draws or stows; elsewhere it fires.
             if(vr&&pressed&&UsesTriggers)
             {

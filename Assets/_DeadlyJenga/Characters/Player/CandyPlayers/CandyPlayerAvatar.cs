@@ -86,7 +86,7 @@ namespace DeadlyJenga.CandyPlayers
             float scale=survivor?survivor.playerScale:trackingOrigin?Mathf.Abs(trackingOrigin.lossyScale.y):1;
             scale=Mathf.Max(.1f,scale);
             Transform head=viewCamera?viewCamera.transform:transform;
-            var frame=new CandyAvatarFrame{feet=transform.position,head=head.position,headRotation=head.rotation,scale=scale};
+            var frame=new CandyAvatarFrame{feet=transform.position,head=head.position,headRotation=head.rotation,scale=scale,seated=survivor&&survivor.IsVR&&!survivor.externallyDriven&&!survivor.Climbing&&!survivor.Vaulting};
             if(!viewCamera){frame.head=frame.feet+Vector3.up*(1.6f*scale);frame.headRotation=transform.rotation;}
             // Room-scale body placement follows the head's horizontal location; locomotion feet supply height.
             frame.feet=new Vector3(frame.head.x,transform.position.y,frame.head.z);
@@ -102,6 +102,9 @@ namespace DeadlyJenga.CandyPlayers
             frame.left=left.tracked?left:Rest(true);frame.right=right.tracked?right:Rest(false);
             PointOnHover(ref frame.left, true);
             PointOnHover(ref frame.right, false);
+            // Controller-generated joints are visual only; tracking keeps optical gesture ownership.
+            if(vr&&left.tracked)frame.left.skeletonTracked=true;
+            if(vr&&right.tracked)frame.right.skeletonTracked=true;
             ApplyPunch(ref frame);
             GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;

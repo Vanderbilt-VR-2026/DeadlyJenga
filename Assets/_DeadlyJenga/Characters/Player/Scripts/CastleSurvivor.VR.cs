@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused)ResetVRJump();}
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
-        float seatedHeightOffset;
+        float seatedHeightOffset,vrLookPitch;
         public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
             ? "Standing: left stick moves; turn physically; right "+jumpGesture+" jumps / holds to climb"
@@ -65,7 +65,7 @@ namespace DeadlyJenga.CastlePrototype
         // applies roll, follows head yaw a second time, or orbits a seated player's eyes.
         public void ApplyVRTurn(float axis,float dt)
         {
-            if(!IsVR||externallyDriven||InputSuspended||!viewCamera||Climbing||Vaulting||vrPlayStyle==SurvivorVRPlayStyle.Standing)return;
+            if(!IsVR||externallyDriven||InputSuspended||!viewCamera||Climbing||Vaulting)return;
             if(Mathf.Abs(axis)<.3f)turnReady=true;
             float angle=0;
             if(vrTurn==SurvivorVRTurn.Snap&&Mathf.Abs(axis)>.7f&&turnReady)
@@ -74,13 +74,28 @@ namespace DeadlyJenga.CastlePrototype
                 angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,360)*Mathf.Max(0,dt);
             if(angle!=0)transform.RotateAround(viewCamera.transform.position,Vector3.up,angle);
         }
+        public void ApplyVRLook(Vector2 stick,float dt)
+        {
+            ApplyVRTurn(stick.x,dt);
+            if(!IsVR||externallyDriven||InputSuspended||!cameraOffset||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
+            float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
+            float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*65*dt,-35,35);
+            if(next!=vrLookPitch)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,next-vrLookPitch);
+            vrLookPitch=next;
+        }
         public void UseStationaryVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Seated);
         public void UseStandingVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Standing);
+        void ResetVRLook()
+        {
+            if(cameraOffset&&viewCamera&&vrLookPitch!=0)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,-vrLookPitch);
+            vrLookPitch=0;
+        }
         public void SetVRPlayStyle(SurvivorVRPlayStyle style,bool remember=true)
         {
             if(Climbing||Vaulting){ActionStatus="Finish traversal before switching controls";return;}
             if(style==SurvivorVRPlayStyle.Standing&&cameraOffset)
             {cameraOffset.localPosition-=Vector3.up*seatedHeightOffset;seatedHeightOffset=0;}
+            ResetVRLook();
             vrPlayStyle=style;vrMovement=style==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
             vrTurn=style==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
             turnReady=false;ResetVRJump();calibrateSeated=style==SurvivorVRPlayStyle.Seated;
@@ -142,7 +157,7 @@ namespace DeadlyJenga.CastlePrototype
             wasHybrid=hybrid;
         }
         public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;}
-        public void CycleVRTurn(){if(vrPlayStyle==SurvivorVRPlayStyle.Standing)return;vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;}
+        public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;ResetVRLook();}
         public void CycleVRMovement(){vrMovement=vrMovement==SurvivorVRMovement.HeadRelative?SurvivorVRMovement.BodyRelative:SurvivorVRMovement.HeadRelative;}
     }
 }

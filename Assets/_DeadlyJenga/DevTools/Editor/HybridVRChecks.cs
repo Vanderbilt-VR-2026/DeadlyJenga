@@ -26,12 +26,17 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly string Report="Logs/Validation/HybridVRChecks.txt";
         static int errors,checks;
         static HybridVRChecks(){EditorApplication.playModeStateChanged+=State;}
+        public static void RunQuestRepairBatch()
+        {
+            SessionState.SetBool(Key+"ContinueFlow",true);
+            RunBatch();
+        }
         public static void RunBatch()
         {
             Directory.CreateDirectory("Logs/Validation");File.WriteAllText(Report,"Actual Game + synthetic XR device/hand inputs. No headset.\n");
             try
             {
-                InstallFeature();
+                Check(OpenXRSettings.GetSettingsForBuildTargetGroup(BuildTargetGroup.Android).GetFeature<HybridHandsFeature>()?.enabled==true,"Android simultaneous tracking is enabled in the source snapshot");
                 MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.FromLobby=true;MatchSetup.BotTarget=1;MatchSetup.HandCount=0;
                 EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));SessionState.SetBool(Key,true);EditorApplication.EnterPlaymode();
             }
@@ -65,7 +70,13 @@ namespace DeadlyJenga.DevTools.Editor
             if(state==PlayModeStateChange.EnteredPlayMode)
             {errors=0;Application.logMessageReceived+=Log;EditorApplication.delayCall+=()=>Object.FindFirstObjectByType<CastlePlaySession>().StartCoroutine(Run());}
             if(state==PlayModeStateChange.EnteredEditMode)
-            {SessionState.SetBool(Key,false);Application.logMessageReceived-=Log;EditorApplication.Exit(SessionState.GetBool(Key+"Passed",false)?0:2);}
+            {
+                SessionState.SetBool(Key,false);Application.logMessageReceived-=Log;
+                bool passed=SessionState.GetBool(Key+"Passed",false);
+                bool flow=SessionState.GetBool(Key+"ContinueFlow",false);SessionState.SetBool(Key+"ContinueFlow",false);
+                if(passed&&flow)EditorApplication.delayCall+=HomeMenuChecks.RunQuestFlowBatch;
+                else EditorApplication.Exit(passed?0:2);
+            }
         }
         static void Log(string message,string trace,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+message+"\n");}}
@@ -96,6 +107,14 @@ namespace DeadlyJenga.DevTools.Editor
                 fixture=new GameObject("Hybrid tracking fixture");var source=fixture.AddComponent<CandyTrackingSource>();
                 var bare=new PoseSource{pose=new CandyHandPose{tracked=true,skeletonTracked=true,rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(false)}};
                 var controller=new PoseSource{pose=new CandyHandPose{tracked=true,skeletonTracked=false,rotation=Quaternion.Euler(-45,0,0),skeleton=CandyHandSkeleton.Rest(true)}};
+                var leftDevice=(XRController)left;
+                var controllerPosition=new Vector3(-.22f,1.21f,.35f);
+                InputSystem.QueueDeltaStateEvent(leftDevice.devicePosition,controllerPosition);
+                InputSystem.QueueDeltaStateEvent(leftDevice.deviceRotation,Quaternion.Euler(12,23,34));InputSystem.Update();
+                Refresh(source);
+                var actual=source.WorldHand(true);
+                Check(actual.tracked&&!actual.skeletonTracked&&Vector3.Distance(actual.position,controllerPosition)<.001f,"Live controller grip pose stays distinct from optical gesture input");
+                Check(Quaternion.Angle(actual.rotation,Quaternion.Euler(12,23,34))<.01f,"Live controller uses device grip orientation, not pointer rotation");
                 source.LeftPoseSource=controller;source.RightPoseSource=bare;Refresh(source);
                 Check(source.IsHybrid&&source.GestureHand.skeletonTracked,"Recognizes left-controller + right optical-hand combination");
                 Check(source.TryControllerAim(true,out var aim)&&Quaternion.Angle(aim.rotation,Quaternion.Euler(5,25,0))<.01f,"Weapon aim follows pointer rotation instead of raised palm/grip rotation");
@@ -112,13 +131,68 @@ namespace DeadlyJenga.DevTools.Editor
                 var start=player.transform.rotation;var eye=player.viewCamera.transform.position;player.ApplyVRTurn(1,.25f);
                 Check(Mathf.Abs(Quaternion.Angle(start,player.transform.rotation)-90)<.1f,"360-degree-per-second setting produces a 90-degree quarter-second turn");
                 Check(Vector3.Distance(eye,player.viewCamera.transform.position)<.001f,"Fast turning preserves the headset pivot");
+                var tiltBefore=player.viewCamera.transform.rotation;
+                player.ApplyVRLook(Vector2.up,.2f);
+                Check(Quaternion.Angle(tiltBefore,player.viewCamera.transform.rotation)>10&&Vector3.Distance(eye,player.viewCamera.transform.position)<.001f,"Artificial pitch changes view without moving tracked eye pivot");
+                var open=CandyHandSkeleton.ControllerGrip(false,0,0);
+                var fired=CandyHandSkeleton.ControllerGrip(false,0,1);
+                Check(Vector3.Distance(open.Joint(7),fired.Joint(7))>.008f&&open.Joint(11)==fired.Joint(11),"Trigger curl moves only the index finger");
+                var other=CandyHandSkeleton.ControllerGrip(true,0,0);
+                Check(Mathf.Abs(other.Joint(3).x+open.Joint(3).x)<.002f,"Controller thumb geometry mirrors between hands");
+                Check(DeadlyJenga.Presentation.CandyGunSights.EyeBoxContains(Vector3.back*.10f,Vector3.forward,Vector3.zero,Vector3.forward,1)&&!DeadlyJenga.Presentation.CandyGunSights.EyeBoxContains(new Vector3(.09f,0,-.10f),Vector3.forward,Vector3.zero,Vector3.forward,1),"Rifle eye box accepts on-axis relief and rejects side offset");
+                foreach(EquipmentKind kind in Enum.GetValues(typeof(EquipmentKind)))
+                {
+                    var spec=EquipmentSpecifications.Get(kind);
+                    var equipment=new EquipmentState{kind=kind};
+                    Check(DeadlyJenga.Presentation.CandyGunSights.SupportsAim(equipment)==(kind!=EquipmentKind.None&&!spec.power&&!spec.melee),kind+" ranged aim availability");
+                }
+                foreach(var kind in new[]{EquipmentKind.Chainsaw,EquipmentKind.LaserAxe})
+                    Check(DeadlyJenga.Presentation.CandyGunSights.SupportsAim(new EquipmentState{kind=kind,shotgun=true}),kind+" ranged mode supports aiming");
+                var muzzle=new Pose(Vector3.forward*.5f,Quaternion.identity);
+                Check(DeadlyJenga.Presentation.CandyGunSights.OpenSightAligned(Vector3.zero,Vector3.forward,muzzle)&&
+                      !DeadlyJenga.Presentation.CandyGunSights.OpenSightAligned(Vector3.up*.4f,Vector3.forward,muzzle),"Scopeless VR aim detects a raised weapon and rejects a lowered weapon");
+                var avatar=player.GetComponent<CandyPlayerAvatar>();var rig=avatar.Rig;var sample=avatar.ReadFrame();
+                rig.SeatedVisual=true;rig.ApplyFrame(sample);float seatedHead=rig.HeadAnchor.position.y;
+                sample.head.y+=.60f;rig.ApplyFrame(sample);
+                Check(Mathf.Abs(seatedHead-rig.HeadAnchor.position.y)<.001f,"Local seated rig posture does not stretch with headset height");
+                rig.SeatedVisual=false;
+                using(var packet=new MemoryStream())
+                using(var writer=new BinaryWriter(packet))
+                using(var reader=new BinaryReader(packet))
+                {
+                    sample.seated=true;
+                    DeadlyJenga.CharacterNetwork.CharacterWire.WriteSurvivor(writer,sample,0,default);
+                    packet.Position=0;
+                    DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(reader,out var received,out _,out _,out _);
+                    rig.ApplyFrame(received);
+                    Check(received.seated&&Mathf.Abs(seatedHead-rig.HeadAnchor.position.y)<.001f,"Network survivor frame preserves the seated pose on the receiving rig");
+                    packet.SetLength(0);
+                    sample.seated=false;
+                    DeadlyJenga.CharacterNetwork.CharacterWire.WriteSurvivor(writer,sample,0,default);
+                    packet.Position=0;
+                    DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(reader,out received,out _,out _,out _);
+                    Check(!received.seated,"Existing survivor packet without seated flag still decodes");
+                }
+                var testSkin=new Mesh{vertices=new[]{Vector3.zero},bindposes=new Matrix4x4[16]};
+                testSkin.boneWeights=new[]{new BoneWeight{boneIndex0=1,weight0=.6f,boneIndex1=4,weight1=.4f}};
+                var split=typeof(CandySmoothHandMesh).GetMethod("SeparateDigitWeights",BindingFlags.Static|BindingFlags.NonPublic);
+                var fixedSkin=(Mesh)split.Invoke(null,new object[]{testSkin,1,5});
+                Check(fixedSkin!=testSkin&&Mathf.Abs(fixedSkin.boneWeights[0].weight0-1)<.001f,"Legacy skin vertex no longer follows a neighboring finger");
+                Object.Destroy(testSkin);Object.Destroy(fixedSkin);
                 player.vrSmoothDegreesPerSecond=90;player.CycleSmoothTurnSpeed();Check(player.vrSmoothDegreesPerSecond==180,"Existing settings menu reaches speeds beyond its previous 90-degree cap");
                 Input(left,"isTracked",0);right=InputSystem.AddDevice("HybridFixController");InputSystem.SetDeviceUsage(right,CommonUsages.RightHand);Input(right,"isTracked",1);
                 InputSystem.QueueDeltaStateEvent(right.GetChildControl<Vector2Control>("primary2DAxis"),new Vector2(-.2f,.7f));InputSystem.Update();
                 source.LeftPoseSource=bare;source.RightPoseSource=controller;Refresh(source);
                 Check(source.IsHybrid&&!HybridXRInput.SingleControllerLeft,"Recognizes mirrored right-controller + left tracked-hand combination");
                 Check(Vector2.Distance(HybridXRInput.MoveStick(),new Vector2(-.2f,.7f))<.001f,"Single right controller also supplies walking input");
+                Input(left,"isTracked",1);InputSystem.Update();source.LeftPoseSource=source.RightPoseSource=null;Refresh(source);
+                Check(!source.IsHybrid&&source.WorldHand(true).tracked&&source.WorldHand(false).tracked&&
+                    !source.WorldHand(true).skeletonTracked&&!source.WorldHand(false).skeletonTracked,"Two controllers own only their matching sides");
+                Input(left,"isTracked",0);
                 Input(right,"isTracked",0);InputSystem.Update();Check(!HybridXRInput.SingleController&&HybridXRInput.MoveStick()==Vector2.zero,"Controller tracking loss clears stale joystick movement");
+                source.LeftPoseSource=new PoseSource{pose=new CandyHandPose{tracked=true,skeletonTracked=true,rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(true)}};
+                source.RightPoseSource=bare;Refresh(source);
+                Check(!source.IsHybrid&&source.WorldHand(true).skeletonTracked&&source.WorldHand(false).skeletonTracked,"Hand-only inputs retain both independent skeletons after controller loss");
                 fixture.transform.SetPositionAndRotation(new Vector3(100,20,-50),Quaternion.Euler(0,70,0));
                 var localPose=bare.pose;localPose.position=new Vector3(.3f,1.4f,.2f);
                 var spiritPose=SeaSpiritController.ResolveTrackingPose(localPose,null,fixture.transform);
