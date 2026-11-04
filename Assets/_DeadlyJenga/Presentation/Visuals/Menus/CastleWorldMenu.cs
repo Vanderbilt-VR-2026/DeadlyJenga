@@ -85,6 +85,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Point(Camera camera, bool pressed,bool held=false)
         {
+            string code=MultiplayerPanel.JoinCode(session.Multiplayer);
+            joinCodeLabel.text=code.Length>0?"JOIN CODE  "+code:"";
+            exitLabel.text=MultiplayerPanel.LobbyAction(session.Multiplayer);
             if(PointMapControls(camera,pressed))return;
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}
@@ -107,6 +110,7 @@ namespace DeadlyJenga.CastlePrototype
                 for (int j = 0; j < buttons.Length; j++) buttons[j].gameObject.SetActive(j == 0 || j == 6 || j == 11 || j==1 || j==2);
                 labels[1].text="Demo controls: "+(net.SharedControls?"EVERYONE":"HOST ONLY");targets[1].enabled=net.CanToggleSharedControls;
                 labels[2].text="Invite everyone on Wi-Fi";targets[2].enabled=net.CanInviteNearby;
+                buttons[5].gameObject.SetActive(!string.IsNullOrEmpty(net.DiscoveryStatus));labels[5].text=net.DiscoveryStatus;targets[5].enabled=false;
                 labels[0].text = "Resume"; labels[6].text = net.IsClient ? "Leave game" : "Leave / transfer host"; labels[11].text = "Back";
                 bool invitation=net.InvitationFrom.Length>0;
                 buttons[3].gameObject.SetActive(invitation);buttons[4].gameObject.SetActive(invitation);

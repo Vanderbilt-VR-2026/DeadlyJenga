@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         Button wildlifeButton;BoxCollider wildlifeTarget;
         Button scaffoldButton;
         BoxCollider scaffoldTarget;
-        Text scaffoldLabel;
+        Text scaffoldLabel,exitLabel,joinCodeLabel;
         Button mapButton,exitButton,spectateButton,endButton,inspectionButton;
         BoxCollider mapTarget,exitTarget,spectateTarget,endTarget,inspectionTarget;
         bool mapPage,spectatePage;
@@ -29,6 +29,8 @@ namespace DeadlyJenga.CastlePrototype
             spectateButton=HeaderButton("Spectate",-116,out spectateTarget);
             endButton=HeaderButton("End Game",116,out endTarget);
             exitButton=HeaderButton("Exit to Lobby",232,out exitTarget);
+            exitLabel=exitButton.GetComponentInChildren<Text>();
+            joinCodeLabel=Text("",new Vector2(0,410),new Vector2(570,32),21);
         }
         Button HeaderButton(string label,float x,out BoxCollider target)
         {
@@ -61,7 +63,7 @@ namespace DeadlyJenga.CastlePrototype
             exitButton.image.color=exitHover?CandyHudVisuals.Mint:CandyHudVisuals.Peach;
             mapButton.image.color=mapHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
             spectateButton.image.color=spectateHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
-            if(pressed&&exitHover){var visit=session as ILobbyMatchVisitControls;if(visit?.CanVisitLobby==true)visit.VisitLobby();else MatchRuntime.Current?.ReturnToLobby();return true;}
+            if(pressed&&exitHover){MatchRuntime.Current?.ReturnToLobby();return true;}
             if(pressed&&mapHover){mapPage=!mapPage;spectatePage=false;mapOffset=0;pressed=false;}
             if(pressed&&spectateHover){spectatePage=!spectatePage;mapPage=false;pressed=false;}
             if(spectatePage){PointSpectatePage(camera,pressed);return true;}

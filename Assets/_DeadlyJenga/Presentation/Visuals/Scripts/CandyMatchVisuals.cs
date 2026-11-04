@@ -13,7 +13,7 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<string,List<Look>> looks=new Dictionary<string,List<Look>>();
         readonly Dictionary<string,float> displayedHealth=new Dictionary<string,float>();
         MaterialPropertyBlock props;
-        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid,deathPaint;float paintAt=-100;bool viewVR;Color paintColor;
+        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid,deathPaint;const float PaintSpread=.28f, PaintWipe=.65f;float paintAt=-1,wipeAt=-1;ISessionInfo paintSession;Camera paintCamera;bool viewVR;Color paintColor;
         bool wasOutage;string skin="";int winner=-2;readonly Dictionary<Renderer,MaterialPropertyBlock> winnerOriginal=new Dictionary<Renderer,MaterialPropertyBlock>();
         readonly Dictionary<Renderer,Material> blockOriginals=new Dictionary<Renderer,Material>();readonly Dictionary<(Material,string),Material> teamMaterials=new Dictionary<(Material,string),Material>();int claimRevision=-1;
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
@@ -21,16 +21,16 @@ namespace DeadlyJenga.Presentation
         readonly HashSet<string> melting=new HashSet<string>();readonly HashSet<Renderer> hidden=new HashSet<Renderer>();
         void OnEnable(){props=new MaterialPropertyBlock();healthShader=Resources.Load<Shader>("CandyScenery/CandyAvatarHealth");if(healthShader&&!healthMaterial){healthMaterial=new Material(healthShader);healthMaterial.enableInstancing=true;healthMaterial.SetFloat("_Smoothness",.8f);}GameEvents.Eliminated+=Eliminated;GameEvents.RoundEnded+=RoundEnded;}
         void RoundEnded(){transitionAt=Time.unscaledTime;transitionColor=new Color(.96f,.97f,1);}
-        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();melting.Clear();}
+        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();melting.Clear();paintAt=wipeAt=-1;paintSession=null;paintCamera=null;if(canvas)canvas.enabled=false;}
         void Update()
         {
-            var runtime=MatchRuntime.Current;if(runtime?.Frame==null)return;var f=runtime.Frame;
+            var runtime=MatchRuntime.Current;if(runtime?.Frame==null){if(canvas)canvas.enabled=false;return;}var f=runtime.Frame;
             if(skin!=f.rules.environmentSkin){skin=f.rules.environmentSkin;CandySceneSkins.Select(SkinIndex(skin));}
             bool outage=false;foreach(var hazard in DisasterStates.Active){var state=hazard.Capture();if(state!=null&&state.warning<=0&&state.kind=="PowerOutage"&&f.phase!=RoundPhase.Victory&&f.phase!=RoundPhase.Results){outage=true;break;}}
             bool restoringOutage=wasOutage&&!outage;wasOutage=outage;
             if(!outage)Health(runtime,f);
             if(Time.unscaledTime>=scanAt&&!restoringOutage){scanAt=Time.unscaledTime+.2f;Deaths(runtime,f);TeamHands(runtime,f);if(!outage){Winner(f);if(f.phase!=RoundPhase.Victory)Claims(f);}else claimRevision=-1;}
-            Transition();
+            Transition(runtime,f);
             if(Time.unscaledTime>=environmentAt){environmentAt=Time.unscaledTime+1;environments=FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None);}
             if(f.phase==RoundPhase.Victory&&f.winnerTeam>=0)foreach(var team in f.teams)if(team.id==f.winnerTeam)foreach(var env in environments??System.Array.Empty<CandyEnvironment>())if(env&&env.waterRenderer)Tint(env.waterRenderer,team.color);
         }
@@ -172,12 +172,12 @@ namespace DeadlyJenga.Presentation
         void BeginDeathPaint(Color color)
         {
             // The elimination event and the replicated dying frame can describe the same death.
-            if(Time.unscaledTime-paintAt<.5f)return;
-            paintAt=Time.unscaledTime;paintColor=new Color(color.r,color.g,color.b,1);
+            if(paintAt>=0)return;
+            paintAt=Time.unscaledTime;wipeAt=-1;paintSession=Services.Session;paintCamera=paintSession?.ActiveCamera;paintColor=new Color(color.r,color.g,color.b,1);
         }
-        void Transition()
+        void Transition(IMatchRuntime runtime,MatchFrame frame)
         {
-            var session=Services.Session;if(session?.ActiveCamera==null)return;
+            var session=Services.Session;if(session?.ActiveCamera==null){if(canvas)canvas.enabled=false;return;}
             if(!canvas)
             {
                 var go=new GameObject("Visual - liquid respawn curtain",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=100;
@@ -187,13 +187,31 @@ namespace DeadlyJenga.Presentation
             }
             if(view!=session.ActiveCamera||viewVR!=session.IsVR)
             {view=session.ActiveCamera;viewVR=session.IsVR;var r=canvas.GetComponent<RectTransform>();if(session.IsVR){canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;r.SetParent(view.transform,false);r.sizeDelta=new Vector2(4,4);r.localPosition=new Vector3(0,0,.15f);r.localRotation=Quaternion.identity;r.localScale=Vector3.one;}else{canvas.renderMode=RenderMode.ScreenSpaceOverlay;r.SetParent(transform,false);}}
-            float paintAge=Time.unscaledTime-paintAt;
-            if(deathPaint&&paintAge>=0&&paintAge<2.2f)
+            float now=Time.unscaledTime,paintAge=now-paintAt;
+            if(paintAt>=0&&wipeAt<0&&paintAge>=PaintSpread)
+            {
+                bool nextScreen=!ReferenceEquals(session,paintSession)||(paintCamera&&paintCamera!=view)||frame.phase==RoundPhase.Results||frame.phase==RoundPhase.Victory;
+                foreach(var player in frame.players)if(player.id==runtime.LocalActorId)
+                {
+                    nextScreen|=player.alive&&!player.dying||player.role=="spectator"||!string.IsNullOrEmpty(player.spectating);
+                    break;
+                }
+                if(nextScreen)wipeAt=now;
+            }
+            if(wipeAt>=0&&now-wipeAt>=PaintWipe){paintAt=wipeAt=-1;paintSession=null;paintCamera=null;}
+            if(paintAt>=0)
             {
                 curtain.material=deathPaint;curtain.color=paintColor;
-                if(session.IsVR){var plane=canvas.GetComponent<RectTransform>();plane.sizeDelta=new Vector2(2.8f,2);plane.localPosition=new Vector3(0,0,1.1f);}
-                deathPaint.SetFloat("_Age",paintAge);
-                deathPaint.SetFloat("_Aspect",session.IsVR?1.4f:Mathf.Max(.1f,view.aspect));
+                if(viewVR)FitPaintPlane(canvas.GetComponent<RectTransform>(),view);
+                float wipe=wipeAt<0?0:Mathf.Clamp01((now-wipeAt)/PaintWipe);
+                if(deathPaint)
+                {
+                    deathPaint.SetFloat("_Age",Mathf.Min(paintAge,4));
+                    deathPaint.SetFloat("_Wipe",wipe);
+                    var rect=canvas.GetComponent<RectTransform>().rect;
+                    deathPaint.SetFloat("_Aspect",viewVR?rect.width/Mathf.Max(.01f,rect.height):Mathf.Max(.1f,view.aspect));
+                }
+                else curtain.color=new Color(paintColor.r,paintColor.g,paintColor.b,1-wipe);
                 canvas.enabled=true;return;
             }
             if(session.IsVR){var plane=canvas.GetComponent<RectTransform>();plane.sizeDelta=new Vector2(4,4);plane.localPosition=new Vector3(0,0,.15f);}
@@ -203,6 +221,21 @@ namespace DeadlyJenga.Presentation
             var sink=MatchRuntime.Current!=null&&session.Player!=null?MatchRuntime.Current.RulesFor(session.Player.gameObject):null;
             if(sink!=null&&sink.sinking&&alpha<.001f){alpha=.05f+sink.sinkProgress*.22f;transitionColor=new Color(.82f,.64f,.36f);}
             if(liquid){liquid.SetFloat("_Progress",Mathf.Lerp(-.1f,1.1f,Mathf.Clamp01(alpha)));curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,1);}else curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,Mathf.Clamp01(alpha));canvas.enabled=alpha>.001f||Shader.GetGlobalFloat("_CandyHeat")>.01f;
+        }
+        static void FitPaintPlane(RectTransform plane,Camera camera)
+        {
+            float depth=Mathf.Max(.22f,camera.nearClipPlane+.08f);
+            Vector2 extent=Vector2.zero;
+            for(int eye=0;eye<(camera.stereoEnabled?2:1);eye++)
+            for(int corner=0;corner<4;corner++)
+            {
+                var stereo=camera.stereoEnabled?(eye==0?Camera.MonoOrStereoscopicEye.Left:Camera.MonoOrStereoscopicEye.Right):Camera.MonoOrStereoscopicEye.Mono;
+                var point=camera.ViewportToWorldPoint(new Vector3(corner&1,corner>>1,depth),stereo);
+                var local=camera.transform.InverseTransformPoint(point);
+                extent=Vector2.Max(extent,new Vector2(Mathf.Abs(local.x),Mathf.Abs(local.y)));
+            }
+            plane.sizeDelta=extent*2.12f+Vector2.one*.03f;
+            plane.localPosition=new Vector3(0,0,depth);
         }
         void OnDestroy(){RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;foreach(var m in teamMaterials.Values)if(m)Destroy(m);if(healthMaterial)Destroy(healthMaterial);if(liquid)Destroy(liquid);if(deathPaint)Destroy(deathPaint);if(canvas)Destroy(canvas.gameObject);}
     }

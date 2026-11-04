@@ -649,7 +649,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool CanLeave => IsClient || HumanCount > 1 || requested != null || connecting;
         IslandRoomConnection Room => fusionMode ? IslandRoomConnection.Instance : null;
-        public string RoomInfo => Room ? "Room: " + Room.Code + " \u00b7 " + Room.HumanCount + " players" : "";
+        public string RoomInfo => Room && Room.Connected ? "Room: " + Room.Code + " \u00b7 " + Room.HumanCount + " players" : "";
         public string DiscoveryStatus => !Room ? "" : Room.DiscoveryStatus.Length > 0 ? Room.DiscoveryStatus : Room.Discovery?.Status ?? "Discovery starting";
         public bool CanToggleSharedControls => Room && Room.LocalIsLobbyHost && MatchSetup.ModeId == "demo";
         public bool SharedControls => Room && Room.SharedDemoControls;

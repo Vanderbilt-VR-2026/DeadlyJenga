@@ -17,17 +17,27 @@ namespace DeadlyJenga.CastlePrototype
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void Reset() => AutofillLobby = true;
         public bool Busy => loading || room && room.Busy;
-        public string Status => room && (room.Busy || room.Status.StartsWith("Connection") || room.Status.StartsWith("Disconnected")) ? room.Status : message;
+        public string Status
+        {
+            get
+            {
+                if(room&&(room.Busy||room.Status.StartsWith("Connection",StringComparison.Ordinal)||room.Status.StartsWith("Disconnected",StringComparison.Ordinal)))return room.Status;
+                var invite=room?.Discovery?.Invitation;
+                return invite!=null?"Nearby invite from "+invite.message.name+". Open Join Game to accept.":message;
+            }
+        }
         public string Region => room ? room.Region.ToUpperInvariant() : "";
         string code = "";
         public string Code { get => code; set => code = (value ?? "").Trim().ToUpperInvariant(); }
         public bool CodeValid => room && IslandRoomAddress.TryParse(Code, room.Region, out _, out _);
-        public int NearbyCount => room?.Discovery?.Nearby?.Count ?? 0;
+        System.Collections.Generic.IReadOnlyList<IslandDiscovery.Entry> NearbyRooms=>room?.Discovery?.Joinable??Array.Empty<IslandDiscovery.Entry>();
+        public int NearbyCount=>NearbyRooms.Count;
         public string NearbyTitle(int index)
         {
-            if (index < 0 || index >= NearbyCount) return "";
-            var entry = room.Discovery.Nearby[index];
-            return entry.message.name + "  " + entry.message.code;
+            var list=NearbyRooms;
+            if(index<0||index>=list.Count)return "";
+            var entry=list[index];
+            return (entry==room.Discovery.Invitation?"Invite: ":"")+entry.message.name+"  "+entry.message.code;
         }
         void Start()
         {
@@ -44,7 +54,7 @@ namespace DeadlyJenga.CastlePrototype
         public void DetectNearby()
         {
             if (Busy) return;
-            room.StartDiscovery(); message = "Searching your local network. Keep the host on its lobby island.";
+            room.ScanNearby(); message = "Searching this Wi-Fi for joinable rooms.";
             if (!string.IsNullOrEmpty(room.DiscoveryStatus)) message = room.DiscoveryStatus;
         }
         public void NextRegion()
@@ -57,7 +67,8 @@ namespace DeadlyJenga.CastlePrototype
         public void JoinCode() { if (!Busy && CodeValid) _ = Connect(false, Code); }
         public void JoinNearby(int index)
         {
-            if (!Busy && index >= 0 && index < NearbyCount) _ = Connect(false, room.Discovery.Nearby[index].message.code);
+            var list=NearbyRooms;
+            if (!Busy && index >= 0 && index < list.Count) _ = Connect(false, list[index].message.code);
         }
         async Task Connect(bool host, string address)
         {
@@ -68,7 +79,10 @@ namespace DeadlyJenga.CastlePrototype
                 if (host) { MatchSetup.BotTarget = 1; if (room.Connected) await room.Leave(); if (!this) return; await room.Host(); }
                 else await room.Join(address);
                 if (!this) return;
-                if (room.Connected) SceneManager.LoadScene(lobbyScene);
+                if (room.Connected)
+                {
+                    if(!room.HasRoomScene)SceneManager.LoadScene(lobbyScene);
+                }
                 else message = room.Status;
             }
             catch (Exception error) { message = "Unable to connect: " + error.Message; }

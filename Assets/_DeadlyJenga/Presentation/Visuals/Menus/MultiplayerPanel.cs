@@ -7,6 +7,16 @@ namespace DeadlyJenga.CastlePrototype
     // the networking code in GameSession draws nothing itself.
     public static class MultiplayerPanel
     {
+        public static string JoinCode(IMultiplayerControls net)
+        {
+            // RoomInfo is "Room: <address> · <population>" in the session UI contract.
+            var info=net?.RoomInfo;
+            if(string.IsNullOrEmpty(info)||!info.StartsWith("Room: ",System.StringComparison.Ordinal))return "";
+            int end=info.IndexOf(' ',6);
+            return end<0?info.Substring(6):info.Substring(6,end-6);
+        }
+        public static string LobbyAction(IMultiplayerControls net)
+            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.IsClient?"Visit Lobby":"Return Room to Lobby";
         public static void Draw(IMultiplayerControls net)
         {
             if (net == null) return;
@@ -16,6 +26,8 @@ namespace DeadlyJenga.CastlePrototype
                 if (net.RoomInfo.Length > 0)
                 {
                     GUILayout.Label(net.RoomInfo);
+                    string code=JoinCode(net);
+                    if(code.Length>0&&GUILayout.Button("Copy join code",GUILayout.Height(30)))GUIUtility.systemCopyBuffer=code;
                     if (net.CanToggleSharedControls && GUILayout.Button("Demo controls: " + (net.SharedControls ? "EVERYONE" : "HOST ONLY"), GUILayout.Height(32))) net.ToggleSharedControls();
                     if (net.CanInviteNearby && GUILayout.Button("Invite everyone on this Wi-Fi", GUILayout.Height(32))) net.InviteNearby();
                     if (net.InvitationFrom.Length > 0)

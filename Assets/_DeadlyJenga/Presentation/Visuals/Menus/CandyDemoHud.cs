@@ -134,7 +134,9 @@ namespace DeadlyJenga.CastlePrototype
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
             var inspection=CandyThirdPersonInspection.For(session);
             if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,88,207,30),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
-            if(Button(new Rect(748,28,201,51),"Exit to Lobby",CandyHudVisuals.Peach)){var visit=session as ILobbyMatchVisitControls;if(visit?.CanVisitLobby==true)visit.VisitLobby();else MatchRuntime.Current?.ReturnToLobby();}
+            if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
+            string joinCode=MultiplayerPanel.JoinCode(session.Multiplayer);
+            if(joinCode.Length>0&&Button(new Rect(570,88,379,30),"Join code: "+joinCode+"   ·   Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
             var review=MatchRuntime.Current as IMatchReviewControls;
             if(review?.DevelopmentReviewEnabled==true)
             {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),"End Game",CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}

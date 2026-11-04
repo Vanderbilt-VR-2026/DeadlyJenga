@@ -37,8 +37,27 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         public string CurrentMapId => MatchSetup.MapId;
-        public bool CanSelectMap => session.HasWorldAuthority && (!IslandRoomConnection.Instance || (!IslandRoomConnection.Instance.Busy && !IslandRoomConnection.Instance.SwitchingMap));
-        public string MapStatus => IslandRoomConnection.Instance && IslandRoomConnection.Instance.SwitchingMap ? "Waiting for connected players..." : "Changing maps restarts the map with the current mode. Host only.";
+        public bool CanSelectMap
+        {
+            get
+            {
+                var room=IslandRoomConnection.Instance;
+                return session.HasWorldAuthority&&(!room||!room.Connected||room.IsHost&&!room.Busy&&!room.SwitchingMap&&!room.RoomSceneBusy);
+            }
+        }
+        public string MapStatus
+        {
+            get
+            {
+                var room=IslandRoomConnection.Instance;
+                if(room&&room.Connected)
+                {
+                    if(room.SwitchingMap||room.RoomSceneBusy)return "Changing map for everyone…";
+                    if(room.Status.StartsWith("Map change cancelled",StringComparison.Ordinal)||room.Status.StartsWith("Could not load map",StringComparison.Ordinal))return room.Status;
+                }
+                return "Changing maps restarts the map with the current mode. Host only.";
+            }
+        }
         public void SelectMap(string id)
         {
             if (!CanSelectMap || id == CurrentMapId || !MapCatalog) return;
