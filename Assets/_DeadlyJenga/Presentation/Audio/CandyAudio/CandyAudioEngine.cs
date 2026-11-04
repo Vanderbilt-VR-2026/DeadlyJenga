@@ -7,6 +7,7 @@ namespace DeadlyJenga.CandyAudio
     public sealed class CandyAudioEngine : MonoBehaviour
     {
         public static CandyAudioEngine Instance {get;private set;}
+        public static float WaveImmersion {get;set;}
         public CandyAudioBank bank;
         [Range(0,1)] public float auditionDucking=1;
         public int Played {get;private set;}
@@ -16,7 +17,7 @@ namespace DeadlyJenga.CandyAudio
         sealed class Voice
         {
             public AudioSource source;public AudioLowPassFilter filter;public CandyAudioCue cue;
-            public Transform follow;public bool looping,reserved;public float gain,target,requestedAt;public int owner;
+            public Transform follow;public bool looping,reserved;public float gain,target,requestedAt,muffling,lastFilter;public int owner;
         }
         readonly Dictionary<CandySound,CandyAudioCue> cues=new Dictionary<CandySound,CandyAudioCue>();
         readonly Dictionary<CandySound,int> previousClip=new Dictionary<CandySound,int>();
@@ -24,7 +25,7 @@ namespace DeadlyJenga.CandyAudio
         readonly List<Voice> voices=new List<Voice>();
         CandyAudioBank current;float nextListener,tokenAt;float tokens;bool focus=true;float focusGain=1;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetStatics(){Instance=null;}
+        static void ResetStatics(){Instance=null;WaveImmersion=0;}
         public void Configure(CandyAudioBank value){bank=value;Rebuild();}
         void Awake(){if(Instance&&Instance!=this){Destroy(gameObject);return;}Instance=this;}
         void Rebuild()
@@ -93,7 +94,7 @@ namespace DeadlyJenga.CandyAudio
             voice.source.Stop();voice.cue=cue;voice.source.clip=clip;voice.source.transform.position=position;
             voice.source.spatialBlend=local?0:1;voice.source.minDistance=Mathf.Max(.1f,cue.minDistance);voice.source.maxDistance=Mathf.Max(cue.minDistance+1,cue.maxDistance);
             voice.source.priority=Mathf.Clamp(cue.priority,0,256);voice.source.outputAudioMixerGroup=cue.output;
-            voice.source.pitch=Mathf.Clamp(Random.Range(cue.pitch.x,cue.pitch.y)*pitch,.5f,1.8f);voice.filter.enabled=false;return true;
+            voice.source.pitch=Mathf.Clamp(Random.Range(cue.pitch.x,cue.pitch.y)*pitch,.5f,1.8f);voice.muffling=voice.lastFilter=0;voice.filter.enabled=false;return true;
         }
         // Repeated requests are smoothed into one bounded voice. Silence releases it.
         public void Loop(CandySound sound,Transform owner,float intensity,bool local=false,float pitch=1,float muffling=0)
@@ -124,7 +125,7 @@ namespace DeadlyJenga.CandyAudio
                 selected.owner=id;selected.follow=owner;selected.gain=0;selected.source.volume=0;selected.source.loop=true;selected.source.time=Random.Range(0,Mathf.Max(0,selected.source.clip.length-.05f));selected.source.Play();
             }
             selected.target=Mathf.Clamp01(intensity);selected.requestedAt=Time.unscaledTime;
-            selected.source.pitch=Mathf.Clamp(pitch,.65f,1.5f);selected.filter.enabled=muffling>.03f;selected.filter.cutoffFrequency=Mathf.Lerp(18000,1800,Mathf.Clamp01(muffling));
+            selected.source.pitch=Mathf.Clamp(pitch,.65f,1.5f);selected.muffling=Mathf.Clamp01(muffling);
         }
         float Volume(Voice v)=>v.gain*v.cue.volume*bank.master*bank.Gain(v.cue.bus)*focusGain*auditionDucking;
         void Update()
@@ -152,7 +153,15 @@ namespace DeadlyJenga.CandyAudio
                     voice.gain=Mathf.MoveTowards(voice.gain,voice.target,Time.unscaledDeltaTime*2);
                     if(voice.target==0&&voice.gain<.001f){voice.source.Stop();voice.cue=null;continue;}
                 }
-                voice.source.volume=Volume(voice);ActiveVoices++;
+                float water=voice.cue.bus==CandyBus.UI||voice.cue.bus==CandyBus.Music?0:WaveImmersion;
+                float muffled=Mathf.Max(voice.muffling,water);
+                if(Mathf.Abs(voice.lastFilter-muffled)>.003f)
+                {
+                    voice.lastFilter=muffled;
+                    voice.filter.enabled=muffled>.03f;
+                    if(muffled>.03f)voice.filter.cutoffFrequency=Mathf.Lerp(18000,1800,muffled);
+                }
+                voice.source.volume=Volume(voice)*(1-.17f*water);ActiveVoices++;
             }
         }
         void OnApplicationFocus(bool value){focus=value;}
