@@ -28,7 +28,7 @@ namespace DeadlyJenga.DevTools.Editor
         public Vector3 stageOffset;
         public string ffmpeg = "ffmpeg", replaySource = "";
         public bool observedMatch;
-        public bool fightSet;
+        public bool fightSet, rooftopBattleSet;
         public TheatreActor[] cast;
         public TheatreShot[] shots;
         public TheatreCue[] cues;
@@ -75,7 +75,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             public string name, subject, second;
             public float start, duration = 2, fov = 52, roll;
-            public bool avoidWalls, autoFocus;
+            public bool avoidWalls, autoFocus, firstPerson;
             public Vector3 from, to, look;
         }
 
@@ -84,6 +84,7 @@ namespace DeadlyJenga.DevTools.Editor
             public float at;
             public string action, actor, target, hazard, weapon;
             public float strength, heading, height;
+            public bool optional;
         }
 
         public void Validate()
@@ -134,6 +135,7 @@ namespace DeadlyJenga.DevTools.Editor
                 if (shot == null || string.IsNullOrWhiteSpace(shot.name) || !Finite(shot.start) || !Finite(shot.duration) ||
                     shot.start < 0 || shot.duration < .25f || shot.start + shot.duration > 60 ||
                     !Finite(shot.fov) || shot.fov < 20 || shot.fov > 110 || !Finite(shot.roll) ||
+                    shot.firstPerson && !Known(shot.subject) ||
                     !Finite(shot.from) || !Finite(shot.to) || !Finite(shot.look) ||
                     !string.IsNullOrEmpty(shot.subject) && !Known(shot.subject) ||
                     !string.IsNullOrEmpty(shot.second) && (!Known(shot.second) || !Known(shot.subject)))
@@ -807,6 +809,7 @@ namespace DeadlyJenga.DevTools.Editor
             Vector3 stage = Stage(world) + plan.stageOffset;
             Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             bool replay = !string.IsNullOrEmpty(plan.replaySource);
+            var towerSet = plan.rooftopBattleSet && !existingMatch ? BuildBattleSet(world, stage) : null;
             var actors = existingMatch ? CurrentCast() : new Dictionary<string, Actor>(StringComparer.Ordinal);
             foreach (var track in plan.cast)
             {
@@ -970,6 +973,19 @@ namespace DeadlyJenga.DevTools.Editor
                                     fightDeck.isKinematic = false;
                                     fightDeck.AddTorque(new Vector3(14, 0, 6), ForceMode.VelocityChange);
                                 }
+                                if (towerSet != null && cues[cueIndex].action == "collapse")
+                                    foreach (var body in towerSet)
+                                    {
+                                        if (!body.isKinematic) continue;
+                                        body.isKinematic = false;
+                                        float side = Mathf.Sign(body.position.x - stage.x);
+                                        float height = body.position.y - stage.y;
+                                        float fracture = Mathf.Sin(body.position.x * 3.1f + body.position.z * 2.2f + height * 5);
+                                        body.AddForce(new Vector3(-side * height * .66f + fracture * 1.8f, .12f,
+                                            -height * .50f + fracture), ForceMode.VelocityChange);
+                                        body.AddTorque(new Vector3(.2f + height * .12f, fracture * .25f, side * height * .11f),
+                                            ForceMode.VelocityChange);
+                                    }
                                 Cue(cues[cueIndex++], session, actors, world, stage, time);
                             }
                         }
@@ -981,6 +997,8 @@ namespace DeadlyJenga.DevTools.Editor
                         int first = Mathf.RoundToInt(shot.start * plan.fps), length = Mathf.CeilToInt(shot.duration * plan.fps);
                         if (frame < first || frame >= first + length) continue;
                         float distance = PlaceCamera(camera, shot, actors, stage, (frame - first) / (float)Mathf.Max(1, length - 1));
+                        if (shot.firstPerson)
+                            audioRig.transform.SetPositionAndRotation(camera.transform.position, camera.transform.rotation);
                         focus.active = shot.autoFocus;
                         if (focus.active) focus.focusDistance.Override(Mathf.Max(.2f, distance));
                         Render(camera, target, image, Path.Combine(frames[i], $"{counts[i]++:D05}.png"));
@@ -1076,6 +1094,50 @@ namespace DeadlyJenga.DevTools.Editor
             body.isKinematic = true;
             return body;
         }
+        static List<Rigidbody> BuildBattleSet(IWorldQuery world, Vector3 stage)
+        {
+            var palette = world.Blocks.Where(b => b).Select(b => b.GetComponentInChildren<Renderer>())
+                .Where(r => r && r.sharedMaterial).Select(r => r.sharedMaterial).Distinct().ToArray();
+            var towers = new List<Rigidbody>();
+            Block(new Vector3(0, -3.2f, 0), new Vector3(2.9f, 4.7f, 2.9f), 2);
+            Block(new Vector3(-3.8f, -3.6f, 5), new Vector3(3.4f, 6, 3.2f), 0);
+            Block(new Vector3(3.8f, -3.6f, 5), new Vector3(3.4f, 6, 3.2f), 0);
+            Block(new Vector3(0, -.44f, 0), new Vector3(3.2f, .88f, 3.3f), 1);
+            Block(new Vector3(0, -.55f, 5.3f), new Vector3(13, 1.1f, 7.4f), 2);
+            Block(new Vector3(0, -.68f, 12.4f), new Vector3(14, 1.36f, 6.8f), 1);
+            foreach (int side in new[] { -1, 1 })
+            {
+                float x = side * (side < 0 ? 5.5f : 7f);
+                float z = side < 0 ? 12 : 17;
+                Block(new Vector3(x, -1.5f, z), new Vector3(4.1f, 3, 4.1f), 0);
+                for (int level = 0; level < (side < 0 ? 7 : 9); level++)
+                for (int lane = -1; lane <= 1; lane++)
+                {
+                    bool cross = level % 2 != 0;
+                    var offset = (cross ? Vector3.forward : Vector3.right) * (lane * 1.25f);
+                    var block = Block(new Vector3(x, .46f + .92f * level, z) + offset, new Vector3(1.23f, .92f, 3.75f), level + 1);
+                    if (cross) block.transform.Rotate(0, 90, 0);
+                    var body = block.AddComponent<Rigidbody>();
+                    body.mass = 4;
+                    body.isKinematic = true;
+                    towers.Add(body);
+                }
+            }
+            return towers;
+
+            GameObject Block(Vector3 position, Vector3 size, int material)
+            {
+                var piece = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                piece.name = "Theatre rooftop block";
+                piece.layer = Layers.Block;
+                piece.transform.position = stage + position;
+                piece.transform.localScale = size;
+                if (palette.Length > 0)
+                    piece.GetComponent<Renderer>().sharedMaterial = palette[material % palette.Length];
+                return piece;
+            }
+        }
+
         static Vector3 Position(TheatrePlan.TheatreActor actor, float time)
         {
             Vector3 position = actor.start;
@@ -1177,7 +1239,7 @@ namespace DeadlyJenga.DevTools.Editor
                     var wave = waveObject.GetComponent<TsunamiHazard>();
                     wave.randomDirection = false; wave.approachHeading = cue.heading;
                     wave.offshoreDistance = 0; wave.warningTime = 0; wave.riseTime = .8f;
-                    wave.approachSpeed = 30;
+                    wave.approachSpeed = cue.strength > 0 ? Mathf.Clamp(cue.strength, 1, 30) : 30;
                     wave.height = cue.height > 0 ? cue.height : Mathf.Clamp(stage.y - world.WaterHeight(stage) + 8, 18, 100);
                     wave.affectPlayers = false;
                     wave.Begin();
@@ -1209,9 +1271,9 @@ namespace DeadlyJenga.DevTools.Editor
                     session.Modes.ReceiveCommand(identity.ActorId, "equipment:" + JsonUtility.ToJson(shot));
                     bool fired = session.Modes.Frame.equipmentActions.Any(e =>
                         e.id > previous && e.actor == identity.ActorId && e.action == EquipmentAction.Shot);
-                    if (!fired) throw new InvalidOperationException("Gameplay rejected fire cue for " + cue.actor +
+                    if (!fired && !cue.optional) throw new InvalidOperationException("Gameplay rejected fire cue for " + cue.actor +
                         ". Check draw state, cooldown, and cover at the muzzle.");
-                    detail += $" {cue.actor}->{cue.target} weapon={session.Modes.EquipmentFor(identity.ActorId).kind}";
+                    detail += $" {cue.actor}->{cue.target} weapon={session.Modes.EquipmentFor(identity.ActorId).kind} accepted={fired}";
                     break;
                 case "punch":
                     var actor = actors[cue.actor]; var target = actors[cue.target];
@@ -1238,6 +1300,13 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static float PlaceCamera(Camera camera, TheatrePlan.TheatreShot shot, Dictionary<string, Actor> actors, Vector3 stage, float u)
         {
+            if (shot.firstPerson)
+            {
+                var pose = actors[shot.subject].avatar.ReadFrame();
+                camera.transform.SetPositionAndRotation(pose.head + pose.headRotation * shot.from * pose.scale, pose.headRotation);
+                camera.fieldOfView = shot.fov;
+                return 4;
+            }
             var anchor = stage;
             if (!string.IsNullOrEmpty(shot.subject) && actors.TryGetValue(shot.subject, out var subject))
             {
