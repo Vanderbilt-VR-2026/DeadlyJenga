@@ -11,6 +11,8 @@ namespace DeadlyJenga.CandyPlayers
         static readonly Dictionary<EquipmentKind,Template> templates=new Dictionary<EquipmentKind,Template>();
         void BuildArsenal(Transform owner,EquipmentKind value)
         {
+            rotor=null;
+            if(BuildFoundry(owner,value))return;
             if(templates.TryGetValue(value,out var template))
             {
                 rotor=null;if(template.moving){rotor=new GameObject("Animated weapon assembly").transform;rotor.SetParent(owner,false);rotor.localPosition=template.pivot;}

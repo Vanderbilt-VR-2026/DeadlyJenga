@@ -43,7 +43,7 @@ namespace DeadlyJenga.CandyAudio
             if(item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.DualRifle||item.kind==EquipmentKind.SheriffHammer||item.kind>EquipmentKind.PoweredArmor&&!EquipmentSpecifications.Get(item.kind).melee&&item.kind!=EquipmentKind.WristLaser&&item.endpoints.Length>0))
             {
                 var camera=Services.Session?.ActiveCamera;
-                if(camera&&(camera.transform.position-item.position).sqrMagnitude<90*90){if(item.kind==EquipmentKind.NeedleDrill)trails.FireNeedles(item.position,item.endpoints);else trails.Fire(item.position,item.endpoints,item.shotgun);}
+                if(camera&&(camera.transform.position-item.position).sqrMagnitude<90*90){trails.Fire(item.position,item.endpoints,item.shotgun,item.kind);}
             }
             bool global=item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.MurderSword||item.kind==EquipmentKind.SheriffHammer)&&MatchRuntime.Current?.Frame.rules.mode==GameModeKind.MurderMystery;
             if(item.kind>EquipmentKind.PoweredArmor||global||item.action==EquipmentAction.Reload){CandySignatureSounds.PlayWeapon(item,global);return;}
