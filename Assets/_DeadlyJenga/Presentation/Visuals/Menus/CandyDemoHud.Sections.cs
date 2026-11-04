@@ -6,21 +6,43 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CandyDemoHud
     {
-        int subsection,categoryCursor;bool sectionPicker;int arsenalFilter;
+        int subsection,arsenalFilter;
         string SectionName=>DemoMenuSections.Sections[Mathf.Clamp(page,0,3)][Mathf.Clamp(subsection,0,DemoMenuSections.Sections[Mathf.Clamp(page,0,3)].Length-1)];
         float SectionHeight=>SectionName=="Modes"?6000:SectionName=="Maps"?MapContentHeight():SectionName=="Disasters"?DisasterContentHeight():SectionName=="Equipment"||SectionName=="Bot equipment"||SectionName=="Ground pickups"?800+Enum.GetValues(typeof(EquipmentKind)).Length*104:SectionName=="Settings"?2300:SectionName=="Voice"?1450:1200;
+        void SelectSection(int index)
+        {
+            subsection=index;selection=0;scroll=Vector2.zero;giveEquipmentPage=false;activate=false;
+        }
+
         void DrawSectionSelector()
         {
             var sections=DemoMenuSections.Sections[page];
-            if(Button(new Rect(278,128,884,44),"Category: "+SectionName+"   [v]",CandyHudVisuals.Lavender)){sectionPicker=!sectionPicker;categoryCursor=subsection;}
-            // The dropdown is drawn after the content by DrawSectionDropdown.
+            for(int i=0;i<sections.Length;i++)
+            {
+                string name=sections[i];
+                var rect=new Rect(278+i%3*296,122+i/3*59,286,53);
+                bool selected=i==subsection;
+                if(Button(rect,"",selected?new Color(.40f,.25f,.61f):CandyHudVisuals.Panel))SelectSection(i);
+                if(selected)Panel(new Rect(rect.x+4,rect.y+9,3,35),CandyHudVisuals.Mint);
+                Icon(new Rect(rect.x+12,rect.y+11,30,30),DemoMenuSections.Icon(name),selected?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
+                GUI.Label(new Rect(rect.x+50,rect.y+1,226,27),name,heading);
+                GUI.Label(new Rect(rect.x+50,rect.y+27,226,24),DemoMenuSections.Caption(name),small);
+            }
         }
-        void DrawSectionDropdown()
+
+        readonly System.Collections.Generic.Dictionary<string,Texture2D> sectionPictures=new();
+        Texture2D SectionPicture()
         {
-            if(!sectionPicker)return;var sections=DemoMenuSections.Sections[page];
-            Panel(new Rect(278,175,884,sections.Length*45+10),CandyHudVisuals.Ink);
-            for(int i=0;i<sections.Length;i++)if(Button(new Rect(284,180+i*45,872,42),sections[i],i==categoryCursor?CandyHudVisuals.Mint:CandyHudVisuals.Card))
-            {subsection=i;sectionPicker=false;selection=0;scroll=Vector2.zero;giveEquipmentPage=false;giveAllEquipment=sections[i]=="Bot equipment";}
+            if(SectionName=="Maps")return MapPreviewImages.Get((Demo as IDemoMapControls)?.CurrentMapId);
+            string id=SectionName switch
+            {
+                "Modes"=>"ctf","Disasters"=>"survival","Enemies"=>"infection",
+                "Survivors"=>"teamtickets","Spectate"=>"hill",_=>null
+            };
+            if(id==null)return null;
+            if(!sectionPictures.TryGetValue(id,out var picture))
+                sectionPictures[id]=picture=Resources.Load<Texture2D>("LobbyModePictures/"+id);
+            return picture;
         }
         void DrawSection()
         {

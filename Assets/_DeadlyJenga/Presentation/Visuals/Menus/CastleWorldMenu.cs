@@ -23,6 +23,8 @@ namespace DeadlyJenga.CastlePrototype
         int disasterOffset;
         int socialSelection;bool socialMuted;
         Text heading,help;
+        RawImage[] sectionGlyphs;
+        bool sectionGlyphsActive;
         readonly CandyHudIcon[] icons={CandyHudIcon.Play,CandyHudIcon.Hand,CandyHudIcon.Home,CandyHudIcon.Home,CandyHudIcon.Survivor,CandyHudIcon.Friends,CandyHudIcon.Settings,CandyHudIcon.Survivor,CandyHudIcon.Hand,CandyHudIcon.Settings,CandyHudIcon.Hand,CandyHudIcon.Friends};
         readonly string[] explanations={"Return to the action.","Swap between surviving and flying as a giant hand.","Return to the highest upright block as a survivor.","Restore the castle. Only the host can rebuild.","Add a survivor with the selected personality.","Fill empty survivor slots, including human players.","Choose the personality used by the next survivor.","Remove survivor bots and stop automatic filling.","Add an AI giant hand using the current hand prefab.","Choose the next giant hand's personality.","Remove AI hands; keep the human players.","Find nearby players and manage invitations."};
         public void Build(ISessionInfo owner)
@@ -30,6 +32,7 @@ namespace DeadlyJenga.CastlePrototype
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
             var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1040); transform.localScale = Vector3.one * .0018f;
+            sectionGlyphs=new RawImage[buttons.Length];
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.color = CandyHudVisuals.Ink;
             heading=Text("DEADLY JENGA / DEMO\nLook at a button  /  RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
             help=Text("Left Y closes  /  Hand tracking: left thumb + middle opens / closes",new Vector2(0,-480),new Vector2(550,65),19);help.color=CandyHudVisuals.Muted;
@@ -43,7 +46,7 @@ namespace DeadlyJenga.CastlePrototype
                 targets[i] = go.GetComponent<BoxCollider>(); targets[i].size = new Vector3(540, 46, 4); targets[i].isTrigger = true;
                 var label = Text(titles[i], Vector2.zero, new Vector2(472,46), 21); labels[i]=label;label.transform.SetParent(go.transform, false);
                 label.rectTransform.anchoredPosition = new Vector2(20,0);
-                var glyph=new GameObject("Candy menu icon",typeof(RectTransform),typeof(RawImage));glyph.transform.SetParent(go.transform,false);var image=glyph.GetComponent<RawImage>();image.texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);image.color=CandyHudVisuals.Lavender;image.raycastTarget=false;image.rectTransform.sizeDelta=new Vector2(27,27);image.rectTransform.anchoredPosition=new Vector2(-243,0);
+                var glyph=new GameObject("Candy menu icon",typeof(RectTransform),typeof(RawImage));glyph.transform.SetParent(go.transform,false);var image=glyph.GetComponent<RawImage>();sectionGlyphs[i]=image;image.texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);image.color=CandyHudVisuals.Lavender;image.raycastTarget=false;image.rectTransform.sizeDelta=new Vector2(27,27);image.rectTransform.anchoredPosition=new Vector2(-243,0);
             }
             BuildScaffoldButton();
             BuildMapControls();
@@ -88,6 +91,12 @@ namespace DeadlyJenga.CastlePrototype
             string code=MultiplayerPanel.JoinCode(session.Multiplayer);
             joinCodeLabel.text=code.Length>0?"JOIN CODE  "+code:"";
             exitLabel.text=MultiplayerPanel.LobbyAction(session.Multiplayer);
+            if(sectionGlyphsActive)
+            {
+                sectionGlyphsActive=false;
+                for(int i=0;i<sectionGlyphs.Length;i++)
+                    sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);
+            }
             if(PointMapControls(camera,pressed))return;
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}

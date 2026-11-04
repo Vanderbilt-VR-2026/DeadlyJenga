@@ -119,6 +119,25 @@ namespace DeadlyJenga.DevTools.Editor
         {
             yield return Until(()=>Services.Session is CastlePlaySession s&&s.Modes,"Actual Game initializes");
             var session=(CastlePlaySession)Services.Session;original=session.Modes;var mode=session.Modes;
+            Check(DemoMenuSections.Sections.SelectMany(tab=>tab).Distinct().Count()==17,
+                "Every in-game subtab has one home");
+            Check(DemoMenuSections.Sections.SelectMany(tab=>tab).All(name=>!string.IsNullOrEmpty(DemoMenuSections.Caption(name))),
+                "Every in-game subtab describes its purpose");
+            var meleeMount=typeof(DeadlyJenga.CandyPlayers.CandyWeaponVisual).GetMethod("MeleeMount",BindingFlags.Static|BindingFlags.NonPublic);
+            var meleeGrip=typeof(DeadlyJenga.CandyPlayers.CandyHandSkeleton).GetMethod("MeleeGrip",BindingFlags.Static|BindingFlags.NonPublic);
+            foreach(var kind in new[]{EquipmentKind.MurderSword,EquipmentKind.SawStaff,EquipmentKind.BarbedBat,EquipmentKind.Chainsaw,EquipmentKind.LaserAxe,EquipmentKind.Dagger,EquipmentKind.FlamingMarshmallow})
+            foreach(bool left in new[]{false,true})
+            {
+                object[] mountArgs={kind,left,Vector3.zero,Quaternion.identity};
+                bool mounted=(bool)meleeMount.Invoke(null,mountArgs);
+                var palm=(Vector3)mountArgs[2];
+                var mount=(Quaternion)mountArgs[3];
+                var axis=mount*(kind==EquipmentKind.Chainsaw?Vector3.up:Vector3.forward);
+                var skeleton=(DeadlyJenga.CandyPlayers.CandyHandSkeleton)meleeGrip.Invoke(null,new object[]{left,kind});
+                Check(mounted&&Mathf.Abs(Vector3.Dot(axis,Vector3.right))>.99f&&
+                    Vector3.Distance(skeleton.Joint(6),palm)<.06f,
+                    kind+" handle crosses the palm within the curled fingers ("+(left?"left":"right")+")");
+            }
             if(session.Social!=null)session.Social.VoiceEnabled=false;
             typeof(CastlePlaySession).GetMethod("OnApplicationFocus",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(session,new object[]{true});session.SetMenu(false);session.Survivor().InputSuspended=true;
             var rules=ModeSimulation.Defaults(GameModeKind.MurderMystery);rules.countdownSeconds=0;rules.automaticDisasters=false;rules.mystery.attackGraceSeconds=0;rules.mystery.reportDelaySeconds=0;

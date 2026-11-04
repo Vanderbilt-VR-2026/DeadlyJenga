@@ -10,17 +10,18 @@ namespace DeadlyJenga.CastlePrototype
         {
             HideDisasterSliders();scaffoldButton.gameObject.SetActive(false);
             for(int i=0;i<buttons.Length;i++){var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,46);}
-            var actions=new System.Collections.Generic.List<Action>();var names=new System.Collections.Generic.List<string>();var enabled=new System.Collections.Generic.List<bool>();
-            void Add(string name,Action action,bool available=true){names.Add(name);actions.Add(action);enabled.Add(available);}
-            if(menuCategory<0){heading.text="DEMO CONTROLS";for(int i=0;i<4;i++){int index=i;Add(DemoMenuSections.Tabs[i],()=>{menuCategory=index;menuSection=-1;});}Add("Resume",()=>session.SetMenu(false));}
+            var actions=new System.Collections.Generic.List<Action>();var names=new System.Collections.Generic.List<string>();var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();var captions=new System.Collections.Generic.List<string>();
+            void Add(string name,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Key,string caption="")
+            {names.Add(name);actions.Add(action);enabled.Add(available);art.Add(icon);captions.Add(caption);}
+            if(menuCategory<0){heading.text="IN-GAME CONTROLS";for(int i=0;i<4;i++){int index=i;Add(DemoMenuSections.Tabs[i],()=>{menuCategory=index;menuSection=-1;},icon:DemoMenuSections.Icon(DemoMenuSections.Tabs[i]),caption:DemoMenuSections.TabDescriptions[i]);}Add("Resume",()=>session.SetMenu(false));}
             else if(menuSection<0)
             {
-                heading.text=DemoMenuSections.Tabs[menuCategory];Add("Back to main tabs",()=>menuCategory=-1);
-                var sections=DemoMenuSections.Sections[menuCategory];for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i],()=>OpenMenuSection(index));}
+                heading.text=DemoMenuSections.Tabs[menuCategory];Add("All tabs",()=>menuCategory=-1,icon:CandyHudIcon.Home);
+                var sections=DemoMenuSections.Sections[menuCategory];for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"  ·  "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));}
             }
             else
             {
-                string name=DemoMenuSections.Sections[menuCategory][menuSection];heading.text=DemoMenuSections.Tabs[menuCategory]+" / "+name;Add("Back to categories",()=>menuSection=-1);
+                string name=DemoMenuSections.Sections[menuCategory][menuSection];heading.text=DemoMenuSections.Tabs[menuCategory]+" / "+name;Add("Back to "+DemoMenuSections.Tabs[menuCategory],()=>menuSection=-1,icon:CandyHudIcon.Home);
                 if(name=="Character")
                 {
                     Add(session.PlayingHand?"Become a survivor":"Become a giant hand",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);},DemoMode);
@@ -49,6 +50,8 @@ namespace DeadlyJenga.CastlePrototype
                     var enemies=session.SurvivorBots as IEnemyPopulation;
                     Add("Spawn jaguar enemy",()=>{if(CanCommand)enemies?.SpawnEnemy(new EnemySpawnSettings());},CanCommand&&enemies!=null);
                     Add("Spawn mushroom enemy",()=>{if(CanCommand)enemies?.SpawnEnemy(new EnemySpawnSettings{archetypeId="mushroom",hitDamage=10});},CanCommand&&enemies!=null);
+                    Add("Spawn Longhand",()=>enemies?.SpawnEnemy(new EnemySpawnSettings{archetypeId="longhand",hitDamage=25}),CanCommand&&enemies!=null);
+                    Add("Spawn Gum Brute",()=>enemies?.SpawnEnemy(new EnemySpawnSettings{archetypeId="gum-brute",hitDamage=40}),CanCommand&&enemies!=null);
                     Add("Clear enemy NPCs",()=>{if(CanCommand)enemies?.ClearEnemies();},CanCommand&&enemies!=null);
                 }
                 if(name=="Controls"){Add("VR movement / gestures",()=>comfortPage=true);
@@ -65,8 +68,22 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             var ray=new Ray(camera.transform.position,camera.transform.forward);
-            for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(i<names.Count);if(i>=names.Count)continue;labels[i].text=names[i];targets[i].enabled=enabled[i];bool hover=enabled[i]&&targets[i].Raycast(ray,out _,4);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=Color.white;if(hover&&pressed){actions[i]();break;}}
-            help.text="Choose a category, then a control. Host permissions apply to shared changes.";
+            sectionGlyphsActive=true;
+            help.text=menuCategory<0?"Choose a tab. Look at a row and select.":
+                menuSection<0?"Choose a section. Each row shows what it contains.":
+                DemoMenuSections.Caption(DemoMenuSections.Sections[menuCategory][menuSection])+". Shared changes may require the host.";
+            for(int i=0;i<buttons.Length;i++)
+            {
+                bool visible=i<names.Count;
+                buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible&&enabled[i];
+                if(!visible)continue;
+                labels[i].text=names[i];sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);
+                bool hover=targets[i].enabled&&targets[i].Raycast(ray,out _,4);
+                buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
+                labels[i].color=hover?CandyHudVisuals.Ink:enabled[i]?Color.white:CandyHudVisuals.Muted;
+                if(hover&&!string.IsNullOrEmpty(captions[i]))help.text=captions[i];
+                if(hover&&pressed){actions[i]();break;}
+            }
             transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();
         }
         void OpenMenuSection(int index)

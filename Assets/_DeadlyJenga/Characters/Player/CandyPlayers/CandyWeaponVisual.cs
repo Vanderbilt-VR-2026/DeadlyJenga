@@ -15,13 +15,44 @@ namespace DeadlyJenga.CandyPlayers
             var position=back?new Vector3(feet.x,Mathf.Lerp(feet.y,head.y,.63f),feet.z)+yaw*new Vector3(.12f,0,-.25f)*scale:new Vector3(feet.x,Mathf.Lerp(feet.y,head.y,.40f),feet.z)+yaw*new Vector3(left?-.23f:.23f,0,.025f)*scale;
             return new Pose(position,yaw*(back?Quaternion.Euler(0,0,-35)*Quaternion.Euler(-90,0,0):Quaternion.Euler(90,0,left?-8:8)));
         }
+        // Weapon geometry points along local Z. A shaft lies across the palm,
+        // while the chainsaw's pistol-style handle runs along local Y.
+        internal static bool MeleeMount(EquipmentKind kind,bool left,out Vector3 palm,out Quaternion mount)
+        {
+            float side=left?1:-1;
+            palm=new Vector3(0,-.031f,.075f);
+            switch(kind)
+            {
+                case EquipmentKind.MurderSword:
+                case EquipmentKind.SawStaff:
+                case EquipmentKind.BarbedBat:
+                case EquipmentKind.LaserAxe:
+                case EquipmentKind.Dagger:
+                case EquipmentKind.FlamingMarshmallow:
+                    mount=Quaternion.Euler(0,side*90,0);
+                    return true;
+                case EquipmentKind.Chainsaw:
+                    mount=Quaternion.Euler(0,0,-side*90);
+                    return true;
+                default:
+                    mount=Quaternion.identity;
+                    return false;
+            }
+        }
+
+        static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
+        {
+            if(!MeleeMount(kind,left,out var palm,out var mount))return new Pose(hand.position,hand.rotation);
+            return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
+        }
+
         public void Present(EquipmentState state,CandyAvatarFrame frame,bool active)
         {
             if(parent&&parent.GetComponentInParent<IEnemyActor>()?.ArchetypeId=="mushroom"){Hide();return;}
             if(state==null||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||state.roleIssued&&!state.drawn||!active){Hide();return;}
             if(!root||kind!=state.kind){if(paired){Object.Destroy(paired.gameObject);paired=null;}rotor=null;if(root)Object.Destroy(root.gameObject);kind=state.kind;root=Create(kind);}
             root.gameObject.SetActive(true);root.localScale=new Vector3(kind==EquipmentKind.BoxingGlove&&state.leftHanded?-1:1,1,1)*frame.scale;
-            var hand=state.leftHanded?frame.left:frame.right;var pose=state.drawn||kind==EquipmentKind.WristLaser?new Pose(hand.position,hand.rotation):Holster(kind,frame.feet,frame.head,Quaternion.Euler(0,frame.headRotation.eulerAngles.y,0),frame.scale,state.leftHanded);
+            var hand=state.leftHanded?frame.left:frame.right;var pose=state.drawn||kind==EquipmentKind.WristLaser?DrawnPose(kind,hand,state.leftHanded,frame.scale):Holster(kind,frame.feet,frame.head,Quaternion.Euler(0,frame.headRotation.eulerAngles.y,0),frame.scale,state.leftHanded);
             if(state.embedRemaining>0){if(!wasEmbedded)embeddedPose=new Pose(state.embeddedPoint-pose.rotation*Vector3.forward*.65f,pose.rotation);pose=embeddedPose;wasEmbedded=true;}else wasEmbedded=false;
             root.SetPositionAndRotation(pose.position,pose.rotation);
             if(kind==EquipmentKind.LaserClaws){PositionClaws(root,hand,state.leftHanded);root.gameObject.SetActive(state.drawn);}

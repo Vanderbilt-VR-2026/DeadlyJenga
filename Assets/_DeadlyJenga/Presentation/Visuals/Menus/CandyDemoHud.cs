@@ -66,13 +66,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(k.leftArrowKey.wasPressedThisFrame)ChangePage((page+PageCount-1)%PageCount);
                 if(k.rightArrowKey.wasPressedThisFrame)ChangePage((page+1)%PageCount);
-                if(sectionPicker)
+                if(k.tabKey.wasPressedThisFrame)
                 {
                     int count=DemoMenuSections.Sections[page].Length;
-                    if(k.upArrowKey.wasPressedThisFrame)categoryCursor=(categoryCursor+count-1)%count;
-                    if(k.downArrowKey.wasPressedThisFrame)categoryCursor=(categoryCursor+1)%count;
-                    if(k.enterKey.wasPressedThisFrame||k.numpadEnterKey.wasPressedThisFrame){subsection=categoryCursor;sectionPicker=false;selection=0;scroll=Vector2.zero;}
-                    PresentHints();return;
+                    SelectSection((subsection+1)%count);
                 }
                 if(k.upArrowKey.wasPressedThisFrame){selection=(selection+Mathf.Max(1,navCount)-1)%Mathf.Max(1,navCount);FollowSelection();}
                 if(k.downArrowKey.wasPressedThisFrame){selection=(selection+1)%Mathf.Max(1,navCount);FollowSelection();}
@@ -81,8 +78,8 @@ namespace DeadlyJenga.CastlePrototype
             if(k!=null&&!session.MenuOpen&&k.f1Key.wasPressedThisFrame){hintMode=hintMode==HintMode.Hidden?HintMode.Adaptive:HintMode.Hidden;changedAt=Time.unscaledTime;}
             PresentHints();
         }
-        void ChangePage(int next){page=next;subsection=0;sectionPicker=false;giveEquipmentPage=false;selection=0;scroll=Vector2.zero;activate=false;}
-        void FollowSelection(){float top=selection<navTops.Count?navTops[selection]:116+selection*104;if(top<scroll.y)scroll.y=top;if(top+100>scroll.y+464)scroll.y=top+100-464;}
+        void ChangePage(int next){page=next;SelectSection(0);}
+        void FollowSelection(){float top=selection<navTops.Count?navTops[selection]:116+selection*104;if(top<scroll.y)scroll.y=top;if(top+100>scroll.y+404)scroll.y=top+100-404;}
         void Styles()
         {
             if(ready)return;ready=true;var font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -144,19 +141,22 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
-                var r=new Rect(20,128+i*75,218,68);if(Button(r,"     "+PageName(i).Replace(" Controls","\n     Controls")+(pending?"  !":""),i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
+                var r=new Rect(20,122+i*77,218,67);if(Button(r,"",i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
+                GUI.Label(new Rect(r.x+50,r.y+5,160,28),PageName(i)+(pending?"  !":""),heading);
+                GUI.Label(new Rect(r.x+50,r.y+33,160,24),DemoMenuSections.TabDescriptions[i],small);
                 Icon(new Rect(r.x+10,r.y+24,25,25),PageIcon(i),i==page?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
             }
             DrawSectionSelector();
-            Panel(new Rect(258,180,921,494),CandyHudVisuals.Panel);drawIndex=0;
-            float contentHeight=SectionHeight;
-            bool contentEnabled=GUI.enabled;GUI.enabled=contentEnabled&&!sectionPicker;
-            scroll=GUI.BeginScrollView(new Rect(278,194,884,464),scroll,new Rect(0,0,856,contentHeight));
-            GUI.Label(new Rect(8,2,830,36),SectionName,heading);GUI.Label(new Rect(8,45,830,60),PageDescription(),small);
-            if(!sectionPicker)DrawSection();
-            GUI.EndScrollView();GUI.enabled=contentEnabled;navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
-            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Click: act / Wheel: scroll / Left-Right: tabs / Up-Down: cards / Enter: confirm / Esc: resume",small);
-            DrawSectionDropdown();
+            Panel(new Rect(258,244,921,430),CandyHudVisuals.Panel);drawIndex=0;
+            scroll=GUI.BeginScrollView(new Rect(278,254,884,404),scroll,new Rect(0,0,856,SectionHeight));
+            var picture=SectionPicture();
+            float headerWidth=picture?610:830;
+            GUI.Label(new Rect(8,2,headerWidth,36),PageName(page)+" / "+SectionName,heading);
+            GUI.Label(new Rect(8,45,headerWidth,60),PageDescription(),small);
+            if(picture)GUI.DrawTexture(new Rect(650,2,177,106),picture,ScaleMode.ScaleToFit);
+            DrawSection();
+            GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
+            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Click: act  ·  Tab: subsections  ·  ←/→: tabs  ·  ↑/↓: actions  ·  Enter: confirm  ·  Esc: resume",small);
             if(activate&&Event.current.type==EventType.Repaint){activate=false;if(selection<navCount)navActions[selection]?.Invoke();}
         }
         string PageTitle()=>SectionName=="Spectate"?"Watch the match":SectionName=="Maps"?"Change map":SectionName=="Disasters"?"Natural disasters":SectionName=="Modes"?"Game modes and world rules":SectionName=="Play"?"Make a little mayhem":SectionName=="Voice"?"AI players and voice":SectionName=="Survivors"?"Bring the island to life":SectionName=="Giant hands"?"A few extra hands":SectionName=="Settings"?"Your local controls":SectionName=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";

@@ -22,6 +22,29 @@ namespace DeadlyJenga.CandyPlayers
             for(int i=4;i<8;i++)pose.SetJoint(i,index.Joint(i));
             return pose;
         }
+        internal static CandyHandSkeleton MeleeGrip(bool left,DeadlyJenga.Core.EquipmentKind kind)
+        {
+            var hand=Rest(left,.94f);
+            float radius=kind switch
+            {
+                DeadlyJenga.Core.EquipmentKind.FlamingMarshmallow=>.026f,
+                DeadlyJenga.Core.EquipmentKind.MurderSword=>.033f,
+                DeadlyJenga.Core.EquipmentKind.Chainsaw=>.040f,
+                _=>.036f
+            };
+            for(int finger=1;finger<5;finger++)
+            {
+                int root=finger*4;
+                float x=hand.Joint(root).x;
+                for(int joint=1;joint<4;joint++)
+                {
+                    float angle=joint*Mathf.PI*.42f;
+                    hand.SetJoint(root+joint,new Vector3(x,-.031f+Mathf.Cos(angle)*radius,
+                        .075f+Mathf.Sin(angle)*radius));
+                }
+            }
+            return hand;
+        }
         public static CandyHandSkeleton Rest(bool left,float curl=0)
         {
             var data=new CandyHandSkeleton();float sign=left?1:-1;curl=Mathf.Clamp01(curl);
