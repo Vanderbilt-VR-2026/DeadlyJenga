@@ -22,6 +22,7 @@ namespace DeadlyJenga.CharacterNetwork
         public float HitDamage=>enemy?.hitDamage??0;
         public void Despawn() { }
         bool active, hasTarget, initialized, suspended;
+        string emote; float emoteStart, emoteLength; int lastEmoteBits;
         CapsuleCollider hazardTarget;
         Vector3 previousFeet, velocity;
         float previousPoseTime;
@@ -34,7 +35,7 @@ namespace DeadlyJenga.CharacterNetwork
         public string ActorId => string.IsNullOrEmpty(assignedId) ? context.actorId : assignedId;
         public string DisplayName => string.IsNullOrEmpty(displayName) ? gameObject.name : displayName;
         public int Team => team;
-        public Color Color => identityAssigned ? assignedColor : rig&&rig.style?rig.style.ColorAt(color):UnityEngine.Color.white;
+        public Color Color => identityAssigned ? assignedColor : rig&&rig.style?rig.style.ColorAt(color & 0xFF):UnityEngine.Color.white;
         public bool Alive => active && !suspended;
         public bool IsBot => IsEnemy||context.actorId!=null&&context.actorId.StartsWith("bot",System.StringComparison.OrdinalIgnoreCase);
         public bool IsLocal => false;
@@ -77,16 +78,24 @@ namespace DeadlyJenga.CharacterNetwork
             CharacterWire.ReadSurvivor(r, out target, out color,out appearance,out enemy,out blaster);
             // A connected human cannot grant themselves NPC rules through their visual payload.
             if(context.host)enemy=null;
+            if (active && !isActive && rig) Burst();
             active = isActive; hasTarget = true;if(!active)weaponVisual?.Hide();
             if(!active&&blasterModel)blasterModel.gameObject.SetActive(false);
             transform.SetPositionAndRotation(target.feet, Quaternion.Euler(0,target.headRotation.eulerAngles.y,0));
+            int bits = (color >> 16) & 0xFF;
+            if (bits != lastEmoteBits && bits > 0 && bits <= Emotes.Survivor.Length)
+            {
+                emote = Emotes.Survivor[bits - 1]; emoteStart = Time.time; emoteLength = CandyEmotePoses.Duration(emote);
+                GameEvents.RaiseEmoted(rig ? rig.gameObject : gameObject, emote);
+            }
+            lastEmoteBits = bits;
             if (!rig)
             {
                 var avatar = context.localSurvivor ? context.localSurvivor.GetComponent<CandyPlayerAvatar>() : null;
                 if (!avatar || !avatar.visualPrefab) return;
                 rig = Instantiate(avatar.visualPrefab, transform); rig.ownerCamera = null;
             }
-            rig.gameObject.SetActive(active); rig.SetColor(color);rig.SetAppearance(appearance);
+            rig.gameObject.SetActive(active); rig.SetColor(color & 0xFF);rig.SetAppearance(appearance);
             if(IsEnemy&&(ArchetypeId=="longhand"||ArchetypeId=="gum-brute")&&!GetComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>())gameObject.AddComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>();
             if (!initialized) { frame = target; initialized = true; }
             UpdateHazardTarget();
@@ -119,6 +128,12 @@ namespace DeadlyJenga.CharacterNetwork
             frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale;
             frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
             rig.ApplyFrame(frame, true, dt);
+            if (emote != null)
+            {
+                float age = Time.time - emoteStart;
+                if (age >= emoteLength) emote = null;
+                else rig.ApplyFrame(CandyEmotePoses.Pose(frame, emote, age, emoteLength), true, 0);
+            }
             if(IsEnemy)rig.SetTint(new Color(.035f,.045f,.065f));
             weaponVisual??=new CandyWeaponVisual(transform,rig.style?rig.style.material:null);
             var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
@@ -126,6 +141,15 @@ namespace DeadlyJenga.CharacterNetwork
         }
 
         public void Suspend() { weaponVisual?.Hide();suspended = true; if (hazardTarget) hazardTarget.enabled = false; }
+
+        // Someone else's survivor just disappeared (eliminated): let the effects burst it.
+        void Burst()
+        {
+            var colors = rig.style ? rig.style.colors : null;
+            var c = colors != null && colors.Length > 0 ? colors[(color & 0xFF) % colors.Length] : Color.white;
+            GameEvents.RaiseBodyBurst(rig.gameObject, frame.feet, c, "A player", false);
+            emote = null;
+        }
 
         static CandyHandPose Blend(CandyHandPose from, CandyHandPose to, float t)
         {

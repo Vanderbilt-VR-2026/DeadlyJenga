@@ -106,6 +106,8 @@ namespace DeadlyJenga.CastlePrototype
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true)return;
             DrawSpectatorLabels();
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
+            // Screen GUI is invisible in a headset and allocates every frame (garbage collection hitches), so skip it in VR.
+            if(Ready&&session.IsVR)return;
             if(Ready&&!session.MenuOpen&&session.Social!=null&&session.Social.ShowCaption)SocialPanel.DrawCaption(session.Social);
             if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen)return;
             Styles();var old=GUI.matrix;var skin=GUI.skin;var tint=GUI.color;var contentTint=GUI.contentColor;var backgroundTint=GUI.backgroundColor;bool enabled=GUI.enabled;int depth=GUI.depth;
@@ -136,6 +138,7 @@ namespace DeadlyJenga.CastlePrototype
             var review=MatchRuntime.Current as IMatchReviewControls;
             if(review?.DevelopmentReviewEnabled==true)
             {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),"End Game",CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
+            if(HandLooks.Names.Length>0&&Button(new Rect(748,88,201,30),"Hand: "+HandLooks.ChosenName+"  >",CandyHudVisuals.Card))HandLooks.Chosen++;
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;

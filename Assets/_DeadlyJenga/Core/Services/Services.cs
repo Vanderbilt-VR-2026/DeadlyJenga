@@ -5,8 +5,9 @@ namespace DeadlyJenga.Core
     {
         public static ISessionInfo Session;
         public static IWorldQuery World;
+        public static IRewindable Rewind;
 
         [UnityEngine.RuntimeInitializeOnLoadMethod(UnityEngine.RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void Reset() { Session = null; World = null; }
+        static void Reset() { Session = null; World = null; Rewind = null; }
     }
 }

@@ -23,6 +23,7 @@ namespace DeadlyJenga.CharacterNetwork
         CandyHandPose target;
         Pose[] bones = Array.Empty<Pose>();
         bool left, active, hasTarget, suspended;
+        int look, lastTaunt;
         float size;
         HandNetworkView seaLeft,seaRight;
         Transform bust,leftShoulder,rightShoulder;
@@ -49,16 +50,16 @@ namespace DeadlyJenga.CharacterNetwork
         {
             if(seaActive)
             {
-                CharacterWire.WriteHand(w,false,size,target,(Pose[])null);
+                CharacterWire.WriteHand(w,false,size,target,(Pose[])null, look);
                 CharacterWire.WriteSeaSpirit(w,new CharacterWire.SeaFrame{bust=new Pose(bust.position,bust.rotation),leftShoulder=new Pose(leftShoulder.position,leftShoulder.rotation),rightShoulder=new Pose(rightShoulder.position,rightShoulder.rotation),left=Payload(seaLeft),right=Payload(seaRight)});return;
             }
-            if (Hand) CharacterWire.WriteHand(w, Hand.left, Hand.GeometrySize, Hand.Target, Hand.bodies);
-            else CharacterWire.WriteHand(w, left, size, target, bones);
+            if (Hand) CharacterWire.WriteHand(w, Hand.left, Hand.GeometrySize, Hand.Target, Hand.bodies, look);
+            else CharacterWire.WriteHand(w, left, size, target, bones, look);
         }
 
         public void ReadState(BinaryReader r, bool isActive)
         {
-            CharacterWire.ReadHand(r, out bool newLeft, out float newSize, out var newTarget, out var newBones);
+            CharacterWire.ReadHand(r, out bool newLeft, out float newSize, out var newTarget, out var newBones, out look);
             var sea=CharacterWire.ReadSeaSpirit(r);
             if(sea!=null&&forcedLeft.HasValue)throw new InvalidDataException("Nested spirit payload");
             if(sea!=null)
@@ -81,6 +82,10 @@ namespace DeadlyJenga.CharacterNetwork
                 Hand = Instantiate(bridge.prefab, transform); Hand.settings = handSettings; Hand.left = left; Hand.Build(target);Hand.ReplicatedBones=!context.host;
             }
             Hand.gameObject.SetActive(active);
+            CandyHandLook.For(Hand).Apply(look & 0x0F);
+            int taunt = look >> 4;
+            if (taunt != lastTaunt && taunt > 0 && taunt <= Emotes.Hand.Length) GameEvents.RaiseEmoted(Hand.gameObject, Emotes.Hand[taunt - 1]);
+            lastTaunt = taunt;
             Hand.SetTarget(target, context.host && active ? 1 : 0);
             if (context.host) Hand.SetInteractive(active);
         }

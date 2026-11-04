@@ -114,6 +114,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             // No reset on reacquisition: the dynamic hand returns through bounded drives.
             physical.SetInteractive(transition.Strength>0&&!actor.motor.InputSuspended);
             physical.skin.enabled=physical.IsInteractive||(actor.motor.InputSuspended&&transition.Strength>0);
+            CandyHandLook.For(physical).Apply(Look);
             if(transition.Mode==CandyHandMode.Inactive){physical.gameObject.SetActive(false);}
         }
         public void SelectDesktopPose(DesktopHandPose value) => DesktopPose = value;
@@ -151,6 +152,12 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);Destroy(physical.gameObject);physical=null;}
             transition=new CandyHandTransition();trackedGeometry=false;anchored=false;
         }
+        // Hand design: the player's pick, or a random one for an AI hand.
+        int botLook=-1;
+        HandTaunts taunts;
+        // Network byte: low 4 bits = design, high 4 bits = taunt showing (index + 1).
+        int NetworkLook{get{if(!taunts){taunts=GetComponent<HandTaunts>();if(!taunts)taunts=gameObject.AddComponent<HandTaunts>();}return (Look&0x0F)|(taunts.NetworkBits<<4);}}
+        public int Look{get{if(!actor||!actor.motor.externallyDriven)return HandLooks.Chosen;if(botLook<0)botLook=Random.Range(1,CandyHandDesigns.Count);return botLook;}}
         // INetworkActor: what other players see of this hand (the player's or a bot's).
         public string NetworkKind => NetworkKinds.Hand;
         public bool NetworkActive => Spirit&&Spirit.Active || (physical ? physical.gameObject.activeInHierarchy && physical.skin && physical.skin.enabled : actor && !actor.motor.externallyDriven);
@@ -161,15 +168,15 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(spirit&&spirit.Active)
             {
                 var restSea=new CandyHandPose{position=spirit.BustAnchor.position,rotation=spirit.BustAnchor.rotation,tracked=false,skeleton=CandyHandSkeleton.Rest(useLeftHand)};
-                CharacterWire.WriteHand(w,useLeftHand,settings.size,restSea,(Pose[])null);
+                CharacterWire.WriteHand(w,useLeftHand,settings.size,restSea,(Pose[])null, NetworkLook);
                 CharacterWire.WriteSeaSpirit(w,spirit);return;
             }
-            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies); return; }
+            if (physical) { CharacterWire.WriteHand(w, physical.left, physical.GeometrySize, physical.Target, physical.bodies, NetworkLook); return; }
             var at = actor ? actor.motor.transform : transform;
             var rest = new CandyHandPose { position = at.position, rotation = at.rotation, tracked = true, skeleton = CandyHandSkeleton.Rest(useLeftHand) };
-            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null);
+            CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null, NetworkLook);
         }
-        void OnEnable(){if(!SuppressNetworkRegistration&&!NetworkActors.Local.Contains(this))NetworkActors.Local.Add(this);}
+        void OnEnable(){if(!SuppressNetworkRegistration&&!NetworkActors.Local.Contains(this))NetworkActors.Local.Add(this);if(!GetComponent<HandTaunts>())gameObject.AddComponent<HandTaunts>();}
         void OnDisable(){NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
         void OnDestroy(){if(physical)Destroy(physical.gameObject);}
     }

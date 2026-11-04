@@ -66,15 +66,15 @@ namespace DeadlyJenga.CharacterNetwork
         }
 
         // Hand: handedness, size, finger target and (when simulated) the 16 bone poses.
-        public static void WriteHand(BinaryWriter w, bool left, float size, CandyHandPose target, Rigidbody[] bodies)
+        public static void WriteHand(BinaryWriter w, bool left, float size, CandyHandPose target, Rigidbody[] bodies, int look = 0)
         {
-            w.Write(left); w.Write(size); WriteHandPose(w, target);
+            w.Write(left); w.Write(size); WriteHandPose(w, target); w.Write((byte)Mathf.Clamp(look, 0, 255));
             int count = bodies != null ? bodies.Length : 0; w.Write(count);
             for (int i = 0; i < count; i++) NetWire.Write(w, new Pose(bodies[i].position, bodies[i].rotation));
         }
-        public static void WriteHand(BinaryWriter w, bool left, float size, CandyHandPose target, Pose[] bones)
+        public static void WriteHand(BinaryWriter w, bool left, float size, CandyHandPose target, Pose[] bones, int look = 0)
         {
-            w.Write(left); w.Write(size); WriteHandPose(w, target);
+            w.Write(left); w.Write(size); WriteHandPose(w, target); w.Write((byte)Mathf.Clamp(look, 0, 255));
             int count = bones != null ? bones.Length : 0; w.Write(count);
             for (int i = 0; i < count; i++) NetWire.Write(w, bones[i]);
         }
@@ -121,11 +121,13 @@ namespace DeadlyJenga.CharacterNetwork
             var bounds=Services.World.PlayableBounds;bounds.Expand(Mathf.Max(100,bounds.size.magnitude*4));
             if(!bounds.Contains(point))throw new InvalidDataException("Hand outside reachable map area");
         }
-        public static void ReadHand(BinaryReader r, out bool left, out float size, out CandyHandPose target, out Pose[] bones)
+        public static void ReadHand(BinaryReader r, out bool left, out float size, out CandyHandPose target, out Pose[] bones) => ReadHand(r, out left, out size, out target, out bones, out _);
+        public static void ReadHand(BinaryReader r, out bool left, out float size, out CandyHandPose target, out Pose[] bones, out int look)
         {
             left = r.ReadBoolean(); size = NetWire.ReadNumber(r);
             if (size < .1f || size > 100) throw new InvalidDataException("Invalid hand size");
             target = ReadHandPose(r);
+            look = r.ReadByte();
             ValidateLocation(target.position);
             if(!CandyHandTransition.IsValidPose(target))throw new InvalidDataException("Invalid hand skeleton");
             for(int j=0;j<20;j++)if(target.skeleton.Joint(j).sqrMagnitude>.09f)throw new InvalidDataException("Hand joint outside wrist range");
