@@ -41,8 +41,10 @@ namespace DeadlyJenga.Presentation
             board=CandyHudCards.Create(root,"Standings",new Vector2(438,88),new Vector2(350,350),20);
             teams=CandyHudCards.Create(root,"Team scores",new Vector2(0,310),new Vector2(384,34),17,TextAnchor.MiddleCenter);
             status=CandyHudCards.Create(root,"Round and spectators",new Vector2(0,362),new Vector2(384,60),17,TextAnchor.MiddleCenter);
-            warning=CandyHudCards.Create(root,"Disaster warning",new Vector2(0,247),new Vector2(384,54),18,TextAnchor.MiddleCenter);warning.color=CandyHudVisuals.Peach;
+            warning=CandyHudCards.Create(root,"Disaster warning",new Vector2(0,247),new Vector2(384,54),18,TextAnchor.MiddleCenter);CandyHudCards.Float(warning,new Color(1,.80f,.63f));
             objective=CandyHudCards.Create(root,"Your objective",new Vector2(-420,215),new Vector2(380,190),19);
+            CandyHudCards.Float(status,new Color(.98f,.94f,1));
+            CandyHudCards.Float(teams,new Color(.72f,1,.89f));
             waypoints=new CandyWaypointLayer(root);
             claim=Label("Block ownership",new Vector2(400,36),new Vector2(0,-246),TextAnchor.MiddleCenter,17);
             var fill=new GameObject("Claim juice",typeof(RectTransform),typeof(Image));fill.transform.SetParent(root,false);claimFill=fill.GetComponent<Image>();claimFill.color=new Color(.25f,1,.8f,.8f);claimFill.raycastTarget=false;claimFill.rectTransform.anchoredPosition=new Vector2(-160,-268);claimFill.rectTransform.pivot=new Vector2(0,.5f);claimFill.rectTransform.sizeDelta=new Vector2(0,6);
@@ -174,7 +176,7 @@ namespace DeadlyJenga.Presentation
             bool flags=f.rules.mode==GameModeKind.CaptureFlag;
             objective.fontSize=17;
             CandyHudCards.Place(objective,new Vector2(-462,245),new Vector2(width,110));
-            text.Clear();text.Append(f.rules.mode==GameModeKind.CaptureFlag&&f.flags.Length>2?(vr?"FLAG FOCUS · Modes menu\n":"FLAG FOCUS · G: NEXT ENEMY\n"):"YOUR OBJECTIVE\n");
+            text.Clear();text.Append(f.rules.mode==GameModeKind.CaptureFlag&&f.flags.Length>2?(vr?"FLAG FOCUS · Modes menu\n":"FLAG FOCUS · G: NEXT ENEMY\n"):"<color=#61369B>YOUR OBJECTIVE</color>\n");
             if(f.rules.mode==GameModeKind.CaptureFlag)
             {
                 var focus=CandyHudContent.FocusedFlag(f,own,FlagFocusIndex);

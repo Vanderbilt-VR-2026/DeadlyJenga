@@ -186,6 +186,9 @@ namespace DeadlyJenga.DevTools.Editor
             var hintIcons=(RawImage[])Field(hints,"hintIcons");
             Check(hintIcons[0].texture&&hintIcons[0].texture.name=="HUD controller diagram","VR movement prompt displays a highlighted controller diagram");
             Check(hints.ControlHintCanvas.renderMode==RenderMode.WorldSpace,"VR control hints use a world-space canvas");
+            hints.ControlHintCanvas.GetComponent<CanvasGroup>().alpha=1;
+            hints.ControlHintCanvas.enabled=true;
+            Render(session,"Hud-VR-ControllerPrompts");
             session.Survivor().controlMode=FlyingHand.ControlMode.Desktop;
             session.Survivor().RefreshMode();
             Check(CandyHudContent.Safe("<b>Injected</b>\nName").IndexOf('<')<0,"Player labels cannot inject rich text");Check(errors==0,"No runtime errors");

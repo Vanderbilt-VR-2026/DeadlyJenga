@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using DeadlyJenga.Presentation;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using DeadlyJenga.CandyAudio;
@@ -498,30 +499,34 @@ namespace DeadlyJenga.CastlePrototype
             hintCanvas=go.GetComponent<Canvas>();hintCanvas.sortingOrder=20;
             hintGroup=go.GetComponent<CanvasGroup>();hintGroup.alpha=0;
             hintGroup.blocksRaycasts=false;hintGroup.interactable=false;
-            var role=Pill(go.transform,new Vector2(252,45),new Vector2(22,-20),new Vector2(0,1),new Color(.04f,.05f,.08f,.82f));
-            roleText=Text(role,"",new Vector2(226,21),new Vector2(0,9),16);roleText.fontStyle=FontStyle.Bold;
-            statusText=Text(role,"",new Vector2(226,18),new Vector2(0,-9),14);statusText.color=CandyHudVisuals.Muted;
+            var role=Pill(go.transform,new Vector2(252,45),new Vector2(22,-20),new Vector2(0,1),CandyHudCards.Background);
+            roleText=Text(role,"",new Vector2(226,21),new Vector2(0,9),16);roleText.fontStyle=FontStyle.Bold;roleText.color=CandyHudCards.Ink;roleText.GetComponent<Outline>().enabled=false;
+            statusText=Text(role,"",new Vector2(226,18),new Vector2(0,-9),14);statusText.color=CandyHudCards.Accent;statusText.GetComponent<Outline>().enabled=false;
+            var strip=Pill(go.transform,new Vector2(245,168),new Vector2(16,16),Vector2.zero,Color.clear);
             for(int i=0;i<3;i++)
             {
-                var card=Pill(go.transform,new Vector2(222,48),new Vector2(22,22+(2-i)*52),Vector2.zero,new Color(.04f,.05f,.08f,.90f));
+                var card=new GameObject("Control row",typeof(RectTransform)).GetComponent<RectTransform>();
+                card.SetParent(strip,false);card.sizeDelta=new Vector2(222,48);
+                card.anchoredPosition=new Vector2(-4,(1-i)*49);
                 var raw=new GameObject("Control diagram",typeof(RectTransform),typeof(RawImage));
                 raw.transform.SetParent(card,false);
                 hintIcons[i]=raw.GetComponent<RawImage>();hintIcons[i].rectTransform.sizeDelta=new Vector2(42,42);
                 hintIcons[i].rectTransform.anchoredPosition=new Vector2(-86,0);hintIcons[i].raycastTarget=false;
                 hintNames[i]=Text(card,"",new Vector2(163,23),new Vector2(23,10),17);hintNames[i].fontStyle=FontStyle.Bold;
-                hintKeys[i]=Text(card,"",new Vector2(163,20),new Vector2(23,-11),15);hintKeys[i].color=CandyHudVisuals.Mint;
+                hintKeys[i]=Text(card,"",new Vector2(163,20),new Vector2(23,-11),15);hintKeys[i].color=new Color(.67f,1,.86f);
             }
-            var menu=Pill(go.transform,new Vector2(218,32),new Vector2(-22,22),new Vector2(1,0),new Color(.04f,.05f,.08f,.82f));
+            var menu=Pill(go.transform,new Vector2(218,32),new Vector2(-22,22),new Vector2(1,0),Color.clear);
             menuText=Text(menu,"",new Vector2(198,29),Vector2.zero,15);menuText.alignment=TextAnchor.MiddleCenter;
         }
         RectTransform Pill(Transform parent,Vector2 size,Vector2 position,Vector2 anchor,Color color)
         {
-            var go=new GameObject("Candy hint pill",typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
+            var go=new GameObject("Candy hint pill",typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var image=go.GetComponent<Image>();image.sprite=CandyHudCards.Wash(anchor.x>.5f);image.color=color;image.raycastTarget=false;
             var r=image.rectTransform;r.sizeDelta=size;r.anchorMin=r.anchorMax=anchor;r.pivot=anchor;r.anchoredPosition=position;return r;
         }
         Text Text(Transform parent,string value,Vector2 size,Vector2 position,int fontSize)
         {
-            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=Color.white;text.raycastTarget=false;text.rectTransform.sizeDelta=size;text.rectTransform.anchoredPosition=position;return text;
+            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=new Color(.99f,.96f,1);
+            var edge=go.GetComponent<Outline>();edge.effectColor=new Color(.10f,.045f,.20f,.9f);edge.effectDistance=new Vector2(1,-1);text.raycastTarget=false;text.rectTransform.sizeDelta=size;text.rectTransform.anchoredPosition=position;return text;
         }
         bool viewVR;Camera hintCamera;
         void PresentHints()
@@ -550,7 +555,7 @@ namespace DeadlyJenga.CastlePrototype
                         hintKeys[i].text=hint.key;hintNames[i].text=hint.text;
                         hintIcons[i].texture=hint.part==ControllerPart.None?CandyHudVisuals.Icon(hint.icon):
                             CandyHudVisuals.ControllerDiagram((int)hint.part,hint.left);
-                        hintIcons[i].color=hint.part==ControllerPart.None?CandyHudVisuals.Mint:Color.white;
+                        hintIcons[i].color=hint.part==ControllerPart.None?new Color(.67f,1,.86f):Color.white;
                         hintIcons[i].rectTransform.sizeDelta=Vector2.one*(hint.part==ControllerPart.None?26:42);
                     }
                 }

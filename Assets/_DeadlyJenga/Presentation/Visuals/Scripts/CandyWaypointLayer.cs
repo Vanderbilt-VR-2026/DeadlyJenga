@@ -43,9 +43,9 @@ namespace DeadlyJenga.Presentation
                 if(!overlaps){placed=candidate;found=true;break;}
             }
             if(!found)return false;
-            Text label;if(used==labels.Count){label=CandyHudCards.Create(root,"Objective waypoint",Vector2.zero,size,16,TextAnchor.MiddleCenter);labels.Add(label);}else label=labels[used];used++;
-            CandyHudCards.Place(label,placed.center,size);label.text=title+"\n<size=15>"+CandyHudContent.Direction(eye,world)+"</size>";label.color=Color.white;
-            label.transform.parent.GetComponent<Image>().color=Color.Lerp(CandyHudCards.Background,accent,.12f);
+            Text label;if(used==labels.Count){label=CandyHudCards.Create(root,"Objective waypoint",Vector2.zero,size,16,TextAnchor.MiddleCenter);CandyHudCards.Float(label,Color.white);labels.Add(label);}else label=labels[used];used++;
+            CandyHudCards.Place(label,placed.center,size);label.text=title+"\n<color=#DDCEFF><size=15>"+CandyHudContent.Direction(eye,world)+"</size></color>";
+            label.color=Color.Lerp(Color.white,accent,.26f);
             CandyHudCards.Visible(label,true);occupied.Add(placed);return true;
         }
     }

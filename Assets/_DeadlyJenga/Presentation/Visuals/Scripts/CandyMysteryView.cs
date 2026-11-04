@@ -39,6 +39,9 @@ namespace DeadlyJenga.Presentation
             choices=CandyHudCards.Create(root,"Private disaster choices",new Vector2(0,95),new Vector2(440,100),19,TextAnchor.MiddleCenter);
             reports=CandyHudCards.Create(root,"Recent body reports",new Vector2(-452,8),new Vector2(316,168),16);
             notice=CandyHudCards.Create(root,"Body report alert",new Vector2(0,183),new Vector2(344,72),17,TextAnchor.MiddleCenter);
+            CandyHudCards.Tint(role,new Color(.81f,.69f,1),.32f);
+            CandyHudCards.Tint(notice,new Color(1,.60f,.68f),.43f);
+            CandyHudCards.Tint(choices,new Color(1,.79f,.45f),.33f);
             waypoints=new CandyWaypointLayer(root);
         }
         void Update()
@@ -65,7 +68,7 @@ namespace DeadlyJenga.Presentation
             int reportPages=Mathf.Max(1,Mathf.CeilToInt(allReports.Length/2f));
             if(!blocked&&!vr&&Keyboard.current?.bKey.wasPressedThisFrame==true)ReportPage++;
             ReportPage=Mathf.Max(0,ReportPage)%reportPages;focusedReports.Clear();foreach(var report in allReports.Skip(ReportPage*2).Take(2))focusedReports.Add(report.id);
-            role.text="<size=18>PRIVATE ROLE · "+own.role.ToString().ToUpperInvariant()+"</size>\n"+CandyHudContent.RoleGoal(own.role)+"\n"+CandyHudContent.RoleAttack(own,vr);
+            role.text="<color=#61369B><size=18>PRIVATE ROLE · "+own.role.ToString().ToUpperInvariant()+"</size></color>\n"+CandyHudContent.RoleGoal(own.role)+"\n"+CandyHudContent.RoleAttack(own,vr);
             if(own.role==MysteryRole.Sheriff)role.text+="\nWrong special hits: "+own.mistakes+" / "+match.Rules.mystery.sheriffMistakes;
             bool pressed=vr?CandyHudContent.SelectPressed(hudSelect):Keyboard.current?.eKey.wasPressedThisFrame==true;
             bool held=vr?CandyHudContent.SelectHeld(hudSelect):Keyboard.current?.eKey.isPressed==true;
@@ -154,7 +157,7 @@ namespace DeadlyJenga.Presentation
         void UpdateReports(IMatchRuntime match,IMysteryControls mystery)
         {
             var bodies=mystery.Clues.bodies.Where(b=>b.reported).OrderBy(b=>b.reportedAge).ToArray();
-            var text=new System.Text.StringBuilder("REPORTS "+(ReportPage+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(bodies.Length/2f))+(vr?" · Modes menu":" · B: NEXT"));
+            var text=new System.Text.StringBuilder("<color=#61369B>REPORTS</color> "+(ReportPage+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(bodies.Length/2f))+(vr?" · Modes menu":" · B: NEXT"));
             if(bodies.Length==0)text.Append("\nNo bodies reported.\nUnreported bodies are revealed only nearby.");
             foreach(var body in bodies.Skip(ReportPage*2).Take(2))
             {
