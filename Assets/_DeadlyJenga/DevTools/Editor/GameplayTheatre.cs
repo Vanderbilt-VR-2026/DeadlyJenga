@@ -84,7 +84,7 @@ namespace DeadlyJenga.DevTools.Editor
             public float at;
             public string action, actor, target, hazard, weapon;
             public float strength, heading, height;
-            public bool optional;
+            public bool optional, lethal;
         }
 
         public void Validate()
@@ -152,9 +152,10 @@ namespace DeadlyJenga.DevTools.Editor
                 if (cue == null || !Finite(cue.at) || !Finite(cue.strength) || cue.at < 0 || cue.at >= shots.Max(s => s.start + s.duration) ||
                     !(cue.action == "hazard" && !string.IsNullOrWhiteSpace(cue.hazard) ||
                       cue.action == "tsunami" && Finite(cue.heading) && Finite(cue.height) && cue.height >= 0 && cue.height <= 100 ||
-                      cue.action == "stopHazards" || cue.action == "collapse" && cue.strength > 0 && cue.strength <= 30 ||
+                      cue.action == "dropDeck" || cue.action == "stopHazards" || cue.action == "collapse" && cue.strength > 0 && cue.strength <= 30 ||
                       cue.action == "gear" && Enum.TryParse(cue.weapon, true, out EquipmentKind weapon) &&
-                      weapon >= EquipmentKind.Blaster && weapon <= EquipmentKind.Dagger ||
+                      weapon >= EquipmentKind.Blaster && weapon <= EquipmentKind.Dagger &&
+                      (string.IsNullOrEmpty(cue.actor) || Known(cue.actor)) ||
                       (cue.action == "punch" || cue.action == "fire") && Known(cue.actor) && Known(cue.target) && cue.actor != cue.target))
                     throw new InvalidDataException("Unknown or incomplete theatre cue.");
             }
@@ -465,6 +466,7 @@ namespace DeadlyJenga.DevTools.Editor
             public CandyPlayerAvatar avatar;
             public Vector3 position;
             public Quaternion facing = Quaternion.identity;
+            public float downAt = float.PositiveInfinity;
             public float punchAt = -100;
         }
         static Job job;
@@ -976,7 +978,7 @@ namespace DeadlyJenga.DevTools.Editor
                                 if (towerSet != null && cues[cueIndex].action == "collapse")
                                     foreach (var body in towerSet)
                                     {
-                                        if (!body.isKinematic) continue;
+                                        if (!body.isKinematic || body.name == "Theatre landing deck") continue;
                                         body.isKinematic = false;
                                         float side = Mathf.Sign(body.position.x - stage.x);
                                         float height = body.position.y - stage.y;
@@ -985,6 +987,12 @@ namespace DeadlyJenga.DevTools.Editor
                                             -height * .50f + fracture), ForceMode.VelocityChange);
                                         body.AddTorque(new Vector3(.2f + height * .12f, fracture * .25f, side * height * .11f),
                                             ForceMode.VelocityChange);
+                                    }
+                                if (towerSet != null && cues[cueIndex].action == "dropDeck")
+                                    foreach (var body in towerSet.Where(b => b.name == "Theatre landing deck"))
+                                    {
+                                        body.isKinematic = false;
+                                        body.AddTorque(new Vector3(2, 0, -3), ForceMode.VelocityChange);
                                     }
                                 Cue(cues[cueIndex++], session, actors, world, stage, time);
                             }
@@ -1099,23 +1107,33 @@ namespace DeadlyJenga.DevTools.Editor
             var palette = world.Blocks.Where(b => b).Select(b => b.GetComponentInChildren<Renderer>())
                 .Where(r => r && r.sharedMaterial).Select(r => r.sharedMaterial).Distinct().ToArray();
             var towers = new List<Rigidbody>();
-            Block(new Vector3(0, -3.2f, 0), new Vector3(2.9f, 4.7f, 2.9f), 2);
+            Block(new Vector3(-1.6f, -3.6f, -.45f), new Vector3(.40f, 5.2f, 2.3f), 2);
+            Block(new Vector3(1.6f, -3.6f, -.45f), new Vector3(.40f, 5.2f, 2.3f), 2);
             Block(new Vector3(-3.8f, -3.6f, 5), new Vector3(3.4f, 6, 3.2f), 0);
             Block(new Vector3(3.8f, -3.6f, 5), new Vector3(3.4f, 6, 3.2f), 0);
-            Block(new Vector3(0, -.44f, 0), new Vector3(3.2f, .88f, 3.3f), 1);
+            var landing = Block(new Vector3(0, -.44f, 0), new Vector3(3.2f, .88f, 3.3f), 1);
+            landing.name = "Theatre landing deck";
+            var landingBody = landing.AddComponent<Rigidbody>();
+            landingBody.isKinematic = true;
+            towers.Add(landingBody);
+            // Leave the front open so the landing deck can drop away from the main span.
+            landingBody.collisionDetectionMode = CollisionDetectionMode.Discrete;
             Block(new Vector3(0, -.55f, 5.3f), new Vector3(13, 1.1f, 7.4f), 2);
             Block(new Vector3(0, -.68f, 12.4f), new Vector3(14, 1.36f, 6.8f), 1);
             foreach (int side in new[] { -1, 1 })
             {
                 float x = side * (side < 0 ? 5.5f : 7f);
-                float z = side < 0 ? 12 : 17;
+                float z = side < 0 ? 10.8f : 14.7f;
                 Block(new Vector3(x, -1.5f, z), new Vector3(4.1f, 3, 4.1f), 0);
                 for (int level = 0; level < (side < 0 ? 7 : 9); level++)
                 for (int lane = -1; lane <= 1; lane++)
                 {
                     bool cross = level % 2 != 0;
                     var offset = (cross ? Vector3.forward : Vector3.right) * (lane * 1.25f);
-                    var block = Block(new Vector3(x, .46f + .92f * level, z) + offset, new Vector3(1.23f, .92f, 3.75f), level + 1);
+                    float taper = 1 - level * .035f;
+                    float drift = Mathf.Sin(level * .82f) * .7f;
+                    var block = Block(new Vector3(x + drift, .46f + .92f * level, z) + offset * taper,
+                        new Vector3(1.23f * taper, .92f, 3.75f * taper), level + lane + 2);
                     if (cross) block.transform.Rotate(0, 90, 0);
                     var body = block.AddComponent<Rigidbody>();
                     body.mass = 4;
@@ -1157,6 +1175,23 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static void Perform(Actor actor, Vector3 stage, float time)
         {
+            if (time >= actor.downAt)
+            {
+                var rig = actor.avatar.Rig;
+                if (!rig) return;
+                float fall = Mathf.SmoothStep(0, 1, Mathf.Clamp01((time - actor.downAt) / .30f));
+                var frame = actor.avatar.ReadFrame();
+                actor.avatar.ApplyCosmeticFrame(frame);
+                var lean = Quaternion.AngleAxis(88 * fall, actor.facing * Vector3.right);
+                for (int i = 0; i < rig.BoneCount; i++)
+                {
+                    var bone = rig.AppearanceBone(i);
+                    if (!bone) continue;
+                    bone.SetPositionAndRotation(actor.position + lean * (bone.position - actor.position)
+                        + (actor.facing * Vector3.forward) * (.33f * fall) + Vector3.up * (.065f * fall), lean * bone.rotation);
+                }
+                return;
+            }
             if (actor.track.live)
             {
                 actor.position = actor.motor.transform.position;
@@ -1246,11 +1281,22 @@ namespace DeadlyJenga.DevTools.Editor
                     if (!wave.Active) throw new InvalidOperationException("Staged tsunami failed to start.");
                     detail += $" heading={wave.approachHeading} height={wave.height}";
                     break;
+                case "dropDeck": break;
                 case "stopHazards": DemoDisasters.StopAll(session); break;
                 case "gear":
                     var kind = (EquipmentKind)Enum.Parse(typeof(EquipmentKind), cue.weapon, true);
-                    if (!session.Modes.GiveEveryoneEquipment(kind, false))
-                        throw new InvalidOperationException("Could not equip the cast with " + cue.weapon);
+                    bool equipped;
+                    if (string.IsNullOrEmpty(cue.actor))
+                        equipped = session.Modes.GiveEveryoneEquipment(kind, false);
+                    else
+                    {
+                        var recipient = actors[cue.actor].motor.GetComponent<IModeActor>();
+                        var grant = typeof(MatchModeRuntime).GetMethod("GiveEquipmentTo",
+                            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+                        equipped = recipient != null && grant != null &&
+                            (bool)grant.Invoke(session.Modes, new object[] { recipient.ActorId, kind, false, true });
+                    }
+                    if (!equipped) throw new InvalidOperationException("Could not grant " + cue.weapon + " to " + cue.actor);
                     detail += " " + kind;
                     break;
                 case "fire":
@@ -1259,7 +1305,7 @@ namespace DeadlyJenga.DevTools.Editor
                     var identity = shooter.motor.GetComponent<IModeActor>();
                     if (identity == null || string.IsNullOrEmpty(identity.ActorId))
                         throw new InvalidOperationException("Shooter is not registered as a mode actor: " + cue.actor);
-                    Vector3 aim = subject.position + Vector3.up * .55f - identity.ViewPose.position;
+                    Vector3 aim = subject.position + Vector3.up * (cue.lethal ? .8f : .85f) - identity.ViewPose.position;
                     if (aim.sqrMagnitude < .01f) throw new InvalidOperationException("Shooter and target overlap.");
                     aim.Normalize();
                     shooter.facing = Quaternion.LookRotation(Vector3.ProjectOnPlane(aim, Vector3.up));
@@ -1273,6 +1319,11 @@ namespace DeadlyJenga.DevTools.Editor
                         e.id > previous && e.actor == identity.ActorId && e.action == EquipmentAction.Shot);
                     if (!fired && !cue.optional) throw new InvalidOperationException("Gameplay rejected fire cue for " + cue.actor +
                         ". Check draw state, cooldown, and cover at the muzzle.");
+                    if (fired && cue.lethal)
+                    {
+                        subject.downAt = time;
+                        subject.motor.GetComponent<IDamageable>()?.Eliminate(shooter.motor.gameObject);
+                    }
                     detail += $" {cue.actor}->{cue.target} weapon={session.Modes.EquipmentFor(identity.ActorId).kind} accepted={fired}";
                     break;
                 case "punch":
