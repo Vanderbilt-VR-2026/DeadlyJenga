@@ -34,14 +34,16 @@ namespace DeadlyJenga.Presentation
         void Build()
         {
             var go=new GameObject("Visual - mystery clues",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=30;root=go.GetComponent<RectTransform>();var scale=go.GetComponent<CanvasScaler>();scale.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scale.referenceResolution=new Vector2(1280,720);
-            role=CandyHudCards.Create(root,"Your private role",new Vector2(-452,260),new Vector2(316,120),16);
+            role=CandyHudCards.Create(root,"Your private role",new Vector2(-452,262),new Vector2(316,124),16);
             prompt=CandyHudCards.Create(root,"Context action",new Vector2(-452,146),new Vector2(316,96),16);
             choices=CandyHudCards.Create(root,"Private disaster choices",new Vector2(0,95),new Vector2(440,100),19,TextAnchor.MiddleCenter);
-            reports=CandyHudCards.Create(root,"Recent body reports",new Vector2(-452,8),new Vector2(316,168),16);
+            reports=CandyHudCards.Create(root,"Recent body reports",new Vector2(-452,25),new Vector2(316,134),16);
             notice=CandyHudCards.Create(root,"Body report alert",new Vector2(0,183),new Vector2(344,72),17,TextAnchor.MiddleCenter);
             CandyHudCards.Tint(role,new Color(.81f,.69f,1),.32f);
             CandyHudCards.Tint(notice,new Color(1,.60f,.68f),.43f);
             CandyHudCards.Tint(choices,new Color(1,.79f,.45f),.33f);
+            CandyHudCards.Emblem(role,"gem",new Color(.86f,.70f,1));
+            CandyHudCards.Emblem(reports,"clue",new Color(.87f,.71f,1));
             waypoints=new CandyWaypointLayer(root);
         }
         void Update()
@@ -68,7 +70,7 @@ namespace DeadlyJenga.Presentation
             int reportPages=Mathf.Max(1,Mathf.CeilToInt(allReports.Length/2f));
             if(!blocked&&!vr&&Keyboard.current?.bKey.wasPressedThisFrame==true)ReportPage++;
             ReportPage=Mathf.Max(0,ReportPage)%reportPages;focusedReports.Clear();foreach(var report in allReports.Skip(ReportPage*2).Take(2))focusedReports.Add(report.id);
-            role.text="<color=#61369B><size=18>PRIVATE ROLE · "+own.role.ToString().ToUpperInvariant()+"</size></color>\n"+CandyHudContent.RoleGoal(own.role)+"\n"+CandyHudContent.RoleAttack(own,vr);
+            role.text="<color=#61369B><size=18>Private role · "+own.role+"</size></color>\n"+CandyHudContent.RoleGoal(own.role)+"\n"+CandyHudContent.RoleAttack(own,vr);
             if(own.role==MysteryRole.Sheriff)role.text+="\nWrong special hits: "+own.mistakes+" / "+match.Rules.mystery.sheriffMistakes;
             bool pressed=vr?CandyHudContent.SelectPressed(hudSelect):Keyboard.current?.eKey.wasPressedThisFrame==true;
             bool held=vr?CandyHudContent.SelectHeld(hudSelect):Keyboard.current?.eKey.isPressed==true;
@@ -166,6 +168,8 @@ namespace DeadlyJenga.Presentation
                 text.Append(body.lost?"Body lost · location unavailable":CandyHudContent.Direction(eye,body.position)).Append("\nFound by ").Append(CandyHudContent.Safe(finder?.name??"a player",22));
             }
             reports.text=text.ToString();
+            float height=Mathf.Clamp(reports.preferredHeight+18,84,172);
+            CandyHudCards.Place(reports,new Vector2(-452,92-height/2),new Vector2(316,height));
             CandyHudCards.Visible(reports,bodies.Length>0);
             var latest=bodies.FirstOrDefault(b=>b.id==noticeBody);
             bool bodyAlert=latest!=null&&Time.unscaledTime<noticeUntil;

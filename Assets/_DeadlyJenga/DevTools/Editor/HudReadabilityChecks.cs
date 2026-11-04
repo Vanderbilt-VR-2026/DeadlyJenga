@@ -106,7 +106,7 @@ namespace DeadlyJenga.DevTools.Editor
             var old=RenderTexture.active;Texture2D pixels=null;
             try
             {
-                foreach(var canvas in canvases){canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=camera.nearClipPlane+.01f;}
+                foreach(var canvas in canvases){canvas.renderMode=RenderMode.ScreenSpaceCamera;canvas.worldCamera=camera;canvas.planeDistance=camera.nearClipPlane+.01f;canvas.pixelPerfect=true;}
                 Canvas.ForceUpdateCanvases();camera.Render();RenderTexture.active=target;pixels=new Texture2D(width,height,TextureFormat.RGB24,false);pixels.ReadPixels(new Rect(0,0,width,height),0,0);pixels.Apply();File.WriteAllBytes(ProjectPath.Report(name+".png"),pixels.EncodeToPNG());
             }
             finally

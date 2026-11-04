@@ -39,12 +39,13 @@ namespace DeadlyJenga.Presentation
             canvas=go.GetComponent<Canvas>();canvas.sortingOrder=26;root=go.GetComponent<RectTransform>();
             var scale=go.GetComponent<CanvasScaler>();scale.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scale.referenceResolution=new Vector2(1280,720);
             board=CandyHudCards.Create(root,"Standings",new Vector2(438,88),new Vector2(350,350),20);
-            teams=CandyHudCards.Create(root,"Team scores",new Vector2(0,310),new Vector2(384,34),17,TextAnchor.MiddleCenter);
-            status=CandyHudCards.Create(root,"Round and spectators",new Vector2(0,362),new Vector2(384,60),17,TextAnchor.MiddleCenter);
-            warning=CandyHudCards.Create(root,"Disaster warning",new Vector2(0,247),new Vector2(384,54),18,TextAnchor.MiddleCenter);CandyHudCards.Float(warning,new Color(1,.80f,.63f));
+            teams=CandyHudCards.Create(root,"Team scores",new Vector2(0,311),new Vector2(384,36),17,TextAnchor.MiddleCenter);
+            status=CandyHudCards.Create(root,"Round and spectators",new Vector2(0,362),new Vector2(334,56),17,TextAnchor.MiddleCenter);
+            warning=CandyHudCards.Create(root,"Disaster warning",new Vector2(0,247),new Vector2(384,54),18,TextAnchor.MiddleCenter);CandyHudCards.Badge(warning);CandyHudCards.Tint(warning,CandyHudVisuals.Peach,.50f);
             objective=CandyHudCards.Create(root,"Your objective",new Vector2(-420,215),new Vector2(380,190),19);
-            CandyHudCards.Float(status,new Color(.98f,.94f,1));
-            CandyHudCards.Float(teams,new Color(.72f,1,.89f));
+            CandyHudCards.Badge(status);CandyHudCards.Tint(status,CandyHudVisuals.Lavender,.29f);
+            CandyHudCards.Badge(teams);CandyHudCards.Tint(teams,CandyHudVisuals.Mint,.31f);
+            CandyHudCards.Emblem(objective,"flag",new Color(.79f,.69f,1));
             waypoints=new CandyWaypointLayer(root);
             claim=Label("Block ownership",new Vector2(400,36),new Vector2(0,-246),TextAnchor.MiddleCenter,17);
             var fill=new GameObject("Claim juice",typeof(RectTransform),typeof(Image));fill.transform.SetParent(root,false);claimFill=fill.GetComponent<Image>();claimFill.color=new Color(.25f,1,.8f,.8f);claimFill.raycastTarget=false;claimFill.rectTransform.anchoredPosition=new Vector2(-160,-268);claimFill.rectTransform.pivot=new Vector2(0,.5f);claimFill.rectTransform.sizeDelta=new Vector2(0,6);
@@ -172,18 +173,24 @@ namespace DeadlyJenga.Presentation
         void UpdateObjective(MatchFrame f,MatchPlayerFrame own)
         {
             if(own==null)return;
-            const float width=324, top=307;
+            const float width=306, top=307;
             bool flags=f.rules.mode==GameModeKind.CaptureFlag;
             objective.fontSize=17;
             CandyHudCards.Place(objective,new Vector2(-462,245),new Vector2(width,110));
-            text.Clear();text.Append(f.rules.mode==GameModeKind.CaptureFlag&&f.flags.Length>2?(vr?"FLAG FOCUS · Modes menu\n":"FLAG FOCUS · G: NEXT ENEMY\n"):"<color=#61369B>YOUR OBJECTIVE</color>\n");
+            text.Clear();text.Append(f.rules.mode==GameModeKind.CaptureFlag&&f.flags.Length>2?(vr?"FLAG FOCUS · Modes menu\n":"FLAG FOCUS · G: NEXT ENEMY\n"):"<color=#61369B>Objective</color>\n");
             if(f.rules.mode==GameModeKind.CaptureFlag)
             {
                 var focus=CandyHudContent.FocusedFlag(f,own,FlagFocusIndex);
-                foreach(var flag in f.flags.Where(flag=>flag.team==own.team||flag==focus)){text.Append(flag.team==own.team?"YOUR FLAG":"FLAG · "+CandyHudContent.Team(f,flag.team)).Append(" · ").Append(CandyHudContent.FlagStatus(f,flag,own.id)).Append('\n');}
-                var carrying=f.flags.FirstOrDefault(flag=>flag.carrier==own.id);
-                text.Append(carrying!=null?"Return to base · own flag must be home":"Capture the enemy flag");
-                text.Append("\nFirst to ").Append(f.rules.flagTarget).Append(" captures").Append(f.rules.flagWinByTwo?" · win by 2":"");
+                foreach(var flag in f.flags.Where(flag=>flag.team==own.team||flag==focus))
+                {
+                    string state=flag.atHome?"At base":flag.carrier==own.id?"In hand":
+                        string.IsNullOrEmpty(flag.carrier)?"Dropped":"Taken";
+                    text.Append(flag.team==own.team?"Your flag":f.teams.Length>2?CandyHudContent.Team(f,flag.team)+" flag":"Enemy flag").Append("  ·  ").Append(state).Append((char)10);
+                }
+                bool carrying=f.flags.Any(flag=>flag.carrier==own.id);
+                bool ownFlagHome=f.flags.Any(flag=>flag.team==own.team&&flag.atHome);
+                text.Append(carrying?(ownFlagHome?"Return to your base":"Recover your flag to score"):"Capture the enemy flag");
+                text.Append("\nFirst to ").Append(f.rules.flagTarget).Append(f.rules.flagWinByTwo?" · Win by 2":"");
             }
             else if(f.rules.mode==GameModeKind.KingOfHill)text.Append("Stand inside the hill to score.\nThe highest safe region can move.");
             else if(f.rules.mode==GameModeKind.BlockControl)text.Append("Stand on blocks to claim them.\nYour team earns points while it owns them.");
