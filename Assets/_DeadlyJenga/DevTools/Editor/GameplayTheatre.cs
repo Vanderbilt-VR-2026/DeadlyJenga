@@ -28,6 +28,7 @@ namespace DeadlyJenga.DevTools.Editor
         public Vector3 stageOffset;
         public string ffmpeg = "ffmpeg", replaySource = "";
         public bool observedMatch;
+        public bool fightSet;
         public TheatreActor[] cast;
         public TheatreShot[] shots;
         public TheatreCue[] cues;
@@ -48,6 +49,14 @@ namespace DeadlyJenga.DevTools.Editor
             public Vector3 start;
             public TheatreMove[] moves;
             public TheatrePose[] poses;
+            public FightKey[] performance;
+            public TheatreStuntPose[] stunt;
+        }
+
+        [Serializable] public sealed class FightKey
+        {
+            public float at, yaw, pitch, roll, height = 1.58f, leftCurl = 1, rightCurl = 1;
+            public Vector3 feet, left, right;
         }
 
         [Serializable] public sealed class TheatrePose
@@ -92,6 +101,15 @@ namespace DeadlyJenga.DevTools.Editor
             bool Known(string id) => !string.IsNullOrEmpty(id) && ids.Contains(id);
             foreach (var actor in cast)
             {
+                if (actor.stunt != null && actor.stunt.Length > 0 &&
+                    (actor.live || !TheatreStuntPose.ValidTrack(actor.stunt)))
+                    throw new InvalidDataException("Invalid full-body stunt track: " + actor.id);
+                if (actor.performance != null && (actor.live || actor.performance.Length > 160 ||
+                    actor.performance.Any(key => key == null || !Finite(key.at) || !Finite(key.feet) ||
+                    !Finite(key.left) || !Finite(key.right) || !Finite(key.height) || key.height < .65f || key.height > 2 ||
+                    !Finite(key.yaw) || !Finite(key.pitch) || !Finite(key.roll)) ||
+                    actor.performance.Zip(actor.performance.Skip(1), (a, b) => a.at >= b.at).Any(invalid => invalid)))
+                    throw new InvalidDataException("Invalid fight performance track: " + actor.id);
                 if (actor.live && actor.moves != null && actor.moves.Length > 0)
                     throw new InvalidDataException("Live bots use their gameplay brain and cannot also have an authored motion track.");
                 if (actor.poses != null && (actor.poses.Length > 60 || actor.poses.Any(pose => pose == null ||
@@ -479,6 +497,8 @@ namespace DeadlyJenga.DevTools.Editor
                     TheatreAudioCapture.InstallMixer();
                 string recipe = Arg("-theatrePlan");
                 var plan = recipe.Length == 0 ? TheatrePlan.Showcase() : JsonUtility.FromJson<TheatrePlan>(File.ReadAllText(recipe));
+                if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreStuntFixture") >= 0)
+                    TheatreStuntImport.AttachFixture(plan);
                 if (Arg("-theatreFfmpeg") is string ffmpeg && ffmpeg.Length > 0) plan.ffmpeg = ffmpeg;
                 if (Array.IndexOf(Environment.GetCommandLineArgs(), "-theatreDraft") >= 0)
                 { plan.width = 640; plan.height = 360; plan.fps = 15; }
@@ -785,6 +805,7 @@ namespace DeadlyJenga.DevTools.Editor
             if (world == null || world.Blocks.Count == 0)
                 throw new InvalidOperationException("The requested map did not provide the active block world.");
             Vector3 stage = Stage(world) + plan.stageOffset;
+            Rigidbody fightDeck = plan.fightSet && !existingMatch ? BuildFightDeck(world, stage) : null;
             bool replay = !string.IsNullOrEmpty(plan.replaySource);
             var actors = existingMatch ? CurrentCast() : new Dictionary<string, Actor>(StringComparer.Ordinal);
             foreach (var track in plan.cast)
@@ -798,6 +819,11 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!motor || !avatar) throw new InvalidOperationException("Cast member lacks its normal survivor rig.");
                 if (track.live && !replay) motor.Teleport(stage + track.start, Quaternion.identity);
                 else motor.enabled = false;
+                if (track.performance?.Length > 0 || track.stunt?.Length > 0)
+                {
+                    var brain = member.GetComponent<DeadlyJenga.CastleBots.CastleBotBrain>();
+                    if (brain) brain.enabled = false;
+                }
                 avatar.SetColor(track.color);
                 if (track.customLook) avatar.ApplyAppearance(track.appearance);
                 actors.Add(track.id, new Actor { track = track, motor = motor, avatar = avatar });
@@ -873,7 +899,10 @@ namespace DeadlyJenga.DevTools.Editor
                         if (previousFrame != frame || previousShot != angle)
                         {
                             tape.Seek(frame);
-                            foreach (var actor in actors.Values) actor.position = actor.avatar.transform.position;
+                            foreach (var actor in actors.Values)
+                                actor.position = actor.track.stunt?.Length > 0
+                                    ? TheatreStuntPose.Present(actor.track.stunt, actor.avatar, actor.motor.transform, stage, frame / (float)plan.fps)
+                                    : actor.avatar.transform.position;
                             var shot = plan.shots[angle];
                             float distance = PlaceCamera(camera, shot, actors, stage,
                                 Mathf.Clamp01((frame / (float)plan.fps - shot.start) / shot.duration));
@@ -915,7 +944,10 @@ namespace DeadlyJenga.DevTools.Editor
                     if (replay)
                     {
                         tape.ReadFrame();
-                        foreach (var actor in actors.Values) actor.position = actor.avatar.transform.position;
+                        foreach (var actor in actors.Values)
+                            actor.position = actor.track.stunt?.Length > 0
+                                ? TheatreStuntPose.Present(actor.track.stunt, actor.avatar, actor.motor.transform, stage, time)
+                                : actor.avatar.transform.position;
                     }
                     else
                     {
@@ -932,7 +964,14 @@ namespace DeadlyJenga.DevTools.Editor
                             foreach (var actor in actors.Values) Perform(actor, stage, time);
                             Physics.SyncTransforms();
                             while (cueIndex < cues.Length && cues[cueIndex].at <= time + .00001f)
+                            {
+                                if (fightDeck && cues[cueIndex].action == "collapse")
+                                {
+                                    fightDeck.isKinematic = false;
+                                    fightDeck.AddTorque(new Vector3(14, 0, 6), ForceMode.VelocityChange);
+                                }
                                 Cue(cues[cueIndex++], session, actors, world, stage, time);
+                            }
                         }
                         tape.WriteFrame();
                     }
@@ -1019,6 +1058,24 @@ namespace DeadlyJenga.DevTools.Editor
                 .Select(c => c.bounds.max.y).DefaultIfEmpty(block.position.y + .5f).Max();
             return new Vector3(block.position.x, top + .025f, block.position.z);
         }
+        static Rigidbody BuildFightDeck(IWorldQuery world, Vector3 stage)
+        {
+            var deck = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            deck.name = "Theatre fight deck";
+            deck.transform.position = stage - Vector3.up * .34f;
+            deck.transform.localScale = new Vector3(5.8f, .64f, 5.4f);
+            var surface = world.Blocks.Where(block => block)
+                .Select(block => block.GetComponentInChildren<Renderer>()).FirstOrDefault(renderer => renderer);
+            if (surface) deck.GetComponent<Renderer>().sharedMaterial = surface.sharedMaterial;
+            var escape = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            escape.name = "Theatre escape ledge";
+            escape.transform.position = stage + new Vector3(-1.58f, -.49f, 3.7f);
+            escape.transform.localScale = new Vector3(1.6f, .6f, 2.1f);
+            if (surface) escape.GetComponent<Renderer>().sharedMaterial = surface.sharedMaterial;
+            var body = deck.AddComponent<Rigidbody>();
+            body.isKinematic = true;
+            return body;
+        }
         static Vector3 Position(TheatrePlan.TheatreActor actor, float time)
         {
             Vector3 position = actor.start;
@@ -1042,6 +1099,42 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 actor.position = actor.motor.transform.position;
                 return;
+            }
+            if (actor.track.stunt?.Length > 0)
+            {
+                actor.position = TheatreStuntPose.Present(actor.track.stunt, actor.avatar, actor.motor.transform, stage, time);
+                actor.facing = actor.motor.transform.rotation;
+                return;
+            }
+            var keys = actor.track.performance;
+            if (keys != null && keys.Length > 0)
+            {
+                int next = Array.FindIndex(keys, key => key.at > time);
+                var a = keys[next < 0 ? keys.Length - 1 : Mathf.Max(0, next - 1)];
+                var b = next < 0 ? a : keys[next];
+                float u = a == b ? 0 : Mathf.SmoothStep(0, 1, Mathf.InverseLerp(a.at, b.at, time));
+                actor.position = stage + Vector3.Lerp(a.feet, b.feet, u);
+                actor.facing = Quaternion.Euler(0, Mathf.LerpAngle(a.yaw, b.yaw, u), 0);
+                actor.motor.transform.SetPositionAndRotation(actor.position, actor.facing);
+                var frame = actor.avatar.ReadFrame();
+                float size = Mathf.Max(.1f, frame.scale);
+                frame.feet = actor.position;
+                frame.head = actor.position + Vector3.up * (Mathf.Lerp(a.height, b.height, u) * size);
+                frame.headRotation = actor.facing * Quaternion.Euler(Mathf.Lerp(a.pitch, b.pitch, u), 0, Mathf.Lerp(a.roll, b.roll, u));
+                frame.left = FightHand(true, Vector3.Lerp(a.left, b.left, u), Mathf.Lerp(a.leftCurl, b.leftCurl, u));
+                frame.right = FightHand(false, Vector3.Lerp(a.right, b.right, u), Mathf.Lerp(a.rightCurl, b.rightCurl, u));
+                actor.avatar.OverridePose(frame);
+                actor.avatar.RefreshExternal(Time.deltaTime);
+                actor.avatar.ApplyCosmeticFrame(frame);
+                return;
+
+                CandyHandPose FightHand(bool left, Vector3 offset, float curl) => new CandyHandPose
+                {
+                    tracked = true, skeletonTracked = true,
+                    position = actor.position + actor.facing * offset * size,
+                    rotation = actor.facing * Quaternion.Euler(-8, 0, left ? -19 : 19),
+                    skeleton = CandyHandSkeleton.Rest(left, curl)
+                };
             }
             actor.position = stage + Position(actor.track, time);
             var direction = Vector3.ProjectOnPlane(Position(actor.track, time + .05f) - Position(actor.track, time - .05f), Vector3.up);
