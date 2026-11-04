@@ -18,7 +18,7 @@ namespace DeadlyJenga.Presentation
             used=0;occupied.Clear();
             occupied.Add(new Rect(255,-145,375,450));
             if(!mystery)occupied.Add(new Rect(-630,90,420,245));
-            if(mystery){occupied.Add(new Rect(-630,-200,420,550));occupied.Add(new Rect(-235,-70,470,110));if(choices)occupied.Add(new Rect(-235,40,470,120));}
+            if(mystery){occupied.Add(new Rect(-172,147,344,72));occupied.Add(new Rect(-630,-200,420,550));occupied.Add(new Rect(-235,-70,470,110));if(choices)occupied.Add(new Rect(-235,40,470,120));}
         }
         public void End(){for(int i=used;i<labels.Count;i++)CandyHudCards.Visible(labels[i],false);}
         public bool Show(Camera eye,Vector3 world,string title,Color accent)
@@ -43,8 +43,8 @@ namespace DeadlyJenga.Presentation
                 if(!overlaps){placed=candidate;found=true;break;}
             }
             if(!found)return false;
-            Text label;if(used==labels.Count){label=CandyHudCards.Create(root,"Objective waypoint",Vector2.zero,size,18,TextAnchor.MiddleCenter);labels.Add(label);}else label=labels[used];used++;
-            CandyHudCards.Place(label,placed.center,size);label.text=title+"\n<size=17>"+CandyHudContent.Direction(eye,world)+"</size>";label.color=Color.white;
+            Text label;if(used==labels.Count){label=CandyHudCards.Create(root,"Objective waypoint",Vector2.zero,size,16,TextAnchor.MiddleCenter);labels.Add(label);}else label=labels[used];used++;
+            CandyHudCards.Place(label,placed.center,size);label.text=title+"\n<size=15>"+CandyHudContent.Direction(eye,world)+"</size>";label.color=Color.white;
             label.transform.parent.GetComponent<Image>().color=Color.Lerp(CandyHudCards.Background,accent,.12f);
             CandyHudCards.Visible(label,true);occupied.Add(placed);return true;
         }

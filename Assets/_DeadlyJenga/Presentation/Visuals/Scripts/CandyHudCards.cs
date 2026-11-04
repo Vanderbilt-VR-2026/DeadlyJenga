@@ -5,11 +5,11 @@ namespace DeadlyJenga.Presentation
 {
     public static class CandyHudCards
     {
-        public static readonly Color Background=new Color(.025f,.035f,.065f,.94f);
+        public static readonly Color Background=new Color(.035f,.045f,.07f,.88f);
         public static Text Create(RectTransform parent,string name,Vector2 position,Vector2 size,int font,TextAnchor alignment=TextAnchor.UpperLeft)
         {
             var card=new GameObject(name,typeof(RectTransform),typeof(Image));card.transform.SetParent(parent,false);
-            var image=card.GetComponent<Image>();image.color=Background;image.raycastTarget=false;
+            var image=card.GetComponent<Image>();image.color=Background;image.sprite=DeadlyJenga.CastlePrototype.CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.raycastTarget=false;
             var rect=card.GetComponent<RectTransform>();rect.sizeDelta=size;rect.anchoredPosition=position;
             var go=new GameObject("Text",typeof(RectTransform),typeof(Text));go.transform.SetParent(card.transform,false);
             var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.fontSize=font;text.lineSpacing=1.08f;text.fontStyle=FontStyle.Bold;

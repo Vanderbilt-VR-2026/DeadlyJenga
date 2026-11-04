@@ -51,10 +51,12 @@ namespace DeadlyJenga.CastlePrototype
             var match=MatchRuntime.Current;if(match==null){hudPage=false;return;}
             heading.text="HUD / STANDINGS";HideDisasterSliders();transform.position=camera.transform.position+openingForward*1.6f;
             bool mystery=(match as IMysteryControls)?.Active==true,flags=match.Rules.mode==GameModeKind.CaptureFlag&&match.Frame.flags.Length>2;
-            string[] titles={"Back to match rules",DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned?"Hide full standings":"Show full standings",mystery?"Next body report page":"Track next enemy flag","Movement / stamina / audio","Scene skin: "+match.Rules.environmentSkin};
+            var hints=Services.Session?.Player?.gameObject.GetComponentInParent<CandyDemoHud>();
+            if(!hints&&Services.Session is Component owner)hints=owner.GetComponent<CandyDemoHud>();
+            string[] titles={"Back to match rules",DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned?"Hide full standings":"Show full standings",mystery?"Next body report page":"Track next enemy flag","Movement / stamina / audio","Scene skin: "+match.Rules.environmentSkin,"Control prompts: "+(hints?hints.hintMode.ToString():"Unavailable")};
             for(int i=0;i<buttons.Length;i++)
             {
-                bool visible=i<titles.Length&&(i!=2||mystery||flags);buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible&&(i!=4||match.Authority||match.Rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);if(visible)labels[i].text=titles[i];
+                bool visible=i<titles.Length&&(i!=2||mystery||flags)&&(i!=5||hints);buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible&&(i!=4||match.Authority||match.Rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);if(visible)labels[i].text=titles[i];
             }
             Physics.SyncTransforms();var ray=new Ray(camera.transform.position,camera.transform.forward);
             for(int i=0;i<titles.Length;i++)
@@ -65,6 +67,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(i==1){DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned=!DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned;Services.Session.SetMenu(false);return;}
                 if(i==2){if(mystery)DeadlyJenga.Presentation.CandyMysteryView.ReportPage++;else DeadlyJenga.Presentation.CandyMatchHud.FlagFocusIndex++;Services.Session.SetMenu(false);return;}
                 if(i==3){hudPage=false;tuningPage=true;comfortPage=networkPage=false;return;}
+                if(i==5){hints.hintMode=(CandyDemoHud.HintMode)(((int)hints.hintMode+1)%3);labels[i].text="Control prompts: "+hints.hintMode;return;}
                 var copy=match.Rules.Copy();copy.environmentSkin=CandySceneSkins.Names[(DeadlyJenga.Presentation.CandyMatchVisuals.SkinIndex(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];match.Configure(copy);return;
             }
             help.text="Standings: trigger / pinch turns pages. Open this page again to hide. Body reports keep their numbered location markers.";

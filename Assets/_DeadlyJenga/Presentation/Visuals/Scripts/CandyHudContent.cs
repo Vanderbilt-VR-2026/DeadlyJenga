@@ -64,7 +64,7 @@ namespace DeadlyJenga.Presentation
         public static string FlagStatus(MatchFrame frame,FlagFrame flag,string local)
         {
             if(flag.atHome)return "AT BASE";
-            if(string.IsNullOrEmpty(flag.carrier))return frame.players.FirstOrDefault(p=>p.id==local)?.team==flag.team?"DROPPED · RECOVER TO BASE":"DROPPED · TOUCH TO TAKE";
+            if(string.IsNullOrEmpty(flag.carrier))return frame.players.FirstOrDefault(p=>p.id==local)?.team==flag.team?"DROPPED · RETURN TO BASE":"DROPPED · TOUCH TO TAKE";
             if(flag.carrier==local)return "YOU ARE CARRYING IT";
             var carrier=frame.players.FirstOrDefault(p=>p.id==flag.carrier);
             return "CARRIED BY "+Safe(carrier?.name??"a player",22);
@@ -77,7 +77,7 @@ namespace DeadlyJenga.Presentation
         }
         public static string RoleGoal(MysteryRole role)
         {
-            switch(role){case MysteryRole.Murderer:return "Eliminate everyone. Keep your identity hidden.";case MysteryRole.Sheriff:return "Find the murderer. Special attacks punish mistakes.";default:return "Stay alive. Report bodies and help revive players.";}
+            switch(role){case MysteryRole.Murderer:return "Eliminate rivals. Stay hidden.";case MysteryRole.Sheriff:return "Find and stop the murderer.";default:return "Stay alive. Report bodies and revive allies.";}
         }
         public static string RoleAttack(MysteryPrivateFrame own,bool vr)
         {

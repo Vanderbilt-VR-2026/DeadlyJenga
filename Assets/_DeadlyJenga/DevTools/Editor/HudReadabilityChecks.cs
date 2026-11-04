@@ -72,7 +72,7 @@ namespace DeadlyJenga.DevTools.Editor
         static object Field(object target,string name)=>target.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(target);
         static void Call(object target,string name)=>target.GetType().GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(target,null);
         static void Refresh(CastlePlaySession session)
-        {typeof(CandyMatchHud).GetField("sampleAt",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(session.GetComponent<CandyMatchHud>(),0f);Call(session.GetComponent<CandyMatchHud>(),"Update");Call(session.GetComponent<CandyMysteryView>(),"Update");Call(session.GetComponent<CandyDemoHud>(),"PresentHints");Canvas.ForceUpdateCanvases();}
+        {session.SetMenu(false);typeof(CandyMatchHud).GetField("sampleAt",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(session.GetComponent<CandyMatchHud>(),0f);Call(session.GetComponent<CandyMatchHud>(),"Update");Call(session.GetComponent<CandyMysteryView>(),"Update");Call(session.GetComponent<CandyDemoHud>(),"PresentHints");Canvas.ForceUpdateCanvases();}
         static IEnumerator Guard()
         {
             var stack=new Stack<IEnumerator>();stack.Push(CheckScene());
@@ -154,7 +154,10 @@ namespace DeadlyJenga.DevTools.Editor
             fixture.Frame.rules=ModeSimulation.Defaults(GameModeKind.CaptureFlag);fixture.Frame.metricLabel="Captures";fixture.Frame.remaining=-1;fixture.Frame.players=Enumerable.Range(1,100).Select(i=>new MatchPlayerFrame{id=i==75?fixture.LocalActorId:"player-"+i,name="Explorer "+i,rank=i,metric=101-i,alive=true,team=i==75?0:1,position=Vector3.one*1000,viewPosition=Vector3.one*1000}).ToArray();
             fixture.Frame.topTen=fixture.Frame.players.Take(10).ToArray();foreach(var player in fixture.Frame.players.Skip(10))player.rank=0;fixture.Frame.teams=new[]{new MatchTeamFrame{id=0,name="Violet",captures=2},new MatchTeamFrame{id=1,name="Mint",captures=1}};fixture.Frame.mystery=new MysteryPublicFrame();
             var own=fixture.Frame.players[74];var flags=new[]{new FlagFrame{team=0,home=point,position=point},new FlagFrame{team=1,home=point+Vector3.forward*35,position=point+Vector3.forward*35}};fixture.Frame.flags=flags;Refresh(session);
+            Check(!TextOf(hud,"board").transform.parent.gameObject.activeSelf,"Full standings stay out of the default view");
+            CandyMatchHud.ScoreboardPinned=true;Refresh(session);
             Check(TextOf(hud,"board").text.Contains("YOUR POSITION")&&TextOf(hud,"board").text.Contains("Explorer 75")&&TextOf(hud,"board").text.Contains("YOU · 75."),"Local rank is reconstructed and pinned when the wire rank is zero outside the top ten");
+            CandyMatchHud.ScoreboardPinned=false;Refresh(session);
             Check(CardTexts(session).Any(t=>t.text.Contains("STEAL ENEMY FLAG")),"Enemy flag has a distant location marker at base");Fit(session,"CTF flags at home");Render(session,"Hud-CTF-AtBase");
             flags[0].atHome=false;flags[0].carrier="player-1";flags[0].position=point+Vector3.left*15;flags[1].atHome=false;flags[1].carrier=fixture.LocalActorId;Refresh(session);
             Check(CandyHudContent.FlagStatus(fixture.Frame,flags[0],own.id).Contains("CARRIED BY")&&CandyHudContent.FlagStatus(fixture.Frame,flags[1],own.id).Contains("YOU ARE CARRYING"),"Carrier identity and local carrying state are explicit");
@@ -174,6 +177,17 @@ namespace DeadlyJenga.DevTools.Editor
             foreach(var dimensions in new[]{new Vector2Int(1024,768),new Vector2Int(1920,1080),new Vector2Int(2560,1080)})Render(session,"Hud-Layout-"+dimensions.x+"x"+dimensions.y,dimensions.x,dimensions.y);
             foreach(var canvas in new[]{(Canvas)Field(hud,"canvas"),(Canvas)Field(mystery,"canvas")})
             {CandyHudLayout.Configure(canvas,session.transform,session.ActiveCamera,true);Check(canvas.renderMode==RenderMode.WorldSpace&&canvas.GetComponent<RectTransform>().sizeDelta==CandyHudLayout.ReferenceSize,"Headset canvas uses the shared projection (geometry only)");CandyHudLayout.Configure(canvas,session.transform,session.ActiveCamera,false);}
+            var hints=session.GetComponent<CandyDemoHud>();
+            hints.hintMode=CandyDemoHud.HintMode.Always;
+            session.Survivor().controlMode=FlyingHand.ControlMode.VR;
+            session.Survivor().RefreshMode();
+            typeof(CandyDemoHud).GetField("nextHintSample",BindingFlags.Instance|BindingFlags.NonPublic).SetValue(hints,0f);
+            Call(hints,"PresentHints");
+            var hintIcons=(RawImage[])Field(hints,"hintIcons");
+            Check(hintIcons[0].texture&&hintIcons[0].texture.name=="HUD controller diagram","VR movement prompt displays a highlighted controller diagram");
+            Check(hints.ControlHintCanvas.renderMode==RenderMode.WorldSpace,"VR control hints use a world-space canvas");
+            session.Survivor().controlMode=FlyingHand.ControlMode.Desktop;
+            session.Survivor().RefreshMode();
             Check(CandyHudContent.Safe("<b>Injected</b>\nName").IndexOf('<')<0,"Player labels cannot inject rich text");Check(errors==0,"No runtime errors");
         }
         sealed class Fixture:IMatchRuntime,IMysteryControls
