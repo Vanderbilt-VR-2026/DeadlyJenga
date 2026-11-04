@@ -10,11 +10,13 @@ namespace DeadlyJenga.CastlePrototype
     public enum SurvivorJumpGesture { IndexPinch, Fist }
     public sealed partial class CastleSurvivor
     {
-        [Header("VR comfort • head looking is always tracked")]
+        [Header("VR comfort Ã¢â‚¬Â¢ head looking is always tracked")]
         public SurvivorVRTurn vrTurn=SurvivorVRTurn.Smooth;
         public SurvivorVRMovement vrMovement=SurvivorVRMovement.HeadRelative;
         [Range(15,90)] public float vrSnapAngle=30;
-        [Range(15,180)] public float vrSmoothDegreesPerSecond=60;
+        [Range(15,360)] public float vrSmoothDegreesPerSecond=120;
+        public bool autoDetectHybridControls=true;
+        bool wasHybrid;
         public SurvivorVRPlayStyle vrPlayStyle=SurvivorVRPlayStyle.Seated;
         public SurvivorJumpGesture jumpGesture=SurvivorJumpGesture.IndexPinch;
         public InputAction seatedJump=new InputAction("Jump / hold to climb",InputActionType.Button,"<XRController>{RightHand}/primaryButton");
@@ -69,7 +71,7 @@ namespace DeadlyJenga.CastlePrototype
             if(vrTurn==SurvivorVRTurn.Snap&&Mathf.Abs(axis)>.7f&&turnReady)
             {angle=Mathf.Sign(axis)*Mathf.Clamp(vrSnapAngle,15,90);turnReady=false;}
             if(vrTurn==SurvivorVRTurn.Smooth&&Mathf.Abs(axis)>.2f)
-                angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,180)*Mathf.Max(0,dt);
+                angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,360)*Mathf.Max(0,dt);
             if(angle!=0)transform.RotateAround(viewCamera.transform.position,Vector3.up,angle);
         }
         public void UseStationaryVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Seated);
@@ -106,7 +108,8 @@ namespace DeadlyJenga.CastlePrototype
             if(InputSuspended||!vrInputFocused){ResetVRJump();return;}
             if(vrPlayStyle==SurvivorVRPlayStyle.Standing&&!blasterJumpOverride)
             {
-                if(!hand.tracked||!hand.skeletonTracked){ResetVRJump();return;}
+                if(!hand.tracked||!hand.skeletonTracked)gestureHeld=false;
+                else
                 if(jumpGesture==SurvivorJumpGesture.IndexPinch)
                     gestureHeld=Vector3.Distance(hand.skeleton.Joint(3),hand.skeleton.Joint(7))<(gestureHeld?jumpPinchRelease:jumpPinchPress);
                 else
@@ -122,10 +125,21 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     gestureHeld=curl>(gestureHeld?jumpFistRelease:jumpFistPress);
                 }
-                buttonHeld=gestureHeld;
+                buttonHeld|=gestureHeld;
             }
             if(!buttonHeld)jumpArmed=true;
             held=jumpArmed&&buttonHeld;pressed=held&&!previousJumpHeld;previousJumpHeld=held;
+        }
+        void DetectHybridControls()
+        {
+            if(!autoDetectHybridControls)return;
+            if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
+            if(!candyTracking)return;
+            bool hybrid=candyTracking.IsHybrid;
+            if(hybrid&&!wasHybrid&&(Climbing||Vaulting))return;
+            if(!hybrid&&wasHybrid&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false))SetVRPlayStyle(SurvivorVRPlayStyle.Seated,false);
+            if(hybrid&&!wasHybrid&&!Climbing&&!Vaulting)SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
+            wasHybrid=hybrid;
         }
         public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;}
         public void CycleVRTurn(){if(vrPlayStyle==SurvivorVRPlayStyle.Standing)return;vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;}

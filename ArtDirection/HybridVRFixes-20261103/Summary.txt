@@ -1,0 +1,8 @@
+Hybrid VR fixes, November 3, 2026.
+
+Characters/Player: single-controller walking on either side; automatic standing gesture selection and controller fallback; correct controller pointer pose for guns; menu turn-rate cycle now 60/90/180/270/360 degrees per second. Hybrid equipment follows controller side; stick click switches modes. Powered armor selects the actual bare hand.
+Characters/Hand: sea-spirit local-to-world tracking conversion; reset giant-hand tracking anchor after loss.
+Presentation/Visuals: Home selection accepts either controller or hand-interaction pinch.
+XR configuration: explicit OpenXR simultaneous-hands-and-controllers feature enabled for Android and Standalone, optical hand tracking and hand-interaction profiles enabled. No packages installed; no Core or network wire changes.
+
+Validation: actual Unity Game initialization and 18 synthetic XR/pose assertions passed, zero runtime errors. Native resume API follows Meta/Khronos OpenXR extension. Quest optical acquisition, ergonomics and physical controller alignment require a new/restarted build and headset retest. Existing installed APK was not replaced.

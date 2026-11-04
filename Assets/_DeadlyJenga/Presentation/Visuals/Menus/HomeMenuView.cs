@@ -93,7 +93,7 @@ namespace DeadlyJenga.Presentation
                 var events=new GameObject("Home input",typeof(EventSystem),typeof(InputSystemUIInputModule));events.transform.SetParent(transform);
                 events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
-            trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.Enable();
+            trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.AddBinding("<XRController>{LeftHand}/trigger");trigger.AddBinding("<HandInteraction>{LeftHand}/pinchValue");trigger.AddBinding("<HandInteraction>{RightHand}/pinchValue");trigger.Enable();
             handPosition=new InputAction("Home pointer position",InputActionType.Value,"<XRController>{RightHand}/devicePosition");handPosition.Enable();
             handRotation=new InputAction("Home pointer rotation",InputActionType.Value,"<XRController>{RightHand}/deviceRotation");handRotation.Enable();
             tracked=new InputAction("Home pointer tracked",InputActionType.Button,"<XRController>{RightHand}/isTracked");tracked.Enable();

@@ -89,7 +89,8 @@ namespace DeadlyJenga.CandyPlayers
                 if(motor&&motor.IsVR&&avatar.tracking&&avatar.tracking.WorldHand(left).tracked)
                 {
                     var primary=avatar.tracking.WorldHand(left);aim=new Pose(primary.position,primary.rotation);
-                    if(BlocksTraversal&&grip.IsPressed())
+                    if(avatar.tracking.TryControllerAim(left,out var controllerAim))aim=controllerAim;
+                    if(BlocksTraversal&&(grip.IsPressed()||avatar.tracking.IsHybrid&&(left?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
                     {
                         var secondary=avatar.tracking.WorldHand(!left);var delta=secondary.position-primary.position;
                         if(secondary.tracked&&delta.magnitude>.12f*Scale&&delta.magnitude<1.1f*Scale)aim.rotation=Quaternion.LookRotation(delta,primary.rotation*Vector3.up);
@@ -165,6 +166,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(motor&&motor.externallyDriven){UpdatePower(Equipment);return;}
             if(!Local)return;
+            if(motor.IsVR&&avatar.tracking&&avatar.tracking.IsHybrid&&left!=HybridXRInput.SingleControllerLeft)SetWeaponHand(HybridXRInput.SingleControllerLeft);
             var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
             if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
             CheckPickups();
@@ -173,7 +175,7 @@ namespace DeadlyJenga.CandyPlayers
                 offhandReady=false;ReleaseHeldArsenal();
                 SetSuitThrust(false);
                 bool accept=motor.IsVR?trigger.WasPressedThisFrame():Keyboard.current?.eKey.wasPressedThisFrame==true;
-                bool decline=motor.IsVR?offTrigger.WasPressedThisFrame():Keyboard.current?.nKey.wasPressedThisFrame==true;
+                bool decline=motor.IsVR?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleCancelPressed):Keyboard.current?.nKey.wasPressedThisFrame==true;
                 if(accept||decline)ConfirmSwap(accept);armed=false;return;
             }
             if(state.kind==EquipmentKind.PoweredArmor){UpdateSuit(state);return;}
@@ -182,7 +184,7 @@ namespace DeadlyJenga.CandyPlayers
             bool held=vr?trigger.IsPressed():Cursor.lockState==CursorLockMode.Locked&&Mouse.current?.leftButton.isPressed==true;
             if(!held)armed=true;
             if(Keyboard.current?.vKey.wasPressedThisFrame==true)SetEquipped(!state.drawn);
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?offTrigger.WasPressedThisFrame():Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleCancelPressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
             // Trigger near the physical holster draws or stows; elsewhere it fires.
             if(vr&&pressed&&UsesTriggers)
             {

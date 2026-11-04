@@ -22,7 +22,20 @@ namespace DeadlyJenga.CandyPlayers
         public bool LeftPinching{get;private set;}
         public bool HasHandTracking=>left.skeletonTracked||right.skeletonTracked;
         public bool HasTrackedHands=>left.tracked||right.tracked;
-        InputAction lp,lr,lt,rp,rr,rt;
+        public bool IsHybrid=>HybridXRInput.SingleController&&GestureHand.skeletonTracked;
+        public CandyHandPose GestureHand=>WorldHand(HybridXRInput.SingleController?!HybridXRInput.SingleControllerLeft:left.skeletonTracked&&!right.skeletonTracked);
+        public bool TryControllerAim(bool isLeft,out Pose aim)
+        {
+            aim=default;
+            if(!HybridXRInput.ControllerTracked(isLeft))return false;
+            var rotation=HybridXRInput.Controller(isLeft)?.TryGetChildControl<UnityEngine.InputSystem.Controls.QuaternionControl>("pointerRotation");
+            Quaternion q=rotation!=null?rotation.ReadValue():default;
+            var hand=WorldHand(isLeft);
+            if(q!=default){aim=new Pose(hand.position,(trackingOrigin?trackingOrigin.rotation:Quaternion.identity)*q);return true;}
+            var pointer=isLeft?leftController:rightController;
+            aim=new Pose(hand.position,pointer?pointer.rotation:hand.rotation*Quaternion.Euler(35,0,0));return true;
+        }
+        InputAction lp,lr,lt,rp,rr,rt,la,ra;
         readonly List<XRHandSubsystem> subsystems=new List<XRHandSubsystem>();
         XRHandSubsystem subsystem;
         CandyHandPose left,right;
@@ -32,11 +45,12 @@ namespace DeadlyJenga.CandyPlayers
         {
             InputAction Action(string path)=>new InputAction(type:InputActionType.Value,binding:path);
             lp=Action("<XRController>{LeftHand}/devicePosition");lr=Action("<XRController>{LeftHand}/deviceRotation");lt=Action("<XRController>{LeftHand}/isTracked");
+            la=Action("<XRController>{LeftHand}/pointerRotation");ra=Action("<XRController>{RightHand}/pointerRotation");
             rp=Action("<XRController>{RightHand}/devicePosition");rr=Action("<XRController>{RightHand}/deviceRotation");rt=Action("<XRController>{RightHand}/isTracked");
         }
-        void OnEnable(){lp.Enable();lr.Enable();lt.Enable();rp.Enable();rr.Enable();rt.Enable();Application.onBeforeRender+=ReadLatest;}
-        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();Application.onBeforeRender-=ReadLatest;left=right=default;RightPinchPressed=RightPinching=LeftMenuPressed=LeftPinching=previousRight=previousMenu=false;}
-        void OnDestroy(){lp.Dispose();lr.Dispose();lt.Dispose();rp.Dispose();rr.Dispose();rt.Dispose();}
+        void OnEnable(){lp.Enable();lr.Enable();lt.Enable();rp.Enable();rr.Enable();rt.Enable();la.Enable();ra.Enable();Application.onBeforeRender+=ReadLatest;}
+        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();la.Disable();ra.Disable();Application.onBeforeRender-=ReadLatest;left=right=default;RightPinchPressed=RightPinching=LeftMenuPressed=LeftPinching=previousRight=previousMenu=false;}
+        void OnDestroy(){lp.Dispose();lr.Dispose();lt.Dispose();rp.Dispose();rr.Dispose();rt.Dispose();la.Dispose();ra.Dispose();}
         void Update()
         {
             ReadLatest();

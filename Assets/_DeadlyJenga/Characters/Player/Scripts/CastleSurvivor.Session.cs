@@ -28,7 +28,7 @@ namespace DeadlyJenga.CastlePrototype
         public void CycleMovement() => CycleVRMovement();
         public void CycleTurn() => CycleVRTurn();
         public void CycleSnapAngle() => vrSnapAngle = vrSnapAngle < 30 ? 30 : vrSnapAngle < 45 ? 45 : vrSnapAngle < 60 ? 60 : 15;
-        public void CycleSmoothTurnSpeed() => vrSmoothDegreesPerSecond = vrSmoothDegreesPerSecond < 60 ? 60 : vrSmoothDegreesPerSecond < 90 ? 90 : 45;
+        public void CycleSmoothTurnSpeed() => vrSmoothDegreesPerSecond = vrSmoothDegreesPerSecond < 90 ? 90 : vrSmoothDegreesPerSecond < 180 ? 180 : vrSmoothDegreesPerSecond < 270 ? 270 : vrSmoothDegreesPerSecond < 360 ? 360 : 60;
         public void UseStationaryPreset() => UseStationaryVR();
         public void UseFluidPreset() => UseFluidVR();
         public bool StandingPlay => vrPlayStyle == SurvivorVRPlayStyle.Standing;

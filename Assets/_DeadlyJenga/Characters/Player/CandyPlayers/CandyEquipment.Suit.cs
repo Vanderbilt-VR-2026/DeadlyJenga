@@ -19,6 +19,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             get
             {
+                if(avatar.tracking&&avatar.tracking.IsHybrid)return !HybridXRInput.SingleControllerLeft;
                 if(avatar.tracking)
                 {
                     var a=avatar.tracking.WorldHand(true);var b=avatar.tracking.WorldHand(false);

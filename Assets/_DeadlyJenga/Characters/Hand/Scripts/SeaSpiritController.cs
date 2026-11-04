@@ -149,6 +149,7 @@ namespace DeadlyJenga.CastlePrototype
                 var actor=isLeft?left:right;if(!actor)continue;
                 actor.GetComponent<CandyFlyingHandBridge>().NetworkPreview=templateBridgePreview;
                 CandyHandPose pose=vr&&source?source.WorldHand(isLeft):default;
+                if(vr&&source)pose=ResolveTrackingPose(pose,source.trackingOrigin,observer);
                 if(vr&&pose.tracked&&!Entering)
                 {
                     Vector3 offset=observer.InverseTransformVector(pose.position-view.transform.position);
@@ -169,6 +170,12 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        public static CandyHandPose ResolveTrackingPose(CandyHandPose pose,Transform trackingOrigin,Transform observer)
+        {
+            if(pose.tracked&&!trackingOrigin&&observer)
+            {pose.position=observer.TransformPoint(pose.position);pose.rotation=observer.rotation*pose.rotation;}
+            return pose;
+        }
         Pose EntrancePose(float progress,Vector3 eye,Quaternion facing,float radius)
         {
             var world=Services.World;

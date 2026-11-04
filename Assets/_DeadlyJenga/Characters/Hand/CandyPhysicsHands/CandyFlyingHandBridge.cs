@@ -72,6 +72,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(PoseSource!=null){if(!PoseSource.TryGetPose(out raw))raw=default;}
             else if(external)raw=default;
             if(!CandyHandTransition.IsValidPose(raw))raw.tracked=false;
+            if(!raw.tracked)anchored=false;
             CandyHandMode mode=raw.tracked?(raw.skeletonTracked?CandyHandMode.HandTracking:CandyHandMode.Controller):CandyHandMode.Inactive;
             if(desktop&&!external)
             {
