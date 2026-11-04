@@ -38,6 +38,7 @@ namespace DeadlyJenga.CandyAudio
             foreach(var sound in CandyWeaponSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyWeaponSounds.DefaultCue(sound);
             foreach(var sound in CandyJaguarSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyJaguarSounds.DefaultCue(sound);
             foreach(var sound in CandyPlayerSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyPlayerSounds.DefaultCue(sound);
+            CandyKrakenSounds.AddDefaults(cues);
             for(int i=0;i<bank.oneShotVoices+bank.loopVoices;i++)
             {
                 var go=new GameObject("Pooled candy voice "+i);go.transform.SetParent(transform,false);
