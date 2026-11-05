@@ -210,7 +210,7 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 connecting=new CancellationTokenSource(TimeSpan.FromSeconds(30));var cancellation=connecting;
-                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1";
+                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1";
                 var config=MigrationConfig();
                 var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
                     EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
@@ -225,7 +225,19 @@ namespace DeadlyJenga.CastlePrototype
         GameObject CreateRunner()
         {var go=new GameObject("Island Fusion Runner");DontDestroyOnLoad(go);Runner=go.AddComponent<NetworkRunner>();ownedRunner=Runner;Runner.ProvideInput=false;return go;}
         public static NetworkProjectConfig MigrationConfig()
-        {var config=NetworkProjectConfig.Deserialize(NetworkProjectConfig.Serialize(NetworkProjectConfig.Global));config.HostMigration.EnableAutoUpdate=false;config.HostMigration.UpdateDelay=2;return config;}
+        {
+            var config=NetworkProjectConfig.Deserialize(NetworkProjectConfig.Serialize(NetworkProjectConfig.Global));
+            config.Network.ReliableDataTransferModes=NetworkConfiguration.ReliableDataTransfers.ClientToServer;
+            config.HostMigration.EnableAutoUpdate=false;config.HostMigration.UpdateDelay=2;return config;
+        }
+        internal int ConnectionGeneration=>generation;
+        internal bool TrustedServerData(NetworkRunner packetRunner,PlayerRef source,int expectedGeneration)
+        {
+            return Connected&&!Migrating&&!IsHost&&packetRunner&&packetRunner.IsClient&&!packetRunner.IsServer&&
+                CurrentOperation(expectedGeneration,packetRunner)&&packetRunner.Config!=null&&
+                packetRunner.Config.Network.ReliableDataTransferModes==NetworkConfiguration.ReliableDataTransfers.ClientToServer&&
+                !packetRunner.LocalPlayer.IsNone&&source==packetRunner.LocalPlayer;
+        }
         bool CurrentOperation(int attempt,NetworkRunner runner)=>attempt==generation&&!leaving&&ReferenceEquals(Runner,runner)&&ReferenceEquals(ownedRunner,runner);
         void AttachCallbacks()
         {
@@ -294,7 +306,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(old)Destroy(old.gameObject);
                 peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;transitioning=false;
                 var go=CreateRunner();operationRunner=Runner;AttachCallbacks();
-                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1";
+                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1";
                 NetworkSceneInfo scenes=default;
                 if(game){int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);scenes.AddSceneRef(SceneRef.FromIndex(index),LoadSceneMode.Single);}
                 var result=await operationRunner.StartGame(new StartGameArgs{GameMode=token.GameMode,HostMigrationToken=token,HostMigrationResume=_=>{},PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
@@ -376,7 +388,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 else if(kind==Ack&&waitingPose==id)waitingPose=0;
                 else if(kind==Spawn)
-                {using var r=P.Reader(data.ToArray(),P.Player);var pose=P.ReadPose(r);IslandLobby.Current.SpawnAt(pose);}
+                {if(!TrustedServerData(runner,source,generation))return;using var r=P.Reader(data.ToArray(),P.Player);var pose=P.ReadPose(r);IslandLobby.Current.SpawnAt(pose);}
                 else if(kind==State)
                 {
                     using var reader=P.Reader(data.ToArray(),P.World);int map=reader.ReadInt32(),mode=reader.ReadInt32();

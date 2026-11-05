@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
         string transportEpoch="",transportPinnedKey="",transportPriorKey="",transportChallenge="",transportSemantic="";
         CachedCheckpoint transportCache,recoveryBest;
         bool transportRecovering,transportMigration,transportFailed;
-        int transportSequence;
+        int transportSequence,transportGeneration;
         double transportLastPublish=-100,transportLastSend=-100,transportBoundAt;
         internal bool TransportRecovering=>transportRecovering||room&&room.Migrating;
         internal string TransportStatus{get;private set;}="";
@@ -94,7 +94,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(next==null||ReferenceEquals(next,transportRunner)||ReferenceEquals(next,transportFencedRunner))return;
             if(transportRunner!=null)TransportBeforeMigration(transportRunner);
-            transportRunner=next;transportEpoch="";transportBoundAt=TransportNow;transportLastSend=-100;
+            transportRunner=next;transportGeneration=room.ConnectionGeneration;transportEpoch="";transportBoundAt=TransportNow;transportLastSend=-100;
             transportPinnedKey="";transportFailed=false;TransportStatus="";transportSequence=0;
             transportCommands.Clear();transportPeers.Clear();transportSent.Clear();transportSemantic="";
             transportRecovering=!next.IsServer||transportMigration;
@@ -247,7 +247,7 @@ namespace DeadlyJenga.CastlePrototype
                 var packet=JsonUtility.FromJson<ExperiencePacket>(WireEncoding.GetString(bytes.ToArray()));
                 if(packet==null||packet.version!=1||packet.epoch==null||packet.epoch.Length>32||packet.challenge==null||packet.challenge.Length>32||packet.roomId==null||packet.roomId.Length>128||packet.digest==null||packet.digest.Length>64)return true;
                 if(runner.IsServer)ReceivePeer(sender,packet);
-                else if(sender.IsNone)ReceiveServer(packet);
+                else if(room.TrustedServerData(runner,sender,transportGeneration))ReceiveServer(packet);
             }
             catch(Exception){/* Malformed packets never mutate the authority model. */}
             return true;
