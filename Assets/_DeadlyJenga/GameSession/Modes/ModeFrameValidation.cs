@@ -50,6 +50,26 @@ namespace DeadlyJenga.Modes
             }
             return true;
         }
+        internal static bool Eliminations(MatchFrame frame)
+        {
+            var entries = frame.eliminations;
+            if (!Text(frame.eliminationEpoch, 32, true)) return false;
+            bool hasEpoch = !string.IsNullOrEmpty(frame.eliminationEpoch);
+            if (hasEpoch && !Guid.TryParseExact(frame.eliminationEpoch, "N", out _)) return false;
+            if (frame.rules.mode == GameModeKind.MurderMystery && hasEpoch) return false;
+            if (entries == null || entries.Length == 0) return true;
+            if (!hasEpoch || frame.rules.mode == GameModeKind.MurderMystery || entries.Length > EliminationFrame.Capacity)
+                return false;
+            int last = 0;
+            foreach (var entry in entries)
+            {
+                if (entry == null || entry.sequence <= last || !Text(entry.victim, 128) ||
+                    !Text(entry.killer, 128, true) || entry.killer == entry.victim) return false;
+                last = entry.sequence;
+            }
+            return true;
+        }
+
         public static bool Frame(MatchFrame frame,int blockCount)
         {
             if(frame==null||!Rules(frame.rules)||!Enum.IsDefined(typeof(RoundPhase),frame.phase)||frame.revision<1||!Number(frame.elapsed)||frame.elapsed<0||!Number(frame.remaining)||!Position(frame.hill)||!Text(frame.winner,128,true)||!Text(frame.metricLabel,64))return false;
@@ -57,7 +77,7 @@ namespace DeadlyJenga.Modes
             if(!Replay(frame.mysteryReplay)||frame.mysteryReplay?.sequence>0&&(frame.rules.mode!=GameModeKind.MurderMystery||(frame.phase!=RoundPhase.Victory&&frame.phase!=RoundPhase.Results)||!frame.mysteryReplay.roundEnd))return false;
             if(frame.expressions==null||frame.expressions.Length>32||frame.expressionSequence<0)return false;
             int expressionId=0;foreach(var expression in frame.expressions){if(expression==null||expression.id<=expressionId||expression.id>frame.expressionSequence||!Text(expression.actor,128)||!Text(expression.name,64)||!Position(expression.position)||!Number(expression.remaining)||expression.remaining<=0||expression.remaining>3)return false;expressionId=expression.id;}
-            if(!EquipmentActions(frame)||!EnemyActionValidation.Valid(frame)||!MatchModeRuntime.ValidPowerupSpawns(frame.powerupSpawns)||frame.randomPickupCount<0||frame.randomPickupCount>32||!Number(frame.nextPowerupIn)||frame.nextPowerupIn<0||frame.nextPowerupIn>600)return false;
+            if(!Eliminations(frame)||!EquipmentActions(frame)||!EnemyActionValidation.Valid(frame)||!MatchModeRuntime.ValidPowerupSpawns(frame.powerupSpawns)||frame.randomPickupCount<0||frame.randomPickupCount>32||!Number(frame.nextPowerupIn)||frame.nextPowerupIn<0||frame.nextPowerupIn>600)return false;
             if(frame.equipment==null||frame.equipment.Length>256||frame.pickups==null||frame.pickups.Length>128)return false;
             int randomCount=0;foreach(var pickup in frame.pickups)if(pickup!=null&&pickup.randomSpawn)randomCount++;
             if(randomCount!=frame.randomPickupCount)return false;

@@ -24,7 +24,14 @@ namespace DeadlyJenga.CandyPlayers
         int sending;            // emote index + 1 while an emote is showing, else 0
         float sendUntil;
 
-        public int NetworkBits => Time.time < sendUntil ? sending : 0;
+        public int NetworkBits
+        {
+            get
+            {
+                if (IsLocalPlayer && posing != null) return Posing ? sending : 0;
+                return Time.time < sendUntil ? sending : 0;
+            }
+        }
         bool IsLocalPlayer => avatar && !avatar.remoteDriven && !GetComponent<CastleBotBrain>();
 
         public bool Posing => posing != null && CanPose && survivor.IsVR == beganInVR && Time.time - began < duration;
@@ -99,7 +106,12 @@ namespace DeadlyJenga.CandyPlayers
             Cancel();
         }
 
-        public void Cancel() => posing = null;
+        public void Cancel()
+        {
+            posing = null;
+            sending = 0;
+            sendUntil = 0;
+        }
 
         Vector2 HeadOffset()
         {
@@ -132,7 +144,7 @@ namespace DeadlyJenga.CandyPlayers
             return posed;
         }
 
-        static void KeepGrip(ref CandyHandPose posed, CandyHandPose equipped)
+        internal static void KeepGrip(ref CandyHandPose posed, CandyHandPose equipped)
         {
             if (!equipped.skeletonTracked) return;
             posed.skeleton = equipped.skeleton;
