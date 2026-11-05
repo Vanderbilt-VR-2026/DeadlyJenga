@@ -88,7 +88,7 @@ namespace DeadlyJenga.CandyPlayers
             var hand = state.leftHanded ? frame.left : frame.right;
             var pose = CarryPose(frame, hand, state.leftHanded, drawAmount);
             ReadMeleeActions(state, pose);
-            pose = ReloadPose(EmbedPose(state, pose, frame.scale), state, state.leftHanded);
+            pose = EmbedPose(state, pose, frame.scale);
             root.gameObject.SetActive(true);
             root.localScale = new Vector3(kind == EquipmentKind.BoxingGlove && state.leftHanded ? -1 : 1, 1, 1) * frame.scale;
             root.SetPositionAndRotation(pose.position, pose.rotation);
@@ -116,7 +116,7 @@ namespace DeadlyJenga.CandyPlayers
 
                 bool otherLeft = !state.leftHanded;
                 var other = otherLeft ? frame.left : frame.right;
-                var otherPose = ReloadPose(CarryPose(frame, other, otherLeft, drawAmount), state, otherLeft);
+                var otherPose = CarryPose(frame, other, otherLeft, drawAmount);
                 paired.SetPositionAndRotation(otherPose.position, otherPose.rotation);
                 paired.localScale = Vector3.one * frame.scale;
                 paired.gameObject.SetActive(true);

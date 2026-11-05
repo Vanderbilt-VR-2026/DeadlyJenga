@@ -70,28 +70,10 @@ namespace DeadlyJenga.CandyPlayers
                     // Play the brief hold on receipt so snapshot latency cannot erase it.
                     if (shot.remaining < .40f) continue;
                     daggerUntil = Time.time + .19f;
-                    CaptureEmbed(shot.endpoints[0], strikeDirection, NearestVictim(match, state.actor, shot.endpoints[0]));
+                    CaptureEmbed(shot.endpoints[0], strikeDirection, null);
                 }
             }
             actionSequence = match.equipmentSequence;
-        }
-
-        string NearestVictim(MatchFrame match, string attacker, Vector3 point)
-        {
-            // The dagger's shot reports a world contact. Nearby avatar roots let the blade follow the contact.
-            string nearest = null;
-            float distance = .37f * .37f;
-            foreach (var player in match.players)
-            {
-                if (player.id == attacker || player.role == "hand" || player.role == "spectator") continue;
-                var center = player.position + Vector3.up * Mathf.Clamp(point.y - player.position.y, .2f,
-                    Mathf.Max(.2f, player.viewPosition.y - player.position.y));
-                float candidate = (center - point).sqrMagnitude;
-                if (candidate >= distance) continue;
-                nearest = player.id;
-                distance = candidate;
-            }
-            return nearest;
         }
 
         void CaptureEmbed(Vector3 point, Vector3 direction, string victim)
@@ -179,18 +161,6 @@ namespace DeadlyJenga.CandyPlayers
             float extension = Mathf.Lerp(.02f, 1, Mathf.SmoothStep(0, 1, progress));
             for (int i = 0; i < 3; i++)
                 weapon.GetChild(i).localScale = new Vector3(1, 1, extension);
-        }
-
-        Pose ReloadPose(Pose pose, EquipmentState state, bool left)
-        {
-            if (!state.drawn || state.reloadRemaining <= 0 || kind == EquipmentKind.WristLaser) return pose;
-            var spec = EquipmentSpecifications.Get(kind);
-            if (spec.reloadSeconds <= 0 || spec.melee && !state.shotgun) return pose;
-            float phase = 1 - Mathf.Clamp01(state.reloadRemaining / spec.reloadSeconds);
-            float tilt = Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0, .18f, phase)) *
-                (1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.78f, 1, phase)));
-            float side = left ? -1 : 1;
-            return new Pose(pose.position, pose.rotation * Quaternion.Euler(17 * tilt, 0, side * 23 * tilt));
         }
 
         void PresentFeed(Transform assembly, EquipmentState state, bool left, bool secondary)

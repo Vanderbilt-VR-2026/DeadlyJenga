@@ -174,7 +174,7 @@ namespace DeadlyJenga.CandyPlayers
         public void PoseHands(ref CandyAvatarFrame frame)
         {
             var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||motor&&(motor.Climbing||motor.Vaulting))return;
-            var hand=state.leftHanded?frame.left:frame.right;var pose=GripPose;hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
+            var hand=state.leftHanded?frame.left:frame.right;var gripPose=GripPose;var pose=PresentedReloadGrip(gripPose,state,state.leftHanded);hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
             if(CandyWeaponVisual.MeleeMount(state.kind,state.leftHanded,out _,out var mount))
             {
                 hand.rotation=pose.rotation*Quaternion.Inverse(mount);
@@ -185,7 +185,7 @@ namespace DeadlyJenga.CandyPlayers
             if(state.leftHanded)frame.left=hand;else frame.right=hand;
             if((state.kind==EquipmentKind.DualUzi||state.kind==EquipmentKind.LaserClaws)&&!motor.IsVR)
             {
-                var other=state.leftHanded?frame.right:frame.left;other.position=pose.position+pose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale;other.rotation=pose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
+                var other=state.leftHanded?frame.right:frame.left;var otherPose=new Pose(gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale,gripPose.rotation);otherPose=PresentedReloadGrip(otherPose,state,!state.leftHanded);other.position=otherPose.position;other.rotation=otherPose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
             }
             if(state.kind==EquipmentKind.LaserClaws&&motor.IsVR)
             {
