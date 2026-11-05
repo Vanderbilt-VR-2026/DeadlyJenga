@@ -191,6 +191,7 @@ namespace DeadlyJenga.DevTools.Editor
             var fixture = GameObject.CreatePrimitive(PrimitiveType.Cube);
             fixture.name = "Emote validation floor";
             fixture.layer = Layers.Surface;
+            fixture.AddComponent<Rigidbody>().isKinematic = true;
             fixture.transform.SetPositionAndRotation(new Vector3(120, 9.5f, 120), Quaternion.identity);
             fixture.transform.localScale = new Vector3(20, 1, 20);
             motor.Teleport(new Vector3(120, 10.04f, 120), Quaternion.identity);
