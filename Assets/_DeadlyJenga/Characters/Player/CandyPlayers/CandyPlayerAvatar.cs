@@ -25,6 +25,8 @@ namespace DeadlyJenga.CandyPlayers
         NearFarInteractor[] nearRays;
         XRRayInteractor[] farRays;
         bool overridePose,wasVaulting;
+        float handStride, handSwing;
+        int handMotionFrame = -1;
         CandyAvatarFrame overridden;
         CandyHandPose vaultStartLeft,vaultStartRight;
         bool wasClimbing;
@@ -95,22 +97,61 @@ namespace DeadlyJenga.CandyPlayers
             bool vr=survivor?survivor.IsVR:tracking&&tracking.HasTrackedHands;
             var left=vr&&tracking?tracking.WorldHand(true):default;
             var right=vr&&tracking?tracking.WorldHand(false):default;
-            CandyHandPose Rest(bool isLeft)
-            {
-                float sign=isLeft?-1:1;
-                return new CandyHandPose{position=frame.head+frame.headRotation*(new Vector3(sign*.23f,-.20f,.40f)*scale),rotation=frame.headRotation*Quaternion.Euler(8,sign*-8,0),skeleton=CandyHandSkeleton.Rest(isLeft,.12f)};
-            }
-            frame.left=left.tracked?left:Rest(true);frame.right=right.tracked?right:Rest(false);
-            PointOnHover(ref frame.left, true);
-            PointOnHover(ref frame.right, false);
-            // Controller-generated joints are visual only; tracking keeps optical gesture ownership.
-            if(vr&&left.tracked)frame.left.skeletonTracked=true;
-            if(vr&&right.tracked)frame.right.skeletonTracked=true;
+            bool animateHands = survivor && !survivor.externallyDriven;
+            if (animateHands) UpdateHandMotion();
+            frame.left = LocomotionHand(frame, left, true, animateHands);
+            frame.right = LocomotionHand(frame, right, false, animateHands);
             ApplyPunch(ref frame);
             GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;
         }
         public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=RenderedFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
+        void UpdateHandMotion()
+        {
+            // The network and before-render paths can read the pose again in the same frame.
+            if (handMotionFrame == Time.frameCount) return;
+            handMotionFrame = Time.frameCount;
+            Vector3 velocity = survivor.Capsule ? survivor.Capsule.velocity : Vector3.zero;
+            float speed = new Vector2(velocity.x, velocity.z).magnitude;
+            float target = survivor.Grounded && !survivor.Climbing && !survivor.Vaulting
+                ? Mathf.InverseLerp(.12f, 4f, speed) : 0f;
+            handSwing = Mathf.MoveTowards(handSwing, target, Time.deltaTime * 4f);
+            handStride = Mathf.Repeat(handStride + Time.deltaTime * Mathf.Lerp(6f, 12f, handSwing), 2f * Mathf.PI);
+        }
+
+        CandyHandPose LocomotionHand(CandyAvatarFrame frame, CandyHandPose hand, bool isLeft, bool animate)
+        {
+            float side = isLeft ? -1f : 1f;
+            float swing = animate ? Mathf.Sin(handStride) * handSwing * side : 0f;
+            if (hand.tracked)
+            {
+                PointOnHover(ref hand, isLeft);
+                // Keep the tracked palm position and optical pose. Only the free controller wrist gets a tiny roll.
+                if (animate && !hand.skeletonTracked)
+                    hand.rotation *= Quaternion.Euler(0f, 0f, swing * 1.5f);
+                hand.skeletonTracked = true;
+                return hand;
+            }
+
+            if (!animate)
+                return new CandyHandPose {
+                    position = frame.head + frame.headRotation * (new Vector3(side * .23f, -.20f, .40f) * frame.scale),
+                    rotation = frame.headRotation * Quaternion.Euler(8f, -side * 8f, 0f),
+                    skeleton = CandyHandSkeleton.Rest(isLeft, .12f)
+                };
+
+            Quaternion facing = Quaternion.Euler(0f, frame.headRotation.eulerAngles.y, 0f);
+            float idle = Mathf.Sin(Time.time * 1.8f + side) * (1f - handSwing);
+            Vector3 offset = new Vector3(side * .29f, -.51f + Mathf.Abs(swing) * .024f + idle * .006f,
+                .25f + swing * .065f);
+            return new CandyHandPose {
+                position = frame.head + facing * (offset * frame.scale),
+                rotation = facing * Quaternion.Euler(51f - swing * 10f, -side * 10f, side * 24f + idle * 2f),
+                skeleton = CandyHandSkeleton.Rest(isLeft, .27f),
+                skeletonTracked = true
+            };
+        }
+
         void PointOnHover(ref CandyHandPose hand, bool isLeft)
         {
             if(!tracking || !hand.tracked || hand.skeletonTracked)return;

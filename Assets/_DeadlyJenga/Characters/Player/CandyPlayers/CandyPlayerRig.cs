@@ -106,14 +106,7 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right.position=frame.feet+transform.forward*.5f*scale+transform.right*.23f*scale+Vector3.up*.12f*scale;
             }
             var fit=calibration;
-            // Work on the frame copy; the tracked/network poses remain untouched.
-            if(fit!=null)
-            {
-                frame.left.position+=frame.left.rotation*fit.leftPosition*scale;
-                frame.left.rotation*=Quaternion.Euler(fit.leftRotation);
-                frame.right.position+=frame.right.rotation*fit.rightPosition*scale;
-                frame.right.rotation*=Quaternion.Euler(fit.rightRotation);
-            }
+            // Tracking and equipment already provide the shared hand anchors used by weapons and remote views.
             Vector3 forward=Vector3.ProjectOnPlane(frame.headRotation*Vector3.forward,Vector3.up).normalized;
             if(forward.sqrMagnitude<.01f)forward=transform.forward;
             transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
@@ -150,8 +143,14 @@ namespace DeadlyJenga.CandyPlayers
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
                 bones[thigh+2].SetPositionAndRotation(foot,transform.rotation);bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
-                Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.21f*width,1.255f*crouch,0));
-                Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,-transform.forward*.65f+Vector3.down*.8f+transform.right*sign*.3f);
+                Quaternion torsoRotation=bones[0].localRotation;
+                Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(transform.InverseTransformPoint(hand.position)-torsoOffset);
+                float across=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.12f*width,.18f*width,-sign*handLocal.x));
+                float ahead=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.03f,.25f,handLocal.z));
+                // The shoulder rolls forward on a reach across the chest. The tracked wrist stays fixed.
+                Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
+                Vector3 elbowPole=transform.TransformDirection(torsoRotation*(Vector3.right*sign+Vector3.forward*Mathf.Clamp(handLocal.z*2,-.45f,.75f)+Vector3.down*.25f));
+                Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,hand.position);
                 bones[upper+2].SetPositionAndRotation(hand.position,hand.rotation);bones[upper+2].localScale=Vector3.one;
