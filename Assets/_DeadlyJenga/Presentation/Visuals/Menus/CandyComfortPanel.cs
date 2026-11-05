@@ -27,7 +27,8 @@ namespace DeadlyJenga.Presentation
         Camera eye;
         float nextSample,feedbackUntil;
         int controllerCount;
-        bool singleLeft;
+        bool singleLeft,lastPointerLeft;
+        int tabletPointerIdentity=int.MinValue;
         ISurvivorSettings Settings=>session?.Player as ISurvivorSettings;
         bool PreferredLeft=>weaponHand?.LeftHanded==true;
         public static bool HomeShowing(GameObject owner)=>owner&&owner.GetComponent<CandyComfortPanel>()?.open==true;
@@ -158,6 +159,10 @@ namespace DeadlyJenga.Presentation
             if(!home&&(session==null||Services.Session!=session||!session.MenuOpen)||home&&!homeCamera){open=false;canvas.gameObject.SetActive(false);return;}
             if(!home&&(eye!=session.ActiveCamera||wasVr!=session.IsVR))Configure(true);
             canvas.gameObject.SetActive(true);
+            int identity=wasVr&&eye?MenuAim.PointerIdentity(eye,PreferredLeft):-1;
+            if(lastPointerLeft!=PreferredLeft||tabletPointerIdentity!=identity)
+            {lastPointerLeft=PreferredLeft;tabletPointerIdentity=identity;readyToSelect=false;}
+            if(wasVr&&eye)MenuAim.PlaceTablet(panel,eye,session,PreferredLeft);
             if(Time.unscaledTime>=nextSample)
             {
                 nextSample=Time.unscaledTime+.2f;

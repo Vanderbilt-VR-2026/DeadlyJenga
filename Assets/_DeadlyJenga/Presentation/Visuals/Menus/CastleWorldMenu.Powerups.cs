@@ -7,43 +7,157 @@ namespace DeadlyJenga.CastlePrototype
     {
         bool powerupPage;
         bool giveEquipmentPage,giveAllEquipment,repeatEquipment;
-        static readonly EquipmentKind[] QuickGuns={
-            EquipmentKind.Blaster,EquipmentKind.SheriffHammer,EquipmentKind.DualRifle,EquipmentKind.RocketLauncher,
-            EquipmentKind.DualUzi,EquipmentKind.ChainGun,EquipmentKind.GrenadeLauncher,EquipmentKind.WristLaser,
-            EquipmentKind.NeedleDrill,EquipmentKind.StockPistol};
-        void PointGiveEquipmentPage(Camera camera,bool pressed)
+        int wheelCategory;
+        EquipmentKind wheelSelected;
+        bool wheelLayoutActive;
+        WheelRowState[] wheelRows;
+        Vector2 wheelHelpPosition,wheelHelpSize;
+        string wheelFeedback;
+        static readonly string[] WheelCategories={"RANGED","MELEE","POWERUPS"};
+        static readonly EquipmentKind[][] WheelGroups={WheelItems(0),WheelItems(1),WheelItems(2)};
+        static readonly Vector2[] WheelPositions={new Vector2(0,235),new Vector2(155.885f,145),new Vector2(155.885f,-35),new Vector2(0,-125),new Vector2(-155.885f,-35),new Vector2(-155.885f,145)};
+
+        sealed class WheelRowState
         {
-            scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
-            heading.text=quickGunPage?"GIVE YOURSELF A GUN":"GIVE EQUIPMENT\n"+(giveAllEquipment?"All survivor players + bots":"Myself");
-            var runtime=MatchRuntime.Current;var controls=runtime as IDemoEquipmentControls;
-            var everyone=runtime as IDemoLoadoutControls;bool host=DemoMode&&CanCommand&&runtime?.Authority==true;
-            bool can=host&&(giveAllEquipment?everyone!=null:!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true&&controls!=null);
-            var ray=pointerRay;
+            public Vector3 rowPosition,rowScale,labelPosition,labelScale,iconPosition,iconScale,hitSize;
+            public Quaternion rowRotation,labelRotation,iconRotation;
+            public Vector2 rowSize,labelSize,iconSize;
+            public int fontSize,minFont,maxFont;
+            public bool bestFit,iconActive;
+            public Color iconColor,rowColor,labelColor;
+            public Texture texture;
+            public Rect uv;
+        }
+        static EquipmentKind[] WheelItems(int category)
+        {
+            var items=new System.Collections.Generic.List<EquipmentKind>();
+            for(int i=1;i<EquipmentSpecifications.All.Length;i++)
+            {
+                var kind=(EquipmentKind)i;var specification=EquipmentSpecifications.Get(kind);
+                bool power=specification.power||kind==EquipmentKind.PoweredArmor;
+                if(category==2?power:category==1?!power&&specification.melee:!power&&!specification.melee)items.Add(kind);
+            }
+            return items.ToArray();
+        }
+        void BeginEquipmentWheel()
+        {
+            if(wheelLayoutActive)return;
+            if(quickGunPage)giveAllEquipment=false;
+            wheelRows??=new WheelRowState[buttons.Length];
             for(int i=0;i<buttons.Length;i++)
             {
-                int index=equipmentOffset+i;
-                int count=quickGunPage?QuickGuns.Length:EquipmentSpecifications.All.Length-1;
-                bool entry=i>=1&&i<=8&&index<=count;
-                int item=entry&&quickGunPage?(int)QuickGuns[index-1]:index;
-                buttons[i].gameObject.SetActive(entry||i==0||i>=9&&(!quickGunPage||i<=10));targets[i].enabled=i==0||entry&&can||i==9&&equipmentOffset>0||i==10&&equipmentOffset+8<count||i==11&&everyone!=null||i==12&&giveAllEquipment||i==13&&host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None||i==14;
-                labels[i].text=i==0?"Back":i==9?"Previous items":i==10?"More items":i==11?"Target: "+(giveAllEquipment?"ALL PLAYERS + BOTS":"MYSELF"):i==12?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":i==13?"Stop respawn grants":i==14?"Random spawn settings":entry?"Give "+EquipmentSpecifications.All[item].name:"";
-                var picture=entry?DeadlyJenga.Presentation.CandyEquipmentView.Outline((EquipmentKind)item):null;
-                sectionGlyphs[i].texture=picture?picture:CandyHudVisuals.Icon(CandyHudIcon.Key);
-                sectionGlyphs[i].gameObject.SetActive(entry);if(quickGunPage&&entry)SetRowPreview(i,picture);
-                bool hover=targets[i].enabled&&Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=targets[i].enabled?Color.white:CandyHudVisuals.Muted;
+                var row=(RectTransform)buttons[i].transform;var label=labels[i].rectTransform;var icon=sectionGlyphs[i].rectTransform;
+                var state=wheelRows[i]??=new WheelRowState();
+                state.rowPosition=row.anchoredPosition3D;state.rowSize=row.sizeDelta;state.rowScale=row.localScale;state.rowRotation=row.localRotation;
+                state.labelPosition=label.anchoredPosition3D;state.labelSize=label.sizeDelta;state.labelScale=label.localScale;state.labelRotation=label.localRotation;
+                state.iconPosition=icon.anchoredPosition3D;state.iconSize=icon.sizeDelta;state.iconScale=icon.localScale;state.iconRotation=icon.localRotation;
+                state.rowColor=buttons[i].image.color;state.labelColor=labels[i].color;state.hitSize=targets[i].size;state.fontSize=labels[i].fontSize;state.minFont=labels[i].resizeTextMinSize;state.maxFont=labels[i].resizeTextMaxSize;state.bestFit=labels[i].resizeTextForBestFit;
+                state.iconColor=sectionGlyphs[i].color;state.texture=sectionGlyphs[i].texture;state.uv=sectionGlyphs[i].uvRect;state.iconActive=sectionGlyphs[i].gameObject.activeSelf;
+            }
+            wheelHelpPosition=help.rectTransform.anchoredPosition;wheelHelpSize=help.rectTransform.sizeDelta;
+            wheelLayoutActive=true;wheelFeedback="";wheelCategory=0;equipmentOffset=0;wheelSelected=EquipmentKind.Blaster;
+        }
+        void RestoreEquipmentWheelLayout()
+        {
+            if(!wheelLayoutActive)return;
+            wheelLayoutActive=false;sectionGlyphsActive=false;
+            for(int i=0;i<buttons.Length;i++)
+            {
+                var state=wheelRows?[i];if(state==null||!buttons[i]||!labels[i]||!sectionGlyphs[i])continue;
+                var row=(RectTransform)buttons[i].transform;var label=labels[i].rectTransform;var icon=sectionGlyphs[i].rectTransform;
+                row.anchoredPosition3D=state.rowPosition;row.sizeDelta=state.rowSize;row.localScale=state.rowScale;row.localRotation=state.rowRotation;
+                label.anchoredPosition3D=state.labelPosition;label.sizeDelta=state.labelSize;label.localScale=state.labelScale;label.localRotation=state.labelRotation;
+                icon.anchoredPosition3D=state.iconPosition;icon.sizeDelta=state.iconSize;icon.localScale=state.iconScale;icon.localRotation=state.iconRotation;
+                buttons[i].image.color=state.rowColor;labels[i].color=state.labelColor;targets[i].size=state.hitSize;labels[i].fontSize=state.fontSize;labels[i].resizeTextMinSize=state.minFont;labels[i].resizeTextMaxSize=state.maxFont;labels[i].resizeTextForBestFit=state.bestFit;
+                sectionGlyphs[i].color=state.iconColor;sectionGlyphs[i].texture=state.texture;sectionGlyphs[i].uvRect=state.uv;sectionGlyphs[i].gameObject.SetActive(state.iconActive);
+            }
+            if(help){help.rectTransform.anchoredPosition=wheelHelpPosition;help.rectTransform.sizeDelta=wheelHelpSize;}
+        }
+        void WheelRow(int index,Vector2 position,Vector2 size,string title,bool enabled,int font=19)
+        {
+            buttons[index].gameObject.SetActive(true);targets[index].enabled=enabled;
+            var row=(RectTransform)buttons[index].transform;row.anchoredPosition3D=new Vector3(position.x,position.y,0);row.sizeDelta=size;row.localScale=Vector3.one;row.localRotation=Quaternion.identity;
+            targets[index].size=new Vector3(size.x,size.y,4);
+            labels[index].text=title;labels[index].fontSize=font;labels[index].resizeTextForBestFit=false;
+            labels[index].rectTransform.anchoredPosition3D=Vector3.zero;labels[index].rectTransform.sizeDelta=size-new Vector2(14,4);labels[index].rectTransform.localScale=Vector3.one;labels[index].rectTransform.localRotation=Quaternion.identity;
+            sectionGlyphs[index].gameObject.SetActive(false);buttons[index].image.color=CandyHudVisuals.Card;
+        }
+        static bool WheelAlternateView(EquipmentKind kind)=>kind==EquipmentKind.DualRifle&&Mathf.FloorToInt(Time.unscaledTime/1.5f)%2==1;
+        void WheelIcon(int index,EquipmentKind kind,Vector2 position,Vector2 box)
+        {
+            var image=sectionGlyphs[index];var sprite=DeadlyJenga.Presentation.CandyWeaponIcons.Get(kind,index==6&&WheelAlternateView(kind));
+            image.gameObject.SetActive(true);image.rectTransform.anchoredPosition3D=new Vector3(position.x,position.y,0);image.rectTransform.localScale=Vector3.one;image.rectTransform.localRotation=Quaternion.identity;
+            if(sprite)
+            {
+                image.texture=sprite.texture;var rect=sprite.rect;
+                image.uvRect=new Rect(rect.x/sprite.texture.width,rect.y/sprite.texture.height,rect.width/sprite.texture.width,rect.height/sprite.texture.height);
+                float fit=Mathf.Min(box.x/rect.width,box.y/rect.height);image.rectTransform.sizeDelta=new Vector2(rect.width*fit,rect.height*fit);image.color=Color.white;
+            }
+            else
+            {
+                var icon=kind==EquipmentKind.Jump?CandyHudIcon.Jump:kind==EquipmentKind.Speed?CandyHudIcon.Move:kind==EquipmentKind.FlyingHand?CandyHudIcon.Hand:CandyHudIcon.Key;
+                image.texture=CandyHudVisuals.Icon(icon);image.uvRect=new Rect(0,0,1,1);image.rectTransform.sizeDelta=Vector2.one*Mathf.Min(box.x,box.y);
+                image.color=kind==EquipmentKind.Jump?new Color(.25f,1,.30f):kind==EquipmentKind.Speed?new Color(.25f,.70f,1):CandyHudVisuals.Mint;
+            }
+        }
+        void PointGiveEquipmentPage(Camera camera,bool pressed)
+        {
+            BeginEquipmentWheel();scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();sectionGlyphsActive=true;
+            foreach(var preview in mapThumbnails)if(preview)preview.gameObject.SetActive(false);
+            var items=WheelGroups[wheelCategory];int pageCount=Mathf.Max(1,(items.Length+5)/6);
+            equipmentOffset=Mathf.Clamp(equipmentOffset/6,0,pageCount-1)*6;
+            if(System.Array.IndexOf(items,wheelSelected)<0)wheelSelected=items.Length>0?items[equipmentOffset]:EquipmentKind.None;
+            var runtime=MatchRuntime.Current;var self=runtime as IDemoEquipmentControls;var everyone=runtime as IDemoLoadoutControls;
+            bool host=DemoMode&&CanCommand&&runtime?.Authority==true;
+            bool canSelf=host&&!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true&&self!=null;
+            bool canEveryone=host&&everyone!=null&&wheelSelected!=EquipmentKind.FlyingHand;
+            if(!giveAllEquipment||wheelSelected==EquipmentKind.FlyingHand)repeatEquipment=false;
+            bool canGive=wheelSelected!=EquipmentKind.None&&(giveAllEquipment?canEveryone:canSelf);
+            heading.text="EQUIPMENT WHEEL / "+WheelCategories[wheelCategory]+"\nPreview an icon, then choose Give";
+            for(int i=0;i<6;i++)
+            {
+                int item=equipmentOffset+i;bool visible=item<items.Length;
+                buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible;if(!visible){sectionGlyphs[i].gameObject.SetActive(false);continue;}
+                var kind=items[item];WheelRow(i,WheelPositions[i],new Vector2(142,112),EquipmentSpecifications.Get(kind).name,true,17);
+                labels[i].rectTransform.anchoredPosition=new Vector2(0,-34);labels[i].rectTransform.sizeDelta=new Vector2(132,43);
+                WheelIcon(i,kind,new Vector2(0,17),new Vector2(112,56));
+                if(kind==wheelSelected)buttons[i].image.color=CandyHudVisuals.Lavender;
+            }
+            string previewName=wheelSelected==EquipmentKind.DualRifle?"DUAL RIFLE\n"+(WheelAlternateView(wheelSelected)?"SHOTGUN VIEW":"RIFLE VIEW"):EquipmentSpecifications.Get(wheelSelected).name;
+            WheelRow(6,new Vector2(0,55),new Vector2(150,126),previewName,false,18);
+            labels[6].rectTransform.anchoredPosition=new Vector2(0,-39);labels[6].rectTransform.sizeDelta=new Vector2(142,45);WheelIcon(6,wheelSelected,new Vector2(0,20),new Vector2(136,70));
+            WheelRow(7,new Vector2(0,-225),new Vector2(520,54),"GIVE SELECTED / "+(giveAllEquipment?"EVERYONE":"MYSELF"),canGive,22);
+            WheelRow(8,new Vector2(-140,-282),new Vector2(240,44),"Target: "+(giveAllEquipment?"EVERYONE":"MYSELF"),host&&everyone!=null,18);
+            WheelRow(9,new Vector2(140,-282),new Vector2(240,44),giveAllEquipment?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":"SELF / THIS LIFE ONLY",host&&everyone!=null&&giveAllEquipment&&wheelSelected!=EquipmentKind.FlyingHand,17);
+            WheelRow(10,new Vector2(0,-389),new Vector2(520,40),"Stop everyone respawn grants",host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None,18);
+            WheelRow(11,new Vector2(0,-337),new Vector2(520,44),"Category: "+WheelCategories[wheelCategory]+" / change",true,20);
+            WheelRow(12,new Vector2(-200,-442),new Vector2(140,42),"< PREVIOUS",equipmentOffset>0,17);
+            WheelRow(13,new Vector2(200,-442),new Vector2(140,42),"NEXT >",equipmentOffset+6<items.Length,17);
+            WheelRow(14,new Vector2(0,-442),new Vector2(210,42),"BACK / "+(equipmentOffset/6+1)+" OF "+pageCount,true,17);
+            help.rectTransform.anchoredPosition=new Vector2(0,-505);help.rectTransform.sizeDelta=new Vector2(550,56);
+            string state=!host?"Host/demo authority is required to give. Preview is available.":giveAllEquipment&&wheelSelected==EquipmentKind.FlyingHand?"Flying hand transformation is self-only; choose Myself.":wheelSelected==EquipmentKind.DualRifle?"One item; center preview alternates rifle / shotgun.":giveAllEquipment?"Everyone = living survivor players + bots; no bots-only grant.":"One inventory item at a time; select a card before Give.";
+            help.text=(string.IsNullOrEmpty(wheelFeedback)?state:wheelFeedback)+"\nRespawn grant: "+EquipmentSpecifications.Get(everyone?.RespawnEquipment??EquipmentKind.None).name;
+            for(int i=0;i<buttons.Length;i++)
+            {
+                if(!buttons[i].gameObject.activeSelf)continue;
+                bool hover=targets[i].enabled&&Hit(targets[i],pointerRay);if(hover)buttons[i].image.color=CandyHudVisuals.Mint;
+                labels[i].color=buttons[i].image.color.grayscale>.5f?CandyHudVisuals.Ink:targets[i].enabled?Color.white:CandyHudVisuals.Muted;
                 if(!hover||!pressed)continue;
-                if(i==0){giveEquipmentPage=quickGunPage=false;menuSection=-1;}
-                else if(i==9)equipmentOffset=Mathf.Max(0,equipmentOffset-8);
-                else if(i==10)equipmentOffset+=8;
-                else if(i==11)giveAllEquipment=!giveAllEquipment;
-                else if(i==12)repeatEquipment=!repeatEquipment;
-                else if(i==13)everyone.GiveEveryoneEquipment(EquipmentKind.None,false);
-                else if(i==14){giveEquipmentPage=false;randomPowerupPage=true;}
-                else if(entry&&(giveAllEquipment?everyone.GiveEveryoneEquipment((EquipmentKind)item,repeatEquipment):controls.GiveEquipment((EquipmentKind)item)))session.SetMenu(false);
+                wheelFeedback="";
+                if(i<6)wheelSelected=items[equipmentOffset+i];
+                else if(i==7)
+                {
+                    bool given=giveAllEquipment?everyone.GiveEveryoneEquipment(wheelSelected,repeatEquipment):self.GiveEquipment(wheelSelected);
+                    if(given){RestoreEquipmentWheelLayout();session.SetMenu(false);}else wheelFeedback="Request not completed: current rules or eligible recipients may have changed.";
+                }
+                else if(i==8){giveAllEquipment=!giveAllEquipment;if(!giveAllEquipment)repeatEquipment=false;}
+                else if(i==9)repeatEquipment=!repeatEquipment;
+                else if(i==10){if(!everyone.GiveEveryoneEquipment(EquipmentKind.None,false))wheelFeedback="Stop request was not accepted; check the current respawn grant below.";}
+                else if(i==11){wheelCategory=(wheelCategory+1)%WheelGroups.Length;equipmentOffset=0;wheelSelected=WheelGroups[wheelCategory][0];quickGunPage=false;}
+                else if(i==12||i==13){equipmentOffset+=i==12?-6:6;wheelSelected=items[equipmentOffset];}
+                else if(i==14){RestoreEquipmentWheelLayout();giveEquipmentPage=quickGunPage=false;menuSection=-1;}
                 break;
             }
-            help.text=giveAllEquipment?"Choose target and duration below. Bulk grants replace inventory directly.\nActive respawn item: "+DeadlyJenga.Presentation.CandyEquipmentView.Name(everyone?.RespawnEquipment??EquipmentKind.None):"One item at a time. Replaced items drop at your feet.\nTimed powers last 20 seconds. Host only.";
-            
         }
         void PointPowerupPage(Camera camera,bool pressed)
         {

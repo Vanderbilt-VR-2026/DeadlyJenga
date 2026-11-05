@@ -66,11 +66,13 @@ namespace DeadlyJenga.CastlePrototype
             // First desktop frame also needs anchors set.
             if(!vr&&panel.anchoredPosition!=CandyHudLayout.StaminaPosition)ConfigureView();
             bool hidden=!body.isActiveAndEnabled||motor.InputPaused||!viewCamera||!viewCamera.isActiveAndEnabled;
-            group.alpha=Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing,motor.Stamina,hidden),Mathf.Max(0,dt)*4);
+            string action=(motor as IPlayableCharacter)?.StatusText;
+            bool sprintFeedback=action!=null&&action.StartsWith("SPRINT",System.StringComparison.Ordinal);
+            group.alpha=Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing||sprintFeedback,motor.Stamina,hidden),Mathf.Max(0,dt)*4);
             displayed=Mathf.MoveTowards(displayed,motor.Stamina,Mathf.Max(0,dt)*3);
             fill.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,308*displayed);
             juice.color=Color.Lerp(new Color(1,.26f,.32f),new Color(.22f,1,.76f),Mathf.SmoothStep(0,1,displayed));
-            label.text=(view.StaminaExhausted?"EXHAUSTED":motor.Climbing?"GRIP":view.StaminaRecovering?"CATCHING YOUR BREATH":"FIND SECURE FOOTING")+"  "+Mathf.CeilToInt(motor.Stamina*100)+"%";
+            label.text=sprintFeedback?action:(view.StaminaExhausted?"EXHAUSTED":motor.Climbing?"GRIP":view.StaminaRecovering?"CATCHING YOUR BREATH":"FIND SECURE FOOTING")+"  "+Mathf.CeilToInt(motor.Stamina*100)+"%";
             canvas.enabled=group.alpha>0;
         }
         void ConfigureView()
