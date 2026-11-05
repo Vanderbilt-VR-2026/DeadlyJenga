@@ -23,6 +23,7 @@ namespace DeadlyJenga.DevTools.Editor
         const string Key = "EmoteOrbitChecks";
         static string Report => ProjectPath.Report("EmoteOrbit.txt");
         static int errors, failures;
+        static float savedCaptureDelta;
 
         static EmoteOrbitChecks()
         {
@@ -89,8 +90,17 @@ namespace DeadlyJenga.DevTools.Editor
             InputSystem.QueueEvent(e);
         }
 
+        static void Button(InputDevice device, string control, float value)
+        {
+            using var state = StateEvent.From(device, out var e);
+            device.GetChildControl<ButtonControl>(control).WriteValueIntoEvent(value, e);
+            InputSystem.QueueEvent(e);
+        }
+
         static IEnumerator Run()
         {
+            savedCaptureDelta = Time.captureDeltaTime;
+            Time.captureDeltaTime = 1f / 60;
             var checks = CheckScene();
             while (true)
             {
@@ -108,6 +118,7 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return yielded;
             }
 
+            Time.captureDeltaTime = savedCaptureDelta;
             File.AppendAllText(Report, $"Failures {failures}, runtime errors {errors}\n");
             SessionState.SetBool(Key + "Passed", failures == 0 && errors == 0);
             EditorApplication.ExitPlaymode();
@@ -127,6 +138,7 @@ namespace DeadlyJenga.DevTools.Editor
             var eye = motor.ViewCamera;
 
             // Keep the desktop session from opening its menu when batch mode cannot lock the OS cursor.
+            session.SendMessage("OnApplicationFocus", true);
             session.enabled = false;
             session.SetRole(false);
             session.SetMenu(false);
@@ -150,6 +162,12 @@ namespace DeadlyJenga.DevTools.Editor
             var rifle = motor.transform.Find("Visual - DualRifle");
             var drawState = equipment.Equipment;
             Check(hasRifle && rifle && drawState.drawn, "Rifle starts drawn in the survivor's hand.");
+
+            var moments = motor.GetComponent<SurvivorMoments>();
+            bool eligible = moments && (bool)typeof(SurvivorMoments).GetProperty("CanPose",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(moments);
+            string readiness = $"focus={motor.HasInputFocus} suspended={motor.InputSuspended} alive={motor.Alive} grounded={motor.Grounded} menu={session.MenuOpen} camera={session.ActiveCamera == eye} rig={avatar.Rig.gameObject.activeInHierarchy} time={Time.time:F2}";
+            if (!Check(eligible, "Production emote eligibility before request. " + readiness)) yield break;
 
             int breakdance = Array.IndexOf(Emotes.Survivor, "Breakdance");
             int irish = Array.IndexOf(Emotes.Survivor, "IrishDance");
@@ -181,6 +199,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(rifle && equipment.Equipment.drawn && Vector3.Distance(rifle.position, RifleHand()) < .03f,
                 "Cancel restores the same drawn rifle to the gripping hand.");
             Emotes.Request(0);
+            Check(view.EmoteActive, "Wave request is accepted before natural completion.");
             yield return new WaitForSeconds(1.8f);
             Check(!view.EmoteActive && !Orbit() && eye.enabled, "Wave finishes and restores the desktop view automatically.");
             Check(rifle && equipment.Equipment.drawn && Vector3.Distance(rifle.position, RifleHand()) < .03f,
@@ -199,6 +218,19 @@ namespace DeadlyJenga.DevTools.Editor
             Check(view.EmoteActive && blaster && palm && equipment.Equipment.drawn &&
                 Vector3.Distance(blaster.position, palm.position) < .03f, "A drawn one-handed blaster follows the emote's animated palm.");
             Emotes.Request(0);
+            Emotes.Request(7);
+            yield return null;
+            yield return null;
+            Check(view.EmoteActive && Orbit(), "Desktop victory dance starts before spectator handover.");
+            session.Modes.SetDemoSpectating(true);
+            yield return null;
+            yield return null;
+            Check(!view.EmoteActive && !Orbit() && session.ActiveCamera != eye && !eye.enabled,
+                "Production desktop spectator handover tears down orbit without enabling the former player camera.");
+            session.Modes.SetDemoSpectating(false);
+            yield return null;
+            yield return null;
+            Check(eye.enabled && !Orbit(), "Leaving desktop spectator restores the original view without a lingering orbit.");
 
             var inputSettings = Object.Instantiate(InputSystem.settings);
             inputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
@@ -218,14 +250,14 @@ namespace DeadlyJenga.DevTools.Editor
             motor.controlMode = ControlMode.VR;
             motor.RefreshMode();
             motor.UseStationaryVR();
+            session.SendMessage("OnApplicationFocus", true);
             session.enabled = true;
             session.SetMenu(false);
             yield return new WaitForSeconds(.4f);
             Check(motor.IsVR && session.IsVR && HybridXRInput.ControllerTracked(true) && HybridXRInput.ControllerTracked(false),
                 "Forced VR uses two tracked virtual controllers.");
 
-            var click = left.GetChildControl<ButtonControl>("primary2DAxisClick");
-            InputSystem.QueueDeltaStateEvent(click, 1f);
+            Button(left, "primary2DAxisClick", 1f);
             yield return null;
             yield return null;
             var wheel = GameObject.Find("Emote wheel panel");
@@ -242,7 +274,7 @@ namespace DeadlyJenga.DevTools.Editor
             InputSystem.QueueDeltaStateEvent(hmd.deviceRotation, gaze);
             yield return null;
             yield return null;
-            InputSystem.QueueDeltaStateEvent(click, 0f);
+            Button(left, "primary2DAxisClick", 0f);
             yield return null;
             yield return null;
             var vrOrbit = Orbit();
