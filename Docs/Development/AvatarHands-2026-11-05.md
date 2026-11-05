@@ -12,6 +12,8 @@ Owner: Characters/Player and hand visuals. This note is a documentation checkpoi
 
 The hand meshes are `Candy Body.asset` and `Continuous Hand.asset` under Characters. Do not rebuild the entire avatar or replace their metadata when updating their geometry.
 
+The published Sprint 4 source also includes the supplied weapon-model revisions in `CandyWeaponVisual.Foundry.cs` and `CandyWeaponVisual.Arsenal.cs`, with the matching support-anchor path. Those files are not an outstanding source-integration gap. Their inclusion is separate from the still-required current rendered grip and finger-fit checks below. The earlier RPG images and 23 passing baseline checks used the older `c1b62820` source and must not be relabelled as acceptance of later model or support changes.
+
 ## What the evidence establishes
 
 - Six native weight-filter checks passed. This tests weight retention, normalization, source preservation and cache reuse; it does not establish rendered hand quality.
