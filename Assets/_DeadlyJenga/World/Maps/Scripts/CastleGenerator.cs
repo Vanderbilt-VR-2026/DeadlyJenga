@@ -40,6 +40,13 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Optional playable area. Use an enabled trigger BoxCollider. Otherwise the castle layout supplies the area.")]
         public BoxCollider playableArea;
         readonly Collider[] fallen = new Collider[256];
+        readonly Collider[] curatedSpawnClearance = new Collider[24];
+        static readonly Vector3[] CuratedSpawns = {
+            new(-36,.48f,-12),new(36,.48f,12),new(-36,.48f,12),new(36,.48f,-12),
+            new(-36,.48f,-26),new(36,.48f,26),new(0,.48f,-28),new(0,.48f,28)
+        };
+        int curatedSpawnCursor;
+        bool CuratedCtf => !magneticMap && !environmentOnly && settings.layoutPreset == "ctf";
         float nextKillCheck;
         int debrisCursor;
         readonly Dictionary<int,float> submergedSince=new Dictionary<int,float>();
@@ -71,9 +78,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public IReadOnlyList<Rigidbody> Blocks => Bodies;
         public Vector3 Center => transform.position;
-        public float TopHeight => magneticMap ? transform.TransformPoint(new Vector3(0, 28, 0)).y : environmentOnly ? SafeSpawnPoint().y : transform.position.y + CastleLayout.HeightCourses(settings) * settings.blockSize.y;
-        public float Radius => magneticMap ? 18 * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)) : CastleLayout.Footprint(settings) * .5f;
-        public float StepHeight => settings.blockSize.y;
+        public float TopHeight => magneticMap ? transform.TransformPoint(new Vector3(0, 28, 0)).y : environmentOnly ? SafeSpawnPoint().y : CuratedCtf ? transform.TransformPoint(Vector3.up * ModeMapLayout.CuratedCtfTop).y : transform.position.y + CastleLayout.HeightCourses(settings) * settings.blockSize.y;
+        public float Radius => magneticMap ? 18 * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)) : CuratedCtf ? ModeMapLayout.Size(settings).magnitude * .5f * Mathf.Max(Mathf.Abs(transform.lossyScale.x), Mathf.Abs(transform.lossyScale.z)) : CastleLayout.Footprint(settings) * .5f;
+        public float StepHeight => CuratedCtf ? ModeMapLayout.CuratedCtfGroundY : settings.blockSize.y;
         public Bounds PlayableBounds
         {
             get
@@ -81,7 +88,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (playableArea)
                     return playableArea.isTrigger ? playableArea.bounds : new Bounds();
                 var footprint = magneticMap ? Vector2.one*40 : CastleLayout.FootprintSize(settings)+Vector2.one*4;
-                float height = magneticMap ? 30 : CastleLayout.HeightCourses(settings) * settings.blockSize.y;
+                float height = magneticMap ? 30 : CuratedCtf ? ModeMapLayout.CuratedCtfTop : CastleLayout.HeightCourses(settings) * settings.blockSize.y;
                 var bounds = new Bounds(transform.TransformPoint(Vector3.zero), Vector3.zero);
                 for (int x = -1; x <= 1; x += 2)
                 for (int y = 0; y <= 1; y++)
@@ -100,7 +107,13 @@ namespace DeadlyJenga.CastlePrototype
 
         // ISyncedWorld (Revision is declared above)
         public Transform Root => transform;
-        public string SaveLayout() => magneticMap ? magneticMap.Save() : JsonUtility.ToJson(settings);
+        const string CuratedCtfPrefix = "castle-ctf-v2:";
+        public string SaveLayout()
+        {
+            if (magneticMap) return magneticMap.Save();
+            string json = JsonUtility.ToJson(settings);
+            return settings.layoutPreset == "ctf" ? CuratedCtfPrefix + json : json;
+        }
         public bool LoadLayout(string layout, int expectedBlocks, Pose origin, Vector3 scale)
         {
             if (magneticMap)
@@ -111,9 +124,16 @@ namespace DeadlyJenga.CastlePrototype
                 Rebuild(); magneticMap.Structure.Restore(state.broken);
                 return true;
             }
-            var incoming = JsonUtility.FromJson<CastleSettings>(layout);
-            if (incoming != null) CastleLayout.Validate(incoming);
-            if (incoming == null || (environmentOnly ? 0 : CastleLayout.Build(incoming).Count) != expectedBlocks) return false;
+            bool curated = layout != null && layout.StartsWith(CuratedCtfPrefix, System.StringComparison.Ordinal);
+            CastleSettings incoming;
+            try
+            {
+                incoming = JsonUtility.FromJson<CastleSettings>(curated ? layout.Substring(CuratedCtfPrefix.Length) : layout);
+                if (incoming != null) CastleLayout.Validate(incoming);
+            }
+            catch (System.ArgumentException) { return false; }
+            if (incoming == null || (incoming.layoutPreset == "ctf") != curated ||
+                (environmentOnly ? 0 : CastleLayout.Build(incoming).Count) != expectedBlocks) return false;
             settings = incoming;
             transform.SetPositionAndRotation(origin.position, origin.rotation);
             transform.localScale = scale;
@@ -167,6 +187,21 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 SafeSpawnPoint()
         {
             Physics.SyncTransforms();
+            if (CuratedCtf)
+            {
+                var physics = gameObject.scene.GetPhysicsScene();
+                for (int n = 0; n < CuratedSpawns.Length; n++)
+                {
+                    var start = transform.TransformPoint(CuratedSpawns[curatedSpawnCursor++ % CuratedSpawns.Length]);
+                    if (!physics.Raycast(start + Vector3.up, Vector3.down, out var hit, 3,
+                        (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore) || hit.normal.y < .8f) continue;
+                    var feet = hit.point + Vector3.up * .08f;
+                    if (physics.OverlapCapsule(feet + Vector3.up * .2f, feet + Vector3.up * .95f, .18f,
+                        curatedSpawnClearance, (1 << Layers.Block) | (1 << Layers.Surface) | (1 << Layers.Survivor) | 1,
+                        QueryTriggerInteraction.Ignore) == 0) return feet;
+                }
+                throw new System.InvalidOperationException("No supported clear courtyard spawn remains.");
+            }
             Collider best = null; float highest = float.NegativeInfinity;
             foreach (var body in Bodies)
             {
@@ -199,6 +234,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Rebuild()
         {
             Revision++;
+            curatedSpawnCursor = 0;
             CastleLayout.Validate(settings);
             var layout = environmentOnly || magneticMap ? new List<CastlePlacement>() : CastleLayout.Build(settings);
             if (!environmentOnly && !magneticMap && (!blockPrefab || !blockPrefab.GetComponent<Rigidbody>() || !blockPrefab.GetComponent<BoxCollider>()))

@@ -39,8 +39,8 @@ namespace DeadlyJenga.CastlePrototype
         public Vector3 Center=>transform.position;
         public float TopHeight=>PlayableBounds.max.y;
         public float Radius=>new Vector2(PlayableBounds.extents.x,PlayableBounds.extents.z).magnitude;
-        public float StepHeight=>3.5f;
-        public int FootprintVersion=>9200+design;
+        public float StepHeight=>design==1?.8f:3.5f;
+        public int FootprintVersion=>design==1?19201:9200+design;
         public float FootprintHalfSize=>Mathf.Max(Plan.halfSize.x,Plan.halfSize.y);
         public Bounds PlayableBounds
         {
@@ -91,13 +91,20 @@ namespace DeadlyJenga.CastlePrototype
                 joint.limits=new JointLimits{min=-80,max=80,bounciness=0,contactDistance=1};joint.enableCollision=true;
             }
             if(!foundation){foundation=new GameObject("Continuous city island ground").transform;foundation.SetParent(transform,false);}
-            if(!islandCollision){if(runtimeGround)Destroy(runtimeGround);runtimeGround=EpicCityTerrain.Create(Plan);}
+            bool revisedGround=design==1;
+            if(revisedGround||!islandCollision){if(runtimeGround)Destroy(runtimeGround);runtimeGround=EpicCityTerrain.Create(Plan);}
             if(foundation)
             {
                 if(islandCollision||runtimeGround)
                 {
                     var box=foundation.GetComponent<BoxCollider>();if(box)box.enabled=false;
-                    var mesh=foundation.GetComponent<MeshCollider>();if(!mesh)mesh=foundation.gameObject.AddComponent<MeshCollider>();mesh.sharedMesh=islandCollision?islandCollision:runtimeGround;mesh.enabled=true;
+                    var ground=revisedGround?runtimeGround:islandCollision?islandCollision:runtimeGround;
+                    var mesh=foundation.GetComponent<MeshCollider>();if(!mesh)mesh=foundation.gameObject.AddComponent<MeshCollider>();mesh.sharedMesh=ground;mesh.enabled=true;
+                    if(revisedGround)
+                    {
+                        var visual=foundation.GetComponentInChildren<MeshFilter>();
+                        if(visual)visual.sharedMesh=ground;
+                    }
                     foundation.localPosition=Vector3.zero;foundation.localScale=Vector3.one;
                 }
                 else
@@ -131,13 +138,13 @@ namespace DeadlyJenga.CastlePrototype
         }
         [Serializable] sealed class State {public int version=1,design;}
         const string Prefix="epic-city-v1:";
-        public string SaveLayout()=>Prefix+JsonUtility.ToJson(new State{design=design});
+        public string SaveLayout()=>Prefix+JsonUtility.ToJson(new State{version=design==1?2:1,design=design});
         public bool LoadLayout(string text,int expectedBlocks,Pose origin,Vector3 scale)
         {
             if(text==null||!text.StartsWith(Prefix,StringComparison.Ordinal)||!Finite(origin.position)||!Finite(scale)||scale.x<=0||Mathf.Abs(scale.x-scale.y)>.001f||Mathf.Abs(scale.x-scale.z)>.001f)return false;
             float q=Quaternion.Dot(origin.rotation,origin.rotation);if(float.IsNaN(q)||float.IsInfinity(q)||Mathf.Abs(q-1)>.001f)return false;
             State state;try{state=JsonUtility.FromJson<State>(text.Substring(Prefix.Length));}catch(ArgumentException){return false;}
-            if(state==null||state.version!=1||state.design<0||state.design>9||EpicCityLayout.Build(state.design).modules.Count!=expectedBlocks)return false;
+            if(state==null||state.design<0||state.design>9||state.version!=(state.design==1?2:1)||EpicCityLayout.Build(state.design).modules.Count!=expectedBlocks)return false;
             design=state.design;transform.SetPositionAndRotation(origin.position,origin.rotation);transform.localScale=scale;Rebuild();return true;
         }
         static bool Finite(Vector3 p)=>!(float.IsNaN(p.x)||float.IsNaN(p.y)||float.IsNaN(p.z)||float.IsInfinity(p.x)||float.IsInfinity(p.y)||float.IsInfinity(p.z));
