@@ -17,8 +17,64 @@ namespace DeadlyJenga.CastlePrototype
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
         const int LivePose = 20, LivePoses = 21, PoseReceipt = 22;
-        const int PoseWindow = 6, MaxPoseSize = 4096;
-        sealed class Peer { public readonly HashSet<int> posesInFlight = new HashSet<int>(); public int lastPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        const int PoseWindow = 24, MaxPoseSize = 4096, MaxLiveBatchSize=64*1024;
+        public sealed class LivePoseTraffic
+        {
+            public string PeerId{get;internal set;}="";
+            public int CountLimit{get;internal set;}public int ByteLimit{get;internal set;}public int PayloadLimit{get;internal set;}
+            public int PendingCount{get;internal set;}public int PendingBytes{get;internal set;}public int PeakCount{get;internal set;}public int PeakBytes{get;internal set;}
+            public long DueTicks{get;internal set;}public long SuppressedTicks{get;internal set;}public long ByteBlocked{get;internal set;}public long InvalidFrames{get;internal set;}
+            public long SubmittedFrames{get;internal set;}public long SubmittedBytes{get;internal set;}public int MaxSubmittedBytes{get;internal set;}public long SendFailures{get;internal set;}
+            public long MatchedAcks{get;internal set;}public long UnknownAcks{get;internal set;}public float LastAckSeconds{get;internal set;}public float MaxAckSeconds{get;internal set;}public double AckSeconds{get;internal set;}
+            public float OldestPendingSeconds{get;internal set;}public float MaxOldestPendingSeconds{get;internal set;}public long Resets{get;internal set;}
+            public long ReceivedFrames{get;internal set;}public long ReceivedBytes{get;internal set;}public long SkippedFrames{get;internal set;}public long AppliedFrames{get;internal set;}public long AppliedBytes{get;internal set;}public long AppliedIntervals{get;internal set;}
+            public float LastReceivedAt{get;internal set;}public float LastReceiveInterval{get;internal set;}public float MaxReceiveInterval{get;internal set;}public double ReceiveIntervalSeconds{get;internal set;}public long ReceiveIntervals{get;internal set;}
+            public float LastAppliedAt{get;internal set;}public float LastApplyInterval{get;internal set;}public float MaxApplyInterval{get;internal set;}public double ApplyIntervalSeconds{get;internal set;}
+        }
+        internal sealed class LivePoseWindow
+        {
+            struct Pending {internal int bytes;internal float at;}
+            readonly Dictionary<int,Pending> pending=new Dictionary<int,Pending>();
+            bool hasApplied,hasReceived;
+            public LivePoseTraffic Traffic{get;}=new LivePoseTraffic();
+            internal LivePoseWindow(int countLimit,int byteLimit,int payloadLimit)
+            {
+                if(countLimit<1||byteLimit<1||payloadLimit<1||payloadLimit>byteLimit)throw new ArgumentOutOfRangeException();
+                Traffic.CountLimit=countLimit;Traffic.ByteLimit=byteLimit;Traffic.PayloadLimit=payloadLimit;
+            }
+            internal bool CanCapture()
+            {Traffic.DueTicks++;if(pending.Count<Traffic.CountLimit&&Traffic.PendingBytes<Traffic.ByteLimit)return true;Traffic.SuppressedTicks++;return false;}
+            internal bool Reserve(int serial,int bytes,float now)
+            {
+                if(serial==0||bytes<1||bytes>Traffic.PayloadLimit||float.IsNaN(now)||float.IsInfinity(now)||pending.ContainsKey(serial)){Traffic.InvalidFrames++;return false;}
+                if(pending.Count>=Traffic.CountLimit){Traffic.SuppressedTicks++;return false;}
+                if(bytes>Traffic.ByteLimit-Traffic.PendingBytes){Traffic.ByteBlocked++;return false;}
+                pending.Add(serial,new Pending{bytes=bytes,at=now});Traffic.PendingBytes+=bytes;Traffic.PendingCount=pending.Count;
+                Traffic.PeakCount=Math.Max(Traffic.PeakCount,pending.Count);Traffic.PeakBytes=Math.Max(Traffic.PeakBytes,Traffic.PendingBytes);return true;
+            }
+            internal void Submitted(int bytes){Traffic.SubmittedFrames++;Traffic.SubmittedBytes+=bytes;Traffic.MaxSubmittedBytes=Math.Max(Traffic.MaxSubmittedBytes,bytes);}
+            internal bool Ack(int serial,float now)
+            {
+                if(!pending.TryGetValue(serial,out var value)){Traffic.UnknownAcks++;return false;}
+                pending.Remove(serial);Traffic.PendingBytes-=value.bytes;Traffic.PendingCount=pending.Count;Traffic.MatchedAcks++;
+                float elapsed=Math.Max(0,now-value.at);Traffic.LastAckSeconds=elapsed;Traffic.MaxAckSeconds=Math.Max(Traffic.MaxAckSeconds,elapsed);Traffic.AckSeconds+=elapsed;Observe(now);return true;
+            }
+            internal void Cancel(int serial)
+            {if(pending.TryGetValue(serial,out var value)){pending.Remove(serial);Traffic.PendingBytes-=value.bytes;Traffic.PendingCount=pending.Count;Traffic.SendFailures++;}}
+            internal void Observe(float now)
+            {float age=0;foreach(var value in pending.Values)age=Math.Max(age,now-value.at);Traffic.OldestPendingSeconds=age;Traffic.MaxOldestPendingSeconds=Math.Max(Traffic.MaxOldestPendingSeconds,age);}
+            internal bool Expired(float now){Observe(now);return Traffic.OldestPendingSeconds>20;}
+            internal void Clear(){pending.Clear();Traffic.PendingCount=Traffic.PendingBytes=0;Traffic.OldestPendingSeconds=0;hasApplied=hasReceived=false;Traffic.Resets++;}
+            internal void Received(int bytes,float now)
+            {if(hasReceived){float gap=Math.Max(0,now-Traffic.LastReceivedAt);Traffic.LastReceiveInterval=gap;Traffic.MaxReceiveInterval=Math.Max(Traffic.MaxReceiveInterval,gap);Traffic.ReceiveIntervalSeconds+=gap;Traffic.ReceiveIntervals++;}hasReceived=true;Traffic.LastReceivedAt=now;Traffic.ReceivedFrames++;Traffic.ReceivedBytes+=bytes;}
+            internal void Skipped(){Traffic.SkippedFrames++;}
+            internal void Applied(int bytes,float now)
+            {if(hasApplied){float gap=Math.Max(0,now-Traffic.LastAppliedAt);Traffic.LastApplyInterval=gap;Traffic.MaxApplyInterval=Math.Max(Traffic.MaxApplyInterval,gap);Traffic.ApplyIntervalSeconds+=gap;Traffic.AppliedIntervals++;}hasApplied=true;Traffic.LastAppliedAt=now;Traffic.AppliedFrames++;Traffic.AppliedBytes+=bytes;}
+            internal static bool Newer(int value,int previous,bool seen)=>value!=0&&(!seen||unchecked((int)((uint)value-(uint)previous))>0);
+            internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
+        }
+
+        sealed class Peer { public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -34,38 +90,43 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool IsCurrentScene=>sceneTag==SceneTag(runner);
         float nextPoseSend;
-        readonly HashSet<int> posesInFlight = new HashSet<int>();
+        readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,96*1024,MaxPoseSize);
+        bool hasPoseBatch;
+        public LivePoseTraffic LocalPoseTraffic=>posesInFlight.Traffic;
+        public LivePoseTraffic[] PeerPoseTraffic=>peers.Values.Select(peer=>peer.posesInFlight.Traffic).ToArray();
+        public long WorldTransfersSubmitted{get;private set;}
+        public long WorldPayloadBytesSubmitted{get;private set;}
+        void ResetPoseWindows()
+        {posesInFlight.Clear();foreach(var peer in peers.Values)peer.posesInFlight.Clear();hasPoseBatch=false;lastPoseBatch=0;nextPoseSend=0;poseSendFailed=false;}
+        bool SendPose(PlayerRef target,int kind,LivePoseWindow window,byte[] packet,float now)
+        {
+            if(closing||poseSendFailed||runner==null||!runner.IsRunning||!IsCurrentScene)return false;
+            int serial=LivePoseWindow.NextSequence(ref poseSequence);
+            if(packet==null||packet.Length<1||packet.Length>window.Traffic.PayloadLimit)
+            {window.Reserve(serial,packet?.Length??0,now);Fail("Live pose payload exceeds the supported bound. Rejoin with the same game build.");poseSendFailed=true;return false;}
+            if(!window.Reserve(serial,packet?.Length??0,now))return false;
+            try{Send(target,kind,packet,serial);window.Submitted(packet.Length);return true;}
+            catch(Exception){window.Cancel(serial);Fail("Live pose send failed. Rejoin with the same game build.");poseSendFailed=true;return false;}
+        }
 
         void PumpPoses(float now)
         {
-            if (now < nextPoseSend) return;
-            nextPoseSend = now + 1f / 30;
-            if (!runner.IsServer)
+            posesInFlight.Observe(now);foreach(var peer in peers.Values)peer.posesInFlight.Observe(now);
+            if(now<nextPoseSend)return;nextPoseSend=now+1f/30;
+            if(!runner.IsServer)
             {
-                if (welcomed && !castle.WaitingForWorld && posesInFlight.Count < PoseWindow)
-                {
-                    byte[] packet = castle.FusionCapturePlayer();
-                    if (packet.Length <= MaxPoseSize)
-                    {
-                        int serial = ++poseSequence;
-                        posesInFlight.Add(serial);
-                        Send(default, LivePose, packet, serial);
-                    }
-                }
+                if(welcomed&&!castle.WaitingForWorld&&posesInFlight.CanCapture())SendPose(default,LivePose,posesInFlight,castle.FusionCapturePlayer(),now);
                 return;
             }
-
-            byte[] batch = null;
-            foreach (var pair in peers)
+            byte[] batch=null;
+            foreach(var pair in peers)
             {
-                if (!pair.Value.ready || pair.Value.posesInFlight.Count >= PoseWindow) continue;
-                batch ??= castle.FusionCaptureLivePoses();
-                int serial = ++poseSequence;
-                pair.Value.posesInFlight.Add(serial);
-                Send(pair.Key, LivePoses, batch, serial);
+                if(!pair.Value.ready||!pair.Value.posesInFlight.CanCapture())continue;
+                batch??=castle.FusionCaptureLivePoses();
+                if(!SendPose(pair.Key,LivePoses,pair.Value.posesInFlight,batch,now)&&poseSendFailed)return;
             }
         }
-        bool welcomed, closing, leavingIntentionally;
+        bool welcomed, closing, leavingIntentionally,poseSendFailed;
         float nextSend, lastWorld;
 
         [Serializable] public sealed class DemoState
@@ -82,11 +143,11 @@ namespace DeadlyJenga.CastlePrototype
             else if(command.action==CastleDemoAction.Stamina){pendingStamina=command;if(authoritativeRules!=null)MatchSetup.ApplyRules(session.Player,authoritativeRules);}
             else Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(command)));
         }
-        public void PauseForMigration(){ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
+        public void PauseForMigration(){ResetPoseWindows();ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
         public void ResumeAfterMigration(NetworkRunner next)
         {
-            peers.Clear();socialPeers.Clear();socialServer.Clear();posesInFlight.Clear();lastPoseBatch=0;nextPoseSend=0;welcomed=false;closing=false;nextSend=0;
-            runner=next;sceneTag=SceneTag(next);if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
+            ResetPoseWindows();peers.Clear();socialPeers.Clear();socialServer.Clear();welcomed=false;closing=false;nextSend=0;
+            runner=next;posesInFlight.Traffic.PeerId=next.LocalPlayer.ToString();sceneTag=SceneTag(next);if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
             AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
         }
@@ -99,7 +160,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Initialize(NetworkRunner networkRunner, CastlePlaySession owner, CastleLanSession state)
         {
-            runner = networkRunner; session = owner; castle = state;
+            ResetPoseWindows();runner = networkRunner; session = owner; castle = state;
+            posesInFlight.Traffic.PeerId=networkRunner.LocalPlayer.ToString();
             sceneTag = SceneTag(runner);
             // Fusion disables Unity's automatic physics when this component starts.
             // The castle's flight motor and contact hands still require 3D simulation.
@@ -117,6 +179,7 @@ namespace DeadlyJenga.CastlePrototype
             var key = ReliableKey.FromInts(Channel, kind, serial, sceneTag);
             if (runner.IsServer) runner.SendReliableDataToPlayer(player, key, bytes);
             else runner.SendReliableDataToServer(key, bytes);
+            if(kind==World){WorldTransfersSubmitted++;WorldPayloadBytesSubmitted+=bytes.Length;}
         }
 
         void SendSocialPacket(PlayerRef player,int kind,int serial,byte[] data)
@@ -162,7 +225,10 @@ namespace DeadlyJenga.CastlePrototype
                     if (kind == Ready)
                     {
                         if (!peers.ContainsKey(player))
-                            peers.Add(player, new Peer { lastPose = Time.unscaledTime, welcome = castle.FusionWelcome(player.ToString()) });
+                        {
+                            var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString())};
+                            added.posesInFlight.Traffic.PeerId=player.ToString();peers.Add(player,added);
+                        }
                         if (!peers[player].ready) Send(player, Welcome, peers[player].welcome);
                     }
                     else if (peers.TryGetValue(player, out var peer))
@@ -181,15 +247,18 @@ namespace DeadlyJenga.CastlePrototype
                         }
                         else if (kind == LivePose && peer.ready && payload.Length <= MaxPoseSize)
                         {
-                            if (serial > peer.lastPoseSequence)
+                            if (LivePoseWindow.Newer(serial,peer.lastPoseSequence,peer.hasPoseSequence))
                             {
                                 castle.FusionReceivePlayer(player.ToString(), payload.ToArray());
-                                peer.lastPoseSequence = serial;
+                                peer.lastPoseSequence = serial;peer.hasPoseSequence=true;
                                 peer.lastPose = Time.unscaledTime;
+                                peer.posesInFlight.Applied(payload.Length,Time.unscaledTime);
                             }
+                            else peer.posesInFlight.Skipped();
+                            peer.posesInFlight.Received(payload.Length,Time.unscaledTime);
                             Send(player, PoseReceipt, Array.Empty<byte>(), serial);
                         }
-                        else if (kind == PoseReceipt) peer.posesInFlight.Remove(serial);
+                        else if (kind == PoseReceipt) peer.posesInFlight.Ack(serial,Time.unscaledTime);
                         else if (kind == Ack && peer.waiting == serial) peer.waiting = 0;
                     }
                 }
@@ -208,14 +277,16 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     else if (kind == LivePoses && welcomed && payload.Length <= MaxPoseSize * 64)
                     {
-                        if (serial > lastPoseBatch && !castle.WaitingForWorld)
+                        if (LivePoseWindow.Newer(serial,lastPoseBatch,hasPoseBatch) && !castle.WaitingForWorld)
                         {
                             castle.FusionApplyLivePoses(payload.ToArray(), runner.ActivePlayers.Select(p => p.ToString()));
-                            lastPoseBatch = serial;
+                            lastPoseBatch = serial;hasPoseBatch=true;posesInFlight.Applied(payload.Length,Time.unscaledTime);
                         }
+                        else posesInFlight.Skipped();
+                        posesInFlight.Received(payload.Length,Time.unscaledTime);
                         Send(default, PoseReceipt, Array.Empty<byte>(), serial);
                     }
-                    else if (kind == PoseReceipt) posesInFlight.Remove(serial);
+                    else if (kind == PoseReceipt) posesInFlight.Ack(serial,Time.unscaledTime);
                     else if(kind==MatchState&&welcomed&&payload.Length<=512000)ReceiveMatch(payload);
                     else if(kind==ModeOutcome&&welcomed&&payload.Length<=1024)ReceiveOutcome(payload);
                     else if(kind==MysterySecret&&welcomed&&payload.Length<=8192){ConnectModes();modeRuntime?.ReceiveSecret(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
@@ -237,10 +308,10 @@ namespace DeadlyJenga.CastlePrototype
 
         void LateUpdate()
         {
-            if (closing || runner == null || !runner.IsRunning || !IsCurrentScene) return;
+            if (closing || poseSendFailed || runner == null || !runner.IsRunning || !IsCurrentScene) return;
             castle.FusionRender();ConnectModes();
             float now = Time.unscaledTime;
-            PumpPoses(now);
+            PumpPoses(now);if(poseSendFailed)return;
             if(pendingStamina!=null&&now>=nextStamina){if(SessionDevelopmentPolicy.CanRequestLocal(session))Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(pendingStamina)));pendingStamina=null;nextStamina=now+.2f;}
             if(runner.IsServer){foreach(var pair in socialPeers)if(peers.TryGetValue(pair.Key,out var ready)&&ready.ready)pair.Value.Pump(now,(serial,data)=>SendSocialPacket(pair.Key,1,serial,data));}
             else if(welcomed)socialServer.Pump(now,(serial,data)=>SendSocialPacket(default,1,serial,data));
@@ -249,7 +320,7 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var pair in peers)
                     if (now - pair.Value.lastPose > 1) castle.FusionSuspendPlayer(pair.Key.ToString());
                 foreach (var pair in peers.ToArray())
-                    if (now - pair.Value.lastPose > 20 || pair.Value.waiting != 0 && now - pair.Value.sentAt > 20)
+                    if (now - pair.Value.lastPose > 20 || pair.Value.waiting != 0 && now - pair.Value.sentAt > 20 || pair.Value.posesInFlight.Expired(now))
                     { runner.Disconnect(pair.Key); RemovePlayer(pair.Key); }
                 if (now < nextSend) return;
                 nextSend = now + .1f;
@@ -279,6 +350,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 nextSend = now + 1;
                 if (!welcomed) Send(default, Ready, Array.Empty<byte>());
+                if(posesInFlight.Expired(now)){Fail("Live pose acknowledgements timed out. Rejoin the room.");return;}
                 if (now - lastWorld > (welcomed ? 20 : 60)) Fail("The host stopped responding. Check your connection and rejoin the room.");
             }
         }
@@ -290,6 +362,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void RemovePlayer(PlayerRef player)
         {
+            if(peers.TryGetValue(player,out var departing))departing.posesInFlight.Clear();
             modeRuntime?.UnregisterRemote(player.ToString());peers.Remove(player); socialPeers.Remove(player); castle.FusionRemovePlayer(player.ToString());
             if (runner.IsServer) session.SurvivorBots?.SetHumanPlayerCount(runner.ActivePlayers.Count(p => p != player));
         }
@@ -297,7 +370,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Leave()
         {
             if (closing) return;
-            ResetDisasters();
+            ResetPoseWindows();ResetDisasters();
             var island=IslandRoomConnection.Instance;if(island&&island.Owns(runner))_=island.Leave();else _=runner.Shutdown();
         }
 
@@ -313,7 +386,7 @@ namespace DeadlyJenga.CastlePrototype
         void ReturnToLobby()
         {
             if (closing) return;
-            closing = true;
+            closing = true;ResetPoseWindows();
             var island=IslandRoomConnection.Instance;
             if(island&&island.Owns(runner))return;
             // The prototype also owns persistent templates and needs its reset path.
@@ -324,7 +397,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void OnDestroy()
         {
-            DisconnectModes();
+            DisconnectModes();ResetPoseWindows();
             ResetDisasters();
             if (runner != null && callbacks != null) runner.RemoveCallbacks(callbacks);
         }
