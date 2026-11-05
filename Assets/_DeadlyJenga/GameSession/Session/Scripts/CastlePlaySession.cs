@@ -67,7 +67,7 @@ namespace DeadlyJenga.CastlePrototype
         public IDemoControls Demo { get; private set; }
         public ISocialControls Social { get; private set; }
         public bool CanEditWorld => !Network || Network.CanEditWorld;
-        InputAction switchRole, toggleMenu, select;
+        InputAction toggleMenu, select;
         bool wasVR, focused = true;
         bool arrivalPending,travelInputHeld;float travelReleaseAt=-1;
 
@@ -83,10 +83,9 @@ namespace DeadlyJenga.CastlePrototype
             TuneJump();
             Hand = Instantiate(handPrefab).GetComponent<IPlayableCharacter>(); Hand.gameObject.name = "Flying Hand (local)";
             Player.PrepareForSession(); Hand.PrepareForSession();
-            switchRole = new InputAction("Switch role", InputActionType.Button, "<XRController>{RightHand}/secondaryButton");
             toggleMenu = new InputAction("Demo menu", InputActionType.Button, "<XRController>{LeftHand}/secondaryButton");
             select = new InputAction("Menu select", InputActionType.Button, "<XRController>{RightHand}/trigger");
-            switchRole.Enable(); toggleMenu.Enable(); select.Enable();
+            toggleMenu.Enable(); select.Enable();
             SetRole(false); SetMenu(false);
             BotSystems.Create(gameObject, new BotSetup { player = Player, hand = Hand, survivorPrefab = survivorPrefab, handPrefab = handPrefab, isPlayingHand = () => PlayingHand },
                 out var survivorBots, out var handBots);
@@ -120,7 +119,7 @@ namespace DeadlyJenga.CastlePrototype
             seaSpirit?.SetSeaSpirit(false);
             if (ReferenceEquals(Services.Session, this)) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
-            switchRole?.Dispose(); toggleMenu?.Dispose(); select?.Dispose();
+            toggleMenu?.Dispose(); select?.Dispose();
             if (NetworkActors.Alive(Player)) Destroy(Player.gameObject);
             if (NetworkActors.Alive(Hand)) Destroy(Hand.gameObject);
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
@@ -198,7 +197,6 @@ namespace DeadlyJenga.CastlePrototype
             if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
             var k = Keyboard.current;
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
-            if ((!Modes||Modes.Rules.mode==GameModeKind.Demo||CanEditWorld)&&!(Modes&&Modes.DemoSpectating)&&!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
             if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
             if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);

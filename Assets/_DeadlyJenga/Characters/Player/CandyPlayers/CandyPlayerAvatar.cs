@@ -134,7 +134,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!Rig)return;
             Rig.calibration=!remoteDriven&&survivor&&survivor.IsVR&&!survivor.externallyDriven?CandyAvatarCalibration.Current:null;
             var frame=ReadFrame();
-            bool climbing=survivor&&!survivor.IsVR&&survivor.Climbing;
+            bool climbing=survivor&&survivor.Climbing;
             if(climbing)
             {
                 if(!wasClimbing){climbStartLeft=frame.left;climbStartRight=frame.right;}

@@ -67,7 +67,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!firstPerson&&!firstPersonOverride)return;
             firstPersonOverride=firstPerson;
             if(headRenderer)headRenderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
-            SetFirstPersonBody(firstPerson);
+            SetFirstPersonBody(firstPerson,camera.transform.forward.y<-.91f);
             if(attachments)attachments.FirstPerson(this,firstPerson);
         }
         void AfterCamera(ScriptableRenderContext context,Camera camera){if(!firstPersonOverride)return;firstPersonOverride=false;RestoreFirstPersonBody();if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;if(attachments)attachments.FirstPerson(this,false);}
@@ -137,7 +137,7 @@ namespace DeadlyJenga.CandyPlayers
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
                 Vector3 hip=transform.TransformPoint(torsoOffset+new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
-                if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f,.36f));
+                if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f+Mathf.Max(0,Mathf.Sin(phase))*stride*.4f,.29f+Mathf.Cos(phase)*stride*.75f));
                 else if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
                 int thigh=side==0?8:11;
                 Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
