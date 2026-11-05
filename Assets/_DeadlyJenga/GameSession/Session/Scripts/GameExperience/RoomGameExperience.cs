@@ -165,7 +165,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if(leader&&command.verb=="experience"&&(LobbyVisible||command.value=="demo"&&ActiveMatchVisible))
             {
-                changed=flow.Configure(s.authorityTerm,command.value=="demo",false);
+                changed=command.value=="demo"&&!LobbyVisible?flow.EnableDemo(s.authorityTerm):flow.Configure(s.authorityTerm,command.value=="demo",false);
                 if(changed&&!State.demo)SelectNext();
             }
             else if(leader&&command.verb=="automatic"&&(LobbyVisible||s.phase==GameFlowPhase.Playing||s.phase==GameFlowPhase.Results))

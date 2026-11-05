@@ -160,7 +160,18 @@ namespace DeadlyJenga.CastlePrototype
 
         public bool Configure(int term, bool demo, bool automatic)
         {
-            if (!Owns(term) || Transitioning || !demo && (data.phase == GameFlowPhase.Playing || data.phase == GameFlowPhase.Results)) return false;
+            if (!Owns(term) || Transitioning || data.phase == GameFlowPhase.Playing || data.phase == GameFlowPhase.Results) return false;
+            return ConfigureExperience(demo,automatic);
+        }
+
+        public bool EnableDemo(int term)
+        {
+            if(!Owns(term)||Transitioning||data.phase!=GameFlowPhase.Playing&&data.phase!=GameFlowPhase.Results)return false;
+            return ConfigureExperience(true,false);
+        }
+
+        bool ConfigureExperience(bool demo,bool automatic)
+        {
             data.demo = demo; data.automatic = !demo && automatic; data.profileId = ""; data.startRequested = false;
             data.playlistIds=Array.Empty<string>();
             data.withdrawnIds=Array.Empty<string>();
