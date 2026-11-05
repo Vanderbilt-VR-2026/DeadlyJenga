@@ -12,7 +12,9 @@ namespace DeadlyJenga.Presentation
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=go=>{if(!go.GetComponent<CandyHealthFeedback>())go.AddComponent<CandyHealthFeedback>();};
         void OnEnable()=>GameEvents.Damaged+=Hit;
-        void OnDisable()=>GameEvents.Damaged-=Hit;
+        void OnDisable(){GameEvents.Damaged-=Hit;ResetDisplay();}
+        void ResetDisplay()
+        {if(canvas)canvas.enabled=false;owner=null;actor=null;previous=-1;pulse=healing=0;wasAlive=false;}
         void Hit(GameObject who,float amount)
         {if(who&&amount>0&&Services.Session?.Player!=null&&who.transform.root==Services.Session.Player.transform.root)pulse=Mathf.Max(pulse,Mathf.Clamp(.35f+amount*.02f,.35f,1));}
         void Build()
@@ -35,9 +37,10 @@ namespace DeadlyJenga.Presentation
         {var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var i=go.GetComponent<Image>();i.raycastTarget=false;i.rectTransform.sizeDelta=size;i.rectTransform.anchoredPosition=pos;return i;}
         void Update()
         {
-            var match=MatchRuntime.Current;var session=Services.Session;if(match==null||session==null){if(canvas)canvas.enabled=false;return;}
+            var match=MatchRuntime.Current;var session=Services.Session;
+            if(match==null||session==null||!session.ActiveCamera||!session.ActiveCamera.isActiveAndEnabled){ResetDisplay();return;}
             if(!ReferenceEquals(owner,match)||actor!=match.LocalActorId){owner=match;actor=match.LocalActorId;previous=-1;pulse=healing=0;}
-            var p=System.Array.Find(match.Frame.players,v=>v.id==actor);if(p==null)return;
+            var p=System.Array.Find(match.Frame.players,v=>v.id==actor);if(p==null){ResetDisplay();return;}
             bool alive=p.alive&&!p.dying;
             if(previous>=0&&wasAlive&&alive)
             {

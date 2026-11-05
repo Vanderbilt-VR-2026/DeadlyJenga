@@ -52,12 +52,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (!(owner is Object alive && alive)) owner = GetComponent<IMovementState>();
             var view = owner as IPlayerView;
-            if (view != null && view.ControlledHere && view.ViewCamera) Present(owner, Time.unscaledDeltaTime);
+            if (view != null && view.ControlledHere && view.ViewCamera && view.ViewCamera.isActiveAndEnabled) Present(owner, Time.unscaledDeltaTime);
+            else Hide();
         }
         public void Present(IMovementState motor,float dt)
         {
             var view=motor as IPlayerView;var body=motor as Behaviour;
-            if(view==null||!body)return;
+            if(view==null||!body||!view.ControlledHere||!view.ViewCamera||!view.ViewCamera.isActiveAndEnabled){Hide();return;}
             var viewCamera=view.ViewCamera;
             if(!canvas)Build();
             if(attachedCamera!=viewCamera||vr!=view.IsVR||canvas.renderMode==RenderMode.ScreenSpaceOverlay&&view.IsVR)
@@ -77,7 +78,8 @@ namespace DeadlyJenga.CastlePrototype
             CandyHudLayout.Configure(canvas,transform,attachedCamera,vr);
             panel.anchorMin=panel.anchorMax=new Vector2(.5f,.5f);panel.anchoredPosition=CandyHudLayout.StaminaPosition;
         }
-        void OnDisable(){if(canvas)canvas.enabled=false;}
+        void Hide(){if(canvas)canvas.enabled=false;if(group)group.alpha=0;}
+        void OnDisable()=>Hide();
         void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
     }
 }
