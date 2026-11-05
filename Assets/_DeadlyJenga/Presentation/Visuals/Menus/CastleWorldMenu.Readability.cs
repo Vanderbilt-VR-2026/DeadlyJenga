@@ -4,7 +4,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleWorldMenu
     {
-        void LateUpdate()
+        void ApplyLabelContrast()
         {
             for(int i=0;i<buttons.Length;i++)
             {

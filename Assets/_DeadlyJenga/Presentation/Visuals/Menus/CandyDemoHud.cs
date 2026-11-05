@@ -24,8 +24,10 @@ namespace DeadlyJenga.CastlePrototype
         IDemoControls Demo=>session.Demo;
         bool Climbing=>Move!=null&&Move.Climbing;
         string DemoStatus=>Demo!=null?Demo.Status:"";
-        int page,selection;Vector2 scroll;bool lastMenu,lastRole,lastVR;float changedAt;float nextHintSample;string lastContext="";
-        float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,box;GUISkin themed;bool ready;
+        int page,selection;Vector2 scroll;bool lastMenu;float nextHintSample;string lastContext="";
+        const float IntroSeconds=4.5f;
+        float introRemaining=IntroSeconds;bool introReplay;string introKey;
+        float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,compactButton,box;GUISkin themed;bool ready;
         Canvas hintCanvas;CanvasGroup hintGroup;Text roleText,statusText,menuText;
         readonly Text[] hintKeys=new Text[3],hintNames=new Text[3];readonly RawImage[] hintIcons=new RawImage[3];
         readonly System.Collections.Generic.List<Action> navActions=new System.Collections.Generic.List<Action>();int navCount,drawIndex;bool activate;
@@ -50,16 +52,17 @@ namespace DeadlyJenga.CastlePrototype
         public string InputLabel=>session==null||session.Player==null?"Keyboard + mouse":session.IsVR?(TrackedHands?"Hand tracking":"VR controllers"):"Keyboard + mouse";
         bool TrackedHands=>Active!=null&&Active.HasHandTracking;
         bool Ready=>session!=null&&session.Player!=null&&session.Hand!=null;
-        void Awake(){session=GetComponent<ISessionInfo>();changedAt=Time.unscaledTime;}
+        void Awake(){session=GetComponent<ISessionInfo>();}
         void Update()
         {
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
+            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(!Ready)return;
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
             if(studio)studio.ShowLauncher=false;
-            if(lastRole!=session.PlayingHand||lastVR!=session.IsVR){changedAt=Time.unscaledTime;lastRole=session.PlayingHand;lastVR=session.IsVR;}
-            if(session.MenuOpen&&!lastMenu){selection=0;changedAt=Time.unscaledTime;}
+            if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
+            if(session.MenuOpen&&!lastMenu){selection=0;}
             lastMenu=session.MenuOpen;
             var k=Keyboard.current;
             if(k!=null&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
@@ -75,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(k.downArrowKey.wasPressedThisFrame){selection=(selection+1)%Mathf.Max(1,navCount);FollowSelection();}
                 if(k.enterKey.wasPressedThisFrame||k.numpadEnterKey.wasPressedThisFrame)activate=true;
             }
-            if(k!=null&&!session.MenuOpen&&k.f1Key.wasPressedThisFrame){hintMode=hintMode==HintMode.Hidden?HintMode.Adaptive:HintMode.Hidden;changedAt=Time.unscaledTime;}
+            if(k!=null&&!session.MenuOpen&&k.f1Key.wasPressedThisFrame){hintMode=hintMode==HintMode.Hidden?HintMode.Adaptive:HintMode.Hidden;if(hintMode==HintMode.Adaptive)ReplayIntro();}
             PresentHints();
         }
         void ChangePage(int next){page=next;SelectSection(0);}
@@ -88,6 +91,7 @@ namespace DeadlyJenga.CastlePrototype
             cardHeading=new GUIStyle(heading){fontSize=19,wordWrap=true};
             small=new GUIStyle(body){fontSize=18,normal={textColor=new Color(.90f,.87f,.96f)}};
             button=new GUIStyle(GUI.skin.button){font=font,fontSize=19,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(14,12,8,8),border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded,textColor=Color.white},hover={background=CandyHudVisuals.Rounded,textColor=Color.white},active={background=CandyHudVisuals.Rounded,textColor=Color.white}};
+            compactButton=new GUIStyle(button){fontSize=18,padding=new RectOffset(8,8,3,3)};
             box=new GUIStyle(GUI.skin.box){font=font,fontSize=19,wordWrap=true,border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
             button.padding=new RectOffset(14,12,2,2);button.wordWrap=true;
             themed=Instantiate(GUI.skin);themed.hideFlags=HideFlags.HideAndDontSave;themed.font=font;themed.label=body;themed.button=new GUIStyle(button);themed.box=box;
@@ -99,7 +103,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnGUI()
         {
-            if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true)return;
             DrawSpectatorLabels();
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
@@ -120,24 +124,26 @@ namespace DeadlyJenga.CastlePrototype
         void Panel(Rect r,Color c){var old=GUI.backgroundColor;GUI.backgroundColor=c;GUI.Box(r,GUIContent.none,box);GUI.backgroundColor=old;}
         void Icon(Rect r,CandyHudIcon icon,Color c){var old=GUI.color;GUI.color=c;GUI.DrawTexture(r,CandyHudVisuals.Icon(icon));GUI.color=old;}
         bool Button(Rect r,string text,Color color)
-        {var old=GUI.backgroundColor;GUI.backgroundColor=color;var foreground=color.grayscale>.5f?CandyHudVisuals.Ink:Color.white;button.normal.textColor=button.hover.textColor=button.active.textColor=button.focused.textColor=foreground;bool result=GUI.Button(r,text,button);GUI.backgroundColor=old;return result;}
+        {var old=GUI.backgroundColor;GUI.backgroundColor=color;var foreground=color.grayscale>.5f?CandyHudVisuals.Ink:Color.white;var style=r.height<=34?compactButton:button;style.normal.textColor=style.hover.textColor=style.active.textColor=style.focused.textColor=foreground;bool result=GUI.Button(r,text,style);GUI.backgroundColor=old;return result;}
         void DrawMenu(int id)
         {
             page=Mathf.Clamp(page,0,PageCount-1);
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
             Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
-            GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
-            GUI.Label(new Rect(95,71,775,30),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
+            if(GameExperiencePanel.Resolve(session)!=null){if(Button(new Rect(93,23,470,45),"GAME / DEMO - ROUND SETUP",CandyHudVisuals.Card))GameExperiencePanel.Open(session);}
+            else GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
+            GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
+            if(Button(new Rect(256,94,220,28),"Controls & Comfort",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
             var inspection=CandyThirdPersonInspection.For(session);
-            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,88,207,30),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
+            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
             if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
             string joinCode=MultiplayerPanel.JoinCode(session.Multiplayer);
-            if(joinCode.Length>0&&Button(new Rect(570,88,379,30),"Join code: "+joinCode+"   ·   Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
+            if(joinCode.Length>0&&Button(new Rect(488,94,248,28),"Code: "+joinCode+" / Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
             var review=MatchRuntime.Current as IMatchReviewControls;
             if(review?.DevelopmentReviewEnabled==true)
-            {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),"End Game",CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
-            if(HandLooks.Names.Length>0&&Button(new Rect(748,88,201,30),"Hand: "+HandLooks.ChosenName+"  >",CandyHudVisuals.Card))HandLooks.Chosen++;
+            {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),MultiplayerPanel.EndAction(session.Multiplayer),CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
+            if(HandLooks.Names.Length>0&&Button(new Rect(748,94,201,28),"Hand Appearance",CandyHudVisuals.Card))CharacterPicker.Open(session);
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
@@ -181,7 +187,7 @@ namespace DeadlyJenga.CastlePrototype
             var match=MatchRuntime.Current;bool watching=false;if(match?.Frame!=null)foreach(var row in match.Frame.players)if(row.id==match.LocalActorId&&row.role=="spectator")watching=true;
             if(watching){ActionCard(119,CandyHudIcon.Survivor,"Previous survivor","Switch to another living player's view.",()=>{match.NextSpectator(-1);session.SetMenu(false);});ActionCard(223,CandyHudIcon.Survivor,"Next survivor","Your team is shown while teammates remain alive.",()=>{match.NextSpectator(1);session.SetMenu(false);});return;}
 
-            ActionCard(119,session.PlayingHand?CandyHudIcon.Survivor:CandyHudIcon.Hand,session.PlayingHand?"Become a survivor":"Become a giant hand",session.PlayingHand?"Spawn at the top and explore the castle.":"Fly around the tower and push its candy blocks.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);});
+            ActionCard(119,session.PlayingHand?CandyHudIcon.Survivor:CandyHudIcon.Hand,session.PlayingHand?"Become Survivor":"Become Flying Hand",session.PlayingHand?"Spawn at the top and explore the castle.":"Fly around the tower and push its candy blocks.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);});
             ActionCard(223,CandyHudIcon.Home,"Back to the top","Respawn as a survivor on the highest upright block.",()=>{session.SetRole(false);session.SetMenu(false);});
             ActionCard(327,CandyHudIcon.Home,"Rebuild the castle",EditWorld?"Restore the whole tower and reposition the demo actors.":"The host controls the shared castle.",()=>{session.ResetMap();session.SetMenu(false);},EditWorld,CandyHudVisuals.Peach);
             if (Demo is IBuildUpControls buildUp && buildUp.Available)
@@ -195,7 +201,7 @@ namespace DeadlyJenga.CastlePrototype
                 ActionCard(743,CandyHudIcon.Play,"Spawn 3x jump orb","20 seconds of triple jump height and unlimited stamina. Recollect to refresh.",()=>{Demo.Run(DemoCommand.SpawnJumpPowerup);session.SetMenu(false);},can,CandyHudVisuals.Lavender);
                 var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();
                 ActionCard(847,CandyHudIcon.Play,"BLASTER TESTING: "+(gun?.TestingEnabled==true?"ON":"OFF"),"Enable plasma weapons for this Demo session. Host controls the testing toggle.",()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&MatchRuntime.Current?.Authority==true,CandyHudVisuals.Mint);
-                ActionCard(951,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. Dominant upper face button toggles the weapon. Trigger fires.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
+                ActionCard(951,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. In VR use Grip + left Y or right B; trigger fires. Drop equipment with Delete or the Drop menu action.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
                 ActionCard(1055,CandyHudIcon.Settings,"DOMINANT HAND: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Sets the weapon hand and the movement stick.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
                 int weaponRow=0;
                 foreach(EquipmentKind kind in new[]{EquipmentKind.Blaster,EquipmentKind.MurderSword,EquipmentKind.SheriffHammer,EquipmentKind.DualRifle,EquipmentKind.BoxingGlove,EquipmentKind.PoweredArmor})
@@ -252,7 +258,7 @@ namespace DeadlyJenga.CastlePrototype
                 else
                 {
                     var map=item.map;string id=map.id;
-                    ActionCard(y,CandyHudIcon.Home,demoMapPicker.Title(item),"Load this map with the current mode. The map starts fresh.",()=>maps.SelectMap(id),maps.CanSelectMap&&map.available&&id!=maps.CurrentMapId,preview:MapPreviewImages.Get(id));
+                    ActionCard(y,CandyHudIcon.Home,demoMapPicker.Title(item),"Load this map with the current mode. The map starts fresh.",()=>maps.SelectMap(id),GameExperiencePanel.CanEditRawChoices(session)&&maps.CanSelectMap&&map.available&&id!=maps.CurrentMapId,preview:MapPreviewImages.Get(id));
                 }
                 y+=104;
             }
@@ -354,12 +360,13 @@ namespace DeadlyJenga.CastlePrototype
         void ModesPage()
         {
             var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();
+            bool editable=GUI.enabled;GUI.enabled=editable&&GameExperiencePanel.CanEditRawChoices(session);
+            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();GUI.enabled=editable;
             GUI.backgroundColor=background;
         }
         void SettingsPage()
         {
-            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive shows prompts when controls change. Always keeps them visible. Hidden turns them off.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);changedAt=Time.unscaledTime;});
+            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive shows a short first-run intro. Always shows detailed controls. Hidden turns hints off.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);});
             GUI.Label(new Rect(12,230,820,29),"Hint opacity  ·  "+Mathf.RoundToInt(hintOpacity*100)+"%",body);hintOpacity=GUI.HorizontalSlider(new Rect(12,270,815,24),hintOpacity,.5f,1);
             Note(310,"Tip: F1 toggles gameplay hints. Use a larger Game view for a larger menu. Settings here apply to this running session.");
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
@@ -378,11 +385,14 @@ namespace DeadlyJenga.CastlePrototype
         {
             var inspection=CandyThirdPersonInspection.For(session);
             ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection.Begin(),inspection?.CanInspect==true);
+            if(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0)
+                Note(550,DeadlyJenga.Presentation.CandyEquipmentView.SwapInputHint(session));
             var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
-            Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Tab switches survivor / giant hand during play. F8 opens Sound Studio.":"MENU: left Y opens / closes. Look at a button, then squeeze RIGHT trigger. With tracked hands, left thumb + middle finger toggles the menu; RIGHT pinch selects.");
+            if(!(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0))Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles. F8 opens Sound Studio.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
             Note(661,"SURVIVOR: jump toward a block, then press jump again near its edge to vault. Hold jump near a wall to catch it; move to climb or shimmy, then release to drop. Rest on secure ground to recover grip.");
             Note(787,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
-            Note(919,"Input icons reflect the demo bindings. They are not remapping controls. After tracking loss, release your gesture before starting again. Survivor movement uses LEFT stick; hand gestures do not replace that stick.");
+            Note(919,"SURVIVOR SPRINT: click the movement stick or tap Left Shift to toggle while grounded. Jumping or climbing ends sprint. Single-controller weapon mode: Grip + X / A; two controllers: support trigger. Grip + stick click opens emotes. Delete or the Drop menu action drops equipment.");
+            Note(1051,"SUIT: V takes off / lands; WASD flies; Q lowers / E rises; left click fires. In VR the flight controller stick flies, trigger rises and grip lowers. Grip + Y toggles left; B toggles right. The tracked other hand trigger or pinch fires. Release input after menu or tracking changes.");
         }
         public struct Hint
         {
@@ -456,41 +466,70 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             if(controls?.PendingPickup>0)
-                return vr?new[]{Controller(equipment?.leftHanded==true,ControllerPart.Trigger,"Swap weapon"),
-                    Controller(single?left:equipment?.leftHanded!=true,single?ControllerPart.Grip:ControllerPart.Trigger,"Keep weapon"),move}:
-                    new[]{new Hint(CandyHudIcon.Key,"E","Swap weapon"),new Hint(CandyHudIcon.Key,"N","Keep weapon"),move};
+                return new[]{move,jump,new Hint(CandyHudIcon.Help,"READ PICKUP PROMPT","Swap / keep controls")};
 
             if(armed&&equipment.kind==EquipmentKind.PoweredArmor)
             {
+                if(vr&&!left&&!right)return new[]{
+                    new Hint(CandyHudIcon.Hand,"TRACK A CONTROLLER","Controller needed"),
+                    new Hint(CandyHudIcon.Move,"NO TRACKED STICK","Flight unavailable"),
+                    new Hint(CandyHudIcon.Help,"NO TRACKED BUTTON","Toggle unavailable")};
                 bool pilotLeft=single?left:equipment.leftHanded;
-                if(!drawn)return new[]{move,jump,vr?Controller(pilotLeft,ControllerPart.Trigger,"Activate suit"):
+                bool mixedFlightSide=vr&&left&&right&&TrackedHands;
+                if(!drawn)return new[]{move,jump,vr?(mixedFlightSide?new Hint(CandyHudIcon.Key,"FLIGHT: Grip+Y / B","Activate suit"):Controller(pilotLeft,ControllerPart.Secondary,"Activate suit",pilotLeft?"Grip + ":"")):
                     new Hint(CandyHudIcon.Key,"V","Activate suit")};
-                return vr?new[]{Controller(pilotLeft,ControllerPart.Trigger,"Hold to steer / boost"),
-                    TrackedHands?new Hint(CandyHudIcon.Pinch,pilotLeft?"RIGHT PINCH":"LEFT PINCH","Fire palm blaster"):
-                    Controller(!pilotLeft,ControllerPart.Trigger,"Fire palm blaster"),
-                    Controller(pilotLeft,ControllerPart.Trigger,"Land","At holster: ")}:
-                    new[]{new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),
-                        new Hint(CandyHudIcon.Key,"SPACE","Hold to boost"),new Hint(CandyHudIcon.Key,"LEFT CLICK","Fire palm blaster")};
+                var fingers=session.Player.gameObject.GetComponent<IFingerTips>();
+                bool otherController=pilotLeft?right:left;
+                bool otherTracked=fingers!=null&&fingers.TryIndexTip(!pilotLeft,out _);
+                string fire=otherController?(pilotLeft?"R trig":"L trig"):
+                    otherTracked?(pilotLeft?"R pinch":"L pinch"):"";
+                string land=pilotLeft?"Grip+Y":"B";
+                if(mixedFlightSide)return new[]{
+                    new Hint(CandyHudIcon.Move,"FLIGHT STICK","Fly"),
+                    new Hint(CandyHudIcon.Key,"FLIGHT TRIG / GRIP","Rise / descend"),
+                    new Hint(CandyHudIcon.Key,"OTHER / Grip+Y,B","Fire / land")};
+                return vr?new[]{Controller(pilotLeft,ControllerPart.Stick,"Fly"),
+                    new Hint(CandyHudIcon.Key,pilotLeft?"L trigger / grip":"R trigger / grip","Rise / descend"),
+                    new Hint(CandyHudIcon.Key,fire.Length>0?fire+" / "+land:land,fire.Length>0?"Fire / land":"Land")}:
+                    new[]{new Hint(CandyHudIcon.Move,"W A S D","Fly"),
+                        new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),
+                        new Hint(CandyHudIcon.Key,"L CLICK / V","Fire / land")};
             }
             if(armed)
             {
-                bool weaponLeft=equipment.leftHanded;
+                bool weaponLeft=single?left:equipment.leftHanded;
                 var spec=EquipmentSpecifications.Get(equipment.kind);
                 bool swing=spec.melee&&!(modeSwitch&&equipment.shotgun);
                 bool bash=drawn&&!swing&&MatchRuntime.Current?.Rules?.punchEnabled==true;
                 var attack=!vr?new Hint(CandyHudIcon.Key,drawn?"LEFT CLICK":"V",drawn?(swing?"Attack":bash?"Fire / T bash":"Fire"):"Draw"):
                     swing&&drawn?new Hint(CandyHudIcon.Hand,weaponLeft?"LEFT HAND":"RIGHT HAND","Swing weapon"):
-                    Controller(weaponLeft,drawn?ControllerPart.Trigger:ControllerPart.Secondary,drawn?(!bash?"Fire":single?"Fire / jab to bash":weaponLeft?"Fire / A bash":"Fire / X bash"):"Draw");
+                    Controller(weaponLeft,drawn?ControllerPart.Trigger:ControllerPart.Secondary,drawn?(!bash?"Fire":single?"Fire / jab to bash":weaponLeft?"Fire / A bash":"Fire / X bash"):"Draw",!drawn&&weaponLeft?"Grip + ":"");
                 var extra=modeSwitch?
-                    (vr?Controller(single?left:!weaponLeft,single?ControllerPart.Stick:ControllerPart.Trigger,"Switch mode",single?"Click ":""):
+                    (vr?(single?Controller(left,ControllerPart.Primary,"Switch mode","Grip + "):Controller(!weaponLeft,ControllerPart.Trigger,"Switch mode")):
                     new Hint(CandyHudIcon.Key,"R","Switch mode")):
-                    (drawn?vr?Controller(weaponLeft,ControllerPart.Secondary,"Holster"):
+                    (drawn?vr?Controller(weaponLeft,ControllerPart.Secondary,"Holster",weaponLeft?"Grip + ":""):
                     new Hint(CandyHudIcon.Key,"V","Holster"):jump);
                 return new[]{controls?.BlocksTraversal==true?move:jump,attack,extra};
             }
 
             var climb=jump;climb.key="Hold "+jump.key;climb.text="Catch a wall";
             return new[]{move,jump,climb};
+        }
+
+        internal void ReplayIntro()
+        {
+            hintMode=HintMode.Adaptive;introReplay=true;introRemaining=IntroSeconds;
+        }
+
+        Hint[] IntroHints()
+        {
+            if(!session.IsVR)return new[]{
+                new Hint(CandyHudIcon.Look,"MOUSE","Look"),new Hint(CandyHudIcon.Move,"W A S D","Move"),new Hint(CandyHudIcon.Key,"SPACE","Jump")};
+            Controllers(out bool left,out bool right);
+            var jump=Settings?.StandingPlay==true&&TrackedHands&&!right?
+                new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump"):
+                Controller(left&&!right,ControllerPart.Primary,"Jump");
+            return new[]{new Hint(CandyHudIcon.Look,"TURN YOUR HEAD","Look"),Controller(left||!right,ControllerPart.Stick,"Move"),jump};
         }
 
         void BuildHints()
@@ -540,16 +579,28 @@ namespace DeadlyJenga.CastlePrototype
                 viewVR=session.IsVR;hintCamera=camera;
                 DeadlyJenga.Presentation.CandyHudLayout.Configure(hintCanvas,transform,camera,viewVR);
             }
-            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden;
+            bool adaptive=hintMode==HintMode.Adaptive;
+            string key=session.IsVR?"CandyJenga.BasicControlsSeen.v1.VR":"CandyJenga.BasicControlsSeen.v1.Desktop";
+            if(introKey!=key){introKey=key;introRemaining=IntroSeconds;}
+            bool onboarding=adaptive&&introRemaining>0&&(introReplay||PlayerPrefs.GetInt(key,PlayerPrefs.GetInt("DeadlyJenga.TutorialDone",0))==0);
+            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
+                adaptive&&(!onboarding||session.PlayingHand);
+            if(onboarding&&!hidden)
+            {
+                introRemaining-=Time.unscaledDeltaTime;
+                if(introRemaining<=0){PlayerPrefs.SetInt(key,1);introReplay=false;}
+            }
+            if(adaptive){roleText.transform.parent.gameObject.SetActive(false);menuText.transform.parent.gameObject.SetActive(false);}
+            else menuText.transform.parent.gameObject.SetActive(true);
             if(!hidden&&Time.unscaledTime>=nextHintSample)
             {
                 nextHintSample=Time.unscaledTime+.12f;
-                var hints=Hints();
-                string context=InputLabel;
+                var hints=adaptive?IntroHints():Hints();
+                string context=(adaptive?"intro|":"full|")+InputLabel;
                 foreach(var hint in hints)context+="|"+hint.key+"|"+hint.text;
                 if(context!=lastContext)
                 {
-                    lastContext=context;changedAt=Time.unscaledTime;
+                    lastContext=context;
                     for(int i=0;i<hints.Length;i++)
                     {
                         var hint=hints[i];
@@ -562,13 +613,13 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 var multiplayer=session.Multiplayer;
                 bool invite=!string.IsNullOrEmpty(multiplayer?.InvitationFrom);
-                roleText.transform.parent.gameObject.SetActive(MatchRuntime.Current==null||invite);
+                roleText.transform.parent.gameObject.SetActive(!adaptive&&(MatchRuntime.Current==null||invite));
                 roleText.text=invite?"Nearby invite":session.PlayingHand?"Giant hand":"Survivor";
                 statusText.text=invite?"Open Multiplayer":InputLabel;
-                menuText.text=session.IsVR?(TrackedHands?"Thumb + middle · Menu":"Left Y · Menu"):"Esc  Menu     F1  Hints";
+                Controllers(out bool menuLeft,out bool menuRight);
+                menuText.text=session.IsVR?(menuLeft?"Y / native  Menu":menuRight?"Grip+B  Menu":TrackedHands?"Thumb + middle  Menu":"Track controller  Menu"):"Esc  Menu     F1  Hints";
             }
-            bool keep=hintMode==HintMode.Always||Climbing||Time.unscaledTime-changedAt<5;
-            float opacity=hidden?0:keep?hintOpacity:0;
+            float opacity=hidden?0:hintOpacity*(adaptive?.76f:1);
             hintGroup.alpha=Mathf.MoveTowards(hintGroup.alpha,opacity,Time.unscaledDeltaTime*5);
             hintCanvas.enabled=hintGroup.alpha>.001f;
         }

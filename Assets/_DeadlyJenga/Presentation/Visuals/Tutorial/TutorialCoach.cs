@@ -78,20 +78,11 @@ namespace DeadlyJenga.CastlePrototype
             r.sizeDelta = new Vector2(560, top - bottom); r.anchoredPosition = new Vector2(115, (top + bottom) * .5f);
         }
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void Boot()
-        {
-            if (Instance) return;
-            var go = new GameObject("Tutorial coach");
-            DontDestroyOnLoad(go);
-            go.AddComponent<TutorialCoach>();
-        }
-
-        // Plays the tutorial again from the start (menu or dev key).
+        // Runtime onboarding lives in the control HUD. The old coach remains available for art previews.
         public static void Restart()
         {
-            PlayerPrefs.DeleteKey(DoneKey);
-            if (Instance) { Instance.Stop(false); Instance.nextCheck = 0; }
+            if(Services.Session is Component host&&host.TryGetComponent<CandyDemoHud>(out var hud))
+                hud.ReplayIntro();
         }
 
         void Awake()

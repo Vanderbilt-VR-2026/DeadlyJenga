@@ -28,11 +28,12 @@ namespace DeadlyJenga.CastlePrototype
             Add(joinStation,"nearby-next",()=>"MORE ROOMS",-310,l.NextNearbyPage,()=>l.JoinEnabled,235,390,38,()=>l.ShowingNearby&&l.HasMoreNearby);
             Add(joinStation,"code-instead",()=>"HIDE RESULTS",-310,l.ShowCodeEntry,()=>l.JoinEnabled,-235,390,38,()=>l.ShowingNearby);
             Add(joinStation,"accept-invite",()=>"JOIN INVITATION: "+(l.InvitationFrom??""),-155,l.AcceptInvitation,()=>l.JoinEnabled,0,870,60,()=>!l.ShowingNearby&&l.InvitationFrom!=null);
-            Add(joinStation,"leave-guest",()=>l.Busy?"CANCEL JOIN":"LEAVE ISLAND",-260,l.Leave,()=>l.CanLeave,0,870,65,()=>!l.HostActive&&l.CanLeave);
+            Add(joinStation,"leave-guest",()=>TerminalLeaveLabel(l.Busy?"CANCEL JOIN":"LEAVE ROOM"),-260,LeaveFromTerminal,()=>l.CanLeave,0,870,65,()=>!l.HostActive&&l.CanLeave);
             joinHint=Label(joinStation,"Use the enormous keyboard below.",-340,14,900,28);joinHint.color=CandyHudVisuals.Muted;
             BuildKeyboard(joinStation);
             StyleJoinArcade();
             BuildRoomStation();
+            BuildLobbyPortrait();
             BuildGameStation();
             FitTerminal(hostStation,new Vector2(1000,800),1.20f,.84f);
             FitTerminal(setupStation,new Vector2(1100,820),1.22f,.74f);
@@ -42,7 +43,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             joinFace.Opacity=1;setupFace.Opacity=lobby.IsHost?1:.38f;UpdateRoomStation();UpdateGameStation();
             hostCode.gameObject.SetActive(lobby.Connected&&!lobby.Busy);hostCode.text=lobby.HostCode;
-            hostHint.text=lobby.HostHint;setupHint.text=lobby.SetupHint;joinHint.text=lobby.JoinHint;
+            string notice=Details?.Notification;
+            hostHint.text=lobby.Connected&&!string.IsNullOrEmpty(notice)?notice:lobby.HostHint;
+            setupHint.text=lobby.SetupHint;
+            joinHint.text=ConfirmingTerminalLeave&&!lobby.IsHost?"Leaving disconnects you from the host.":lobby.JoinHint;
             if(codeKeyboard!=Keyboard.current){if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;codeKeyboard=Keyboard.current;if(codeKeyboard!=null)codeKeyboard.onTextInput+=CodeText;}
             if(lobby.CodeFocused&&codeKeyboard!=null)
             {
@@ -52,6 +56,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             UpdateKeyboardTouches();
             UpdateCandyDesign();
+            RefreshLobbyPortrait();
         }
         void FitTerminal(RectTransform screen,Vector2 size,float x,float y)
         {

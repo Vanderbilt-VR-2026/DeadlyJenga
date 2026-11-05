@@ -60,7 +60,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PersonalPage()
         {
-            ActionCard(119,CandyHudIcon.Hand,session.PlayingHand?"Become a survivor":"Become a giant hand",DemoMode?"Switch your local character; your mode role is restored when you return.":"The host controls development character changes during a match.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);},DemoMode);
+            ActionCard(119,CandyHudIcon.Hand,session.PlayingHand?"Become Survivor":"Become Flying Hand",DemoMode?"Switch your local character; your mode role is restored when you return.":"The host controls development character changes during a match.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);},DemoMode);
             ActionCard(223,CandyHudIcon.Home,"Return to the top","Place your survivor on the highest safe support.",()=>{session.SetRole(false);session.SetMenu(false);},DemoMode);
             var inspect=CandyThirdPersonInspection.For(session);
             ActionCard(327,CandyHudIcon.Survivor,"Third person inspection","Stand still; orbit and zoom around your character.",()=>inspect.Begin(),inspect.CanInspect);
@@ -68,13 +68,15 @@ namespace DeadlyJenga.CastlePrototype
             ActionCard(431,CandyHudIcon.Hand,item?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V or dominant controller upper face button.",()=>item.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
             ActionCard(535,CandyHudIcon.Settings,"Dominant hand: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Changes the weapon hand.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
             ActionCard(639,CandyHudIcon.Play,"Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),"Legacy alien-blaster test toggle.",()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&MatchRuntime.Current?.Authority==true&&DemoMode);
+            var drop=MatchRuntime.Current as IEquipmentDropRuntime;
+            ActionCard(743,CandyHudIcon.Hand,"Drop weapon here","Leaves your carried item for someone else. Keyboard: Delete. No XR drop chord.",()=>drop.RequestDropEquipment(),drop!=null&&!session.PlayingHand&&item?.Equipment.kind>=EquipmentKind.Blaster);
         }
         void WorldPage()
         {
             ActionCard(119,CandyHudIcon.Home,"Reset / rebuild map","Rebuild the current map and reposition Demo actors.",()=>{session.ResetMap();session.SetMenu(false);},EditWorld,CandyHudVisuals.Peach);
             if(Demo is IBuildUpControls build&&build.Available)ActionCard(223,CandyHudIcon.Play,"Deliver next scaffold tier",build.Delivering?"Delivery in progress":"Advance the staged scaffold map.",()=>build.AdvanceStage(),build.CanAdvance);
             var review=MatchRuntime.Current as IMatchReviewControls;
-            ActionCard(327,CandyHudIcon.Play,"End game","Finish the development round and show results.",()=>review.EndGame(),review?.CanEndGame==true);
+            ActionCard(327,CandyHudIcon.Play,MultiplayerPanel.EndAction(session.Multiplayer),"Finish the round and show results without leaving the room.",()=>review.EndGame(),review?.CanEndGame==true);
         }
         void EnemyPage()
         {

@@ -14,6 +14,7 @@ namespace DeadlyJenga.CastlePrototype
     [DefaultExecutionOrder(210)]
     public sealed partial class IslandLobbyView : MonoBehaviour
     {
+        partial void BuildComfortControls();
         partial void BuildMayhemMarina();
         partial void UpdateMayhemMarina();
         partial void DisposeMayhemMarina();
@@ -47,6 +48,7 @@ namespace DeadlyJenga.CastlePrototype
             wardrobeCancel.AddBinding("<XRController>{LeftHand}/secondaryButton");wardrobeCancel.Enable();
             BuildTerminals();
             BuildCandyDesign();
+            BuildComfortControls();
             BuildWardrobe();
             BuildTVWall();
             BuildMayhemMarina();
@@ -58,7 +60,7 @@ namespace DeadlyJenga.CastlePrototype
             localArt=Instantiate(art?art:prefab.profile);localArt.name="Lobby art (runtime copy)";
             localArt.islandRadius=8;localArt.fitIslandToFoundation=false;localArt.alignSandToFoundation=false;
             localArt.sandHeight=.45f;localArt.sandRelief=.28f;localArt.sandMargin=.65f;localArt.sandShoreWidth=2.1f;localArt.terrainResolution=96;
-            Environment=Instantiate(prefab);Environment.name="Island Â· castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
+            Environment=Instantiate(prefab);Environment.name="Island  /  castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
             lobbySun=new GameObject("Island sunlight").AddComponent<Light>();lobbySun.type=LightType.Directional;lobbySun.enabled=Environment.applyLighting;Environment.sun=lobbySun;
             if((lobby as ILobbyMatchVisitControls)?.VisitingLobby==true)
             {
@@ -91,7 +93,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+            if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
@@ -101,9 +103,20 @@ namespace DeadlyJenga.CastlePrototype
             Point(ray,pressed,select.IsPressed()||Player.SelectHeld||mouse!=null&&mouse.leftButton.isPressed);
             UpdateStations();
         }
+        readonly RoomLeaveConfirmation terminalLeave=new RoomLeaveConfirmation();
+        bool ConfirmingTerminalLeave=>lobby.Connected&&!lobby.IsHost&&!lobby.Busy&&terminalLeave.Pending(lobby,lobby.HostCode,Time.unscaledTime);
+        string TerminalLeaveLabel(string idle)=>ConfirmingTerminalLeave?
+            "CONFIRM LEAVE · DISCONNECT FROM HOST":idle;
+        void LeaveFromTerminal()
+        {
+            if(lobby.CanLeave&&terminalLeave.Select(lobby,lobby.HostCode,lobby.Connected&&!lobby.IsHost&&!lobby.Busy,Time.unscaledTime))
+                lobby.Leave();
+        }
         public bool InvokeChoice(string id)
         {
-            if(id=="leave"){if(!lobby.CanLeave)return false;lobby.Leave();return true;}
+            if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session))return false;
+            if(id=="leave"){if(!lobby.CanLeave)return false;LeaveFromTerminal();return true;}
+            if(!DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session)&&(id.StartsWith("map-",StringComparison.Ordinal)||id.StartsWith("mode-",StringComparison.Ordinal)))return false;
             if(id.StartsWith("map-",StringComparison.Ordinal)&&lobby.SelectMap(id.Substring(4)))return true;
             if(id.StartsWith("mode-",StringComparison.Ordinal)&&lobby.SelectMode(id.Substring(5)))return true;
             var choice=choices.FirstOrDefault(c=>c.id==id);
@@ -119,7 +132,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
                 if(!choice.button||!choice.button.transform.parent.gameObject.activeInHierarchy)continue;
                 bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
-                bool usable=choice.enabled==null||choice.enabled();choice.button.interactable=usable;choice.collider.enabled=usable;
+                bool rawChoice=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
+                bool usable=(choice.enabled==null||choice.enabled())&&(!rawChoice||DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session));choice.button.interactable=usable;choice.collider.enabled=usable;
                 if(choice.title!=null)choice.label.text=choice.title();
                 PaintCandyChoice(choice,false,usable);
                 if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
@@ -127,6 +141,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(choice.physical)UpdatePhysicalKey(choice,false);
             }
             PreviewMapChoice(nearest?.id);
+            UpdateWardrobeChoiceNotice(nearest?.id);
             if(nearest!=null)
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);
@@ -141,7 +156,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy||Player.IsVR)return;
             bool typing=lobby.CodeFocused;
-            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY Â· WASD move Â· mouse look\nE / click selects Â· Esc releases mouse"+(typing?"\nType your code Â· Enter joins Â· Backspace erases":""));
+            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  Esc releases mouse"+(typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
         }
         void OnDestroy()
         {

@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype
                 candyCodeSlots.Add(slot);var letter=CandyReadout(slot,"Character","",0,0,78,66,40);letter.fontStyle=FontStyle.Bold;candyCodeLetters.Add(letter);
             }
             var join=CandyPlace("join",380,185,250,96);CandyPrimary(join);join.title=()=>"JOIN ROOM";CandyText(join,0,0,226,80,30);
-            CandyReadout(candyJoinContent,"Typing help","Type below or use your keyboard.",0,103,950,28,21).color=CandyMuted;
+            CandyReadout(candyJoinContent,"Typing help","Use six room characters, or enter a full region code.",0,103,950,28,21).color=CandyMuted;
             CandyReadout(candyJoinContent,"Discovery divider","OR FIND A ROOM",0,60,650,34,23).color=CandyMuted;
             var search=CandyPlace("detect-nearby",0,-10,1000,80);search.faceColor=new Color(.74f,.55f,.96f);CandyText(search,25,13,780,38,31);
             search.description=CandyReadout((RectTransform)search.button.transform,"Search subtitle","Find hosts on your local network.",25,-22,780,28,21);
