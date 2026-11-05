@@ -93,7 +93,7 @@ namespace DeadlyJenga.Presentation
             Vector3 delta=rear-eye;
             float relief=Vector3.Dot(delta,forward);
             return relief>=.025f*scale&&relief<=.30f*scale&&
-                (delta-forward*relief).sqrMagnitude<=.033f*.033f*scale*scale&&Vector3.Dot(view,forward)>.94f;
+                (delta-forward*relief).sqrMagnitude<=.055f*.055f*scale*scale&&Vector3.Dot(view,forward)>.94f;
         }
         void EnsureLens()
         {

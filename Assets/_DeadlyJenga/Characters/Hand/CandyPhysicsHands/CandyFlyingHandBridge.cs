@@ -90,6 +90,12 @@ namespace DeadlyJenga.CandyPhysicsHands
             {
                 if(!desktop&&!external)
                 {
+                    if(PoseSource==null&&source&&source.trackingOrigin)
+                    {
+                        var origin=source.trackingOrigin;
+                        raw.position=origin.InverseTransformPoint(raw.position);
+                        raw.rotation=Quaternion.Inverse(origin.rotation)*raw.rotation;
+                    }
                     if(!anchored){trackingAnchor=raw.position;anchored=true;}
                     raw.position=actor.motor.transform.position+actor.motor.transform.rotation*((raw.position-trackingAnchor)*settings.size);
                     raw.rotation=actor.motor.transform.rotation*raw.rotation;
@@ -103,7 +109,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(!physical){physical=Instantiate(prefab);physical.name="Contact driven candy hand";physical.settings=settings;physical.left=useLeftHand;physical.JointDrivenFingers=external&&ExternalUsesJointDrives;physical.Build(transition.Pose);trackedGeometry=needsTrackedGeometry;}
             // Wrist movement must stay visible relative to the observer.
             actor.follow.target=actor.motor.transform;
-            actor.follow.positionTarget=null;actor.follow.compactHandView=true;
+            actor.follow.positionTarget=physical.bodies[0].transform;actor.follow.compactHandView=true;
             if(trackedGeometry!=needsTrackedGeometry&&raw.tracked&&transition.Mode==mode)
             {
                 physical.SetInteractive(false);

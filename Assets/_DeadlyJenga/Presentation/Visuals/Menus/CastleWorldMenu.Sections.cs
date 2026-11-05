@@ -13,11 +13,15 @@ namespace DeadlyJenga.CastlePrototype
             var actions=new System.Collections.Generic.List<Action>();var names=new System.Collections.Generic.List<string>();var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();var captions=new System.Collections.Generic.List<string>();
             void Add(string name,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Key,string caption="")
             {names.Add(name);actions.Add(action);enabled.Add(available);art.Add(icon);captions.Add(caption);}
-            if(menuCategory<0){heading.text="IN-GAME CONTROLS";for(int i=0;i<4;i++){int index=i;Add(DemoMenuSections.Tabs[i],()=>{menuCategory=index;menuSection=-1;},icon:DemoMenuSections.Icon(DemoMenuSections.Tabs[i]),caption:DemoMenuSections.TabDescriptions[i]);}Add("Resume",()=>session.SetMenu(false));}
+            if(menuCategory<0){heading.text="IN-GAME CONTROLS";
+                var hand=session.Player?.gameObject.GetComponent<IBlasterControls>();
+                Add("VR settings",()=>comfortPage=true,Settings!=null,CandyHudIcon.Settings,"Turn speed, movement and comfort");
+                Add("Dominant hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT"),()=>hand?.SetLeftHanded(!hand.LeftHanded),hand!=null,CandyHudIcon.Hand);
+                for(int i=0;i<4;i++){int index=i;Add(DemoMenuSections.Tabs[i],()=>{menuCategory=index;menuSection=-1;},icon:DemoMenuSections.Icon(DemoMenuSections.Tabs[i]),caption:DemoMenuSections.TabDescriptions[i]);}Add("Resume",()=>session.SetMenu(false));}
             else if(menuSection<0)
             {
                 heading.text=DemoMenuSections.Tabs[menuCategory];Add("All tabs",()=>menuCategory=-1,icon:CandyHudIcon.Home);
-                var sections=DemoMenuSections.Sections[menuCategory];for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"  ·  "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));}
+                var sections=DemoMenuSections.Sections[menuCategory];for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"  Â·  "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));}
             }
             else
             {
@@ -59,7 +63,7 @@ namespace DeadlyJenga.CastlePrototype
                     var hand=session.Player.gameObject.GetComponent<IBlasterControls>();
                     Add("Dominant hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT"),()=>hand?.SetLeftHanded(!hand.LeftHanded),hand!=null);
                     Add(equipment?.Equipment.drawn==true?"Holster "+equipment.Equipment.kind:"Draw "+(equipment?.Equipment.kind.ToString()??"equipment"),()=>equipment?.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
-                    Add(equipment?.BlocksTraversal==true?"Holster to jump, vault or climb":"Jump: A / pinch. Hold to climb.",()=>{},false);Add("Stamina / audio / scenery",()=>tuningPage=true);}
+                    Add("Jump: dominant lower button / pinch. Hold to climb.",()=>{},false);Add("Stamina / audio / scenery",()=>tuningPage=true);}
                 if(name=="Ground pickups")
                 {
                     int max=Mathf.Min(10,EquipmentSpecifications.All.Length-1-equipmentOffset);
@@ -67,6 +71,8 @@ namespace DeadlyJenga.CastlePrototype
                     if(equipmentOffset>0)Add("Previous items",()=>equipmentOffset=Mathf.Max(0,equipmentOffset-10));if(equipmentOffset+10<EquipmentSpecifications.All.Length-1)Add("More items",()=>equipmentOffset+=10);
                 }
             }
+            transform.position=camera.transform.position+openingForward*1.6f;
+            Physics.SyncTransforms();
             var ray=new Ray(camera.transform.position,camera.transform.forward);
             sectionGlyphsActive=true;
             help.text=menuCategory<0?"Choose a tab. Look at a row and select.":
@@ -84,7 +90,6 @@ namespace DeadlyJenga.CastlePrototype
                 if(hover&&!string.IsNullOrEmpty(captions[i]))help.text=captions[i];
                 if(hover&&pressed){actions[i]();break;}
             }
-            transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();
         }
         void OpenMenuSection(int index)
         {

@@ -13,7 +13,8 @@ namespace DeadlyJenga.CastlePrototype
     {
         sealed class SetupSetting
         {
-            public string label;
+            public string label,id;
+            public bool mysteryOnly;
             public Func<LobbySetup,object> read;
             public Action<LobbySetup,object> write;
             public Type type;
@@ -23,7 +24,14 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<SetupSetting> setupSettings=new List<SetupSetting>();
         readonly List<Image> setupFills=new List<Image>();
         int settingsPage;float nextSettingSend;
-        SetupSetting Setting(int slot){int index=settingsPage*6+slot;return index<setupSettings.Count?setupSettings[index]:null;}
+        bool ShowSetting(SetupSetting setting)=>!setting.mysteryOnly||Details?.SelectedModeId=="mystery";
+        SetupSetting Setting(int slot)
+        {
+            int index=settingsPage*6+slot;
+            foreach(var setting in setupSettings)
+                if(ShowSetting(setting)&&index--==0)return setting;
+            return null;
+        }
         void BuildSetupSettings()
         {
             void Fields(Type type,Func<LobbySetup,object> owner,bool movement=false)
@@ -32,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if(f.Name=="downed"||f.FieldType!=typeof(float)&&f.FieldType!=typeof(int)&&f.FieldType!=typeof(bool)&&f.FieldType!=typeof(string)&&!f.FieldType.IsEnum)continue;
                     if(f.Name=="mode"||f.Name=="carryingFlag"||f.Name=="sinking"||f.Name=="sinkProgress"||f.Name=="disasters"||f.Name=="rules"||f.FieldType==typeof(MatchRules)||f.Name=="playStyle")continue;
-                    var entry=new SetupSetting{label=(movement?"Player / ":"")+ModeSetupPanel.Label(f.Name),read=s=>f.GetValue(owner(s)),write=(s,v)=>f.SetValue(owner(s),v),type=f.FieldType};
+                    var entry=new SetupSetting{id=f.Name,mysteryOnly=type==typeof(MysterySettings),label=(movement?"Player / ":"")+ModeSetupPanel.Label(f.Name),read=s=>f.GetValue(owner(s)),write=(s,v)=>f.SetValue(owner(s),v),type=f.FieldType};
                     ModeSetupPanel.Range(f.Name,out entry.min,out entry.max);
                     if(f.Name=="population"){entry.min=1;entry.max=100;}if(f.Name=="hands"){entry.min=0;entry.max=100;}
                     if(f.Name=="survivorPreset")entry.options=MatchOptions.SurvivorPersonalities();if(f.Name=="handPreset")entry.options=MatchOptions.HandPersonalities();
@@ -46,6 +54,13 @@ namespace DeadlyJenga.CastlePrototype
             }
             Fields(typeof(LobbySetup),s=>s);Fields(typeof(ModeRules),s=>s.rules);Fields(typeof(MatchRules),s=>s.movement,true);
             Fields(typeof(MysterySettings),s=>s.rules.mystery);
+            string[] common={"population","hands","survivorPreset","healthEnabled","friendlyFire","punchEnabled"};
+            var ordered=setupSettings.OrderBy(setting=>
+            {
+                int index=Array.IndexOf(common,setting.id);
+                return index>=0?index:common.Length;
+            }).ToArray();
+            setupSettings.Clear();setupSettings.AddRange(ordered);
             var hazards=Resources.Load<HazardCatalog>("DisasterCatalog");
             if(hazards)foreach(var prefab in hazards.prefabs)
             {
@@ -61,12 +76,17 @@ namespace DeadlyJenga.CastlePrototype
                 int slot=i;float y=310-i*115;
                 var choice=Add(setupStation,"setting-value-"+i,()=>SettingTitle(slot),y,()=>Adjust(slot,1),()=>lobby.CanConfigure,0,600,80,()=>setupPage=="settings"&&Setting(slot)!=null);
                 choice.slide=fraction=>SetFraction(slot,fraction);
+                choice.slideEnabled=()=>
+                {
+                    var type=Setting(slot)?.type;
+                    return type==typeof(float)||type==typeof(int);
+                };
                 var fill=new GameObject("Value fill",typeof(RectTransform),typeof(Image));fill.transform.SetParent(choice.button.transform,false);var image=fill.GetComponent<Image>();image.color=CandyHudVisuals.Mint;image.raycastTarget=false;image.rectTransform.pivot=new Vector2(0,.5f);image.rectTransform.anchoredPosition=new Vector2(-280,-28);image.rectTransform.sizeDelta=new Vector2(0,5);setupFills.Add(image);
                 Add(setupStation,"setting-minus-"+i,()=>"−",y,()=>Adjust(slot,-1),()=>lobby.CanConfigure,-360,85,80,()=>setupPage=="settings"&&Setting(slot)!=null);
                 Add(setupStation,"setting-plus-"+i,()=>"+",y,()=>Adjust(slot,1),()=>lobby.CanConfigure,360,85,80,()=>setupPage=="settings"&&Setting(slot)!=null);
             }
             Add(setupStation,"settings-prev",()=>"PREVIOUS SETTINGS",-395,()=>settingsPage=Mathf.Max(0,settingsPage-1),()=>true,-220,390,55,()=>setupPage=="settings"&&settingsPage>0);
-            Add(setupStation,"settings-next",()=>"MORE SETTINGS",-395,()=>settingsPage++,()=>true,220,390,55,()=>setupPage=="settings"&&(settingsPage+1)*6<setupSettings.Count);
+            Add(setupStation,"settings-next",()=>"MORE SETTINGS",-395,()=>settingsPage++,()=>true,220,390,55,()=>setupPage=="settings"&&(settingsPage+1)*6<setupSettings.Count(ShowSetting));
         }
         string SettingTitle(int slot)
         {
@@ -87,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
         void SetFraction(int slot,float fraction)
         {
             var entry=Setting(slot);if(entry==null)return;
-            if(entry.type!=typeof(float)&&entry.type!=typeof(int)){if(Time.unscaledTime>=nextSettingSend){Adjust(slot,1);nextSettingSend=Time.unscaledTime+.3f;}return;}
+            if(entry.type!=typeof(float)&&entry.type!=typeof(int))return;
             if(Time.unscaledTime<nextSettingSend)return;nextSettingSend=Time.unscaledTime+.12f;
             var state=Details.Setup;float value=Mathf.Lerp(entry.min,entry.max,fraction);entry.write(state,entry.type==typeof(int)?(object)Mathf.RoundToInt(value):value);Details.ConfigureSetup(state);
         }

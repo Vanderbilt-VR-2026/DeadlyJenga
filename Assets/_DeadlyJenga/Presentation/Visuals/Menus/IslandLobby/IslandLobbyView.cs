@@ -24,7 +24,7 @@ namespace DeadlyJenga.CastlePrototype
         public CandyEnvironment Environment {get;private set;}
         CandyArtProfile localArt;
         InputAction select,wardrobeCancel;
-        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;}
+        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
         readonly List<Choice> choices=new List<Choice>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -58,7 +58,7 @@ namespace DeadlyJenga.CastlePrototype
             localArt=Instantiate(art?art:prefab.profile);localArt.name="Lobby art (runtime copy)";
             localArt.islandRadius=8;localArt.fitIslandToFoundation=false;localArt.alignSandToFoundation=false;
             localArt.sandHeight=.45f;localArt.sandRelief=.28f;localArt.sandMargin=.65f;localArt.sandShoreWidth=2.1f;localArt.terrainResolution=96;
-            Environment=Instantiate(prefab);Environment.name="Island · castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
+            Environment=Instantiate(prefab);Environment.name="Island Â· castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
             lobbySun=new GameObject("Island sunlight").AddComponent<Light>();lobbySun.type=LightType.Directional;lobbySun.enabled=Environment.applyLighting;Environment.sun=lobbySun;
             if((lobby as ILobbyMatchVisitControls)?.VisitingLobby==true)
             {
@@ -70,13 +70,32 @@ namespace DeadlyJenga.CastlePrototype
             Environment.Refresh();var sand=Environment.sandRenderer;
             lobby.SetFloor(sand.GetComponent<MeshFilter>().sharedMesh,sand.transform);   // the lobby makes the floor collider
         }
+        TextMesh lobbyAimDot;
+        void DrawLobbyAim(Ray ray,float distance,bool hit)
+        {
+            if(!Player.IsVR){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(!lobbyAimDot)
+            {
+                lobbyAimDot=new GameObject("Lobby gaze cursor").AddComponent<TextMesh>();
+                lobbyAimDot.transform.SetParent(transform,false);
+                lobbyAimDot.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                lobbyAimDot.GetComponent<Renderer>().sharedMaterial=lobbyAimDot.font.material;
+                lobbyAimDot.anchor=TextAnchor.MiddleCenter;
+                lobbyAimDot.fontSize=48;
+            }
+            lobbyAimDot.gameObject.SetActive(true);
+            lobbyAimDot.text=hit?"●":"·";
+            lobbyAimDot.color=hit?CandyHudVisuals.Mint:Color.white;
+            lobbyAimDot.characterSize=.009f*distance;
+            lobbyAimDot.transform.SetPositionAndRotation(ray.GetPoint(distance-.015f),Quaternion.LookRotation(ray.direction));
+        }
         void Update()
         {
             if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
-            if(UpdateWardrobe())return;
+            if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             bool pressed=select.WasPressedThisFrame()||Player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
             Ray ray=!Player.IsVR&&session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
             Point(ray,pressed,select.IsPressed()||Player.SelectHeld||mouse!=null&&mouse.leftButton.isPressed);
@@ -112,16 +131,17 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);
                 PaintCandyChoice(nearest,true,true);
-                if(nearest.slide!=null&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
+                if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
                 else if(pressed)InvokeChoice(nearest.id);
             }
+            DrawLobbyAim(ray,nearest!=null?distance:1.5f,nearest!=null);
             UpdateModeCardFocus(nearest?.id);
         }
         void OnGUI()
         {
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy||Player.IsVR)return;
             bool typing=lobby.CodeFocused;
-            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY · WASD move · mouse look\nE / click selects · Esc releases mouse"+(typing?"\nType your code · Enter joins · Backspace erases":""));
+            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY Â· WASD move Â· mouse look\nE / click selects Â· Esc releases mouse"+(typing?"\nType your code Â· Enter joins Â· Backspace erases":""));
         }
         void OnDestroy()
         {

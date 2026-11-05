@@ -65,7 +65,7 @@ namespace DeadlyJenga.CastlePrototype
             var inspect=CandyThirdPersonInspection.For(session);
             ActionCard(327,CandyHudIcon.Survivor,"Third person inspection","Stand still; orbit and zoom around your character.",()=>inspect.Begin(),inspect.CanInspect);
             var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var item=session.Player.gameObject.GetComponent<IEquipmentControls>();
-            ActionCard(431,CandyHudIcon.Hand,item?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V or controller trigger at its holster.",()=>item.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
+            ActionCard(431,CandyHudIcon.Hand,item?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V or dominant controller upper face button.",()=>item.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
             ActionCard(535,CandyHudIcon.Settings,"Dominant hand: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Changes the weapon hand.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
             ActionCard(639,CandyHudIcon.Play,"Blaster testing: "+(gun?.TestingEnabled==true?"ON":"OFF"),"Legacy alien-blaster test toggle.",()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&MatchRuntime.Current?.Authority==true&&DemoMode);
         }

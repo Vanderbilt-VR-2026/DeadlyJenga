@@ -86,6 +86,21 @@ namespace DeadlyJenga.CastlePrototype
             transform.SetPositionAndRotation(camera.transform.position + camera.transform.forward * 1.6f, camera.transform.rotation);
             Physics.SyncTransforms();
         }
+        TextMesh gazeDot;
+        void DrawGazeDot(Camera camera)
+        {
+            if(!gazeDot)
+            {
+                gazeDot=new GameObject("Demo gaze cursor").AddComponent<TextMesh>();
+                gazeDot.transform.SetParent(transform,false);
+                gazeDot.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                gazeDot.GetComponent<Renderer>().sharedMaterial=gazeDot.font.material;
+                gazeDot.text="•";gazeDot.fontSize=48;gazeDot.characterSize=.009f;
+                gazeDot.anchor=TextAnchor.MiddleCenter;gazeDot.color=CandyHudVisuals.Mint;
+            }
+            var eye=camera.transform;
+            gazeDot.transform.SetPositionAndRotation(eye.position+eye.forward*.80f,eye.rotation);
+        }
         public void Point(Camera camera, bool pressed,bool held=false)
         {
             string code=MultiplayerPanel.JoinCode(session.Multiplayer);
@@ -97,6 +112,7 @@ namespace DeadlyJenga.CastlePrototype
                 for(int i=0;i<sectionGlyphs.Length;i++)
                     sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);
             }
+            if(camera)DrawGazeDot(camera);
             if(PointMapControls(camera,pressed))return;
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}
@@ -136,7 +152,7 @@ namespace DeadlyJenga.CastlePrototype
             else if(comfortPage&&Settings!=null)
             {
                 var p=Settings;var social=session.Social;
-                string[] titles={"Resume","Movement: "+p.MovementLabel,"Look: "+p.TurnLabel+" (single stick: hold grip)",p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+" deg / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Left stick moves in both modes","Physical head turns always look around","Seated: A jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
+                string[] titles={"Resume","Movement: "+p.MovementLabel,"Look: "+p.TurnLabel+" (single stick: hold grip)",p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+" deg / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Dominant stick moves. Other stick looks.","Physical head turns always look around","Dominant lower face button jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
                 if(social!=null)
                 {
                     titles[7]=social.MicrophoneOn?"Mute microphone":"Enable microphone (permission)";

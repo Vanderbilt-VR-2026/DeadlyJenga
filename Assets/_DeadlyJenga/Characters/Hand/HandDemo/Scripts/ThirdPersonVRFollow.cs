@@ -94,7 +94,7 @@ namespace FlyingHand
             yaw = target.eulerAngles.y;
             Quaternion rotation = Quaternion.Euler(0, yaw, 0);
             if(viewInitialized&&!desktopView)CaptureHeadBaseline();
-            Vector3 desired=FollowPosition+rotation*new Vector3(0,compactHandView?handViewHeight:height,-(compactHandView?handViewDistance:distance));
+            Vector3 desired=FollowPosition+rotation*new Vector3(0,compactHandView?(desktopView?handViewHeight:.22f):height,-(compactHandView?handViewDistance:distance));
             if(viewInitialized)desired-=ViewOffset(rotation);
             transform.SetPositionAndRotation(desired, rotation);
             velocity = Vector3.zero;
@@ -124,7 +124,7 @@ namespace FlyingHand
                 else yaw=Mathf.LerpAngle(yaw,target.eulerAngles.y,1-Mathf.Exp(-yawResponse*dt));
             }
             Quaternion rotation=Quaternion.Euler(0,yaw,0);
-            float d=compactHandView?handViewDistance:distance,h=compactHandView?handViewHeight:height;
+            float d=compactHandView?handViewDistance:distance,h=compactHandView?(desktopView?handViewHeight:.22f):height;
             Vector3 desired=FollowPosition+rotation*new Vector3(0,h,-d);
             desired-=ViewOffset(rotation);
             // The motor already interpolates flight. A second spring makes VR drift

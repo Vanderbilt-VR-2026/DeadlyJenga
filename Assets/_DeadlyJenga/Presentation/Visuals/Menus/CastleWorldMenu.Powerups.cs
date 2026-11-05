@@ -20,6 +20,9 @@ namespace DeadlyJenga.CastlePrototype
                 int item=equipmentOffset+i;bool entry=i>=1&&i<=8&&item<EquipmentSpecifications.All.Length;
                 buttons[i].gameObject.SetActive(entry||i==0||i>=9);targets[i].enabled=i==0||entry&&can||i==9&&equipmentOffset>0||i==10&&equipmentOffset+8<EquipmentSpecifications.All.Length-1||i==11&&everyone!=null||i==12&&giveAllEquipment||i==13&&host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None||i==14;
                 labels[i].text=i==0?"Back":i==9?"Previous items":i==10?"More items":i==11?"Target: "+(giveAllEquipment?"ALL PLAYERS + BOTS":"MYSELF"):i==12?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":i==13?"Stop respawn grants":i==14?"Random spawn settings":entry?"Give "+EquipmentSpecifications.All[item].name:"";
+                var picture=entry?DeadlyJenga.Presentation.CandyEquipmentView.Outline((EquipmentKind)item):null;
+                sectionGlyphs[i].texture=picture?picture:CandyHudVisuals.Icon(CandyHudIcon.Key);
+                sectionGlyphs[i].gameObject.SetActive(entry);
                 bool hover=targets[i].enabled&&targets[i].Raycast(ray,out _,4);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=targets[i].enabled?Color.white:CandyHudVisuals.Muted;
                 if(!hover||!pressed)continue;
                 if(i==0){giveEquipmentPage=false;menuSection=-1;}

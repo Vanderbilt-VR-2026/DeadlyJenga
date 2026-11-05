@@ -110,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
                 // Rest on secure ground only. Dropping/regrabbing or changing blocks never refills grip.
                 if(Grounded&&GroundAngle<=slopeGripAngle&&SupportAtRest())climbGroundRest+=dt;else climbGroundRest=0;
                 if(climbGroundRest>Mathf.Max(0,climbRecoveryDelay))GripRemaining=CastleStaminaCurve.Advance(GripRemaining,Mathf.Max(0,climbRecoveryPerSecond)*dt,climbRecoveryCurve,climbRecoveryDegree);
-                if(!climbingEnabled||((modeRules!=null&&!modeRules.canClimb)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
+                if(!climbingEnabled||(modeRules!=null&&!modeRules.canClimb)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
                 var facing=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 if(!FindClimbFace(Feet,facing,out var initial))return false;
                 BindClimb(initial);climbPointVelocity=PointVelocity();

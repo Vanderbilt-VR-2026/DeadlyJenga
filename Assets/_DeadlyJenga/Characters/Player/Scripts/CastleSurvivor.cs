@@ -142,8 +142,12 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     DetectHybridControls();
-                    walking = FilterVRMove(DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick());
-                    var looking=turn.ReadValue<Vector2>();
+                    bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
+                    bool bothControllers=DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
+                        DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false);
+                    walking=FilterVRMove(bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(dominantLeft):
+                        DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick());
+                    var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(!dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
                     {
                         bool look=vrTurn!=SurvivorVRTurn.PhysicalOnly&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;
@@ -152,9 +156,8 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     ApplyVRLook(looking,Time.deltaTime);
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
-                    var blaster=GetComponent<DeadlyJenga.CandyPlayers.CandyBlaster>();blasterJumpOverride=GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.UsesTriggers==true&&!HasHandTracking;
                     var gestureHand=candyTracking?candyTracking.GestureHand:default;
-                    bool jumpButton=jump.IsPressed()||(blasterJumpOverride&&blaster&&blaster.JumpHeld);
+                    bool jumpButton=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.PrimaryHeld(dominantLeft):jump.IsPressed();
                     jumpButton|=DeadlyJenga.CandyPlayers.HybridXRInput.SinglePrimaryHeld;
                     ReadVRJump(gestureHand,jumpButton,out pressed,out held);
                 }
@@ -219,7 +222,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (jumpPressed)
             {
-                if (!Sinking && (modeRules==null||modeRules.canJump)&&GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal!=true && !jumped && (Grounded || Time.time - lastGrounded < .07f))
+                if (!Sinking && (modeRules==null||modeRules.canJump) && !jumped && (Grounded || Time.time - lastGrounded < .07f))
                 {
                     verticalSpeed = Mathf.Sqrt(2 * gravity * EffectiveJumpHeight); Grounded = false;
                     jumped = true; support = null; airborneSince = Time.time; ActionStatus = "Jump";
@@ -388,13 +391,13 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool TryStartVault()
         {
-            if (!isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || ((modeRules!=null&&!modeRules.canVault)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true) || (Grounded && !Sinking) || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
+            if (!isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || (modeRules!=null&&!modeRules.canVault) || (Grounded && !Sinking) || Vaulting || !TryFindLedge(out var hit, out var destination)) return false;
             BeginVault(hit,destination);return true;
         }
         public bool TryGetVaultTarget(out Collider surface, out Vector3 edgePoint, out Vector3 landingPoint)
         {
             surface = null; edgePoint = landingPoint = default;
-            if (((modeRules!=null&&!modeRules.canVault)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true) || !isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || (Grounded && !Sinking) || Vaulting || Climbing
+            if ((modeRules!=null&&!modeRules.canVault) || !isActiveAndEnabled || !Capsule || !Capsule.enabled || InputSuspended || (Grounded && !Sinking) || Vaulting || Climbing
                 || (!Sinking && (Time.time - airborneSince <= .06f || (!jumped && Time.time - lastGrounded < .07f)))) return false;
             if (!TryFindLedge(out var hit, out var destination)) return false;
             surface = hit.collider; edgePoint = candidateGrip; landingPoint = destination + (Feet - transform.position);

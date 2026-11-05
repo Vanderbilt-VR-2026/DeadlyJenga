@@ -18,6 +18,14 @@ namespace DeadlyJenga.CandyPlayers
         public static bool ControllerTracked(bool left)=>Controller(left)!=null;
         public static bool SingleController=>ControllerTracked(true)!=ControllerTracked(false);
         public static bool SingleControllerLeft=>ControllerTracked(true)&&!ControllerTracked(false);
+        public static Vector2 Stick(bool left) =>
+            Controller(left)?.TryGetChildControl<Vector2Control>("primary2DAxis")?.ReadValue() ?? Vector2.zero;
+        public static bool SecondaryPressed(bool left) =>
+            Controller(left)?.TryGetChildControl<ButtonControl>("secondaryButton")?.wasPressedThisFrame == true;
+        public static bool GripHeld(bool left) =>
+            Controller(left)?.TryGetChildControl<ButtonControl>("gripPressed")?.isPressed == true;
+        public static bool PrimaryHeld(bool left) =>
+            Controller(left)?.TryGetChildControl<ButtonControl>("primaryButton")?.isPressed == true;
         public static Vector2 MoveStick()
         {
             var controller=Controller(true)??Controller(false);

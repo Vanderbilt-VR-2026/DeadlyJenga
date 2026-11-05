@@ -54,7 +54,8 @@ namespace DeadlyJenga.CandyPlayers
                 return state;
             }
         }
-        public bool BlocksTraversal=>EquipmentSpecifications.Get(Equipment.kind).twoHanded&&Equipment.drawn;
+        public bool BlocksTraversal=>false;
+        bool UsesSupportGrip=>EquipmentSpecifications.Get(Equipment.kind).twoHanded&&Equipment.drawn;
         public bool UsesTriggers=>Equipment.kind>=EquipmentKind.Blaster;
         float Scale=>motor?Mathf.Max(.1f,motor.playerScale):1;
         bool Local=>motor&&!motor.externallyDriven&&!avatar.remoteDriven;
@@ -98,10 +99,25 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     var primary=avatar.tracking.WorldHand(left);aim=new Pose(primary.position,primary.rotation);
                     if(avatar.tracking.TryControllerAim(left,out var controllerAim))aim=controllerAim;
-                    if(BlocksTraversal&&(grip.IsPressed()||avatar.tracking.IsHybrid&&(left?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
+                    if(UsesSupportGrip&&(grip.IsPressed()||avatar.tracking.IsHybrid&&(left?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
                     {
                         var secondary=avatar.tracking.WorldHand(!left);var delta=secondary.position-primary.position;
                         if(secondary.tracked&&delta.magnitude>.12f*Scale&&delta.magnitude<1.1f*Scale)aim.rotation=Quaternion.LookRotation(delta,primary.rotation*Vector3.up);
+                    }
+                    if(Local&&Equipment.drawn&&HybridXRInput.GripHeld(left))
+                    {
+                        Vector3 rear=Equipment.kind switch
+                        {
+                            EquipmentKind.DualRifle=>new Vector3(0,.28f,.35f),
+                            EquipmentKind.Blaster=>new Vector3(0,.24f,.12f),
+                            EquipmentKind.SheriffHammer=>new Vector3(0,.23f,.17f),
+                            _=>Vector3.zero
+                        };
+                        if(rear!=Vector3.zero)
+                        {
+                            Vector3 eyeOffset=new Vector3(left?-.031f:.031f,0,.15f);
+                            aim=new Pose(head.position+head.rotation*(eyeOffset-rear)*Scale,head.rotation);
+                        }
                     }
                 }
                 else
@@ -209,21 +225,17 @@ namespace DeadlyJenga.CandyPlayers
                 if(accept||decline)ConfirmSwap(accept);armed=false;return;
             }
             if(state.kind==EquipmentKind.PoweredArmor){UpdateSuit(state);return;}
-            if(state.drawn&&(motor.Climbing||motor.Vaulting)){SetEquipped(false);return;}
+            if(motor.Climbing||motor.Vaulting){ReleaseHeldArsenal();armed=false;handReady=false;return;}
             bool vr=motor.IsVR,pressed=vr?trigger.WasPressedThisFrame():Mouse.current?.leftButton.wasPressedThisFrame==true;
             bool held=vr?trigger.IsPressed():Cursor.lockState==CursorLockMode.Locked&&Mouse.current?.leftButton.isPressed==true;
             if(!held)armed=true;
-            if(Keyboard.current?.vKey.wasPressedThisFrame==true)SetEquipped(!state.drawn);
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleModePressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
-            // Trigger near the physical holster draws or stows; elsewhere it fires.
-            if(vr&&pressed&&UsesTriggers)
+            if((vr?HybridXRInput.SecondaryPressed(left):Keyboard.current?.vKey.wasPressedThisFrame==true)&&UsesTriggers)
             {
-                var hand=avatar.tracking?avatar.tracking.WorldHand(left):default;
-                var head=avatar.viewCamera.transform;var yaw=Quaternion.Euler(0,head.eulerAngles.y,0);
-                var holster=CandyWeaponVisual.Holster(state.kind,transform.position,head.position,yaw,Scale,left);
-                bool near=hand.tracked&&Vector3.Distance(hand.position,holster.position)<.35f*Scale;
-                if(!state.drawn||near){SetEquipped(!state.drawn);return;}
+                SetEquipped(!state.drawn);
+                armed=false;
+                return;
             }
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleModePressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
             if(state.kind>EquipmentKind.PoweredArmor&&(!EquipmentSpecifications.Get(state.kind).melee||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe&&state.shotgun))
             {UpdateHeldArsenal(held&&armed&&state.drawn,state);return;}
             bool melee=EquipmentSpecifications.Get(state.kind).melee&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&!(state.kind==EquipmentKind.LaserAxe&&state.shotgun);
@@ -247,7 +259,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(!avatar||!avatar.Rig)return;visual??=new CandyWeaponVisual(transform,avatar.Rig.style.material);
             avatar.Rig.SetAppearance(avatar.EquippedAppearance);
-            visual.Present(Equipment,avatar.LastFrame,motor&&motor.Alive);
+            visual.Present(Equipment,avatar.LastFrame,motor&&motor.Alive&&!motor.Climbing&&!motor.Vaulting);
         }
     }
 }

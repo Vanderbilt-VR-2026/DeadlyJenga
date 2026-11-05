@@ -10,7 +10,60 @@ namespace DeadlyJenga.Presentation
         sealed class PickupVisual{public Transform root;public TextMesh label;public EquipmentKind kind;public Transform model;}
         readonly Dictionary<int,PickupVisual> pickups=new Dictionary<int,PickupVisual>();
         readonly HashSet<int> visible=new HashSet<int>();
-        Canvas canvas;Text status;Camera eye;bool vr;
+        Canvas canvas;Text status;RawImage weaponOutline;Camera eye;bool vr;
+        static readonly Dictionary<EquipmentKind,Texture2D> outlines=new();
+        public static Texture2D Outline(EquipmentKind kind)
+        {
+            if(outlines.TryGetValue(kind,out var cached))return cached;
+            if(!EquipmentModelData.Parts.TryGetValue(kind,out var parts))return null;
+            const int width=100,height=54;
+            var vertices=new List<Vector2>();var indices=new List<int>();
+            var min=new Vector2(float.PositiveInfinity,float.PositiveInfinity);var max=-min;
+            foreach(var part in parts)
+            {
+                if(!part.mesh||!part.mesh.isReadable)continue;
+                int start=vertices.Count;
+                foreach(var vertex in part.mesh.vertices)
+                {
+                    var point=part.local.MultiplyPoint3x4(vertex);
+                    var projected=new Vector2(point.z+point.x*.28f,point.y+point.x*.12f);
+                    vertices.Add(projected);min=Vector2.Min(min,projected);max=Vector2.Max(max,projected);
+                }
+                foreach(int index in part.mesh.triangles)indices.Add(index+start);
+            }
+            if(vertices.Count==0)return null;
+            var size=max-min;
+            float scale=Mathf.Min((width-6)/Mathf.Max(.01f,size.x),(height-6)/Mathf.Max(.01f,size.y));
+            var center=(min+max)*.5f;
+            for(int i=0;i<vertices.Count;i++)vertices[i]=(vertices[i]-center)*scale+new Vector2(width,height)*.5f;
+            var mask=new bool[width*height];
+            for(int i=0;i+2<indices.Count;i+=3)
+            {
+                Vector2 a=vertices[indices[i]],b=vertices[indices[i+1]],c=vertices[indices[i+2]];
+                float winding=Edge(a,b,c);
+                if(Mathf.Abs(winding)<.0001f)continue;
+                for(int y=Mathf.Max(1,Mathf.FloorToInt(Mathf.Min(a.y,b.y,c.y)));y<=Mathf.Min(height-2,Mathf.CeilToInt(Mathf.Max(a.y,b.y,c.y)));y++)
+                for(int x=Mathf.Max(1,Mathf.FloorToInt(Mathf.Min(a.x,b.x,c.x)));x<=Mathf.Min(width-2,Mathf.CeilToInt(Mathf.Max(a.x,b.x,c.x)));x++)
+                {
+                    var point=new Vector2(x+.5f,y+.5f);
+                    if(Edge(a,b,point)*winding>=0&&Edge(b,c,point)*winding>=0&&Edge(c,a,point)*winding>=0)
+                        mask[y*width+x]=true;
+                }
+            }
+            var pixels=new Color32[mask.Length];
+            for(int y=1;y<height-1;y++)
+            for(int x=1;x<width-1;x++)
+            {
+                int i=y*width+x;
+                if(!mask[i])continue;
+                bool edge=!mask[i-1]||!mask[i+1]||!mask[i-width]||!mask[i+width];
+                pixels[i]=new Color32(255,255,255,edge?(byte)255:(byte)70);
+            }
+            var texture=new Texture2D(width,height,TextureFormat.RGBA32,false){name=kind+" outline",hideFlags=HideFlags.HideAndDontSave};
+            texture.SetPixels32(pixels);texture.Apply(false,true);outlines[kind]=texture;
+            return texture;
+        }
+        static float Edge(Vector2 a,Vector2 b,Vector2 p)=>(b.x-a.x)*(p.y-a.y)-(b.y-a.y)*(p.x-a.x);
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=go=>{if(!go.GetComponent<CandyEquipmentView>())go.AddComponent<CandyEquipmentView>();};
         public static string Name(EquipmentKind kind)
@@ -23,7 +76,13 @@ namespace DeadlyJenga.Presentation
             if(!canvas)
             {
                 var go=new GameObject("Equipment HUD",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=35;
-                status=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipment and swap",new Vector2(0,-220),new Vector2(600,115),19,TextAnchor.MiddleCenter);
+                status=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipment and swap",new Vector2(272,-217),new Vector2(360,75),16,TextAnchor.MiddleCenter);
+                weaponOutline=new GameObject("Weapon outline",typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
+                weaponOutline.transform.SetParent(status.transform.parent,false);
+                weaponOutline.rectTransform.anchoredPosition=new Vector2(-140,0);
+                weaponOutline.rectTransform.sizeDelta=new Vector2(58,36);
+                weaponOutline.color=CandyHudCards.Accent;
+                weaponOutline.raycastTarget=false;
             }
             if(eye!=session.ActiveCamera||vr!=session.IsVR){eye=session.ActiveCamera;vr=session.IsVR;CandyHudLayout.Configure(canvas,transform,eye,vr);}
             var controls=session.Player?.gameObject.GetComponent<IEquipmentControls>();var equipment=controls?.Equipment;
@@ -31,18 +90,32 @@ namespace DeadlyJenga.Presentation
             canvas.enabled=eye&&!session.MenuOpen&&!CandyMatchHud.Expanded&&equipment!=null;
             if(pending!=null)status.text="SWAP "+Name(equipment.activePower!=EquipmentKind.None?equipment.activePower:equipment.kind)+" FOR "+Name(pending.kind)+"?\n"+(vr?"Dominant trigger: SWAP  |  Other trigger: KEEP":"E: SWAP  |  N: KEEP")+"\nYour current item drops here.";
             else if(equipment?.kind==EquipmentKind.PoweredArmor)status.text="POWERED IRON SUIT · "+(equipment.drawn?"HOVERING":"STANDBY")+"\n"+(vr?"Hold controller trigger + point: fly · Release: hover · Trigger at hip: land\nTracked hand pinch: plasma":"V: take off / land · WASD: steer · E: up · Q: down · Click: plasma");
-            else if(equipment?.kind>EquipmentKind.PoweredArmor)
+            else if(equipment?.kind>=EquipmentKind.Blaster)
             {
-                var spec=EquipmentSpecifications.Get(equipment.kind);string mode=equipment.kind==EquipmentKind.StockPistol?(equipment.shotgun?" / 3-ROUND BURST":" / FULL AUTO"):equipment.kind==EquipmentKind.Chainsaw?(equipment.shotgun?" / WHEEL LAUNCHER":" / CUTTING"):equipment.kind==EquipmentKind.LaserAxe?(equipment.shotgun?" / WIDE LASER":" / AXE"):"";
-                status.text=Name(equipment.kind)+mode+" · "+(equipment.drawn?"READY":"HOLSTERED")+"\n"+(vr?"Trigger: draw / fire · Trigger at holster: stow":"V: draw / holster · Click / hold: attack")+(spec.modeSwitch?"\n"+(vr?"Other trigger or single-stick click: switch mode":"R: switch mode"):"")+(equipment.triggerHeld&&equipment.charge<1?" · CHARGING "+Mathf.RoundToInt(equipment.charge*100)+"%":"")+(equipment.builtIn?"\nDefault PvP melee":"")+(equipment.activePower!=EquipmentKind.None?" · "+Name(equipment.activePower)+" "+Mathf.CeilToInt(equipment.remaining)+"s":"");
+                var spec=EquipmentSpecifications.Get(equipment.kind);
+                string mode=equipment.kind switch
+                {
+                    EquipmentKind.DualRifle=>equipment.shotgun?" / Shotgun":" / Rifle",
+                    EquipmentKind.SheriffHammer=>equipment.shotgun?" / Scatter":" / Precision",
+                    EquipmentKind.StockPistol=>equipment.shotgun?" / Burst":" / Auto",
+                    EquipmentKind.Chainsaw=>equipment.shotgun?" / Launch":" / Saw",
+                    EquipmentKind.LaserAxe=>equipment.shotgun?" / Laser":" / Axe",
+                    _=>""
+                };
+                string ammo=spec.magazine>0?(equipment.reloadRemaining>0?"   Reloading":"   "+equipment.rounds+"/"+spec.magazine):"";
+                string toggle=vr?(equipment.leftHanded?"Y":"B"):"V";
+                string controlsHint=equipment.drawn
+                    ?(vr?(spec.melee?"Swing":"Trigger fire"):"Click attack")+"   "+toggle+" holster"
+                    :toggle+" draw";
+                if(equipment.drawn&&spec.modeSwitch)controlsHint+=vr?"   Off trigger / stick click mode":"   R mode";
+                if(vr&&equipment.drawn&&(equipment.kind==EquipmentKind.Blaster||equipment.kind==EquipmentKind.DualRifle||equipment.kind==EquipmentKind.SheriffHammer))
+                    controlsHint+="   Grip aim";
+                status.text=Name(equipment.kind)+mode+ammo+"\n"+controlsHint;
             }
-            else if(equipment?.kind>=EquipmentKind.Blaster)status.text=Name(equipment.kind)+((equipment.kind==EquipmentKind.DualRifle||equipment.kind==EquipmentKind.SheriffHammer)?(equipment.shotgun?" / RAPID SHOTGUN":equipment.kind==EquipmentKind.SheriffHammer?" / LONG-RANGE PISTOL":" / LONG RIFLE"):"")+" · "+(equipment.drawn?"DRAWN":"HOLSTERED")+"\n"+(vr?"Trigger: draw / fire · Trigger at holster: stow":"V: draw / holster · Click: attack")+((equipment.kind==EquipmentKind.DualRifle||equipment.kind==EquipmentKind.SheriffHammer)?"\n"+(equipment.drawn&&equipment.kind==EquipmentKind.DualRifle?"Jump, climb and vault locked. ":"")+(vr?"Support grip / pinch: brace · Other trigger or single-stick click: switch mode":"R: change mode"):"");
-            else status.text=equipment==null||equipment.kind==EquipmentKind.None?"":Name(equipment.kind)+" · "+Mathf.CeilToInt(equipment.remaining)+"s";
-            if(equipment!=null&&EquipmentSpecifications.Get(equipment.kind).magazine>0)status.text+="\n"+(equipment.reloadRemaining>0?"RELOADING · "+equipment.reloadRemaining.ToString("0.0")+"s":equipment.rounds+" / "+EquipmentSpecifications.Get(equipment.kind).magazine);
-            if(vr&&equipment?.kind==EquipmentKind.DualRifle&&equipment.drawn)
-                status.text+=equipment.shotgun?"\nLine up the red dot.":"\nBring the rear scope close to either eye.";
-            else if(equipment?.drawn==true&&CandyGunSights.SupportsAim(equipment))
-                status.text+=vr?"\nRaise the weapon and line up the aim marker.":"\nHold right mouse to aim.";
+            else status.text=equipment==null||equipment.kind==EquipmentKind.None?"":Name(equipment.kind)+"   "+Mathf.CeilToInt(equipment.remaining)+"s";
+            weaponOutline.texture=pending==null&&equipment!=null?Outline(equipment.kind):null;
+            weaponOutline.enabled=weaponOutline.texture;
+            status.rectTransform.offsetMin=new Vector2(weaponOutline.enabled?66:10,4);
             CandyHudCards.Visible(status,!string.IsNullOrEmpty(status.text));
             visible.Clear();
             foreach(var pickup in match.Frame.pickups)

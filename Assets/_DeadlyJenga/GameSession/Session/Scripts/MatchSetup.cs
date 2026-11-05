@@ -18,6 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         public static ModeRules DefaultModeRules(GameModeKind mode,IslandLobbyCatalog.Map map)
         {
             var rules=DeadlyJenga.Modes.ModeSimulation.Defaults(mode);
+            if(mode==GameModeKind.Demo){rules.healthEnabled=true;rules.friendlyFire=true;}
             if(map?.walkableIsland==true)rules.island=IslandRule.Walkable;
             return rules;
         }

@@ -195,8 +195,8 @@ namespace DeadlyJenga.CastlePrototype
                 ActionCard(743,CandyHudIcon.Play,"Spawn 3x jump orb","20 seconds of triple jump height and unlimited stamina. Recollect to refresh.",()=>{Demo.Run(DemoCommand.SpawnJumpPowerup);session.SetMenu(false);},can,CandyHudVisuals.Lavender);
                 var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();
                 ActionCard(847,CandyHudIcon.Play,"BLASTER TESTING: "+(gun?.TestingEnabled==true?"ON":"OFF"),"Enable plasma weapons for this Demo session. Host controls the testing toggle.",()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&MatchRuntime.Current?.Authority==true,CandyHudVisuals.Mint);
-                ActionCard(951,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. Controller trigger draws; trigger near its holster stows. Trigger away from holster fires.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
-                ActionCard(1055,CandyHudIcon.Settings,"DOMINANT HAND: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Non-dominant controller trigger jumps while testing is enabled, including when holstered.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
+                ActionCard(951,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. Dominant upper face button toggles the weapon. Trigger fires.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
+                ActionCard(1055,CandyHudIcon.Settings,"DOMINANT HAND: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Sets the weapon hand and the movement stick.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
                 int weaponRow=0;
                 foreach(EquipmentKind kind in new[]{EquipmentKind.Blaster,EquipmentKind.MurderSword,EquipmentKind.SheriffHammer,EquipmentKind.DualRifle,EquipmentKind.BoxingGlove,EquipmentKind.PoweredArmor})
                 {
@@ -398,12 +398,12 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
-        internal enum ControllerPart { None, Stick, Primary, Trigger, Grip }
+        internal enum ControllerPart { None, Stick, Primary, Trigger, Grip, Secondary }
 
         static Hint Controller(bool left, ControllerPart part, string action, string prefix="")
         {
             string side=left?"Left":"Right";
-            string button=part==ControllerPart.Primary?(left?"X":"A"):part.ToString();
+            string button=part==ControllerPart.Primary?(left?"X":"A"):part==ControllerPart.Secondary?(left?"Y":"B"):part.ToString();
             return new Hint(CandyHudIcon.Key,prefix+side+" "+button,action){left=left,part=part};
         }
 
@@ -479,11 +479,11 @@ namespace DeadlyJenga.CastlePrototype
                 bool swing=spec.melee&&!(modeSwitch&&equipment.shotgun);
                 var attack=!vr?new Hint(CandyHudIcon.Key,drawn?"LEFT CLICK":"V",drawn?(swing?"Attack":"Fire"):"Draw"):
                     swing&&drawn?new Hint(CandyHudIcon.Hand,weaponLeft?"LEFT HAND":"RIGHT HAND","Swing weapon"):
-                    Controller(weaponLeft,ControllerPart.Trigger,drawn?"Fire":"Draw");
+                    Controller(weaponLeft,drawn?ControllerPart.Trigger:ControllerPart.Secondary,drawn?"Fire":"Draw");
                 var extra=modeSwitch?
                     (vr?Controller(single?left:!weaponLeft,single?ControllerPart.Stick:ControllerPart.Trigger,"Switch mode",single?"Click ":""):
                     new Hint(CandyHudIcon.Key,"R","Switch mode")):
-                    (drawn?vr?Controller(weaponLeft,ControllerPart.Trigger,"Holster","At holster: "):
+                    (drawn?vr?Controller(weaponLeft,ControllerPart.Secondary,"Holster"):
                     new Hint(CandyHudIcon.Key,"V","Holster"):jump);
                 return new[]{controls?.BlocksTraversal==true?move:jump,attack,extra};
             }

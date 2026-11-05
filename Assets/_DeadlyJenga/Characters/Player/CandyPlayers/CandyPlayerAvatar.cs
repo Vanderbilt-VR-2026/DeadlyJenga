@@ -155,7 +155,7 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right.position=Vector3.Lerp(climbLastRight.position,frame.right.position,t);frame.right.rotation=Quaternion.Slerp(climbLastRight.rotation,frame.right.rotation,t);
             }
             wasClimbing=climbing;
-            bool vaulting=survivor&&!survivor.IsVR&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;
+            bool vaulting=survivor&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;
             if(vaulting)
             {
                 if(!wasVaulting){vaultStartLeft=frame.left;vaultStartRight=frame.right;}

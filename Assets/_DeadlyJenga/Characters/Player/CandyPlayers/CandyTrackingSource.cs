@@ -74,6 +74,18 @@ namespace DeadlyJenga.CandyPlayers
             {
                 result.tracked=true;result.position=controller.devicePosition.ReadValue();result.rotation=controller.deviceRotation.ReadValue();
                 if(result.rotation==default)result.rotation=Quaternion.identity;
+                var pointer=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.QuaternionControl>("pointerRotation");
+                var aim=pointer!=null?pointer.ReadValue():default;
+                if(aim!=default)
+                {
+                    Vector3 forward=result.rotation*Vector3.forward;
+                    Vector3 up=Vector3.ProjectOnPlane(aim*Vector3.up,forward);
+                    if(up.sqrMagnitude>.01f)
+                    {
+                        float roll=Vector3.SignedAngle(up,result.rotation*Vector3.up,forward);
+                        result.rotation=Quaternion.AngleAxis(Mathf.Clamp(roll,-25,25)-roll,forward)*result.rotation;
+                    }
+                }
                 if(style){result.position+=result.rotation*style.controllerPalmOffset;result.rotation*=Quaternion.Euler(isLeft?style.leftControllerRotation:style.rightControllerRotation);}
                 float Analog(string name)=>controller.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
                 result.skeleton=CandyHandSkeleton.ControllerGrip(isLeft,Analog("grip"),Analog("trigger"));

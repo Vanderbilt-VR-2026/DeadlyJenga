@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool TryGetLookVaultTarget(float maxDistance,out Collider surface,out Vector3 edgePoint,out Vector3 landingPoint)
         {
             surface=null;edgePoint=landingPoint=default;
-            if(!isActiveAndEnabled||!Capsule||!Capsule.enabled||!viewCamera||InputSuspended||Vaulting||((modeRules!=null&&!modeRules.canVault)||GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.BlocksTraversal==true))return false;
+            if(!isActiveAndEnabled||!Capsule||!Capsule.enabled||!viewCamera||InputSuspended||Vaulting||(modeRules!=null&&!modeRules.canVault))return false;
             if(float.IsNaN(maxDistance)||float.IsInfinity(maxDistance))return false;
             float distance=Mathf.Clamp(maxDistance,0,5);if(distance<.05f)return false;
             var ray=new Ray(viewCamera.transform.position,viewCamera.transform.forward);

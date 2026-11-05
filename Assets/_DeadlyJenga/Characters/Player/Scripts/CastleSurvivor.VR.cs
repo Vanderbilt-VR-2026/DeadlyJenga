@@ -16,7 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         [Range(15,90)] public float vrSnapAngle=30;
         [Range(15,360)] public float vrSmoothDegreesPerSecond=120;
         public bool autoDetectHybridControls=true;
-        bool wasHybrid;
+        bool hybridProfileActive;
         public SurvivorVRPlayStyle vrPlayStyle=SurvivorVRPlayStyle.Seated;
         public SurvivorJumpGesture jumpGesture=SurvivorJumpGesture.IndexPinch;
         public InputAction seatedJump=new InputAction("Jump / hold to climb",InputActionType.Button,"<XRController>{RightHand}/primaryButton");
@@ -27,7 +27,6 @@ namespace DeadlyJenga.CastlePrototype
         public float jumpPinchPress=.023f,jumpPinchRelease=.032f;
         [Range(0,1)] public float jumpFistPress=.7f,jumpFistRelease=.5f;
         bool jumpArmed,gestureHeld,previousJumpHeld;
-        bool blasterJumpOverride;
         bool vrInputFocused=true;
         void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused)ResetVRJump();}
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
@@ -35,8 +34,8 @@ namespace DeadlyJenga.CastlePrototype
         float seatedHeightOffset,vrLookPitch;
         public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
-            ? "Standing: left stick moves; turn physically; right "+jumpGesture+" jumps / holds to climb"
-            : "Seated: left stick moves; right stick turns smoothly; jump button holds to climb";
+            ? "Standing: move stick; turn physically; "+jumpGesture+" jumps / holds to climb"
+            : "Seated: dominant stick moves; other stick looks; hold jump to climb";
         InputAction[] headActions=System.Array.Empty<InputAction>();
         public Vector3 MovementForward
         {
@@ -79,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
             ApplyVRTurn(stick.x,dt);
             if(!IsVR||externallyDriven||InputSuspended||!cameraOffset||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
             float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
-            float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*65*dt,-35,35);
+            float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*Mathf.Clamp(vrSmoothDegreesPerSecond*.65f,65,220)*dt,-65,80);
             if(next!=vrLookPitch)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,next-vrLookPitch);
             vrLookPitch=next;
         }
@@ -121,7 +120,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             pressed=held=false;
             if(InputSuspended||!vrInputFocused){ResetVRJump();return;}
-            if(vrPlayStyle==SurvivorVRPlayStyle.Standing&&!blasterJumpOverride)
+            if(vrPlayStyle==SurvivorVRPlayStyle.Standing)
             {
                 if(!hand.tracked||!hand.skeletonTracked)gestureHeld=false;
                 else
@@ -150,11 +149,18 @@ namespace DeadlyJenga.CastlePrototype
             if(!autoDetectHybridControls)return;
             if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
             if(!candyTracking)return;
-            bool hybrid=candyTracking.IsHybrid;
-            if(hybrid&&!wasHybrid&&(Climbing||Vaulting))return;
-            if(!hybrid&&wasHybrid&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false))SetVRPlayStyle(SurvivorVRPlayStyle.Seated,false);
-            if(hybrid&&!wasHybrid&&!Climbing&&!Vaulting)SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
-            wasHybrid=hybrid;
+            if(Climbing||Vaulting)return;
+            if(candyTracking.IsHybrid&&!hybridProfileActive)
+            {
+                SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
+                hybridProfileActive=true;
+            }
+            else if(hybridProfileActive&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
+                DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false))
+            {
+                SetVRPlayStyle(SurvivorVRPlayStyle.Seated,false);
+                hybridProfileActive=false;
+            }
         }
         public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;}
         public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;ResetVRLook();}
