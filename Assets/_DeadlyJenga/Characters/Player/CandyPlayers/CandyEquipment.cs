@@ -96,11 +96,11 @@ namespace DeadlyJenga.CandyPlayers
             if(isActiveAndEnabled){trigger.Enable();offTrigger.Enable();grip.Enable();}armed=false;
         }
         void OnEnable(){trigger?.Enable();offTrigger?.Enable();grip?.Enable();}
-        void OnDisable(){ResetBashTracking();CancelBashPresentation();ResetPickupCancel();pendingPickup=dismissedPickup=0;primaryJumpReserved=false;ignoreSwapBack=false;if(Local){ReleaseHeldArsenal();SetSuitThrust(false);}trigger?.Disable();offTrigger?.Disable();grip?.Disable();visual?.Hide();}
+        void OnDisable(){ResetBashTracking();CancelBashPresentation();ResetPickupCancel();pendingPickup=dismissedPickup=0;primaryJumpReserved=false;ignoreSwapBack=false;if(Local){ReleaseHeldArsenal();SetSuitThrust(false);motor.ClearHoverFlight();suitWasFlying=false;}trigger?.Disable();offTrigger?.Disable();grip?.Disable();visual?.Hide();}
         void OnDestroy(){trigger?.Dispose();offTrigger?.Dispose();grip?.Dispose();}
         public void SetEquipped(bool value)
         {
-            var state=Equipment;CancelBashPresentation();
+            var state=Equipment;CancelBashPresentation();if(!value){motor?.ClearHoverFlight();suitWasFlying=false;}
             if(state.roleIssued&&MatchRuntime.Current is IMysteryControls mystery)mystery.SetSpecialAttack(value);
             Runtime?.RequestEquipment(value,left,state.shotgun);offhandReady=false;armed=false;motor?.ResetVRJump();
         }
@@ -277,8 +277,8 @@ namespace DeadlyJenga.CandyPlayers
             bool preferred=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
             bool effective=motor.IsVR&&HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:preferred;
             ApplyWeaponHand(effective);
-            var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
-            if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){ResetBashTracking();CancelBashPresentation();ResetPickupCancel();if(!motor.Alive)pendingPickup=0;SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);if(state.kind!=EquipmentKind.PoweredArmor||!state.drawn){motor.ClearHoverFlight();suitWasFlying=false;}
+            if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){ResetBashTracking();CancelBashPresentation();ResetPickupCancel();if(!motor.Alive)pendingPickup=0;SetSuitThrust(MaintainPausedSuit(state));ReleaseHeldArsenal();armed=false;handReady=false;return;}
             if (SlingForEmote(state))
             {
                 ResetBashTracking();CancelBashPresentation();

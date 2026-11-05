@@ -6,7 +6,7 @@ namespace DeadlyJenga.CandyPlayers
 {
     public sealed partial class CandyEquipment
     {
-        float nextThrustRefresh;bool thrustRequested;
+        float nextThrustRefresh;bool thrustRequested;int suitFireSource;
         void SetSuitThrust(bool active)
         {
             if(active!=thrustRequested||active&&Time.unscaledTime>=nextThrustRefresh)
@@ -15,17 +15,18 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
         bool suitWasFlying;float suitTakeoffUntil;
+        bool SuitFlightLeft=>HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:!left;
         bool SuitShootingLeft
         {
             get
             {
-                if(avatar.tracking&&avatar.tracking.IsHybrid)return !HybridXRInput.SingleControllerLeft;
+                if(HybridXRInput.SingleController)return !HybridXRInput.SingleControllerLeft;
                 if(avatar.tracking)
                 {
                     var a=avatar.tracking.WorldHand(true);var b=avatar.tracking.WorldHand(false);
                     if(a.skeletonTracked!=b.skeletonTracked)return a.skeletonTracked;
                 }
-                return !left;
+                return left;
             }
         }
         public Pose SuitMuzzle
@@ -46,19 +47,25 @@ namespace DeadlyJenga.CandyPlayers
                 return new Pose(eye.position+eye.rotation*offset*Scale,eye.rotation);
             }
         }
+        bool MaintainPausedSuit(EquipmentState state)
+        {
+            bool hovering=state.kind==EquipmentKind.PoweredArmor&&state.drawn&&suitWasFlying&&
+                motor.MaintainPausedHoverFlight(Time.unscaledDeltaTime);
+            if(!hovering){motor.ClearHoverFlight();suitWasFlying=false;}
+            return hovering;
+        }
         void UpdateSuit(EquipmentState state)
         {
             bool vr=motor.IsVR;
-            bool controllerLeft=!SuitShootingLeft;
+            bool controllerLeft=SuitFlightLeft;
             var keyboard=Keyboard.current;
-            if(vr?HybridXRInput.SecondaryPressed(controllerLeft):keyboard?.vKey.wasPressedThisFrame==true)
+            if(vr?HybridXRInput.SecondaryPressed(left):keyboard?.vKey.wasPressedThisFrame==true)
             {
                 SetEquipped(!state.drawn);
                 SetSuitThrust(false);
                 suitWasFlying=false;
                 return;
             }
-            if(vr&&state.leftHanded!=controllerLeft)Runtime?.RequestEquipment(state.drawn,controllerLeft,false);
             if(!state.drawn){SetSuitThrust(false);suitWasFlying=false;return;}
             SetSuitThrust(true);
             if(!suitWasFlying){suitWasFlying=true;suitTakeoffUntil=Time.time+.45f;}
@@ -81,7 +88,15 @@ namespace DeadlyJenga.CandyPlayers
             bool shooting=vr?shootHand.tracked&&shootHand.skeletonTracked&&(SuitShootingLeft?avatar.tracking.LeftPinching:avatar.tracking.RightPinching):Mouse.current?.leftButton.isPressed==true&&Cursor.lockState==CursorLockMode.Locked;
             // Two-controller rigs retain a support-trigger fallback when optical hand tracking is unavailable.
             if(vr&&shootHand.tracked&&!shootHand.skeletonTracked)shooting=(SuitShootingLeft==left?trigger:offTrigger).IsPressed();
-            if(shooting)FireOnce();
+            var fireController=vr&&!shootHand.skeletonTracked?HybridXRInput.Controller(SuitShootingLeft):null;
+            bool available=vr?shootHand.tracked&&(shootHand.skeletonTracked||fireController!=null):
+                Mouse.current!=null&&Mouse.current.enabled&&Cursor.lockState==CursorLockMode.Locked;
+            int source=vr?(shootHand.skeletonTracked?(SuitShootingLeft?-1:-2):fireController?.deviceId??0):Mouse.current?.deviceId??0;
+            if(!available||suitFireSource!=source)armed=false;
+            suitFireSource=available?source:0;
+            if(!available)return;
+            if(!shooting)armed=true;
+            if(shooting&&armed)FireOnce();
         }
     }
 }
