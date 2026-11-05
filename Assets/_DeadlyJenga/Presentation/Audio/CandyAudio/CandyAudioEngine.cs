@@ -40,6 +40,7 @@ namespace DeadlyJenga.CandyAudio
             foreach(var sound in CandyJaguarSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyJaguarSounds.DefaultCue(sound);
             foreach(var sound in CandyPlayerSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyPlayerSounds.DefaultCue(sound);
             CandyKrakenSounds.AddDefaults(cues);
+            foreach(var sound in CandyUnderwaterAudio.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyUnderwaterAudio.DefaultCue(sound);
             for(int i=0;i<bank.oneShotVoices+bank.loopVoices;i++)
             {
                 var go=new GameObject("Pooled candy voice "+i);go.transform.SetParent(transform,false);
@@ -140,6 +141,7 @@ namespace DeadlyJenga.CandyAudio
                 if(cooldowns.Count>4096)cooldowns.Clear();
             }
             focusGain=Mathf.MoveTowards(focusGain,focus?1:0,Time.unscaledDeltaTime*4);ActiveVoices=0;
+            float waveCutoff=WaveImmersion>0?18000*Mathf.Pow(.045f,WaveImmersion):18000;
             foreach(var voice in voices)
             {
                 // Stop can reach the audio thread after this frame; a released
@@ -155,14 +157,16 @@ namespace DeadlyJenga.CandyAudio
                     if(voice.target==0&&voice.gain<.001f){voice.source.Stop();voice.cue=null;continue;}
                 }
                 float water=voice.cue.bus==CandyBus.UI||voice.cue.bus==CandyBus.Music?0:WaveImmersion;
-                float muffled=Mathf.Max(voice.muffling,water);
-                if(Mathf.Abs(voice.lastFilter-muffled)>.003f)
+                bool underwaterCue=voice.cue.sound==CandySound.WaveSubmerged||voice.cue.sound==CandySound.WaveSurfaceBreath;
+                if(underwaterCue)water=0;
+                float cutoff=Mathf.Min(Mathf.Lerp(18000,1800,voice.muffling),water>0?waveCutoff:18000);
+                if(Mathf.Abs(voice.lastFilter-cutoff)>25)
                 {
-                    voice.lastFilter=muffled;
-                    voice.filter.enabled=muffled>.03f;
-                    if(muffled>.03f)voice.filter.cutoffFrequency=Mathf.Lerp(18000,1800,muffled);
+                    voice.lastFilter=cutoff;
+                    voice.filter.enabled=cutoff<17500;
+                    if(cutoff<17500)voice.filter.cutoffFrequency=cutoff;
                 }
-                voice.source.volume=Volume(voice)*(1-.17f*water);ActiveVoices++;
+                voice.source.volume=Volume(voice)*(1-.43f*water);ActiveVoices++;
             }
         }
         void OnApplicationFocus(bool value){focus=value;}

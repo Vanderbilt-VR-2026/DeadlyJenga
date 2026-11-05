@@ -15,6 +15,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using UnityEngine.SceneManagement;
 using Object=UnityEngine.Object;
 
@@ -24,7 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="Tsunami.ContactChecks";
         const BindingFlags Flags=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
-        static IEnumerator run; static int errors;
+        static IEnumerator run; static int errors,lastRunFrame=-1;
         static string Report=>ProjectPath.Report("TsunamiContactChecks.txt");
         [Serializable] sealed class Saved {public SceneSetup[] scenes;public string map,mode;public int bots,hands;public bool fromLobby,local,background,defaultScene;public float volume;}
         static TsunamiContactChecks(){EditorApplication.update+=Tick;EditorApplication.playModeStateChanged+=State;}
@@ -45,9 +46,20 @@ namespace DeadlyJenga.DevTools.Editor
                 MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=1;MatchSetup.HandCount=0;MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;
                 SessionState.SetBool(Key,true);EditorSceneManager.OpenScene(ProjectPath.Find("MapDrafterEvan1.unity"));EditorApplication.EnterPlaymode();return;
             }
-            try{if(run.MoveNext())return;}catch(Exception e){errors++;File.AppendAllText(Report,"FAIL "+e+"\n");}
+            if(EditorApplication.isPlaying)
+            {
+                EditorApplication.QueuePlayerLoopUpdate();
+                if(Time.frameCount==lastRunFrame)return;
+                lastRunFrame=Time.frameCount;
+            }
+            try
+            {
+                if(run.Current is CustomYieldInstruction wait&&wait.keepWaiting)return;
+                if(run.MoveNext())return;
+            }
+            catch(Exception e){errors++;File.AppendAllText(Report,"FAIL "+e+"\n");}
             run=null;Application.logMessageReceived-=Log;
-            File.AppendAllText(Report,"COMPLETE; errors="+errors+". Actual desktop Editor; staged contact fixtures followed by a real dense-map wave. No Quest verification.\n");
+            File.AppendAllText(Report,"COMPLETE; errors="+errors+". Actual desktop Editor; controlled contact/eye fixtures followed by a real dense-map wave. No Quest verification.\n");
             EditorApplication.ExitPlaymode();
         }
         static bool Own(string file)=>File.Exists(file)&&File.ReadAllText(file).Trim()==System.Diagnostics.Process.GetCurrentProcess().Id.ToString();
@@ -55,7 +67,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(state==PlayModeStateChange.EnteredPlayMode&&SessionState.GetBool(Key,false)&&ValidationRunGate.Owns(Key))
             {
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Running",true);errors=0;
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Running",true);errors=0;lastRunFrame=-1;
                 EditorApplication.LockReloadAssemblies();AssetDatabase.DisallowAutoRefresh();Application.logMessageReceived+=Log;run=Validate();
             }
             if(state!=PlayModeStateChange.EnteredEditMode||!SessionState.GetBool(Key+"Running",false))return;
@@ -128,7 +140,8 @@ namespace DeadlyJenga.DevTools.Editor
             Services.World=fixture;wave.Wave=frame;Tracked.Waves.Add(wave);Physics.SyncTransforms();
             try
             {
-                timeout=Time.realtimeSinceStartup+12;
+                timeout=Time.realtimeSinceStartup+90;
+                int initialFrame=Time.frameCount;
                 int observed=0;
                 while(Time.realtimeSinceStartup<timeout)
                 {
@@ -136,40 +149,88 @@ namespace DeadlyJenga.DevTools.Editor
                     if(effect.HasContactAt(solid.transform.position+Vector3.up*3)&&effect.HasContactAt(low.transform.position))break;
                     yield return null;
                 }
-                Require(observed>0&&observed<=24,"Probes are capped at 24 per update");
+                File.AppendAllText(Report,"DIAGNOSTIC fixture player frames="+(Time.frameCount-initialFrame)+
+                    " observed probes="+observed+" component enabled="+effect.isActiveAndEnabled+
+                    " tracked waves="+Tracked.Waves.Count+"\n");
+                Require(Time.frameCount>initialFrame&&observed>0,"Contact fixture reaches an advancing player loop and sampler");
+                Require(observed<=24,"Probes are capped at 24 per update");
                 Require(effect.HasContactAt(solid.transform.position+Vector3.up*3),"Tall face interrupts upper water");
                 Require(effect.HasContactAt(low.transform.position),"Low obstruction registers below its top");
                 Require(!effect.HasContactAt(low.transform.position+Vector3.up*4),"Water remains free above the low slab");
                 Require(!effect.HasContactAt(at+Vector3.up*5),"Open bay stays open between pillars");
                 camera.transform.position=at+new Vector3(16,11,23);camera.transform.LookAt(at+Vector3.up*5);
-                // This preserved overlay predates the canonical mesh topology. The controlled
-                // capture uses the canonical front/back parameter layout on a temporary mesh.
-                var source=GameObject.Find("Visual - Tsunami");Require(source,"Wave presentation creates a live renderer");
-                var filter=source.GetComponent<MeshFilter>();var originalMesh=filter.sharedMesh;
-                var fixtureMesh=CaptureMesh();filter.sharedMesh=fixtureMesh;fixtureMesh.bounds=new Bounds(Vector3.up*7,new Vector3(72,32,85));
+                Capture(camera,"wave-contact-wall-gap.png");
+                effect.EnabledEffects=false;yield return null;Capture(camera,"wave-contact-off.png");
+                effect.EnabledEffects=true;
+                Require(CandyWaveContactVisual.ContainsEye(frame,at+new Vector3(0,4,-10)),"Eye within the wave body is wet");
+                Require(!CandyWaveContactVisual.ContainsEye(frame,at+new Vector3(0,3,8)),"Air ahead and below the curl is dry");
+                Require(!CandyWaveContactVisual.ContainsEye(frame,at+new Vector3(0,23,0)),"Above the crest is dry");
+                var immersionShader=Resources.Load<Shader>("CandyScenery/CandyWaveImmersion");
+                Require(immersionShader&&immersionShader.isSupported&&!ShaderUtil.ShaderHasError(immersionShader),"Underwater composite shader compiled");
+                var cameraData=active.GetUniversalAdditionalCameraData();
+                var depthOption=cameraData.requiresDepthOption;
+                var wetEye=at+new Vector3(-7,4,-10);
+                var lookAt=at+new Vector3(-9,5,4);
                 try
                 {
-                    Capture(camera,"wave-contact-wall-gap.png");
-                    effect.EnabledEffects=false;yield return null;Capture(camera,"wave-contact-off.png");
+                    effect.EnabledEffects=false;
+                    PoseEye(wetEye,lookAt);
+                    yield return null;
+                    float dryReference=Capture(active,"wave-interior-reference.png");
                     effect.EnabledEffects=true;
-                    Require(CandyWaveContactVisual.ContainsEye(frame,at+new Vector3(0,4,-10)),"Eye within the wave body is wet");
-                    Require(!CandyWaveContactVisual.ContainsEye(frame,at+new Vector3(0,3,8)),"Air ahead and below the curl is dry");
-                    Require(!CandyWaveContactVisual.ContainsEye(frame,at+new Vector3(0,23,0)),"Above the crest is dry");
-                    PoseEye(at+new Vector3(-7,4,-10),at+new Vector3(-9,5,4));
-                    timeout=Time.realtimeSinceStartup+8;
-                    while(effect.Immersion<.9f&&Time.realtimeSinceStartup<timeout)yield return null;
-                    Require(effect.Immersion>=.9f&&CandyAudioEngine.WaveImmersion>=.9f,"Actual camera enters and applies audio immersion");
-                    Capture(active,"wave-underwater.png");
+                    yield return null;
+                    Capture(active,"wave-interior-entry.png");
+                    timeout=Time.realtimeSinceStartup+30;
+                    while(effect.Immersion<.99f&&Time.realtimeSinceStartup<timeout)yield return null;
+                    Require(effect.Immersion>=.99f&&CandyAudioEngine.WaveImmersion>=.99f,"Actual camera enters and applies audio immersion");
+                    yield return new WaitForSecondsRealtime(.55f);
+                    float first=Capture(active,"wave-interior-full.png");
+                    Require(first<.48f&&first<dryReference*.87f,"Full submersion darkens the same camera pose: "+dryReference.ToString("F3")+" to "+first.ToString("F3"));
+                    Require(Playing("Wave pressure and trapped breath"),"Submerged breathing and current loop plays through pooled audio");
+                    var audioProbe=new GameObject("Underwater world-audio probe");
+                    audioProbe.transform.position=wetEye+Vector3.forward;
+                    try
+                    {
+                        var engine=CandyAudioEngine.Instance;
+                        bool FilteredWorldSound()=>engine.GetComponentsInChildren<AudioSource>().Any(source=>
+                            source.isPlaying&&source.spatialBlend>.5f&&
+                            source.TryGetComponent<AudioLowPassFilter>(out var filter)&&filter.enabled&&filter.cutoffFrequency<1000);
+                        timeout=Time.realtimeSinceStartup+15;
+                        while(!FilteredWorldSound()&&Time.realtimeSinceStartup<timeout)
+                        {
+                            engine.Loop(CandySound.WaveSpray,audioProbe.transform,.25f);
+                            yield return null;
+                        }
+                        Require(FilteredWorldSound(),"Real pooled spatial world sound reaches submerged low-pass cutoff");
+                    }
+                    finally{Object.Destroy(audioProbe);}
+
+                    Capture(camera,"wave-interior-exterior-during.png");
+                    Require(Shader.GetGlobalFloat("_DJWaveInside")==0,"Exterior camera does not inherit underwater wave attenuation");
+
+                    yield return new WaitForSecondsRealtime(.17f);
+                    Capture(active,"wave-interior-current.png");
+                    cameraData.requiresDepthOption=CameraOverrideOption.Off;
+                    float noDepth=Capture(active,"wave-interior-no-depth.png");
+                    Require(noDepth<.52f,"Camera without a depth copy still renders the dark underwater effect");
+                    cameraData.requiresDepthOption=depthOption;
+
                     PoseEye(at+new Vector3(0,23,0),at+Vector3.up*5);
-                    timeout=Time.realtimeSinceStartup+8;
-                    while(effect.Immersion>.01f&&Time.realtimeSinceStartup<timeout)yield return null;
-                    Require(effect.Immersion<=.01f,"Surfacing clears immersion");
-                    solid.SetActive(false);low.SetActive(false);foreach(var p in supports)p.SetActive(false);Physics.SyncTransforms();
-                    timeout=Time.realtimeSinceStartup+8;
-                    while(effect.ContactCount>0&&Time.realtimeSinceStartup<timeout)yield return null;
-                    Require(effect.ContactCount==0&&Shader.GetGlobalFloat("_DJWaveContactActive")==0,"Removed obstacles leave no ghost contact");
+                    yield return null;
+                    Capture(active,"wave-interior-surface.png");
+                    Require(Playing("Wave surface gasp"),"Surfacing after immersion plays the recovery breath");
+                    timeout=Time.realtimeSinceStartup+30;
+                    while((effect.Immersion>.01f||Playing("Wave pressure and trapped breath"))&&Time.realtimeSinceStartup<timeout)yield return null;
+                    Require(effect.Immersion<=.01f&&CandyAudioEngine.WaveImmersion<=.01f,"Surfacing clears visual and audio immersion");
+                    Require(!Playing("Wave pressure and trapped breath"),"Surfacing releases the submerged loop");
+                    Capture(active,"wave-interior-exit.png");
                 }
-                finally{filter.sharedMesh=originalMesh;Object.Destroy(fixtureMesh);}
+                finally{cameraData.requiresDepthOption=depthOption;}
+                solid.SetActive(false);low.SetActive(false);foreach(var p in supports)p.SetActive(false);Physics.SyncTransforms();
+                timeout=Time.realtimeSinceStartup+30;
+                while(effect.ContactCount>0&&Time.realtimeSinceStartup<timeout)yield return null;
+                Require(effect.ContactCount==0&&Shader.GetGlobalFloat("_DJWaveContactActive")==0,"Removed obstacles leave no ghost contact");
+
             }
             finally
             {
@@ -233,11 +294,16 @@ namespace DeadlyJenga.DevTools.Editor
             }
             var mesh=new Mesh{name="Staged canonical surface layout"};mesh.SetVertices(vertices);mesh.SetTriangles(indices,0);return mesh;
         }
-        static void Capture(Camera camera,string name)
+        static bool Playing(string clip)=>Object.FindObjectsByType<AudioSource>(FindObjectsSortMode.None)
+            .Any(source=>source.isPlaying&&source.clip&&source.clip.name==clip);
+        static float Capture(Camera camera,string name)
         {
             var rt=RenderTexture.GetTemporary(1500,900,24);var old=camera.targetTexture;var previous=RenderTexture.active;
             var image=new Texture2D(1500,900,TextureFormat.RGB24,false);
-            try{camera.targetTexture=rt;camera.Render();RenderTexture.active=rt;image.ReadPixels(new Rect(0,0,1500,900),0,0);image.Apply();File.WriteAllBytes(ProjectPath.Report(name),image.EncodeToPNG());}
+            try{RenderPipeline.SubmitRenderRequest(camera,new UniversalRenderPipeline.SingleCameraRequest{destination=rt});RenderTexture.active=rt;image.ReadPixels(new Rect(0,0,1500,900),0,0);image.Apply();File.WriteAllBytes(ProjectPath.Report(name),image.EncodeToPNG());
+                var pixels=image.GetPixels32();double sum=0;
+                for(int i=0;i<pixels.Length;i+=13)sum+=.2126*pixels[i].r+.7152*pixels[i].g+.0722*pixels[i].b;
+                return (float)(sum/((pixels.Length+12)/13*255));}
             finally{camera.targetTexture=old;RenderTexture.active=previous;RenderTexture.ReleaseTemporary(rt);Object.Destroy(image);}
         }
     }
