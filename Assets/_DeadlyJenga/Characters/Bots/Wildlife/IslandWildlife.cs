@@ -19,6 +19,7 @@ namespace DeadlyJenga.Wildlife
         public string Status { get;private set; }="Local wildlife preview. Wild animals wander; companions follow you.";
         public IWorldQuery World => world;
         public ISessionInfo Session => session;
+        internal float BodyScale => session is ILobbyControls?.35f:1f;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Register()
         {
@@ -41,12 +42,21 @@ namespace DeadlyJenga.Wildlife
             var right=Vector3.Cross(Vector3.up,forward);
             Vector3 point=origin;
             bool found=false;
+            float size=BodyScale;
+            float clearanceRadius=.28f,lowerClearance=.36f,upperClearance=.90f;
+            if(size<1)
+            {
+                clearanceRadius=IslandAnimal.BodyRadius(id)*size;
+                float height=Mathf.Max(IslandAnimal.BodyHeight(id)*size,clearanceRadius*2,1.2f*size);
+                float lift=Mathf.Max(.005f,2*.025f*size);
+                lowerClearance=clearanceRadius+lift;upperClearance=Mathf.Max(lowerClearance,height-clearanceRadius+lift);
+            }
             for(int i=0;i<24;i++)
             {
                 float angle=(serial*137.5f+i*47)*Mathf.Deg2Rad;
                 float radius=2.2f+(i/8)*1.4f;
                 Vector3 sample=origin+right*Mathf.Sin(angle)*radius+forward*Mathf.Cos(angle)*radius;
-                if(TryGround(sample,origin.y+1.8f,8,out point)&&!Physics.CheckCapsule(point+Vector3.up*.36f,point+Vector3.up*.90f,.28f,GroundMask,QueryTriggerInteraction.Ignore)){found=true;break;}
+                if(TryGround(sample,origin.y+1.8f,8,out point)&&!Physics.CheckCapsule(point+Vector3.up*lowerClearance,point+Vector3.up*upperClearance,clearanceRadius,GroundMask,QueryTriggerInteraction.Ignore)){found=true;break;}
             }
             if(!found){Status="No nearby supported ground. Stand on a wider platform or the island.";return null;}
             var root=new GameObject("Island wildlife - "+id);root.transform.SetParent(transform,true);root.transform.position=point;
