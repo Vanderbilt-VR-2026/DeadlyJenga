@@ -11,6 +11,8 @@ namespace DeadlyJenga.CastlePrototype
             // The skyline sits inside an inhabited fabric, rather than on isolated plinths.
             public void WeaveStreets(int design)
             {
+                // The exchange already has two short loops and six reachable destinations.
+                if(design==1)return;
                 int skyline=plan.sites.Count;
                 var targets=new List<Vector3>();
                 foreach(var route in plan.routes)

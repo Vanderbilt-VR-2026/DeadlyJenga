@@ -37,7 +37,13 @@ namespace DeadlyJenga.CastlePrototype
         public static EpicCityPlan Build(int design)
         {
             if(design<0||design>=Names.Length)throw new ArgumentOutOfRangeException(nameof(design));
-            var b=new Builder();Compose(b,design);b.WeaveStreets(design);b.Finish();return b.plan;
+            var b=new Builder();Compose(b,design);b.WeaveStreets(design);b.Finish();
+            if(design==1)
+            {
+                var bounds=MayhemStructureLayout.Bounds(b.plan.modules);
+                b.plan.halfSize=new Vector2(Mathf.Max(60,Mathf.Max(Mathf.Abs(bounds.min.x),Mathf.Abs(bounds.max.x))+10),Mathf.Max(52,Mathf.Max(Mathf.Abs(bounds.min.z),Mathf.Abs(bounds.max.z))+10));
+            }
+            return b.plan;
         }
         public static float GroundHeight(EpicCityPlan plan,Vector3 p)
         {

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 575feb42979de5f4a86a766a3c098266, type: 3}
+  m_Name: Harbor Exchange Match Layout
+  m_EditorClassIdentifier: DeadlyJenga.GameSession::DeadlyJenga.Modes.MapMatchLayout
+  layoutSignature: epic-city-v1:{"version":2,"design":1}
+  freeSpawns:
+  - {x: -36, y: 0.45, z: -36}
+  - {x: -36, y: 0.45, z: 4}
+  - {x: 0, y: 0.45, z: -36}
+  - {x: 0, y: 0.45, z: 4}
+  - {x: 36, y: 0.45, z: 4}
+  - {x: 36, y: 0.45, z: -36}
+  - {x: -44, y: 0.45, z: -34}
+  - {x: 44, y: 0.45, z: -34}
+  - {x: -44, y: 0.45, z: 34}
+  - {x: 44, y: 0.45, z: 34}
+  teams:
+  - name: West Forecourt
+    flagHome: {x: -48, y: 0.35, z: -20}
+    spawns:
+    - {x: -50, y: 0.45, z: -30}
+    - {x: -46, y: 0.45, z: -30}
+    - {x: -50, y: 0.45, z: -20}
+    - {x: -50, y: 0.45, z: -10}
+    - {x: -46, y: 0.45, z: -10}
+  - name: East Forecourt
+    flagHome: {x: 48, y: 0.35, z: -20}
+    spawns:
+    - {x: 50, y: 0.45, z: -30}
+    - {x: 46, y: 0.45, z: -30}
+    - {x: 50, y: 0.45, z: -20}
+    - {x: 50, y: 0.45, z: -10}
+    - {x: 46, y: 0.45, z: -10}
+  hill: {x: 0, y: 0.35, z: 0}
