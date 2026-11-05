@@ -33,8 +33,8 @@ namespace DeadlyJenga.CastlePrototype
             var list=new System.Collections.Generic.List<Map>(maps??Array.Empty<Map>());
             string scene=Array.Find(maps??Array.Empty<Map>(),m=>m!=null&&!string.IsNullOrEmpty(m.scenePath))?.scenePath;
             AddMap(list,"castle-gaps","Candy Castle Â· Long Blocks and Gaps","demo",10,scene);
-            AddMap(list,"castle-catwalks","Candy Castle · Catwalks","demo",10,scene);
-            AddMap(list,"castle-four-keeps","Candy Castle · Four Keeps","demo",10,scene);
+            AddMap(list,"castle-catwalks","Candy Castle Â· Catwalks","demo",10,scene);
+            AddMap(list,"castle-four-keeps","Candy Castle Â· Four Keeps","demo",10,scene);
             AddMap(list,"ctf","Lollipop Fortresses","ctf",12,scene);
             AddMap(list,"infection","Infection Spire","infection",12,scene);
             AddMap(list,"survival","Storm Cathedral","survival",12,scene);
