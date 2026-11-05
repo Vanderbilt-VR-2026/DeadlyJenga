@@ -236,7 +236,7 @@ namespace DeadlyJenga.DevTools.Editor
             inputSettings.backgroundBehavior = InputSettings.BackgroundBehavior.IgnoreFocus;
             inputSettings.editorInputBehaviorInPlayMode = InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
             InputSystem.settings = inputSettings;
-            InputSystem.RegisterLayout(@"{""name"":""EmoteCheckController"",""extend"":""XRController"",""controls"":[{""name"":""primary2DAxis"",""layout"":""Vector2""},{""name"":""primary2DAxisClick"",""layout"":""Button""},{""name"":""primaryButton"",""layout"":""Button""},{""name"":""secondaryButton"",""layout"":""Button""}]}");
+            InputSystem.RegisterLayout(@"{""name"":""EmoteCheckController"",""extend"":""XRController"",""controls"":[{""name"":""primary2DAxis"",""layout"":""Vector2""},{""name"":""primary2DAxisClick"",""layout"":""Button""},{""name"":""gripPressed"",""layout"":""Button""},{""name"":""primaryButton"",""layout"":""Button""},{""name"":""secondaryButton"",""layout"":""Button""}]}");
             var left = InputSystem.AddDevice("EmoteCheckController");
             var right = InputSystem.AddDevice("EmoteCheckController");
             InputSystem.SetDeviceUsage(left, CommonUsages.LeftHand);
@@ -257,11 +257,13 @@ namespace DeadlyJenga.DevTools.Editor
             Check(motor.IsVR && session.IsVR && HybridXRInput.ControllerTracked(true) && HybridXRInput.ControllerTracked(false),
                 "Forced VR uses two tracked virtual controllers.");
 
+            Button(left, "gripPressed", 1f);
+            yield return null;
             Button(left, "primary2DAxisClick", 1f);
             yield return null;
             yield return null;
             var wheel = GameObject.Find("Emote wheel panel");
-            if (!Check(wheel && !session.MenuOpen, "Holding left stick click opens the quick wheel independently of the session menu.")) yield break;
+            if (!Check(wheel && EmoteWheel.IsOpen && !session.MenuOpen, "Grip plus left stick click opens the quick wheel independently of the session menu.")) yield break;
             var slot = (RectTransform)wheel.transform.Find("Slot " + irish);
             var icon = slot.Find("Pose icon").GetComponent<Image>().sprite;
             var breakIcon = wheel.transform.Find("Slot " + breakdance + "/Pose icon").GetComponent<Image>().sprite;
@@ -277,6 +279,7 @@ namespace DeadlyJenga.DevTools.Editor
             Button(left, "primary2DAxisClick", 0f);
             yield return null;
             yield return null;
+            Button(left, "gripPressed", 0f);
             var vrOrbit = Orbit();
             var mirror = GameObject.Find("Local emote VR mirror");
             if (!Check(view.EmoteActive && vrOrbit && mirror && vrOrbit.targetTexture && eye.enabled,

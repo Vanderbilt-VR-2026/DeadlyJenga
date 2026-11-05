@@ -6,11 +6,12 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.CastlePrototype
 {
     // Fires emotes for the local player (survivor emotes, or taunts while playing the giant hand).
-    // Desktop: number keys 1-0. VR: hold the left stick click, look at an emote, let go.
+    // Desktop: number keys 1-0. VR: hold grip + stick click on either controller, look at an emote, let go.
     public sealed class EmoteWheel : MonoBehaviour
     {
         static EmoteWheel instance;
-        readonly InputAction vrButton = new InputAction("Emote wheel", InputActionType.Button, "<XRController>{LeftHand}/primary2DAxisClick");
+        public static bool IsOpen => instance && instance.open;
+        readonly InputAction vrButton = new InputAction("Emote wheel", InputActionType.Button);
         Canvas wheel;
         const int SlotCount = 10;
         readonly Image[] backs = new Image[SlotCount];
@@ -34,7 +35,19 @@ namespace DeadlyJenga.CastlePrototype
             go.AddComponent<EmoteOrbit>();
         }
 
-        void Awake() => Build();
+        void Awake()
+        {
+            BindWheel("LeftHand");
+            BindWheel("RightHand");
+            Build();
+        }
+
+        void BindWheel(string hand)
+        {
+            vrButton.AddCompositeBinding("ButtonWithOneModifier")
+                .With("Modifier", "<XRController>{" + hand + "}/gripPressed")
+                .With("Button", "<XRController>{" + hand + "}/primary2DAxisClick");
+        }
         void OnEnable() => vrButton.Enable();
         void OnDisable() { vrButton.Disable(); Close(); }
         void OnDestroy()
