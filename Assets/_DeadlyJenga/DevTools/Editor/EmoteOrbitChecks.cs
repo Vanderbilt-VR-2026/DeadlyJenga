@@ -24,6 +24,7 @@ namespace DeadlyJenga.DevTools.Editor
         static string Report => ProjectPath.Report("EmoteOrbit.txt");
         static int errors, failures;
         static float savedCaptureDelta;
+        static double readyDeadline;
 
         static EmoteOrbitChecks()
         {
@@ -34,19 +35,60 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     errors = failures = 0;
                     Application.logMessageReceived += Log;
-                    EditorApplication.delayCall += () =>
-                    {
-                        var runner = new GameObject("Emote validation driver").AddComponent<EmoteOrbitCheckDriver>();
-                        runner.StartCoroutine(Run());
-                    };
+                    SessionState.SetBool(Key + "Started", false);
+                    ScheduleStartup();
                 }
                 else if (state == PlayModeStateChange.EnteredEditMode)
                 {
+                    EditorApplication.update -= StartWhenReady;
                     Application.logMessageReceived -= Log;
                     SessionState.SetBool(Key, false);
                     EditorApplication.Exit(SessionState.GetBool(Key + "Passed", false) ? 0 : 1);
                 }
             };
+        }
+
+        static void ScheduleStartup()
+        {
+            EditorApplication.update -= StartWhenReady;
+            SessionState.SetString(Key + "RunProject", Path.GetFullPath(Application.dataPath));
+            readyDeadline = EditorApplication.timeSinceStartup + 120;
+            EditorApplication.update += StartWhenReady;
+        }
+
+        static void StartWhenReady()
+        {
+            try
+            {
+                if (SessionState.GetString(Key + "RunProject", "") != Path.GetFullPath(Application.dataPath))
+                    throw new InvalidOperationException("Validation project identity changed.");
+                if (!SessionState.GetBool(Key, false))
+                    throw new InvalidOperationException("Validation run is no longer active.");
+                if (EditorApplication.timeSinceStartup >= readyDeadline)
+                    throw new TimeoutException("Emote validation readiness exceeded 120 seconds.");
+                if (!EditorApplication.isPlaying || EditorApplication.isCompiling || EditorApplication.isUpdating) return;
+                if (SessionState.GetBool(Key + "Started", false))
+                {
+                    EditorApplication.update -= StartWhenReady;
+                    return;
+                }
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || !ReferenceEquals(Services.Session, session) || Services.World == null ||
+                    session.Player == null || !session.Modes) return;
+                EditorApplication.update -= StartWhenReady;
+                SessionState.SetBool(Key + "Started", true);
+                File.AppendAllText(Report, "START emote coroutine after scene/session/world/player readiness.\n");
+                var runner = new GameObject("Emote validation driver").AddComponent<EmoteOrbitCheckDriver>();
+                runner.StartCoroutine(Run());
+            }
+            catch (Exception error)
+            {
+                EditorApplication.update -= StartWhenReady;
+                File.AppendAllText(Report, "FAIL runner startup " + error + "\n");
+                SessionState.SetBool(Key + "Passed", false);
+                if (EditorApplication.isPlaying) EditorApplication.ExitPlaymode();
+                else EditorApplication.Exit(1);
+            }
         }
 
         public static void RunBatch()
@@ -55,6 +97,7 @@ namespace DeadlyJenga.DevTools.Editor
             File.WriteAllText(Report, "Game.unity solo emote validation with virtual Input System devices.\n");
             SessionState.SetBool(Key, true);
             SessionState.SetBool(Key + "Passed", false);
+            SessionState.SetBool(Key + "Started", false);
             MatchSetup.FromLobby = false;
             MatchSetup.StartLocalSession = false;
             MatchSetup.ModeId = "demo";
