@@ -75,6 +75,8 @@ namespace DeadlyJenga.CandyPlayers
         public Quaternion headRotation;
         public float scale;
         public bool seated;
+        public float danceWeight;
+        public Vector3 danceLeftFoot, danceRightFoot, danceTorsoEuler;
         public CandyHandPose left,right;
     }
 }
