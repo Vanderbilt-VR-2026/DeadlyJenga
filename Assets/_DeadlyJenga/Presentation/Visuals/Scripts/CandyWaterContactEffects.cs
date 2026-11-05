@@ -61,14 +61,21 @@ namespace DeadlyJenga.Presentation
         {
             if(!coating||!isActiveAndEnabled)return;touched.Clear();
             int count=Physics.OverlapSphereNonAlloc(position,radius,overlaps,1<<Layers.Block,QueryTriggerInteraction.Ignore);
-            for(int i=0;i<count;i++){var body=overlaps[i].attachedRigidbody;if(body&&touched.Add(body))Soak(body,overlaps[i].ClosestPoint(position),true);}
+            for(int i=0;i<count;i++)SoakContact(overlaps[i],overlaps[i].ClosestPoint(position));
             var delta=position-previous;
             if(delta.sqrMagnitude>.01f&&delta.magnitude<30)
             {
                 if(Time.time>=nextDrip){nextDrip=Time.time+.15f;Splash(position);}
                 count=Physics.SphereCastNonAlloc(previous,radius,delta.normalized,sweep,delta.magnitude,1<<Layers.Block,QueryTriggerInteraction.Ignore);
-                for(int i=0;i<count;i++){var body=sweep[i].rigidbody;if(body&&touched.Add(body))Soak(body,sweep[i].point,true);}
+                for(int i=0;i<count;i++)SoakContact(sweep[i].collider,sweep[i].point);
             }
+        }
+        void SoakContact(Collider collider,Vector3 point)
+        {
+            if(!collider)return;
+            var climbable=HitAbilities.Get<IClimbable>(collider);
+            var body=climbable!=null?climbable.Body:collider.attachedRigidbody;
+            if(body&&touched.Add(body))Soak(body,point,true);
         }
         public void Soak(Rigidbody body,Vector3 point,bool splash)
         {
