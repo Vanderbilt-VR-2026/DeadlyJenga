@@ -174,90 +174,108 @@ logs), FakeWorldQuery, FakeSession. Use them to test against something that does
 - No headset is assumed. Verify in the editor (desktop/XR simulator) and say
   what was NOT verified on device.
 
-## Git and autonomous handoffs
+## Git: contributor branches and shared handoffs
 
-Evan authorizes agents working on this repository to commit and push their owned,
-approved task changes to the existing verified `origin` without asking at each
-checkpoint. This covers ordinary task branches; the current integration owner
-alone publishes the agreed integration branch under its existing authorization.
-It does not authorize force pushes, branch deletion, releases, or changes to
-remote URLs/permissions. Preserve exact Core approval and transfer-branch rules.
+This is the repository-wide workflow for contributors and their coding agents,
+on any machine. Each contributor works on their own branches. Shared Git history
+and pull requests carry the handoff; no particular laptop, chat, private Workboard,
+worktree pool or agent product is required. Machine-local instructions may add
+local safety checks but cannot replace information teammates need in the repo/PR.
 
-### Checkpoint and publish
-- Verify repository, worktree/lease, branch, full HEAD, dirty/index state, remote
-  fetch/push URLs and current integration destination before writing or pushing.
-  Use the current Coordinator/MAIN-approved baseline, not a stale branch named
-  `main`. Start one task branch per owned scope; use `codex/<box>-<lane>-<task>`
-  for new agent branches. Preserve existing accepted branch names.
-- Commit each coherent, reviewable slice after its relevant cheap checks, before
-  handoff, task switch or stopping. During long tasks, checkpoint at a safe slice
-  about every 30 minutes; do not create empty commits or interrupt an advancing
-  Unity run merely to meet a timer. Do not wait for unrelated full QA to preserve
-  eligible source work. Mark runtime checks pending until actually performed.
-- Stage explicit owned paths/hunks and matching Unity metadata; inspect the staged
-  diff and run `git diff --cached --check`. Never sweep another agent's edits into
-  a commit with `git add .`, `git add -A` or `git commit -a`. Keep private state,
-  credentials, generated output and unrelated work out of commits.
-- Core drafts, dependent patches awaiting exact Core approval, explicitly gated
-  prototypes and inherited test-only overlays stay uncommitted and unpushed.
-  Preserve a sealed draft/diff and its blocker in the existing Workboard instead.
-- Push each eligible checkpoint promptly to its exact owned remote branch. Inspect
-  every configured push URL and reject an unexpected repository or multiple
-  destinations or mirror mode. Disable automatic tag/submodule publication and
-  use an explicit single-branch refspec, for example
-  `git -c push.followTags=false -c push.recurseSubmodules=no push origin HEAD:refs/heads/<owned-task-branch>`; never `--all`, `--mirror`,
-  `--force` or `--force-with-lease`. Inspect the outgoing range, including inherited
-  commits; a scoped tip does not authorize publishing unapproved ancestors.
-- Read back the remote branch SHA and record it. A failed/auth-blocked/rejected
-  push remains local-only; retain the commit and report the real blocker once.
-  On divergence, fetch and inspect; coordinate ownership rather than resetting,
-  rewriting shared history or repeatedly retrying. Do not auto-pull into a dirty
-  or open integration checkout. No work means no commit/push or status spam.
+Agents are expected to commit and push owned, approved work routinely using the
+contributor's authorized Git access. Respect that contributor's explicit limits,
+repository permissions, branch protections and required approvals. This is not
+permission to publish another person's branch, bypass Core approval, force push,
+delete branches, change remotes/permissions, or publish releases.
 
-### Notes another agent can integrate
-Use a concrete subject naming the changed behavior. The body explains what was
-wrong, what changed and why; include these fields, with `none` or `pending` when
-appropriate. Commit messages travel with ordinary pushes; separate Git notes are
-not the handoff record.
+### Work and publish on your own branch
+- Verify repository, current branch/HEAD, index/dirty state and configured remote
+  URLs. Identify the intended integration target explicitly; do not assume it is
+  `main` or a branch used on another machine. In a fork, the contributor's push
+  remote and upstream target may legitimately differ; verify both.
+- Preserve existing agreed contributor branches. For new tasks, prefer one task
+  branch with a distinct owner/task name, based on the latest fetched intended
+  target. Do not build on a teammate's unmerged branch unless that dependency is
+  intentional and recorded. Never switch or reset a teammate's working checkout.
+- Commit a coherent, reviewable slice after relevant cheap checks, before handing
+  off, switching tasks or stopping. During longer work, aim for a safe checkpoint
+  about every 30 minutes. Do not interrupt useful editor work, create empty commits
+  or commit broken partial changes just to meet a timer. Clearly label pending QA.
+- Stage explicit owned paths/hunks and corresponding Unity metadata. Inspect the
+  staged diff and run `git diff --cached --check`; do not sweep unrelated edits
+  into a commit with blanket staging. Keep credentials, personal instructions,
+  machine-private state and generated output out of commits.
+- Changes awaiting explicit approval, including Core/dependent patches and gated
+  prototypes, remain uncommitted/unpushed where those rules require it. Never
+  commit an inherited test-only overlay as your own work. Preserve a sealed draft
+  with its blocker; share only through an authorized location accessible to the
+  reviewer. Publication does not substitute for approval.
+- Push eligible checkpoints promptly to the exact contributor-owned branch on
+  the verified authorized remote. Inspect the full outgoing range, including
+  inherited commits, and every push URL. Reject unintended destinations or mirror
+  mode; disable automatic tag/submodule publication. For example:
+  `git -c push.followTags=false -c push.recurseSubmodules=no push <push-remote> HEAD:refs/heads/<owned-branch>`.
+  Never use force/all-branch/mirror pushes or delete branches under this policy.
+- Verify the remote branch SHA after pushing. If authentication or a rejected
+  non-fast-forward blocks publication, preserve the local commits and report the
+  exact blocker. Fetch and inspect divergence; reconcile with the branch owner
+  rather than resetting, overwriting history or retrying indefinitely. Do not
+  auto-pull into dirty/shared open checkouts. No change means no commit/push spam.
+
+### Leave notes teammates can use
+Use a concrete commit subject. Explain the trigger, resulting behavior and why
+in the body; keep detail proportional to the change. Include actual checks and
+pending checks, important dependencies and whether this is a checkpoint or a
+merge-ready slice. A useful body can be as short as:
 
 ```text
 Fix <specific behavior> in <box/lane>
 
-<Trigger and resulting behavior; explain any non-obvious decision.>
+<What changed and why; important files or compatibility consequences.>
 
-Task: <stable task ID and owner>
-Scope: <box/lane and important files; mention Unity metadata>
-Tests: <actual commands/results; identify pending runtime/headset checks>
-Evidence: <portable report/capture reference, or private Workboard record ID>
+Owner/task: <contributor and task ID>
+Tests: <actual checks/results; pending runtime/network/headset checks>
 Depends-on: <full required commit hashes, or none>
-Integration: <target branch; ready-for-review or checkpoint-not-ready; risks>
-Core-approval: <exact approval reference when applicable, otherwise none>
+Evidence: <team-accessible report/artifact/PR reference, or none>
+Status: <checkpoint-not-ready or ready-for-review; known risks>
 ```
 
-After commit/push, update the existing Workboard intake with full base/candidate
-and remote SHAs, owned paths, dependencies, exact tested commit or dirty snapshot,
-checks/results, known failures, approval state and next owner. Keep secrets and
-machine-private paths in the private intake, not in repository commit messages.
-A checkpoint is recoverable work; it is not automatically merge-ready.
+At handoff, update the existing PR description, or a repository-visible handoff
+record if there is no PR. Record source branch, target branch/remote, full base
+and candidate/verified remote SHAs, scope, dependencies, superseded candidates,
+actual tested revision, evidence, approval state, unresolved failures and next
+action. Use links teammates can access; a local Windows path, private chat or
+private Workboard alone is insufficient. Keep shared notes current when the
+candidate changes. Separate Git notes are not the handoff mechanism.
 
-### Integrate serially
-- Coordinator assigns scope; one named integration writer applies accepted exact
-  candidates to the current destination. Feature agents must not race to merge
-  each other's branches or publish the shared integration branch.
-- Inspect ancestry, dependencies and changed paths before applying. An ancestor
-  is already included; a squash/cherry-pick needs verified equivalence. Never
-  merge `IGNORE_EvanBranchForTransferBetweenLaptops` into main or open its PR.
-- Refresh the approved destination before final integration without resetting or
-  overwriting work. Preserve/resolve owned conflicts; if a conflict changes
-  another owner's behavior, get that owner's scoped review. Do not blindly pick
-  an entire ours/theirs side. Moving assets and changing logic stay separate.
+Open/update a draft PR for work in progress when using the PR workflow; mark it
+ready when the slice is ready for review, and merge only after required reviews/
+checks pass. A pushed checkpoint
+is recoverable source, not proof of merge readiness, integration or APK inclusion.
+Local dashboards may mirror these facts but are not the only source of context.
+
+### Merge branches without losing other contributors' work
+- Contributors/agents may prepare integration in their own branches. Updates to
+  a shared target are serialized through its designated maintainer/integration
+  owner or merge queue and obey branch protections. No particular local chat is
+  the universal integrator. Automatic merging requires the target owner's
+  authorization and its required checks/reviews; task-branch push permission
+  alone does not grant permission to push or merge into the shared target.
+- Fetch the latest target before final integration; inspect ancestry, changed
+  paths and explicit dependencies. Already-ancestor commits are included;
+  squashed/cherry-picked work needs verified equivalence before applying again.
+  Never merge `IGNORE_EvanBranchForTransferBetweenLaptops` into main or open its PR.
+- Resolve conflicts with the affected owners when behavior/ownership is unclear.
+  Do not blindly choose whole ours/theirs sides or overwrite newer code. Preserve
+  existing branch history and unfinished work. Keep asset moves separate from
+  logic changes and preserve Unity metadata.
 - Validate the combined result: game code compiles and Game.unity enters solo
-  Play Mode; networking also gets two-player validation. Reuse relevant unchanged
-  evidence where justified. Documentation-only changes need diff/link checks,
-  not a Unity import. Record failures and pending checks honestly.
-- Record the resulting integration SHA and acceptance in the Workboard. Source
-  integration, runtime validation and latest APK source/artifact are separate
-  facts. Never label a pushed task commit as integrated or shipped without proof.
+  Play Mode; networking also needs two-player validation. Reuse applicable exact
+  evidence when dependencies are unchanged. Documentation-only work needs diff/
+  link checks, not a Unity import. Record failures and pending checks honestly.
+- Update the shared PR/handoff with the actual resulting merge/integration SHA.
+  Keep source integration, runtime validation and APK source/artifact identity
+  separate. A commit appearing on a remote branch does not prove it shipped.
 
 ## Code style
 - Keep comments minimal and plain. Readers are college students new to Unity.
