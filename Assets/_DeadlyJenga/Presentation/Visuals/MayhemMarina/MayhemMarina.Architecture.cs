@@ -95,15 +95,20 @@ namespace DeadlyJenga.CandyArt.Marina
         void Pavilion()
         {
             for(int step=0;step<3;step++)mesh.Box(new Vector3(0,1.35f+step*.14f,4+step*.44f),new Vector3(13-step*.4f,.24f,1.15f),F.Stone,.09f,true);
-            mesh.Box(new Vector3(0,1.56f,8.45f),new Vector3(13,.6f,6.9f),F.Stone,.22f,true);
+            // Keep the raised platform outside the west passage, where the ramp meets it flush.
+            mesh.Box(new Vector3(.6f,1.56f,8.45f),new Vector3(11.8f,.6f,6.9f),F.Stone,0,true);
+            mesh.Box(new Vector3(-5.9f,1.56f,5.5f),new Vector3(1.2f,.6f,1.0f),F.Stone,0,true);
+            mesh.Box(new Vector3(-5.9f,1.56f,10.55f),new Vector3(1.2f,.6f,2.7f),F.Stone,0,true);
+            WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(13.3f,4.0f,.5f),F.Teal,.2f,true);
             for(int side=-1;side<=1;side+=2)
             {
-                mesh.Box(new Vector3(side*6.55f,3.1f,9.0f),new Vector3(1.5f,3.9f,5.1f),F.Ivory,.4f,true);
+                if(side>0)mesh.Box(new Vector3(side*6.55f,3.1f,9.0f),new Vector3(1.5f,3.9f,5.1f),F.Ivory,.4f,true);
+                else mesh.Box(new Vector3(-6.55f,3.1f,10.375f),new Vector3(1.5f,3.9f,2.35f),F.Ivory,.4f,true);
                 for(int n=0;n<4;n++)mesh.Box(new Vector3(side*5.7f,1.64f+n*.61f,5.05f),new Vector3(1.0f,.58f,1),n==0?F.Red:n==1?F.Green:F.Purple,.11f,true,Quaternion.Euler(0,n%2*90,0));
                 mesh.Beam(new Vector3(side*5.7f,3.95f,5.1f),new Vector3(side*5.7f,5.0f,5.1f),.14f,F.Wood,true);
                 mesh.Beam(new Vector3(side*5.7f,4.65f,5.1f),new Vector3(side*4.4f,5.7f,5.1f),.12f,F.Wood);
-                Pot(new Vector3(side*5.15f,1.86f,9.65f),.43f,.74f,side+3);
+                Pot(new Vector3(side*5.15f,1.86f,side<0?10.05f:9.65f),.43f,.74f,side+3);
                 Lantern(new Vector3(side*4.2f,4.75f,5.1f),.2f);
             }
             mesh.CurvedRoof(new Vector3(0,4.8f,8.3f),15.1f,8.6f,2.15f,F.Coral);
@@ -111,17 +116,20 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(0,3.9f,11.32f),new Vector3(7.75f,3.9f,.23f),F.Wood,.17f);
             mesh.Box(new Vector3(0,3.9f,11.17f),new Vector3(7.38f,3.57f,.10f),F.Ivory,.18f);
             mesh.Box(new Vector3(0,3.9f,11.10f),new Vector3(7.12f,3.31f,.05f),F.Teal,.13f);
-            mesh.Disk(new Vector3(0,1.82f,6.65f),2.3f,.87f,F.Wood,true,40);
-            mesh.Disk(new Vector3(0,2.69f,6.65f),2.43f,.16f,F.Stone,false,40);
-            mesh.Disk(new Vector3(-.9f,2.84f,6.50f),.3f,.09f,F.Brass,false,24);
-            mesh.Disk(new Vector3(-.9f,2.94f,6.50f),.22f,.11f,F.Glow,false,24);
-            mesh.Disk(new Vector3(.75f,2.85f,6.5f),.31f,.09f,F.Teal,false,24);
             Lantern(new Vector3(0,5.15f,7),.24f);
+        }
+        void WardrobeConnector()
+        {
+            var from=new Vector3(-10,1.285f,7.6f);
+            var to=new Vector3(-5.3f,1.86f,7.6f);
+            var rotation=Quaternion.LookRotation((to-from).normalized);
+            // Offset along the slab normal, so its top meets both existing flat landings exactly.
+            mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(3.2f,.22f,Vector3.Distance(from,to)),F.Stone,0,true,rotation);
         }
         void StyleShop()
         {
             Vector3 c=new(-13,1.3f,7.7f);
-            Portal(c,9.2f,5.6f,5.2f);
+            Portal(c,9.2f,5.6f,5.2f,true);
             mesh.Box(c+new Vector3(0,2.0f,2.8f),new Vector3(8.6f,4.1f,.3f),F.Wood,.18f,true);
             mesh.Box(c+new Vector3(0,3.88f,-2.7f),new Vector3(3.7f,.75f,.27f),F.Wood,.12f);
             // The illuminated oval mirror is centered in the open wardrobe, as in the approved render.
@@ -137,19 +145,30 @@ namespace DeadlyJenga.CandyArt.Marina
                     var p=c+new Vector3(side*3.1f+(j-1)*.53f,2.93f,1.94f);
                     mesh.Disk(p,.24f,.05f,F.Metal,false,20);mesh.Disk(p+Vector3.up*.05f,.15f,.28f,(F)((int)F.Red+(j+1)%3),false,20);
                 }
-                var railA=c+new Vector3(side*3.2f-.7f,2.0f,1.42f);var railB=c+new Vector3(side*3.2f+.7f,2.0f,1.42f);mesh.Beam(railA,railB,.027f,F.Brass);
+                float railZ=side>0?1.75f:1.42f;
+                var railA=c+new Vector3(side*3.2f-.7f,2.0f,railZ);var railB=c+new Vector3(side*3.2f+.7f,2.0f,railZ);mesh.Beam(railA,railB,.027f,F.Brass);
                 for(int j=0;j<4;j++)
                 {
-                    var p=c+new Vector3(side*3.2f+(j-1.5f)*.34f,1.4f,1.4f);var color=j%2==0?F.MintFabric:F.CoralFabric;
+                    var p=c+new Vector3(side*3.2f+(j-1.5f)*.34f,1.4f,railZ-.02f);var color=j%2==0?F.MintFabric:F.CoralFabric;
                     mesh.Box(p,new Vector3(.3f,.85f,.12f),color,.06f);mesh.Box(p+new Vector3(-.18f,.24f,0),new Vector3(.16f,.5f,.12f),color,.05f,false,Quaternion.Euler(0,0,-14));mesh.Box(p+new Vector3(.18f,.24f,0),new Vector3(.16f,.5f,.12f),color,.05f,false,Quaternion.Euler(0,0,14));
                 }
             }
             Pot(new Vector3(-18.1f,1.29f,3.2f),.56f,.9f,4);Pot(new Vector3(-7.8f,1.29f,3.8f),.45f,.8f,5);
         }
-        void Portal(Vector3 center,float width,float height,float depth)
+        void Portal(Vector3 center,float width,float height,float depth,bool wardrobePassage=false)
         {
             float half=width*.5f;
-            for(int side=-1;side<=1;side+=2)mesh.Box(center+new Vector3(side*(half-.5f),height*.42f,0),new Vector3(1.05f,height*.85f,depth),F.Ivory,.4f,true);
+            for(int side=-1;side<=1;side+=2)
+            {
+                if(side<0||!wardrobePassage)
+                    mesh.Box(center+new Vector3(side*(half-.5f),height*.42f,0),new Vector3(1.05f,height*.85f,depth),F.Ivory,.4f,true);
+                else
+                {
+                    float near=center.z-depth*.5f,far=center.z+depth*.5f;
+                    mesh.Box(new Vector3(center.x+half-.5f,center.y+height*.42f,(near+6f)*.5f),new Vector3(1.05f,height*.85f,6f-near),F.Ivory,.4f,true);
+                    mesh.Box(new Vector3(center.x+half-.5f,center.y+height*.42f,(9.2f+far)*.5f),new Vector3(1.05f,height*.85f,far-9.2f),F.Ivory,.4f,true);
+                }
+            }
             var arch=new List<Vector3>();
             for(int i=0;i<=40;i++){float a=Mathf.PI-i*Mathf.PI/40;arch.Add(center+new Vector3(Mathf.Cos(a)*(half-.45f),height*.59f+Mathf.Sin(a)*height*.35f,-depth*.5f));}
             mesh.Tube(arch,.53f,F.Ivory,16,true);
