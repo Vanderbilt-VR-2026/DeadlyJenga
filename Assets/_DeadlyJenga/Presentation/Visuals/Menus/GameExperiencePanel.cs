@@ -175,6 +175,7 @@ namespace DeadlyJenga.Presentation
             if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
                 owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls)||InputSignature()!=openingInput)
             {Close(false);return;}
+            if(openingVr)MenuAim.PlaceTablet(panel,eye,owner,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true);
             if(Time.unscaledTime>=refreshAt)Refresh();
             bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             for(int i=0;i<buttons.Count;i++){buttons[i].GetComponent<Image>().color=available[i]()?CandyHudVisuals.Card:CandyHudVisuals.Ink;captions[i].color=available[i]()?Color.white:CandyHudVisuals.Muted;}

@@ -6,12 +6,12 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CandyDemoHud
     {
-        int subsection,arsenalFilter;
+        int subsection;
         string SectionName=>DemoMenuSections.Sections[Mathf.Clamp(page,0,3)][Mathf.Clamp(subsection,0,DemoMenuSections.Sections[Mathf.Clamp(page,0,3)].Length-1)];
-        float SectionHeight=>SectionName=="Modes"?6000:SectionName=="Maps"?MapContentHeight():SectionName=="Disasters"?DisasterContentHeight():SectionName=="Equipment"||SectionName=="Bot equipment"||SectionName=="Ground pickups"?800+Enum.GetValues(typeof(EquipmentKind)).Length*104:SectionName=="Settings"?2300:SectionName=="Voice"?1450:1200;
+        float SectionHeight=>DesktopEquipmentWheelVisible?404:SectionName=="Modes"?6000:SectionName=="Maps"?MapContentHeight():SectionName=="Disasters"?DisasterContentHeight():SectionName=="Equipment"||SectionName=="Bot equipment"||SectionName=="Ground pickups"?800+Enum.GetValues(typeof(EquipmentKind)).Length*104:SectionName=="Settings"?2300:SectionName=="Voice"?1450:1200;
         void SelectSection(int index)
         {
-            subsection=index;selection=0;scroll=Vector2.zero;giveEquipmentPage=false;activate=false;
+            subsection=index;selection=0;scroll=Vector2.zero;giveEquipmentPage=false;activate=false;desktopWheelSection=null;
         }
 
         void DrawSectionSelector()
@@ -25,8 +25,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(Button(rect,"",selected?new Color(.40f,.25f,.61f):CandyHudVisuals.Panel))SelectSection(i);
                 if(selected)Panel(new Rect(rect.x+4,rect.y+9,3,35),CandyHudVisuals.Mint);
                 Icon(new Rect(rect.x+12,rect.y+11,30,30),DemoMenuSections.Icon(name),selected?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
-                GUI.Label(new Rect(rect.x+50,rect.y+1,226,27),name,heading);
-                GUI.Label(new Rect(rect.x+50,rect.y+27,226,24),DemoMenuSections.Caption(name),small);
+                GUI.Label(new Rect(rect.x+50,rect.y+1,226,27),name=="Bot equipment"?"Everyone gear":name,heading);
+                GUI.Label(new Rect(rect.x+50,rect.y+27,226,24),name=="Bot equipment"?"Survivor players + bots":DemoMenuSections.Caption(name),small);
             }
         }
 
@@ -49,8 +49,8 @@ namespace DeadlyJenga.CastlePrototype
             switch(SectionName)
             {
                 case "Character":PersonalPage();break;
-                case "Equipment":giveAllEquipment=false;GiveEquipmentPage();break;
-                case "Bot equipment":giveAllEquipment=true;GiveEquipmentPage();break;
+                case "Equipment":GiveEquipmentPage();break;
+                case "Bot equipment":GiveEquipmentPage();break;
                 case "Spectate":SpectatePage();break;case "Settings":SettingsPage();break;case "Controls":ControlsPage();break;
                 case "Survivors":BotsPage();break;case "Giant hands":HandsPage();break;case "Voice":VoicePage();break;
                 case "Friends":FriendsPage();break;case "Modes":ModesPage();break;case "Maps":MapsPage();break;case "Disasters":DisastersPage();break;

@@ -16,12 +16,16 @@ namespace DeadlyJenga.CastlePrototype
         LineRenderer pointerBeam;
         float pressedUntil;
         bool requireRelease,startedAim,usingController;
-        Camera rigCamera;
-        Transform trackingSpace;
+        int tabletPointerDevice=-1;
+        bool tabletDominantLeft,tabletWasHeld;
+        Image tabletFrame;
+        Mesh tabletCaseMesh;
+        Material tabletCaseMaterial;
 
         public void Show(bool show,Camera camera)
         {
             roomLeave.Clear();
+            if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
             if(!show||!camera)return;
             var eye=camera.transform;
@@ -29,7 +33,7 @@ namespace DeadlyJenga.CastlePrototype
             if(flat.sqrMagnitude<.015f)flat=Vector3.Cross(eye.right,Vector3.up);
             flat=flat.sqrMagnitude>.001f?flat.normalized:Vector3.forward;
             transform.SetPositionAndRotation(eye.position+flat*MenuDistance,Quaternion.LookRotation(flat,Vector3.up));
-            startedAim=false;requireRelease=true;focus=pressedTarget=null;rigCamera=null;
+            startedAim=false;requireRelease=true;focus=pressedTarget=null;tabletPointerDevice=-1;tabletWasHeld=false;
             if(pointerDot)pointerDot.gameObject.SetActive(false);
             if(pointerBeam)pointerBeam.enabled=false;
             if(focusOutline)focusOutline.gameObject.SetActive(false);
@@ -37,12 +41,14 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Point(Camera camera,bool pressed,bool held=false)
         {
-            if(!camera||!isActiveAndEnabled)return;
+            if(!camera||!isActiveAndEnabled||DeadlyJenga.Presentation.MenuAim.InputConsumed)return;
+            if(!giveEquipmentPage)RestoreEquipmentWheelLayout();
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
             ((RectTransform)transform).sizeDelta=new Vector2(600,1080);
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
-            bool controller=ControllerRay(camera,out pointerRay);
+            bool controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
+            PlaceTablet(camera);
             if(!controller)pointerRay=new Ray(camera.transform.position,camera.transform.forward);
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
@@ -57,32 +63,79 @@ namespace DeadlyJenga.CastlePrototype
             ApplyLabelContrast();PresentPointer();
         }
 
-        bool ControllerRay(Camera camera,out Ray ray)
+        bool DominantLeft=>session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded
+            ??(session as DeadlyJenga.Core.IBlasterControls)?.LeftHanded??false;
+
+        bool ControllerPose(Camera camera,bool left,out Pose pose,out XRController selected)
+            =>DeadlyJenga.Presentation.MenuAim.PhysicalPose(camera,left,out pose,out selected);
+        bool TabletInput(Camera camera,ref bool pressed,ref bool held,out Ray ray)
         {
-            ray=default;
-            if(rigCamera!=camera)
+            bool left=DominantLeft;
+            bool physical=ControllerPose(camera,left,out var pose,out var device);
+            if(!physical)physical=ControllerPose(camera,!left,out pose,out device);
+            int identity=physical?device.deviceId:-1;
+            if(tabletDominantLeft!=left||tabletPointerDevice!=identity)
             {
-                rigCamera=camera;
-                var rig=camera.GetComponentInParent<XROrigin>();
-                trackingSpace=rig&&rig.Camera==camera&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
+                tabletDominantLeft=left;tabletPointerDevice=identity;tabletWasHeld=false;
+                requireRelease=true;focus=pressedTarget=null;
             }
-            if(!trackingSpace)return false;
-            foreach(var device in InputSystem.devices)
+            if(physical)
             {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||
-                    device.layout.IndexOf("HandInteraction",System.StringComparison.OrdinalIgnoreCase)>=0)continue;
-                bool right=false;foreach(var usage in device.usages)right|=usage==UnityEngine.InputSystem.CommonUsages.RightHand;
-                if(!right)continue;
-                var position=device.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                var rotation=device.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                if(position==null||rotation==null)continue;
-                var origin=trackingSpace.TransformPoint(position.ReadValue());
-                var direction=trackingSpace.TransformDirection(rotation.ReadValue()*Vector3.forward);
-                float span=(origin-camera.transform.position).sqrMagnitude;
-                if(!(span<9&&direction.sqrMagnitude>.5f&&direction.sqrMagnitude<2))continue;
-                ray=new Ray(origin,direction.normalized);return true;
+                // Aim and click come from the same chosen controller. The holding hand cannot steal them.
+                var trigger=device.TryGetChildControl<ButtonControl>("triggerPressed");
+                var axis=device.TryGetChildControl<AxisControl>("trigger");
+                bool down=trigger!=null?trigger.isPressed:axis!=null&&axis.ReadValue()>.65f;
+                held=down;pressed=down&&!tabletWasHeld;tabletWasHeld=down;
+                ray=new Ray(pose.position,pose.rotation*Vector3.forward);return true;
             }
-            return false;
+            tabletWasHeld=held;
+            ray=new Ray(camera.transform.position,camera.transform.forward);return false;
+        }
+        void PlaceTablet(Camera camera)
+        {
+            DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft);
+            if(!tabletFrame)
+            {
+                tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(640,1120));
+                tabletFrame.type=Image.Type.Sliced;tabletFrame.fillCenter=false;tabletFrame.color=CandyHudVisuals.Lavender;
+                tabletFrame.transform.SetAsFirstSibling();
+                BuildTabletCase();
+            }
+        }
+
+        void BuildTabletCase()
+        {
+            var shader=Shader.Find("Universal Render Pipeline/Lit");if(!shader)return;
+            tabletCaseMaterial=new Material(shader){name="Tablet candy shell",hideFlags=HideFlags.DontSave};
+            tabletCaseMaterial.SetColor("_BaseColor",CandyHudVisuals.Lavender);
+            tabletCaseMaterial.SetFloat("_Smoothness",.8f);tabletCaseMaterial.SetFloat("_Metallic",.18f);
+            const int count=32;
+            var vertices=new Vector3[count*2+2];var triangles=new System.Collections.Generic.List<int>();
+            for(int ring=0;ring<2;ring++)for(int i=0;i<count;i++)
+            {
+                int corner=i/8;float angle=(corner*90+i%8*90f/7)*Mathf.Deg2Rad;
+                float x=(corner==0||corner==3?285:-285)+Mathf.Cos(angle)*35;
+                float y=(corner<2?525:-525)+Mathf.Sin(angle)*35;
+                vertices[ring*count+i]=new Vector3(x,y,ring==0?10:36);
+            }
+            vertices[count*2]=new Vector3(0,0,10);vertices[count*2+1]=new Vector3(0,0,36);
+            for(int i=0;i<count;i++)
+            {
+                int next=(i+1)%count;
+                triangles.AddRange(new[]{count*2,next,i,count*2+1,count+i,count+next,i,next,count+i,next,count+next,count+i});
+            }
+            tabletCaseMesh=new Mesh{name="Rounded tablet shell",hideFlags=HideFlags.DontSave};
+            tabletCaseMesh.vertices=vertices;tabletCaseMesh.triangles=triangles.ToArray();tabletCaseMesh.RecalculateNormals();tabletCaseMesh.RecalculateBounds();
+            var body=new GameObject("Visual - glossy tablet shell",typeof(MeshFilter),typeof(MeshRenderer));
+            body.transform.SetParent(transform,false);body.layer=gameObject.layer;
+            body.GetComponent<MeshFilter>().sharedMesh=tabletCaseMesh;
+            var renderer=body.GetComponent<MeshRenderer>();renderer.sharedMaterial=tabletCaseMaterial;
+            renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
+        }
+        void OnDestroy()
+        {
+            if(tabletCaseMesh)Destroy(tabletCaseMesh);
+            if(tabletCaseMaterial)Destroy(tabletCaseMaterial);
         }
 
         static bool Project(Ray ray,Transform plane,out Vector3 point)
@@ -118,7 +171,7 @@ namespace DeadlyJenga.CastlePrototype
                 var source=Resources.Load<Material>("CandyUtilityGlow");
                 if(source)
                 {
-                    var beam=new GameObject("Right controller menu ray");beam.transform.SetParent(transform,false);
+                    var beam=new GameObject("Dominant controller tablet ray");beam.transform.SetParent(transform,false);
                     pointerBeam=beam.AddComponent<LineRenderer>();pointerBeam.sharedMaterial=source;pointerBeam.useWorldSpace=true;
                     pointerBeam.positionCount=2;pointerBeam.startWidth=.005f;pointerBeam.endWidth=.002f;
                     pointerBeam.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;pointerBeam.receiveShadows=false;
