@@ -69,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
             if(studio)studio.ShowLauncher=false;
             if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
-            if(session.MenuOpen&&!lastMenu){selection=0;}
+            if(session.MenuOpen&&!lastMenu){selection=0;desktopWheelSection=null;}
             lastMenu=session.MenuOpen;
             var k=Keyboard.current;
             if(k!=null&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
@@ -163,10 +163,11 @@ namespace DeadlyJenga.CastlePrototype
             DrawSectionSelector();
             Panel(new Rect(258,244,921,430),CandyHudVisuals.Panel);drawIndex=0;
             scroll=GUI.BeginScrollView(new Rect(278,254,884,404),scroll,new Rect(0,0,856,SectionHeight));
-            var picture=SectionPicture();
+            var picture=DesktopEquipmentWheelVisible?null:SectionPicture();
             float headerWidth=picture?610:830;
-            GUI.Label(new Rect(8,2,headerWidth,36),PageName(page)+" / "+SectionName,heading);
-            GUI.Label(new Rect(8,45,headerWidth,60),PageDescription(),small);
+            GUI.Label(new Rect(8,2,headerWidth,36),DesktopEquipmentWheelVisible?"EQUIPMENT WHEEL":PageName(page)+" / "+SectionName,heading);
+            string description=DesktopEquipmentWheelVisible?"Select an icon, then Give. Current respawn grant: "+EquipmentSpecifications.Get((MatchRuntime.Current as IDemoLoadoutControls)?.RespawnEquipment??EquipmentKind.None).name:PageDescription();
+            GUI.Label(new Rect(8,45,headerWidth,DesktopEquipmentWheelVisible?24:60),description,small);
             if(picture)GUI.DrawTexture(new Rect(650,2,177,106),picture,ScaleMode.ScaleToFit);
             DrawSection();
             GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
@@ -224,27 +225,107 @@ namespace DeadlyJenga.CastlePrototype
                 ActionCard(DemoMode?2010:535,CandyHudIcon.Settings,"Random block powerup settings","Spawn interval, active limit, lifetime, and weighted types / percentages.",()=>DeadlyJenga.Presentation.CandyPowerupSpawnPanel.Open());
         }
         bool giveAllEquipment,repeatEquipment;
+        bool DesktopEquipmentWheelVisible=>SectionName=="Equipment"||SectionName=="Bot equipment"||giveEquipmentPage;
+        int desktopWheelCategory,desktopWheelOffset;
+        EquipmentKind desktopWheelSelected=EquipmentKind.Blaster;
+        string desktopWheelSection;
+        GUIStyle desktopWheelName,desktopWheelCenter;
+        static readonly string[] DesktopWheelCategories={"RANGED","MELEE","POWERUPS"};
+        static readonly EquipmentKind[][] DesktopWheelItems={BuildDesktopWheelItems(0),BuildDesktopWheelItems(1),BuildDesktopWheelItems(2)};
+        static readonly Vector2[] DesktopWheelCenters={new Vector2(270,110),new Vector2(378.253f,172.5f),new Vector2(378.253f,297.5f),new Vector2(270,360),new Vector2(161.747f,297.5f),new Vector2(161.747f,172.5f)};
+        static EquipmentKind[] BuildDesktopWheelItems(int category)
+        {
+            var items=new System.Collections.Generic.List<EquipmentKind>();
+            for(int i=1;i<EquipmentSpecifications.All.Length;i++)
+            {
+                var kind=(EquipmentKind)i;var specification=EquipmentSpecifications.Get(kind);
+                bool power=specification.power||kind==EquipmentKind.PoweredArmor;
+                if(category==2?power:category==1?!power&&specification.melee:!power&&!specification.melee)items.Add(kind);
+            }
+            return items.ToArray();
+        }
+        void DesktopWheelButton(Rect rect,string text,Action action,bool enabled=true,Color? accent=null)
+        {
+            int index=drawIndex++;
+            if(index>=navTops.Count)navTops.Add(0);else navTops[index]=0;
+            if(index>=navActions.Count)navActions.Add(null);navActions[index]=enabled?action:null;
+            if(index==selection)Panel(new Rect(rect.x-2,rect.y-2,rect.width+4,rect.height+4),CandyHudVisuals.Mint);
+            bool previous=GUI.enabled;GUI.enabled=previous&&enabled;
+            if(Button(rect,text,accent??CandyHudVisuals.Card)){selection=index;action?.Invoke();}
+            GUI.enabled=previous;
+        }
+        static void DesktopWheelPicture(Rect box,EquipmentKind kind,bool alternate=false)
+        {
+            var sprite=CandyWeaponIcons.Get(kind,alternate);var previous=GUI.color;GUI.color=Color.white;
+            if(sprite)
+            {
+                var rect=sprite.rect;float scale=Mathf.Min(box.width/rect.width,box.height/rect.height);
+                var fit=new Rect(box.center.x-rect.width*scale*.5f,box.center.y-rect.height*scale*.5f,rect.width*scale,rect.height*scale);
+                GUI.DrawTextureWithTexCoords(fit,sprite.texture,new Rect(rect.x/sprite.texture.width,rect.y/sprite.texture.height,rect.width/sprite.texture.width,rect.height/sprite.texture.height));
+            }
+            else
+            {
+                var icon=kind==EquipmentKind.Jump?CandyHudIcon.Jump:kind==EquipmentKind.Speed?CandyHudIcon.Move:kind==EquipmentKind.FlyingHand?CandyHudIcon.Hand:CandyHudIcon.Key;
+                GUI.color=kind==EquipmentKind.Jump?new Color(.25f,1,.3f):kind==EquipmentKind.Speed?new Color(.25f,.7f,1):CandyHudVisuals.Mint;
+                GUI.DrawTexture(box,CandyHudVisuals.Icon(icon),ScaleMode.ScaleToFit);
+            }
+            GUI.color=previous;
+        }
         void GiveEquipmentPage()
         {
-            ActionCard(119,CandyHudIcon.Home,"Items: "+new[]{"ALL","POWERS","RANGED","MELEE"}[arsenalFilter],"Click to filter the item listing.",()=>{arsenalFilter=(arsenalFilter+1)%4;scroll=Vector2.zero;});
-            var runtime=MatchRuntime.Current;var controls=runtime as IDemoEquipmentControls;
-            var everyone=runtime as IDemoLoadoutControls;
+            if(desktopWheelSection!=SectionName)
+            {
+                desktopWheelSection=SectionName;giveAllEquipment=SectionName=="Bot equipment";
+                repeatEquipment=false;desktopWheelCategory=desktopWheelOffset=0;desktopWheelSelected=EquipmentKind.Blaster;scroll=Vector2.zero;
+            }
+            desktopWheelName??=new GUIStyle(cardHeading){fontSize=20,wordWrap=true};
+            desktopWheelCenter??=new GUIStyle(small){fontSize=14,alignment=TextAnchor.MiddleCenter,wordWrap=true};
+            var runtime=MatchRuntime.Current;var self=runtime as IDemoEquipmentControls;var everyone=runtime as IDemoLoadoutControls;
             bool host=DemoMode&&CanCommand&&runtime?.Authority==true;
-            bool can=host&&(giveAllEquipment?everyone!=null:!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true&&controls!=null);
-            ActionCard(223,CandyHudIcon.Survivor,"Target: "+(giveAllEquipment?"ALL PLAYERS + BOTS":"MYSELF"),"Click to switch targets. Giant hands and enemy NPCs are excluded.",()=>{page=giveAllEquipment?0:1;subsection=giveAllEquipment?1:2;giveAllEquipment=!giveAllEquipment;scroll=Vector2.zero;},everyone!=null);
-            float y=327;
-            if(giveAllEquipment)
+            bool canSelf=host&&!session.PlayingHand&&(Demo as ISpectatorControls)?.Spectating!=true&&self!=null;
+            bool canEveryone=host&&everyone!=null&&desktopWheelSelected!=EquipmentKind.FlyingHand;
+            if(!giveAllEquipment||desktopWheelSelected==EquipmentKind.FlyingHand)repeatEquipment=false;
+            var items=DesktopWheelItems[desktopWheelCategory];int pages=Mathf.Max(1,(items.Length+5)/6);
+            desktopWheelOffset=Mathf.Clamp(desktopWheelOffset/6,0,pages-1)*6;
+            for(int category=0;category<3;category++)
             {
-                ActionCard(y,CandyHudIcon.Play,repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY","Click to switch. Respawn grants also cover newly spawned survivors.",()=>repeatEquipment=!repeatEquipment);y+=104;
-                ActionCard(y,CandyHudIcon.Home,"Stop respawn grants","Active: "+(everyone?.RespawnEquipment==EquipmentKind.None?"OFF":DeadlyJenga.Presentation.CandyEquipmentView.Name(everyone?.RespawnEquipment??EquipmentKind.None))+". Stops future grants without taking held items away.",()=>everyone.GiveEveryoneEquipment(EquipmentKind.None,false),host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None);y+=104;
+                int chosen=category;DesktopWheelButton(new Rect(470+category*116,82,110,32),DesktopWheelCategories[category],()=>{desktopWheelCategory=chosen;desktopWheelOffset=0;desktopWheelSelected=DesktopWheelItems[chosen][0];},true,desktopWheelCategory==category?CandyHudVisuals.Lavender:CandyHudVisuals.Card);
             }
-            int row=0;
-            foreach(EquipmentKind kind in System.Enum.GetValues(typeof(EquipmentKind)))
+            string pointed="";
+            for(int i=0;i<6;i++)
             {
-                if(giveAllEquipment&&kind==EquipmentKind.FlyingHand)continue;
-                if(kind==EquipmentKind.None||arsenalFilter==1&&!EquipmentSpecifications.Get(kind).power||arsenalFilter==2&&(kind<EquipmentKind.Blaster||EquipmentSpecifications.Get(kind).power||EquipmentSpecifications.Get(kind).melee)||arsenalFilter==3&&!EquipmentSpecifications.Get(kind).melee)continue;var item=kind;
-                ActionCard(y+row++*104,CandyHudIcon.Play,"Give "+(giveAllEquipment?"everyone ":"myself ")+DeadlyJenga.Presentation.CandyEquipmentView.Name(item),giveAllEquipment?"Replaces current inventory directly. "+(repeatEquipment?"Also gives this item on future respawns; new survivors included.":"Current living survivors only; disables future respawn grants."):"Replaces your one item slot. Your previous item drops at your feet. Timed powers last 20 seconds.",()=>EquipmentAction(()=>giveAllEquipment?everyone.GiveEveryoneEquipment(item,repeatEquipment):controls.GiveEquipment(item)),can);
+                int at=desktopWheelOffset+i;if(at>=items.Length)continue;var item=items[at];var center=DesktopWheelCenters[i];
+                var card=new Rect(center.x-52,center.y-37,104,74);bool hover=card.Contains(Event.current.mousePosition);
+                DesktopWheelButton(card,"",()=>desktopWheelSelected=item,true,hover?CandyHudVisuals.Mint:item==desktopWheelSelected?CandyHudVisuals.Lavender:CandyHudVisuals.Card);
+                DesktopWheelPicture(new Rect(card.x+4,card.y+4,96,66),item);
+                if(hover)pointed=EquipmentSpecifications.Get(item).name;
             }
+            Panel(new Rect(216,184,108,102),CandyHudVisuals.Ink);
+            bool alternate=desktopWheelSelected==EquipmentKind.DualRifle&&Mathf.FloorToInt(Time.unscaledTime/1.5f)%2==1;
+            DesktopWheelPicture(new Rect(224,190,92,52),desktopWheelSelected,alternate);
+            string centerName=desktopWheelSelected==EquipmentKind.DualRifle?"DUAL RIFLE\n"+(alternate?"SHOTGUN VIEW":"RIFLE VIEW"):EquipmentSpecifications.Get(desktopWheelSelected).name;
+            GUI.Label(new Rect(220,246,100,36),centerName,desktopWheelCenter);
+            GUI.Label(new Rect(470,123,350,28),string.IsNullOrEmpty(pointed)?EquipmentSpecifications.Get(desktopWheelSelected).name:pointed,desktopWheelName);
+            bool canGive=giveAllEquipment?canEveryone:canSelf;
+            string giveTitle=!host?"HOST / DEMO ACCESS REQUIRED":giveAllEquipment&&desktopWheelSelected==EquipmentKind.FlyingHand?"FLYING HAND: SELF ONLY":"GIVE SELECTED / "+(giveAllEquipment?"EVERYONE":"MYSELF");
+            DesktopWheelButton(new Rect(470,157,350,51),giveTitle,()=>
+            {
+                bool accepted=giveAllEquipment?everyone.GiveEveryoneEquipment(desktopWheelSelected,repeatEquipment):self.GiveEquipment(desktopWheelSelected);
+                commandFeedback=accepted?"Equipment request accepted.":"Request not completed: current rules or eligible recipients may have changed.";
+                feedbackUntil=Time.unscaledTime+6;if(accepted)session.SetMenu(false);
+            },canGive,CandyHudVisuals.Mint);
+            DesktopWheelButton(new Rect(470,219,350,35),"Target: "+(giveAllEquipment?"EVERYONE":"MYSELF"),()=>{giveAllEquipment=!giveAllEquipment;if(!giveAllEquipment)repeatEquipment=false;},host&&everyone!=null);
+            DesktopWheelButton(new Rect(470,262,350,35),giveAllEquipment?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":"SELF / THIS LIFE ONLY",()=>repeatEquipment=!repeatEquipment,host&&everyone!=null&&giveAllEquipment&&desktopWheelSelected!=EquipmentKind.FlyingHand);
+            DesktopWheelButton(new Rect(470,305,350,35),"STOP EVERYONE RESPAWN GRANTS",()=>
+            {
+                bool accepted=everyone.GiveEveryoneEquipment(EquipmentKind.None,false);
+                commandFeedback=accepted?"Respawn grant stop accepted.":"Stop request not accepted; check the actual respawn grant above.";
+                feedbackUntil=Time.unscaledTime+6;
+            },host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None,CandyHudVisuals.Peach);
+            DesktopWheelButton(new Rect(470,352,100,35),"< PREV",()=>{desktopWheelOffset-=6;desktopWheelSelected=items[desktopWheelOffset];},desktopWheelOffset>0);
+            GUI.Label(new Rect(580,352,130,35),(desktopWheelOffset/6+1)+" / "+pages,desktopWheelCenter);
+            DesktopWheelButton(new Rect(720,352,100,35),"NEXT >",()=>{desktopWheelOffset+=6;desktopWheelSelected=items[desktopWheelOffset];},desktopWheelOffset+6<items.Length);
+            DesktopWheelButton(new Rect(8,350,100,35),"BACK",()=>SelectSection(0));
         }
         static string EquipmentNames(EquipmentKind item)=>item==EquipmentKind.PoweredArmor?"powered iron suit":item==EquipmentKind.DualRifle?"dual rifle / shotgun":item==EquipmentKind.MurderSword?"murderer sword":item==EquipmentKind.SheriffHammer?"sheriff revolver":item==EquipmentKind.BoxingGlove?"giant boxing glove":"alien blaster";
         readonly MapCategoryPicker demoMapPicker=new MapCategoryPicker();
@@ -492,20 +573,20 @@ namespace DeadlyJenga.CastlePrototype
                     new Hint(CandyHudIcon.Hand,"TRACK A CONTROLLER","Controller needed"),
                     new Hint(CandyHudIcon.Move,"NO TRACKED STICK","Flight unavailable"),
                     new Hint(CandyHudIcon.Help,"NO TRACKED BUTTON","Toggle unavailable")};
-                bool pilotLeft=single?left:equipment.leftHanded;
+                bool pilotLeft=single?left:!equipment.leftHanded;
                 bool mixedFlightSide=vr&&left&&right&&TrackedHands;
-                if(!drawn)return new[]{move,jump,vr?(mixedFlightSide?new Hint(CandyHudIcon.Key,"FLIGHT: Grip+Y / B","Activate suit"):Controller(pilotLeft,ControllerPart.Secondary,"Activate suit",pilotLeft?"Grip + ":"")):
+                if(!drawn)return new[]{move,jump,vr?(mixedFlightSide?new Hint(CandyHudIcon.Key,"DOM: Grip+Y / B","Activate suit"):Controller(single?left:equipment.leftHanded,ControllerPart.Secondary,"Activate suit",(single?left:equipment.leftHanded)?"Grip + ":"")):
                     new Hint(CandyHudIcon.Key,"V","Activate suit")};
                 var fingers=session.Player.gameObject.GetComponent<IFingerTips>();
                 bool otherController=pilotLeft?right:left;
                 bool otherTracked=fingers!=null&&fingers.TryIndexTip(!pilotLeft,out _);
                 string fire=otherController?(pilotLeft?"R trig":"L trig"):
-                    otherTracked?(pilotLeft?"R pinch":"L pinch"):"";
-                string land=pilotLeft?"Grip+Y":"B";
+                    otherTracked?(pilotLeft?"R palm":"L palm"):"";
+                string land=equipment.leftHanded?"Grip+Y":"B";
                 if(mixedFlightSide)return new[]{
-                    new Hint(CandyHudIcon.Move,"FLIGHT STICK","Fly"),
+                    new Hint(CandyHudIcon.Move,"NON-DOM STICK","Fly"),
                     new Hint(CandyHudIcon.Key,"FLIGHT TRIG / GRIP","Rise / descend"),
-                    new Hint(CandyHudIcon.Key,"OTHER / Grip+Y,B","Fire / land")};
+                    new Hint(CandyHudIcon.Key,"DOM HAND / Grip+Y,B","Fire / land")};
                 return vr?new[]{Controller(pilotLeft,ControllerPart.Stick,"Fly"),
                     new Hint(CandyHudIcon.Key,pilotLeft?"L trigger / grip":"R trigger / grip","Rise / descend"),
                     new Hint(CandyHudIcon.Key,fire.Length>0?fire+" / "+land:land,fire.Length>0?"Fire / land":"Land")}:

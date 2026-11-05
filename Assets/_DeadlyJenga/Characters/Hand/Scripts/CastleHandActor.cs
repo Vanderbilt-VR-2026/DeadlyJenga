@@ -76,7 +76,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyHandTransition.IsValidPose(hand)&&Vector3.Distance(hand.skeleton.Joint(3),hand.skeleton.Joint(7))<.032f;
         public bool SelectPressed => HandTracking && HandTracking.MenuSelectPressed;
         public bool SelectHeld => HandTracking && HandTracking.MenuSelectHeld;
-        public string StatusText => "";
+        public string StatusText => Bridge ? Bridge.TrackingStatus : "";
         public void PrepareForSession()
         {
             if (View) View.clearFlags = CameraClearFlags.Skybox;

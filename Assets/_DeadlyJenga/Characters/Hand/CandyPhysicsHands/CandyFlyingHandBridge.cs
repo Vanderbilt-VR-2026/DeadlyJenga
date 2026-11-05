@@ -85,6 +85,11 @@ namespace DeadlyJenga.CandyPhysicsHands
         bool[] colliderEnabled,rendererEnabled;
         Vector3 trackingAnchor;
         bool anchored;
+        float selectedMissing,alternateStable;
+        bool preferenceInitialized,lastPreference;
+        float preferredClearSince=-1,nextPreferredClearCheck;
+        public bool PreferredHandReturnPending {get;private set;}
+        public string TrackingStatus=>PreferredHandReturnPending?"Preferred hand ready; release current contact to switch back":"";
         bool trackedGeometry;
         public DesktopHandPose DesktopPose { get; private set; }
         public float DesktopClench { get; private set; }
@@ -123,9 +128,35 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(!desktop&&!external&&PoseSource==null&&source)
             {
                 bool preferred=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",useLeftHand?1:0)!=0;
-                bool chosen=source.WorldHand(preferred).tracked||!source.WorldHand(!preferred).tracked?preferred:!preferred;
-                if(chosen!=useLeftHand){ResetTrackingRig();useLeftHand=chosen;}
+                if(!preferenceInitialized){lastPreference=preferred;preferenceInitialized=true;if(!physical&&!transition.Initialized)useLeftHand=preferred;}
+                if(preferred!=lastPreference)
+                {ResetTrackingRig();useLeftHand=preferred;lastPreference=preferred;selectedMissing=alternateStable=0;}
+                var selected=source.WorldHand(useLeftHand);var alternate=source.WorldHand(!useLeftHand);
+                bool selectedValid=selected.tracked&&CandyHandTransition.IsValidPose(selected);
+                bool alternateValid=alternate.tracked&&CandyHandTransition.IsValidPose(alternate);
+                float elapsed=Mathf.Clamp(Time.unscaledDeltaTime,0,.05f);
+                selectedMissing=selectedValid?0:selectedMissing+elapsed;
+                alternateStable=alternateValid?alternateStable+elapsed:0;
+                PreferredHandReturnPending=useLeftHand!=preferred&&alternateValid&&alternateStable>=settings.stableTime;
+                if(!PreferredHandReturnPending)preferredClearSince=-1;
+                bool fallback=!selectedValid&&alternateValid&&selectedMissing>=settings.dropoutHold+settings.releaseTime&&
+                    alternateStable>=settings.stableTime&&transition.Strength<=0;
+                bool returnPreferred=PreferredHandReturnPending&&PreferredReturnIsClear();
+                if(fallback||returnPreferred)
+                {
+                    useLeftHand=!useLeftHand;anchored=false;flightGesture.Reset();
+                    if(physical)
+                    {
+                        var rest=physical.Target;rest.position=physical.bodies[0].position;rest.rotation=physical.bodies[0].rotation;
+                        rest.skeleton=alternate.skeleton;rest.skeletonTracked=alternate.skeletonTracked;
+                        physical.SetInteractive(false);physical.left=useLeftHand;physical.RebuildInactive(rest);
+                        trackedGeometry=alternate.skeletonTracked;
+                    }
+                    pendingAuthoritativeBones=null;authoritativeAt=-100;selectedMissing=alternateStable=0;
+                    PreferredHandReturnPending=false;preferredClearSince=-1;
+                }
             }
+            else {PreferredHandReturnPending=false;preferredClearSince=-1;}
             var raw=source?source.WorldHand(useLeftHand):default;
             if(PoseSource!=null){if(!PoseSource.TryGetPose(out raw))raw=default;}
             else if(external)raw=default;
@@ -182,6 +213,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             // No reset on reacquisition: the dynamic hand returns through bounded drives.
             physical.SetInteractive(transition.Strength>0&&!EffectiveInputBlocked);
             actor.motor.ContactPalm=physical.IsInteractive?physical.bodies[0]:null;
+            physical.DesktopRecoveryOnly=desktop&&!external&&!NetworkPreview&&!EffectiveInputBlocked&&physical.ActivationBlocked;
             physical.skin.enabled=physical.IsInteractive||(EffectiveInputBlocked&&transition.Strength>0);
             CandyHandLook.For(physical).Apply(Look);
             if(transition.Mode==CandyHandMode.Inactive){physical.gameObject.SetActive(false);}
@@ -247,8 +279,25 @@ namespace DeadlyJenga.CandyPhysicsHands
             var rest = new CandyHandPose { position = at.position, rotation = at.rotation, tracked = true, skeleton = CandyHandSkeleton.Rest(useLeftHand) };
             CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null, NetworkLook);
         }
-        void OnEnable(){if(!SuppressNetworkRegistration&&!NetworkActors.Local.Contains(this))NetworkActors.Local.Add(this);if(!GetComponent<HandTaunts>())gameObject.AddComponent<HandTaunts>();}
-        void OnDisable(){spectatorInputHeld=false;if(actor&&actor.motor)actor.motor.ContactPalm=null;NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
+        bool PreferredReturnIsClear()
+        {
+            if(!physical||!physical.IsInteractive)return true;
+            float now=Time.unscaledTime;
+            if(now>=nextPreferredClearCheck||preferredClearSince>=0&&now-preferredClearSince>=settings.stableTime)
+            {
+                nextPreferredClearCheck=now+.1f;
+                if(!physical.ClearForAutomaticSideSwitch()){preferredClearSince=-1;return false;}
+                if(preferredClearSince<0)preferredClearSince=now;
+            }
+            return preferredClearSince>=0&&now-preferredClearSince>=settings.stableTime;
+        }
+        bool QueueDesktopRecovery(Vector3 delta)
+        {
+            return actor&&actor.motor.DesktopInputAllowed&&physical&&physical.DesktopRecoveryOnly&&
+                !EffectiveInputBlocked&&physical.QueueInactiveRecovery(delta);
+        }
+        void OnEnable(){actor.motor.ContactRecoveryMove=QueueDesktopRecovery;if(!SuppressNetworkRegistration&&!NetworkActors.Local.Contains(this))NetworkActors.Local.Add(this);if(!GetComponent<HandTaunts>())gameObject.AddComponent<HandTaunts>();}
+        void OnDisable(){PreferredHandReturnPending=false;preferredClearSince=-1;selectedMissing=alternateStable=0;preferenceInitialized=false;actor.motor.ContactRecoveryMove=null;spectatorInputHeld=false;if(actor&&actor.motor)actor.motor.ContactPalm=null;NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
         void OnDestroy(){if(physical)Destroy(physical.gameObject);}
     }
 }

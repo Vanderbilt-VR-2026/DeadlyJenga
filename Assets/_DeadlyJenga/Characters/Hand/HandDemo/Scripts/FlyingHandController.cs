@@ -72,6 +72,7 @@ namespace FlyingHand
         public Vector3 ContactTargetOffset { get; set; }
         public float MaximumContactLead { get; set; } = .2f;
         public bool RequiresContactProfile { get; set; }
+        public System.Func<Vector3,bool> ContactRecoveryMove { get; set; }
         public Vector2 MoveInput { get; private set; }
         public float YawInput { get; private set; }
         public float VerticalInput { get; private set; }
@@ -277,7 +278,17 @@ namespace FlyingHand
         {
             ClampWaterBoundary();
             ConstrainContactTarget();
-            if(RequiresContactProfile&&(!ContactRulesConfirmed||ContactForceNewtons<=0||!ContactPalm))return;
+            if(RequiresContactProfile&&(!ContactRulesConfirmed||ContactForceNewtons<=0||!ContactPalm))
+            {
+                if(ContactRulesConfirmed&&ContactForceNewtons>0&&!ContactPalm&&DesktopInputAllowed&&ContactRecoveryMove!=null)
+                {
+                    var recoveryHeading=Quaternion.Euler(0,Body.rotation.eulerAngles.y,0);
+                    var input=Vector3.ClampMagnitude(new Vector3(MoveInput.x,VerticalInput,MoveInput.y),1);
+                    var delta=recoveryHeading*input*Mathf.Min(2,maximumSpeed)*Mathf.Clamp(Time.fixedDeltaTime,0,.05f);
+                    if(delta.sqrMagnitude>.00000001f&&ContactRecoveryMove(delta))Body.MovePosition(Body.position+delta);
+                }
+                return;
+            }
             if(!externallyDriven&&ActiveControlMode==ControlMode.VR)
             {
                 var headingVR=Quaternion.Euler(0,Body.rotation.eulerAngles.y,0);

@@ -8,7 +8,10 @@ namespace DeadlyJenga.Presentation
     public sealed class CandyWildlifePanel : MonoBehaviour
     {
         ISessionInfo session;
-        bool open,tame;
+        bool open,tame,selectReady;
+        Image aimDot;
+        bool previousHeld;
+        int pointerIdentity=int.MinValue;
         Vector3 openingForward=Vector3.forward;
         Canvas canvas;
         RectTransform panel;
@@ -30,7 +33,7 @@ namespace DeadlyJenga.Presentation
             var view=(owner as Component)?.GetComponent<CandyWildlifePanel>();
             if(view)
             {
-                view.open=true;var camera=owner.ActiveCamera;
+                view.open=true;view.selectReady=false;var camera=owner.ActiveCamera;
                 view.openingForward=camera?camera.transform.forward:Vector3.forward;view.openingForward.y=0;
                 if(view.openingForward.sqrMagnitude<.01f)view.openingForward=Vector3.forward;
                 view.openingForward.Normalize();owner.SetMenu(true);
@@ -39,8 +42,10 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(session==null)return;
+            if(Services.Session!=session){open=false;if(canvas)canvas.gameObject.SetActive(false);return;}
             if(Keyboard.current?.f6Key.wasPressedThisFrame==true&&Services.Session==session){if(open)open=false;else Open(session);}
             if(open&&!session.MenuOpen)open=false;
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&open){open=false;MenuAim.Consume();}
             if(!canvas&&open)Build();
             if(!canvas)return;
             canvas.gameObject.SetActive(open&&session.MenuOpen&&session.Player.gameObject.activeInHierarchy);
@@ -52,18 +57,33 @@ namespace DeadlyJenga.Presentation
             {
                 canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=session.ActiveCamera;
                 var camera=session.ActiveCamera;if(!camera)return;
-                panel.localScale=Vector3.one*.0017f;
-                var forward=openingForward;
-                panel.position=camera.transform.position+forward.normalized*1.7f;panel.rotation=Quaternion.LookRotation(forward);
-                var ray=new Ray(camera.transform.position,camera.transform.forward);
+                bool left=session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                MenuAim.PlaceTablet(panel,camera,session,left);
+                var ray=MenuAim.Resolve(camera,camera.transform.parent,left,false,false,out bool physical,out bool chosenLeft);
+                bool held=session.MenuSelectHeld,pressed=session.MenuSelectPressed;
+                if(physical&&MenuAim.PhysicalPose(camera,chosenLeft,out _,out var controller))
+                {
+                    var trigger=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerPressed");
+                    var axis=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
+                    held=trigger!=null?trigger.isPressed:axis!=null&&axis.ReadValue()>.65f;
+                    pressed=trigger!=null?trigger.wasPressedThisFrame:axis!=null&&axis.ReadValue()>.65f&&!previousHeld;
+                }
+                int identity=(left?1:0)^MenuAim.PointerIdentity(camera,left)*397;
+                if(pointerIdentity!=identity){pointerIdentity=identity;selectReady=false;}
+                previousHeld=held;
+                if(!selectReady){if(!held)selectReady=true;pressed=false;}
+                if(MenuAim.InputConsumed)pressed=false;
+                if(aimDot)aimDot.gameObject.SetActive(false);
                 if(new Plane(panel.forward,panel.position).Raycast(ray,out float distance))
                 {
                     Vector2 point=panel.InverseTransformPoint(ray.GetPoint(distance));
+                    MenuAim.Present(aimDot,ray.GetPoint(distance),panel.rect.Contains(point),false);
                     for(int i=0;i<buttons.Count;i++)
                     {
                         var rect=(RectTransform)buttons[i].transform;bool hover=rect.rect.Contains(point-(Vector2)rect.localPosition);
                         buttons[i].image.color=hover?new Color(.15f,.85f,.65f):new Color(.25f,.14f,.39f);
-                        if(hover&&session.MenuSelectPressed&&buttons[i].interactable){actions[i]();break;}
+                        if(hover&&buttons[i].interactable)MenuAim.Present(aimDot,ray.GetPoint(distance),true,true);
+                        if(hover&&pressed&&buttons[i].interactable){MenuAim.Consume();selectReady=false;actions[i]();break;}
                     }
                 }
             }
@@ -99,6 +119,7 @@ namespace DeadlyJenga.Presentation
                 Add("+ "+title,new Vector2(i%2==0?-240:240,128-(i/2)*66),new Vector2(450,56),()=>Controls?.Spawn(id,tame));
             }
             status=Label("",new Vector2(0,-325),new Vector2(940,95),21);
+            aimDot=MenuAim.CreateReticle(panel);
         }
         Text Label(string text,Vector2 position,Vector2 size,int font)
         {

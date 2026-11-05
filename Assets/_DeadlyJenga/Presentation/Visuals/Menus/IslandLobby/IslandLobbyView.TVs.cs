@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         void BuildTVWall()
         {
             EnsureKeyboardArt();
-            var wall=new GameObject("Retro spectator television stack · 3 x 3").transform;
+            var wall=new GameObject("Retro spectator television stack Â· 3 x 3").transform;
             wall.SetParent(transform,false);wall.localPosition=new Vector3(-4.8f,.12f,-4.7f);wall.localRotation=Quaternion.Euler(0,-135,0);
             Box(wall,"Television plinth",new Vector3(0,.10f,.10f),new Vector3(3.8f,.22f,.65f),new Color(.08f,.12f,.18f));
             var displays=new GameObject("Television displays",typeof(RectTransform),typeof(Canvas)).GetComponent<RectTransform>();
@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
                 Ellipsoid(wall,"Tuning knob",new Vector3(x+.51f,y+.23f,-.245f),new Vector3(.09f,.09f,.045f),new Color(.85f,.9f,.94f));
                 var image=new GameObject("Channel "+(i+1),typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
                 image.transform.SetParent(displays,false);image.rectTransform.sizeDelta=new Vector2(940,530);image.rectTransform.anchoredPosition=new Vector2((x-.055f)*1000,(y+.045f)*1000);image.raycastTarget=false;
-                var label=Label(displays,"CH "+(i+1)+" · STANDBY",(y-.335f)*1000,42,1100,55);label.rectTransform.anchoredPosition=new Vector2(x*1000,(y-.335f)*1000);label.color=new Color(.88f,1,.96f);
+                var label=Label(displays,"CH "+(i+1)+" Â· STANDBY",(y-.335f)*1000,42,1100,55);label.rectTransform.anchoredPosition=new Vector2(x*1000,(y-.335f)*1000);label.color=new Color(.88f,1,.96f);
                 feeds.SetChannel(i,image,label);
             }
             var heading=Label(displays,"LIVE MAYHEM  /  SPECTATOR TV",2920,51,3700,85);heading.fontStyle=FontStyle.Bold;heading.color=new Color(.76f,1,.9f);
