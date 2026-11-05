@@ -13,6 +13,7 @@ namespace DeadlyJenga.CandyPlayers
         static readonly Dictionary<Finish,Material> finishes=new Dictionary<Finish,Material>();
         sealed class FoundryModel
         {
+            public FoundryModel feed;
             public readonly Dictionary<Finish,Mesh> meshes=new Dictionary<Finish,Mesh>();
         }
         sealed class FoundryBuilder
@@ -114,20 +115,27 @@ namespace DeadlyJenga.CandyPlayers
             if(!foundry.TryGetValue(kind,out var model))
             {
                 var b=new FoundryBuilder();
+                var feedBuilder = new FoundryBuilder();
                 switch(kind)
                 {
-                    case EquipmentKind.RocketLauncher: ForgeRocket(b);break;
-                    case EquipmentKind.GrenadeLauncher: ForgeGrenade(b);break;
+                    case EquipmentKind.RocketLauncher: ForgeRocket(b,feedBuilder);break;
+                    case EquipmentKind.GrenadeLauncher: ForgeGrenade(b,feedBuilder);break;
                     case EquipmentKind.BarbedBat: ForgeBat(b);break;
-                    case EquipmentKind.WristLaser: ForgeWrist(b);break;
-                    case EquipmentKind.ChainGun: ForgeChainGun(b);break;
-                    case EquipmentKind.Chainsaw: ForgeChainsaw(b);break;
+                    case EquipmentKind.WristLaser: ForgeWrist(b,feedBuilder);break;
+                    case EquipmentKind.ChainGun: ForgeChainGun(b,feedBuilder);break;
+                    case EquipmentKind.Chainsaw: ForgeChainsaw(b,feedBuilder);break;
                     case EquipmentKind.SawStaff: ForgeSawStaff(b);break;
-                    default: ForgeBlade(b,kind==EquipmentKind.LaserAxe);break;
+                    default: ForgeBlade(b,feedBuilder,kind==EquipmentKind.LaserAxe);break;
                 }
                 foundry[kind]=model=b.Bake(kind);
+                model.feed = feedBuilder.Bake(kind);
             }
             foreach(var p in model.meshes)MountFoundry(root,p.Value,p.Key);
+            if (model.feed.meshes.Count > 0)
+            {
+                var feed = MakeFeedAssembly(root);
+                foreach (var part in model.feed.meshes) MountFoundry(feed, part.Value, part.Key);
+            }
             if(kind==EquipmentKind.ChainGun||kind==EquipmentKind.SawStaff||kind==EquipmentKind.Chainsaw)
             {
                 var key=kind==EquipmentKind.ChainGun?"Foundry six-barrel rotor":"Serrated saw wheel - forged carbide";
@@ -184,7 +192,7 @@ namespace DeadlyJenga.CandyPlayers
             b.Plate(Finish.Charcoal,new Vector3(0,-.066f,z),new Vector3(.094f,.185f,.11f));
             for(int i=0;i<4;i++)b.Plate(Finish.Steel,new Vector3(0,-.13f+i*.029f,z-.047f),new Vector3(.082f,.009f,.018f),.002f);
         }
-        static void ForgeRocket(FoundryBuilder b)
+        static void ForgeRocket(FoundryBuilder b,FoundryBuilder feed)
         {
             foreach(float x in new[]{-.084f,.084f})
             {
@@ -194,7 +202,7 @@ namespace DeadlyJenga.CandyPlayers
                 b.Tube(Finish.Charcoal,.20f,-.525f,-.39f,.102f,.063f,x);
             }
             b.Plate(Finish.Ceramic,new Vector3(0,.19f,.33f),new Vector3(.38f,.28f,.56f));
-            b.Plate(Finish.Charcoal,new Vector3(0,.05f,.09f),new Vector3(.20f,.12f,.52f));
+            feed.Plate(Finish.Charcoal,new Vector3(0,.05f,.09f),new Vector3(.20f,.12f,.52f));
             b.Plate(Finish.Charcoal,new Vector3(0,.01f,-.34f),new Vector3(.26f,.15f,.31f));
             foreach(float side in new[]{-1f,1f})
             {
@@ -211,15 +219,15 @@ namespace DeadlyJenga.CandyPlayers
             b.Shape(Finish.Brass,nails=>{foreach(float x in new[]{-.221f,.221f})for(int i=0;i<4;i++){var p=new Vector3(x,.255f,.132f+i*.106f);nails.Cone(p,p+Vector3.right*Mathf.Sign(x)*.009f,.012f,.009f,8);}});
             Grip(b);Grip(b,.69f);
         }
-        static void ForgeGrenade(FoundryBuilder b)
+        static void ForgeGrenade(FoundryBuilder b,FoundryBuilder feed)
         {
             b.Tube(Finish.Steel,.12f,.28f,.77f,.077f,.055f);b.Tube(Finish.Charcoal,.12f,.69f,.82f,.108f,.057f);
-            b.Tube(Finish.Violet,.12f,.766f,.79f,.110f,.057f);b.Tube(Finish.Charcoal,.12f,-.075f,.27f,.15f);
+            b.Tube(Finish.Violet,.12f,.766f,.79f,.110f,.057f);feed.Tube(Finish.Charcoal,.12f,-.075f,.27f,.15f);
             for(int i=0;i<6;i++)
             {
                 float a=i*Mathf.PI/3;float x=Mathf.Cos(a)*.115f,y=.12f+Mathf.Sin(a)*.115f;
-                b.Tube(Finish.Steel,y,-.035f,.27f,.046f,.035f,x);b.Tube(Finish.Brass,y,.025f,.22f,.036f,0,x);
-                b.Tube(Finish.Violet,y,.225f,.25f,.036f,0,x);
+                feed.Tube(Finish.Steel,y,-.035f,.27f,.046f,.035f,x);feed.Tube(Finish.Brass,y,.025f,.22f,.036f,0,x);
+                feed.Tube(Finish.Violet,y,.225f,.25f,.036f,0,x);
             }
             b.Plate(Finish.Ceramic,new Vector3(0,.33f,.145f),new Vector3(.26f,.11f,.46f));
             b.Plate(Finish.Charcoal,new Vector3(0,.05f,-.32f),new Vector3(.123f,.145f,.40f));
@@ -246,28 +254,28 @@ namespace DeadlyJenga.CandyPlayers
                 }
             });
         }
-        static void ForgeWrist(FoundryBuilder b)
+        static void ForgeWrist(FoundryBuilder b,FoundryBuilder feed)
         {
             b.Tube(Finish.Steel,0,-.24f,.04f,.114f,.087f);
             foreach(float z in new[]{-.22f,-.018f})b.Tube(Finish.Charcoal,0,z,z+.045f,.122f,.087f);
-            b.Plate(Finish.Ceramic,new Vector3(0,.105f,-.042f),new Vector3(.17f,.095f,.29f));
+            feed.Plate(Finish.Ceramic,new Vector3(0,.105f,-.042f),new Vector3(.17f,.095f,.29f));
             b.Tube(Finish.Brass,.105f,.07f,.158f,.050f,.033f);b.Tube(Finish.Cyan,.105f,.144f,.15f,.032f);
-            b.Plate(Finish.Cyan,new Vector3(0,.156f,-.07f),new Vector3(.075f,.009f,.117f),.002f);
+            feed.Plate(Finish.Cyan,new Vector3(0,.156f,-.07f),new Vector3(.075f,.009f,.117f),.002f);
         }
-        static void ForgeChainGun(FoundryBuilder b)
+        static void ForgeChainGun(FoundryBuilder b,FoundryBuilder feed)
         {
             b.Plate(Finish.Charcoal,new Vector3(0,.17f,.16f),new Vector3(.33f,.31f,.46f));
             b.Plate(Finish.Ceramic,new Vector3(0,.26f,.14f),new Vector3(.35f,.22f,.42f));
             b.Tube(Finish.Steel,.19f,.36f,.50f,.151f,.118f);b.Tube(Finish.Charcoal,.19f,.82f,.89f,.134f,.114f);
-            b.Plate(Finish.Charcoal,new Vector3(.23f,.14f,.13f),new Vector3(.20f,.27f,.35f));
-            for(int i=0;i<6;i++)b.Tube(Finish.Brass,.22f,.07f,.28f,.019f,0,.176f+i*.024f);
+            feed.Plate(Finish.Charcoal,new Vector3(.23f,.14f,.13f),new Vector3(.20f,.27f,.35f));
+            for(int i=0;i<6;i++)feed.Tube(Finish.Brass,.22f,.07f,.28f,.019f,0,.176f+i*.024f);
             b.Plate(Finish.Charcoal,new Vector3(0,.057f,.43f),new Vector3(.139f,.088f,.25f));
             Grip(b);Grip(b,.46f);
         }
-        static void ForgeChainsaw(FoundryBuilder b)
+        static void ForgeChainsaw(FoundryBuilder b,FoundryBuilder feed)
         {
             b.Plate(Finish.Ceramic,new Vector3(0,.045f,.20f),new Vector3(.25f,.22f,.36f));
-            b.Plate(Finish.Charcoal,new Vector3(0,.19f,.22f),new Vector3(.115f,.047f,.31f));
+            feed.Plate(Finish.Charcoal,new Vector3(0,.19f,.22f),new Vector3(.115f,.047f,.31f));
             b.Plate(Finish.Steel,new Vector3(0,0,.63f),new Vector3(.056f,.18f,.59f));
             for(int i=0;i<12;i++)foreach(float y in new[]{-.092f,.092f})
                 b.Plate(Finish.Charcoal,new Vector3(0,y,.42f+i*.041f),new Vector3(.066f,.027f,.024f),.003f);
@@ -279,13 +287,13 @@ namespace DeadlyJenga.CandyPlayers
             b.Plate(Finish.Steel,new Vector3(0,0,.79f),new Vector3(.134f,.095f,.175f));
             for(int i=0;i<7;i++)b.Tube(Finish.Steel,0,-.12f+i*.038f,-.105f+i*.038f,.037f);
         }
-        static void ForgeBlade(FoundryBuilder b,bool axe)
+        static void ForgeBlade(FoundryBuilder b,FoundryBuilder feed,bool axe)
         {
             if(axe)
             {
                 b.Tube(Finish.Walnut,0,-.16f,.77f,.036f);b.Tube(Finish.Brass,0,.52f,.72f,.052f);
                 b.Add(Finish.Steel,FoundrySolid("Swept forged axe head",.071f,.011f,new[]{new Vector2(-.36f,.96f),new Vector2(-.42f,.86f),new Vector2(-.085f,.69f),new Vector2(.085f,.69f),new Vector2(.42f,.86f),new Vector2(.36f,.96f),new Vector2(0,1.055f)}),Matrix4x4.identity);
-                b.Plate(Finish.Cyan,new Vector3(0,0,.986f),new Vector3(.025f,.49f,.023f),.004f);
+                feed.Plate(Finish.Cyan,new Vector3(0,0,.986f),new Vector3(.025f,.49f,.023f),.004f);
             }
             else
             {

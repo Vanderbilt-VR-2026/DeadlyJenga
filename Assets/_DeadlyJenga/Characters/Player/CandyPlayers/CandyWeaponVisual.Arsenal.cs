@@ -117,7 +117,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(stockPistolMeshes==null)
             {
-                var groups=new List<CombineInstance>[6];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();
+                var groups=new List<CombineInstance>[12];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();
                 var generated=new List<Mesh>();
                 void Solid(string name,int surface,float width,float bevel,params Vector2[] outline)
                 {
@@ -170,8 +170,8 @@ namespace DeadlyJenga.CandyPlayers
                 Cylinder(0,new Vector3(0,-.013f,.194f),new Vector3(0,.068f,.204f),.010f);
                 Cylinder(1,new Vector3(0,.061f,.104f),new Vector3(0,.015f,.112f),.007f);
                 Cylinder(1,new Vector3(0,.015f,.112f),new Vector3(0,.006f,.127f),.007f);
-                Box("Forward magazine",0,new Vector3(0,.021f,.233f),new Vector3(.075f,.101f,.065f),.005f);
-                Box("Magazine floor plate",1,new Vector3(0,-.032f,.232f),new Vector3(.084f,.014f,.076f),.003f);
+                Box("Forward magazine",6+0,new Vector3(0,.021f,.233f),new Vector3(.075f,.101f,.065f),.005f);
+                Box("Magazine floor plate",6+1,new Vector3(0,-.032f,.232f),new Vector3(.084f,.014f,.076f),.003f);
                 // Open rear notch and front post keep the sight line readable.
                 foreach(float side in new[]{-1f,1f})Box("Rear notch ear",2,new Vector3(side*.023f,.211f,-.045f),new Vector3(.017f,.031f,.028f),.002f);
                 Box("Front sight base",1,new Vector3(0,.169f,.462f),new Vector3(.032f,.014f,.033f),.002f);
@@ -197,16 +197,15 @@ namespace DeadlyJenga.CandyPlayers
                 stockPistolMeshes=new Mesh[groups.Length];
                 for(int i=0;i<groups.Length;i++)
                 {
+                    if (groups[i].Count == 0) continue;
                     var mesh=new Mesh{name="Stock pistol surface "+i};mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;mesh.CombineMeshes(groups[i].ToArray(),true,true);mesh.RecalculateTangents();mesh.RecalculateBounds();stockPistolMeshes[i]=mesh;
                 }
                 foreach(var mesh in generated)Object.Destroy(mesh);
             }
             var surfaces=StockPistolSurfaces();
-            for(int i=0;i<stockPistolMeshes.Length;i++)
-            {
-                var go=new GameObject(stockPistolMeshes[i].name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(root,false);
-                go.GetComponent<MeshFilter>().sharedMesh=stockPistolMeshes[i];go.GetComponent<MeshRenderer>().sharedMaterial=surfaces[i];
-            }
+            var magazine = MakeFeedAssembly(root);
+            for (int i = 0; i < stockPistolMeshes.Length; i++)
+                MountFeedMesh(stockPistolMeshes[i], surfaces[i % 6], i < 6 ? root : magazine);
         }
         static Mesh PistolSolid(string name,float width,float bevel,Vector2[] outline)
         {
@@ -275,7 +274,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(needleDrillMeshes==null)
             {
-                var groups=new List<CombineInstance>[8];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();
+                var groups=new List<CombineInstance>[16];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();
                 var temporary=new List<Mesh>();
                 void Add(int group,Mesh mesh,Matrix4x4 transform)
                 {temporary.Add(mesh);groups[group].Add(new CombineInstance{mesh=mesh,transform=transform});}
@@ -315,17 +314,18 @@ namespace DeadlyJenga.CandyPlayers
                 Box(3,new Vector3(.055f,.062f,-.004f),new Vector3(.023f,.020f,.028f),.003f);
                 // Battery rail, removable-looking pack, seam, latch and charge indicator.
                 Box(2,new Vector3(0,-.185f,-.081f),new Vector3(.114f,.029f,.170f),.005f);
-                Box(0,new Vector3(0,-.218f,-.077f),new Vector3(.206f,.056f,.242f),.012f);
-                Box(1,new Vector3(0,-.266f,-.078f),new Vector3(.216f,.060f,.254f),.012f);
-                Box(2,new Vector3(0,-.245f,-.078f),new Vector3(.218f,.007f,.254f),.002f);
-                Box(0,new Vector3(0,-.263f,.052f),new Vector3(.112f,.027f,.010f),.003f);
+                const int pack = 8;
+                Box(pack+0,new Vector3(0,-.218f,-.077f),new Vector3(.206f,.056f,.242f),.012f);
+                Box(pack+1,new Vector3(0,-.266f,-.078f),new Vector3(.216f,.060f,.254f),.012f);
+                Box(pack+2,new Vector3(0,-.245f,-.078f),new Vector3(.218f,.007f,.254f),.002f);
+                Box(pack+0,new Vector3(0,-.263f,.052f),new Vector3(.112f,.027f,.010f),.003f);
                 foreach(float side in new[]{-1f,1f})
                 {
-                    Box(0,new Vector3(side*.110f,-.265f,-.080f),new Vector3(.007f,.034f,.140f),.003f);
-                    Box(2,new Vector3(side*.114f,-.265f,-.080f),new Vector3(.003f,.020f,.110f),.001f);
+                    Box(pack+0,new Vector3(side*.110f,-.265f,-.080f),new Vector3(.007f,.034f,.140f),.003f);
+                    Box(pack+2,new Vector3(side*.114f,-.265f,-.080f),new Vector3(.003f,.020f,.110f),.001f);
                 }
-                Box(2,new Vector3(0,-.223f,.046f),new Vector3(.090f,.024f,.012f),.002f);
-                for(int i=0;i<3;i++)Box(5,new Vector3(-.025f+i*.025f,-.221f,.054f),new Vector3(.014f,.008f,.003f),.001f);
+                Box(pack+2,new Vector3(0,-.223f,.046f),new Vector3(.090f,.024f,.012f),.002f);
+                for(int i=0;i<3;i++)Box(pack+5,new Vector3(-.025f+i*.025f,-.221f,.054f),new Vector3(.014f,.008f,.003f),.001f);
                 // Work light beneath the barrel, a rubberized torque ring, and engraved setting marks.
                 Cylinder(2,new Vector3(0,.084f,.182f),new Vector3(0,.084f,.220f),.021f);
                 Cylinder(4,new Vector3(0,.084f,.220f),new Vector3(0,.084f,.222f),.014f);
@@ -356,6 +356,7 @@ namespace DeadlyJenga.CandyPlayers
                 needleDrillMeshes=new Mesh[groups.Length];
                 for(int i=0;i<groups.Length;i++)
                 {
+                    if (groups[i].Count == 0) continue;
                     var mesh=new Mesh{name=i<6?"Detailed drill body surface "+i:"Rotating drill chuck surface "+i};mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;
                     mesh.CombineMeshes(groups[i].ToArray(),true,true);mesh.RecalculateTangents();mesh.RecalculateBounds();needleDrillMeshes[i]=mesh;
                 }
@@ -363,11 +364,9 @@ namespace DeadlyJenga.CandyPlayers
             }
             rotor=new GameObject("Spinning machined chuck and helical needle bit").transform;rotor.SetParent(root,false);rotor.localPosition=new Vector3(0,.145f,.316f);
             var surfaces=DrillSurfaces();
-            for(int i=0;i<needleDrillMeshes.Length;i++)
-            {
-                var go=new GameObject(needleDrillMeshes[i].name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(i<6?root:rotor,false);
-                go.GetComponent<MeshFilter>().sharedMesh=needleDrillMeshes[i];go.GetComponent<MeshRenderer>().sharedMaterial=surfaces[i];
-            }
+            var battery = MakeFeedAssembly(root);
+            for (int i = 0; i < needleDrillMeshes.Length; i++)
+                MountFeedMesh(needleDrillMeshes[i], surfaces[i % 8], i < 6 ? root : i < 8 ? rotor : battery);
         }
         static Mesh DrillTurned(string name,float[] depth,float[] radius,float squash)
         {
@@ -424,7 +423,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(sheriffRevolverMeshes==null)
             {
-                var groups=new List<CombineInstance>[6];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();
+                var groups=new List<CombineInstance>[12];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();
                 void Add(int group,Mesh mesh,Vector3 p)
                 {temporary.Add(mesh);groups[group].Add(new CombineInstance{mesh=mesh,transform=Matrix4x4.Translate(p)});}
                 void Box(int group,Vector3 p,Vector3 size,float bevel=.003f)
@@ -444,17 +443,17 @@ namespace DeadlyJenga.CandyPlayers
                 Box(0,new Vector3(0,-.030f,.117f),new Vector3(.081f,.025f,.234f),.004f);
                 Solid(0,0,.095f,.006f,new Vector2(-.037f,-.024f),new Vector2(-.030f,.041f),new Vector2(.163f,.047f),new Vector2(.166f,-.026f),new Vector2(.108f,-.060f));
                 Box(0,new Vector3(0,.072f,.224f),new Vector3(.065f,.171f,.032f),.005f);
-                Add(0,RevolverCylinderShell(),Vector3.up*.012f);
-                Add(1,RevolverCylinderFace(),Vector3.up*.012f);
-                Cylinder(1,new Vector3(0,.072f,.203f),new Vector3(0,.072f,.216f),.018f);
-                Cylinder(2,new Vector3(0,.072f,.216f),new Vector3(0,.072f,.217f),.008f);
+                Add(6+0,RevolverCylinderShell(),Vector3.up*.012f);
+                Add(6+1,RevolverCylinderFace(),Vector3.up*.012f);
+                Cylinder(6+1,new Vector3(0,.072f,.203f),new Vector3(0,.072f,.216f),.018f);
+                Cylinder(6+2,new Vector3(0,.072f,.216f),new Vector3(0,.072f,.217f),.008f);
                 for(int chamber=0;chamber<6;chamber++)
                 {
                     float a=Mathf.PI*.5f+chamber*Mathf.PI/3;var p=new Vector3(Mathf.Cos(a)*.048f,.072f+Mathf.Sin(a)*.048f,0);
                     // Deep dark bases and brass cartridge rims behind the cylinder.
-                    Cylinder(2,p+Vector3.forward*.175f,p+Vector3.forward*.177f,.0125f);
-                    Cylinder(4,p+Vector3.forward*.042f,p+Vector3.forward*.047f,.015f);
-                    Cylinder(2,p+Vector3.forward*.040f,p+Vector3.forward*.042f,.0045f);
+                    Cylinder(6+2,p+Vector3.forward*.175f,p+Vector3.forward*.177f,.0125f);
+                    Cylinder(6+4,p+Vector3.forward*.042f,p+Vector3.forward*.047f,.015f);
+                    Cylinder(6+2,p+Vector3.forward*.040f,p+Vector3.forward*.042f,.0045f);
                 }
                 Add(0,RevolverOctagonalBarrel(),Vector3.zero);
                 Add(1,RevolverMuzzle(),Vector3.zero);
@@ -508,6 +507,7 @@ namespace DeadlyJenga.CandyPlayers
                 sheriffRevolverMeshes=new Mesh[groups.Length];
                 for(int i=0;i<groups.Length;i++)
                 {
+                    if (groups[i].Count == 0) continue;
                     var mesh=new Mesh{name="Detailed sheriff revolver surface "+i};mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;mesh.CombineMeshes(groups[i].ToArray(),true,true);mesh.RecalculateTangents();mesh.RecalculateBounds();sheriffRevolverMeshes[i]=mesh;
                 }
                 foreach(var mesh in temporary)Object.Destroy(mesh);
@@ -535,10 +535,9 @@ namespace DeadlyJenga.CandyPlayers
                 var goldTrim=new Material(shared[4]){name="Warm sun-gold sheriff inlay"};goldTrim.SetColor("_BaseColor",new Color(.97f,.64f,.17f));goldTrim.SetFloat("_Metallic",.8f);goldTrim.SetFloat("_Smoothness",.68f);sheriffRevolverSurfaces[4]=goldTrim;
                 var dark=new Material(shared[2]){name="Midnight blue sheriff recesses"};dark.SetColor("_BaseColor",new Color(.018f,.035f,.08f));sheriffRevolverSurfaces[2]=dark;
             }
-            for(int i=0;i<sheriffRevolverMeshes.Length;i++)
-            {
-                var go=new GameObject(sheriffRevolverMeshes[i].name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(root,false);go.GetComponent<MeshFilter>().sharedMesh=sheriffRevolverMeshes[i];go.GetComponent<MeshRenderer>().sharedMaterial=sheriffRevolverSurfaces[i];
-            }
+            var cylinder = MakeFeedAssembly(root);
+            for (int i = 0; i < sheriffRevolverMeshes.Length; i++)
+                MountFeedMesh(sheriffRevolverMeshes[i], sheriffRevolverSurfaces[i % 6], i < 6 ? root : cylinder);
             var optic=new GameObject("Revolver optic").transform;optic.SetParent(root,false);optic.localPosition=new Vector3(0,.23f,.17f);
             var lens=new GameObject("Optic lens").transform;lens.SetParent(optic,false);lens.localPosition=Vector3.forward*.008f;
         }
@@ -920,7 +919,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(spikeUziMeshes==null)
             {
-                var groups=new List<CombineInstance>[6];for(int i=0;i<6;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();
+                var groups=new List<CombineInstance>[12];for(int i=0;i<groups.Length;i++)groups[i]=new List<CombineInstance>();var temporary=new List<Mesh>();
                 void Add(int group,Mesh mesh,Vector3 p,Quaternion rotation,Vector3 scale){temporary.Add(mesh);groups[group].Add(new CombineInstance{mesh=mesh,transform=Matrix4x4.TRS(p,rotation,scale)});}
                 void Box(int group,Vector3 p,Vector3 size,float bevel=.003f){Add(group,PistolSolid("Beveled alien spike fitting",size.x,bevel,new[]{new Vector2(-size.y/2,-size.z/2),new Vector2(size.y/2,-size.z/2),new Vector2(size.y/2,size.z/2),new Vector2(-size.y/2,size.z/2)}),p,Quaternion.identity,Vector3.one);}
                 void Tube(int group,Vector3 p,float outer,float inner,float length){Add(group,WeaponBoreTube(outer,inner,length),p,Quaternion.identity,Vector3.one);}
@@ -940,8 +939,8 @@ namespace DeadlyJenga.CandyPlayers
                     Line(1,new Vector3(side*.045f,.065f,-.245f),new Vector3(side*.045f,.15f,-.260f),.007f);
                 }
                 Line(2,new Vector3(-.045f,.065f,-.245f),new Vector3(.045f,.065f,-.245f),.013f);
-                Box(0,new Vector3(0,-.157f,.012f),new Vector3(.065f,.13f,.095f),.005f);Box(2,new Vector3(0,-.222f,.012f),new Vector3(.084f,.025f,.114f),.004f);
-                foreach(float side in new[]{-1f,1f}){Box(5,new Vector3(side*.034f,-.157f,.013f),new Vector3(.003f,.089f,.050f),.001f);for(int i=0;i<3;i++)Box(3,new Vector3(side*.036f,-.184f+i*.026f,.013f),new Vector3(.002f,.009f,.028f),.0005f);}
+                Box(6+0,new Vector3(0,-.157f,.012f),new Vector3(.065f,.13f,.095f),.005f);Box(6+2,new Vector3(0,-.222f,.012f),new Vector3(.084f,.025f,.114f),.004f);
+                foreach(float side in new[]{-1f,1f}){Box(6+5,new Vector3(side*.034f,-.157f,.013f),new Vector3(.003f,.089f,.050f),.001f);for(int i=0;i<3;i++)Box(6+3,new Vector3(side*.036f,-.184f+i*.026f,.013f),new Vector3(.002f,.009f,.028f),.0005f);}
                 Line(1,new Vector3(0,-.063f,.047f),new Vector3(0,-.063f,.15f),.007f);Line(1,new Vector3(0,-.063f,.15f),new Vector3(0,.067f,.18f),.007f);
                 Line(4,new Vector3(0,.061f,.072f),new Vector3(0,-.018f,.11f),.006f);
                 Tube(0,new Vector3(0,.122f,.285f),.039f,.020f,.215f);Tube(1,new Vector3(0,.122f,.470f),.045f,.022f,.032f);Tube(2,new Vector3(0,.122f,.500f),.030f,.019f,.014f);
@@ -957,9 +956,12 @@ namespace DeadlyJenga.CandyPlayers
                     Add(5,WeaponBoreTube(.019f,.016f,.073f),p+q*Vector3.forward*.033f,q,Vector3.one);
                 }
                 Box(2,new Vector3(0,.203f,-.080f),new Vector3(.065f,.032f,.030f));Box(4,new Vector3(0,.218f,-.082f),new Vector3(.025f,.004f,.012f),.001f);
-                spikeUziMeshes=new Mesh[6];for(int i=0;i<6;i++){var mesh=new Mesh{name="Detailed alien spike Uzi surface "+i};mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;mesh.CombineMeshes(groups[i].ToArray(),true,true);mesh.RecalculateTangents();mesh.RecalculateBounds();spikeUziMeshes[i]=mesh;}foreach(var mesh in temporary)Object.Destroy(mesh);
+                spikeUziMeshes=new Mesh[groups.Length];for(int i=0;i<groups.Length;i++){if(groups[i].Count==0)continue;var mesh=new Mesh{name="Detailed alien spike Uzi surface "+i};mesh.indexFormat=UnityEngine.Rendering.IndexFormat.UInt32;mesh.CombineMeshes(groups[i].ToArray(),true,true);mesh.RecalculateTangents();mesh.RecalculateBounds();spikeUziMeshes[i]=mesh;}foreach(var mesh in temporary)Object.Destroy(mesh);
             }
-            var surfaces=SpikeUziSurfaces();for(int i=0;i<6;i++){var go=new GameObject(spikeUziMeshes[i].name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(root,false);go.GetComponent<MeshFilter>().sharedMesh=spikeUziMeshes[i];var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=surfaces[i];var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",surfaces[i].GetColor("_BaseColor"));renderer.SetPropertyBlock(block);}
+            var surfaces = SpikeUziSurfaces();
+            var magazine = MakeFeedAssembly(root);
+            for (int i = 0; i < spikeUziMeshes.Length; i++)
+                MountFeedMesh(spikeUziMeshes[i], surfaces[i % 6], i < 6 ? root : magazine);
         }
         static Material[] SpikeUziSurfaces()
         {
