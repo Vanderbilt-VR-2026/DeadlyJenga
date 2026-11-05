@@ -187,6 +187,17 @@ namespace DeadlyJenga.CandyPlayers
             {
                 var other=state.leftHanded?frame.right:frame.left;other.position=pose.position+pose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale;other.rotation=pose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
             }
+            if(state.kind==EquipmentKind.DualUzi&&motor.IsVR&&avatar.tracking&&
+                avatar.tracking.TryControllerAim(!state.leftHanded,out var offhandAim))
+            {
+                var other=state.leftHanded?frame.right:frame.left;
+                other.position=offhandAim.position;
+                other.rotation=offhandAim.rotation;
+                other.skeleton=CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,
+                    offTrigger?.IsPressed()==true?1:0);
+                other.skeletonTracked=true;
+                if(state.leftHanded)frame.right=other;else frame.left=other;
+            }
             if(state.kind==EquipmentKind.LaserClaws&&motor.IsVR)
             {
                 var other=state.leftHanded?frame.right:frame.left;
