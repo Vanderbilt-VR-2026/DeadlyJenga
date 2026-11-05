@@ -49,8 +49,8 @@ namespace DeadlyJenga.CastlePrototype
                 float Axis(string name)=>controller?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
                 if(dominant!=null&&support!=null)
                 {
-                    var look=HybridXRInput.Stick(support);
-                    return HybridXRInput.Stick(dominant).magnitude>motor.stickDeadzone||
+                    var look=HybridXRInput.Stick(dominant);
+                    return HybridXRInput.Stick(support).magnitude>motor.stickDeadzone||
                         Mathf.Abs(look.x)>motor.stickDeadzone||Mathf.Abs(look.y)>motor.stickDeadzone||
                         Axis("trigger")!=Axis("grip");
                 }

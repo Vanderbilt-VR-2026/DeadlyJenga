@@ -145,7 +145,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(vr)
                 {
                     bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-                    var move=HybridXRInput.Controller(dominantLeft)??HybridXRInput.Controller(!dominantLeft);
+                    var move=HybridXRInput.MovementController(dominantLeft);
                     var stick=move?.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
                     float deadzone=owner&&owner.motor?owner.motor.stickDeadzone:0;
                     stick=stick.normalized*Mathf.InverseLerp(deadzone,1,stick.magnitude);

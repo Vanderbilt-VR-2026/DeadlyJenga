@@ -227,8 +227,8 @@ namespace FlyingHand
             {
                 TrackedInputDriver?.ResetFlightInput();
                 DualControllerFlight=true;
-                var moveStick=Stick(dominant);
-                var lookStick=Stick(support);
+                var moveStick=Stick(support);
+                var lookStick=Stick(dominant);
                 MoveInput=moveStick.normalized*Mathf.InverseLerp(stickDeadzone,1,moveStick.magnitude);
                 YawInput=Deadzone(lookStick.x);
                 CameraPitchInput=Deadzone(lookStick.y);
