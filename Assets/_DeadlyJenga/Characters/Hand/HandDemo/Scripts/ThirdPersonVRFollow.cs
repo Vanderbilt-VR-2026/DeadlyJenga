@@ -93,7 +93,11 @@ namespace FlyingHand
             if (!target) return;
             yaw = target.eulerAngles.y;
             Quaternion rotation = Quaternion.Euler(0, yaw, 0);
-            if(viewInitialized&&!desktopView)CaptureHeadBaseline();
+            if(viewInitialized&&!desktopView)
+            {
+                baselineReady = false;
+                CaptureHeadBaseline();
+            }
             Vector3 desired=FollowPosition+rotation*new Vector3(0,compactHandView?(desktopView?handViewHeight:.22f):height,-(compactHandView?handViewDistance:distance));
             if(viewInitialized)desired-=ViewOffset(rotation);
             transform.SetPositionAndRotation(desired, rotation);
@@ -101,14 +105,33 @@ namespace FlyingHand
         }
         void CaptureHeadBaseline()
         {
-            if(!viewCamera)return;
-            headBaseline=transform.InverseTransformPoint(viewCamera.transform.position);baselineReady=true;
+            if (!viewCamera) return;
+            if (poseDriver && poseDriver.enabled && poseDriver.trackingType != TrackedPoseDriver.TrackingType.RotationOnly)
+            {
+                var position = poseDriver.positionInput.action;
+                if (position != null && position.bindings.Count > 0)
+                {
+                    if (!position.enabled || position.controls.Count == 0) return;
+                    if (!poseDriver.ignoreTrackingState)
+                    {
+                        var state = poseDriver.trackingStateInput.action;
+                        if (state != null && (!state.enabled || (state.controls.Count > 0 && (state.ReadValue<int>() & 1) == 0))) return;
+                    }
+                    Vector3 tracked = position.ReadValue<Vector3>();
+                    if (!float.IsFinite(tracked.x) || !float.IsFinite(tracked.y) || !float.IsFinite(tracked.z)) return;
+                    if ((viewCamera.transform.localPosition - tracked).sqrMagnitude > .00000001f) return;
+                }
+            }
+            Vector3 local = transform.InverseTransformPoint(viewCamera.transform.position);
+            if (!float.IsFinite(local.x) || !float.IsFinite(local.y) || !float.IsFinite(local.z)) return;
+            headBaseline = local;
+            baselineReady = true;
         }
         Vector3 ViewOffset(Quaternion rotation)
         {
             // Desktop also has an XR camera-floor parent; account for it instead of
             // accidentally adding another 1.6 metres to the observer's eye height.
-            Vector3 local=desktopView?transform.InverseTransformPoint(viewCamera.transform.position):headBaseline;
+            Vector3 local=desktopView||!baselineReady?transform.InverseTransformPoint(viewCamera.transform.position):headBaseline;
             return rotation*Vector3.Scale(local,transform.lossyScale);
         }
         public void StepFollow(float dt)

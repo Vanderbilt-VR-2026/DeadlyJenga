@@ -9,12 +9,20 @@ namespace DeadlyJenga.Presentation
     {
         bool bound;readonly Dictionary<Object,CandySeaSpirit> views=new Dictionary<Object,CandySeaSpirit>();readonly List<Object> expired=new List<Object>();float handScanAt;ISeaSpiritView view;float scanAt;Transform bust,head;readonly Transform[] arms=new Transform[8];Material water,armor,glow;Mesh torsoMesh,headMesh,finMesh,armMesh;Transform jaw,wakeColumn;LineRenderer wakeFoam;Light coreLight;readonly Transform[] shoulders=new Transform[2];readonly Vector3[] lastHands=new Vector3[2];readonly bool[] hasHand=new bool[2];
         readonly Dictionary<Renderer,Material[]> originals=new Dictionary<Renderer,Material[]>();
+        readonly List<Renderer> observerBody = new List<Renderer>();
+        sealed class ObserverMaskFrame
+        {
+            public Camera camera;
+            public ShadowCastingMode[] saved, applied;
+            public bool[] changed;
+        }
+        readonly List<ObserverMaskFrame> observerFrames = new List<ObserverMaskFrame>();
+        int observerDepth, observerFrame = -1;
+        Renderer torsoSurface, headSurface;
         void Update()
         {
             if(!bound){Discover();return;}
             if(view is Object obj&&!obj)view=null;
-            if(view==null&&Time.unscaledTime>=scanAt&&(Services.Session as ISeaSpiritControls)?.SeaSpiritActive==true)
-            {scanAt=Time.unscaledTime+1;foreach(var c in FindObjectsByType<MonoBehaviour>(FindObjectsSortMode.None))if(c is ISeaSpiritView found){view=found;break;}}
             bool active=view!=null&&view.Active;if(!active){if(bust)bust.parent.gameObject.SetActive(false);Restore();return;}
             if(!bust)Build();bust.parent.gameObject.SetActive(true);
             Vector3 eye=view.BustAnchor.position;float waterline=Services.World?.WaterHeight(eye)??0;
@@ -40,6 +48,88 @@ namespace DeadlyJenga.Presentation
             if(coreLight){coreLight.transform.position=bust.position+bust.forward*torsoHeight*.25f;coreLight.range=headHeight*3;}
             if(Time.unscaledTime>=handScanAt)handScanAt=Time.unscaledTime+1;
         }
+        void BeforeObserverCamera(ScriptableRenderContext context, Camera camera)
+        {
+            if (observerBody.Count == 0) return;
+            if (observerFrame != Time.frameCount)
+            {
+                RestoreObserverVisibility();
+                observerFrame = Time.frameCount;
+            }
+            if (observerDepth == observerFrames.Count)
+                observerFrames.Add(new ObserverMaskFrame
+                {
+                    saved = new ShadowCastingMode[observerBody.Count],
+                    applied = new ShadowCastingMode[observerBody.Count],
+                    changed = new bool[observerBody.Count]
+                });
+            var frame = observerFrames[observerDepth];
+            frame.camera = camera;
+            bool conceal = ObserverInsideBody(camera);
+            for (int i = 0; i < observerBody.Count; i++)
+            {
+                var renderer = observerBody[i];
+                if (!renderer) continue;
+                var current = renderer.shadowCastingMode;
+                if (observerDepth > 0 && current != observerFrames[observerDepth - 1].applied[i])
+                    PreserveObserverMode(i, current, observerDepth);
+                frame.saved[i] = current;
+                frame.applied[i] = conceal ? ShadowCastingMode.ShadowsOnly : observerFrames[0].saved[i];
+                frame.changed[i] = frame.applied[i] != current;
+                if (frame.changed[i]) renderer.shadowCastingMode = frame.applied[i];
+            }
+            observerDepth++;
+        }
+
+        bool ObserverInsideBody(Camera camera)
+        {
+            var session = Services.Session;
+            var actor = view as Component;
+            if (!camera || !actor || !view.Active || !headSurface || !torsoSurface || session == null ||
+                !NetworkActors.Alive(session.Hand) || session.Hand.gameObject != actor.gameObject ||
+                camera != session.Hand.ViewCamera || camera != session.ActiveCamera) return false;
+            float margin = Mathf.Max(.05f, camera.nearClipPlane);
+            var headBounds = headSurface.bounds;
+            var torsoBounds = torsoSurface.bounds;
+            headBounds.Expand(margin * 2);
+            torsoBounds.Expand(margin * 2);
+            return headBounds.Contains(camera.transform.position) || torsoBounds.Contains(camera.transform.position);
+        }
+
+        void PreserveObserverMode(int index, ShadowCastingMode current, int ancestorCount)
+        {
+            for (int i = 0; i < ancestorCount; i++)
+            {
+                observerFrames[i].saved[index] = current;
+                observerFrames[i].changed[index] = false;
+            }
+        }
+
+        void RestoreObserverLevel()
+        {
+            var frame = observerFrames[--observerDepth];
+            for (int i = 0; i < observerBody.Count; i++)
+            {
+                var renderer = observerBody[i];
+                if (!renderer) continue;
+                var current = renderer.shadowCastingMode;
+                if (current != frame.applied[i]) PreserveObserverMode(i, current, observerDepth);
+                else if (frame.changed[i]) renderer.shadowCastingMode = frame.saved[i];
+            }
+        }
+
+        void AfterObserverCamera(ScriptableRenderContext context, Camera camera)
+        {
+            if (observerDepth == 0) return;
+            if (observerFrames[observerDepth - 1].camera == camera) RestoreObserverLevel();
+            else RestoreObserverVisibility();
+        }
+
+        void RestoreObserverVisibility()
+        {
+            while (observerDepth > 0) RestoreObserverLevel();
+        }
+
         void Discover()
         {
             if(Time.unscaledTime<scanAt)return;scanAt=Time.unscaledTime+1;
@@ -51,6 +141,9 @@ namespace DeadlyJenga.Presentation
         }
         void Build()
         {
+            RestoreObserverVisibility();
+            observerBody.Clear();
+            observerFrames.Clear();
             var shader=Resources.Load<Shader>("CandyScenery/CandySpirit");water=new Material(shader?shader:Shader.Find("Universal Render Pipeline/Lit"));water.SetColor("_BaseColor",new Color(.025f,.65f,.8f));
             var root=new GameObject("Visual - ocean spirit bust and arms").transform;root.SetParent(transform,false);
             water.SetColor("_BaseColor",new Color(.010f,.086f,.14f));water.SetColor("_FoamColor",new Color(.19f,.76f,.94f));water.SetColor("_EmissionColor",new Color(.015f,.24f,.35f));
@@ -77,6 +170,10 @@ namespace DeadlyJenga.Presentation
             for(int i=0;i<8;i++)Detail("Crystal tooth",head,finMesh,new Vector3((i-3.5f)*.065f,-.18f,.405f-Mathf.Abs(i-3.5f)*.012f),new Vector3(.060f,.11f+Mathf.Abs(i-3.5f)*.016f,.10f),glow).localRotation=Quaternion.Euler(0,0,180);
             for(int i=0;i<5;i++){var fin=Detail("Dorsal tidal spine",bust,finMesh,new Vector3(0,.35f-i*.17f,-.34f),new Vector3(.22f,.38f,.45f),i%2==0?glow:armor);fin.localRotation=Quaternion.Euler(-45,0,0);}
             Detail("Tidal heart",bust,"Sphere.fbx",new Vector3(0,.15f,.37f),new Vector3(.15f,.21f,.07f),glow);
+            torsoSurface = bust.GetComponent<Renderer>();
+            headSurface = head.GetComponent<Renderer>();
+            observerBody.AddRange(bust.GetComponentsInChildren<Renderer>(true));
+            observerBody.AddRange(head.GetComponentsInChildren<Renderer>(true));
             var lightObject=new GameObject("Visual - tidal heart light");lightObject.transform.SetParent(root,false);coreLight=lightObject.AddComponent<Light>();coreLight.type=LightType.Point;coreLight.color=new Color(.08f,.65f,1);coreLight.intensity=1.4f;coreLight.shadows=LightShadows.None;
         }
         Transform Shape(string name,Transform parent,string mesh)
@@ -87,7 +184,24 @@ namespace DeadlyJenga.Presentation
         Transform Detail(string name,Transform parent,Mesh mesh,Vector3 position,Vector3 scale,Material material)
         {var item=Shape(name,parent,mesh,material);item.localPosition=position;item.localScale=scale;return item;}
         void Restore(){foreach(var p in originals)if(p.Key)p.Key.sharedMaterials=p.Value;originals.Clear();}
-        void OnDisable(){Restore();for(int i=0;i<2;i++)hasHand[i]=false;if(bust)bust.parent.gameObject.SetActive(false);}
+        void OnEnable()
+        {
+            RenderPipelineManager.beginCameraRendering += BeforeObserverCamera;
+            RenderPipelineManager.endCameraRendering += AfterObserverCamera;
+            if (!bound) foreach (var child in views.Values)
+                if (child) child.gameObject.SetActive(true);
+        }
+        void OnDisable()
+        {
+            RenderPipelineManager.beginCameraRendering -= BeforeObserverCamera;
+            RenderPipelineManager.endCameraRendering -= AfterObserverCamera;
+            RestoreObserverVisibility();
+            if (!bound) foreach (var child in views.Values)
+                if (child) child.gameObject.SetActive(false);
+            Restore();
+            for (int i = 0; i < 2; i++) hasHand[i] = false;
+            if (bust) bust.parent.gameObject.SetActive(false);
+        }
         void OnDestroy(){Restore();if(water)Destroy(water);if(armor)Destroy(armor);if(glow)Destroy(glow);if(torsoMesh)Destroy(torsoMesh);if(headMesh)Destroy(headMesh);if(finMesh)Destroy(finMesh);if(armMesh)Destroy(armMesh);}
     }
 }

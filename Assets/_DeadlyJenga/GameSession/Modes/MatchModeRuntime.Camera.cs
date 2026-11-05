@@ -9,6 +9,7 @@ namespace DeadlyJenga.Modes
     public sealed partial class MatchModeRuntime
     {
         Camera modeCamera;
+        Transform modeWatchedRoot;
         bool wasOverride;
         Pose deathPose;
         Quaternion headNeutral;
@@ -32,6 +33,7 @@ namespace DeadlyJenga.Modes
         void LateUpdate(){TickCamera();}
         void TickCamera()
         {
+            modeWatchedRoot = null;
             if(session&&session.VisitingLobby){if(modeCamera)modeCamera.enabled=false;OverrideCamera=null;return;}
             if(DemoSpectating){TickDemoSpectator();return;}
             if(session==null||!NetworkActors.Alive(session.Player)||frame.players==null)return;
@@ -73,6 +75,7 @@ namespace DeadlyJenga.Modes
                 {
                     var live=FindActor(watched.id);
                     pose=live!=null?live.ViewPose:new Pose(watched.viewPosition,watched.viewRotation);
+                    modeWatchedRoot = FindParticipantRoot(watched.id);
                     if(live==null&&wasOverride){float blend=1-Mathf.Exp(-18*Time.unscaledDeltaTime);pose.position=Vector3.Lerp(modeCamera.transform.position,pose.position,blend);pose.rotation=Quaternion.Slerp(modeCamera.transform.rotation,pose.rotation,blend);}
                 }
                 else if(Services.World!=null)
