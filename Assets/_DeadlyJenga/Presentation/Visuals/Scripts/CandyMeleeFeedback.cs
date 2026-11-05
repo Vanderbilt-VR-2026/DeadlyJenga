@@ -66,13 +66,14 @@ namespace DeadlyJenga.Presentation
         void Present(EquipmentActionFrame shot)
         {
             var spec = EquipmentSpecifications.Get(shot.kind);
-            if (shot.action != EquipmentAction.Shot || !spec.melee || shot.shotgun) return;
+            bool bash = shot.action == EquipmentAction.Bash;
+            if (!bash && (shot.action != EquipmentAction.Shot || !spec.melee || shot.shotgun)) return;
             var camera = Services.Session?.ActiveCamera;
             if (!camera || (camera.transform.position - shot.position).sqrMagnitude > 45 * 45) return;
 
             bool hasEndpoint = shot.endpoints != null && shot.endpoints.Length > 0;
             var travel = hasEndpoint ? shot.endpoints[0] - shot.position : Vector3.zero;
-            bool hit = hasEndpoint && travel.magnitude < spec.range - .015f;
+            bool hit = hasEndpoint && (bash || travel.magnitude < spec.range - .015f);
             var forward = (runtime.FindActor(shot.actor)?.ViewPose.rotation ?? Quaternion.identity) * Vector3.forward;
             var axis = travel.sqrMagnitude > .0001f ? travel.normalized : forward;
             var side = Vector3.Cross(Vector3.up, axis);
@@ -92,7 +93,8 @@ namespace DeadlyJenga.Presentation
                 EquipmentKind.LaserClaws => (Shape.Claws, new Color(.33f, .85f, 1f), .23f, .055f, .38f),
                 _ => (Shape.Ember, new Color(1f, .29f, .055f), .36f, .075f, .36f)
             };
-            var point = hit ? shot.endpoints[0] : shot.position + axis * (spec.range * .58f);
+            if (bash) profile = (Shape.Punch, new Color(1, .82f, .44f), .22f, .075f, .29f);
+            var point = hit ? shot.endpoints[0] : shot.position + axis * (bash ? .65f : spec.range * .58f);
             int lanes = profile.Item1 == Shape.Claws ? 3 : hit ? 2 : 1;
             for (int lane = 0; lane < lanes; lane++)
             {

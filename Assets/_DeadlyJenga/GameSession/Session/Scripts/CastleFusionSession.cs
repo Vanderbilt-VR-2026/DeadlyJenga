@@ -24,7 +24,15 @@ namespace DeadlyJenga.CastlePrototype
         NetworkDelegates callbacks;
         CastleLanSession castle;
         CastlePlaySession session;
-        int sequence, poseSequence, lastPoseBatch;
+        int sequence, poseSequence, lastPoseBatch, sceneTag;
+        // The same runner survives map reloads, so old reliable packets can reach a new session.
+        // Zero is reserved for legacy senders and the standalone Fusion prototype.
+        static int SceneTag(NetworkRunner source)
+        {
+            var room=IslandRoomConnection.Instance;
+            return source&&room&&room.Owns(source)?source.SceneInfo.Version+1:0;
+        }
+        bool IsCurrentScene=>sceneTag==SceneTag(runner);
         float nextPoseSend;
         readonly HashSet<int> posesInFlight = new HashSet<int>();
 
@@ -61,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
         float nextSend, lastWorld;
 
         [Serializable] public sealed class DemoState
-        {public DeadlyJenga.Core.WaveFrame wave;public bool shared,autoFill;public int survivors,hands,capacity,target,survivorPreset,handPreset,handLimit;public string survivorName,handName,leader;}
+        {public DeadlyJenga.Core.WaveFrame wave;public bool shared,autoFill;public int survivors,hands,capacity,target,survivorPreset,handPreset,handLimit;public string survivorName,handName,leader,roomNotice;}
         public DemoState Demo {get;private set;}=new DemoState();
         public bool CanUseDemoControls=>runner&&runner.IsRunning&&(runner.IsServer?(!IslandRoomConnection.Instance||IslandRoomConnection.Instance.LocalIsLobbyHost||IslandRoomConnection.Instance.SharedDemoControls):MatchSetup.ModeId=="demo"&&(Demo.shared||Demo.leader==runner.LocalPlayer.ToString()));
         public bool IsHost=>runner&&runner.IsRunning&&runner.IsServer;
@@ -78,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ResumeAfterMigration(NetworkRunner next)
         {
             peers.Clear();socialPeers.Clear();socialServer.Clear();posesInFlight.Clear();lastPoseBatch=0;nextPoseSend=0;welcomed=false;closing=false;nextSend=0;
-            runner=next;if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
+            runner=next;sceneTag=SceneTag(next);if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
             AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
         }
@@ -92,6 +100,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Initialize(NetworkRunner networkRunner, CastlePlaySession owner, CastleLanSession state)
         {
             runner = networkRunner; session = owner; castle = state;
+            sceneTag = SceneTag(runner);
             // Fusion disables Unity's automatic physics when this component starts.
             // The castle's flight motor and contact hands still require 3D simulation.
             var physics = runner.GetComponent<Fusion.Addons.Physics.RunnerSimulatePhysics>();
@@ -104,14 +113,16 @@ namespace DeadlyJenga.CastlePrototype
 
         void Send(PlayerRef player, int kind, byte[] bytes, int serial = 0)
         {
-            var key = ReliableKey.FromInts(Channel, kind, serial, 0);
+            if(!IsCurrentScene)return;
+            var key = ReliableKey.FromInts(Channel, kind, serial, sceneTag);
             if (runner.IsServer) runner.SendReliableDataToPlayer(player, key, bytes);
             else runner.SendReliableDataToServer(key, bytes);
         }
 
         void SendSocialPacket(PlayerRef player,int kind,int serial,byte[] data)
         {
-            var key=ReliableKey.FromInts(SocialChannel,kind,serial,0);
+            if(!IsCurrentScene)return;
+            var key=ReliableKey.FromInts(SocialChannel,kind,serial,sceneTag);
             if(runner.IsServer)runner.SendReliableDataToPlayer(player,key,data);else runner.SendReliableDataToServer(key,data);
         }
         public void SendSocial(byte[] data,string except=null)
@@ -136,8 +147,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Receive(NetworkRunner source, PlayerRef player, ReliableKey key, ReadOnlySpan<byte> payload)
         {
-            key.GetInts(out int channel, out int kind, out int serial, out _);
-            if (closing) return;
+            key.GetInts(out int channel, out int kind, out int serial, out int receivedTag);
+            if (closing || source != runner || !IsCurrentScene || (receivedTag != 0 && receivedTag != sceneTag)) return;
             if (runner.IsServer && !source.ActivePlayers.Contains(player)) return;
             if(channel==SocialChannel){ReceiveSocial(player,kind,serial,payload);return;}
             if(channel!=Channel)return;
@@ -162,7 +173,12 @@ namespace DeadlyJenga.CastlePrototype
                         {peer.lastModeCommand=Time.unscaledTime;ConnectModes();string modeRequest=System.Text.Encoding.UTF8.GetString(payload.ToArray());
                             if(modeRuntime&&modeRuntime.Rules.mode==DeadlyJenga.Core.GameModeKind.Demo&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.HasDemoPermission(player.ToString()))modeRuntime.ReceiveAdminCommand(player.ToString(),modeRequest);
                             modeRuntime?.ReceiveCommand(player.ToString(),modeRequest);}
-                        else if (kind == WelcomeAck) peer.ready = true;
+                        else if (kind == WelcomeAck)
+                        {
+                            peer.ready=true;
+                            var room=IslandRoomConnection.Instance;
+                            if(room&&room.Owns(runner))room.NoteMatchPeer(player.ToString());
+                        }
                         else if (kind == LivePose && peer.ready && payload.Length <= MaxPoseSize)
                         {
                             if (serial > peer.lastPoseSequence)
@@ -205,7 +221,7 @@ namespace DeadlyJenga.CastlePrototype
                     else if(kind==MysterySecret&&welcomed&&payload.Length<=8192){ConnectModes();modeRuntime?.ReceiveSecret(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
                     else if(kind==MysteryTrails&&welcomed&&payload.Length<=64000){ConnectModes();modeRuntime?.ReceiveTrails(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
                     else if(kind==Admin&&welcomed&&payload.Length<2048)
-                    {Demo=JsonUtility.FromJson<DemoState>(System.Text.Encoding.UTF8.GetString(payload.ToArray()));ReceiveWave(Demo.wave);IslandRoomConnection.Instance?.ReceiveSharedControls(Demo.shared);}
+                    {Demo=JsonUtility.FromJson<DemoState>(System.Text.Encoding.UTF8.GetString(payload.ToArray()));ReceiveWave(Demo.wave);IslandRoomConnection.Instance?.ReceiveSharedControls(Demo.shared);castle.FusionRoomNotice(Demo.roomNotice);}
                     else if(kind==DisasterImpact&&welcomed&&payload.Length<512)ReceiveDisasterImpact(payload.ToArray());
                     else if(kind==DisasterVisuals&&welcomed&&payload.Length<256*1024)ReceiveDisasters(payload.ToArray());
                     else if(kind==Rules&&welcomed&&payload.Length<4096){authoritativeRules=System.Text.Encoding.UTF8.GetString(payload.ToArray());MatchSetup.ApplyRules(session.Player,authoritativeRules);}
@@ -221,7 +237,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void LateUpdate()
         {
-            if (closing || runner == null || !runner.IsRunning) return;
+            if (closing || runner == null || !runner.IsRunning || !IsCurrentScene) return;
             castle.FusionRender();ConnectModes();
             float now = Time.unscaledTime;
             PumpPoses(now);
@@ -242,6 +258,9 @@ namespace DeadlyJenga.CastlePrototype
                 var bots=session.SurvivorBots;var hands=session.HandBots;
                 Demo=new DemoState{leader=IslandRoomConnection.Instance?IslandRoomConnection.Instance.LeaderId:"",wave=CaptureWave(),shared=IslandRoomConnection.Instance&&IslandRoomConnection.Instance.SharedDemoControls,survivors=bots?.Count??0,hands=hands?.Count??0,
                     autoFill=bots?.AutoFill??false,handLimit=hands?.Capacity??0,capacity=bots?.Capacity??0,target=bots?.TargetPopulation??0,survivorPreset=bots?.SelectedPreset??0,handPreset=hands?.SelectedPreset??0,survivorName=bots?.SelectedName??"",handName=hands?.SelectedName??""};
+                var room=IslandRoomConnection.Instance;
+                Demo.roomNotice=room&&room.Owns(runner)?room.MatchNotice:"";
+                castle.FusionRoomNotice(Demo.roomNotice);
                 string admin=JsonUtility.ToJson(Demo);
                 byte[] world = null;
                 foreach (var pair in peers)

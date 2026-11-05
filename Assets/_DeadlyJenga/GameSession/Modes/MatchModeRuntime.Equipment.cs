@@ -19,7 +19,7 @@ namespace DeadlyJenga.Modes
         readonly List<KeyValuePair<string,EquipmentState>> equipmentTick=new List<KeyValuePair<string,EquipmentState>>();
         int nextPickup;bool stationsSeeded;
         [Serializable] public sealed class EquipmentCommand
-        {public string action;public int pickup;public bool swap,drawn,left,shotgun,thrust,held;public Vector3 position,forward;}
+        {public string action;public int pickup;public bool swap,drawn,left,shotgun,thrust,held;public Vector3 position,forward;public int dropRequest;}
 
         public EquipmentState EquipmentFor(string id)
         {
@@ -45,9 +45,11 @@ namespace DeadlyJenga.Modes
         public bool RequestEquipmentAttack(Pose muzzle)=>SendEquipment(new EquipmentCommand{action="attack",position=muzzle.position,forward=muzzle.rotation*Vector3.forward});
         bool EquipmentCommandFor(string id,EquipmentCommand command)
         {
+            if(command?.action=="drop"&&!BeginManualDropRequest(id,command.dropRequest))return false;
             var actor=FindActor(id);var p=simulation.Find(id);
             if(command==null||actor==null||p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||simulation.Phase!=RoundPhase.Playing||MysteryActive&&mystery.IsDowned(id))return false;
             if(command.action=="pickup")return TakeEquipment(id,command.pickup,command.swap);
+            if(command.action=="drop")return DropEquipmentManually(id);
             var state=EquipmentFor(id);if(state.kind==EquipmentKind.None)return false;
             if(command.action=="trigger")return HoldArsenalTrigger(id,state,command);
             if(command.action=="thrust")

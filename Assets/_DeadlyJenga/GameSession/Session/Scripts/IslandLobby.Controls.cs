@@ -112,10 +112,20 @@ namespace DeadlyJenga.CastlePrototype
         void UpdateControls()
         {
             if(!JoinEnabled)codeFocused=false;
-            HostHint=Room.Busy?Room.Status:Room.Discovery!=null&&Room.Discovery.Status.StartsWith("Invite broadcast",StringComparison.Ordinal)?Room.Discovery.Status:Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):"Start solo now, or create a code / invite nearby.";
+            var inviteStatus=Room.Discovery?.InviteStatus;
+            HostHint=Room.Busy?Room.Status:!string.IsNullOrEmpty(inviteStatus)?inviteStatus:
+                Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
+                Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):
+                "Start solo now, or create a code / invite nearby.";
             SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
-            JoinHint=Room.Busy?Room.Status:showingNearby?(Room.Discovery==null?Room.DiscoveryStatus:Time.unscaledTime<scanningUntil?"Detecting nearby islands…":(Room.Discovery.Joinable.Count==0?"No rooms yet. Same Wi-Fi + Internet required.":"Pick a room, or enter a different code above.")):Room.Connected?"Joining another room leaves this island.":"Type, point, or play the giant keyboard.\nFull codes look like US-ABC234.";
+            JoinHint=Room.Busy?Room.Status:showingNearby?
+                (Room.Discovery?.HasJoinable==true?"Pick a room, or enter a code above.":
+                    Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
+                    Time.unscaledTime<scanningUntil?"Detecting nearby islands…":"No rooms found. Open the game on both devices on the same local network, or enter a room code."):
+                Room.Connected?"Joining another room leaves this island.":"Enter six room characters, such as ABC234.\nUse a region prefix only for a different region.";
             if(!Room.Busy&&!Room.Connected&&Room.Status.StartsWith("Connection failed",StringComparison.Ordinal))JoinHint=HostHint=Room.Status;
+            else if(JoinEnabled&&!showingNearby&&IslandRoomAddress.TryParse(enteredCode,Room.Region,out var region,out var address))
+                JoinHint="Join "+address+" · "+(enteredCode.Contains("-")?"region specified":"using "+region.ToUpperInvariant()+" as the default region");
             else if(JoinEnabled&&!showingNearby&&enteredCode.Length>=6&&!CodeValid)JoinHint="Check the code. Example: US-ABC234.\nUse the host's region prefix, or six room characters.";
         }
     }

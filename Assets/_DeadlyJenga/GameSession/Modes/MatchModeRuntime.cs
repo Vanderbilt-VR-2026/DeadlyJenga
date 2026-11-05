@@ -45,7 +45,7 @@ namespace DeadlyJenga.Modes
         {
             session=owner;MatchRuntime.Current=this;InitializeEnemyActions();
             BotObjectives.Current=this;
-            if(session.Network)session.Network.ParticipantLeft+=UnregisterRemote;
+            if(session.Network)session.Network.ParticipantLeft+=OnParticipantConnectionLeft;
             wasAuthority=Authority;
             var initial=MatchSetup.DefaultModeRules(ParseMode(MatchSetup.ModeId),MatchSetup.SelectedMap);
             var lobby=IslandRoomConnection.Instance;
@@ -82,7 +82,7 @@ namespace DeadlyJenga.Modes
             ClearMysteryBodies();
             if(ReferenceEquals(MatchRuntime.Current,this))MatchRuntime.Current=null;
             if(ReferenceEquals(BotObjectives.Current,this))BotObjectives.Current=null;
-            if(session&&session.Network)session.Network.ParticipantLeft-=UnregisterRemote;
+            if(session&&session.Network)session.Network.ParticipantLeft-=OnParticipantConnectionLeft;
             if(simulation!=null){simulation.Eliminated-=OnEliminated;simulation.PhaseChanged-=OnPhase;simulation.OwnershipChanged-=OnOwnership;simulation.PowerFinished-=OnPowerFinished;}
         }
         public IModeActor FindActor(string id)=>id!=null&&actors.TryGetValue(id,out var actor)&&NetworkActors.Alive(actor)?actor:null;

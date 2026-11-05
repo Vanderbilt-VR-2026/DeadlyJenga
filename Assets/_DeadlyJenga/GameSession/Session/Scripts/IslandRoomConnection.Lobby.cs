@@ -26,13 +26,14 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<string,float> requestAfter=new Dictionary<string,float>();
         LobbyParticipant localIdentity;
         LobbySetup setup;
-        string leaderId="",lobbyNotice="";
+        string leaderId="",lobbyNotice="",matchNotice="";
+        internal string MatchNotice=>matchNotice;
         public string LocalLobbyId=>Connected?Runner.LocalPlayer.ToString():"local";
         public bool LocalIsLobbyHost=>!Connected||leaderId==LocalLobbyId;
         public string LeaderId=>leaderId;
         public IReadOnlyList<LobbyParticipant> Participants=>identities.Values.ToArray();
         public IReadOnlyList<string> HostRequests=>hostRequests;
-        public string LobbyNotice=>LocalIsLobbyHost&&hostRequests.Count>0?hostRequests.Count+" host request"+(hostRequests.Count==1?"":"s")+" · review at HOST terminal":lobbyNotice;
+        public string LobbyNotice=>LocalIsLobbyHost&&hostRequests.Count>0?(string.IsNullOrEmpty(lobbyNotice)?"":lobbyNotice+" · ")+hostRequests.Count+" host request"+(hostRequests.Count==1?"":"s")+" · review at HOST terminal":lobbyNotice;
         public LobbyParticipant LocalIdentity
         {
             get
@@ -109,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if(!LaunchPending&&action.verb=="setup"&&ValidSetup(action.setup))ApplySetup(action.setup);
             else if(!LaunchPending&&action.verb=="shared"&&Catalog.modes[ModeIndex].id=="demo")SharedDemoControls=action.index!=0;
-            else if(action.verb=="launch"){LaunchAuthoritative();return;}
+            else if(action.verb=="launch"){matchNotice="";LaunchAuthoritative();return;}
             else if(action.verb=="cancel"){LaunchPending=false;lobbyNotice="Start cancelled.";}
             PublishSelection();
         }
@@ -135,20 +136,33 @@ namespace DeadlyJenga.CastlePrototype
             color=new Color(Mathf.Clamp01(color.r),Mathf.Clamp01(color.g),Mathf.Clamp01(color.b),1);
             identities[id]=new LobbyParticipant{id=id,noun=noun,color=color,displayName=ModeNames.NameFor(color,noun),host=id==leaderId};
             if(id==LocalLobbyId)localIdentity=identities[id];
+            else if(IsHost)
+            {
+                lobbyNotice=identities[id].displayName+" joined the room.";
+                if(!IslandLobby.Current)matchNotice=lobbyNotice;
+            }
         }
+        internal void NoteMatchPeer(string id)
+        {if(IsHost&&!string.IsNullOrEmpty(id))AssignIdentity(id,null);}
         public LobbyParticipant IdentityFor(string id)=>identities.TryGetValue(id,out var value)?value:id==LocalLobbyId?LocalIdentity:null;
         public void PrepareSoloIdentity()
         {
             if(Connected)return;
-            var own=LocalIdentity;identities.Clear();own.id="local";own.host=true;identities[own.id]=own;leaderId=own.id;hostRequests.Clear();
+            lobbyNotice=matchNotice="";var own=LocalIdentity;identities.Clear();own.id="local";own.host=true;identities[own.id]=own;leaderId=own.id;hostRequests.Clear();
         }
         void ConnectedIdentity(bool hosting)
         {
+            lobbyNotice=matchNotice="";
             if(hosting){var own=LocalIdentity;identities.Clear();leaderId=LocalLobbyId;AssignIdentity(LocalLobbyId,own);}
             else{identities.Clear();leaderId="";hostRequests.Clear();}
         }
         void DepartIdentity(string id)
         {
+            if(IsHost&&id!=LocalLobbyId&&identities.TryGetValue(id,out var departing))
+            {
+                lobbyNotice=departing.displayName+" left the room.";
+                if(!IslandLobby.Current)matchNotice=lobbyNotice;
+            }
             identities.Remove(id);hostRequests.Remove(id);requestAfter.Remove(id);
             if(IsHost&&leaderId==id){var candidates=Runner.ActivePlayers.Where(p=>p.ToString()!=id).ToArray();leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)].ToString():LocalLobbyId;LaunchPending=false;RefreshHostFlags();}
         }

@@ -172,12 +172,12 @@ namespace DeadlyJenga.Modes
             {var point=actor.transform.position;var rotation=actor.transform.rotation;actor.gameObject.GetComponent<IPlayableCharacter>()?.Place(point,rotation);}
             else RemoteEliminated?.Invoke(id,EliminationOutcome.Revive);
         }
-        bool MysteryPunch(string attacker,string victim,ref float damage)
+        bool MysteryPunch(string attacker,string victim,ref float damage,bool ordinaryOnly=false)
         {
             if(!MysteryActive)return false;
             var hit=mystery.Hit(attacker,victim);if(hit==MysteryHit.Blocked)return true;
             var target=FindActor(victim);if(target==null)return true;
-            bool special=hit==MysteryHit.Murder||hit==MysteryHit.SheriffKill;
+            bool special=!ordinaryOnly&&(hit==MysteryHit.Murder||hit==MysteryHit.SheriffKill);
             float health=target.IsLocal||target.IsBot?target.Health:target.MaxHealth*RemoteHealth(victim);
             if(!special&&damage<health)return false;
             var p=simulation.Find(victim).frame;

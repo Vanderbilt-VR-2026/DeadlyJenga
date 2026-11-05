@@ -477,9 +477,10 @@ namespace DeadlyJenga.CastlePrototype
                 bool weaponLeft=equipment.leftHanded;
                 var spec=EquipmentSpecifications.Get(equipment.kind);
                 bool swing=spec.melee&&!(modeSwitch&&equipment.shotgun);
-                var attack=!vr?new Hint(CandyHudIcon.Key,drawn?"LEFT CLICK":"V",drawn?(swing?"Attack":"Fire"):"Draw"):
+                bool bash=drawn&&!swing&&MatchRuntime.Current?.Rules?.punchEnabled==true;
+                var attack=!vr?new Hint(CandyHudIcon.Key,drawn?"LEFT CLICK":"V",drawn?(swing?"Attack":bash?"Fire / T bash":"Fire"):"Draw"):
                     swing&&drawn?new Hint(CandyHudIcon.Hand,weaponLeft?"LEFT HAND":"RIGHT HAND","Swing weapon"):
-                    Controller(weaponLeft,drawn?ControllerPart.Trigger:ControllerPart.Secondary,drawn?"Fire":"Draw");
+                    Controller(weaponLeft,drawn?ControllerPart.Trigger:ControllerPart.Secondary,drawn?(!bash?"Fire":single?"Fire / jab to bash":weaponLeft?"Fire / A bash":"Fire / X bash"):"Draw");
                 var extra=modeSwitch?
                     (vr?Controller(single?left:!weaponLeft,single?ControllerPart.Stick:ControllerPart.Trigger,"Switch mode",single?"Click ":""):
                     new Hint(CandyHudIcon.Key,"R","Switch mode")):
