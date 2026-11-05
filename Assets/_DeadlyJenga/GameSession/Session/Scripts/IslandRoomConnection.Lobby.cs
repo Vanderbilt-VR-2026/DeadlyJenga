@@ -91,7 +91,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!member||Departing)return;
             var experience=RoomGameExperience.Ensure(this);
             if(experience&&experience.Experience==GameExperience.Game&&
-                (action.verb=="shared"||action.verb=="setup"||action.verb=="map"||action.verb=="mode"||
+                (action.verb=="setup"||action.verb=="map"||action.verb=="mode"||
                  action.verb=="launch"||action.verb=="cancel"))return;
             if(action.verb=="request")
             {
@@ -117,7 +117,13 @@ namespace DeadlyJenga.CastlePrototype
                 ModeIndex=action.index;if(!Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id))MapIndex=compatible;ResetModeSetup();
             }
             else if(!LaunchPending&&action.verb=="setup"&&ValidSetup(action.setup))ApplySetup(action.setup);
-            else if(!LaunchPending&&action.verb=="shared"&&Catalog.modes[ModeIndex].id=="demo")SharedDemoControls=action.index!=0;
+            else if(!LaunchPending&&action.verb=="shared")
+            {
+                if(Busy||Migrating||RoomSceneBusy||SwitchingMap||
+                    !(this is IDevelopmentExperienceSource development)||!development.DevelopmentExperience||
+                    (action.index!=0&&action.index!=1))return;
+                SharedDemoControls=action.index!=0;
+            }
             else if(action.verb=="launch"){matchNotice="";LaunchAuthoritative();return;}
             else if(action.verb=="cancel"){LaunchPending=false;lobbyNotice="Start cancelled.";}
             PublishSelection();

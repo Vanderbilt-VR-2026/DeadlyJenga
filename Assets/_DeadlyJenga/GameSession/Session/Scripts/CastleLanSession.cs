@@ -700,7 +700,7 @@ namespace DeadlyJenga.CastlePrototype
                 return !string.IsNullOrEmpty(inviteStatus) ? inviteStatus : Room.DiscoveryNotice;
             }
         }
-        public bool CanToggleSharedControls => Room && Room.LocalIsLobbyHost && MatchSetup.ModeId == "demo";
+        public bool CanToggleSharedControls => Room && Room.CanConfigure && !Room.Migrating && !Room.RoomSceneBusy && !Room.SwitchingMap && ((IDevelopmentExperienceSource)Room).DevelopmentExperience;
         public bool SharedControls => Room && Room.SharedDemoControls;
         public void ToggleSharedControls() { if (CanToggleSharedControls) Room.SetSharedControls(!Room.SharedDemoControls); }
         public bool CanInviteNearby => Room && Room.Connected&&!Room.Busy;

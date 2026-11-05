@@ -85,7 +85,7 @@ namespace DeadlyJenga.CastlePrototype
         public void InviteNearby(){if(CanInvite)Room.InviteNearby();}
         public bool DemoSelected=>catalog.modes[Room.ModeIndex].id=="demo";
         public bool SharedControls=>Room.SharedDemoControls;
-        public void ToggleSharedControls(){if(CanConfigure&&DemoSelected)Room.SetSharedControls(!Room.SharedDemoControls);}
+        public void ToggleSharedControls(){if(CanConfigure)Room.SetSharedControls(!Room.SharedDemoControls);}
         public string HostHint{get;private set;}="";
 
         // Map + mode terminal
