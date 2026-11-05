@@ -39,7 +39,10 @@ namespace DeadlyJenga.CandyPlayers
                     return new Pose(hand.position+outward*.09f*Scale,Quaternion.LookRotation(outward,hand.rotation*Vector3.forward));
                 }
                 var eye=avatar.viewCamera.transform;
-                return new Pose(eye.position+eye.rotation*new Vector3(left?.25f:-.25f,-.18f,.40f)*Scale,eye.rotation);
+                var offset=new Vector3(left?.25f:-.25f,-.18f,.40f);
+                if(!motor.IsVR&&Local&&Equipment.drawn&&Mouse.current?.rightButton.isPressed==true&&
+                    TryAimGripOffset(Equipment,left,false,out var aimedOffset))offset=aimedOffset;
+                return new Pose(eye.position+eye.rotation*offset*Scale,eye.rotation);
             }
         }
         void UpdateSuit(EquipmentState state)
