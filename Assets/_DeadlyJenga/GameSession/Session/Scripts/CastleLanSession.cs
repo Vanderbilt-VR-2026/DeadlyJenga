@@ -233,7 +233,11 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++)
             {
                 var actor = P.ReadActor(reader);
-                if (actor.id == id || !active.Contains(actor.id)) continue;
+                if(!active.Contains(actor.id))continue;
+                if(actor.id==id)
+                {
+                    ApplyOwnHandFeedback(actor);livePoseAt[actor.id]=Time.unscaledTime;continue;
+                }
                 ShowActor(actor, false);
                 livePoseAt[actor.id] = Time.unscaledTime;
             }
@@ -255,7 +259,8 @@ namespace DeadlyJenga.CastlePrototype
         public void FusionRender()
         {
             if (IsClient && receivedWorld) InterpolateWorld();
-            foreach (var view in views.Values) if (NetworkActors.Alive(view)) view.Render(Time.unscaledDeltaTime);
+            foreach(var pair in views)if(NetworkActors.Alive(pair.Value)&&!SuspendManagedView(pair.Key,pair.Value))pair.Value.Render(Time.unscaledDeltaTime);
+            if(IsClient&&receivedWorld&&session.PlayingHand&&localPreview is INetworkActorView preview&&!SuspendManagedView(id,preview))preview.Render(Time.unscaledDeltaTime);
         }
         List<Nearby> Choices() => nearby.Values.Where(p => p.info.available && Time.unscaledTime - p.seen < 5).OrderBy(p => p.info.name).ToList();
         Nearby Selected() { var list = Choices(); return list.Count == 0 ? null : list[selectedIndex % list.Count]; }
@@ -392,7 +397,8 @@ namespace DeadlyJenga.CastlePrototype
                 catch (Exception e) { Leave("Join ended: " + e.Message); }
             }
             if (IsClient && receivedWorld) InterpolateWorld();
-            foreach (var view in views.Values) if (NetworkActors.Alive(view)) view.Render(Time.unscaledDeltaTime);
+            foreach(var pair in views)if(NetworkActors.Alive(pair.Value)&&!SuspendManagedView(pair.Key,pair.Value))pair.Value.Render(Time.unscaledDeltaTime);
+            if(IsClient&&receivedWorld&&session.PlayingHand&&localPreview is INetworkActorView preview&&!SuspendManagedView(id,preview))preview.Render(Time.unscaledDeltaTime);
         }
         void ProcessConnections()
         {
@@ -581,13 +587,19 @@ namespace DeadlyJenga.CastlePrototype
             }
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
             var present = new HashSet<string>();
-            foreach (var actor in s.actors) { present.Add(actor.id); if (actor.id != id && !HasFreshPose(actor.id)) ShowActor(actor, false); }
+            foreach(var actor in s.actors)
+            {
+                present.Add(actor.id);
+                if(HasFreshPose(actor.id))continue;
+                if(actor.id==id)ApplyOwnHandFeedback(actor);
+                else ShowActor(actor,false);
+            }
             foreach (var key in views.Keys.Where(key => !present.Contains(key) && !HasFreshPose(key)).ToArray())
             { livePoseAt.Remove(key); RemoveView(key); }
             if (!receivedWorld)
             {
                 receivedWorld = true; InterpolateWorld(); Physics.SyncTransforms();
-                session.SetRole(spawnHand);
+                session.SetRoleForMode(spawnHand);
                 if (spawnHand) session.Hand.Place(spawnPose.position, spawnPose.rotation);
                 else session.Player.Place(spawnPose.position, spawnPose.rotation);
                 Status = spawnHand ? "Joined as flying hand · no safe survivor spawn remained" : "Joined as survivor · live local demo";
@@ -605,6 +617,12 @@ namespace DeadlyJenga.CastlePrototype
                 b.rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
             }
         }
+        void ApplyOwnHandFeedback(P.Actor actor)
+        {
+            if(!IsClient||!receivedWorld||!session.PlayingHand||actor.id!=id||actor.kind!=NetworkKinds.Hand)return;
+            if(localPreview is INetworkActorView view)
+                using(var reader=P.StateReader(actor)){view.ReadState(reader,actor.active);SuspendManagedView(actor.id,view);}
+        }
         void ShowActor(P.Actor actor, bool authoritative)
         {
             if (views.TryGetValue(actor.id, out var view) && (!NetworkActors.Alive(view) || view.NetworkKind != actor.kind)) { RemoveView(actor.id); view = null; }
@@ -616,7 +634,13 @@ namespace DeadlyJenga.CastlePrototype
                 views[actor.id] = view;
             }
             using (var reader = P.StateReader(actor)) view.ReadState(reader, actor.active);
+            SuspendManagedView(actor.id,view);
             actor.position = view.NetworkPosition;
+        }
+        bool SuspendManagedView(string actorId,INetworkActorView view)
+        {
+            if(RoomGameExperience.ForManagedMatch(session)?.ShouldSuspendActor(actorId)!=true)return false;
+            view.Suspend();return true;
         }
         void RemoveView(string key) { if (views.TryGetValue(key, out var view) && view is Component c && c) { c.gameObject.SetActive(false); Destroy(c.gameObject); } views.Remove(key); }
         public void LeaveSession()

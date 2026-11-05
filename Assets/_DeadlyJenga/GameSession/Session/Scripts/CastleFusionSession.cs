@@ -71,13 +71,13 @@ namespace DeadlyJenga.CastlePrototype
         [Serializable] public sealed class DemoState
         {public DeadlyJenga.Core.WaveFrame wave;public bool shared,autoFill;public int survivors,hands,capacity,target,survivorPreset,handPreset,handLimit;public string survivorName,handName,leader,roomNotice;}
         public DemoState Demo {get;private set;}=new DemoState();
-        public bool CanUseDemoControls=>runner&&runner.IsRunning&&(runner.IsServer?(!IslandRoomConnection.Instance||IslandRoomConnection.Instance.LocalIsLobbyHost||IslandRoomConnection.Instance.SharedDemoControls):MatchSetup.ModeId=="demo"&&(Demo.shared||Demo.leader==runner.LocalPlayer.ToString()));
+        public bool CanUseDemoControls=>SessionDevelopmentPolicy.DemoEnabled(session)&&runner&&runner.IsRunning&&(runner.IsServer?(!IslandRoomConnection.Instance||IslandRoomConnection.Instance.LocalIsLobbyHost||IslandRoomConnection.Instance.SharedDemoControls):(Demo.shared||Demo.leader==runner.LocalPlayer.ToString()));
         public bool IsHost=>runner&&runner.IsRunning&&runner.IsServer;
         public void SetSharedControls(bool value){var room=IslandRoomConnection.Instance;if(IsHost&&room)room.SetSharedControls(value);}
         CastleDemoCommand pendingStamina;float nextStamina;string authoritativeRules;
         public void Request(CastleDemoCommand command)
         {
-            if(!CanUseDemoControls)return;
+            if(command==null||!SessionDevelopmentPolicy.CanRequestLocal(session))return;
             if(IsHost)CastleDemoCommands.Execute(session,command);
             else if(command.action==CastleDemoAction.Stamina){pendingStamina=command;if(authoritativeRules!=null)MatchSetup.ApplyRules(session.Player,authoritativeRules);}
             else Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(command)));
@@ -167,11 +167,11 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     else if (peers.TryGetValue(player, out var peer))
                     {
-                        if(kind==Command&&peer.ready&&MatchSetup.ModeId=="demo"&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.HasDemoPermission(player.ToString())&&payload.Length<=8192&&Time.unscaledTime-peer.lastCommand>=.15f)
-                        {peer.lastCommand=Time.unscaledTime;CastleDemoCommands.Execute(session,JsonUtility.FromJson<CastleDemoCommand>(System.Text.Encoding.UTF8.GetString(payload.ToArray())));}
+                        if(kind==Command&&peer.ready&&SessionDevelopmentPolicy.DemoEnabled(session)&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.HasDemoPermission(player.ToString())&&payload.Length<=8192&&Time.unscaledTime-peer.lastCommand>=.15f)
+                        {peer.lastCommand=Time.unscaledTime;CastleDemoCommands.ExecuteFromPeer(session,JsonUtility.FromJson<CastleDemoCommand>(System.Text.Encoding.UTF8.GetString(payload.ToArray())),player.ToString());}
                         else if(kind==ModeCommand&&peer.ready&&payload.Length<=8192&&Time.unscaledTime-peer.lastModeCommand>=.08f)
                         {peer.lastModeCommand=Time.unscaledTime;ConnectModes();string modeRequest=System.Text.Encoding.UTF8.GetString(payload.ToArray());
-                            if(modeRuntime&&modeRuntime.Rules.mode==DeadlyJenga.Core.GameModeKind.Demo&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.HasDemoPermission(player.ToString()))modeRuntime.ReceiveAdminCommand(player.ToString(),modeRequest);
+                            if(modeRuntime&&SessionDevelopmentPolicy.DemoEnabled(session)&&IslandRoomConnection.Instance&&IslandRoomConnection.Instance.HasDemoPermission(player.ToString()))modeRuntime.ReceiveAdminCommand(player.ToString(),modeRequest);
                             modeRuntime?.ReceiveCommand(player.ToString(),modeRequest);}
                         else if (kind == WelcomeAck)
                         {
@@ -241,7 +241,7 @@ namespace DeadlyJenga.CastlePrototype
             castle.FusionRender();ConnectModes();
             float now = Time.unscaledTime;
             PumpPoses(now);
-            if(pendingStamina!=null&&now>=nextStamina){if(CanUseDemoControls)Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(pendingStamina)));pendingStamina=null;nextStamina=now+.2f;}
+            if(pendingStamina!=null&&now>=nextStamina){if(SessionDevelopmentPolicy.CanRequestLocal(session))Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(pendingStamina)));pendingStamina=null;nextStamina=now+.2f;}
             if(runner.IsServer){foreach(var pair in socialPeers)if(peers.TryGetValue(pair.Key,out var ready)&&ready.ready)pair.Value.Pump(now,(serial,data)=>SendSocialPacket(pair.Key,1,serial,data));}
             else if(welcomed)socialServer.Pump(now,(serial,data)=>SendSocialPacket(default,1,serial,data));
             if (runner.IsServer)

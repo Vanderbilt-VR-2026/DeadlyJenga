@@ -88,13 +88,16 @@ namespace DeadlyJenga.Modes
         }
         public void ReceiveAdminCommand(string sender,string command)
         {
-            if(!Authority||Rules.mode!=GameModeKind.Demo||string.IsNullOrEmpty(command)||command.Length>8192)return;
-            if(command=="start"){StartRound();return;}
+            var experience=RoomGameExperience.ForManagedMatch(session);
+            if(experience)return; // Game commands require the versioned room channel.
+            if(!SessionDevelopmentPolicy.CanExecutePeer(session,sender)||string.IsNullOrEmpty(command)||command.Length>8192)return;
+            if(command=="start"){StartRoundAuthoritative();return;}
             if(command.StartsWith("hand:")){if(float.TryParse(command.Substring(5),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out float time)&&!float.IsNaN(time)&&!float.IsInfinity(time))simulation.HandPower(sender,Mathf.Clamp(time,1,120));return;}
-            if(command.StartsWith("configure:"))try{var rules=JsonUtility.FromJson<ModeRules>(command.Substring(10));if(rules!=null&&rules.mode==GameModeKind.Demo)Configure(rules);}catch{}
+            if(command.StartsWith("configure:"))try{var rules=JsonUtility.FromJson<ModeRules>(command.Substring(10));if(rules!=null)ConfigureDevelopmentAuthorized(rules);}catch{}
         }
         void OnEliminated(string id,EliminationOutcome outcome)
         {
+            if(CuratedActorDeferred(id))return;
             var deadActor=FindActor(id);if(deadActor!=null)DropEquipment(id,deadActor.transform.position);
             if(corpseDeaths.Contains(id)){ApplyOutcome(id,outcome);return;}
             if(outcome==EliminationOutcome.FlyingHand){ApplyOutcome(id,outcome);return;}
@@ -111,6 +114,7 @@ namespace DeadlyJenga.Modes
         }
         void ApplyOutcome(string id,EliminationOutcome outcome)
         {
+            if(CuratedActorDeferred(id))return;
             var enemy=FindActor(id)?.gameObject.GetComponent<IEnemyActor>();if(enemy?.IsEnemy==true){enemy.Despawn();return;}
             CaptureStats();
             if(id!=LocalActorId&&connectedHumans.Contains(id)){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,outcome);return;}
@@ -119,14 +123,15 @@ namespace DeadlyJenga.Modes
             if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
             if(id==LocalActorId)
             {
-                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRole(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
+                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
                 if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
-                if(session.PlayingHand)session.SetRole(false);
+                if(session.PlayingHand)session.SetRoleForMode(false);
             }
             Respawn(id,simulation.Find(id)?.frame.role??"survivor");CaptureStats();
         }
         void Respawn(string id,string role)
         {
+            if(CuratedActorDeferred(id))return;
             var actor=FindActor(id);var p=simulation.Find(id);if(actor==null||p==null)return;
             if(id!=LocalActorId&&!actor.IsBot){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);return;}
             int ordinal=ParticipantOrdinal(p);
@@ -172,10 +177,11 @@ namespace DeadlyJenga.Modes
         }
         public void ApplyRemoteOutcome(EliminationOutcome outcome,Vector3 spawn,Quaternion rotation,string role)
         {
+            if(CuratedActorDeferred(LocalActorId))return;
             if(Authority||session==null)return;
-            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRole(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
+            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
             if(outcome==EliminationOutcome.Spectator)return;
-            if(session.PlayingHand)session.SetRole(false);
+            if(session.PlayingHand)session.SetRoleForMode(false);
             session.Player.Place(spawn,rotation);
         }
         void OnPhase(RoundPhase phase)

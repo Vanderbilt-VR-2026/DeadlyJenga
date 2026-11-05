@@ -14,8 +14,8 @@ namespace DeadlyJenga.CastlePrototype
         CastleFusionSession Net => session.GetComponent<CastleFusionSession>();
         CastleFusionSession.DemoState Remote { get { var net = Net; return net && !net.IsHost ? net.Demo : null; } }
 
-        public bool DemoMode => MatchSetup.ModeId == "demo";
-        public bool CanSpectate => session.Modes && (DemoMode || session.CanEditWorld);
+        public bool DemoMode => SessionDevelopmentPolicy.DemoEnabled(session);
+        public bool CanSpectate => session.Modes && DemoMode;
         public bool Spectating => session.Modes && session.Modes.DemoSpectating;
         public bool FourViews => session.Modes && session.Modes.DemoFourViews;
         public bool CanUseFourViews => CanSpectate && !session.IsVR;
@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype
             get
             {
                 var room=IslandRoomConnection.Instance;
-                return session.HasWorldAuthority&&(!room||!room.Connected||room.IsHost&&!room.Busy&&!room.SwitchingMap&&!room.RoomSceneBusy);
+                return CanCommand&&session.HasWorldAuthority&&(!room||!room.Connected||room.IsHost&&!room.Busy&&!room.SwitchingMap&&!room.RoomSceneBusy);
             }
         }
         public string MapStatus
@@ -62,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (!CanSelectMap || id == CurrentMapId || !MapCatalog) return;
             var map = Array.Find(MapCatalog.maps, value => value.id == id);
-            if (map == null || UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) < 0) return;
+            if (map == null || !map.SupportsMode(MatchSetup.ModeId) || UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) < 0) return;
             var room = IslandRoomConnection.Instance;
             if (room && room.Connected) { room.SwitchGameMap(id); return; }
             if (Net && Net.IsHost) return;
@@ -81,6 +81,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Run(DemoCommand command)
         {
+            if(!CanCommand)return;
             switch (command)
             {
                 case DemoCommand.SpawnSpeedPowerup: DemoPowerups.Spawn(session,true); break;

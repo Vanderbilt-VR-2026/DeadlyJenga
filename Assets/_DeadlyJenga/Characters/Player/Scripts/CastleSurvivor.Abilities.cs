@@ -24,12 +24,14 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Push(Vector3 force, GameObject source)
         {
+            if(ParticipationBlocked)return;
             ApplyTraversalImpulse(force);
             GameEvents.RaisePushed(gameObject, force);
         }
 
         public void Damage(float amount, GameObject source)
         {
+            if(ParticipationBlocked)return;
             if (eliminated || amount <= 0 || float.IsNaN(amount) || float.IsInfinity(amount)) return;
             health = Mathf.Max(0, Health - amount);
             lastDamageAt = Time.time;
@@ -39,6 +41,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Eliminate(GameObject source)
         {
+            if(ParticipationBlocked)return;
             if (eliminated) return;
             ClearSprint();ClearMovementPowerups();
             eliminated = true;
@@ -57,6 +60,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Apply(Effect effect)
         {
+            if(ParticipationBlocked)return;
             if (!effect.type) return;
             bool isNew = !effectsEndAt.ContainsKey(effect.type);
             effectsEndAt[effect.type] = effect.duration > 0 ? Time.time + effect.duration : float.PositiveInfinity;

@@ -107,8 +107,8 @@ namespace DeadlyJenga.CastlePrototype
             jump = seatedJump;
             SetVRPlayStyle((SurvivorVRPlayStyle)Mathf.Clamp(PlayerPrefs.GetInt("SurvivorVRPlayStyle",(int)vrPlayStyle),0,1),false);
         }
-        void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this); }
-        void OnDisable() { ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
+        void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this);UpdateSpectatorParticipation(); }
+        void OnDisable() { RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()
@@ -149,6 +149,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RefreshMode();
+            if(UpdateSpectatorParticipation())return;
             if (IsVR)
             {
                 UpdateSeatedHeight();
@@ -237,8 +238,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Teleport(Vector3 feet, Quaternion rotation)
         {
+            UpdateSpectatorParticipation();
             Capsule.enabled = false; transform.SetPositionAndRotation(feet, rotation);
-            Physics.SyncTransforms(); Capsule.enabled = true; Physics.SyncTransforms();
+            Physics.SyncTransforms(); Capsule.enabled = !spectatorPhysicsSuspended; Physics.SyncTransforms();
             iceVelocity = Vector3.zero; verticalSpeed = 0; Grounded = false; Vaulting = false; jumped = false; support = null; slopeVelocity = Vector3.zero; GroundNormal = Vector3.up;
             ClearSprint();lastGrounded = -100; ActionStatus = "Spawned on top";
             ResetClimb(true);
@@ -247,7 +249,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
-            if (dt <= 0 || !Capsule.enabled) return;
+            if (UpdateSpectatorParticipation() || dt <= 0 || !Capsule.enabled) return;
             Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
@@ -471,6 +473,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void AdvanceVault(float dt)
         {
+            if(UpdateSpectatorParticipation()||!Capsule.enabled)return;
             if (!vaultSurface || Vector3.Angle(vaultSurface.TransformDirection(vaultNormalLocal), Vector3.up) > 32)
             { Vaulting = false; ActionStatus = "Ledge moved — vault cancelled"; return; }
             Vector3 end = vaultSurface.TransformPoint(vaultLocal);

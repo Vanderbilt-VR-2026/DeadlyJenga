@@ -40,7 +40,8 @@ namespace DeadlyJenga.Modes
             MatchPlayerFrame self=null;foreach(var row in frame.players)if(row.id==LocalActorId){self=row;break;}
             var source=session.Player.ViewCamera;
             bool waterOccluded=!session.PlayingHand&&self!=null&&self.alive&&self.role!="hand"&&frame.phase==RoundPhase.Playing&&source&&Services.World!=null&&source.transform.position.y<=Services.World.WaterHeight(source.transform.position)+.25f;
-            bool use=!session.PlayingHand&&self!=null&&(self.dying||self.role=="spectator"||waterOccluded);
+            bool curatedDeferred=DeadlyJenga.CastlePrototype.RoomGameExperience.ForManagedMatch(session)?.HoldsLocalParticipant(session)==true;
+            bool use=(!session.PlayingHand||curatedDeferred)&&self!=null&&(self.dying||self.role=="spectator"||waterOccluded);
             if(!use)
             {
                 OverrideCamera=null;

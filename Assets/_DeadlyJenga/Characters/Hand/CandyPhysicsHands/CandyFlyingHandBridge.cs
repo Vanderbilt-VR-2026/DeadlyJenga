@@ -66,6 +66,15 @@ namespace DeadlyJenga.CandyPhysicsHands
         }
         // A joining headset predicts its own hand visuals; only the host makes
         // contact with the shared castle. Set every frame to cover rig rebuilds.
+        bool spectatorInputHeld;
+        bool EffectiveInputBlocked
+        {
+            get
+            {
+                if(LocalSpectatorParticipation.TryRead(gameObject,out bool spectator))spectatorInputHeld=spectator;
+                return actor.motor.InputSuspended||spectatorInputHeld;
+            }
+        }
         public bool NetworkPreview {get;set;}
         CandyHandTransition transition=new CandyHandTransition();
         public ICandyHandPoseSource PoseSource {get;set;}
@@ -102,7 +111,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             if(!source||!source.HasHandTracking){flightGesture.Reset();return false;}
             var steering=source.WorldHand(!useLeftHand);
             if(!steering.tracked||!steering.skeletonTracked){flightGesture.Reset();return false;}
-            command=flightGesture.Read(steering,actor.follow.transform.rotation,actor.motor.InputSuspended);
+            command=flightGesture.Read(steering,actor.follow.transform.rotation,EffectiveInputBlocked);
             return true;
         }
         public void ResetFlightInput()=>flightGesture.Reset();
@@ -171,9 +180,9 @@ namespace DeadlyJenga.CandyPhysicsHands
                 physical.ReceiveAuthoritativePreview(pendingAuthoritativeBones,authoritativeAt);
             if(!physical.IsInteractive&&Mathf.Abs(physical.GeometrySize-settings.size)>.001f)physical.RebuildInactive(transition.Pose);
             // No reset on reacquisition: the dynamic hand returns through bounded drives.
-            physical.SetInteractive(transition.Strength>0&&!actor.motor.InputSuspended);
+            physical.SetInteractive(transition.Strength>0&&!EffectiveInputBlocked);
             actor.motor.ContactPalm=physical.IsInteractive?physical.bodies[0]:null;
-            physical.skin.enabled=physical.IsInteractive||(actor.motor.InputSuspended&&transition.Strength>0);
+            physical.skin.enabled=physical.IsInteractive||(EffectiveInputBlocked&&transition.Strength>0);
             CandyHandLook.For(physical).Apply(Look);
             if(transition.Mode==CandyHandMode.Inactive){physical.gameObject.SetActive(false);}
         }
@@ -239,7 +248,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             CharacterWire.WriteHand(w, useLeftHand, settings ? settings.size : 20, rest, (Pose[])null, NetworkLook);
         }
         void OnEnable(){if(!SuppressNetworkRegistration&&!NetworkActors.Local.Contains(this))NetworkActors.Local.Add(this);if(!GetComponent<HandTaunts>())gameObject.AddComponent<HandTaunts>();}
-        void OnDisable(){if(actor&&actor.motor)actor.motor.ContactPalm=null;NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
+        void OnDisable(){spectatorInputHeld=false;if(actor&&actor.motor)actor.motor.ContactPalm=null;NetworkActors.Local.Remove(this);if(physical){physical.SetInteractive(false);physical.gameObject.SetActive(false);}if(pointerColliders!=null)Pointer(true);if(actor&&actor.follow){actor.follow.target=actor.motor.transform.Find("CameraFollowTarget");actor.follow.positionTarget=null;}anchored=false;}
         void OnDestroy(){if(physical)Destroy(physical.gameObject);}
     }
 }

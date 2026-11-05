@@ -4,7 +4,7 @@ namespace DeadlyJenga.Modes
 {
     public sealed partial class MatchModeRuntime
     {
-        public bool DevelopmentReviewEnabled=>session&&session.developmentReviewTools&&Authority;
+        public bool DevelopmentReviewEnabled=>session&&session.developmentReviewTools&&Authority&&DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session);
         public bool CanEndGame=>DevelopmentReviewEnabled&&frame.phase==RoundPhase.Playing;
         public string PlayerInRole(MysteryRole role)
         {

@@ -19,7 +19,13 @@ namespace DeadlyJenga.Modes
         int demoOffset;
         public bool SetDevelopmentHand(bool active)
         {
-            if(!Authority||!simulation.SetDevelopmentHand(LocalActorId,active))return false;
+            if(!Authority)return false;
+            if(!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session))
+            {
+                var participant=simulation.Find(LocalActorId);
+                return participant!=null&&(active?participant.frame.role=="hand":participant.frame.role!="hand");
+            }
+            if(!simulation.SetDevelopmentHand(LocalActorId,active))return false;
             nextSample=0;ruleCache.Clear();
             return true;
         }
@@ -27,7 +33,7 @@ namespace DeadlyJenga.Modes
 
         public void SetDemoSpectating(bool active)
         {
-            if(active&&(session==null||Rules.mode!=GameModeKind.Demo&&!session.CanEditWorld))return;
+            if(active&&!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session))return;
             if(DemoSpectating==active)return;
             DemoSpectating=active;
             if(active)
@@ -50,7 +56,7 @@ namespace DeadlyJenga.Modes
         }
         public void SetDemoFourViews(bool active)
         {
-            if(active&&session!=null&&session.IsVR)return;
+            if(active&&(!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session)||session.IsVR))return;
             DemoFourViews=active;
             if(DemoSpectating)TickDemoSpectator();
         }

@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool SelectPressed => HandTracking && HandTracking.MenuSelectPressed;
         public bool SelectHeld => HandTracking && HandTracking.MenuSelectHeld;
         public string StatusText => ActionStatus;
-        public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; }
+        public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; UpdateSpectatorParticipation(); }
         public void Place(Vector3 position, Quaternion rotation) { Teleport(position, rotation); Revive(); }
 
         // ISurvivorSettings

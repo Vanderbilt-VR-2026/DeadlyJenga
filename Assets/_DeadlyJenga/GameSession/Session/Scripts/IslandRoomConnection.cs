@@ -204,12 +204,12 @@ namespace DeadlyJenga.CastlePrototype
                 connecting=new CancellationTokenSource(TimeSpan.FromSeconds(30));var cancellation=connecting;
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion;
                 var config=MigrationConfig();
-                var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,
+                var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
                     EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
                     Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget}}:null});
                 if(attempt!=generation)return;
                 if(!result.Ok){Status="Connection failed: "+result.ShutdownReason+". Check code, region and Internet, then retry.";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
-                else{Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);PublishSelection();nextMigrationSnapshot=0;if(host)await PushMigration();}
+                else{Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await PushMigration();}
             }
             catch(Exception e){if(attempt!=generation)return;Status="Connection failed: "+e.Message;HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
             finally{if(attempt==generation){Busy=false;connecting?.Dispose();connecting=null;}}
@@ -232,6 +232,9 @@ namespace DeadlyJenga.CastlePrototype
                 if(IsLobbyScene(loadingRoomScene)){ClearPendingMap();return;}
                 IslandLobby.Persistent?.ParkForMatch();
                 ApplySceneSelection();
+                var experience=RoomGameExperience.Ensure(this);
+                if(experience&&experience.Experience==GameExperience.Game&&!experience.ApplySelectedProfile())
+                {experience.ReportSceneSelectionFailure();return;}
                 MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;
                 MatchSetup.MapId=Catalog.maps[MapIndex].id;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;
             };
@@ -268,6 +271,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(Migrating||leaving)return;
             CancelDeparture();ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;Migrating=Busy=true;LaunchPending=false;Status="Host left · transferring the island…";
+            RoomGameExperience.Ensure(this)?.TransportBeforeMigration(old);
             var game=FindFirstObjectByType<CastleFusionSession>();game?.PauseForMigration();
             IslandLobby.Current?.Voice?.ResetLobbyAudio();
             try
@@ -278,11 +282,12 @@ namespace DeadlyJenga.CastlePrototype
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion;
                 NetworkSceneInfo scenes=default;
                 if(game){int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);scenes.AddSceneRef(SceneRef.FromIndex(index),LoadSceneMode.Single);}
-                var result=await Runner.StartGame(new StartGameArgs{GameMode=token.GameMode,HostMigrationToken=token,HostMigrationResume=_=>{},PlayerUniqueId=playerUniqueId,
+                var result=await Runner.StartGame(new StartGameArgs{GameMode=token.GameMode,HostMigrationToken=token,HostMigrationResume=_=>{},PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
                     CustomPhotonAppSettings=app,Config=MigrationConfig(),Scene=scenes,SceneManager=go.AddComponent<NetworkSceneManagerDefault>()});
                 if(!result.Ok)throw new InvalidOperationException(result.ShutdownReason.ToString());
                 HostSelected=IsHost;lastServer=Time.unscaledTime;nextSend=0;nextMigrationSnapshot=0;transitioning=false;
                 if(IsHost){foreach(var id in identities.Keys.ToArray())if(!Runner.ActivePlayers.Any(p=>p.ToString()==id))DepartIdentity(id);if(!Runner.ActivePlayers.Any(p=>p.ToString()==leaderId))leaderId=LocalLobbyId;RefreshHostFlags();}
+                RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);
                 if(game)game.ResumeAfterMigration(Runner);
                 Status="Room "+Code+" · "+(IsHost?"you are the new host":"host reassigned");
             }
@@ -301,6 +306,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Receive(NetworkRunner runner,PlayerRef source,ReliableKey key,ReadOnlySpan<byte> data)
         {
+            if(RoomGameExperience.Ensure(this)?.TransportReceive(runner,source,key,data)==true)return;
             key.GetInts(out int channel,out int kind,out int id,out int attempt);
             if(channel==DepartureChannel)
             {
@@ -399,7 +405,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         async Task PushMigration()
         {pushingSnapshot=true;try{if(Runner&&Runner.IsRunning)await Runner.PushHostMigrationSnapshot();}catch(Exception e){Debug.LogWarning("Host snapshot: "+e.Message);}finally{pushingSnapshot=false;}}
-        public void Launch(){if(CanLaunch)Act(new LobbyAction{verb="launch"});}
+        public void Launch()
+        {
+            var experience=RoomGameExperience.Ensure(this);
+            if(experience&&experience.Experience==GameExperience.Game){experience.RequestStart();return;}
+            if(CanLaunch)Act(new LobbyAction{verb="launch"});
+        }
         void LaunchAuthoritative()
         {
             if(Busy||LaunchPending||!Catalog||!Catalog.modes[ModeIndex].available)return;
@@ -412,7 +423,12 @@ namespace DeadlyJenga.CastlePrototype
             }
             LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Waiting for players to confirm the selected mode and map…";CheckLaunch();
         }
-        public void CancelLaunch(){if(LocalIsLobbyHost&&!Departing)Act(new LobbyAction{verb="cancel"});}
+        public void CancelLaunch()
+        {
+            var experience=RoomGameExperience.Ensure(this);
+            if(experience&&experience.Experience==GameExperience.Game){experience.CancelGameStart();return;}
+            if(LocalIsLobbyHost&&!Departing)Act(new LobbyAction{verb="cancel"});
+        }
         void CheckLaunch()
         {
             if(!LaunchPending||!IsHost||Departing)return;
@@ -428,6 +444,8 @@ namespace DeadlyJenga.CastlePrototype
         {if(leaving)return;leaving=true;generation++;connecting?.Cancel();Busy=true;if(Runner){FusionMigrationCleanup.BeforeShutdown(Runner);await Runner.Shutdown();}else Disconnected("Left room");}
         void Disconnected(string reason)
         {
+            Migrating=false;
+            GetComponent<RoomGameExperience>()?.TransportDisconnected();
             CancelDeparture();
             ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;mapAcks.Clear();
             if(!this)return;string scene=SceneManager.GetActiveScene().name;bool inGame=!IslandLobby.Current&&scene!="Home";Status="Disconnected: "+reason;

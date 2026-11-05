@@ -128,9 +128,9 @@ namespace DeadlyJenga.Modes
         public void Suspect(string bodyId,int trailSequence)=>MysteryRequest("suspect:"+trailSequence+":"+bodyId);
         public void ChooseDisaster(string hazardId)=>MysteryRequest("disaster:"+hazardId);
         public void SetDemoRole(MysteryRole role)
-        {if(Authority&&MysteryActive&&Enum.IsDefined(typeof(MysteryRole),role))mystery.ForceRole(LocalActorId,role);}
+        {if(Authority&&DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)&&MysteryActive&&Enum.IsDefined(typeof(MysteryRole),role))mystery.ForceRole(LocalActorId,role);}
         public void ConfigureMystery(MysterySettings value)
-        {if(Authority&&value!=null&&ValidMysterySettings(value)){var copy=Rules.Copy();copy.mystery=value;Configure(copy);}}
+        {if(Authority&&DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)&&value!=null&&ValidMysterySettings(value)){var copy=Rules.Copy();copy.mystery=value;Configure(copy);}}
         public static bool ValidMysterySettings(MysterySettings value)
         {
             if(value==null||value.sheriffMistakes<1||value.sheriffMistakes>10)return false;

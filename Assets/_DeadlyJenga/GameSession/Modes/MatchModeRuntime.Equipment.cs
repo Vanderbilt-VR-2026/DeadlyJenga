@@ -133,7 +133,7 @@ namespace DeadlyJenga.Modes
         }
         public bool SpawnEquipment(EquipmentKind kind)
         {
-            if(!Authority||kind<EquipmentKind.Speed||kind>EquipmentKind.FlyingHand||session.PlayingHand||DemoSpectating)return false;
+            if(!Authority||!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)||kind<EquipmentKind.Speed||kind>EquipmentKind.FlyingHand||session.PlayingHand||DemoSpectating)return false;
             var actor=FindActor(LocalActorId);if(actor==null)return false;
             var direction=Vector3.ProjectOnPlane(actor.ViewPose.rotation*Vector3.forward,Vector3.up).normalized;
             var point=actor.transform.position+direction*1.8f+Vector3.up*.35f;
@@ -142,7 +142,7 @@ namespace DeadlyJenga.Modes
         }
         public bool GiveEquipment(EquipmentKind kind)
         {
-            if(!Authority||kind<EquipmentKind.Speed||kind>EquipmentKind.FlyingHand||session.PlayingHand||DemoSpectating||simulation.Phase!=RoundPhase.Playing)return false;
+            if(!Authority||!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)||kind<EquipmentKind.Speed||kind>EquipmentKind.FlyingHand||session.PlayingHand||DemoSpectating||simulation.Phase!=RoundPhase.Playing)return false;
             string id=LocalActorId;var actor=FindActor(id);var participant=simulation.Find(id);
             if(actor==null||participant==null||!participant.frame.alive||participant.frame.dying)return false;
             return GiveEquipmentTo(id,kind,true,true);

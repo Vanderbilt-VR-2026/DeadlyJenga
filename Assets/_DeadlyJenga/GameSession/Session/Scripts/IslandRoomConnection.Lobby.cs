@@ -89,6 +89,10 @@ namespace DeadlyJenga.CastlePrototype
             if(action==null)return;
             bool member=!Connected||source==Runner.LocalPlayer.ToString()||peers.Any(p=>p.Key.ToString()==source&&p.Value.ready);
             if(!member||Departing)return;
+            var experience=RoomGameExperience.Ensure(this);
+            if(experience&&experience.Experience==GameExperience.Game&&
+                (action.verb=="shared"||action.verb=="setup"||action.verb=="map"||action.verb=="mode"||
+                 action.verb=="launch"||action.verb=="cancel"))return;
             if(action.verb=="request")
             {
                 if(source==leaderId||hostRequests.Contains(source)||hostRequests.Count>=10)return;
