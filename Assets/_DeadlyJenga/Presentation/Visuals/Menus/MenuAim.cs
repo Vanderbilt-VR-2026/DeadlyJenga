@@ -70,7 +70,8 @@ namespace DeadlyJenga.Presentation
         {
             bool holderLeft=!dominantLeft;
             bool held=PhysicalPose(eye,holderLeft,out var anchor,out _);
-            if(!held&&session?.Player?.HasHandTracking==true&&session.Player is IModeActor actor)
+            var tips=session?.Player?.gameObject.GetComponent<IFingerTips>();
+            if(!held&&session?.Player?.HasHandTracking==true&&tips!=null&&tips.TryIndexTip(holderLeft,out _)&&session.Player is IModeActor actor)
             {
                 anchor=actor.HandPose(holderLeft);
                 float distance=(anchor.position-eye.transform.position).sqrMagnitude;
