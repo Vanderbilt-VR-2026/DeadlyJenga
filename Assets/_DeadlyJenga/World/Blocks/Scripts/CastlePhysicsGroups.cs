@@ -155,7 +155,11 @@ namespace DeadlyJenga.CastlePrototype
         {if(value){ReleaseAll();replica=true;}else{replica=false;ReleaseAll();}}
         bool RequiresNativePhysics()
         {
-            if(DisasterStates.Active.Count>0)return true;
+            foreach(var disaster in DisasterStates.Active)
+            {
+                var frame=disaster?.Capture();
+                if(frame!=null&&frame.kind!="Tornado")return true;
+            }
             foreach(var hand in Tracked.Flyers)if(hand.Interactive)return true;
             return false;
         }

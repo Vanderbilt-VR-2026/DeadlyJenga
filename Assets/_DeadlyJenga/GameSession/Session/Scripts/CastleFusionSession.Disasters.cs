@@ -20,6 +20,15 @@ namespace DeadlyJenga.CastlePrototype
             if(Time.unscaledTime<nextDisasterVisuals)return;
             nextDisasterVisuals=Time.unscaledTime+.2f;
             var frames=new List<DisasterFrame>();foreach(var source in DisasterStates.Active){var frame=source.Capture();if(frame!=null)frames.Add(frame);}
+            if(Services.Rewind?.Rewinding==true)
+            {
+                int rewindIndex=frames.FindIndex(frame=>frame.kind=="TimeSlip"&&frame.warning<=0&&!frame.residualOnly);
+                var rewindFrame=rewindIndex>=0?frames[rewindIndex]:new DisasterFrame
+                    {kind="TimeSlip",label="Time Slip",center=Services.World?.Center??Vector3.zero,remaining=-1};
+                if(rewindIndex>=0)frames.RemoveAt(rewindIndex);
+                frames.Insert(0,rewindFrame);
+            }
+            if(frames.Count>32)frames.RemoveRange(32,frames.Count-32);
             disasterVisualPacket=CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(new DisasterPacket{frames=frames.ToArray()})));
         }
         void ReceiveDisasters(byte[] data)
