@@ -46,10 +46,42 @@ namespace DeadlyJenga.CastlePrototype
         {transportRecovering=owner.Connected&&!owner.IsHost;if(owner.Connected)TransportAfterMigration(owner.Runner);}
         void TransportFailure(string reason)
         {transportFailed=true;TransportStatus=reason;transportRecovering=room&&room.Connected;}
+        internal string TransportFailureStage{get;private set;}="";
+        internal string TransportFailureType{get;private set;}="";
+        static bool CheckpointSignerReady(RSA signer)
+        {
+            var key=signer.ExportParameters(false);
+            if(signer.KeySize!=2048||key.Modulus==null||key.Modulus.Length!=256||key.Exponent==null||key.Exponent.Length<1||key.Exponent.Length>8)return false;
+            var probe=WireEncoding.GetBytes("DeadlyJenga checkpoint signer self-test");
+            var signature=signer.SignData(probe,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
+            if(signature.Length!=256)return false;
+            using(var verifier=RSA.Create())
+            {verifier.ImportParameters(key);return verifier.VerifyData(probe,signature,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);}
+        }
+        static RSA CreateCheckpointSigner()
+        {
+            RSA candidate=null;
+            try
+            {
+                candidate=RSA.Create();candidate.KeySize=2048;
+                if(CheckpointSignerReady(candidate))return candidate;
+            }
+            catch(CryptographicException){}
+            catch(NotSupportedException){}
+            candidate?.Dispose();
+            // Unity Mono can ignore the factory provider's KeySize setter.
+            candidate=new RSACryptoServiceProvider(2048){PersistKeyInCsp=false};
+            try
+            {
+                if(!CheckpointSignerReady(candidate))throw new CryptographicException("Checkpoint signer self-test failed.");
+                return candidate;
+            }
+            catch{candidate.Dispose();throw;}
+        }
         bool CreateSigner()
         {
-            try{transportSigner?.Dispose();transportSigner=RSA.Create();transportSigner.KeySize=2048;return true;}
-            catch(Exception){transportSigner=null;TransportFailure("Room checkpoint signing unavailable; Game is disabled on this platform.");return false;}
+            try{transportSigner?.Dispose();transportSigner=null;transportSigner=CreateCheckpointSigner();return true;}
+            catch(Exception error){transportSigner?.Dispose();transportSigner=null;TransportFailureStage="create-signer";TransportFailureType=error.GetType().FullName;TransportFailure("Room checkpoint signing unavailable; Game is disabled on this platform.");return false;}
         }
         internal void TransportBeforeMigration(NetworkRunner oldRunner)
         {
@@ -164,17 +196,19 @@ namespace DeadlyJenga.CastlePrototype
             if(transportRunner==null||transportSigner==null)return;
             var state=CaptureSnapshot();var semantic=Semantic(state);
             if(semantic==transportSemantic&&TransportNow-transportLastPublish<1)return;
+            string stage="serialize";
             try
             {
-                string body=JsonUtility.ToJson(state);var key=transportSigner.ExportParameters(false);
-                var checkpoint=new ExperienceCheckpoint{body=body,modulus=Convert.ToBase64String(key.Modulus),exponent=Convert.ToBase64String(key.Exponent),
-                    signature=Convert.ToBase64String(transportSigner.SignData(WireEncoding.GetBytes(body),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1))};
-                var cached=Verify(checkpoint);if(cached==null)throw new InvalidOperationException();
+                string body=JsonUtility.ToJson(state);stage="export-public-key";var key=transportSigner.ExportParameters(false);
+                stage="sign";var signature=transportSigner.SignData(WireEncoding.GetBytes(body),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
+                var checkpoint=new ExperienceCheckpoint{body=body,modulus=Convert.ToBase64String(key.Modulus),exponent=Convert.ToBase64String(key.Exponent),signature=Convert.ToBase64String(signature)};
+                stage="verify-checkpoint";var cached=Verify(checkpoint);if(cached==null)throw new InvalidOperationException();
+                TransportFailureStage=TransportFailureType="";
                 transportCache=cached;transportPinnedKey=CheckpointKey(checkpoint);transportSemantic=semantic;transportLastPublish=TransportNow;
                 if(transportSent.Count>=32)transportSent.Remove(transportSent.Keys.First());transportSent[cached.digest]=cached;
                 foreach(var peer in RemotePlayers())SendSnapshot(peer);
             }
-            catch(Exception){TransportFailure("Room checkpoint signing failed; Game is disabled.");}
+            catch(Exception error){TransportFailureStage=stage;TransportFailureType=error.GetType().FullName;TransportFailure("Room checkpoint signing failed; Game is disabled.");}
         }
         void SendSnapshot(PlayerRef peer)
         {if(transportCache!=null)Send(peer,new ExperiencePacket{kind="state",epoch=transportEpoch,checkpoint=transportCache.wire});}
