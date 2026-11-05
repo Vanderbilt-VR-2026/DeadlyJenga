@@ -25,7 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
     {
         const string Key="Tsunami.ContactChecks";
         const BindingFlags Flags=BindingFlags.Instance|BindingFlags.NonPublic|BindingFlags.Public;
-        static IEnumerator run; static int errors;
+        static IEnumerator run; static int errors,lastRunFrame=-1;
         static string Report=>ProjectPath.Report("TsunamiContactChecks.txt");
         [Serializable] sealed class Saved {public SceneSetup[] scenes;public string map,mode;public int bots,hands;public bool fromLobby,local,background,defaultScene;public float volume;}
         static TsunamiContactChecks(){EditorApplication.update+=Tick;EditorApplication.playModeStateChanged+=State;}
@@ -46,7 +46,18 @@ namespace DeadlyJenga.DevTools.Editor
                 MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=1;MatchSetup.HandCount=0;MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;
                 SessionState.SetBool(Key,true);EditorSceneManager.OpenScene(ProjectPath.Find("MapDrafterEvan1.unity"));EditorApplication.EnterPlaymode();return;
             }
-            try{if(run.MoveNext())return;}catch(Exception e){errors++;File.AppendAllText(Report,"FAIL "+e+"\n");}
+            if(EditorApplication.isPlaying)
+            {
+                EditorApplication.QueuePlayerLoopUpdate();
+                if(Time.frameCount==lastRunFrame)return;
+                lastRunFrame=Time.frameCount;
+            }
+            try
+            {
+                if(run.Current is CustomYieldInstruction wait&&wait.keepWaiting)return;
+                if(run.MoveNext())return;
+            }
+            catch(Exception e){errors++;File.AppendAllText(Report,"FAIL "+e+"\n");}
             run=null;Application.logMessageReceived-=Log;
             File.AppendAllText(Report,"COMPLETE; errors="+errors+". Actual desktop Editor; controlled contact/eye fixtures followed by a real dense-map wave. No Quest verification.\n");
             EditorApplication.ExitPlaymode();
@@ -56,7 +67,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(state==PlayModeStateChange.EnteredPlayMode&&SessionState.GetBool(Key,false)&&ValidationRunGate.Owns(Key))
             {
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Running",true);errors=0;
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Running",true);errors=0;lastRunFrame=-1;
                 EditorApplication.LockReloadAssemblies();AssetDatabase.DisallowAutoRefresh();Application.logMessageReceived+=Log;run=Validate();
             }
             if(state!=PlayModeStateChange.EnteredEditMode||!SessionState.GetBool(Key+"Running",false))return;
@@ -129,7 +140,8 @@ namespace DeadlyJenga.DevTools.Editor
             Services.World=fixture;wave.Wave=frame;Tracked.Waves.Add(wave);Physics.SyncTransforms();
             try
             {
-                timeout=Time.realtimeSinceStartup+12;
+                timeout=Time.realtimeSinceStartup+90;
+                int initialFrame=Time.frameCount;
                 int observed=0;
                 while(Time.realtimeSinceStartup<timeout)
                 {
@@ -137,7 +149,11 @@ namespace DeadlyJenga.DevTools.Editor
                     if(effect.HasContactAt(solid.transform.position+Vector3.up*3)&&effect.HasContactAt(low.transform.position))break;
                     yield return null;
                 }
-                Require(observed>0&&observed<=24,"Probes are capped at 24 per update");
+                File.AppendAllText(Report,"DIAGNOSTIC fixture player frames="+(Time.frameCount-initialFrame)+
+                    " observed probes="+observed+" component enabled="+effect.isActiveAndEnabled+
+                    " tracked waves="+Tracked.Waves.Count+"\n");
+                Require(Time.frameCount>initialFrame&&observed>0,"Contact fixture reaches an advancing player loop and sampler");
+                Require(observed<=24,"Probes are capped at 24 per update");
                 Require(effect.HasContactAt(solid.transform.position+Vector3.up*3),"Tall face interrupts upper water");
                 Require(effect.HasContactAt(low.transform.position),"Low obstruction registers below its top");
                 Require(!effect.HasContactAt(low.transform.position+Vector3.up*4),"Water remains free above the low slab");
@@ -164,7 +180,7 @@ namespace DeadlyJenga.DevTools.Editor
                     effect.EnabledEffects=true;
                     yield return null;
                     Capture(active,"wave-interior-entry.png");
-                    timeout=Time.realtimeSinceStartup+8;
+                    timeout=Time.realtimeSinceStartup+30;
                     while(effect.Immersion<.99f&&Time.realtimeSinceStartup<timeout)yield return null;
                     Require(effect.Immersion>=.99f&&CandyAudioEngine.WaveImmersion>=.99f,"Actual camera enters and applies audio immersion");
                     yield return new WaitForSecondsRealtime(.55f);
@@ -187,7 +203,7 @@ namespace DeadlyJenga.DevTools.Editor
                     yield return null;
                     Capture(active,"wave-interior-surface.png");
                     Require(Playing("Wave surface gasp"),"Surfacing after immersion plays the recovery breath");
-                    timeout=Time.realtimeSinceStartup+8;
+                    timeout=Time.realtimeSinceStartup+30;
                     while((effect.Immersion>.01f||Playing("Wave pressure and trapped breath"))&&Time.realtimeSinceStartup<timeout)yield return null;
                     Require(effect.Immersion<=.01f&&CandyAudioEngine.WaveImmersion<=.01f,"Surfacing clears visual and audio immersion");
                     Require(!Playing("Wave pressure and trapped breath"),"Surfacing releases the submerged loop");
@@ -195,7 +211,7 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 finally{cameraData.requiresDepthOption=depthOption;}
                 solid.SetActive(false);low.SetActive(false);foreach(var p in supports)p.SetActive(false);Physics.SyncTransforms();
-                timeout=Time.realtimeSinceStartup+8;
+                timeout=Time.realtimeSinceStartup+30;
                 while(effect.ContactCount>0&&Time.realtimeSinceStartup<timeout)yield return null;
                 Require(effect.ContactCount==0&&Shader.GetGlobalFloat("_DJWaveContactActive")==0,"Removed obstacles leave no ghost contact");
 
