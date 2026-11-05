@@ -235,7 +235,7 @@ namespace DeadlyJenga.CandyPlayers
                 armed=false;
                 return;
             }
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleModePressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||(HybridXRInput.SingleModePressed&&!HybridXRInput.SingleLookHeld)):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
             if(state.kind>EquipmentKind.PoweredArmor&&(!EquipmentSpecifications.Get(state.kind).melee||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe&&state.shotgun))
             {UpdateHeldArsenal(held&&armed&&state.drawn,state);return;}
             bool melee=EquipmentSpecifications.Get(state.kind).melee&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&!(state.kind==EquipmentKind.LaserAxe&&state.shotgun);
