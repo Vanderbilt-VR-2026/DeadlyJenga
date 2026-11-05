@@ -4,11 +4,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyPlayers;
 
 namespace DeadlyJenga.CastlePrototype
 {
     [RequireComponent(typeof(CharacterController))]
-    public sealed partial class CastleSurvivor : MonoBehaviour, IVaultTargetProvider
+    public sealed partial class CastleSurvivor : MonoBehaviour, IVaultTargetProvider, ILocalEmoteView
     {
         public Camera viewCamera;
         public Transform cameraOffset;
@@ -33,7 +34,16 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Landing inset beyond the capsule radius, in metres.")]
         [Range(.04f, .6f)] public float vaultLandingDepth = .12f;
         public float VaultProgress=>Vaulting?Mathf.Clamp01(vaultTime/ActiveVaultDuration):0;
-        public bool InputSuspended { get; set; }
+        bool inputSuspended;
+        public bool InputSuspended
+        {
+            get=>inputSuspended;
+            set{inputSuspended=value;if(value)ClearSprint();}
+        }
+        const float SprintMultiplier=1.4f;
+        XRController sprintController;
+        public bool Sprinting {get;private set;}
+        void ClearSprint()=>Sprinting=false;
         [HideInInspector] public bool externallyDriven;
         public DeadlyJenga.CastleBots.ICastleSurvivorDriver InputDriver { get; set; }
         public bool IsVR { get; private set; }
@@ -59,6 +69,30 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 candidateGrip,candidateNormal,candidateForward,vaultGripLocal,vaultNormalLocal,vaultForwardLocal;
         DeadlyJenga.CandyPlayers.CandyTrackingSource candyTracking;
         float vaultTime;
+        DeadlyJenga.CandyPlayers.SurvivorMoments moments;
+        bool releaseEmoteStick;
+        public bool EmoteActive
+        {
+            get
+            {
+                if (!moments) moments = GetComponent<DeadlyJenga.CandyPlayers.SurvivorMoments>();
+                return moments && moments.Posing;
+            }
+        }
+        public Vector2 EmoteLook { get; private set; }
+
+        bool RouteEmoteLook(Vector2 look, bool moveOrJump)
+        {
+            if (EmoteActive)
+            {
+                if (moveOrJump) moments.Cancel();
+                EmoteLook = moveOrJump ? Vector2.zero : look;
+                releaseEmoteStick = look.sqrMagnitude > .04f;
+                return true;
+            }
+            if (look.sqrMagnitude <= .04f) releaseEmoteStick = false;
+            return releaseEmoteStick;
+        }
 
         void Awake()
         {
@@ -73,8 +107,8 @@ namespace DeadlyJenga.CastlePrototype
             jump = seatedJump;
             SetVRPlayStyle((SurvivorVRPlayStyle)Mathf.Clamp(PlayerPrefs.GetInt("SurvivorVRPlayStyle",(int)vrPlayStyle),0,1),false);
         }
-        void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this); }
-        void OnDisable() { ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
+        void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this);UpdateSpectatorParticipation(); }
+        void OnDisable() { RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()
@@ -89,6 +123,7 @@ namespace DeadlyJenga.CastlePrototype
             playerScale = Mathf.Clamp(playerScale,.1f,2f);
             if (modeReady && vr == IsVR && Mathf.Approximately(appliedScale,playerScale)) return;
             bool wasVR=IsVR;modeReady = true; IsVR = vr;
+            if(vr!=wasVR){ClearSprint();sprintController=null;}
             appliedScale = playerScale;
             Capsule.radius = .24f * playerScale;
             Capsule.height = StandingHeight; Capsule.center = Vector3.up * StandingHeight * .5f;
@@ -114,6 +149,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RefreshMode();
+            if(UpdateSpectatorParticipation())return;
             if (IsVR)
             {
                 UpdateSeatedHeight();
@@ -126,8 +162,10 @@ namespace DeadlyJenga.CastlePrototype
                 if (Mathf.Abs(Capsule.height - StandingHeight) > .001f) Capsule.height = StandingHeight;
                 if ((Capsule.center - Vector3.up * StandingHeight * .5f).sqrMagnitude > .000001f) Capsule.center = Vector3.up * StandingHeight * .5f;
             }
+            EmoteLook = Vector2.zero;
             Vector2 walking = Vector2.zero;
-            bool pressed = false,held=false;
+            bool pressed = false,held=false,sprintClick=false,sprintInput=false;
+            var equipmentControls=GetComponent<CandyEquipment>();
             if(externallyDriven)
             {
                 var command=!InputSuspended&&InputDriver!=null?InputDriver.ReadCommand(this,Time.deltaTime):default;
@@ -145,21 +183,27 @@ namespace DeadlyJenga.CastlePrototype
                     bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
                     bool bothControllers=DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
                         DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false);
-                    walking=FilterVRMove(bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(dominantLeft):
-                        DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick());
+                    var moveController=HybridXRInput.MovementController(dominantLeft);
+                    if(sprintController!=moveController){ClearSprint();sprintController=moveController;}
+                    sprintInput=moveController!=null;
+                    sprintClick=HybridXRInput.MoveClickPressed(moveController);
+                    walking=FilterVRMove(HybridXRInput.Stick(moveController));
                     var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(!dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
                     {
-                        bool look=vrTurn!=SurvivorVRTurn.PhysicalOnly&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;
+                        bool look=(EmoteActive || vrTurn!=SurvivorVRTurn.PhysicalOnly)&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;
                         looking=look?DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick():Vector2.zero;
-                        if(look)walking=Vector2.zero;
+                        if(look){walking=Vector2.zero;sprintClick=false;}
                     }
-                    ApplyVRLook(looking,Time.deltaTime);
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     var gestureHand=candyTracking?candyTracking.GestureHand:default;
                     bool jumpButton=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.PrimaryHeld(dominantLeft):jump.IsPressed();
-                    jumpButton|=DeadlyJenga.CandyPlayers.HybridXRInput.SinglePrimaryHeld;
+                    jumpButton|=HybridXRInput.SinglePrimaryHeld;
+                    bool jumpLeft=bothControllers?dominantLeft:HybridXRInput.SingleControllerLeft;
+                    if(equipmentControls?.ReservesPrimaryJump(jumpLeft)==true)jumpButton=false;
                     ReadVRJump(gestureHand,jumpButton,out pressed,out held);
+                    if (!RouteEmoteLook(looking, walking.sqrMagnitude > .001f || pressed))
+                        ApplyVRLook(looking,Time.deltaTime);
                 }
                 else if (Cursor.lockState == CursorLockMode.Locked)
                 {
@@ -170,8 +214,9 @@ namespace DeadlyJenga.CastlePrototype
                             (k.wKey.isPressed ? 1 : 0) - (k.sKey.isPressed ? 1 : 0));
                         pressed = k.spaceKey.wasPressedThisFrame;
                         held=k.spaceKey.isPressed;
+                        sprintInput=true;sprintClick=k.leftShiftKey.wasPressedThisFrame;
                     }
-                    if (m != null)
+                    if (!RouteEmoteLook(Vector2.zero, walking.sqrMagnitude > .001f || pressed) && m != null)
                     {
                         Vector2 delta = m.delta.ReadValue() * mouseSensitivity;
                         transform.Rotate(0, delta.x, 0);
@@ -181,32 +226,36 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             else ResetVRJump();
-            var equipped=GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.Equipment;
-            if(!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn)
-            {ResetVRJump();pressed=held=false;walking=Vector2.zero;}
+            var equipped=equipmentControls?.Equipment;
+            bool flyingSuit=!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn;
+            if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}
+            if(!sprintInput||flyingSuit||!Grounded||!Alive||Climbing||Vaulting||Sinking||modeRules?.downed==true)
+                ClearSprint();
+            else if(sprintClick)Sprinting=!Sprinting;
             UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
         }
 
         public void Teleport(Vector3 feet, Quaternion rotation)
         {
+            UpdateSpectatorParticipation();
             Capsule.enabled = false; transform.SetPositionAndRotation(feet, rotation);
-            Physics.SyncTransforms(); Capsule.enabled = true; Physics.SyncTransforms();
+            Physics.SyncTransforms(); Capsule.enabled = !spectatorPhysicsSuspended; Physics.SyncTransforms();
             iceVelocity = Vector3.zero; verticalSpeed = 0; Grounded = false; Vaulting = false; jumped = false; support = null; slopeVelocity = Vector3.zero; GroundNormal = Vector3.up;
-            lastGrounded = -100; ActionStatus = "Spawned on top";
+            ClearSprint();lastGrounded = -100; ActionStatus = "Spawned on top";
             ResetClimb(true);
             ResetVRJump();
             SetSinking(false); punchHandReady = false;peakFallSpeed=0;
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
-            if (dt <= 0 || !Capsule.enabled) return;
+            if (UpdateSpectatorParticipation() || dt <= 0 || !Capsule.enabled) return;
             Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
             RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();
-            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt))return;
-            if (Vaulting) { AdvanceVault(dt); return; }
+            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt)){ClearSprint();return;}
+            if (Vaulting) { ClearSprint();AdvanceVault(dt); return; }
             if (support && Grounded)
             {
                 Vector3 next = support.TransformPoint(supportLocal);
@@ -220,6 +269,7 @@ namespace DeadlyJenga.CastlePrototype
                 lastGrounded = Time.time; jumped = false;
                 if (verticalSpeed < 0) verticalSpeed = -1;
             }
+            if(jumpPressed||!Grounded||Sinking||InputSuspended||externallyDriven)ClearSprint();
             if (jumpPressed)
             {
                 if (!Sinking && (modeRules==null||modeRules.canJump) && !jumped && (Grounded || Time.time - lastGrounded < .07f))
@@ -234,6 +284,7 @@ namespace DeadlyJenga.CastlePrototype
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             input = Vector2.ClampMagnitude(input, 1);
             Vector3 movement=(forward*input.y+right*input.x)*(IsVR&&!externallyDriven?vrWalkSpeed:walkSpeed);
+            if(Sprinting)movement*=SprintMultiplier;
             movement *= PowerupSpeedMultiplier * movementMultiplier * (Sinking&&(modeRules==null||!modeRules.sinking) ? .16f : 1);
             float slip=DisasterStates.Slipperiness;
             if(slip>0)
@@ -422,6 +473,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void AdvanceVault(float dt)
         {
+            if(UpdateSpectatorParticipation()||!Capsule.enabled)return;
             if (!vaultSurface || Vector3.Angle(vaultSurface.TransformDirection(vaultNormalLocal), Vector3.up) > 32)
             { Vaulting = false; ActionStatus = "Ledge moved — vault cancelled"; return; }
             Vector3 end = vaultSurface.TransformPoint(vaultLocal);

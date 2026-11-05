@@ -28,7 +28,7 @@ namespace DeadlyJenga.CastlePrototype
         [Range(0,1)] public float jumpFistPress=.7f,jumpFistRelease=.5f;
         bool jumpArmed,gestureHeld,previousJumpHeld;
         bool vrInputFocused=true;
-        void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused)ResetVRJump();}
+        void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused){ClearSprint();ResetVRJump();}}
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
         float seatedHeightOffset,vrLookPitch;
@@ -94,7 +94,7 @@ namespace DeadlyJenga.CastlePrototype
             if(Climbing||Vaulting){ActionStatus="Finish traversal before switching controls";return;}
             if(style==SurvivorVRPlayStyle.Standing&&cameraOffset)
             {cameraOffset.localPosition-=Vector3.up*seatedHeightOffset;seatedHeightOffset=0;}
-            ResetVRLook();
+            ClearSprint();ResetVRLook();
             vrPlayStyle=style;vrMovement=style==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
             vrTurn=style==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
             turnReady=false;ResetVRJump();calibrateSeated=style==SurvivorVRPlayStyle.Seated;

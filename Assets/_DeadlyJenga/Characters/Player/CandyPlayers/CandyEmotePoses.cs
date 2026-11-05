@@ -6,7 +6,16 @@ namespace DeadlyJenga.CandyPlayers
     // Same poses the bots use. Facing comes from the head's yaw so it works without a body transform.
     public static class CandyEmotePoses
     {
-        public static float Duration(string emote) => emote == "FriendlyWave" ? 1.6f : emote == "NopeNopeNope" ? 1.2f : 2f;
+        public static bool Loops(string emote) => emote is "TinyVictoryDance" or "Breakdance" or "IrishDance";
+
+        public static float Duration(string emote) => emote switch
+        {
+            "FriendlyWave" => 1.6f,
+            "NopeNopeNope" => 1.2f,
+            "Breakdance" => 3.2f,
+            "IrishDance" => 2.4f,
+            _ => 2f
+        };
 
         public static CandyAvatarFrame Pose(CandyAvatarFrame frame, string emote, float t, float duration)
         {
@@ -34,8 +43,38 @@ namespace DeadlyJenga.CandyPlayers
                     l = new Vector3(-.31f, 1.73f, .02f); r = new Vector3(.31f, 1.73f, .02f); lr = new Vector3(-80, -15, 0); rr = new Vector3(-80, 15, 0); pitch = -10; lc = rc = .25f; break;
                 case "NopeNopeNope":
                     l = new Vector3(-.4f, 1.27f + bounce * .12f, .08f); r = new Vector3(.4f, 1.27f - bounce * .12f, .08f); lr = new Vector3(-35, 0, -35); rr = new Vector3(-35, 0, 35); roll = wave * 7; break;
+                case "Breakdance":
+                    float sweep = t * (2 * Mathf.PI / 1.6f);
+                    float side = Mathf.Sin(sweep);
+                    float sweepHeight = Mathf.Cos(sweep);
+                    frame.danceWeight = weight;
+                    frame.danceTorsoEuler = new Vector3(48 + 10 * sweepHeight, 22 * side, -14);
+                    frame.danceLeftFoot = new Vector3(-.32f + .37f * side, .085f + .23f * Mathf.Max(0, sweepHeight), -.21f + .32f * sweepHeight);
+                    frame.danceRightFoot = new Vector3(.31f + .37f * side, .085f + .23f * Mathf.Max(0, -sweepHeight), -.21f - .32f * sweepHeight);
+                    frame.head = Vector3.Lerp(frame.head, frame.feet + facing * (new Vector3(-.11f, .85f, .34f) * frame.scale), weight);
+                    l = new Vector3(-.41f, .13f, .41f);
+                    r = new Vector3(.52f, .57f + .13f * side, .42f);
+                    lr = new Vector3(75, 0, 0); rr = new Vector3(15, 45, -50);
+                    pitch = 12; roll = -12;
+                    break;
+                case "IrishDance":
+                    float beat = t * (2 * Mathf.PI / .6f);
+                    float leftLift = Mathf.Max(0, Mathf.Sin(beat));
+                    float rightLift = Mathf.Max(0, -Mathf.Sin(beat));
+                    frame.danceWeight = weight;
+                    frame.danceLeftFoot = new Vector3(-.10f + leftLift * .16f, .075f + leftLift * .27f, .05f + leftLift * .25f);
+                    frame.danceRightFoot = new Vector3(.10f - rightLift * .16f, .075f + rightLift * .27f, .05f + rightLift * .25f);
+                    frame.head = Vector3.Lerp(frame.head, frame.feet + Vector3.up * ((1.59f + .055f * Mathf.Abs(Mathf.Sin(beat))) * frame.scale), weight);
+                    l = new Vector3(-.24f, .79f, .01f); r = new Vector3(.24f, .79f, .01f);
+                    break;
                 default:
                     l = new Vector3(-.35f, 1.12f + bounce * .15f, .15f); r = new Vector3(.35f, 1.12f - bounce * .15f, .15f); lr = new Vector3(-30, 0, -20); rr = new Vector3(-30, 0, 20); roll = bounce * 8; lc = rc = .7f; break;
+            }
+            if (emote == "TinyVictoryDance")
+            {
+                frame.danceWeight = weight;
+                frame.danceLeftFoot = new Vector3(-.13f, .075f + Mathf.Max(0, bounce) * .12f, .03f);
+                frame.danceRightFoot = new Vector3(.13f, .075f + Mathf.Max(0, -bounce) * .12f, .03f);
             }
             frame.left = Hand(frame.left, l, lr, lc, true, frame, facing, weight);
             frame.right = Hand(frame.right, r, rr, rc, false, frame, facing, weight);

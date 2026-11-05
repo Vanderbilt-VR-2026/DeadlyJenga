@@ -9,7 +9,7 @@ using DeadlyJenga.Destruction;
 namespace DeadlyJenga.CastlePrototype
 {
     // When a survivor is eliminated: they burst into candy pieces, a shockwave ring and flash go off,
-    // a glowing wisp rises into the sky (they come back as a giant hand), and "OUT!" floats up.
+    // a glowing wisp rises into the sky, and "OUT!" floats up.
     // The eliminated player also gets a banner in front of their eyes.
     public sealed class EliminationEffects : MonoBehaviour
     {
@@ -166,7 +166,6 @@ namespace DeadlyJenga.CastlePrototype
             var bg = go.AddComponent<Image>(); bg.sprite = CandyHudVisuals.Pill; bg.type = Image.Type.Sliced; bg.color = new Color(.35f, .03f, .12f, .9f);
             var group = go.AddComponent<CanvasGroup>();
             var big = Text(go.transform, "ELIMINATED", 96, Color.white); big.rectTransform.anchoredPosition = new Vector2(0, 35); big.rectTransform.sizeDelta = new Vector2(900, 130);
-            var small = Text(go.transform, "you're coming back as a giant hand. get revenge.", 30, CandyHudVisuals.Peach); small.rectTransform.anchoredPosition = new Vector2(0, -70); small.rectTransform.sizeDelta = new Vector2(900, 60);
             Add(go, 3.2f, (f, k) =>
             {
                 var cam = Services.Session?.ActiveCamera; if (!cam) cam = Camera.main;

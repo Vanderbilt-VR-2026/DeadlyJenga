@@ -11,20 +11,26 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<string,Beam> beams=new Dictionary<string,Beam>();
         readonly HashSet<int> seen=new HashSet<int>();readonly List<int> stale=new List<int>();
         readonly CandyEquipmentActionCursor cursor=new CandyEquipmentActionCursor();Material glow;
+        EquipmentProjectileFrame[] lastProjectiles;float receivedProjectiles;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=go=>{if(!go.GetComponent<CandyArsenalEffects>())go.AddComponent<CandyArsenalEffects>();};
         void Awake(){glow=Resources.Load<Material>("CandyUtilityGlow");PrepareOrdnance();cursor.Baseline(MatchRuntime.Current?.Frame);}
         void Update()
         {
             var match=MatchRuntime.Current;if(match==null)return;seen.Clear();
-            foreach(var shot in match.Frame.weaponProjectiles)
+            var projectiles=match.Frame.weaponProjectiles;
+            if(!ReferenceEquals(projectiles,lastProjectiles)){lastProjectiles=projectiles;receivedProjectiles=Time.time;}
+            float elapsed=Mathf.Min(.08f,Time.time-receivedProjectiles);
+            foreach(var shot in projectiles)
             {
                 seen.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model))
                 {
                     model=TakeProjectile(shot.kind,shot.position);shots[shot.id]=model;
                 }
                 Vector3 forward=shot.velocity.sqrMagnitude>.001f?shot.velocity:Vector3.forward;
-                model.SetPositionAndRotation(shot.position,Quaternion.LookRotation(forward));
+                // Bound cosmetic prediction to half a meter; no extra collision queries.
+                var prediction=Vector3.ClampMagnitude(shot.velocity*elapsed,.5f);
+                model.SetPositionAndRotation(shot.position+prediction,Quaternion.LookRotation(forward));
                 if(shot.kind==EquipmentKind.Chainsaw)model.Rotate(90,0,Time.time*1500,Space.Self);
                 else if(shot.kind==EquipmentKind.GrenadeLauncher)model.Rotate(0,0,Time.time*370,Space.Self);
             }
@@ -35,10 +41,10 @@ namespace DeadlyJenga.Presentation
         void Action(EquipmentActionFrame action)
         {
             if(action.kind<=EquipmentKind.PoweredArmor)return;
-            if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi){Spike(new EquipmentActionFrame{position=action.position,endpoints=new[]{action.position}});return;}
+            if(action.action==EquipmentAction.Impact&&action.kind==EquipmentKind.DualUzi){EmitBlast(action);Spike(new EquipmentActionFrame{position=action.position,endpoints=new[]{action.position}});return;}
             if(action.action==EquipmentAction.Impact)
             {
-                EmitBlast(action);BlastDetail(action);return;
+                EmitBlast(action);if(action.kind!=EquipmentKind.Chainsaw)BlastDetail(action);return;
             }
             if(action.action==EquipmentAction.Shot&&action.kind==EquipmentKind.DualUzi&&action.endpoints.Length>0)Spike(action);
             if(action.action!=EquipmentAction.Shot||action.endpoints.Length==0||action.kind!=EquipmentKind.WristLaser&&!(action.kind==EquipmentKind.LaserAxe&&action.shotgun))return;

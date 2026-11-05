@@ -5,7 +5,7 @@ namespace DeadlyJenga.Presentation
 {
     public sealed partial class CandyArsenalEffects
     {
-        sealed class Residue {public Transform root;public float born,life;public Vector3 from,to;public bool spike;public float radius;public LineRenderer[] arcs;public Color tint;}
+        sealed class Residue {public Transform root;public float born,life;public Vector3 from,to;public bool spike;public float radius;public LineRenderer[] arcs;public Color tint;public CandyWeaponImpacts.SurfaceContact surface;}
         Material detailGlow;
         readonly List<Residue> residues=new List<Residue>();
         void LateUpdate()
@@ -14,7 +14,16 @@ namespace DeadlyJenga.Presentation
             {
                 var r=residues[i];if(!r.root){residues.RemoveAt(i);continue;}float age=Time.time-r.born;
                 if(age>=r.life){Destroy(r.root.gameObject);residues.RemoveAt(i);continue;}
-                if(r.spike){r.root.position=Vector3.Lerp(r.from,r.to,Mathf.Clamp01(age/.065f));float fade=Mathf.Clamp01((r.life-age)/.45f);r.root.localScale=new Vector3(.035f,.22f,.035f)*fade;}
+                if(r.spike)
+                {
+                    if(r.surface.anchor)
+                    {
+                        var pose=r.surface.anchor.localToWorldMatrix*r.surface.localFrame;
+                        r.root.SetPositionAndRotation(pose.GetColumn(3),pose.rotation*Quaternion.Euler(90,0,0));
+                    }
+                    else r.root.position=Vector3.Lerp(r.from,r.to,Mathf.Clamp01(age/.065f));
+                    float fade=Mathf.Clamp01((r.life-age)/.45f);r.root.localScale=new Vector3(.035f,.22f,.035f)*fade;
+                }
                 else
                 {
                     float fraction=Mathf.Clamp01(age/r.life);
@@ -31,9 +40,12 @@ namespace DeadlyJenga.Presentation
         }
         void Spike(EquipmentActionFrame action)
         {
-            var end=action.endpoints[0];var spike=Visual("Visual - steaming neon spike",Resources.GetBuiltinResource<Mesh>("Capsule.fbx"),action.position,new Color(.3f,1,.02f));spike.rotation=Quaternion.FromToRotation(Vector3.up,(end-action.position).sqrMagnitude>.001f?(end-action.position).normalized:Vector3.forward);
+            var end=action.endpoints[0];
+            if(!CandyWeaponImpacts.TryContact(end,end-action.position,out var contact,.10f))return;
+            var spike=Visual("Visual - steaming neon spike",Resources.GetBuiltinResource<Mesh>("Capsule.fbx"),action.position,new Color(.3f,1,.02f));spike.rotation=Quaternion.FromToRotation(Vector3.up,(end-action.position).sqrMagnitude>.001f?(end-action.position).normalized:Vector3.forward);
             var steam=spike.gameObject.AddComponent<ParticleSystem>();steam.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);var main=steam.main;main.startLifetime=.3f;main.startSpeed=.2f;main.startSize=.05f;main.maxParticles=6;main.startColor=new Color(.45f,1,.15f,.35f);var emission=steam.emission;emission.rateOverTime=8;steam.GetComponent<ParticleSystemRenderer>().sharedMaterial=glow;steam.Play();
-            Keep(new Residue{root=spike,born=Time.time,life=1.6f,from=action.position,to=end,spike=true});
+            spike.position=contact.Position;
+            Keep(new Residue{root=spike,born=Time.time,life=1.6f,from=action.position,to=end,spike=true,surface=contact});
         }
         readonly Dictionary<Transform,EquipmentKind> modelKind=new Dictionary<Transform,EquipmentKind>();
         readonly Dictionary<EquipmentKind,Stack<Transform>> modelPool=new Dictionary<EquipmentKind,Stack<Transform>>();
@@ -127,15 +139,17 @@ namespace DeadlyJenga.Presentation
         void EmitBlast(EquipmentActionFrame action)
         {
             bool rocket=action.kind==EquipmentKind.RocketLauncher;
+            bool saw=action.kind==EquipmentKind.Chainsaw;
+            bool spike=action.kind==EquipmentKind.DualUzi;
             if(burstParticles.isStopped)burstParticles.Play();
-            int count=rocket?52:28;Color tint=Energy(action.kind);
+            int count=rocket?52:saw?12:spike?8:28;Color tint=Energy(action.kind);
             for(int i=0;i<count;i++)
             {
                 float y=1-2*(i+.5f)/count,a=i*2.399963f,r=Mathf.Sqrt(1-y*y);
                 var direction=new Vector3(Mathf.Cos(a)*r,y,Mathf.Sin(a)*r);
                 burstParticles.Emit(new ParticleSystem.EmitParams{position=action.position+direction*.14f,
-                    velocity=direction*(rocket?6+i%9*.83f:3+i%7*.69f),startColor=tint,
-                    startSize=(rocket?.35f:.21f)+(i%4)*.085f,startLifetime=(rocket?.44f:.24f)+i%9*.047f},1);
+                    velocity=direction*(rocket?6+i%9*.83f:saw||spike?2+i%4*.3f:3+i%7*.69f),startColor=tint,
+                    startSize=(rocket?.35f:saw||spike?.065f:.21f)+(i%4)*(saw||spike?.012f:.085f),startLifetime=(rocket?.44f:saw||spike?.14f:.24f)+i%9*(saw||spike?.012f:.047f)},1);
             }
         }
         void BlastDetail(EquipmentActionFrame action)

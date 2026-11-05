@@ -50,7 +50,7 @@ namespace DeadlyJenga.CastlePrototype
                 Shape(Vector2.Distance(point,new Vector2(22,47))-7.5f,button);
                 Shape(Vector2.Distance(point,new Vector2(22,47))-5.2f,part==1?accent:edge);
                 Shape(Vector2.Distance(point,new Vector2(35,43))-4,part==2?accent:button);
-                Shape(Vector2.Distance(point,new Vector2(35,52))-3.2f,button);
+                Shape(Vector2.Distance(point,new Vector2(35,52))-3.2f,part==5?accent:button);
                 Shape(Vector2.Distance(point,new Vector2(27,34))-2,button);
                 pixels[y*size+x]=color;
 

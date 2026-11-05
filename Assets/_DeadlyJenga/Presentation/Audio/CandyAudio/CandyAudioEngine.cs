@@ -76,14 +76,14 @@ namespace DeadlyJenga.CandyAudio
                 if(voice.looping)continue;
                 if(!voice.source.isPlaying){if(free==null)free=voice;continue;}
                 if(voice.cue==cue)same++;
-                float importance=voice.source.volume*(257-voice.source.priority);
+                float importance=Importance(voice.gain,voice.cue,voice.source.priority);
                 if(importance<weakest){weakest=importance;steal=voice;}
             }
             if(same>=cue.maxVoices){Culled++;return false;}
             float gain=Mathf.Clamp(intensity,.03f,1.3f);
             if(free==null)
             {
-                if(steal==null||gain*cue.volume*bank.Gain(cue.bus)*(257-cue.priority)<=weakest){Culled++;return false;}
+                if(steal==null||Importance(gain,cue,cue.priority)<=weakest){Culled++;return false;}
                 free=steal;
             }
             if(!Prepare(free,cue,position,local,pitch))return false;
@@ -129,6 +129,7 @@ namespace DeadlyJenga.CandyAudio
             selected.target=Mathf.Clamp01(intensity);selected.requestedAt=Time.unscaledTime;
             selected.source.pitch=Mathf.Clamp(pitch,.65f,1.5f);selected.muffling=Mathf.Clamp01(muffling);
         }
+        float Importance(float gain,CandyAudioCue cue,int priority)=>gain*cue.volume*bank.Gain(cue.bus)*(257-Mathf.Clamp(priority,0,256));
         float Volume(Voice v)=>v.gain*v.cue.volume*bank.master*bank.Gain(v.cue.bus)*focusGain*auditionDucking;
         void Update()
         {

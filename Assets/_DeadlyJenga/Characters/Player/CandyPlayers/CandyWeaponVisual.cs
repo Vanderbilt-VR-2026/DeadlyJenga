@@ -6,6 +6,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyWeaponVisual
     {
         bool wasEmbedded;
+        readonly EquipmentState slungFeedState = new EquipmentState();
         readonly Transform parent;readonly Material material;Transform root,barrel;EquipmentKind kind;float barrelAngle,barrelTarget,barrelSpeed=600;bool barrelMode,barrelInitialized;
         public CandyWeaponVisual(Transform parent,Material material){this.parent=parent;this.material=material;PreparePickupModels();}
         public void Hide(){if(root)root.gameObject.SetActive(false);if(paired)paired.gameObject.SetActive(false);ResetMotion();}
@@ -46,7 +47,10 @@ namespace DeadlyJenga.CandyPlayers
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
         }
 
-        public void Present(EquipmentState state,CandyAvatarFrame frame,bool active)
+        public void Present(EquipmentState state,CandyAvatarFrame frame,bool active) =>
+            Present(state,frame,active,false);
+
+        public void Present(EquipmentState state,CandyAvatarFrame frame,bool active,bool slungForEmote)
         {
             if(parent&&parent.GetComponentInParent<IEnemyActor>()?.ArchetypeId=="mushroom"){Hide();return;}
             if (!active || state == null) { Hide(); return; }
@@ -75,11 +79,12 @@ namespace DeadlyJenga.CandyPlayers
             if (!motionReady)
             {
                 // Ordinary held weapons can already be drawn when their avatar enters view.
-                drawAmount = state.drawn && (!state.roleIssued || string.IsNullOrEmpty(state.actor)) ? 1 : 0;
+                drawAmount = state.drawn && !slungForEmote && (!state.roleIssued || string.IsNullOrEmpty(state.actor)) ? 1 : 0;
                 motionReady = true;
             }
 
-            float target = state.drawn ? 1 : 0;
+            var feedState = slungForEmote ? slungFeedState : state;
+            float target = state.drawn && !slungForEmote ? 1 : 0;
             bool back = EquipmentSpecifications.Get(kind).backHolster || kind == EquipmentKind.FlamingMarshmallow;
             float duration = kind == EquipmentKind.LaserClaws || kind == EquipmentKind.WristLaser || kind == EquipmentKind.PoweredArmor ? .17f : back ? .34f : .23f;
             drawAmount = Mathf.MoveTowards(drawAmount, target, Time.deltaTime / duration);
@@ -87,8 +92,16 @@ namespace DeadlyJenga.CandyPlayers
 
             var hand = state.leftHanded ? frame.left : frame.right;
             var pose = CarryPose(frame, hand, state.leftHanded, drawAmount);
-            ReadMeleeActions(state, pose);
-            pose = EmbedPose(state, pose, frame.scale);
+            if (slungForEmote)
+            {
+                wasEmbedded = false;
+                daggerUntil = 0;
+            }
+            else
+            {
+                ReadMeleeActions(state, pose);
+                pose = EmbedPose(state, pose, frame.scale);
+            }
             root.gameObject.SetActive(true);
             root.localScale = new Vector3(kind == EquipmentKind.BoxingGlove && state.leftHanded ? -1 : 1, 1, 1) * frame.scale;
             root.SetPositionAndRotation(pose.position, pose.rotation);
@@ -122,9 +135,9 @@ namespace DeadlyJenga.CandyPlayers
                 paired.gameObject.SetActive(true);
                 if (kind == EquipmentKind.LaserClaws) PresentClaws(paired, other, otherLeft, drawAmount);
                 if (kind == EquipmentKind.PoweredArmor) PresentRepulsor(paired, drawAmount);
-                PresentFeed(pairedFeed, state, otherLeft, true);
+                PresentFeed(pairedFeed, feedState, otherLeft, true);
             }
-            PresentFeed(feed, state, state.leftHanded, false);
+            PresentFeed(feed, feedState, state.leftHanded, false);
             if(barrel)
             {
                 if(!barrelInitialized){barrelMode=state.shotgun;barrelAngle=barrelTarget=state.shotgun?0:180;barrelInitialized=true;}

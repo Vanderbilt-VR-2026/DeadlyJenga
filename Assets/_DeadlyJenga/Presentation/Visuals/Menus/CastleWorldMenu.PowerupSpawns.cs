@@ -12,12 +12,12 @@ namespace DeadlyJenga.CastlePrototype
             var runtime=MatchRuntime.Current;var controls=runtime as IPowerupSpawnControls;if(controls==null){randomPowerupPage=false;return;}
             var settings=controls.SpawnSettings;heading.text="RANDOM BLOCK POWERUPS\nAll heights · Host settings";
             float total=0;foreach(var type in settings.types)total+=type.weight;
-            var ray=new Ray(camera.transform.position,camera.transform.forward);
+            var ray=pointerRay;
             for(int i=0;i<buttons.Length;i++)
             {
                 int weightIndex=weightOffset+i-6;bool exists=i<6||i==13||i==14||i>=6&&i<=12&&weightIndex<settings.types.Length;buttons[i].gameObject.SetActive(exists);if(!exists)continue;
                 labels[i].text=i switch{0=>"Back",1=>"Random spawns: "+(settings.enabled?"ON":"OFF"),2=>"Spawn interval: "+settings.interval.ToString("F0")+"s (cycle)",3=>"Maximum active: "+settings.maximum+" (cycle)",4=>"Pickup lifetime: "+settings.lifetime.ToString("F0")+"s (cycle)",5=>"Timing variation: "+settings.jitter.ToString("P0")+" (cycle)",13=>"Previous types",14=>"More types",_=>DeadlyJenga.Presentation.CandyEquipmentView.Name(settings.types[weightIndex].kind)+": "+(total>0?settings.types[weightIndex].weight/total:0).ToString("P0")+" (cycle weight)"};
-                targets[i].enabled=i==0||runtime.Authority;bool hover=targets[i].enabled&&targets[i].Raycast(ray,out _,4);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
+                targets[i].enabled=i==0||runtime.Authority;bool hover=targets[i].enabled&&Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
                 if(!pressed||!hover)continue;
                 if(i==0){randomPowerupPage=false;return;}
                 if(i==1)settings.enabled=!settings.enabled;
@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
                 controls.ConfigurePowerupSpawns(settings);break;
             }
             help.text=$"Random pickups {controls.RandomPickupCount}/{settings.maximum} · next attempt {controls.NextSpawnIn:F0}s\nZero weight disables a type. The desktop panel provides finer sliders.";
-            transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();
+            
         }
         static float Cycle(float value,float[] values){foreach(float next in values)if(next>value+.001f)return next;return values[0];}
     }

@@ -18,7 +18,7 @@ namespace DeadlyJenga.Modes
         }
         public bool GiveEveryoneEquipment(EquipmentKind kind,bool everyRespawn)
         {
-            if(!Authority||kind<EquipmentKind.None||kind>EquipmentKind.Dagger)return false;
+            if(!Authority||!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)||kind<EquipmentKind.None||kind>EquipmentKind.Dagger)return false;
             if(kind==EquipmentKind.None)
             {
                 if(everyRespawn)return false;respawnEquipment=EquipmentKind.None;loadoutAlive.Clear();PublishEquipment();return true;
@@ -34,6 +34,8 @@ namespace DeadlyJenga.Modes
         }
         void TickDemoLoadout()
         {
+            if(!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session))
+            {respawnEquipment=EquipmentKind.None;loadoutAlive.Clear();return;}
             if(!Authority||respawnEquipment==EquipmentKind.None||simulation.Phase!=RoundPhase.Playing)return;
             if(UnityEngine.Time.unscaledTime<nextLoadoutCheck)return;nextLoadoutCheck=UnityEngine.Time.unscaledTime+.1f;
             loadoutSeen.Clear();

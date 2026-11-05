@@ -1,6 +1,12 @@
 Shader "Candy Tropical/Storm Funnel"
 {
- Properties { _BaseColor("Cloud",Color)=(.35,.38,.43,.95) _DensityTex("Density volume",3D)="white"{} _StormInfo("Size height speed",Vector)=(16,65,2,0) }
+ Properties
+ {
+  _BaseColor("Cloud",Color)=(.35,.38,.43,.95)
+  _DensityTex("Density volume",3D)="white"{}
+  _StormInfo("Size height speed",Vector)=(16,65,2,0)
+  _MarchBudget("Maximum ray steps",Float)=52
+ }
  SubShader
  {
   Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent+100" "RenderType"="Transparent"}
@@ -16,70 +22,114 @@ Shader "Candy Tropical/Storm Funnel"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
    TEXTURE3D(_DensityTex);SAMPLER(sampler_DensityTex);
    float4 _BaseColor,_StormInfo;
+   float _MarchBudget;
    struct A {float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
    struct V {float4 positionCS:SV_POSITION;float3 local:TEXCOORD0;UNITY_VERTEX_OUTPUT_STEREO};
-   V vert(A i){V o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.local=i.positionOS.xyz;o.positionCS=TransformObjectToHClip(i.positionOS.xyz);return o;}
-   float Density(float3 p,out float grain,out float cloud)
+   V vert(A i)
+   {
+    V o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
+    o.local=i.positionOS.xyz;o.positionCS=TransformObjectToHClip(i.positionOS.xyz);return o;
+   }
+   float2 RayBox(float3 ro,float3 inv,float3 low,float3 high,float farDepth)
+   {
+    float3 a=(low-ro)*inv,b=(high-ro)*inv;
+    float3 enter=min(a,b),leave=max(a,b);
+    float start=max(0,max(enter.x,max(enter.y,enter.z)));
+    float end=min(farDepth,min(leave.x,min(leave.y,leave.z)));
+    return float2(start,max(start,end));
+   }
+   float Noise(float3 p,float mip){return SAMPLE_TEXTURE3D_LOD(_DensityTex,sampler_DensityTex,p,mip).r;}
+   float2 Turn(float2 p,float angle){float s,c;sincos(angle,s,c);return float2(p.x*c-p.y*s,p.x*s+p.y*c);}
+
+   float Density(float3 p,float time,out float grain,out float cloud,out float edge)
    {
     float size=_StormInfo.x,height=_StormInfo.y,t=saturate(p.y/height);
-    float2 lean=float2(sin(t*3+_Time.y*.7),cos(t*4-_Time.y*.6))*size*.13*t;
-    float2 q=p.xz-lean;float radius=lerp(size*.12,size*.75,pow(t,1.2));
-    float a=atan2(q.y,q.x)+t*9-_Time.y*_StormInfo.z*2.7;
-    float r=length(q);radius*=1+.15*sin(a*2+p.y*.12)+.06*sin(a*5-p.y*.4);
-    float capAngle=atan2(p.z,p.x)-_Time.y*_StormInfo.z*.2;
-    float shelf=height+size*.35+sin(r*.12-capAngle*2)*size*.35;
-    float3 dome=float3(p.x/(size*3.8),(p.y-shelf)/(size*1.2),p.z/(size*3.8));
-    grain=0;cloud=0;
-    if((r>radius*1.5||p.y<0||p.y>height+size*.3)&&length(dome)>1.35)return 0;
-    float3 flow=float3(cos(a)*r,p.y-_Time.y*8,sin(a)*r);
-    float n=SAMPLE_TEXTURE3D_LOD(_DensityTex,sampler_DensityTex,flow*.044,.5).r;
-    n=n*.65+SAMPLE_TEXTURE3D_LOD(_DensityTex,sampler_DensityTex,flow*.09+3.7,.8).r*.35;
-    float rib=.75+.25*sin(a*3+p.y*.16+n*2);
-    float core=(1-smoothstep(.35,1.2,r/max(.1,radius)+(.5-n)*.8))*smoothstep(-1,1,p.y)*(1-smoothstep(height,height+size*.3,p.y));
-    float cnoise=SAMPLE_TEXTURE3D_LOD(_DensityTex,sampler_DensityTex,float3(cos(capAngle)*r*.025,p.y*.05,sin(capAngle)*r*.025)+_Time.y*float3(.015,0,.02),0).r;
-    float capDetail=SAMPLE_TEXTURE3D_LOD(_DensityTex,sampler_DensityTex,float3(cos(capAngle)*r*.07,p.y*.09,sin(capAngle)*r*.07),.5).r;
-    cloud=saturate((1.04-length(dome)+(cnoise-.5)*1.6+(capDetail-.5)*.7)*3.1);
-    grain=lerp(n,cnoise,cloud);return core*(.5+n*1.6)*rib+cloud*(.5+cnoise)*.9;
+    float2 lean=float2(sin(t*3+time*.7),cos(t*4-time*.6))*size*.13*t;
+    float2 q=p.xz-lean;
+    float r=length(q),radius=lerp(size*.125,size*.77,t*(.79+.21*t));
+    float twist=t*9-time*_StormInfo.z*2.2;
+    float2 flow=Turn(q,twist);
+    float rel=r/max(.1,radius);
+    float capY=(p.y-height)/size;
+    float body=0;cloud=0;grain=.5;edge=saturate(rel);
+    if(rel<1.6&&p.y>=-1&&capY<.24)
+    {
+     float3 v=float3(flow.x*.046,p.y*.067-time*.65,flow.y*.046);
+     float large=Noise(v,.3);
+     float fine=_MarchBudget>20?Noise(v*2.63+2.8,.2):large;
+     float striation=sin(p.y*.44+flow.x*.27+large*5)*.5+.5;
+     grain=large*.63+fine*.26+striation*.11;
+     body=saturate((1.22-rel+(grain-.5)*1.18)*3.1);
+     body*=smoothstep(-1,1.8,p.y)*(1-smoothstep(.02,.24,capY))*(.42+grain*1.9);
+    }
+    if(capY>-.92)
+    {
+     float2 rotation=Turn(p.xz,-time*_StormInfo.z*.18);
+     float rim=length(rotation)/size;
+     float shelf=.32+.18*sin(rotation.x*.16+rotation.y*.11);
+     float dist=length(float3(rotation.x/(size*3.32),(capY-shelf)/.99,rotation.y/(size*3.32)));
+     if(dist<1.34)
+     {
+      float3 v=float3(rotation.x*.025,p.y*.049+time*.045,rotation.y*.025);
+      float large=Noise(v,0);
+      float fine=_MarchBudget>20?Noise(v*2.78+4,.15):large;
+      float lobes=large*.72+fine*.28;
+      cloud=saturate((1.06-dist+(lobes-.5)*1.35)*3.8)*(1-smoothstep(1.10,1.30,dist));
+      grain=lerp(grain,lobes,cloud);
+      edge=lerp(edge,saturate(rim/3.4),cloud);
+     }
+    }
+    return body+cloud*(.68+grain*1.3);
    }
+
    half4 frag(V i):SV_Target
    {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
     float3 ro=TransformWorldToObject(_WorldSpaceCameraPos),rd=normalize(i.local-ro);
     float size=_StormInfo.x,height=_StormInfo.y;
-    float3 low=float3(-size*5.2,-1,-size*5.2),high=float3(size*5.2,height+size*2.5,size*5.2);
     float3 inv=rcp(rd+float3(.000001,.000001,.000001));
-    float3 b0=(low-ro)*inv,b1=(high-ro)*inv;
-    float3 nearB=min(b0,b1),farB=max(b0,b1);
-    float start=max(0,max(nearB.x,max(nearB.y,nearB.z))),end=min(farB.x,min(farB.y,farB.z));
     float2 uv=GetNormalizedScreenSpaceUV(i.positionCS);
-    float depth=SampleSceneDepth(uv);
+    float depth=SampleSceneDepth(uv),farDepth=100000;
     #if UNITY_REVERSED_Z
     bool geometry=depth>.00001;
     #else
     bool geometry=depth<.99999;depth=lerp(UNITY_NEAR_CLIP_VALUE,1,depth);
     #endif
-    if(geometry){float3 scene=ComputeWorldSpacePosition(uv,depth,UNITY_MATRIX_I_VP);end=min(end,distance(_WorldSpaceCameraPos,scene));}
-    clip(end-start);
-    float stepSize=(end-start)/96;
-    float jitter=.5+(frac(sin(dot(floor(i.positionCS.xy),float2(12.9898,78.233)))*43758.5453)-.5)*.15;
+    if(geometry)farDepth=distance(_WorldSpaceCameraPos,ComputeWorldSpacePosition(uv,depth,UNITY_MATRIX_I_VP));
+    float radius=size*1.38,cloudRadius=size*4.4;
+    float2 body=RayBox(ro,inv,float3(-radius,-1,-radius),float3(radius,height+size*.24,radius),farDepth);
+    float2 cap=RayBox(ro,inv,float3(-cloudRadius,height-size*.92,-cloudRadius),float3(cloudRadius,height+size*1.8,cloudRadius),farDepth);
+    float2 a=body.x<cap.x?body:cap,b=body.x<cap.x?cap:body;
+    if(a.y>a.x)b.x=max(b.x,a.y);
+    float first=max(0,a.y-a.x),span=first+max(0,b.y-b.x);
+    clip(span-.001);
+    #if defined(SHADER_API_MOBILE)
+    const int limit=20;
+    #else
+    const int limit=52;
+    #endif
+    int steps=(int)min(min(_MarchBudget,limit),max(7,ceil(span/max(.65,size*.09))));
+    float stepSize=span/max(1,steps);
+    float jitter=.5+(frac(dot(floor(i.positionCS.xy),float2(.75487767,.56984029)))-.5)*.18;
     float3 sum=0;float trans=1;
-    [loop]for(int k=0;k<96;k++)
+    [loop]for(int k=0;k<limit;k++)
     {
-     float3 p=ro+rd*(start+(k+jitter)*stepSize);float grain,cloud;
-     float density=Density(p,grain,cloud);
-     float alpha=1-exp(-density*stepSize*.8);
-     float rim=saturate(length(p.xz)/max(size*.2,lerp(size*.085,size*.7,saturate(p.y/height))));
-     float shadowGrain,shadowCloud;
-     float shadow=Density(p+float3(-2,3,-1),shadowGrain,shadowCloud);
-     float light=saturate(.1+exp(-shadow*1.65)*.85+(grain-.5)*1.4);
-     light*=light;
-     float3 color=lerp(float3(.005,.008,.024),float3(.38,.48,.58),light);
-     color+=float3(.012,.004,.03)*(1-light)*.35;
-     color+=float3(.08,.15,.23)*pow(saturate(rim-.55),3)*light*(1-cloud)*.18;
-     float flashGlow=exp(-length((p-float3(size,height+size*.15,size*.4))/size)*1.2)*cloud;
-     color+=_StormInfo.w*float3(.25,.36,.8)*flashGlow*1.6;
+     if(k>=steps)break;
+     float t=(k+jitter)*stepSize;
+     float3 p=ro+rd*(t<first?a.x+t:b.x+t-first);
+     float grain,cloud,edge;
+     float density=Density(p,_Time.y,grain,cloud,edge);
+     if(density<.005)continue;
+     float alpha=1-exp(-density*stepSize*.68);
+     float lightSide=saturate(.52+dot(p.xz,float2(-.39,-.26))/max(size,length(p.xz)));
+     float heightLight=saturate((p.y-height*.43)/max(1,height*.57));
+     float light=saturate(.10+lightSide*.38+grain*.68+edge*.14+heightLight*.16-density*.19);
+     float3 color=lerp(float3(.014,.020,.035),float3(.45,.54,.66),light*light);
+     color+=float3(.035,.024,.009)*(1-heightLight)*(1-cloud);
+     if(_StormInfo.w>.01)
+      color+=_StormInfo.w*float3(.20,.32,.78)*exp(-length((p-float3(size,height+size*.15,size*.4))/size))*cloud;
      sum+=trans*alpha*color;trans*=1-alpha;
-     if(trans<.015)break;
+     if(trans<.018)break;
     }
     return half4(sum,1-trans);
    }

@@ -10,13 +10,13 @@ namespace DeadlyJenga.Presentation
     {
         sealed class Bullet
         {
-            public Transform head;public MeshRenderer headRenderer;public LineRenderer trail;public Vector3 start,end;public float age,duration;public bool shotgun,needle,contact;public Color color;
+            public Transform head;public MeshRenderer headRenderer;public LineRenderer trail;public Vector3 start,end;public float age,duration;public bool shotgun,needle,contact;public Color color;public EquipmentKind kind;public CandyWeaponImpacts.SurfaceContact surface;
         }
         const int Capacity=224;
         readonly List<Bullet> active=new List<Bullet>();
         readonly Stack<Bullet> pool=new Stack<Bullet>();
         Material material,ribbon,sparkMaterial;Mesh mesh;ParticleSystem sparks;
-        MaterialPropertyBlock tint;
+        MaterialPropertyBlock tint;CandyWeaponImpacts impactView;
         static readonly int BaseColor=Shader.PropertyToID("_BaseColor"),ColorId=Shader.PropertyToID("_Color");
         public int ActiveCount=>active.Count;
         public int AllocatedCount=>active.Count+pool.Count;
@@ -70,6 +70,8 @@ namespace DeadlyJenga.Presentation
                 bullet.needle=needle;
                 // A full-range endpoint is a miss. No second raycast or gameplay prediction.
                 bullet.contact=range>0&&delta.magnitude<range-.12f;
+                bullet.kind=kind;bullet.surface=default;
+                if(bullet.contact)CandyWeaponImpacts.TryContact(bullet.end,delta,out bullet.surface);
                 bullet.head.gameObject.SetActive(true);bullet.trail.gameObject.SetActive(true);
                 bullet.head.position=start;bullet.head.rotation=Quaternion.LookRotation(delta);bullet.head.localScale=needle?new Vector3(.035f,.035f,.23f):new Vector3(shotgun?.075f:.09f,shotgun?.075f:.09f,shotgun?.17f:.27f);
                 Color color=needle?new Color(.72f,.80f,.87f):kind==EquipmentKind.ChainGun?new Color(1,.68f,.18f):shotgun?new Color(1,.43f,.09f,1):new Color(.24f,.88f,1,1);
@@ -112,11 +114,21 @@ namespace DeadlyJenga.Presentation
             for(int i=active.Count-1;i>=0;i--)
             {
                 var bullet=active[i];bullet.age+=Time.deltaTime;
-                if(bullet.age>=bullet.duration){if(bullet.contact)Burst(bullet.end,(bullet.end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true);ReleaseAt(i);continue;}
+                Vector3 end=bullet.surface.anchor?bullet.surface.Position:bullet.end;
+                if(bullet.age>=bullet.duration)
+                {
+                    if(bullet.contact)
+                    {
+                        Burst(end,(end-bullet.start).normalized,bullet.color,bullet.shotgun?4:10,true);
+                        if(!impactView)impactView=GetComponent<CandyWeaponImpacts>();
+                        if(impactView)impactView.Surface(bullet.surface,bullet.kind);
+                    }
+                    ReleaseAt(i);continue;
+                }
                 float t=bullet.age/bullet.duration;
-                bullet.head.position=Vector3.Lerp(bullet.start,bullet.end,t);
+                bullet.head.position=Vector3.Lerp(bullet.start,end,t);
                 bullet.trail.SetPosition(0,bullet.head.position);
-                bullet.trail.SetPosition(1,Vector3.Lerp(bullet.start,bullet.end,Mathf.Max(0,t-(bullet.needle?.23f:bullet.shotgun?.43f:.55f))));
+                bullet.trail.SetPosition(1,Vector3.Lerp(bullet.start,end,Mathf.Max(0,t-(bullet.needle?.23f:bullet.shotgun?.43f:.55f))));
             }
         }
         void ReleaseAt(int i)

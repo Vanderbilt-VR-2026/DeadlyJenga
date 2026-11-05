@@ -42,7 +42,9 @@ namespace DeadlyJenga.CastleBots
             foreach(var driver in actor.GetComponentsInChildren<TrackedPoseDriver>(true))driver.enabled=false;
             foreach(var origin in actor.GetComponentsInChildren<Unity.XR.CoreUtils.XROrigin>(true))origin.enabled=false;
             var brain=actor.gameObject.AddComponent<CastleHandBotBrain>();actor.transform.SetParent(null,true);
-            brain.Initialize(this,actor,profiles[SelectedPreset],serial);hands.Add(brain);Place(brain,serial);
+            brain.Initialize(this,actor,profiles[SelectedPreset],serial);
+            brain.Bridge.PhysicsProfile=HandDriveProfile.For(Session.Player.gameObject);
+            hands.Add(brain);Place(brain,serial);
             Session.Bots.ReconcileHandSlots();Status="Spawned "+actor.name;return brain;
         }
         void Place(CastleHandBotBrain brain,int number)

@@ -36,7 +36,7 @@ namespace DeadlyJenga.Modes
             var top=new List<Participant>(11);
             foreach(var p in players.Values)
             {
-                if(!p.present)continue;
+                if(!p.present||p.deferredParticipation)continue;
                 int i=0;while(i<top.Count&&Compare(top[i],p)<=0)i++;
                 if(i<10){top.Insert(i,p);if(top.Count>10)top.RemoveAt(10);}
             }
@@ -47,7 +47,7 @@ namespace DeadlyJenga.Modes
         MatchPlayerFrame[] InfectedLeaders()
         {
             if(Rules.mode!=GameModeKind.Infection)return Array.Empty<MatchPlayerFrame>();
-            var list=new List<Participant>();foreach(var p in players.Values)if(p.present&&p.frame.role=="infected")list.Add(p);
+            var list=new List<Participant>();foreach(var p in players.Values)if(p.present&&!p.deferredParticipation&&p.frame.role=="infected")list.Add(p);
             list.Sort((a,b)=>{int kills=b.frame.infections.CompareTo(a.frame.infections);return kills!=0?kills:string.CompareOrdinal(a.frame.id,b.frame.id);});
             var result=new MatchPlayerFrame[Mathf.Min(5,list.Count)];
             for(int i=0;i<result.Length;i++){result[i]=list[i].frame.Copy();result[i].metric=list[i].frame.infections;result[i].rank=i+1;}return result;
@@ -73,7 +73,7 @@ namespace DeadlyJenga.Modes
             var flagFrames=new FlagFrame[flags.Count];for(int i=0;i<flags.Count;i++){var f=flags[i];flagFrames[i]=new FlagFrame{team=f.team,home=f.home,position=f.position,carrier=f.carrier,atHome=f.atHome};}
             return new MatchFrame{revision=++sequence,phase=Phase,rules=Rules.Copy(),metricLabel=MetricLabel,winner=Winner,winnerTeam=WinnerTeam,
                 elapsed=Elapsed,remaining=Phase==RoundPhase.Countdown?Mathf.Max(0,Rules.countdownSeconds-phaseTime):Rules.roundSeconds<=0?-1:Mathf.Max(0,Rules.roundSeconds-Elapsed),hill=Hill,survivorsLeft=alive,
-                players=rows.ToArray(),topTen=top,secondaryLeaders=InfectedLeaders(),secondaryMetricLabel=Rules.mode==GameModeKind.Infection?"Infections":"",teams=teamFrames,claims=claimFrames.ToArray(),flags=flagFrames};
+                eliminationEpoch=Rules.mode==GameModeKind.MurderMystery?"":eliminationEpoch, eliminations=eliminations.ToArray(), players=rows.ToArray(),topTen=top,secondaryLeaders=InfectedLeaders(),secondaryMetricLabel=Rules.mode==GameModeKind.Infection?"Infections":"",teams=teamFrames,claims=claimFrames.ToArray(),flags=flagFrames};
         }
         void TickSpectators()
         {

@@ -1,58 +1,100 @@
 using UnityEngine;
-using UnityEngine.Rendering;
 
 namespace DeadlyJenga.CandyArt
 {
     public sealed partial class CandyHazardLighting
     {
-        Mesh shadeSphere;
-        readonly Material[] shadeLayers=new Material[4];
-        Light shadeLight;
         bool vampireLighting;
-        Color vampireAmbientSky,vampireAmbientEquator,vampireAmbientGround;
+        Color vampireAmbientSky,vampireAmbientEquator,vampireAmbientGround,vampireSunColor;
         float vampireSunIntensity;
         Quaternion vampireSunRotation;
+        Light vampireLight;
+        bool vampireApplied,vampireLightApplied;
+        Color vampireWrittenSky,vampireWrittenEquator,vampireWrittenGround,vampireWrittenSunColor;
+        float vampireWrittenSunIntensity;
+        Quaternion vampireWrittenSunRotation;
         void BeginVampireLighting()
         {
-            if(vampireLighting)return;vampireLighting=true;
-            vampireAmbientSky=RenderSettings.ambientSkyColor;vampireAmbientEquator=RenderSettings.ambientEquatorColor;vampireAmbientGround=RenderSettings.ambientGroundColor;
-            if(sun){vampireSunIntensity=sun.intensity;vampireSunRotation=sun.transform.rotation;}
-            if(!shadeSphere)
+            if(!vampireLighting)
             {
-                // Four depth-tested shells make a short, soft visibility falloff without depth textures or a render feature.
-                const int rows=12,cols=24;var vertices=new Vector3[(rows+1)*(cols+1)];var triangles=new int[rows*cols*6];int k=0;
-                for(int y=0;y<=rows;y++)for(int x=0;x<=cols;x++)
-                {float a=x/(float)cols*Mathf.PI*2,b=y/(float)rows*Mathf.PI;int i=y*(cols+1)+x;vertices[i]=new Vector3(Mathf.Sin(b)*Mathf.Cos(a),Mathf.Cos(b),Mathf.Sin(b)*Mathf.Sin(a));if(y<rows&&x<cols){triangles[k++]=i;triangles[k++]=i+1;triangles[k++]=i+cols+1;triangles[k++]=i+1;triangles[k++]=i+cols+2;triangles[k++]=i+cols+1;}}
-                shadeSphere=new Mesh{name="Vampire local darkness shells",vertices=vertices,triangles=triangles};
-                var shader=Resources.Load<Shader>("CandyScenery/CandyVampireDarkness");
-                for(int i=0;i<shadeLayers.Length;i++)shadeLayers[i]=new Material(shader){name="Vampire visibility layer",renderQueue=3230-i};
-                var go=new GameObject("Vampire dim nearby visibility");go.transform.SetParent(transform,false);shadeLight=go.AddComponent<Light>();shadeLight.type=LightType.Point;shadeLight.range=2.1f;shadeLight.intensity=.12f;shadeLight.color=new Color(.46f,.52f,.65f);shadeLight.shadows=LightShadows.None;
+                vampireLighting=true;
+                vampireAmbientSky=RenderSettings.ambientSkyColor;
+                vampireAmbientEquator=RenderSettings.ambientEquatorColor;
+                vampireAmbientGround=RenderSettings.ambientGroundColor;
+            }
+            else if(vampireApplied)
+            {
+                if(RenderSettings.ambientSkyColor!=vampireWrittenSky)vampireAmbientSky=RenderSettings.ambientSkyColor;
+                if(RenderSettings.ambientEquatorColor!=vampireWrittenEquator)vampireAmbientEquator=RenderSettings.ambientEquatorColor;
+                if(RenderSettings.ambientGroundColor!=vampireWrittenGround)vampireAmbientGround=RenderSettings.ambientGroundColor;
+            }
+            if(vampireLight!=sun)
+            {
+                RestoreVampireLight();
+                vampireLight=sun;
+                if(vampireLight)
+                {
+                    vampireSunIntensity=vampireLight.intensity;
+                    vampireSunRotation=vampireLight.transform.rotation;
+                    vampireSunColor=vampireLight.color;
+                }
+            }
+            else if(vampireLight&&vampireLightApplied)
+            {
+                if(!Mathf.Approximately(vampireLight.intensity,vampireWrittenSunIntensity))vampireSunIntensity=vampireLight.intensity;
+                if(vampireLight.color!=vampireWrittenSunColor)vampireSunColor=vampireLight.color;
+                if(Quaternion.Angle(vampireLight.transform.rotation,vampireWrittenSunRotation)>.01f)vampireSunRotation=vampireLight.transform.rotation;
             }
         }
         void DrawVampireShade(Camera view)
         {
-            BeginVampireLighting();float darkness=1-exposure;
-            RenderSettings.ambientSkyColor=Color.Lerp(new Color(.002f,.003f,.006f),vampireAmbientSky*1.35f,exposure);
-            RenderSettings.ambientEquatorColor=Color.Lerp(new Color(.001f,.002f,.004f),vampireAmbientEquator*1.35f,exposure);
-            RenderSettings.ambientGroundColor=Color.Lerp(Color.black,vampireAmbientGround*1.35f,exposure);
-            if(sun)sun.intensity=Mathf.Lerp(.015f,vampireSunIntensity*1.35f,exposure);
-            if(shadeLight){shadeLight.enabled=darkness>.01f;shadeLight.transform.position=view.transform.position;shadeLight.intensity=.12f*darkness;}
-            for(int i=0;i<shadeLayers.Length;i++)
+            if(!vampireLighting)BeginVampireLighting();
+            RenderSettings.ambientSkyColor=ReadableVampireAmbient(vampireAmbientSky,new Color(.18f,.23f,.30f));
+            RenderSettings.ambientEquatorColor=ReadableVampireAmbient(vampireAmbientEquator,new Color(.12f,.17f,.21f));
+            RenderSettings.ambientGroundColor=ReadableVampireAmbient(vampireAmbientGround,new Color(.08f,.11f,.14f));
+            if(vampireLight)
             {
-                float radius=i==0?.55f:i==1?.85f:i==2?1.3f:1.9f;
-                float alpha=i==0?.12f:i==1?.28f:i==2?.6f:1;
-                shadeLayers[i].SetFloat("_Darkness",alpha*darkness);
-                Graphics.DrawMesh(shadeSphere,Matrix4x4.TRS(view.transform.position,Quaternion.identity,Vector3.one*radius),shadeLayers[i],0,view,0,null,ShadowCastingMode.Off,false);
+                vampireLight.intensity=Mathf.Max(.75f,vampireSunIntensity*.95f);
+                vampireLight.color=Color.Lerp(vampireSunColor,new Color(1,.80f,.55f),.28f);
+                vampireWrittenSunIntensity=vampireLight.intensity;
+                vampireWrittenSunColor=vampireLight.color;
+                vampireWrittenSunRotation=vampireLight.transform.rotation;
+                vampireLightApplied=true;
             }
+            vampireWrittenSky=RenderSettings.ambientSkyColor;
+            vampireWrittenEquator=RenderSettings.ambientEquatorColor;
+            vampireWrittenGround=RenderSettings.ambientGroundColor;
+            vampireApplied=true;
+        }
+        static Color ReadableVampireAmbient(Color original,Color floor)
+        {
+            return new Color(Mathf.Max(floor.r,original.r*.70f),Mathf.Max(floor.g,original.g*.70f),Mathf.Max(floor.b,original.b*.70f));
         }
         void EndVampireLighting()
         {
-            if(!vampireLighting)return;vampireLighting=false;
-            RenderSettings.ambientSkyColor=vampireAmbientSky;RenderSettings.ambientEquatorColor=vampireAmbientEquator;RenderSettings.ambientGroundColor=vampireAmbientGround;
-            if(sun){sun.intensity=vampireSunIntensity;sun.transform.rotation=vampireSunRotation;}
-            if(shadeLight)shadeLight.enabled=false;
+            exposure=0;
+            if(!vampireLighting)return;
+            vampireLighting=false;
+            if(vampireApplied)
+            {
+                if(RenderSettings.ambientSkyColor==vampireWrittenSky)RenderSettings.ambientSkyColor=vampireAmbientSky;
+                if(RenderSettings.ambientEquatorColor==vampireWrittenEquator)RenderSettings.ambientEquatorColor=vampireAmbientEquator;
+                if(RenderSettings.ambientGroundColor==vampireWrittenGround)RenderSettings.ambientGroundColor=vampireAmbientGround;
+            }
+            vampireApplied=false;
+            RestoreVampireLight();
         }
-        void DestroyVampireShade(){EndVampireLighting();if(shadeSphere)Destroy(shadeSphere);foreach(var m in shadeLayers)if(m)Destroy(m);if(shadeLight)Destroy(shadeLight.gameObject);}
+        void RestoreVampireLight()
+        {
+            if(vampireLight&&vampireLightApplied)
+            {
+                if(Mathf.Approximately(vampireLight.intensity,vampireWrittenSunIntensity))vampireLight.intensity=vampireSunIntensity;
+                if(Quaternion.Angle(vampireLight.transform.rotation,vampireWrittenSunRotation)<=.01f)vampireLight.transform.rotation=vampireSunRotation;
+                if(vampireLight.color==vampireWrittenSunColor)vampireLight.color=vampireSunColor;
+            }
+            vampireLight=null;
+            vampireLightApplied=false;
+        }
+        void DestroyVampireShade(){EndVampireLighting();}
     }
 }
-

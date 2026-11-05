@@ -20,7 +20,7 @@ namespace DeadlyJenga.Modes
         public bool BlasterTestingEnabled=>Authority?blasterTesting:frame.blaster?.testingEnabled==true;
         public void SetBlasterTesting(bool enabled)
         {
-            if(!Authority)return;
+            if(!Authority||enabled&&!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session))return;
             blasterTesting=enabled;
             if(enabled&&!equipment.ContainsKey(LocalActorId))
             {

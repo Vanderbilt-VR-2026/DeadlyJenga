@@ -66,6 +66,12 @@ namespace FlyingHand
         [Min(0)] public float maximumYawAcceleration = 8f;
         [Min(1)] public float mass = 650f;
         public Rigidbody Body { get; private set; }
+        public bool ContactRulesConfirmed { get; set; }
+        public float ContactForceNewtons { get; set; }
+        public Rigidbody ContactPalm { get; set; }
+        public Vector3 ContactTargetOffset { get; set; }
+        public float MaximumContactLead { get; set; } = .2f;
+        public bool RequiresContactProfile { get; set; }
         public Vector2 MoveInput { get; private set; }
         public float YawInput { get; private set; }
         public float VerticalInput { get; private set; }
@@ -270,6 +276,8 @@ namespace FlyingHand
         void FixedUpdate()
         {
             ClampWaterBoundary();
+            ConstrainContactTarget();
+            if(RequiresContactProfile&&(!ContactRulesConfirmed||ContactForceNewtons<=0||!ContactPalm))return;
             if(!externallyDriven&&ActiveControlMode==ControlMode.VR)
             {
                 var headingVR=Quaternion.Euler(0,Body.rotation.eulerAngles.y,0);
@@ -278,6 +286,7 @@ namespace FlyingHand
                 Body.linearDamping=0;
                 Body.linearVelocity=Vector3.MoveTowards(Body.linearVelocity,desired,rate*Time.fixedDeltaTime);
                 Body.angularVelocity=new Vector3(0,YawInput*yawSpeed*Mathf.Deg2Rad,0);
+                ConstrainContactTarget();
                 return;
             }
             float blend = 1 - Mathf.Exp(-inputResponse * Time.fixedDeltaTime);
@@ -297,7 +306,36 @@ namespace FlyingHand
             velocity.y = Mathf.Clamp(velocity.y, -maximumVerticalSpeed, maximumVerticalSpeed);
             Body.linearVelocity = Vector3.ClampMagnitude(velocity, maximumSpeed);
             Body.angularVelocity = new Vector3(0, Mathf.Clamp(Body.angularVelocity.y, -Body.maxAngularVelocity, Body.maxAngularVelocity), 0);
+            ConstrainContactTarget();
         }
+        void ConstrainContactTarget()
+        {
+            if(!RequiresContactProfile)return;
+            if(!ContactPalm)
+            {
+                Body.linearVelocity=Vector3.zero;
+                Body.angularVelocity=Vector3.zero;
+                return;
+            }
+            bool canDrive=ContactRulesConfirmed&&ContactForceNewtons>0;
+            if(!canDrive)
+            {
+                Body.position=ContactPalm.position-ContactTargetOffset;
+                Body.linearVelocity=ContactPalm.linearVelocity;
+                Body.angularVelocity=Vector3.zero;
+                return;
+            }
+            Vector3 lead=Body.position+ContactTargetOffset-ContactPalm.position;
+            float limit=Mathf.Max(.01f,MaximumContactLead);
+            float distance=lead.magnitude;
+            if(distance<limit)return;
+            Vector3 direction=lead/Mathf.Max(.0001f,distance);
+            // This carrier has no contacts. Discard unreachable target lead, never move a physical hand.
+            Body.position-=direction*(distance-limit);
+            float away=Vector3.Dot(Body.linearVelocity-ContactPalm.linearVelocity,direction);
+            if(away>0)Body.linearVelocity-=direction*away;
+        }
+
         public void ClampWaterBoundary()
         {
             if (!keepAboveWater || !Body || DeadlyJenga.Core.Services.World == null) return;

@@ -3,12 +3,18 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    public sealed partial class CandyPlayerAvatar : IAvatarAppearance
+    public sealed partial class CandyPlayerAvatar : IAvatarAppearance, IAvatarWardrobePreview
     {
         const string AppearanceKey="CandyAvatar.Accessories.v1";
         public const AvatarAccessory SupportedAccessories=(AvatarAccessory)uint.MaxValue;
         [SerializeField] AvatarAppearance appearance;
         public AvatarAppearance Appearance=>appearance;
+        public AvatarWardrobeResolution EvaluateAppearance(AvatarAppearance requested)
+        {
+            requested=SanitizeAppearance(requested);
+            if(GetComponent<CandyEquipment>()?.Equipment.kind==EquipmentKind.PoweredArmor)requested.poweredArmor=true;
+            return CandyWardrobeCompatibility.Evaluate(requested);
+        }
         public AvatarAppearance EquippedAppearance
         {get{var value=appearance;if(GetComponent<CandyEquipment>()?.Equipment.kind==EquipmentKind.PoweredArmor)value.poweredArmor=true;return value;}}
         bool OwnAppearance=>!remoteDriven&&(!survivor||!survivor.externallyDriven);

@@ -23,6 +23,7 @@ namespace DeadlyJenga.CharacterNetwork
         public void Despawn() { }
         bool active, hasTarget, initialized, suspended;
         string emote; float emoteStart, emoteLength; int lastEmoteBits;
+        Quaternion emoteFacing;
         CapsuleCollider hazardTarget;
         Vector3 previousFeet, velocity;
         float previousPoseTime;
@@ -83,12 +84,16 @@ namespace DeadlyJenga.CharacterNetwork
             if(!active&&blasterModel)blasterModel.gameObject.SetActive(false);
             transform.SetPositionAndRotation(target.feet, Quaternion.Euler(0,target.headRotation.eulerAngles.y,0));
             int bits = (color >> 16) & 0xFF;
-            if (bits != lastEmoteBits && bits > 0 && bits <= Emotes.Survivor.Length)
+            if (!active || suspended || bits == 0 || bits > Emotes.Survivor.Length) emote = null;
+            else if (bits != lastEmoteBits)
             {
-                emote = Emotes.Survivor[bits - 1]; emoteStart = Time.time; emoteLength = CandyEmotePoses.Duration(emote);
+                emote = Emotes.Survivor[bits - 1];
+                emoteStart = Time.time;
+                emoteLength = CandyEmotePoses.Loops(emote) ? float.PositiveInfinity : CandyEmotePoses.Duration(emote);
+                emoteFacing = Quaternion.Euler(0, target.headRotation.eulerAngles.y, 0);
                 GameEvents.RaiseEmoted(rig ? rig.gameObject : gameObject, emote);
             }
-            lastEmoteBits = bits;
+            lastEmoteBits = active && !suspended ? bits : 0;
             if (!rig)
             {
                 var avatar = context.localSurvivor ? context.localSurvivor.GetComponent<CandyPlayerAvatar>() : null;
@@ -128,19 +133,33 @@ namespace DeadlyJenga.CharacterNetwork
             frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale; frame.seated = target.seated;
             frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
             rig.ApplyFrame(frame, true, dt);
+            var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
+            bool held = equipment.drawn && equipment.kind >= EquipmentKind.Blaster && equipment.kind != EquipmentKind.PoweredArmor;
+            bool twoHanded = held && EquipmentSpecifications.Get(equipment.kind).twoHanded;
+            var rendered = frame;
             if (emote != null)
             {
                 float age = Time.time - emoteStart;
                 if (age >= emoteLength) emote = null;
-                else rig.ApplyFrame(CandyEmotePoses.Pose(frame, emote, age, emoteLength), true, 0);
+                else
+                {
+                    rendered.headRotation = emoteFacing;
+                    rendered = CandyEmotePoses.Pose(rendered, emote, age, emoteLength);
+                    if (held && !twoHanded)
+                    {
+                        bool paired = equipment.kind is EquipmentKind.DualUzi or EquipmentKind.LaserClaws;
+                        if (equipment.leftHanded || paired) SurvivorMoments.KeepGrip(ref rendered.left, frame.left);
+                        if (!equipment.leftHanded || paired) SurvivorMoments.KeepGrip(ref rendered.right, frame.right);
+                    }
+                    rig.ApplyFrame(rendered, true, 0);
+                }
             }
             if(IsEnemy)rig.SetTint(new Color(.035f,.045f,.065f));
             weaponVisual??=new CandyWeaponVisual(transform,rig.style?rig.style.material:null);
-            var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
-            weaponVisual.Present(equipment,frame,active&&!suspended);
+            weaponVisual.Present(equipment,rendered,active&&!suspended,emote!=null&&twoHanded);
         }
 
-        public void Suspend() { weaponVisual?.Hide();suspended = true; if (hazardTarget) hazardTarget.enabled = false; }
+        public void Suspend() { emote = null; lastEmoteBits = 0; weaponVisual?.Hide();suspended = true; if (hazardTarget) hazardTarget.enabled = false; }
 
         // Someone else's survivor just disappeared (eliminated): let the effects burst it.
         void Burst()

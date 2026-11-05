@@ -128,9 +128,9 @@ namespace DeadlyJenga.Modes
         public void Suspect(string bodyId,int trailSequence)=>MysteryRequest("suspect:"+trailSequence+":"+bodyId);
         public void ChooseDisaster(string hazardId)=>MysteryRequest("disaster:"+hazardId);
         public void SetDemoRole(MysteryRole role)
-        {if(Authority&&MysteryActive&&Enum.IsDefined(typeof(MysteryRole),role))mystery.ForceRole(LocalActorId,role);}
+        {if(Authority&&DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)&&MysteryActive&&Enum.IsDefined(typeof(MysteryRole),role))mystery.ForceRole(LocalActorId,role);}
         public void ConfigureMystery(MysterySettings value)
-        {if(Authority&&value!=null&&ValidMysterySettings(value)){var copy=Rules.Copy();copy.mystery=value;Configure(copy);}}
+        {if(Authority&&DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)&&value!=null&&ValidMysterySettings(value)){var copy=Rules.Copy();copy.mystery=value;Configure(copy);}}
         public static bool ValidMysterySettings(MysterySettings value)
         {
             if(value==null||value.sheriffMistakes<1||value.sheriffMistakes>10)return false;
@@ -172,12 +172,12 @@ namespace DeadlyJenga.Modes
             {var point=actor.transform.position;var rotation=actor.transform.rotation;actor.gameObject.GetComponent<IPlayableCharacter>()?.Place(point,rotation);}
             else RemoteEliminated?.Invoke(id,EliminationOutcome.Revive);
         }
-        bool MysteryPunch(string attacker,string victim,ref float damage)
+        bool MysteryPunch(string attacker,string victim,ref float damage,bool ordinaryOnly=false)
         {
             if(!MysteryActive)return false;
             var hit=mystery.Hit(attacker,victim);if(hit==MysteryHit.Blocked)return true;
             var target=FindActor(victim);if(target==null)return true;
-            bool special=hit==MysteryHit.Murder||hit==MysteryHit.SheriffKill;
+            bool special=!ordinaryOnly&&(hit==MysteryHit.Murder||hit==MysteryHit.SheriffKill);
             float health=target.IsLocal||target.IsBot?target.Health:target.MaxHealth*RemoteHealth(victim);
             if(!special&&damage<health)return false;
             var p=simulation.Find(victim).frame;

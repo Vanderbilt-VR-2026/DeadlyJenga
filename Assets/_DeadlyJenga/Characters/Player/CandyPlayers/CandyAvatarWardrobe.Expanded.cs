@@ -75,7 +75,22 @@ namespace DeadlyJenga.CandyPlayers
                 return;
             }
             if(skin==AvatarSkin.CyclopsMonster||skin==AvatarSkin.DiscoAlien)
-            {Ball(rig,id+" single eye",1,Tone.White,new Vector3(0,.02f,.20f),new Vector3(.14f,.14f,.045f));Ball(rig,id+" pupil",1,Tone.Blue,new Vector3(0,.02f,.246f),new Vector3(.065f,.075f,.012f));Hair(rig,AvatarHair.Spikes);Spots(rig,id,Tone.Blue,false);return;}
+            {
+                Ball(rig,id+" single eye",1,Tone.White,new Vector3(0,.02f,.20f),new Vector3(.14f,.14f,.045f));
+                Ball(rig,id+" pupil",1,Tone.Blue,new Vector3(0,.02f,.246f),new Vector3(.065f,.075f,.012f));
+                if(skin==AvatarSkin.DiscoAlien)
+                {
+                    Add(rig,"disco alien rounded crown",1,Tone.Primary,b=>{
+                        b.Sphere(new Vector3(0,.21f,-.025f),new Vector3(.29f,.085f,.19f));
+                        for(int side=-1;side<=1;side+=2)
+                            b.Sphere(new Vector3(side*.275f,.045f,-.035f),new Vector3(.12f,.14f,.095f));
+                    });
+                    Add(rig,"disco alien collar",0,Tone.Primary,b=>
+                        b.Ring(new Vector3(0,1.28f,0),.235f,.04f,Quaternion.Euler(90,0,0)));
+                }
+                else {Hair(rig,AvatarHair.Spikes);Spots(rig,id,Tone.Blue,false);}
+                return;
+            }
             if(skin==AvatarSkin.Zebra){Spots(rig,id,Tone.Black,true);Hair(rig,AvatarHair.Spikes);return;}
             if(skin==AvatarSkin.Ghost){Robe(rig,"ghost floating sheet",Tone.White);Ball(rig,"ghost mouth",1,Tone.Black,new Vector3(0,-.10f,.205f),new Vector3(.045f,.07f,.018f));return;}
             if(skin==AvatarSkin.Mummy){Spots(rig,"mummy bandages",Tone.White,true);return;}
@@ -91,7 +106,27 @@ namespace DeadlyJenga.CandyPlayers
             if(festive)
             {Jacket(rig,id+" coat",skin==AvatarSkin.Elf?Tone.Primary:Tone.Red);Add(rig,id+" soft festive cap",1,Tone.Red,b=>{b.Cone(new Vector3(0,.17f,0),new Vector3(.03f,.43f,0),.21f,.09f,20);b.Cone(new Vector3(.03f,.43f,0),new Vector3(.23f,.35f,0),.09f,.02f,14);});Add(rig,id+" hat fur",1,Tone.White,b=>{b.Ring(new Vector3(0,.18f,0),.21f,.035f,Quaternion.Euler(90,0,0));b.Sphere(new Vector3(.23f,.35f,0),Vector3.one*.06f);});Pants(rig,id+" trousers",Tone.Dark);Add(rig,id+" fluffy trim",0,Tone.White,b=>{b.Ring(new Vector3(0,.75f,0),.21f,.035f,Quaternion.Euler(90,0,0));b.Box(new Vector3(0,1.03f,.17f),new Vector3(.055f,.48f,.04f));});if(skin==AvatarSkin.Santa)Ball(rig,id+" beard",1,Tone.White,new Vector3(0,-.15f,.14f),new Vector3(.18f,.13f,.10f));return;}
             if(skin==AvatarSkin.ScaryClown||skin==AvatarSkin.FriendlyClown||skin==AvatarSkin.RagDoll)
-            {Hair(rig,skin==AvatarSkin.RagDoll?AvatarHair.Braids:AvatarHair.Afro);Ball(rig,id+" red nose",1,Tone.Red,new Vector3(0,0,.24f),Vector3.one*.05f);Jacket(rig,id+" costume",Tone.Purple);Spots(rig,id,Tone.White,false);return;}
+            {
+                if(skin==AvatarSkin.FriendlyClown)
+                {
+                    Add(rig,"friendly clown side puffs and cap",1,Tone.Hair,b=>{
+                        for(int side=-1;side<=1;side+=2)
+                            b.Sphere(new Vector3(side*.29f,.065f,-.035f),new Vector3(.135f,.14f,.12f));
+                        b.Cone(new Vector3(0,.255f,-.02f),new Vector3(0,.365f,-.02f),.13f,.115f,16);
+                        b.Ring(new Vector3(0,.25f,-.02f),.18f,.025f,Quaternion.Euler(90,0,0));
+                    });
+                    Add(rig,"friendly clown scalloped collar",0,Tone.White,b=>{
+                        for(int i=0;i<6;i++)
+                        {
+                            float angle=i*Mathf.PI/3;
+                            b.Sphere(new Vector3(Mathf.Cos(angle)*.22f,1.27f,Mathf.Sin(angle)*.17f),new Vector3(.075f,.045f,.075f));
+                        }
+                    });
+                }
+                else Hair(rig,skin==AvatarSkin.RagDoll?AvatarHair.Braids:AvatarHair.Afro);
+                Ball(rig,id+" red nose",1,Tone.Red,new Vector3(0,0,.24f),Vector3.one*.05f);
+                Jacket(rig,id+" costume",Tone.Purple);Spots(rig,id,Tone.White,false);return;
+            }
             if(skin==AvatarSkin.HeadlessHorseman){Cape(rig,id,Tone.Dark,true);Pumpkin(rig,"horseman pumpkin",Tone.Orange);Pants(rig,id,Tone.Dark);return;}
             if(skin==AvatarSkin.Gargoyle){Cape(rig,"gargoyle stone wings",Tone.Primary);Add(rig,"gargoyle swept horns",1,Tone.Dark,b=>{for(int side=-1;side<=1;side+=2){b.Cone(new Vector3(side*.14f,.15f,0),new Vector3(side*.24f,.38f,-.06f),.065f,.025f,10);b.Cone(new Vector3(side*.24f,.38f,-.06f),new Vector3(side*.16f,.45f,-.1f),.025f,0,10);}});return;}
             if(skin==AvatarSkin.Sailor){for(int side=0;side<2;side++)Ball(rig,"sailor strong forearm"+side,side==0?3:6,Tone.Primary,new Vector3(0,.16f,0),new Vector3(.105f,.14f,.10f));Add(rig,"sailor pipe",1,Tone.Brown,b=>{b.Beam(new Vector3(.04f,-.10f,.21f),new Vector3(.20f,-.12f,.32f),.009f);b.Cone(new Vector3(.20f,-.13f,.32f),new Vector3(.20f,-.06f,.32f),.025f,.034f,10);});}

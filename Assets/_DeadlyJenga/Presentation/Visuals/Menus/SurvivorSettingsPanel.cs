@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     // Reads and changes them only through ISurvivorSettings (Core); the survivor draws nothing itself.
     public static class SurvivorSettingsPanel
     {
-        static bool staminaOpen;
+        static bool staminaOpen, handPhysicsOpen;
 
         // staminaEditable: false for joined players (the host owns stamina rules).
         // shareStamina: called with the new stamina rules after a change, so the host can share them.
@@ -47,6 +47,39 @@ namespace DeadlyJenga.CastlePrototype
             }
             if (changed) survivor.ApplyMatchRules(rules);
             if (changed && survivor.SaveStaminaRules() != staminaBefore) shareStamina?.Invoke(survivor.SaveStaminaRules());
+            DrawHandPhysics(survivor,Services.Session?.Demo?.CanCommand==true,shareStamina);
+        }
+
+        static void DrawHandPhysics(ISurvivorSettings survivor,bool editable,System.Action<string> share)
+        {
+            handPhysicsOpen=GUILayout.Toggle(handPhysicsOpen,"Flying hand drive / contact"+(editable?"":" (host only)"));
+            if(!handPhysicsOpen)return;
+            var physics=survivor.CurrentRules.handPhysics;
+            float force=physics?.forceNewtons??3000,friction=physics?.friction??1.8f;
+            bool previous=GUI.enabled;GUI.enabled=previous&&editable;
+            GUILayout.Label("Hand drive force (N): "+force.ToString("0"));
+            float position=Mathf.Sqrt(Mathf.Clamp(force,0,10000)/10000);
+            float next=GUILayout.HorizontalSlider(position,0,1);
+            if(!Mathf.Approximately(next,position))force=Mathf.Round(next*next*10000/10)*10;
+            GUILayout.BeginHorizontal();
+            foreach(float preset in new[]{0f,100f,300f,1000f,3000f})
+                if(GUILayout.Button(preset.ToString("0")+" N"))force=preset;
+            GUILayout.EndHorizontal();
+            Slider("Contact friction: "+friction.ToString("0.00"),ref friction,0,2);
+            if(GUILayout.Button("Reset hand drive / friction")){force=3000;friction=1.8f;}
+            GUI.enabled=previous;
+            GUILayout.Label("Drive budget only. Momentum can produce larger contact impulses. Zero disables drive; it does not freeze the hand.");
+            if(editable&&(!Mathf.Approximately(force,physics?.forceNewtons??3000)||!Mathf.Approximately(friction,physics?.friction??1.8f)))
+                SetHandPhysics(survivor,force,friction,true,share);
+        }
+        public static void SetHandPhysics(ISurvivorSettings survivor,float force,float friction,bool editable,System.Action<string> share)
+        {
+            if(!editable||survivor==null||float.IsNaN(force)||float.IsInfinity(force)||float.IsNaN(friction)||float.IsInfinity(friction))return;
+            var rules=JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(survivor.CurrentRules));
+            if(rules==null)return;
+            rules.handPhysics=new HandPhysicsRules{forceNewtons=Mathf.Clamp(force,0,10000),friction=Mathf.Clamp(friction,0,2)};
+            string before=survivor.SaveStaminaRules();survivor.ApplyMatchRules(rules);
+            string after=survivor.SaveStaminaRules();if(after!=before)share?.Invoke(after);
         }
 
         static bool Slider(string label, ref float value, float min, float max)

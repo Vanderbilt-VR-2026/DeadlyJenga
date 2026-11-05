@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Unity.Profiling;
 using DeadlyJenga.Core;
 
 namespace DeadlyJenga.World.Hazards
@@ -85,7 +86,9 @@ namespace DeadlyJenga.World.Hazards
         protected override void BeginHazard(IWorldQuery map,Bounds bounds,float intensity,float seconds)
         {
             EnsureValues();world=map;area=bounds;strength=intensity;age=nextTick=0;started=false;cached=null;capturedAt=-1;
+            if(Kind=="Tornado"){tornadoCursor=0;tornadoBudgetFrame=-1;tornadoPushAt.Clear();}
             DisasterStates.Active.Add(this);
+            if(Kind=="Vampire")GameEvents.Eliminated+=ResetSunlight;
         }
         bool started;
         void FixedUpdate()
@@ -99,6 +102,7 @@ namespace DeadlyJenga.World.Hazards
             if(!started){started=true;if(Kind=="Fire")SeedFire();if(Kind=="PowerOutage")SeedLights();}
             if(Kind=="MeteorShower"||Kind=="PlanetKillerMeteor")TickMeteors(dt);
             if(Kind=="AntiGravity")TickGravity(dt);
+            if(Kind=="Tornado"){TickTornadoBlocks(dt);}
             if(age<nextTick)return;
             nextTick=age+.1f;
             switch(Kind)
@@ -106,12 +110,13 @@ namespace DeadlyJenga.World.Hazards
                 case "Vampire":TickSun(.1f);break;
                 case "Icey":ApplyIce();break;
                 case "Fire":TickFire(.1f);if(started&&burning.Count==0)End();break;
-                case "Tornado":TickTornado(.1f);break;
+                case "Tornado":TickTornadoPlayers(.1f);break;
                 case "Earthquake":TickEarthquake(.1f);break;
                 case "AcidRain":TickRain(.1f);break;
             }
         }
         readonly Dictionary<IDamageable,float> sunlight = new Dictionary<IDamageable,float>();
+        readonly List<IDamageable> expiredSunlight = new List<IDamageable>();
         void SeedLights()
         {
             var ids = new List<int>();
@@ -119,16 +124,21 @@ namespace DeadlyJenga.World.Hazards
             int count=Mathf.Min(ids.Count,Mathf.RoundToInt(V("bulbs")));
             for(int i=0;i<count;i++){int j=UnityEngine.Random.Range(i,ids.Count);int swap=ids[i];ids[i]=ids[j];ids[j]=swap;burning.Add(ids[i]);}
         }
+        void ResetSunlight(GameObject victim,GameObject source)
+        {
+            var health=victim?victim.GetComponentInParent<IDamageable>():null;
+            if(health!=null)sunlight.Remove(health);
+        }
         void TickSun(float dt)
         {
             float elevation=V("elevation")*Mathf.Deg2Rad;
             var towardSun=new Vector3(.6f*Mathf.Cos(elevation),Mathf.Sin(elevation),.8f*Mathf.Cos(elevation));
-            int n=Physics.OverlapBoxNonAlloc(area.center,area.extents+Vector3.one*5,hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Ignore);
+            int n=Physics.OverlapBoxNonAlloc(area.center,area.extents+Vector3.one*5,hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Collide);
             receivers.Clear();
             for(int i=0;i<n;i++)
             {
                 var health=hits[i].GetComponentInParent<IDamageable>();
-                if(health==null||!receivers.Add(health))continue;
+                if(health==null||health.Health<=0||!receivers.Add(health))continue;
                 var eye=hits[i].bounds.center+Vector3.up*hits[i].bounds.extents.y*.65f;
                 bool exposed=!Physics.Raycast(eye,towardSun,1000,1<<Layers.Block,QueryTriggerInteraction.Ignore);
                 sunlight.TryGetValue(health,out float accumulated);
@@ -136,6 +146,10 @@ namespace DeadlyJenga.World.Hazards
                 sunlight[health]=accumulated;
                 if(exposed&&accumulated>=V("delay"))health.Damage(V("damage")*dt*strength,gameObject);
             }
+            expiredSunlight.Clear();
+            foreach(var pair in sunlight)
+                if(!receivers.Contains(pair.Key)||pair.Key.Health<=0)expiredSunlight.Add(pair.Key);
+            foreach(var health in expiredSunlight)sunlight.Remove(health);
         }
         protected int Query(Vector3 center,float radius)
         {
@@ -153,16 +167,111 @@ namespace DeadlyJenga.World.Hazards
             {if(push!=null)push.Push(Vector3.ClampMagnitude(impulse*strength,30),gameObject);else if(body&&!body.isKinematic)body.AddForce(Vector3.ClampMagnitude(impulse*strength,30),ForceMode.VelocityChange);}
             if(damage>0)health?.Damage(damage*strength,gameObject);
         }
-        void TickTornado(float dt)
+        const int TornadoScanBudget=192,TornadoPushBudget=32,TornadoWakeBudget=6;
+        static readonly ProfilerMarker TornadoForces=new ProfilerMarker("DJ.Tornado.Forces");
+        sealed class TornadoTarget
         {
-            Vector3 c=TornadoCenter;float radius=V("reach"),height=V("height");int n=Query(c+Vector3.up*height*.5f,Mathf.Sqrt(radius*radius+height*height*.25f));receivers.Clear();
+            public Collider[] shapes;public int cursor;public float pushedAt=-1;
+        }
+        readonly Dictionary<Rigidbody,TornadoTarget> tornadoPushAt=new Dictionary<Rigidbody,TornadoTarget>();
+        int tornadoCursor,tornadoBudgetFrame=-1,tornadoFrameScans,tornadoFramePushes,tornadoFrameWakes,tornadoFrameShapes,tornadoFrameDiscoveries;
+
+        Vector3 TornadoImpulse(Vector3 center,Vector3 position,float radius,float height,float force)
+        {
+            if(position.y<center.y-2||position.y>center.y+height)return Vector3.zero;
+            Vector3 delta=center-position;delta.y=0;
+            float square=delta.sqrMagnitude;
+            if(square>=radius*radius)return Vector3.zero;
+            float distance=Mathf.Sqrt(square),falloff=1-distance/radius;
+            Vector3 inward=distance>.01f?delta/distance:Vector3.right;
+            return (inward*.6f+Vector3.Cross(Vector3.up,inward)+Vector3.up*(.45f+falloff))*force*falloff;
+        }
+
+        void TickTornadoBlocks(float dt)
+        {
+            float force=V("force")*strength;
+            if(force<=0)return;
+            using var sample=TornadoForces.Auto();
+            var blocks=world.Blocks;
+            int count=blocks.Count;
+            if(count==0)return;
+            float radius=V("reach"),height=V("height");Vector3 center=TornadoCenter;
+            if(tornadoBudgetFrame!=Time.frameCount)
+            {
+                tornadoBudgetFrame=Time.frameCount;
+                tornadoFrameScans=tornadoFramePushes=tornadoFrameWakes=tornadoFrameShapes=tornadoFrameDiscoveries=0;
+            }
+            int scans=Mathf.Min(count,Mathf.Min(TornadoScanBudget,TornadoScanBudget*2-tornadoFrameScans));
+            int pushLimit=Mathf.Min(TornadoPushBudget,TornadoPushBudget*2-tornadoFramePushes);
+            int wakeLimit=Mathf.Min(TornadoWakeBudget,TornadoWakeBudget*2-tornadoFrameWakes);
+            int pushes=0,wakes=0,shapes=0,discoveries=0;
+            // Keep the cursor at the next body when a budget is spent. Every block gets a turn.
+            for(int scanned=0;scanned<scans&&pushes<pushLimit&&wakes<wakeLimit&&shapes<256&&tornadoFrameShapes<512;scanned++)
+            {
+                tornadoFrameScans++;
+                if(tornadoCursor>=count)tornadoCursor=0;
+                var body=blocks[tornadoCursor++];
+                if(!body||!body.gameObject.activeInHierarchy)continue;
+                if(!tornadoPushAt.TryGetValue(body,out var target))
+                {
+                    // Discovery also walks a hierarchy. Defer this body when its separate budget is spent.
+                    if(discoveries>=8||tornadoFrameDiscoveries>=16){tornadoCursor--;break;}
+                    discoveries++;tornadoFrameDiscoveries++;
+                    target=new TornadoTarget{shapes=body.GetComponentsInChildren<Collider>()};
+                    tornadoPushAt.Add(body,target);
+                }
+                Vector3 point=body.worldCenterOfMass;
+                var acceleration=TornadoImpulse(center,point,radius,height,force);
+                // A long compound can cross the funnel even when its center is outside.
+                if(acceleration.sqrMagnitude<.0001f)
+                {
+                    for(int j=0;j<Mathf.Min(8,target.shapes.Length)&&shapes<256&&tornadoFrameShapes<512;j++)
+                    {
+                        if(target.cursor>=target.shapes.Length)target.cursor=0;
+                        var shape=target.shapes[target.cursor++];shapes++;tornadoFrameShapes++;
+                        if(!shape||!shape.enabled||shape.isTrigger||shape.attachedRigidbody!=body)continue;
+                        var bounds=shape.bounds;
+                        if(bounds.max.y<center.y-2||bounds.min.y>center.y+height)continue;
+                        point=shape.ClosestPoint(new Vector3(center.x,Mathf.Clamp(center.y+height*.5f,bounds.min.y,bounds.max.y),center.z));
+                        acceleration=TornadoImpulse(center,point,radius,height,force);
+                        if(acceleration.sqrMagnitude>=.0001f)break;
+                    }
+                }
+                if(acceleration.sqrMagnitude<.0001f)continue;
+                var push=body.GetComponent<IPushable>();
+                // Magnets and grouped bodies release through their existing push ability.
+                if(body.isKinematic&&push==null)continue;
+                if(body.GetComponent<IBreakable>() is IBreakable breakable&&breakable.Broken)continue;
+                if(target.pushedAt==age)continue;
+                float interval=target.pushedAt>=0?Mathf.Clamp(age-target.pushedAt,dt,.18f):.1f;
+                target.pushedAt=age;
+                if(body.isKinematic||body.IsSleeping()){wakes++;tornadoFrameWakes++;}
+                Vector3 impulse=Vector3.ClampMagnitude(acceleration*interval,30);
+                if(push!=null)push.Push(impulse,gameObject);
+                else body.AddForce(impulse,ForceMode.VelocityChange);
+                pushes++;tornadoFramePushes++;
+            }
+        }
+
+        void TickTornadoPlayers(float dt)
+        {
+            float force=V("force")*strength;
+            if(force<=0)return;
+            Vector3 center=TornadoCenter;
+            float radius=V("reach"),height=V("height");
+            var halfHeight=(height+2)*.5f;
+            int n=Physics.OverlapBoxNonAlloc(center+Vector3.up*(halfHeight-2),new Vector3(radius,halfHeight,radius),
+                hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Collide);
+            receivers.Clear();
             for(int i=0;i<n;i++)
             {
-                var p=hits[i].bounds.center;var delta=Vector3.ProjectOnPlane(c-p,Vector3.up);float d=delta.magnitude;
-                if(d>radius||p.y<c.y-2||p.y>c.y+height)continue;
-                var inward=d>.01f?delta/d:Vector3.right;float k=1-Mathf.Clamp01(d/radius);
-                var swirl=Vector3.Cross(Vector3.up,inward);
-                Affect(hits[i],(inward*.6f+swirl+Vector3.up*(.45f+k))*V("force")*dt*k,0);
+                var collider=hits[i];if(!collider)continue;
+                var impulse=TornadoImpulse(center,collider.bounds.center,radius,height,force)*dt;
+                if(impulse.sqrMagnitude<=0)continue;
+                var push=HitAbilities.Get<IPushable>(collider);
+                if(push!=null&&receivers.Add(push))push.Push(Vector3.ClampMagnitude(impulse,30),gameObject);
+                else if(push==null&&collider.attachedRigidbody is Rigidbody body&&body&&!body.isKinematic&&receivers.Add(body))
+                    body.AddForce(Vector3.ClampMagnitude(impulse,30),ForceMode.VelocityChange);
             }
         }
         Vector3 TornadoCenter=>new Vector3(area.center.x+Mathf.Sin(age*.18f)*area.extents.x*.35f,world.WaterHeight(area.center),area.center.z+Mathf.Cos(age*.14f)*area.extents.z*.35f);
@@ -210,7 +319,8 @@ namespace DeadlyJenga.World.Hazards
         protected override void EndHazard()
         {
             if(Kind=="Fire")foreach(int id in burning)Scorch(id);
-            DisasterStates.Active.Remove(this);sunlight.Clear();
+            GameEvents.Eliminated-=ResetSunlight;
+            DisasterStates.Active.Remove(this);sunlight.Clear();expiredSunlight.Clear();if(Kind=="Tornado")tornadoPushAt.Clear();
             foreach(var pair in originals)if(pair.Key&&pair.Key.sharedMaterial==ice)pair.Key.sharedMaterial=pair.Value;
             originals.Clear();if(ice)Destroy(ice);ice=null;meteors.Clear();burning.Clear();heat.Clear();lastContact.Clear();lastFireDamage.Clear();blockIds.Clear();ignited.Clear();fireStarted.Clear();fireScars=null;meteorClock=0;launched=false;
         }

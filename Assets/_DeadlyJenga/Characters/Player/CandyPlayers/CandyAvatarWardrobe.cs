@@ -27,7 +27,7 @@ namespace DeadlyJenga.CandyPlayers
 
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
-            value=CandyPlayerAvatar.SanitizeAppearance(value);
+            value=CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(value)).effective;
             if(built&&appearance.accessories==value.accessories&&CandyPlayerAvatar.StyleBits(appearance)==CandyPlayerAvatar.StyleBits(value))return;
             foreach(var p in pieces)if(p.renderer){p.renderer.gameObject.SetActive(false);Destroy(p.renderer.gameObject);}
             foreach(var t in new[]{LeftPalmEmitter,RightPalmEmitter,LeftSoleEmitter,RightSoleEmitter})if(t)Destroy(t.gameObject);

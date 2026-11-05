@@ -14,6 +14,35 @@ namespace DeadlyJenga.CandyPhysicsHands
         public Rigidbody[] bodies;
         public float Strength {get;private set;}
         public float MaximumAppliedForce {get;private set;}
+        public float AppliedDriveEffortNewtons {get;private set;}
+        public float AppliedLinearForceNewtons {get;private set;}
+        public float AppliedTorqueNewtonMetres {get;private set;}
+        public HandDriveProfile Profile {get;set;}
+        public bool RequiresProfile {get;set;}
+        readonly Vector3[] driveForces=new Vector3[16];
+        readonly float[] driveTorques=new float[16];
+        Vector3 palmTorque;
+        readonly Pose[] authoritativePreview=new Pose[16];
+        float authoritativePreviewAt=-100;
+        bool hasAuthoritativePreview;
+        public bool HasFreshAuthoritativePreview=>NetworkPreview&&Time.unscaledTime-authoritativePreviewAt<.5f;
+        public void ReceiveAuthoritativePreview(Pose[] poses,float receivedAt)
+        {
+            if(!NetworkPreview||poses==null||poses.Length!=16)return;
+            System.Array.Copy(poses,authoritativePreview,16);
+            authoritativePreviewAt=receivedAt;hasAuthoritativePreview=true;
+        }
+        public void ClearAuthoritativePreview()=>authoritativePreviewAt=-100;
+        public void RenderAuthoritativePreview(float dt)
+        {
+            if(!HasFreshAuthoritativePreview||bodies==null)return;
+            float blend=1-Mathf.Exp(-20*Mathf.Clamp(dt,0,.1f));
+            for(int i=0;i<16;i++)
+            {
+                bodies[i].position=Vector3.Lerp(bodies[i].position,authoritativePreview[i].position,blend);
+                bodies[i].rotation=Quaternion.Slerp(bodies[i].rotation,authoritativePreview[i].rotation,blend);
+            }
+        }
         public CandyHandPose Target {get;private set;}
         Collider[] contacts;
         PhysicsMaterial friction;
@@ -181,11 +210,12 @@ namespace DeadlyJenga.CandyPhysicsHands
         void FixedUpdate(){StepDrives(Time.fixedDeltaTime);}
         public void StepDrives(float dt)
         {
+            MaximumAppliedForce=AppliedDriveEffortNewtons=AppliedLinearForceNewtons=AppliedTorqueNewtonMetres=0;
             if(ReplicatedBones||!settings||bodies==null)return;
             if(NetworkPreview)
             {
-                for(int i=0;i<bodies.Length;i++)
-                {Desired(Target,i,out var p,out var q);bodies[i].MovePosition(p);bodies[i].MoveRotation(q);}
+                if(hasAuthoritativePreview)return;
+                PreviewWithoutAuthority(dt);
                 return;
             }
             if(!active)
@@ -194,36 +224,111 @@ namespace DeadlyJenga.CandyPhysicsHands
                 {Desired(Target,i,out var p,out var q);bodies[i].MovePosition(Vector3.MoveTowards(bodies[i].position,p,settings.maxSpeed*dt));bodies[i].MoveRotation(Quaternion.RotateTowards(bodies[i].rotation,q,settings.maxAngularSpeed*Mathf.Rad2Deg*dt));}
                 return;
             }
-            MaximumAppliedForce=0;
-            friction.staticFriction=settings.staticFriction;friction.dynamicFriction=settings.dynamicFriction;
+            float forceBudget=RequiresProfile?(Profile&&Profile.Confirmed?Profile.ForceNewtons:0):float.PositiveInfinity;
+            float grip=RequiresProfile&&Profile?Profile.Friction:settings.staticFriction;
+            float sliding=RequiresProfile?grip*.85f:settings.dynamicFriction;
+            if(friction.staticFriction!=grip)friction.staticFriction=grip;
+            if(friction.dynamicFriction!=sliding)friction.dynamicFriction=sliding;
+            friction.frictionCombine=RequiresProfile?PhysicsMaterialCombine.Multiply:PhysicsMaterialCombine.Average;
+            float requestedEffort=0;
             for(int i=0;i<bodies.Length;i++)
             {
                 var rb=bodies[i];Desired(Target,i,out var p,out var q);
+                rb.maxLinearVelocity=RequiresProfile?Mathf.Min(settings.maxSpeed,12):settings.maxSpeed;
                 float denominator=1+dt*settings.positionDamping/rb.mass+dt*dt*settings.positionSpring/rb.mass;
-                Vector3 force=Vector3.ClampMagnitude(((p-rb.position)*settings.positionSpring-rb.linearVelocity*settings.positionDamping)/denominator,(i==0?settings.palmForce:settings.fingerForce)*Strength);
-                if(i==0||!JointDrivenFingers){rb.AddForce(force);MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);}
+                driveForces[i]=i==0||!JointDrivenFingers?Vector3.ClampMagnitude(
+                    ((p-rb.position)*settings.positionSpring-rb.linearVelocity*settings.positionDamping)/denominator,
+                    (i==0?settings.palmForce:settings.fingerForce)*Strength):Vector3.zero;
                 if(i>0)
                 {
-                    // Drive the anatomical rotation relative to its connected hand bone.
-                    // A constant world target on a rotating chain effectively counts the
-                    // parent's motion twice and can turn fingers away from the tracked pose.
                     int parent=(i-1)%3==0?0:i-1;
                     Desired(Target,parent,out _,out var parentRotation);
                     Quaternion relative=Quaternion.Inverse(parentRotation)*q;
                     joints[i-1].targetRotation=Quaternion.Inverse(relative)*referenceRelative[i-1];
-                    joints[i-1].slerpDrive=new JointDrive{positionSpring=settings.rotationSpring*(JointDrivenFingers?6:1),positionDamper=settings.rotationDamping*(JointDrivenFingers?2.5f:1),maximumForce=settings.fingerTorque*Strength};
-                    continue;
+                    driveTorques[i]=settings.fingerTorque*Strength;
                 }
-                var error=q*Quaternion.Inverse(rb.rotation);if(error.w<0)error=new Quaternion(-error.x,-error.y,-error.z,-error.w);error.ToAngleAxis(out float angle,out Vector3 axis);if(angle>180)angle-=360;
-                if(axis.sqrMagnitude>.001f)
+                else
                 {
-                    Quaternion inertiaFrame=rb.rotation*rb.inertiaTensorRotation;
-                    Vector3 e=Quaternion.Inverse(inertiaFrame)*(axis*angle*Mathf.Deg2Rad),w=Quaternion.Inverse(inertiaFrame)*rb.angularVelocity;
-                    Vector3 inertia=rb.inertiaTensor,torque=Vector3.zero;
-                    for(int n=0;n<3;n++)torque[n]=(e[n]*settings.rotationSpring-w[n]*settings.rotationDamping)/(1+dt*settings.rotationDamping/Mathf.Max(.00000001f,inertia[n])+dt*dt*settings.rotationSpring/Mathf.Max(.00000001f,inertia[n]));
-                    rb.AddTorque(Vector3.ClampMagnitude(inertiaFrame*torque,(i==0?settings.palmTorque:settings.fingerTorque)*Strength));
+                    palmTorque=RequestedPalmTorque(rb,q,dt);
+                    driveTorques[0]=palmTorque.magnitude;
                 }
+                requestedEffort+=driveForces[i].magnitude+driveTorques[i]/DriveLever(i);
             }
+            float scale=requestedEffort>0?Mathf.Min(1,forceBudget*Strength/requestedEffort):0;
+            for(int i=0;i<bodies.Length;i++)
+            {
+                Vector3 force=driveForces[i]*scale;
+                float torque=driveTorques[i]*scale;
+                bodies[i].AddForce(force,ForceMode.Force);
+                MaximumAppliedForce=Mathf.Max(MaximumAppliedForce,force.magnitude);
+                AppliedLinearForceNewtons+=force.magnitude;
+                AppliedTorqueNewtonMetres+=torque;
+                AppliedDriveEffortNewtons+=force.magnitude+torque/DriveLever(i);
+                if(i==0)bodies[0].AddTorque(palmTorque*scale,ForceMode.Force);
+                else joints[i-1].slerpDrive=new JointDrive
+                {
+                    positionSpring=torque>0?settings.rotationSpring*(JointDrivenFingers?6:1):0,
+                    positionDamper=torque>0?settings.rotationDamping*(JointDrivenFingers?2.5f:1):0,
+                    maximumForce=torque
+                };
+            }
+        }
+        readonly RaycastHit[] previewSweep=new RaycastHit[64];
+        readonly Collider[] previewOverlap=new Collider[64];
+        void PreviewWithoutAuthority(float dt)
+        {
+            var palm=(BoxCollider)contacts[0];
+            var pose=Target;
+            Vector3 position=bodies[0].position;
+            Quaternion rotation=bodies[0].rotation;
+            bool canMove=!RequiresProfile||Profile&&Profile.Confirmed&&Profile.ForceNewtons>0;
+            if(!canMove)return;
+            var next=Vector3.MoveTowards(position,Target.position,Mathf.Min(settings.maxSpeed,12)*dt);
+            var turn=Quaternion.RotateTowards(rotation,Target.rotation,settings.maxAngularSpeed*Mathf.Rad2Deg*dt);
+            Vector3 delta=next-position;
+            float distance=delta.magnitude;
+            Vector3 half=palm.size*.5f;
+            float skin=Mathf.Max(.001f,palm.contactOffset);
+            var scene=gameObject.scene.GetPhysicsScene();
+            int mask=(1<<DeadlyJenga.Core.Layers.Block)|(1<<DeadlyJenga.Core.Layers.Surface)|1;
+            if(distance>.0001f)
+            {
+                int hits=scene.BoxCast(position+rotation*palm.center,half,delta/distance,previewSweep,
+                    rotation,distance+skin,mask,QueryTriggerInteraction.Ignore);
+                float clear=hits==previewSweep.Length?0:distance;
+                for(int i=0;i<hits;i++)
+                    if(previewSweep[i].collider&&!previewSweep[i].collider.transform.IsChildOf(transform))
+                        clear=Mathf.Min(clear,Mathf.Max(0,previewSweep[i].distance-skin));
+                next=position+delta/distance*clear;
+            }
+            int overlaps=scene.OverlapBox(next+turn*palm.center,half,previewOverlap,turn,mask,QueryTriggerInteraction.Ignore);
+            bool blocked=overlaps==previewOverlap.Length;
+            for(int i=0;i<overlaps;i++)
+                if(previewOverlap[i]&&!previewOverlap[i].transform.IsChildOf(transform))blocked=true;
+            if(!blocked){position=next;rotation=turn;}
+            pose.position=position;pose.rotation=rotation;
+            for(int i=0;i<bodies.Length;i++)
+            {
+                Desired(pose,i,out var p,out var q);
+                bodies[i].MovePosition(p);bodies[i].MoveRotation(q);
+            }
+        }
+
+        float DriveLever(int index)=>Mathf.Max(.01f,index==0?.078f*builtSize:segmentLengths[index-1]*builtSize);
+        Vector3 RequestedPalmTorque(Rigidbody body,Quaternion target,float dt)
+        {
+            var error=target*Quaternion.Inverse(body.rotation);
+            if(error.w<0)error=new Quaternion(-error.x,-error.y,-error.z,-error.w);
+            error.ToAngleAxis(out float angle,out Vector3 axis);
+            if(angle>180)angle-=360;
+            if(axis.sqrMagnitude<=.001f)return Vector3.zero;
+            Quaternion inertiaFrame=body.rotation*body.inertiaTensorRotation;
+            Vector3 e=Quaternion.Inverse(inertiaFrame)*(axis*angle*Mathf.Deg2Rad);
+            Vector3 w=Quaternion.Inverse(inertiaFrame)*body.angularVelocity;
+            Vector3 inertia=body.inertiaTensor,torque=Vector3.zero;
+            for(int n=0;n<3;n++)torque[n]=(e[n]*settings.rotationSpring-w[n]*settings.rotationDamping)/
+                (1+dt*settings.rotationDamping/Mathf.Max(.00000001f,inertia[n])+dt*dt*settings.rotationSpring/Mathf.Max(.00000001f,inertia[n]));
+            return Vector3.ClampMagnitude(inertiaFrame*torque,settings.palmTorque*Strength);
         }
         void LateUpdate()
         {

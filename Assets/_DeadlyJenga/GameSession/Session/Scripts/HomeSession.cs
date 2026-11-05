@@ -11,7 +11,8 @@ namespace DeadlyJenga.CastlePrototype
         public IslandLobbyCatalog catalog;
         public string lobbyScene = "Lobby", gameScene = "Game";
         IslandRoomConnection room;
-        bool loading;
+        bool loading, searchingNearby;
+        float nearbyScanUntil;
         string message = "Choose your next adventure.";
         public static bool AutofillLobby { get; private set; } = true;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -23,7 +24,12 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(room&&(room.Busy||room.Status.StartsWith("Connection",StringComparison.Ordinal)||room.Status.StartsWith("Disconnected",StringComparison.Ordinal)))return room.Status;
                 var invite=room?.Discovery?.Invitation;
-                return invite!=null?"Nearby invite from "+invite.message.name+". Open Join Game to accept.":message;
+                if(invite!=null)return "Nearby invite from "+invite.message.name+". Open Join Game to accept.";
+                if(!searchingNearby || !room)return message;
+                if(room.DiscoveryNotice.Length>0)return room.DiscoveryNotice;
+                if(room.Discovery?.HasJoinable==true)return "Pick a nearby room or enter a room code.";
+                return Time.unscaledTime<nearbyScanUntil?"Searching this local network…":
+                    "No rooms found. Open the game on both devices on the same local network, or enter a room code.";
             }
         }
         public string Region => room ? room.Region.ToUpperInvariant() : "";
@@ -53,9 +59,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void DetectNearby()
         {
-            if (Busy) return;
-            room.ScanNearby(); message = "Searching this Wi-Fi for joinable rooms.";
-            if (!string.IsNullOrEmpty(room.DiscoveryStatus)) message = room.DiscoveryStatus;
+            if (Busy || !room) return;
+            room.ScanNearby();
+            searchingNearby = true;
+            nearbyScanUntil = Time.unscaledTime + 2;
         }
         public void NextRegion()
         {
@@ -73,6 +80,7 @@ namespace DeadlyJenga.CastlePrototype
         async Task Connect(bool host, string address)
         {
             loading = true;
+            searchingNearby = false;
             try
             {
                 AutofillLobby = false;
