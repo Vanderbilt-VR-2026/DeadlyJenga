@@ -74,7 +74,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)
             {
                 nextMarinaMirror=Time.unscaledTime+.2f;var previous=wardrobePlayer;wardrobePlayer=Player;
-                try{ResetWardrobeView();PresentWardrobe();}finally{wardrobePlayer=previous;}
+                try{PresentMarinaMirror();}finally{wardrobePlayer=previous;}
             }
         }
         void SyncMarinaBacks()

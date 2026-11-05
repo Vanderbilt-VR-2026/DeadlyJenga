@@ -451,8 +451,19 @@ namespace DeadlyJenga.CastlePrototype
             Hint move=vr?Controller(session.PlayingHand?left||!right:single?left:!dominantLeft,ControllerPart.Stick,session.PlayingHand?"Fly":"Move"):
                 new Hint(CandyHudIcon.Move,"W A S D",session.PlayingHand?"Fly":"Move");
             if(session.PlayingHand)
-                return vr ? new[]{move,Controller(true,ControllerPart.Trigger,"Rise"),Controller(true,ControllerPart.Grip,"Descend")} :
-                    new[]{move,new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),new Hint(CandyHudIcon.Look,"MOUSE","Steer")};
+            {
+                if(!vr)return new[]{move,new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),new Hint(CandyHudIcon.Look,"MOUSE","Steer")};
+                if(!left&&!right)return TrackedHands?new[]{
+                    new Hint(CandyHudIcon.Hand,"HAND TRACKING","Gesture flight"),
+                    new Hint(CandyHudIcon.Pinch,"SPARE HAND PINCH","Steer / release to stop"),
+                    new Hint(CandyHudIcon.Help,"OPEN CONTROLS","Hand-tracking help")}:new[]{
+                    new Hint(CandyHudIcon.Help,"TRACK A CONTROLLER","Flight input unavailable"),
+                    new Hint(CandyHudIcon.Help,"NO TRACKED TRIGGER","Rise unavailable"),
+                    new Hint(CandyHudIcon.Help,"NO TRACKED GRIP","Descend unavailable")};
+                bool pilotLeft=single?left:dominantLeft;
+                return new[]{Controller(single?left:!pilotLeft,ControllerPart.Stick,"Fly"),
+                    Controller(pilotLeft,ControllerPart.Trigger,"Rise"),Controller(pilotLeft,ControllerPart.Grip,"Descend")};
+            }
 
             var controls=session.Player.gameObject.GetComponent<IEquipmentControls>();
             var equipment=controls?.Equipment;
