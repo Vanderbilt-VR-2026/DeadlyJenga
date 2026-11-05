@@ -212,41 +212,6 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var actor in actors) P.Write(writer, actor);
             });
         }
-        public P.Actor[] FusionCaptureLiveActors(bool includeBots=true)
-        {
-            var actors = new List<P.Actor> { LocalActor() };
-            foreach (var c in connections) if (c.actor != null) actors.Add(Rebroadcast(c.id, c.actor));
-            foreach (var pair in fusionActors) actors.Add(Rebroadcast(pair.Key, pair.Value));
-            if(includeBots)
-            {
-                // Bots and AI hands simulated here.
-                var captured = new HashSet<INetworkActor>();
-                foreach (var local in NetworkActors.Local)
-                    if (NetworkActors.Alive(local) && !IsOwnCharacter(local) && local is Component part)
-                    {
-                        actors.Add(P.Capture(LocalActorId(part), local));
-                        captured.Add(local);
-                    }
-                // Driven NPC avatars deliberately do not register as local input devices.
-                if (session.SurvivorBots != null)
-                    foreach (var member in session.SurvivorBots.Members)
-                    {
-                        if (!member) continue;
-                        var actor = member.GetComponent<INetworkActor>();
-                        if (!NetworkActors.Alive(actor) || !captured.Add(actor)) continue;
-                        actors.Add(P.Capture(LocalActorId(member.transform), actor));
-                    }
-            }
-            return actors.ToArray();
-        }
-        public bool FusionApplyLiveActor(P.Actor actor)
-        {
-            if(!IsClient||!receivedWorld||targetWorld?.actors==null||actor==null)return false;
-            var known=targetWorld.actors.FirstOrDefault(row=>row.id==actor.id&&row.kind==actor.kind);
-            if(known==null||!known.active)return false;
-            if(actor.id==id)ApplyOwnHandFeedback(actor);else ShowActor(actor,false);
-            livePoseAt[actor.id]=Time.unscaledTime;return true;
-        }
         public void FusionApplyWorld(byte[] data)
         {
             var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
@@ -571,7 +536,27 @@ namespace DeadlyJenga.CastlePrototype
                 var b = blocks[i]; s.blocks[i] = b ? new P.Pose(b.position, b.rotation) : new P.Pose(Vector3.zero, Quaternion.identity);
                 s.active[i] = b && b.gameObject.activeSelf;
             }
-            s.actors = FusionCaptureLiveActors(); return s;
+            var actors = new List<P.Actor> { LocalActor() };
+            foreach (var c in connections) if (c.actor != null) actors.Add(Rebroadcast(c.id, c.actor));
+            foreach (var pair in fusionActors) actors.Add(Rebroadcast(pair.Key, pair.Value));
+            // Bots and AI hands simulated here.
+            var captured = new HashSet<INetworkActor>();
+            foreach (var local in NetworkActors.Local)
+                if (NetworkActors.Alive(local) && !IsOwnCharacter(local) && local is Component part)
+                {
+                    actors.Add(P.Capture(LocalActorId(part), local));
+                    captured.Add(local);
+                }
+            // Driven NPC avatars deliberately do not register as local input devices.
+            if (session.SurvivorBots != null)
+                foreach (var member in session.SurvivorBots.Members)
+                {
+                    if (!member) continue;
+                    var actor = member.GetComponent<INetworkActor>();
+                    if (!NetworkActors.Alive(actor) || !captured.Add(actor)) continue;
+                    actors.Add(P.Capture(LocalActorId(member.transform), actor));
+                }
+            s.actors = actors.ToArray(); return s;
         }
         static string LocalActorId(Component part)
         {
@@ -605,11 +590,11 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var actor in s.actors)
             {
                 present.Add(actor.id);
-                if(actor.active&&HasFreshPose(actor.id))continue;
+                if(HasFreshPose(actor.id))continue;
                 if(actor.id==id)ApplyOwnHandFeedback(actor);
                 else ShowActor(actor,false);
             }
-            foreach (var key in views.Keys.Where(key => !present.Contains(key)).ToArray())
+            foreach (var key in views.Keys.Where(key => !present.Contains(key) && !HasFreshPose(key)).ToArray())
             { livePoseAt.Remove(key); RemoveView(key); }
             if (!receivedWorld)
             {
