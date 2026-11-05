@@ -10,7 +10,7 @@ namespace DeadlyJenga.Presentation
         sealed class PickupVisual{public Transform root;public TextMesh label;public EquipmentKind kind;public Transform model;}
         readonly Dictionary<int,PickupVisual> pickups=new Dictionary<int,PickupVisual>();
         readonly HashSet<int> visible=new HashSet<int>();
-        Canvas canvas;Text status;RawImage weaponOutline;Camera eye;bool vr;
+        Canvas canvas;Text status;Image weaponOutline;Camera eye;bool vr;
         static readonly Dictionary<EquipmentKind,Texture2D> outlines=new();
         public static Texture2D Outline(EquipmentKind kind)
         {
@@ -77,11 +77,12 @@ namespace DeadlyJenga.Presentation
             {
                 var go=new GameObject("Equipment HUD",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=35;
                 status=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipment and swap",new Vector2(272,-217),new Vector2(360,75),16,TextAnchor.MiddleCenter);
-                weaponOutline=new GameObject("Weapon outline",typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
+                weaponOutline=new GameObject("Weapon outline",typeof(RectTransform),typeof(Image)).GetComponent<Image>();
                 weaponOutline.transform.SetParent(status.transform.parent,false);
                 weaponOutline.rectTransform.anchoredPosition=new Vector2(-140,0);
                 weaponOutline.rectTransform.sizeDelta=new Vector2(58,36);
-                weaponOutline.color=CandyHudCards.Accent;
+                weaponOutline.color=Color.white;
+                weaponOutline.preserveAspect=true;
                 weaponOutline.raycastTarget=false;
             }
             if(eye!=session.ActiveCamera||vr!=session.IsVR){eye=session.ActiveCamera;vr=session.IsVR;CandyHudLayout.Configure(canvas,transform,eye,vr);}
@@ -113,8 +114,8 @@ namespace DeadlyJenga.Presentation
                 status.text=Name(equipment.kind)+mode+ammo+"\n"+controlsHint;
             }
             else status.text=equipment==null||equipment.kind==EquipmentKind.None?"":Name(equipment.kind)+"   "+Mathf.CeilToInt(equipment.remaining)+"s";
-            weaponOutline.texture=pending==null&&equipment!=null?Outline(equipment.kind):null;
-            weaponOutline.enabled=weaponOutline.texture;
+            weaponOutline.sprite=pending==null&&equipment!=null?CandyWeaponIcons.Get(equipment.kind,equipment.shotgun):null;
+            weaponOutline.enabled=weaponOutline.sprite;
             status.rectTransform.offsetMin=new Vector2(weaponOutline.enabled?66:10,4);
             CandyHudCards.Visible(status,!string.IsNullOrEmpty(status.text));
             visible.Clear();

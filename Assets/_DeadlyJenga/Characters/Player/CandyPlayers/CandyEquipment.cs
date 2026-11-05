@@ -88,6 +88,34 @@ namespace DeadlyJenga.CandyPlayers
         }
         public void ToggleRifleMode(){var state=Equipment;if(EquipmentSpecifications.Get(state.kind).modeSwitch){if(Runtime?.RequestEquipment(state.drawn,left,!state.shotgun)==true&&state.kind==EquipmentKind.SheriffHammer)sheriffShotgun=!state.shotgun;}}
         public bool JumpHeld=>UsesTriggers&&Equipment.kind!=EquipmentKind.PoweredArmor&&!(EquipmentSpecifications.Get(Equipment.kind).modeSwitch&&Equipment.drawn)&&!BlocksTraversal&&offTrigger!=null&&offTrigger.IsPressed();
+        // Model-space sight lines. Large weapons stay shouldered beside the eye.
+        public static bool TryAimGripOffset(EquipmentState state,bool leftHanded,bool vr,out Vector3 offset)
+        {
+            offset=Vector3.zero;
+            if(state==null||state.kind==EquipmentKind.None)return false;
+            var spec=EquipmentSpecifications.Get(state.kind);
+            if(spec.power||spec.melee&&!(state.shotgun&&
+                (state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe)))return false;
+            offset=state.kind switch
+            {
+                EquipmentKind.DualRifle=>new Vector3(0,-.28f,vr?-.20f:-.07f),
+                EquipmentKind.Blaster=>new Vector3(0,-.24f,vr?.03f:.12f),
+                EquipmentKind.SheriffHammer=>new Vector3(0,-.23f,vr?-.02f:.12f),
+                EquipmentKind.RocketLauncher=>new Vector3(.20f,-.35f,0),
+                EquipmentKind.ChainGun=>new Vector3(.18f,-.26f,.13f),
+                EquipmentKind.GrenadeLauncher=>new Vector3(0,-.43f,.12f),
+                EquipmentKind.NeedleDrill=>new Vector3(0,-.31f,.12f),
+                EquipmentKind.StockPistol=>new Vector3(0,-.218f,.12f),
+                EquipmentKind.WristLaser=>new Vector3(0,-.17f,.35f),
+                EquipmentKind.Chainsaw=>new Vector3(0,-.25f,.10f),
+                EquipmentKind.LaserAxe=>new Vector3(0,-.32f,.10f),
+                EquipmentKind.PoweredArmor=>new Vector3(0,-.12f,.40f),
+                _=>new Vector3(0,-.24f,.12f)
+            };
+            if(leftHanded)offset.x=-offset.x;
+            if(vr)offset.x+=leftHanded?-.031f:.031f;
+            return true;
+        }
         public Pose GripPose
         {
             get
@@ -106,25 +134,16 @@ namespace DeadlyJenga.CandyPlayers
                     }
                     if(Local&&Equipment.drawn&&HybridXRInput.GripHeld(left))
                     {
-                        Vector3 rear=Equipment.kind switch
-                        {
-                            EquipmentKind.DualRifle=>new Vector3(0,.28f,.35f),
-                            EquipmentKind.Blaster=>new Vector3(0,.24f,.12f),
-                            EquipmentKind.SheriffHammer=>new Vector3(0,.23f,.17f),
-                            _=>Vector3.zero
-                        };
-                        if(rear!=Vector3.zero)
-                        {
-                            Vector3 eyeOffset=new Vector3(left?-.031f:.031f,0,.15f);
-                            aim=new Pose(head.position+head.rotation*(eyeOffset-rear)*Scale,head.rotation);
-                        }
+                        if(TryAimGripOffset(Equipment,left,true,out var offset))
+                            aim=new Pose(head.position+head.rotation*offset*Scale,head.rotation);
                     }
                 }
                 else
                 {
                     var position=head.position+head.rotation*new Vector3(left?-.25f:.25f,-.22f,.36f)*Scale;
-                    bool sighted=Local&&Mouse.current?.rightButton.isPressed==true&&Equipment.drawn&&(Equipment.kind==EquipmentKind.Blaster||Equipment.kind==EquipmentKind.DualRifle||Equipment.kind==EquipmentKind.SheriffHammer);
-                    if(sighted)position=head.position+head.rotation*new Vector3(0,Equipment.kind==EquipmentKind.DualRifle?-.28f:Equipment.kind==EquipmentKind.Blaster?-.24f:-.23f,Equipment.kind==EquipmentKind.DualRifle?-.07f:.12f)*Scale;
+                    if(Local&&Equipment.drawn&&Mouse.current?.rightButton.isPressed==true&&
+                        TryAimGripOffset(Equipment,left,false,out var offset))
+                        position=head.position+head.rotation*offset*Scale;
                     Vector3 target=head.position+head.forward*120;
                     int count=Physics.RaycastNonAlloc(head.position,head.forward,aimHits,120,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);float nearest=120;
                     for(int i=0;i<count;i++){var hit=aimHits[i];if(!hit.collider.transform.IsChildOf(transform)&&(!hit.collider.isTrigger||hit.collider.GetComponentInParent<IModeActor>()!=null)&&hit.distance<nearest){nearest=hit.distance;target=hit.point;}}
@@ -174,7 +193,7 @@ namespace DeadlyJenga.CandyPlayers
         public void PoseHands(ref CandyAvatarFrame frame)
         {
             var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||motor&&(motor.Climbing||motor.Vaulting))return;
-            var hand=state.leftHanded?frame.left:frame.right;var pose=GripPose;hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
+            var hand=state.leftHanded?frame.left:frame.right;var gripPose=GripPose;var pose=PresentedReloadGrip(gripPose,state,state.leftHanded);hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
             if(CandyWeaponVisual.MeleeMount(state.kind,state.leftHanded,out _,out var mount))
             {
                 hand.rotation=pose.rotation*Quaternion.Inverse(mount);
@@ -185,7 +204,7 @@ namespace DeadlyJenga.CandyPlayers
             if(state.leftHanded)frame.left=hand;else frame.right=hand;
             if((state.kind==EquipmentKind.DualUzi||state.kind==EquipmentKind.LaserClaws)&&!motor.IsVR)
             {
-                var other=state.leftHanded?frame.right:frame.left;other.position=pose.position+pose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale;other.rotation=pose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
+                var other=state.leftHanded?frame.right:frame.left;var otherPose=new Pose(gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale,gripPose.rotation);otherPose=PresentedReloadGrip(otherPose,state,!state.leftHanded);other.position=otherPose.position;other.rotation=otherPose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
             }
             if(state.kind==EquipmentKind.DualUzi&&motor.IsVR&&avatar.tracking&&
                 avatar.tracking.TryControllerAim(!state.leftHanded,out var offhandAim))
@@ -246,7 +265,7 @@ namespace DeadlyJenga.CandyPlayers
                 armed=false;
                 return;
             }
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleModePressed):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||(HybridXRInput.SingleModePressed&&!HybridXRInput.SingleLookHeld)):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
             if(state.kind>EquipmentKind.PoweredArmor&&(!EquipmentSpecifications.Get(state.kind).melee||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe&&state.shotgun))
             {UpdateHeldArsenal(held&&armed&&state.drawn,state);return;}
             bool melee=EquipmentSpecifications.Get(state.kind).melee&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&!(state.kind==EquipmentKind.LaserAxe&&state.shotgun);

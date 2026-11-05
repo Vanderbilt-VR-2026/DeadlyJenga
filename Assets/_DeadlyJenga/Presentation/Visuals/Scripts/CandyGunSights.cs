@@ -45,7 +45,8 @@ namespace DeadlyJenga.Presentation
             {
                 if(lens)lens.SetActive(false);
                 if(player.gameObject.GetComponent<IWeaponAim>() is IWeaponAim weapon)
-                    aiming=OpenSightAligned(eye.transform.position,eye.transform.forward,weapon.WeaponAim);
+                    aiming=OpenSightAligned(eye.transform.position,eye.transform.forward,weapon.WeaponAim,
+                        state,player.gameObject.GetComponent<IMovementState>()?.Scale??1);
                 return;
             }
             if(owner!=player.transform||lastKind!=state.kind||lastShotgun!=state.shotgun||!optic)
@@ -86,6 +87,19 @@ namespace DeadlyJenga.Presentation
             float depth=Vector3.Dot(offset,direction);
             return depth>.02f&&depth<1.2f&&Vector3.Dot(view,direction)>.97f&&
                 (offset-direction*depth).sqrMagnitude<.18f*.18f;
+        }
+        public static bool OpenSightAligned(Vector3 eye,Vector3 view,Pose muzzle,EquipmentState equipment,float scale)
+        {
+            if(!SupportsAim(equipment))return false;
+            scale=Mathf.Max(.1f,scale);
+            // A launcher or rotary gun is shouldered beside the eye, not centered in it.
+            var spec=EquipmentSpecifications.Get(equipment.kind);
+            float radius=(spec.twoHanded||spec.melee?.38f:.24f)*scale;
+            Vector3 direction=muzzle.rotation*Vector3.forward;
+            Vector3 offset=muzzle.position-eye;
+            float depth=Vector3.Dot(offset,direction);
+            return depth>.02f*scale&&depth<1.6f*scale&&Vector3.Dot(view,direction)>.97f&&
+                (offset-direction*depth).sqrMagnitude<radius*radius;
         }
         static float EyeOffset(Vector3 eye,Transform optic)=>Vector3.ProjectOnPlane(eye-optic.position,optic.forward).sqrMagnitude;
         public static bool EyeBoxContains(Vector3 eye,Vector3 view,Vector3 rear,Vector3 forward,float scale)
