@@ -293,7 +293,7 @@ namespace DeadlyJenga.DevTools.Editor
             InputSystem.QueueDeltaStateEvent(hmd.trackingState, 2);
             motor.controlMode = ControlMode.VR;
             motor.RefreshMode();
-            motor.UseStationaryVR();
+            motor.SetVRPlayStyle(SurvivorVRPlayStyle.Seated, false);
             session.SendMessage("OnApplicationFocus", true);
             session.enabled = true;
             session.SetMenu(false);
