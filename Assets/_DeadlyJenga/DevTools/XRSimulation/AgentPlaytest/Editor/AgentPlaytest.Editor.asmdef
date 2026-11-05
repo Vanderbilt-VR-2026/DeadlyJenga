@@ -1,0 +1,6 @@
+{
+  "name": "AgentPlaytest.Editor",
+  "rootNamespace": "AgentPlaytest",
+  "includePlatforms": ["Editor"],
+  "autoReferenced": true
+}

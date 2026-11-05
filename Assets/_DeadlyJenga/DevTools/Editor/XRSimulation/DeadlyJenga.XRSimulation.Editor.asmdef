@@ -1,0 +1,11 @@
+{
+  "name": "DeadlyJenga.XRSimulation.Editor",
+  "references": [
+    "AgentPlaytest.Editor", "DeadlyJenga.Core", "DeadlyJenga.Core.Editor",
+    "DeadlyJenga.Characters", "DeadlyJenga.GameSession", "DeadlyJenga.Presentation",
+    "DeadlyJenga.DevTools.Editor", "HandDemo.Runtime", "Unity.InputSystem",
+    "Unity.XR.Interaction.Toolkit", "Unity.XR.Hands", "Unity.XR.CoreUtils"
+  ],
+  "includePlatforms": ["Editor"],
+  "autoReferenced": false
+}
