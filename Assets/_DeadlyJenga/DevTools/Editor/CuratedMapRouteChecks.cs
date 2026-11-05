@@ -15,7 +15,7 @@ namespace DeadlyJenga.DevTools.Editor
         [Serializable] sealed class SourceToken { public string path,sha256; }
         [Serializable] sealed class PrefabToken
         {
-            public string file,assetGuid,sourceSha256,dependencyHash,component,selection;
+            public string file,assetGuid,sourceSha256,dependencyHash,component,selection,savedLayout;
             public int serializedBodies,serializedColliders;
         }
         [Serializable] sealed class Result
@@ -101,8 +101,8 @@ namespace DeadlyJenga.DevTools.Editor
         {
             string path=ProjectPath.Find(file);var prefab=AssetDatabase.LoadAssetAtPath<GameObject>(path);if(!prefab)throw new InvalidOperationException("Imported prefab unavailable");
             var token=new PrefabToken{file=file,assetGuid=AssetDatabase.AssetPathToGUID(path),sourceSha256=Hash(path),dependencyHash=AssetDatabase.GetAssetDependencyHash(path).ToString(),serializedBodies=prefab.GetComponentsInChildren<Rigidbody>(true).Length,serializedColliders=prefab.GetComponentsInChildren<Collider>(true).Length};
-            if(file=="Mode_ctf.prefab"){var map=prefab.GetComponent<CastleGenerator>();token.component="CastleGenerator";token.selection=map&&map.settings!=null?map.settings.layoutPreset:"missing";Check(r,map&&map.settings!=null&&map.settings.layoutPreset=="ctf","Imported CTF prefab selects ctf generator");}
-            else{var map=prefab.GetComponent<EpicCityMap>();token.component="EpicCityMap";token.selection=map?map.design.ToString():"missing";Check(r,map&&map.design==1,"Imported Harbor prefab selects design 1");}
+            if(file=="Mode_ctf.prefab"){var map=prefab.GetComponent<CastleGenerator>();token.component="CastleGenerator";token.selection=map&&map.settings!=null?map.settings.layoutPreset:"missing";if(map&&map.settings!=null)token.savedLayout=map.SaveLayout();Check(r,map&&map.settings!=null&&map.settings.layoutPreset=="ctf","Imported CTF prefab selects ctf generator");}
+            else{var map=prefab.GetComponent<EpicCityMap>();token.component="EpicCityMap";token.selection=map?map.design.ToString():"missing";if(map)token.savedLayout=map.SaveLayout();Check(r,map&&map.design==1,"Imported Harbor prefab selects design 1");}
             r.prefabs.Add(token);
         }
         static string Hash(string path){using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant();}
