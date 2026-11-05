@@ -3,7 +3,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.Core
 {
-    public enum EquipmentAction { Shot, Draw, Holster, Pickup, Swap, Drop, ModeSwitch, Impact, Reload }
+    public enum EquipmentAction { Shot, Draw, Holster, Pickup, Swap, Drop, ModeSwitch, Impact, Reload, Bash = 9 }
     [Serializable] public sealed class EquipmentActionFrame
     {
         public int id;
@@ -55,6 +55,10 @@ namespace DeadlyJenga.Core
         bool RequestEquipmentAttack(Pose muzzle);
         bool SpawnEquipment(EquipmentKind kind);
         int RegisterPickup(IEquipmentPickupSource source);
+    }
+    public interface IEquipmentDropRuntime
+    {
+        bool RequestDropEquipment();
     }
     public interface IHeldEquipmentRuntime
     {

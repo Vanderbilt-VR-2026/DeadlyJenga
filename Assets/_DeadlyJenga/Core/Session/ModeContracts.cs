@@ -108,10 +108,20 @@ namespace DeadlyJenga.Core
         public string carrier;
         public bool atHome = true;
     }
+    [Serializable]
+    public sealed class EliminationFrame
+    {
+        public const int Capacity = 8;
+        public int sequence;
+        public string victim, killer;
+    }
+
     [Serializable] public sealed class ExpressionFrame {public int id;public string actor,name;public Vector3 position;public float remaining;}
     [Serializable]
     public sealed class MatchFrame
     {
+        public string eliminationEpoch = "";
+        public EliminationFrame[] eliminations = Array.Empty<EliminationFrame>();
         public int expressionSequence;
         public ExpressionFrame[] expressions=Array.Empty<ExpressionFrame>();
         public EquipmentKind demoRespawnEquipment;
