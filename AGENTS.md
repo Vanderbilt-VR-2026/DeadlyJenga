@@ -174,13 +174,90 @@ logs), FakeWorldQuery, FakeSession. Use them to test against something that does
 - No headset is assumed. Verify in the editor (desktop/XR simulator) and say
   what was NOT verified on device.
 
-## Git
-- Branch from the latest main. Name: <box>/<lane>-<task>,
-  e.g. world/blocks-pull-weights, characters/hand-grab.
-- Never base work on another person's unmerged branch.
-- Before finishing: merge latest main into the branch, confirm the project
-  compiles, and confirm Game.unity enters Play Mode without errors.
-- One task per branch. Moving files and changing logic go in separate PRs.
+## Git and autonomous handoffs
+
+Evan authorizes agents working on this repository to commit and push their owned,
+approved task changes to the existing verified `origin` without asking at each
+checkpoint. This covers ordinary task branches; the current integration owner
+alone publishes the agreed integration branch under its existing authorization.
+It does not authorize force pushes, branch deletion, releases, or changes to
+remote URLs/permissions. Preserve exact Core approval and transfer-branch rules.
+
+### Checkpoint and publish
+- Verify repository, worktree/lease, branch, full HEAD, dirty/index state, remote
+  fetch/push URLs and current integration destination before writing or pushing.
+  Use the current Coordinator/MAIN-approved baseline, not a stale branch named
+  `main`. Start one task branch per owned scope; use `codex/<box>-<lane>-<task>`
+  for new agent branches. Preserve existing accepted branch names.
+- Commit each coherent, reviewable slice after its relevant cheap checks, before
+  handoff, task switch or stopping. During long tasks, checkpoint at a safe slice
+  about every 30 minutes; do not create empty commits or interrupt an advancing
+  Unity run merely to meet a timer. Do not wait for unrelated full QA to preserve
+  eligible source work. Mark runtime checks pending until actually performed.
+- Stage explicit owned paths/hunks and matching Unity metadata; inspect the staged
+  diff and run `git diff --cached --check`. Never sweep another agent's edits into
+  a commit with `git add .`, `git add -A` or `git commit -a`. Keep private state,
+  credentials, generated output and unrelated work out of commits.
+- Core drafts, dependent patches awaiting exact Core approval, explicitly gated
+  prototypes and inherited test-only overlays stay uncommitted and unpushed.
+  Preserve a sealed draft/diff and its blocker in the existing Workboard instead.
+- Push each eligible checkpoint promptly to its exact owned remote branch. Inspect
+  every configured push URL and reject an unexpected repository or multiple
+  destinations or mirror mode. Disable automatic tag/submodule publication and
+  use an explicit single-branch refspec, for example
+  `git -c push.followTags=false -c push.recurseSubmodules=no push origin HEAD:refs/heads/<owned-task-branch>`; never `--all`, `--mirror`,
+  `--force` or `--force-with-lease`. Inspect the outgoing range, including inherited
+  commits; a scoped tip does not authorize publishing unapproved ancestors.
+- Read back the remote branch SHA and record it. A failed/auth-blocked/rejected
+  push remains local-only; retain the commit and report the real blocker once.
+  On divergence, fetch and inspect; coordinate ownership rather than resetting,
+  rewriting shared history or repeatedly retrying. Do not auto-pull into a dirty
+  or open integration checkout. No work means no commit/push or status spam.
+
+### Notes another agent can integrate
+Use a concrete subject naming the changed behavior. The body explains what was
+wrong, what changed and why; include these fields, with `none` or `pending` when
+appropriate. Commit messages travel with ordinary pushes; separate Git notes are
+not the handoff record.
+
+```text
+Fix <specific behavior> in <box/lane>
+
+<Trigger and resulting behavior; explain any non-obvious decision.>
+
+Task: <stable task ID and owner>
+Scope: <box/lane and important files; mention Unity metadata>
+Tests: <actual commands/results; identify pending runtime/headset checks>
+Evidence: <portable report/capture reference, or private Workboard record ID>
+Depends-on: <full required commit hashes, or none>
+Integration: <target branch; ready-for-review or checkpoint-not-ready; risks>
+Core-approval: <exact approval reference when applicable, otherwise none>
+```
+
+After commit/push, update the existing Workboard intake with full base/candidate
+and remote SHAs, owned paths, dependencies, exact tested commit or dirty snapshot,
+checks/results, known failures, approval state and next owner. Keep secrets and
+machine-private paths in the private intake, not in repository commit messages.
+A checkpoint is recoverable work; it is not automatically merge-ready.
+
+### Integrate serially
+- Coordinator assigns scope; one named integration writer applies accepted exact
+  candidates to the current destination. Feature agents must not race to merge
+  each other's branches or publish the shared integration branch.
+- Inspect ancestry, dependencies and changed paths before applying. An ancestor
+  is already included; a squash/cherry-pick needs verified equivalence. Never
+  merge `IGNORE_EvanBranchForTransferBetweenLaptops` into main or open its PR.
+- Refresh the approved destination before final integration without resetting or
+  overwriting work. Preserve/resolve owned conflicts; if a conflict changes
+  another owner's behavior, get that owner's scoped review. Do not blindly pick
+  an entire ours/theirs side. Moving assets and changing logic stay separate.
+- Validate the combined result: game code compiles and Game.unity enters solo
+  Play Mode; networking also gets two-player validation. Reuse relevant unchanged
+  evidence where justified. Documentation-only changes need diff/link checks,
+  not a Unity import. Record failures and pending checks honestly.
+- Record the resulting integration SHA and acceptance in the Workboard. Source
+  integration, runtime validation and latest APK source/artifact are separate
+  facts. Never label a pushed task commit as integrated or shipped without proof.
 
 ## Code style
 - Keep comments minimal and plain. Readers are college students new to Unity.
