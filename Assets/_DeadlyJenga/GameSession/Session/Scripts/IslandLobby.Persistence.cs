@@ -60,7 +60,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             var identity=owner.Player.gameObject.GetComponent<IModeActor>();
             if(identity!=null)Player.gameObject.GetComponent<IModeActor>()?.SetIdentity("lobby-visitor",identity.DisplayName,-1,identity.Color);
-            if(Player.transform.position.y<-.9f||(Player.transform.position-Center).sqrMagnitude>900)Player.Place(SafeSpawnPoint(),Quaternion.identity);
+            if(Player.transform.position.y<-.9f||(Player.transform.position-Center).sqrMagnitude>900)PlaceLocalLobbyArrival();
             SetupHint="The match is still running. Return whenever you are ready.";
             HostHint=JoinHint="Match in progress - room changes are locked during this visit.";
             SetMenu(false);return true;
@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
             SetPlayerPresent(true);
             if(lobbyBots==null)CreateLobbyPopulation();
             if(!Voice){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}else Voice.enabled=true;
-            Player.Place(SafeSpawnPoint(),Quaternion.identity);
+            PlaceLocalLobbyArrival();
             GameEvents.RaiseEmoted(gameObject,"LobbyResumed");
             UpdateControls();SetMenu(false);
         }

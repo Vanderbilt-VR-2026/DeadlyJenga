@@ -87,8 +87,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(Player==null){Debug.LogError("Island lobby survivor prefab needs an IPlayableCharacter.",this);enabled=false;return;}
                 Player.gameObject.name="Persistent lobby survivor";Player.ViewCamera.clearFlags=CameraClearFlags.Skybox;
                 if(!match){Room.PrepareSoloIdentity();ApplyLobbyIdentities();}
-                ConfigureMayhemMarinaLobby();BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);
-                Player.Place(SafeSpawnPoint(),Quaternion.identity);
+                ConfigureMayhemMarinaLobby();BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);marinaFloorSetupCompleted=true;
+                PlaceLocalLobbyArrival();
                 if(!match)
                 {
                     PopulateLobbyWildlife();
@@ -121,21 +121,28 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             }
             var feet=Player.transform.position;
-            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)Player.Place(SafeSpawnPoint(),Quaternion.identity);
+            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)PlaceLocalLobbyArrival();
             var keyboard=Keyboard.current;
             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
             if(VisitOwner)return;
             HomeSession.ConsumeLobbyEntry(this);
+            TickMarinaLocalArrival();
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
             ApplyLobbyIdentities();UpdateControls();
             if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation){nextLobbyPopulation=Time.unscaledTime+1;bool offline=HomeSession.AutofillLobby&&!Room.Connected&&!Room.Busy&&!Room.Departing;lobbyBots.AutoFill=false;lobbyBots.Running=offline;if(!offline){if(lobbyBots.Count>0)lobbyBots.Clear();}else{lobbyBots.SetHumanPlayerCount(1);lobbyBots.TargetPopulation=10;lobbyBots.FillToTarget();}}
         }
         public static Vector3 SpawnPoint(int slot)
         {float angle=(Math.Abs(slot)%10)*2.399963f;var point=(Persistent?Persistent.Center:Vector3.zero)+new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);MayhemMarinaSpawn(slot,ref point);return point;}
-        public void SpawnAt(P.Pose pose){Player.Place(pose.position,pose.rotation);ClearPeers();}
+        public void SpawnAt(P.Pose pose)
+        {
+            if(UsesMarinaSpawns&&Room&&Room.Connected&&!Room.IsHost)
+            {if(!PlaceLocalLobbyArrival())return;}
+            else if(!ApplyReservedMarinaSpawn(pose))return;
+            ClearPeers();
+        }
         public void SetMenu(bool open)
-        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
+        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=marinaArrivalPending||departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
         void OnApplicationFocus(bool value){focused=value;if(!value&&(!MatchResident||VisitOwner))SetMenu(true);}
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
         public bool TryPeerPosition(string id,out Vector3 position)

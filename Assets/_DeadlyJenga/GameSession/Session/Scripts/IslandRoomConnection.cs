@@ -52,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
             int offer=++mapOffer;
             string target=Catalog.maps[index].id;
             SwitchingMap=true;pendingGameMap=target;pendingGameMode=mode;mapAcks.Clear();
-            Status="Changing map for everyoneÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦";
+            Status="Changing map for everyone...";
             var packet=System.Text.Encoding.UTF8.GetBytes(target);
             int attempt=0;
             float deadline = Time.unscaledTime + 10, resend = 0;
@@ -178,6 +178,108 @@ namespace DeadlyJenga.CastlePrototype
         const int SocialChannel=0x49534C56;
         public bool CanLaunch=>LocalIsLobbyHost&&!Busy&&!LaunchPending&&!Departing&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available&&Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id);
         NetworkDelegates callbacks;float nextSend,nextHello,lastServer;int serial,waitingPose,generation;bool leaving,transitioning,welcomed;
+        bool marinaLocalSpawnPending;
+        bool marinaFreshReadyPending,marinaDeferredTrusted;
+        NetworkRunner marinaDeferredRunner,marinaAppliedRunner;
+        int marinaDeferredGeneration,marinaDeferredFloor,marinaAppliedGeneration,marinaAppliedFloor;
+        IslandLobby marinaDeferredLobby,marinaAppliedLobby;
+        PlayerRef marinaDeferredSender;
+        P.Pose marinaDeferredPose;
+        byte[] marinaAppliedReservation;
+        float nextMarinaCallback;
+        NetworkRunner marinaRecoveryRunner;
+        int marinaRecoveryOperation=int.MinValue;
+        readonly HashSet<PlayerRef> marinaRecoverySpawns=new HashSet<PlayerRef>();
+        void ResetMarinaCallbacks()
+        {marinaLocalSpawnPending=marinaFreshReadyPending=marinaDeferredTrusted=false;marinaAppliedReservation=null;marinaAppliedRunner=marinaDeferredRunner=null;marinaAppliedLobby=marinaDeferredLobby=null;nextMarinaCallback=0;marinaRecoveryRunner=null;marinaRecoveryOperation=int.MinValue;marinaRecoverySpawns.Clear();}
+        byte[] MarinaReservationIdentity(IslandLobby lobby,P.Pose pose)
+        {
+            var local=new P.Pose(lobby.transform.InverseTransformPoint(pose.position),Quaternion.Inverse(lobby.transform.rotation)*pose.rotation);
+            return P.Encode(P.Player,writer=>P.Write(writer,local));
+        }
+        bool MarinaSpawnAlreadyApplied(NetworkRunner owner,IslandLobby lobby,byte[] reservation)
+        {return ReferenceEquals(owner,marinaAppliedRunner)&&generation==marinaAppliedGeneration&&ReferenceEquals(lobby,marinaAppliedLobby)&&lobby.MarinaFloorRevision==marinaAppliedFloor&&marinaAppliedReservation!=null&&marinaAppliedReservation.SequenceEqual(reservation);}
+        void ApplyMarinaSpawnOnce(NetworkRunner owner,P.Pose pose)
+        {
+            var lobby=IslandLobby.Current;
+            if(!lobby||Busy||RoomSceneBusy||Departing||SwitchingMap||!CurrentOperation(generation,owner))return;
+            var reservation=MarinaReservationIdentity(lobby,pose);
+            if(MarinaSpawnAlreadyApplied(owner,lobby,reservation))return;
+            lobby.SpawnAt(pose);marinaAppliedRunner=owner;marinaAppliedGeneration=generation;marinaAppliedLobby=lobby;marinaAppliedFloor=lobby.MarinaFloorRevision;marinaAppliedReservation=reservation;
+        }
+        bool SendReservedMarinaSpawn(NetworkRunner owner,int operation,PlayerRef participant,P.Pose pose)
+        {
+            if(!CurrentOperation(operation,owner)||!IsHost||!owner.ActivePlayers.Contains(participant)||!GameExperienceMemberId(owner,participant,out _))return false;
+            try{Send(participant,Spawn,P.Encode(P.Player,w=>P.Write(w,pose)));marinaRecoverySpawns.Remove(participant);return true;}
+            catch(Exception error)
+            {if(CurrentOperation(operation,owner)){Status="Lobby spawn send failed: "+error.Message;owner.Disconnect(participant);}return false;}
+        }
+        void HandleMarinaReady(NetworkRunner owner,PlayerRef participant,Peer peer,LobbyParticipant preferred)
+        {
+            if(!CurrentOperation(generation,owner)||!IsHost||!owner.ActivePlayers.Contains(participant))return;
+            peer.seen=Time.unscaledTime;
+            if(Busy||Migrating||RoomSceneBusy||Departing||SwitchingMap||!GameExperienceMemberId(owner,participant,out _))
+            {peer.ready=false;Status="Waiting for the authenticated lobby arrival boundary.";return;}
+            var result=TryReserveMarinaSpawn(participant,out var pose,out var reason);
+            if(result==MarinaSpawnResult.Wait){peer.ready=false;Status=reason;return;}
+            if(result==MarinaSpawnResult.Rejected){peer.ready=false;Status="Lobby spawn rejected: "+reason;owner.Disconnect(participant);return;}
+            AssignIdentity(participant.ToString(),preferred);
+            peer.ready=SendReservedMarinaSpawn(owner,generation,participant,pose);
+        }
+        void HandleMarinaSpawn(NetworkRunner owner,PlayerRef sender,P.Pose pose)
+        {
+            if(!TrustedServerData(owner,sender,generation))return;
+            var lobby=IslandLobby.Current;if(!lobby)return;
+            if(RoomSceneBusy||Departing||SwitchingMap)
+            {marinaDeferredTrusted=false;marinaFreshReadyPending=true;marinaLocalSpawnPending=true;return;}
+            if(Busy)
+            {marinaDeferredTrusted=true;marinaDeferredRunner=owner;marinaDeferredGeneration=generation;marinaDeferredLobby=lobby;marinaDeferredFloor=lobby.MarinaFloorRevision;marinaDeferredSender=sender;marinaDeferredPose=pose;marinaLocalSpawnPending=true;return;}
+            if(MarinaSpawnAlreadyApplied(owner,lobby,MarinaReservationIdentity(lobby,pose))){marinaLocalSpawnPending=false;return;}
+            var result=AcceptLocalMarinaSpawn(owner,pose,out var reason);
+            if(result==MarinaSpawnResult.Rejected)throw new System.IO.InvalidDataException(reason);
+            marinaLocalSpawnPending=result!=MarinaSpawnResult.Accepted;
+            if(result==MarinaSpawnResult.Accepted)ApplyMarinaSpawnOnce(owner,pose);
+            else{Status=reason;welcomed=false;nextHello=0;}
+        }
+        void TickMarinaCallbacks(float now)
+        {
+            if(!Connected||Busy||Migrating||leaving||RoomSceneBusy||Departing||SwitchingMap||!IslandLobby.Current||!Owns(Runner)||now<nextMarinaCallback)return;
+            nextMarinaCallback=now+.25f;
+            if(!IsHost)
+            {
+                if(marinaDeferredTrusted)
+                {
+                    marinaDeferredTrusted=false;
+                    if(TrustedServerData(marinaDeferredRunner,marinaDeferredSender,marinaDeferredGeneration)&&ReferenceEquals(marinaDeferredLobby,IslandLobby.Current)&&marinaDeferredFloor==IslandLobby.Current.MarinaFloorRevision)
+                        HandleMarinaSpawn(marinaDeferredRunner,marinaDeferredSender,marinaDeferredPose);
+                    else marinaFreshReadyPending=true;
+                }
+                if(ConsumeMarinaSpawnRefreshRequest()||marinaFreshReadyPending){marinaFreshReadyPending=false;marinaLocalSpawnPending=true;welcomed=false;nextHello=0;}
+                if(!marinaLocalSpawnPending)return;
+                var result=TryGetLocalMarinaSpawn(out var pose,out var reason);
+                if(result==MarinaSpawnResult.Accepted){ApplyMarinaSpawnOnce(Runner,pose);marinaLocalSpawnPending=false;}
+                else if(result==MarinaSpawnResult.Rejected)throw new System.IO.InvalidDataException(reason);
+                else{Status=reason;welcomed=false;}
+                return;
+            }
+            if(!CurrentOperation(marinaRecoveryOperation,marinaRecoveryRunner))return;
+            var roster=Runner.ActivePlayers.ToArray();
+            if(roster.Length==0||!roster.Contains(Runner.LocalPlayer)||roster.Length>10||roster.Any(player=>!GameExperienceMemberId(Runner,player,out _)))return;
+            if(MarinaHostRecoveryPending)
+            {
+                var result=TryCompleteMarinaHostRecovery(out bool completedNow,out var reason);
+                if(result!=MarinaSpawnResult.Accepted){Status="Lobby recovery: "+reason;return;}
+                if(completedNow)foreach(var player in roster)if(player!=Runner.LocalPlayer)marinaRecoverySpawns.Add(player);
+            }
+            foreach(var player in marinaRecoverySpawns.ToArray())
+            {
+                if(!Runner.ActivePlayers.Contains(player)){marinaRecoverySpawns.Remove(player);continue;}
+                var result=TryGetReservedMarinaSpawn(player,out var pose,out var reason);
+                if(result==MarinaSpawnResult.Accepted)SendReservedMarinaSpawn(marinaRecoveryRunner,marinaRecoveryOperation,player,pose);
+                else if(result==MarinaSpawnResult.Rejected){Status="Lobby recovery spawn rejected: "+reason;Runner.Disconnect(player);}
+                else Status=reason;
+            }
+        }
         NetworkRunner ownedRunner;
         CancellationTokenSource connecting;
         public static IslandRoomConnection Ensure()
@@ -204,7 +306,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(Busy||Connected)return;
             if(!Catalog||!IslandRoomAddress.TryParse(input,Region,out var region,out var code)){Status="Enter a full code, for example US-ABC234.";return;}
-            Busy=true;HostSelected=host;Region=region;Code=code;Status=host?"Creating island roomÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦":"Joining island roomÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦";int attempt=++generation;
+            Busy=true;HostSelected=host;Region=region;Code=code;Status=host?"Creating island room...":"Joining island room...";int attempt=++generation;
             var go=CreateRunner();
             AttachCallbacks();
             try
@@ -217,7 +319,7 @@ namespace DeadlyJenga.CastlePrototype
                     Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget}}:null});
                 if(attempt!=generation)return;
                 if(!result.Ok){Status="Connection failed: "+result.ShutdownReason+". Check code, region, Internet and matching game builds, then retry.";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
-                else{Status="Room "+Code+" ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await PushMigration();}
+                else{Status="Room "+Code+" - "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await PushMigration();}
             }
             catch(Exception e){if(attempt!=generation)return;Status="Connection failed: "+e.Message;HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
             finally{if(attempt==generation){Busy=false;connecting?.Dispose();connecting=null;}}
@@ -244,7 +346,7 @@ namespace DeadlyJenga.CastlePrototype
             var attached=Runner;int attempt=generation;
             callbacks=new NetworkDelegates();callbacks.OnReliableDataReceived=(runner,source,key,data)=>{if(CurrentOperation(attempt,attached)&&ReferenceEquals(runner,attached))Receive(runner,source,key,data);};
             callbacks.OnPlayerJoined=(runner,player)=>{if(CurrentOperation(attempt,attached)&&ReferenceEquals(runner,attached))nextMigrationSnapshot=0;};
-            callbacks.OnPlayerLeft=(runner,player)=>{if(!CurrentOperation(attempt,attached)||!ReferenceEquals(runner,attached))return;DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());};
+            callbacks.OnPlayerLeft=(runner,player)=>{if(!CurrentOperation(attempt,attached)||!ReferenceEquals(runner,attached))return;ReleaseMarinaSpawn(player);marinaRecoverySpawns.Remove(player);DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());};
             callbacks.OnShutdown=(ended,reason)=>{if(Runner==ended&&!Migrating&&reason!=ShutdownReason.HostMigration)Disconnected(reason.ToString());};Runner.AddCallbacks(callbacks);
             callbacks.OnSceneLoadStart=runner=>
             {
@@ -269,9 +371,9 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     var lobby=IslandLobby.Persistent;
                     if(lobby&&(lobby.MatchResident||!ReferenceEquals(Services.Session,lobby)))lobby.ResumeAfterMatch();
-                    if(Connected)Status="Room "+Code+" ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· back in the lobby";
+                    if(Connected)Status="Room "+Code+" - back in the lobby";
                 }
-                else if(Connected)Status="Room "+Code+" ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· "+Catalog.maps[MapIndex].title;
+                else if(Connected)Status="Room "+Code+" - "+Catalog.maps[MapIndex].title;
             };
             callbacks.OnHostMigration=(old,token)=>{if(CurrentOperation(attempt,attached)&&ReferenceEquals(old,attached))_=Migrate(old,token);};
         }
@@ -295,7 +397,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(Migrating||leaving||!ReferenceEquals(old,Runner)||!ReferenceEquals(old,ownedRunner))return;
             int attempt=++generation;NetworkRunner operationRunner=old;
-            CancelDeparture();ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;Migrating=Busy=true;LaunchPending=false;Status="Host left ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· transferring the islandÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦";
+            BeginMarinaHostRecovery();marinaRecoveryOperation=attempt;marinaRecoveryRunner=old;marinaRecoverySpawns.Clear();marinaLocalSpawnPending=true;nextMarinaCallback=0;
+            CancelDeparture();ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;Migrating=Busy=true;LaunchPending=false;Status="Host left - transferring the island...";
             RoomGameExperience.Ensure(this)?.TransportBeforeMigration(old);
             var game=FindFirstObjectByType<CastleFusionSession>();game?.PauseForMigration();
             IslandLobby.Current?.Voice?.ResetLobbyAudio();
@@ -305,7 +408,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(!CurrentOperation(attempt,operationRunner)){if(old&&!ReferenceEquals(old,Runner))Destroy(old.gameObject);return;}
                 if(old)Destroy(old.gameObject);
                 peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;transitioning=false;
-                var go=CreateRunner();operationRunner=Runner;AttachCallbacks();
+                var go=CreateRunner();operationRunner=Runner;marinaRecoveryRunner=operationRunner;AttachCallbacks();
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1";
                 NetworkSceneInfo scenes=default;
                 if(game){int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);scenes.AddSceneRef(SceneRef.FromIndex(index),LoadSceneMode.Single);}
@@ -317,7 +420,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(IsHost){foreach(var id in identities.Keys.ToArray())if(!Runner.ActivePlayers.Any(p=>p.ToString()==id))DepartIdentity(id);if(!Runner.ActivePlayers.Any(p=>p.ToString()==leaderId))leaderId=LocalLobbyId;RefreshHostFlags();}
                 RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);
                 if(game)game.ResumeAfterMigration(Runner);
-                Status="Room "+Code+" ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â· "+(IsHost?"you are the new host":"host reassigned");
+                Status="Room "+Code+" - "+(IsHost?"you are the new host":"host reassigned");
             }
             catch(Exception e){if(CurrentOperation(attempt,operationRunner)){Status="Host transfer failed: "+e.Message;Disconnected(Status);}}
             finally{if(CurrentOperation(attempt,operationRunner))Migrating=Busy=false;}
@@ -334,6 +437,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Receive(NetworkRunner runner,PlayerRef source,ReliableKey key,ReadOnlySpan<byte> data)
         {
+            if(!Connected||!CurrentOperation(generation,runner))return;
             if(RoomGameExperience.Ensure(this)?.TransportReceive(runner,source,key,data)==true)return;
             key.GetInts(out int channel,out int kind,out int id,out int attempt);
             if(channel==DepartureChannel)
@@ -377,7 +481,12 @@ namespace DeadlyJenga.CastlePrototype
                     if(!runner.ActivePlayers.Contains(source))return;
                     if(!peers.TryGetValue(source,out var peer))peers[source]=peer=new Peer{seen=Time.unscaledTime};
                     if(kind==LobbyCommand&&peer.ready&&data.Length<=8192){using var command=P.Reader(data.ToArray(),P.Player);ApplyLobbyAction(source.ToString(),JsonUtility.FromJson<LobbyAction>(P.Text(command,8000)));}
-                    else if(kind==Ready){LobbyParticipant preferred=null;if(data.Length>0){using var identity=P.Reader(data.ToArray(),P.Player);preferred=JsonUtility.FromJson<LobbyParticipant>(P.Text(identity,512));}AssignIdentity(source.ToString(),preferred);if(!peer.ready)Send(source,Spawn,P.Encode(P.Player,w=>P.Write(w,new P.Pose(IslandLobby.SpawnPoint(source.RawEncoded),Quaternion.identity))));peer.ready=true;peer.seen=Time.unscaledTime;}
+                    else if(kind==Ready)
+                    {
+                        LobbyParticipant preferred=null;
+                        if(data.Length>0){using var identity=P.Reader(data.ToArray(),P.Player);preferred=JsonUtility.FromJson<LobbyParticipant>(P.Text(identity,512));if(identity.BaseStream.Position!=identity.BaseStream.Length)throw new System.IO.InvalidDataException("Trailing lobby identity");}
+                        HandleMarinaReady(runner,source,peer,preferred);
+                    }
                     else if(kind==Ack&&peer.waiting==id){peer.waiting=0;peer.ackedSelection=peer.sentSelection;}
                     else if(kind==Pose&&peer.ready)
                     {
@@ -388,7 +497,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 else if(kind==Ack&&waitingPose==id)waitingPose=0;
                 else if(kind==Spawn)
-                {if(!TrustedServerData(runner,source,generation))return;using var r=P.Reader(data.ToArray(),P.Player);var pose=P.ReadPose(r);IslandLobby.Current.SpawnAt(pose);}
+                {if(!TrustedServerData(runner,source,generation))return;using var r=P.Reader(data.ToArray(),P.Player);var pose=P.ReadPose(r);if(r.BaseStream.Position!=r.BaseStream.Length)throw new System.IO.InvalidDataException("Trailing lobby spawn");HandleMarinaSpawn(runner,source,pose);}
                 else if(kind==State)
                 {
                     using var reader=P.Reader(data.ToArray(),P.World);int map=reader.ReadInt32(),mode=reader.ReadInt32();
@@ -403,6 +512,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
+            try{TickMarinaCallbacks(Time.unscaledTime);}
+            catch(Exception error){Status="Lobby arrival failed: "+error.Message;}
             if(IsHost&&!Busy)ReconcileLobbyRoster();
             if(IsHost&&CanConfigure&&lastPublishedPopulation!=MatchSetup.BotTarget)PublishSelection();
             if(Connected&&!IsHost&&Runner.SessionInfo.Properties.TryGetValue("population",out var population))MatchSetup.BotTarget=Mathf.Clamp((int)population,10,100);
@@ -417,7 +528,7 @@ namespace DeadlyJenga.CastlePrototype
             else socialServer.Pump(now,(id,bytes)=>SendVoice(default,1,id,bytes));
             if(IsHost)
             {
-                foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
+                foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
                 if(now<nextSend)return;nextSend=now+.1f;
                 var actors=new List<P.Actor>{IslandLobby.Current.Capture(Runner.LocalPlayer.ToString())};actors.AddRange(peers.Values.Where(p=>p.actor!=null).Select(p=>p.actor));
                 byte[] bytes=P.Encode(P.World,w=>{w.Write(MapIndex);w.Write(ModeIndex);w.Write(actors.Count);foreach(var actor in actors)P.Write(w,actor);w.Write(SharedDemoControls);w.Write(LobbyStateJson());});
@@ -449,7 +560,7 @@ namespace DeadlyJenga.CastlePrototype
                 MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=map.id;
                 BeginDeparture(SceneUtility.GetBuildIndexByScenePath(map.scenePath),false);return;
             }
-            LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Waiting for players to confirm the selected mode and mapÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦";CheckLaunch();
+            LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Waiting for players to confirm the selected mode and map...";CheckLaunch();
         }
         public void CancelLaunch()
         {
@@ -459,14 +570,14 @@ namespace DeadlyJenga.CastlePrototype
         }
         void CheckLaunch()
         {
-            if(!LaunchPending||!IsHost||Departing)return;
+            if(!LaunchPending||!IsHost||Departing||MarinaHostRecoveryPending)return;
             bool ready=Runner.ActivePlayers.Where(p=>p!=Runner.LocalPlayer).All(p=>peers.TryGetValue(p,out var peer)&&peer.ready&&peer.ackedSelection==selectionVersion);
             if(!ready){if(Time.unscaledTime>launchDeadline){LaunchPending=false;Status="A player has not confirmed the lobby setup. Retry Start when everyone is ready.";}return;}
             LaunchPending=false;
             int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);
             if(index<0){Status="Selected map is not enabled in this build.";return;}
             MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=Catalog.maps[MapIndex].id;
-            Status="Starting "+Catalog.modes[ModeIndex].title+"ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€šÃ‚Â¦";BeginDeparture(index,true);
+            Status="Starting "+Catalog.modes[ModeIndex].title+"...";BeginDeparture(index,true);
         }
         public async Task Leave()
         {
@@ -481,7 +592,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Disconnected(string reason)
         {
-            Migrating=false;
+            Migrating=false;ClearMarinaSpawnReservations();ResetMarinaCallbacks();
             GetComponent<RoomGameExperience>()?.TransportDisconnected();
             CancelDeparture();
             ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;mapAcks.Clear();
