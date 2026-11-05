@@ -20,11 +20,11 @@ namespace DeadlyJenga.CandyArt
         Color baselineSkyColor,baselineEquator,baselineGround,writtenSky,writtenEquator,writtenGround;
         float baselineAmbient,writtenAmbient,baselineIntensity,writtenIntensity,baselineOutage;
         AmbientMode baselineMode;bool globalsWritten;
-        Renderer darkWater;readonly MaterialPropertyBlock waterTint=new MaterialPropertyBlock();
+        Renderer darkWater;MaterialPropertyBlock waterTint;
         static readonly string[] WaterNames={"_BaseColor","_Accent","_Shallow","_Deep","_Reflection","_Horizon"};
         static readonly Color[] WaterColors={new Color(.025f,.075f,.12f),new Color(.035f,.28f,.32f),new Color(.035f,.19f,.23f),new Color(.008f,.025f,.065f),new Color(.10f,.17f,.28f),new Color(.08f,.12f,.23f)};
         readonly Color[] waterBaseline=new Color[6];bool waterWritten;
-        void Awake(){shader=Resources.Load<Shader>("CandyScenery/CandyNeon");}
+        void Awake(){waterTint=new MaterialPropertyBlock();shader=Resources.Load<Shader>("CandyScenery/CandyNeon");}
         void LateUpdate()
         {
             DisasterFrame outage=null,vampire=null;
