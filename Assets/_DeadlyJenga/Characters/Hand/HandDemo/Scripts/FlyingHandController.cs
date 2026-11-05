@@ -21,6 +21,8 @@ namespace FlyingHand
         [Tooltip("Degrees of requested hand yaw per mouse pixel; uses the same yaw torque and speed limit as VR.")]
         [Min(0)] public float mouseYawSensitivity = .15f;
         public bool captureDesktopCursor = true;
+        public bool DualControllerFlight { get; private set; }
+        public float CameraPitchInput { get; private set; }
         public Vector2 DesktopLookDelta { get; private set; }
         // The host demo owns menus and possession; the reusable motor keeps its own input bindings.
         public bool InputSuspended { get; set; }
@@ -171,6 +173,7 @@ namespace FlyingHand
             // handles delayed XR startup and a display stopping during Play Mode.
             RefreshControlMode();
             DesktopLookDelta = Vector2.zero;
+            DualControllerFlight=false;CameraPitchInput=0;
             if(externallyDriven)
             {
                 if(InputSuspended||InputDriver==null){ClearInput();return;}
@@ -196,15 +199,35 @@ namespace FlyingHand
                     ? Mathf.Clamp(DesktopLookDelta.x * mouseYawSensitivity / (Time.deltaTime * yawSpeed), -1, 1) : 0;
                 return;
             }
-            UnityEngine.InputSystem.XR.XRController flightController=null;
+            bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
+            UnityEngine.InputSystem.XR.XRController dominant=null,support=null;
             foreach(var device in InputSystem.devices)
             {
                 if(device is not UnityEngine.InputSystem.XR.XRController candidate||!candidate.isTracked.isPressed||
-                   candidate.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")==null)continue;
-                bool left=false;
-                foreach(var usage in candidate.usages)if(usage==UnityEngine.InputSystem.CommonUsages.LeftHand){left=true;break;}
-                flightController=candidate;
-                if(left)break;
+                    candidate.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")==null)continue;
+                foreach(var usage in candidate.usages)
+                {
+                    if(usage!=UnityEngine.InputSystem.CommonUsages.LeftHand&&usage!=UnityEngine.InputSystem.CommonUsages.RightHand)continue;
+                    if((usage==UnityEngine.InputSystem.CommonUsages.LeftHand)==dominantLeft)dominant=candidate;
+                    else support=candidate;
+                    break;
+                }
+            }
+            var flightController=dominant??support;
+            Vector2 Stick(UnityEngine.InputSystem.XR.XRController controller)=>
+                controller?.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
+            float Axis(string name)=>flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
+            if(dominant!=null&&support!=null)
+            {
+                TrackedInputDriver?.ResetFlightInput();
+                DualControllerFlight=true;
+                var moveStick=Stick(dominant);
+                var lookStick=Stick(support);
+                MoveInput=moveStick.normalized*Mathf.InverseLerp(stickDeadzone,1,moveStick.magnitude);
+                YawInput=Deadzone(lookStick.x);
+                CameraPitchInput=Deadzone(lookStick.y);
+                VerticalInput=Mathf.Clamp(Axis("trigger")-Axis("grip"),-1,1);
+                return;
             }
             if(flightController==null&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
             {
@@ -224,8 +247,7 @@ namespace FlyingHand
             if(leftControllerFlight)
             {
                 TrackedInputDriver?.ResetFlightInput();
-                float Axis(string name)=>flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
-                var stick=flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
+                var stick=Stick(flightController);
                 ReadLeftController(stick,Axis("trigger"),Axis("grip"),flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton")?.isPressed==true);
                 return;
             }

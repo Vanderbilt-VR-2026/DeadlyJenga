@@ -89,7 +89,7 @@ namespace DeadlyJenga.Presentation
             var pending=System.Array.Find(match.Frame.pickups,p=>p.id==controls?.PendingPickup);
             canvas.enabled=eye&&!session.MenuOpen&&!CandyMatchHud.Expanded&&equipment!=null;
             if(pending!=null)status.text="SWAP "+Name(equipment.activePower!=EquipmentKind.None?equipment.activePower:equipment.kind)+" FOR "+Name(pending.kind)+"?\n"+(vr?"Dominant trigger: SWAP  |  Other trigger: KEEP":"E: SWAP  |  N: KEEP")+"\nYour current item drops here.";
-            else if(equipment?.kind==EquipmentKind.PoweredArmor)status.text="POWERED IRON SUIT · "+(equipment.drawn?"HOVERING":"STANDBY")+"\n"+(vr?"Hold controller trigger + point: fly · Release: hover · Trigger at hip: land\nTracked hand pinch: plasma":"V: take off / land · WASD: steer · E: up · Q: down · Click: plasma");
+            else if(equipment?.kind==EquipmentKind.PoweredArmor)status.text="POWERED IRON SUIT · "+(equipment.drawn?"HOVERING":"STANDBY")+"\n"+(vr?"Move stick · Trigger rise · Grip descend\nB / Y land · Other trigger or pinch plasma":"V: take off / land · WASD: steer · E: up · Q: down · Click: plasma");
             else if(equipment?.kind>=EquipmentKind.Blaster)
             {
                 var spec=EquipmentSpecifications.Get(equipment.kind);

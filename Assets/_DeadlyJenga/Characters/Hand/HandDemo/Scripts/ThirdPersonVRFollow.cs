@@ -37,7 +37,7 @@ namespace FlyingHand
         bool desktopView;
         bool viewInitialized;
         Vector3 velocity;
-        float yaw;
+        float yaw,vrPitch;
         Vector3 headBaseline;
         bool baselineReady;
         public bool DesktopView=>desktopView;
@@ -70,7 +70,7 @@ namespace FlyingHand
             if (!viewCamera) return;
             bool desktop = mode == ControlMode.Desktop;
             if (viewInitialized && desktop == desktopView) return;
-            desktopView = desktop; viewInitialized = true;
+            desktopView = desktop; viewInitialized = true;vrPitch=0;
             baselineReady=false;
             if (poseDriver) poseDriver.enabled = !desktop && originalDriverEnabled;
             if (ownsStereoTarget) viewCamera.stereoTargetEye = desktop ? StereoTargetEyeMask.None : originalTargetEye;
@@ -117,13 +117,16 @@ namespace FlyingHand
             if(controller)ApplyViewMode(controller.ActiveControlMode);
             bool vr=!desktopView;
             if(vr&&!baselineReady)CaptureHeadBaseline();
+            bool dual=vr&&controller&&controller.DualControllerFlight;
+            if(dual)vrPitch=Mathf.Clamp(vrPitch-controller.CameraPitchInput*72f*dt,-45f,58f);
+            else vrPitch=Mathf.MoveTowards(vrPitch,0,90f*dt);
             if(followYaw)
             {
                 float delta=Mathf.DeltaAngle(yaw,target.eulerAngles.y);
-                if(vr&&vrSnapYaw){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
+                if(vr&&vrSnapYaw&&!dual){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
                 else yaw=Mathf.LerpAngle(yaw,target.eulerAngles.y,1-Mathf.Exp(-yawResponse*dt));
             }
-            Quaternion rotation=Quaternion.Euler(0,yaw,0);
+            Quaternion rotation=Quaternion.Euler(vrPitch,yaw,0);
             float d=compactHandView?handViewDistance:distance,h=compactHandView?(desktopView?handViewHeight:.22f):height;
             Vector3 desired=FollowPosition+rotation*new Vector3(0,h,-d);
             desired-=ViewOffset(rotation);

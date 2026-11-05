@@ -183,7 +183,7 @@ namespace DeadlyJenga.CastlePrototype
             else ResetVRJump();
             var equipped=GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>()?.Equipment;
             if(!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn)
-            {ResetVRJump();pressed=held=false;}
+            {ResetVRJump();pressed=held=false;walking=Vector2.zero;}
             UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
         }
