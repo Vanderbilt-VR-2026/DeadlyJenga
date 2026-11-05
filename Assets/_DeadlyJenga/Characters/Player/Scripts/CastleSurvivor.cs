@@ -43,7 +43,7 @@ namespace DeadlyJenga.CastlePrototype
         const float SprintMultiplier=1.4f;
         XRController sprintController;
         public bool Sprinting {get;private set;}
-        void ClearSprint()=>Sprinting=false;
+        void ClearSprint(){SprintRequested=false;Sprinting=false;sprintStaminaActive=false;sprintToggleArmed=false;sprintFeedbackUntil=0;}
         [HideInInspector] public bool externallyDriven;
         public DeadlyJenga.CastleBots.ICastleSurvivorDriver InputDriver { get; set; }
         public bool IsVR { get; private set; }
@@ -106,6 +106,7 @@ namespace DeadlyJenga.CastlePrototype
             turn = new InputAction("Snap turn", InputActionType.Value, "<XRController>{RightHand}/primary2DAxis");
             jump = seatedJump;
             SetVRPlayStyle((SurvivorVRPlayStyle)Mathf.Clamp(PlayerPrefs.GetInt("SurvivorVRPlayStyle",(int)vrPlayStyle),0,1),false);
+            RestoreRememberedComfort();
         }
         void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this);UpdateSpectatorParticipation(); }
         void OnDisable() { RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
@@ -164,7 +165,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             EmoteLook = Vector2.zero;
             Vector2 walking = Vector2.zero;
-            bool pressed = false,held=false,sprintClick=false,sprintInput=false;
+            bool pressed = false,held=false,sprintClick=false,sprintHeld=false,sprintInput=false;
             var equipmentControls=GetComponent<CandyEquipment>();
             if(externallyDriven)
             {
@@ -187,6 +188,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(sprintController!=moveController){ClearSprint();sprintController=moveController;}
                     sprintInput=moveController!=null;
                     sprintClick=HybridXRInput.MoveClickPressed(moveController);
+                    sprintHeld=moveController?.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primary2DAxisClick")?.isPressed==true;
                     walking=FilterVRMove(HybridXRInput.Stick(moveController));
                     var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
@@ -197,8 +199,7 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     var gestureHand=candyTracking?candyTracking.GestureHand:default;
-                    bool jumpButton=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.PrimaryHeld(dominantLeft):jump.IsPressed();
-                    jumpButton|=HybridXRInput.SinglePrimaryHeld;
+                    bool jumpButton=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.PrimaryHeld(dominantLeft):HybridXRInput.SinglePrimaryHeld;
                     bool jumpLeft=bothControllers?dominantLeft:HybridXRInput.SingleControllerLeft;
                     if(equipmentControls?.ReservesPrimaryJump(jumpLeft)==true)jumpButton=false;
                     ReadVRJump(gestureHand,jumpButton,out pressed,out held);
@@ -214,7 +215,7 @@ namespace DeadlyJenga.CastlePrototype
                             (k.wKey.isPressed ? 1 : 0) - (k.sKey.isPressed ? 1 : 0));
                         pressed = k.spaceKey.wasPressedThisFrame;
                         held=k.spaceKey.isPressed;
-                        sprintInput=true;sprintClick=k.leftShiftKey.wasPressedThisFrame;
+                        sprintInput=true;sprintClick=k.leftShiftKey.wasPressedThisFrame;sprintHeld=k.leftShiftKey.isPressed;
                     }
                     if (!RouteEmoteLook(Vector2.zero, walking.sqrMagnitude > .001f || pressed) && m != null)
                     {
@@ -229,9 +230,8 @@ namespace DeadlyJenga.CastlePrototype
             var equipped=equipmentControls?.Equipment;
             bool flyingSuit=!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn;
             if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}
-            if(!sprintInput||flyingSuit||!Grounded||!Alive||Climbing||Vaulting||Sinking||modeRules?.downed==true)
-                ClearSprint();
-            else if(sprintClick)Sprinting=!Sprinting;
+            UpdateSprintToggle(sprintInput&&!flyingSuit&&Alive&&!Climbing&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
+                sprintClick,sprintHeld);
             UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
         }
@@ -254,6 +254,11 @@ namespace DeadlyJenga.CastlePrototype
             RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();
+            if(Vaulting&&(InputSuspended||!externallyDriven&&!vrInputFocused))
+            {
+                Vaulting=false;vaultSurface=null;vaultTime=0;ClearSprint();ActionStatus="Vault cancelled";
+            }
+            sprintStaminaActive=CanSprint(input);
             if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt)){ClearSprint();return;}
             if (Vaulting) { ClearSprint();AdvanceVault(dt); return; }
             if (support && Grounded)
@@ -269,7 +274,7 @@ namespace DeadlyJenga.CastlePrototype
                 lastGrounded = Time.time; jumped = false;
                 if (verticalSpeed < 0) verticalSpeed = -1;
             }
-            if(jumpPressed||!Grounded||Sinking||InputSuspended||externallyDriven)ClearSprint();
+            if(Sinking||InputSuspended||externallyDriven||!vrInputFocused||!Alive)ClearSprint();
             if (jumpPressed)
             {
                 if (!Sinking && (modeRules==null||modeRules.canJump) && !jumped && (Grounded || Time.time - lastGrounded < .07f))
@@ -280,6 +285,7 @@ namespace DeadlyJenga.CastlePrototype
                 else if ((Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
                 else ActionStatus = "No reachable ledge — no double jump";
             }
+            UpdateSprintStamina(input,dt);
             Vector3 forward = MovementForward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             input = Vector2.ClampMagnitude(input, 1);

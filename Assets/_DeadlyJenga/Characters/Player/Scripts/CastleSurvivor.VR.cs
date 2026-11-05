@@ -98,7 +98,7 @@ namespace DeadlyJenga.CastlePrototype
             vrPlayStyle=style;vrMovement=style==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
             vrTurn=style==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
             turnReady=false;ResetVRJump();calibrateSeated=style==SurvivorVRPlayStyle.Seated;
-            if(remember)PlayerPrefs.SetInt("SurvivorVRPlayStyle",(int)style);
+            if(remember)RememberComfort(playStyle:true,movement:true,turn:true);
         }
         public void CalibrateSeatedHeight()
         {
@@ -152,18 +152,19 @@ namespace DeadlyJenga.CastlePrototype
             if(Climbing||Vaulting)return;
             if(candyTracking.IsHybrid&&!hybridProfileActive)
             {
+                hybridComfort=CaptureComfort();
                 SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
                 hybridProfileActive=true;
             }
             else if(hybridProfileActive&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
                 DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false))
             {
-                SetVRPlayStyle(SurvivorVRPlayStyle.Seated,false);
                 hybridProfileActive=false;
+                RestoreComfort(hybridComfort);
             }
         }
-        public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;}
-        public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;ResetVRLook();}
-        public void CycleVRMovement(){vrMovement=vrMovement==SurvivorVRMovement.HeadRelative?SurvivorVRMovement.BodyRelative:SurvivorVRMovement.HeadRelative;}
+        public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;RememberComfort(movement:true);}
+        public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;ResetVRLook();RememberComfort(turn:true);}
+        public void CycleVRMovement(){vrMovement=vrMovement==SurvivorVRMovement.HeadRelative?SurvivorVRMovement.BodyRelative:SurvivorVRMovement.HeadRelative;RememberComfort(movement:true);}
     }
 }

@@ -92,6 +92,14 @@ namespace DeadlyJenga.CastlePrototype
         public static void RefreshLocalControls()
         {
             SetPlayStyle(PlayerPrefs.GetInt("SurvivorVRPlayStyle", 0) == 1 ? "Standing" : "Seated");
+            var movement=PlayerPrefs.GetString("SurvivorVR.Movement",Rules.movement);
+            if(movement=="HeadRelative"||movement=="BodyRelative")Rules.movement=movement;
+            var turn=PlayerPrefs.GetString("SurvivorVR.Turn",Rules.turn);
+            if(turn=="Snap"||turn=="Smooth"||turn=="PhysicalOnly")Rules.turn=turn;
+            float snap=PlayerPrefs.GetFloat("SurvivorVR.SnapAngle",Rules.snapAngle);
+            float speed=PlayerPrefs.GetFloat("SurvivorVR.SmoothDegrees",Rules.smoothDegrees);
+            if(float.IsFinite(snap))Rules.snapAngle=Mathf.Clamp(snap,15,90);
+            if(float.IsFinite(speed))Rules.smoothDegrees=Mathf.Clamp(speed,15,360);
         }
         static void SetPlayStyle(string style)
         {

@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool MenuPressed => HandTracking && HandTracking.LeftMenuPressed;
         public bool SelectPressed => HandTracking && HandTracking.MenuSelectPressed;
         public bool SelectHeld => HandTracking && HandTracking.MenuSelectHeld;
-        public string StatusText => ActionStatus;
+        public string StatusText => SprintRequested||Time.unscaledTime<sprintFeedbackUntil?SprintStatusText:ActionStatus;
         public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; UpdateSpectatorParticipation(); }
         public void Place(Vector3 position, Quaternion rotation) { Teleport(position, rotation); Revive(); }
 
@@ -28,8 +28,8 @@ namespace DeadlyJenga.CastlePrototype
         public float SmoothTurnSpeed => vrSmoothDegreesPerSecond;
         public void CycleMovement() => CycleVRMovement();
         public void CycleTurn() => CycleVRTurn();
-        public void CycleSnapAngle() => vrSnapAngle = vrSnapAngle < 30 ? 30 : vrSnapAngle < 45 ? 45 : vrSnapAngle < 60 ? 60 : 15;
-        public void CycleSmoothTurnSpeed() => vrSmoothDegreesPerSecond = vrSmoothDegreesPerSecond < 90 ? 90 : vrSmoothDegreesPerSecond < 180 ? 180 : vrSmoothDegreesPerSecond < 270 ? 270 : vrSmoothDegreesPerSecond < 360 ? 360 : 60;
+        public void CycleSnapAngle(){vrSnapAngle=vrSnapAngle<30?30:vrSnapAngle<45?45:vrSnapAngle<60?60:15;RememberComfort(snap:true);}
+        public void CycleSmoothTurnSpeed(){vrSmoothDegreesPerSecond=vrSmoothDegreesPerSecond<90?90:vrSmoothDegreesPerSecond<180?180:vrSmoothDegreesPerSecond<270?270:vrSmoothDegreesPerSecond<360?360:60;RememberComfort(speed:true);}
         public void UseStationaryPreset() => UseStationaryVR();
         public void UseFluidPreset() => UseFluidVR();
         public bool StandingPlay => vrPlayStyle == SurvivorVRPlayStyle.Standing;
@@ -89,6 +89,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ApplyMatchRules(MatchRules rules)
         {
             if (rules == null) return;
+            var previousComfort=CaptureComfort();
             PhysicsProfile.Apply(rules.handPhysics);
             if (Enum.TryParse(rules.playStyle, out SurvivorVRPlayStyle style)) SetVRPlayStyle(style, false);
             if (Enum.TryParse(rules.movement, out SurvivorVRMovement movement)) vrMovement = movement;
@@ -103,6 +104,8 @@ namespace DeadlyJenga.CastlePrototype
             if (Enum.TryParse(rules.recoveryCurve, out StaminaCurve recoveryCurve)) climbRecoveryCurve = recoveryCurve;
             climbDrainDegree = rules.drainDegree;
             climbRecoveryDegree = rules.recoveryDegree;
+            RememberComfort(playStyle:previousComfort.playStyle!=vrPlayStyle,movement:previousComfort.movement!=vrMovement,
+                turn:previousComfort.turn!=vrTurn,snap:previousComfort.snap!=vrSnapAngle,speed:previousComfort.speed!=vrSmoothDegreesPerSecond);
         }
 
         public bool TryStandOn(Rigidbody block, float sideways, out Vector3 spot)
