@@ -14,11 +14,6 @@ namespace DeadlyJenga.Presentation
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=host=>{if(!host.GetComponent<CandyPlasmaView>())host.AddComponent<CandyPlasmaView>();};
         void Awake(){cloudProperties=new MaterialPropertyBlock();var shader=Resources.Load<Shader>("CandyAlienPlasma");material=shader?new Material(shader):new Material(Resources.Load<Material>("CandyUtilityGlow"));ball=Ball();var tracer=Resources.Load<Shader>("CandyOrdnance");if(tracer){trailSurface=new Material(tracer);trailSurface.SetFloat("_Ribbon",1);trailSurface.SetColor("_BaseColor",new Color(.08f,.9f,1));}}
-        void OnGUI()
-        {
-            var session=Services.Session;if(session==null||session.IsVR||session.MenuOpen||session.PlayingHand||session.Player?.gameObject.GetComponent<IEquipmentControls>()?.Equipment.drawn!=true)return;
-            var previous=GUI.color;GUI.color=new Color(.3f,.95f,1);GUI.DrawTexture(new Rect(Screen.width*.5f-4,Screen.height*.5f-1,8,2),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(Screen.width*.5f-1,Screen.height*.5f-4,2,8),Texture2D.whiteTexture);GUI.color=previous;
-        }
         void Update()
         {
             var state=MatchRuntime.Current?.Frame.blaster;
@@ -26,8 +21,8 @@ namespace DeadlyJenga.Presentation
             float elapsed=Mathf.Min(.25f,Time.time-received);visible.Clear();
             if(state?.enabled==true)foreach(var shot in state.shots)
             {
-                visible.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model)){model=shotPool.Count>0?shotPool.Pop():MakeBall();shots[shot.id]=model;model.position=shot.position+shot.velocity*elapsed;model.gameObject.SetActive(true);if(model.TryGetComponent<TrailRenderer>(out var trail))trail.Clear();}
-                model.position=shot.position+shot.velocity*elapsed;model.rotation=Quaternion.Euler(shot.id*37,Time.time*95,Time.time*53);
+                visible.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model)){model=shotPool.Count>0?shotPool.Pop():MakeBall();shots[shot.id]=model;model.position=shot.position+Vector3.ClampMagnitude(shot.velocity*elapsed,.5f);model.gameObject.SetActive(true);if(model.TryGetComponent<TrailRenderer>(out var trail))trail.Clear();}
+                model.position=shot.position+Vector3.ClampMagnitude(shot.velocity*elapsed,.5f);model.rotation=Quaternion.Euler(shot.id*37,Time.time*95,Time.time*53);
             }
             Release(shots,shotPool);visible.Clear();
             if(state?.enabled==true)foreach(var impact in state.impacts)
