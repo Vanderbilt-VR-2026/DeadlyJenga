@@ -42,7 +42,7 @@ namespace DeadlyJenga.Modes
                 }
                 else if(item.endpoints.Length!=0)return false;
                 if((item.action==EquipmentAction.Draw||item.action==EquipmentAction.Holster)&&item.kind<EquipmentKind.Blaster)return false;
-                if(item.action==EquipmentAction.Impact&&item.kind!=EquipmentKind.Blaster&&item.kind!=EquipmentKind.RocketLauncher&&item.kind!=EquipmentKind.GrenadeLauncher&&item.kind!=EquipmentKind.Chainsaw&&item.kind!=EquipmentKind.DualUzi)return false;
+                if(item.action==EquipmentAction.Impact&&item.kind!=EquipmentKind.Blaster&&(item.kind<EquipmentKind.RocketLauncher||item.kind>EquipmentKind.Dagger))return false;
                 if(item.action==EquipmentAction.ModeSwitch&&!EquipmentSpecifications.Get(item.kind).modeSwitch)return false;
                 float range=item.action==EquipmentAction.Bash?1.3f:item.kind==EquipmentKind.SheriffHammer?(item.shotgun?18:90):item.kind==EquipmentKind.DualRifle?(item.shotgun?14:65):item.kind>EquipmentKind.PoweredArmor?Mathf.Max(EquipmentSpecifications.Get(item.kind).range,35):1.4f;
                 foreach(var end in item.endpoints)if(!Position(end)||(end-item.position).sqrMagnitude>(range+.05f)*(range+.05f))return false;

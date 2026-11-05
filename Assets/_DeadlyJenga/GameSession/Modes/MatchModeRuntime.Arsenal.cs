@@ -56,14 +56,31 @@ namespace DeadlyJenga.Modes
             float cooldown=state.kind==EquipmentKind.StockPistol&&state.shotgun?.095f:state.kind==EquipmentKind.LaserAxe&&state.shotgun?1.2f:state.kind==EquipmentKind.Chainsaw&&state.shotgun?1:spec.cooldown;
             bool projectile=spec.projectileSpeed>0||state.kind==EquipmentKind.Chainsaw&&state.shotgun;
             if(projectile&&arsenalProjectiles.Count>=64)return false;
+            var direction=command.forward.normalized;
+            // Magazine progress is independent of feedback events in equipmentSequence.
+            if(state.kind==EquipmentKind.DualUzi&&((spec.magazine-state.rounds)&1)!=0)
+            {
+                var actor=FindActor(id);
+                if(actor?.gameObject.GetComponent<IEnemyActor>()?.ArchetypeId!="mushroom")
+                {
+                    if(actor==null)return false;
+                    var primary=actor.HandPose(state.leftHanded);
+                    var secondary=actor.HandPose(!state.leftHanded);
+                    if(!Finite(primary.position)||!Finite(secondary.position))return false;
+                    var primaryForward=primary.rotation*Vector3.forward;
+                    var secondaryForward=secondary.rotation*Vector3.forward;
+                    if(!Finite(primaryForward)||!Finite(secondaryForward)||primaryForward.sqrMagnitude<.5f||primaryForward.sqrMagnitude>2||secondaryForward.sqrMagnitude<.5f||secondaryForward.sqrMagnitude>2)return false;
+                    // Transfer the validated scaled muzzle offset between the actual two grip poses.
+                    var offset=Quaternion.Inverse(primary.rotation)*(command.position-primary.position);
+                    var alternate=secondary.position+secondary.rotation*offset;
+                    if(!Finite(offset)||!Finite(alternate)||(alternate-actor.ViewPose.position).sqrMagnitude>4)return false;
+                    if(Physics.Linecast(actor.ViewPose.position,alternate,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return false;
+                    command.position=alternate;
+                    direction=secondaryForward.normalized;
+                }
+            }
             weaponCooldown[id]=Time.time+cooldown;
             if(spec.magazine>0&&(!spec.melee||state.shotgun)){state.rounds--;equipment[id]=state;if(state.rounds==0)BeginMagazineReload(id,state);}
-            var direction=command.forward.normalized;
-            if(state.kind==EquipmentKind.DualUzi&&equipmentSequence%2==0&&FindActor(id)?.gameObject.GetComponent<IEnemyActor>()?.ArchetypeId!="mushroom")
-            {
-                var alternate=command.position+Quaternion.LookRotation(direction)*Vector3.right*(state.leftHanded?.35f:-.35f);
-                if(Physics.Linecast(FindActor(id).ViewPose.position,alternate,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return true;command.position=alternate;
-            }
             if(projectile)
             {
                 arsenalProjectiles.Add(new ArsenalProjectile{id=++nextArsenalProjectile,owner=id,kind=state.kind,bornAt=Time.time,position=command.position,velocity=direction*(state.kind==EquipmentKind.Chainsaw?22:spec.projectileSpeed),life=state.kind==EquipmentKind.DualUzi?.85f:state.kind==EquipmentKind.GrenadeLauncher?3.5f:5});
@@ -73,18 +90,19 @@ namespace DeadlyJenga.Modes
             float range=state.kind==EquipmentKind.LaserAxe&&state.shotgun?35:spec.range;
             float radius=state.kind==EquipmentKind.LaserAxe&&state.shotgun?.5f:spec.radius;
             float spread=state.kind==EquipmentKind.StockPistol?(state.shotgun?.002f:spec.spread*(1+Mathf.Min(3,heldWeapons.TryGetValue(id,out var recoil)?recoil.burst*.15f:0))):spec.spread;
-            if(spread>0)direction=(direction+Quaternion.LookRotation(direction)*new Vector3(Mathf.Sin(equipmentSequence*2.4f),Mathf.Cos(equipmentSequence*1.7f),0)*spread).normalized;
+            int spreadStep=spec.magazine>0?spec.magazine-state.rounds:0;
+            if(spread>0)direction=(direction+Quaternion.LookRotation(direction)*new Vector3(Mathf.Sin(spreadStep*2.4f),Mathf.Cos(spreadStep*1.7f),0)*spread).normalized;
             var source=FindActor(id);
             int count=Physics.SphereCastNonAlloc(command.position,radius,direction,plasmaHits,range,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);
             if(count==plasmaHits.Length)return true;
-            IModeActor target=null;float nearest=range;Vector3 endpoint=command.position+direction*range;
+            IModeActor target=null;float nearest=range;Vector3 endpoint=command.position+direction*range;bool contact=false;Vector3 contactPoint=endpoint;
             if(spec.melee)
             {
                 int touching=Physics.OverlapSphereNonAlloc(command.position,radius,plasmaOverlaps,(1<<Layers.Survivor)|(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Collide);
                 if(touching==plasmaOverlaps.Length)return true;
-                for(int i=0;i<touching;i++){var collider=plasmaOverlaps[i];var candidate=collider.GetComponentInParent<IModeActor>();if(candidate==source||collider.isTrigger&&candidate==null)continue;target=candidate;nearest=0;endpoint=command.position;break;}
+                for(int i=0;i<touching;i++){var collider=plasmaOverlaps[i];var candidate=collider.GetComponentInParent<IModeActor>();if(candidate==source||collider.isTrigger&&candidate==null)continue;target=candidate;nearest=0;endpoint=command.position;contact=true;contactPoint=collider.ClosestPoint(command.position);break;}
             }
-            for(int i=0;i<count;i++){var hit=plasmaHits[i];var candidate=hit.collider.GetComponentInParent<IModeActor>();if(candidate==source||hit.collider.isTrigger&&candidate==null||hit.distance>=nearest)continue;nearest=hit.distance;endpoint=command.position+direction*nearest;target=candidate;}
+            for(int i=0;i<count;i++){var hit=plasmaHits[i];var candidate=hit.collider.GetComponentInParent<IModeActor>();if(candidate==source||hit.collider.isTrigger&&candidate==null||hit.distance>=nearest)continue;nearest=hit.distance;endpoint=command.position+direction*nearest;target=candidate;contact=true;contactPoint=hit.point;}
             AnnounceEquipment(id,state,EquipmentAction.Shot,command.position,new[]{endpoint});
             if(target!=null)
             {
@@ -95,10 +113,12 @@ namespace DeadlyJenga.Modes
                     else if(state.kind==EquipmentKind.FlamingMarshmallow)damage=target.MaxHealth*.5f;
                     else if(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe)damage=target.MaxHealth;
                 }
-                bool alive=target.Alive;ArsenalDamage(source,target,damage,direction*spec.push+Vector3.up*.4f);
+                bool alive=target.Alive;bool accepted=ArsenalDamage(source,target,damage,direction*spec.push+Vector3.up*.4f);
+                if(accepted)AnnounceEquipment(id,state,EquipmentAction.Impact,contactPoint);
                 if(alive&&!target.Alive&&(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe)&&!state.shotgun)
                 {state.embeddedVictim=target.ActorId;state.embeddedPoint=endpoint;state.embedRemaining=.65f;equipment[id]=state;}
             }
+            else if(contact&&source!=null)AnnounceEquipment(id,state,EquipmentAction.Impact,contactPoint);
             return true;
         }
         void BeginMagazineReload(string id,EquipmentState state)
@@ -117,13 +137,14 @@ namespace DeadlyJenga.Modes
                 if(state.embedRemaining>0){state.embedRemaining=Mathf.Max(0,state.embedRemaining-dt);if(state.embedRemaining==0)state.embeddedVictim=null;}
             }
         }
-        void ArsenalDamage(IModeActor source,IModeActor target,float damage,Vector3 push)
+        bool ArsenalDamage(IModeActor source,IModeActor target,float damage,Vector3 push)
         {
-            if(source==null||target==null)return;var p=simulation.Find(target.ActorId);
-            if(p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||source!=target&&source.Team>=0&&source.Team==target.Team&&!Rules.friendlyFire)return;
-            if(MysteryActive&&source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(source.ActorId,target.ActorId,ref damage))return;
+            if(source==null||target==null)return false;var p=simulation.Find(target.ActorId);
+            if(p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||source!=target&&source.Team>=0&&source.Team==target.Team&&!Rules.friendlyFire)return false;
+            if(MysteryActive&&source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(source.ActorId,target.ActorId,ref damage))return false;
             if(target.IsLocal||target.IsBot){target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);target.gameObject.GetComponent<IDamageable>()?.Damage(damage,source.gameObject);}
             else{RecordRemoteDamage(target.ActorId,damage,source.ActorId);RemoteImpact?.Invoke(target.ActorId,push,damage);}
+            return true;
         }
         void TickArsenalProjectiles(float dt)
         {
