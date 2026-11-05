@@ -10,6 +10,7 @@ namespace DeadlyJenga.CandyPlayers
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
         public Camera ownerCamera;
+        // Retained for compatibility. Comfort mode does not change the avatar stance.
         public bool SeatedVisual {get;set;}
         public CandyAvatarCalibration calibration;
         [SerializeField] Transform[] bones;
@@ -112,8 +113,6 @@ namespace DeadlyJenga.CandyPlayers
             transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
             float dance = downed ? 0 : frame.danceWeight;
-            bool seated = (SeatedVisual || frame.seated) && !downed && dance <= 0;
-            if(seated)frame.head.y=frame.feet.y+1.27f*scale;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
@@ -134,8 +133,7 @@ namespace DeadlyJenga.CandyPlayers
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
                 Vector3 hip=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
-                if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f+Mathf.Max(0,Mathf.Sin(phase))*stride*.4f,.29f+Mathf.Cos(phase)*stride*.75f));
-                else if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
                 if (dance > 0)
                     foot = Vector3.Lerp(foot, transform.TransformPoint(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
                 int thigh=side==0?8:11;

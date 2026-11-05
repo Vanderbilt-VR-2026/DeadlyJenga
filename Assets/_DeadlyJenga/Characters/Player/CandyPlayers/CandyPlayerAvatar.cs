@@ -89,7 +89,7 @@ namespace DeadlyJenga.CandyPlayers
             float scale=survivor?survivor.playerScale:trackingOrigin?Mathf.Abs(trackingOrigin.lossyScale.y):1;
             scale=Mathf.Max(.1f,scale);
             Transform head=viewCamera?viewCamera.transform:transform;
-            var frame=new CandyAvatarFrame{feet=transform.position,head=head.position,headRotation=head.rotation,scale=scale,seated=survivor&&survivor.IsVR&&!survivor.externallyDriven&&!survivor.Climbing&&!survivor.Vaulting};
+            var frame=new CandyAvatarFrame{feet=transform.position,head=head.position,headRotation=head.rotation,scale=scale,seated=false};
             if(!viewCamera){frame.head=frame.feet+Vector3.up*(1.6f*scale);frame.headRotation=transform.rotation;}
             // Room-scale body placement follows the head's horizontal location; locomotion feet supply height.
             frame.feet=new Vector3(frame.head.x,transform.position.y,frame.head.z);

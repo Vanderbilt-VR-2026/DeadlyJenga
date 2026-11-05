@@ -12,12 +12,12 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        sealed class Target {public string id;public BoxCollider collider;public Image face;public Action action;public Func<bool> allowed;}
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
-        bool ModalBlocked=>!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
-        InputAction select;RectTransform canvas;Text modeTitle,mapTitle,playTitle,partyTitle,gameExperienceTitle,demoExperienceTitle,browseTitle;
+        bool ModalBlocked=>MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
+        InputAction select,leftSelect;Image aimDot;RectTransform canvas;Text modeTitle,mapTitle,playTitle,partyTitle,gameExperienceTitle,demoExperienceTitle,browseTitle;
         RawImage modePicture,mapPicture,otherPicture;string modeId,mapId;float refreshAt;
         public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
         public void Build(ILobbyControls controls,Action<string> openDetail)
@@ -48,7 +48,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 Text("ROUND INFO",Vector2.zero,new Vector2(156,52),24,round);
                 partyTitle.rectTransform.anchoredPosition=new Vector2(270,-111);partyTitle.rectTransform.sizeDelta=new Vector2(165,55);partyTitle.fontSize=23;
             }
-            select=new InputAction("Marina select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();Refresh();
+            select=new InputAction("Marina select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();leftSelect=new InputAction("Marina left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");leftSelect.Enable();aimDot=MenuAim.CreateReticle(canvas);Refresh();
         }
         RawImage Card(string id,Vector2 p,Action action)
         {
@@ -59,7 +59,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             var go=new GameObject(id,typeof(RectTransform),typeof(Image),typeof(BoxCollider));go.layer=5;go.transform.SetParent(canvas,false);var r=go.GetComponent<RectTransform>();r.anchoredPosition=p;r.sizeDelta=size;
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
-            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);targets.Add(new Target{id=id,collider=hit,face=image,action=action,allowed=allowed});return r;
+            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);targets.Add(new Target{id=id,collider=hit,face=image,color=color,action=action,allowed=allowed});return r;
         }
         static Text Text(string value,Vector2 p,Vector2 size,int font,Transform parent)
         {
@@ -89,27 +89,34 @@ namespace DeadlyJenga.CandyArt.Marina
             image.rectTransform.sizeDelta=new Vector2(image.texture.width*scale,image.texture.height*scale);
         }
         public bool Invoke(string id)
-        {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&Visible&&target.allowed()){target.action();return true;}return false;}
+        {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&Visible&&target.allowed()){MenuAim.Consume();target.action();return true;}return false;}
         void Update()
         {
-            if(!Visible||ModalBlocked){requireRelease=true;return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
+            if(!Visible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera)return;
             var mouse=Mouse.current;var keyboard=Keyboard.current;
-            bool held=select?.IsPressed()==true||player.SelectHeld||keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
+            bool held=select?.IsPressed()==true||leftSelect?.IsPressed()==true||player.SelectHeld||keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
             if(requireRelease){if(!held)requireRelease=false;return;}
-            bool pressed=select!=null&&select.WasPressedThisFrame()||player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
-            var camera=player.ViewCamera;Ray ray=!player.IsVR&&session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+            bool pressed=select!=null&&select.WasPressedThisFrame()||leftSelect?.WasPressedThisFrame()==true||player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
+            var camera=player.ViewCamera;
+            Ray ray=player.IsVR?MenuAim.Resolve(camera,camera.transform.parent,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,leftSelect.WasPressedThisFrame(),select.WasPressedThisFrame(),out _,out _):session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             Target nearest=null;float distance=11;
             foreach(var target in targets)
             {
                 target.collider.enabled=target.allowed();
                 if(target.collider.enabled&&target.collider.Raycast(ray,out var hit,distance)&&Vector3.Dot(ray.direction,target.collider.transform.forward)>0){nearest=target;distance=hit.distance;}
             }
-            if(pressed&&nearest!=null)Invoke(nearest.id);
+            foreach(var target in targets)
+            {
+                bool hover=target==nearest;target.face.color=hover?CandyHudVisuals.Mint:target.allowed()?target.color:CandyHudVisuals.Card;
+                foreach(var text in target.face.GetComponentsInChildren<Text>())text.color=hover?CandyHudVisuals.Ink:target.allowed()?Color.white:CandyHudVisuals.Muted;
+            }
+            if(MenuAim.TryPoint(ray,canvas,11,out _,out var point))MenuAim.Present(aimDot,point,true,nearest!=null);else aimDot.gameObject.SetActive(false);
+            if(pressed&&nearest!=null){Invoke(nearest.id);requireRelease=true;}
         }
-        void OnEnable(){requireRelease=true;select?.Enable();}
+        void OnEnable(){requireRelease=true;select?.Enable();leftSelect?.Enable();}
         void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
-        void OnDisable(){select?.Disable();}
-        void OnDestroy(){select?.Dispose();if(canvas)Destroy(canvas.gameObject);}
+        void OnDisable(){select?.Disable();leftSelect?.Disable();if(aimDot)aimDot.gameObject.SetActive(false);}
+        void OnDestroy(){select?.Dispose();leftSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
     }
 }

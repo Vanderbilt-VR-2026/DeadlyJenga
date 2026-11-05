@@ -286,11 +286,14 @@ namespace DeadlyJenga.CastlePrototype
                 if(wardrobePose!=null&&NetworkActors.Alive(wardrobePlayer))wardrobePose.NeutralInspection=wardrobeWasNeutral;
                 wardrobePose=null;wardrobePivotReady=false;wardrobeFitDistance=0;
 
-                if(NetworkActors.Alive(wardrobePlayer))wardrobePlayer.InputSuspended=wardrobePaused;
+                bool currentOwner=ReferenceEquals(Services.Session,session)&&ReferenceEquals(Player,wardrobePlayer);
+                if(currentOwner)session.SetMenu(session.MenuOpen);
+                else if(NetworkActors.Alive(wardrobePlayer))wardrobePlayer.InputSuspended=wardrobePaused;
 
                 if(wardrobeDesktop){wardrobeDesktop.gameObject.SetActive(false);Destroy(wardrobeDesktop.gameObject);wardrobeDesktop=null;}
 
-                wardrobeButtons.Clear();Cursor.lockState=wardrobeCursor;Cursor.visible=wardrobeCursorVisible;wardrobeAvatar=null;wardrobePlayer=null;
+                wardrobeButtons.Clear();if(Services.Session==null){Cursor.lockState=wardrobeCursor;Cursor.visible=wardrobeCursorVisible;}
+                DeadlyJenga.Presentation.MenuAim.Consume();terminalRequireRelease=true;wardrobeAvatar=null;wardrobePlayer=null;
 
             }
 

@@ -16,9 +16,10 @@ namespace DeadlyJenga.Presentation
         ISessionInfo session;
         IBlasterControls weaponHand;
         Canvas canvas;
+        Image aimDot;
         RectTransform panel;
         Text mode,bindings,feedback,leftRoles,rightRoles;
-        bool home; Camera homeCamera; bool homeVr;
+        bool home; Camera homeCamera; bool homeVr,inputFocused=true;
         readonly List<Button> buttons=new List<Button>();
         readonly List<Action> actions=new List<Action>();
         InputAction rightSelect,leftSelect;
@@ -34,7 +35,7 @@ namespace DeadlyJenga.Presentation
         {
             if(!owner||!camera)return;
             var view=owner.GetComponent<CandyComfortPanel>()??owner.AddComponent<CandyComfortPanel>();
-            view.home=true;view.homeCamera=camera;view.homeVr=vr;
+            view.enabled=true;view.home=true;view.homeCamera=camera;view.homeVr=vr;
             view.weaponHand=owner.GetComponent<IBlasterControls>();
             if(!view.canvas)view.Build();
             view.open=true;view.readyToSelect=false;view.nextSample=0;view.Configure(true);
@@ -56,7 +57,7 @@ namespace DeadlyJenga.Presentation
         {
             var view=(owner as Component)?.GetComponent<CandyComfortPanel>();
             if(!view)return;
-            view.home=false;view.weaponHand=owner.Player?.gameObject.GetComponent<IBlasterControls>();
+            view.enabled=true;view.home=false;view.weaponHand=owner.Player?.gameObject.GetComponent<IBlasterControls>();
             if(!view.canvas)view.Build();
             view.returnToMenu=owner.MenuOpen;
             view.open=true;
@@ -96,6 +97,7 @@ namespace DeadlyJenga.Presentation
             feedback=Label("",new Vector2(0,-340),new Vector2(980,30),20);
             Add(new Vector2(-250,-390),()=>home?"Back to Home":"Back",Close);
             Add(new Vector2(250,-390),()=>home?"Done":"Resume",()=>{Close();session?.SetMenu(false);});
+            aimDot=MenuAim.CreateReticle(panel);
             rightSelect=new InputAction("Comfort right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             leftSelect=new InputAction("Comfort left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
             rightSelect.AddBinding("<HandInteraction>{RightHand}/pinchValue");leftSelect.AddBinding("<HandInteraction>{LeftHand}/pinchValue");
@@ -151,6 +153,8 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(!open)return;
+            if(!inputFocused||MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
             if(!home&&(session==null||Services.Session!=session||!session.MenuOpen)||home&&!homeCamera){open=false;canvas.gameObject.SetActive(false);return;}
             if(!home&&(eye!=session.ActiveCamera||wasVr!=session.IsVR))Configure(true);
             canvas.gameObject.SetActive(true);
@@ -169,7 +173,7 @@ namespace DeadlyJenga.Presentation
                     controllerCount>1?"VR controllers":session?.Player?.HasHandTracking==true?"Hand tracking":"VR / waiting for tracking";
                 mode.text="Preferred dominant hand: "+(PreferredLeft?"LEFT":"RIGHT")+" / "+input;
                 leftRoles.text=Roles(true);rightRoles.text=Roles(false);
-                bindings.text=home?"Preference saves for Game and Demo. Look speed and comfort are also available in Lobby / Pause.":
+                bindings.text=!wasVr?"WASD: move. Mouse: look. Space: jump / hold climb. Left Shift: sprint.\nClick: fire. V: equip / holster. R: weapon mode. Delete: drop. Esc: back.\nDominant-hand choice is saved for your VR controllers.":home?"Preference saves for Game and Demo. Look speed and comfort are also available in Lobby / Pause.":
                     controllerCount==1?"One controller: stick moves; grip + stick looks. Your preferred hand stays saved.\nJump: controller primary button. Fire: trigger. Add both controllers for the layout above.":
                     settings?.TurnLabel=="PhysicalOnly"?"JOYSTICK LOOK IS OFF: physical turning selected. Choose Joystick look / enable.\nTurn your head freely. Menu: bare left Y / native; right-only Grip + B.":
                     "Dominant stick looks left/right AND up/down. Non-dominant stick moves.\nJump: dominant X / A. Fire equipped weapon: dominant trigger. Menu: bare left Y / native.";
@@ -191,26 +195,11 @@ namespace DeadlyJenga.Presentation
             if(wasVr)
             {
                 if(!eye)return;
-                var ray=new Ray(eye.transform.position,eye.transform.forward);
-                XRController aimed=null;
-                var origin=eye.GetComponentInParent<XROrigin>();
-                var space=origin&&origin.CameraFloorOffsetObject?origin.CameraFloorOffsetObject.transform:null;
-                if(space)
-                {
-                    bool left=weaponHand?.LeftHanded==true;
-                    foreach(var device in InputSystem.devices)
-                        if(PhysicalController(device)&&HasUsage(device,left?CommonUsages.LeftHand:CommonUsages.RightHand)){aimed=(XRController)device;break;}
-                    if(aimed==null)foreach(var device in InputSystem.devices)if(PhysicalController(device)){aimed=(XRController)device;break;}
-                    if(aimed!=null)
-                    {
-                        var pos=aimed.TryGetChildControl<Vector3Control>("pointerPosition")??aimed.devicePosition;
-                        var rot=aimed.TryGetChildControl<QuaternionControl>("pointerRotation")??aimed.deviceRotation;
-                        ray=new Ray(space.TransformPoint(pos.ReadValue()),space.TransformDirection(rot.ReadValue()*Vector3.forward));
-                    }
-                }
-                if(Vector3.Dot(ray.direction,panel.forward)<=.01f||!new Plane(panel.forward,panel.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.InverseTransformPoint(ray.GetPoint(distance));
-                pressed=aimed!=null?(HasUsage(aimed,CommonUsages.LeftHand)?leftSelect:rightSelect).WasPressedThisFrame():session?.MenuSelectPressed==true||rightSelect.WasPressedThisFrame()||leftSelect.WasPressedThisFrame();
+                var ray=MenuAim.Resolve(eye,home?transform:eye.transform.parent,PreferredLeft,
+                    leftSelect.WasPressedThisFrame(),rightSelect.WasPressedThisFrame(),out bool controller,out bool useLeft);
+                if(!MenuAim.TryPoint(ray,panel,4,out point,out var hit)){aimDot.gameObject.SetActive(false);return;}
+                MenuAim.Present(aimDot,hit,true,false);
+                pressed=controller?(useLeft?leftSelect:rightSelect).WasPressedThisFrame():session?.MenuSelectPressed==true||rightSelect.WasPressedThisFrame()||leftSelect.WasPressedThisFrame();
             }
             else
             {
@@ -219,15 +208,17 @@ namespace DeadlyJenga.Presentation
             }
             for(int i=0;i<buttons.Count;i++)
             {
+                if(!buttons[i].gameObject.activeInHierarchy)continue;
                 var rect=(RectTransform)buttons[i].transform;
                 var local=point-rect.anchoredPosition;
                 bool hover=rect.rect.Contains(local)&&buttons[i].interactable;
+                if(wasVr&&hover)MenuAim.Present(aimDot,aimDot.transform.position,true,true);
                 bool selected=i<2&&(i==0)==PreferredLeft;
                 buttons[i].image.color=hover||selected?CandyHudVisuals.Mint:buttons[i].interactable?CandyHudVisuals.Panel:new Color(.18f,.14f,.24f);
                 buttons[i].GetComponentInChildren<Text>().color=hover||selected?CandyHudVisuals.Ink:Color.white;
                 if(pressed&&hover)
                 {
-                    actions[i]();readyToSelect=false;nextSample=0;
+                    MenuAim.Consume();actions[i]();readyToSelect=false;nextSample=0;
                     if(i<8)feedbackUntil=Time.unscaledTime+1.5f;
                     return;
                 }
@@ -239,8 +230,9 @@ namespace DeadlyJenga.Presentation
         void Close()
         {
             if(!open)return;
-            open=false;
+            open=false;MenuAim.Consume();
             if(canvas)canvas.gameObject.SetActive(false);
+            if(aimDot)aimDot.gameObject.SetActive(false);
             if(!home&&Services.Session==session)session.SetMenu(returnToMenu);
         }
         Text Label(string value,Vector2 position,Vector2 size,int fontSize)
@@ -258,6 +250,9 @@ namespace DeadlyJenga.Presentation
             var label=Label(title(),Vector2.zero,new Vector2(448,68),24);label.transform.SetParent(rect,false);
             buttons.Add(button);titles.Add(title);actions.Add(action);
         }
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){readyToSelect=false;if(aimDot)aimDot.gameObject.SetActive(false);}}
+        void OnDisable(){Close();rightSelect?.Disable();leftSelect?.Disable();}
+        void OnEnable(){rightSelect?.Enable();leftSelect?.Enable();}
         void OnDestroy()
         {
             rightSelect?.Dispose();leftSelect?.Dispose();
@@ -265,4 +260,3 @@ namespace DeadlyJenga.Presentation
         }
     }
 }
-

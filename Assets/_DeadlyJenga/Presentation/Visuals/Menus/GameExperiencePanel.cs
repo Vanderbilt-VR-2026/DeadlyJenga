@@ -39,6 +39,8 @@ namespace DeadlyJenga.Presentation
             return session as IGameExperienceControls??(host?host.GetComponent<IGameExperienceControls>():null);
         }
         public static bool CanEditRawChoices(ISessionInfo session)=>Resolve(session)?.Experience!=GameExperience.Game;
+        public static bool CanEnableDemo(IGameExperienceControls value)
+            =>value!=null&&value.Experience!=GameExperience.Demo&&value.CanConfigureExperience&&value.GamePhase!=RoomGamePhase.LoadingGame&&value.GamePhase!=RoomGamePhase.LoadingLobby;
         public static bool CanChooseExperience(IGameExperienceControls value)
         {
             if(value==null||!value.CanConfigureExperience)return false;
@@ -98,7 +100,7 @@ namespace DeadlyJenga.Presentation
             mapName=Label("",new Vector2(-190,27),new Vector2(348,32),22);
             readiness=Label("",new Vector2(190,98),new Vector2(348,150),23);
             Add(new Vector2(-190,-30),()=>"GAME"+(controls.Experience==GameExperience.Game?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
-            Add(new Vector2(190,-30),()=>"DEMO"+(controls.Experience==GameExperience.Demo?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Demo));
+            Add(new Vector2(190,-30),()=>"DEMO"+(controls.Experience==GameExperience.Demo?" / selected":""),()=>CanChooseExperience(controls)||CanEnableDemo(controls),()=>controls.SetExperience(GameExperience.Demo));
             Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"ON":"OFF"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
             Add(new Vector2(190,-118),()=>DuringRound?"Leave automatic playlist":controls.LocalReady?"Unready / leave playlist":"Ready / join playlist",
                 ()=>controls.GamePhase==RoomGamePhase.Selected||controls.GamePhase==RoomGamePhase.WaitingReady||DuringRound&&controls.AutomaticRounds&&controls.LocalReady,()=>controls.SetReady(!controls.LocalReady));
@@ -133,7 +135,7 @@ namespace DeadlyJenga.Presentation
         {
             refreshAt=Time.unscaledTime+.2f;
             profile.text=controls.Experience==GameExperience.Game
-                ?"PROTOTYPE / UNVALIDATED / NO DISASTERS\n"+controls.ProfileId:"DEMO / MANUAL CONTROLS";
+                ?"GAME / CURATED PROFILE\n"+controls.ProfileId:"DEMO / MANUAL CONTROLS";
             status.text=controls.GameStatus;actionHint.text=controls.GameActionHint;
             string countdown=controls.CountdownSeconds>0?"\nCountdown: "+Mathf.CeilToInt(controls.CountdownSeconds)+" s":"";
             readiness.text=controls.ReadyCount+" / "+controls.RequiredReadyCount+" ready"+

@@ -163,7 +163,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(s.automatic)changed=flow.EnrollPlaylist(s.authorityTerm,sender,command.ready);
                 changed=flow.SetReady(s.authorityTerm,sender,s.selectionVersion,s.rosterVersion,command.ready)||changed;
             }
-            else if(leader&&command.verb=="experience"&&LobbyVisible)
+            else if(leader&&command.verb=="experience"&&(LobbyVisible||command.value=="demo"&&ActiveMatchVisible))
             {
                 changed=flow.Configure(s.authorityTerm,command.value=="demo",false);
                 if(changed&&!State.demo)SelectNext();
@@ -199,6 +199,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             ReconcileLobbyCompletion();DispatchOutbox();
         }
+        bool ActiveMatchVisible=>Services.Session is CastlePlaySession active&&!active.VisitingLobby&&
+            NetworkActors.Alive(active.Player)&&NetworkActors.Alive(active.Hand)&&active.ActiveCamera&&
+            !room.RoomSceneBusy&&!room.Departing&&!room.SwitchingMap&&!room.Migrating;
         bool LobbyVisible=>IslandLobby.Current&&!IslandLobby.Current.VisitingLobby&&ReferenceEquals(Services.Session,IslandLobby.Current)&&NetworkActors.Alive(IslandLobby.Current.Player)&&IslandLobby.Current.ActiveCamera&&!room.RoomSceneBusy&&!room.Departing;
         internal bool ApplySelectedProfile()
         {

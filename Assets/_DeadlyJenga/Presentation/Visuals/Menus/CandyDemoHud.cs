@@ -24,6 +24,13 @@ namespace DeadlyJenga.CastlePrototype
         IDemoControls Demo=>session.Demo;
         bool Climbing=>Move!=null&&Move.Climbing;
         string DemoStatus=>Demo!=null?Demo.Status:"";
+        string DemoAccessReason=>CanCommand?"Demo controls enabled":GameExperiencePanel.Resolve(session)?.Experience==GameExperience.Game?"GAME: enable Demo controls to use testing tools":session.Multiplayer?.IsClient==true?"Host permission required for Demo controls":"Demo controls temporarily unavailable while the room changes";
+        void EnableDemoControls()
+        {
+            var controls=GameExperiencePanel.Resolve(session);
+            if(GameExperiencePanel.CanEnableDemo(controls)){controls.SetExperience(GameExperience.Demo);commandFeedback="Requested Demo controls. Waiting for room confirmation.";feedbackUntil=Time.unscaledTime+6;}
+            else GameExperiencePanel.Open(session);
+        }
         int page,selection;Vector2 scroll;bool lastMenu;float nextHintSample;string lastContext="";
         const float IntroSeconds=4.5f;
         float introRemaining=IntroSeconds;bool introReplay;string introKey;
@@ -103,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnGUI()
         {
-            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+            if(MenuAim.InputConsumed||GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true)return;
             DrawSpectatorLabels();
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
@@ -132,8 +139,9 @@ namespace DeadlyJenga.CastlePrototype
             Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
             if(GameExperiencePanel.Resolve(session)!=null){if(Button(new Rect(93,23,470,45),"GAME / DEMO - ROUND SETUP",CandyHudVisuals.Card))GameExperiencePanel.Open(session);}
             else GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
-            GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
+            GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+DemoAccessReason,small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
+            if(Button(new Rect(26,94,218,28),CanCommand?"DEMO CONTROLS: ON":"ENABLE DEMO CONTROLS",CanCommand?CandyHudVisuals.Mint:CandyHudVisuals.Peach))EnableDemoControls();
             if(Button(new Rect(256,94,220,28),"CONTROLS / HAND",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
             var inspection=CandyThirdPersonInspection.For(session);
             if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}

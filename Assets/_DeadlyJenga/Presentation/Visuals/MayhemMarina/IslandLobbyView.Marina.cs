@@ -59,6 +59,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void CloseMarinaDetail()
         {
+            lobby?.UnfocusCode();terminalRequireRelease=true;DeadlyJenga.Presentation.MenuAim.Consume();
             marinaDetail="";joinStation.gameObject.SetActive(false);hostStation.gameObject.SetActive(false);setupStation.gameObject.SetActive(false);piano.gameObject.SetActive(false);wardrobePanel.gameObject.SetActive(false);
             if(wardrobeOpen)SetWardrobeOpen(false);if(marinaBack)marinaBack.gameObject.SetActive(false);if(marinaScreen)marinaScreen.Visible=true;SyncMarinaBacks();
         }

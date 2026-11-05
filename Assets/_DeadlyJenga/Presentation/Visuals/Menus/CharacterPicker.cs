@@ -15,6 +15,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         static CharacterPicker instance;
         Canvas panel;
+        Image aimDot;
         Text nameLabel;
         readonly List<RectTransform> buttons=new List<RectTransform>();
         readonly List<Action> actions=new List<Action>();
@@ -83,6 +84,7 @@ namespace DeadlyJenga.CastlePrototype
             Label("Choose a look for your flying hand",new Vector2(0,-34),new Vector2(474,40),20).color=CandyHudVisuals.Muted;
             Add("Recenter",new Vector2(-123,-103),new Vector2(226,62),"Recenter",Anchor);
             Add("Close",new Vector2(123,-103),new Vector2(226,62),"Done",()=>Close(true));
+            aimDot=DeadlyJenga.Presentation.MenuAim.CreateReticle(panel.transform);
             leftSelect=new InputAction("Hand appearance left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
             rightSelect=new InputAction("Hand appearance right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             leftSelect.Enable();rightSelect.Enable();
@@ -122,13 +124,14 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!open)return;
             var session=owner;
-            open=false;selectReady=false;owner=null;openingCamera=null;
+            open=false;DeadlyJenga.Presentation.MenuAim.Consume();selectReady=false;owner=null;openingCamera=null;
             if(panel)panel.gameObject.SetActive(false);
             if(restoreMenu&&ReferenceEquals(Services.Session,session))session.SetMenu(returnToMenu);
         }
         void LateUpdate()
         {
             if(!open)return;
+            if(DeadlyJenga.Presentation.MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
             bool valid=ReferenceEquals(Services.Session,owner)&&owner.MenuOpen&&owner.ActiveCamera==openingCamera&&
                 owner.PlayingHand==openingHand&&owner.IsVR==openingVr&&HandLooks.Names.Length>0&&InputSignature(owner)==openingInput;
             var match=MatchRuntime.Current;
@@ -137,32 +140,19 @@ namespace DeadlyJenga.CastlePrototype
                     if(actor.id==match.LocalActorId&&(!actor.alive||actor.dying)){valid=false;break;}
             if(!valid){Close(false);return;}
             nameLabel.text=HandLooks.ChosenName;
-            foreach(var rect in buttons)rect.GetComponent<Image>().color=CandyHudVisuals.Card;
+            foreach(var rect in buttons){rect.GetComponent<Image>().color=CandyHudVisuals.Card;rect.GetComponentInChildren<Text>().color=Color.white;}
+            if(aimDot)aimDot.gameObject.SetActive(false);
             bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             if(!selectReady){if(!held)selectReady=true;return;}
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                var ray=new Ray(openingCamera.transform.position,openingCamera.transform.forward);
-                var controller=Controller();
-                if(controller!=null)
-                {
-                    var rig=openingCamera.GetComponentInParent<XROrigin>();
-                    var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
-                    if(space)
-                    {
-                        var pos=controller.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                        var rot=controller.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                        ray=new Ray(space.TransformPoint(pos.ReadValue()),space.TransformDirection(rot.ReadValue()*Vector3.forward));
-                    }
-                    else controller=null;
-                }
-                if(Vector3.Dot(ray.direction,panel.transform.forward)<=.01f||
-                    !new Plane(panel.transform.forward,panel.transform.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.transform.InverseTransformPoint(ray.GetPoint(distance));
-                bool left=false;
-                if(controller!=null)foreach(var usage in controller.usages)left|=usage==CommonUsages.LeftHand;
-                pressed=controller!=null?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
+                var ray=DeadlyJenga.Presentation.MenuAim.Resolve(openingCamera,openingCamera.transform.parent,
+                    owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
+                    leftSelect.WasPressedThisFrame(),rightSelect.WasPressedThisFrame(),out bool controller,out bool left);
+                if(!DeadlyJenga.Presentation.MenuAim.TryPoint(ray,(RectTransform)panel.transform,4,out point,out var hit))return;
+                DeadlyJenga.Presentation.MenuAim.Present(aimDot,hit,true,false);
+                pressed=controller?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
             }
             else
             {
@@ -173,7 +163,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(!buttons[i].rect.Contains(point-buttons[i].anchoredPosition))continue;
                 buttons[i].GetComponent<Image>().color=CandyHudVisuals.Mint;
-                if(pressed){selectReady=false;actions[i]();}
+                buttons[i].GetComponentInChildren<Text>().color=CandyHudVisuals.Ink;
+                if(openingVr&&aimDot.gameObject.activeSelf)DeadlyJenga.Presentation.MenuAim.Present(aimDot,aimDot.transform.position,true,true);
+                if(pressed){DeadlyJenga.Presentation.MenuAim.Consume();selectReady=false;actions[i]();}
                 return;
             }
         }

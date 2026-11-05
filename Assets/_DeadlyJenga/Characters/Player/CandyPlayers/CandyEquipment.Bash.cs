@@ -27,6 +27,17 @@ namespace DeadlyJenga.CandyPlayers
 
         void ResetBashTracking() => bashJab.Reset();
 
+        void CancelBashPresentation()
+        {
+            acceptedBashAt = float.NegativeInfinity;
+            var runtime = MatchRuntime.Current;
+            var frame = runtime?.Frame;
+            if (frame == null) return;
+            bashViewRuntime = runtime;
+            bashEpoch = frame.equipmentEpoch;
+            bashSequence = frame.equipmentSequence;
+        }
+
         void UpdateWeaponBash(EquipmentState state)
         {
             ReadAcceptedBashes(state);
@@ -35,12 +46,14 @@ namespace DeadlyJenga.CandyPlayers
                 pendingPickup != 0 || state.reloadRemaining > 0 || state.triggerHeld || Time.time - lastAttackTime < .22f)
             {
                 ResetBashTracking();
+                CancelBashPresentation();
                 return;
             }
             bashEmote ??= GetComponent<ILocalEmoteView>();
             if (bashEmote?.EmoteActive == true)
             {
                 ResetBashTracking();
+                CancelBashPresentation();
                 return;
             }
 
@@ -66,6 +79,7 @@ namespace DeadlyJenga.CandyPlayers
                 other != null && (ButtonHeld(other, "primary2DAxisClick") || ButtonHeld(other, "secondaryButton")))
             {
                 ResetBashTracking();
+                CancelBashPresentation();
                 return;
             }
 
@@ -95,8 +109,16 @@ namespace DeadlyJenga.CandyPlayers
             if (frame.equipmentSequence <= bashSequence) return;
             foreach (var action in frame.equipmentActions ?? System.Array.Empty<EquipmentActionFrame>())
             {
-                if (action == null || action.id <= bashSequence || action.actor != state.actor ||
-                    action.kind != state.kind || action.action != EquipmentAction.Bash || action.remaining < .40f ||
+                if (action == null || action.id <= bashSequence || action.actor != state.actor) continue;
+                if (action.action == EquipmentAction.Draw || action.action == EquipmentAction.Holster ||
+                    action.action == EquipmentAction.Pickup || action.action == EquipmentAction.Swap ||
+                    action.action == EquipmentAction.Drop || action.action == EquipmentAction.ModeSwitch ||
+                    action.action == EquipmentAction.Reload)
+                {
+                    acceptedBashAt = float.NegativeInfinity;
+                    continue;
+                }
+                if (action.kind != state.kind || action.action != EquipmentAction.Bash || action.remaining < .40f ||
                     !CanBash(state)) continue;
                 acceptedBashAt = Time.time;
                 acceptedBashKind = state.kind;
