@@ -41,6 +41,13 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
 
+        public static Vector3 SupportGripOffset(EquipmentKind kind,bool leftHanded)
+        {
+            if(kind==EquipmentKind.RocketLauncher)return new Vector3(0,-.015f,.69f);
+            if(kind==EquipmentKind.ChainGun)return new Vector3(leftHanded?.245f:-.245f,.10f,.45f);
+            return new Vector3(0,-.015f,.43f);
+        }
+
         static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
         {
             if(!MeleeMount(kind,left,out var palm,out var mount))return new Pose(hand.position,hand.rotation);

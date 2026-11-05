@@ -266,7 +266,7 @@ namespace DeadlyJenga.CandyPlayers
             }
             if(EquipmentSpecifications.Get(state.kind).twoHanded&&(!motor.IsVR||grip.IsPressed()||avatar.tracking&&avatar.tracking.IsHybrid&&(state.leftHanded?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
             {
-                var support=state.leftHanded?frame.right:frame.left;support.position=pose.position+pose.rotation*new Vector3(0,-.015f,.43f)*Scale;support.rotation=pose.rotation*Quaternion.Euler(0,0,state.leftHanded?-30:30);support.skeleton=CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,0);support.skeletonTracked=true;
+                var support=state.leftHanded?frame.right:frame.left;support.position=pose.position+pose.rotation*CandyWeaponVisual.SupportGripOffset(state.kind,state.leftHanded)*Scale;support.rotation=pose.rotation*Quaternion.Euler(0,0,state.leftHanded?-30:30);support.skeleton=CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,1);support.skeletonTracked=true;
                 if(state.leftHanded)frame.right=support;else frame.left=support;
             }
         }

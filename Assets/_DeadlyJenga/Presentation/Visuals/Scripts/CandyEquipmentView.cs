@@ -192,7 +192,7 @@ namespace DeadlyJenga.Presentation
             bool visiting=(session as ILobbyMatchVisitControls)?.VisitingLobby==true;
             bool watching=(session.Demo as ISpectatorControls)?.Spectating==true;
             bool showReceipt=!string.IsNullOrEmpty(receipt)&&Time.unscaledTime<receiptUntil;
-            canvas.enabled=eye&&!session.MenuOpen&&!CandyMatchHud.Expanded&&!visiting&&!watching&&
+            canvas.enabled=eye&&!session.MenuOpen&&!EmoteWheel.IsOpen&&!CandyMatchHud.Expanded&&!visiting&&!watching&&
                 ((!session.PlayingHand&&equipment!=null)||showReceipt);
             bool showSwap=canvas.enabled&&!session.PlayingHand&&pending!=null;
             if(showSwap)

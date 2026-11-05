@@ -106,7 +106,7 @@ namespace DeadlyJenga.Presentation
             bool results=match.Frame.phase==RoundPhase.Results;
             bool wasExpanded=Expanded;
             bool heldBoard=vr?VrStandingsHeld(out standingsControl):Keyboard.current?.f2Key.isPressed==true;
-            Expanded=!watching&&!results&&!session.MenuOpen&&(ScoreboardPinned||heldBoard);
+            Expanded=!watching&&!results&&!session.MenuOpen&&!EmoteWheel.IsOpen&&(ScoreboardPinned||heldBoard);
             if(Expanded&&!wasExpanded){boardPage=0;sampleAt=0;nextBoardPageAt=Time.unscaledTime+5;}
             if(wasExpanded&&!Expanded)sampleAt=0;
             CandyHudCards.Visible(board,Expanded);
@@ -117,12 +117,12 @@ namespace DeadlyJenga.Presentation
             }
             if(Expanded&&vr&&Time.unscaledTime>=nextBoardPageAt)
             {
-                boardPage=(boardPage+1)%Mathf.Max(1,Mathf.CeilToInt(match.Frame.players.Length/(match.Frame.teams.Length>2?6f:10f)));
+                boardPage=(boardPage+1)%Mathf.Max(1,Mathf.CeilToInt(StandingsParticipants(match.Frame,session as IGameExperienceControls,out _).Count()/(match.Frame.teams.Length>2?6f:10f)));
                 sampleAt=0;
                 nextBoardPageAt=Time.unscaledTime+5;
             }
             if(!session.MenuOpen&&!Expanded&&!vr&&match.Rules.mode==GameModeKind.CaptureFlag&&Keyboard.current?.gKey.wasPressedThisFrame==true)FlagFocusIndex++;
-            canvas.enabled=camera&&!session.MenuOpen&&!results&&(!watching||vr);
+            canvas.enabled=camera&&!session.MenuOpen&&!EmoteWheel.IsOpen&&!results&&(!watching||vr);
             eliminationFeed.Update(match, canvas.enabled&&!watching&&!Expanded);
             standingsHint.enabled = !watching && !Expanded && (!vr || !string.IsNullOrEmpty(standingsControl));
             standingsHint.text = vr ? "HOLD " + standingsControl + " · STANDINGS" : "HOLD F2 · STANDINGS";
@@ -267,6 +267,7 @@ namespace DeadlyJenga.Presentation
             text.Clear();text.Append(mystery?"PLAYER ROSTER · ROLES PRIVATE":statusRoster?(curated?"COMPETITORS · CURRENT STATUS":"PARTICIPANTS · CURRENT STATUS"):"STANDINGS · "+CandyHudContent.Safe(f.metricLabel,28)+(f.rules.metric==ScoreMetric.TeamPoints?" (team)":""));
             if(curated&&Expanded)text.Append(" · ").Append(StandingsCount(rows.Length,true));
             text.Append("\n\n");
+            if(Expanded&&f.teams.Length==2)text.Append("TEAMS · ").Append(string.Join(" | ",f.teams.Select(t=>CandyHudContent.Safe(t.name,10)+" "+(f.rules.mode==GameModeKind.CaptureFlag?t.captures:f.rules.mode==GameModeKind.TeamTickets?t.tickets:Mathf.RoundToInt(t.points))))).Append('\n');
             if(Expanded&&f.teams.Length>2)text.Append("TEAM SCORES\n").Append(string.Join(" | ",f.teams.Select(t=>CandyHudContent.Safe(t.name,10)+" "+(f.rules.mode==GameModeKind.CaptureFlag?t.captures:f.rules.mode==GameModeKind.TeamTickets?t.tickets:Mathf.RoundToInt(t.points))))).Append("\n\n");
             var shown=Expanded?rows.Skip(boardPage*pageSize).Take(pageSize).ToArray():rows.Take(5).ToArray();
             foreach(var p in shown)
@@ -286,7 +287,11 @@ namespace DeadlyJenga.Presentation
                 else
                 {
                     text.Append("\nYOUR POSITION\n");
-                    if(mystery||statusRoster||f.rules.metric==ScoreMetric.AliveStatus)text.Append(CandyHudContent.Safe(own.name)).Append('\n');
+                    if(mystery)text.Append("YOU · ").Append(CandyHudContent.Safe(own.name)).Append('\n');
+                    else if(statusRoster||f.rules.metric==ScoreMetric.AliveStatus)
+                        text.Append("YOU · ").Append(CandyHudContent.Safe(own.name,22))
+                            .Append(own.role=="infected"?" · INFECTED":own.alive&&!own.dying?" · ACTIVE":" · ELIMINATED")
+                            .Append("   ·   ").Append(CandyHudContent.ResultStats(own,f.rules.mode)).Append('\n');
                     else Row(own,true,System.Array.IndexOf(rows,own)+1,whole,f.rules.mode);
                 }
             }

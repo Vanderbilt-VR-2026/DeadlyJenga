@@ -63,6 +63,7 @@ namespace FlyingHand
             if (ownsStereoTarget) originalTargetEye = viewCamera.stereoTargetEye;
             if (controller) controller.ControlModeChanged += ApplyViewMode;
             ApplyViewMode(controller ? controller.ActiveControlMode : ControlMode.VR);
+            Application.onBeforeRender += BeforeRender;
         }
         void Start() { SnapToTarget(); }
         public void ApplyViewMode(ControlMode mode)
@@ -79,6 +80,7 @@ namespace FlyingHand
         }
         void OnDisable()
         {
+            Application.onBeforeRender -= BeforeRender;
             if (controller) controller.ControlModeChanged -= ApplyViewMode;
             if (viewInitialized && viewCamera)
             {
@@ -160,6 +162,20 @@ namespace FlyingHand
             // Bounded lag keeps a blocked/fast-moving visible hand within the observer's reach.
             transform.position=desired+Vector3.ClampMagnitude(transform.position-desired,Mathf.Max(.1f,maximumFollowLag));
             transform.rotation=rotation;
+        }
+        [BeforeRenderOrder(200)]
+        void BeforeRender()
+        {
+            if (!viewInitialized || desktopView || baselineReady || !target || !viewCamera) return;
+            CaptureHeadBaseline();
+            if (!baselineReady) return;
+            // A first tracked pose can arrive after LateUpdate. Align the observer before that first render.
+            var rotation = transform.rotation;
+            float d = compactHandView ? handViewDistance : distance;
+            float h = compactHandView ? .22f : height;
+            transform.position = FollowPosition + rotation * new Vector3(0, h, -d) - ViewOffset(rotation);
+            velocity = Vector3.zero;
+            ClampCameraWater();
         }
         void LateUpdate()
         {

@@ -216,7 +216,11 @@ namespace DeadlyJenga.CastlePrototype
         void ReconcileLobbyCompletion()
         {
             var s=State;
-            if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))CommitFlow();
+            if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))
+            {
+                CommitFlow();
+                if(!State.automatic)SelectNext();
+            }
         }
         void DispatchOutbox()
         {

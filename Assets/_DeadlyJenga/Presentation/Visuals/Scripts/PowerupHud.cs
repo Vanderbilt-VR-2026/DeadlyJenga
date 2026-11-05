@@ -34,7 +34,7 @@ namespace DeadlyJenga.CastlePrototype
         void Update()
         {
             var view=GetComponent<IPlayerView>();var effects=GetComponent<ITimedEffects>();
-            if(view==null||effects==null||!view.ControlledHere||!view.ViewCamera)return;
+            if(view==null||effects==null||!view.ControlledHere||!view.ViewCamera||!view.ViewCamera.isActiveAndEnabled){Hide();return;}
             if(!canvas)Build();
             if(attached!=view.ViewCamera||vr!=view.IsVR){attached=view.ViewCamera;vr=view.IsVR;CandyHudLayout.Configure(canvas,transform,attached,vr);}
             ShownSpeedSeconds=effects.SecondsRemaining(speedType);ShownJumpSeconds=effects.SecondsRemaining(jumpType);
@@ -43,7 +43,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         static void Show(Text text,string name,float seconds)
         {text.transform.parent.gameObject.SetActive(seconds>0);text.text=name+"  "+Mathf.CeilToInt(seconds)+"s  |  INFINITE STAMINA";}
-        void OnDisable(){if(canvas)canvas.enabled=false;}
+        void Hide(){if(canvas)canvas.enabled=false;ShownSpeedSeconds=ShownJumpSeconds=0;}
+        void OnDisable()=>Hide();
         void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
     }
 }

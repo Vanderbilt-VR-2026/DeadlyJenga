@@ -1238,7 +1238,7 @@ namespace DeadlyJenga.CandyPlayers
             for(int i=0;i<3;i++)
             {
                 var a=skeleton.Joint((i+1)*4);var b=skeleton.Joint((i+2)*4);
-                weapon.GetChild(i).localPosition=(a+b)*.5f+new Vector3(0,.009f,-.012f);
+                weapon.GetChild(i).localPosition=(a+b)*.5f+new Vector3(0,.012f,.003f);
                 weapon.GetChild(i).localRotation=Quaternion.Euler(0,(i-1)*(left?-8f:8f),0);
             }
         }

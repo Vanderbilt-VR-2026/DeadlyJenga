@@ -31,7 +31,7 @@ namespace DeadlyJenga.Presentation
         IMatchRuntime owner;
         MatchFrame rankedFrame;
         int rankedRevision, page, infectionPage;
-        bool visible, wasVr, split, rankedCurated;
+        bool visible, wasVr, split, rankedCurated, modalHidden;
         Camera camera;
         Vector3 openingForward;
 
@@ -51,11 +51,20 @@ namespace DeadlyJenga.Presentation
             if (!show)
             {
                 visible = false;
+                modalHidden = false;
                 rankedFrame = null;
                 if (canvas) canvas.gameObject.SetActive(false);
                 return;
             }
 
+            bool modal = CandyComfortPanel.Showing(session) || CharacterPicker.Showing(session)
+                || CandyWildlifePanel.Showing(session) || GameExperiencePanel.Showing(session);
+            if (modal || modalHidden)
+            {
+                modalHidden = modal;
+                if (canvas) canvas.gameObject.SetActive(false);
+                return;
+            }
             if (!canvas) Build();
             var eye = session.ActiveCamera;
             bool opening = !visible || owner != match;
