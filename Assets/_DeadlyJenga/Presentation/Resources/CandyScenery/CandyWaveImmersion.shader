@@ -34,12 +34,13 @@ Shader "Candy Tropical/Wave Immersion"
                 float2 center = float2(.26 + .48 * seed, .21 + .55 * Hash(id + 14));
                 center.x += sin(time * 3 + seed * 12) * .11;
                 float2 p = frac(flow) - center;
-                float radius = lerp(.05, .19, seed);
+                p.x *= lerp(.78, 1.16, seed);
+                float radius = lerp(.045, .16, seed);
                 float d = length(p);
                 float rim = smoothstep(radius - .06, radius - .02, d) *
                             (1 - smoothstep(radius, radius + .035, d));
                 float shine = rim * saturate(.45 - p.x * 2 + p.y * 3);
-                return (rim * .32 + shine * .6) * smoothstep(.30, .58, seed);
+                return (rim * .32 + shine * .6) * smoothstep(.70, .88, seed);
             }
 
             half4 Frag(Varyings input) : SV_Target

@@ -187,8 +187,24 @@ namespace DeadlyJenga.DevTools.Editor
                     float first=Capture(active,"wave-interior-full.png");
                     Require(first<.48f&&first<dryReference*.87f,"Full submersion darkens the same camera pose: "+dryReference.ToString("F3")+" to "+first.ToString("F3"));
                     Require(Playing("Wave pressure and trapped breath"),"Submerged breathing and current loop plays through pooled audio");
-                    Require(Object.FindObjectsByType<AudioLowPassFilter>(FindObjectsSortMode.None)
-                        .Any(f=>f.enabled&&f.cutoffFrequency<1000),"World audio reaches submerged low-pass cutoff");
+                    var audioProbe=new GameObject("Underwater world-audio probe");
+                    audioProbe.transform.position=wetEye+Vector3.forward;
+                    try
+                    {
+                        var engine=CandyAudioEngine.Instance;
+                        bool FilteredWorldSound()=>engine.GetComponentsInChildren<AudioSource>().Any(source=>
+                            source.isPlaying&&source.spatialBlend>.5f&&
+                            source.TryGetComponent<AudioLowPassFilter>(out var filter)&&filter.enabled&&filter.cutoffFrequency<1000);
+                        timeout=Time.realtimeSinceStartup+15;
+                        while(!FilteredWorldSound()&&Time.realtimeSinceStartup<timeout)
+                        {
+                            engine.Loop(CandySound.WaveSpray,audioProbe.transform,.25f);
+                            yield return null;
+                        }
+                        Require(FilteredWorldSound(),"Real pooled spatial world sound reaches submerged low-pass cutoff");
+                    }
+                    finally{Object.Destroy(audioProbe);}
+
                     Capture(camera,"wave-interior-exterior-during.png");
                     Require(Shader.GetGlobalFloat("_DJWaveInside")==0,"Exterior camera does not inherit underwater wave attenuation");
 
