@@ -209,7 +209,7 @@ namespace DeadlyJenga.DevTools.Editor
             var moments = motor.GetComponent<SurvivorMoments>();
             bool eligible = moments && (bool)typeof(SurvivorMoments).GetProperty("CanPose",
                 System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(moments);
-            string readiness = $"focus={motor.HasInputFocus} suspended={motor.InputSuspended} alive={motor.Alive} grounded={motor.Grounded} menu={session.MenuOpen} camera={session.ActiveCamera == eye} rig={avatar.Rig.gameObject.activeInHierarchy} time={Time.time:F2}";
+            string readiness = $"enabled={motor.isActiveAndEnabled} climb={motor.Climbing} vault={motor.Vaulting} sink={motor.Sinking} local={ReferenceEquals(session.Player, motor)} hand={session.PlayingHand} spectating={(session.Demo as ISpectatorControls)?.Spectating} phase={MatchRuntime.Current?.Frame?.phase} focus={motor.HasInputFocus} suspended={motor.InputSuspended} alive={motor.Alive} grounded={motor.Grounded} menu={session.MenuOpen} camera={session.ActiveCamera == eye} rig={avatar.Rig.gameObject.activeInHierarchy} time={Time.time:F2}";
             if (!Check(eligible, "Production emote eligibility before request. " + readiness)) yield break;
 
             int breakdance = Array.IndexOf(Emotes.Survivor, "Breakdance");
