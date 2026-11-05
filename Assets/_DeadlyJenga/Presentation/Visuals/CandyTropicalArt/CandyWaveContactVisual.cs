@@ -4,6 +4,7 @@ using DeadlyJenga.CandyAudio;
 using Unity.Profiling;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace DeadlyJenga.CandyArt
 {
@@ -34,17 +35,15 @@ namespace DeadlyJenga.CandyArt
         WaveFrame frame;
         Vector3 side, direction, impact;
         Vector4 rect;
-        float nextProbe, origin, nextBurst, immersion, splash, coverage;
+        float nextProbe, origin, nextBurst, immersion, splash, coverage, submergedTime;
         bool wet, hadWave;
         int band, pass, probeSequence;
         Camera view;
         ParticleSystem spray;
         ParticleSystem[] crest;
         int[] crestCaps;
-        MeshRenderer wash;
-        Mesh washMesh;
         Material washMaterial;
-        MaterialPropertyBlock washProperties;
+        CandyWaveImmersionPass washPass;
         public int LastProbeCount {get;private set;}
         public int ContactCount {get;private set;}
         public float Immersion=>immersion;
@@ -62,18 +61,16 @@ namespace DeadlyJenga.CandyArt
         void OnDestroy()
         {
             if(map)Destroy(map);
-            if(washMesh)Destroy(washMesh);
             if(washMaterial)Destroy(washMaterial);
         }
         void ResetEffect()
         {
             if(owner==this){owner=null;Shader.SetGlobalFloat(ContactActive,0);Shader.SetGlobalFloat(Inside,0);CandyAudioEngine.WaveImmersion=0;}
-            if(wash)wash.enabled=false;
             if(spray)spray.Stop(true,ParticleSystemStopBehavior.StopEmittingAndClear);
             if(crest!=null)for(int i=0;i<crest.Length;i++)if(crest[i]){var main=crest[i].main;main.maxParticles=crestCaps[i];}
             crest=null;crestCaps=null;
             if(hadWave)Array.Clear(contacts,0,contacts.Length);
-            hadWave=wet=false;immersion=splash=coverage=0;ContactCount=LastProbeCount=0;nextProbe=nextBurst=0;band=pass=probeSequence=0;
+            hadWave=wet=false;immersion=splash=coverage=submergedTime=0;ContactCount=LastProbeCount=0;nextProbe=nextBurst=0;band=pass=probeSequence=0;
         }
         void LateUpdate()
         {
@@ -87,7 +84,13 @@ namespace DeadlyJenga.CandyArt
             direction=Vector3.ProjectOnPlane(frame.direction,Vector3.up).normalized;
             if(direction.sqrMagnitude<.9f){ResetEffect();return;}
             side=Vector3.Cross(Vector3.up,direction);
-            view=Services.Session?.ActiveCamera;
+            Camera nextView=Services.Session?.ActiveCamera;
+            if(view!=nextView)
+            {
+                wet=false;
+                immersion=splash=submergedTime=0;
+                view=nextView;
+            }
             if(Time.unscaledTime>=nextProbe)
             {
                 nextProbe=Time.unscaledTime+.10f;
@@ -304,37 +307,47 @@ namespace DeadlyJenga.CandyArt
         {
             float dt=Mathf.Min(.07f,Time.unscaledDeltaTime);
             bool inside=view&&ContainsEye(frame,view.transform.position+Vector3.up*(wet?-.08f:.06f));
-            if(inside!=wet)
+            var audio = CandyAudioEngine.Instance;
+            if (inside != wet)
             {
-                wet=inside;splash=inside?.34f:.17f;
-                if(view)CandyAudioEngine.Instance?.Play(CandySound.WaveSpray,view.transform.position,.45f,GetInstanceID(),inside?.8f:1.1f,true);
+                wet = inside;
+                splash = inside ? .82f : .48f;
+                if (view && audio)
+                {
+                    audio.Play(CandySound.WaveSpray, view.transform.position, .54f,
+                        GetInstanceID(), inside ? .73f : 1.03f, true);
+                    if (!inside && submergedTime > .28f)
+                        audio.Play(CandySound.WaveSurfaceBreath, view.transform.position, .9f,
+                            GetInstanceID(), 1, true);
+                }
+                submergedTime = 0;
             }
-            immersion=Mathf.MoveTowards(immersion,inside?1:0,dt*(inside?8:5));
-            splash=Mathf.MoveTowards(splash,0,dt*1.9f);
-            CandyAudioEngine.WaveImmersion=immersion;
-            if(!view||immersion+splash<.005f){if(wash)wash.enabled=false;return;}
-            if(!wash)BuildWash();
-            if(!wash)return;
-            wash.transform.position=view.transform.position;
-            washProperties.SetVector("_WaterWash",new Vector4(immersion,splash,Time.unscaledTime,0));
-            wash.SetPropertyBlock(washProperties);
+            if (inside) submergedTime += dt;
+            immersion = Mathf.MoveTowards(immersion, inside ? 1 : 0, dt * (inside ? 6 : 3.5f));
+            splash = Mathf.MoveTowards(splash, 0, dt * (inside ? 1.8f : 1.4f));
+            CandyAudioEngine.WaveImmersion = immersion;
+            if (view && audio && wet)
+                audio.Loop(CandySound.WaveSubmerged, view.transform, immersion, true, muffling: .35f);
         }
-        void BuildWash()
+
+        void BeforeCamera(ScriptableRenderContext context, Camera camera)
         {
-            var shader=Resources.Load<Shader>("CandyScenery/CandyWaveImmersion");
-            if(!shader)return;
-            var go=new GameObject("Wave eye wash",typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(transform,false);
-            wash=go.GetComponent<MeshRenderer>();
-            washMesh=new Mesh{name="Wave immersion triangle",vertices=new[]{new Vector3(-1,-1,0),new Vector3(-1,3,0),new Vector3(3,-1,0)},triangles=new[]{0,1,2}};
-            washMesh.bounds=new Bounds(Vector3.zero,Vector3.one*6);
-            go.GetComponent<MeshFilter>().sharedMesh=washMesh;
-            washMaterial=new Material(shader);wash.sharedMaterial=washMaterial;wash.shadowCastingMode=ShadowCastingMode.Off;
-            washProperties=new MaterialPropertyBlock();wash.enabled=false;
-        }
-        void BeforeCamera(ScriptableRenderContext context,Camera camera)
-        {
-            if(owner==this)Shader.SetGlobalFloat(Inside,camera==view?immersion:0);
-            if(wash)wash.enabled=owner==this&&camera==view&&immersion+splash>=.005f;
+            if (owner != this) return;
+            bool local = camera == view;
+            Shader.SetGlobalFloat(Inside, local ? immersion : 0);
+            if (!local || immersion + splash < .005f ||
+                !(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset)) return;
+            var cameraData = camera.GetUniversalAdditionalCameraData();
+            if (washPass == null)
+            {
+                var shader = Resources.Load<Shader>("CandyScenery/CandyWaveImmersion");
+                if (!shader || !shader.isSupported) return;
+                washMaterial = new Material(shader);
+                washPass = new CandyWaveImmersionPass(washMaterial);
+            }
+            // Keep stereo screen refraction subtle to avoid bending the apparent horizon.
+            washPass.State = new Vector4(immersion, splash, Time.unscaledTime, camera.stereoEnabled ? .003f : .010f);
+            cameraData.scriptableRenderer.EnqueuePass(washPass);
         }
     }
 }

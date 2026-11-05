@@ -19,7 +19,8 @@ namespace DeadlyJenga.CandyAudio
         JaguarIdle,JaguarChuff,JaguarGrowl,JaguarAlert,JaguarAttack,JaguarHurt,JaguarDeath,JaguarFootfall,JaguarLand,
         PlayerPain,PlayerDeath,
         SuitThruster,SuitIgnition,SuitShutdown,PlayerHeal,
-        KrakenRise,KrakenIdle,KrakenSurface,KrakenReach,KrakenGrip,KrakenDrag,KrakenWindup,KrakenSlam,KrakenSubmerge,KrakenRetreat
+        KrakenRise,KrakenIdle,KrakenSurface,KrakenReach,KrakenGrip,KrakenDrag,KrakenWindup,KrakenSlam,KrakenSubmerge,KrakenRetreat,
+        WaveSubmerged,WaveSurfaceBreath
     }
     public enum CandyBus { World,Character,Ambience,Music,UI }
     [Serializable]
