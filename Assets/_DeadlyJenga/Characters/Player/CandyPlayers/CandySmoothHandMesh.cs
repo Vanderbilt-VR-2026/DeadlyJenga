@@ -32,7 +32,7 @@ namespace DeadlyJenga.CandyPlayers
                     int digit=Digit(bone);
                     if(digit>=0&&digit!=chosen){changed=true;return;}
                     switch(count++){case 0:result.boneIndex0=bone;result.weight0=weight;break;case 1:result.boneIndex1=bone;result.weight1=weight;break;case 2:result.boneIndex2=bone;result.weight2=weight;break;default:result.boneIndex3=bone;result.weight3=weight;break;}
-                    count++;total+=weight;
+                    total+=weight;
                 }
                 Keep(w.boneIndex0,w.weight0);Keep(w.boneIndex1,w.weight1);Keep(w.boneIndex2,w.weight2);Keep(w.boneIndex3,w.weight3);
                 if(total>0){result.weight0/=total;result.weight1/=total;result.weight2/=total;result.weight3/=total;weights[i]=result;}
