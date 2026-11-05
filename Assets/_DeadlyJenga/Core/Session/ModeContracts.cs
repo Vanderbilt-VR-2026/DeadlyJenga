@@ -19,6 +19,7 @@ namespace DeadlyJenga.Core
         public ScoreMetric metric;
         public int teamCount = 2, tickets = 50, flagTarget = 3;
         public bool defaultDagger;
+        public bool blockDestruction;
         public bool sameHumanTeam, punchEnabled, healthEnabled, deathEnabled = true, fallDamage;
         public bool friendlyFire;
         public bool flagWinByTwo = true, starterInfected, enemyClimbBlocked;
