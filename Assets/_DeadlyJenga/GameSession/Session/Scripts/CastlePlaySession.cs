@@ -67,7 +67,7 @@ namespace DeadlyJenga.CastlePrototype
         public IDemoControls Demo { get; private set; }
         public ISocialControls Social { get; private set; }
         public bool CanEditWorld => !Network || Network.CanEditWorld;
-        InputAction toggleMenu, select;
+        InputAction select;
         bool wasVR, focused = true;
         bool arrivalPending,travelInputHeld;float travelReleaseAt=-1;
 
@@ -83,9 +83,8 @@ namespace DeadlyJenga.CastlePrototype
             TuneJump();
             Hand = Instantiate(handPrefab).GetComponent<IPlayableCharacter>(); Hand.gameObject.name = "Flying Hand (local)";
             Player.PrepareForSession(); Hand.PrepareForSession();
-            toggleMenu = new InputAction("Demo menu", InputActionType.Button, "<XRController>{LeftHand}/secondaryButton");
             select = new InputAction("Menu select", InputActionType.Button, "<XRController>{RightHand}/trigger");
-            toggleMenu.Enable(); select.Enable();
+            select.Enable();
             SetRole(false); SetMenu(false);
             BotSystems.Create(gameObject, new BotSetup { player = Player, hand = Hand, survivorPrefab = survivorPrefab, handPrefab = handPrefab, isPlayingHand = () => PlayingHand },
                 out var survivorBots, out var handBots);
@@ -110,6 +109,7 @@ namespace DeadlyJenga.CastlePrototype
             Social = new DeadlyJenga.CastleSocial.SocialControls(social);
             Modes=gameObject.AddComponent<DeadlyJenga.Modes.MatchModeRuntime>();
             Modes.Initialize(this);
+            gameObject.AddComponent<CastleSessionMenuInput>().session=this;
             // Menus, HUDs and the stamina bar attach themselves (Presentation listens for this).
             GameEvents.RaiseSessionStarted(gameObject);
         }
@@ -119,13 +119,13 @@ namespace DeadlyJenga.CastlePrototype
             seaSpirit?.SetSeaSpirit(false);
             if (ReferenceEquals(Services.Session, this)) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
-            toggleMenu?.Dispose(); select?.Dispose();
+            select?.Dispose();
             if (NetworkActors.Alive(Player)) Destroy(Player.gameObject);
             if (NetworkActors.Alive(Hand)) Destroy(Hand.gameObject);
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
         }
         bool Ready => NetworkActors.Alive(Player) && NetworkActors.Alive(Hand);
-        void OnApplicationFocus(bool value) { focused = value; if (!value && Ready) SetMenu(true); }
+        void OnApplicationFocus(bool value) { focused = value; HoldMenuGameplayInput(); if (!value && Ready) SetMenu(true); }
         public void SetRole(bool hand)
         {
             if(VisitingLobby)return;
@@ -179,8 +179,9 @@ namespace DeadlyJenga.CastlePrototype
         public void SetMenu(bool open)
         {
             if(VisitingLobby){visitLobby.SetMenu(open);return;}
+            if(MenuOpen!=open)HoldMenuGameplayInput();
             MenuOpen = open;
-            bool suspended = travelInputHeld || open || !focused || (Network && Network.WaitingForWorld) || (Modes && Modes.DemoSpectating);
+            bool suspended = menuResumePending || travelInputHeld || open || !focused || (Network && Network.WaitingForWorld) || (Modes && Modes.DemoSpectating);
             Player.InputSuspended = suspended;
             Hand.InputSuspended = suspended;
             Cursor.lockState = !open && !IsVR && focused ? CursorLockMode.Locked : CursorLockMode.None;
@@ -195,10 +196,7 @@ namespace DeadlyJenga.CastlePrototype
                 GameEvents.RaiseEmoted(gameObject,"TravelArrived");
             }
             if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
-            var k = Keyboard.current;
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
-            if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
-            if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
             if (!PlayingHand && NetworkActors.Alive(Player) && Player.transform.position.y < -6)
             {

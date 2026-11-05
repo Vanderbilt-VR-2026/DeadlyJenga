@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Eliminate(GameObject source)
         {
             if (eliminated) return;
-            ClearMovementPowerups();
+            ClearSprint();ClearMovementPowerups();
             eliminated = true;
             health = 0;
             GameEvents.RaiseEliminated(gameObject, source);
@@ -49,7 +49,7 @@ namespace DeadlyJenga.CastlePrototype
         // Called by whoever respawns this survivor.
         public void Revive()
         {
-            ClearMovementPowerups();
+            ClearSprint();ClearMovementPowerups();
             eliminated = false;
             health = maxHealth;
             lastDamageAt = float.NegativeInfinity;

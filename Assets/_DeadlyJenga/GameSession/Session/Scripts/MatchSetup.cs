@@ -102,7 +102,14 @@ namespace DeadlyJenga.CastlePrototype
 
         // The host's stamina rules for joining players, through Core's ISurvivorSettings.
         public static string CaptureRules(object player) => (player as ISurvivorSettings)?.SaveStaminaRules();
-        public static void ApplyRules(object player, string json) => (player as ISurvivorSettings)?.LoadStaminaRules(json);
+        public static void ApplyRules(object player, string json)
+        {
+            var settings=player as ISurvivorSettings;
+            if(settings==null)return;
+            settings.LoadStaminaRules(json);
+            var hand=settings.CurrentRules.handPhysics;
+            Rules.handPhysics=hand==null?null:new HandPhysicsRules{forceNewtons=hand.forceNewtons,friction=hand.friction};
+        }
 
         public static void Apply(CastlePlaySession session)
         {

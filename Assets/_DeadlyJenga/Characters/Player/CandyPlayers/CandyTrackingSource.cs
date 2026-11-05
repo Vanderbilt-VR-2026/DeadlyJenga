@@ -7,7 +7,7 @@ using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    [DefaultExecutionOrder(-50)]
+    [DefaultExecutionOrder(-200)]
     public sealed class CandyTrackingSource : MonoBehaviour, IFingerTips
     {
         public Transform trackingOrigin;
@@ -19,6 +19,7 @@ namespace DeadlyJenga.CandyPlayers
         public bool RightPinchPressed{get;private set;}
         public bool RightPinching{get;private set;}
         public bool LeftMenuPressed{get;private set;}
+        public bool LeftMenuHeld{get;private set;}
         public bool LeftPinching{get;private set;}
         public bool HasHandTracking=>left.skeletonTracked||right.skeletonTracked;
         public bool HasTrackedHands=>left.tracked||right.tracked;
@@ -46,7 +47,7 @@ namespace DeadlyJenga.CandyPlayers
         void OnDisable()
         {
             Application.onBeforeRender-=ReadLatest;left=right=default;
-            RightPinchPressed=RightPinching=LeftMenuPressed=LeftPinching=previousRight=previousMenu=previousSelect=MenuSelectPressed=false;
+            RightPinchPressed=RightPinching=LeftMenuPressed=LeftMenuHeld=LeftPinching=previousRight=previousMenu=previousSelect=MenuSelectPressed=false;
         }
         void Update()
         {
@@ -54,6 +55,7 @@ namespace DeadlyJenga.CandyPlayers
             bool rightPinch=right.skeletonTracked&&Vector3.Distance(right.skeleton.Joint(3),right.skeleton.Joint(7))<.023f;
             LeftPinching=left.skeletonTracked&&Vector3.Distance(left.skeleton.Joint(3),left.skeleton.Joint(7))<.023f;
             bool menu=left.skeletonTracked&&Vector3.Distance(left.skeleton.Joint(3),left.skeleton.Joint(11))<.023f&&!LeftPinching;
+            LeftMenuHeld=menu;
             RightPinchPressed=rightPinch&&!previousRight;LeftMenuPressed=menu&&!previousMenu;
             RightPinching=rightPinch;
             MenuSelectPressed=MenuSelectHeld&&!previousSelect;previousSelect=MenuSelectHeld;

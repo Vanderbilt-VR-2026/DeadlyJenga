@@ -63,6 +63,10 @@ namespace DeadlyJenga.CastlePrototype
             if(value==null||!ModeFrameValidation.Rules(value.rules)||value.movement==null||value.population<1||value.population>100||value.hands<0||value.hands>100||value.survivorPreset<0||value.survivorPreset>100||value.handPreset<0||value.handPreset>100)return false;
             if(value.disasters==null||value.disasters.Length>32)return false;
             foreach(var hazard in value.disasters){var prefab=DemoDisasters.Prefabs.FirstOrDefault(p=>p.name==hazard.id);if(!prefab||hazard.values==null)return false;var parameters=DemoDisasters.Parameters(prefab);if(parameters.Count!=hazard.values.Length)return false;for(int i=0;i<parameters.Count;i++){float v=hazard.values[i];if(float.IsNaN(v)||float.IsInfinity(v)||v<parameters[i].min||v>parameters[i].max)return false;}}
+            var hand=value.movement.handPhysics;
+            if(hand!=null&&(float.IsNaN(hand.forceNewtons)||float.IsInfinity(hand.forceNewtons)||
+                float.IsNaN(hand.friction)||float.IsInfinity(hand.friction)||
+                hand.forceNewtons<0||hand.forceNewtons>10000||hand.friction<0||hand.friction>2))return false;
             foreach(var f in typeof(MatchRules).GetFields())if(f.FieldType==typeof(float)){float v=(float)f.GetValue(value.movement);if(float.IsNaN(v)||float.IsInfinity(v)||v<0||v>10000)return false;}
             return value.movement.drainCurve?.Length<=32&&value.movement.recoveryCurve?.Length<=32;
         }

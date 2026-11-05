@@ -10,34 +10,58 @@ namespace DeadlyJenga.CandyPlayers
     {
         CastleSurvivor motor;CandyPlayerAvatar avatar;CandyWeaponVisual visual;
         InputAction trigger,offTrigger,grip;
-        bool left,armed,sheriffShotgun;float nextFire,lastAttackTime=float.NegativeInfinity;EquipmentKind lastPower;
+        bool left,armed,sheriffShotgun,primaryJumpReserved;float nextFire,lastAttackTime=float.NegativeInfinity;EquipmentKind lastPower;
         Vector3 lastHand;bool handReady;float nextSwing;
         Vector3 desktopAimTarget;
         readonly RaycastHit[] aimHits=new RaycastHit[32];
         EffectType speedEffect,jumpEffect;
         int pendingPickup,dismissedPickup;float nextPickupRequest;
+        bool ignoreSwapBack;Vector3 swapSpot;
         Pose botAim;float botAimAt=float.NegativeInfinity;
         public void SetBotAim(Pose pose){if(motor&&motor.externallyDriven){botAim=pose;botAimAt=Time.time;}}
         public int PendingPickup=>pendingPickup;
         public void ConfirmSwap(bool accept)
         {
             if(pendingPickup==0)return;
-            if(accept)Runtime?.RequestPickup(pendingPickup,true);
-            dismissedPickup=pendingPickup;pendingPickup=0;nextPickupRequest=Time.unscaledTime+.6f;
+            int target=pendingPickup;pendingPickup=0;ResetPickupCancel();
+            if(accept)
+            {
+                var pickups=MatchRuntime.Current?.Frame?.pickups;
+                var selected=pickups==null?null:System.Array.Find(pickups,p=>p.id==target);
+                if(Runtime?.RequestPickup(target,true)!=true)return;
+                if(selected!=null){ignoreSwapBack=true;swapSpot=selected.position;}
+            }
+            dismissedPickup=target;nextPickupRequest=Time.unscaledTime+.6f;
         }
-        void CheckPickups()
+        void CheckPickups(EquipmentState state)
         {
-            var match=MatchRuntime.Current;if(match==null||match.Frame.phase!=RoundPhase.Playing)return;
-            EquipmentPickup nearby=null;float nearest=1.25f;
+            pendingPickup=0;
+            var match=MatchRuntime.Current;
+            if(match==null||match.Frame.phase!=RoundPhase.Playing){dismissedPickup=0;ignoreSwapBack=false;return;}
+            if(ignoreSwapBack&&(transform.position-swapSpot).sqrMagnitude>=1.25f*1.25f)ignoreSwapBack=false;
+            EquipmentPickup nearby=null;float nearest=1.25f*1.25f;
+            bool dismissedStillNear=false;
             foreach(var pickup in match.Frame.pickups)
             {
-                float distance=Vector3.Distance(transform.position,pickup.position);
+                float distance=(transform.position-pickup.position).sqrMagnitude;
+                if(pickup.id==dismissedPickup&&distance<1.25f*1.25f){dismissedStillNear=true;continue;}
+                if(ignoreSwapBack&&(pickup.position-swapSpot).sqrMagnitude<.04f)continue;
                 if(pickup.availableIn<=0&&distance<nearest){nearest=distance;nearby=pickup;}
             }
-            if(nearby==null){pendingPickup=dismissedPickup=0;return;}
-            if(nearby.id==dismissedPickup)return;
-            if(Equipment.kind!=EquipmentKind.None&&(!Equipment.builtIn||Equipment.activePower!=EquipmentKind.None)){pendingPickup=nearby.id;return;}
+            if(!dismissedStillNear)dismissedPickup=0;
+            if(nearby==null)return;
+            if(state.kind!=EquipmentKind.None&&(!state.builtIn||state.activePower!=EquipmentKind.None)){pendingPickup=nearby.id;return;}
             if(Time.unscaledTime>=nextPickupRequest){Runtime?.RequestPickup(nearby.id,false);nextPickupRequest=Time.unscaledTime+.5f;}
+        }
+        internal bool ReservesPrimaryJump(bool jumpLeft)
+        {
+            if(!HybridXRInput.PrimaryHeld(jumpLeft)){primaryJumpReserved=false;return false;}
+            if(HybridXRInput.SingleController&&HybridXRInput.SingleControllerLeft==jumpLeft&&HybridXRInput.GripHeld(jumpLeft))
+            {
+                var state=Equipment;
+                if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch)primaryJumpReserved=true;
+            }
+            return primaryJumpReserved;
         }
         IEquipmentRuntime Runtime=>MatchRuntime.Current as IEquipmentRuntime;
         public EquipmentState Equipment
@@ -69,7 +93,7 @@ namespace DeadlyJenga.CandyPlayers
             if(isActiveAndEnabled){trigger.Enable();offTrigger.Enable();grip.Enable();}armed=false;
         }
         void OnEnable(){trigger?.Enable();offTrigger?.Enable();grip?.Enable();}
-        void OnDisable(){ResetBashTracking();if(Local){ReleaseHeldArsenal();SetSuitThrust(false);}trigger?.Disable();offTrigger?.Disable();grip?.Disable();visual?.Hide();}
+        void OnDisable(){ResetBashTracking();ResetPickupCancel();pendingPickup=dismissedPickup=0;primaryJumpReserved=false;ignoreSwapBack=false;if(Local){ReleaseHeldArsenal();SetSuitThrust(false);}trigger?.Disable();offTrigger?.Disable();grip?.Disable();visual?.Hide();}
         void OnDestroy(){trigger?.Dispose();offTrigger?.Dispose();grip?.Dispose();}
         public void SetEquipped(bool value)
         {
@@ -243,19 +267,29 @@ namespace DeadlyJenga.CandyPlayers
                 bool effective=HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:preferred;
                 ApplyWeaponHand(effective);
             }
-            var state=Equipment;UpdateWeaponBash(state);if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
-            if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
-            CheckPickups();
+            var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
+            if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){ResetBashTracking();ResetPickupCancel();if(!motor.Alive)pendingPickup=0;SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            if(state.kind==EquipmentKind.PoweredArmor&&state.drawn){ResetBashTracking();ResetPickupCancel();pendingPickup=0;UpdateSuit(state);return;}
+            if(motor.Climbing||motor.Vaulting){ResetBashTracking();ResetPickupCancel();pendingPickup=0;ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            CheckPickups(state);
+            if(pendingPickup==0)ResetPickupCancel();
             if(pendingPickup!=0)
             {
-                offhandReady=false;ReleaseHeldArsenal();
+                ResetBashTracking();offhandReady=false;ReleaseHeldArsenal();
                 SetSuitThrust(false);
                 bool accept=motor.IsVR?trigger.WasPressedThisFrame():Keyboard.current?.eKey.wasPressedThisFrame==true;
-                bool decline=motor.IsVR?(offTrigger.WasPressedThisFrame()||HybridXRInput.SingleCancelPressed):Keyboard.current?.nKey.wasPressedThisFrame==true;
-                if(accept||decline)ConfirmSwap(accept);armed=false;return;
+                bool decline=PickupDeclinePressed();
+                if(accept||decline)ConfirmSwap(accept&&!decline);armed=false;return;
             }
-            if(state.kind==EquipmentKind.PoweredArmor){UpdateSuit(state);return;}
-            if(motor.Climbing||motor.Vaulting){ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            if(!motor.IsVR&&Keyboard.current?.deleteKey.wasPressedThisFrame==true)
+            {
+                ResetBashTracking();
+                if((Runtime as IEquipmentDropRuntime)?.RequestDropEquipment()==true)
+                {ReleaseHeldArsenal();armed=false;handReady=false;offhandReady=false;}
+                return;
+            }
+            if(state.kind==EquipmentKind.PoweredArmor){ResetBashTracking();UpdateSuit(state);return;}
+            UpdateWeaponBash(state);
             bool vr=motor.IsVR,pressed=vr?trigger.WasPressedThisFrame():Mouse.current?.leftButton.wasPressedThisFrame==true;
             bool held=vr?trigger.IsPressed():Cursor.lockState==CursorLockMode.Locked&&Mouse.current?.leftButton.isPressed==true;
             if(!held)armed=true;
@@ -265,7 +299,7 @@ namespace DeadlyJenga.CandyPlayers
                 armed=false;
                 return;
             }
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(offTrigger.WasPressedThisFrame()||(HybridXRInput.SingleModePressed&&!HybridXRInput.SingleLookHeld)):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(HybridXRInput.SingleController?HybridXRInput.SingleModePressed:offTrigger.WasPressedThisFrame()):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
             if(state.kind>EquipmentKind.PoweredArmor&&(!EquipmentSpecifications.Get(state.kind).melee||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe&&state.shotgun))
             {UpdateHeldArsenal(held&&armed&&state.drawn,state);return;}
             bool melee=EquipmentSpecifications.Get(state.kind).melee&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&!(state.kind==EquipmentKind.LaserAxe&&state.shotgun);

@@ -70,8 +70,8 @@ namespace DeadlyJenga.CharacterNetwork
             }
             ClearSea();
             var bridge = Template;
-            // The host decides every hand's size and handedness.
-            if (context.host && bridge) { newSize = bridge.settings.size; newLeft = forcedLeft??bridge.useLeftHand; }
+            // The host decides size. A spirit child has a fixed side; ordinary hands retain their owner's side.
+            if (context.host && bridge) { newSize = bridge.settings.size; newLeft = forcedLeft??newLeft; }
             suspended = false;
             if (Hand && (left != newLeft || Mathf.Abs(size - newSize) > .01f)) Clear();
             left = newLeft; size = newSize; target = newTarget; bones = newBones; active = isActive; hasTarget = true;
@@ -86,6 +86,7 @@ namespace DeadlyJenga.CharacterNetwork
             int taunt = look >> 4;
             if (taunt != lastTaunt && taunt > 0 && taunt <= Emotes.Hand.Length) GameEvents.RaiseEmoted(Hand.gameObject, Emotes.Hand[taunt - 1]);
             lastTaunt = taunt;
+            Hand.Profile=bridge.PhysicsProfile;Hand.RequiresProfile=true;
             Hand.SetTarget(target, context.host && active ? 1 : 0);
             if (context.host) Hand.SetInteractive(active);
         }

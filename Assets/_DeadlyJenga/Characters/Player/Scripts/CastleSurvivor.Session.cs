@@ -3,6 +3,7 @@ using UnityEngine;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CastleBots;
+using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -36,8 +37,10 @@ namespace DeadlyJenga.CastlePrototype
         public string JumpGestureLabel => jumpGesture.ToString();
         public void RecalibrateSeatedHeight() => CalibrateSeatedHeight();
         public string ControlDescription => VRControlDescription;
+        HandDriveProfile PhysicsProfile => HandDriveProfile.For(gameObject);
         public MatchRules CurrentRules => new MatchRules
         {
+            handPhysics = PhysicsProfile.CopyRules(),
             playStyle = vrPlayStyle.ToString(), movement = vrMovement.ToString(), turn = vrTurn.ToString(), snapAngle = vrSnapAngle, smoothDegrees = vrSmoothDegreesPerSecond,
             gripSeconds = climbGripSeconds, drainRate = climbDrainPerSecond, recoveryRate = climbRecoveryPerSecond, recoveryDelay = climbRecoveryDelay,
             drainCurve = climbDrainCurve.ToString(), recoveryCurve = climbRecoveryCurve.ToString(), drainDegree = climbDrainDegree, recoveryDegree = climbRecoveryDegree
@@ -54,11 +57,13 @@ namespace DeadlyJenga.CastlePrototype
         [Serializable]
         sealed class StaminaRules
         {
+            public HandPhysicsRules handPhysics;
             public float capacity, drain, recovery, delay, drainDegree, recoveryDegree;
             public StaminaCurve drainCurve, recoveryCurve;
         }
         public string SaveStaminaRules() => JsonUtility.ToJson(new StaminaRules
         {
+            handPhysics = PhysicsProfile.CopyRules(),
             capacity = climbGripSeconds, drain = climbDrainPerSecond, recovery = climbRecoveryPerSecond, delay = climbRecoveryDelay,
             drainDegree = climbDrainDegree, recoveryDegree = climbRecoveryDegree, drainCurve = climbDrainCurve, recoveryCurve = climbRecoveryCurve
         });
@@ -70,6 +75,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (float.IsNaN(number) || float.IsInfinity(number)) throw new System.IO.InvalidDataException("Invalid stamina number");
             if (!Enum.IsDefined(typeof(StaminaCurve), rules.drainCurve) || !Enum.IsDefined(typeof(StaminaCurve), rules.recoveryCurve))
                 throw new System.IO.InvalidDataException("Invalid stamina curve");
+            PhysicsProfile.Apply(rules.handPhysics);
             climbGripSeconds = Mathf.Clamp(rules.capacity, .5f, 20);
             climbDrainPerSecond = Mathf.Clamp(rules.drain, 0, 4);
             climbRecoveryPerSecond = Mathf.Clamp(rules.recovery, 0, 2);
@@ -83,6 +89,7 @@ namespace DeadlyJenga.CastlePrototype
         public void ApplyMatchRules(MatchRules rules)
         {
             if (rules == null) return;
+            PhysicsProfile.Apply(rules.handPhysics);
             if (Enum.TryParse(rules.playStyle, out SurvivorVRPlayStyle style)) SetVRPlayStyle(style, false);
             if (Enum.TryParse(rules.movement, out SurvivorVRMovement movement)) vrMovement = movement;
             if (Enum.TryParse(rules.turn, out SurvivorVRTurn turn)) vrTurn = turn;

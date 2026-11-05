@@ -68,13 +68,13 @@ namespace DeadlyJenga.CandyPlayers
             Vector2 move=vr?HybridXRInput.Stick(controllerLeft):new Vector2(
                 (keyboard?.dKey.isPressed==true?1:0)-(keyboard?.aKey.isPressed==true?1:0),
                 (keyboard?.wKey.isPressed==true?1:0)-(keyboard?.sKey.isPressed==true?1:0));
-            float magnitude=Mathf.InverseLerp(vr?.18f:0f,1f,move.magnitude);
+            float magnitude=Mathf.InverseLerp(vr?SuitMoveDeadzone:0f,1f,move.magnitude);
             var forward=motor.MovementForward;
             var right=Vector3.Cross(Vector3.up,forward);
             var horizontal=(right*move.normalized.x+forward*move.normalized.y)*(5f*magnitude);
             float lift=vr?Axis("trigger")-Axis("grip"):
                 (keyboard?.eKey.isPressed==true?1:0)-(keyboard?.qKey.isPressed==true?1:0);
-            float climb=Mathf.Sign(lift)*Mathf.InverseLerp(.12f,1f,Mathf.Abs(lift))*(lift>=0?3.5f:3f);
+            float climb=Mathf.Sign(lift)*Mathf.InverseLerp(SuitLiftDeadzone,1f,Mathf.Abs(lift))*(lift>=0?3.5f:3f);
             motor.ApplyHoverFlight(horizontal+Vector3.up*climb,Time.deltaTime,Time.time<suitTakeoffUntil);
 
             var shootHand=avatar.tracking?avatar.tracking.WorldHand(SuitShootingLeft):default;
