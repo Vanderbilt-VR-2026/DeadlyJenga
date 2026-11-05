@@ -110,7 +110,7 @@ namespace DeadlyJenga.CandyPlayers
                 pose = EmbedPose(state, pose, frame.scale);
             }
             root.gameObject.SetActive(true);
-            root.localScale = new Vector3(kind == EquipmentKind.BoxingGlove && state.leftHanded ? -1 : 1, 1, 1) * frame.scale;
+            root.localScale = new Vector3((kind == EquipmentKind.BoxingGlove || kind == EquipmentKind.RocketLauncher) && state.leftHanded ? -1 : 1, 1, 1) * frame.scale;
             root.SetPositionAndRotation(pose.position, pose.rotation);
             if (kind == EquipmentKind.WristLaser)
                 root.localScale = new Vector3(1, 1, Mathf.Lerp(.78f, 1, drawAmount)) * frame.scale;
