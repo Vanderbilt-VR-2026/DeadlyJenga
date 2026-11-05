@@ -43,6 +43,8 @@ namespace DeadlyJenga.CastlePrototype
             feedbackUntil=Time.unscaledTime+6;
             if(success)session.SetMenu(false);
         }
+        bool hostTools;
+        Vector2 personalScroll;
         int PageCount=>4;
         string PageName(int index)=>DemoMenuSections.Tabs[Mathf.Clamp(index,0,3)];
         CandyHudIcon PageIcon(int index)=>index==0?CandyHudIcon.Survivor:index==1?CandyHudIcon.Friends:index==2?CandyHudIcon.Home:CandyHudIcon.Settings;
@@ -62,10 +64,10 @@ namespace DeadlyJenga.CastlePrototype
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
             if(studio)studio.ShowLauncher=false;
             if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
-            if(session.MenuOpen&&!lastMenu){selection=0;}
+            if(session.MenuOpen&&!lastMenu){selection=0;hostTools=false;}
             lastMenu=session.MenuOpen;
             var k=Keyboard.current;
-            if(k!=null&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
+            if(k!=null&&hostTools&&DeadlyJenga.Presentation.MenuAccess.HostTools(session)&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
             {
                 if(k.leftArrowKey.wasPressedThisFrame)ChangePage((page+PageCount-1)%PageCount);
                 if(k.rightArrowKey.wasPressedThisFrame)ChangePage((page+1)%PageCount);
@@ -130,20 +132,34 @@ namespace DeadlyJenga.CastlePrototype
             page=Mathf.Clamp(page,0,PageCount-1);
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
             Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
-            if(GameExperiencePanel.Resolve(session)!=null){if(Button(new Rect(93,23,470,45),"GAME / DEMO - ROUND SETUP",CandyHudVisuals.Card))GameExperiencePanel.Open(session);}
+            if(GameExperiencePanel.Resolve(session)!=null){if(Button(new Rect(93,23,470,45),"ROUND & READINESS",CandyHudVisuals.Card))GameExperiencePanel.Open(session);}
             else GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
             GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
             if(Button(new Rect(256,94,220,28),"CONTROLS / HAND",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
             var inspection=CandyThirdPersonInspection.For(session);
-            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
+            if(hostTools&&DeadlyJenga.Presentation.MenuAccess.HostTools(session)&&DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
             if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
             string joinCode=MultiplayerPanel.JoinCode(session.Multiplayer);
             if(joinCode.Length>0&&Button(new Rect(488,94,248,28),"Code: "+joinCode+" / Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
             var review=MatchRuntime.Current as IMatchReviewControls;
-            if(review?.DevelopmentReviewEnabled==true)
+            if(hostTools&&DeadlyJenga.Presentation.MenuAccess.HostTools(session)&&review?.DevelopmentReviewEnabled==true)
             {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),MultiplayerPanel.EndAction(session.Multiplayer),CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
             if(HandLooks.Names.Length>0&&Button(new Rect(748,94,201,28),"Hand Appearance",CandyHudVisuals.Card))CharacterPicker.Open(session);
+            if(!DeadlyJenga.Presentation.MenuAccess.HostTools(session))hostTools=false;
+            if(DeadlyJenga.Presentation.MenuAccess.HostTools(session)&&Button(new Rect(20,630,218,48),hostTools?"Back to pause menu":"Host tools",CandyHudVisuals.Card)){hostTools=!hostTools;activate=false;}
+            if(!hostTools)
+            {
+                activate=false;navCount=0;
+                GUI.Label(new Rect(35,160,1100,60),"Your controls, appearance and readiness are personal. The host manages the match.",body);
+                GUILayout.BeginArea(new Rect(35,235,500,370));
+                MultiplayerPanel.Draw(session.Multiplayer,false);
+                GUILayout.EndArea();
+                GUILayout.BeginArea(new Rect(570,235,570,370));
+                personalScroll=GUILayout.BeginScrollView(personalScroll);SocialPanel.Draw(session.Social,false);GUILayout.EndScrollView();
+                GUILayout.EndArea();
+                return;
+            }
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
@@ -167,7 +183,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         string PageTitle()=>SectionName=="Spectate"?"Watch the match":SectionName=="Maps"?"Change map":SectionName=="Disasters"?"Natural disasters":SectionName=="Modes"?"Game modes and world rules":SectionName=="Play"?"Make a little mayhem":SectionName=="Voice"?"AI players and voice":SectionName=="Survivors"?"Bring the island to life":SectionName=="Giant hands"?"A few extra hands":SectionName=="Settings"?"Your local controls":SectionName=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";
         string PageDescription()=>SectionName=="Character"?"Your character, viewpoint, equipment hand and local testing controls.":SectionName=="Equipment"||SectionName=="Bot equipment"?"Filter the arsenal, choose the target and select an item. Shared grants require the host.":SectionName=="World"?"Rebuild the map, deliver structures or finish the round.":SectionName=="Spectate"?"Use the same eye pose as the shared survivor character, with no commands sent to the watched player.":SectionName=="Maps"?((Demo as IDemoMapControls)?.MapStatus??"Maps are unavailable."):SectionName=="Disasters"?(!string.IsNullOrEmpty(DemoStatus)?DemoStatus:string.IsNullOrEmpty(disasterStatus)?"Tune a disaster below its button, then launch it. Ice toggles on / off. New settings apply on the next launch.":disasterStatus):SectionName=="Voice"?"Microphone is opt-in. Each AI keeps its own voice and volume.":SectionName=="Survivors"||SectionName=="Giant hands"?"The host manages the shared AI population.":SectionName=="Settings"?"Tune local controls while keeping lobby match setup available.":SectionName=="Play"?"Switch roles, get back on top, or start the tower over.":SectionName=="Friends"?"Your current connection and session controls.":"Hints match the inputs this demo actually supports.";
-        bool EditWorld=>session.CanEditWorld;
+        bool EditWorld=>DeadlyJenga.Presentation.MenuAccess.HostTools(session);
         bool CanCommand=>Demo!=null&&Demo.CanCommand;
         void ActionCard(float y,CandyHudIcon icon,string name,string description,Action action,bool enabled=true,Color? accent=null,Texture preview=null)
         {
@@ -355,7 +371,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             // Keep all discovery / pending / cancellation conditions owned by the network component.
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)MultiplayerPanel.Draw(session.Multiplayer);else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
+            GUILayout.BeginArea(new Rect(10,113,816,515));if(session.Multiplayer!=null)MultiplayerPanel.Draw(session.Multiplayer,false);else GUILayout.Label("Local discovery is starting...");GUILayout.EndArea();GUI.backgroundColor=color;
         }
         void ModesPage()
         {

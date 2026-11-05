@@ -53,6 +53,7 @@ namespace DeadlyJenga.CastlePrototype
             var entry=list[index];
             return (entry==room.Discovery.Invitation?"Invite: ":"")+entry.message.name+"  "+entry.message.code;
         }
+        [SerializeField] bool showLegacyHomeMenu;
         void Start()
         {
             if (!catalog) catalog = Resources.Load<IslandLobbyCatalog>("IslandLobby/Catalog");
@@ -61,6 +62,13 @@ namespace DeadlyJenga.CastlePrototype
             bool first = !room.Catalog;
             room.Catalog = IslandLobbyCatalog.Runtime(catalog);
             if (first) room.Region = catalog.defaultRegion;
+            if (!showLegacyHomeMenu)
+            {
+                AutofillLobby = false;
+                MatchSetup.BotTarget = 1;
+                SceneManager.LoadScene(lobbyScene);
+                return;
+            }
             room.StartDiscovery();
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
             GameEvents.RaiseHomeStarted(gameObject);

@@ -104,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 wardrobePivotOffset;
         float wardrobeFitDistance;
 
-        bool wardrobeOpen,wardrobeArmed=true,wardrobePaused;
+        bool wardrobeOpen,wardrobePaused;
 
         CursorLockMode wardrobeCursor;
 
@@ -253,7 +253,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobePlayer=Player;wardrobePaused=Player.InputSuspended;wardrobeCursor=Cursor.lockState;wardrobeCursorVisible=Cursor.visible;ResetWardrobeView();
 
-                wardrobeOpen=true;ResetWardrobeNotice();wardrobeArmed=false;Player.InputSuspended=true;
+                wardrobeOpen=true;ResetWardrobeNotice();Player.InputSuspended=true;
 
                 wardrobeShowcase=Player.gameObject.GetComponent<IAvatarShowcase>();
 
@@ -409,9 +409,8 @@ namespace DeadlyJenga.CastlePrototype
 
             float distance=Vector2.Distance(new Vector2(location.x,location.z),new Vector2(WardrobePosition.x,WardrobePosition.z));
 
-            if(distance>1.3f)wardrobeArmed=true;
 
-            if(!wardrobeOpen&&wardrobeArmed&&distance<.75f)SetWardrobeOpen(true);
+
 
             if(!wardrobeOpen)return false;
             if(Player.IsVR&&(Player.MenuPressed||wardrobeCancel?.WasPressedThisFrame()==true)){SetWardrobeOpen(false);return true;}

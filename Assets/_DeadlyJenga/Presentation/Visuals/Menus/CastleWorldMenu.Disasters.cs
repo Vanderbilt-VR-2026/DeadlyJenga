@@ -65,8 +65,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             
             var ray=pointerRay;
-            for(int i=0;i<disasterSliders.Length;i++)if(PointWaveSlider(ray,disasterSliders[i],disasterHits[i],pressed||held)){help.text="Aim along slider · hold RIGHT trigger / pinch";return;}
-            help.text=Demo!=null&&Demo.Status.Length>0?Demo.Status:!string.IsNullOrEmpty(disasterStatus)?disasterStatus:allowed?"RIGHT trigger / pinch selects · Stop all clears temporary effects":"The host controls disasters unless shared controls are enabled.";
+            for(int i=0;i<disasterSliders.Length;i++)if(PointWaveSlider(ray,disasterSliders[i],disasterHits[i],pressed||held)){help.text="Aim along slider · hold Controller trigger";return;}
+            help.text=Demo!=null&&Demo.Status.Length>0?Demo.Status:!string.IsNullOrEmpty(disasterStatus)?disasterStatus:allowed?"Controller trigger selects · Stop all clears temporary effects":"The host controls disasters unless shared controls are enabled.";
             for(int i=0;i<buttons.Length;i++)
             {
                 if(!buttons[i].gameObject.activeSelf)continue;

@@ -22,8 +22,8 @@ namespace DeadlyJenga.CastlePrototype
             Add(hostStation,"region",()=>"REGION: "+l.Region.ToUpperInvariant()+"  ·  CHANGE",65,l.NextRegion,()=>l.CanHost,0,650,50,()=>!l.Connected);
             Add(hostStation,"invite-all",()=>"INVITE NEARBY",-25,l.InviteNearby,()=>l.CanInvite,0,700,100);
             Add(hostStation,"request-host",()=>"REQUEST HOST",-125,()=>Details?.RequestHost(),()=>l.Connected&&!l.IsHost&&!l.Busy,0,700,65,()=>l.Connected&&!l.IsHost);
-            Add(hostStation,"shared-controls",()=>"DEMO CONTROLS: "+(l.SharedControls?"EVERYONE":"HOST ONLY"),-125,l.ToggleSharedControls,()=>l.CanConfigure&&l.DemoSelected,0,700,65,()=>l.IsHost&&l.Connected);
-            Add(hostStation,"abandon-host",()=>TerminalLeaveLabel(l.Busy?"CANCEL CONNECTION":l.IsHost?"LEAVE / CLOSE ROOM":"LEAVE ROOM"),-220,LeaveFromTerminal,()=>l.CanLeave,0,700,65,()=>l.CanLeave);
+            Add(hostStation,"shared-controls",()=>"SHARED DEMO PERMISSIONS: "+(l.SharedControls?"EVERYONE":"HOST ONLY"),-125,l.ToggleSharedControls,()=>l.CanConfigure&&l.DemoSelected,0,700,65,()=>l.IsHost&&l.Connected);
+            Add(hostStation,"abandon-host",()=>TerminalLeaveLabel(l.Busy?"CANCEL CONNECTION":l.IsHost?"LEAVE / TRANSFER HOST":"LEAVE ROOM"),-220,LeaveFromTerminal,()=>l.CanLeave,0,700,65,()=>l.CanLeave);
             requestLabel=Label(hostStation,"",-292,22,700,48);
             Add(hostStation,"request-next",()=>"NEXT REQUEST",-292,()=>requestSelection++,()=>RequestId!=null,250,180,45,()=>l.IsHost&&(Details?.HostRequests.Count??0)>1);
             Add(hostStation,"request-accept",()=>"ACCEPT",-345,()=>Details?.ReviewHostRequest(RequestId,true),()=>RequestId!=null, -180,320,55,()=>l.IsHost&&RequestId!=null);

@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!Player.IsVR){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             if(!lobbyAimDot)
             {
-                lobbyAimDot=new GameObject("Lobby gaze cursor").AddComponent<TextMesh>();
+                lobbyAimDot=new GameObject("Lobby controller cursor").AddComponent<TextMesh>();
                 lobbyAimDot.transform.SetParent(transform,false);
                 lobbyAimDot.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 lobbyAimDot.GetComponent<Renderer>().sharedMaterial=lobbyAimDot.font.material;
@@ -98,14 +98,25 @@ namespace DeadlyJenga.CastlePrototype
             controlsMenuWasOpen=session?.MenuOpen==true;
             if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
                 DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
-            if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+            if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
+            { if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false); if(piano)piano.gameObject.SetActive(false); lobby?.UnfocusCode(); keyboardWasOpen=false; return; }
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
-            bool pressed=select.WasPressedThisFrame()||Player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
-            Ray ray=!Player.IsVR&&session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
-            Point(ray,pressed,select.IsPressed()||Player.SelectHeld||mouse!=null&&mouse.leftButton.isPressed);
+            UpdatePrivateKeyboard();
+            if(Player.IsVR)
+            {
+                if(DeadlyJenga.Presentation.MenuPointer.TryRead(eye, Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, out var input))
+                    Point(input.Ray,input.Pressed,input.Held);
+                else if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
+            }
+            else
+            {
+                bool pressed=keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
+                Ray ray=session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+                Point(ray,pressed,mouse!=null&&mouse.leftButton.isPressed);
+            }
             UpdateStations();
         }
         readonly RoomLeaveConfirmation terminalLeave=new RoomLeaveConfirmation();
@@ -136,6 +147,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
                 if(!choice.button||!choice.button.transform.parent.gameObject.activeInHierarchy)continue;
+                if(lobby.CodeFocused && piano && !choice.button.transform.IsChildOf(piano))continue;
                 bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
                 bool rawChoice=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
                 bool usable=(choice.enabled==null||choice.enabled())&&(!rawChoice||DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session));choice.button.interactable=usable;choice.collider.enabled=usable;
@@ -155,6 +167,7 @@ namespace DeadlyJenga.CastlePrototype
                 else if(pressed)InvokeChoice(nearest.id);
             }
             DrawLobbyAim(ray,nearest!=null?distance:1.5f,nearest!=null);
+            if(Player.IsVR)DeadlyJenga.Presentation.MenuPointer.Draw(Player.ViewCamera,ray,nearest!=null?distance:4);
             UpdateModeCardFocus(nearest?.id);
         }
         void OnGUI()

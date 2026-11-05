@@ -148,7 +148,8 @@ namespace DeadlyJenga.CastlePrototype
         void PointMirror()
         {
             foreach(var control in controls)control.GetComponent<Image>().color=CandyHudVisuals.Ink;
-            var ray = new Ray(original.transform.position, original.transform.forward);
+            if(!DeadlyJenga.Presentation.MenuPointer.TryRead(original,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out var input))return;
+            var ray = input.Ray;
             var plane = new Plane(panel.transform.forward, panel.transform.position);
             if (!plane.Raycast(ray, out float enter) || enter > 4) return;
             Vector3 point = panel.transform.InverseTransformPoint(ray.GetPoint(enter));
@@ -158,8 +159,8 @@ namespace DeadlyJenga.CastlePrototype
                 controls[i].GetComponent<Image>().color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Ink;
                 if (!hover) continue;
                 if(!selectArmed)return;
-                if (i == 6) { if (mirrorSelect?.WasPressedThisFrame()==true||player.SelectPressed) End(); return; }
-                if (!MirrorSelectHeld) return;
+                if (i == 6) { if (input.Pressed) End(); return; }
+                if (!input.Held) return;
                 float step = Time.unscaledDeltaTime;
                 if (i < 2) yaw += (i == 0 ? -1 : 1) * 65 * step;
                 else if (i < 4) pitch += (i == 2 ? 1 : -1) * 40 * step;

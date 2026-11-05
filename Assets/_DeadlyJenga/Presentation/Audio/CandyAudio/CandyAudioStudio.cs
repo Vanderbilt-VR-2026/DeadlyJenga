@@ -32,7 +32,7 @@ namespace DeadlyJenga.CandyAudio
         void Awake(){engine=GetComponent<CandyAudioEngine>();var speaker=new GameObject("Studio audition (one voice)");speaker.transform.SetParent(transform,false);preview=speaker.AddComponent<AudioSource>();preview.playOnAwake=false;preview.priority=24;preview.dopplerLevel=0;preview.rolloffMode=AudioRolloffMode.Linear;}
         public void Open()
         {
-            if(!engine||!engine.bank)return;
+            if(!CanAuthor||!engine||!engine.bank)return;
             if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";IncludeFallbacks(working);engine.Configure(working);}
             session=Services.Session;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
             GatherClips();IsOpen=true;status="Session copy • preview freely, then save a preset if you like it.";
@@ -59,8 +59,10 @@ namespace DeadlyJenga.CandyAudio
             preview.Stop();selected=null;library=false;IsOpen=false;if(engine)engine.auditionDucking=1;
             if(session!=null)session.SetMenu(previousMenu);
         }
+        bool CanAuthor=>Services.Session==null||!Services.Session.IsVR&&DeadlyJenga.Presentation.MenuAccess.HostTools(Services.Session);
         void Update()
         {
+            if(!CanAuthor){if(IsOpen)Close();return;}
             var keyboard=Keyboard.current;
             if(keyboard!=null&&keyboard.f8Key.wasPressedThisFrame){if(IsOpen)Close();else Open();}
             if(!IsOpen)return;
@@ -174,7 +176,7 @@ namespace DeadlyJenga.CandyAudio
         };
         void OnGUI()
         {
-            if(!engine||!engine.bank||!IsOpen&&!ShowLauncher)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
+            if(!CanAuthor||!engine||!engine.bank||!IsOpen&&!ShowLauncher)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
             float scale=Mathf.Min(Screen.width/W,Screen.height/H);GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-W*scale)/2,(Screen.height-H*scale)/2),Quaternion.identity,Vector3.one*scale);GUI.depth=-1000;
             if(!IsOpen){if(Btn(new Rect(W-204,15,188,39),"Sound studio  •  F8",Mint))Open();}
             else GUI.ModalWindow(GetInstanceID(),new Rect(20,18,W-40,H-36),DrawWindow,GUIContent.none,GUIStyle.none);

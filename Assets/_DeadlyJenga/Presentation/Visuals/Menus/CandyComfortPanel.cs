@@ -98,7 +98,6 @@ namespace DeadlyJenga.Presentation
             Add(new Vector2(250,-390),()=>home?"Done":"Resume",()=>{Close();session?.SetMenu(false);});
             rightSelect=new InputAction("Comfort right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             leftSelect=new InputAction("Comfort left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
-            rightSelect.AddBinding("<HandInteraction>{RightHand}/pinchValue");leftSelect.AddBinding("<HandInteraction>{LeftHand}/pinchValue");
             rightSelect.Enable();leftSelect.Enable();
         }
         readonly List<Func<string>> titles=new List<Func<string>>();
@@ -190,27 +189,7 @@ namespace DeadlyJenga.Presentation
             bool pressed=false;Vector2 point;
             if(wasVr)
             {
-                if(!eye)return;
-                var ray=new Ray(eye.transform.position,eye.transform.forward);
-                XRController aimed=null;
-                var origin=eye.GetComponentInParent<XROrigin>();
-                var space=origin&&origin.CameraFloorOffsetObject?origin.CameraFloorOffsetObject.transform:null;
-                if(space)
-                {
-                    bool left=weaponHand?.LeftHanded==true;
-                    foreach(var device in InputSystem.devices)
-                        if(PhysicalController(device)&&HasUsage(device,left?CommonUsages.LeftHand:CommonUsages.RightHand)){aimed=(XRController)device;break;}
-                    if(aimed==null)foreach(var device in InputSystem.devices)if(PhysicalController(device)){aimed=(XRController)device;break;}
-                    if(aimed!=null)
-                    {
-                        var pos=aimed.TryGetChildControl<Vector3Control>("pointerPosition")??aimed.devicePosition;
-                        var rot=aimed.TryGetChildControl<QuaternionControl>("pointerRotation")??aimed.deviceRotation;
-                        ray=new Ray(space.TransformPoint(pos.ReadValue()),space.TransformDirection(rot.ReadValue()*Vector3.forward));
-                    }
-                }
-                if(Vector3.Dot(ray.direction,panel.forward)<=.01f||!new Plane(panel.forward,panel.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.InverseTransformPoint(ray.GetPoint(distance));
-                pressed=aimed!=null?(HasUsage(aimed,CommonUsages.LeftHand)?leftSelect:rightSelect).WasPressedThisFrame():session?.MenuSelectPressed==true||rightSelect.WasPressedThisFrame()||leftSelect.WasPressedThisFrame();
+                if(!DeadlyJenga.Presentation.MenuPointer.OnPanel(eye, panel, PreferredLeft, out point, out pressed)) return;
             }
             else
             {

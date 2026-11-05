@@ -52,14 +52,14 @@ namespace DeadlyJenga.CastlePrototype
         void OpenMarinaDetail(string page)
         {
             if(page=="style"){if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
-            marinaDetail=page;joinStation.gameObject.SetActive(page=="join");hostStation.gameObject.SetActive(page=="host");setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");piano.gameObject.SetActive(page=="join");
+            marinaDetail=page;joinStation.gameObject.SetActive(page=="join");hostStation.gameObject.SetActive(page=="host");setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");lobby.UnfocusCode();piano.gameObject.SetActive(false);
             if(page=="maps"||page=="modes")OpenPicker(page);
             if(page=="settings"){setupPage="settings";settingsPage=0;}
             marinaScreen.Visible=false;marinaBack.gameObject.SetActive(true);SyncMarinaBacks();
         }
         void CloseMarinaDetail()
         {
-            marinaDetail="";joinStation.gameObject.SetActive(false);hostStation.gameObject.SetActive(false);setupStation.gameObject.SetActive(false);piano.gameObject.SetActive(false);wardrobePanel.gameObject.SetActive(false);
+            lobby.UnfocusCode();marinaDetail="";joinStation.gameObject.SetActive(false);hostStation.gameObject.SetActive(false);setupStation.gameObject.SetActive(false);piano.gameObject.SetActive(false);wardrobePanel.gameObject.SetActive(false);
             if(wardrobeOpen)SetWardrobeOpen(false);if(marinaBack)marinaBack.gameObject.SetActive(false);if(marinaScreen)marinaScreen.Visible=true;SyncMarinaBacks();
         }
         partial void MarinaInteractionRange(ref float distance){if(marina)distance=11;}

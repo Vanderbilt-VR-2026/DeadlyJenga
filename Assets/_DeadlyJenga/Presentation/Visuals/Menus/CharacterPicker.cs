@@ -143,26 +143,7 @@ namespace DeadlyJenga.CastlePrototype
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                var ray=new Ray(openingCamera.transform.position,openingCamera.transform.forward);
-                var controller=Controller();
-                if(controller!=null)
-                {
-                    var rig=openingCamera.GetComponentInParent<XROrigin>();
-                    var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
-                    if(space)
-                    {
-                        var pos=controller.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                        var rot=controller.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                        ray=new Ray(space.TransformPoint(pos.ReadValue()),space.TransformDirection(rot.ReadValue()*Vector3.forward));
-                    }
-                    else controller=null;
-                }
-                if(Vector3.Dot(ray.direction,panel.transform.forward)<=.01f||
-                    !new Plane(panel.transform.forward,panel.transform.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.transform.InverseTransformPoint(ray.GetPoint(distance));
-                bool left=false;
-                if(controller!=null)foreach(var usage in controller.usages)left|=usage==CommonUsages.LeftHand;
-                pressed=controller!=null?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
+                if(!DeadlyJenga.Presentation.MenuPointer.OnPanel(openingCamera, (RectTransform)panel.transform, owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, out point, out pressed)) return;
             }
             else
             {
@@ -189,20 +170,6 @@ namespace DeadlyJenga.CastlePrototype
             return signature;
         }
         void OnApplicationFocus(bool focused){if(!focused)Close(false);}
-        XRController Controller()
-        {
-            bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
-            XRController fallback=null;
-            foreach(var device in InputSystem.devices)
-            {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||
-                    device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0)continue;
-                fallback??=controller;
-                foreach(var usage in controller.usages)
-                    if(usage==(left?CommonUsages.LeftHand:CommonUsages.RightHand))return controller;
-            }
-            return fallback;
-        }
         void OnDisable()
         {
             Close(false);

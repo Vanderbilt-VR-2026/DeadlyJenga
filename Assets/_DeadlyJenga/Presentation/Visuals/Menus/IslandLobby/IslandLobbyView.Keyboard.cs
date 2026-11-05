@@ -6,25 +6,26 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // The giant piano keyboard for typing room codes (point, click or press keys with a fingertip).
+    // This keyboard belongs only to the local view and is never sent over the network.
     public sealed partial class IslandLobbyView
     {
         RectTransform piano;
         Material keyboardMaterial;
         Mesh keyboardMesh;
-        readonly Choice[] touching=new Choice[2];
+        Text privateCode;
+        bool keyboardWasOpen;
         public Transform GiantKeyboard=>piano;
         void BuildKeyboard(RectTransform panel)
         {
             EnsureKeyboardArt();
-            var go=new GameObject("Giant piano keyboard",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);
+            var go=new GameObject("Private room code keyboard",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);
             var yaw=panel.rotation;
             go.transform.SetPositionAndRotation(new Vector3(panel.position.x,.94f,.55f),yaw*Quaternion.Euler(40,0,0));
             go.transform.localScale=Vector3.one*(1000*StationScale/1680);
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
             var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
-            lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));   // the lobby makes the piano solid
-            BuildArcadeCabinet();
+            privateCode=Label(piano,"",335,36,1200,60);
+            Add(piano,"keyboard-close",()=>"CLOSE",335,lobby.UnfocusCode,()=>true,710,220,60);
             string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM-"};
             for(int row=0;row<rows.Length;row++)
             for(int col=0;col<rows[row].Length;col++)
@@ -36,7 +37,7 @@ namespace DeadlyJenga.CastlePrototype
             back.label.enabled=false;
             var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
             PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
-            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
+            PhysicalKey("keyboard-enter","JOIN ROOM",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
         }
         Choice PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
@@ -65,33 +66,23 @@ namespace DeadlyJenga.CastlePrototype
             key.keyGlow.rectTransform.anchoredPosition3D=key.keyGlowSoft.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);
             if(key.keyIcon){key.keyIcon.color=enabled?CandyForeground(key.keyColor):CandyMuted;key.keyIcon.rectTransform.anchoredPosition3D=new Vector3(0,0,-68+depression);}
         }
-        void UpdateKeyboardTouches()
+        void UpdatePrivateKeyboard()
         {
-            var fingers=Player.gameObject.GetComponent<IFingerTips>();
-            if(!Player.IsVR||fingers==null||!lobby.JoinEnabled){touching[0]=touching[1]=null;return;}
-            for(int side=0;side<2;side++)
+            bool open=lobby.CodeFocused&&lobby.JoinEnabled&&Player.ViewCamera;
+            if(open&&!keyboardWasOpen)
             {
-                if(!fingers.TryIndexTip(side==0,out var tip)){touching[side]=null;continue;}
-                TouchKeyboard(tip,side);
+                var eye=Player.ViewCamera.transform;
+                var forward=Vector3.ProjectOnPlane(eye.forward,Vector3.up).normalized;
+                if(forward.sqrMagnitude<.5f)forward=Vector3.forward;
+                piano.SetPositionAndRotation(eye.position+forward*1.05f-Vector3.up*.22f,Quaternion.LookRotation(forward));
+                piano.localScale=Vector3.one*(1.15f/1680);
             }
+            piano.gameObject.SetActive(open);keyboardWasOpen=open;
+            privateCode.text=string.IsNullOrEmpty(lobby.EnteredCode)?"ENTER ROOM CODE":lobby.EnteredCode;
+            if(!open&&lobby.CodeFocused)lobby.UnfocusCode();
         }
-        public bool TouchKeyboard(Vector3 point,int hand)
-        {
-            if(hand<0||hand>1)return false;
-            Choice hit=null;float distance=.018f*.018f;
-            if(lobby.JoinEnabled)
-            foreach(var choice in choices)
-            {
-                if(!choice.physical||!choice.collider.enabled||choice.enabled!=null&&!choice.enabled())continue;
-                if(choice.collider.transform.InverseTransformPoint(point).z>-10)continue;
-                float d=(choice.collider.ClosestPoint(point)-point).sqrMagnitude;
-                if(d<=distance){hit=choice;distance=d;}
-            }
-            if(hit==touching[hand])return false;
-            touching[hand]=hit;
-            if(hit==null||Time.unscaledTime<hit.pressedUntil)return false;
-            return InvokeChoice(hit.id);
-        }
+        // Kept for existing callers; keys now require a controller ray and trigger.
+        public bool TouchKeyboard(Vector3 point,int hand)=>false;
         void EnsureKeyboardArt()
         {
             if(!keyboardMesh)keyboardMesh=RoundedBox();

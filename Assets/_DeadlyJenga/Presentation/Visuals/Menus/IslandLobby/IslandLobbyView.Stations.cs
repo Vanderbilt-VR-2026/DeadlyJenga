@@ -29,7 +29,7 @@ namespace DeadlyJenga.CastlePrototype
             Add(joinStation,"code-instead",()=>"HIDE RESULTS",-310,l.ShowCodeEntry,()=>l.JoinEnabled,-235,390,38,()=>l.ShowingNearby);
             Add(joinStation,"accept-invite",()=>"JOIN INVITATION: "+(l.InvitationFrom??""),-155,l.AcceptInvitation,()=>l.JoinEnabled,0,870,60,()=>!l.ShowingNearby&&l.InvitationFrom!=null);
             Add(joinStation,"leave-guest",()=>TerminalLeaveLabel(l.Busy?"CANCEL JOIN":"LEAVE ROOM"),-260,LeaveFromTerminal,()=>l.CanLeave,0,870,65,()=>!l.HostActive&&l.CanLeave);
-            joinHint=Label(joinStation,"Use the enormous keyboard below.",-340,14,900,28);joinHint.color=CandyHudVisuals.Muted;
+            joinHint=Label(joinStation,"Select the code field to open your private keyboard.",-340,14,900,28);joinHint.color=CandyHudVisuals.Muted;
             BuildKeyboard(joinStation);
             StyleJoinArcade();
             BuildRoomStation();
@@ -54,7 +54,6 @@ namespace DeadlyJenga.CastlePrototype
                 if(codeKeyboard.enterKey.wasPressedThisFrame&&lobby.CodeValid)lobby.Join();
                 if(codeKeyboard.escapeKey.wasPressedThisFrame)lobby.UnfocusCode();
             }
-            UpdateKeyboardTouches();
             UpdateCandyDesign();
             RefreshLobbyPortrait();
         }

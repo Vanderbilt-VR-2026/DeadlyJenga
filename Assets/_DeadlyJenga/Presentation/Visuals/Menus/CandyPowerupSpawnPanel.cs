@@ -8,9 +8,10 @@ namespace DeadlyJenga.Presentation
         bool open;Vector2 scroll;Rect window=new Rect(30,60,610,650);
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=go=>{if(!go.GetComponent<CandyPowerupSpawnPanel>())go.AddComponent<CandyPowerupSpawnPanel>();};
-        public static void Open(){var panel=FindFirstObjectByType<CandyPowerupSpawnPanel>();if(panel)panel.open=true;}
+        public static void Open(){var panel=FindFirstObjectByType<CandyPowerupSpawnPanel>();if(panel&&MenuAccess.HostTools(Services.Session))panel.open=true;}
         void OnGUI()
         {
+            if(!MenuAccess.HostTools(Services.Session)){open=false;return;}
             if(!open||Services.Session?.MenuOpen!=true||Services.Session.IsVR)return;
             window=GUI.Window(GetInstanceID(),window,Draw,"RANDOM BLOCK POWERUPS");
         }

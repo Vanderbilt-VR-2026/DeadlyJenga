@@ -53,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 match.Configure(copy);return;
             }
-            help.text="Look + trigger / pinch to cycle a value. More settings reveals all mode options.";
+            help.text="Controller laser + trigger to cycle a value. More settings reveals all mode options.";
         }
         void PointHudPage(Camera camera,bool pressed)
         {
@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(i==5){hints.hintMode=(CandyDemoHud.HintMode)(((int)hints.hintMode+1)%3);labels[i].text="Control prompts: "+hints.hintMode;return;}
                 var copy=match.Rules.Copy();copy.environmentSkin=CandySceneSkins.Names[(DeadlyJenga.Presentation.CandyMatchVisuals.SkinIndex(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];match.Configure(copy);return;
             }
-            help.text="Standings: trigger / pinch turns pages. Open this page again to hide. Body reports keep their numbered location markers.";
+            help.text="Standings: trigger turns pages. Open this page again to hide. Body reports keep their numbered location markers.";
         }
     }
 }

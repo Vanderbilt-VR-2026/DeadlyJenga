@@ -15,7 +15,14 @@ namespace DeadlyJenga.CastlePrototype
         void HomeOpened(GameObject home){if(Persistent==this)ParkForMatch();}
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetResidence(){Persistent=null;Current=null;}
-        void Start(){if(!duplicate)RetainRoots();}
+        async void Start()
+        {
+            if (duplicate) return;
+            RetainRoots();
+            // One attempt on entry; a failed connection leaves the island and Retry available.
+            if (!MatchResident && !VisitOwner && Room && !Room.Connected && !Room.Busy)
+                await Room.Host();
+        }
         void RetainRoots()
         {
             if(Retained||duplicate)return;

@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleWorldMenu
     {
         int menuCategory=-1,menuSection=-1,equipmentOffset;
-        bool batchPage,quickGunPage;
+        bool batchPage,quickGunPage,hostTools;
         int batchTarget;
         UnityEngine.UI.Button backButton,homeButton;
         BoxCollider backTarget,homeTarget;
@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         void BuildNavigation()
         {
             backButton=HeaderButton("Back",0,out backTarget);
-            homeButton=HeaderButton("Demo Home",0,out homeTarget);
+            homeButton=HeaderButton("Menu",0,out homeTarget);
             ((RectTransform)backButton.transform).anchoredPosition=new Vector2(-206,510);
             ((RectTransform)homeButton.transform).anchoredPosition=new Vector2(206,510);
         }
@@ -26,16 +26,16 @@ namespace DeadlyJenga.CastlePrototype
             bool available=!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session);
             backButton.gameObject.SetActive(available);homeButton.gameObject.SetActive(available);
             if(!available)return false;
-            homeTarget.enabled=!AtHome;
-            backButton.GetComponentInChildren<UnityEngine.UI.Text>().text=AtHome?"Resume":"Back";
+            homeTarget.enabled=!AtHome||hostTools;
+            backButton.GetComponentInChildren<UnityEngine.UI.Text>().text=AtHome&&!hostTools?"Resume":"Back";
             bool back=Hit(backTarget,pointerRay),home=Hit(homeTarget,pointerRay);
             backButton.image.color=back?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
             homeButton.image.color=home?CandyHudVisuals.Mint:homeTarget.enabled?CandyHudVisuals.Lavender:CandyHudVisuals.Card;
             homeButton.GetComponentInChildren<UnityEngine.UI.Text>().color=homeTarget.enabled?CandyHudVisuals.Ink:CandyHudVisuals.Muted;
             if(!pressed)return false;
-            if(home){ResetPages();menuCategory=menuSection=-1;return true;}
+            if(home){ResetPages();hostTools=false;menuCategory=menuSection=-1;return true;}
             if(!back)return false;
-            if(AtHome){session.SetMenu(false);return true;}
+            if(AtHome){if(hostTools)hostTools=false;else session.SetMenu(false);return true;}
             if(disasterPage&&disasterSelection>=0){disasterSelection=-1;return true;}
             if(batchPage&&batchTarget>0){batchTarget=0;return true;}
             bool child=networkPage||comfortPage||tuningPage||modePage||hudPage||mapPage||spectatePage||
@@ -99,23 +99,30 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 Add("Cancel",()=>{batchPage=false;batchTarget=0;},icon:CandyHudIcon.Home);
             }
-            else if(menuCategory<0){heading.text="IN-GAME CONTROLS";
-                Add("CONTROLS / LEFT OR RIGHT HAND",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),true,CandyHudIcon.Settings,"Dominant: look / jump / fire. Other: move / sprint.");
-                if(!disasterPreview)disasterPreview=Resources.Load<Texture2D>("LobbyModePictures/disasters");
-                Add("Rebuild Map",()=>session.ResetMap(),session.CanEditWorld,CandyHudIcon.Home,"Rebuild the current map. Host only.",mapPreview);
-                Add("Disasters",()=>{disasterPage=true;disasterSelection=-1;},Demo!=null,CandyHudIcon.Flight,"Preview and tune disasters before launch.",disasterPreview);
-                Add("Give Yourself a Gun",()=>{quickGunPage=true;giveEquipmentPage=true;giveAllEquipment=false;equipmentOffset=0;},
-                    CanCommand&&!session.PlayingHand&&match?.Authority==true&&match is IDemoEquipmentControls,CandyHudIcon.Trigger,
-                    "Choose a firearm. Your previous item drops at your feet.",DeadlyJenga.Presentation.CandyEquipmentView.Outline(EquipmentKind.Blaster));
-                Add("Bot Population",()=>{batchPage=true;batchTarget=0;},canBatch,CandyHudIcon.Friends,"Preview a large batch before applying.");
-                Add(session.PlayingHand?"Become Survivor":"Become Flying Hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand,"Switch your local demo character.");
-                var hand=session.Player?.gameObject.GetComponent<IBlasterControls>();
-                Add("Game / Demo & Round Setup",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null,CandyHudIcon.Play,"Profile, readiness and automatic rounds");
-                Add("Hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT")+" / change controls",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),true,CandyHudIcon.Hand);
-                Add("Hand Appearance",()=>CharacterPicker.Open(session),HandLooks.Names.Length>0,CandyHudIcon.Hand,"Choose the appearance of your flying hand.");
-                var drop=match as IEquipmentDropRuntime;var carried=session.Player?.gameObject.GetComponent<IEquipmentControls>();
-                Add("Drop weapon here",()=>drop?.RequestDropEquipment(),drop!=null&&!session.PlayingHand&&carried?.Equipment.kind>=EquipmentKind.Blaster,CandyHudIcon.Hand,"Drops your carried item. No controller chord is required.");
-                for(int i=0;i<4;i++){int index=i;Add(DemoMenuSections.Tabs[i],()=>{menuCategory=index;menuSection=-1;},icon:DemoMenuSections.Icon(DemoMenuSections.Tabs[i]),caption:DemoMenuSections.TabDescriptions[i]);}Add("Resume",()=>session.SetMenu(false));}
+            else if(menuCategory<0)
+            {
+                heading.text=hostTools?"HOST TOOLS":"PAUSE MENU";
+                if(hostTools)
+                {
+                    for(int i=0;i<4;i++){int index=i;Add(DemoMenuSections.Tabs[i],()=>{menuCategory=index;menuSection=-1;},icon:DemoMenuSections.Icon(DemoMenuSections.Tabs[i]),caption:DemoMenuSections.TabDescriptions[i]);}
+                    Add("Rebuild map",()=>session.ResetMap(),DeadlyJenga.Presentation.MenuAccess.HostTools(session),CandyHudIcon.Home,"Resets the map for everyone.",mapPreview);
+                    Add("Bot population",()=>{batchPage=true;batchTarget=0;},canBatch,CandyHudIcon.Friends);
+                    Add("Back to pause menu",()=>hostTools=false,icon:CandyHudIcon.Home);
+                }
+                else
+                {
+                    Add("Resume",()=>session.SetMenu(false),icon:CandyHudIcon.Play);
+                    Add("Controls & comfort",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),icon:CandyHudIcon.Settings);
+                    Add("Hand appearance",()=>CharacterPicker.Open(session),HandLooks.Names.Length>0,CandyHudIcon.Hand);
+                    Add("Room & players",()=>networkPage=true,session.Multiplayer!=null,CandyHudIcon.Friends);
+                    Add("Audio & voice",()=>comfortPage=true,Settings!=null,CandyHudIcon.Sound);
+                    Add("Round & readiness",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null,CandyHudIcon.Play);
+                    var drop=match as IEquipmentDropRuntime;var carried=session.Player?.gameObject.GetComponent<IEquipmentControls>();
+                    if(drop!=null&&!session.PlayingHand&&carried?.Equipment.kind>=EquipmentKind.Blaster)
+                        Add("Drop weapon",()=>drop.RequestDropEquipment(),icon:CandyHudIcon.Hand);
+                    if(DeadlyJenga.Presentation.MenuAccess.HostTools(session))Add("Host tools",()=>hostTools=true,icon:CandyHudIcon.Settings,caption:"Bots, equipment, map changes and development settings.");
+                }
+            }
             else if(menuSection<0)
             {
                 heading.text=DemoMenuSections.Tabs[menuCategory];Add("All tabs",()=>menuCategory=-1,icon:CandyHudIcon.Home);
@@ -145,7 +152,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if(name=="World")
                 {
-                    Add("Reset / rebuild map",()=>{if(session.CanEditWorld)session.ResetMap();},session.CanEditWorld);
+                    Add("Reset / rebuild map",()=>{if(DeadlyJenga.Presentation.MenuAccess.HostTools(session))session.ResetMap();},DeadlyJenga.Presentation.MenuAccess.HostTools(session));
                     if(Demo is IBuildUpControls build&&build.Available)Add("Deliver scaffold tier",()=>{if(build.CanAdvance)build.AdvanceStage();},build.CanAdvance);
                     Add(MultiplayerPanel.EndAction(session.Multiplayer),()=>{if(MatchRuntime.Current is IMatchReviewControls r&&r.CanEndGame)r.EndGame();},(MatchRuntime.Current as IMatchReviewControls)?.CanEndGame==true);
                 }
@@ -176,7 +183,7 @@ namespace DeadlyJenga.CastlePrototype
             
             var ray=pointerRay;
             sectionGlyphsActive=true;
-            help.text=batchPage?batchTarget>0?"Preview selected: "+batchTarget+" total. Choose Fill to apply.":"Choose a target to preview; it will not spawn until you apply.":menuCategory<0?"Choose a tab. Aim at a row and select.":
+            help.text=batchPage?batchTarget>0?"Preview selected: "+batchTarget+" total. Choose Fill to apply.":"Choose a target to preview; it will not spawn until you apply.":menuCategory<0?(hostTools?"Choose a Host Tools section.":"Point a controller laser at an action and press its trigger."):
                 menuSection<0?"Choose a section. Each row shows what it contains.":
                 DemoMenuSections.Caption(DemoMenuSections.Sections[menuCategory][menuSection])+". Shared changes may require the host.";
             for(int i=0;i<buttons.Length;i++)

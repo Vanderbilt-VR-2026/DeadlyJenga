@@ -12,7 +12,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        sealed class Target {public string id;public BoxCollider collider;public Image face;public Action action;public Func<bool> allowed;}
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
@@ -59,7 +59,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             var go=new GameObject(id,typeof(RectTransform),typeof(Image),typeof(BoxCollider));go.layer=5;go.transform.SetParent(canvas,false);var r=go.GetComponent<RectTransform>();r.anchoredPosition=p;r.sizeDelta=size;
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
-            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);targets.Add(new Target{id=id,collider=hit,face=image,action=action,allowed=allowed});return r;
+            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);targets.Add(new Target{id=id,collider=hit,face=image,color=color,action=action,allowed=allowed});return r;
         }
         static Text Text(string value,Vector2 p,Vector2 size,int font,Transform parent)
         {
@@ -95,16 +95,24 @@ namespace DeadlyJenga.CandyArt.Marina
             if(!Visible||ModalBlocked){requireRelease=true;return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera)return;
             var mouse=Mouse.current;var keyboard=Keyboard.current;
-            bool held=select?.IsPressed()==true||player.SelectHeld||keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
+            var camera=player.ViewCamera;
+            bool held=mouse?.leftButton.isPressed==true||keyboard?.eKey.isPressed==true;
+            bool pressed=mouse?.leftButton.wasPressedThisFrame==true||keyboard?.eKey.wasPressedThisFrame==true;
+            Ray ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+            if(player.IsVR)
+            {
+                if(!MenuPointer.TryRead(camera,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out var input))return;
+                ray=input.Ray;held=input.Held;pressed=input.Pressed;
+            }
             if(requireRelease){if(!held)requireRelease=false;return;}
-            bool pressed=select!=null&&select.WasPressedThisFrame()||player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
-            var camera=player.ViewCamera;Ray ray=!player.IsVR&&session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             Target nearest=null;float distance=11;
             foreach(var target in targets)
             {
                 target.collider.enabled=target.allowed();
                 if(target.collider.enabled&&target.collider.Raycast(ray,out var hit,distance)&&Vector3.Dot(ray.direction,target.collider.transform.forward)>0){nearest=target;distance=hit.distance;}
             }
+            if(player.IsVR)MenuPointer.Draw(camera,ray,nearest!=null?distance:4);
+            foreach(var target in targets)target.face.color=target==nearest?CandyHudVisuals.Mint:target.color;
             if(pressed&&nearest!=null)Invoke(nearest.id);
         }
         void OnEnable(){requireRelease=true;select?.Enable();}

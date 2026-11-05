@@ -12,7 +12,7 @@ namespace DeadlyJenga.CastlePrototype
         static string selected = "";
         static string test="Can you help me find a safe way up?";
 
-        public static void Draw(ISocialControls social)
+        public static void Draw(ISocialControls social,bool diagnostics=true)
         {
             if (social == null) { GUILayout.Label("AI players are getting ready..."); return; }
             GUILayout.Label("AI players · social & voice"); GUILayout.Label(social.IsHost ? "Host simulation" : "Joined host simulation");
@@ -23,9 +23,12 @@ namespace DeadlyJenga.CastlePrototype
                 GUILayout.Label(native.Status);
                 GUILayout.Label("Microphone: "+(social.MicrophoneOn?"LISTENING":"OFF"));
                 if(!string.IsNullOrEmpty(native.LastHeard))GUILayout.Label("Heard: "+native.LastHeard);
+                if(diagnostics)
+                {
                 GUILayout.Label(native.LastReplyKind+" · generated "+native.GeneratedReplies+" · fallback "+native.FallbackReplies);
                 test=GUILayout.TextField(test??"");bool old=GUI.enabled;GUI.enabled=native.Ready;
                 if(GUILayout.Button("Send text test · microphone not required"))native.SubmitText(test);GUI.enabled=old;
+                }
             }
             social.VoiceEnabled = GUILayout.Toggle(social.VoiceEnabled, "Enable bot voices");
             GUILayout.Label("Bot volume"); social.BotVolume = GUILayout.HorizontalSlider(social.BotVolume, 0, 1);
