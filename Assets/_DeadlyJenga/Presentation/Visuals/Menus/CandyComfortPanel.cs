@@ -180,7 +180,7 @@ namespace DeadlyJenga.Presentation
                     buttons[i].interactable=i<2?weaponHand!=null:i>=8||settings!=null;
                 }
                 buttons[7].interactable=wasVr&&settings!=null&&!settings.StandingPlay;
-                feedback.text=Time.unscaledTime<feedbackUntil?"Preference applied / saved locally.":weaponHand==null?"Hand preference provider unavailable.":"Select either dominant hand. This remains available in every game mode.";
+                feedback.text=Time.unscaledTime<feedbackUntil?"Preference applied locally.":weaponHand==null?"Hand preference provider unavailable.":"Select either dominant hand. This remains available in every game mode.";
             }
             if(!readyToSelect)
             {
