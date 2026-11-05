@@ -10,7 +10,7 @@ namespace DeadlyJenga.CandyPlayers
     {
         CastleSurvivor motor;CandyPlayerAvatar avatar;CandyWeaponVisual visual;
         InputAction trigger,offTrigger,grip;
-        bool left,armed,sheriffShotgun,primaryJumpReserved;float nextFire,lastAttackTime=float.NegativeInfinity;EquipmentKind lastPower;
+        bool left,armed,sheriffShotgun,primaryJumpReserved;float nextHandSync;float nextFire,lastAttackTime=float.NegativeInfinity;EquipmentKind lastPower;
         Vector3 lastHand;bool handReady;float nextSwing;
         Vector3 desktopAimTarget;
         readonly RaycastHit[] aimHits=new RaycastHit[32];
@@ -74,6 +74,7 @@ namespace DeadlyJenga.CandyPlayers
                     var own=mystery.Personal;
                     state=new EquipmentState{actor=motor.ActorId,kind=own.role==MysteryRole.Murderer?EquipmentKind.MurderSword:own.role==MysteryRole.Sheriff?EquipmentKind.SheriffHammer:EquipmentKind.None,roleIssued=true,drawn=own.specialAttack,leftHanded=left,shotgun=own.role==MysteryRole.Sheriff&&sheriffShotgun};
                 }
+                if(Local)state.leftHanded=left;
                 if(state.kind==EquipmentKind.SheriffHammer)sheriffShotgun=state.shotgun;
                 return state;
             }
@@ -105,12 +106,20 @@ namespace DeadlyJenga.CandyPlayers
         }
         public void SetWeaponHand(bool value)
         {
-            PlayerPrefs.SetInt("CandyBlaster.LeftHanded",value?1:0);PlayerPrefs.Save();ApplyWeaponHand(value);
+            PlayerPrefs.SetInt("CandyBlaster.LeftHanded",value?1:0);PlayerPrefs.Save();ApplyWeaponHand(motor&&motor.IsVR&&HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:value);
         }
         void ApplyWeaponHand(bool value)
         {
-            if(left==value)return;
-            left=value;Bind();var state=Equipment;Runtime?.RequestEquipment(state.drawn,left,state.shotgun);
+            if(left!=value)
+            {
+                ReleaseHeldArsenal();ResetBashTracking();ResetPickupCancel();
+                handReady=offhandReady=false;primaryJumpReserved=false;
+                left=value;Bind();motor?.ResetVRJump();nextHandSync=0;
+            }
+            var state=Runtime?.EquipmentFor(motor?motor.ActorId:null);
+            if(state==null||state.kind==EquipmentKind.None||state.leftHanded==left||Time.unscaledTime<nextHandSync)return;
+            nextHandSync=Time.unscaledTime+.25f;
+            Runtime.RequestEquipment(state.drawn,left,state.shotgun);
         }
         public void ToggleRifleMode(){var state=Equipment;if(EquipmentSpecifications.Get(state.kind).modeSwitch){if(Runtime?.RequestEquipment(state.drawn,left,!state.shotgun)==true&&state.kind==EquipmentKind.SheriffHammer)sheriffShotgun=!state.shotgun;}}
         public bool JumpHeld=>UsesTriggers&&Equipment.kind!=EquipmentKind.PoweredArmor&&!(EquipmentSpecifications.Get(Equipment.kind).modeSwitch&&Equipment.drawn)&&!BlocksTraversal&&offTrigger!=null&&offTrigger.IsPressed();
@@ -265,12 +274,9 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(motor&&motor.externallyDriven){UpdatePower(Equipment);return;}
             if(!Local)return;
-            if(motor.IsVR)
-            {
-                bool preferred=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-                bool effective=HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:preferred;
-                ApplyWeaponHand(effective);
-            }
+            bool preferred=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
+            bool effective=motor.IsVR&&HybridXRInput.SingleController?HybridXRInput.SingleControllerLeft:preferred;
+            ApplyWeaponHand(effective);
             var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
             if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){ResetBashTracking();ResetPickupCancel();if(!motor.Alive)pendingPickup=0;SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
             if (SlingForEmote(state))

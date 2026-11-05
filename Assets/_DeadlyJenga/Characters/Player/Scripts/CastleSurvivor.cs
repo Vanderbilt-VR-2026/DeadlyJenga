@@ -188,7 +188,7 @@ namespace DeadlyJenga.CastlePrototype
                     sprintInput=moveController!=null;
                     sprintClick=HybridXRInput.MoveClickPressed(moveController);
                     walking=FilterVRMove(HybridXRInput.Stick(moveController));
-                    var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(!dominantLeft):Vector2.zero;
+                    var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
                     {
                         bool look=(EmoteActive || vrTurn!=SurvivorVRTurn.PhysicalOnly)&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;

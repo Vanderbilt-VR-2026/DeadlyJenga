@@ -134,7 +134,7 @@ namespace DeadlyJenga.CastlePrototype
             else GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
             GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
-            if(Button(new Rect(256,94,220,28),"Controls & Comfort",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
+            if(Button(new Rect(256,94,220,28),"CONTROLS / HAND",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
             var inspection=CandyThirdPersonInspection.For(session);
             if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
             if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
@@ -439,7 +439,8 @@ namespace DeadlyJenga.CastlePrototype
             bool left=false,right=false;
             if(vr)Controllers(out left,out right);
             bool single=left!=right;
-            Hint move=vr?Controller(left||!right,ControllerPart.Stick,session.PlayingHand?"Fly":"Move"):
+            bool dominantLeft=single?left:session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+            Hint move=vr?Controller(session.PlayingHand?left||!right:single?left:!dominantLeft,ControllerPart.Stick,session.PlayingHand?"Fly":"Move"):
                 new Hint(CandyHudIcon.Move,"W A S D",session.PlayingHand?"Fly":"Move");
             if(session.PlayingHand)
                 return vr ? new[]{move,Controller(true,ControllerPart.Trigger,"Rise"),Controller(true,ControllerPart.Grip,"Descend")} :
@@ -453,9 +454,7 @@ namespace DeadlyJenga.CastlePrototype
             bool standing=vr&&Settings?.StandingPlay==true;
             var jump=!vr?new Hint(CandyHudIcon.Key,"SPACE","Jump / vault"):
                 standing&&TrackedHands&&!right?new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump / vault"):
-                Controller(single&&left,ControllerPart.Primary,"Jump / vault");
-            if(vr&&armed&&equipment.kind!=EquipmentKind.PoweredArmor&&!single&&!TrackedHands&&!modeSwitch&&controls?.BlocksTraversal!=true)
-                jump=Controller(!equipment.leftHanded,ControllerPart.Trigger,"Jump / vault");
+                Controller(dominantLeft,ControllerPart.Primary,"Jump / vault");
             if(Climbing)
             {
                 move.text="Climb";
@@ -526,10 +525,11 @@ namespace DeadlyJenga.CastlePrototype
             if(!session.IsVR)return new[]{
                 new Hint(CandyHudIcon.Look,"MOUSE","Look"),new Hint(CandyHudIcon.Move,"W A S D","Move"),new Hint(CandyHudIcon.Key,"SPACE","Jump")};
             Controllers(out bool left,out bool right);
+            bool dominantLeft=left!=right?left:session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
             var jump=Settings?.StandingPlay==true&&TrackedHands&&!right?
                 new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump"):
-                Controller(left&&!right,ControllerPart.Primary,"Jump");
-            return new[]{new Hint(CandyHudIcon.Look,"TURN YOUR HEAD","Look"),Controller(left||!right,ControllerPart.Stick,"Move"),jump};
+                Controller(dominantLeft,ControllerPart.Primary,"Jump");
+            return new[]{new Hint(CandyHudIcon.Look,left!=right?"GRIP + STICK":dominantLeft?"LEFT STICK":"RIGHT STICK","Look / or turn head"),Controller(left!=right?left:!dominantLeft,ControllerPart.Stick,"Move"),jump};
         }
 
         void BuildHints()

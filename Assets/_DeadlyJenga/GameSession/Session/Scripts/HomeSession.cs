@@ -6,8 +6,16 @@ using UnityEngine.SceneManagement;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed class HomeSession : MonoBehaviour, IHomeMenuControls
+    public sealed class HomeSession : MonoBehaviour, IHomeMenuControls, IBlasterControls
     {
+        public bool TestingEnabled => false;
+        public bool Drawn => false;
+        public bool LeftHanded => PlayerPrefs.GetInt("CandyBlaster.LeftHanded", 0) != 0;
+        public void SetTestingEnabled(bool enabled) { }
+        public void SetDrawn(bool drawn) { }
+        public void SetLeftHanded(bool left)
+        { PlayerPrefs.SetInt("CandyBlaster.LeftHanded", left ? 1 : 0); PlayerPrefs.Save(); }
+
         public IslandLobbyCatalog catalog;
         public string lobbyScene = "Lobby", gameScene = "Game";
         IslandRoomConnection room;

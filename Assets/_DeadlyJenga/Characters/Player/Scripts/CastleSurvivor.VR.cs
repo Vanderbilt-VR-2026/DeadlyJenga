@@ -35,7 +35,7 @@ namespace DeadlyJenga.CastlePrototype
         public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
             ? "Standing: move stick; turn physically; "+jumpGesture+" jumps / holds to climb"
-            : "Seated: dominant stick moves; other stick looks; hold jump to climb";
+            : "Seated: non-dominant stick moves; dominant stick looks; dominant primary jumps / holds to climb";
         InputAction[] headActions=System.Array.Empty<InputAction>();
         public Vector3 MovementForward
         {

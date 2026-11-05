@@ -91,8 +91,13 @@ namespace DeadlyJenga.CastlePrototype
             lobbyAimDot.characterSize=.009f*distance;
             lobbyAimDot.transform.SetPositionAndRotation(ray.GetPoint(distance-.015f),Quaternion.LookRotation(ray.direction));
         }
+        bool controlsMenuWasOpen;
         void Update()
         {
+            bool menuOpened=session?.MenuOpen==true&&!controlsMenuWasOpen;
+            controlsMenuWasOpen=session?.MenuOpen==true;
+            if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
+                DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
@@ -155,6 +160,8 @@ namespace DeadlyJenga.CastlePrototype
         void OnGUI()
         {
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy||Player.IsVR)return;
+            if(DeadlyJenga.Presentation.CandyComfortPanel.Showing(session))return;
+            if(session.MenuOpen&&GUI.Button(new Rect(490,15,330,60),"CONTROLS / LEFT OR RIGHT HAND"))DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             bool typing=lobby.CodeFocused;
             GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  Esc releases mouse"+(typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
         }

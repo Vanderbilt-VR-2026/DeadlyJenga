@@ -98,6 +98,7 @@ namespace DeadlyJenga.Presentation
             BuildJoin();joinPage.SetActive(false);
             status=Label(content,"",new Vector2(0,-450),new Vector2(580,65),22,new Color(.85f,.83f,.95f));
             Label(frame,"PHYSICS. FRIENDS. PURE MAYHEM.",new Vector2(425,-470),new Vector2(900,50),23,Color.white);
+            ButtonAt(frame,"CONTROLS / LEFT OR RIGHT HAND",new Vector2(410,448),new Vector2(660,70),()=>CandyComfortPanel.OpenHome(gameObject,eye,vr));
             if(vr)
                 ButtonAt(frame,"RECENTER VIEW",new Vector2(740,448),new Vector2(260,62),QueueRecenter);
             if (!FindFirstObjectByType<EventSystem>())
@@ -138,6 +139,10 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(controls==null)return;
+            bool comfortOpen=CandyComfortPanel.HomeShowing(gameObject);
+            content.gameObject.SetActive(!comfortOpen);
+            if(comfortOpen){foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
+            pointer.gameObject.SetActive(vr);
             AnimateSlideshow(Time.unscaledDeltaTime);Crop();
             status.text=controls.Status;
             foreach(var button in buttons)button.interactable=!controls.Busy;

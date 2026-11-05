@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
                 bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
                 bool both=HybridXRInput.ControllerTracked(true)&&HybridXRInput.ControllerTracked(false);
                 var walking=FilterVRMove(HybridXRInput.Stick(HybridXRInput.MovementController(dominantLeft)));
-                var looking=both?HybridXRInput.Stick(!dominantLeft):Vector2.zero;
+                var looking=both?HybridXRInput.Stick(dominantLeft):Vector2.zero;
                 if(HybridXRInput.SingleController&&vrTurn!=SurvivorVRTurn.PhysicalOnly&&HybridXRInput.SingleLookHeld)
                 {
                     walking=Vector2.zero;

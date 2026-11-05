@@ -15,22 +15,58 @@ namespace DeadlyJenga.Presentation
         IMatchRuntime deathMatch;
         Camera deathView;
         string actorId, deathRole, deathSpectating;
-        int initialDeaths;
-        bool sawDeadFrame, menuAtDeath;
+        int initialDeaths, confirmedDeaths;
+        bool sawDeadFrame, sawAliveAfterDeath, localEventSeen, menuAtDeath;
         float began, wipeAt = -1;
         Color tint;
         Canvas canvas;
         Image paint;
         Material material;
 
-        public static void Show(Color color)
+        public static void Show(Color color) => Request(color, false);
+        public static void ShowLocalDeath(Color color) => Request(color, true);
+
+        static void Request(Color color, bool localEvent)
         {
-            // The local elimination event and the replicated dying frame can describe the same death.
-            if (active) return;
+            if (active)
+            {
+                if (!active.IsAnotherDeath(localEvent)) return;
+                active.canvas.enabled = false;
+                Destroy(active.gameObject);
+                active = null;
+            }
             var root = new GameObject("Candy death overlay", typeof(RectTransform), typeof(Canvas));
             DontDestroyOnLoad(root);
             active = root.AddComponent<CandyDeathOverlay>();
             active.Begin(color);
+            active.localEventSeen = localEvent;
+        }
+
+        bool IsAnotherDeath(bool localEvent)
+        {
+            if (!ReferenceEquals(Services.Session, deathSession) || !ReferenceEquals(MatchRuntime.Current, deathMatch)) return true;
+            if (localEvent)
+            {
+                // The character raises this once per life, after setting its eliminated flag.
+                bool another = localEventSeen || sawAliveAfterDeath;
+                localEventSeen = true;
+                return another;
+            }
+            var player = FindPlayer();
+            if (player == null || !player.dying) return false;
+            if (localEventSeen && !sawAliveAfterDeath)
+            {
+                confirmedDeaths = Mathf.Max(confirmedDeaths, player.deaths);
+                sawDeadFrame = true;
+                return false;
+            }
+            if (!sawDeadFrame)
+            {
+                confirmedDeaths = player.deaths;
+                sawDeadFrame = true;
+                return false;
+            }
+            return player.deaths > confirmedDeaths || sawAliveAfterDeath && LocalCharacterDead();
         }
 
         void Begin(Color color)
@@ -43,7 +79,7 @@ namespace DeadlyJenga.Presentation
             deathMatch = MatchRuntime.Current;
             actorId = deathMatch?.LocalActorId;
             var player = FindPlayer();
-            initialDeaths = player?.deaths ?? 0;
+            initialDeaths = confirmedDeaths = player?.deaths ?? 0;
             deathRole = player?.role;
             deathSpectating = player?.spectating;
             sawDeadFrame = player != null && (player.dying || !player.alive);
@@ -77,6 +113,18 @@ namespace DeadlyJenga.Presentation
             return null;
         }
 
+        bool LocalCharacterDead()
+        {
+            var player = deathSession?.Player;
+            return NetworkActors.Alive(player) && player.gameObject.GetComponent<IDamageable>()?.Health <= 0;
+        }
+
+        bool LocalCharacterAlive()
+        {
+            var player = deathSession?.Player;
+            return NetworkActors.Alive(player) && player.gameObject.GetComponent<IDamageable>()?.Health > 0;
+        }
+
         bool IsNextView(ISessionInfo session, Camera camera)
         {
             if (!ReferenceEquals(session, deathSession) || !ReferenceEquals(MatchRuntime.Current, deathMatch) ||
@@ -90,9 +138,15 @@ namespace DeadlyJenga.Presentation
             var player = FindPlayer();
             if (player == null) return false;
             bool dead = player.dying || !player.alive;
-            sawDeadFrame |= dead;
+            if (!sawDeadFrame && (dead || player.deaths > initialDeaths))
+            {
+                confirmedDeaths = player.deaths;
+                sawDeadFrame = true;
+            }
+            bool revived = !dead && LocalCharacterAlive();
+            if (sawDeadFrame && revived) sawAliveAfterDeath = true;
             // A local elimination can arrive before the host has published its dying frame.
-            return (!dead && (sawDeadFrame || player.deaths > initialDeaths))
+            return (revived && (sawDeadFrame || player.deaths > initialDeaths))
                 || (player.role == "spectator" && deathRole != "spectator")
                 || (!string.IsNullOrEmpty(player.spectating) && player.spectating != deathSpectating);
         }

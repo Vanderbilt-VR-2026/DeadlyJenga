@@ -100,6 +100,7 @@ namespace DeadlyJenga.CastlePrototype
                 Add("Cancel",()=>{batchPage=false;batchTarget=0;},icon:CandyHudIcon.Home);
             }
             else if(menuCategory<0){heading.text="IN-GAME CONTROLS";
+                Add("CONTROLS / LEFT OR RIGHT HAND",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),true,CandyHudIcon.Settings,"Dominant: look / jump / fire. Other: move / sprint.");
                 if(!disasterPreview)disasterPreview=Resources.Load<Texture2D>("LobbyModePictures/disasters");
                 Add("Rebuild Map",()=>session.ResetMap(),session.CanEditWorld,CandyHudIcon.Home,"Rebuild the current map. Host only.",mapPreview);
                 Add("Disasters",()=>{disasterPage=true;disasterSelection=-1;},Demo!=null,CandyHudIcon.Flight,"Preview and tune disasters before launch.",disasterPreview);
@@ -109,9 +110,8 @@ namespace DeadlyJenga.CastlePrototype
                 Add("Bot Population",()=>{batchPage=true;batchTarget=0;},canBatch,CandyHudIcon.Friends,"Preview a large batch before applying.");
                 Add(session.PlayingHand?"Become Survivor":"Become Flying Hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand,"Switch your local demo character.");
                 var hand=session.Player?.gameObject.GetComponent<IBlasterControls>();
-                Add("Controls & Comfort",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),Settings!=null,CandyHudIcon.Settings,"Turn speed, movement and comfort");
                 Add("Game / Demo & Round Setup",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null,CandyHudIcon.Play,"Profile, readiness and automatic rounds");
-                Add("Dominant hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT"),()=>hand?.SetLeftHanded(!hand.LeftHanded),hand!=null,CandyHudIcon.Hand);
+                Add("Hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT")+" / change controls",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),true,CandyHudIcon.Hand);
                 Add("Hand Appearance",()=>CharacterPicker.Open(session),HandLooks.Names.Length>0,CandyHudIcon.Hand,"Choose the appearance of your flying hand.");
                 var drop=match as IEquipmentDropRuntime;var carried=session.Player?.gameObject.GetComponent<IEquipmentControls>();
                 Add("Drop weapon here",()=>drop?.RequestDropEquipment(),drop!=null&&!session.PlayingHand&&carried?.Equipment.kind>=EquipmentKind.Blaster,CandyHudIcon.Hand,"Drops your carried item. No controller chord is required.");

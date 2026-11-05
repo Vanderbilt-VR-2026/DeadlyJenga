@@ -1,6 +1,9 @@
 using DeadlyJenga.Core;
+using System.Collections.Generic;
+using UnityEngine.Rendering;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using UnityEngine.Rendering.Universal;
 
 namespace DeadlyJenga.Presentation
 {
@@ -12,6 +15,22 @@ namespace DeadlyJenga.Presentation
         Transform optic,owner;EquipmentKind lastKind;bool lastShotgun;
         float originalFov;bool zoomed,visible,aiming,vr;float nextRender,findAfter;
         EquipmentState state;
+        Renderer[] scopeHidden;bool[] scopeWasHidden;
+        Renderer lensRenderer;readonly Stack<bool> cameraVisibility=new Stack<bool>();
+        bool missingShaderReported;float shaderRetry;
+        void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeginCamera;RenderPipelineManager.endCameraRendering+=EndCamera;}
+        void BeginCamera(ScriptableRenderContext context,Camera camera)
+        {
+            if(!lensRenderer)return;
+            cameraVisibility.Push(lensRenderer.forceRenderingOff);
+            lensRenderer.forceRenderingOff=camera!=eye;
+        }
+        void EndCamera(ScriptableRenderContext context,Camera camera)
+        {
+            if(lensRenderer&&cameraVisibility.Count>0)lensRenderer.forceRenderingOff=cameraVisibility.Pop();
+        }
+        public const float BinocularDistance=2, BinocularRadius=.6f;
+        public static float BinocularFov(float magnification)=>2*Mathf.Atan(BinocularRadius/BinocularDistance/Mathf.Max(1,magnification))*Mathf.Rad2Deg;
         public bool Aiming=>aiming;
         public float Magnification=>state?.kind switch
         {
@@ -34,7 +53,7 @@ namespace DeadlyJenga.Presentation
         void LateUpdate()
         {
             var session=Services.Session;var player=session?.Player;var camera=session?.ActiveCamera;
-            if(camera!=eye){RestoreFov();eye=camera;originalFov=eye?eye.fieldOfView:60;}
+            if(camera!=eye){RestoreFov();if(lens)lens.SetActive(false);eye=camera;originalFov=eye?eye.fieldOfView:60;}
             vr=session?.IsVR==true;state=player?.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
             visible=eye&&player!=null&&player.gameObject.GetComponent<IModeActor>()?.Alive!=false&&!player.InputSuspended&&!session.MenuOpen&&!session.PlayingHand&&state?.drawn==true&&SupportsAim(state);
             aiming=visible&&!vr&&Mouse.current?.rightButton.isPressed==true;
@@ -55,29 +74,40 @@ namespace DeadlyJenga.Presentation
                 owner=player.transform;lastKind=state.kind;lastShotgun=state.shotgun;optic=null;
                 string name=state.kind==EquipmentKind.Blaster?"Blaster optic":state.kind==EquipmentKind.SheriffHammer?"Revolver optic":state.shotgun?"Shotgun optic":"Rifle optic";
                 foreach(var t in owner.GetComponentsInChildren<Transform>())if(t.name==name){optic=t;break;}
-                ReleaseLens();
+                ReleaseLens();scopeHidden=owner.GetComponentsInChildren<Renderer>(true);scopeWasHidden=new bool[scopeHidden.Length];
             }
             if(!optic)return;
-            // A magnifying lens only renders while close to and aligned with an eye; XR projection is untouched.
+            // Both eyes see one centered display. Physical XR view and projection remain tracked.
             float scale=Mathf.Abs(optic.lossyScale.z);
-            Vector3 eyePosition=eye.transform.position;
-            if(eye.stereoEnabled)
-            {
-                var left=(Vector3)eye.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse.GetColumn(3);
-                var right=(Vector3)eye.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse.GetColumn(3);
-                eyePosition=EyeOffset(left,optic)<EyeOffset(right,optic)?left:right;
-            }
-            bool aligned=EyeBoxContains(eyePosition,eye.transform.forward,optic.position,optic.forward,scale);
-            aiming=aligned;
-            if(state.kind==EquipmentKind.DualRifle&&state.shotgun)return;
-            if(!aligned){if(lens)lens.SetActive(false);return;}
-            EnsureLens();lens.SetActive(true);
+            aiming=EyeBoxContains(eye.transform.position,eye.transform.forward,optic.position,optic.forward,scale);
+            if(state.kind==EquipmentKind.DualRifle&&state.shotgun){if(lens)lens.SetActive(false);return;}
+            if(!aiming){if(lens)lens.SetActive(false);return;}
+            EnsureLens();
+            if(!lens)return;
+            lens.transform.SetParent(eye.transform,false);
+            lens.transform.localPosition=new Vector3(0,0,BinocularDistance);
+            lens.transform.localRotation=Quaternion.identity;
+            lens.transform.localScale=Vector3.one;
+            lens.SetActive(true);
             if(Time.unscaledTime>=nextRender)
             {
-                nextRender=Time.unscaledTime+1f/30;
-                scopeCamera.transform.SetPositionAndRotation(optic.TransformPoint(Vector3.forward*(state.kind==EquipmentKind.DualRifle?.255f:.02f)),optic.rotation);
-                scopeCamera.fieldOfView=50/Magnification;scopeCamera.cullingMask=eye.cullingMask&~(1<<2);
-                scopeCamera.Render();
+                nextRender=Time.unscaledTime+1f/60;
+                var weapon=player.gameObject.GetComponent<IWeaponAim>();
+                var muzzle=weapon!=null?weapon.WeaponAim:new Pose(optic.position,optic.rotation);
+                var target=muzzle.position+muzzle.rotation*Vector3.forward*120;
+                scopeCamera.transform.SetPositionAndRotation(eye.transform.position,
+                    Quaternion.LookRotation(target-eye.transform.position,eye.transform.up));
+                scopeCamera.fieldOfView=BinocularFov(Magnification);scopeCamera.cullingMask=eye.cullingMask&~(1<<2);
+                try
+                {
+                    for(int i=0;i<scopeHidden.Length;i++)if(scopeHidden[i])
+                    {scopeWasHidden[i]=scopeHidden[i].forceRenderingOff;scopeHidden[i].forceRenderingOff=true;}
+                    scopeCamera.Render();
+                }
+                finally
+                {
+                    for(int i=0;i<scopeHidden.Length;i++)if(scopeHidden[i])scopeHidden[i].forceRenderingOff=scopeWasHidden[i];
+                }
             }
         }
         public static bool OpenSightAligned(Vector3 eye,Vector3 view,Pose muzzle)
@@ -101,7 +131,6 @@ namespace DeadlyJenga.Presentation
             return depth>.02f*scale&&depth<1.6f*scale&&Vector3.Dot(view,direction)>.97f&&
                 (offset-direction*depth).sqrMagnitude<radius*radius;
         }
-        static float EyeOffset(Vector3 eye,Transform optic)=>Vector3.ProjectOnPlane(eye-optic.position,optic.forward).sqrMagnitude;
         public static bool EyeBoxContains(Vector3 eye,Vector3 view,Vector3 rear,Vector3 forward,float scale)
         {
             Vector3 delta=rear-eye;
@@ -113,18 +142,26 @@ namespace DeadlyJenga.Presentation
         {
             if(!scopeCamera)
             {
+                if(Time.unscaledTime<shaderRetry)return;
+                var shader=Resources.Load<Shader>("CandyBinocularScope");
+                if(!shader)
+                {
+                    shaderRetry=Time.unscaledTime+1;
+                    if(!missingShaderReported){Debug.LogError("Binocular scope shader is missing.",this);missingShaderReported=true;}
+                    return;
+                }
                 var go=new GameObject("Local scope camera");go.transform.SetParent(transform,false);scopeCamera=go.AddComponent<Camera>();scopeCamera.enabled=false;
-                scopeCamera.stereoTargetEye=StereoTargetEyeMask.None;scopeCamera.nearClipPlane=.06f;scopeCamera.farClipPlane=500;
+                scopeCamera.stereoTargetEye=StereoTargetEyeMask.None;scopeCamera.GetUniversalAdditionalCameraData().allowXRRendering=false;scopeCamera.aspect=1;scopeCamera.nearClipPlane=.06f;scopeCamera.farClipPlane=500;
                 scopeCamera.allowHDR=false;scopeCamera.allowMSAA=false;
                 texture=new RenderTexture(384,384,16){name="Local scope view"};texture.Create();scopeCamera.targetTexture=texture;
-                lensMaterial=new Material(Shader.Find("Universal Render Pipeline/Unlit"));lensMaterial.SetTexture("_BaseMap",texture);lensMaterial.SetFloat("_Cull",0);
+                lensMaterial=new Material(shader);lensMaterial.SetTexture("_BaseMap",texture);
             }
-            if(lens)return;
-            lens=new GameObject("Local magnifying lens",typeof(MeshFilter),typeof(MeshRenderer));lens.layer=2;lens.transform.SetParent(optic,false);lens.transform.localPosition=new Vector3(0,0,-.015f);
-            float radius=state.kind==EquipmentKind.DualRifle&&!state.shotgun?.027f:.018f;
+            if(lens||!lensMaterial)return;
+            lens=new GameObject("Local magnifying lens",typeof(MeshFilter),typeof(MeshRenderer));lens.layer=2;lens.transform.SetParent(eye.transform,false);lens.transform.localPosition=new Vector3(0,0,2);
+            float radius=BinocularRadius;
             const int segments=48;var vertices=new Vector3[segments+1];var uv=new Vector2[segments+1];var triangles=new int[segments*3];uv[0]=new Vector2(.5f,.5f);
             for(int i=0;i<segments;i++){float a=i*Mathf.PI*2/segments;vertices[i+1]=new Vector3(Mathf.Cos(a),Mathf.Sin(a),0)*radius;uv[i+1]=new Vector2(Mathf.Cos(a),Mathf.Sin(a))*.5f+Vector2.one*.5f;triangles[i*3]=0;triangles[i*3+1]=(i+1)%segments+1;triangles[i*3+2]=i+1;}
-            var mesh=new Mesh{name="Scope lens disc",vertices=vertices,uv=uv,triangles=triangles};mesh.RecalculateNormals();lens.GetComponent<MeshFilter>().sharedMesh=mesh;lens.GetComponent<MeshRenderer>().sharedMaterial=lensMaterial;
+            var mesh=new Mesh{name="Scope lens disc",vertices=vertices,uv=uv,triangles=triangles};mesh.RecalculateNormals();lens.GetComponent<MeshFilter>().sharedMesh=mesh;lensRenderer=lens.GetComponent<MeshRenderer>();lensRenderer.sharedMaterial=lensMaterial;
         }
         void OnGUI()
         {
@@ -142,8 +179,8 @@ namespace DeadlyJenga.Presentation
         }
         static void Line(float x,float y,float width,float height)=>GUI.DrawTexture(new Rect(x,y,width,height),Texture2D.whiteTexture);
         void RestoreFov(){if(zoomed&&eye)eye.fieldOfView=originalFov;zoomed=false;}
-        void OnDisable(){RestoreFov();aiming=visible=false;if(lens)lens.SetActive(false);}
-        void ReleaseLens(){if(lens){Destroy(lens.GetComponent<MeshFilter>().sharedMesh);Destroy(lens);}lens=null;}
+        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeginCamera;RenderPipelineManager.endCameraRendering-=EndCamera;cameraVisibility.Clear();if(lensRenderer)lensRenderer.forceRenderingOff=false;RestoreFov();aiming=visible=false;if(lens)lens.SetActive(false);}
+        void ReleaseLens(){if(lens){Destroy(lens.GetComponent<MeshFilter>().sharedMesh);Destroy(lens);}lens=null;lensRenderer=null;cameraVisibility.Clear();}
         void OnDestroy(){RestoreFov();ReleaseLens();if(scopeCamera)Destroy(scopeCamera.gameObject);if(texture){texture.Release();Destroy(texture);}if(lensMaterial)Destroy(lensMaterial);}
     }
 }

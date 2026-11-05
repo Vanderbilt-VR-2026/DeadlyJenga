@@ -19,12 +19,14 @@ namespace DeadlyJenga.Presentation
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
         readonly Dictionary<Renderer,MaterialPropertyBlock> handOriginals=new Dictionary<Renderer,MaterialPropertyBlock>();readonly HashSet<Renderer> activeHands=new HashSet<Renderer>();readonly List<Renderer> oldHands=new List<Renderer>();
         readonly HashSet<string> melting=new HashSet<string>();readonly HashSet<Renderer> hidden=new HashSet<Renderer>();
+        IMatchRuntime splatRuntime;bool splatNotified;int splatDeaths;
         void OnEnable(){props=new MaterialPropertyBlock();healthShader=Resources.Load<Shader>("CandyScenery/CandyAvatarHealth");if(healthShader&&!healthMaterial){healthMaterial=new Material(healthShader);healthMaterial.enableInstancing=true;healthMaterial.SetFloat("_Smoothness",.8f);}GameEvents.Eliminated+=Eliminated;GameEvents.RoundEnded+=RoundEnded;}
         void RoundEnded(){transitionAt=Time.unscaledTime;transitionColor=new Color(.96f,.97f,1);}
         void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();melting.Clear();if(canvas)canvas.enabled=false;}
         void Update()
         {
             var runtime=MatchRuntime.Current;if(runtime?.Frame==null){if(canvas)canvas.enabled=false;return;}var f=runtime.Frame;
+            ObserveLocalLife(runtime,f);
             if(skin!=f.rules.environmentSkin){skin=f.rules.environmentSkin;CandySceneSkins.Select(SkinIndex(skin));}
             bool outage=false;foreach(var hazard in DisasterStates.Active){var state=hazard.Capture();if(state!=null&&state.warning<=0&&state.kind=="PowerOutage"&&f.phase!=RoundPhase.Victory&&f.phase!=RoundPhase.Results){outage=true;break;}}
             bool restoringOutage=wasOutage&&!outage;wasOutage=outage;
@@ -151,19 +153,31 @@ namespace DeadlyJenga.Presentation
             var key=(original,ColorUtility.ToHtmlStringRGB(c));if(!teamMaterials.TryGetValue(key,out var material)){material=new Material(original);material.SetColor("_BaseColor",c);if(material.HasProperty("_Color"))material.SetColor("_Color",c);material.enableInstancing=true;teamMaterials[key]=material;}renderer.sharedMaterial=material;
         }
         void RestoreBlocks(){foreach(var pair in blockOriginals)if(pair.Key)pair.Key.sharedMaterial=pair.Value;blockOriginals.Clear();claimRevision=-1;}
+        void ObserveLocalLife(IMatchRuntime runtime,MatchFrame frame)
+        {
+            if(!ReferenceEquals(Services.Session,GetComponent<ISessionInfo>()))return;
+            if(!ReferenceEquals(splatRuntime,runtime)){splatRuntime=runtime;splatNotified=false;splatDeaths=0;}
+            foreach(var player in frame.players)
+                if(player.id==runtime.LocalActorId&&!player.dying&&player.alive){splatNotified=false;break;}
+        }
         void Eliminated(GameObject who,GameObject source)
         {
+            if(!ReferenceEquals(Services.Session,GetComponent<ISessionInfo>()))return;
             var actor=who?who.GetComponent<IModeActor>():null;if(actor==null)return;
             // Enemy NPCs are intentionally absent from the player frame and may already be inactive.
             if(who.GetComponent<IEnemyActor>() is IEnemyActor enemy&&enemy.IsEnemy){if(enemy.ArchetypeId=="longhand"||enemy.ArchetypeId=="gum-brute")CandyMayhemEnemyFinish.Splat(actor.Visual);else if(enemy.ArchetypeId=="mushroom")CandyMelt.Spawn(actor.Visual,actor.Color);else CandyEnemyHairball.Spawn(actor.Visual);return;}
-            if(actor.IsLocal)CandyDeathOverlay.Show(actor.Color);
+            var local=Services.Session?.Player;
+            if(actor.IsLocal&&NetworkActors.Alive(local)&&who==local.gameObject&&local.gameObject.GetComponent<IDamageable>()?.Health<=0&&MatchRuntime.Current?.Frame?.phase==RoundPhase.Playing)CandyDeathOverlay.ShowLocalDeath(actor.Color);
         }
         void Deaths(IMatchRuntime runtime,MatchFrame frame)
         {
+            if(!ReferenceEquals(Services.Session,GetComponent<ISessionInfo>())||!ReferenceEquals(runtime,MatchRuntime.Current))return;
             foreach(var p in frame.players)
             {
                 var actor=runtime.FindActor(p.id);if(actor?.Visual==null)continue;
-                if(p.dying&&melting.Add(p.id)){CandyMelt.Spawn(actor.Visual,p.color,actor.transform.position.y);if(p.id==runtime.LocalActorId)CandyDeathOverlay.Show(p.color);}
+                if(p.dying&&melting.Add(p.id))CandyMelt.Spawn(actor.Visual,p.color,actor.transform.position.y);
+                if(p.dying&&p.id==runtime.LocalActorId&&frame.phase==RoundPhase.Playing&&(!splatNotified||p.deaths>splatDeaths))
+                {splatNotified=true;splatDeaths=p.deaths;CandyDeathOverlay.Show(p.color);}
                 if(!p.dying&&p.alive)melting.Remove(p.id);
                 foreach(var r in actor.Visual.GetComponentsInChildren<Renderer>())
                 {if(p.dying||!p.alive){r.forceRenderingOff=true;hidden.Add(r);}else if(hidden.Remove(r))r.forceRenderingOff=false;}
