@@ -137,6 +137,14 @@ namespace DeadlyJenga.CastlePrototype
             dispatched="";lastTick=Time.realtimeSinceStartupAsDouble;
         }
         internal void CommitFlow()=>TransportPublish();
+        internal bool PrepareStandaloneDemo()
+        {
+            if(!room||room.Connected||room.Busy||room.Migrating||room.RoomSceneBusy||room.Departing||room.SwitchingMap)return false;
+            TransportDisconnected();
+            flow=new RoomGameFlow(new GameFlowState{roomId=Guid.NewGuid().ToString("N"),authorityTerm=1,demo=true});
+            dispatched="";sceneSelectionError="";lastTick=Time.realtimeSinceStartupAsDouble;
+            return true;
+        }
         internal void ResetRoomFlow()
         {
             bool game=flow!=null&&!State.demo;

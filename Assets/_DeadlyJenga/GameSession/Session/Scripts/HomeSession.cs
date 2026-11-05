@@ -113,6 +113,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if (room.Connected) await room.Leave();
                 if (!this) return;
+                if (demo && !RoomGameExperience.Ensure(room).PrepareStandaloneDemo())
+                { message = "The previous room is still closing. Try Demo again in a moment."; return; }
                 MatchSetup.BotTarget = 10; MatchSetup.HandCount = 0;
                 AutofillLobby = true;
                 if (demo)
