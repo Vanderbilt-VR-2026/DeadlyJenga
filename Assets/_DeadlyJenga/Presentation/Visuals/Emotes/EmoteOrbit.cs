@@ -16,6 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         GameObject mirror;
         RenderTexture preview;
         bool vr;
+        float visualHeight;
 
         void LateUpdate()
         {
@@ -47,7 +48,7 @@ namespace DeadlyJenga.CastlePrototype
 
             Vector3 feet = player.transform.position;
             if (vr) feet = new Vector3(original.transform.position.x, feet.y, original.transform.position.z);
-            float height = Mathf.Clamp(original.transform.position.y - feet.y, .45f, 2.5f);
+            float height = Mathf.Max(visualHeight, Mathf.Clamp(original.transform.position.y - feet.y, .45f, 2.5f));
             Vector3 target = feet + Vector3.up * height * .53f;
             Vector3 offset = view.Position(target, height, out var rotation) - target;
             float range = offset.magnitude;
@@ -73,6 +74,14 @@ namespace DeadlyJenga.CastlePrototype
             player = survivor;
             original = camera;
             vr = owner.IsVR;
+            visualHeight = Mathf.Clamp(camera.transform.position.y - player.transform.position.y, .45f, 2.5f);
+            var visual = player.gameObject.GetComponent<IModeActor>()?.Visual;
+            if (visual) foreach (var renderer in visual.GetComponentsInChildren<Renderer>())
+            {
+                if (!(renderer is MeshRenderer || renderer is SkinnedMeshRenderer) || !renderer.enabled) continue;
+                float top = renderer.bounds.max.y - player.transform.position.y;
+                if (float.IsFinite(top)) visualHeight = Mathf.Max(visualHeight, top + .15f);
+            }
             view.Reset(camera.transform.eulerAngles.y + 180, 2.65f);
 
             orbit = new GameObject("Local emote orbit").AddComponent<Camera>();
