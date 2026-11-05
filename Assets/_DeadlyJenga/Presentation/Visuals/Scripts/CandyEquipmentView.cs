@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyAudio;
+using DeadlyJenga.CastlePrototype;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.XR;
 
 namespace DeadlyJenga.Presentation
 {
@@ -10,7 +14,12 @@ namespace DeadlyJenga.Presentation
         sealed class PickupVisual{public Transform root;public TextMesh label;public EquipmentKind kind;public Transform model;}
         readonly Dictionary<int,PickupVisual> pickups=new Dictionary<int,PickupVisual>();
         readonly HashSet<int> visible=new HashSet<int>();
-        Canvas canvas;Text status;Image weaponOutline;Camera eye;bool vr;
+        Canvas canvas;Text status,swapNotice;Image weaponOutline;Camera eye;bool vr;
+        readonly CandyEquipmentActionCursor actionCursor=new CandyEquipmentActionCursor();
+        IMatchRuntime actionMatch;
+        System.Action<EquipmentActionFrame> onEquipmentAction;
+        string localActor,receipt;
+        float receiptUntil;
         static readonly Dictionary<EquipmentKind,Texture2D> outlines=new();
         public static Texture2D Outline(EquipmentKind kind)
         {
@@ -70,13 +79,104 @@ namespace DeadlyJenga.Presentation
         {
             return EquipmentSpecifications.Get(kind).name;
         }
+        void ReadEquipmentActions(IMatchRuntime match)
+        {
+            if(!ReferenceEquals(actionMatch,match)||localActor!=match.LocalActorId)
+            {
+                actionMatch=match;
+                localActor=match.LocalActorId;
+                receipt=null;
+                actionCursor.Baseline(match.Frame);
+            }
+            onEquipmentAction??=ShowEquipmentReceipt;
+            actionCursor.Read(match.Frame,onEquipmentAction);
+        }
+        void ShowEquipmentReceipt(EquipmentActionFrame action)
+        {
+            var message = EquipmentReceipt(action, localActor);
+            if (message == null) return;
+            receipt = message;
+            receiptUntil = Time.unscaledTime + 2.2f;
+        }
+        static void PhysicalControllers(out bool left, out bool right)
+        {
+            left = right = false;
+            foreach (var device in InputSystem.devices)
+            {
+                if (!(device is XRController controller) || !controller.isTracked.isPressed
+                    || controller.layout.IndexOf("HandInteraction", System.StringComparison.OrdinalIgnoreCase) >= 0) continue;
+                foreach (var usage in controller.usages)
+                {
+                    left |= usage == CommonUsages.LeftHand;
+                    right |= usage == CommonUsages.RightHand;
+                }
+            }
+        }
+
+        public static string SwapInputHint(ISessionInfo session)
+        {
+            if (session?.IsVR != true) return SwapInputHint(false, false, false);
+            PhysicalControllers(out bool left, out bool right);
+            return SwapInputHint(true, left, right);
+        }
+
+        internal static string SwapInputHint(bool vr, bool left, bool right)
+        {
+            if (!vr) return "E: SWAP     N: KEEP";
+            if (!left && !right) return "Track a controller to swap";
+            if (left != right) return "Trigger: SWAP     Press and release grip ALONE: KEEP";
+            return "Weapon trigger: SWAP     Weapon grip: KEEP";
+        }
+
+        static string SuitInputHint(ISessionInfo session)
+        {
+            if (session?.IsVR != true) return SuitInputHint(false, false, false, false);
+            PhysicalControllers(out bool left, out bool right);
+            bool otherTracked = false;
+            if (left != right)
+            {
+                var fingers = session.Player?.gameObject.GetComponent<IFingerTips>();
+                otherTracked = fingers != null && fingers.TryIndexTip(!left, out _);
+            }
+            return SuitInputHint(true, left, right, otherTracked);
+        }
+
+        internal static string SuitInputHint(bool vr, bool left, bool right, bool otherTracked)
+        {
+            if (!vr) return "V: take off / land · WASD: fly\nQ / E: down / up · Left click: fire";
+            if (!left && !right) return "Controller needed for flight and take off / land";
+            string hint = "Flight stick: fly · Trigger: rise · Grip: descend\nLeft Grip+Y / Right B: take off / land";
+            if (left && right || otherTracked) hint += "\nOther tracked hand: trigger or pinch to fire";
+            return hint;
+        }
+
+        internal static string EquipmentReceipt(EquipmentActionFrame action, string actor)
+        {
+            if (action == null || string.IsNullOrEmpty(actor) || action.actor != actor) return null;
+            if (action.action == EquipmentAction.Swap) return "Swapped to " + Name(action.kind);
+            if (action.action == EquipmentAction.Drop) return "Dropped " + Name(action.kind);
+            return null;
+        }
+
+        internal static string SwapMessage(EquipmentState current, EquipmentPickup next, string input)
+        {
+            var oldKind = current.activePower != EquipmentKind.None ? current.activePower : current.kind;
+            return "<size=23>SWAP EQUIPMENT?</size>\n" + Name(oldKind) + "  →  " + Name(next.kind) + "\n" + input
+                + (current.builtIn ? "" : "\nYour old item drops at the pickup.");
+        }
         void Update()
         {
-            var match=MatchRuntime.Current;var session=Services.Session;if(match==null||session==null)return;
+            var match=MatchRuntime.Current;var session=Services.Session;
+            if(match?.Frame==null||session==null){if(canvas)canvas.enabled=false;return;}
+            ReadEquipmentActions(match);
             if(!canvas)
             {
                 var go=new GameObject("Equipment HUD",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=35;
                 status=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Equipment and swap",new Vector2(272,-217),new Vector2(360,75),16,TextAnchor.MiddleCenter);
+                swapNotice=CandyHudCards.Create(go.GetComponent<RectTransform>(),"Swap confirmation",
+                    new Vector2(0,-161),new Vector2(515,123),18,TextAnchor.MiddleCenter);
+                swapNotice.supportRichText=true;
+                CandyHudCards.Badge(swapNotice);
                 weaponOutline=new GameObject("Weapon outline",typeof(RectTransform),typeof(Image)).GetComponent<Image>();
                 weaponOutline.transform.SetParent(status.transform.parent,false);
                 weaponOutline.rectTransform.anchoredPosition=new Vector2(-140,0);
@@ -87,10 +187,31 @@ namespace DeadlyJenga.Presentation
             }
             if(eye!=session.ActiveCamera||vr!=session.IsVR){eye=session.ActiveCamera;vr=session.IsVR;CandyHudLayout.Configure(canvas,transform,eye,vr);}
             var controls=session.Player?.gameObject.GetComponent<IEquipmentControls>();var equipment=controls?.Equipment;
-            var pending=System.Array.Find(match.Frame.pickups,p=>p.id==controls?.PendingPickup);
-            canvas.enabled=eye&&!session.MenuOpen&&!CandyMatchHud.Expanded&&equipment!=null;
-            if(pending!=null)status.text="SWAP "+Name(equipment.activePower!=EquipmentKind.None?equipment.activePower:equipment.kind)+" FOR "+Name(pending.kind)+"?\n"+(vr?"Dominant trigger: SWAP  |  Other trigger: KEEP":"E: SWAP  |  N: KEEP")+"\nYour current item drops here.";
-            else if(equipment?.kind==EquipmentKind.PoweredArmor)status.text="POWERED IRON SUIT · "+(equipment.drawn?"HOVERING":"STANDBY")+"\n"+(vr?"Move stick · Trigger rise · Grip descend\nB / Y land · Other trigger or pinch plasma":"V: take off / land · WASD: steer · E: up · Q: down · Click: plasma");
+            int pendingId=equipment!=null&&equipment.kind!=EquipmentKind.None?controls.PendingPickup:0;
+            var pending=pendingId>0?System.Array.Find(match.Frame.pickups,p=>p.id==pendingId&&p.availableIn<=0):null;
+            bool visiting=(session as ILobbyMatchVisitControls)?.VisitingLobby==true;
+            bool watching=(session.Demo as ISpectatorControls)?.Spectating==true;
+            bool showReceipt=!string.IsNullOrEmpty(receipt)&&Time.unscaledTime<receiptUntil;
+            canvas.enabled=eye&&!session.MenuOpen&&!CandyMatchHud.Expanded&&!visiting&&!watching&&
+                ((!session.PlayingHand&&equipment!=null)||showReceipt);
+            bool showSwap=canvas.enabled&&!session.PlayingHand&&pending!=null;
+            if(showSwap)
+            {
+                swapNotice.text=SwapMessage(equipment,pending,SwapInputHint(session));
+                CandyHudCards.Place(swapNotice,new Vector2(0,-161),new Vector2(515,123));
+                CandyHudCards.Tint(swapNotice,CandyHudVisuals.Peach,.45f);
+            }
+            else if(showReceipt)
+            {
+                swapNotice.text=receipt;
+                CandyHudCards.Place(swapNotice,new Vector2(0,-161),new Vector2(345,46));
+                CandyHudCards.Tint(swapNotice,CandyHudVisuals.Mint,.35f);
+            }
+            CandyHudCards.Visible(swapNotice,showSwap||showReceipt);
+            bool suit = equipment?.kind == EquipmentKind.PoweredArmor;
+            CandyHudCards.Place(status, suit ? new Vector2(298,-244) : new Vector2(272,-217),
+                suit ? new Vector2(430,112) : new Vector2(360,75));
+            if(suit)status.text="POWERED IRON SUIT · "+(equipment.drawn?"FLIGHT ON":"STANDBY")+"\n"+SuitInputHint(session);
             else if(equipment?.kind>=EquipmentKind.Blaster)
             {
                 var spec=EquipmentSpecifications.Get(equipment.kind);
@@ -117,14 +238,15 @@ namespace DeadlyJenga.Presentation
             weaponOutline.sprite=pending==null&&equipment!=null?CandyWeaponIcons.Get(equipment.kind,equipment.shotgun):null;
             weaponOutline.enabled=weaponOutline.sprite;
             status.rectTransform.offsetMin=new Vector2(weaponOutline.enabled?66:10,4);
-            CandyHudCards.Visible(status,!string.IsNullOrEmpty(status.text));
+            CandyHudCards.Visible(status,!session.PlayingHand&&!showSwap&&!string.IsNullOrEmpty(status.text));
             visible.Clear();
             foreach(var pickup in match.Frame.pickups)
             {
                 visible.Add(pickup.id);
                 if(!pickups.TryGetValue(pickup.id,out var view)){view=CreatePickup(pickup.kind);pickups[pickup.id]=view;}
                 UpdatePickupModel(view);view.root.position=pickup.position;view.root.gameObject.SetActive(pickup.availableIn<=0||pickup.station);
-                view.label.text=Name(pickup.kind)+(pickup.availableIn>0?"\nREADY IN "+Mathf.CeilToInt(pickup.availableIn)+"s":"\n"+(pickup.station?"TEST STATION":"PICKUP"));
+                string label=showSwap&&pickup.id==pendingId?"SWAP TARGET":pickup.station?"TEST STATION":"PICKUP";
+                view.label.text=Name(pickup.kind)+(pickup.availableIn>0?"\nREADY IN "+Mathf.CeilToInt(pickup.availableIn)+"s":"\n"+label);
                 if(eye)view.label.transform.rotation=Quaternion.LookRotation(view.label.transform.position-eye.transform.position);
             }
             var removed=new List<int>();foreach(var pair in pickups)if(!visible.Contains(pair.Key)){Destroy(pair.Value.root.gameObject);removed.Add(pair.Key);}foreach(int id in removed)pickups.Remove(id);

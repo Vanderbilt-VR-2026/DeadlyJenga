@@ -1,84 +1,151 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using DeadlyJenga.Core;
-using DeadlyJenga.CandyAudio;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 namespace DeadlyJenga.CandyArt
 {
     [DefaultExecutionOrder(800)]
     public sealed partial class CandyHazardLighting : MonoBehaviour
     {
-        readonly Dictionary<Renderer,Material> originals=new Dictionary<Renderer,Material>();
-        readonly Dictionary<Renderer,MaterialPropertyBlock> originalProperties=new Dictionary<Renderer,MaterialPropertyBlock>();
+        const int VariantLimit=128,RendererLimit=8192;
+        sealed class Look { public Material[] before,applied;public int seen; }
+        readonly Dictionary<Renderer,Look> looks=new Dictionary<Renderer,Look>();
         readonly Dictionary<(Material,int,Vector3,Vector3),Material> neon=new Dictionary<(Material,int,Vector3,Vector3),Material>();
-        Renderer darkWater;MaterialPropertyBlock waterBefore,waterTint;Shader shader;float scanAt,exposure,exposureAt;bool lit,previousExposed;Light sun;float intensity;Material darkSky,vampireSky;Vector4 originalSunDirection;
+        readonly Dictionary<int,int> selected=new Dictionary<int,int>();
+        readonly List<Renderer> stale=new List<Renderer>();
+        readonly List<Material> slots=new List<Material>();
+        Shader shader;float scanAt,exposure;bool lit;int generation;
+        Light sun,outageSun;Material darkSky,baselineSky,vampireSky;Vector4 originalSunDirection,writtenSunDirection;
+        Color baselineSkyColor,baselineEquator,baselineGround,writtenSky,writtenEquator,writtenGround;
+        float baselineAmbient,writtenAmbient,baselineIntensity,writtenIntensity,baselineOutage;
+        AmbientMode baselineMode;bool globalsWritten;
+        Renderer darkWater;readonly MaterialPropertyBlock waterTint=new MaterialPropertyBlock();
+        static readonly string[] WaterNames={"_BaseColor","_Accent","_Shallow","_Deep","_Reflection","_Horizon"};
+        static readonly Color[] WaterColors={new Color(.025f,.075f,.12f),new Color(.035f,.28f,.32f),new Color(.035f,.19f,.23f),new Color(.008f,.025f,.065f),new Color(.10f,.17f,.28f),new Color(.08f,.12f,.23f)};
+        readonly Color[] waterBaseline=new Color[6];bool waterWritten;
         void Awake(){shader=Resources.Load<Shader>("CandyScenery/CandyNeon");}
         void LateUpdate()
         {
-            DisasterFrame outage=null,vampire=null;foreach(var state in DisasterStates.Active){var f=state.Capture();if(f==null||f.warning>0)continue;if(f.kind=="PowerOutage")outage=f;if(f.kind=="Vampire")vampire=f;}
+            DisasterFrame outage=null,vampire=null;
+            foreach(var state in DisasterStates.Active){var f=state.Capture();if(f==null||f.warning>0)continue;if(f.kind=="PowerOutage")outage=f;if(f.kind=="Vampire")vampire=f;}
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Victory||MatchRuntime.Current?.Frame.phase==RoundPhase.Results){outage=null;vampire=null;}
+            var environment=GetComponent<CandyEnvironment>();sun=environment?environment.sun:null;
             if(outage!=null)
             {
-                DarkenOcean();
-                RenderSettings.ambientSkyColor=new Color(.013f,.003f,.04f);RenderSettings.ambientEquatorColor=new Color(.025f,.005f,.06f);RenderSettings.ambientGroundColor=new Color(.008f,.002f,.02f);
-                if(!darkSky){var sky=Resources.Load<Shader>("CandyScenery/CandyScenicSky");if(sky){darkSky=new Material(sky);darkSky.SetColor("_Zenith",new Color(.009f,.001f,.025f));darkSky.SetColor("_Horizon",new Color(.025f,.003f,.05f));darkSky.SetColor("_Cloud",Color.black);darkSky.SetColor("_SunColor",Color.black);darkSky.SetFloat("_CloudCover",0);darkSky.SetFloat("_Stars",0);}}if(darkSky)RenderSettings.skybox=darkSky;
-                if(!sun){var env=GetComponent<CandyEnvironment>();sun=env?env.sun:null;}if(sun){if(!lit)intensity=sun.intensity;sun.intensity=.025f;}lit=true;
-                Shader.SetGlobalFloat("_CandyOutage",1);
+                EndVampireLighting();RestoreVampireSun();
+                ApplyOutage();DarkenOcean(environment);
                 if(Time.unscaledTime>=scanAt){scanAt=Time.unscaledTime+.5f;Outage(outage);}
             }
-            else if(lit){RestoreOcean();if(sun)sun.intensity=intensity;lit=false;Restore();Shader.SetGlobalFloat("_CandyOutage",0);}
-            if(vampire!=null)Vampire(vampire);else {EndVampireLighting();RestoreVampireSun();exposure=Mathf.MoveTowards(exposure,0,Time.deltaTime*2);}
-            Shader.SetGlobalFloat("_CandyHeat",exposure);
+            else
+            {
+                EndOutage();
+                if(vampire!=null)Vampire(vampire);else{EndVampireLighting();RestoreVampireSun();}
+            }
+            exposure=0;Shader.SetGlobalFloat("_CandyHeat",0);
         }
-        void DarkenOcean()
+        void ApplyOutage()
         {
-            var environment=GetComponent<CandyEnvironment>();if(!environment||!environment.waterRenderer)return;
-            if(!darkWater){darkWater=environment.waterRenderer;waterBefore=new MaterialPropertyBlock();waterTint=new MaterialPropertyBlock();darkWater.GetPropertyBlock(waterBefore);}
-            darkWater.GetPropertyBlock(waterTint);waterTint.SetColor("_BaseColor",new Color(.009f,.002f,.025f));waterTint.SetColor("_Accent",new Color(.025f,.006f,.07f));waterTint.SetColor("_Shallow",new Color(.018f,.006f,.045f));waterTint.SetColor("_Deep",new Color(.004f,.001f,.014f));waterTint.SetColor("_Reflection",new Color(.022f,.006f,.055f));waterTint.SetColor("_Horizon",new Color(.025f,.003f,.05f));darkWater.SetPropertyBlock(waterTint);
+            if(!lit){lit=true;baselineOutage=Shader.GetGlobalFloat("_CandyOutage");scanAt=0;}
+            if(!globalsWritten||RenderSettings.skybox!=darkSky)baselineSky=RenderSettings.skybox;
+            if(!globalsWritten||RenderSettings.ambientSkyColor!=writtenSky)baselineSkyColor=RenderSettings.ambientSkyColor;
+            if(!globalsWritten||RenderSettings.ambientEquatorColor!=writtenEquator)baselineEquator=RenderSettings.ambientEquatorColor;
+            if(!globalsWritten||RenderSettings.ambientGroundColor!=writtenGround)baselineGround=RenderSettings.ambientGroundColor;
+            if(!globalsWritten||!Mathf.Approximately(RenderSettings.ambientIntensity,writtenAmbient))baselineAmbient=RenderSettings.ambientIntensity;
+            if(!globalsWritten||RenderSettings.ambientMode!=AmbientMode.Trilight)baselineMode=RenderSettings.ambientMode;
+            if(Shader.GetGlobalFloat("_CandyOutage")!=1)baselineOutage=Shader.GetGlobalFloat("_CandyOutage");
+            if(outageSun!=sun){RestoreOutageSun();outageSun=sun;if(outageSun)baselineIntensity=outageSun.intensity;}
+            else if(outageSun&&(!globalsWritten||!Mathf.Approximately(outageSun.intensity,writtenIntensity)))baselineIntensity=outageSun.intensity;
+            if(!darkSky){var skyShader=Resources.Load<Shader>("CandyScenery/CandyScenicSky");if(skyShader){darkSky=new Material(skyShader);darkSky.SetColor("_Zenith",new Color(.012f,.018f,.065f));darkSky.SetColor("_Horizon",new Color(.08f,.12f,.23f));darkSky.SetColor("_Cloud",new Color(.07f,.10f,.18f));darkSky.SetColor("_SunColor",Color.black);darkSky.SetFloat("_CloudCover",.2f);darkSky.SetFloat("_Stars",.3f);}}
+            if(darkSky)RenderSettings.skybox=darkSky;
+            RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientIntensity=writtenAmbient=1;
+            RenderSettings.ambientSkyColor=writtenSky=new Color(.14f,.18f,.28f);
+            RenderSettings.ambientEquatorColor=writtenEquator=new Color(.10f,.14f,.20f);
+            RenderSettings.ambientGroundColor=writtenGround=new Color(.06f,.075f,.12f);
+            if(outageSun)outageSun.intensity=writtenIntensity=Mathf.Max(.12f,baselineIntensity*.08f);
+            Shader.SetGlobalFloat("_CandyOutage",1);globalsWritten=true;
         }
-        void RestoreOcean(){if(darkWater)darkWater.SetPropertyBlock(waterBefore);darkWater=null;}
+        void RestoreOutageSun(){if(outageSun&&Mathf.Approximately(outageSun.intensity,writtenIntensity))outageSun.intensity=baselineIntensity;outageSun=null;}
+        void EndOutage()
+        {
+            if(!lit)return;lit=false;
+            if(RenderSettings.skybox==darkSky)RenderSettings.skybox=baselineSky;
+            if(RenderSettings.ambientSkyColor==writtenSky)RenderSettings.ambientSkyColor=baselineSkyColor;
+            if(RenderSettings.ambientEquatorColor==writtenEquator)RenderSettings.ambientEquatorColor=baselineEquator;
+            if(RenderSettings.ambientGroundColor==writtenGround)RenderSettings.ambientGroundColor=baselineGround;
+            if(Mathf.Approximately(RenderSettings.ambientIntensity,writtenAmbient))RenderSettings.ambientIntensity=baselineAmbient;
+            if(RenderSettings.ambientMode==AmbientMode.Trilight)RenderSettings.ambientMode=baselineMode;
+            if(Shader.GetGlobalFloat("_CandyOutage")==1)Shader.SetGlobalFloat("_CandyOutage",baselineOutage);
+            RestoreOutageSun();RestoreOcean();Restore();globalsWritten=false;
+            // Another visual owner may retain a variant. Retire it to its source shader instead of invalidating it.
+            foreach(var pair in neon)if(pair.Key.Item1&&pair.Value){pair.Value.shader=pair.Key.Item1.shader;pair.Value.CopyPropertiesFromMaterial(pair.Key.Item1);}
+        }
+        Color WaterValue(Renderer r,int i){return waterTint.HasColor(WaterNames[i])?waterTint.GetColor(WaterNames[i]):r.sharedMaterial&&r.sharedMaterial.HasProperty(WaterNames[i])?r.sharedMaterial.GetColor(WaterNames[i]):Color.black;}
+        void DarkenOcean(CandyEnvironment environment)
+        {
+            var next=environment?environment.waterRenderer:null;
+            if(next!=darkWater){RestoreOcean();darkWater=next;}
+            if(!darkWater)return;darkWater.GetPropertyBlock(waterTint);
+            for(int i=0;i<6;i++){var current=WaterValue(darkWater,i);if(!waterWritten||current!=WaterColors[i])waterBaseline[i]=current;waterTint.SetColor(WaterNames[i],WaterColors[i]);}
+            darkWater.SetPropertyBlock(waterTint);waterWritten=true;
+        }
+        void RestoreOcean()
+        {
+            if(darkWater&&waterWritten){darkWater.GetPropertyBlock(waterTint);for(int i=0;i<6;i++)if(waterTint.HasColor(WaterNames[i])&&waterTint.GetColor(WaterNames[i])==WaterColors[i])waterTint.SetColor(WaterNames[i],waterBaseline[i]);darkWater.SetPropertyBlock(waterTint);}
+            darkWater=null;waterWritten=false;
+        }
         void Outage(DisasterFrame frame)
         {
-            var world=Services.World;if(world==null||!shader)return;var selected=new Dictionary<int,int>();if(frame.blocks!=null)for(int i=0;i<frame.blocks.Length;i++)selected[frame.blocks[i]]=i%3+1;
-            for(int i=0;i<world.Blocks.Count;i++)
-            {
-                var body=world.Blocks[i];var visual=body?body.GetComponent<IClimbable>()?.Visual:null;if(!visual)continue;
-                int bulb=selected.TryGetValue(i,out int selection)?selection:0;foreach(var renderer in visual.GetComponentsInChildren<Renderer>())Neon(renderer,bulb,frame.values!=null&&frame.values.Length>1?frame.values[1]:9);
-            }
-            foreach(var mover in Tracked.Movers)if(mover is Component c&&c){var actor=c.GetComponent<IModeActor>();if(actor?.Visual)foreach(var r in actor.Visual.GetComponentsInChildren<Renderer>())Neon(r,4,1);}
-            foreach(var flyer in Tracked.Flyers)if(flyer is Component c&&c)foreach(var r in c.GetComponentsInChildren<Renderer>())if(!(r is ParticleSystemRenderer))Neon(r,4,1);
+            if(!shader)return;generation++;selected.Clear();if(frame.blocks!=null)foreach(int index in frame.blocks)selected[index]=1;
+            var world=Services.World;float reach=frame.values!=null&&frame.values.Length>1?frame.values[1]:9;
+            if(world!=null)for(int i=0;i<world.Blocks.Count;i++){var body=world.Blocks[i];var visual=body?body.GetComponent<IClimbable>()?.Visual:null;if(visual)foreach(var r in visual.GetComponentsInChildren<Renderer>())Neon(r,selected.ContainsKey(i)?1:0,reach);}
+            foreach(var mover in Tracked.Movers)if(mover is Component c&&c){var actor=c.GetComponent<IModeActor>();if(actor?.Visual)foreach(var r in actor.Visual.GetComponentsInChildren<Renderer>())Neon(r,4,reach);}
+            foreach(var flyer in Tracked.Flyers)if(flyer is Component c&&c)foreach(var r in c.GetComponentsInChildren<Renderer>())Neon(r,4,reach);
+            stale.Clear();foreach(var pair in looks)if(!pair.Key||pair.Value.seen!=generation){RestoreLook(pair.Key,pair.Value);stale.Add(pair.Key);}foreach(var r in stale)looks.Remove(r);
         }
-        void Neon(Renderer r,int style,float rim)
+        internal Material ResolveSourceMaterial(Material candidate)
         {
-            if(!originals.TryGetValue(r,out var original)){original=r.sharedMaterial;originals[r]=original;var saved=new MaterialPropertyBlock();r.GetPropertyBlock(saved);originalProperties[r]=saved;}if(!original)return;
-            var key=(original,style,r.localBounds.center,r.localBounds.size);if(!neon.TryGetValue(key,out var material))
-            {
-                material=new Material(shader);Color c=original.HasProperty("_BaseColor")?original.GetColor("_BaseColor"):Color.white;
-                if(style==1)c=new Color(.65f,.06f,1);if(style==2)c=new Color(1,.3f,.025f);if(style==3)c=new Color(.24f,1,.035f);
-                material.SetColor("_BaseColor",c);material.SetFloat("_Filled",style>0?1:0);material.SetVector("_BoundsCenter",r.localBounds.center);material.SetVector("_BoundsSize",r.localBounds.size);material.enableInstancing=true;neon[key]=material;
-            }
-            material.SetFloat("_Rim",rim);r.sharedMaterial=material;
+            foreach(var pair in neon)if(pair.Value==candidate)return pair.Key.Item1;
+            return candidate;
         }
+        static bool Eligible(Material m){return m&&m.renderQueue<2500&&m.HasProperty("_BaseColor")&&!m.HasProperty("_BurnAmount")&&!m.HasProperty("_Health")&&!m.HasProperty("_Wetness")&&!m.HasProperty("_Dissolve");}
+        void Neon(Renderer r,int style,float reach)
+        {
+            if(!r||(!(r is MeshRenderer)&&!(r is SkinnedMeshRenderer))||r.GetComponent<TextMesh>())return;
+            r.GetSharedMaterials(slots);if(!looks.TryGetValue(r,out var look)){if(looks.Count>=RendererLimit)return;look=new Look{before=slots.ToArray(),applied=new Material[slots.Count]};looks.Add(r,look);}
+            look.seen=generation;
+            if(look.before.Length!=slots.Count){RestoreLook(r,look);r.GetSharedMaterials(slots);look.before=slots.ToArray();look.applied=new Material[slots.Count];}
+            bool changed=false;
+            for(int i=0;i<slots.Count;i++)
+            {
+                var source=slots[i]==look.applied[i]?look.before[i]:slots[i];look.before[i]=source;
+                var center=style==4?Vector3.zero:r.localBounds.center;var size=style==4?Vector3.one:r.localBounds.size;
+                if(!Eligible(source)){if(look.applied[i]&&slots[i]==look.applied[i]){slots[i]=source;changed=true;}look.applied[i]=null;continue;}
+                var key=(source,style,center,size);
+                if(!neon.TryGetValue(key,out var material)){if(neon.Count>=VariantLimit){if(slots[i]==look.applied[i]){slots[i]=source;changed=true;}look.applied[i]=null;continue;}material=new Material(shader);neon.Add(key,material);}
+                material.shader=shader;material.SetColor("_BaseColor",source.GetColor("_BaseColor"));
+                if(source.HasProperty("_BaseMap")){material.SetTexture("_BaseMap",source.GetTexture("_BaseMap"));material.SetTextureScale("_BaseMap",source.GetTextureScale("_BaseMap"));material.SetTextureOffset("_BaseMap",source.GetTextureOffset("_BaseMap"));}
+                material.SetFloat("_Filled",style==1?1:0);material.SetFloat("_Character",style==4?1:0);material.SetFloat("_Rim",reach);material.SetVector("_BoundsCenter",center);material.SetVector("_BoundsSize",size);material.enableInstancing=true;
+                if(slots[i]!=material){slots[i]=material;changed=true;}look.applied[i]=material;
+            }
+            if(changed)r.SetSharedMaterials(slots);
+        }
+        void RestoreLook(Renderer r,Look look)
+        {
+            if(!r)return;r.GetSharedMaterials(slots);bool changed=false;for(int i=0;i<slots.Count&&i<look.applied.Length;i++)if(look.applied[i]&&slots[i]==look.applied[i]){slots[i]=look.before[i];changed=true;}if(changed)r.SetSharedMaterials(slots);
+        }
+        void Restore(){foreach(var pair in looks)RestoreLook(pair.Key,pair.Value);looks.Clear();}
         void Vampire(DisasterFrame frame)
         {
-            var view=Services.Session?.ActiveCamera;if(!view)return;float elevation=frame.values!=null&&frame.values.Length>2?frame.values[2]:45,delay=frame.values!=null&&frame.values.Length>1?frame.values[1]:.35f;
-            float angle=elevation*Mathf.Deg2Rad;Vector3 direction=new Vector3(.6f*Mathf.Cos(angle),Mathf.Sin(angle),.8f*Mathf.Cos(angle));
-            var environment=GetComponent<CandyEnvironment>();if(!sun&&environment)sun=environment.sun;
-            BeginVampireLighting();
-            if(sun)sun.transform.rotation=Quaternion.LookRotation(-direction,Mathf.Abs(direction.y)>.99f?Vector3.forward:Vector3.up);
-            var sky=RenderSettings.skybox;
-            if(sky&&sky.HasProperty("_SunDirection"))
-            {if(vampireSky!=sky){RestoreVampireSun();vampireSky=sky;originalSunDirection=sky.GetVector("_SunDirection");}sky.SetVector("_SunDirection",direction);}
-            bool exposed=!Physics.Raycast(view.transform.position,direction,300,1<<Layers.Block,QueryTriggerInteraction.Ignore);
-            if(exposed!=previousExposed){exposureAt=Time.time;previousExposed=exposed;}
-            if(Time.time-exposureAt>delay)exposure=Mathf.MoveTowards(exposure,exposed?1:0,Time.deltaTime*2);
-            DrawVampireShade(view);
-            if(exposure>.1f&&CandyAudioEngine.Instance)CandyAudioEngine.Instance.Loop(CandySound.VampireSizzle,view.transform,exposure*.5f,true);
+            var view=Services.Session?.ActiveCamera;if(!view){EndVampireLighting();RestoreVampireSun();return;}
+            float elevation=frame.values!=null&&frame.values.Length>2?frame.values[2]:45;float angle=elevation*Mathf.Deg2Rad;Vector3 direction=new Vector3(.6f*Mathf.Cos(angle),Mathf.Sin(angle),.8f*Mathf.Cos(angle));
+            BeginVampireLighting();if(sun)sun.transform.rotation=Quaternion.LookRotation(-direction,Mathf.Abs(direction.y)>.99f?Vector3.forward:Vector3.up);
+            var sky=RenderSettings.skybox;if(vampireSky!=sky)RestoreVampireSun();
+            if(sky&&sky.HasProperty("_SunDirection")){var current=sky.GetVector("_SunDirection");if(!vampireSky||current!=writtenSunDirection)originalSunDirection=current;vampireSky=sky;sky.SetVector("_SunDirection",direction);writtenSunDirection=sky.GetVector("_SunDirection");}
+            exposure=0;DrawVampireShade(view);
         }
-        void Restore(){foreach(var pair in originals)if(pair.Key){pair.Key.sharedMaterial=pair.Value;pair.Key.SetPropertyBlock(originalProperties[pair.Key]);}originals.Clear();originalProperties.Clear();}
-        void RestoreVampireSun(){if(vampireSky)vampireSky.SetVector("_SunDirection",originalSunDirection);vampireSky=null;}
-        void OnDisable(){EndVampireLighting();RestoreOcean();Restore();RestoreVampireSun();if(lit&&sun)sun.intensity=intensity;lit=false;Shader.SetGlobalFloat("_CandyOutage",0);Shader.SetGlobalFloat("_CandyHeat",0);}
-        void OnDestroy(){DestroyVampireShade();RestoreOcean();Restore();foreach(var material in neon.Values)if(material)Destroy(material);if(darkSky)Destroy(darkSky);}
+        void RestoreVampireSun(){if(vampireSky&&vampireSky.GetVector("_SunDirection")==writtenSunDirection)vampireSky.SetVector("_SunDirection",originalSunDirection);vampireSky=null;}
+        void OnDisable(){EndVampireLighting();RestoreVampireSun();EndOutage();Shader.SetGlobalFloat("_CandyHeat",0);}
+        void OnDestroy(){OnDisable();DestroyVampireShade();foreach(var material in neon.Values)if(material)Destroy(material);if(darkSky)Destroy(darkSky);}
     }
 }
-

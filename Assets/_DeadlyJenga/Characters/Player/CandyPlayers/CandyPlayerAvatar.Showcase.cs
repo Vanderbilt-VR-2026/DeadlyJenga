@@ -3,9 +3,10 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    public sealed partial class CandyPlayerAvatar : IAvatarShowcase
+    public sealed partial class CandyPlayerAvatar : IAvatarShowcase, IAvatarInspectionPose
     {
         bool showcasing;
+        public bool NeutralInspection { get; set; }
         float showcaseStarted, showcaseHeading;
         public bool Showcasing
         {
@@ -29,7 +30,7 @@ namespace DeadlyJenga.CandyPlayers
             float age = Time.unscaledTime - showcaseStarted;
             // A brief wave every six seconds, with a full relaxed pause between gestures.
             float gesture = age % 6 - 3.5f;
-            float wave = gesture >= 0 && gesture < 1.8f ? Mathf.Sin(Mathf.PI * gesture / 1.8f) : 0;
+            float wave = !NeutralInspection && gesture >= 0 && gesture < 1.8f ? Mathf.Sin(Mathf.PI * gesture / 1.8f) : 0;
             CandyHandPose Hand(bool left)
             {
                 float sign = left ? -1 : 1;

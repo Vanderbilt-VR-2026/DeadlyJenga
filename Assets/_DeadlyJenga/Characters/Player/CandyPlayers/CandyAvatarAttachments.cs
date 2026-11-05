@@ -14,7 +14,7 @@ namespace DeadlyJenga.CandyPlayers
         public AvatarAppearance Appearance=>appearance;
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
-            value.accessories&=CandyPlayerAvatar.SupportedAccessories;
+            value=CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(value)).effective;
             if(rig.headRenderer)rig.headRenderer.enabled=(value.accessories&AvatarAccessory.SkeletonMask)==0;
             if(!wardrobe)wardrobe=GetComponent<CandyAvatarWardrobe>();if(!wardrobe)wardrobe=gameObject.AddComponent<CandyAvatarWardrobe>();
             wardrobe.Apply(rig,value);
