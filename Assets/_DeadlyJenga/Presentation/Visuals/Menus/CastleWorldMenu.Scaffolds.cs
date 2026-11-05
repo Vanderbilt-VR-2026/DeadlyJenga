@@ -9,7 +9,8 @@ namespace DeadlyJenga.CastlePrototype
         Button wildlifeButton;BoxCollider wildlifeTarget;
         Button scaffoldButton;
         BoxCollider scaffoldTarget;
-        Text scaffoldLabel,exitLabel,joinCodeLabel,endLabel;
+        Text scaffoldLabel,exitLabel,endLabel;
+        RoomConnectionTile connectionTile;
         Button mapButton,exitButton,spectateButton,endButton,inspectionButton;
         BoxCollider mapTarget,exitTarget,spectateTarget,endTarget,inspectionTarget;
         bool mapPage,spectatePage;
@@ -30,8 +31,8 @@ namespace DeadlyJenga.CastlePrototype
             endButton=HeaderButton("End Game",116,out endTarget);endLabel=endButton.GetComponentInChildren<Text>();
             exitButton=HeaderButton("Exit to Lobby",232,out exitTarget);
             exitLabel=exitButton.GetComponentInChildren<Text>();
-            joinCodeLabel=Text("",new Vector2(0,410),new Vector2(570,35),26);
-            joinCodeLabel.color=CandyHudVisuals.Mint;
+            connectionTile=RoomConnectionTile.Create(transform);
+            connectionTile.SetCompact(new Vector2(0,410));
         }
         Button HeaderButton(string label,float x,out BoxCollider target)
         {

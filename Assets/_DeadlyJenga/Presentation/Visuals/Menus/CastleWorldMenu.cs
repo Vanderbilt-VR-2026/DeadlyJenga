@@ -81,8 +81,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PointPage(Camera camera, bool pressed,bool held)
         {
-            string code=MultiplayerPanel.JoinCode(session.Multiplayer);
-            joinCodeLabel.text=code.Length>0?"JOIN CODE  "+code:"";
+            connectionTile.Refresh(session.Multiplayer);
             exitLabel.text=MultiplayerPanel.LobbyAction(session.Multiplayer);
             if(sectionGlyphsActive)
             {

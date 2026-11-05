@@ -126,6 +126,7 @@ namespace DeadlyJenga.CastlePrototype
             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
             if(VisitOwner)return;
+            HomeSession.ConsumeLobbyEntry(this);
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
             ApplyLobbyIdentities();UpdateControls();
             if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation){nextLobbyPopulation=Time.unscaledTime+1;bool offline=HomeSession.AutofillLobby&&!Room.Connected&&!Room.Busy&&!Room.Departing;lobbyBots.AutoFill=false;lobbyBots.Running=offline;if(!offline){if(lobbyBots.Count>0)lobbyBots.Clear();}else{lobbyBots.SetHumanPlayerCount(1);lobbyBots.TargetPopulation=10;lobbyBots.FillToTarget();}}
