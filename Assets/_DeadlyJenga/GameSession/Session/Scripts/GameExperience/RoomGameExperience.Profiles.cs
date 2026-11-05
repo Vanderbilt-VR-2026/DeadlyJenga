@@ -65,12 +65,22 @@ namespace DeadlyJenga.CastlePrototype
                 else if(s.pending==GameFlowEffect.None&&flow.RejectSetup(s.authorityTerm,"No compatible prototype profile is available for this build and human roster."))CommitFlow();
                 return;
             }
-            // Round identity makes selection stable after replay/migration, without process random state.
-            var profile=candidates[s.round%candidates.Length];
+            // The random room identity seeds a choice that stays stable after replay or migration.
+            var profile=candidates[ProfileIndex(s.roomId,s.round,candidates.Length)];
             if(!room.ExperienceSelect(profile,ProfileRules(profile)))return;
             bool changed=s.pending==GameFlowEffect.ChooseProfile?
                 flow.ChooseCompleted(s.authorityTerm,s.operationId,s.attempts,profile.id,true):flow.Select(s.authorityTerm,profile.id,true);
             if(changed)CommitFlow();
+        }
+        internal static int ProfileIndex(string roomId,int round,int count)
+        {
+            if(string.IsNullOrEmpty(roomId)||round<0||count<1)throw new ArgumentException("Invalid profile selection identity.");
+            using(var hash=SHA256.Create())
+            {
+                var bytes=hash.ComputeHash(Encoding.UTF8.GetBytes(roomId+"/"+round.ToString(CultureInfo.InvariantCulture)));
+                uint value=((uint)bytes[0]<<24)|((uint)bytes[1]<<16)|((uint)bytes[2]<<8)|bytes[3];
+                return (int)(value%(uint)count);
+            }
         }
         static string StructureSignature(IslandLobbyCatalog.Map map)
         {

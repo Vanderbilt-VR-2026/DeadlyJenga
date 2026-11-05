@@ -137,6 +137,14 @@ namespace DeadlyJenga.CastlePrototype
             dispatched="";lastTick=Time.realtimeSinceStartupAsDouble;
         }
         internal void CommitFlow()=>TransportPublish();
+        internal bool PrepareStandaloneDemo()
+        {
+            if(!room||room.Connected||room.Busy||room.Migrating||room.RoomSceneBusy||room.Departing||room.SwitchingMap)return false;
+            TransportDisconnected();
+            flow=new RoomGameFlow(new GameFlowState{roomId=Guid.NewGuid().ToString("N"),authorityTerm=1,demo=true});
+            dispatched="";sceneSelectionError="";lastTick=Time.realtimeSinceStartupAsDouble;
+            return true;
+        }
         internal void ResetRoomFlow()
         {
             bool game=flow!=null&&!State.demo;
@@ -163,9 +171,9 @@ namespace DeadlyJenga.CastlePrototype
                 if(s.automatic)changed=flow.EnrollPlaylist(s.authorityTerm,sender,command.ready);
                 changed=flow.SetReady(s.authorityTerm,sender,s.selectionVersion,s.rosterVersion,command.ready)||changed;
             }
-            else if(leader&&command.verb=="experience"&&LobbyVisible)
+            else if(leader&&command.verb=="experience"&&(LobbyVisible||command.value=="demo"&&ActiveMatchVisible))
             {
-                changed=flow.Configure(s.authorityTerm,command.value=="demo",false);
+                changed=command.value=="demo"&&!LobbyVisible?flow.EnableDemo(s.authorityTerm):flow.Configure(s.authorityTerm,command.value=="demo",false);
                 if(changed&&!State.demo)SelectNext();
             }
             else if(leader&&command.verb=="automatic"&&(LobbyVisible||s.phase==GameFlowPhase.Playing||s.phase==GameFlowPhase.Results))
@@ -199,6 +207,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             ReconcileLobbyCompletion();DispatchOutbox();
         }
+        bool ActiveMatchVisible=>Services.Session is CastlePlaySession active&&!active.VisitingLobby&&
+            NetworkActors.Alive(active.Player)&&NetworkActors.Alive(active.Hand)&&active.ActiveCamera&&
+            !room.RoomSceneBusy&&!room.Departing&&!room.SwitchingMap&&!room.Migrating;
         bool LobbyVisible=>IslandLobby.Current&&!IslandLobby.Current.VisitingLobby&&ReferenceEquals(Services.Session,IslandLobby.Current)&&NetworkActors.Alive(IslandLobby.Current.Player)&&IslandLobby.Current.ActiveCamera&&!room.RoomSceneBusy&&!room.Departing;
         internal bool ApplySelectedProfile()
         {
@@ -216,7 +227,11 @@ namespace DeadlyJenga.CastlePrototype
         void ReconcileLobbyCompletion()
         {
             var s=State;
-            if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))CommitFlow();
+            if(s.pending==GameFlowEffect.ReturnLobby&&LobbyVisible&&flow.SceneCompleted(s.authorityTerm,s.operationId,GameFlowEffect.ReturnLobby))
+            {
+                CommitFlow();
+                if(!State.automatic)SelectNext();
+            }
         }
         void DispatchOutbox()
         {
