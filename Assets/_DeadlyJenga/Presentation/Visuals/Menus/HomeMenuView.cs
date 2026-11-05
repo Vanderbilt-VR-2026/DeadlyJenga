@@ -33,7 +33,8 @@ namespace DeadlyJenga.Presentation
         int slide, nearbyPage;
         readonly List<Button> buttons = new List<Button>();
         readonly List<Button> nearbyButtons = new List<Button>();
-        InputAction trigger;
+        InputAction trigger,leftPointSelect,rightPointSelect;
+        bool selectReady,comfortWasOpen,inputFocused=true;
         Button gazeFocus;
         Font font;
         public int SlideIndex => slide;
@@ -106,6 +107,7 @@ namespace DeadlyJenga.Presentation
                 var events=new GameObject("Home input",typeof(EventSystem),typeof(InputSystemUIInputModule));events.transform.SetParent(transform);
                 events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
+            leftPointSelect=new InputAction("Home left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");rightPointSelect=new InputAction("Home right select",InputActionType.Button,"<XRController>{RightHand}/trigger");leftPointSelect.Enable();rightPointSelect.Enable();
             trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.AddBinding("<XRController>{LeftHand}/trigger");trigger.AddBinding("<HandInteraction>{LeftHand}/pinchValue");trigger.AddBinding("<HandInteraction>{RightHand}/pinchValue");trigger.Enable();
             pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(vr);
             SetSlide();
@@ -139,9 +141,11 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(controls==null)return;
+            if(!inputFocused){foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
             bool comfortOpen=CandyComfortPanel.HomeShowing(gameObject);
             content.gameObject.SetActive(!comfortOpen);
-            if(comfortOpen){foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
+            if(comfortOpen){comfortWasOpen=true;selectReady=false;foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
+            if(comfortWasOpen){comfortWasOpen=false;selectReady=false;return;}
             pointer.gameObject.SetActive(vr);
             AnimateSlideshow(Time.unscaledDeltaTime);Crop();
             status.text=controls.Status;
@@ -226,9 +230,11 @@ namespace DeadlyJenga.Presentation
         }
         void Point()
         {
-            if(!eye)return;var ray=new Ray(eye.transform.position,eye.transform.forward);
+            if(!eye||MenuAim.InputConsumed)return;
+            bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
+            var ray=MenuAim.Resolve(eye,transform,preferred,leftPointSelect.WasPressedThisFrame(),rightPointSelect.WasPressedThisFrame(),out _,out _);
             var plane=new Plane(frame.forward,frame.position);
-            if(!plane.Raycast(ray,out float distance)){pointer.gameObject.SetActive(false);return;}
+            if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){pointer.gameObject.SetActive(false);return;}
             pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
             Button target=null;
             foreach(var button in buttons)
@@ -244,7 +250,8 @@ namespace DeadlyJenga.Presentation
                 else if(EventSystem.current&&gazeFocus&&EventSystem.current.currentSelectedGameObject==gazeFocus.gameObject)EventSystem.current.SetSelectedGameObject(null);
                 gazeFocus=target;
             }
-            if(target&&trigger.WasPressedThisFrame())target.onClick.Invoke();
+            if(!selectReady){if(!trigger.IsPressed())selectReady=true;return;}
+            if(target&&trigger.WasPressedThisFrame()){selectReady=false;MenuAim.Consume();target.onClick.Invoke();}
         }
         void SetSlide()
         {
@@ -283,9 +290,10 @@ namespace DeadlyJenga.Presentation
             var text=button.GetComponentInChildren<Text>();text.alignment=TextAnchor.UpperLeft;text.fontSize=29;text.rectTransform.anchoredPosition=new Vector2(9,-14);
             Label(button.transform,subtitle,new Vector2(10,-23),new Vector2(550,36),19,new Color(.82f,.8f,.92f));
         }
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;if(pointer)pointer.gameObject.SetActive(false);}}
         void OnDestroy()
         {
-            trigger?.Dispose();
+            trigger?.Dispose();leftPointSelect?.Dispose();rightPointSelect?.Dispose();
             foreach(var origin in trackingOrigins) origin.trackingOriginUpdated -= TrackingOriginUpdated;
             if(backdrop)Destroy(backdrop);
             if(blurredSlide)

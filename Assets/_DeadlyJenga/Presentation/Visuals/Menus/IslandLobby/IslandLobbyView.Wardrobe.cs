@@ -39,7 +39,29 @@ namespace DeadlyJenga.CastlePrototype
         readonly System.Collections.Generic.List<Renderer> wardrobeRenderers=new System.Collections.Generic.List<Renderer>();
         readonly System.Collections.Generic.List<int> wardrobeLayers=new System.Collections.Generic.List<int>();
 
-        RenderTexture wardrobeTexture;
+        RenderTexture wardrobeTexture,portraitTexture;
+        sealed class GeometryViewCache:IDisposable
+        {
+            readonly WardrobeFraming.GeometrySampler sampler=new WardrobeFraming.GeometrySampler();
+            AvatarAppearance appearance;int signature,readyFrame;bool identityKnown,sampled;float nextSample;
+            public bool Changed {get;private set;}
+            public void Invalidate(){identityKnown=false;sampled=false;readyFrame=Time.frameCount+2;}
+            public bool Try(System.Collections.Generic.List<Renderer> renderers,AvatarAppearance current,out Bounds bounds)
+            {
+                int next=17;foreach(var renderer in renderers)if(renderer)
+                {next=unchecked(next*31+renderer.GetInstanceID());next=unchecked(next*31+(renderer.enabled?1:0));if(renderer is SkinnedMeshRenderer skin&&skin.sharedMesh)next=unchecked(next*31+skin.sharedMesh.GetInstanceID());}
+                Changed=!identityKnown||signature!=next||!appearance.Equals(current);
+                if(Changed){identityKnown=true;signature=next;appearance=current;sampled=false;readyFrame=Time.frameCount+2;}
+                if(Time.frameCount>=readyFrame&&(!sampled||Time.unscaledTime>=nextSample))
+                {sampler.Refresh(renderers);sampled=true;nextSample=Time.unscaledTime+1;}
+                bounds=default;return sampled&&sampler.TryBounds(renderers,out bounds,out bool conservative)&&!conservative;
+            }
+            public void Dispose()=>sampler.Dispose();
+        }
+        GeometryViewCache wardrobeGeometry,mirrorGeometry;
+        readonly System.Collections.Generic.List<Renderer> mirrorRenderers=new System.Collections.Generic.List<Renderer>();
+        readonly System.Collections.Generic.List<int> mirrorLayers=new System.Collections.Generic.List<int>();
+        readonly System.Collections.Generic.List<bool> mirrorHidden=new System.Collections.Generic.List<bool>();
 
         Material wardrobeMaterial;
 
@@ -277,6 +299,7 @@ namespace DeadlyJenga.CastlePrototype
             {
 
                 wardrobeOpen=false;wardrobeFromPortrait=false;portraitReady=false;
+                wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Invalidate();
                 if(NetworkActors.Alive(wardrobePlayer)&&wardrobePlayer.IsVR&&wardrobePanel)
                     wardrobePanel.SetPositionAndRotation(wardrobePanelPosition,wardrobePanelRotation);
 
@@ -286,11 +309,14 @@ namespace DeadlyJenga.CastlePrototype
                 if(wardrobePose!=null&&NetworkActors.Alive(wardrobePlayer))wardrobePose.NeutralInspection=wardrobeWasNeutral;
                 wardrobePose=null;wardrobePivotReady=false;wardrobeFitDistance=0;
 
-                if(NetworkActors.Alive(wardrobePlayer))wardrobePlayer.InputSuspended=wardrobePaused;
+                bool currentOwner=ReferenceEquals(Services.Session,session)&&ReferenceEquals(Player,wardrobePlayer);
+                if(currentOwner)session.SetMenu(session.MenuOpen);
+                else if(NetworkActors.Alive(wardrobePlayer))wardrobePlayer.InputSuspended=wardrobePaused;
 
                 if(wardrobeDesktop){wardrobeDesktop.gameObject.SetActive(false);Destroy(wardrobeDesktop.gameObject);wardrobeDesktop=null;}
 
-                wardrobeButtons.Clear();Cursor.lockState=wardrobeCursor;Cursor.visible=wardrobeCursorVisible;wardrobeAvatar=null;wardrobePlayer=null;
+                wardrobeButtons.Clear();if(Services.Session==null){Cursor.lockState=wardrobeCursor;Cursor.visible=wardrobeCursorVisible;}
+                DeadlyJenga.Presentation.MenuAim.Consume();terminalRequireRelease=true;wardrobeAvatar=null;wardrobePlayer=null;
 
             }
 
@@ -378,6 +404,8 @@ namespace DeadlyJenga.CastlePrototype
             var image=new GameObject("Your portrait · open wardrobe",typeof(RectTransform),typeof(RawImage));
             image.transform.SetParent(profile.button.transform,false);
             lobbyPortrait=image.GetComponent<RawImage>();
+            portraitTexture=new RenderTexture(256,256,24){name="Lobby portrait only"};portraitTexture.Create();
+            lobbyPortrait.texture=portraitTexture;
             lobbyPortrait.raycastTarget=false;
             lobbyPortrait.rectTransform.sizeDelta=new Vector2(48,48);
             lobbyPortrait.rectTransform.anchoredPosition=new Vector2(-104,0);
@@ -394,7 +422,7 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 PresentWardrobe(true);
-                lobbyPortrait.texture=wardrobeTexture;portraitAppearance=appearance;
+                lobbyPortrait.texture=portraitTexture;portraitAppearance=appearance;
                 portraitName=identity.displayName;portraitReady=true;
             }
             finally{wardrobePlayer=previousPlayer;}
@@ -483,11 +511,12 @@ namespace DeadlyJenga.CastlePrototype
             var layers=new int[renderers.Length];var hidden=new bool[renderers.Length];
             for(int i=0;i<renderers.Length;i++)
             {layers[i]=renderers[i].gameObject.layer;hidden[i]=renderers[i].forceRenderingOff;}
-            var previousPosition=wardrobeCamera.transform.position;var previousRotation=wardrobeCamera.transform.rotation;
+            var previousPosition=wardrobeCamera.transform.position;var previousRotation=wardrobeCamera.transform.rotation;var previousTarget=wardrobeCamera.targetTexture;
             try
             {
                 for(int i=0;i<renderers.Length;i++)
                 {renderers[i].gameObject.layer=31;renderers[i].forceRenderingOff=false;}
+                wardrobeCamera.targetTexture=portraitTexture;
                 wardrobeCamera.transform.SetPositionAndRotation(position,rotation);
                 wardrobeCamera.Render();
             }
@@ -495,7 +524,34 @@ namespace DeadlyJenga.CastlePrototype
             {
                 for(int i=renderers.Length-1;i>=0;i--)if(renderers[i])
                 {renderers[i].gameObject.layer=layers[i];renderers[i].forceRenderingOff=hidden[i];}
-                if(wardrobeCamera)wardrobeCamera.transform.SetPositionAndRotation(previousPosition,previousRotation);
+                if(wardrobeCamera){wardrobeCamera.targetTexture=previousTarget;wardrobeCamera.transform.SetPositionAndRotation(previousPosition,previousRotation);}
+            }
+        }
+
+        void PresentMarinaMirror()
+        {
+            if(!wardrobeCamera||!NetworkActors.Alive(wardrobePlayer))return;
+            var visual=wardrobePlayer.gameObject.GetComponent<IModeActor>()?.Visual;if(!visual)return;
+            mirrorRenderers.Clear();mirrorLayers.Clear();mirrorHidden.Clear();visual.GetComponentsInChildren(false,mirrorRenderers);
+            var previousPosition=wardrobeCamera.transform.position;var previousRotation=wardrobeCamera.transform.rotation;
+            var previousTarget=wardrobeCamera.targetTexture;float previousFar=wardrobeCamera.farClipPlane;
+            foreach(var renderer in mirrorRenderers){mirrorLayers.Add(renderer.gameObject.layer);mirrorHidden.Add(renderer.forceRenderingOff);}
+            try
+            {
+                foreach(var renderer in mirrorRenderers){renderer.gameObject.layer=31;renderer.forceRenderingOff=false;}
+                mirrorGeometry??=new GeometryViewCache();
+                bool fitted=mirrorGeometry.Try(mirrorRenderers,wardrobePlayer.gameObject.GetComponent<IAvatarAppearance>()?.Appearance??default,out var bounds);
+                var feet=wardrobePlayer.transform.position;var eye=wardrobePlayer.ViewCamera;float height=eye?Mathf.Clamp(eye.transform.position.y-feet.y,.7f,2.8f):1.6f;
+                var rotation=Quaternion.Euler(12,(eye?eye.transform.eulerAngles.y:wardrobePlayer.transform.eulerAngles.y)+180,0);
+                var target=fitted?bounds.center:feet+Vector3.up*height*.58f;
+                float distance=fitted?WardrobeFraming.RequiredDistance(bounds,target,rotation,wardrobeCamera.fieldOfView,1,wardrobeCamera.nearClipPlane,out _):height*1.6f;
+                wardrobeCamera.targetTexture=wardrobeTexture;wardrobeCamera.farClipPlane=Mathf.Max(60,distance+10);
+                wardrobeCamera.transform.SetPositionAndRotation(target-rotation*Vector3.forward*distance,rotation);wardrobeCamera.Render();
+            }
+            finally
+            {
+                for(int i=mirrorRenderers.Count-1;i>=0;i--)if(mirrorRenderers[i]){mirrorRenderers[i].gameObject.layer=mirrorLayers[i];mirrorRenderers[i].forceRenderingOff=mirrorHidden[i];}
+                if(wardrobeCamera){wardrobeCamera.targetTexture=previousTarget;wardrobeCamera.farClipPlane=previousFar;wardrobeCamera.transform.SetPositionAndRotation(previousPosition,previousRotation);}
             }
         }
 
@@ -508,18 +564,19 @@ namespace DeadlyJenga.CastlePrototype
 
             var eye=wardrobePlayer.ViewCamera;var feet=wardrobePlayer.transform.position;float height=eye?Mathf.Clamp(eye.transform.position.y-feet.y,.7f,2.8f):1.6f;
 
-            var target=new Vector3(eye?eye.transform.position.x:feet.x,feet.y+height*.58f,eye?eye.transform.position.z:feet.z);
+            var target=wardrobePivotReady?feet+wardrobePivotOffset:new Vector3(eye?eye.transform.position.x:feet.x,feet.y+height*.58f,eye?eye.transform.position.z:feet.z);
 
             var visual=wardrobePlayer.gameObject.GetComponent<IModeActor>()?.Visual;if(!visual)return;
             wardrobeRenderers.Clear();wardrobeLayers.Clear();visual.GetComponentsInChildren(false,wardrobeRenderers);
-            bool fitted=WardrobeFraming.TryBounds(wardrobeRenderers,out var bounds);
+            wardrobeGeometry??=new GeometryViewCache();
+            bool fitted=wardrobeGeometry.Try(wardrobeRenderers,wardrobeAvatar?.Appearance??default,out var bounds);
             if(fitted)
             {
                 if(!wardrobePivotReady&&Time.frameCount>=wardrobeFramingReadyAt)
                 {wardrobePivotOffset=bounds.center-feet;wardrobePivotReady=true;}
                 target=wardrobePivotReady?feet+wardrobePivotOffset:bounds.center;
             }
-            var position=wardrobeOrbit.Position(target,fitted?1:height,out var rotation);
+            var position=wardrobeOrbit.Position(target,fitted||wardrobeFitDistance>0?1:height,out var rotation);
             if(fitted)
             {
                 float aspect=(float)wardrobeTexture.width/wardrobeTexture.height;
@@ -530,6 +587,10 @@ namespace DeadlyJenga.CastlePrototype
                 float distance=Mathf.Max(minimum,wardrobeFitDistance*zoom);
                 position=target-rotation*Vector3.forward*distance;
                 wardrobeCamera.farClipPlane=Mathf.Max(60,distance+Vector3.Distance(bounds.center,target)+bounds.extents.magnitude+1);
+            }
+            else if(wardrobeFitDistance>0)
+            {
+                float zoom=Vector3.Distance(position,target)/2.15f;position=target-rotation*Vector3.forward*wardrobeFitDistance*zoom;
             }
             wardrobeCamera.transform.SetPositionAndRotation(position,rotation);
             try
@@ -546,7 +607,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void ResetWardrobeView()
         {
-            wardrobePivotReady=false;wardrobeFitDistance=0;wardrobeFramingReadyAt=Time.frameCount+2;
+            wardrobeGeometry?.Invalidate();wardrobePivotReady=false;wardrobeFitDistance=0;wardrobeFramingReadyAt=Time.frameCount+2;
             wardrobeOrbit.Reset((Player?.ViewCamera?Player.ViewCamera.transform.eulerAngles.y:0)+180,2.15f);
         }
 
@@ -564,13 +625,15 @@ namespace DeadlyJenga.CastlePrototype
 
         }
 
-        void OnDisable()=>SetWardrobeOpen(false);
+        void OnDisable(){SetWardrobeOpen(false);wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Dispose();mirrorGeometry=null;}
 
         void DisposeWardrobe()
 
         {
 
-            SetWardrobeOpen(false);if(wardrobeCamera)Destroy(wardrobeCamera.gameObject);if(wardrobeTexture){wardrobeTexture.Release();Destroy(wardrobeTexture);}if(wardrobeMaterial)Destroy(wardrobeMaterial);
+            SetWardrobeOpen(false);wardrobeGeometry?.Dispose();mirrorGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry=null;
+            if(portraitTexture){portraitTexture.Release();Destroy(portraitTexture);portraitTexture=null;}
+            if(wardrobeCamera)Destroy(wardrobeCamera.gameObject);if(wardrobeTexture){wardrobeTexture.Release();Destroy(wardrobeTexture);}if(wardrobeMaterial)Destroy(wardrobeMaterial);
 
         }
 
