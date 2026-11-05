@@ -34,11 +34,16 @@ namespace DeadlyJenga.Presentation
         void Build()
         {
             var go=new GameObject("Visual - mystery clues",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=30;root=go.GetComponent<RectTransform>();var scale=go.GetComponent<CanvasScaler>();scale.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scale.referenceResolution=new Vector2(1280,720);
-            role=CandyHudCards.Create(root,"Your private role",new Vector2(-420,245),new Vector2(380,150),18);
-            prompt=CandyHudCards.Create(root,"Context action",new Vector2(-420,110),new Vector2(380,106),19);
+            role=CandyHudCards.Create(root,"Your private role",new Vector2(-452,262),new Vector2(316,124),16);
+            prompt=CandyHudCards.Create(root,"Context action",new Vector2(-452,146),new Vector2(316,96),16);
             choices=CandyHudCards.Create(root,"Private disaster choices",new Vector2(0,95),new Vector2(440,100),19,TextAnchor.MiddleCenter);
-            reports=CandyHudCards.Create(root,"Recent body reports",new Vector2(-420,-48),new Vector2(380,196),20);
-            notice=CandyHudCards.Create(root,"Body report alert",new Vector2(0,-15),new Vector2(440,100),21,TextAnchor.MiddleCenter);
+            reports=CandyHudCards.Create(root,"Recent body reports",new Vector2(-452,25),new Vector2(316,134),16);
+            notice=CandyHudCards.Create(root,"Body report alert",new Vector2(0,183),new Vector2(344,72),17,TextAnchor.MiddleCenter);
+            CandyHudCards.Tint(role,new Color(.81f,.69f,1),.32f);
+            CandyHudCards.Tint(notice,new Color(1,.60f,.68f),.43f);
+            CandyHudCards.Tint(choices,new Color(1,.79f,.45f),.33f);
+            CandyHudCards.Emblem(role,"gem",new Color(.86f,.70f,1));
+            CandyHudCards.Emblem(reports,"clue",new Color(.87f,.71f,1));
             waypoints=new CandyWaypointLayer(root);
         }
         void Update()
@@ -65,7 +70,7 @@ namespace DeadlyJenga.Presentation
             int reportPages=Mathf.Max(1,Mathf.CeilToInt(allReports.Length/2f));
             if(!blocked&&!vr&&Keyboard.current?.bKey.wasPressedThisFrame==true)ReportPage++;
             ReportPage=Mathf.Max(0,ReportPage)%reportPages;focusedReports.Clear();foreach(var report in allReports.Skip(ReportPage*2).Take(2))focusedReports.Add(report.id);
-            role.text="<size=21>PRIVATE ROLE · "+own.role.ToString().ToUpperInvariant()+"</size>\n"+CandyHudContent.RoleGoal(own.role)+"\n"+CandyHudContent.RoleAttack(own,vr);
+            role.text="<color=#61369B><size=18>Private role · "+own.role+"</size></color>\n"+CandyHudContent.RoleGoal(own.role)+"\n"+CandyHudContent.RoleAttack(own,vr);
             if(own.role==MysteryRole.Sheriff)role.text+="\nWrong special hits: "+own.mistakes+" / "+match.Rules.mystery.sheriffMistakes;
             bool pressed=vr?CandyHudContent.SelectPressed(hudSelect):Keyboard.current?.eKey.wasPressedThisFrame==true;
             bool held=vr?CandyHudContent.SelectHeld(hudSelect):Keyboard.current?.eKey.isPressed==true;
@@ -106,10 +111,11 @@ namespace DeadlyJenga.Presentation
                 }
             }
             if(nearbyBody!=null){var reportLock=own.reportLocks?.FirstOrDefault(l=>l.body==nearbyBody.id);if(reportLock!=null&&reportLock.remaining>0)prompt.text="REPORT READY IN "+Mathf.CeilToInt(reportLock.remaining)+"s";}
-            if(string.IsNullOrEmpty(prompt.text))prompt.text=nearbyBody?.reported==true?"REPORTED BODY #"+BodyNumber(nearbyBody.id)+"\n"+CandyHudContent.Suspects(nearbyBody)+"\nLook at a nearby trail to mark suspicion.":"INVESTIGATE\nApproach a body to report it.\nReports stay in the case list below.";
+            if(string.IsNullOrEmpty(prompt.text))prompt.text=nearbyBody?.reported==true?"REPORTED BODY #"+BodyNumber(nearbyBody.id)+"\n"+CandyHudContent.Suspects(nearbyBody)+"\nLook at a nearby trail to mark suspicion.":"";
             if(!string.IsNullOrEmpty(own.notice)&&own.notice!=privateNotice){privateNotice=own.notice;privateNoticeUntil=Time.unscaledTime+7;}
             if(Time.unscaledTime<privateNoticeUntil)prompt.text=CandyHudContent.Safe(privateNotice,120);
             if(mystery.Clues.downed.Contains(match.LocalActorId))prompt.text="YOU ARE DOWNED\nAnother player must hold "+(vr?"trigger / pinch":"E")+" near you to revive you.";
+            CandyHudCards.Visible(prompt,!string.IsNullOrEmpty(prompt.text));
             UpdateReports(match,mystery);
             DrawChoices(mystery,blocked);
             waypoints.End();
@@ -153,7 +159,7 @@ namespace DeadlyJenga.Presentation
         void UpdateReports(IMatchRuntime match,IMysteryControls mystery)
         {
             var bodies=mystery.Clues.bodies.Where(b=>b.reported).OrderBy(b=>b.reportedAge).ToArray();
-            var text=new System.Text.StringBuilder("REPORTS "+(ReportPage+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(bodies.Length/2f))+(vr?" · Modes menu":" · B: NEXT"));
+            var text=new System.Text.StringBuilder("<color=#61369B>REPORTS</color> "+(ReportPage+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(bodies.Length/2f))+(vr?" · Modes menu":" · B: NEXT"));
             if(bodies.Length==0)text.Append("\nNo bodies reported.\nUnreported bodies are revealed only nearby.");
             foreach(var body in bodies.Skip(ReportPage*2).Take(2))
             {
@@ -162,12 +168,15 @@ namespace DeadlyJenga.Presentation
                 text.Append(body.lost?"Body lost · location unavailable":CandyHudContent.Direction(eye,body.position)).Append("\nFound by ").Append(CandyHudContent.Safe(finder?.name??"a player",22));
             }
             reports.text=text.ToString();
+            float height=Mathf.Clamp(reports.preferredHeight+18,84,172);
+            CandyHudCards.Place(reports,new Vector2(-452,92-height/2),new Vector2(316,height));
+            CandyHudCards.Visible(reports,bodies.Length>0);
             var latest=bodies.FirstOrDefault(b=>b.id==noticeBody);
             bool bodyAlert=latest!=null&&Time.unscaledTime<noticeUntil;
             bool sheriffAlert=Time.unscaledTime<sheriffNoticeUntil;
             CandyHudCards.Visible(notice,bodyAlert||sheriffAlert);
-            if(bodyAlert)notice.text="BODY #"+BodyNumber(latest.id)+" REPORTED\n"+CandyHudContent.Safe(latest.name,24)+"\n"+(latest.lost?"Body lost":CandyHudContent.Direction(eye,latest.position));
-            else if(sheriffAlert)notice.text="SHERIFF HAS FALLEN\nFind the dropped blue revolver.\nPick it up to become the sheriff.";
+            if(bodyAlert)notice.text="BODY #"+BodyNumber(latest.id)+" REPORTED · "+CandyHudContent.Safe(latest.name,24)+"\n"+(latest.lost?"Body lost":CandyHudContent.Direction(eye,latest.position));
+            else if(sheriffAlert)notice.text="SHERIFF HAS FALLEN\nFind and pick up the blue revolver.";
         }
         void OnDestroy(){if(root)Destroy(root.gameObject);}
     }

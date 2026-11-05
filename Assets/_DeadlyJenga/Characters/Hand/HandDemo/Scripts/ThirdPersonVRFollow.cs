@@ -37,7 +37,7 @@ namespace FlyingHand
         bool desktopView;
         bool viewInitialized;
         Vector3 velocity;
-        float yaw;
+        float yaw,vrPitch;
         Vector3 headBaseline;
         bool baselineReady;
         public bool DesktopView=>desktopView;
@@ -70,7 +70,7 @@ namespace FlyingHand
             if (!viewCamera) return;
             bool desktop = mode == ControlMode.Desktop;
             if (viewInitialized && desktop == desktopView) return;
-            desktopView = desktop; viewInitialized = true;
+            desktopView = desktop; viewInitialized = true;vrPitch=0;
             baselineReady=false;
             if (poseDriver) poseDriver.enabled = !desktop && originalDriverEnabled;
             if (ownsStereoTarget) viewCamera.stereoTargetEye = desktop ? StereoTargetEyeMask.None : originalTargetEye;
@@ -93,22 +93,45 @@ namespace FlyingHand
             if (!target) return;
             yaw = target.eulerAngles.y;
             Quaternion rotation = Quaternion.Euler(0, yaw, 0);
-            if(viewInitialized&&!desktopView)CaptureHeadBaseline();
-            Vector3 desired=FollowPosition+rotation*new Vector3(0,compactHandView?handViewHeight:height,-(compactHandView?handViewDistance:distance));
+            if(viewInitialized&&!desktopView)
+            {
+                baselineReady = false;
+                CaptureHeadBaseline();
+            }
+            Vector3 desired=FollowPosition+rotation*new Vector3(0,compactHandView?(desktopView?handViewHeight:.22f):height,-(compactHandView?handViewDistance:distance));
             if(viewInitialized)desired-=ViewOffset(rotation);
             transform.SetPositionAndRotation(desired, rotation);
             velocity = Vector3.zero;
         }
         void CaptureHeadBaseline()
         {
-            if(!viewCamera)return;
-            headBaseline=transform.InverseTransformPoint(viewCamera.transform.position);baselineReady=true;
+            if (!viewCamera) return;
+            if (poseDriver && poseDriver.enabled && poseDriver.trackingType != TrackedPoseDriver.TrackingType.RotationOnly)
+            {
+                var position = poseDriver.positionInput.action;
+                if (position != null && position.bindings.Count > 0)
+                {
+                    if (!position.enabled || position.controls.Count == 0) return;
+                    if (!poseDriver.ignoreTrackingState)
+                    {
+                        var state = poseDriver.trackingStateInput.action;
+                        if (state != null && (!state.enabled || (state.controls.Count > 0 && (state.ReadValue<int>() & 1) == 0))) return;
+                    }
+                    Vector3 tracked = position.ReadValue<Vector3>();
+                    if (!float.IsFinite(tracked.x) || !float.IsFinite(tracked.y) || !float.IsFinite(tracked.z)) return;
+                    if ((viewCamera.transform.localPosition - tracked).sqrMagnitude > .00000001f) return;
+                }
+            }
+            Vector3 local = transform.InverseTransformPoint(viewCamera.transform.position);
+            if (!float.IsFinite(local.x) || !float.IsFinite(local.y) || !float.IsFinite(local.z)) return;
+            headBaseline = local;
+            baselineReady = true;
         }
         Vector3 ViewOffset(Quaternion rotation)
         {
             // Desktop also has an XR camera-floor parent; account for it instead of
             // accidentally adding another 1.6 metres to the observer's eye height.
-            Vector3 local=desktopView?transform.InverseTransformPoint(viewCamera.transform.position):headBaseline;
+            Vector3 local=desktopView||!baselineReady?transform.InverseTransformPoint(viewCamera.transform.position):headBaseline;
             return rotation*Vector3.Scale(local,transform.lossyScale);
         }
         public void StepFollow(float dt)
@@ -117,14 +140,17 @@ namespace FlyingHand
             if(controller)ApplyViewMode(controller.ActiveControlMode);
             bool vr=!desktopView;
             if(vr&&!baselineReady)CaptureHeadBaseline();
+            bool dual=vr&&controller&&controller.DualControllerFlight;
+            if(dual)vrPitch=Mathf.Clamp(vrPitch-controller.CameraPitchInput*72f*dt,-45f,58f);
+            else vrPitch=Mathf.MoveTowards(vrPitch,0,90f*dt);
             if(followYaw)
             {
                 float delta=Mathf.DeltaAngle(yaw,target.eulerAngles.y);
-                if(vr&&vrSnapYaw){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
+                if(vr&&vrSnapYaw&&!dual){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
                 else yaw=Mathf.LerpAngle(yaw,target.eulerAngles.y,1-Mathf.Exp(-yawResponse*dt));
             }
-            Quaternion rotation=Quaternion.Euler(0,yaw,0);
-            float d=compactHandView?handViewDistance:distance,h=compactHandView?handViewHeight:height;
+            Quaternion rotation=Quaternion.Euler(vrPitch,yaw,0);
+            float d=compactHandView?handViewDistance:distance,h=compactHandView?(desktopView?handViewHeight:.22f):height;
             Vector3 desired=FollowPosition+rotation*new Vector3(0,h,-d);
             desired-=ViewOffset(rotation);
             // The motor already interpolates flight. A second spring makes VR drift

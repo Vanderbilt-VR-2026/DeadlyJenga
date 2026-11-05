@@ -1,0 +1,126 @@
+{
+  "warmup": 0.5,
+  "seed": 573,
+  "fps": 24,
+  "ffmpeg": "ffmpeg",
+  "stageOffset": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "title": "Falling Viaduct",
+  "map": "sparse-viaduct-study",
+  "width": 960,
+  "height": 540,
+  "cast": [
+    {
+      "id": "jumper",
+      "color": 3,
+      "start": {
+        "x": -1.2,
+        "y": 0,
+        "z": 0
+      },
+      "moves": [
+        {
+          "at": 0.15,
+          "duration": 1.6,
+          "lift": 1.8,
+          "to": {
+            "x": 3.6,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "at": 1.8,
+          "duration": 1.25,
+          "lift": 1.1,
+          "to": {
+            "x": 6,
+            "y": 0,
+            "z": 1
+          }
+        }
+      ],
+      "live": false
+    },
+    {
+      "id": "witness",
+      "color": 2,
+      "start": {
+        "x": 0.5,
+        "y": 0,
+        "z": 1.3
+      },
+      "moves": [
+        {
+          "at": 0.6,
+          "duration": 2.4,
+          "lift": 1.3,
+          "to": {
+            "x": 5.4,
+            "y": 0,
+            "z": 1.8
+          }
+        }
+      ],
+      "live": false
+    }
+  ],
+  "shots": [
+    {
+      "name": "Bridge-side pursuit",
+      "subject": "jumper",
+      "start": 0,
+      "duration": 3.2,
+      "from": {
+        "x": -1,
+        "y": 1.2,
+        "z": -4
+      },
+      "to": {
+        "x": 1,
+        "y": 1.1,
+        "z": -5
+      },
+      "look": {
+        "x": 0,
+        "y": 0.55,
+        "z": 0
+      },
+      "fov": 48,
+      "second": ""
+    },
+    {
+      "name": "Falling bridge wide",
+      "subject": "",
+      "start": 0.5,
+      "duration": 2.8,
+      "from": {
+        "x": 9,
+        "y": 3.3,
+        "z": -12
+      },
+      "to": {
+        "x": 13,
+        "y": 1.4,
+        "z": -15
+      },
+      "look": {
+        "x": 1,
+        "y": -3,
+        "z": 0
+      },
+      "fov": 59,
+      "second": ""
+    }
+  ],
+  "cues": [
+    {
+      "at": 1.05,
+      "action": "collapse",
+      "strength": 10
+    }
+  ]
+}

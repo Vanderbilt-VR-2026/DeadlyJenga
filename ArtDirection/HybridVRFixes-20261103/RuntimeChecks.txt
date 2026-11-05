@@ -1,0 +1,21 @@
+Actual Game + synthetic XR device/hand inputs. No headset.
+PASS Android simultaneous tracking feature is installed and enabled
+PASS Game initializes with production session, survivor and map
+PASS Recognizes a left controller without a right controller
+PASS Single left controller supplies walking input
+PASS Recognizes left-controller + right optical-hand combination
+PASS Weapon aim follows pointer rotation instead of raised palm/grip rotation
+PASS Hybrid detection automatically selects standing gesture controls
+PASS Tracked hand pinch jumps and holds climbing input
+PASS Standing controller-button fallback works when optical tracking is lost
+PASS 360-degree-per-second setting produces a 90-degree quarter-second turn
+PASS Fast turning preserves the headset pivot
+PASS Existing settings menu reaches speeds beyond its previous 90-degree cap
+PASS Recognizes mirrored right-controller + left tracked-hand combination
+PASS Single right controller also supplies walking input
+PASS Controller tracking loss clears stale joystick movement
+PASS Sea monster converts local hand tracking to its distant observer world space
+PASS Sea monster hand rotation follows observer orientation
+PASS Already-world-space sea monster poses are not transformed twice
+PASS OpenXR resume structure has native pointer alignment
+COMPLETE checks=18 errors=0 passed=True

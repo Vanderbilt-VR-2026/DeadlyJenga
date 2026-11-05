@@ -10,6 +10,7 @@ namespace DeadlyJenga.CandyPlayers
         public CandyPlayerStyle style;
         public SkinnedMeshRenderer bodyRenderer,headRenderer;
         public Camera ownerCamera;
+        public bool SeatedVisual {get;set;}
         public CandyAvatarCalibration calibration;
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
@@ -54,7 +55,7 @@ namespace DeadlyJenga.CandyPlayers
             var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
             var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
-        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
+        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&bodyRenderer)bodyRenderer.sharedMesh=CandySmoothHandMesh.SeparateDigitWeights(bodyRenderer.sharedMesh,14,10);if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
         bool firstPersonOverride;
@@ -66,7 +67,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!firstPerson&&!firstPersonOverride)return;
             firstPersonOverride=firstPerson;
             if(headRenderer)headRenderer.shadowCastingMode=firstPerson?ShadowCastingMode.ShadowsOnly:ShadowCastingMode.On;
-            SetFirstPersonBody(firstPerson);
+            SetFirstPersonBody(firstPerson,camera.transform.forward.y<-.91f);
             if(attachments)attachments.FirstPerson(this,firstPerson);
         }
         void AfterCamera(ScriptableRenderContext context,Camera camera){if(!firstPersonOverride)return;firstPersonOverride=false;RestoreFirstPersonBody();if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;if(attachments)attachments.FirstPerson(this,false);}
@@ -105,23 +106,22 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right.position=frame.feet+transform.forward*.5f*scale+transform.right*.23f*scale+Vector3.up*.12f*scale;
             }
             var fit=calibration;
-            // Work on the frame copy; the tracked/network poses remain untouched.
-            if(fit!=null)
-            {
-                frame.left.position+=frame.left.rotation*fit.leftPosition*scale;
-                frame.left.rotation*=Quaternion.Euler(fit.leftRotation);
-                frame.right.position+=frame.right.rotation*fit.rightPosition*scale;
-                frame.right.rotation*=Quaternion.Euler(fit.rightRotation);
-            }
+            // Tracking and equipment already provide the shared hand anchors used by weapons and remote views.
             Vector3 forward=Vector3.ProjectOnPlane(frame.headRotation*Vector3.forward,Vector3.up).normalized;
             if(forward.sqrMagnitude<.01f)forward=transform.forward;
             transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            float dance = downed ? 0 : frame.danceWeight;
+            bool seated = (SeatedVisual || frame.seated) && !downed && dance <= 0;
+            if(seated)frame.head.y=frame.feet.y+1.27f*scale;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
-            bones[0].localPosition=torsoOffset;bones[0].localRotation=Quaternion.identity;bones[0].localScale=new Vector3(width,crouch,1);
+            Quaternion torsoTilt = Quaternion.Euler(frame.danceTorsoEuler * dance);
+            Vector3 waist = Vector3.up * (.67f * crouch);
+            torsoOffset += waist - torsoTilt * waist;
+            bones[0].localPosition=torsoOffset;bones[0].localRotation=torsoTilt;bones[0].localScale=new Vector3(width,crouch,1);
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
@@ -132,16 +132,25 @@ namespace DeadlyJenga.CandyPlayers
             for(int side=0;side<2;side++)
             {
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
-                Vector3 hip=transform.TransformPoint(torsoOffset+new Vector3(sign*.105f*width,.67f*crouch,0));
+                Vector3 hip=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
-                if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f+Mathf.Max(0,Mathf.Sin(phase))*stride*.4f,.29f+Mathf.Cos(phase)*stride*.75f));
+                else if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                if (dance > 0)
+                    foot = Vector3.Lerp(foot, transform.TransformPoint(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
                 int thigh=side==0?8:11;
                 Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
                 bones[thigh+2].SetPositionAndRotation(foot,transform.rotation);bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
-                Vector3 shoulder=transform.TransformPoint(torsoOffset+new Vector3(sign*.21f*width,1.255f*crouch,0));
-                Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,-transform.forward*.65f+Vector3.down*.8f+transform.right*sign*.3f);
+                Quaternion torsoRotation=bones[0].localRotation;
+                Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(transform.InverseTransformPoint(hand.position)-torsoOffset);
+                float across=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.12f*width,.18f*width,-sign*handLocal.x));
+                float ahead=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.03f,.25f,handLocal.z));
+                // The shoulder rolls forward on a reach across the chest. The tracked wrist stays fixed.
+                Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
+                Vector3 elbowPole=transform.TransformDirection(torsoRotation*(Vector3.right*sign+Vector3.forward*Mathf.Clamp(handLocal.z*2,-.45f,.75f)+Vector3.down*.25f));
+                Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,hand.position);
                 bones[upper+2].SetPositionAndRotation(hand.position,hand.rotation);bones[upper+2].localScale=Vector3.one;

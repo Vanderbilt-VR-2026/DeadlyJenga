@@ -19,11 +19,14 @@ namespace DeadlyJenga.CandyPlayers
         public CandyTrackingSource tracking;
         public CandyPlayerRig Rig{get;private set;}
         public CandyAvatarFrame LastFrame{get;private set;}
+        internal CandyAvatarFrame RenderedFrame { get; private set; }
         public bool remoteDriven;
         public int ColorIndex{get;private set;}
         NearFarInteractor[] nearRays;
         XRRayInteractor[] farRays;
         bool overridePose,wasVaulting;
+        float handStride, handSwing;
+        int handMotionFrame = -1;
         CandyAvatarFrame overridden;
         CandyHandPose vaultStartLeft,vaultStartRight;
         bool wasClimbing;
@@ -86,7 +89,7 @@ namespace DeadlyJenga.CandyPlayers
             float scale=survivor?survivor.playerScale:trackingOrigin?Mathf.Abs(trackingOrigin.lossyScale.y):1;
             scale=Mathf.Max(.1f,scale);
             Transform head=viewCamera?viewCamera.transform:transform;
-            var frame=new CandyAvatarFrame{feet=transform.position,head=head.position,headRotation=head.rotation,scale=scale};
+            var frame=new CandyAvatarFrame{feet=transform.position,head=head.position,headRotation=head.rotation,scale=scale,seated=survivor&&survivor.IsVR&&!survivor.externallyDriven&&!survivor.Climbing&&!survivor.Vaulting};
             if(!viewCamera){frame.head=frame.feet+Vector3.up*(1.6f*scale);frame.headRotation=transform.rotation;}
             // Room-scale body placement follows the head's horizontal location; locomotion feet supply height.
             frame.feet=new Vector3(frame.head.x,transform.position.y,frame.head.z);
@@ -94,19 +97,61 @@ namespace DeadlyJenga.CandyPlayers
             bool vr=survivor?survivor.IsVR:tracking&&tracking.HasTrackedHands;
             var left=vr&&tracking?tracking.WorldHand(true):default;
             var right=vr&&tracking?tracking.WorldHand(false):default;
-            CandyHandPose Rest(bool isLeft)
-            {
-                float sign=isLeft?-1:1;
-                return new CandyHandPose{position=frame.head+frame.headRotation*(new Vector3(sign*.23f,-.20f,.40f)*scale),rotation=frame.headRotation*Quaternion.Euler(8,sign*-8,0),skeleton=CandyHandSkeleton.Rest(isLeft,.12f)};
-            }
-            frame.left=left.tracked?left:Rest(true);frame.right=right.tracked?right:Rest(false);
-            PointOnHover(ref frame.left, true);
-            PointOnHover(ref frame.right, false);
+            bool animateHands = survivor && !survivor.externallyDriven;
+            if (animateHands) UpdateHandMotion();
+            frame.left = LocomotionHand(frame, left, true, animateHands);
+            frame.right = LocomotionHand(frame, right, false, animateHands);
             ApplyPunch(ref frame);
             GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;
         }
-        public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
+        public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=RenderedFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
+        void UpdateHandMotion()
+        {
+            // The network and before-render paths can read the pose again in the same frame.
+            if (handMotionFrame == Time.frameCount) return;
+            handMotionFrame = Time.frameCount;
+            Vector3 velocity = survivor.Capsule ? survivor.Capsule.velocity : Vector3.zero;
+            float speed = new Vector2(velocity.x, velocity.z).magnitude;
+            float target = survivor.Grounded && !survivor.Climbing && !survivor.Vaulting
+                ? Mathf.InverseLerp(.12f, 4f, speed) : 0f;
+            handSwing = Mathf.MoveTowards(handSwing, target, Time.deltaTime * 4f);
+            handStride = Mathf.Repeat(handStride + Time.deltaTime * Mathf.Lerp(6f, 12f, handSwing), 2f * Mathf.PI);
+        }
+
+        CandyHandPose LocomotionHand(CandyAvatarFrame frame, CandyHandPose hand, bool isLeft, bool animate)
+        {
+            float side = isLeft ? -1f : 1f;
+            float swing = animate ? Mathf.Sin(handStride) * handSwing * side : 0f;
+            if (hand.tracked)
+            {
+                PointOnHover(ref hand, isLeft);
+                // Keep the tracked palm position and optical pose. Only the free controller wrist gets a tiny roll.
+                if (animate && !hand.skeletonTracked)
+                    hand.rotation *= Quaternion.Euler(0f, 0f, swing * 1.5f);
+                hand.skeletonTracked = true;
+                return hand;
+            }
+
+            if (!animate)
+                return new CandyHandPose {
+                    position = frame.head + frame.headRotation * (new Vector3(side * .23f, -.20f, .40f) * frame.scale),
+                    rotation = frame.headRotation * Quaternion.Euler(8f, -side * 8f, 0f),
+                    skeleton = CandyHandSkeleton.Rest(isLeft, .12f)
+                };
+
+            Quaternion facing = Quaternion.Euler(0f, frame.headRotation.eulerAngles.y, 0f);
+            float idle = Mathf.Sin(Time.time * 1.8f + side) * (1f - handSwing);
+            Vector3 offset = new Vector3(side * .29f, -.51f + Mathf.Abs(swing) * .024f + idle * .006f,
+                .25f + swing * .065f);
+            return new CandyHandPose {
+                position = frame.head + facing * (offset * frame.scale),
+                rotation = facing * Quaternion.Euler(51f - swing * 10f, -side * 10f, side * 24f + idle * 2f),
+                skeleton = CandyHandSkeleton.Rest(isLeft, .27f),
+                skeletonTracked = true
+            };
+        }
+
         void PointOnHover(ref CandyHandPose hand, bool isLeft)
         {
             if(!tracking || !hand.tracked || hand.skeletonTracked)return;
@@ -131,7 +176,7 @@ namespace DeadlyJenga.CandyPlayers
             if(!Rig)return;
             Rig.calibration=!remoteDriven&&survivor&&survivor.IsVR&&!survivor.externallyDriven?CandyAvatarCalibration.Current:null;
             var frame=ReadFrame();
-            bool climbing=survivor&&!survivor.IsVR&&survivor.Climbing;
+            bool climbing=survivor&&survivor.Climbing;
             if(climbing)
             {
                 if(!wasClimbing){climbStartLeft=frame.left;climbStartRight=frame.right;}
@@ -152,7 +197,7 @@ namespace DeadlyJenga.CandyPlayers
                 frame.right.position=Vector3.Lerp(climbLastRight.position,frame.right.position,t);frame.right.rotation=Quaternion.Slerp(climbLastRight.rotation,frame.right.rotation,t);
             }
             wasClimbing=climbing;
-            bool vaulting=survivor&&!survivor.IsVR&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;
+            bool vaulting=survivor&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;
             if(vaulting)
             {
                 if(!wasVaulting){vaultStartLeft=frame.left;vaultStartRight=frame.right;}
@@ -170,11 +215,14 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 frame.left=Grip(true,frame.left,vaultStartLeft);frame.right=Grip(false,frame.right,vaultStartRight);
             }
-            wasVaulting=vaulting;LastFrame=frame;Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,dt);
+            wasVaulting=vaulting;LastFrame=frame;
+            var activeMoments = Moments;
+            RenderedFrame = activeMoments ? activeMoments.Pose(frame) : frame;
+            Rig.ApplyFrame(RenderedFrame, survivor ? survivor.Grounded : true, dt);
         }
         public void ApplyRemote(CandyAvatarFrame frame,int color)
         {
-            if(!Rig)return;remoteDriven=true;Rig.ownerCamera=null;SetColor(color);LastFrame=frame;Rig.ApplyFrame(frame,true,Time.deltaTime);
+            if(!Rig)return;remoteDriven=true;Rig.ownerCamera=null;SetColor(color);LastFrame=RenderedFrame=frame;Rig.ApplyFrame(frame,true,Time.deltaTime);
         }
         public void RefreshNow(){Present(0);}
         public void RefreshExternal(float deltaTime){Present(deltaTime);}

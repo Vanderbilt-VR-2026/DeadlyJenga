@@ -40,10 +40,18 @@ namespace DeadlyJenga.CandyAudio
         void Present(EquipmentActionFrame item)
         {
             ConsumedActions++;
+            CandyFeedback.Weapon(item);
+            if(item.action==EquipmentAction.Bash)
+            {
+                var audio=CandyAudioEngine.Instance;
+                bool contact=item.endpoints!=null&&item.endpoints.Length==1;
+                if(audio)audio.Play(contact?CandySound.WeaponHammer:CandySound.WeaponSword,
+                    contact?item.endpoints[0]:item.position,contact?.75f:.25f,item.actor?.GetHashCode()??0,contact?.88f:.8f);
+                return;
+            }
             if(item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.DualRifle||item.kind==EquipmentKind.SheriffHammer||item.kind>EquipmentKind.PoweredArmor&&!EquipmentSpecifications.Get(item.kind).melee&&item.kind!=EquipmentKind.WristLaser&&item.endpoints.Length>0))
             {
-                var camera=Services.Session?.ActiveCamera;
-                if(camera&&(camera.transform.position-item.position).sqrMagnitude<90*90){if(item.kind==EquipmentKind.NeedleDrill)trails.FireNeedles(item.position,item.endpoints);else trails.Fire(item.position,item.endpoints,item.shotgun);}
+                if(CandyWeaponImpacts.VisibleToAnyCamera(item.position,90)){trails.Fire(item.position,item.endpoints,item.shotgun,item.kind);}
             }
             bool global=item.action==EquipmentAction.Shot&&(item.kind==EquipmentKind.MurderSword||item.kind==EquipmentKind.SheriffHammer)&&MatchRuntime.Current?.Frame.rules.mode==GameModeKind.MurderMystery;
             if(item.kind>EquipmentKind.PoweredArmor||global||item.action==EquipmentAction.Reload){CandySignatureSounds.PlayWeapon(item,global);return;}

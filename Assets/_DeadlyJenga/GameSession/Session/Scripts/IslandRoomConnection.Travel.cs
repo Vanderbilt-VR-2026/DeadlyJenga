@@ -37,9 +37,13 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 transitioning=true;
-                IslandLobby.Persistent?.ParkForMatch();
-                if(networked)Runner.LoadScene(SceneRef.FromIndex(scene),LoadSceneMode.Single);
-                else SceneManager.LoadScene(scene);
+                if(networked)LoadRoomScene(scene,"map",()=>
+                {
+                    CancelDeparture();
+                    var lobby=IslandLobby.Persistent;
+                    if(lobby&&lobby.MatchResident&&!FindFirstObjectByType<CastlePlaySession>())lobby.ResumeAfterMatch();
+                });
+                else{IslandLobby.Persistent?.ParkForMatch();SceneManager.LoadScene(scene);}
             }
             catch(Exception error){Status="Could not load map: "+error.Message;CancelDeparture();}
         }

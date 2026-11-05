@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using DeadlyJenga.Presentation;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using DeadlyJenga.CandyAudio;
@@ -22,11 +23,12 @@ namespace DeadlyJenga.CastlePrototype
         ISurvivorSettings Settings=>session.Player as ISurvivorSettings;
         IDemoControls Demo=>session.Demo;
         bool Climbing=>Move!=null&&Move.Climbing;
-        bool Vaulting=>Move!=null&&Move.Vaulting;
         string DemoStatus=>Demo!=null?Demo.Status:"";
-        int page,selection;Vector2 scroll;bool lastMenu,lastRole,lastVR;float changedAt;string lastContext="";
-        float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,box;GUISkin themed;bool ready;
-        Canvas hintCanvas;CanvasGroup hintGroup;RectTransform hintRoot;Text roleText,statusText,menuText;
+        int page,selection;Vector2 scroll;bool lastMenu;float nextHintSample;string lastContext="";
+        const float IntroSeconds=4.5f;
+        float introRemaining=IntroSeconds;bool introReplay;string introKey;
+        float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,compactButton,box;GUISkin themed;bool ready;
+        Canvas hintCanvas;CanvasGroup hintGroup;Text roleText,statusText,menuText;
         readonly Text[] hintKeys=new Text[3],hintNames=new Text[3];readonly RawImage[] hintIcons=new RawImage[3];
         readonly System.Collections.Generic.List<Action> navActions=new System.Collections.Generic.List<Action>();int navCount,drawIndex;bool activate;
         readonly System.Collections.Generic.List<float> navTops=new System.Collections.Generic.List<float>();
@@ -50,39 +52,37 @@ namespace DeadlyJenga.CastlePrototype
         public string InputLabel=>session==null||session.Player==null?"Keyboard + mouse":session.IsVR?(TrackedHands?"Hand tracking":"VR controllers"):"Keyboard + mouse";
         bool TrackedHands=>Active!=null&&Active.HasHandTracking;
         bool Ready=>session!=null&&session.Player!=null&&session.Hand!=null;
-        void Awake(){session=GetComponent<ISessionInfo>();changedAt=Time.unscaledTime;}
+        void Awake(){session=GetComponent<ISessionInfo>();}
         void Update()
         {
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
+            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)){if(hintCanvas)hintCanvas.enabled=false;return;}
             if(!Ready)return;
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
             if(studio)studio.ShowLauncher=false;
-            if(lastRole!=session.PlayingHand||lastVR!=session.IsVR){changedAt=Time.unscaledTime;lastRole=session.PlayingHand;lastVR=session.IsVR;}
-            if(session.MenuOpen&&!lastMenu){selection=0;changedAt=Time.unscaledTime;}
+            if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
+            if(session.MenuOpen&&!lastMenu){selection=0;}
             lastMenu=session.MenuOpen;
             var k=Keyboard.current;
             if(k!=null&&session.MenuOpen&&!session.IsVR&&!(studio&&studio.IsOpen))
             {
                 if(k.leftArrowKey.wasPressedThisFrame)ChangePage((page+PageCount-1)%PageCount);
                 if(k.rightArrowKey.wasPressedThisFrame)ChangePage((page+1)%PageCount);
-                if(sectionPicker)
+                if(k.tabKey.wasPressedThisFrame)
                 {
                     int count=DemoMenuSections.Sections[page].Length;
-                    if(k.upArrowKey.wasPressedThisFrame)categoryCursor=(categoryCursor+count-1)%count;
-                    if(k.downArrowKey.wasPressedThisFrame)categoryCursor=(categoryCursor+1)%count;
-                    if(k.enterKey.wasPressedThisFrame||k.numpadEnterKey.wasPressedThisFrame){subsection=categoryCursor;sectionPicker=false;selection=0;scroll=Vector2.zero;}
-                    PresentHints();return;
+                    SelectSection((subsection+1)%count);
                 }
                 if(k.upArrowKey.wasPressedThisFrame){selection=(selection+Mathf.Max(1,navCount)-1)%Mathf.Max(1,navCount);FollowSelection();}
                 if(k.downArrowKey.wasPressedThisFrame){selection=(selection+1)%Mathf.Max(1,navCount);FollowSelection();}
                 if(k.enterKey.wasPressedThisFrame||k.numpadEnterKey.wasPressedThisFrame)activate=true;
             }
-            if(k!=null&&!session.MenuOpen&&k.f1Key.wasPressedThisFrame){hintMode=hintMode==HintMode.Hidden?HintMode.Adaptive:HintMode.Hidden;changedAt=Time.unscaledTime;}
+            if(k!=null&&!session.MenuOpen&&k.f1Key.wasPressedThisFrame){hintMode=hintMode==HintMode.Hidden?HintMode.Adaptive:HintMode.Hidden;if(hintMode==HintMode.Adaptive)ReplayIntro();}
             PresentHints();
         }
-        void ChangePage(int next){page=next;subsection=0;sectionPicker=false;giveEquipmentPage=false;selection=0;scroll=Vector2.zero;activate=false;}
-        void FollowSelection(){float top=selection<navTops.Count?navTops[selection]:116+selection*104;if(top<scroll.y)scroll.y=top;if(top+100>scroll.y+464)scroll.y=top+100-464;}
+        void ChangePage(int next){page=next;SelectSection(0);}
+        void FollowSelection(){float top=selection<navTops.Count?navTops[selection]:116+selection*104;if(top<scroll.y)scroll.y=top;if(top+100>scroll.y+404)scroll.y=top+100-404;}
         void Styles()
         {
             if(ready)return;ready=true;var font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
@@ -91,6 +91,7 @@ namespace DeadlyJenga.CastlePrototype
             cardHeading=new GUIStyle(heading){fontSize=19,wordWrap=true};
             small=new GUIStyle(body){fontSize=18,normal={textColor=new Color(.90f,.87f,.96f)}};
             button=new GUIStyle(GUI.skin.button){font=font,fontSize=19,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(14,12,8,8),border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded,textColor=Color.white},hover={background=CandyHudVisuals.Rounded,textColor=Color.white},active={background=CandyHudVisuals.Rounded,textColor=Color.white}};
+            compactButton=new GUIStyle(button){fontSize=18,padding=new RectOffset(8,8,3,3)};
             box=new GUIStyle(GUI.skin.box){font=font,fontSize=19,wordWrap=true,border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
             button.padding=new RectOffset(14,12,2,2);button.wordWrap=true;
             themed=Instantiate(GUI.skin);themed.hideFlags=HideFlags.HideAndDontSave;themed.font=font;themed.label=body;themed.button=new GUIStyle(button);themed.box=box;
@@ -102,7 +103,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnGUI()
         {
-            if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
+            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
             if((session as ILobbyMatchVisitControls)?.VisitingLobby==true)return;
             DrawSpectatorLabels();
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
@@ -123,38 +124,45 @@ namespace DeadlyJenga.CastlePrototype
         void Panel(Rect r,Color c){var old=GUI.backgroundColor;GUI.backgroundColor=c;GUI.Box(r,GUIContent.none,box);GUI.backgroundColor=old;}
         void Icon(Rect r,CandyHudIcon icon,Color c){var old=GUI.color;GUI.color=c;GUI.DrawTexture(r,CandyHudVisuals.Icon(icon));GUI.color=old;}
         bool Button(Rect r,string text,Color color)
-        {var old=GUI.backgroundColor;GUI.backgroundColor=color;var foreground=color.grayscale>.5f?CandyHudVisuals.Ink:Color.white;button.normal.textColor=button.hover.textColor=button.active.textColor=button.focused.textColor=foreground;bool result=GUI.Button(r,text,button);GUI.backgroundColor=old;return result;}
+        {var old=GUI.backgroundColor;GUI.backgroundColor=color;var foreground=color.grayscale>.5f?CandyHudVisuals.Ink:Color.white;var style=r.height<=34?compactButton:button;style.normal.textColor=style.hover.textColor=style.active.textColor=style.focused.textColor=foreground;bool result=GUI.Button(r,text,style);GUI.backgroundColor=old;return result;}
         void DrawMenu(int id)
         {
             page=Mathf.Clamp(page,0,PageCount-1);
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
             Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
-            GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
-            GUI.Label(new Rect(95,71,775,30),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
+            if(GameExperiencePanel.Resolve(session)!=null){if(Button(new Rect(93,23,470,45),"GAME / DEMO - ROUND SETUP",CandyHudVisuals.Card))GameExperiencePanel.Open(session);}
+            else GUI.Label(new Rect(93,23,470,45),"DEADLY JENGA  /  DEMO",title);
+            GUI.Label(new Rect(95,71,775,22),(session.PlayingHand?"GIANT HAND":"SURVIVOR")+"   ·   "+InputLabel+"   ·   "+(session.Multiplayer!=null&&session.Multiplayer.IsClient?"Connected to host":"Your hosted playground"),small);
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
+            if(Button(new Rect(256,94,220,28),"CONTROLS / HAND",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
             var inspection=CandyThirdPersonInspection.For(session);
-            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,88,207,30),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
-            if(Button(new Rect(748,28,201,51),"Exit to Lobby",CandyHudVisuals.Peach)){var visit=session as ILobbyMatchVisitControls;if(visit?.CanVisitLobby==true)visit.VisitLobby();else MatchRuntime.Current?.ReturnToLobby();}
+            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
+            if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
+            string joinCode=MultiplayerPanel.JoinCode(session.Multiplayer);
+            if(joinCode.Length>0&&Button(new Rect(488,94,248,28),"Code: "+joinCode+" / Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
             var review=MatchRuntime.Current as IMatchReviewControls;
             if(review?.DevelopmentReviewEnabled==true)
-            {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),"End Game",CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
-            if(HandLooks.Names.Length>0&&Button(new Rect(748,88,201,30),"Hand: "+HandLooks.ChosenName+"  >",CandyHudVisuals.Card))HandLooks.Chosen++;
+            {bool enabled=GUI.enabled;GUI.enabled=review.CanEndGame;if(Button(new Rect(572,28,164,51),MultiplayerPanel.EndAction(session.Multiplayer),CandyHudVisuals.Lavender))review.EndGame();GUI.enabled=enabled;}
+            if(HandLooks.Names.Length>0&&Button(new Rect(748,94,201,28),"Hand Appearance",CandyHudVisuals.Card))CharacterPicker.Open(session);
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
-                var r=new Rect(20,128+i*75,218,68);if(Button(r,"     "+PageName(i).Replace(" Controls","\n     Controls")+(pending?"  !":""),i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
+                var r=new Rect(20,122+i*77,218,67);if(Button(r,"",i==page?new Color(.40f,.28f,.58f):CandyHudVisuals.Panel))ChangePage(i);
+                GUI.Label(new Rect(r.x+50,r.y+5,160,28),PageName(i)+(pending?"  !":""),heading);
+                GUI.Label(new Rect(r.x+50,r.y+33,160,24),DemoMenuSections.TabDescriptions[i],small);
                 Icon(new Rect(r.x+10,r.y+24,25,25),PageIcon(i),i==page?CandyHudVisuals.Mint:CandyHudVisuals.Lavender);
             }
             DrawSectionSelector();
-            Panel(new Rect(258,180,921,494),CandyHudVisuals.Panel);drawIndex=0;
-            float contentHeight=SectionHeight;
-            bool contentEnabled=GUI.enabled;GUI.enabled=contentEnabled&&!sectionPicker;
-            scroll=GUI.BeginScrollView(new Rect(278,194,884,464),scroll,new Rect(0,0,856,contentHeight));
-            GUI.Label(new Rect(8,2,830,36),SectionName,heading);GUI.Label(new Rect(8,45,830,60),PageDescription(),small);
-            if(!sectionPicker)DrawSection();
-            GUI.EndScrollView();GUI.enabled=contentEnabled;navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
-            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Click: act / Wheel: scroll / Left-Right: tabs / Up-Down: cards / Enter: confirm / Esc: resume",small);
-            DrawSectionDropdown();
+            Panel(new Rect(258,244,921,430),CandyHudVisuals.Panel);drawIndex=0;
+            scroll=GUI.BeginScrollView(new Rect(278,254,884,404),scroll,new Rect(0,0,856,SectionHeight));
+            var picture=SectionPicture();
+            float headerWidth=picture?610:830;
+            GUI.Label(new Rect(8,2,headerWidth,36),PageName(page)+" / "+SectionName,heading);
+            GUI.Label(new Rect(8,45,headerWidth,60),PageDescription(),small);
+            if(picture)GUI.DrawTexture(new Rect(650,2,177,106),picture,ScaleMode.ScaleToFit);
+            DrawSection();
+            GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
+            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Click: act  ·  Tab: subsections  ·  ←/→: tabs  ·  ↑/↓: actions  ·  Enter: confirm  ·  Esc: resume",small);
             if(activate&&Event.current.type==EventType.Repaint){activate=false;if(selection<navCount)navActions[selection]?.Invoke();}
         }
         string PageTitle()=>SectionName=="Spectate"?"Watch the match":SectionName=="Maps"?"Change map":SectionName=="Disasters"?"Natural disasters":SectionName=="Modes"?"Game modes and world rules":SectionName=="Play"?"Make a little mayhem":SectionName=="Voice"?"AI players and voice":SectionName=="Survivors"?"Bring the island to life":SectionName=="Giant hands"?"A few extra hands":SectionName=="Settings"?"Your local controls":SectionName=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";
@@ -179,7 +187,7 @@ namespace DeadlyJenga.CastlePrototype
             var match=MatchRuntime.Current;bool watching=false;if(match?.Frame!=null)foreach(var row in match.Frame.players)if(row.id==match.LocalActorId&&row.role=="spectator")watching=true;
             if(watching){ActionCard(119,CandyHudIcon.Survivor,"Previous survivor","Switch to another living player's view.",()=>{match.NextSpectator(-1);session.SetMenu(false);});ActionCard(223,CandyHudIcon.Survivor,"Next survivor","Your team is shown while teammates remain alive.",()=>{match.NextSpectator(1);session.SetMenu(false);});return;}
 
-            ActionCard(119,session.PlayingHand?CandyHudIcon.Survivor:CandyHudIcon.Hand,session.PlayingHand?"Become a survivor":"Become a giant hand",session.PlayingHand?"Spawn at the top and explore the castle.":"Fly around the tower and push its candy blocks.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);});
+            ActionCard(119,session.PlayingHand?CandyHudIcon.Survivor:CandyHudIcon.Hand,session.PlayingHand?"Become Survivor":"Become Flying Hand",session.PlayingHand?"Spawn at the top and explore the castle.":"Fly around the tower and push its candy blocks.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);});
             ActionCard(223,CandyHudIcon.Home,"Back to the top","Respawn as a survivor on the highest upright block.",()=>{session.SetRole(false);session.SetMenu(false);});
             ActionCard(327,CandyHudIcon.Home,"Rebuild the castle",EditWorld?"Restore the whole tower and reposition the demo actors.":"The host controls the shared castle.",()=>{session.ResetMap();session.SetMenu(false);},EditWorld,CandyHudVisuals.Peach);
             if (Demo is IBuildUpControls buildUp && buildUp.Available)
@@ -193,8 +201,8 @@ namespace DeadlyJenga.CastlePrototype
                 ActionCard(743,CandyHudIcon.Play,"Spawn 3x jump orb","20 seconds of triple jump height and unlimited stamina. Recollect to refresh.",()=>{Demo.Run(DemoCommand.SpawnJumpPowerup);session.SetMenu(false);},can,CandyHudVisuals.Lavender);
                 var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();
                 ActionCard(847,CandyHudIcon.Play,"BLASTER TESTING: "+(gun?.TestingEnabled==true?"ON":"OFF"),"Enable plasma weapons for this Demo session. Host controls the testing toggle.",()=>gun.SetTestingEnabled(!gun.TestingEnabled),gun!=null&&MatchRuntime.Current?.Authority==true,CandyHudVisuals.Mint);
-                ActionCard(951,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. Controller trigger draws; trigger near its holster stows. Trigger away from holster fires.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
-                ActionCard(1055,CandyHudIcon.Settings,"DOMINANT HAND: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Non-dominant controller trigger jumps while testing is enabled, including when holstered.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
+                ActionCard(951,CandyHudIcon.Hand,equipment?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V toggles equipment. In VR use Grip + left Y or right B; trigger fires. Drop equipment with Delete or the Drop menu action.",()=>equipment.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
+                ActionCard(1055,CandyHudIcon.Settings,"DOMINANT HAND: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Sets the weapon hand and the movement stick.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);
                 int weaponRow=0;
                 foreach(EquipmentKind kind in new[]{EquipmentKind.Blaster,EquipmentKind.MurderSword,EquipmentKind.SheriffHammer,EquipmentKind.DualRifle,EquipmentKind.BoxingGlove,EquipmentKind.PoweredArmor})
                 {
@@ -250,7 +258,7 @@ namespace DeadlyJenga.CastlePrototype
                 else
                 {
                     var map=item.map;string id=map.id;
-                    ActionCard(y,CandyHudIcon.Home,demoMapPicker.Title(item),"Load this map with the current mode. The map starts fresh.",()=>maps.SelectMap(id),maps.CanSelectMap&&map.available&&id!=maps.CurrentMapId,preview:MapPreviewImages.Get(id));
+                    ActionCard(y,CandyHudIcon.Home,demoMapPicker.Title(item),"Load this map with the current mode. The map starts fresh.",()=>maps.SelectMap(id),GameExperiencePanel.CanEditRawChoices(session)&&maps.CanSelectMap&&map.available&&id!=maps.CurrentMapId,preview:MapPreviewImages.Get(id));
                 }
                 y+=104;
             }
@@ -352,12 +360,13 @@ namespace DeadlyJenga.CastlePrototype
         void ModesPage()
         {
             var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();
+            bool editable=GUI.enabled;GUI.enabled=editable&&GameExperiencePanel.CanEditRawChoices(session);
+            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();GUI.enabled=editable;
             GUI.backgroundColor=background;
         }
         void SettingsPage()
         {
-            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive fades back after a moment. Always keeps hints bright. Hidden removes them.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);changedAt=Time.unscaledTime;});
+            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive shows a short first-run intro. Always shows detailed controls. Hidden turns hints off.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);});
             GUI.Label(new Rect(12,230,820,29),"Hint opacity  ·  "+Mathf.RoundToInt(hintOpacity*100)+"%",body);hintOpacity=GUI.HorizontalSlider(new Rect(12,270,815,24),hintOpacity,.5f,1);
             Note(310,"Tip: F1 toggles gameplay hints. Use a larger Game view for a larger menu. Settings here apply to this running session.");
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
@@ -376,48 +385,188 @@ namespace DeadlyJenga.CastlePrototype
         {
             var inspection=CandyThirdPersonInspection.For(session);
             ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection.Begin(),inspection?.CanInspect==true);
-            var hints=Hints();for(int i=0;i<3;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
-            Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Tab switches survivor / giant hand during play. F8 opens Sound Studio.":"MENU: left Y opens / closes. Look at a button, then squeeze RIGHT trigger. With tracked hands, left thumb + middle finger toggles the menu; RIGHT pinch selects.");
+            if(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0)
+                Note(550,DeadlyJenga.Presentation.CandyEquipmentView.SwapInputHint(session));
+            var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
+            if(!(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0))Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles. F8 opens Sound Studio.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
             Note(661,"SURVIVOR: jump toward a block, then press jump again near its edge to vault. Hold jump near a wall to catch it; move to climb or shimmy, then release to drop. Rest on secure ground to recover grip.");
             Note(787,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
-            Note(919,"Input icons reflect the demo bindings. They are not remapping controls. After tracking loss, release your gesture before starting again. Survivor movement uses LEFT stick; hand gestures do not replace that stick.");
+            Note(919,"SURVIVOR SPRINT: click the movement stick or tap Left Shift to toggle while grounded. Jumping or climbing ends sprint. Single-controller weapon mode: Grip + X / A; two controllers: support trigger. Grip + stick click opens emotes. Delete or the Drop menu action drops equipment.");
+            Note(1051,"SUIT: V takes off / lands; WASD flies; Q lowers / E rises; left click fires. In VR the flight controller stick flies, trigger rises and grip lowers. Grip + Y toggles left; B toggles right. The tracked other hand trigger or pinch fires. Release input after menu or tracking changes.");
         }
-        public struct Hint {public CandyHudIcon icon;public string key,text;public Hint(CandyHudIcon i,string k,string t){icon=i;key=k;text=t;}}
+        public struct Hint
+        {
+            public CandyHudIcon icon;
+            public string key, text;
+            internal ControllerPart part;
+            internal bool left;
+
+            public Hint(CandyHudIcon icon, string key, string text)
+            {
+                this.icon=icon;this.key=key;this.text=text;
+                part=ControllerPart.None;left=false;
+            }
+        }
+
+        internal enum ControllerPart { None, Stick, Primary, Trigger, Grip, Secondary }
+
+        static Hint Controller(bool left, ControllerPart part, string action, string prefix="")
+        {
+            string side=left?"Left":"Right";
+            string button=part==ControllerPart.Primary?(left?"X":"A"):part==ControllerPart.Secondary?(left?"Y":"B"):part.ToString();
+            return new Hint(CandyHudIcon.Key,prefix+side+" "+button,action){left=left,part=part};
+        }
+
+        static void Controllers(out bool left,out bool right)
+        {
+            left=right=false;
+            foreach(var device in InputSystem.devices)
+            {
+                if(!(device is UnityEngine.InputSystem.XR.XRController controller) ||
+                    device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0 ||
+                    !controller.isTracked.isPressed)continue;
+                foreach(var usage in device.usages)
+                {
+                    left|=usage==UnityEngine.InputSystem.CommonUsages.LeftHand;
+                    right|=usage==UnityEngine.InputSystem.CommonUsages.RightHand;
+                }
+            }
+        }
+
         public Hint[] Hints()
         {
-            bool vr=session.IsVR,hands=vr&&TrackedHands;bool gesture=vr&&Settings!=null&&Settings.StandingPlay;string jumpGesture=Settings!=null&&Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH";
-            if(session.PlayingHand)return new[]{new Hint(vr?CandyHudIcon.Stick:CandyHudIcon.Move,vr?"L STICK":"W A S D","Fly around the castle"),new Hint(vr?CandyHudIcon.Trigger:CandyHudIcon.Flight,vr?"L TRIGGER / GRIP":"E / Q",vr?"Rise / lower · hold X + L stick turns":"Rise / lower · mouse steers"),new Hint(hands?CandyHudIcon.Pinch:CandyHudIcon.Hand,hands?"TRACKED FINGERS":"POINTING HAND",hands?"Move and curl your real fingers":"Push blocks with your hand")};
-            var moveIcon=vr?CandyHudIcon.Stick:CandyHudIcon.Move;
-            var jumpIcon=gesture?CandyHudIcon.Pinch:vr?CandyHudIcon.ButtonA:CandyHudIcon.Key;
-            if(Climbing)return new[]{new Hint(moveIcon,vr?"L STICK":"W A S D","Climb up, down or sideways"),new Hint(jumpIcon,gesture?"HOLD "+jumpGesture:vr?"HOLD A  ·  RIGHT":"HOLD SPACE","Keep your grip on the wall"),new Hint(jumpIcon,gesture?"RELEASE "+jumpGesture:vr?"RELEASE A":"RELEASE SPACE","Let go and drop")};
-            return new[]{new Hint(moveIcon,vr?"L STICK":"W A S D",vr?"Move · headset looks around":"Move · mouse looks"),new Hint(jumpIcon,gesture?jumpGesture:vr?"A  ·  RIGHT":"SPACE","Jump · press again at a ledge to vault"),new Hint(jumpIcon,gesture?"HOLD "+jumpGesture:vr?"HOLD A  ·  RIGHT":"HOLD SPACE","Catch a nearby wall and scramble")};
+            bool vr=session.IsVR;
+            bool left=false,right=false;
+            if(vr)Controllers(out left,out right);
+            bool single=left!=right;
+            bool dominantLeft=single?left:session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+            Hint move=vr?Controller(session.PlayingHand?left||!right:single?left:!dominantLeft,ControllerPart.Stick,session.PlayingHand?"Fly":"Move"):
+                new Hint(CandyHudIcon.Move,"W A S D",session.PlayingHand?"Fly":"Move");
+            if(session.PlayingHand)
+                return vr ? new[]{move,Controller(true,ControllerPart.Trigger,"Rise"),Controller(true,ControllerPart.Grip,"Descend")} :
+                    new[]{move,new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),new Hint(CandyHudIcon.Look,"MOUSE","Steer")};
+
+            var controls=session.Player.gameObject.GetComponent<IEquipmentControls>();
+            var equipment=controls?.Equipment;
+            bool armed=equipment!=null&&equipment.kind>=EquipmentKind.Blaster&&equipment.kind!=EquipmentKind.FlyingHand;
+            bool drawn=armed&&equipment.drawn;
+            bool modeSwitch=drawn&&EquipmentSpecifications.Get(equipment.kind).modeSwitch;
+            bool standing=vr&&Settings?.StandingPlay==true;
+            var jump=!vr?new Hint(CandyHudIcon.Key,"SPACE","Jump / vault"):
+                standing&&TrackedHands&&!right?new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump / vault"):
+                Controller(dominantLeft,ControllerPart.Primary,"Jump / vault");
+            if(Climbing)
+            {
+                move.text="Climb";
+                var release=jump;
+                jump.key="Hold "+jump.key;jump.text="Keep your grip";
+                release.key="Release "+release.key;release.text="Let go";
+                return new[]{move,jump,release};
+            }
+
+            if(controls?.PendingPickup>0)
+                return new[]{move,jump,new Hint(CandyHudIcon.Help,"READ PICKUP PROMPT","Swap / keep controls")};
+
+            if(armed&&equipment.kind==EquipmentKind.PoweredArmor)
+            {
+                if(vr&&!left&&!right)return new[]{
+                    new Hint(CandyHudIcon.Hand,"TRACK A CONTROLLER","Controller needed"),
+                    new Hint(CandyHudIcon.Move,"NO TRACKED STICK","Flight unavailable"),
+                    new Hint(CandyHudIcon.Help,"NO TRACKED BUTTON","Toggle unavailable")};
+                bool pilotLeft=single?left:equipment.leftHanded;
+                bool mixedFlightSide=vr&&left&&right&&TrackedHands;
+                if(!drawn)return new[]{move,jump,vr?(mixedFlightSide?new Hint(CandyHudIcon.Key,"FLIGHT: Grip+Y / B","Activate suit"):Controller(pilotLeft,ControllerPart.Secondary,"Activate suit",pilotLeft?"Grip + ":"")):
+                    new Hint(CandyHudIcon.Key,"V","Activate suit")};
+                var fingers=session.Player.gameObject.GetComponent<IFingerTips>();
+                bool otherController=pilotLeft?right:left;
+                bool otherTracked=fingers!=null&&fingers.TryIndexTip(!pilotLeft,out _);
+                string fire=otherController?(pilotLeft?"R trig":"L trig"):
+                    otherTracked?(pilotLeft?"R pinch":"L pinch"):"";
+                string land=pilotLeft?"Grip+Y":"B";
+                if(mixedFlightSide)return new[]{
+                    new Hint(CandyHudIcon.Move,"FLIGHT STICK","Fly"),
+                    new Hint(CandyHudIcon.Key,"FLIGHT TRIG / GRIP","Rise / descend"),
+                    new Hint(CandyHudIcon.Key,"OTHER / Grip+Y,B","Fire / land")};
+                return vr?new[]{Controller(pilotLeft,ControllerPart.Stick,"Fly"),
+                    new Hint(CandyHudIcon.Key,pilotLeft?"L trigger / grip":"R trigger / grip","Rise / descend"),
+                    new Hint(CandyHudIcon.Key,fire.Length>0?fire+" / "+land:land,fire.Length>0?"Fire / land":"Land")}:
+                    new[]{new Hint(CandyHudIcon.Move,"W A S D","Fly"),
+                        new Hint(CandyHudIcon.Key,"Q / E","Descend / rise"),
+                        new Hint(CandyHudIcon.Key,"L CLICK / V","Fire / land")};
+            }
+            if(armed)
+            {
+                bool weaponLeft=single?left:equipment.leftHanded;
+                var spec=EquipmentSpecifications.Get(equipment.kind);
+                bool swing=spec.melee&&!(modeSwitch&&equipment.shotgun);
+                bool bash=drawn&&!swing&&MatchRuntime.Current?.Rules?.punchEnabled==true;
+                var attack=!vr?new Hint(CandyHudIcon.Key,drawn?"LEFT CLICK":"V",drawn?(swing?"Attack":bash?"Fire / T bash":"Fire"):"Draw"):
+                    swing&&drawn?new Hint(CandyHudIcon.Hand,weaponLeft?"LEFT HAND":"RIGHT HAND","Swing weapon"):
+                    Controller(weaponLeft,drawn?ControllerPart.Trigger:ControllerPart.Secondary,drawn?(!bash?"Fire":single?"Fire / jab to bash":weaponLeft?"Fire / A bash":"Fire / X bash"):"Draw",!drawn&&weaponLeft?"Grip + ":"");
+                var extra=modeSwitch?
+                    (vr?(single?Controller(left,ControllerPart.Primary,"Switch mode","Grip + "):Controller(!weaponLeft,ControllerPart.Trigger,"Switch mode")):
+                    new Hint(CandyHudIcon.Key,"R","Switch mode")):
+                    (drawn?vr?Controller(weaponLeft,ControllerPart.Secondary,"Holster",weaponLeft?"Grip + ":""):
+                    new Hint(CandyHudIcon.Key,"V","Holster"):jump);
+                return new[]{controls?.BlocksTraversal==true?move:jump,attack,extra};
+            }
+
+            var climb=jump;climb.key="Hold "+jump.key;climb.text="Catch a wall";
+            return new[]{move,jump,climb};
         }
+
+        internal void ReplayIntro()
+        {
+            hintMode=HintMode.Adaptive;introReplay=true;introRemaining=IntroSeconds;
+        }
+
+        Hint[] IntroHints()
+        {
+            if(!session.IsVR)return new[]{
+                new Hint(CandyHudIcon.Look,"MOUSE","Look"),new Hint(CandyHudIcon.Move,"W A S D","Move"),new Hint(CandyHudIcon.Key,"SPACE","Jump")};
+            Controllers(out bool left,out bool right);
+            bool dominantLeft=left!=right?left:session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+            var jump=Settings?.StandingPlay==true&&TrackedHands&&!right?
+                new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump"):
+                Controller(dominantLeft,ControllerPart.Primary,"Jump");
+            return new[]{new Hint(CandyHudIcon.Look,left!=right?"GRIP + STICK":dominantLeft?"LEFT STICK":"RIGHT STICK","Look / or turn head"),Controller(left!=right?left:!dominantLeft,ControllerPart.Stick,"Move"),jump};
+        }
+
         void BuildHints()
         {
-            var go=new GameObject("Candy control hints • presentation",typeof(RectTransform),typeof(Canvas),typeof(CanvasGroup),typeof(CanvasScaler));go.transform.SetParent(transform,false);
-            hintCanvas=go.GetComponent<Canvas>();hintCanvas.sortingOrder=20;hintGroup=go.GetComponent<CanvasGroup>();hintGroup.blocksRaycasts=false;hintGroup.interactable=false;
-            var scaler=go.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1280,800);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;
-            hintRoot=go.GetComponent<RectTransform>();
-            var role=Pill(go.transform,new Vector2(360,65),new Vector2(22,-20),new Vector2(0,1),new Color(.10f,.05f,.20f,.75f));
-            roleText=Text(role,"",new Vector2(330,28),new Vector2(0,12),20);roleText.fontStyle=FontStyle.Bold;
-            statusText=Text(role,"",new Vector2(330,25),new Vector2(0,-14),16);statusText.color=CandyHudVisuals.Muted;
+            var go=new GameObject("Candy control hints",typeof(RectTransform),typeof(Canvas),typeof(CanvasGroup),typeof(CanvasScaler));
+            go.transform.SetParent(transform,false);
+            hintCanvas=go.GetComponent<Canvas>();hintCanvas.sortingOrder=20;
+            hintGroup=go.GetComponent<CanvasGroup>();hintGroup.alpha=0;
+            hintGroup.blocksRaycasts=false;hintGroup.interactable=false;
+            var role=Pill(go.transform,new Vector2(252,45),new Vector2(22,-20),new Vector2(0,1),CandyHudCards.Background);
+            roleText=Text(role,"",new Vector2(226,21),new Vector2(0,9),16);roleText.fontStyle=FontStyle.Bold;roleText.color=CandyHudCards.Ink;roleText.GetComponent<Outline>().enabled=false;
+            statusText=Text(role,"",new Vector2(226,18),new Vector2(0,-9),14);statusText.color=CandyHudCards.Accent;statusText.GetComponent<Outline>().enabled=false;
+            var strip=Pill(go.transform,new Vector2(225,151),new Vector2(18,18),Vector2.zero,new Color(.94f,.87f,1,.96f));
             for(int i=0;i<3;i++)
             {
-                var card=Pill(go.transform,new Vector2(370,65),new Vector2(22,38+(2-i)*73),new Vector2(0,0),new Color(.10f,.05f,.20f,.78f));
-                var raw=new GameObject("Control icon",typeof(RectTransform),typeof(RawImage));raw.transform.SetParent(card,false);hintIcons[i]=raw.GetComponent<RawImage>();hintIcons[i].rectTransform.sizeDelta=new Vector2(35,35);hintIcons[i].rectTransform.anchoredPosition=new Vector2(-153,0);hintIcons[i].color=CandyHudVisuals.Mint;hintIcons[i].raycastTarget=false;
-                hintKeys[i]=Text(card,"",new Vector2(292,25),new Vector2(24,13),18);hintKeys[i].fontStyle=FontStyle.Bold;
-                hintNames[i]=Text(card,"",new Vector2(292,28),new Vector2(24,-13),16);
+                var card=new GameObject("Control row",typeof(RectTransform)).GetComponent<RectTransform>();
+                card.SetParent(strip,false);card.sizeDelta=new Vector2(222,48);
+                card.anchoredPosition=new Vector2(3,(1-i)*46);
+                var raw=new GameObject("Control diagram",typeof(RectTransform),typeof(RawImage));
+                raw.transform.SetParent(card,false);
+                hintIcons[i]=raw.GetComponent<RawImage>();hintIcons[i].rectTransform.sizeDelta=new Vector2(42,42);
+                hintIcons[i].rectTransform.anchoredPosition=new Vector2(-86,0);hintIcons[i].raycastTarget=false;
+                hintNames[i]=Text(card,"",new Vector2(163,23),new Vector2(23,10),17);hintNames[i].fontStyle=FontStyle.Bold;hintNames[i].color=CandyHudCards.Ink;hintNames[i].GetComponent<Outline>().enabled=false;
+                hintKeys[i]=Text(card,"",new Vector2(163,20),new Vector2(23,-11),15);hintKeys[i].color=CandyHudCards.Accent;hintKeys[i].GetComponent<Outline>().enabled=false;
             }
-            var menu=Pill(go.transform,new Vector2(245,42),new Vector2(-22,38),new Vector2(1,0),new Color(.10f,.05f,.20f,.78f));menuText=Text(menu,"",new Vector2(225,36),Vector2.zero,18);
+            var menu=Pill(go.transform,new Vector2(218,32),new Vector2(-22,22),new Vector2(1,0),Color.clear);
+            menuText=Text(menu,"",new Vector2(198,29),Vector2.zero,15);menuText.alignment=TextAnchor.MiddleCenter;
         }
         RectTransform Pill(Transform parent,Vector2 size,Vector2 position,Vector2 anchor,Color color)
         {
-            var go=new GameObject("Candy hint pill",typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
+            var go=new GameObject("Candy hint pill",typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var image=go.GetComponent<Image>();image.sprite=CandyHudCards.Wash(anchor.x>.5f);image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
             var r=image.rectTransform;r.sizeDelta=size;r.anchorMin=r.anchorMax=anchor;r.pivot=anchor;r.anchoredPosition=position;return r;
         }
         Text Text(Transform parent,string value,Vector2 size,Vector2 position,int fontSize)
         {
-            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=Color.white;text.raycastTarget=false;text.rectTransform.sizeDelta=size;text.rectTransform.anchoredPosition=position;return text;
+            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=new Color(.99f,.96f,1);
+            var edge=go.GetComponent<Outline>();edge.effectColor=new Color(.10f,.045f,.20f,.9f);edge.effectDistance=new Vector2(1,-1);text.raycastTarget=false;text.rectTransform.sizeDelta=size;text.rectTransform.anchoredPosition=position;return text;
         }
         bool viewVR;Camera hintCamera;
         void PresentHints()
@@ -430,19 +579,49 @@ namespace DeadlyJenga.CastlePrototype
                 viewVR=session.IsVR;hintCamera=camera;
                 DeadlyJenga.Presentation.CandyHudLayout.Configure(hintCanvas,transform,camera,viewVR);
             }
-            string context=(session.PlayingHand?"HAND":Climbing?"CLIMB":Vaulting?"VAULT":"SURVIVOR")+InputLabel;
-            if(context!=lastContext)
+            bool adaptive=hintMode==HintMode.Adaptive;
+            string key=session.IsVR?"CandyJenga.BasicControlsSeen.v1.VR":"CandyJenga.BasicControlsSeen.v1.Desktop";
+            if(introKey!=key){introKey=key;introRemaining=IntroSeconds;}
+            bool onboarding=adaptive&&introRemaining>0&&(introReplay||PlayerPrefs.GetInt(key,PlayerPrefs.GetInt("DeadlyJenga.TutorialDone",0))==0);
+            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
+                adaptive&&(!onboarding||session.PlayingHand);
+            if(onboarding&&!hidden)
             {
-                lastContext=context;changedAt=Time.unscaledTime;
-                var hints=Hints();for(int i=0;i<3;i++){hintKeys[i].text=hints[i].key;hintNames[i].text=hints[i].text;hintIcons[i].texture=CandyHudVisuals.Icon(hints[i].icon);}
+                introRemaining-=Time.unscaledDeltaTime;
+                if(introRemaining<=0){PlayerPrefs.SetInt(key,1);introReplay=false;}
             }
-            bool hidden=session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||DeadlyJenga.Presentation.CandyMatchHud.Expanded;
-            roleText.transform.parent.gameObject.SetActive(MatchRuntime.Current==null);
-            float opacity=hidden?0:hintMode==HintMode.Always||Time.unscaledTime-changedAt<9||!session.PlayingHand&&Climbing?hintOpacity:hintOpacity*.62f;
-            hintGroup.alpha=Mathf.MoveTowards(hintGroup.alpha,opacity,Time.unscaledDeltaTime*3);hintCanvas.enabled=hintGroup.alpha>.001f;
-            roleText.text=session.PlayingHand?"GIANT HAND":"SURVIVOR";statusText.text=!string.IsNullOrEmpty(DemoStatus)?DemoStatus:session.PlayingHand?InputLabel:session.Player.StatusText;
-            if(session.Multiplayer!=null&&session.Multiplayer.InvitationFrom.Length>0)statusText.text=session.IsVR?"Nearby invite · Multiplayer":"Nearby invite · Friends";
-            menuText.text=session.IsVR?(TrackedHands?"L THUMB + MIDDLE  ·  MENU":"Y  ·  LEFT  /  MENU"):"ESC  Menu     F1  Hints";
+            if(adaptive){roleText.transform.parent.gameObject.SetActive(false);menuText.transform.parent.gameObject.SetActive(false);}
+            else menuText.transform.parent.gameObject.SetActive(true);
+            if(!hidden&&Time.unscaledTime>=nextHintSample)
+            {
+                nextHintSample=Time.unscaledTime+.12f;
+                var hints=adaptive?IntroHints():Hints();
+                string context=(adaptive?"intro|":"full|")+InputLabel;
+                foreach(var hint in hints)context+="|"+hint.key+"|"+hint.text;
+                if(context!=lastContext)
+                {
+                    lastContext=context;
+                    for(int i=0;i<hints.Length;i++)
+                    {
+                        var hint=hints[i];
+                        hintKeys[i].text=hint.key;hintNames[i].text=hint.text;
+                        hintIcons[i].texture=hint.part==ControllerPart.None?CandyHudVisuals.Icon(hint.icon):
+                            CandyHudVisuals.ControllerDiagram((int)hint.part,hint.left);
+                        hintIcons[i].color=hint.part==ControllerPart.None?CandyHudCards.Accent:Color.white;
+                        hintIcons[i].rectTransform.sizeDelta=Vector2.one*(hint.part==ControllerPart.None?26:42);
+                    }
+                }
+                var multiplayer=session.Multiplayer;
+                bool invite=!string.IsNullOrEmpty(multiplayer?.InvitationFrom);
+                roleText.transform.parent.gameObject.SetActive(!adaptive&&(MatchRuntime.Current==null||invite));
+                roleText.text=invite?"Nearby invite":session.PlayingHand?"Giant hand":"Survivor";
+                statusText.text=invite?"Open Multiplayer":InputLabel;
+                Controllers(out bool menuLeft,out bool menuRight);
+                menuText.text=session.IsVR?(menuLeft?"Y / native  Menu":menuRight?"Grip+B  Menu":TrackedHands?"Thumb + middle  Menu":"Track controller  Menu"):"Esc  Menu     F1  Hints";
+            }
+            float opacity=hidden?0:hintOpacity*(adaptive?.76f:1);
+            hintGroup.alpha=Mathf.MoveTowards(hintGroup.alpha,opacity,Time.unscaledDeltaTime*5);
+            hintCanvas.enabled=hintGroup.alpha>.001f;
         }
         void OnDisable(){if(hintCanvas)hintCanvas.enabled=false;if(studio)studio.ShowLauncher=true;}
         void OnDestroy(){if(hintCanvas)Destroy(hintCanvas.gameObject);if(themed)Destroy(themed);if(studio)studio.ShowLauncher=true;}

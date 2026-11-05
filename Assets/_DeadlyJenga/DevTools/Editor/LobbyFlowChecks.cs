@@ -105,7 +105,7 @@ namespace DeadlyJenga.DevTools.Editor
             simulation.Configure(ModeSimulation.Defaults(GameModeKind.Survival));Require(simulation.Find("one").frame.name.EndsWith("Trainer"),"Changing modes preserves the noun");
             var allocator=new ModeNames(1);Require(allocator.Preserve(Color.red,"Trainer")!=allocator.Preserve(Color.red,"Trainer"),"Rare full-name collisions receive a numeric suffix");
             var app=PhotonAppSettings.Global.AppSettings;string protocol=(app.AppVersion??"")+"/"+lobby.catalog.NetworkVersion;
-            using(var discovery=new IslandDiscovery(app.AppIdFusion,protocol,0)){discovery.InviteAll("US-ABC234",1);Require(discovery.LastInviteRecipients==0&&discovery.Status.Contains("0 nearby"),"Invite reports zero recipients when no compatible nearby players are known");}
+            using(var discovery=new IslandDiscovery(app.AppIdFusion,protocol,0)){discovery.InviteAll("US-ABC234",1);Require(discovery.LastInviteRecipients==0&&discovery.Status.StartsWith("Invite broadcast",StringComparison.Ordinal),"Invite is broadcast even before a compatible nearby player is known");}
             Capture(lobby,"LobbyFlow-Solo.png",new Vector3(0,2.4f,-6),new Vector3(0,1.6f,1.1f));
             Capture(lobby,"LobbyFlow-GameTerminal.png",new Vector3(3.1f,1.9f,-1.5f),new Vector3(3.05f,1.62f,1));
             var config=NetworkProjectConfig.Global;var old=config.PeerMode;

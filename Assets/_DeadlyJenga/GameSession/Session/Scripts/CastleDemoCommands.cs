@@ -16,21 +16,32 @@ namespace DeadlyJenga.CastlePrototype
     {
         public static void Run(CastlePlaySession session,CastleDemoAction action,string rules=null)
         {
+            if(!SessionDevelopmentPolicy.CanRequestLocal(session))return;
             var network=session.GetComponent<CastleFusionSession>();
             if(network){network.Request(new CastleDemoCommand{action=action,rules=rules});return;}
             Execute(session,new CastleDemoCommand{action=action,rules=rules});
         }
         public static bool Execute(CastlePlaySession session,CastleDemoCommand command)
         {
-            if(command==null||!Enum.IsDefined(typeof(CastleDemoAction),command.action))return false;
+            if(!SessionDevelopmentPolicy.CanExecuteLocal(session))return false;
+            return ExecuteAuthorized(session,command);
+        }
+        internal static bool ExecuteFromPeer(CastlePlaySession session,CastleDemoCommand command,string sender)
+        {
+            if(!SessionDevelopmentPolicy.CanExecutePeer(session,sender))return false;
+            return ExecuteAuthorized(session,command);
+        }
+        static bool ExecuteAuthorized(CastlePlaySession session,CastleDemoCommand command)
+        {
+            if(!SessionDevelopmentPolicy.CanExecuteServer(session)||command==null||!Enum.IsDefined(typeof(CastleDemoAction),command.action))return false;
             switch(command.action)
             {
                 case CastleDemoAction.AdvanceScaffold:
-                    if (!session.CanEditWorld || !(DeadlyJenga.Core.Services.World is DeadlyJenga.Core.IBuildUpControls buildUp) || !buildUp.CanAdvance) return false;
+                    if (!(DeadlyJenga.Core.Services.World is DeadlyJenga.Core.IBuildUpControls buildUp) || !buildUp.CanAdvance) return false;
                     buildUp.AdvanceStage(); break;
-                case CastleDemoAction.StopDisasters:if(!DemoDisasters.CanTrigger(session))return false;DemoDisasters.StopAll(session);break;
-                case CastleDemoAction.Disaster:return DemoDisasters.Execute(session,command.rules,command.tuneWave?(float?)command.waveSpeed:null,command.tuneWave?(float?)command.waveForce:null,command.hazardValues);
-                case CastleDemoAction.Rebuild:session.ResetCastle();break;
+                case CastleDemoAction.StopDisasters:DemoDisasters.StopAll(session);break;
+                case CastleDemoAction.Disaster:return DemoDisasters.ExecuteDevelopmentAuthorized(session,command.rules,command.tuneWave?(float?)command.waveSpeed:null,command.tuneWave?(float?)command.waveForce:null,command.hazardValues);
+                case CastleDemoAction.Rebuild:session.RebuildForDevelopment();break;
                 case CastleDemoAction.AddSurvivor:session.SurvivorBots?.SpawnOne();break;
                 case CastleDemoAction.FillSurvivors:session.SurvivorBots?.FillToTarget();break;
                 case CastleDemoAction.NextSurvivor:session.SurvivorBots?.CyclePersonality();break;

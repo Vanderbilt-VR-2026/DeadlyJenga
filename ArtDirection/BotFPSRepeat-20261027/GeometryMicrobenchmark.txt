@@ -1,0 +1,2 @@
+PASS megablock-tower: 21907 ordered sample points match original within 0.5mm; synchronous warm whole-map Fill mean original=8.534ms cached=4.829ms, 12 repetitions. This is a geometry microbenchmark, not game FPS.
+PASS sparse-festival-city-optimized: 11987 ordered sample points match original within 0.5mm; synchronous warm whole-map Fill mean original=5.971ms cached=4.035ms, 12 repetitions. This is a geometry microbenchmark, not game FPS.

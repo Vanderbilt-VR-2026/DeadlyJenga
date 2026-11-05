@@ -11,6 +11,7 @@ namespace DeadlyJenga.Modes
         public bool DemoSpectating { get; private set; }
         public bool DemoFourViews { get; private set; }
         readonly Camera[] demoViews=new Camera[4];
+        readonly Transform[] demoRenderedRoots = new Transform[4];
         readonly string[] demoTargets=new string[4];
         readonly List<MatchPlayerFrame> demoCandidates=new List<MatchPlayerFrame>();
         Quaternion demoHeadNeutral;
@@ -18,7 +19,13 @@ namespace DeadlyJenga.Modes
         int demoOffset;
         public bool SetDevelopmentHand(bool active)
         {
-            if(!Authority||!simulation.SetDevelopmentHand(LocalActorId,active))return false;
+            if(!Authority)return false;
+            if(!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session))
+            {
+                var participant=simulation.Find(LocalActorId);
+                return participant!=null&&(active?participant.frame.role=="hand":participant.frame.role!="hand");
+            }
+            if(!simulation.SetDevelopmentHand(LocalActorId,active))return false;
             nextSample=0;ruleCache.Clear();
             return true;
         }
@@ -26,7 +33,7 @@ namespace DeadlyJenga.Modes
 
         public void SetDemoSpectating(bool active)
         {
-            if(active&&(session==null||Rules.mode!=GameModeKind.Demo&&!session.CanEditWorld))return;
+            if(active&&!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session))return;
             if(DemoSpectating==active)return;
             DemoSpectating=active;
             if(active)
@@ -49,7 +56,7 @@ namespace DeadlyJenga.Modes
         }
         public void SetDemoFourViews(bool active)
         {
-            if(active&&session!=null&&session.IsVR)return;
+            if(active&&(!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.DemoEnabled(session)||session.IsVR))return;
             DemoFourViews=active;
             if(DemoSpectating)TickDemoSpectator();
         }
@@ -63,9 +70,8 @@ namespace DeadlyJenga.Modes
         {
             if(!camera)return null;
             if(DemoSpectating)
-            {for(int i=0;i<4;i++)if(camera==demoViews[i])return FindParticipantRoot(demoTargets[i]);}
-            else if(camera==modeCamera&&frame?.players!=null)
-            {foreach(var row in frame.players)if(row.id==LocalActorId&&row.role=="spectator")return FindParticipantRoot(row.spectating);}
+            {for(int i=0;i<4;i++)if(camera==demoViews[i])return demoRenderedRoots[i];}
+            else if(camera==modeCamera)return modeWatchedRoot;
             return null;
         }
         void GatherDemoCandidates()
@@ -92,6 +98,7 @@ namespace DeadlyJenga.Modes
             var source=(session.PlayingHand?session.Hand:session.Player)?.ViewCamera;
             for(int i=0;i<count;i++)
             {
+                demoRenderedRoots[i] = null;
                 bool valid=demoCandidates.Exists(row=>row.id==demoTargets[i]);
                 if(!valid)
                 {
@@ -112,8 +119,17 @@ namespace DeadlyJenga.Modes
                 camera.targetTexture=null;camera.targetDisplay=0;camera.rect=DemoFourViews?Quadrants[i]:new Rect(0,0,1,1);
                 if(!UnityEngine.Rendering.GraphicsSettings.currentRenderPipeline)camera.stereoTargetEye=session.IsVR?StereoTargetEyeMask.Both:StereoTargetEyeMask.None;camera.depth=20+i;
                 Pose pose=DemoOverview();
-                if(actor!=null)pose=actor.ViewPose;
-                else foreach(var row in demoCandidates)if(row.id==demoTargets[i]){pose=new Pose(row.viewPosition,row.viewRotation);break;}
+                if (actor != null)
+                {
+                    pose = actor.ViewPose;
+                    demoRenderedRoots[i] = FindParticipantRoot(demoTargets[i]);
+                }
+                else foreach(var row in demoCandidates)if(row.id==demoTargets[i])
+                {
+                    pose = new Pose(row.viewPosition, row.viewRotation);
+                    demoRenderedRoots[i] = FindParticipantRoot(row.id);
+                    break;
+                }
                 if(session.IsVR)
                 {
                     var device=InputDevices.GetDeviceAtXRNode(XRNode.Head);
@@ -122,7 +138,11 @@ namespace DeadlyJenga.Modes
                 }
                 camera.transform.SetPositionAndRotation(pose.position,pose.rotation);camera.enabled=true;
             }
-            for(int i=count;i<4;i++)if(demoViews[i]){demoViews[i].enabled=false;Destroy(demoViews[i].gameObject);demoViews[i]=null;demoTargets[i]=null;}
+            for(int i=count;i<4;i++)
+            {
+                demoRenderedRoots[i] = null;
+                if(demoViews[i]){demoViews[i].enabled=false;Destroy(demoViews[i].gameObject);demoViews[i]=null;demoTargets[i]=null;}
+            }
             if(NetworkActors.Alive(session.Player)){session.Player.InputSuspended=true;if(session.Player.ViewCamera)session.Player.ViewCamera.enabled=false;}
             if(NetworkActors.Alive(session.Hand)){session.Hand.InputSuspended=true;if(session.Hand.ViewCamera)session.Hand.ViewCamera.enabled=false;}
             if(modeCamera)modeCamera.enabled=false;
@@ -139,7 +159,7 @@ namespace DeadlyJenga.Modes
         void ClearDemoCameras()
         {
             for(int i=0;i<4;i++)
-            {if(demoViews[i]){demoViews[i].enabled=false;Destroy(demoViews[i].gameObject);demoViews[i]=null;}demoTargets[i]=null;}
+            {if(demoViews[i]){demoViews[i].enabled=false;Destroy(demoViews[i].gameObject);demoViews[i]=null;}demoTargets[i]=null;demoRenderedRoots[i]=null;}
             demoCandidates.Clear();
         }
     }

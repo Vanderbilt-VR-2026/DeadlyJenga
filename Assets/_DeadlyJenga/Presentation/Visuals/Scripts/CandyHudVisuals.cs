@@ -26,6 +26,54 @@ namespace DeadlyJenga.CastlePrototype
         {
             get{if(!pill){pill=Sprite.Create(Rounded,new Rect(0,0,32,32),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect,new Vector4(10,10,10,10));pill.hideFlags=HideFlags.HideAndDontSave;}return pill;}
         }
+        static readonly Dictionary<int,Texture2D> controllers=new Dictionary<int,Texture2D>();
+        internal static Texture2D ControllerDiagram(int part,bool left)
+        {
+            int key=part+(left?8:0);
+            if(controllers.TryGetValue(key,out var texture)&&texture)return texture;
+
+            const int size=64;
+            var pixels=new Color32[size*size];
+            Color shell=new Color(.78f,.82f,.90f),edge=new Color(.34f,.41f,.53f);
+            Color button=new Color(.17f,.22f,.31f),accent=Mint;
+            for(int y=0;y<size;y++)
+            for(int x=0;x<size;x++)
+            {
+                var point=new Vector2(left?63-x:x,y);
+                Color color=Color.clear;
+                Shape(DistanceToSegment(point,new Vector2(35,13),new Vector2(29,38))-9,edge);
+                Shape(DistanceToSegment(point,new Vector2(35,14),new Vector2(29,38))-7.5f,shell);
+                Shape(Vector2.Distance(point,new Vector2(28,43))-17,edge);
+                Shape(Vector2.Distance(point,new Vector2(28,43))-15.5f,shell);
+                Shape(DistanceToSegment(point,new Vector2(43,39),new Vector2(48,45))-3,part==3?accent:button);
+                Shape(DistanceToSegment(point,new Vector2(43,20),new Vector2(41,30))-2.8f,part==4?accent:button);
+                Shape(Vector2.Distance(point,new Vector2(22,47))-7.5f,button);
+                Shape(Vector2.Distance(point,new Vector2(22,47))-5.2f,part==1?accent:edge);
+                Shape(Vector2.Distance(point,new Vector2(35,43))-4,part==2?accent:button);
+                Shape(Vector2.Distance(point,new Vector2(35,52))-3.2f,part==5?accent:button);
+                Shape(Vector2.Distance(point,new Vector2(27,34))-2,button);
+                pixels[y*size+x]=color;
+
+                void Shape(float distance,Color fill)
+                {
+                    float coverage=Mathf.Clamp01(.5f-distance);
+                    if(coverage<=0)return;
+                    if(color.a<=0){color=fill;color.a=coverage;}
+                    else{float alpha=coverage+color.a*(1-coverage);color=Color.Lerp(color,fill,coverage/alpha);color.a=alpha;}
+                }
+            }
+            texture=new Texture2D(size,size,TextureFormat.RGBA32,false)
+            {name="HUD controller diagram",hideFlags=HideFlags.HideAndDontSave,wrapMode=TextureWrapMode.Clamp};
+            texture.SetPixels32(pixels);texture.Apply(false,true);controllers[key]=texture;
+            return texture;
+        }
+
+        static float DistanceToSegment(Vector2 point,Vector2 start,Vector2 end)
+        {
+            var line=end-start;
+            return Vector2.Distance(point,start+line*Mathf.Clamp01(Vector2.Dot(point-start,line)/line.sqrMagnitude));
+        }
+
         public static Texture2D Icon(CandyHudIcon kind)
         {
             if(icons.TryGetValue(kind,out var result)&&result)return result;

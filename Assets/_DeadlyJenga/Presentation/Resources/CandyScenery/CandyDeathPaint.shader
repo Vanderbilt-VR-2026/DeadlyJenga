@@ -1,6 +1,6 @@
 Shader "Candy Tropical/Death Paint"
 {
- Properties { [PerRendererData] _MainTex("Sprite Texture",2D)="white" {} _Age("Seconds since impact",Float)=0 _Aspect("View aspect",Float)=1.6 }
+ Properties { [PerRendererData] _MainTex("Sprite Texture",2D)="white" {} _Age("Seconds since impact",Float)=0 _Aspect("View aspect",Float)=1.6 _Wipe("Wipe progress",Range(0,1))=0 }
  SubShader
  {
   Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Overlay" "RenderType"="Transparent"}
@@ -12,7 +12,7 @@ Shader "Candy Tropical/Death Paint"
    #pragma fragment frag
    #pragma multi_compile_instancing
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-   float _Age, _Aspect;
+   float _Age, _Aspect, _Wipe;
    struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;float4 color:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
    struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float4 color:COLOR;UNITY_VERTEX_OUTPUT_STEREO};
    V vert(A i) {V o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.positionCS=TransformObjectToHClip(i.positionOS.xyz);o.uv=i.uv;o.color=i.color;return o;}
@@ -50,23 +50,25 @@ Shader "Candy Tropical/Death Paint"
    {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
     float2 p=(i.uv-.5)*float2(_Aspect,1);
-    float d=paint(p);float aa=max(fwidth(d),.001);
-    float coverage=smoothstep(-aa,aa,d);
-    // A curved squeegee passes left to right, leaving a short wet streak behind it.
-    float wipe=saturate((_Age-1.15)/.95);
-    float edge=lerp(-1.5,1.5,wipe)+.12*sin(i.uv.y*3.14159);
-    float clear=smoothstep(edge-.025,edge+.025,p.x);
-    if(_Age<1.15)clear=1;
+    float d=1,coverage=1;
+    UNITY_BRANCH if(_Age<.28)
+    {
+     d=paint(p);float aa=max(fwidth(d),.001);
+     float fill=smoothstep(.06,.28,_Age);
+     float front=lerp(.15,1.62,fill)-length((i.uv-.5)*2)+.06*noise(i.uv*18);
+     coverage=max(smoothstep(-aa,aa,d),smoothstep(-.025,.025,front));
+    }
+    float wipe=saturate(_Wipe);
+    float edge=lerp(-.20,1.12,wipe)+.07*sin(i.uv.y*3.14159)+.025*(noise(i.uv.yy*26)-.5);
+    float clear=smoothstep(edge-.014,edge+.014,i.uv.x);
     float grain=noise(p*170)*.035+noise(p*32)*.06;
-    float rim=exp(-abs(d)*190);
     float2 grad=float2(ddx(d),ddy(d));
     float edgeLight=saturate(dot(normalize(float3(grad*100,1)),normalize(float3(-.6,.8,1))));
     float wet=pow(saturate(noise(p*12)*.7+noise(p*31)*.3),6)*.22;
     float edgeBand=exp(-abs(d)*95);
     float3 color=i.color.rgb*(.82+grain-edgeBand*.13)+wet+edgeBand*edgeLight*.3;
-    float smear=exp(-abs(p.x-edge)*65)*coverage*.2;
-    float alpha=coverage*clear*.97+smear*(1-wipe);
-    alpha*=1-smoothstep(2.08,2.2,_Age);
+    float smear=exp(-abs(i.uv.x-edge)*95)*coverage*.24*step(.001,wipe);
+    float alpha=coverage*clear+smear*(1-wipe);
     return half4(color,saturate(alpha)*i.color.a);
    }
    ENDHLSL

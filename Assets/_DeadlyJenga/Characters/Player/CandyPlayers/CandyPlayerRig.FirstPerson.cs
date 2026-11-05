@@ -5,32 +5,36 @@ namespace DeadlyJenga.CandyPlayers
 {
     public sealed partial class CandyPlayerRig
     {
-        readonly Dictionary<Mesh,Mesh> firstPersonBodies = new Dictionary<Mesh,Mesh>();
+        readonly Dictionary<(Mesh source,bool clearance),Mesh> firstPersonBodies = new();
         Mesh renderedBody;
 
-        void SetFirstPersonBody(bool active)
+        void SetFirstPersonBody(bool active,bool clearance)
         {
             RestoreFirstPersonBody();
             if(!active || !bodyRenderer || !bodyRenderer.sharedMesh) return;
             var source = bodyRenderer.sharedMesh;
-            if(!firstPersonBodies.TryGetValue(source,out var visible))
+            var key=(source,clearance);
+            if(!firstPersonBodies.TryGetValue(key,out var visible))
             {
                 if(!source.isReadable) return;
                 var weights = source.boneWeights;
                 if(weights.Length != source.vertexCount) return;
-                visible = Instantiate(source); visible.name = source.name + " first-person arms and legs";
+                visible = Instantiate(source); visible.name = source.name + (clearance?" first-person ledge clearance":" first-person body");
+                var vertices=source.vertices;
                 var triangles = new List<int>();
                 for(int submesh=0;submesh<source.subMeshCount;submesh++)
                 {
                     triangles.Clear();var indices=source.GetTriangles(submesh);
                     for(int i=0;i<indices.Length;i+=3)
                     {
-                        if(Torso(weights[indices[i]]) && Torso(weights[indices[i+1]]) && Torso(weights[indices[i+2]])) continue;
-                        triangles.Add(indices[i]);triangles.Add(indices[i+1]);triangles.Add(indices[i+2]);
+                        int a=indices[i],b=indices[i+1],c=indices[i+2];
+                        bool torso=Torso(weights[a])&&Torso(weights[b])&&Torso(weights[c]);
+                        if(torso&&(clearance||(vertices[a].y+vertices[b].y+vertices[c].y)/3f>.99f))continue;
+                        triangles.Add(a);triangles.Add(b);triangles.Add(c);
                     }
                     visible.SetTriangles(triangles,submesh,false);
                 }
-                firstPersonBodies.Add(source,visible);
+                firstPersonBodies.Add(key,visible);
             }
             renderedBody=source;bodyRenderer.sharedMesh=visible;
         }

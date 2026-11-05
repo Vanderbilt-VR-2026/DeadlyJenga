@@ -10,15 +10,10 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<int,Transform> shots=new Dictionary<int,Transform>(),impacts=new Dictionary<int,Transform>();
         readonly Stack<Transform> shotPool=new Stack<Transform>(),impactPool=new Stack<Transform>();
         readonly HashSet<int> visible=new HashSet<int>();readonly List<int> stale=new List<int>();
-        BlasterFrame last;float received;Material material;Mesh ball;MaterialPropertyBlock cloudProperties;
+        BlasterFrame last;float received;Material material,trailSurface;Mesh ball;MaterialPropertyBlock cloudProperties;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=host=>{if(!host.GetComponent<CandyPlasmaView>())host.AddComponent<CandyPlasmaView>();};
-        void Awake(){cloudProperties=new MaterialPropertyBlock();var shader=Resources.Load<Shader>("CandyAlienPlasma");material=shader?new Material(shader):new Material(Resources.Load<Material>("CandyUtilityGlow"));ball=Ball();}
-        void OnGUI()
-        {
-            var session=Services.Session;if(session==null||session.IsVR||session.MenuOpen||session.PlayingHand||session.Player?.gameObject.GetComponent<IEquipmentControls>()?.Equipment.drawn!=true)return;
-            var previous=GUI.color;GUI.color=new Color(.3f,.95f,1);GUI.DrawTexture(new Rect(Screen.width*.5f-4,Screen.height*.5f-1,8,2),Texture2D.whiteTexture);GUI.DrawTexture(new Rect(Screen.width*.5f-1,Screen.height*.5f-4,2,8),Texture2D.whiteTexture);GUI.color=previous;
-        }
+        void Awake(){cloudProperties=new MaterialPropertyBlock();var shader=Resources.Load<Shader>("CandyAlienPlasma");material=shader?new Material(shader):new Material(Resources.Load<Material>("CandyUtilityGlow"));ball=Ball();var tracer=Resources.Load<Shader>("CandyOrdnance");if(tracer){trailSurface=new Material(tracer);trailSurface.SetFloat("_Ribbon",1);trailSurface.SetColor("_BaseColor",new Color(.08f,.9f,1));}}
         void Update()
         {
             var state=MatchRuntime.Current?.Frame.blaster;
@@ -26,8 +21,8 @@ namespace DeadlyJenga.Presentation
             float elapsed=Mathf.Min(.25f,Time.time-received);visible.Clear();
             if(state?.enabled==true)foreach(var shot in state.shots)
             {
-                visible.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model)){model=shotPool.Count>0?shotPool.Pop():MakeBall();shots[shot.id]=model;model.gameObject.SetActive(true);}
-                model.position=shot.position+shot.velocity*elapsed;model.rotation=Quaternion.Euler(shot.id*37,Time.time*95,Time.time*53);
+                visible.Add(shot.id);if(!shots.TryGetValue(shot.id,out var model)){model=shotPool.Count>0?shotPool.Pop():MakeBall();shots[shot.id]=model;model.position=shot.position+Vector3.ClampMagnitude(shot.velocity*elapsed,.5f);model.gameObject.SetActive(true);if(model.TryGetComponent<TrailRenderer>(out var trail))trail.Clear();}
+                model.position=shot.position+Vector3.ClampMagnitude(shot.velocity*elapsed,.5f);model.rotation=Quaternion.Euler(shot.id*37,Time.time*95,Time.time*53);
             }
             Release(shots,shotPool);visible.Clear();
             if(state?.enabled==true)foreach(var impact in state.impacts)
@@ -43,7 +38,14 @@ namespace DeadlyJenga.Presentation
         {stale.Clear();foreach(var pair in active)if(!visible.Contains(pair.Key)){pair.Value.gameObject.SetActive(false);pool.Push(pair.Value);stale.Add(pair.Key);}foreach(int id in stale)active.Remove(id);}
         Transform MakeBall()
         {
-            var go=new GameObject("Visual - traveling plasma");go.transform.SetParent(transform,false);go.transform.localScale=Vector3.one*.12f;go.AddComponent<MeshFilter>().sharedMesh=ball;go.AddComponent<MeshRenderer>().sharedMaterial=material;return go.transform;
+            var go=new GameObject("Visual - traveling plasma");go.transform.SetParent(transform,false);go.transform.localScale=Vector3.one*.145f;go.AddComponent<MeshFilter>().sharedMesh=ball;go.AddComponent<MeshRenderer>().sharedMaterial=material;
+            if(trailSurface)
+            {
+                var trail=go.AddComponent<TrailRenderer>();trail.sharedMaterial=trailSurface;trail.time=.20f;trail.widthMultiplier=.23f;trail.minVertexDistance=.09f;
+                trail.widthCurve=new AnimationCurve(new Keyframe(0,1),new Keyframe(.44f,.59f),new Keyframe(1,0));
+                trail.startColor=Color.white;trail.endColor=new Color(1,1,1,0);trail.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;trail.receiveShadows=false;
+            }
+            return go.transform;
         }
         Transform MakeImpact()
         {
@@ -61,6 +63,6 @@ namespace DeadlyJenga.Presentation
             for(int y=0;y<rings;y++)for(int x=0;x<sides;x++){int a=y*(sides+1)+x;t.AddRange(new[]{a,a+1,a+sides+2,a,a+sides+2,a+sides+1});}
             var mesh=new Mesh{name="Shared plasma sphere"};mesh.SetVertices(v);mesh.SetTriangles(t,0);mesh.RecalculateNormals();mesh.RecalculateBounds();return mesh;
         }
-        void OnDestroy(){if(material)Destroy(material);if(ball)Destroy(ball);}
+        void OnDestroy(){if(material)Destroy(material);if(ball)Destroy(ball);if(trailSurface)Destroy(trailSurface);}
     }
 }

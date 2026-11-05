@@ -12,6 +12,8 @@ namespace DeadlyJenga.CastlePrototype
         static void ResetValues()=>nextValues.Clear();
         public static IReadOnlyList<DisasterParameter> Parameters(GameObject prefab)=>prefab.GetComponent<IDemoHazard>()?.Parameters??Array.Empty<DisasterParameter>();
         public static float[] Values(CastlePlaySession session,GameObject prefab)
+            => session&&prefab?(float[])MutableValues(session,prefab).Clone():Array.Empty<float>();
+        static float[] MutableValues(CastlePlaySession session,GameObject prefab)
         {
             if(!nextValues.TryGetValue(session.GetInstanceID(),out var settings))nextValues[session.GetInstanceID()]=settings=new Dictionary<string,float[]>();
             var p=Parameters(prefab);
@@ -21,7 +23,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         public static void SetValue(CastlePlaySession session,GameObject prefab,int index,float value)
         {
-            var p=Parameters(prefab);var v=Values(session,prefab);v[index]=p[index].Clamp(value);
+            if(!SessionDevelopmentPolicy.CanRequestLocal(session)||!prefab||float.IsNaN(value)||float.IsInfinity(value))return;
+            var p=Parameters(prefab);if(index<0||index>=p.Count)return;
+            var v=MutableValues(session,prefab);v[index]=p[index].Clamp(value);
             if(prefab.GetComponent<IWaveTuning>()!=null){if(index==0)session.tsunamiSpeed=v[index];if(index==1)session.tsunamiForce=v[index];}
         }
         public static string Status
@@ -60,8 +64,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static string Label(GameObject prefab) => prefab ? prefab.GetComponent<IHazard>()?.Type?.name ?? prefab.name : "Missing disaster prefab";
-        public static bool CanTrigger(CastlePlaySession session) => session &&
-            (!session.Network || session.Network.CanEditWorld);
+        public static bool CanTrigger(CastlePlaySession session) => SessionDevelopmentPolicy.CanRequestLocal(session);
 
         public static string Request(CastlePlaySession session, GameObject prefab)
         {
@@ -76,7 +79,10 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static bool Execute(CastlePlaySession session, string id,float? speed=null,float? force=null,float[] values=null)
-            => ExecuteInternal(session,id,speed,force,values,false);
+            => SessionDevelopmentPolicy.CanExecuteLocal(session)&&ExecuteInternal(session,id,speed,force,values,true);
+
+        internal static bool ExecuteDevelopmentAuthorized(CastlePlaySession session,string id,float? speed=null,float? force=null,float[] values=null)
+            => SessionDevelopmentPolicy.CanExecuteServer(session)&&ExecuteInternal(session,id,speed,force,values,true);
 
         public static bool ExecuteForMode(CastlePlaySession session,string id,float[] values=null)
             => ExecuteInternal(session,id,null,null,values,true);

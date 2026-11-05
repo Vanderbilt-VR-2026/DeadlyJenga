@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5019471fb2174e5c852ecd4047163007, type: 3}
   m_Name: HandInteractionProfile Standalone
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Interaction Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteraction
@@ -594,6 +594,28 @@ MonoBehaviour:
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
+--- !u!114 &-2792124196139695777
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dca9087ad69d4c3a9af648bff75fd40e, type: 3}
+  m_Name: HybridHandsFeature Android
+  m_EditorClassIdentifier: DeadlyJenga.Characters::DeadlyJenga.CandyPlayers.HybridHandsFeature
+  m_enabled: 1
+  nameUi: Deadly Jenga simultaneous hands and controllers
+  version: 1.0.0
+  featureIdInternal: deadlyjenga.hybrid-hands
+  openxrExtensionStrings: XR_META_simultaneous_hands_and_controllers
+  company: Deadly Jenga
+  priority: 0
+  targetOpenXRApiVersion:
+  required: 0
+  customRuntimeLoaderName:
 --- !u!114 &-2678709247379309322
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -610,6 +632,7 @@ MonoBehaviour:
   - {fileID: -285031667355207074}
   - {fileID: 4698283497547800985}
   - {fileID: -3892550082774744550}
+  - {fileID: 4999544936445798399}
   - {fileID: 2103567161858430822}
   - {fileID: 8983305964373900178}
   - {fileID: -5637870036324913327}
@@ -851,7 +874,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5019471fb2174e5c852ecd4047163007, type: 3}
   m_Name: HandInteractionProfile Android
   m_EditorClassIdentifier: Unity.XR.OpenXR::UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile
-  m_enabled: 0
+  m_enabled: 1
   nameUi: Hand Interaction Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.handinteraction
@@ -1415,6 +1438,7 @@ MonoBehaviour:
   - {fileID: -7703093038854304135}
   - {fileID: -1307155070913868842}
   - {fileID: 2753008126645128361}
+  - {fileID: -2792124196139695777}
   - {fileID: 1459652114788207683}
   - {fileID: 5766177622550098762}
   - {fileID: 5350398587548965220}
@@ -1735,6 +1759,28 @@ MonoBehaviour:
   targetOpenXRApiVersion: 
   required: 0
   customRuntimeLoaderName: 
+--- !u!114 &4999544936445798399
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: dca9087ad69d4c3a9af648bff75fd40e, type: 3}
+  m_Name: HybridHandsFeature Standalone
+  m_EditorClassIdentifier: DeadlyJenga.Characters::DeadlyJenga.CandyPlayers.HybridHandsFeature
+  m_enabled: 1
+  nameUi: Deadly Jenga simultaneous hands and controllers
+  version: 1.0.0
+  featureIdInternal: deadlyjenga.hybrid-hands
+  openxrExtensionStrings: XR_META_simultaneous_hands_and_controllers
+  company: Deadly Jenga
+  priority: 0
+  targetOpenXRApiVersion:
+  required: 0
+  customRuntimeLoaderName:
 --- !u!114 &5081290910021086260
 MonoBehaviour:
   m_ObjectHideFlags: 0

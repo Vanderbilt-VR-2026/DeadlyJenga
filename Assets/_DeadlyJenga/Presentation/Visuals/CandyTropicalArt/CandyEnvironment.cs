@@ -13,7 +13,7 @@ namespace DeadlyJenga.CandyArt
         public bool applyLighting;
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
-        void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();if(!GetComponent<CandySceneSkins>())gameObject.AddComponent<CandySceneSkins>();} Refresh(); }
+        void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyWaveContactVisual>())gameObject.AddComponent<CandyWaveContactVisual>();if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();if(!GetComponent<CandySceneSkins>())gameObject.AddComponent<CandySceneSkins>();} Refresh(); }
         void Update() { if(Application.isPlaying){if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
         public void Refresh()
         {

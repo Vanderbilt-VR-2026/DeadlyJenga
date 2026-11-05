@@ -18,16 +18,30 @@ namespace DeadlyJenga.Modes
         public bool Punch(string id,Vector3 origin,Vector3 direction,float speed)
         {
             if(float.IsNaN(speed)||float.IsInfinity(speed)||float.IsNaN(origin.sqrMagnitude)||float.IsInfinity(origin.sqrMagnitude)||float.IsNaN(direction.sqrMagnitude)||float.IsInfinity(direction.sqrMagnitude))return false;
-            var held=EquipmentFor(id);if(held.builtIn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});if(held.drawn&&!held.roleIssued)return false;
-            if(held.drawn&&held.kind==EquipmentKind.SheriffHammer)return AttackEquipment(id,held,new EquipmentCommand{action="attack",position=origin,forward=direction});
+            var held=EquipmentFor(id);
+            bool bash = UsesWeaponBash(held);
+            if(held.builtIn)return AttackEquipment(id,held,new EquipmentCommand{position=origin,forward=direction});
+            if(held.drawn&&!held.roleIssued&&!bash)return false;
+            if(held.drawn&&held.kind==EquipmentKind.SheriffHammer&&!bash)return AttackEquipment(id,held,new EquipmentCommand{action="attack",position=origin,forward=direction});
             var p=simulation.Find(id);var source=FindActor(id);
             if(p==null||source==null||!p.frame.alive||p.frame.role=="hand"||simulation.Phase!=RoundPhase.Playing||!RulesFor(source.gameObject).punchEnabled||simulation.CarriesFlag(id)||Time.time<p.nextPunch||speed<.4f||speed>50)return false;
             if((origin-source.ViewPose.position).sqrMagnitude>9||direction.sqrMagnitude<.1f)return false;
-            p.nextPunch=Time.time+RulesFor(source.gameObject).punchCooldown;direction.Normalize();
+            var rules=RulesFor(source.gameObject);
+            var profile=BashProfile(held.kind);
+            if (bash)
+            {
+                var movement=source.gameObject.GetComponent<IMovementState>();
+                if (movement?.Climbing==true || movement?.Vaulting==true || movement?.InputPaused==true ||
+                    held.triggerHeld || held.reloadRemaining>0 ||
+                    weaponCooldown.TryGetValue(id,out float shotReady) && Time.time<shotReady) return false;
+                if (Physics.Linecast(source.ViewPose.position,origin,(1<<Layers.Block)|(1<<Layers.Surface)|1,
+                    QueryTriggerInteraction.Ignore)) return false;
+            }
+            p.nextPunch=Time.time+(bash?Mathf.Max(profile.cooldown,rules.punchCooldown):rules.punchCooldown);direction.Normalize();
             AnnounceMysteryStrike(id);
-            if(held.roleIssued&&held.drawn)AnnounceEquipment(id,held,EquipmentAction.Shot,origin);
+            if(held.roleIssued&&held.drawn&&!bash)AnnounceEquipment(id,held,EquipmentAction.Shot,origin);
             var enemy=source.gameObject.GetComponent<IEnemyActor>();
-            IModeActor target=null;float nearest=enemy?.IsEnemy==true&&enemy.ArchetypeId=="longhand"?3.4f:2.2f;
+            IModeActor target=null;float nearest=bash?profile.range:enemy?.IsEnemy==true&&enemy.ArchetypeId=="longhand"?3.4f:2.2f;
             foreach(var pair in actors)
             {
                 if(pair.Key==id)continue;
@@ -39,14 +53,18 @@ namespace DeadlyJenga.Modes
                 if(Physics.Raycast(origin,delta/distance,out var hit,distance,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore))continue;
                 target=other;nearest=distance;
             }
+            if (bash)
+            {
+                var endpoints=target==null?Array.Empty<Vector3>():new[]{target.transform.position+Vector3.up*.6f};
+                AnnounceEquipment(id,held,EquipmentAction.Bash,origin,endpoints);
+            }
             if(target==null)return true;
             string targetId=actorIds[target.gameObject];
             if(simulation.Shielded(targetId,direction))return true;
-            var rules=RulesFor(source.gameObject);
-            float distanceScale=rules.punchDistance;
+            float distanceScale=rules.punchDistance*(bash?profile.push:1);
             var push=Vector3.ProjectOnPlane(direction,Vector3.up).normalized*Mathf.Sqrt(2*9.81f*Mathf.Max(0,distanceScale))*.65f+Vector3.up*.8f;
-            float damage=rules.healthEnabled?rules.punchDamage:0;
-            if(source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(id,targetId,ref damage))return true;
+            float damage=rules.healthEnabled?rules.punchDamage*(bash?profile.damage/18f:1):0;
+            if(source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(id,targetId,ref damage,bash))return true;
             var targetState=simulation.Find(targetId);
             if(!rules.friendlyFire && (p.frame.team>=0&&p.frame.team==targetState?.frame.team || p.frame.role=="infected"&&targetState?.frame.role=="infected"))damage=0;
             if(target.IsLocal||target.IsBot)
@@ -70,13 +88,16 @@ namespace DeadlyJenga.Modes
         }
         public void ReceiveAdminCommand(string sender,string command)
         {
-            if(!Authority||Rules.mode!=GameModeKind.Demo||string.IsNullOrEmpty(command)||command.Length>8192)return;
-            if(command=="start"){StartRound();return;}
+            var experience=RoomGameExperience.ForManagedMatch(session);
+            if(experience)return; // Game commands require the versioned room channel.
+            if(!SessionDevelopmentPolicy.CanExecutePeer(session,sender)||string.IsNullOrEmpty(command)||command.Length>8192)return;
+            if(command=="start"){StartRoundAuthoritative();return;}
             if(command.StartsWith("hand:")){if(float.TryParse(command.Substring(5),System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out float time)&&!float.IsNaN(time)&&!float.IsInfinity(time))simulation.HandPower(sender,Mathf.Clamp(time,1,120));return;}
-            if(command.StartsWith("configure:"))try{var rules=JsonUtility.FromJson<ModeRules>(command.Substring(10));if(rules!=null&&rules.mode==GameModeKind.Demo)Configure(rules);}catch{}
+            if(command.StartsWith("configure:"))try{var rules=JsonUtility.FromJson<ModeRules>(command.Substring(10));if(rules!=null)ConfigureDevelopmentAuthorized(rules);}catch{}
         }
         void OnEliminated(string id,EliminationOutcome outcome)
         {
+            if(CuratedActorDeferred(id))return;
             var deadActor=FindActor(id);if(deadActor!=null)DropEquipment(id,deadActor.transform.position);
             if(corpseDeaths.Contains(id)){ApplyOutcome(id,outcome);return;}
             if(outcome==EliminationOutcome.FlyingHand){ApplyOutcome(id,outcome);return;}
@@ -93,6 +114,7 @@ namespace DeadlyJenga.Modes
         }
         void ApplyOutcome(string id,EliminationOutcome outcome)
         {
+            if(CuratedActorDeferred(id))return;
             var enemy=FindActor(id)?.gameObject.GetComponent<IEnemyActor>();if(enemy?.IsEnemy==true){enemy.Despawn();return;}
             CaptureStats();
             if(id!=LocalActorId&&connectedHumans.Contains(id)){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,outcome);return;}
@@ -101,14 +123,15 @@ namespace DeadlyJenga.Modes
             if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
             if(id==LocalActorId)
             {
-                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRole(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
+                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
                 if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
-                if(session.PlayingHand)session.SetRole(false);
+                if(session.PlayingHand)session.SetRoleForMode(false);
             }
             Respawn(id,simulation.Find(id)?.frame.role??"survivor");CaptureStats();
         }
         void Respawn(string id,string role)
         {
+            if(CuratedActorDeferred(id))return;
             var actor=FindActor(id);var p=simulation.Find(id);if(actor==null||p==null)return;
             if(id!=LocalActorId&&!actor.IsBot){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);return;}
             int ordinal=ParticipantOrdinal(p);
@@ -154,10 +177,11 @@ namespace DeadlyJenga.Modes
         }
         public void ApplyRemoteOutcome(EliminationOutcome outcome,Vector3 spawn,Quaternion rotation,string role)
         {
+            if(CuratedActorDeferred(LocalActorId))return;
             if(Authority||session==null)return;
-            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRole(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
+            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
             if(outcome==EliminationOutcome.Spectator)return;
-            if(session.PlayingHand)session.SetRole(false);
+            if(session.PlayingHand)session.SetRoleForMode(false);
             session.Player.Place(spawn,rotation);
         }
         void OnPhase(RoundPhase phase)

@@ -7,8 +7,42 @@ namespace DeadlyJenga.CandyPlayers
     // the existing tracked joints remain the deformation bones. No voxel work occurs during tracking.
     public static class CandySmoothHandMesh
     {
+        static readonly Dictionary<(Mesh,int,int),Mesh> separatedWeights=new();
+        internal static Mesh SeparateDigitWeights(Mesh source,int firstFingerBone,int digitCount)
+        {
+            if(!source||!source.isReadable)return source;
+            var key=(source,firstFingerBone,digitCount);
+            if(separatedWeights.TryGetValue(key,out var cached)&&cached)return cached;
+            int Digit(int bone)=>bone>=firstFingerBone&&bone<firstFingerBone+digitCount*3?(bone-firstFingerBone)/3:-1;
+            var weights=source.boneWeights;
+            bool changed=false;
+            for(int i=0;i<weights.Length;i++)
+            {
+                var w=weights[i];
+                int chosen=-1;
+                if(w.weight0>0&&Digit(w.boneIndex0)>=0)chosen=Digit(w.boneIndex0);
+                else if(w.weight1>0&&Digit(w.boneIndex1)>=0)chosen=Digit(w.boneIndex1);
+                else if(w.weight2>0&&Digit(w.boneIndex2)>=0)chosen=Digit(w.boneIndex2);
+                else if(w.weight3>0&&Digit(w.boneIndex3)>=0)chosen=Digit(w.boneIndex3);
+                if(chosen<0)continue;
+                var result=new BoneWeight();int count=0;float total=0;
+                void Keep(int bone,float weight)
+                {
+                    if(weight<=0)return;
+                    int digit=Digit(bone);
+                    if(digit>=0&&digit!=chosen){changed=true;return;}
+                    switch(count++){case 0:result.boneIndex0=bone;result.weight0=weight;break;case 1:result.boneIndex1=bone;result.weight1=weight;break;case 2:result.boneIndex2=bone;result.weight2=weight;break;default:result.boneIndex3=bone;result.weight3=weight;break;}
+                    total+=weight;
+                }
+                Keep(w.boneIndex0,w.weight0);Keep(w.boneIndex1,w.weight1);Keep(w.boneIndex2,w.weight2);Keep(w.boneIndex3,w.weight3);
+                if(total>0){result.weight0/=total;result.weight1/=total;result.weight2/=total;result.weight3/=total;weights[i]=result;}
+            }
+            if(!changed){separatedWeights[key]=source;return source;}
+            var mesh=Object.Instantiate(source);mesh.name=source.name+" (isolated digit weights)";mesh.boneWeights=weights;
+            separatedWeights[key]=mesh;return mesh;
+        }
         struct Segment {public Vector3 a,b;public float radius;public int bone;}
-        public static Mesh Build(Transform root,Transform[] bones,int side,CandyHandSkeleton? reference=null,float fingerRadius=.0085f,float blend=.0035f,float palmLength=.03f)
+        public static Mesh Build(Transform root,Transform[] bones,int side,CandyHandSkeleton? reference=null,float fingerRadius=.0077f,float blend=.0024f,float palmLength=.03f)
         {
             int palm=side==0?4:7;var skeleton=reference??CandyHandSkeleton.Rest(side==0);
             var segments=new List<Segment>();

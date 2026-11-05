@@ -5,7 +5,7 @@ using DeadlyJenga.CandyAudio;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // World-space menu is visible in both eyes; gaze + trigger requires no mouse in VR.
+    // World-space menu supports right-controller aim and gaze with a right pinch.
     // Every action and value goes through Core (ISessionInfo and its Demo, Social and Multiplayer controls).
     public sealed partial class CastleWorldMenu : MonoBehaviour
     {
@@ -14,39 +14,43 @@ namespace DeadlyJenga.CastlePrototype
         IDemoControls Demo=>session.Demo;
         bool DemoMode=>Demo!=null&&(Demo.DemoMode||Demo.CanCommand);
         bool CanCommand=>Demo!=null&&Demo.CanCommand;
-        Vector3 openingForward;
         readonly Button[] buttons = new Button[15];
         readonly BoxCollider[] targets = new BoxCollider[15];
         readonly Text[] labels = new Text[15];
-        bool networkPage,comfortPage,tuningPage,disasterPage,modePage;
+        readonly RoomLeaveConfirmation roomLeave=new RoomLeaveConfirmation();
+        bool networkPage,comfortPage,tuningPage,disasterPage,modePage,handPhysicsPage;
         string disasterStatus=string.Empty;
         int disasterOffset;
         int socialSelection;bool socialMuted;
         Text heading,help;
+        RawImage[] sectionGlyphs;
+        bool sectionGlyphsActive;
         readonly CandyHudIcon[] icons={CandyHudIcon.Play,CandyHudIcon.Hand,CandyHudIcon.Home,CandyHudIcon.Home,CandyHudIcon.Survivor,CandyHudIcon.Friends,CandyHudIcon.Settings,CandyHudIcon.Survivor,CandyHudIcon.Hand,CandyHudIcon.Settings,CandyHudIcon.Hand,CandyHudIcon.Friends};
         readonly string[] explanations={"Return to the action.","Swap between surviving and flying as a giant hand.","Return to the highest upright block as a survivor.","Restore the castle. Only the host can rebuild.","Add a survivor with the selected personality.","Fill empty survivor slots, including human players.","Choose the personality used by the next survivor.","Remove survivor bots and stop automatic filling.","Add an AI giant hand using the current hand prefab.","Choose the next giant hand's personality.","Remove AI hands; keep the human players.","Find nearby players and manage invitations."};
         public void Build(ISessionInfo owner)
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1040); transform.localScale = Vector3.one * .0018f;
+            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1080); transform.localScale = Vector3.one * .002f;
+            sectionGlyphs=new RawImage[buttons.Length];
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.color = CandyHudVisuals.Ink;
-            heading=Text("DEADLY JENGA / DEMO\nLook at a button  /  RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
-            help=Text("Left Y closes  /  Hand tracking: left thumb + middle opens / closes",new Vector2(0,-480),new Vector2(550,65),19);help.color=CandyHudVisuals.Muted;
+            heading=Text("DEADLY JENGA / DEMO\nAim at a button  /  RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
+            help=Text("Y / native: Menu  |  Right-only: Grip+B (B closes)\nLeft thumb + middle: Menu",new Vector2(0,-480),new Vector2(550,65),19);help.color=CandyHudVisuals.Muted;
             string[] titles = { "Resume", "Switch survivor / flying hand", "Respawn on top", "Rebuild castle", "Spawn AI survivor", "Fill to 10 players", "NPC personality: Balanced", "Clear survivors / stop auto-fill", "Spawn AI giant hand", "Hand personality: Playful", "Clear AI hands", "Local multiplayer / invites", "VR movement / turning", "Host stamina / audio", "Natural disasters" };
             for (int i = 0; i < buttons.Length; i++)
             {
                 var go = new GameObject(titles[i], typeof(RectTransform), typeof(Image), typeof(Button), typeof(BoxCollider));
                 go.transform.SetParent(transform, false);
-                var r = go.GetComponent<RectTransform>(); r.sizeDelta = new Vector2(540, 46); r.anchoredPosition = new Vector2(0, 277 - i * 50);
+                var r = go.GetComponent<RectTransform>(); r.sizeDelta = new Vector2(540, 48); r.anchoredPosition = new Vector2(0, 277 - i * 50);
                 buttons[i] = go.GetComponent<Button>(); buttons[i].image.color = CandyHudVisuals.Card;buttons[i].image.sprite=CandyHudVisuals.Pill;buttons[i].image.type=Image.Type.Sliced;
                 targets[i] = go.GetComponent<BoxCollider>(); targets[i].size = new Vector3(540, 46, 4); targets[i].isTrigger = true;
                 var label = Text(titles[i], Vector2.zero, new Vector2(472,46), 21); labels[i]=label;label.transform.SetParent(go.transform, false);
                 label.rectTransform.anchoredPosition = new Vector2(20,0);
-                var glyph=new GameObject("Candy menu icon",typeof(RectTransform),typeof(RawImage));glyph.transform.SetParent(go.transform,false);var image=glyph.GetComponent<RawImage>();image.texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);image.color=CandyHudVisuals.Lavender;image.raycastTarget=false;image.rectTransform.sizeDelta=new Vector2(27,27);image.rectTransform.anchoredPosition=new Vector2(-243,0);
+                var glyph=new GameObject("Candy menu icon",typeof(RectTransform),typeof(RawImage));glyph.transform.SetParent(go.transform,false);var image=glyph.GetComponent<RawImage>();sectionGlyphs[i]=image;image.texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);image.color=CandyHudVisuals.Lavender;image.raycastTarget=false;image.rectTransform.sizeDelta=new Vector2(27,27);image.rectTransform.anchoredPosition=new Vector2(-243,0);
             }
             BuildScaffoldButton();
             BuildMapControls();
+            BuildNavigation();
             gameObject.SetActive(false);
         }
         Slider CreateDisasterSlider(string name,out Text caption,out BoxCollider hit)
@@ -62,9 +66,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool PointWaveSlider(Ray ray,Slider slider,BoxCollider collider,bool pressed)
         {
-            if(!slider.gameObject.activeSelf||!slider.interactable||!collider.Raycast(ray,out var hit,4))return false;
-            if(pressed){float t=Mathf.InverseLerp(-250,250,slider.transform.InverseTransformPoint(hit.point).x);slider.value=Mathf.Lerp(slider.minValue,slider.maxValue,t);}
-            help.text="Next launch only  /  look along the slider and hold trigger / pinch to adjust";return true;
+            if(!slider.gameObject.activeSelf||!slider.interactable||!Hit(collider,ray,out var point))return false;
+            if(pressed){float t=Mathf.InverseLerp(-250,250,slider.transform.InverseTransformPoint(point).x);slider.value=Mathf.Lerp(slider.minValue,slider.maxValue,t);}
+            help.text="Next launch only  /  aim along the slider and hold trigger / pinch to adjust";return true;
         }
         Text Text(string value, Vector2 position, Vector2 size, int fontSize)
         {
@@ -75,16 +79,19 @@ namespace DeadlyJenga.CastlePrototype
             text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Truncate;
             text.rectTransform.sizeDelta = size; text.rectTransform.anchoredPosition = position; return text;
         }
-        public void Show(bool show, Camera camera)
+        void PointPage(Camera camera, bool pressed,bool held)
         {
-            gameObject.SetActive(show);
-            if (!show) return;
-            openingForward = camera.transform.forward;
-            transform.SetPositionAndRotation(camera.transform.position + camera.transform.forward * 1.6f, camera.transform.rotation);
-            Physics.SyncTransforms();
-        }
-        public void Point(Camera camera, bool pressed,bool held=false)
-        {
+            string code=MultiplayerPanel.JoinCode(session.Multiplayer);
+            joinCodeLabel.text=code.Length>0?"JOIN CODE  "+code:"";
+            exitLabel.text=MultiplayerPanel.LobbyAction(session.Multiplayer);
+            if(sectionGlyphsActive)
+            {
+                sectionGlyphsActive=false;
+                for(int i=0;i<sectionGlyphs.Length;i++)
+                    sectionGlyphs[i].texture=CandyHudVisuals.Icon(i<icons.Length?icons[i]:CandyHudIcon.Settings);
+            }
+            if(!tuningPage)handPhysicsPage=false;
+            if(PointNavigation(pressed))return;
             if(PointMapControls(camera,pressed))return;
             if(giveEquipmentPage){PointGiveEquipmentPage(camera,pressed);return;}
             if(randomPowerupPage){PointRandomPowerups(camera,pressed);return;}
@@ -99,31 +106,42 @@ namespace DeadlyJenga.CastlePrototype
             var net=session.Multiplayer;
             bool watching=false;var match=MatchRuntime.Current;if(match?.Frame!=null)foreach(var row in match.Frame.players)if(row.id==match.LocalActorId&&row.role=="spectator")watching=true;
             var active=session.PlayingHand?session.Hand:session.Player;bool trackedHands=active!=null&&active.HasHandTracking;
-            string select=trackedHands?"Look at a button  /  RIGHT pinch to select":"Look at a button  /  RIGHT trigger to select";
+            string select=trackedHands?"Aim at a button  /  RIGHT pinch to select":"Aim at a button  /  RIGHT trigger to select";
             heading.text=networkPage?"MULTIPLAYER\n"+(net!=null?net.Status:"Finding nearby demos..."):"DEADLY JENGA\n"+select;
-            for(int j=0;j<buttons.Length;j++){var r=(RectTransform)buttons[j].transform;r.anchoredPosition=new Vector2(0,277-j*50);r.sizeDelta=new Vector2(540,46);}
+            for(int j=0;j<buttons.Length;j++){var r=(RectTransform)buttons[j].transform;r.anchoredPosition=new Vector2(0,277-j*50);r.sizeDelta=new Vector2(540,48);}
             if (networkPage && net!=null && net.IsFusion)
             {
                 for (int j = 0; j < buttons.Length; j++) buttons[j].gameObject.SetActive(j == 0 || j == 6 || j == 11 || j==1 || j==2);
                 labels[1].text="Demo controls: "+(net.SharedControls?"EVERYONE":"HOST ONLY");targets[1].enabled=net.CanToggleSharedControls;
                 labels[2].text="Invite everyone on Wi-Fi";targets[2].enabled=net.CanInviteNearby;
-                labels[0].text = "Resume"; labels[6].text = net.IsClient ? "Leave game" : "Leave / transfer host"; labels[11].text = "Back";
+                buttons[5].gameObject.SetActive(!string.IsNullOrEmpty(net.DiscoveryStatus));labels[5].text=net.DiscoveryStatus;targets[5].enabled=false;
+                labels[0].text = "Resume"; labels[6].text = net.IsClient ? (roomLeave.Pending(net,MultiplayerPanel.JoinCode(net),Time.unscaledTime)?"Confirm leave · disconnect from host":"Leave room") : "Leave / transfer host"; labels[11].text = "Back";
                 bool invitation=net.InvitationFrom.Length>0;
                 buttons[3].gameObject.SetActive(invitation);buttons[4].gameObject.SetActive(invitation);
                 labels[3].text=invitation?"Invite: "+net.InvitationFrom:"";targets[3].enabled=false;
                 labels[4].text="Dismiss invite  /  leave room to accept";targets[4].enabled=invitation;
-                targets[0].enabled = targets[6].enabled = targets[11].enabled = true;
+                targets[0].enabled=targets[11].enabled=true;targets[6].enabled=net.CanLeave;
             }
             else if(tuningPage&&Settings!=null)
             {
                 var rules=Settings.CurrentRules;var audio=CandyAudioEngine.Instance;
-                string[] titles={"Resume","Grip capacity: "+rules.gripSeconds.ToString("F1")+" s  (+)","Grip capacity  (-)","Drain: "+rules.drainRate.ToString("F2")+" / s  (cycle)","Recovery: "+rules.recoveryRate.ToString("F2")+" / s  (cycle)","Recovery delay: "+rules.recoveryDelay.ToString("F2")+" s  (cycle)","Drain curve: "+rules.drainCurve,"Recovery curve: "+rules.recoveryCurve,"Drain degree: "+rules.drainDegree.ToString("F1"),"Recovery degree: "+rules.recoveryDegree.ToString("F1"),"Master volume: "+(audio&&audio.bank?audio.bank.master.ToString("P0"):"unavailable"),"Music volume: "+(audio&&audio.bank?audio.bank.music.ToString("P0"):"unavailable"),"Back to demo controls","Preview sound"};
+                if(handPhysicsPage)
+                {
+                    float force=rules.handPhysics?.forceNewtons??3000,friction=rules.handPhysics?.friction??1.8f;
+                    string[] handTitles={"Resume","Hand drive force: "+force.ToString("0")+" N","Drive -100 N","Drive +100 N","Drive -1000 N","Drive +1000 N","Drive 0 N","Drive 100 N","Drive 300 N","Drive 1000 N","Drive 3000 N","Contact friction: "+friction.ToString("0.00"),"Back to tuning","Friction +0.1 / cycle","Reset: 3000 N / friction 1.8"};
+                    for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);labels[i].text=handTitles[i];targets[i].enabled=i==0||i==12||(CanCommand&&i!=1&&i!=11);}
+                    help.text="Drive budget, not total impact force. Zero disables drive, not existing momentum.";
+                }
+                else
+                {
+                string[] titles={"Resume","Grip capacity: "+rules.gripSeconds.ToString("F1")+" s  (+)","Grip capacity  (-)","Drain: "+rules.drainRate.ToString("F2")+" / s  (cycle)","Recovery: "+rules.recoveryRate.ToString("F2")+" / s  (cycle)","Recovery delay: "+rules.recoveryDelay.ToString("F2")+" s  (cycle)","Drain curve: "+rules.drainCurve,"Recovery curve: "+rules.recoveryCurve,"Drain degree: "+rules.drainDegree.ToString("F1"),"Recovery degree: "+rules.recoveryDegree.ToString("F1"),"Master volume: "+(audio&&audio.bank?audio.bank.master.ToString("P0"):"unavailable"),"Music volume: "+(audio&&audio.bank?audio.bank.music.ToString("P0"):"unavailable"),"Back to demo controls","Preview sound","Flying hand drive / friction"};
                 for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(i<titles.Length);if(i<titles.Length){labels[i].text=titles[i];targets[i].enabled=i==0||i>=10||session.CanEditWorld;}}
+                }
             }
             else if(comfortPage&&Settings!=null)
             {
                 var p=Settings;var social=session.Social;
-                string[] titles={"Resume","Movement: "+p.MovementLabel,"Right stick: "+p.TurnLabel,p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+" deg / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Left stick moves in both modes","Physical head turns always look around","Seated: A jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
+                string[] titles={"Resume","Movement: "+p.MovementLabel,"Look: "+p.TurnLabel+" (single stick: hold grip)",p.StandingPlay?"Jump gesture: "+p.JumpGestureLabel:"Recalibrate seated eye height","Smooth speed: "+p.SmoothTurnSpeed+" deg / sec","Seated / smooth turn"+(!p.StandingPlay?" (active)":""),"Standing / physical turn"+(p.StandingPlay?" (active)":""),"Dominant stick moves. Other stick looks.","Physical head turns always look around","Dominant lower face button jumps; hold to climb","Standing jump: "+p.JumpGestureLabel,"Tap to jump; hold to climb; release to drop","Back to demo controls"};
                 if(social!=null)
                 {
                     titles[7]=social.MicrophoneOn?"Mute microphone":"Enable microphone (permission)";
@@ -138,7 +156,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 foreach(var button in buttons)button.gameObject.SetActive(true);
                 string[] titles={"Resume","Nearby: "+net.SelectedName+" (next)","Request to join selected demo","Invite selected demo here","Accept invite / join request","Decline invite / join request","Leave / end local session",net.PendingLabel,net.IsClient?"Connected to host":"Hosting  /  "+net.HumanCount+" humans","Open this page on both headsets","No restart needed to join","Back to demo controls"};
+                if(net.IsClient)titles[6]=roomLeave.Pending(net,MultiplayerPanel.JoinCode(net),Time.unscaledTime)?"Confirm leave - disconnect from host":"Leave local session";
                 for(int i=0;i<labels.Length;i++){labels[i].text=i<titles.Length?titles[i]:"";targets[i].enabled=i<titles.Length;}
+                targets[6].enabled=net.CanLeave;
                 if(titles.Length<buttons.Length)buttons[titles.Length].gameObject.SetActive(false);
             }
             else
@@ -154,21 +174,34 @@ namespace DeadlyJenga.CastlePrototype
                     if(shown)targets[i].enabled=true;
                 }
             }
-            // Follow locomotion without following head rotation, so gaze can travel between buttons.
-            transform.position = camera.transform.position + openingForward * 1.6f;
-            Physics.SyncTransforms();
-            var ray = new Ray(camera.transform.position, camera.transform.forward);
+            
+            var ray = pointerRay;
             bool pointed=false;
             for (int i = 0; i < buttons.Length; i++)
             {
                 if(!buttons[i].gameObject.activeSelf||!targets[i].enabled)continue;
-                bool hover = targets[i].Raycast(ray, out _, 4);
+                bool hover = Hit(targets[i],ray);
                 buttons[i].image.color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;
                 labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
                 if(hover){pointed=true;help.text=networkPage||comfortPage||i>=explanations.Length?select:explanations[i]+"\n"+select;
                     }
                 if (!hover || !pressed) continue;
                 if(watching&&!networkPage&&!comfortPage&&!tuningPage&&(i==1||i==2)){match.NextSpectator(i==1?-1:1);session.SetMenu(false);break;}
+                if(tuningPage&&handPhysicsPage)
+                {
+                    if(i==0){session.SetMenu(false);break;}
+                    if(i==12){handPhysicsPage=false;break;}
+                    if(!CanCommand||Settings==null)break;
+                    var physics=Settings.CurrentRules.handPhysics;
+                    float force=physics?.forceNewtons??3000,friction=physics?.friction??1.8f;
+                    if(i==2)force-=100;if(i==3)force+=100;if(i==4)force-=1000;if(i==5)force+=1000;
+                    if(i==6)force=0;if(i==7)force=100;if(i==8)force=300;if(i==9)force=1000;if(i==10)force=3000;
+                    if(i==13)friction=friction>=1.99f?0:Mathf.Min(2,Mathf.Round((friction+.1f)*10)/10);
+                    if(i==14){force=3000;friction=1.8f;}
+                    SurvivorSettingsPanel.SetHandPhysics(Settings,force,friction,CanCommand,Demo.ApplyStaminaRules);
+                    break;
+                }
+                if(i==14&&tuningPage){handPhysicsPage=true;break;}
                 if(i==14){powerupPage=true;networkPage=comfortPage=tuningPage=false;break;}
                 if(i==12){if(tuningPage){tuningPage=false;comfortPage=false;}else comfortPage=!comfortPage;networkPage=false;break;}
                 if(tuningPage)
@@ -216,17 +249,17 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     break;
                 }
-                if(i==11){networkPage=!networkPage;break;}
+                if(i==11){networkPage=!networkPage;roomLeave.Clear();break;}
                 if(networkPage)
                 {
                     if(i==0)session.SetMenu(false);
-                    if(net.IsFusion){if(i==1)net.ToggleSharedControls();if(i==2)net.InviteNearby();if(i==4)net.DismissInvitation();if(i==6)net.LeaveSession();break;}
+                    if(net.IsFusion){if(i==1)net.ToggleSharedControls();if(i==2)net.InviteNearby();if(i==4)net.DismissInvitation();if(i==6&&net.CanLeave&&roomLeave.Select(net,MultiplayerPanel.JoinCode(net),net.IsClient,Time.unscaledTime))net.LeaveSession();break;}
                     if(i==1)net.NextNearby();
                     if(i==2)net.RequestSelected();
                     if(i==3)net.InviteSelected();
                     if(i==4)net.AcceptPending();
                     if(i==5)net.DeclinePending();
-                    if(i==6)net.LeaveSession();
+                    if(i==6&&net.CanLeave&&roomLeave.Select(net,MultiplayerPanel.JoinCode(net),net.IsClient,Time.unscaledTime))net.LeaveSession();
                     break;
                 }
                 if(i>=3&&!session.CanEditWorld&&!CanCommand)break;
@@ -243,7 +276,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(i>=4)break;
                 session.SetMenu(false); break;
             }
-            if(!pointed)help.text="LOOK to highlight  /  "+(trackedHands?"RIGHT pinch selects\nLeft thumb + middle opens / closes":"RIGHT trigger selects\nY  /  LEFT opens / closes");
+            if(!pointed)help.text="AIM to highlight  /  "+(trackedHands?"RIGHT pinch selects\nLeft thumb + middle opens / closes":"RIGHT trigger selects\nY  /  LEFT opens / closes");
         }
     }
 }

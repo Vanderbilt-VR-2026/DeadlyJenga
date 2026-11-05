@@ -38,7 +38,7 @@ namespace DeadlyJenga.CastlePrototype
             int count=Demo!=null?Demo.DisasterCount:0;bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
-            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(540,46);}
+            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(540,48);}
             ButtonAt(0,"Resume",277);
             if(disasterSelection>=count)disasterSelection=-1;
             if(disasterSelection<0)
@@ -63,14 +63,14 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 ButtonAt(10,"Stop all disasters",-355,allowed);ButtonAt(12,"Back to disasters",-415);
             }
-            transform.position=camera.transform.position+openingForward*1.6f;Physics.SyncTransforms();
-            var ray=new Ray(camera.transform.position,camera.transform.forward);
-            for(int i=0;i<disasterSliders.Length;i++)if(PointWaveSlider(ray,disasterSliders[i],disasterHits[i],pressed||held)){help.text="Look along slider · hold RIGHT trigger / pinch";return;}
+            
+            var ray=pointerRay;
+            for(int i=0;i<disasterSliders.Length;i++)if(PointWaveSlider(ray,disasterSliders[i],disasterHits[i],pressed||held)){help.text="Aim along slider · hold RIGHT trigger / pinch";return;}
             help.text=Demo!=null&&Demo.Status.Length>0?Demo.Status:!string.IsNullOrEmpty(disasterStatus)?disasterStatus:allowed?"RIGHT trigger / pinch selects · Stop all clears temporary effects":"The host controls disasters unless shared controls are enabled.";
             for(int i=0;i<buttons.Length;i++)
             {
-                if(!buttons[i].gameObject.activeSelf||!targets[i].enabled)continue;
-                bool hover=targets[i].Raycast(ray,out _,4);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
+                if(!buttons[i].gameObject.activeSelf)continue;
+                bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:Color.white;
                 if(!hover||!pressed)continue;
                 if(i==0)session.SetMenu(false);
                 else if(i==10)Demo?.Run(DemoCommand.StopDisasters);

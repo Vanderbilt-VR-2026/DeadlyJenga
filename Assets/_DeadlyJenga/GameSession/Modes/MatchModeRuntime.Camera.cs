@@ -9,6 +9,7 @@ namespace DeadlyJenga.Modes
     public sealed partial class MatchModeRuntime
     {
         Camera modeCamera;
+        Transform modeWatchedRoot;
         bool wasOverride;
         Pose deathPose;
         Quaternion headNeutral;
@@ -32,13 +33,15 @@ namespace DeadlyJenga.Modes
         void LateUpdate(){TickCamera();}
         void TickCamera()
         {
+            modeWatchedRoot = null;
             if(session&&session.VisitingLobby){if(modeCamera)modeCamera.enabled=false;OverrideCamera=null;return;}
             if(DemoSpectating){TickDemoSpectator();return;}
             if(session==null||!NetworkActors.Alive(session.Player)||frame.players==null)return;
             MatchPlayerFrame self=null;foreach(var row in frame.players)if(row.id==LocalActorId){self=row;break;}
             var source=session.Player.ViewCamera;
             bool waterOccluded=!session.PlayingHand&&self!=null&&self.alive&&self.role!="hand"&&frame.phase==RoundPhase.Playing&&source&&Services.World!=null&&source.transform.position.y<=Services.World.WaterHeight(source.transform.position)+.25f;
-            bool use=!session.PlayingHand&&self!=null&&(self.dying||self.role=="spectator"||waterOccluded);
+            bool curatedDeferred=DeadlyJenga.CastlePrototype.RoomGameExperience.ForManagedMatch(session)?.HoldsLocalParticipant(session)==true;
+            bool use=(!session.PlayingHand||curatedDeferred)&&self!=null&&(self.dying||self.role=="spectator"||waterOccluded);
             if(!use)
             {
                 OverrideCamera=null;
@@ -73,6 +76,7 @@ namespace DeadlyJenga.Modes
                 {
                     var live=FindActor(watched.id);
                     pose=live!=null?live.ViewPose:new Pose(watched.viewPosition,watched.viewRotation);
+                    modeWatchedRoot = FindParticipantRoot(watched.id);
                     if(live==null&&wasOverride){float blend=1-Mathf.Exp(-18*Time.unscaledDeltaTime);pose.position=Vector3.Lerp(modeCamera.transform.position,pose.position,blend);pose.rotation=Quaternion.Slerp(modeCamera.transform.rotation,pose.rotation,blend);}
                 }
                 else if(Services.World!=null)

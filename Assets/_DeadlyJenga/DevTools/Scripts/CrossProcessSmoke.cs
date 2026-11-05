@@ -52,6 +52,63 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(!done)Finish(!File.ReadAllText(Report).Contains("ERROR "),"Separate-process multiplayer run");
         }
+        bool ProbePoses => Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
+        const System.Reflection.BindingFlags PrivateField =
+            System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+
+        IEnumerator CheckPoseCadence(CastlePlaySession session, CastleFusionSession sync)
+        {
+            bool host = role == "host";
+            object peer = null;
+            System.Reflection.FieldInfo waiting = null;
+            Func<float> latest;
+            if (host)
+            {
+                var peers = (System.Collections.IDictionary)typeof(CastleFusionSession)
+                    .GetField("peers", PrivateField).GetValue(sync);
+                peer = peers.Values.Cast<object>().Single();
+                waiting = peer.GetType().GetField("waiting");
+                var lastPose = peer.GetType().GetField("lastPose");
+                latest = () => (float)lastPose.GetValue(peer);
+                yield return Until(() => File.Exists(Mark("pose-ready")), "Guest is ready to sample poses");
+                waiting.SetValue(peer, int.MaxValue);
+                File.WriteAllText(Mark("pose-hold"), "World acknowledgments held by test");
+            }
+            else
+            {
+                var poses = (Dictionary<string, float>)typeof(CastleLanSession)
+                    .GetField("livePoseAt", PrivateField).GetValue(session.Network);
+                latest = () => poses.Values.DefaultIfEmpty(0).Max();
+                File.WriteAllText(Mark("pose-ready"), "ready");
+                yield return Until(() => File.Exists(Mark("pose-hold")), "Host deliberately holds world sends");
+            }
+
+            float start = Time.unscaledTime, previous = latest(), maxGap = 0;
+            int count = 0;
+            try
+            {
+                while (Time.unscaledTime - start < 2f)
+                {
+                    float current = latest();
+                    if (current > previous)
+                    {
+                        maxGap = Mathf.Max(maxGap, current - Mathf.Max(previous, start));
+                        previous = current;
+                        count++;
+                    }
+                    yield return null;
+                }
+                maxGap = Mathf.Max(maxGap, Time.unscaledTime - Mathf.Max(previous, start));
+                if (host) Require((int)waiting.GetValue(peer) == int.MaxValue, "World stream stayed held throughout pose sample");
+                File.AppendAllText(Report, $"POSE cadence samples={count} maxGapSeconds={maxGap:F3}\n");
+                Require(count >= 15 && maxGap < .5f, "Fresh human poses continue while world snapshot delivery is held");
+            }
+            finally
+            {
+                if (host) waiting.SetValue(peer, 0);
+            }
+        }
+
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
@@ -66,6 +123,12 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(()=>FindFirstObjectByType<CastlePlaySession>(),"Host transitions lobby to Castle Demo");
                 var session=FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);
                 yield return Until(()=>session.Network.HumanCount==2,"Guest completes castle snapshot handshake");
+                if (ProbePoses)
+                {
+                    yield return CheckPoseCadence(session, session.GetComponent<CastleFusionSession>());
+                    yield return Until(() => File.Exists(Mark("pose-done")), "Guest completes pose measurement");
+                    yield break;
+                }
                 yield return Until(()=>session.SurvivorBots.Count==1,"Guest shared-control command creates exactly one authoritative AI");
                 Require(session.GetComponent<SocialWorld>().IsAuthority,"Host retains AI voice authority with shared UI");
                 Require(DemoDisasters.Execute(session,"Tsunami"),"Host triggers network tsunami");
@@ -84,6 +147,12 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(()=>FindFirstObjectByType<CastlePlaySession>()&&FindFirstObjectByType<CastlePlaySession>().Network&&!FindFirstObjectByType<CastlePlaySession>().Network.WaitingForWorld,"Guest transitions and receives castle snapshot",65);
                 var session=FindFirstObjectByType<CastlePlaySession>();session.SetMenu(true);var sync=session.GetComponent<CastleFusionSession>();
                 yield return Until(()=>sync.CanUseDemoControls,"Shared Demo powers arrive on independent guest");
+                if (ProbePoses)
+                {
+                    yield return CheckPoseCadence(session, sync);
+                    File.WriteAllText(Mark("pose-done"), "done");
+                    yield break;
+                }
                 Require(!session.GetComponent<SocialWorld>().IsAuthority,"Shared UI does not create a second AI voice authority");
                 Require(Services.World.Blocks.All(b=>b&&b.isKinematic),"Independent guest has replica-only block physics");
                 CastleDemoCommands.Run(session,CastleDemoAction.AddSurvivor);

@@ -48,10 +48,18 @@ namespace DeadlyJenga.Core
         bool TryStandOn(Rigidbody block, float sideways, out Vector3 spot);   // a safe spot on top of a block
     }
 
+    [Serializable]
+    public sealed class HandPhysicsRules
+    {
+        public float forceNewtons = 3000;
+        public float friction = 1.8f;
+    }
+
     // Lobby choices for the local survivor. Option names come from MatchOptions.
     [Serializable]
     public sealed class MatchRules
     {
+        public HandPhysicsRules handPhysics;
         public string movement = "HeadRelative", turn = "Snap", drainCurve = "Linear", recoveryCurve = "Linear";
         public string playStyle = "";   // "Seated" or "Standing"; empty keeps this device's saved choice
         public float snapAngle = 30, smoothDegrees = 60, gripSeconds = 4;

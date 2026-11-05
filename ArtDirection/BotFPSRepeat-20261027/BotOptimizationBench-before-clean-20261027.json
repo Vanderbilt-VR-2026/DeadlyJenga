@@ -1,0 +1,1448 @@
+{
+    "context": "Actual Game scene, graphics-enabled batch Editor, shared machine. CPU sampling, not standalone/Quest FPS. Before/after run label is saved in the output filename; ordinary gameplay stays active. Brain-command timing is inclusive and excludes population-serviced planning and rendering. Native markers can overlap.",
+    "samples": [
+        {
+            "map": "megablock-tower",
+            "scenario": "0 bots calm",
+            "walkingStatus": "",
+            "walkingStatusAtStart": "",
+            "startedUtc": "2026-10-27T20:36:14.4386268Z",
+            "endedUtc": "2026-10-27T20:36:24.4448870Z",
+            "awakeAtStart": 0,
+            "awakeMax": 0,
+            "awakeSamples": 10,
+            "awakeMean": 0.0,
+            "simulationSeconds": 10.051162719726563,
+            "fixedSeconds": 10.059996604919434,
+            "otherUnityProcesses": 2,
+            "bodies": 156,
+            "colliders": 1826,
+            "travel": 0.0,
+            "bots": 0,
+            "frames": 477,
+            "movedBots": 0,
+            "awakeBodies": 0,
+            "cacheHits": 0,
+            "cacheMisses": 0,
+            "walkingRevision": 0,
+            "wallSeconds": 10.006793975830079,
+            "wallFps": 47.66761473775942,
+            "meanFrameMs": 21.071622848510743,
+            "medianFrameMs": 20.56770133972168,
+            "p95FrameMs": 23.93720245361328,
+            "brainCommandMsPerFrame": 0.0,
+            "brainCommandMaxMs": 0.0,
+            "brainCallsPerFrame": 0.0,
+            "edgesPerFrame": 0.0,
+            "sensesPerFrame": 0.0,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.04674025157232704,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 0.3269610062893082,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 20.92434926624738,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 1.0053863731656184,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 279358.24109014679,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.015172746331236897,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.006863731656184487,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.002506079664570231,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.8639341719077568,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "megablock-tower",
+            "scenario": "16 bots calm",
+            "walkingStatus": "Walking corridors ready",
+            "walkingStatusAtStart": "Updating walking corridors",
+            "startedUtc": "2026-10-27T20:37:02.0857402Z",
+            "endedUtc": "2026-10-27T20:37:12.0961418Z",
+            "awakeAtStart": 156,
+            "awakeMax": 0,
+            "awakeSamples": 8,
+            "awakeMean": 0.0,
+            "simulationSeconds": 7.573844909667969,
+            "fixedSeconds": 7.579998016357422,
+            "otherUnityProcesses": 2,
+            "bodies": 156,
+            "colliders": 1826,
+            "travel": 110.2252197265625,
+            "bots": 16,
+            "frames": 136,
+            "movedBots": 16,
+            "awakeBodies": 0,
+            "cacheHits": 286,
+            "cacheMisses": 2783,
+            "walkingRevision": 7,
+            "wallSeconds": 10.01055908203125,
+            "wallFps": 13.585654795656442,
+            "meanFrameMs": 97.81277465820313,
+            "medianFrameMs": 42.53729248046875,
+            "p95FrameMs": 104.67440032958985,
+            "brainCommandMsPerFrame": 0.0,
+            "brainCommandMaxMs": 0.0,
+            "brainCallsPerFrame": 0.0,
+            "edgesPerFrame": 54.588235294117648,
+            "sensesPerFrame": 0.4264705882352941,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.8519051470588235,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 24.370019117647059,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 73.12379705882353,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 18.037374264705883,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 575227.9779411765,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.17382058823529412,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.008294117647058824,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.0033448529411764708,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 1.0198911764705883,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 1.8448294117647058,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.4069705882352941,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.04230588235294117,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 3.251901470588235,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.8760786764705882,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "megablock-tower",
+            "scenario": "32 bots calm",
+            "walkingStatus": "Walking corridors ready",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:37:36.1849429Z",
+            "endedUtc": "2026-10-27T20:37:46.2194740Z",
+            "awakeAtStart": 0,
+            "awakeMax": 0,
+            "awakeSamples": 10,
+            "awakeMean": 0.0,
+            "simulationSeconds": 10.060333251953125,
+            "fixedSeconds": 10.05999755859375,
+            "otherUnityProcesses": 2,
+            "bodies": 156,
+            "colliders": 1826,
+            "travel": 223.58900451660157,
+            "bots": 32,
+            "frames": 193,
+            "movedBots": 31,
+            "awakeBodies": 0,
+            "cacheHits": 595,
+            "cacheMisses": 3857,
+            "walkingRevision": 3,
+            "wallSeconds": 10.034774780273438,
+            "wallFps": 19.233117257340273,
+            "meanFrameMs": 52.12609100341797,
+            "medianFrameMs": 47.76059341430664,
+            "p95FrameMs": 85.07499694824219,
+            "brainCommandMsPerFrame": 1.244561658031088,
+            "brainCommandMaxMs": 50.7657,
+            "brainCallsPerFrame": 12.0,
+            "edgesPerFrame": 87.13471502590673,
+            "sensesPerFrame": 0.6476683937823834,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 1.1104575129533679,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 0.9147715025906736,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 51.77703834196891,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 21.034867357512956,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 745336.2849740933,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 1.240878238341969,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.2658134715025907,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.008290673575129535,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.002887564766839378,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.9485056994818653,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 1.8865497409326424,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.9053637305699482,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.06818290155440415,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 3.2863860103626947,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.8577917098445596,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "megablock-tower",
+            "scenario": "32 bots default-force tsunami; completion or 45s wall cap",
+            "walkingStatus": "Walking corridors ready",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:37:46.4620764Z",
+            "endedUtc": "2026-10-27T20:38:18.7957775Z",
+            "awakeAtStart": 0,
+            "awakeMax": 156,
+            "awakeSamples": 22,
+            "awakeMean": 63.81818181818182,
+            "simulationSeconds": 21.95433807373047,
+            "fixedSeconds": 21.959991455078126,
+            "otherUnityProcesses": 2,
+            "bodies": 156,
+            "colliders": 1826,
+            "travel": 497.1300048828125,
+            "bots": 32,
+            "frames": 276,
+            "movedBots": 32,
+            "awakeBodies": 0,
+            "cacheHits": 555,
+            "cacheMisses": 5964,
+            "walkingRevision": 7,
+            "wallSeconds": 32.334197998046878,
+            "wallFps": 8.535854206641265,
+            "meanFrameMs": 118.01551055908203,
+            "medianFrameMs": 51.030696868896487,
+            "p95FrameMs": 223.6112060546875,
+            "brainCommandMsPerFrame": 1.9363224637681158,
+            "brainCommandMaxMs": 78.6324,
+            "brainCallsPerFrame": 12.0,
+            "edgesPerFrame": 72.85507246376811,
+            "sensesPerFrame": 0.6594202898550725,
+            "waveCompleted": true,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 1.3661942028985508,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 51.13371702898551,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 116.85923659420291,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 27.23470036231884,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 848942.0108695652,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 1.9330014492753623,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.29212971014492758,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.008385869565217393,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.17374057971014493,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.9280923913043477,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 3.8073543478260869,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.7777684782608695,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.06932101449275362,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 6.410493115942029,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 1.3820597826086956,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 1.2771057971014493,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "sparse-festival-city-optimized",
+            "scenario": "0 bots calm",
+            "walkingStatus": "",
+            "walkingStatusAtStart": "",
+            "startedUtc": "2026-10-27T20:38:31.7757262Z",
+            "endedUtc": "2026-10-27T20:38:41.7831981Z",
+            "awakeAtStart": 0,
+            "awakeMax": 0,
+            "awakeSamples": 10,
+            "awakeMean": 0.0,
+            "simulationSeconds": 10.031730651855469,
+            "fixedSeconds": 10.039993286132813,
+            "otherUnityProcesses": 2,
+            "bodies": 633,
+            "colliders": 1049,
+            "travel": 0.0,
+            "bots": 0,
+            "frames": 426,
+            "movedBots": 0,
+            "awakeBodies": 0,
+            "cacheHits": 0,
+            "cacheMisses": 0,
+            "walkingRevision": 0,
+            "wallSeconds": 10.007598876953125,
+            "wallFps": 42.567653363990377,
+            "meanFrameMs": 23.548664093017579,
+            "medianFrameMs": 22.46889877319336,
+            "p95FrameMs": 30.582504272460939,
+            "brainCommandMsPerFrame": 0.0,
+            "brainCommandMaxMs": 0.0,
+            "brainCallsPerFrame": 0.0,
+            "edgesPerFrame": 108.0,
+            "sensesPerFrame": 1.0,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.04822793427230047,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 0.4308786384976526,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 23.42743192488263,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 2.121087558685446,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 312029.39671361507,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.017660093896713616,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.0067213615023474179,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.0021446009389671364,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.6570795774647887,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.11556150234741784,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "sparse-festival-city-optimized",
+            "scenario": "16 bots calm",
+            "walkingStatus": "Updating walking corridors",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:38:54.6802382Z",
+            "endedUtc": "2026-10-27T20:39:05.4985801Z",
+            "awakeAtStart": 0,
+            "awakeMax": 631,
+            "awakeSamples": 11,
+            "awakeMean": 57.36363636363637,
+            "simulationSeconds": 9.674713134765625,
+            "fixedSeconds": 9.680007934570313,
+            "otherUnityProcesses": 2,
+            "bodies": 633,
+            "colliders": 1049,
+            "travel": 134.4044952392578,
+            "bots": 16,
+            "frames": 221,
+            "movedBots": 16,
+            "awakeBodies": 0,
+            "cacheHits": 2525,
+            "cacheMisses": 5854,
+            "walkingRevision": 2,
+            "wallSeconds": 10.818695068359375,
+            "wallFps": 20.427602275836585,
+            "meanFrameMs": 43.77695846557617,
+            "medianFrameMs": 41.007198333740237,
+            "p95FrameMs": 67.74819946289063,
+            "brainCommandMsPerFrame": 0.0,
+            "brainCommandMaxMs": 0.0,
+            "brainCallsPerFrame": 0.0,
+            "edgesPerFrame": 74.9366515837104,
+            "sensesPerFrame": 0.669683257918552,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.7014488687782806,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 1.5478615384615385,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 43.427013574660637,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 15.88943891402715,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 576768.3257918552,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.1325371040723982,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.007733031674208145,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.0025226244343891405,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.6736615384615385,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 1.3031950226244345,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.4510705882352941,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.03490859728506787,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 2.364471040723982,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.49204298642533936,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.12333846153846154,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "sparse-festival-city-optimized",
+            "scenario": "32 bots calm",
+            "walkingStatus": "Updating walking corridors",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:39:21.2092754Z",
+            "endedUtc": "2026-10-27T20:39:31.2383373Z",
+            "awakeAtStart": 0,
+            "awakeMax": 631,
+            "awakeSamples": 7,
+            "awakeMean": 90.14285714285714,
+            "simulationSeconds": 6.9010162353515629,
+            "fixedSeconds": 6.899993896484375,
+            "otherUnityProcesses": 2,
+            "bodies": 633,
+            "colliders": 1049,
+            "travel": 169.13307189941407,
+            "bots": 32,
+            "frames": 93,
+            "movedBots": 30,
+            "awakeBodies": 0,
+            "cacheHits": 657,
+            "cacheMisses": 2788,
+            "walkingRevision": 5,
+            "wallSeconds": 10.0296630859375,
+            "wallFps": 9.272494918637343,
+            "meanFrameMs": 108.39018249511719,
+            "medianFrameMs": 58.73929977416992,
+            "p95FrameMs": 121.86990356445313,
+            "brainCommandMsPerFrame": 1.1181913978494625,
+            "brainCommandMaxMs": 27.9422,
+            "brainCallsPerFrame": 12.0,
+            "edgesPerFrame": 71.35483870967743,
+            "sensesPerFrame": 0.5698924731182796,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 1.269478494623656,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 45.710378494623657,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 107.31214086021505,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 24.745686021505379,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 811298.7419354839,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 1.112163440860215,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.2703043010752688,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.008237634408602151,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.002667741935483871,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.7498268817204301,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 1.2154774193548388,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.5303645161290322,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.07547204301075269,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 1.9769397849462365,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.637194623655914,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.23002473118279569,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "sparse-festival-city-optimized",
+            "scenario": "32 bots default-force tsunami; completion or 45s wall cap",
+            "walkingStatus": "Updating walking corridors",
+            "walkingStatusAtStart": "Updating walking corridors",
+            "startedUtc": "2026-10-27T20:39:31.5518676Z",
+            "endedUtc": "2026-10-27T20:40:17.2289780Z",
+            "awakeAtStart": 0,
+            "awakeMax": 633,
+            "awakeSamples": 24,
+            "awakeMean": 598.0,
+            "simulationSeconds": 23.652359008789064,
+            "fixedSeconds": 23.659988403320314,
+            "otherUnityProcesses": 2,
+            "bodies": 633,
+            "colliders": 1049,
+            "travel": 525.3828735351563,
+            "bots": 32,
+            "frames": 160,
+            "movedBots": 29,
+            "awakeBodies": 615,
+            "cacheHits": 281,
+            "cacheMisses": 3950,
+            "walkingRevision": 26,
+            "wallSeconds": 45.67814636230469,
+            "wallFps": 3.502769108249935,
+            "meanFrameMs": 279.03363037109377,
+            "medianFrameMs": 113.44869232177735,
+            "p95FrameMs": 1391.8919677734375,
+            "brainCommandMsPerFrame": 0.76146375,
+            "brainCommandMaxMs": 5.3113,
+            "brainCallsPerFrame": 12.0,
+            "edgesPerFrame": 50.34375,
+            "sensesPerFrame": 0.7875,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 1.58439375,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 182.96522875,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 276.59686625,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 34.285313125,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 1134676.2,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.753153125,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.2759875,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.008028125,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 1.097235625,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.777794375,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 3.20132125,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 1.25365,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.08235,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 5.7398075,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 1.644935,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 4.718505625,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 1.737790625,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "castle",
+            "scenario": "0 bots calm",
+            "walkingStatus": "",
+            "walkingStatusAtStart": "",
+            "startedUtc": "2026-10-27T20:40:32.1606978Z",
+            "endedUtc": "2026-10-27T20:40:42.1679127Z",
+            "awakeAtStart": 120,
+            "awakeMax": 120,
+            "awakeSamples": 10,
+            "awakeMean": 12.0,
+            "simulationSeconds": 10.030471801757813,
+            "fixedSeconds": 10.020004272460938,
+            "otherUnityProcesses": 2,
+            "bodies": 568,
+            "colliders": 568,
+            "travel": 0.0,
+            "bots": 0,
+            "frames": 423,
+            "movedBots": 0,
+            "awakeBodies": 0,
+            "cacheHits": 0,
+            "cacheMisses": 0,
+            "walkingRevision": 0,
+            "wallSeconds": 10.00732421875,
+            "wallFps": 42.26904122956819,
+            "meanFrameMs": 23.712703704833986,
+            "medianFrameMs": 23.054302215576173,
+            "p95FrameMs": 29.10670280456543,
+            "brainCommandMsPerFrame": 0.0,
+            "brainCommandMaxMs": 0.0,
+            "brainCallsPerFrame": 0.0,
+            "edgesPerFrame": 70.0,
+            "sensesPerFrame": 0.0,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.07235602836879433,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 0.48402671394799059,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 23.59754704491726,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 3.0775453900709226,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 282929.75886524826,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.6997541371158393,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.002159810874704492,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.003959338061465721,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "castle",
+            "scenario": "16 bots calm",
+            "walkingStatus": "Walking corridors ready",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:41:02.8869836Z",
+            "endedUtc": "2026-10-27T20:41:12.8981646Z",
+            "awakeAtStart": 0,
+            "awakeMax": 0,
+            "awakeSamples": 10,
+            "awakeMean": 0.0,
+            "simulationSeconds": 10.051605224609375,
+            "fixedSeconds": 10.05999755859375,
+            "otherUnityProcesses": 2,
+            "bodies": 568,
+            "colliders": 568,
+            "travel": 104.5862045288086,
+            "bots": 16,
+            "frames": 252,
+            "movedBots": 16,
+            "awakeBodies": 0,
+            "cacheHits": 3629,
+            "cacheMisses": 6860,
+            "walkingRevision": 12,
+            "wallSeconds": 10.011016845703125,
+            "wallFps": 25.17226810063376,
+            "meanFrameMs": 39.88730239868164,
+            "medianFrameMs": 38.90729522705078,
+            "p95FrameMs": 49.73969650268555,
+            "brainCommandMsPerFrame": 0.0,
+            "brainCommandMaxMs": 0.0,
+            "brainCallsPerFrame": 0.0,
+            "edgesPerFrame": 82.54761904761905,
+            "sensesPerFrame": 0.6984126984126984,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.6468575396825397,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 0.7119329365079364,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 39.44674682539683,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 14.28029365079365,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 480085.98412698417,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.801825,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.001873809523809524,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.004087698412698413,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 0.31266944444444447,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.18997738095238096,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.032048015873015877,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 0.34897261904761908,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.2323123015873016,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.DeathDeform",
+                    "mean": 0.7424412698412698,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "castle",
+            "scenario": "32 bots calm",
+            "walkingStatus": "Walking corridors ready",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:41:33.9874379Z",
+            "endedUtc": "2026-10-27T20:41:44.0044301Z",
+            "awakeAtStart": 0,
+            "awakeMax": 0,
+            "awakeSamples": 10,
+            "awakeMean": 0.0,
+            "simulationSeconds": 10.09735107421875,
+            "fixedSeconds": 10.100006103515625,
+            "otherUnityProcesses": 2,
+            "bodies": 568,
+            "colliders": 568,
+            "travel": 125.99543762207031,
+            "bots": 32,
+            "frames": 192,
+            "movedBots": 29,
+            "awakeBodies": 0,
+            "cacheHits": 3951,
+            "cacheMisses": 6717,
+            "walkingRevision": 12,
+            "wallSeconds": 10.01568603515625,
+            "wallFps": 19.1699299804384,
+            "meanFrameMs": 52.5903205871582,
+            "medianFrameMs": 46.25680160522461,
+            "p95FrameMs": 106.4197998046875,
+            "brainCommandMsPerFrame": 0.9376953124999999,
+            "brainCommandMaxMs": 21.7489,
+            "brainCallsPerFrame": 12.0,
+            "edgesPerFrame": 108.75,
+            "sensesPerFrame": 0.7916666666666666,
+            "waveCompleted": false,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 0.903025,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 0.894928125,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 51.91402708333334,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 23.346979166666669,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 712311.3020833334,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.9341145833333334,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.8182739583333334,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 0.0018182291666666668,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.004307291666666667,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 0.5629151041666667,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.25857708333333337,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.05830625,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 0.8494651041666667,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.3040197916666667,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.DeathDeform",
+                    "mean": 3.8676744791666666,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        },
+        {
+            "map": "castle",
+            "scenario": "32 bots default-force tsunami; completion or 45s wall cap",
+            "walkingStatus": "Updating walking corridors",
+            "walkingStatusAtStart": "Walking corridors ready",
+            "startedUtc": "2026-10-27T20:41:44.2212832Z",
+            "endedUtc": "2026-10-27T20:41:58.3439618Z",
+            "awakeAtStart": 0,
+            "awakeMax": 568,
+            "awakeSamples": 14,
+            "awakeMean": 493.0,
+            "simulationSeconds": 14.30426025390625,
+            "fixedSeconds": 14.29998779296875,
+            "otherUnityProcesses": 2,
+            "bodies": 568,
+            "colliders": 568,
+            "travel": 210.23280334472657,
+            "bots": 32,
+            "frames": 152,
+            "movedBots": 32,
+            "awakeBodies": 567,
+            "cacheHits": 950,
+            "cacheMisses": 3940,
+            "walkingRevision": 24,
+            "wallSeconds": 14.122528076171875,
+            "wallFps": 10.762945499571059,
+            "meanFrameMs": 94.10699462890625,
+            "medianFrameMs": 82.00699615478516,
+            "p95FrameMs": 179.4884033203125,
+            "brainCommandMsPerFrame": 0.7838111842105263,
+            "brainCommandMaxMs": 12.7516,
+            "brainCallsPerFrame": 11.710526315789475,
+            "edgesPerFrame": 67.73684210526317,
+            "sensesPerFrame": 0.875,
+            "waveCompleted": true,
+            "counters": [
+                {
+                    "name": "Physics.SyncTransforms",
+                    "mean": 2.2816565789473688,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Physics.Simulate",
+                    "mean": 11.479780921052632,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "Main Thread",
+                    "mean": 92.21009605263157,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "BehaviourUpdate",
+                    "mean": 39.04347171052632,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "GC Allocated In Frame",
+                    "mean": 986486.7368421053,
+                    "unit": "bytes/frame"
+                },
+                {
+                    "name": "DJ.Audit.BotCommand",
+                    "mean": 0.7795447368421052,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.UnifiedRecovery",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CrateBatches",
+                    "mean": 0.8973940789473685,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WetEffects",
+                    "mean": 1.175567105263158,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.StructureBatches",
+                    "mean": 0.004593421052631579,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotThreat",
+                    "mean": 1.0517342105263157,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.WalkingSources",
+                    "mean": 0.2712157894736842,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DeadlyJenga.Bots.Combat",
+                    "mean": 0.06341447368421052,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotDestination",
+                    "mean": 1.4312098684210526,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.BotGeometry",
+                    "mean": 0.38347236842105267,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.Tsunami",
+                    "mean": 3.3688934210526315,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.CityCleanup",
+                    "mean": 0.0,
+                    "unit": "ms/frame; inclusive, may overlap"
+                },
+                {
+                    "name": "DJ.DeathDeform",
+                    "mean": 10.210361184210527,
+                    "unit": "ms/frame; inclusive, may overlap"
+                }
+            ]
+        }
+    ],
+    "runtimeErrors": 0,
+    "completed": true
+}

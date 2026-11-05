@@ -15,6 +15,36 @@ namespace DeadlyJenga.CandyPlayers
             ulong p=(ulong)Q(v.x)|((ulong)Q(v.y)<<16)|((ulong)Q(v.z)<<32);
             switch(i){case 0:J0=p;break;case 1:J1=p;break;case 2:J2=p;break;case 3:J3=p;break;case 4:J4=p;break;case 5:J5=p;break;case 6:J6=p;break;case 7:J7=p;break;case 8:J8=p;break;case 9:J9=p;break;case 10:J10=p;break;case 11:J11=p;break;case 12:J12=p;break;case 13:J13=p;break;case 14:J14=p;break;case 15:J15=p;break;case 16:J16=p;break;case 17:J17=p;break;case 18:J18=p;break;default:J19=p;break;}
         }
+        public static CandyHandSkeleton ControllerGrip(bool left,float grip,float trigger)
+        {
+            var pose=Rest(left,Mathf.Lerp(.45f,.86f,Mathf.Clamp01(grip)));
+            var index=Rest(left,Mathf.Lerp(.24f,.74f,Mathf.Clamp01(trigger)));
+            for(int i=4;i<8;i++)pose.SetJoint(i,index.Joint(i));
+            return pose;
+        }
+        internal static CandyHandSkeleton MeleeGrip(bool left,DeadlyJenga.Core.EquipmentKind kind)
+        {
+            var hand=Rest(left,.94f);
+            float radius=kind switch
+            {
+                DeadlyJenga.Core.EquipmentKind.FlamingMarshmallow=>.026f,
+                DeadlyJenga.Core.EquipmentKind.MurderSword=>.033f,
+                DeadlyJenga.Core.EquipmentKind.Chainsaw=>.040f,
+                _=>.036f
+            };
+            for(int finger=1;finger<5;finger++)
+            {
+                int root=finger*4;
+                float x=hand.Joint(root).x;
+                for(int joint=1;joint<4;joint++)
+                {
+                    float angle=joint*Mathf.PI*.42f;
+                    hand.SetJoint(root+joint,new Vector3(x,-.031f+Mathf.Cos(angle)*radius,
+                        .075f+Mathf.Sin(angle)*radius));
+                }
+            }
+            return hand;
+        }
         public static CandyHandSkeleton Rest(bool left,float curl=0)
         {
             var data=new CandyHandSkeleton();float sign=left?1:-1;curl=Mathf.Clamp01(curl);
@@ -44,6 +74,9 @@ namespace DeadlyJenga.CandyPlayers
         public Vector3 feet,head;
         public Quaternion headRotation;
         public float scale;
+        public bool seated;
+        public float danceWeight;
+        public Vector3 danceLeftFoot, danceRightFoot, danceTorsoEuler;
         public CandyHandPose left,right;
     }
 }

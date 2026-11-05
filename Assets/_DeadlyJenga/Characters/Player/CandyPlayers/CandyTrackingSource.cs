@@ -7,7 +7,7 @@ using DeadlyJenga.CandyPhysicsHands;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    [DefaultExecutionOrder(-50)]
+    [DefaultExecutionOrder(-200)]
     public sealed class CandyTrackingSource : MonoBehaviour, IFingerTips
     {
         public Transform trackingOrigin;
@@ -19,44 +19,68 @@ namespace DeadlyJenga.CandyPlayers
         public bool RightPinchPressed{get;private set;}
         public bool RightPinching{get;private set;}
         public bool LeftMenuPressed{get;private set;}
+        public bool LeftMenuHeld{get;private set;}
         public bool LeftPinching{get;private set;}
         public bool HasHandTracking=>left.skeletonTracked||right.skeletonTracked;
         public bool HasTrackedHands=>left.tracked||right.tracked;
-        InputAction lp,lr,lt,rp,rr,rt;
+        public bool IsHybrid=>HybridXRInput.SingleController&&GestureHand.skeletonTracked;
+        public CandyHandPose GestureHand=>WorldHand(HybridXRInput.SingleController?!HybridXRInput.SingleControllerLeft:left.skeletonTracked&&!right.skeletonTracked);
+        public bool TryControllerAim(bool isLeft,out Pose aim)
+        {
+            aim=default;
+            if(!HybridXRInput.ControllerTracked(isLeft))return false;
+            var rotation=HybridXRInput.Controller(isLeft)?.TryGetChildControl<UnityEngine.InputSystem.Controls.QuaternionControl>("pointerRotation");
+            Quaternion q=rotation!=null?rotation.ReadValue():default;
+            var hand=WorldHand(isLeft);
+            if(q!=default){aim=new Pose(hand.position,(trackingOrigin?trackingOrigin.rotation:Quaternion.identity)*q);return true;}
+            var pointer=isLeft?leftController:rightController;
+            aim=new Pose(hand.position,pointer?pointer.rotation:hand.rotation*Quaternion.Euler(35,0,0));return true;
+        }
         readonly List<XRHandSubsystem> subsystems=new List<XRHandSubsystem>();
         XRHandSubsystem subsystem;
         CandyHandPose left,right;
-        bool previousRight,previousMenu;
+        bool previousRight,previousMenu,previousSelect;
+        public bool MenuSelectHeld=>RightPinching||LeftPinching;
+        public bool MenuSelectPressed{get;private set;}
         static readonly XRHandJointID[] JointIds={XRHandJointID.ThumbMetacarpal,XRHandJointID.ThumbProximal,XRHandJointID.ThumbDistal,XRHandJointID.ThumbTip,XRHandJointID.IndexProximal,XRHandJointID.IndexIntermediate,XRHandJointID.IndexDistal,XRHandJointID.IndexTip,XRHandJointID.MiddleProximal,XRHandJointID.MiddleIntermediate,XRHandJointID.MiddleDistal,XRHandJointID.MiddleTip,XRHandJointID.RingProximal,XRHandJointID.RingIntermediate,XRHandJointID.RingDistal,XRHandJointID.RingTip,XRHandJointID.LittleProximal,XRHandJointID.LittleIntermediate,XRHandJointID.LittleDistal,XRHandJointID.LittleTip};
-        void Awake()
+        void OnEnable()=>Application.onBeforeRender+=ReadLatest;
+        void OnDisable()
         {
-            InputAction Action(string path)=>new InputAction(type:InputActionType.Value,binding:path);
-            lp=Action("<XRController>{LeftHand}/devicePosition");lr=Action("<XRController>{LeftHand}/deviceRotation");lt=Action("<XRController>{LeftHand}/isTracked");
-            rp=Action("<XRController>{RightHand}/devicePosition");rr=Action("<XRController>{RightHand}/deviceRotation");rt=Action("<XRController>{RightHand}/isTracked");
+            Application.onBeforeRender-=ReadLatest;left=right=default;
+            RightPinchPressed=RightPinching=LeftMenuPressed=LeftMenuHeld=LeftPinching=previousRight=previousMenu=previousSelect=MenuSelectPressed=false;
         }
-        void OnEnable(){lp.Enable();lr.Enable();lt.Enable();rp.Enable();rr.Enable();rt.Enable();Application.onBeforeRender+=ReadLatest;}
-        void OnDisable(){lp.Disable();lr.Disable();lt.Disable();rp.Disable();rr.Disable();rt.Disable();Application.onBeforeRender-=ReadLatest;left=right=default;RightPinchPressed=RightPinching=LeftMenuPressed=LeftPinching=previousRight=previousMenu=false;}
-        void OnDestroy(){lp.Dispose();lr.Dispose();lt.Dispose();rp.Dispose();rr.Dispose();rt.Dispose();}
         void Update()
         {
             ReadLatest();
             bool rightPinch=right.skeletonTracked&&Vector3.Distance(right.skeleton.Joint(3),right.skeleton.Joint(7))<.023f;
             LeftPinching=left.skeletonTracked&&Vector3.Distance(left.skeleton.Joint(3),left.skeleton.Joint(7))<.023f;
             bool menu=left.skeletonTracked&&Vector3.Distance(left.skeleton.Joint(3),left.skeleton.Joint(11))<.023f&&!LeftPinching;
+            LeftMenuHeld=menu;
             RightPinchPressed=rightPinch&&!previousRight;LeftMenuPressed=menu&&!previousMenu;
             RightPinching=rightPinch;
+            MenuSelectPressed=MenuSelectHeld&&!previousSelect;previousSelect=MenuSelectHeld;
             previousRight=rightPinch;previousMenu=menu;
         }
         void ReadLatest()
         {
             if(subsystem==null||!subsystem.running)
             {SubsystemManager.GetSubsystems(subsystems);subsystem=subsystems.Find(s=>s.running);}
-            left=LeftPoseSource!=null?(LeftPoseSource.TryGetPose(out var l)?l:default):Read(true,lp,lr,lt);
-            right=RightPoseSource!=null?(RightPoseSource.TryGetPose(out var r)?r:default):Read(false,rp,rr,rt);
+            left=LeftPoseSource!=null?(LeftPoseSource.TryGetPose(out var l)?l:default):Read(true);
+            right=RightPoseSource!=null?(RightPoseSource.TryGetPose(out var r)?r:default):Read(false);
         }
-        CandyHandPose Read(bool isLeft,InputAction position,InputAction rotation,InputAction tracked)
+        CandyHandPose Read(bool isLeft)
         {
             var result=new CandyHandPose{rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(isLeft)};
+            var controller=HybridXRInput.Controller(isLeft);
+            if(controller!=null)
+            {
+                result.tracked=true;result.position=controller.devicePosition.ReadValue();result.rotation=controller.deviceRotation.ReadValue();
+                if(result.rotation==default)result.rotation=Quaternion.identity;
+                if(style){result.position+=result.rotation*style.controllerPalmOffset;result.rotation*=Quaternion.Euler(isLeft?style.leftControllerRotation:style.rightControllerRotation);}
+                float Analog(string name)=>controller.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
+                result.skeleton=CandyHandSkeleton.ControllerGrip(isLeft,Analog("grip"),Analog("trigger"));
+                return result;
+            }
             if(subsystem!=null&&subsystem.running)
             {
                 var hand=isLeft?subsystem.leftHand:subsystem.rightHand;
@@ -68,16 +92,22 @@ namespace DeadlyJenga.CandyPlayers
                         if(!hand.GetJoint(JointIds[i]).TryGetPose(out var joint)){result.skeletonTracked=false;break;}
                         result.skeleton.SetJoint(i,Quaternion.Inverse(wrist.rotation)*(joint.position-wrist.position));
                     }
-                    if(result.skeletonTracked)return result;
+                    if(result.skeletonTracked&&CandyHandTransition.IsValidPose(result))
+                    {
+                        var forward=result.skeleton.Joint(8).normalized;
+                        var across=(result.skeleton.Joint(4)-result.skeleton.Joint(16))*(isLeft?1:-1);
+                        var up=Vector3.Cross(forward,across);
+                        if(up.sqrMagnitude>.000001f)
+                        {
+                            var basis=Quaternion.LookRotation(forward,up);
+                            for(int i=0;i<20;i++)result.skeleton.SetJoint(i,Quaternion.Inverse(basis)*result.skeleton.Joint(i));
+                            result.rotation=wrist.rotation*basis;
+                        }
+                        return result;
+                    }
                     // An incomplete skeleton must not become a stale active physics target.
                     result=new CandyHandPose{rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(isLeft)};
                 }
-            }
-            if(position.activeControl!=null&&tracked.ReadValue<float>()>.5f)
-            {
-                result.tracked=true;result.position=position.ReadValue<Vector3>();result.rotation=rotation.ReadValue<Quaternion>();
-                if(result.rotation==default)result.rotation=Quaternion.identity;
-                if(style){result.position+=result.rotation*style.controllerPalmOffset;result.rotation*=Quaternion.Euler(isLeft?style.leftControllerRotation:style.rightControllerRotation);}
             }
             return result;
         }

@@ -1,0 +1,30 @@
+{
+  "profiles": [
+    {
+      "id": "prototype-crown-hill-v1",
+      "mapId": "mode-koth",
+      "modeId": "hill",
+      "enabled": true,
+      "productionApproved": false,
+      "evidence": "Unvalidated prototype: mode-specific map, four-actor trial, no disasters. Pin observed authored prefab structure; actual route, staffing, performance and device QA pending.",
+      "minimumPopulation": 2,
+      "maximumPopulation": 4,
+      "targetPopulation": 4,
+      "hands": 0,
+      "hazards": []
+    },
+    {
+      "id": "prototype-spire-infection-v1",
+      "mapId": "mode-infection",
+      "modeId": "infection",
+      "enabled": true,
+      "productionApproved": false,
+      "evidence": "Unvalidated prototype: mode-specific map, four-actor trial, initial infected enabled, no disasters. Actual mode execution, staffing and device QA pending.",
+      "minimumPopulation": 2,
+      "maximumPopulation": 4,
+      "targetPopulation": 4,
+      "hands": 0,
+      "hazards": []
+    }
+  ]
+}

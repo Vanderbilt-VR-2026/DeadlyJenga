@@ -35,11 +35,11 @@ namespace DeadlyJenga.CandyPlayers
         }
         void FittedGarment(CandyPlayerRig rig,string id,Tone tone,bool pants)
         {
-            var source=rig.bodyRenderer.sharedMesh;if(!source||!source.isReadable)return;string key=source.GetInstanceID()+":"+pants;
+            var source=rig.bodyRenderer.sharedMesh;if(!source||!source.isReadable)return;bool vest=id=="puffer vest";string key=source.GetInstanceID()+":"+pants+":"+vest;
             if(!garments.TryGetValue(key,out var mesh))
             {
-                mesh=Instantiate(source);mesh.name="Fitted "+(pants?"trousers":"jacket");var vertices=source.vertices;var normals=source.normals;var weights=source.boneWeights;var indices=new List<int>();
-                bool Covered(int i){int bone=weights[i].boneIndex0;return pants?bone>=8&&bone<=13||bone==0&&vertices[i].y<.77f:bone==0&&vertices[i].y>.73f||bone==2||bone==3||bone==5||bone==6;}
+                mesh=Instantiate(source);mesh.name="Fitted "+(pants?"trousers":vest?"sleeveless vest":"jacket");var vertices=source.vertices;var normals=source.normals;var weights=source.boneWeights;var indices=new List<int>();
+                bool Covered(int i){int bone=weights[i].boneIndex0;return pants?bone>=8&&bone<=13||bone==0&&vertices[i].y<.77f:bone==0&&vertices[i].y>.73f||!vest&&(bone==2||bone==3||bone==5||bone==6);}
                 var triangles=source.triangles;for(int i=0;i<triangles.Length;i+=3)if(Covered(triangles[i])&&Covered(triangles[i+1])&&Covered(triangles[i+2])){indices.Add(triangles[i]);indices.Add(triangles[i+1]);indices.Add(triangles[i+2]);}
                 for(int i=0;i<vertices.Length;i++)vertices[i]+=normals[i]*(pants?.012f:.018f);mesh.vertices=vertices;mesh.triangles=indices.ToArray();mesh.RecalculateBounds();garments[key]=mesh;
             }

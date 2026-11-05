@@ -1,114 +1,312 @@
 using System;
 using System.Linq;
-using System.Text;
+using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 namespace DeadlyJenga.Presentation
 {
     public sealed class CandyResultsHud : MonoBehaviour
     {
-        Canvas canvas; Text title, rows, secondaryRows, hint;GUISkin theme;
-        readonly BoxCollider[] targets = new BoxCollider[4];
+        const int FullPage = 8, SplitPage = 5;
+        static readonly Color Ink = new Color(.065f, .032f, .135f, .98f);
+        static readonly Color Mint = new Color(.58f, 1f, .83f);
+        sealed class Row
+        {
+            public Image background;
+            public Text rank, name, stats, initial;
+            public RawImage portrait;
+        }
+
+        readonly Row[] primary = new Row[FullPage], secondary = new Row[SplitPage];
+        readonly Image[] buttons = new Image[4];
         readonly Text[] labels = new Text[4];
-        MatchPlayerFrame[] sorted = Array.Empty<MatchPlayerFrame>(), infectedSorted=Array.Empty<MatchPlayerFrame>();
-        RoundPhase previous; int page,killPage; bool visible; Camera camera; Vector3 openingForward;
-        readonly StringBuilder text = new StringBuilder();
+        readonly BoxCollider[] targets = new BoxCollider[4];
+        MatchPlayerFrame[] sorted = Array.Empty<MatchPlayerFrame>(), infectors = Array.Empty<MatchPlayerFrame>();
+        Canvas canvas;
+        Text title, summary, roomCode, primaryHeading, secondaryHeading, paging;
+        CandyScorePortraits portraits;
+        IMatchRuntime owner;
+        MatchFrame rankedFrame;
+        int rankedRevision, page, infectionPage;
+        bool visible, wasVr, split, rankedCurated;
+        Camera camera;
+        Vector3 openingForward;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-        static void Listen() => GameEvents.SessionStarted += go => {if(!go.GetComponent<CandyResultsHud>())go.AddComponent<CandyResultsHud>();};
+        static void Listen() => GameEvents.SessionStarted += go =>
+        {
+            if (!go.GetComponent<CandyResultsHud>()) go.AddComponent<CandyResultsHud>();
+        };
+
         void Update()
         {
-            if((Services.Session as ILobbyMatchVisitControls)?.VisitingLobby==true){visible=false;if(canvas)canvas.gameObject.SetActive(false);return;}
-            var match = MatchRuntime.Current; var session = Services.Session;
-            if (match == null || session == null) return;
-            var frame = match.Frame;
-            visible = frame.phase == RoundPhase.Results;
-            if (visible && previous != RoundPhase.Results)
+            var match = MatchRuntime.Current;
+            var session = Services.Session;
+            var frame = match?.Frame;
+            bool show = frame?.phase == RoundPhase.Results && session != null
+                && (session as ILobbyMatchVisitControls)?.VisitingLobby != true;
+            if (!show)
             {
-                sorted = frame.players.OrderByDescending(p => p.metric).ThenBy(p => p.id).ToArray();infectedSorted=frame.players.OrderByDescending(p=>p.infections).ThenBy(p=>p.id).ToArray();
-                page = killPage = 0; session.SetMenu(true);
-                openingForward=session.ActiveCamera?Vector3.ProjectOnPlane(session.ActiveCamera.transform.forward,Vector3.up).normalized:Vector3.forward;
-                if(openingForward.sqrMagnitude<.1f)openingForward=Vector3.forward;
+                visible = false;
+                rankedFrame = null;
+                if (canvas) canvas.gameObject.SetActive(false);
+                return;
             }
-            previous = frame.phase;
-            if (!visible) { if (canvas) canvas.gameObject.SetActive(false); return; }
+
             if (!canvas) Build();
-            camera=session.ActiveCamera;
-            title.text = (string.IsNullOrEmpty(frame.winner) ? "ROUND COMPLETE" : CandyHudContent.Safe(frame.winner).ToUpperInvariant() + (frame.winner=="Draw"?"":" WINS")) + "\n" + frame.metricLabel;
-            bool infection=frame.rules.mode==GameModeKind.Infection;secondaryRows.gameObject.SetActive(infection);rows.rectTransform.sizeDelta=new Vector2(820,infection?170:350);rows.rectTransform.anchoredPosition=new Vector2(0,infection?115:25);rows.fontSize=infection?21:19;
-            text.Clear();if(infection)text.Append("LONGEST SURVIVORS\n");
-            int pageSize=infection?5:10;int first = page * pageSize;
-            for (int i = first; i < Mathf.Min(first + pageSize, sorted.Length); i++)
+            var eye = session.ActiveCamera;
+            bool opening = !visible || owner != match;
+            if (opening)
             {
-                var p = sorted[i]; string color = ColorUtility.ToHtmlStringRGB(p.color);
-                text.Append(i + 1).Append(". <color=#").Append(color).Append('>').Append(CandyHudContent.Safe(p.name,18)).Append("</color>  ").Append(CandyHudContent.ResultStats(p,frame.rules.mode)).Append('\n');
+                owner = match;
+                page = infectionPage = 0;
+                rankedFrame = null;
+                session.SetMenu(true);
             }
-            rows.text = text.ToString();
-            if(infection){text.Clear();text.Append("SURVIVORS INFECTED\n");for(int i=killPage*5;i<Mathf.Min(killPage*5+5,infectedSorted.Length);i++){var p=infectedSorted[i];text.Append(i+1).Append(". ").Append(CandyHudContent.Safe(p.name,22)).Append("    ").Append(p.infections).Append('\n');}secondaryRows.text=text.ToString();}
-            hint.text=infection?"Survivors "+(page+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(sorted.Length/5f))+"   ·   Infections "+(killPage+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(infectedSorted.Length/5f)):"Page "+(page+1)+" / "+Mathf.Max(1,Mathf.CeilToInt(sorted.Length/10f))+"  ·  Look and select";labels[2].text=infection?"NEXT SURVIVORS":"PREVIOUS";labels[3].text=infection?"NEXT INFECTORS":"NEXT";
-            labels[0].text = match.Authority ? "STAY / NEXT ROUND" : "STAY · WAIT FOR HOST";
-            if(!session.IsVR){canvas.gameObject.SetActive(false);return;}
-            canvas.gameObject.SetActive(true);if(!camera)return;
-            canvas.transform.SetParent(transform,false);canvas.transform.position=camera.transform.position+openingForward*1.8f;
-            canvas.transform.rotation=Quaternion.LookRotation(openingForward,Vector3.up);canvas.transform.localScale=Vector3.one*.002f;
-            var ray = new Ray(camera.transform.position, camera.transform.forward);
+            if (opening || eye != camera || wasVr != session.IsVR)
+            {
+                camera = eye;
+                wasVr = session.IsVR;
+                CandyHudLayout.Configure(canvas, transform, eye, wasVr);
+                var forward = eye ? Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up) : Vector3.forward;
+                openingForward = forward.sqrMagnitude > .01f ? forward.normalized : Vector3.forward;
+                foreach (var target in targets) target.enabled = wasVr;
+            }
+
+            visible = true;
+            canvas.gameObject.SetActive(true);
+            canvas.enabled = !wasVr || eye;
+            if (wasVr && eye)
+            {
+                var rect = (RectTransform)canvas.transform;
+                rect.SetParent(transform, false);
+                rect.sizeDelta = CandyHudLayout.ReferenceSize;
+                rect.SetPositionAndRotation(eye.transform.position + openingForward * 1.8f,
+                    Quaternion.LookRotation(openingForward, Vector3.up));
+                rect.localScale = Vector3.one * .0015f;
+            }
+
+            var participants = CandyMatchHud.StandingsParticipants(frame, session as IGameExperienceControls, out bool curated);
+            if (rankedFrame != frame || rankedRevision != frame.revision || rankedCurated != curated)
+            {
+                rankedFrame = frame;
+                rankedCurated = curated;
+                rankedRevision = frame.revision;
+                split = frame.rules.mode == GameModeKind.Infection;
+                sorted = participants.OrderByDescending(p => split ? p.survivalSeconds : p.metric).ThenBy(p => p.id, StringComparer.Ordinal).ToArray();
+                infectors = split ? participants.OrderByDescending(p => p.infections)
+                    .ThenBy(p => p.id, StringComparer.Ordinal).ToArray() : Array.Empty<MatchPlayerFrame>();
+                page = Mathf.Min(page, Pages(sorted.Length, PageSize) - 1);
+                infectionPage = Mathf.Min(infectionPage, Pages(infectors.Length, SplitPage) - 1);
+            }
+
+            Draw(match, frame);
+            labels[1].text = MultiplayerPanel.LobbyAction(session.Multiplayer).ToUpperInvariant();
+            string code = MultiplayerPanel.JoinCode(session.Multiplayer);
+            roomCode.text = code.Length > 0 ? "JOIN CODE   " + code + (wasVr ? "" : "   ·   COPY") : "";
+            var mouse = Mouse.current;
+            if (!wasVr && code.Length > 0 && mouse != null && mouse.leftButton.wasPressedThisFrame
+                && RectTransformUtility.RectangleContainsScreenPoint(roomCode.rectTransform, mouse.position.ReadValue()))
+                GUIUtility.systemCopyBuffer = code;
+            var ray = eye ? new Ray(eye.transform.position, eye.transform.forward) : default;
             for (int i = 0; i < targets.Length; i++)
-                if (targets[i].Raycast(ray, out _, 4) && session.MenuSelectPressed) Act(i);
+            {
+                bool enabled = i == 0 ? CanStartRound(match.Authority, session as IGameExperienceControls) : i == 1 ||
+                    (split ? i == 2 ? Pages(sorted.Length, PageSize) > 1 : Pages(infectors.Length, SplitPage) > 1
+                    : i == 2 ? page > 0 : page + 1 < Pages(sorted.Length, PageSize));
+                bool hovered = enabled && (wasVr
+                    ? eye && targets[i].Raycast(ray, out _, 4)
+                    : mouse != null && RectTransformUtility.RectangleContainsScreenPoint(buttons[i].rectTransform, mouse.position.ReadValue()));
+                buttons[i].color = !enabled ? new Color(.17f, .12f, .24f) : hovered ? new Color(.23f, .39f, .46f)
+                    : i < 2 ? new Color(.19f, .25f, .36f) : new Color(.20f, .13f, .33f);
+                labels[i].color = enabled ? (i == 0 ? Mint : Color.white) : new Color(.69f, .65f, .76f);
+                if (hovered && (wasVr ? session.MenuSelectPressed : mouse.leftButton.wasPressedThisFrame))
+                {
+                    Act(i);
+                    break;
+                }
+            }
         }
+
+        int PageSize => split ? SplitPage : FullPage;
+        static int Pages(int count, int size) => Mathf.Max(1, (count + size - 1) / size);
+
+        internal static bool CanStartRound(bool authority, IGameExperienceControls controls)
+            => controls?.Experience == GameExperience.Game ? controls.CanConfigureExperience : authority;
+
+        internal static string NextRoundLabel(bool authority, IGameExperienceControls controls)
+        {
+            if (CanStartRound(authority, controls)) return "STAY / NEXT ROUND";
+            return controls?.Experience == GameExperience.Game ? "STAY · WAIT FOR ROOM LEADER" : "STAY · WAIT FOR HOST";
+        }
+
         void Act(int index)
         {
-            var match = MatchRuntime.Current; if (match == null) return;
-            if (index == 0 && match.Authority) { match.StartRound(); Services.Session.SetMenu(false); }
-            if (index == 1) match.ReturnToLobby();
-            if(index==2){if(match.Rules.mode==GameModeKind.Infection)page=(page+1)%Mathf.Max(1,Mathf.CeilToInt(sorted.Length/5f));else page=Mathf.Max(0,page-1);}
-            if(index==3){if(match.Rules.mode==GameModeKind.Infection)killPage=(killPage+1)%Mathf.Max(1,Mathf.CeilToInt(infectedSorted.Length/5f));else page=Mathf.Min(Mathf.Max(0,(sorted.Length-1)/10),page+1);}
-        }
-        void Build()
-        {
-            var root = new GameObject("Visual - round results", typeof(RectTransform), typeof(Canvas));
-            root.transform.SetParent(transform, false); canvas = root.GetComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            var rect = root.GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(900, 640);
-            var pane = new GameObject("Candy panel", typeof(RectTransform), typeof(Image)); pane.transform.SetParent(root.transform, false);
-            var background = pane.GetComponent<Image>(); background.color = new Color(.055f, .025f, .12f, .98f); background.rectTransform.sizeDelta = rect.sizeDelta;
-            title = Label("Result", new Vector2(820, 80), new Vector2(0, 260), 28);
-            rows = Label("Scores", new Vector2(820, 350), new Vector2(0, 25), 23); rows.alignment = TextAnchor.UpperLeft;
-            secondaryRows=Label("Survivors infected",new Vector2(820,170),new Vector2(0,-70),21);secondaryRows.alignment=TextAnchor.UpperLeft;
-            hint = Label("Paging", new Vector2(820, 40), new Vector2(0, -185), 18);
-            string[] names = { "STAY / NEXT ROUND", "RETURN TO LOBBY", "PREVIOUS", "NEXT" };
-            for (int i = 0; i < 4; i++)
+            var match = MatchRuntime.Current;
+            var session = Services.Session;
+            if (match == null || session == null) return;
+            switch (index)
             {
-                labels[i] = Label(names[i], new Vector2(195, 52), new Vector2(-315 + i * 210, -265), 19);
-                labels[i].color = new Color(.2f, 1, .78f); targets[i] = labels[i].gameObject.AddComponent<BoxCollider>(); targets[i].isTrigger = true; targets[i].size = new Vector3(195, 52, 1);
+                case 0: if (CanStartRound(match.Authority, session as IGameExperienceControls)) { match.StartRound(); session.SetMenu(false); } break;
+                case 1: match.ReturnToLobby(); break;
+                case 2: page = split ? (page + 1) % Pages(sorted.Length, PageSize) : page - 1; break;
+                case 3:
+                    if (split) infectionPage = (infectionPage + 1) % Pages(infectors.Length, SplitPage);
+                    else page++;
+                    break;
             }
         }
-        Text Label(string name, Vector2 size, Vector2 position, int fontSize)
+
+        void Draw(IMatchRuntime match, MatchFrame frame)
         {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Text)); go.transform.SetParent(canvas.transform, false);
-            var label = go.GetComponent<Text>();label.text=name; label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); label.fontSize = fontSize; label.color = Color.white; label.alignment = TextAnchor.MiddleCenter;
-            label.rectTransform.sizeDelta = size; label.rectTransform.anchoredPosition = position; return label;
+            title.text = string.IsNullOrEmpty(frame.winner) ? "ROUND COMPLETE"
+                : CandyHudContent.Safe(frame.winner).ToUpperInvariant() + (frame.winner == "Draw" ? "" : " WINS");
+            int own = Array.FindIndex(sorted, player => player.id == match.LocalActorId);
+            var local = frame.players.FirstOrDefault(player => player.id == match.LocalActorId);
+            string place = CandyMatchHud.StandingsPlace(local, own, rankedCurated);
+            summary.text = CandyHudContent.Mode(frame.rules.mode) + "  ·  " + CandyHudContent.Safe(frame.metricLabel)
+                + "  ·  " + CandyMatchHud.StandingsCount(sorted.Length, rankedCurated)
+                + (place.Length > 0 ? "  ·  " + place : "");
+            primaryHeading.text = split ? "LONGEST SURVIVORS" : "FINAL STANDINGS";
+            primaryHeading.rectTransform.anchoredPosition = new Vector2(split ? -250 : 0, 183);
+            secondaryHeading.gameObject.SetActive(split);
+            secondaryHeading.text = "SURVIVORS INFECTED";
+            DrawRows(primary, sorted, page, PageSize, split ? -250 : 0, split ? 482 : 982, match, frame.rules.mode, false);
+            DrawRows(secondary, infectors, infectionPage, split ? SplitPage : 0, 250, 482, match, frame.rules.mode, true);
+            paging.text = split
+                ? $"Survivors {page + 1} / {Pages(sorted.Length, PageSize)}    ·    Infections {infectionPage + 1} / {Pages(infectors.Length, SplitPage)}"
+                : $"Page {page + 1} / {Pages(sorted.Length, PageSize)}";
+            labels[0].text = NextRoundLabel(match.Authority, Services.Session as IGameExperienceControls);
+            labels[2].text = split ? "NEXT SURVIVORS" : "PREVIOUS";
+            labels[3].text = split ? "NEXT INFECTORS" : "NEXT";
         }
-        void OnGUI()
+
+        void DrawRows(Row[] pool, MatchPlayerFrame[] players, int selectedPage, int pageSize, float x, float width,
+            IMatchRuntime match, GameModeKind mode, bool infections)
         {
-            if (!visible || Services.Session?.IsVR == true || MatchRuntime.Current == null) return;
-            var oldSkin=GUI.skin;int oldDepth=GUI.depth;
-            if(!theme){theme=Instantiate(GUI.skin);theme.label.fontSize=20;theme.label.normal.textColor=Color.white;theme.button.fontSize=19;theme.button.normal.textColor=Color.white;theme.button.hover.textColor=Color.white;theme.button.active.textColor=Color.white;theme.button.normal.background=DeadlyJenga.CastlePrototype.CandyHudVisuals.Rounded;theme.box.normal.background=DeadlyJenga.CastlePrototype.CandyHudVisuals.Rounded;theme.box.padding=new RectOffset(24,24,20,20);}
-            GUI.skin=theme;GUI.skin.label.richText=true;GUI.depth = -50;
-            var frame = MatchRuntime.Current.Frame;
-            float width = Mathf.Min(Screen.width - 30, 860), height = Mathf.Min(Screen.height - 30, 590);
-            var old = GUI.backgroundColor; GUI.backgroundColor = new Color(.18f, .07f, .32f);
-            GUILayout.BeginArea(new Rect((Screen.width - width) * .5f, (Screen.height - height) * .5f, width, height), GUI.skin.box);
-            GUILayout.Label((string.IsNullOrEmpty(frame.winner) ? "ROUND COMPLETE" : CandyHudContent.Safe(frame.winner) + (frame.winner=="Draw"?"":" WINS")) + "  ·  " + frame.metricLabel);
-            bool infection=frame.rules.mode==GameModeKind.Infection;int pageSize=infection?5:10;
-            if(infection)GUILayout.Label("LONGEST SURVIVORS");
-            for(int i=page*pageSize;i<Mathf.Min(page*pageSize+pageSize,sorted.Length);i++){var p=sorted[i];GUILayout.Label((i+1)+". "+CandyHudContent.Safe(p.name,22)+"    "+CandyHudContent.ResultStats(p,frame.rules.mode));}
-            if(infection){GUILayout.Space(12);GUILayout.Label("SURVIVORS INFECTED");for(int i=killPage*5;i<Mathf.Min(killPage*5+5,infectedSorted.Length);i++){var p=infectedSorted[i];GUILayout.Label((i+1)+". "+CandyHudContent.Safe(p.name,22)+"    "+p.infections);}}
-            GUILayout.FlexibleSpace(); GUILayout.BeginHorizontal();
-            bool enabled = GUI.enabled; GUI.enabled = MatchRuntime.Current.Authority; if (GUILayout.Button("STAY / NEXT ROUND", GUILayout.Height(48))) Act(0); GUI.enabled = enabled;
-            if (GUILayout.Button("RETURN TO LOBBY", GUILayout.Height(48))) Act(1); GUILayout.EndHorizontal();
-            GUILayout.BeginHorizontal(); if (GUILayout.Button(infection?"NEXT SURVIVORS":"PREVIOUS")) Act(2); GUILayout.Label(infection?"Survivors "+(page+1)+" · Infections "+(killPage+1):"Page "+(page+1)); if (GUILayout.Button(infection?"NEXT INFECTORS":"NEXT")) Act(3); GUILayout.EndHorizontal();
-            GUILayout.EndArea(); GUI.backgroundColor = old;GUI.depth=oldDepth;GUI.skin=oldSkin;
+            for (int i = 0; i < pool.Length; i++)
+            {
+                var row = pool[i];
+                int rank = selectedPage * pageSize + i;
+                bool show = i < pageSize && rank < players.Length;
+                row.background.gameObject.SetActive(show);
+                if (!show) continue;
+                var player = players[rank];
+                bool own = player.id == match.LocalActorId;
+                var rect = row.background.rectTransform;
+                rect.sizeDelta = new Vector2(width, 36);
+                rect.anchoredPosition = new Vector2(x, 151 - i * 41);
+                row.background.color = own ? new Color(.12f, .31f, .32f) : new Color(.145f, .09f, .24f);
+                row.rank.text = (rank + 1).ToString();
+                row.name.text = CandyHudContent.Safe(player.name, split ? own ? 14 : 19 : 29) + (own ? "  ·  YOU" : "");
+                row.name.color = own ? Mint : Color.white;
+                row.name.rectTransform.sizeDelta = new Vector2(split ? 216 : 300, 36);
+                row.name.rectTransform.anchoredPosition = new Vector2(split ? 196 : 238, 0);
+                float statsWidth = split ? 158 : 510;
+                row.stats.rectTransform.sizeDelta = new Vector2(statsWidth, 36);
+                row.stats.rectTransform.anchoredPosition = new Vector2(-statsWidth * .5f - 14, 0);
+                row.stats.text = infections ? player.infections + " infected" : split ? player.survivalSeconds.ToString("0.0") + "s survived" : CandyHudContent.ResultStats(player, mode);
+                CandyScorePortraits.Show(row.portrait, row.initial, portraits.Get(match, player), player);
+            }
         }
-        void OnDestroy() { if(theme)Destroy(theme);if (canvas) Destroy(canvas.gameObject); }
+
+        void Build()
+        {
+            var root = new GameObject("Visual - round results", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler));
+            root.transform.SetParent(transform, false);
+            root.layer = 5;
+            canvas = root.GetComponent<Canvas>();
+            canvas.sortingOrder = 80;
+            portraits = CandyScorePortraits.For(gameObject);
+            var panel = Panel("Results panel", root.transform, new Vector2(1040, 654), Vector2.zero, Ink).transform;
+            title = Label("Winner", panel, new Vector2(982, 48), new Vector2(0, 280), 34);
+            summary = Label("Mode and local rank", panel, new Vector2(982, 26), new Vector2(0, 242), 19);
+            summary.color = Mint;
+            roomCode = Label("Join code", panel, new Vector2(982, 26), new Vector2(0, 213), 20);
+            roomCode.color = Mint;
+            primaryHeading = Label("Standings heading", panel, new Vector2(480, 28), new Vector2(0, 183), 19);
+            secondaryHeading = Label("Infection heading", panel, new Vector2(480, 28), new Vector2(250, 183), 19);
+            for (int i = 0; i < primary.Length; i++) primary[i] = BuildRow(panel);
+            for (int i = 0; i < secondary.Length; i++) secondary[i] = BuildRow(panel);
+
+            paging = Label("Page count", panel, new Vector2(405, 34), new Vector2(0, -183), 18);
+            string[] names = { "STAY / NEXT ROUND", "RETURN TO LOBBY", "PREVIOUS", "NEXT" };
+            for (int i = 0; i < buttons.Length; i++)
+            {
+                Vector2 size = i < 2 ? new Vector2(474, 61) : new Vector2(220, 36);
+                Vector2 position = i < 2 ? new Vector2(i == 0 ? -246 : 246, -270) : new Vector2(i == 2 ? -305 : 305, -183);
+                buttons[i] = Panel(names[i], panel, size, position, Ink);
+                labels[i] = Label(names[i], buttons[i].transform, size, Vector2.zero, i < 2 ? 23 : 16);
+                labels[i].text = names[i];
+                targets[i] = buttons[i].gameObject.AddComponent<BoxCollider>();
+                targets[i].isTrigger = true;
+                targets[i].size = new Vector3(size.x, size.y, 1);
+            }
+        }
+
+        static Row BuildRow(Transform parent)
+        {
+            var background = Panel("Score row", parent, new Vector2(982, 36), Vector2.zero, Ink);
+            var row = background.transform;
+            var rank = Label("Rank", row, new Vector2(46, 36), new Vector2(24, 0), 17);
+            Anchor(rank.rectTransform, 0);
+            var portraitObject = new GameObject("Avatar portrait", typeof(RectTransform), typeof(RawImage));
+            portraitObject.transform.SetParent(row, false);
+            portraitObject.layer = 5;
+            var portrait = portraitObject.GetComponent<RawImage>();
+            portrait.raycastTarget = false;
+            portrait.rectTransform.sizeDelta = new Vector2(32, 32);
+            portrait.rectTransform.anchoredPosition = new Vector2(64, 0);
+            Anchor(portrait.rectTransform, 0);
+            var initial = Label("Initial", portrait.transform, new Vector2(32, 32), Vector2.zero, 17);
+            var name = Label("Player name", row, new Vector2(242, 36), new Vector2(210, 0), 18);
+            Anchor(name.rectTransform, 0);
+            name.alignment = TextAnchor.MiddleLeft;
+            var stats = Label("Mode stats", row, new Vector2(510, 36), new Vector2(-269, 0), 17);
+            Anchor(stats.rectTransform, 1);
+            stats.alignment = TextAnchor.MiddleRight;
+            return new Row { background = background, rank = rank, name = name, stats = stats, portrait = portrait, initial = initial };
+        }
+
+        static void Anchor(RectTransform rect, float x) => rect.anchorMin = rect.anchorMax = new Vector2(x, .5f);
+
+        static Image Panel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            go.layer = 5;
+            var panel = go.GetComponent<Image>();
+            panel.sprite = CandyHudVisuals.Pill;
+            panel.type = Image.Type.Sliced;
+            panel.color = color;
+            panel.raycastTarget = false;
+            panel.rectTransform.sizeDelta = size;
+            panel.rectTransform.anchoredPosition = position;
+            return panel;
+        }
+
+        static Text Label(string name, Transform parent, Vector2 size, Vector2 position, int fontSize)
+        {
+            var go = new GameObject(name, typeof(RectTransform), typeof(Text));
+            go.transform.SetParent(parent, false);
+            go.layer = 5;
+            var label = go.GetComponent<Text>();
+            label.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.fontSize = fontSize;
+            label.fontStyle = FontStyle.Bold;
+            label.supportRichText = false;
+            label.raycastTarget = false;
+            label.alignment = TextAnchor.MiddleCenter;
+            label.color = Color.white;
+            label.rectTransform.sizeDelta = size;
+            label.rectTransform.anchoredPosition = position;
+            return label;
+        }
+
+        void OnDisable() { visible = false; if (canvas) canvas.gameObject.SetActive(false); }
+        void OnDestroy() { if (canvas) Destroy(canvas.gameObject); }
     }
 }

@@ -127,6 +127,8 @@ namespace DeadlyJenga.Presentation
         }
 
         // Smoothly follow the latest frame (other players get frames a few times a second).
+        internal Transform SoundAnchor => head;
+
         public void Show(DisasterFrame f, float dt)
         {
             if (f == null || f.points == null || f.values == null || f.values.Length < 7) return;

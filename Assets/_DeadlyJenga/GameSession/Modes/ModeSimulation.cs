@@ -14,6 +14,7 @@ namespace DeadlyJenga.Modes
         {
             public readonly MatchPlayerFrame frame = new MatchPlayerFrame();
             public bool present = true, grounded;
+            public bool deferredParticipation;
             public float heightIntegral, observedSeconds, nextPunch, powerUntil;
             public string previousRole, noun;
         }
@@ -33,6 +34,9 @@ namespace DeadlyJenga.Modes
         readonly ModeNames names;
         readonly System.Random random;
         int sequence;
+        int eliminationSequence;
+        string eliminationEpoch;
+        readonly Queue<EliminationFrame> eliminations = new Queue<EliminationFrame>(EliminationFrame.Capacity);
         bool restoring;
         float phaseTime;
         public ModeRules Rules { get; private set; }
@@ -83,6 +87,7 @@ namespace DeadlyJenga.Modes
             foreach(var p in players.Values){p.frame.team=-1;p.frame.color=SurvivorColor(p);}
             foreach (var p in players.Values) { AssignTeam(p); Rename(p); }
             claims.Clear(); flags.Clear(); Winner=""; WinnerTeam=-1;
+            ClearEliminations();
             ChangePhase(Rules.mode == GameModeKind.Demo ? RoundPhase.Playing : RoundPhase.Waiting);
         }
         public Participant Find(string id) => id!=null&&(players.TryGetValue(id,out var p)||enemies.TryGetValue(id,out p))?p:null;
@@ -99,11 +104,19 @@ namespace DeadlyJenga.Modes
         }
         public Participant Register(string id, Color color, bool bot, bool local)
         {
+            bool deferred = players.TryGetValue(id ?? "", out var existing) && existing.deferredParticipation;
+            return Register(id, color, bot, local, deferred);
+        }
+        internal Participant Register(string id, Color color, bool bot, bool local,bool deferParticipation)
+        {
             if (string.IsNullOrEmpty(id) || id.Length > 128) return null;
-            if (players.TryGetValue(id,out var old)) { old.present=true; old.frame.local=local; return old; }
+            if (players.TryGetValue(id,out var old)) { old.present=true; old.frame.local=local; SetDeferredParticipation(id,deferParticipation); return old; }
             if (players.Count >= 256) return null;
             var p=new Participant(); p.frame.id=id; p.frame.survivorColor=color;p.frame.color=SurvivorColor(p);
-            p.frame.alive=true; p.frame.bot=bot; p.frame.local=local; AssignTeam(p); p.frame.name=names.Next(p.frame.color);p.noun=ModeNames.NounOf(p.frame.name); players.Add(id,p);
+            p.frame.alive=!deferParticipation; p.frame.bot=bot; p.frame.local=local;p.deferredParticipation=deferParticipation;
+            if(deferParticipation)p.frame.role="spectator";else AssignTeam(p);
+            p.frame.name=names.Next(p.frame.color);p.noun=ModeNames.NounOf(p.frame.name); players.Add(id,p);
+            if(deferParticipation)return p;
             if(Phase==RoundPhase.Playing&&Elapsed>1&&Rules.mode==GameModeKind.Survival){p.frame.alive=false;p.frame.role="spectator";Eliminated?.Invoke(id,EliminationOutcome.Spectator);}
             if(Phase==RoundPhase.Playing&&Elapsed>1&&Rules.mode==GameModeKind.MurderMystery){p.frame.alive=false;p.frame.role="spectator";Eliminated?.Invoke(id,EliminationOutcome.Spectator);}
             if(Phase==RoundPhase.Playing&&Elapsed>1&&Rules.mode==GameModeKind.Infection)MakeInfected(p);
@@ -119,9 +132,39 @@ namespace DeadlyJenga.Modes
             if(string.IsNullOrEmpty(p.noun))p.noun=ModeNames.NounOf(p.frame.name??"");
             names.Release(p.frame.name);p.frame.name=names.Preserve(p.frame.color,p.noun);
         }
+        internal void SetDeferredParticipation(string id, bool deferred)
+        {
+            var p = Find(id);
+            if (p == null) return;
+            bool changed = p.deferredParticipation != deferred;
+            p.deferredParticipation = deferred;
+            if (deferred)
+            {
+                if (changed) DropFlags(id);
+                var frame = p.frame;
+                frame.alive = false;
+                frame.role = "spectator";
+                frame.team = -1;
+                frame.dying = false;
+                frame.deathProgress = frame.deathRemaining = 0;
+                frame.pendingOutcome = null;
+                frame.sinking = false;
+                frame.sinkProgress = 0;
+                frame.handPowerRemaining = 0;
+                frame.handReturnRole = null;
+                p.powerUntil = 0;
+                p.previousRole = null;
+            }
+            else if (changed)
+            {
+                AssignTeam(p);
+                Rename(p);
+            }
+        }
         void AssignTeam(Participant p)
         {
             p.frame.team=-1;
+            if(p.deferredParticipation)return;
             if(TeamMode(Rules.mode))
             {
                 if(Rules.sameHumanTeam&&!p.frame.bot)p.frame.team=0;
@@ -130,7 +173,7 @@ namespace DeadlyJenga.Modes
                     int first=Rules.sameHumanTeam?1:0,min=int.MaxValue;var candidates=new List<int>();
                     for(int team=first;team<Rules.teamCount;team++)
                     {
-                        int count=0;foreach(var other in players.Values)if(other!=p&&other.present&&other.frame.team==team)count++;
+                        int count=0;foreach(var other in players.Values)if(other!=p&&other.present&&!other.deferredParticipation&&other.frame.team==team)count++;
                         if(count<min){min=count;candidates.Clear();}if(count==min)candidates.Add(team);
                     }
                     p.frame.team=candidates[random.Next(candidates.Count)];
@@ -160,10 +203,11 @@ namespace DeadlyJenga.Modes
         public void StartRound()
         {
             Winner=""; WinnerTeam=-1; Elapsed=0; claims.Clear();
+            ClearEliminations();
             foreach(var team in teams){team.points=0;team.captures=0;team.ownedBlocks=0;team.tickets=Rules.tickets;}
             foreach(var p in players.Values)
             {
-                var f=p.frame; f.alive=p.present; f.role="survivor"; f.survivalSeconds=f.averageHeight=f.metric=0;f.kills=f.deaths=f.captures=f.flagReturns=f.blocksClaimed=f.infections=f.bodyReports=f.revives=0;f.hillSeconds=0;f.dying=false;f.deathProgress=0;f.sinking=false;f.sinkProgress=0;f.spectating=null;f.pendingOutcome=null;f.deathRemaining=0;f.handPowerRemaining=0;f.handReturnRole=null;
+                var f=p.frame; f.alive=p.present&&!p.deferredParticipation; f.role=p.deferredParticipation?"spectator":"survivor"; f.survivalSeconds=f.averageHeight=f.metric=0;f.kills=f.deaths=f.captures=f.flagReturns=f.blocksClaimed=f.infections=f.bodyReports=f.revives=0;f.hillSeconds=0;f.dying=false;f.deathProgress=0;f.sinking=false;f.sinkProgress=0;f.spectating=null;f.pendingOutcome=null;f.deathRemaining=0;f.handPowerRemaining=0;f.handReturnRole=null;
                 if(!TeamMode(Rules.mode)){f.team=-1;f.color=SurvivorColor(p);}
                 p.heightIntegral=p.observedSeconds=0;p.powerUntil=0;p.nextPunch=0;
             }
@@ -181,7 +225,7 @@ namespace DeadlyJenga.Modes
             Elapsed+=seconds;
             foreach(var p in players.Values)
             {
-                if(!p.present)continue;
+                if(!p.present||p.deferredParticipation)continue;
                 var f=p.frame;
                 if(f.alive && !f.dying && f.role!="infected" && f.role!="hand") f.survivalSeconds+=seconds;
                 if(f.alive&&!f.dying){p.heightIntegral+=Mathf.Max(0,f.height)*seconds;p.observedSeconds+=seconds;f.averageHeight=p.heightIntegral/Mathf.Max(.001f,p.observedSeconds);}
@@ -196,7 +240,7 @@ namespace DeadlyJenga.Modes
         void SeedInfection()
         {
             if(Rules.mode!=GameModeKind.Infection||!Rules.starterInfected)return;
-            var list=new List<Participant>();foreach(var p in players.Values)if(p.present)list.Add(p);
+            var list=new List<Participant>();foreach(var p in players.Values)if(p.present&&!p.deferredParticipation&&p.frame.alive&&!p.frame.dying&&p.frame.role!="spectator")list.Add(p);
             if(list.Count>1)MakeInfected(list[(sequence+17)%list.Count]);
         }
         public EliminationOutcome Kill(string id, string killerId)
@@ -205,6 +249,14 @@ namespace DeadlyJenga.Modes
             if(enemies.ContainsKey(id)){p.frame.alive=false;Eliminated?.Invoke(id,EliminationOutcome.Spectator);return EliminationOutcome.Spectator;}
             DropFlags(id);p.frame.deaths++;
             var killer=Find(killerId);if(killer!=null&&killer!=p){killer.frame.kills++;if(Rules.mode==GameModeKind.Infection&&killer.frame.role=="infected"&&p.frame.role!="infected")killer.frame.infections++;}
+            if (Rules.mode != GameModeKind.MurderMystery)
+            {
+                if (eliminations.Count == EliminationFrame.Capacity) eliminations.Dequeue();
+                eliminations.Enqueue(new EliminationFrame
+                {
+                    sequence = ++eliminationSequence, victim = id, killer = killer != null && killer != p ? killerId : ""
+                });
+            }
             EliminationOutcome outcome;
             if(Rules.mode==GameModeKind.Demo || Rules.mode==GameModeKind.KingOfHill || Rules.mode==GameModeKind.BlockControl || Rules.mode==GameModeKind.CaptureFlag)outcome=EliminationOutcome.Respawn;
             else if(Rules.mode==GameModeKind.Infection){MakeInfected(p);return EliminationOutcome.Infected;}
@@ -213,6 +265,13 @@ namespace DeadlyJenga.Modes
             if(outcome!=EliminationOutcome.Respawn){p.frame.alive=false;p.frame.role="spectator";}
             Eliminated?.Invoke(id,outcome);return outcome;
         }
+        void ClearEliminations()
+        {
+            eliminations.Clear();
+            eliminationSequence = 0;
+            eliminationEpoch = Guid.NewGuid().ToString("N");
+        }
+
         void MakeInfected(Participant p)
         {
             p.frame.role="infected";p.frame.team=-2;p.frame.color=new Color(.15f,1,.12f);p.frame.alive=true;
@@ -244,7 +303,7 @@ namespace DeadlyJenga.Modes
         {
             if(Rules.mode==GameModeKind.MurderMystery)return;
             int present=0,alive=0;Participant last=null;
-            foreach(var p in players.Values)if(p.present){present++;if(p.frame.alive&&p.frame.role!="infected"){alive++;last=p;}}
+            foreach(var p in players.Values)if(p.present&&!p.deferredParticipation){present++;if(p.frame.alive&&p.frame.role!="infected"){alive++;last=p;}}
             if(present<2)return;
             if(Rules.mode==GameModeKind.Survival && alive<=1){Finish(last?.frame.name??"Nobody",-1);return;}
             if(Rules.mode==GameModeKind.Infection && alive==0){Finish("Infected",-2);return;}

@@ -14,8 +14,8 @@ namespace DeadlyJenga.CastlePrototype
         CastleFusionSession Net => session.GetComponent<CastleFusionSession>();
         CastleFusionSession.DemoState Remote { get { var net = Net; return net && !net.IsHost ? net.Demo : null; } }
 
-        public bool DemoMode => MatchSetup.ModeId == "demo";
-        public bool CanSpectate => session.Modes && (DemoMode || session.CanEditWorld);
+        public bool DemoMode => SessionDevelopmentPolicy.DemoEnabled(session);
+        public bool CanSpectate => session.Modes && DemoMode;
         public bool Spectating => session.Modes && session.Modes.DemoSpectating;
         public bool FourViews => session.Modes && session.Modes.DemoFourViews;
         public bool CanUseFourViews => CanSpectate && !session.IsVR;
@@ -37,13 +37,32 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         public string CurrentMapId => MatchSetup.MapId;
-        public bool CanSelectMap => session.HasWorldAuthority && (!IslandRoomConnection.Instance || (!IslandRoomConnection.Instance.Busy && !IslandRoomConnection.Instance.SwitchingMap));
-        public string MapStatus => IslandRoomConnection.Instance && IslandRoomConnection.Instance.SwitchingMap ? "Waiting for connected players..." : "Changing maps restarts the map with the current mode. Host only.";
+        public bool CanSelectMap
+        {
+            get
+            {
+                var room=IslandRoomConnection.Instance;
+                return CanCommand&&session.HasWorldAuthority&&(!room||!room.Connected||room.IsHost&&!room.Busy&&!room.SwitchingMap&&!room.RoomSceneBusy);
+            }
+        }
+        public string MapStatus
+        {
+            get
+            {
+                var room=IslandRoomConnection.Instance;
+                if(room&&room.Connected)
+                {
+                    if(room.SwitchingMap||room.RoomSceneBusy)return "Changing map for everyone…";
+                    if(room.Status.StartsWith("Map change cancelled",StringComparison.Ordinal)||room.Status.StartsWith("Could not load map",StringComparison.Ordinal))return room.Status;
+                }
+                return "Changing maps restarts the map with the current mode. Host only.";
+            }
+        }
         public void SelectMap(string id)
         {
             if (!CanSelectMap || id == CurrentMapId || !MapCatalog) return;
             var map = Array.Find(MapCatalog.maps, value => value.id == id);
-            if (map == null || UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) < 0) return;
+            if (map == null || !map.SupportsMode(MatchSetup.ModeId) || UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) < 0) return;
             var room = IslandRoomConnection.Instance;
             if (room && room.Connected) { room.SwitchGameMap(id); return; }
             if (Net && Net.IsHost) return;
@@ -62,6 +81,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Run(DemoCommand command)
         {
+            if(!CanCommand)return;
             switch (command)
             {
                 case DemoCommand.SpawnSpeedPowerup: DemoPowerups.Spawn(session,true); break;

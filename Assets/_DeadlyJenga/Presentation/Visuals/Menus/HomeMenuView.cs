@@ -26,11 +26,15 @@ namespace DeadlyJenga.Presentation
         Camera eye;
         bool vr;
         float slideTime, nextNearby;
-        int fadePhase=2, vrFrames;
+        int fadePhase=2, recenterFrames;
+        Material backdrop;
+        RenderTexture blurredSlide;
+        readonly List<XRInputSubsystem> trackingOrigins = new List<XRInputSubsystem>();
         int slide, nearbyPage;
         readonly List<Button> buttons = new List<Button>();
         readonly List<Button> nearbyButtons = new List<Button>();
-        InputAction trigger, handPosition, handRotation, tracked;
+        InputAction trigger;
+        Button gazeFocus;
         Font font;
         public int SlideIndex => slide;
         public float WhiteFade => white ? white.color.a : 0;
@@ -39,13 +43,13 @@ namespace DeadlyJenga.Presentation
         static void Attach(GameObject root)
         {
             var controls = root.GetComponent<IHomeMenuControls>();
-            if (controls != null) root.AddComponent<HomeMenuView>().Build(controls);
+            if (controls != null) root.AddComponent<HomeMenuView>().Build(controls, XRSettings.isDeviceActive);
         }
-        void Build(IHomeMenuControls source)
+        void Build(IHomeMenuControls source, bool useVr)
         {
             controls = source; font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             slides = Resources.LoadAll<Texture2D>("HomeSlides").OrderBy(t => t.name).ToArray();
-            vr = XRSettings.isDeviceActive;
+            vr = useVr;
             eye = new GameObject("Home camera").AddComponent<Camera>(); eye.transform.SetParent(transform);
             eye.transform.localPosition = new Vector3(0, 1.6f, 0); eye.clearFlags = CameraClearFlags.SolidColor; eye.backgroundColor = new Color(.04f,.025f,.09f);
             eye.gameObject.tag = "MainCamera"; eye.gameObject.AddComponent<AudioListener>();
@@ -61,7 +65,13 @@ namespace DeadlyJenga.Presentation
             if (vr)
             {
                 canvas.renderMode = RenderMode.WorldSpace; canvas.worldCamera = eye;
-                frame.sizeDelta = new Vector2(1920,1080); frame.position = new Vector3(0,1.6f,3); frame.localScale = Vector3.one * .002f;
+                frame.sizeDelta = new Vector2(1920,1080);
+                frame.localScale = Vector3.one * .002f;
+                AnchorToHead();
+                recenterFrames = 4;
+                BuildBackdrop();
+                SubsystemManager.GetSubsystems(trackingOrigins);
+                foreach(var origin in trackingOrigins) origin.trackingOriginUpdated += TrackingOriginUpdated;
             }
             else
             {
@@ -88,15 +98,15 @@ namespace DeadlyJenga.Presentation
             BuildJoin();joinPage.SetActive(false);
             status=Label(content,"",new Vector2(0,-450),new Vector2(580,65),22,new Color(.85f,.83f,.95f));
             Label(frame,"PHYSICS. FRIENDS. PURE MAYHEM.",new Vector2(425,-470),new Vector2(900,50),23,Color.white);
+            ButtonAt(frame,"CONTROLS / LEFT OR RIGHT HAND",new Vector2(285,448),new Vector2(570,70),()=>CandyComfortPanel.OpenHome(gameObject,eye,vr));
+            if(vr)
+                ButtonAt(frame,"RECENTER VIEW",new Vector2(740,448),new Vector2(260,62),QueueRecenter);
             if (!FindFirstObjectByType<EventSystem>())
             {
                 var events=new GameObject("Home input",typeof(EventSystem),typeof(InputSystemUIInputModule));events.transform.SetParent(transform);
                 events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
-            trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.Enable();
-            handPosition=new InputAction("Home pointer position",InputActionType.Value,"<XRController>{RightHand}/devicePosition");handPosition.Enable();
-            handRotation=new InputAction("Home pointer rotation",InputActionType.Value,"<XRController>{RightHand}/deviceRotation");handRotation.Enable();
-            tracked=new InputAction("Home pointer tracked",InputActionType.Button,"<XRController>{RightHand}/isTracked");tracked.Enable();
+            trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.AddBinding("<XRController>{LeftHand}/trigger");trigger.AddBinding("<HandInteraction>{LeftHand}/pinchValue");trigger.AddBinding("<HandInteraction>{RightHand}/pinchValue");trigger.Enable();
             pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(vr);
             SetSlide();
         }
@@ -108,7 +118,7 @@ namespace DeadlyJenga.Presentation
             var field=Node("Room code",root,new Vector2(-85,155),new Vector2(410,68));field.gameObject.AddComponent<Image>().color=new Color(.94f,.93f,1);
             code=field.gameObject.AddComponent<InputField>();var text=Label(field,"",Vector2.zero,new Vector2(380,60),30,new Color(.08f,.04f,.18f));code.textComponent=text;code.characterLimit=12;
             code.contentType=InputField.ContentType.Standard;code.onValueChanged.AddListener(value=>controls.Code=value);
-            var placeholder=Label(field,"US-ABC234",Vector2.zero,new Vector2(380,60),28,new Color(.45f,.4f,.53f));code.placeholder=placeholder;
+            var placeholder=Label(field,"ABC234",Vector2.zero,new Vector2(380,60),28,new Color(.45f,.4f,.53f));code.placeholder=placeholder;
             join=ButtonAt(root,"JOIN",new Vector2(220,155),new Vector2(130,68),controls.JoinCode);
             ButtonAt(root,"DETECT NEARBY",new Vector2(-65,70),new Vector2(450,56),()=>{controls.DetectNearby();nextNearby=0;});
             ButtonAt(root,"NEXT",new Vector2(220,70),new Vector2(130,56),()=>{nearbyPage++;nextNearby=0;});
@@ -129,11 +139,15 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(controls==null)return;
+            bool comfortOpen=CandyComfortPanel.HomeShowing(gameObject);
+            content.gameObject.SetActive(!comfortOpen);
+            if(comfortOpen){foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
+            pointer.gameObject.SetActive(vr);
             AnimateSlideshow(Time.unscaledDeltaTime);Crop();
             status.text=controls.Status;
             foreach(var button in buttons)button.interactable=!controls.Busy;
             join.interactable=!controls.Busy&&controls.CodeValid;
-            region.text="REGION / "+controls.Region;
+            region.text="SHORT CODE REGION / "+controls.Region.ToUpperInvariant();
             if(joinPage.activeSelf&&Time.unscaledTime>=nextNearby)
             {
                 nextNearby=Time.unscaledTime+.5f;nearbyPage=Mathf.Clamp(nearbyPage,0,Mathf.Max(0,(controls.NearbyCount-1)/2));
@@ -142,7 +156,7 @@ namespace DeadlyJenga.Presentation
             }
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&!controls.Busy)ShowJoin(false);
             if(Keyboard.current?.enterKey.wasPressedThisFrame==true&&joinPage.activeSelf&&!controls.Busy&&controls.CodeValid)controls.JoinCode();
-            if(vr)Point();
+            if(vr && recenterFrames==0)Point();
         }
         void AnimateSlideshow(float delta)
         {
@@ -163,18 +177,56 @@ namespace DeadlyJenga.Presentation
                 if(alpha<=0){fadePhase=0;slideTime=0;}
             }
             white.color=new Color(1,1,1,alpha);
+            if(backdrop)backdrop.SetFloat("_Fade",alpha);
         }
+
+        void BuildBackdrop()
+        {
+            var shader=Resources.Load<Shader>("CandyHomeBackdrop");
+            if(!shader || slides.Length==0)return;
+            blurredSlide=new RenderTexture(256,144,0,RenderTextureFormat.ARGB32)
+            {
+                name="Home slideshow blur",
+                useMipMap=true,
+                autoGenerateMips=false,
+                filterMode=FilterMode.Trilinear,
+                wrapMode=TextureWrapMode.Clamp
+            };
+            blurredSlide.Create();
+            backdrop=new Material(shader);
+            backdrop.SetTexture("_Slide",blurredSlide);
+            eye.gameObject.AddComponent<Skybox>().material=backdrop;
+            eye.clearFlags=CameraClearFlags.Skybox;
+            UpdateBackdropDirection();
+        }
+
+        void TrackingOriginUpdated(XRInputSubsystem origin)=>QueueRecenter();
+        void QueueRecenter()=>recenterFrames=2;
+
         void LateUpdate()
         {
-            if(!vr||!eye||++vrFrames!=4)return;
-            var forward=Vector3.ProjectOnPlane(eye.transform.forward,Vector3.up).normalized;
-            if(forward.sqrMagnitude<.1f)forward=Vector3.forward;
-            frame.position=eye.transform.position+forward*3;
-            frame.rotation=Quaternion.LookRotation(forward,Vector3.up);
+            if(!vr || recenterFrames==0 || --recenterFrames!=0)return;
+            AnchorToHead();
+        }
+
+        void AnchorToHead()
+        {
+            var forward=Vector3.ProjectOnPlane(eye.transform.forward,Vector3.up);
+            if(forward.sqrMagnitude<.001f)forward=frame.forward;
+            forward.Normalize();
+            frame.SetPositionAndRotation(eye.transform.position+forward*3,Quaternion.LookRotation(forward,Vector3.up));
+            UpdateBackdropDirection();
+        }
+
+        void UpdateBackdropDirection()
+        {
+            if(!backdrop)return;
+            backdrop.SetVector("_Forward",frame.forward);
+            backdrop.SetVector("_Right",frame.right);
         }
         void Point()
         {
-            bool hand=tracked.IsPressed();var ray=new Ray(hand?handPosition.ReadValue<Vector3>():eye.transform.position,hand?handRotation.ReadValue<Quaternion>()*Vector3.forward:eye.transform.forward);
+            if(!eye)return;var ray=new Ray(eye.transform.position,eye.transform.forward);
             var plane=new Plane(frame.forward,frame.position);
             if(!plane.Raycast(ray,out float distance)){pointer.gameObject.SetActive(false);return;}
             pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
@@ -186,9 +238,24 @@ namespace DeadlyJenga.Presentation
                 if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
             }
             pointer.GetComponent<Image>().color=target?Color.white:new Color(.45f,1,.8f);
+            if(target!=gazeFocus)
+            {
+                if(target)target.Select();
+                else if(EventSystem.current&&gazeFocus&&EventSystem.current.currentSelectedGameObject==gazeFocus.gameObject)EventSystem.current.SetSelectedGameObject(null);
+                gazeFocus=target;
+            }
             if(target&&trigger.WasPressedThisFrame())target.onClick.Invoke();
         }
-        void SetSlide(){if(slides.Length>0)background.texture=slides[slide];Crop();}
+        void SetSlide()
+        {
+            if(slides.Length==0)return;
+            background.texture=slides[slide];
+            Crop();
+            if(!blurredSlide)return;
+            var uv=background.uvRect;
+            Graphics.Blit(slides[slide],blurredSlide,uv.size,uv.position);
+            blurredSlide.GenerateMips();
+        }
         void Crop()
         {
             if(!background.texture)return;
@@ -216,6 +283,16 @@ namespace DeadlyJenga.Presentation
             var text=button.GetComponentInChildren<Text>();text.alignment=TextAnchor.UpperLeft;text.fontSize=29;text.rectTransform.anchoredPosition=new Vector2(9,-14);
             Label(button.transform,subtitle,new Vector2(10,-23),new Vector2(550,36),19,new Color(.82f,.8f,.92f));
         }
-        void OnDestroy(){trigger?.Dispose();handPosition?.Dispose();handRotation?.Dispose();tracked?.Dispose();}
+        void OnDestroy()
+        {
+            trigger?.Dispose();
+            foreach(var origin in trackingOrigins) origin.trackingOriginUpdated -= TrackingOriginUpdated;
+            if(backdrop)Destroy(backdrop);
+            if(blurredSlide)
+            {
+                blurredSlide.Release();
+                Destroy(blurredSlide);
+            }
+        }
     }
 }

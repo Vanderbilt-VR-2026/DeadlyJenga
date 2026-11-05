@@ -1,0 +1,138 @@
+{
+  "warmup": 0.5,
+  "seed": 573,
+  "fps": 24,
+  "ffmpeg": "ffmpeg",
+  "stageOffset": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  },
+  "title": "Festival rooftop relay",
+  "map": "sparse-festival-city",
+  "width": 720,
+  "height": 1280,
+  "cast": [
+    {
+      "id": "lead",
+      "color": 1,
+      "start": {
+        "x": -1.8,
+        "y": 0,
+        "z": 0
+      },
+      "moves": [
+        {
+          "at": 0,
+          "duration": 1.05,
+          "lift": 1.25,
+          "to": {
+            "x": 0.5,
+            "y": 0,
+            "z": 0
+          }
+        },
+        {
+          "at": 1.2,
+          "duration": 1.9,
+          "lift": 0.85,
+          "to": {
+            "x": 3.8,
+            "y": 0,
+            "z": 1
+          }
+        }
+      ],
+      "live": false
+    },
+    {
+      "id": "rival",
+      "color": 4,
+      "start": {
+        "x": 1.05,
+        "y": 0,
+        "z": 0
+      },
+      "moves": [
+        {
+          "at": 1.25,
+          "duration": 1.8,
+          "lift": 0.5,
+          "to": {
+            "x": 3.9,
+            "y": 0,
+            "z": -1
+          }
+        }
+      ],
+      "live": false
+    },
+    {
+      "id": "wildcard",
+      "color": 2,
+      "start": {
+        "x": 0,
+        "y": 0,
+        "z": 1
+      },
+      "moves": [],
+      "live": true
+    }
+  ],
+  "shots": [
+    {
+      "name": "Vertical chase",
+      "subject": "lead",
+      "start": 0,
+      "duration": 3.2,
+      "from": {
+        "x": -2.5,
+        "y": 1.1,
+        "z": -3.8
+      },
+      "to": {
+        "x": -0.8,
+        "y": 1.4,
+        "z": -5
+      },
+      "look": {
+        "x": 0.2,
+        "y": 0.6,
+        "z": 0
+      },
+      "fov": 53,
+      "second": ""
+    },
+    {
+      "name": "Over the shoulder",
+      "subject": "lead",
+      "start": 0.65,
+      "duration": 1.6,
+      "from": {
+        "x": -1,
+        "y": 0.8,
+        "z": -2.2
+      },
+      "to": {
+        "x": -0.5,
+        "y": 0.85,
+        "z": -2.5
+      },
+      "look": {
+        "x": 0.3,
+        "y": 0.6,
+        "z": 0
+      },
+      "fov": 56,
+      "second": "rival"
+    }
+  ],
+  "cues": [
+    {
+      "at": 1.08,
+      "action": "punch",
+      "actor": "lead",
+      "target": "rival"
+    }
+  ]
+}

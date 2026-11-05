@@ -1,0 +1,13 @@
+PASS invalid schema, queries, skills, limits, conditions, numbers and interactions rejected.
+PASS staffing limits, personal emergencies, stale feedback, moving targets, team changes and departure.
+PASS arrival versus success, authoritative completion, timeout, cooldown, reset tokens and invalid facts.
+PASS sustained blockage, alternative objectives and bounded actor population.
+PASS legitimate holding renews its ongoing lease; abandoned execution still times out.
+PASS independent parcel-delivery fixture uses new facts/definitions and unchanged director/Characters.
+PASS retreat policy, safe escape direction, elevation utility and witnessed-only Mystery hostility.
+PASS fixed punch reach, horizontal facing, shield approach and bounded observed-motion prediction.
+PASS bounded personal contact response interrupts travel, yields to immediate safety and resumes normal work.
+PASS query-specific utility ranking, reassignment and finite bounded facts.
+PASS shipped CTF profile keeps a defender and sends raiders across an 80m map despite nearby patrol opportunities.
+PASS every shipped mode definition validates against the production facts registry.
+PASS 120 assertions. These are director/contract tests, not motor, Quest or multiplayer tests.

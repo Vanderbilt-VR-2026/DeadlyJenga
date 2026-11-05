@@ -32,7 +32,7 @@ namespace DeadlyJenga.CandyAudio
                 engine.Loop(weapon.kind==EquipmentKind.WristLaser?CandySound.SuitThruster:CandySound.WeaponTransform,transform,.35f,motor.IsLocal,Mathf.Lerp(.65f,1.4f,weapon.charge));
             // Local breathing uses the reserved voice pool and the Character/master mixer.
             // Stop requesting on menu, role change, disable or full stamina: the pool fades out.
-            if(motor.IsLocal&&!motor.InputPaused&&motorBehaviour.isActiveAndEnabled)
+            if(motor.IsLocal&&!motor.InputPaused&&motorBehaviour.isActiveAndEnabled&&CandyAudioEngine.WaveImmersion<.3f)
             {
                 var breath=CandyBreathing.State(motor.Climbing,motor.Stamina);
                 if(breath.HasValue)engine.Loop(breath.Value,transform,staminaBreathingVolume*Mathf.Lerp(.55f,1,1-motor.Stamina),true,voicePitch);

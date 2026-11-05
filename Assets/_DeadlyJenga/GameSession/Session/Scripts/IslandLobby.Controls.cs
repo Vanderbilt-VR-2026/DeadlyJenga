@@ -53,17 +53,19 @@ namespace DeadlyJenga.CastlePrototype
         {if(!JoinEnabled)return;value=char.ToUpperInvariant(value);if((value>='A'&&value<='Z'||value>='0'&&value<='9'||value=='-')&&enteredCode.Length<12)enteredCode+=value;}
         public void EraseCode(){if(enteredCode.Length>0)enteredCode=enteredCode.Substring(0,enteredCode.Length-1);}
         public void Join(){if(JoinEnabled&&CodeValid)_=Room.Join(enteredCode);}
-        public void DetectNearby(){if(VisitingLobby)return;Room.StartDiscovery();showingNearby=true;codeFocused=false;nearbyPage=0;scanningUntil=Time.unscaledTime+2;}
+        public void DetectNearby(){if(VisitingLobby)return;Room.ScanNearby();showingNearby=true;codeFocused=false;nearbyPage=0;scanningUntil=Time.unscaledTime+2;}
         public void ShowCodeEntry(){showingNearby=false;FocusCode();}
-        IslandDiscovery.Entry NearbyEntry(int slot)
-        {
-            var list=Room.Discovery?.Nearby;if(list==null||list.Count==0)return null;
-            int pages=(list.Count+2)/3,index=(nearbyPage%pages)*3+slot;return index<list.Count?list[index]:null;
-        }
+        IslandDiscovery.Entry NearbyEntry(int slot)=>Room.Discovery?.JoinableAt(nearbyPage,3,slot);
         public bool HasNearby(int slot)=>NearbyEntry(slot)!=null;
-        public string NearbyTitle(int slot){var entry=NearbyEntry(slot);return entry==null?"":entry.message.name+" · "+entry.message.count+" players\nJOIN "+entry.message.code;}
+        public string NearbyTitle(int slot)
+        {
+            var entry=NearbyEntry(slot);
+            if(entry==null)return "";
+            string prefix=entry==Room.Discovery.Invitation?"INVITE · ":"";
+            return prefix+entry.message.name+" · "+entry.message.count+" players\nJOIN "+entry.message.code;
+        }
         public void JoinNearby(int slot){var entry=NearbyEntry(slot);if(entry==null||!JoinEnabled)return;enteredCode=entry.message.code;_=Room.Join(enteredCode);}
-        public bool HasMoreNearby=>(Room.Discovery?.Nearby.Count??0)>3;
+        public bool HasMoreNearby=>(Room.Discovery?.Joinable.Count??0)>3;
         public void NextNearbyPage()=>nearbyPage++;
         public string InvitationFrom=>Room.Discovery?.Invitation?.message.name;
         public void AcceptInvitation(){if(!VisitingLobby)Room.AcceptInvite();}
@@ -110,10 +112,20 @@ namespace DeadlyJenga.CastlePrototype
         void UpdateControls()
         {
             if(!JoinEnabled)codeFocused=false;
-            HostHint=Room.Busy?Room.Status:Room.Discovery!=null&&Room.Discovery.Status.StartsWith("Invites sent",StringComparison.Ordinal)?Room.Discovery.Status:Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):"Start solo now, or create a code / invite nearby.";
+            var inviteStatus=Room.Discovery?.InviteStatus;
+            HostHint=Room.Busy?Room.Status:!string.IsNullOrEmpty(inviteStatus)?inviteStatus:
+                Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
+                Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):
+                "Start solo now, or create a code / invite nearby.";
             SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
-            JoinHint=Room.Busy?Room.Status:showingNearby?(Room.Discovery==null?Room.DiscoveryStatus:Time.unscaledTime<scanningUntil?"Detecting nearby islands…":(Room.Discovery.Nearby.Count==0?"No rooms yet. Same Wi-Fi + Internet required.":"Pick a room, or enter a different code above.")):Room.Connected?"Joining another room leaves this island.":"Type, point, or play the giant keyboard.\nFull codes look like US-ABC234.";
+            JoinHint=Room.Busy?Room.Status:showingNearby?
+                (Room.Discovery?.HasJoinable==true?"Pick a room, or enter a code above.":
+                    Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
+                    Time.unscaledTime<scanningUntil?"Detecting nearby islands…":"No rooms found. Open the game on both devices on the same local network, or enter a room code."):
+                Room.Connected?"Joining another room leaves this island.":"Enter six room characters, such as ABC234.\nUse a region prefix only for a different region.";
             if(!Room.Busy&&!Room.Connected&&Room.Status.StartsWith("Connection failed",StringComparison.Ordinal))JoinHint=HostHint=Room.Status;
+            else if(JoinEnabled&&!showingNearby&&IslandRoomAddress.TryParse(enteredCode,Room.Region,out var region,out var address))
+                JoinHint="Join "+address+" · "+(enteredCode.Contains("-")?"region specified":"using "+region.ToUpperInvariant()+" as the default region");
             else if(JoinEnabled&&!showingNearby&&enteredCode.Length>=6&&!CodeValid)JoinHint="Check the code. Example: US-ABC234.\nUse the host's region prefix, or six room characters.";
         }
     }

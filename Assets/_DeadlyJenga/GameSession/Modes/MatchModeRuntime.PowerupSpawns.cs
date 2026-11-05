@@ -36,7 +36,7 @@ namespace DeadlyJenga.Modes
         }
         public bool ConfigurePowerupSpawns(PowerupSpawnSettings value)
         {
-            if(!Authority||!ValidPowerupSpawns(value))return false;
+            if(!Authority||!DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session)||!ValidPowerupSpawns(value))return false;
             spawnSettings=CopySpawnSettings(value);spawnMode=Rules.mode;SchedulePickup();WritePowerupFrame();return true;
         }
         void SchedulePickup(){var s=EnsureSpawnSettings();nextRandomPickup=Time.time+s.interval*(1+(float)(pickupRandom.NextDouble()*2-1)*s.jitter);}

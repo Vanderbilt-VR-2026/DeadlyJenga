@@ -21,6 +21,8 @@ namespace FlyingHand
         [Tooltip("Degrees of requested hand yaw per mouse pixel; uses the same yaw torque and speed limit as VR.")]
         [Min(0)] public float mouseYawSensitivity = .15f;
         public bool captureDesktopCursor = true;
+        public bool DualControllerFlight { get; private set; }
+        public float CameraPitchInput { get; private set; }
         public Vector2 DesktopLookDelta { get; private set; }
         // The host demo owns menus and possession; the reusable motor keeps its own input bindings.
         public bool InputSuspended { get; set; }
@@ -35,7 +37,7 @@ namespace FlyingHand
         CursorLockMode previousCursorLock;
         bool previousCursorVisible;
         bool cursorOwned;
-        [Header("Input System — no pose input")]
+        [Header("Input System â€” no pose input")]
         public InputAction move = new InputAction("Move", InputActionType.Value, "<XRController>{LeftHand}/primary2DAxis", expectedControlType: "Vector2");
         public InputAction turn = new InputAction("Yaw", InputActionType.Value, "<XRController>{RightHand}/primary2DAxis", expectedControlType: "Vector2");
         public InputAction ascend = new InputAction("Ascend", InputActionType.Value, "<XRController>{RightHand}/trigger", expectedControlType: "Axis");
@@ -64,6 +66,12 @@ namespace FlyingHand
         [Min(0)] public float maximumYawAcceleration = 8f;
         [Min(1)] public float mass = 650f;
         public Rigidbody Body { get; private set; }
+        public bool ContactRulesConfirmed { get; set; }
+        public float ContactForceNewtons { get; set; }
+        public Rigidbody ContactPalm { get; set; }
+        public Vector3 ContactTargetOffset { get; set; }
+        public float MaximumContactLead { get; set; } = .2f;
+        public bool RequiresContactProfile { get; set; }
         public Vector2 MoveInput { get; private set; }
         public float YawInput { get; private set; }
         public float VerticalInput { get; private set; }
@@ -171,6 +179,7 @@ namespace FlyingHand
             // handles delayed XR startup and a display stopping during Play Mode.
             RefreshControlMode();
             DesktopLookDelta = Vector2.zero;
+            DualControllerFlight=false;CameraPitchInput=0;
             if(externallyDriven)
             {
                 if(InputSuspended||InputDriver==null){ClearInput();return;}
@@ -196,10 +205,37 @@ namespace FlyingHand
                     ? Mathf.Clamp(DesktopLookDelta.x * mouseYawSensitivity / (Time.deltaTime * yawSpeed), -1, 1) : 0;
                 return;
             }
-            bool leftController=false;
-            foreach(var control in move.controls)
-                if(control.device is UnityEngine.InputSystem.XR.XRController xr && xr.isTracked.isPressed){leftController=true;break;}
-            if(!leftController&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
+            bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
+            UnityEngine.InputSystem.XR.XRController dominant=null,support=null;
+            foreach(var device in InputSystem.devices)
+            {
+                if(device is not UnityEngine.InputSystem.XR.XRController candidate||!candidate.isTracked.isPressed||
+                    candidate.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")==null)continue;
+                foreach(var usage in candidate.usages)
+                {
+                    if(usage!=UnityEngine.InputSystem.CommonUsages.LeftHand&&usage!=UnityEngine.InputSystem.CommonUsages.RightHand)continue;
+                    if((usage==UnityEngine.InputSystem.CommonUsages.LeftHand)==dominantLeft)dominant=candidate;
+                    else support=candidate;
+                    break;
+                }
+            }
+            var flightController=dominant??support;
+            Vector2 Stick(UnityEngine.InputSystem.XR.XRController controller)=>
+                controller?.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
+            float Axis(string name)=>flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
+            if(dominant!=null&&support!=null)
+            {
+                TrackedInputDriver?.ResetFlightInput();
+                DualControllerFlight=true;
+                var moveStick=Stick(support);
+                var lookStick=Stick(dominant);
+                MoveInput=moveStick.normalized*Mathf.InverseLerp(stickDeadzone,1,moveStick.magnitude);
+                YawInput=Deadzone(lookStick.x);
+                CameraPitchInput=Deadzone(lookStick.y);
+                VerticalInput=Mathf.Clamp(Axis("trigger")-Axis("grip"),-1,1);
+                return;
+            }
+            if(flightController==null&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
             {
                 var local=Quaternion.Inverse(Quaternion.Euler(0,Body.rotation.eulerAngles.y,0))*trackedCommand.moveWorld;
                 MoveInput=Vector2.ClampMagnitude(new Vector2(local.x,local.z),1);
@@ -217,7 +253,8 @@ namespace FlyingHand
             if(leftControllerFlight)
             {
                 TrackedInputDriver?.ResetFlightInput();
-                ReadLeftController(leftController?raw:Vector2.zero,leftController?flightUp.ReadValue<float>():0,leftController?flightDown.ReadValue<float>():0,leftController&&flightTurn.IsPressed());
+                var stick=Stick(flightController);
+                ReadLeftController(stick,Axis("trigger"),Axis("grip"),flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton")?.isPressed==true);
                 return;
             }
             MoveInput = raw.sqrMagnitude > stickDeadzone * stickDeadzone ? raw.normalized * Mathf.InverseLerp(stickDeadzone, 1, raw.magnitude) : Vector2.zero;
@@ -239,6 +276,8 @@ namespace FlyingHand
         void FixedUpdate()
         {
             ClampWaterBoundary();
+            ConstrainContactTarget();
+            if(RequiresContactProfile&&(!ContactRulesConfirmed||ContactForceNewtons<=0||!ContactPalm))return;
             if(!externallyDriven&&ActiveControlMode==ControlMode.VR)
             {
                 var headingVR=Quaternion.Euler(0,Body.rotation.eulerAngles.y,0);
@@ -247,6 +286,7 @@ namespace FlyingHand
                 Body.linearDamping=0;
                 Body.linearVelocity=Vector3.MoveTowards(Body.linearVelocity,desired,rate*Time.fixedDeltaTime);
                 Body.angularVelocity=new Vector3(0,YawInput*yawSpeed*Mathf.Deg2Rad,0);
+                ConstrainContactTarget();
                 return;
             }
             float blend = 1 - Mathf.Exp(-inputResponse * Time.fixedDeltaTime);
@@ -266,7 +306,36 @@ namespace FlyingHand
             velocity.y = Mathf.Clamp(velocity.y, -maximumVerticalSpeed, maximumVerticalSpeed);
             Body.linearVelocity = Vector3.ClampMagnitude(velocity, maximumSpeed);
             Body.angularVelocity = new Vector3(0, Mathf.Clamp(Body.angularVelocity.y, -Body.maxAngularVelocity, Body.maxAngularVelocity), 0);
+            ConstrainContactTarget();
         }
+        void ConstrainContactTarget()
+        {
+            if(!RequiresContactProfile)return;
+            if(!ContactPalm)
+            {
+                Body.linearVelocity=Vector3.zero;
+                Body.angularVelocity=Vector3.zero;
+                return;
+            }
+            bool canDrive=ContactRulesConfirmed&&ContactForceNewtons>0;
+            if(!canDrive)
+            {
+                Body.position=ContactPalm.position-ContactTargetOffset;
+                Body.linearVelocity=ContactPalm.linearVelocity;
+                Body.angularVelocity=Vector3.zero;
+                return;
+            }
+            Vector3 lead=Body.position+ContactTargetOffset-ContactPalm.position;
+            float limit=Mathf.Max(.01f,MaximumContactLead);
+            float distance=lead.magnitude;
+            if(distance<limit)return;
+            Vector3 direction=lead/Mathf.Max(.0001f,distance);
+            // This carrier has no contacts. Discard unreachable target lead, never move a physical hand.
+            Body.position-=direction*(distance-limit);
+            float away=Vector3.Dot(Body.linearVelocity-ContactPalm.linearVelocity,direction);
+            if(away>0)Body.linearVelocity-=direction*away;
+        }
+
         public void ClampWaterBoundary()
         {
             if (!keepAboveWater || !Body || DeadlyJenga.Core.Services.World == null) return;

@@ -18,6 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         public static ModeRules DefaultModeRules(GameModeKind mode,IslandLobbyCatalog.Map map)
         {
             var rules=DeadlyJenga.Modes.ModeSimulation.Defaults(mode);
+            if(mode==GameModeKind.Demo){rules.healthEnabled=true;rules.friendlyFire=true;}
             if(map?.walkableIsland==true)rules.island=IslandRule.Walkable;
             return rules;
         }
@@ -33,7 +34,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public static void FillRecommended(CastlePlaySession session)
         {
-            if(!session||!session.HasWorldAuthority||session.SurvivorBots==null||ModeId=="demo")return;
+            if(!session||!session.HasWorldAuthority||session.SurvivorBots==null||ModeId=="demo"||RoomGameExperience.Manages(session))return;
             int humans=session.Network?session.Network.HumanCount:1;
             session.SurvivorBots.SetHumanPlayerCount(humans);
             session.SurvivorBots.TargetPopulation=Mathf.Max(humans,RecommendedPopulation);
@@ -46,7 +47,7 @@ namespace DeadlyJenga.CastlePrototype
         static IEnumerator RetryRecommended(CastlePlaySession session,int key,int generation)
         {
             var bots=session.SurvivorBots;bots.AutoFill=true;float end=Time.time+15;
-            while(session&&session.HasWorldAuthority&&ModeId!="demo"&&bots.AutoFill&&Time.time<end&&fillAttempts.TryGetValue(key,out int current)&&current==generation)
+            while(session&&session.HasWorldAuthority&&ModeId!="demo"&&!RoomGameExperience.Manages(session)&&bots.AutoFill&&Time.time<end&&fillAttempts.TryGetValue(key,out int current)&&current==generation)
             {
                 int humans=session.Network?session.Network.HumanCount:1;if(bots.Count+humans>=bots.TargetPopulation)break;
                 yield return new WaitForSeconds(1);
@@ -101,7 +102,14 @@ namespace DeadlyJenga.CastlePrototype
 
         // The host's stamina rules for joining players, through Core's ISurvivorSettings.
         public static string CaptureRules(object player) => (player as ISurvivorSettings)?.SaveStaminaRules();
-        public static void ApplyRules(object player, string json) => (player as ISurvivorSettings)?.LoadStaminaRules(json);
+        public static void ApplyRules(object player, string json)
+        {
+            var settings=player as ISurvivorSettings;
+            if(settings==null)return;
+            settings.LoadStaminaRules(json);
+            var hand=settings.CurrentRules.handPhysics;
+            Rules.handPhysics=hand==null?null:new HandPhysicsRules{forceNewtons=hand.forceNewtons,friction=hand.friction};
+        }
 
         public static void Apply(CastlePlaySession session)
         {
@@ -109,6 +117,7 @@ namespace DeadlyJenga.CastlePrototype
             if(IslandRoomConnection.Instance){foreach(var hazard in IslandRoomConnection.Instance.Setup.disasters){var prefab=System.Array.Find(DemoDisasters.Prefabs,p=>p.name==hazard.id);if(prefab)for(int i=0;i<hazard.values.Length;i++)DemoDisasters.SetValue(session,prefab,i,hazard.values[i]);}}
             RefreshLocalControls();
             (session.Player as ISurvivorSettings)?.ApplyMatchRules(Rules);
+            if(RoomGameExperience.Manages(session))return;
             if (session.Network != null && session.Network.IsClient) return;
             var bots = session.SurvivorBots;
             var hands = session.HandBots;

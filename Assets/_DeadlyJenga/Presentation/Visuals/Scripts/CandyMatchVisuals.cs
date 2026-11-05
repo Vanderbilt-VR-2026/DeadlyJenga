@@ -13,18 +13,20 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<string,List<Look>> looks=new Dictionary<string,List<Look>>();
         readonly Dictionary<string,float> displayedHealth=new Dictionary<string,float>();
         MaterialPropertyBlock props;
-        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid,deathPaint;float paintAt=-100;bool viewVR;Color paintColor;
+        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid;bool viewVR;
         bool wasOutage;string skin="";int winner=-2;readonly Dictionary<Renderer,MaterialPropertyBlock> winnerOriginal=new Dictionary<Renderer,MaterialPropertyBlock>();
         readonly Dictionary<Renderer,Material> blockOriginals=new Dictionary<Renderer,Material>();readonly Dictionary<(Material,string),Material> teamMaterials=new Dictionary<(Material,string),Material>();int claimRevision=-1;
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
         readonly Dictionary<Renderer,MaterialPropertyBlock> handOriginals=new Dictionary<Renderer,MaterialPropertyBlock>();readonly HashSet<Renderer> activeHands=new HashSet<Renderer>();readonly List<Renderer> oldHands=new List<Renderer>();
         readonly HashSet<string> melting=new HashSet<string>();readonly HashSet<Renderer> hidden=new HashSet<Renderer>();
+        IMatchRuntime splatRuntime;bool splatNotified;int splatDeaths;
         void OnEnable(){props=new MaterialPropertyBlock();healthShader=Resources.Load<Shader>("CandyScenery/CandyAvatarHealth");if(healthShader&&!healthMaterial){healthMaterial=new Material(healthShader);healthMaterial.enableInstancing=true;healthMaterial.SetFloat("_Smoothness",.8f);}GameEvents.Eliminated+=Eliminated;GameEvents.RoundEnded+=RoundEnded;}
         void RoundEnded(){transitionAt=Time.unscaledTime;transitionColor=new Color(.96f,.97f,1);}
-        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();melting.Clear();}
+        void OnDisable(){GameEvents.Eliminated-=Eliminated;GameEvents.RoundEnded-=RoundEnded;RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;hidden.Clear();melting.Clear();if(canvas)canvas.enabled=false;}
         void Update()
         {
-            var runtime=MatchRuntime.Current;if(runtime?.Frame==null)return;var f=runtime.Frame;
+            var runtime=MatchRuntime.Current;if(runtime?.Frame==null){if(canvas)canvas.enabled=false;return;}var f=runtime.Frame;
+            ObserveLocalLife(runtime,f);
             if(skin!=f.rules.environmentSkin){skin=f.rules.environmentSkin;CandySceneSkins.Select(SkinIndex(skin));}
             bool outage=false;foreach(var hazard in DisasterStates.Active){var state=hazard.Capture();if(state!=null&&state.warning<=0&&state.kind=="PowerOutage"&&f.phase!=RoundPhase.Victory&&f.phase!=RoundPhase.Results){outage=true;break;}}
             bool restoringOutage=wasOutage&&!outage;wasOutage=outage;
@@ -151,60 +153,54 @@ namespace DeadlyJenga.Presentation
             var key=(original,ColorUtility.ToHtmlStringRGB(c));if(!teamMaterials.TryGetValue(key,out var material)){material=new Material(original);material.SetColor("_BaseColor",c);if(material.HasProperty("_Color"))material.SetColor("_Color",c);material.enableInstancing=true;teamMaterials[key]=material;}renderer.sharedMaterial=material;
         }
         void RestoreBlocks(){foreach(var pair in blockOriginals)if(pair.Key)pair.Key.sharedMaterial=pair.Value;blockOriginals.Clear();claimRevision=-1;}
+        void ObserveLocalLife(IMatchRuntime runtime,MatchFrame frame)
+        {
+            if(!ReferenceEquals(Services.Session,GetComponent<ISessionInfo>()))return;
+            if(!ReferenceEquals(splatRuntime,runtime)){splatRuntime=runtime;splatNotified=false;splatDeaths=0;}
+            foreach(var player in frame.players)
+                if(player.id==runtime.LocalActorId&&!player.dying&&player.alive){splatNotified=false;break;}
+        }
         void Eliminated(GameObject who,GameObject source)
         {
+            if(!ReferenceEquals(Services.Session,GetComponent<ISessionInfo>()))return;
             var actor=who?who.GetComponent<IModeActor>():null;if(actor==null)return;
             // Enemy NPCs are intentionally absent from the player frame and may already be inactive.
             if(who.GetComponent<IEnemyActor>() is IEnemyActor enemy&&enemy.IsEnemy){if(enemy.ArchetypeId=="longhand"||enemy.ArchetypeId=="gum-brute")CandyMayhemEnemyFinish.Splat(actor.Visual);else if(enemy.ArchetypeId=="mushroom")CandyMelt.Spawn(actor.Visual,actor.Color);else CandyEnemyHairball.Spawn(actor.Visual);return;}
-            if(actor.IsLocal)BeginDeathPaint(actor.Color);
+            var local=Services.Session?.Player;
+            if(actor.IsLocal&&NetworkActors.Alive(local)&&who==local.gameObject&&local.gameObject.GetComponent<IDamageable>()?.Health<=0&&MatchRuntime.Current?.Frame?.phase==RoundPhase.Playing)CandyDeathOverlay.ShowLocalDeath(actor.Color);
         }
         void Deaths(IMatchRuntime runtime,MatchFrame frame)
         {
+            if(!ReferenceEquals(Services.Session,GetComponent<ISessionInfo>())||!ReferenceEquals(runtime,MatchRuntime.Current))return;
             foreach(var p in frame.players)
             {
                 var actor=runtime.FindActor(p.id);if(actor?.Visual==null)continue;
-                if(p.dying&&melting.Add(p.id)){CandyMelt.Spawn(actor.Visual,p.color,actor.transform.position.y);if(p.id==runtime.LocalActorId)BeginDeathPaint(p.color);}
+                if(p.dying&&melting.Add(p.id))CandyMelt.Spawn(actor.Visual,p.color,actor.transform.position.y);
+                if(p.dying&&p.id==runtime.LocalActorId&&frame.phase==RoundPhase.Playing&&(!splatNotified||p.deaths>splatDeaths))
+                {splatNotified=true;splatDeaths=p.deaths;CandyDeathOverlay.Show(p.color);}
                 if(!p.dying&&p.alive)melting.Remove(p.id);
                 foreach(var r in actor.Visual.GetComponentsInChildren<Renderer>())
                 {if(p.dying||!p.alive){r.forceRenderingOff=true;hidden.Add(r);}else if(hidden.Remove(r))r.forceRenderingOff=false;}
             }
         }
-        void BeginDeathPaint(Color color)
-        {
-            // The elimination event and the replicated dying frame can describe the same death.
-            if(Time.unscaledTime-paintAt<.5f)return;
-            paintAt=Time.unscaledTime;paintColor=new Color(color.r,color.g,color.b,1);
-        }
         void Transition()
         {
-            var session=Services.Session;if(session?.ActiveCamera==null)return;
+            var session=Services.Session;if(session?.ActiveCamera==null){if(canvas)canvas.enabled=false;return;}
             if(!canvas)
             {
                 var go=new GameObject("Visual - liquid respawn curtain",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=100;
                 var image=new GameObject("Candy liquid",typeof(RectTransform),typeof(Image));image.transform.SetParent(go.transform,false);curtain=image.GetComponent<Image>();curtain.raycastTarget=false;curtain.rectTransform.anchorMin=Vector2.zero;curtain.rectTransform.anchorMax=Vector2.one;curtain.rectTransform.offsetMin=curtain.rectTransform.offsetMax=Vector2.zero;
                 var shader=Resources.Load<Shader>("CandyScenery/CandyLiquidCurtain");if(shader){liquid=new Material(shader);curtain.material=liquid;}
-                var paintShader=Resources.Load<Shader>("CandyScenery/CandyDeathPaint");if(paintShader)deathPaint=new Material(paintShader);
             }
             if(view!=session.ActiveCamera||viewVR!=session.IsVR)
             {view=session.ActiveCamera;viewVR=session.IsVR;var r=canvas.GetComponent<RectTransform>();if(session.IsVR){canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;r.SetParent(view.transform,false);r.sizeDelta=new Vector2(4,4);r.localPosition=new Vector3(0,0,.15f);r.localRotation=Quaternion.identity;r.localScale=Vector3.one;}else{canvas.renderMode=RenderMode.ScreenSpaceOverlay;r.SetParent(transform,false);}}
-            float paintAge=Time.unscaledTime-paintAt;
-            if(deathPaint&&paintAge>=0&&paintAge<2.2f)
-            {
-                curtain.material=deathPaint;curtain.color=paintColor;
-                if(session.IsVR){var plane=canvas.GetComponent<RectTransform>();plane.sizeDelta=new Vector2(2.8f,2);plane.localPosition=new Vector3(0,0,1.1f);}
-                deathPaint.SetFloat("_Age",paintAge);
-                deathPaint.SetFloat("_Aspect",session.IsVR?1.4f:Mathf.Max(.1f,view.aspect));
-                canvas.enabled=true;return;
-            }
-            if(session.IsVR){var plane=canvas.GetComponent<RectTransform>();plane.sizeDelta=new Vector2(4,4);plane.localPosition=new Vector3(0,0,.15f);}
-            curtain.material=liquid;
             float age=Time.unscaledTime-transitionAt;float alpha=age<.3f?Mathf.SmoothStep(0,1,age/.3f):1-Mathf.SmoothStep(0,1,(age-.3f)/.9f);
             var world=Services.World;if(world!=null&&view.transform.position.y<world.WaterHeight(view.transform.position)+.08f&&!(CandyTabletop.Current&&CandyTabletop.Current.Enabled)){alpha=1;transitionColor=new Color(.025f,.48f,.65f);}
             var sink=MatchRuntime.Current!=null&&session.Player!=null?MatchRuntime.Current.RulesFor(session.Player.gameObject):null;
             if(sink!=null&&sink.sinking&&alpha<.001f){alpha=.05f+sink.sinkProgress*.22f;transitionColor=new Color(.82f,.64f,.36f);}
             if(liquid){liquid.SetFloat("_Progress",Mathf.Lerp(-.1f,1.1f,Mathf.Clamp01(alpha)));curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,1);}else curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,Mathf.Clamp01(alpha));canvas.enabled=alpha>.001f||Shader.GetGlobalFloat("_CandyHeat")>.01f;
         }
-        void OnDestroy(){RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;foreach(var m in teamMaterials.Values)if(m)Destroy(m);if(healthMaterial)Destroy(healthMaterial);if(liquid)Destroy(liquid);if(deathPaint)Destroy(deathPaint);if(canvas)Destroy(canvas.gameObject);}
+        void OnDestroy(){RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;foreach(var m in teamMaterials.Values)if(m)Destroy(m);if(healthMaterial)Destroy(healthMaterial);if(liquid)Destroy(liquid);if(canvas)Destroy(canvas.gameObject);}
     }
 
     public sealed class CandyMelt : MonoBehaviour

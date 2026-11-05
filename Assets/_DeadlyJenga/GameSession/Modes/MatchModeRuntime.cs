@@ -41,11 +41,12 @@ namespace DeadlyJenga.Modes
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void RegisterDefaults()=>ModeDefaults.Create=mode=>MatchSetup.DefaultModeRules(mode,MatchSetup.SelectedMap);
 
-        public void Initialize(CastlePlaySession owner)
+        public void Initialize(CastlePlaySession owner)=>Initialize(owner,false);
+        public void Initialize(CastlePlaySession owner,bool deferInitialStart)
         {
             session=owner;MatchRuntime.Current=this;InitializeEnemyActions();
             BotObjectives.Current=this;
-            if(session.Network)session.Network.ParticipantLeft+=UnregisterRemote;
+            if(session.Network)session.Network.ParticipantLeft+=OnParticipantConnectionLeft;
             wasAuthority=Authority;
             var initial=MatchSetup.DefaultModeRules(ParseMode(MatchSetup.ModeId),MatchSetup.SelectedMap);
             var lobby=IslandRoomConnection.Instance;
@@ -59,7 +60,7 @@ namespace DeadlyJenga.Modes
             ConfigureStatCollectors();
             RefreshBlocks();SampleActors();
             simulation.Hill=HighestSupport();
-            if(Authority){simulation.StartRound();SetFlagHomes();foreach(var p in simulation.Participants)Respawn(p.frame.id,p.frame.role);frame=simulation.Snapshot();PublishEnemyActions();PublishEquipment();}
+            if(Authority){if(!deferInitialStart){simulation.StartRound();SetFlagHomes();foreach(var p in simulation.Participants)if(p.frame.alive&&p.frame.role!="spectator")Respawn(p.frame.id,p.frame.role);}frame=simulation.Snapshot();PublishEnemyActions();PublishEquipment();}
         }
         public static GameModeKind ParseMode(string id)
         {
@@ -82,7 +83,7 @@ namespace DeadlyJenga.Modes
             ClearMysteryBodies();
             if(ReferenceEquals(MatchRuntime.Current,this))MatchRuntime.Current=null;
             if(ReferenceEquals(BotObjectives.Current,this))BotObjectives.Current=null;
-            if(session&&session.Network)session.Network.ParticipantLeft-=UnregisterRemote;
+            if(session&&session.Network)session.Network.ParticipantLeft-=OnParticipantConnectionLeft;
             if(simulation!=null){simulation.Eliminated-=OnEliminated;simulation.PhaseChanged-=OnPhase;simulation.OwnershipChanged-=OnOwnership;simulation.PowerFinished-=OnPowerFinished;}
         }
         public IModeActor FindActor(string id)=>id!=null&&actors.TryGetValue(id,out var actor)&&NetworkActors.Alive(actor)?actor:null;
@@ -104,24 +105,31 @@ namespace DeadlyJenga.Modes
         void Register(string id,IModeActor actor,bool local)
         {
             if(string.IsNullOrEmpty(id)||!NetworkActors.Alive(actor))return;
+            var pendingExperience=RoomGameExperience.ForManagedMatch(session);
+            if(Authority&&pendingExperience&&!pendingExperience.ParticipationMappingReady)return;
             if(actorIds.TryGetValue(actor.gameObject,out var previousId)&&previousId!=id){mystery?.Rekey(previousId,id);actors.Remove(previousId);simulation?.Remove(previousId);}
             actors[id]=actor;actorIds[actor.gameObject]=id;
             if(!Authority)return;
             bool fresh=simulation.Find(id)==null;
             var identity=!actor.IsBot&&MatchSetup.FromLobby&&IslandRoomConnection.Instance?IslandRoomConnection.Instance.IdentityFor(id):null;
             bool enemy=actor.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
-            var p=enemy?simulation.RegisterEnemy(id,new Color(.035f,.045f,.065f)):simulation.Register(id,identity?.color??actor.Color,actor.IsBot,local);
-            if(!enemy&&p!=null&&p.frame.alive&&MysteryActive&&mystery.Role(id)==MysteryRole.Random)mystery.RegisterLate(id);
+            var experience=RoomGameExperience.ForManagedMatch(session);
+            bool deferred=experience&&!enemy&&!actor.IsBot&&!experience.IsLaunchedActor(id);
+            var p=enemy?simulation.RegisterEnemy(id,new Color(.035f,.045f,.065f)):simulation.Register(id,identity?.color??actor.Color,actor.IsBot,local,deferred);
+            if(!deferred&&!enemy&&p!=null&&p.frame.alive&&MysteryActive&&mystery.Role(id)==MysteryRole.Random)mystery.RegisterLate(id);
             if(fresh&&identity!=null)simulation.PreserveIdentity(id,identity.noun);
             if(p!=null)actor.SetIdentity(id,p.frame.name,p.frame.team,p.frame.color);
-            if(fresh&&!local&&!actor.IsBot&&p!=null&&!p.frame.dying&&p.frame.role=="survivor"&&Rules.mode!=GameModeKind.Demo)pendingSpawns[id]=Time.time+.3f;
+            if(!deferred&&fresh&&!local&&!actor.IsBot&&p!=null&&!p.frame.dying&&p.frame.role=="survivor"&&Rules.mode!=GameModeKind.Demo)pendingSpawns[id]=Time.time+.3f;
         }
         void Update()
         {
             if(session==null||simulation==null)return;
+            var pendingExperience=RoomGameExperience.ForManagedMatch(session);
+            if(Authority&&pendingExperience&&!pendingExperience.ParticipationMappingReady)return;
             if(!Authority&&wasAuthority){ResetObjectiveDirector("Authority lost");ResetBlaster();}
             if(Authority&&!wasAuthority)RestoreAuthorityState(frame);
             wasAuthority=Authority;
+            if(Authority)ConstrainManagedParticipation();
             if(Authority)simulation.Tick(Time.deltaTime);
             if(Authority)TickMystery(Time.deltaTime);
             TickRemoteRecovery(Time.deltaTime);
@@ -131,7 +139,7 @@ namespace DeadlyJenga.Modes
             if(Authority&&pendingSpawns.Count>0)
             {
                 var ready=new List<string>();foreach(var spawn in pendingSpawns)if(Time.time>=spawn.Value)ready.Add(spawn.Key);
-                foreach(var id in ready){pendingSpawns.Remove(id);ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);}
+                foreach(var id in ready){pendingSpawns.Remove(id);if(CuratedActorDeferred(id))continue;ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);}
             }
             if(Time.unscaledTime<nextSample)return;
             nextSample=Time.unscaledTime+.2f;
@@ -163,6 +171,8 @@ namespace DeadlyJenga.Modes
         }
         void SampleActors()
         {
+            var experience=RoomGameExperience.ForManagedMatch(session);
+            if(Authority&&experience&&!experience.ParticipationMappingReady)return;
             connectedHumans.Clear();connectedHumans.Add(LocalActorId);localBotRoots.Clear();
             if(NetworkActors.Alive(session.Player))Register(LocalActorId,session.Player.gameObject.GetComponent<IModeActor>(),true);
             if(session.SurvivorBots!=null)foreach(var member in session.SurvivorBots.Members)
@@ -187,7 +197,7 @@ namespace DeadlyJenga.Modes
                 var kind=t?t.GetComponent<INetworkActor>()?.NetworkKind:null;
                 if(Authority&&state!=null&&Rules.mode==GameModeKind.Demo&&(kind==NetworkKinds.Hand||kind==NetworkKinds.Survivor))state.frame.role=kind==NetworkKinds.Hand?"hand":"survivor";
                 if(Authority&&state==null&&t&&t.GetComponent<INetworkActor>()?.NetworkKind==NetworkKinds.Hand)
-                {state=simulation.Register(peer.Key,ModeNames.Colors[(peer.Key.GetHashCode()&int.MaxValue)%ModeNames.Colors.Length],false,false);if(state!=null)state.frame.role="hand";}
+                {bool deferred=CuratedActorDeferred(peer.Key);state=simulation.Register(peer.Key,ModeNames.Colors[(peer.Key.GetHashCode()&int.MaxValue)%ModeNames.Colors.Length],false,false,deferred);if(state!=null&&!deferred)state.frame.role="hand";}
                 if(Authority&&state!=null&&state.frame.role=="hand"){state.frame.position=peer.Value;state.frame.viewPosition=peer.Value+Vector3.up*2;}
             }
             var stale=new List<string>();
@@ -215,8 +225,13 @@ namespace DeadlyJenga.Modes
         }
         public void Configure(ModeRules rules)
         {
-            if(!ModeFrameValidation.Rules(rules))return;
+            if(!SessionDevelopmentPolicy.CanRequestLocal(session)||!ModeFrameValidation.Rules(rules))return;
             if(!Authority){CommandRequested?.Invoke("configure:"+JsonUtility.ToJson(rules));return;}
+            ConfigureDevelopmentAuthorized(rules);
+        }
+        void ConfigureDevelopmentAuthorized(ModeRules rules)
+        {
+            if(!SessionDevelopmentPolicy.CanExecuteServer(session)||!ModeFrameValidation.Rules(rules))return;
             ResetObjectiveDirector("Rules configured");
             if(rules.mode!=Rules.mode)ResetBlaster();
             bool structural=simulation.Tune(rules);nextHill=0;ruleCache.Clear();RefreshBlocks();
@@ -225,7 +240,7 @@ namespace DeadlyJenga.Modes
             {
                 ConfigureStatCollectors();ResetEquipment();
                 LatestReport=null;sinkStarted.Clear();DemoDisasters.StopAll(session);MatchSetup.FillRecommended(session);
-                if(Rules.mode!=GameModeKind.Demo){session.SetSeaSpirit(false);if(session.PlayingHand)session.SetRole(false);}
+                if(Rules.mode!=GameModeKind.Demo){session.SetSeaSpirit(false);if(session.PlayingHand)session.SetRoleForMode(false);}
                 foreach(var b in blockIds.Keys)if(b)b.GetComponent<IBlockOwnership>()?.SetOwner(-1,Color.white);
                 SampleActors();SetFlagHomes();
             }
@@ -233,29 +248,55 @@ namespace DeadlyJenga.Modes
         }
         public void StartRound()
         {
+            var experience=RoomGameExperience.ForManagedMatch(session);
+            if(experience){experience.RequestRematch();return;}
+            if(!SessionDevelopmentPolicy.CanRequestLocal(session)&&!SessionDevelopmentPolicy.CanRematch(session,frame.phase))return;
             if(!Authority){CommandRequested?.Invoke("start");return;}
+            StartRoundAuthoritative();
+        }
+        internal bool StartCuratedRound()
+        {
+            if(!Authority||!RoomGameExperience.TryConsumeCuratedStartPermit(session))return false;
+            StartRoundAuthoritative();return true;
+        }
+        bool CuratedActorDeferred(string id)=>RoomGameExperience.ForManagedMatch(session)?.ShouldSuspendActor(id)==true;
+        void ConstrainManagedParticipation()
+        {
+            var experience=RoomGameExperience.ForManagedMatch(session);if(!experience||simulation==null)return;
+            foreach(var p in simulation.Participants)if(!p.frame.bot)
+            {
+                bool deferred=!experience.IsLaunchedActor(p.frame.id);
+                simulation.SetDeferredParticipation(p.frame.id,deferred);
+                if(deferred){pendingSpawns.Remove(p.frame.id);transitionUntil.Remove(p.frame.id);delayedOutcomes.Remove(p.frame.id);sinkStarted.Remove(p.frame.id);}
+            }
+        }
+        void StartRoundAuthoritative()
+        {
+            if(!Authority)return;
             (session.SurvivorBots as IEnemyPopulation)?.ClearEnemies();
             var enemyIds=new List<string>();foreach(var enemy in simulation.Enemies)enemyIds.Add(enemy.frame.id);
             foreach(var id in enemyIds)UnregisterRemote(id);
             ResetEquipment();plasma.Clear();plasmaImpacts.Clear();shotCooldowns.Clear();
             LatestReport=null;restoredHistory=false;pendingBotHealth.Clear();transitionUntil.Clear();delayedOutcomes.Clear();sinkStarted.Clear();
-            if(Rules.mode!=GameModeKind.Demo){session.SetSeaSpirit(false);if(session.PlayingHand)session.SetRole(false);}
+            if(Rules.mode!=GameModeKind.Demo){session.SetSeaSpirit(false);if(session.PlayingHand)session.SetRoleForMode(false);}
             DemoDisasters.StopAll(session);
             (Services.World as IRebuildable)?.Rebuild();
             session.HandBots?.MapRebuilt();session.SurvivorBots?.MapRebuilt();
             lastBlocks=-1;RefreshBlocks();ruleCache.Clear();
-            SampleActors();simulation.StartRound();SetFlagHomes();
+            SampleActors();ConstrainManagedParticipation();simulation.StartRound();ConstrainManagedParticipation();SetFlagHomes();
             simulation.Hill=HighestSupport();
-            foreach(var p in simulation.Participants)Respawn(p.frame.id,p.frame.role);
+            foreach(var p in simulation.Participants)if(p.frame.alive&&p.frame.role!="spectator")Respawn(p.frame.id,p.frame.role);
             frame=simulation.Snapshot();PublishEnemyActions();
             frame.blaster=CaptureBlaster();PublishEquipment();
         }
         public void ActivateHandPower(float seconds)
-        {if(Authority)simulation.HandPower(LocalActorId,seconds);else CommandRequested?.Invoke("hand:"+seconds.ToString(System.Globalization.CultureInfo.InvariantCulture));}
+        {if(!SessionDevelopmentPolicy.CanRequestLocal(session))return;if(Authority)simulation.HandPower(LocalActorId,seconds);else CommandRequested?.Invoke("hand:"+seconds.ToString(System.Globalization.CultureInfo.InvariantCulture));}
         public void NextSpectator(int step)
         {if(Authority)simulation.NextSpectator(LocalActorId,step);else CommandRequested?.Invoke("spectate:"+step);}
         public void ReturnToLobby()
         {
+            var experience=RoomGameExperience.ForManagedMatch(session);
+            if(experience){if(experience.Room.LocalIsLobbyHost)experience.RequestReturn();else if(session)session.VisitLobby();return;}
             var room=IslandRoomConnection.Instance;
             if(room&&room.Connected)
             {
@@ -317,7 +358,6 @@ namespace DeadlyJenga.Modes
             if(actor&&actor.GetComponent<IEnemyMovement>() is IEnemyMovement enemyMovement&&!enemyMovement.CanClimb)rules.canClimb=rules.canVault=false;
             MatchPlayerFrame f=null;if(Authority)f=simulation.Find(id)?.frame;else foreach(var row in frame.players)if(row.id==id){f=row;break;}
             if(f==null)return rules;
-            var item=EquipmentFor(id);if(item.drawn&&EquipmentSpecifications.Get(item.kind).twoHanded)rules.canJump=rules.canClimb=rules.canVault=false;
             if(!Authority)rules.fallDamage=false;
             bool carrying=Authority&&simulation.CarriesFlag(id);
             if(!Authority)foreach(var flag in frame.flags)if(flag.carrier==id){carrying=true;break;}

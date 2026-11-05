@@ -40,20 +40,36 @@ namespace DeadlyJenga.CastlePrototype
         public float SeaSpiritOrbit=>seaSpirit?.SeaSpiritOrbit??0;
         public void SetSeaSpirit(bool active)
         {
-            if(!Ready)return;
-            if(active&&!CanEditWorld)return;
+            if(!active)
+            {
+                if(!SeaSpiritActive)return;
+                seaSpirit.SetSeaSpirit(false);
+                if(!SeaSpiritActive&&Ready)SetMenu(MenuOpen);
+                return;
+            }
+            if(!Ready||VisitingLobby||SeaSpiritActive||!CanEditWorld)return;
+            // Recheck character readiness on every entry before changing role or camera.
+            var controls=SeaSpiritSystems.Create?.Invoke(Hand.gameObject);
+            if(controls==null)return;
             var previousView=ActiveCamera;
-            var entrance=previousView?new Pose(previousView.transform.position,previousView.transform.rotation):default;
-            if(active&&!PlayingHand)SetRole(true);
-            if(active&&!PlayingHand)return;
-            if(active&&!SeaSpiritActive&&previousView&&Hand.ViewCamera)
+            bool haveEntrance=previousView;
+            var entrance=haveEntrance?new Pose(previousView.transform.position,previousView.transform.rotation):default;
+            if(!PlayingHand)SetRole(true);
+            if(!PlayingHand)return;
+            if(Modes&&Modes.DemoSpectating)Modes.SetDemoSpectating(false);
+            if(haveEntrance&&Hand.ViewCamera)
             {
                 var camera=Hand.ViewCamera;var rig=camera.transform.parent;
-                if(rig){rig.rotation=entrance.rotation*Quaternion.Inverse(camera.transform.localRotation);rig.position+=entrance.position-camera.transform.position;}
+                if(rig){var relativeRotation=Quaternion.Inverse(rig.rotation)*camera.transform.rotation;rig.rotation=entrance.rotation*Quaternion.Inverse(relativeRotation);rig.position+=entrance.position-camera.transform.position;}
             }
-            if(seaSpirit==null&&active)seaSpirit=SeaSpiritSystems.Create?.Invoke(Hand.gameObject);
-            seaSpirit?.SetSeaSpirit(active);
-            if(active&&SeaSpiritActive)SetMenu(false);
+            seaSpirit=controls;
+            seaSpirit.SetSeaSpirit(true);
+            if(SeaSpiritActive)SetMenu(false);
+            else
+            {
+                SetMenu(MenuOpen);
+                Debug.LogWarning("Sea monster entry failed after switching to the flying hand.",this);
+            }
         }
         public void SetSeaSpiritReach(float meters)=>seaSpirit?.SetSeaSpiritReach(meters);
         public void RecenterSeaSpirit()=>seaSpirit?.RecenterSeaSpirit();
@@ -66,8 +82,8 @@ namespace DeadlyJenga.CastlePrototype
         public IMultiplayerControls Multiplayer => Network;
         public IDemoControls Demo { get; private set; }
         public ISocialControls Social { get; private set; }
-        public bool CanEditWorld => !Network || Network.CanEditWorld;
-        InputAction switchRole, toggleMenu, select;
+        public bool CanEditWorld => SessionDevelopmentPolicy.CanRequestLocal(this);
+        InputAction select;
         bool wasVR, focused = true;
         bool arrivalPending,travelInputHeld;float travelReleaseAt=-1;
 
@@ -83,10 +99,8 @@ namespace DeadlyJenga.CastlePrototype
             TuneJump();
             Hand = Instantiate(handPrefab).GetComponent<IPlayableCharacter>(); Hand.gameObject.name = "Flying Hand (local)";
             Player.PrepareForSession(); Hand.PrepareForSession();
-            switchRole = new InputAction("Switch role", InputActionType.Button, "<XRController>{RightHand}/secondaryButton");
-            toggleMenu = new InputAction("Demo menu", InputActionType.Button, "<XRController>{LeftHand}/secondaryButton");
             select = new InputAction("Menu select", InputActionType.Button, "<XRController>{RightHand}/trigger");
-            switchRole.Enable(); toggleMenu.Enable(); select.Enable();
+            select.Enable();
             SetRole(false); SetMenu(false);
             BotSystems.Create(gameObject, new BotSetup { player = Player, hand = Hand, survivorPrefab = survivorPrefab, handPrefab = handPrefab, isPlayingHand = () => PlayingHand },
                 out var survivorBots, out var handBots);
@@ -105,12 +119,13 @@ namespace DeadlyJenga.CastlePrototype
                 Network.Initialize(this);
             }
             MatchSetup.Apply(this);
-            MatchSetup.FillRecommended(this);
+            if(!RoomGameExperience.Manages(this))MatchSetup.FillRecommended(this);
             var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);
             Demo = new SessionDemoControls(this);
             Social = new DeadlyJenga.CastleSocial.SocialControls(social);
             Modes=gameObject.AddComponent<DeadlyJenga.Modes.MatchModeRuntime>();
-            Modes.Initialize(this);
+            Modes.Initialize(this,RoomGameExperience.Manages(this));
+            gameObject.AddComponent<CastleSessionMenuInput>().session=this;
             // Menus, HUDs and the stamina bar attach themselves (Presentation listens for this).
             GameEvents.RaiseSessionStarted(gameObject);
         }
@@ -120,14 +135,20 @@ namespace DeadlyJenga.CastlePrototype
             seaSpirit?.SetSeaSpirit(false);
             if (ReferenceEquals(Services.Session, this)) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
-            switchRole?.Dispose(); toggleMenu?.Dispose(); select?.Dispose();
+            select?.Dispose();
             if (NetworkActors.Alive(Player)) Destroy(Player.gameObject);
             if (NetworkActors.Alive(Hand)) Destroy(Hand.gameObject);
             Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
         }
         bool Ready => NetworkActors.Alive(Player) && NetworkActors.Alive(Hand);
-        void OnApplicationFocus(bool value) { focused = value; if (!value && Ready) SetMenu(true); }
+        void OnApplicationFocus(bool value) { focused = value; HoldMenuGameplayInput(); if (!value && Ready) SetMenu(true); }
         public void SetRole(bool hand)
+        {
+            if(Modes&&!SessionDevelopmentPolicy.DemoEnabled(this))return;
+            ApplyRole(hand);
+        }
+        internal void SetRoleForMode(bool hand) => ApplyRole(hand);
+        void ApplyRole(bool hand)
         {
             if(VisitingLobby)return;
             if(Modes&&Modes.Rules.mode!=GameModeKind.Demo&&Modes.Authority)
@@ -166,13 +187,13 @@ namespace DeadlyJenga.CastlePrototype
             if (!tuneJumpToBlockHeight || Services.World == null) return;
             (Player as ISurvivorSettings)?.FitJump(Services.World.StepHeight, jumpShortfall);
         }
-        public void ResetMap()
+        public void ResetMap() => CastleDemoCommands.Run(this, CastleDemoAction.Rebuild);
+        internal void RebuildForDevelopment()
         {
-            // Clients ask the host; the host stops disasters and rebuilds for everyone.
-            if (Network && Network.IsClient) { CastleDemoCommands.Run(this, CastleDemoAction.Rebuild); return; }
+            if(!SessionDevelopmentPolicy.CanExecuteServer(this))return;
             DemoDisasters.StopAll(this);
             (Services.World as IRebuildable)?.Rebuild();
-            TuneJump(); SetRole(PlayingHand);
+            TuneJump(); ApplyRole(PlayingHand);
             HandBots?.MapRebuilt(); SurvivorBots?.MapRebuilt();
             if(Modes)Modes.MapRebuilt();
         }
@@ -180,8 +201,9 @@ namespace DeadlyJenga.CastlePrototype
         public void SetMenu(bool open)
         {
             if(VisitingLobby){visitLobby.SetMenu(open);return;}
+            if(MenuOpen!=open)HoldMenuGameplayInput();
             MenuOpen = open;
-            bool suspended = travelInputHeld || open || !focused || (Network && Network.WaitingForWorld) || (Modes && Modes.DemoSpectating);
+            bool suspended = menuResumePending || travelInputHeld || open || !focused || (Network && Network.WaitingForWorld) || (Modes && Modes.DemoSpectating) || RoomGameExperience.ForManagedMatch(this)?.HoldsLocalParticipant(this)==true;
             Player.InputSuspended = suspended;
             Hand.InputSuspended = suspended;
             Cursor.lockState = !open && !IsVR && focused ? CursorLockMode.Locked : CursorLockMode.None;
@@ -196,11 +218,7 @@ namespace DeadlyJenga.CastlePrototype
                 GameEvents.RaiseEmoted(gameObject,"TravelArrived");
             }
             if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
-            var k = Keyboard.current;
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
-            if ((!Modes||Modes.Rules.mode==GameModeKind.Demo||CanEditWorld)&&!(Modes&&Modes.DemoSpectating)&&!MenuOpen&&((IsVR && switchRole.WasPressedThisFrame()) || (!IsVR && k != null && k.tabKey.wasPressedThisFrame))) SetRole(!PlayingHand);
-            if ((IsVR && toggleMenu.WasPressedThisFrame()) || (!IsVR && k != null && k.escapeKey.wasPressedThisFrame)) SetMenu(!MenuOpen);
-            if (IsVR && Active.MenuPressed) SetMenu(!MenuOpen);
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
             if (!PlayingHand && NetworkActors.Alive(Player) && Player.transform.position.y < -6)
             {
