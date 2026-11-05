@@ -145,6 +145,34 @@ namespace DeadlyJenga.CastlePrototype
             dispatched="";sceneSelectionError="";lastTick=Time.realtimeSinceStartupAsDouble;
             return true;
         }
+        string preparedHomeRoom="";
+        bool preparedHomeAutomatic;
+        int preparedHomeSelection;
+        internal bool PrepareHomeLobbyEntry(bool automatic)
+        {
+            if(!PrepareStandaloneDemo())return false;
+            if(!flow.Configure(State.authorityTerm,false,automatic))return false;
+            preparedHomeRoom=State.roomId;preparedHomeAutomatic=automatic;preparedHomeSelection=State.selectionVersion;
+            return true;
+        }
+        internal bool ConsumeHomeLobbyEntry(IslandLobby lobby,bool automatic,Fusion.NetworkRunner expectedRunner)
+        {
+            if(preparedHomeRoom.Length==0||preparedHomeRoom!=State.roomId||preparedHomeAutomatic!=automatic||
+                !ReferenceEquals(expectedRunner,room.Runner)||(ReferenceEquals(expectedRunner,null)?room.Connected:!room.Connected||!room.HostSelected)||
+                State.demo||State.automatic!=automatic||State.selectionVersion!=preparedHomeSelection||
+                State.phase!=(automatic?GameFlowPhase.Choosing:GameFlowPhase.Idle)||State.pending!=GameFlowEffect.None||
+                !lobby||!ReferenceEquals(lobby,IslandLobby.Current)||!LobbyVisible||!IsAuthority||!room.LocalIsLobbyHost||
+                room.Busy||room.Migrating||room.SwitchingMap||TransportRecovering||WaitingForRoster)return false;
+            var roster=room.GameExperienceRosterIds;
+            if(roster.Length==0)return false;
+            if(flow.SetRoster(State.authorityTerm,roster))CommitFlow();
+            if(!flow.Configure(State.authorityTerm,false,automatic))return false;
+            if(automatic)flow.EnrollPlaylist(State.authorityTerm,room.GameExperienceLocalId,true);
+            preparedHomeRoom="";
+            CommitFlow();
+            if(!automatic)SelectNext();
+            return true;
+        }
         internal void ResetRoomFlow()
         {
             bool game=flow!=null&&!State.demo;
@@ -174,6 +202,8 @@ namespace DeadlyJenga.CastlePrototype
             else if(leader&&command.verb=="experience"&&(LobbyVisible||command.value=="demo"&&ActiveMatchVisible))
             {
                 changed=command.value=="demo"&&!LobbyVisible?flow.EnableDemo(s.authorityTerm):flow.Configure(s.authorityTerm,command.value=="demo",false);
+                if(changed&&!s.demo&&State.demo&&Services.Session is CastlePlaySession active&&active.Modes)
+                    active.Modes.ReleaseCuratedDeferralsForDemo();
                 if(changed&&!State.demo)SelectNext();
             }
             else if(leader&&command.verb=="automatic"&&(LobbyVisible||s.phase==GameFlowPhase.Playing||s.phase==GameFlowPhase.Results))
