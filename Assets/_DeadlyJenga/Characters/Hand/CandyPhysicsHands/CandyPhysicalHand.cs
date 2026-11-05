@@ -53,6 +53,8 @@ namespace DeadlyJenga.CandyPhysicsHands
         bool active;
         readonly Collider[] activationOverlaps=new Collider[64];
         public bool ActivationBlocked {get;private set;}
+        public bool DesktopRecoveryOnly {get;set;}
+        Vector3 queuedRecovery;
         public string ActivationReason {get;private set;}
         public bool IsInteractive=>active;
         public bool NetworkPreview {get;set;}
@@ -220,6 +222,14 @@ namespace DeadlyJenga.CandyPhysicsHands
             }
             if(!active)
             {
+                if(DesktopRecoveryOnly)
+                {
+                    var recovery=queuedRecovery;queuedRecovery=Vector3.zero;
+                    if(Profile&&Profile.Confirmed&&Profile.ForceNewtons>0&&recovery.sqrMagnitude>0&&RecoveryTranslationClear(recovery))
+                        foreach(var body in bodies)body.MovePosition(body.position+recovery);
+                    return;
+                }
+                queuedRecovery=Vector3.zero;
                 if(Strength>0)for(int i=0;i<bodies.Length;i++)
                 {Desired(Target,i,out var p,out var q);bodies[i].MovePosition(Vector3.MoveTowards(bodies[i].position,p,settings.maxSpeed*dt));bodies[i].MoveRotation(Quaternion.RotateTowards(bodies[i].rotation,q,settings.maxAngularSpeed*Mathf.Rad2Deg*dt));}
                 return;
@@ -313,6 +323,93 @@ namespace DeadlyJenga.CandyPhysicsHands
                 bodies[i].MovePosition(p);bodies[i].MoveRotation(q);
             }
         }
+
+        public bool ClearForAutomaticSideSwitch()
+        {
+            if(!active)return true;
+            if(contacts==null||bodies==null||NetworkPreview&&!HasFreshAuthoritativePreview)return false;
+            var scene=gameObject.scene.GetPhysicsScene();
+            for(int i=0;i<contacts.Length;i++)
+            {
+                var contact=contacts[i];var body=bodies[i];
+                float gap=Mathf.Max(.02f,contact.contactOffset*2);
+                int count;
+                if(contact is BoxCollider box)
+                    count=scene.OverlapBox(body.position+body.rotation*box.center,box.size*.5f+Vector3.one*gap,
+                        recoveryOverlaps,body.rotation,~0,QueryTriggerInteraction.Ignore);
+                else
+                {
+                    var capsule=(CapsuleCollider)contact;var axis=Vector3.zero;axis[capsule.direction]=1;
+                    var center=body.position+body.rotation*capsule.center;
+                    var offset=body.rotation*axis*Mathf.Max(0,capsule.height*.5f-capsule.radius);
+                    count=scene.OverlapCapsule(center-offset,center+offset,capsule.radius+gap,
+                        recoveryOverlaps,~0,QueryTriggerInteraction.Ignore);
+                }
+                if(count==recoveryOverlaps.Length)return false;
+                for(int hit=0;hit<count;hit++)
+                {
+                    var other=recoveryOverlaps[hit];
+                    if(!other||other.transform.IsChildOf(transform)||Physics.GetIgnoreLayerCollision(contact.gameObject.layer,other.gameObject.layer)||Physics.GetIgnoreCollision(contact,other))continue;
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        public bool QueueInactiveRecovery(Vector3 delta)
+        {
+            if(active||NetworkPreview||!DesktopRecoveryOnly||queuedRecovery.sqrMagnitude>0||
+                !Profile||!Profile.Confirmed||Profile.ForceNewtons<=0||bodies==null)return false;
+            if(!RecoveryTranslationClear(delta))return false;
+            queuedRecovery=delta;return true;
+        }
+        bool RecoveryTranslationClear(Vector3 delta)
+        {
+            float distance=delta.magnitude;
+            if(!float.IsFinite(distance)||distance<.00001f||distance>.10001f)return false;
+            var scene=gameObject.scene.GetPhysicsScene();
+            int mask=(1<<DeadlyJenga.Core.Layers.Block)|(1<<DeadlyJenga.Core.Layers.Surface)|1;
+            bool wasOverlapping=false,improved=false;
+            float tolerance=Mathf.Max(.00001f,builtSize*.00001f);
+            for(int bone=0;bone<contacts.Length;bone++)
+            {
+                var contact=contacts[bone];var body=bodies[bone];
+                int hits;
+                if(contact is BoxCollider box)
+                    hits=scene.BoxCast(body.position+body.rotation*box.center,box.size*.5f,delta/distance,recoverySweep,
+                        body.rotation,distance,mask,QueryTriggerInteraction.Ignore);
+                else
+                {
+                    var capsule=(CapsuleCollider)contact;var axis=Vector3.zero;axis[capsule.direction]=1;
+                    var center=body.position+body.rotation*capsule.center;
+                    var offset=body.rotation*axis*Mathf.Max(0,capsule.height*.5f-capsule.radius);
+                    hits=scene.CapsuleCast(center-offset,center+offset,capsule.radius,delta/distance,recoverySweep,
+                        distance,mask,QueryTriggerInteraction.Ignore);
+                }
+                if(hits==recoverySweep.Length)return false;
+                for(int i=0;i<hits;i++)
+                {
+                    var other=recoverySweep[i].collider;
+                    if(!other||other.transform.IsChildOf(transform))continue;
+                    if(!Physics.ComputePenetration(contact,body.position,body.rotation,other,other.transform.position,other.transform.rotation,out _,out _))return false;
+                }
+                int count=scene.OverlapSphere(body.position+delta,.18f*builtSize,recoveryOverlaps,mask,QueryTriggerInteraction.Ignore);
+                if(count==recoveryOverlaps.Length)return false;
+                for(int i=0;i<count;i++)
+                {
+                    var other=recoveryOverlaps[i];if(!other||other.transform.IsChildOf(transform))continue;
+                    bool start=Physics.ComputePenetration(contact,body.position,body.rotation,other,other.transform.position,other.transform.rotation,out var escape,out float before);
+                    if(start&&Vector3.Dot(delta,escape)<-tolerance)return false;
+                    bool end=Physics.ComputePenetration(contact,body.position+delta,body.rotation,other,other.transform.position,other.transform.rotation,out _,out float after);
+                    wasOverlapping|=start;
+                    if(end&&(!start||after>before+tolerance))return false;
+                    if(start&&(!end||after<before-tolerance))improved=true;
+                }
+            }
+            return !wasOverlapping||improved;
+        }
+        readonly RaycastHit[] recoverySweep=new RaycastHit[64];
+        readonly Collider[] recoveryOverlaps=new Collider[64];
 
         float DriveLever(int index)=>Mathf.Max(.01f,index==0?.078f*builtSize:segmentLengths[index-1]*builtSize);
         Vector3 RequestedPalmTorque(Rigidbody body,Quaternion target,float dt)
