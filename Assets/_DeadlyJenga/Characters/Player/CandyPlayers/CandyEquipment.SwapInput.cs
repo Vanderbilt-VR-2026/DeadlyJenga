@@ -38,8 +38,10 @@ namespace DeadlyJenga.CandyPlayers
                 return false;
             }
             if(button?.wasPressedThisFrame==true)cancelGripArmed=!cancelGripUsed;
+            var stickClick=device.TryGetChildControl<ButtonControl>("primary2DAxisClick");
             bool chord=device.TryGetChildControl<ButtonControl>("secondaryButton")?.isPressed==true||
                 device.TryGetChildControl<ButtonControl>("primaryButton")?.isPressed==true||
+                stickClick?.isPressed==true||stickClick?.wasPressedThisFrame==true||
                 device.TryGetChildControl<AxisControl>("trigger")?.ReadValue()>.12f;
             if(chord){cancelGripArmed=false;cancelGripUsed=held;}
             if(held)return false;
