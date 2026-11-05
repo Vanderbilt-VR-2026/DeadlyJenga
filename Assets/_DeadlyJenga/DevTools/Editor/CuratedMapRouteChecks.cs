@@ -18,6 +18,20 @@ namespace DeadlyJenga.DevTools.Editor
             public string file,assetGuid,sourceSha256,dependencyHash,component,selection,savedLayout;
             public int serializedBodies,serializedColliders;
         }
+        [Serializable] sealed class TeamIntent
+        {
+            public string name;
+            public Vector3 flagHome;
+            public Vector3[] spawns;
+        }
+        [Serializable] sealed class MatchLayoutIntent
+        {
+            public string mapId,prefabFile,assetGuid,dependencyHash,selection,savedLayout,pointIntent;
+            public bool authoredPointsComplete;
+            public Vector3[] freeSpawns;
+            public TeamIntent[] teams;
+            public Vector3 hill;
+        }
         [Serializable] sealed class Result
         {
             public string evidence="Authored geometry and imported prefab inspection only; NOT native physics, actor/carrier traversal, Game, bots, collapse, peers or Quest validation";
@@ -29,6 +43,7 @@ namespace DeadlyJenga.DevTools.Editor
             public List<string> checks=new(),failedAssertions=new();
             public List<SourceToken> sources=new();
             public List<PrefabToken> prefabs=new();
+            public List<MatchLayoutIntent> mapMatchLayouts=new();
         }
         [MenuItem("Tools/Deadly Jenga/Maps/Inspect Two Curated Map Routes")]
         public static void Inspect()
@@ -104,6 +119,51 @@ namespace DeadlyJenga.DevTools.Editor
             if(file=="Mode_ctf.prefab"){var map=prefab.GetComponent<CastleGenerator>();token.component="CastleGenerator";token.selection=map&&map.settings!=null?map.settings.layoutPreset:"missing";if(map&&map.settings!=null)token.savedLayout=map.SaveLayout();Check(r,map&&map.settings!=null&&map.settings.layoutPreset=="ctf","Imported CTF prefab selects ctf generator");}
             else{var map=prefab.GetComponent<EpicCityMap>();token.component="EpicCityMap";token.selection=map?map.design.ToString():"missing";if(map)token.savedLayout=map.SaveLayout();Check(r,map&&map.design==1,"Imported Harbor prefab selects design 1");}
             r.prefabs.Add(token);
+            if(!string.IsNullOrEmpty(token.savedLayout))MatchIntent(r,token);
+        }
+        static void MatchIntent(Result r,PrefabToken prefab)
+        {
+            bool ctf=prefab.file=="Mode_ctf.prefab";
+            var intent=new MatchLayoutIntent{mapId=ctf?"mode-ctf":"epic-double-loop",prefabFile=prefab.file,assetGuid=prefab.assetGuid,dependencyHash=prefab.dependencyHash,selection=prefab.selection,savedLayout=prefab.savedLayout};
+            if(ctf)
+            {
+                intent.pointIntent="MapLab explicit courtyard intent: ten separate ground free spawns, five protected-side spawns per team with 180-degree counterparts, existing ground court flag homes and central ground hill. Coordinates are local authored surface points, not motor/capsule clearance certification.";
+                intent.freeSpawns=new[]{new Vector3(-20,.4f,-28),new Vector3(20,.4f,28),new Vector3(20,.4f,-28),new Vector3(-20,.4f,28),new Vector3(-10,.4f,-12),new Vector3(10,.4f,12),new Vector3(-20,.4f,-12),new Vector3(20,.4f,12),new Vector3(0,.4f,-28),new Vector3(0,.4f,28)};
+                intent.teams=new[]{
+                    new TeamIntent{name="West Court",flagHome=ModeMapLayout.CtfHome(0),spawns=new[]{new Vector3(-36,.4f,-12),new Vector3(-40,.4f,-12),new Vector3(-40,.4f,0),new Vector3(-40,.4f,12),new Vector3(-36,.4f,12)}},
+                    new TeamIntent{name="East Court",flagHome=ModeMapLayout.CtfHome(1),spawns=new[]{new Vector3(36,.4f,12),new Vector3(40,.4f,12),new Vector3(40,.4f,0),new Vector3(40,.4f,-12),new Vector3(36,.4f,-12)}}};
+                intent.hill=new Vector3(0,ModeMapLayout.CuratedCtfGroundY,0);
+            }
+            else
+            {
+                var plan=EpicCityLayout.Build(1);
+                intent.pointIntent="MapLab explicit exchange intent: six current plan spawnPoints plus four perimeter ground candidates; five outdoor west/east forecourt spawns per team, mirrored in X; flag homes on ground outside the south pavilions; central ground hill under the optional crossing. No upper route is required to carry a flag. Native ground/head clearance, carrier, bot and side-swap fairness remain unverified.";
+                intent.freeSpawns=plan.spawnPoints.Concat(new[]{new Vector3(-44,.45f,-34),new Vector3(44,.45f,-34),new Vector3(-44,.45f,34),new Vector3(44,.45f,34)}).ToArray();
+                intent.teams=new[]{
+                    new TeamIntent{name="West Forecourt",flagHome=new Vector3(-48,.35f,-20),spawns=new[]{new Vector3(-50,.45f,-30),new Vector3(-46,.45f,-30),new Vector3(-50,.45f,-20),new Vector3(-50,.45f,-10),new Vector3(-46,.45f,-10)}},
+                    new TeamIntent{name="East Forecourt",flagHome=new Vector3(48,.35f,-20),spawns=new[]{new Vector3(50,.45f,-30),new Vector3(46,.45f,-30),new Vector3(50,.45f,-20),new Vector3(50,.45f,-10),new Vector3(46,.45f,-10)}}};
+                intent.hill=new Vector3(0,.35f,0);
+            }
+            int before=r.failedAssertions.Count;
+            Check(r,intent.teams.Length==2&&intent.teams.All(t=>!string.IsNullOrWhiteSpace(t.name)&&t.spawns.Length==5)&&intent.teams.Select(t=>t.name).Distinct().Count()==2,"Two distinct teams each have five explicit authored spawns for "+intent.mapId);
+            var allSpawns=intent.freeSpawns.Concat(intent.teams.SelectMany(t=>t.spawns)).ToArray();
+            Check(r,intent.freeSpawns.Length==10&&allSpawns.All(Finite)&&allSpawns.SelectMany((p,i)=>allSpawns.Take(i).Select(q=>(p-q).sqrMagnitude)).All(distance=>distance>=1.44f),"Twenty finite, separate free/team candidates retain at least 1.2m authored spacing for "+intent.mapId);
+            var points=allSpawns.Concat(intent.teams.Select(t=>t.flagHome)).Append(intent.hill).ToArray();
+            var footprint=ctf?r.ctfFootprint:r.harborFootprint;
+            Check(r,points.All(p=>Finite(p)&&Mathf.Abs(p.x)<footprint.x*.5f&&Mathf.Abs(p.z)<footprint.y*.5f),"All authored objective/spawn points are finite and inside "+intent.mapId+" footprint");
+            if(ctf)
+            {
+                var settings=new CastleSettings{layoutPreset="ctf"};var pieces=CastleLayout.Build(settings);
+                Check(r,points.All(p=>pieces.Any(piece=>Covers(piece,settings,p))&&!pieces.Any(piece=>Contains(piece,settings,p+Vector3.up*.6f))),"All courtyard intents have authored box-top coverage and an unoccupied head sample");
+            }
+            else
+            {
+                var plan=EpicCityLayout.Build(1);
+                Check(r,points.All(p=>p.y>=EpicCityLayout.GroundHeight(plan,p)&&p.y<=EpicCityLayout.GroundHeight(plan,p)+.11f&&Mathf.Pow(p.x/(plan.halfSize.x*1.08f),2)+Mathf.Pow(p.z/(plan.halfSize.y*1.08f),2)<.95f),"All exchange intents lie over the authored terrain envelope with shore margin");
+            }
+            intent.authoredPointsComplete=r.failedAssertions.Count==before;
+            r.mapMatchLayouts.Add(intent);
+            r.checks.Add("LIMIT: Authored point intent and spacing do not establish native ClearSpawn, full head clearance, legal objective interaction, carrier/bot routes or post-collapse safety.");
         }
         static string Hash(string path){using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(File.ReadAllBytes(path))).Replace("-","").ToLowerInvariant();}
     }
