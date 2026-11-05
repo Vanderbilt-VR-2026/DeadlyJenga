@@ -46,14 +46,17 @@ namespace DeadlyJenga.CandyPlayers
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
         }
 
-        public void Present(EquipmentState state,CandyAvatarFrame frame,bool active)
+        public void Present(EquipmentState state,CandyAvatarFrame frame,bool active,bool slungForEmote=false)
         {
             if(parent&&parent.GetComponentInParent<IEnemyActor>()?.ArchetypeId=="mushroom"){Hide();return;}
             if(state==null||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||state.roleIssued&&!state.drawn||!active){Hide();return;}
             if(!root||kind!=state.kind){if(paired){Object.Destroy(paired.gameObject);paired=null;}rotor=null;if(root)Object.Destroy(root.gameObject);kind=state.kind;root=Create(kind);}
             root.gameObject.SetActive(true);root.localScale=new Vector3(kind==EquipmentKind.BoxingGlove&&state.leftHanded?-1:1,1,1)*frame.scale;
-            var hand=state.leftHanded?frame.left:frame.right;var pose=state.drawn||kind==EquipmentKind.WristLaser?DrawnPose(kind,hand,state.leftHanded,frame.scale):Holster(kind,frame.feet,frame.head,Quaternion.Euler(0,frame.headRotation.eulerAngles.y,0),frame.scale,state.leftHanded);
-            if(state.embedRemaining>0){if(!wasEmbedded)embeddedPose=new Pose(state.embeddedPoint-pose.rotation*Vector3.forward*.65f,pose.rotation);pose=embeddedPose;wasEmbedded=true;}else wasEmbedded=false;
+            var hand = state.leftHanded ? frame.left : frame.right;
+            bool inHand = !slungForEmote && (state.drawn || kind == EquipmentKind.WristLaser);
+            var pose = inHand ? DrawnPose(kind, hand, state.leftHanded, frame.scale) :
+                Holster(kind, frame.feet, frame.head, Quaternion.Euler(0, frame.headRotation.eulerAngles.y, 0), frame.scale, state.leftHanded);
+            if(state.embedRemaining>0&&!slungForEmote){if(!wasEmbedded)embeddedPose=new Pose(state.embeddedPoint-pose.rotation*Vector3.forward*.65f,pose.rotation);pose=embeddedPose;wasEmbedded=true;}else wasEmbedded=false;
             root.SetPositionAndRotation(pose.position,pose.rotation);
             if(kind==EquipmentKind.LaserClaws){PositionClaws(root,hand,state.leftHanded);root.gameObject.SetActive(state.drawn);}
             if(rotor){spin+=Time.deltaTime*(state.triggerHeld?700+state.charge*1800:state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?500:0);rotor.localRotation=Quaternion.Euler(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?spin:0,0,state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw?0:spin);}

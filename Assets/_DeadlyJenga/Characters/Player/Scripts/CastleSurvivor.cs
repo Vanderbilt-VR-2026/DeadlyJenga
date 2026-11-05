@@ -8,7 +8,7 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.CastlePrototype
 {
     [RequireComponent(typeof(CharacterController))]
-    public sealed partial class CastleSurvivor : MonoBehaviour, IVaultTargetProvider
+    public sealed partial class CastleSurvivor : MonoBehaviour, IVaultTargetProvider, ILocalEmoteView
     {
         public Camera viewCamera;
         public Transform cameraOffset;
@@ -59,6 +59,30 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 candidateGrip,candidateNormal,candidateForward,vaultGripLocal,vaultNormalLocal,vaultForwardLocal;
         DeadlyJenga.CandyPlayers.CandyTrackingSource candyTracking;
         float vaultTime;
+        DeadlyJenga.CandyPlayers.SurvivorMoments moments;
+        bool releaseEmoteStick;
+        public bool EmoteActive
+        {
+            get
+            {
+                if (!moments) moments = GetComponent<DeadlyJenga.CandyPlayers.SurvivorMoments>();
+                return moments && moments.Posing;
+            }
+        }
+        public Vector2 EmoteLook { get; private set; }
+
+        bool RouteEmoteLook(Vector2 look, bool moveOrJump)
+        {
+            if (EmoteActive)
+            {
+                if (moveOrJump) moments.Cancel();
+                EmoteLook = moveOrJump ? Vector2.zero : look;
+                releaseEmoteStick = look.sqrMagnitude > .04f;
+                return true;
+            }
+            if (look.sqrMagnitude <= .04f) releaseEmoteStick = false;
+            return releaseEmoteStick;
+        }
 
         void Awake()
         {
@@ -126,6 +150,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (Mathf.Abs(Capsule.height - StandingHeight) > .001f) Capsule.height = StandingHeight;
                 if ((Capsule.center - Vector3.up * StandingHeight * .5f).sqrMagnitude > .000001f) Capsule.center = Vector3.up * StandingHeight * .5f;
             }
+            EmoteLook = Vector2.zero;
             Vector2 walking = Vector2.zero;
             bool pressed = false,held=false;
             if(externallyDriven)
@@ -150,16 +175,17 @@ namespace DeadlyJenga.CastlePrototype
                     var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(!dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
                     {
-                        bool look=vrTurn!=SurvivorVRTurn.PhysicalOnly&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;
+                        bool look=(EmoteActive || vrTurn!=SurvivorVRTurn.PhysicalOnly)&&DeadlyJenga.CandyPlayers.HybridXRInput.SingleLookHeld;
                         looking=look?DeadlyJenga.CandyPlayers.HybridXRInput.MoveStick():Vector2.zero;
                         if(look)walking=Vector2.zero;
                     }
-                    ApplyVRLook(looking,Time.deltaTime);
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     var gestureHand=candyTracking?candyTracking.GestureHand:default;
                     bool jumpButton=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.PrimaryHeld(dominantLeft):jump.IsPressed();
                     jumpButton|=DeadlyJenga.CandyPlayers.HybridXRInput.SinglePrimaryHeld;
                     ReadVRJump(gestureHand,jumpButton,out pressed,out held);
+                    if (!RouteEmoteLook(looking, walking.sqrMagnitude > .001f || pressed))
+                        ApplyVRLook(looking,Time.deltaTime);
                 }
                 else if (Cursor.lockState == CursorLockMode.Locked)
                 {
@@ -171,7 +197,7 @@ namespace DeadlyJenga.CastlePrototype
                         pressed = k.spaceKey.wasPressedThisFrame;
                         held=k.spaceKey.isPressed;
                     }
-                    if (m != null)
+                    if (!RouteEmoteLook(Vector2.zero, walking.sqrMagnitude > .001f || pressed) && m != null)
                     {
                         Vector2 delta = m.delta.ReadValue() * mouseSensitivity;
                         transform.Rotate(0, delta.x, 0);

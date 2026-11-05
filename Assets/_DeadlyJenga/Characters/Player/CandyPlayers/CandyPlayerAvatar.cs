@@ -19,6 +19,7 @@ namespace DeadlyJenga.CandyPlayers
         public CandyTrackingSource tracking;
         public CandyPlayerRig Rig{get;private set;}
         public CandyAvatarFrame LastFrame{get;private set;}
+        internal CandyAvatarFrame RenderedFrame { get; private set; }
         public bool remoteDriven;
         public int ColorIndex{get;private set;}
         NearFarInteractor[] nearRays;
@@ -109,7 +110,7 @@ namespace DeadlyJenga.CandyPlayers
             GetComponent<CandyEquipment>()?.PoseHands(ref frame);
             return frame;
         }
-        public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
+        public void ApplyCosmeticFrame(CandyAvatarFrame frame){LastFrame=RenderedFrame=frame;if(Rig)Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,0);}
         void PointOnHover(ref CandyHandPose hand, bool isLeft)
         {
             if(!tracking || !hand.tracked || hand.skeletonTracked)return;
@@ -173,11 +174,14 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 frame.left=Grip(true,frame.left,vaultStartLeft);frame.right=Grip(false,frame.right,vaultStartRight);
             }
-            wasVaulting=vaulting;LastFrame=frame;Rig.ApplyFrame(frame,survivor?survivor.Grounded:true,dt);
+            wasVaulting=vaulting;LastFrame=frame;
+            var activeMoments = Moments;
+            RenderedFrame = activeMoments ? activeMoments.Pose(frame) : frame;
+            Rig.ApplyFrame(RenderedFrame, survivor ? survivor.Grounded : true, dt);
         }
         public void ApplyRemote(CandyAvatarFrame frame,int color)
         {
-            if(!Rig)return;remoteDriven=true;Rig.ownerCamera=null;SetColor(color);LastFrame=frame;Rig.ApplyFrame(frame,true,Time.deltaTime);
+            if(!Rig)return;remoteDriven=true;Rig.ownerCamera=null;SetColor(color);LastFrame=RenderedFrame=frame;Rig.ApplyFrame(frame,true,Time.deltaTime);
         }
         public void RefreshNow(){Present(0);}
         public void RefreshExternal(float deltaTime){Present(deltaTime);}

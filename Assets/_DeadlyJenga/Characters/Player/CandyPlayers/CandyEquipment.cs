@@ -56,6 +56,8 @@ namespace DeadlyJenga.CandyPlayers
         }
         public bool BlocksTraversal=>false;
         bool UsesSupportGrip=>EquipmentSpecifications.Get(Equipment.kind).twoHanded&&Equipment.drawn;
+        bool SlingForEmote(EquipmentState state) =>
+            state.drawn && motor && motor.EmoteActive && EquipmentSpecifications.Get(state.kind).twoHanded;
         public bool UsesTriggers=>Equipment.kind>=EquipmentKind.Blaster;
         float Scale=>motor?Mathf.Max(.1f,motor.playerScale):1;
         bool Local=>motor&&!motor.externallyDriven&&!avatar.remoteDriven;
@@ -165,7 +167,7 @@ namespace DeadlyJenga.CandyPlayers
         bool FireAt(Pose muzzle,bool offhand=false)
         {
             var state=Equipment;
-            if(!Local||!state.drawn||Time.time<nextFire||!motor.Alive||!motor.HasInputFocus||motor.InputSuspended||motor.Climbing||motor.Vaulting||Services.Session?.MenuOpen==true)return false;
+            if(!Local||!state.drawn||SlingForEmote(state)||Time.time<nextFire||!motor.Alive||!motor.HasInputFocus||motor.InputSuspended||motor.Climbing||motor.Vaulting||Services.Session?.MenuOpen==true)return false;
             if(motor.IsVR&&(!avatar.tracking||!avatar.tracking.WorldHand(state.kind==EquipmentKind.PoweredArmor?SuitShootingLeft:offhand?!left:left).tracked))return false;
             muzzle=AssistAim(muzzle);
             if(Runtime?.RequestEquipmentAttack(muzzle)!=true)return false;
@@ -215,6 +217,12 @@ namespace DeadlyJenga.CandyPlayers
             }
             var state=Equipment;if(state.kind!=EquipmentKind.LaserClaws||!state.drawn)offhandReady=false;UpdatePower(state);if(state.kind!=EquipmentKind.PoweredArmor)SetSuitThrust(false);
             if(motor.InputSuspended||!motor.HasInputFocus||!motor.Alive||Services.Session?.MenuOpen==true){SetSuitThrust(false);ReleaseHeldArsenal();armed=false;handReady=false;return;}
+            if (SlingForEmote(state))
+            {
+                ReleaseHeldArsenal();
+                armed = handReady = false;
+                return;
+            }
             CheckPickups();
             if(pendingPickup!=0)
             {
@@ -259,7 +267,9 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(!avatar||!avatar.Rig)return;visual??=new CandyWeaponVisual(transform,avatar.Rig.style.material);
             avatar.Rig.SetAppearance(avatar.EquippedAppearance);
-            visual.Present(Equipment,avatar.LastFrame,motor&&motor.Alive&&!motor.Climbing&&!motor.Vaulting);
+            var state = Equipment;
+            visual.Present(state, avatar.RenderedFrame, motor && motor.Alive && !motor.Climbing && !motor.Vaulting,
+                SlingForEmote(state));
         }
     }
 }

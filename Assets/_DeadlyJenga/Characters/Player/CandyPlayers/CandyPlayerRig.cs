@@ -118,13 +118,17 @@ namespace DeadlyJenga.CandyPlayers
             if(forward.sqrMagnitude<.01f)forward=transform.forward;
             transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
-            bool seated=(SeatedVisual||frame.seated)&&!downed;
+            float dance = downed ? 0 : frame.danceWeight;
+            bool seated = (SeatedVisual || frame.seated) && !downed && dance <= 0;
             if(seated)frame.head.y=frame.feet.y+1.27f*scale;
             float headY=transform.InverseTransformPoint(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
-            bones[0].localPosition=torsoOffset;bones[0].localRotation=Quaternion.identity;bones[0].localScale=new Vector3(width,crouch,1);
+            Quaternion torsoTilt = Quaternion.Euler(frame.danceTorsoEuler * dance);
+            Vector3 waist = Vector3.up * (.67f * crouch);
+            torsoOffset += waist - torsoTilt * waist;
+            bones[0].localPosition=torsoOffset;bones[0].localRotation=torsoTilt;bones[0].localScale=new Vector3(width,crouch,1);
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
@@ -135,16 +139,18 @@ namespace DeadlyJenga.CandyPlayers
             for(int side=0;side<2;side++)
             {
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
-                Vector3 hip=transform.TransformPoint(torsoOffset+new Vector3(sign*.105f*width,.67f*crouch,0));
+                Vector3 hip=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
                 if(seated)foot=transform.TransformPoint(new Vector3(sign*.13f,.08f,.36f));
                 else if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                if (dance > 0)
+                    foot = Vector3.Lerp(foot, transform.TransformPoint(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
                 int thigh=side==0?8:11;
                 Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
                 bones[thigh+2].SetPositionAndRotation(foot,transform.rotation);bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
-                Vector3 shoulder=transform.TransformPoint(torsoOffset+new Vector3(sign*.21f*width,1.255f*crouch,0));
+                Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.21f*width,1.255f*crouch,0));
                 Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,-transform.forward*.65f+Vector3.down*.8f+transform.right*sign*.3f);
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,hand.position);
