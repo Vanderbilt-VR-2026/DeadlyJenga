@@ -49,6 +49,11 @@ namespace DeadlyJenga.CastleBots
             WeaponReason=reason;if(state.kind==EquipmentKind.Dagger)return;
             if(state.drawn&&(MatchRuntime.Current as IBotEquipmentRuntime)?.SetBotWeapon(gameObject,false,state.shotgun)==true)WeaponHolsters++;
         }
+        void StopHeldBotWeapon(EquipmentState state,string reason)
+        {
+            var spec=EquipmentSpecifications.Get(state.kind);
+            if(state.kind>EquipmentKind.PoweredArmor&&(spec.automatic||spec.charge>0))HolsterBotWeapon(state,reason);
+        }
         bool HandleWeaponCombat(ref CastleBotCommand command,out bool fighting)
         {
             fighting=false;botEquipment??=GetComponent<CandyEquipment>();var runtime=MatchRuntime.Current as IBotEquipmentRuntime;
@@ -97,8 +102,10 @@ namespace DeadlyJenga.CastleBots
             botEquipment.SetBotAim(grip);
             if(EquipmentSpecifications.Get(state.kind).gravity>0)for(int iteration=0;iteration<2;iteration++)
             {grip.rotation=Quaternion.LookRotation(BotGunPolicy.AimDirection(state.kind,botEquipment.MuzzlePose.position,predicted));botEquipment.SetBotAim(grip);}
-            if(Time.time<gunReady||Time.time<burstPause||!BotCombatPolicy.Facing(Motor.ViewPose.rotation*Vector3.forward,aim)){WeaponReason="Reacting and settling aim";return true;}
-            if(!ClearGunShot(target,botEquipment.MuzzlePose,shotgun&&(state.kind==EquipmentKind.DualRifle||state.kind==EquipmentKind.SheriffHammer),distance)){WeaponReason="Withhold fire: cover or another actor";gunReady=Time.time+.2f;return true;}
+            if(Time.time<burstPause||!BotCombatPolicy.Facing(Motor.ViewPose.rotation*Vector3.forward,aim))
+            {WeaponReason="Reacting and settling aim";StopHeldBotWeapon(state,WeaponReason);return true;}
+            if(Time.time<gunReady){WeaponReason="Reaction or weapon recovery";return true;}
+            if(!ClearGunShot(target,botEquipment.MuzzlePose,shotgun&&(state.kind==EquipmentKind.DualRifle||state.kind==EquipmentKind.SheriffHammer),distance)){WeaponReason="Withhold fire: cover or another actor";StopHeldBotWeapon(state,WeaponReason);gunReady=Time.time+.2f;return true;}
             WeaponShotsAttempted++;
             if(runtime.FireBotWeapon(gameObject,botEquipment.MuzzlePose))
             {

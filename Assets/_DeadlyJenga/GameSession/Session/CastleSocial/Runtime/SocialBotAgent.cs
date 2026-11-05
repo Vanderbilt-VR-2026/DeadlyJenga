@@ -31,19 +31,20 @@ namespace DeadlyJenga.CastleSocial
         Vector3? Focus()=>State?.focus!=null&&World&&World.TryPosition(State.focus,out var target)?target:(Vector3?)null;
         void Update()
         {
-            if(!BotAlive||State==null||!World.IsAuthority)return;
+            if(!BotAlive||State==null||!World||!World.IsAuthority)return;
             if(Bot.Respawns!=respawns){respawns=Bot.Respawns;World.Publish(SocialEventKind.Elimination,State.identity.id,1);}
             if(Bot.VaultCount!=vaults){vaults=Bot.VaultCount;World.Publish(SocialEventKind.Success,State.identity.id,.7);}
             if(grounded&&!Bot.Grounded&&Bot.VerticalSpeed< -3)World.Publish(SocialEventKind.NearMiss,State.identity.id,.7);grounded=Bot.Grounded;
             if(Time.time<nextGroup)return;nextGroup=Time.time+3+Mathf.Repeat(phase,3);
+            var population=World.SurvivorPopulation;
             Bot.SetBravery((float)State.identity.Behavior(World.Config,"risk",State.identity.Trait("boldness"))-(float)State.emotion.fear*.18f);
             if(!Bot.Respawning&&Bot.Grounded&&State.identity.group>=0&&Mathf.PerlinNoise(phase,Time.time*.1f)<World.Config.cohesion*(.5+State.identity.Behavior(World.Config,"help",State.identity.Trait("cooperativeness"))))
             {
                 var friend=World.NearestFriend(this);
-                if(friend&&Vector3.Distance(friend.transform.position,transform.position)>3&&World.Session.SurvivorBots.ThreatCost(friend.transform.position)<.7f)
+                if(population!=null&&friend&&Vector3.Distance(friend.transform.position,transform.position)>3&&population.ThreatCost(friend.transform.position)<.7f)
                 {Bot.SeekPoint(friend.transform.position,12);State.reason="Seeking friend "+friend.State.identity.name;}
             }
-            if(State.focus!=null&&State.identity.Trait("sociability")>.65&&World.Session.SurvivorBots.ThreatCost(transform.position)<.1f)
+            if(population!=null&&State.focus!=null&&State.identity.Trait("sociability")>.65&&population.ThreatCost(transform.position)<.1f)
                 Bot.HesitateUntil=Time.time+(float)(.15+.35*(1-State.identity.skill/100));
             Bot.EmoteFrequency=Mathf.Lerp(.3f,1.4f,(float)(State.identity.Trait("reactivity")*World.Config.reactions));
         }
