@@ -62,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype
             setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");
             ClosePrivateKeyboard();
             if(page=="maps"||page=="modes")OpenPicker(page);
-            if(page=="settings"){setupPage="settings";settingsPage=0;}
+            if(page=="settings")OpenMatchSettings();
             if(marinaScreen)marinaScreen.Visible=false;
             SyncMarinaBacks();
         }
@@ -86,7 +86,10 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(marinaDetail=="join"&&RoomHasGuests)CloseMarinaDetail();
             if(marinaDetail!=""&&!lobby.CodeFocused&&Keyboard.current?.escapeKey.wasPressedThisFrame==true)
-                CloseMarinaDetail();
+            {
+                if(setupPage=="dev-settings")OpenMatchSettings();
+                else CloseMarinaDetail();
+            }
             SyncMarinaBacks();
             if(!marina)return;
             if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
@@ -108,6 +111,7 @@ namespace DeadlyJenga.CastlePrototype
             for(int y=0;y<64;y++)for(int x=0;x<64;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),Vector2.one*32);pixels[y*64+x]=new Color(1,1,1,Mathf.Clamp01(32-d));}
             marinaMaskTexture.SetPixels(pixels);marinaMaskTexture.Apply();marinaMaskSprite=Sprite.Create(marinaMaskTexture,new Rect(0,0,64,64),Vector2.one*.5f);go.GetComponent<Image>().sprite=marinaMaskSprite;go.GetComponent<Image>().color=new Color(.42f,.68f,.75f);go.GetComponent<Mask>().showMaskGraphic=true;
             var image=new GameObject("Mirror image",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(go.transform,false);var raw=image.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.color=Color.white;raw.raycastTarget=false;raw.rectTransform.sizeDelta=new Vector2(348,348);
+            BuildMirrorRotateIcon(marinaMirror,-127,54);
         }
         partial void DisposeMayhemMarina()
         {if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}

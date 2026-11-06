@@ -41,11 +41,10 @@ namespace DeadlyJenga.CastlePrototype
             GameChoice("map-previous",()=>"<",-44,()=>CycleSetup(true,-1),-365,90);
             GameChoice("map-current",()=>lobby.MapTitle+"  v",-44,()=>OpenPicker("maps"),0,610);
             GameChoice("map-next",()=>">",-44,()=>CycleSetup(true,1),365,90);
-            GameChoice("island-effects",()=>Details?.Setup.rules.island==IslandRule.Walkable?"ISLAND EFFECTS: OFF · NORMAL MOVEMENT":"ISLAND EFFECTS: ON · "+Details?.Setup.rules.island,-110,()=>{var s=Details.Setup;s.rules.island=s.rules.island==IslandRule.Walkable?IslandRule.Sink:IslandRule.Walkable;Details.ConfigureSetup(s);},0,780,60);
-            GameChoice("mode-settings",()=>"MODE SETTINGS / DEMO TUNING",-190,()=>{setupPage="settings";settingsPage=0;},0,780,60);
-            var teamChoice=GameChoice("human-team",()=>Details?.SelectedModeId=="mystery"?"MY SECRET ROLE: "+MysteryChoices.RequestedRole:MatchChoices.SameHumanTeam?"HUMANS: SAME TEAM":"HUMANS: RANDOM TEAMS",-265,()=>{if(Details.SelectedModeId=="mystery")MysteryChoices.RequestedRole=(MysteryRole)(((int)MysteryChoices.RequestedRole+1)%4);else{var s=Details.Setup;s.sameHumanTeam=!s.sameHumanTeam;Details.ConfigureSetup(s);}},0,780,50);
-            teamChoice.enabled=()=>Details?.SelectedModeId=="mystery"||lobby.CanConfigure;
-            GameChoice("player-target",()=>"PLAYERS: "+(Details?.Setup.population??MatchChoices.BotTarget)+"  ·  HUMANS + BOTS",-330,()=>{var s=Details.Setup;int[] list={10,15,25,50,100};s.population=list[(Array.IndexOf(list,s.population)+1)%list.Length];Details.ConfigureSetup(s);},0,780,50);
+            GameChoice("mode-settings",()=>"Match Rules",-145,OpenMatchSettings,0,780,60);
+            Add(setupStation,"mystery-role",()=>"My secret role: "+MysteryChoices.RequestedRole,-240,
+                ()=>MysteryChoices.RequestedRole=(MysteryRole)(((int)MysteryChoices.RequestedRole+1)%4),
+                ()=>true,0,780,50,()=>setupPage=="main"&&Details?.SelectedModeId=="mystery");
             GameChoice("launch",()=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true?"Return to match":lobby.StartPending?"Cancel start":"Start match",-415,lobby.StartOrCancel,0,780,90).enabled=()=>lobby.CanStart;
             setupHint=Label(setupStation,"",-495,20,810,42);setupHint.color=CandyHudVisuals.Muted;
             gameHint=Label(setupStation,"",400,30,780,70);
@@ -81,6 +80,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void BackFromSetup()
         {
+            if(setupPage=="dev-settings"){OpenMatchSettings();return;}
             if(setupPage=="experimental-maps"){OpenPicker("maps");return;}
             if(marina)CloseMarinaDetail();else setupPage="main";
         }

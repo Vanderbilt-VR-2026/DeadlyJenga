@@ -30,7 +30,6 @@ namespace DeadlyJenga.CastlePrototype
                 if(walking.sqrMagnitude>0)return true;
                 if(vrTurn!=SurvivorVRTurn.PhysicalOnly)
                 {
-                    if(Mathf.Abs(looking.y)>.25f)return true;
                     if(vrTurn==SurvivorVRTurn.Smooth&&Mathf.Abs(looking.x)>.2f)return true;
                     if(vrTurn==SurvivorVRTurn.Snap&&Mathf.Abs(looking.x)>=.3f)return true;
                 }

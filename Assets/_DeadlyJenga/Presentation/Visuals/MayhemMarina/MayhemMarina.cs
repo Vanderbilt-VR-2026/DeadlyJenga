@@ -138,13 +138,11 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Signs()
         {
-            
             Sign("STYLE",new Vector3(-13,5.35f,4.25f),.12f,new Color(.26f,.12f,.055f));
-            Sign("MAYHEM MARINA",new Vector3(-12.6f,1.5f,-12.8f),.055f,new Color(.85f,.92f,.84f),new Vector3(60,24,0));
         }
-        void Sign(string text,Vector3 position,float size,Color color,Vector3? rotation=null)
+        void Sign(string text,Vector3 position,float size,Color color)
         {
-            var go=new GameObject("Marina lettering · "+text);go.transform.SetParent(visual,false);go.transform.localPosition=position;go.transform.localEulerAngles=rotation??Vector3.zero;
+            var go=new GameObject("Marina lettering · "+text);go.transform.SetParent(visual,false);go.transform.localPosition=position;
             var t=go.AddComponent<TextMesh>();t.text=text;t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=100;t.characterSize=size;t.anchor=TextAnchor.MiddleCenter;t.alignment=TextAlignment.Center;t.color=color;t.fontStyle=FontStyle.Bold;go.GetComponent<MeshRenderer>().sharedMaterial=t.font.material;
         }
         void OnDestroy()

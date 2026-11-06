@@ -78,20 +78,9 @@ namespace DeadlyJenga.CastlePrototype
             modeCaption.rectTransform.anchoredPosition=new Vector2(-255,282);mapCaption.rectTransform.anchoredPosition=new Vector2(255,282);
             modeCaption.rectTransform.sizeDelta=mapCaption.rectTransform.sizeDelta=new Vector2(480,30);
             modeCaption.text="Mode";mapCaption.text="Map";modeCaption.color=CandyMint;mapCaption.color=CandyPeach;
-            var population=CandyPlace("player-target",0,-55,1000,62);population.title=()=>"PLAYERS";
-            CandyText(population,-90,0,650,54,26,TextAnchor.MiddleLeft);CandyChoiceIcon(population,LobbyTerminalGlyph.Symbol.People,-440);
-            var value=CandyPanel((RectTransform)population.button.transform,"Population value",130,0,220,52,CandyInk);
-            candyPlayerValue=CandyReadout(value,"Player count","10",0,0,200,46,30);candyPlayerValue.fontStyle=FontStyle.Bold;
-            var minus=CandyAdd(candySetupContent,"population-minus",()=>"-",340,-55,90,62,()=>AdjustCandyPopulation(-1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
-            var plus=CandyAdd(candySetupContent,"population-plus",()=>"+",445,-55,90,62,()=>AdjustCandyPopulation(1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
-            minus.faceColor=plus.faceColor=CandyPeach;minus.edgeColor=plus.edgeColor=CandyPeach;
-            ((RectTransform)minus.button.transform).anchoredPosition3D=new Vector3(340,-55,-8);((RectTransform)plus.button.transform).anchoredPosition3D=new Vector3(445,-55,-8);
-            var island=CandyPlace("island-effects",0,-130,1000,62);
-            island.title=()=>Details?.Setup.rules.island==DeadlyJenga.Core.IslandRule.Walkable?"Island effects: Off":"Island effects: "+Details?.Setup.rules.island;
-            CandyText(island,25,0,850,54,25);CandyChoiceIcon(island,LobbyTerminalGlyph.Symbol.Island,-440);
-            var settings=CandyPlace("mode-settings",0,-205,1000,62);settings.title=()=>"Match settings";settings.faceColor=CandyLavender;
+            var settings=CandyPlace("mode-settings",0,-115,1000,62);settings.faceColor=CandyLavender;
             CandyChoiceIcon(settings,LobbyTerminalGlyph.Symbol.Gear,-440);CandyText(settings,25,0,850,54,28);
-            CandyPlace("human-team",0,-270,1000,46);CandyText(CandyChoice("human-team"),0,0,950,40,22);
+            CandyPlace("mystery-role",0,-200,1000,46);CandyText(CandyChoice("mystery-role"),0,0,950,40,22);
             var launch=CandyPlace("launch",-95,-350,800,86);CandyPrimary(launch);CandyText(launch,25,0,650,72,38);
             CandyChoiceIcon(launch,LobbyTerminalGlyph.Symbol.Play,-310,0,42);
             var room=CandyPanel(candySetupContent,"Room population",430,-350,170,86,CandyFace);candyMainDecor.Add(room.gameObject);
@@ -119,7 +108,6 @@ namespace DeadlyJenga.CastlePrototype
             CandyStyleModeCards();
             var confirm=CandyAdd(candySetupContent,"mode-confirm",()=>"Choose map",0,-350,1000,50,()=>OpenPicker("maps"),()=>lobby.CanConfigure,()=>setupPage=="modes");CandyPrimary(confirm);CandyChoiceIcon(confirm,LobbyTerminalGlyph.Symbol.Play,-440);
             BuildSettingRows();
-            CandyPlace("settings-prev",-255,-290,490,58);CandyPlace("settings-next",255,-290,490,58);
         }
         void CandyStyleModeCards()
         {
@@ -137,7 +125,5 @@ namespace DeadlyJenga.CastlePrototype
                 CandyChoiceIcon(card,LobbyTerminalGlyph.Symbol.Check,211,36,23);
             }
         }
-        void AdjustCandyPopulation(int step)
-        {if(Details==null||!lobby.CanConfigure)return;var setup=Details.Setup;setup.population=Mathf.Clamp(setup.population+step,1,100);Details.ConfigureSetup(setup);}
     }
 }

@@ -48,7 +48,7 @@ namespace DeadlyJenga.CandyArt.Marina
             ActionButton("marina-join","Join",-146,()=>detail?.Invoke("join"),()=>lobby.JoinEnabled,
                 ()=>((lobby as ILobbyDetails)?.ConnectedCount??0)<=1);
             ActionButton("marina-experience","Round",-12,()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
-            ActionButton("marina-settings","Match rules",122,()=>detail?.Invoke("settings"),()=>true);
+            ActionButton("marina-settings","Match Rules",122,()=>detail?.Invoke("settings"),()=>true);
             var play=Button("marina-play",new Vector2(269,-121),new Vector2(158,52),new Color(.11f,.42f,.32f),lobby.StartOrCancel,()=>lobby.CanStart);
             playTitle=Text("Start match",Vector2.zero,new Vector2(150,50),21,play);
             Refresh();

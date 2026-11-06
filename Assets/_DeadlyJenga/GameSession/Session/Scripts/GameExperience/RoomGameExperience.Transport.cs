@@ -11,7 +11,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class RoomGameExperience
     {
-        const int ExperienceChannel=0x47455850, PacketLimit=16384;
+        const int ExperienceChannel=0x47455850, PacketLimit=16384, CheckpointKeyBits=2048;
         static readonly UTF8Encoding WireEncoding=new UTF8Encoding(false,true);
         [Serializable] sealed class ExperienceCheckpoint
         {public string body="",signature="",modulus="",exponent="";}
@@ -48,8 +48,20 @@ namespace DeadlyJenga.CastlePrototype
         {transportFailed=true;TransportStatus=reason;transportRecovering=room&&room.Connected;}
         bool CreateSigner()
         {
-            try{transportSigner?.Dispose();transportSigner=RSA.Create();transportSigner.KeySize=2048;return true;}
-            catch(Exception){transportSigner=null;TransportFailure("Room checkpoint signing unavailable; Game is disabled on this platform.");return false;}
+            transportSigner?.Dispose();
+            transportSigner=null;
+            try
+            {
+                // Mono's default provider can ignore a KeySize assignment after construction.
+                transportSigner=new RSACryptoServiceProvider(CheckpointKeyBits){PersistKeyInCsp=false};
+                return true;
+            }
+            catch(Exception error)
+            {
+                Debug.LogWarning($"Could not create room checkpoint signer: {error.GetType().Name}: {error.Message}",this);
+                TransportFailure("Room checkpoint signing unavailable; Game is disabled on this platform.");
+                return false;
+            }
         }
         internal void TransportBeforeMigration(NetworkRunner oldRunner)
         {
@@ -143,7 +155,7 @@ namespace DeadlyJenga.CastlePrototype
                 checkpoint.signature==null||checkpoint.signature.Length>344)return null;
             if(requiredKey!=null&&CheckpointKey(checkpoint)!=requiredKey)return null;
             var modulus=Convert.FromBase64String(checkpoint.modulus);var exponent=Convert.FromBase64String(checkpoint.exponent);
-            if(modulus.Length!=256||exponent.Length<1||exponent.Length>8)return null;
+            if(modulus.Length!=CheckpointKeyBits/8||exponent.Length<1||exponent.Length>8)return null;
             using(var rsa=RSA.Create())
             {
                 rsa.ImportParameters(new RSAParameters{Modulus=modulus,Exponent=exponent});
@@ -169,12 +181,16 @@ namespace DeadlyJenga.CastlePrototype
                 string body=JsonUtility.ToJson(state);var key=transportSigner.ExportParameters(false);
                 var checkpoint=new ExperienceCheckpoint{body=body,modulus=Convert.ToBase64String(key.Modulus),exponent=Convert.ToBase64String(key.Exponent),
                     signature=Convert.ToBase64String(transportSigner.SignData(WireEncoding.GetBytes(body),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1))};
-                var cached=Verify(checkpoint);if(cached==null)throw new InvalidOperationException();
+                var cached=Verify(checkpoint);if(cached==null)throw new InvalidOperationException("The room rejected its own signed checkpoint.");
                 transportCache=cached;transportPinnedKey=CheckpointKey(checkpoint);transportSemantic=semantic;transportLastPublish=TransportNow;
                 if(transportSent.Count>=32)transportSent.Remove(transportSent.Keys.First());transportSent[cached.digest]=cached;
                 foreach(var peer in RemotePlayers())SendSnapshot(peer);
             }
-            catch(Exception){TransportFailure("Room checkpoint signing failed; Game is disabled.");}
+            catch(Exception error)
+            {
+                Debug.LogWarning($"Could not sign or verify room checkpoint: {error.GetType().Name}: {error.Message}",this);
+                TransportFailure("Room checkpoint signing failed; Game is disabled.");
+            }
         }
         void SendSnapshot(PlayerRef peer)
         {if(transportCache!=null)Send(peer,new ExperiencePacket{kind="state",epoch=transportEpoch,checkpoint=transportCache.wire});}

@@ -50,7 +50,9 @@ namespace DeadlyJenga.CastlePrototype
                     AvatarAccessory.AntAntennae,AvatarAccessory.UnicornHorn,AvatarAccessory.DevilHorns,AvatarAccessory.Broccoli,AvatarAccessory.Halo,
                     AvatarAccessory.Headphones,AvatarAccessory.RobotAntenna}.Select(Accessory)
                     .Concat(new[]{Clothing(AvatarClothing.HockeyHelmet),Clothing(AvatarClothing.FootballHelmet)}).ToArray(),
-                Enum.GetValues(typeof(AvatarEyewear)).Cast<AvatarEyewear>().Where(item=>item!=AvatarEyewear.None)
+                // These are the distinct models. The remaining names reuse Round or Visor geometry.
+                new[]{AvatarEyewear.Round,AvatarEyewear.Square,AvatarEyewear.Aviator,AvatarEyewear.CatEye,AvatarEyewear.Visor,
+                    AvatarEyewear.Monocle,AvatarEyewear.Star,AvatarEyewear.Heart,AvatarEyewear.CyberEye,AvatarEyewear.Shutter}
                     .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Glasses)).ToArray(),
                 new[]{AvatarClothing.MonkRobe,AvatarClothing.Diaper,AvatarClothing.FootballPads,AvatarClothing.GrassSkirt,AvatarClothing.Tuxedo,
                     AvatarClothing.Hoodie,AvatarClothing.BomberJacket,AvatarClothing.SailorShirt,AvatarClothing.Overalls,AvatarClothing.PufferVest}
@@ -137,7 +139,6 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             wardrobePanel=Terminal("Wardrobe",WardrobePosition+new Vector3(.7f,1.65f,1.35f),25,new Vector2(1120,910),CandyHudVisuals.Mint);
-            Label(wardrobePanel,"Drag the mirror to rotate",319,24,620,38).color=CandyHudVisuals.Muted;
             for(int category=0;category<wardrobeCategories.Length;category++)
             {
                 int selected=category;
@@ -157,9 +158,8 @@ namespace DeadlyJenga.CastlePrototype
             CandyStyle(Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-240,()=>ChangeWardrobePage(-1),()=>wardrobePage>0,-263,250,48,()=>WardrobePages>1));
             CandyStyle(Add(wardrobePanel,"wardrobe-reset",()=>"Next",-240,()=>ChangeWardrobePage(1),()=>wardrobePage+1<WardrobePages,263,250,48,()=>WardrobePages>1));
             wardrobePageLabel=Label(wardrobePanel,"",-240,23,240,48);
-            CandyStyle(Add(wardrobePanel,"wardrobe-clear-look",()=>"Reset outfit",-319,ClearAccessories,()=>wardrobeOpen,-263,506,54));
-            CandyStyle(Add(wardrobePanel,"wardrobe-reset-view",()=>"Reset view",-319,ResetWardrobeView,()=>wardrobeOpen,263,506,54));
-            var done=Add(wardrobePanel,"wardrobe-open",()=>"Done",-389,()=>SetWardrobeOpen(false),()=>wardrobeOpen,0,520,62);
+            CandyStyle(Add(wardrobePanel,"wardrobe-clear-look",()=>"Reset outfit",-389,ClearAccessories,()=>wardrobeOpen,-263,506,62));
+            var done=Add(wardrobePanel,"wardrobe-open",()=>"Done",-389,()=>SetWardrobeOpen(false),()=>wardrobeOpen,263,506,62);
             CandyStyle(done);CandyPrimary(done);
 
             wardrobeTexture=new RenderTexture(768,768,24){name="Wardrobe third person preview"};
@@ -171,6 +171,7 @@ namespace DeadlyJenga.CastlePrototype
             fallbackWardrobeMirror.sizeDelta=new Vector2(670,670);
             mirror.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;
             var raw=mirror.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;
+            BuildMirrorRotateIcon(fallbackWardrobeMirror,-275,95);
             mirror.SetActive(false);
 
             var cameraObject=new GameObject("Visual - wardrobe camera");cameraObject.transform.SetParent(transform,false);wardrobeCamera=cameraObject.AddComponent<Camera>();wardrobeCamera.enabled=false;wardrobeCamera.targetTexture=wardrobeTexture;wardrobeCamera.fieldOfView=44;wardrobeCamera.nearClipPlane=.05f;wardrobeCamera.farClipPlane=60;wardrobeCamera.cullingMask=1<<31;wardrobeCamera.clearFlags=CameraClearFlags.SolidColor;wardrobeCamera.backgroundColor=new Color(.07f,.045f,.12f);wardrobeCamera.GetUniversalAdditionalCameraData().allowXRRendering=false;
@@ -199,8 +200,14 @@ namespace DeadlyJenga.CastlePrototype
             if(item.clothing!=0)return (value.clothing&item.clothing)!=0;
             if(item.armor)return value.poweredArmor;
             return slot==WardrobeSlot.Skin?(int)value.skin==item.style:
-                slot==WardrobeSlot.Hair?(int)value.hair==item.style:(int)value.eyewear==item.style;
+                slot==WardrobeSlot.Hair?(int)value.hair==item.style:(int)VisibleEyewear(value.eyewear)==item.style;
         }
+        static AvatarEyewear VisibleEyewear(AvatarEyewear eyewear)=>eyewear switch
+        {
+            AvatarEyewear.SkiGoggles or AvatarEyewear.VRVisor=>AvatarEyewear.Visor,
+            AvatarEyewear.SafetyGoggles or AvatarEyewear.RoundSunglasses or AvatarEyewear.HalfMoon=>AvatarEyewear.Round,
+            _=>eyewear
+        };
         static AvatarAppearance SetItem(AvatarAppearance value,WardrobeSlot slot,WardrobeItem item,bool equip)
         {
             if(slot==WardrobeSlot.Skin){value.skin=(AvatarSkin)item.style;return value;}
@@ -344,8 +351,7 @@ namespace DeadlyJenga.CastlePrototype
             preview.transform.SetParent(wardrobeDesktop,false);
             var raw=preview.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;
             wardrobePreview=raw.rectTransform;wardrobePreview.sizeDelta=new Vector2(530,530);wardrobePreview.anchoredPosition=new Vector2(-315,15);
-            var hint=Label(wardrobeDesktop,"Drag to rotate", -285,20,530,40);
-            hint.rectTransform.anchoredPosition=new Vector2(-315,-285);hint.color=CandyHudVisuals.Muted;
+            BuildMirrorRotateIcon(wardrobePreview,-221,70);
 
             var panel=new GameObject("Options",typeof(RectTransform)).GetComponent<RectTransform>();
             panel.SetParent(wardrobeDesktop,false);panel.anchoredPosition=new Vector2(305,0);panel.sizeDelta=new Vector2(590,760);
@@ -363,11 +369,16 @@ namespace DeadlyJenga.CastlePrototype
             DesktopButton(panel,"Previous",-192,-145,180,46,()=>ChangeWardrobePage(-1),"Previous category");
             DesktopButton(panel,"Next",-192,145,180,46,()=>ChangeWardrobePage(1),"Next category");
             desktopPageLabel=Label(panel,"",-192,21,110,46);
-            DesktopButton(panel,"Reset outfit",-257,-145,277,48,ClearAccessories,"Clear");
-            DesktopButton(panel,"Reset view",-257,145,277,48,ResetWardrobeView,"Reset view");
-            var done=DesktopButton(panel,"Done",-327,0,340,54,()=>SetWardrobeOpen(false),"Done");
+            DesktopButton(panel,"Reset outfit",-327,-145,277,54,ClearAccessories,"Clear");
+            var done=DesktopButton(panel,"Done",-327,145,277,54,()=>SetWardrobeOpen(false),"Done");
             done.GetComponent<Image>().color=CandyHudVisuals.Mint;
             done.GetComponentInChildren<Text>().color=CandyHudVisuals.Ink;
+        }
+
+        void BuildMirrorRotateIcon(RectTransform mirror,float y,float size)
+        {
+            var badge=CandyPanel(mirror,"Mirror rotation",0,y,size,size*.65f,CandyHudVisuals.Ink);
+            CandyIcon(badge,LobbyTerminalGlyph.Symbol.Rotate,0,0,size*.68f,CandyHudVisuals.Mint);
         }
 
         RectTransform DesktopButton(RectTransform parent,string title,float y,float x,float width,float height,Action action,string name)

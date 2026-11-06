@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
         Texture2D candyAtlas;
         Sprite candyFaceSprite,candyRimSprite;
         RectTransform candyJoinContent,candyHostContent,candySetupContent;
-        Text candySetupHeading,candyPlayerValue,candyMapDescription,candyRoomStatus,candyJoinEmpty;
+        Text candySetupHeading,candyMapDescription,candyRoomStatus,candyJoinEmpty;
         readonly List<GameObject> candyMainDecor=new List<GameObject>();
         readonly List<Text> candyCodeLetters=new List<Text>();
         string candyLastCode;
@@ -141,7 +141,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!candyAtlas)return;
             setupFace.Opacity=1;
             bool main=setupPage=="main";
-            candySetupHeading.text=setupPage=="modes"?"Game mode":setupPage=="experimental-maps"?"Experimental maps":setupPage=="maps"?"Maps":setupPage=="settings"?"Match settings":"Match";
+            candySetupHeading.text=setupPage=="modes"?"Game mode":setupPage=="experimental-maps"?"Experimental maps":setupPage=="maps"?"Maps":SettingsOpen?SettingsHeading:"Match";
             foreach(var item in candyMainDecor)item.SetActive(main);
             var launch=CandyChoice("launch");launch.faceColor=lobby.StartPending?CandyPeach:CandyMint;launch.edgeColor=launch.faceColor;
             var symbol=lobby.StartPending?LobbyTerminalGlyph.Symbol.Back:LobbyTerminalGlyph.Symbol.Play;
@@ -150,7 +150,6 @@ namespace DeadlyJenga.CastlePrototype
             candyJoinEmpty.gameObject.SetActive(lobby.ShowingNearby&&!lobby.HasNearby(0));
             candyJoinEmpty.text=lobby.ShowingNearby?lobby.JoinHint:"";
             joinHint.gameObject.SetActive(!lobby.ShowingNearby);
-            candyPlayerValue.text=(Details?.Setup.population??MatchChoices.BotTarget).ToString();
             var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"":CandyBrief(map.description);
             candyRoomStatus.text="ROOM\n"+Mathf.Max(1,Details?.ConnectedCount??1)+" / "+(Details?.Setup.population??MatchChoices.BotTarget);
             foreach(string id in new[]{"picker-previous","picker-next"})
