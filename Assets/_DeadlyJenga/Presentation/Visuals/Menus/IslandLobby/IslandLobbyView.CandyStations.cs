@@ -83,8 +83,9 @@ namespace DeadlyJenga.CastlePrototype
             CandyPlace("mystery-role",0,-200,1000,46);CandyText(CandyChoice("mystery-role"),0,0,950,40,22);
             var launch=CandyPlace("launch",-95,-350,800,86);CandyPrimary(launch);CandyText(launch,25,0,650,72,38);
             CandyChoiceIcon(launch,LobbyTerminalGlyph.Symbol.Play,-310,0,42);
-            var room=CandyPanel(candySetupContent,"Room population",430,-350,170,86,CandyFace);candyMainDecor.Add(room.gameObject);
-            candyRoomStatus=CandyReadout(room,"Room count","ROOM\n1 / 10",0,0,150,70,23);
+            var ready=CandyPlace("lobby-ready",-95,-350,800,86);CandyPrimary(ready);CandyText(ready,0,0,650,72,38);
+            var room=CandyPanel(candySetupContent,"Room readiness",430,-350,170,86,CandyFace);candyMainDecor.Add(room.gameObject);
+            candyRoomStatus=CandyReadout(room,"Ready count","",0,0,150,70,23);
             setupHint.rectTransform.anchoredPosition=new Vector2(0,-412);setupHint.rectTransform.sizeDelta=new Vector2(1000,34);setupHint.fontSize=20;setupHint.resizeTextMaxSize=20;setupHint.resizeTextMinSize=18;setupHint.color=CandyMuted;
             gameHint.rectTransform.anchoredPosition=new Vector2(0,312);gameHint.rectTransform.sizeDelta=new Vector2(1000,26);gameHint.fontSize=22;gameHint.resizeTextMaxSize=22;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
             for(int i=0;i<MapPageSize;i++)

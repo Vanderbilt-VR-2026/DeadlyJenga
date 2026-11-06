@@ -17,12 +17,15 @@ namespace DeadlyJenga.CandyArt.Marina
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
         bool ModalBlocked=>!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
-        RectTransform canvas;Text modeTitle,mapTitle,playTitle,partyTitle;
+        IGameExperienceControls readiness;
+        bool VisitingMatch=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
+        RectTransform canvas;Text modeTitle,mapTitle,playTitle,readyTitle,partyTitle;
         RawImage modePicture,mapPicture;string modeId,mapId;float refreshAt;
         public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
             if(canvas)return;lobby=controls;session=Services.Session;detail=openDetail;
+            readiness=lobby as IGameExperienceControls;
             var go=new GameObject("Lobby terminal",typeof(RectTransform),typeof(Canvas),typeof(Image));
             go.transform.SetParent(transform,false);
             canvas=(RectTransform)go.transform;
@@ -40,16 +43,20 @@ namespace DeadlyJenga.CandyArt.Marina
             c.sortingOrder=70;
 
             Text("Lobby",new Vector2(-274,133),new Vector2(140,38),29,canvas);
-            partyTitle=Text("",new Vector2(259,133),new Vector2(176,44),16,canvas);
+            partyTitle=Text("",new Vector2(221,133),new Vector2(252,44),17,canvas);
             modePicture=Card("marina-modes",-176,"Mode",()=>detail?.Invoke("modes"),out modeTitle);
             mapPicture=Card("marina-maps",176,"Map",()=>detail?.Invoke("maps"),out mapTitle);
 
             ActionButton("marina-room","Room",-280,()=>detail?.Invoke("room"),()=>true);
             ActionButton("marina-join","Join",-146,()=>detail?.Invoke("join"),()=>lobby.JoinEnabled,
                 ()=>((lobby as ILobbyDetails)?.ConnectedCount??0)<=1);
-            ActionButton("marina-experience","Round",-12,()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
+            var ready=Button("marina-ready",new Vector2(-12,-121),new Vector2(124,52),CandyHudVisuals.Card,
+                ()=>readiness.SetReady(!readiness.LocalReady),()=>lobby.CanLeave&&!lobby.StartPending&&readiness.ReadyCount>0);
+            targets[^1].visible=()=>readiness!=null&&lobby.Connected&&!lobby.IsHost&&!VisitingMatch;
+            readyTitle=Text("Ready",Vector2.zero,new Vector2(118,50),20,ready);
             ActionButton("marina-settings","Match Rules",122,()=>detail?.Invoke("settings"),()=>true);
             var play=Button("marina-play",new Vector2(269,-121),new Vector2(158,52),new Color(.11f,.42f,.32f),lobby.StartOrCancel,()=>lobby.CanStart);
+            targets[^1].visible=()=>lobby.IsHost||VisitingMatch;
             playTitle=Text("Start match",Vector2.zero,new Vector2(150,50),21,play);
             Refresh();
         }
@@ -63,7 +70,7 @@ namespace DeadlyJenga.CandyArt.Marina
 
         RawImage Card(string id,float x,string caption,Action action,out Text title)
         {
-            var card=Button(id,new Vector2(x,15),new Vector2(334,208),CandyHudVisuals.Card,action,()=>GameExperiencePanel.CanEditRawChoices(session));
+            var card=Button(id,new Vector2(x,15),new Vector2(334,208),CandyHudVisuals.Card,action,()=>lobby.CanConfigure&&GameExperiencePanel.CanEditRawChoices(session));
             Text(caption,new Vector2(0,83),new Vector2(310,28),19,card);
             title=Text("",new Vector2(0,-80),new Vector2(316,36),20,card);
             var go=new GameObject("Preview",typeof(RectTransform),typeof(RawImage));
@@ -88,9 +95,11 @@ namespace DeadlyJenga.CandyArt.Marina
             if(!canvas||lobby==null)return;
             modeTitle.text=lobby.ModeTitle;
             mapTitle.text=lobby.MapTitle;
-            playTitle.text=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true?"Return to match":lobby.StartPending?"Cancel start":"Start match";
-            int count=(lobby as ILobbyDetails)?.ConnectedCount??1;
-            partyTitle.text=lobby.Busy?"Connecting…":lobby.Connected?$"{lobby.HostCode}  ·  {count} {(count==1?"player":"players")}":"Offline";
+            playTitle.text=VisitingMatch?"Return to match":lobby.StartPending?"Cancel start":"Start match";
+            readyTitle.text=readiness?.LocalReady==true?"Unready":"Ready";
+            partyTitle.text=lobby.Busy?"Connecting…":lobby.Connected
+                ?$"{lobby.HostCode}  ·  {readiness?.ReadyCount??0} of {readiness?.RequiredReadyCount??0} ready"
+                :"Offline";
             var details=lobby as ILobbyDetails;
             string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
             if(modeId!=nextMode){modeId=nextMode;modePicture.texture=Resources.Load<Texture2D>("LobbyModePictures/"+modeId);FitPreview(modePicture);}

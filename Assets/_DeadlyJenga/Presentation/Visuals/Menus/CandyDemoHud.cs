@@ -173,8 +173,6 @@ namespace DeadlyJenga.CastlePrototype
             {
                 activate=false;navCount=0;
                 if(Button(new Rect(35,119,235,54),"Controls & Comfort",CandyHudVisuals.Card))CandyComfortPanel.Open(session);
-                if(MultiplayerPanel.JoinCode(session.Multiplayer).Length>0&&GameExperiencePanel.Resolve(session)!=null&&
-                    Button(new Rect(285,119,175,54),"Round",CandyHudVisuals.Card))GameExperiencePanel.Open(session);
                 if(session.Social!=null&&Button(new Rect(475,119,210,54),"Audio & voice",showVoice?CandyHudVisuals.Mint:CandyHudVisuals.Card))showVoice=!showVoice;
                 if(canOpenTools&&Button(new Rect(700,119,190,54),"Host Tools",CandyHudVisuals.Card)){hostTools=true;return;}
                 if(session.PlayingHand&&HandLooks.Names.Length>0&&

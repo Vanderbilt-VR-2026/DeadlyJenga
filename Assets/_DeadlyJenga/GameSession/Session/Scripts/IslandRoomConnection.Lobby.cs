@@ -13,17 +13,21 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandRoomConnection
     {
         const int LobbyCommand=6;
-        [Serializable] public sealed class LobbyAction {public string verb,value;public int index;public LobbySetup setup;}
+        [Serializable] public sealed class LobbyAction {public string verb,value;public int index;public bool ready;public LobbySetup setup;}
         [Serializable] public sealed class LobbyState
         {
             public string leader,notice;
             public LobbyParticipant[] roster;
             public string[] requests;
             public LobbySetup setup;
+            public int readyRevision;
+            public string[] readyGuests;
         }
         readonly Dictionary<string,LobbyParticipant> identities=new Dictionary<string,LobbyParticipant>();
         readonly List<string> hostRequests=new List<string>();
         readonly Dictionary<string,float> requestAfter=new Dictionary<string,float>();
+        readonly HashSet<string> readyGuests=new HashSet<string>();
+        int readyRevision;
         LobbyParticipant localIdentity;
         LobbySetup setup;
         string leaderId="",lobbyNotice="",matchNotice="";
@@ -76,6 +80,23 @@ namespace DeadlyJenga.CastlePrototype
             MatchSetup.BotTarget=setup.population;MatchSetup.HandCount=setup.hands;MatchSetup.SurvivorPreset=setup.survivorPreset;MatchSetup.HandPreset=setup.handPreset;MatchChoices.SameHumanTeam=setup.sameHumanTeam;
             JsonUtility.FromJsonOverwrite(JsonUtility.ToJson(setup.movement),MatchChoices.Rules);
         }
+        internal bool LocalLobbyReady=>LocalIsLobbyHost||readyGuests.Contains(LocalLobbyId);
+        internal int LobbyReadyCount=>Connected
+            ?Runner.ActivePlayers.Count(player=>IsLobbyPlayerReady(player.ToString()))
+            :1;
+        bool EveryoneReadyForLobby=>LobbyReadyCount==HumanCount;
+        bool IsLobbyPlayerReady(string id)=>id==leaderId||readyGuests.Contains(id);
+        internal void SetLobbyReady(bool value)
+        {
+            if(Connected&&!LocalIsLobbyHost&&!Busy&&!Departing&&readyRevision>0)
+                Act(new LobbyAction{verb="ready",index=readyRevision,ready=value});
+        }
+        void ResetLobbyReadiness()
+        {
+            readyGuests.Clear();
+            readyRevision++;
+        }
+
         public void RequestHost(){if(Connected&&!LocalIsLobbyHost&&!Busy)Act(new LobbyAction{verb="request"});}
         public void ReviewHostRequest(string id,bool accept){if(LocalIsLobbyHost&&!Busy)Act(new LobbyAction{verb=accept?"accept":"deny",value=id});}
         void Act(LobbyAction action)
@@ -93,6 +114,13 @@ namespace DeadlyJenga.CastlePrototype
             if(experience&&experience.Experience==GameExperience.Game&&
                 (action.verb=="shared"||action.verb=="setup"||action.verb=="map"||action.verb=="mode"||
                  action.verb=="launch"||action.verb=="cancel"))return;
+            if(action.verb=="ready")
+            {
+                if(!IsHost||source==leaderId||Busy||transitioning||action.index!=readyRevision||!identities.ContainsKey(source))return;
+                if(action.ready)readyGuests.Add(source);
+                else readyGuests.Remove(source);
+                return;
+            }
             if(action.verb=="request")
             {
                 if(source==leaderId||hostRequests.Contains(source)||hostRequests.Count>=10)return;
@@ -104,7 +132,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(!hostRequests.Remove(action.value))return;
                 if(action.verb=="accept"&&identities.ContainsKey(action.value)){leaderId=action.value;hostRequests.Clear();lobbyNotice=identities[action.value].displayName+" is now host.";LaunchPending=false;RefreshHostFlags();}
-                else lobbyNotice="Host request declined.";
+                else{lobbyNotice="Host request declined.";return;}
             }
             else if(!LaunchPending&&action.verb=="map"&&action.index>=0&&action.index<Catalog.maps.Length&&Catalog.maps[action.index].SupportsMode(Catalog.modes[ModeIndex].id))
             {
@@ -119,7 +147,8 @@ namespace DeadlyJenga.CastlePrototype
             else if(!LaunchPending&&action.verb=="setup"&&ValidSetup(action.setup))ApplySetup(action.setup);
             else if(!LaunchPending&&action.verb=="shared"&&Catalog.modes[ModeIndex].id=="demo")SharedDemoControls=action.index!=0;
             else if(action.verb=="launch"){matchNotice="";LaunchAuthoritative();return;}
-            else if(action.verb=="cancel"){LaunchPending=false;lobbyNotice="Start cancelled.";}
+            else if(action.verb=="cancel"){LaunchPending=false;lobbyNotice="Start cancelled.";return;}
+            else return;
             PublishSelection();
         }
         void RefreshHostFlags(){foreach(var item in identities.Values)item.host=item.id==leaderId;}
@@ -156,10 +185,12 @@ namespace DeadlyJenga.CastlePrototype
         public void PrepareSoloIdentity()
         {
             if(Connected)return;
+            readyGuests.Clear();readyRevision=0;
             lobbyNotice=matchNotice="";var own=LocalIdentity;identities.Clear();own.id="local";own.host=true;identities[own.id]=own;leaderId=own.id;hostRequests.Clear();
         }
         void ConnectedIdentity(bool hosting)
         {
+            readyGuests.Clear();readyRevision=0;
             lobbyNotice=matchNotice="";
             if(hosting){var own=LocalIdentity;identities.Clear();leaderId=LocalLobbyId;AssignIdentity(LocalLobbyId,own);}
             else{identities.Clear();leaderId="";hostRequests.Clear();}
@@ -199,17 +230,21 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(Time.unscaledTime<nextRosterCheck)return;nextRosterCheck=Time.unscaledTime+.5f;
             var active=new HashSet<string>(Runner.ActivePlayers.Select(p=>p.ToString()));
-            foreach(var id in identities.Keys.ToArray())if(!active.Contains(id))DepartIdentity(id);
+            var departed=identities.Keys.Where(id=>!active.Contains(id)).ToArray();
+            if(departed.Length>0)ResetLobbyReadiness();
+            foreach(var id in departed)DepartIdentity(id);
             if(!active.Contains(leaderId))
             {
                 var candidates=active.ToArray();
                 leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)]:LocalLobbyId;
+                ResetLobbyReadiness();
                 LaunchPending=false;RefreshHostFlags();
             }
             if(pendingLobbyHost==null)return;
             if(active.Contains(pendingLobbyHost))
             {
                 leaderId=pendingLobbyHost;
+                ResetLobbyReadiness();
                 hostRequests.Clear();
                 LaunchPending=false;
                 RefreshHostFlags();
@@ -217,13 +252,17 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if(Time.unscaledTime>=lobbyHandoffDeadline)ClearLobbyHandoff();
         }
-        string LobbyStateJson()=>JsonUtility.ToJson(new LobbyState{leader=leaderId,roster=identities.Values.ToArray(),requests=hostRequests.ToArray(),notice=lobbyNotice,setup=Setup});
+        string LobbyStateJson()=>JsonUtility.ToJson(new LobbyState{leader=leaderId,roster=identities.Values.ToArray(),requests=hostRequests.ToArray(),notice=lobbyNotice,setup=Setup,readyRevision=readyRevision,readyGuests=readyGuests.ToArray()});
         void ReadLobbyState(string json)
         {
             var state=JsonUtility.FromJson<LobbyState>(json);
             if(state?.roster==null||state.roster.Length>10||state.requests==null||state.requests.Length>10||!ValidSetup(state.setup)||state.leader?.Length>128||state.notice?.Length>200)throw new System.IO.InvalidDataException("Invalid lobby metadata");
             var used=new HashSet<string>();var nouns=new HashSet<string>();
             foreach(var p in state.roster)if(p==null||string.IsNullOrEmpty(p.id)||p.id.Length>128||!used.Add(p.id)||!ValidNoun(p.noun)||!nouns.Add(p.noun)||p.displayName?.Length>64)throw new System.IO.InvalidDataException("Invalid lobby identity");
+            if(state.readyRevision<0||state.readyGuests==null||state.readyGuests.Length>10||state.readyGuests.Any(id=>!used.Contains(id)))
+                throw new System.IO.InvalidDataException("Invalid lobby readiness");
+            readyRevision=state.readyRevision;
+            readyGuests.Clear();readyGuests.UnionWith(state.readyGuests);
             identities.Clear();foreach(var p in state.roster)identities.Add(p.id,p);
             leaderId=state.leader;lobbyNotice=state.notice??"";hostRequests.Clear();hostRequests.AddRange(state.requests);ApplySetup(state.setup);RefreshHostFlags();
             if(identities.TryGetValue(LocalLobbyId,out var own))localIdentity=own;

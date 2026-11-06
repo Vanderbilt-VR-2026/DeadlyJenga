@@ -151,7 +151,8 @@ namespace DeadlyJenga.CastlePrototype
             candyJoinEmpty.text=lobby.ShowingNearby?lobby.JoinHint:"";
             joinHint.gameObject.SetActive(!lobby.ShowingNearby);
             var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"":CandyBrief(map.description);
-            candyRoomStatus.text="ROOM\n"+Mathf.Max(1,Details?.ConnectedCount??1)+" / "+(Details?.Setup.population??MatchChoices.BotTarget);
+            var readiness=lobby as IGameExperienceControls;
+            candyRoomStatus.text=$"{readiness?.ReadyCount??0} of {readiness?.RequiredReadyCount??0}\nREADY";
             foreach(string id in new[]{"picker-previous","picker-next"})
             {
                 var rect=(RectTransform)CandyChoice(id).button.transform;

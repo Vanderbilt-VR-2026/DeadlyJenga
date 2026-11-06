@@ -53,6 +53,7 @@ namespace DeadlyJenga.CastlePrototype
         void OpenMarinaDetail(string page)
         {
             if(page=="host")page="room";
+            if((page=="maps"||page=="modes")&&!lobby.CanConfigure)return;
             if(page=="join"&&(!lobby.JoinEnabled||RoomHasGuests))return;
             marinaDetail=page;
             terminalPageChangedFrame=Time.frameCount;
@@ -85,6 +86,7 @@ namespace DeadlyJenga.CastlePrototype
         partial void UpdateMayhemMarina()
         {
             if(marinaDetail=="join"&&RoomHasGuests)CloseMarinaDetail();
+            if((marinaDetail=="maps"||marinaDetail=="modes")&&!lobby.IsHost)CloseMarinaDetail();
             if(marinaDetail!=""&&!lobby.CodeFocused&&Keyboard.current?.escapeKey.wasPressedThisFrame==true)
             {
                 if(setupPage=="dev-settings")OpenMatchSettings();

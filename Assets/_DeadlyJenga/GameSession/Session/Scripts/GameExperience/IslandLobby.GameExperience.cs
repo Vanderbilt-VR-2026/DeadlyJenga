@@ -14,15 +14,18 @@ namespace DeadlyJenga.CastlePrototype
         public float CountdownSeconds=>ExperienceProvider?.CountdownSeconds??0;
         public int MinimumPopulation=>ExperienceProvider?.MinimumPopulation??0;
         public int MaximumPopulation=>ExperienceProvider?.MaximumPopulation??0;
-        public bool LocalReady=>ExperienceProvider?.LocalReady??false;
-        public int ReadyCount=>ExperienceProvider?.ReadyCount??0;
-        public int RequiredReadyCount=>ExperienceProvider?.RequiredReadyCount??0;
+        public bool LocalReady=>Room&&Room.LocalLobbyReady;
+        public int ReadyCount=>Room?Room.LobbyReadyCount:0;
+        public int RequiredReadyCount=>Room?Room.HumanCount:0;
         public bool CanCancelGameStart=>ExperienceProvider?.CanCancelGameStart??false;
         public bool CanRetryGameTransition=>ExperienceProvider?.CanRetryGameTransition??false;
         public string GameActionHint=>ExperienceProvider?.GameActionHint??"";
         public void SetExperience(GameExperience value)=>ExperienceProvider?.SetExperience(value);
         public void SetAutomaticRounds(bool value)=>ExperienceProvider?.SetAutomaticRounds(value);
-        public void SetReady(bool value)=>ExperienceProvider?.SetReady(value);
+        public void SetReady(bool value)
+        {
+            if(!VisitingLobby&&Room)Room.SetLobbyReady(value);
+        }
         public void CancelGameStart()=>ExperienceProvider?.CancelGameStart();
         public void RetryGameTransition()=>ExperienceProvider?.RetryGameTransition();
     }

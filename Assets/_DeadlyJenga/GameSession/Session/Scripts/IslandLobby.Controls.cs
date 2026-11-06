@@ -145,7 +145,7 @@ namespace DeadlyJenga.CastlePrototype
                 !string.IsNullOrEmpty(inviteStatus)?inviteStatus:
                 Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
                 "";
-            SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
+            SetupHint=Room.LaunchPending?"Confirming the lobby setup…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"":"The host chooses the map, mode and settings.";
             JoinHint=Room.Busy?Room.Status:showingNearby?
                 (Room.Discovery?.HasJoinable==true?"Pick a room, or enter a code above.":
                     Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:

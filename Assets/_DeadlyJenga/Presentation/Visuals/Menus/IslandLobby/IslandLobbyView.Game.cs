@@ -45,7 +45,13 @@ namespace DeadlyJenga.CastlePrototype
             Add(setupStation,"mystery-role",()=>"My secret role: "+MysteryChoices.RequestedRole,-240,
                 ()=>MysteryChoices.RequestedRole=(MysteryRole)(((int)MysteryChoices.RequestedRole+1)%4),
                 ()=>true,0,780,50,()=>setupPage=="main"&&Details?.SelectedModeId=="mystery");
-            GameChoice("launch",()=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true?"Return to match":lobby.StartPending?"Cancel start":"Start match",-415,lobby.StartOrCancel,0,780,90).enabled=()=>lobby.CanStart;
+            bool VisitingMatch()=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
+            Add(setupStation,"launch",()=>VisitingMatch()?"Return to match":lobby.StartPending?"Cancel start":"Start match",
+                -415,lobby.StartOrCancel,()=>lobby.CanStart,0,780,90,()=>setupPage=="main"&&(lobby.IsHost||VisitingMatch()));
+            var readiness=lobby as IGameExperienceControls;
+            Add(setupStation,"lobby-ready",()=>readiness?.LocalReady==true?"Unready":"Ready",-415,
+                ()=>readiness.SetReady(!readiness.LocalReady),()=>lobby.CanLeave&&!lobby.StartPending&&readiness.ReadyCount>0,
+                0,780,90,()=>setupPage=="main"&&readiness!=null&&lobby.Connected&&!lobby.IsHost&&!VisitingMatch());
             setupHint=Label(setupStation,"",-495,20,810,42);setupHint.color=CandyHudVisuals.Muted;
             gameHint=Label(setupStation,"",400,30,780,70);
             for(int i=0;i<MapPageSize;i++)

@@ -377,7 +377,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void BuildMirrorRotateIcon(RectTransform mirror,float y,float size)
         {
-            var badge=CandyPanel(mirror,"Mirror rotation",0,y,size,size*.65f,CandyHudVisuals.Ink);
+            var badge=CandyPanel(mirror,"Mirror rotation",0,y-size*.1f,size,size*.65f,CandyHudVisuals.Ink);
             CandyIcon(badge,LobbyTerminalGlyph.Symbol.Rotate,0,0,size*.68f,CandyHudVisuals.Mint);
         }
 

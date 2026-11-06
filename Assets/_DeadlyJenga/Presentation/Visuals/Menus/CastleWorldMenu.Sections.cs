@@ -180,8 +180,6 @@ namespace DeadlyJenga.CastlePrototype
                         Add("Hand appearance  ·  "+HandLooks.ChosenName,()=>HandLooks.Chosen++,icon:CandyHudIcon.Hand);
                     if(session.Multiplayer!=null)Add("Room",()=>networkPage=true,icon:CandyHudIcon.Friends);
                     if(session.Social!=null)Add("Audio & voice",()=>comfortPage=true,icon:CandyHudIcon.Sound);
-                    if(MultiplayerPanel.JoinCode(session.Multiplayer).Length>0&&DeadlyJenga.Presentation.GameExperiencePanel.Resolve(session)!=null)
-                        Add("Round",()=>DeadlyJenga.Presentation.GameExperiencePanel.Open(session),icon:CandyHudIcon.Play);
                     var drop=match as IEquipmentDropRuntime;var carried=session.Player?.gameObject.GetComponent<IEquipmentControls>();
                     if(drop!=null&&!session.PlayingHand&&carried?.Equipment.kind>=EquipmentKind.Blaster)
                         Add("Drop weapon",()=>drop.RequestDropEquipment(),icon:CandyHudIcon.Hand);
