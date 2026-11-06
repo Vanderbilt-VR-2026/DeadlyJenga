@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
         const int LivePose = 20, LivePoses = 21, PoseReceipt = 22;
-        const int PoseWindow = 24, MaxPoseSize = 4096, MaxLiveBatchSize=64*1024;
+        const int PoseWindow = 6, MaxPoseSize = 4096, MaxLiveBatchSize=64*1024;
         public sealed class LivePoseTraffic
         {
             public string PeerId{get;internal set;}="";
@@ -90,7 +90,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool IsCurrentScene=>sceneTag==SceneTag(runner);
         float nextPoseSend;
-        readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,96*1024,MaxPoseSize);
+        readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,24*1024,MaxPoseSize);
         bool hasPoseBatch;
         public LivePoseTraffic LocalPoseTraffic=>posesInFlight.Traffic;
         public LivePoseTraffic[] PeerPoseTraffic=>peers.Values.Select(peer=>peer.posesInFlight.Traffic).ToArray();
