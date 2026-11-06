@@ -80,7 +80,7 @@ namespace DeadlyJenga.CharacterNetwork
             // A connected human cannot grant themselves NPC rules through their visual payload.
             if(context.host)enemy=null;
             if (active && !isActive && rig) Burst();
-            active = isActive; hasTarget = true;if(!active)weaponVisual?.Hide();
+            active = isActive; suspended = false; hasTarget = true;if(!active)weaponVisual?.Hide();
             if(!active&&blasterModel)blasterModel.gameObject.SetActive(false);
             transform.SetPositionAndRotation(target.feet, Quaternion.Euler(0,target.headRotation.eulerAngles.y,0));
             int bits = (color >> 16) & 0xFF;
