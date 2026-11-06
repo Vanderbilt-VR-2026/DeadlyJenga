@@ -94,9 +94,38 @@ namespace DeadlyJenga.Presentation
             return preferLeft ? left : right;
         }
 
-        public static bool AimAt(Camera camera, bool preferLeft, System.Func<Ray, float> hitDistance, out Sample sample)
+        internal static bool TryReadDevice(Camera camera, int device, out Sample sample)
         {
             Read(camera, out var left, out var right);
+            sample = left.Device == device ? left : right.Device == device ? right : default;
+            return sample.Valid;
+        }
+
+        internal static Camera TrackingCamera(ISessionInfo session, Camera view)
+        {
+            var characterCamera = (session.PlayingHand ? session.Hand : session.Player)?.ViewCamera;
+            return view.GetComponentInParent<XROrigin>() || !characterCamera ? view : characterCamera;
+        }
+
+        internal static bool TriggerHeld(Camera trackingCamera)
+        {
+            Read(trackingCamera, out var left, out var right);
+            return left.Held || right.Held;
+        }
+
+        public static bool AimAt(Camera camera, bool preferLeft, System.Func<Ray, float> hitDistance, out Sample sample)
+            => AimAt(camera, camera, preferLeft, hitDistance, out sample);
+
+        internal static bool AimAt(Camera camera, Camera trackingCamera, bool preferLeft, System.Func<Ray, float> hitDistance, out Sample sample)
+        {
+            Read(trackingCamera, out var left, out var right);
+            if (camera && trackingCamera && camera != trackingCamera)
+            {
+                var rotation = camera.transform.rotation * Quaternion.Inverse(trackingCamera.transform.rotation);
+                var origin = camera.transform.position - rotation * trackingCamera.transform.position;
+                if (left.Valid) left.Ray = new Ray(origin + rotation * left.Ray.origin, rotation * left.Ray.direction);
+                if (right.Valid) right.Ray = new Ray(origin + rotation * right.Ray.origin, rotation * right.Ray.direction);
+            }
             if (!ShowHit(camera, left, 0, hitDistance)) left = default;
             if (!ShowHit(camera, right, 1, hitDistance)) right = default;
             sample = Choose(left, right, preferLeft);
@@ -123,10 +152,13 @@ namespace DeadlyJenga.Presentation
         }
 
         public static bool OnPanel(Camera camera, RectTransform panel, bool preferLeft, out Vector2 point, out bool pressed)
+            => OnPanel(camera, camera, panel, preferLeft, out point, out pressed);
+
+        internal static bool OnPanel(Camera camera, Camera trackingCamera, RectTransform panel, bool preferLeft, out Vector2 point, out bool pressed)
         {
             point = default;
             pressed = false;
-            if (!AimAt(camera, preferLeft, ray => PanelHit(ray, panel), out var sample)) return false;
+            if (!AimAt(camera, trackingCamera, preferLeft, ray => PanelHit(ray, panel), out var sample)) return false;
             point = panel.InverseTransformPoint(sample.Ray.GetPoint(PanelHit(sample.Ray, panel)));
             pressed = sample.Pressed;
             return true;

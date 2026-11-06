@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
@@ -25,7 +23,6 @@ namespace DeadlyJenga.Presentation
         readonly List<Func<string>> titles=new();
         readonly List<Func<bool>> available=new();
         readonly List<Action> actions=new();
-        InputAction leftSelect,rightSelect;
         Camera eye;
         bool open,returnToMenu,openingVr,openingHand,selectReady;
         int openingInput,closedFrame=-1;
@@ -67,7 +64,6 @@ namespace DeadlyJenga.Presentation
             owner=session;controls=Resolve(session);
             lobby=session as ILobbyControls??(session as Component)?.GetComponent<ILobbyControls>();
             if(!canvas)Build();
-            leftSelect.Enable();rightSelect.Enable();
             eye=session.ActiveCamera;openingVr=session.IsVR;openingHand=session.PlayingHand;
             openingInput=InputSignature();returnToMenu=session.MenuOpen;selectReady=false;open=true;
             session.SetMenu(true);
@@ -107,8 +103,6 @@ namespace DeadlyJenga.Presentation
             actionHint=Label("",new Vector2(0,-353),new Vector2(748,46),19);
             Add(new Vector2(-190,-294),()=>"Recenter panel",()=>openingVr,Anchor);
             Add(new Vector2(190,-294),()=>"Back",()=>true,()=>Close(true));
-            leftSelect=new InputAction("Experience left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
-            rightSelect=new InputAction("Experience right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             root.SetActive(false);
         }
         Text Label(string value,Vector2 position,Vector2 size,int font)
@@ -163,27 +157,37 @@ namespace DeadlyJenga.Presentation
         {
             if(!open)return;
             var session=owner;open=false;closedFrame=Time.frameCount;selectReady=false;owner=null;controls=null;eye=null;
-            leftSelect?.Disable();rightSelect?.Disable();
             if(canvas)canvas.gameObject.SetActive(false);
             if(restore&&ReferenceEquals(Services.Session,session))session.SetMenu(returnToMenu);
         }
         void Update()
         {
             if(!open)return;
-            if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
-                owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls)||InputSignature()!=openingInput)
+            if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
+            if(!owner.ActiveCamera||owner.IsVR!=openingVr||owner.PlayingHand!=openingHand)
+            {Close(true);return;}
+            if(owner.ActiveCamera!=eye)
+            {
+                eye=owner.ActiveCamera;
+                if(openingVr){canvas.worldCamera=eye;Anchor();}
+                selectReady=false;
+            }
+            int inputSignature=InputSignature();
+            if(inputSignature!=openingInput){openingInput=inputSignature;selectReady=false;}
             if(Time.unscaledTime>=refreshAt)Refresh();
-            bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             for(int i=0;i<buttons.Count;i++){buttons[i].GetComponent<Image>().color=available[i]()?CandyHudVisuals.Card:CandyHudVisuals.Ink;captions[i].color=available[i]()?Color.white:CandyHudVisuals.Muted;}
-            if(!selectReady){if(!held)selectReady=true;return;}
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                if(!DeadlyJenga.Presentation.MenuPointer.OnPanel(eye, panel, owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, out point, out pressed)) return;
+                var trackingCamera=MenuPointer.TrackingCamera(owner,eye);
+                bool aimed=MenuPointer.OnPanel(eye,trackingCamera,panel,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out point,out pressed);
+                if(!selectReady){selectReady=!MenuPointer.TriggerHeld(trackingCamera);return;}
+                if(!aimed)return;
             }
             else
             {
+                if(!selectReady){selectReady=Mouse.current?.leftButton.isPressed!=true;return;}
                 if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point))return;
                 pressed=Mouse.current.leftButton.wasPressedThisFrame;
             }
@@ -205,8 +209,8 @@ namespace DeadlyJenga.Presentation
             return signature;
         }
         void OnApplicationFocus(bool focused){if(!focused)Close(false);}
-        void OnDisable(){Close(false);leftSelect?.Disable();rightSelect?.Disable();}
-        void OnDestroy(){Close(false);leftSelect?.Dispose();rightSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
+        void OnDisable()=>Close(false);
+        void OnDestroy(){Close(false);if(canvas)Destroy(canvas.gameObject);}
     }
 }
 

@@ -22,7 +22,6 @@ namespace DeadlyJenga.CastlePrototype
         Text candySetupHeading,candyPlayerValue,candyMapDescription,candyRoomStatus,candyJoinEmpty;
         readonly List<GameObject> candyMainDecor=new List<GameObject>();
         readonly List<Text> candyCodeLetters=new List<Text>();
-        readonly List<RectTransform> candyCodeSlots=new List<RectTransform>();
         string candyLastCode;
         readonly Dictionary<string,string> candySummaries=new Dictionary<string,string>();
         readonly Dictionary<string,string> candyShortSummaries=new Dictionary<string,string>();
@@ -128,13 +127,14 @@ namespace DeadlyJenga.CastlePrototype
             if(!choice.candy)
             {choice.label.color=hover?CandyHudVisuals.Ink:usable?Color.white:CandyHudVisuals.Muted;choice.button.image.color=hover?CandyHudVisuals.Mint:usable?CandyHudVisuals.Card:new Color(.11f,.14f,.2f);return;}
             bool selected=choice.selected!=null&&choice.selected();
-            var face=!usable?new Color(.17f,.14f,.23f):hover?Color.Lerp(choice.faceColor,CandyMint,.28f):Time.unscaledTime<choice.pressedUntil?Color.Lerp(choice.faceColor,CandyInk,.2f):choice.faceColor;
+            bool modeCard=choice.id.StartsWith("mode-card-",StringComparison.Ordinal);
+            var face=!usable?new Color(.17f,.14f,.23f):hover?Color.Lerp(choice.faceColor,CandyMint,modeCard ? .07f : .28f):Time.unscaledTime<choice.pressedUntil?Color.Lerp(choice.faceColor,CandyInk,.2f):choice.faceColor;
             choice.button.image.color=face;
             var foreground=!usable?CandyMuted:CandyForeground(face);
             choice.label.color=foreground;
             if(choice.description)choice.description.color=CandyForeground(face)==CandyInk?new Color(.10f,.07f,.19f):CandyCream;
-            if(choice.rim)choice.rim.color=selected||hover?CandyMint:usable?choice.edgeColor:new Color(CandyLavender.r,CandyLavender.g,CandyLavender.b,.4f);
-            if(choice.glyph){choice.glyph.color=selected&&!hover?CandyMint:foreground;choice.glyph.gameObject.SetActive(!choice.selectionGlyph||selected);}
+            if(choice.rim)choice.rim.color=selected?CandyMint:hover?(modeCard?Color.Lerp(choice.edgeColor,CandyMint,.35f):CandyMint):usable?choice.edgeColor:new Color(CandyLavender.r,CandyLavender.g,CandyLavender.b,.4f);
+            if(choice.glyph){choice.glyph.color=selected&&(modeCard||!hover)?CandyMint:foreground;choice.glyph.gameObject.SetActive(!choice.selectionGlyph||selected);}
         }
         void UpdateCandyDesign()
         {
@@ -160,13 +160,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(candyLastCode!=(lobby.EnteredCode??""))
             {
-                candyLastCode=lobby.EnteredCode??"";int count=Mathf.Clamp(Mathf.Max(6,candyLastCode.Length),6,12);float cell=Mathf.Min(136,880f/count);
-                for(int i=0;i<candyCodeSlots.Count;i++)
-                {
-                    candyCodeSlots[i].gameObject.SetActive(i<count);candyCodeSlots[i].anchoredPosition=new Vector2((i-(count-1)*.5f)*cell,0);
-                    candyCodeSlots[i].sizeDelta=new Vector2(cell-8,108);candyCodeLetters[i].rectTransform.sizeDelta=new Vector2(cell-14,96);
+                candyLastCode=lobby.EnteredCode??"";
+                for(int i=0;i<candyCodeLetters.Count;i++)
                     candyCodeLetters[i].text=i<candyLastCode.Length?candyLastCode[i].ToString():"";
-                }
             }
         }
         void CoatCandyCabinets()

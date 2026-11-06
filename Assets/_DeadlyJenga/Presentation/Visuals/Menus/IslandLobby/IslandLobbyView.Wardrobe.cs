@@ -1,16 +1,11 @@
-using System.Linq;
 using System;
-
+using System.Linq;
 using DeadlyJenga.Core;
-
+using DeadlyJenga.Presentation;
 using UnityEngine;
-
 using UnityEngine.InputSystem;
-
 using UnityEngine.Rendering;
-
 using UnityEngine.Rendering.Universal;
-
 using UnityEngine.UI;
 
 
@@ -23,11 +18,48 @@ namespace DeadlyJenga.CastlePrototype
 
     {
 
-        static readonly string[] accessoryNames={"MOHAWK","GLASSES","RABBIT EARS","SKELETON MASK","TOP HAT","CAPE","ANT ANTENNAE","UNICORN HORN","DEVIL HORNS","BROCCOLI CROWN","LONG NOSE","DEFINED JAW"};
-
+        const int WardrobePageSize=12;
+        static readonly string[] wardrobeCategories={"Skin","Hair","Headgear","Eyewear","Outfit","Back","Extras"};
+        enum WardrobeSlot { Skin, Hair, Headgear, Eyewear, Outfit, Back, Extras }
+        readonly struct WardrobeItem
+        {
+            public readonly string name;
+            public readonly AvatarAccessory accessory;
+            public readonly AvatarClothing clothing;
+            public readonly int style;
+            public readonly bool armor;
+            public WardrobeItem(string name,AvatarAccessory accessory=0,AvatarClothing clothing=0,int style=0,bool armor=false)
+            {this.name=name;this.accessory=accessory;this.clothing=clothing;this.style=style;this.armor=armor;}
+        }
+        static readonly WardrobeItem[][] wardrobeItems=BuildWardrobeItems();
         int wardrobeCategory,wardrobePage;
+        int WardrobePages=>(wardrobeItems[wardrobeCategory].Length+WardrobePageSize-1)/WardrobePageSize;
 
-        static readonly string[] wardrobeCategories={"Accessories","Skins","Hair","Eyewear","Clothing"};
+        static WardrobeItem[][] BuildWardrobeItems()
+        {
+            WardrobeItem Accessory(AvatarAccessory item)=>new WardrobeItem(PrettyName(item.ToString()),accessory:item);
+            WardrobeItem Clothing(AvatarClothing item)=>new WardrobeItem(PrettyName(item.ToString()),clothing:item);
+            return new[]
+            {
+                Enum.GetValues(typeof(AvatarSkin)).Cast<AvatarSkin>().Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).ToArray(),
+                Enum.GetValues(typeof(AvatarHair)).Cast<AvatarHair>().Where(item=>item!=AvatarHair.None)
+                    .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Mohawk)).ToArray(),
+                new[]{AvatarAccessory.TopHat,AvatarAccessory.Crown,AvatarAccessory.Beanie,AvatarAccessory.CowboyHat,AvatarAccessory.PirateHat,
+                    AvatarAccessory.ChefHat,AvatarAccessory.VikingHelmet,AvatarAccessory.PartyHat,AvatarAccessory.PropellerCap,AvatarAccessory.FlowerCrown,
+                    AvatarAccessory.PumpkinHelmet,AvatarAccessory.SkeletonMask,AvatarAccessory.PantherHead,AvatarAccessory.RabbitEars,AvatarAccessory.CatEars,
+                    AvatarAccessory.AntAntennae,AvatarAccessory.UnicornHorn,AvatarAccessory.DevilHorns,AvatarAccessory.Broccoli,AvatarAccessory.Halo,
+                    AvatarAccessory.Headphones,AvatarAccessory.RobotAntenna}.Select(Accessory)
+                    .Concat(new[]{Clothing(AvatarClothing.HockeyHelmet),Clothing(AvatarClothing.FootballHelmet)}).ToArray(),
+                Enum.GetValues(typeof(AvatarEyewear)).Cast<AvatarEyewear>().Where(item=>item!=AvatarEyewear.None)
+                    .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Glasses)).ToArray(),
+                new[]{AvatarClothing.MonkRobe,AvatarClothing.Diaper,AvatarClothing.FootballPads,AvatarClothing.GrassSkirt,AvatarClothing.Tuxedo,
+                    AvatarClothing.Hoodie,AvatarClothing.BomberJacket,AvatarClothing.SailorShirt,AvatarClothing.Overalls,AvatarClothing.PufferVest}
+                    .Select(Clothing).Append(new WardrobeItem("Powered Armor",armor:true)).ToArray(),
+                new[]{AvatarAccessory.Cape,AvatarAccessory.ButterflyWings,AvatarAccessory.AngelWings,AvatarAccessory.DragonWings}
+                    .Select(Accessory).Append(Clothing(AvatarClothing.RoyalMantle)).ToArray(),
+                new[]{Accessory(AvatarAccessory.LongNose),Accessory(AvatarAccessory.StrongJaw),Clothing(AvatarClothing.BowTie)}
+            };
+        }
 
         Vector3 wardrobeCenter=new Vector3(0,.65f,-5.3f);
         const float WardrobeEnterRadius=1.25f, WardrobeExitRadius=1.65f;
@@ -46,53 +78,11 @@ namespace DeadlyJenga.CastlePrototype
         Material wardrobeMaterial;
 
         IAvatarAppearance wardrobeAvatar;
-        Text wardrobeChoiceReason,wardrobeWorldReason;
-        RectTransform wardrobeReasonViewport;
-        float wardrobeReasonOffset;
-        int wardrobeNoticeCategory=-1,wardrobeNoticePage=-1;
-        AvatarAppearance wardrobeNoticeAppearance;
-        bool wardrobeNoticeBound;
-        const string WardrobeNoticeDefault="Point to a choice for details. Scroll this explanation for longer reasons.";
-        string ChoiceNotice(AvatarAppearance proposed)
-        {
-            var rules=wardrobeAvatar as IAvatarWardrobePreview;
-            if(rules==null)return "Fit assessment unavailable; selection saves your requested look.";
-            var result=rules.EvaluateAppearance(proposed);
-            return string.IsNullOrEmpty(result.reason)?"No layers hidden by current compatibility rules.":result.reason;
-        }
-        void SetWardrobeNotice(string value)
-        {
-            if(!wardrobeChoiceReason||wardrobeChoiceReason.text==value)return;
-            wardrobeChoiceReason.text=value;wardrobeReasonOffset=0;wardrobeChoiceReason.rectTransform.anchoredPosition=Vector2.zero;
-            wardrobeChoiceReason.rectTransform.sizeDelta=new Vector2(0,Mathf.Max(106,wardrobeChoiceReason.preferredHeight));
-        }
-        void ResetWardrobeNotice()
-        {
-            SetWardrobeNotice(WardrobeNoticeDefault);wardrobeNoticeBound=false;
-            if(wardrobeWorldReason)wardrobeWorldReason.text="POINT TO A CHOICE FOR LAYER DETAILS. SELECT TO SAVE YOUR REQUEST.";
-        }
-        void UpdateWardrobeChoiceNotice(string id)
-        {
-            if(!wardrobeOpen||!wardrobeWorldReason||wardrobeAvatar==null)return;
-            int index;
-            if(id!=null&&id.StartsWith("wardrobe-",StringComparison.Ordinal)&&int.TryParse(id.Substring(9),out index)&&index>=0&&index<12&&wardrobePage*12+index<WardrobeCount)
-                wardrobeWorldReason.text=ChoiceNotice(ProposedWardrobeEntry(wardrobePage*12+index));
-            else wardrobeWorldReason.text="POINT TO A CHOICE FOR LAYER DETAILS. SELECT TO SAVE YOUR REQUEST.";
-        }
-        AvatarAppearance ProposedWardrobeEntry(int index)
-        {
-            var v=wardrobeAvatar.Appearance;
-            switch(wardrobeCategory)
-            {
-                case 1:if(index==System.Enum.GetValues(typeof(AvatarSkin)).Length)v.poweredArmor=!v.poweredArmor;else v.skin=(AvatarSkin)index;break;
-                case 2:v.hair=(int)v.hair==index+1?AvatarHair.None:(AvatarHair)(index+1);break;
-                case 3:v.eyewear=(int)v.eyewear==index+1?AvatarEyewear.None:(AvatarEyewear)(index+1);break;
-                case 4:if(index==14)v.accessories^=AvatarAccessory.PumpkinHelmet;else v.clothing^=(AvatarClothing)(1u<<index);break;
-                default:int bit=index<12?index:index+3;v.accessories^=(AvatarAccessory)(1u<<bit);break;
-            }
-            return v;
-        }
-
+        RectTransform fallbackWardrobeMirror;
+        int wardrobeDragDevice;
+        Vector2 wardrobeDragPoint;
+        bool desktopWardrobeDrag;
+        RectTransform WardrobeMirror=>marinaMirror?marinaMirror:fallbackWardrobeMirror;
 
         IPlayableCharacter wardrobePlayer;
 
@@ -116,9 +106,7 @@ namespace DeadlyJenga.CastlePrototype
 
         RectTransform wardrobePreview;
 
-        AvatarAccessory wardrobeDisplayed=(AvatarAccessory)uint.MaxValue;
-
-        AvatarAppearance wardrobeLastAppearance;int wardrobeLastCategory=-1;
+        AvatarAppearance wardrobeLastAppearance;int wardrobeLastCategory=-1,wardrobeLastPage=-1;
 
         public bool WardrobeOpen=>wardrobeOpen;
 
@@ -148,88 +136,133 @@ namespace DeadlyJenga.CastlePrototype
 
             }
 
-            wardrobePanel=Terminal("WARDROBE",WardrobePosition+new Vector3(0,1.65f,1.25f),0,new Vector2(1080,1280),CandyHudVisuals.Mint);
-
-            wardrobeWorldReason=Label(wardrobePanel,"POINT TO A CHOICE FOR LAYER DETAILS. SELECT TO SAVE YOUR REQUEST.",450,18,1000,110);
-
-            Add(wardrobePanel,"wardrobe-open",()=>"Done",-605,()=>SetWardrobeOpen(false),()=>wardrobeOpen,0,950,60);
-
-            for(int i=0;i<12;i++)
-
+            wardrobePanel=Terminal("Wardrobe",WardrobePosition+new Vector3(.7f,1.65f,1.35f),25,new Vector2(1120,910),CandyHudVisuals.Mint);
+            Label(wardrobePanel,"Drag the mirror to rotate",319,24,620,38).color=CandyHudVisuals.Muted;
+            for(int category=0;category<wardrobeCategories.Length;category++)
             {
-
-                int item=i;Add(wardrobePanel,"wardrobe-"+i,()=>AccessoryTitle(item),-100-(i/2)*57,()=>ChooseWardrobeEntry(item),()=>wardrobeOpen,(i%2==0?-1:1)*260,500,48);
-
+                int selected=category;
+                var tab=Add(wardrobePanel,"wardrobe-category-"+category,()=>wardrobeCategories[selected],260,
+                    ()=>SetWardrobeCategory(selected),()=>wardrobeOpen,(category-3)*150,142,54);
+                tab.selected=()=>wardrobeCategory==selected;
+                CandyStyle(tab);
             }
+            for(int i=0;i<WardrobePageSize;i++)
+            {
+                int item=i;
+                var choice=Add(wardrobePanel,"wardrobe-"+i,()=>ItemName(item),162-(i/2)*66,
+                    ()=>ChooseWardrobeEntry(item),()=>wardrobeOpen,i%2==0?-263:263,506,56,()=>HasWardrobeItem(item));
+                choice.selected=()=>HasWardrobeItem(item)&&IsEquipped(wardrobeAvatar.Appearance,(WardrobeSlot)wardrobeCategory,ItemAt(item));
+                CandyStyle(choice);
+            }
+            CandyStyle(Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-240,()=>ChangeWardrobePage(-1),()=>wardrobePage>0,-263,250,48,()=>WardrobePages>1));
+            CandyStyle(Add(wardrobePanel,"wardrobe-reset",()=>"Next",-240,()=>ChangeWardrobePage(1),()=>wardrobePage+1<WardrobePages,263,250,48,()=>WardrobePages>1));
+            wardrobePageLabel=Label(wardrobePanel,"",-240,23,240,48);
+            CandyStyle(Add(wardrobePanel,"wardrobe-clear-look",()=>"Reset outfit",-319,ClearAccessories,()=>wardrobeOpen,-263,506,54));
+            CandyStyle(Add(wardrobePanel,"wardrobe-reset-view",()=>"Reset view",-319,ResetWardrobeView,()=>wardrobeOpen,263,506,54));
+            var done=Add(wardrobePanel,"wardrobe-open",()=>"Done",-389,()=>SetWardrobeOpen(false),()=>wardrobeOpen,0,520,62);
+            CandyStyle(done);CandyPrimary(done);
 
-            Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-435,()=>ChangeWardrobePage(-1),()=>wardrobeOpen,-260,500,48);
-
-            Add(wardrobePanel,"wardrobe-reset",()=>"Next · "+(wardrobePage+1)+" / "+WardrobePages,-435,()=>ChangeWardrobePage(1),()=>wardrobeOpen,260,500,48);
-
-            string[] viewNames={"LEFT","RIGHT","UP","DOWN","CLOSER","FURTHER"};
-
-            for(int i=0;i<6;i++){int control=i;var button=Add(wardrobePanel,"wardrobe-view-"+i,()=>viewNames[control],-40,()=>{},()=>wardrobeOpen,-425+i*170,155,44);button.slide=_=>AdjustWardrobeView(control);}
-
-            for(int category=0;category<wardrobeCategories.Length;category++){int selected=category;Add(wardrobePanel,"wardrobe-category-"+category,()=>wardrobeCategories[selected],-485,()=>SetWardrobeCategory(selected),()=>wardrobeOpen,-400+category*200,190,42);}
-            Add(wardrobePanel,"wardrobe-clear-look",()=>"Clear outfit",-545,ClearAccessories,()=>wardrobeOpen,-260,500,48);
-            Add(wardrobePanel,"wardrobe-reset-view",()=>"Reset view",-545,ResetWardrobeView,()=>wardrobeOpen,260,500,48);
             wardrobeTexture=new RenderTexture(768,768,24){name="Wardrobe third person preview"};
-
-            var image=new GameObject("Third person mirror",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(wardrobePanel,false);
-
-            var raw=image.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;raw.rectTransform.sizeDelta=new Vector2(430,430);raw.rectTransform.anchoredPosition=new Vector2(0,180);
+            var mirror=new GameObject("Wardrobe mirror preview",typeof(RectTransform),typeof(Canvas),typeof(RawImage));
+            mirror.transform.SetParent(transform,false);
+            fallbackWardrobeMirror=(RectTransform)mirror.transform;
+            fallbackWardrobeMirror.SetPositionAndRotation(WardrobePosition+new Vector3(-1.55f,1.65f,1.2f),Quaternion.Euler(0,-52,0));
+            fallbackWardrobeMirror.localScale=Vector3.one*.0022f;
+            fallbackWardrobeMirror.sizeDelta=new Vector2(670,670);
+            mirror.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;
+            var raw=mirror.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;
+            mirror.SetActive(false);
 
             var cameraObject=new GameObject("Visual - wardrobe camera");cameraObject.transform.SetParent(transform,false);wardrobeCamera=cameraObject.AddComponent<Camera>();wardrobeCamera.enabled=false;wardrobeCamera.targetTexture=wardrobeTexture;wardrobeCamera.fieldOfView=44;wardrobeCamera.nearClipPlane=.05f;wardrobeCamera.farClipPlane=60;wardrobeCamera.cullingMask=1<<31;wardrobeCamera.clearFlags=CameraClearFlags.SolidColor;wardrobeCamera.backgroundColor=new Color(.07f,.045f,.12f);wardrobeCamera.GetUniversalAdditionalCameraData().allowXRRendering=false;
 
             foreach(var t in wardrobePanel.GetComponentsInChildren<Transform>(true))t.gameObject.layer=5;
             wardrobePanel.gameObject.SetActive(false);
-            var rear=transform.Cast<Transform>().FirstOrDefault(child=>child.name=="WARDROBE / readable back");
+            var rear=transform.Cast<Transform>().FirstOrDefault(child=>child.name=="Wardrobe / readable back");
             if(rear)rear.gameObject.SetActive(false);
 
         }
 
         IAvatarAppearance AppearanceTarget()=>Player?.gameObject.GetComponent<IAvatarAppearance>()??Player?.gameObject.GetComponentInChildren<IAvatarAppearance>();
 
-        int WardrobeCount=>wardrobeCategory==1?System.Enum.GetValues(typeof(AvatarSkin)).Length+1:wardrobeCategory==2?15:wardrobeCategory==3?15:wardrobeCategory==4?15:29;
-        int WardrobePages=>(WardrobeCount+11)/12;
-        string AccessoryTitle(int index)
+        Text wardrobePageLabel;
+        bool HasWardrobeItem(int slot)=>wardrobeAvatar!=null&&wardrobePage*WardrobePageSize+slot<wardrobeItems[wardrobeCategory].Length;
+        WardrobeItem ItemAt(int slot)=>wardrobeItems[wardrobeCategory][wardrobePage*WardrobePageSize+slot];
+        string ItemName(int slot)=>HasWardrobeItem(slot)?ItemAt(slot).name:"";
+
+        static string PrettyName(string name)=>System.Text.RegularExpressions.Regex.Replace(
+            name=="HoneyBear"?"WinnieThePooh":name=="Sailor"?"Popeye":name=="RagDoll"?"RaggedyAnn":name=="Reindeer"?"Rudolph":name,
+            "([a-z])([A-Z])","$1 $2");
+
+        static bool IsEquipped(AvatarAppearance value,WardrobeSlot slot,WardrobeItem item)
         {
-            index+=wardrobePage*12;if(index>=WardrobeCount)return "â€”";
-            var avatar=wardrobeAvatar??AppearanceTarget();if(avatar==null)return "â€”";var v=avatar.Appearance;string name;bool chosen;
-            switch(wardrobeCategory)
-            {
-                case 1:bool armor=index==System.Enum.GetValues(typeof(AvatarSkin)).Length;chosen=armor?v.poweredArmor:(int)v.skin==index;name=armor?"POWERED ARMOR":PrettyName(((AvatarSkin)index).ToString());break;
-                case 2:chosen=(int)v.hair==index+1;name=PrettyName(((AvatarHair)(index+1)).ToString());break;
-                case 3:chosen=(int)v.eyewear==index+1;name=PrettyName(((AvatarEyewear)(index+1)).ToString());break;
-                case 4:chosen=index==14?(v.accessories&AvatarAccessory.PumpkinHelmet)!=0:(v.clothing&(AvatarClothing)(1u<<index))!=0;name=index==14?"PUMPKIN HELMET":PrettyName(((AvatarClothing)(1u<<index)).ToString());break;
-                default:int bit=index<12?index:index+3;chosen=(v.accessories&(AvatarAccessory)(1u<<bit))!=0;name=PrettyName(((AvatarAccessory)(1u<<bit)).ToString());break;
-            }
-            string notice="";
-            if(wardrobeOpen&&wardrobeAvatar is IAvatarWardrobePreview rules)
-            {
-                var result=rules.EvaluateAppearance(ProposedWardrobeEntry(index));
-                if(result.hiddenAccessories!=0||result.hiddenClothing!=0||result.hiddenHair)notice=" / COVERS LAYERS";
-            }
-            return (chosen?"ON  ":"OFF  ")+name+notice;
+            if(item.accessory!=0)return (value.accessories&item.accessory)!=0;
+            if(item.clothing!=0)return (value.clothing&item.clothing)!=0;
+            if(item.armor)return value.poweredArmor;
+            return slot==WardrobeSlot.Skin?(int)value.skin==item.style:
+                slot==WardrobeSlot.Hair?(int)value.hair==item.style:(int)value.eyewear==item.style;
         }
-        static string PrettyName(string name)=>System.Text.RegularExpressions.Regex.Replace(name=="HoneyBear"?"WinnieThePooh":name=="Sailor"?"Popeye":name=="RagDoll"?"RaggedyAnn":name=="Reindeer"?"Rudolph":name,"([a-z])([A-Z])","$1 $2").ToUpperInvariant();
-        void SetWardrobeCategory(int category){wardrobeCategory=category;wardrobePage=0;wardrobeLastCategory=-1;ResetWardrobeNotice();RefreshWardrobeLabels();}
-        void ChangeWardrobeCategory(int delta)=>SetWardrobeCategory((wardrobeCategory+delta+wardrobeCategories.Length)%wardrobeCategories.Length);
-        void ChangeWardrobePage(int delta){wardrobePage=(wardrobePage+delta+WardrobePages)%WardrobePages;wardrobeLastCategory=-1;ResetWardrobeNotice();RefreshWardrobeLabels();}
+        static AvatarAppearance SetItem(AvatarAppearance value,WardrobeSlot slot,WardrobeItem item,bool equip)
+        {
+            if(slot==WardrobeSlot.Skin){value.skin=(AvatarSkin)item.style;return value;}
+            if(slot==WardrobeSlot.Hair)value.hair=AvatarHair.None;
+            if(slot==WardrobeSlot.Eyewear)value.eyewear=AvatarEyewear.None;
+            if(slot==WardrobeSlot.Outfit)value.poweredArmor=false;
+            foreach(var other in wardrobeItems[(int)slot])
+            {
+                if(slot==WardrobeSlot.Extras&&other.accessory!=item.accessory)continue;
+                value.accessories&=~other.accessory;
+                value.clothing&=~other.clothing;
+            }
+            if(!equip)return value;
+            value.accessories|=item.accessory;
+            value.clothing|=item.clothing;
+            if(item.armor)value.poweredArmor=true;
+            if(slot==WardrobeSlot.Hair&&item.accessory==0)value.hair=(AvatarHair)item.style;
+            if(slot==WardrobeSlot.Eyewear&&item.accessory==0)value.eyewear=(AvatarEyewear)item.style;
+            return value;
+        }
+        void NormalizeWardrobeSlots()
+        {
+            var original=wardrobeAvatar.Appearance;
+            var visible=(wardrobeAvatar as IAvatarWardrobePreview)?.EvaluateAppearance(original).effective??original;
+            var value=original;
+            for(int i=(int)WardrobeSlot.Hair;i<=(int)WardrobeSlot.Back;i++)
+            {
+                var slot=(WardrobeSlot)i;
+                var item=wardrobeItems[i].FirstOrDefault(option=>IsEquipped(original,slot,option)&&IsEquipped(visible,slot,option));
+                if(item.name==null)item=wardrobeItems[i].FirstOrDefault(option=>IsEquipped(original,slot,option));
+                if(item.name!=null)value=SetItem(value,slot,item,true);
+            }
+            if(!value.Equals(original))wardrobeAvatar.ApplyAppearance(value);
+        }
+        void SetWardrobeCategory(int category){wardrobeCategory=category;wardrobePage=0;RefreshWardrobeLabels();}
+        void ChangeWardrobePage(int delta){wardrobePage=Mathf.Clamp(wardrobePage+delta,0,WardrobePages-1);RefreshWardrobeLabels();}
         bool ChooseWardrobeEntry(int index)
         {
-            if(!wardrobeOpen||wardrobeAvatar==null||index<0||index>=12)return false;
-            index+=wardrobePage*12;if(index>=WardrobeCount)return false;var v=ProposedWardrobeEntry(index);
-            wardrobeAvatar.ApplyAppearance(v);ResetWardrobeNotice();RefreshWardrobeLabels();return true;
+            if(!wardrobeOpen||index<0||index>=WardrobePageSize||!HasWardrobeItem(index))return false;
+            EquipWardrobeItem((WardrobeSlot)wardrobeCategory,ItemAt(index));
+            return true;
+        }
+        void EquipWardrobeItem(WardrobeSlot slot,WardrobeItem item)
+        {
+            var value=wardrobeAvatar.Appearance;
+            wardrobeAvatar.ApplyAppearance(SetItem(value,slot,item,!IsEquipped(value,slot,item)));
+            RefreshWardrobeLabels();
         }
         public bool ToggleAccessory(int index)
-
         {
-
             if(!wardrobeOpen||wardrobeAvatar==null||index<0||index>=12)return false;
-
-            var value=wardrobeAvatar.Appearance;value.accessories^=(AvatarAccessory)(1u<<index);wardrobeAvatar.ApplyAppearance(value);RefreshWardrobeLabels();return true;
-
+            var accessory=(AvatarAccessory)(1u<<index);
+            for(int i=0;i<wardrobeItems.Length;i++)
+            {
+                foreach(var item in wardrobeItems[i])
+                {
+                    if(item.accessory!=accessory)continue;
+                    EquipWardrobeItem((WardrobeSlot)i,item);
+                    return true;
+                }
+            }
+            return false;
         }
 
         void ClearAccessories(){if(wardrobeAvatar==null)return;wardrobeAvatar.ApplyAppearance(default);RefreshWardrobeLabels();}
@@ -255,7 +288,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobePlayer=Player;wardrobePaused=Player.InputSuspended;wardrobeCursor=Cursor.lockState;wardrobeCursorVisible=Cursor.visible;ResetWardrobeView();
 
-                wardrobeOpen=true;wardrobeVisited=true;ResetWardrobeNotice();Player.InputSuspended=true;
+                wardrobeOpen=true;wardrobeVisited=true;NormalizeWardrobeSlots();Player.InputSuspended=true;
 
                 wardrobeShowcase=Player.gameObject.GetComponent<IAvatarShowcase>();
 
@@ -266,6 +299,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(!Player.IsVR){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;BuildDesktopWardrobe();}
 
                 wardrobePanel.gameObject.SetActive(Player.IsVR);
+                fallbackWardrobeMirror.gameObject.SetActive(Player.IsVR&&!marinaMirror);
+                RefreshWardrobeLabels();
                 PresentWardrobe();
 
             }
@@ -274,7 +309,8 @@ namespace DeadlyJenga.CastlePrototype
 
             {
 
-                wardrobeOpen=false;portraitReady=false;
+                wardrobeOpen=false;portraitReady=false;wardrobeDragDevice=0;desktopWardrobeDrag=false;
+                if(fallbackWardrobeMirror)fallbackWardrobeMirror.gameObject.SetActive(false);
                 if(wardrobePanel)wardrobePanel.gameObject.SetActive(false);
 
                 if(wardrobeShowcase!=null&&NetworkActors.Alive(wardrobePlayer))wardrobeShowcase.Showcasing=wardrobeWasShowcasing;
@@ -294,69 +330,87 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         void BuildDesktopWardrobe()
-
         {
-
-            wardrobeDisplayed=(AvatarAccessory)uint.MaxValue;wardrobeLastCategory=-1;
-
-            var go=new GameObject("Visual - wardrobe desktop",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(Image));go.transform.SetParent(transform,false);wardrobeDesktop=go.GetComponent<RectTransform>();
-
+            wardrobeLastCategory=-1;
+            var go=new GameObject("Visual - wardrobe desktop",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler),typeof(Image));
+            go.transform.SetParent(transform,false);
+            wardrobeDesktop=go.GetComponent<RectTransform>();
             var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.sortingOrder=1000;
+            var scaler=go.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution=new Vector2(1280,800);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;
+            go.GetComponent<Image>().color=CandyHudVisuals.Ink;
 
-            var scaler=go.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1280,800);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;go.GetComponent<Image>().color=new Color(.025f,.04f,.07f,.98f);
+            var preview=new GameObject("Wardrobe mirror",typeof(RectTransform),typeof(RawImage));
+            preview.transform.SetParent(wardrobeDesktop,false);
+            var raw=preview.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;
+            wardrobePreview=raw.rectTransform;wardrobePreview.sizeDelta=new Vector2(530,530);wardrobePreview.anchoredPosition=new Vector2(-315,15);
+            var hint=Label(wardrobeDesktop,"Drag to rotate", -285,20,530,40);
+            hint.rectTransform.anchoredPosition=new Vector2(-315,-285);hint.color=CandyHudVisuals.Muted;
 
-            var preview=new GameObject("Your existing avatar",typeof(RectTransform),typeof(RawImage));preview.transform.SetParent(wardrobeDesktop,false);var raw=preview.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;wardrobePreview=raw.rectTransform;raw.rectTransform.sizeDelta=new Vector2(600,600);raw.rectTransform.anchoredPosition=new Vector2(-300,0);
-
-            var panel=new GameObject("Options",typeof(RectTransform));panel.transform.SetParent(wardrobeDesktop,false);var rect=panel.GetComponent<RectTransform>();rect.anchoredPosition=new Vector2(315,0);rect.sizeDelta=new Vector2(590,780);
-
-            var heading=Label(rect,"YOUR WARDROBE",340,32,360,60);heading.rectTransform.anchoredPosition=new Vector2(-100,340);
-            DesktopButton(rect,"Done",340,190,175,50,()=>SetWardrobeOpen(false),"Done");Label(rect,"Changes apply as you select items.",278,18,570,44);
-
-            for(int i=0;i<12;i++){int item=i;DesktopButton(rect,AccessoryTitle(i),198-(i/2)*65,(i%2==0?-1:1)*145,275,56,()=>ChooseWardrobeEntry(item),"Accessory "+i);}
-
-            DesktopButton(rect,"< PREVIOUS PAGE",-180,-145,275,40,()=>ChangeWardrobePage(-1),"Previous category");DesktopButton(rect,"NEXT PAGE >",-180,145,275,40,()=>ChangeWardrobePage(1),"Next category");
-            for(int category=0;category<wardrobeCategories.Length;category++){int selected=category;DesktopButton(rect,wardrobeCategories[category],238,-232+category*116,112,38,()=>SetWardrobeCategory(selected),"Category "+category);}
-
-            DesktopButton(rect,"CLEAR",-240,-145,275,56,ClearAccessories,"Clear");DesktopButton(rect,"RESET VIEW",-240,145,275,56,ResetWardrobeView,"Reset view");
-
-            Label(rect,"Drag preview / arrows: orbit  /  Scroll / +/-: zoom",-375,18,575,34);
-
-            var notice=new GameObject("Layer explanation viewport",typeof(RectTransform),typeof(RectMask2D));notice.transform.SetParent(rect,false);
-            wardrobeReasonViewport=notice.GetComponent<RectTransform>();wardrobeReasonViewport.anchoredPosition=new Vector2(0,-304);wardrobeReasonViewport.sizeDelta=new Vector2(575,106);
-            wardrobeChoiceReason=Label(rect,"Point to a choice for details. Scroll this explanation for longer reasons.",-304,18,575,106);
-            wardrobeChoiceReason.transform.SetParent(wardrobeReasonViewport,false);wardrobeChoiceReason.alignment=TextAnchor.UpperLeft;
-            wardrobeChoiceReason.rectTransform.anchorMin=new Vector2(0,1);wardrobeChoiceReason.rectTransform.anchorMax=new Vector2(1,1);wardrobeChoiceReason.rectTransform.pivot=new Vector2(.5f,1);wardrobeChoiceReason.rectTransform.sizeDelta=new Vector2(0,106);wardrobeChoiceReason.rectTransform.anchoredPosition=Vector2.zero;
-
-            foreach(var child in wardrobeDesktop.GetComponentsInChildren<Transform>(true))child.gameObject.layer=5;
-
+            var panel=new GameObject("Options",typeof(RectTransform)).GetComponent<RectTransform>();
+            panel.SetParent(wardrobeDesktop,false);panel.anchoredPosition=new Vector2(305,0);panel.sizeDelta=new Vector2(590,760);
+            Label(panel,"Wardrobe",312,44,570,64).fontStyle=FontStyle.Bold;
+            for(int i=0;i<wardrobeCategories.Length;i++)
+            {
+                int category=i;
+                DesktopButton(panel,wardrobeCategories[i],242,(i-3)*82,79,46,()=>SetWardrobeCategory(category),"Category "+i);
+            }
+            for(int i=0;i<WardrobePageSize;i++)
+            {
+                int item=i;
+                DesktopButton(panel,ItemName(i),173-i/2*59,i%2==0?-145:145,277,51,()=>ChooseWardrobeEntry(item),"Accessory "+i);
+            }
+            DesktopButton(panel,"Previous",-192,-145,180,46,()=>ChangeWardrobePage(-1),"Previous category");
+            DesktopButton(panel,"Next",-192,145,180,46,()=>ChangeWardrobePage(1),"Next category");
+            desktopPageLabel=Label(panel,"",-192,21,110,46);
+            DesktopButton(panel,"Reset outfit",-257,-145,277,48,ClearAccessories,"Clear");
+            DesktopButton(panel,"Reset view",-257,145,277,48,ResetWardrobeView,"Reset view");
+            var done=DesktopButton(panel,"Done",-327,0,340,54,()=>SetWardrobeOpen(false),"Done");
+            done.GetComponent<Image>().color=CandyHudVisuals.Mint;
+            done.GetComponentInChildren<Text>().color=CandyHudVisuals.Ink;
         }
 
-        void DesktopButton(RectTransform parent,string title,float y,float x,float width,float height,Action action,string name)
-
+        RectTransform DesktopButton(RectTransform parent,string title,float y,float x,float width,float height,Action action,string name)
         {
-
-            var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var r=go.GetComponent<RectTransform>();r.sizeDelta=new Vector2(width,height);r.anchoredPosition=new Vector2(x,y);go.GetComponent<Image>().color=CandyHudVisuals.Card;Label(r,title,0,23,width-14,height-8);wardrobeButtons.Add(Tuple.Create(r,action));
-
+            var go=new GameObject(name,typeof(RectTransform),typeof(Image));
+            go.transform.SetParent(parent,false);
+            var rect=go.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(width,height);rect.anchoredPosition=new Vector2(x,y);
+            var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Card;
+            Label(rect,title,0,23,width-8,height-6);
+            wardrobeButtons.Add(Tuple.Create(rect,action));
+            return rect;
         }
 
+        Text desktopPageLabel;
         void RefreshWardrobeLabels()
-
         {
-
-            if(!wardrobeDesktop||wardrobeAvatar==null)return;
-
+            if(wardrobeAvatar==null)return;
+            string page=WardrobePages>1?$"{wardrobePage+1} / {WardrobePages}":"";
+            wardrobePageLabel.text=page;
+            if(!wardrobeDesktop)return;
             var current=wardrobeAvatar.Appearance;
+            if(wardrobeLastCategory==wardrobeCategory&&wardrobeLastPage==wardrobePage&&wardrobeLastAppearance.Equals(current))return;
+            wardrobeLastCategory=wardrobeCategory;wardrobeLastPage=wardrobePage;wardrobeLastAppearance=current;
+            var options=wardrobeDesktop.Find("Options");
+            desktopPageLabel.text=page;
+            options.Find("Previous category").gameObject.SetActive(wardrobePage>0);
+            options.Find("Next category").gameObject.SetActive(wardrobePage+1<WardrobePages);
+            for(int i=0;i<wardrobeCategories.Length;i++)Paint(options.Find("Category "+i),wardrobeCategory==i);
+            for(int i=0;i<WardrobePageSize;i++)
+            {
+                var button=options.Find("Accessory "+i);
+                bool shown=HasWardrobeItem(i);
+                button.gameObject.SetActive(shown);
+                if(!shown)continue;
+                button.GetComponentInChildren<Text>().text=ItemName(i);
+                Paint(button,IsEquipped(current,(WardrobeSlot)wardrobeCategory,ItemAt(i)));
+            }
 
-            if(wardrobeLastCategory==wardrobeCategory&&wardrobeLastAppearance.accessories==current.accessories&&wardrobeLastAppearance.skin==current.skin&&wardrobeLastAppearance.hair==current.hair&&wardrobeLastAppearance.eyewear==current.eyewear&&wardrobeLastAppearance.clothing==current.clothing&&wardrobeLastAppearance.poweredArmor==current.poweredArmor)return;
-
-            wardrobeLastCategory=wardrobeCategory;wardrobeLastAppearance=current;
-
-            wardrobeDisplayed=current.accessories;
-
-            var next=wardrobeDesktop.Find("Options/Next category");if(next)next.GetComponentInChildren<Text>().text="PAGE "+(wardrobePage+1)+" / "+WardrobePages+" >";
-
-            for(int i=0;i<12;i++){var t=wardrobeDesktop.Find("Options/Accessory "+i);if(t)t.GetComponentInChildren<Text>().text=AccessoryTitle(i);}
-
+            static void Paint(Transform button,bool selected)
+            {
+                button.GetComponent<Image>().color=selected?CandyHudVisuals.Mint:CandyHudVisuals.Card;
+                button.GetComponentInChildren<Text>().color=selected?CandyHudVisuals.Ink:Color.white;
+            }
         }
 
         RawImage lobbyPortrait;
@@ -411,53 +465,68 @@ namespace DeadlyJenga.CastlePrototype
             if(!ReferenceEquals(Player,wardrobePlayer)||distance>WardrobeExitRadius){SetWardrobeOpen(false);return false;}
 
             RefreshWardrobeLabels();
-            if(!Player.IsVR&&wardrobeDesktop&&wardrobeChoiceReason&&Mouse.current!=null)
-            {
-                if(!wardrobeNoticeBound||wardrobeNoticeCategory!=wardrobeCategory||wardrobeNoticePage!=wardrobePage||!wardrobeNoticeAppearance.Equals(wardrobeAvatar.Appearance))
-                {
-                    SetWardrobeNotice(WardrobeNoticeDefault);wardrobeNoticeBound=true;wardrobeNoticeCategory=wardrobeCategory;wardrobeNoticePage=wardrobePage;wardrobeNoticeAppearance=wardrobeAvatar.Appearance;
-                }
-                var mouse=Mouse.current.position.ReadValue();
-                for(int i=0;i<12;i++)
-                {
-                    int index=wardrobePage*12+i;if(index>=WardrobeCount)continue;
-                    var item=wardrobeDesktop.Find("Options/Accessory "+i) as RectTransform;
-                    if(item&&RectTransformUtility.RectangleContainsScreenPoint(item,mouse,null))
-                    {
-                        string itemName=AccessoryTitle(i);
-                        if(itemName.StartsWith("ON  ",StringComparison.Ordinal))itemName=itemName.Substring(4);
-                        else if(itemName.StartsWith("OFF  ",StringComparison.Ordinal))itemName=itemName.Substring(5);
-                        itemName=itemName.Replace(" / COVERS LAYERS","");
-                        SetWardrobeNotice("PROPOSED: "+wardrobeCategories[wardrobeCategory]+" / "+itemName+"\n"+ChoiceNotice(ProposedWardrobeEntry(index)));break;
-                    }
-                }
-                // The named proposal remains pinned while the pointer crosses to the scrollable explanation.
-            }
-
-            if(!Player.IsVR&&wardrobeReasonViewport&&Mouse.current!=null&&RectTransformUtility.RectangleContainsScreenPoint(wardrobeReasonViewport,Mouse.current.position.ReadValue(),null))
-            {
-                float height=Mathf.Max(106,wardrobeChoiceReason.preferredHeight);wardrobeChoiceReason.rectTransform.sizeDelta=new Vector2(0,height);
-                wardrobeReasonOffset=Mathf.Clamp(wardrobeReasonOffset+Mouse.current.scroll.y.ReadValue()*.2f,0,height-106);
-                wardrobeChoiceReason.rectTransform.anchoredPosition=new Vector2(0,wardrobeReasonOffset);
-            }
-            if(!Player.IsVR)wardrobeOrbit.ReadDesktop(wardrobePreview && Mouse.current!=null && RectTransformUtility.RectangleContainsScreenPoint(wardrobePreview,Mouse.current.position.ReadValue(),null));
-
-            PresentWardrobe();
-
-            if(Player.IsVR)return false;
-
+            if(Player.IsVR){PresentWardrobe();return false;}
             if(Keyboard.current?.fKey.wasPressedThisFrame==true){SetWardrobeOpen(false);return true;}
-
-            if(Mouse.current?.leftButton.wasPressedThisFrame==true)
-
+            var mouse=Mouse.current;
+            if(mouse!=null)
             {
-
-                var point=Mouse.current.position.ReadValue();foreach(var b in wardrobeButtons)if(RectTransformUtility.RectangleContainsScreenPoint(b.Item1,point,null)){b.Item2();break;}
-
+                var point=mouse.position.ReadValue();
+                if(mouse.leftButton.wasPressedThisFrame)
+                {
+                    desktopWardrobeDrag=wardrobePreview&&RectTransformUtility.RectangleContainsScreenPoint(wardrobePreview,point,null);
+                    if(!desktopWardrobeDrag)
+                        foreach(var button in wardrobeButtons)
+                            if(button.Item1.gameObject.activeInHierarchy&&RectTransformUtility.RectangleContainsScreenPoint(button.Item1,point,null))
+                            {button.Item2();break;}
+                }
+                if(!mouse.leftButton.isPressed)desktopWardrobeDrag=false;
+                if(desktopWardrobeDrag)
+                {
+                    var delta=mouse.delta.ReadValue();
+                    wardrobeOrbit.Yaw+=delta.x*.25f;
+                    wardrobeOrbit.Pitch-=delta.y*.2f;
+                }
             }
-
+            if(wardrobeOpen)PresentWardrobe();
             return true;
+        }
 
+        float WardrobePanelHit(Ray ray,float range)
+        {
+            float controls=MenuPointer.PanelHit(ray,wardrobePanel,range);
+            float mirror=MenuPointer.PanelHit(ray,WardrobeMirror,range);
+            return mirror>0&&(controls<=0||mirror<controls)?mirror:controls;
+        }
+        bool BeginWardrobeDrag(MenuPointer.Sample input)
+        {
+            if(!wardrobeOpen||!input.Pressed||input.Device==0)return false;
+            var mirror=WardrobeMirror;
+            float hit=MenuPointer.PanelHit(input.Ray,mirror);
+            if(hit<=0)return false;
+            float controls=MenuPointer.PanelHit(input.Ray,wardrobePanel);
+            if(controls>0&&controls<hit)return false;
+            wardrobeDragDevice=input.Device;
+            wardrobeDragPoint=MirrorDragPoint(mirror,input.Ray.GetPoint(hit));
+            return true;
+        }
+        bool UpdateWardrobeDrag(Camera eye)
+        {
+            if(wardrobeDragDevice==0)return false;
+            if(!wardrobeOpen||!MenuPointer.TryReadDevice(eye,wardrobeDragDevice,out var input)||!input.Held)
+            {wardrobeDragDevice=0;return false;}
+            var mirror=WardrobeMirror;
+            if(!mirror||!new Plane(mirror.forward,mirror.position).Raycast(input.Ray,out float hit)||hit>MenuPointer.PanelRange)return true;
+            var point=MirrorDragPoint(mirror,input.Ray.GetPoint(hit));
+            var delta=point-wardrobeDragPoint;
+            wardrobeDragPoint=point;
+            wardrobeOrbit.Yaw+=delta.x*210;
+            wardrobeOrbit.Pitch-=delta.y*100;
+            return true;
+        }
+        static Vector2 MirrorDragPoint(RectTransform mirror,Vector3 point)
+        {
+            var local=mirror.InverseTransformPoint(point);
+            return new Vector2(Mathf.Clamp(local.x/mirror.rect.width,-1,1),Mathf.Clamp(local.y/mirror.rect.height,-1,1));
         }
 
         void PresentLobbyPortrait()
@@ -539,20 +608,6 @@ namespace DeadlyJenga.CastlePrototype
         {
             wardrobePivotReady=false;wardrobeFitDistance=0;wardrobeFramingReadyAt=Time.frameCount+2;
             wardrobeOrbit.Reset((Player?.ViewCamera?Player.ViewCamera.transform.eulerAngles.y:0)+180,2.15f);
-        }
-
-        void AdjustWardrobeView(int control)
-
-        {
-
-            float step=Time.unscaledDeltaTime;
-
-            if(control<2)wardrobeOrbit.Yaw+=(control==0?-1:1)*65*step;
-
-            else if(control<4)wardrobeOrbit.Pitch+=(control==2?-1:1)*40*step;
-
-            else wardrobeOrbit.Distance+=(control==4?-1:1)*step;
-
         }
 
         void OnDisable()=>SetWardrobeOpen(false);

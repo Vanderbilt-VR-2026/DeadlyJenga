@@ -98,24 +98,30 @@ namespace DeadlyJenga.CastlePrototype
             if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
                 DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             if(DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
-            { if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false); if(piano)piano.gameObject.SetActive(false); lobby?.UnfocusCode(); keyboardWasOpen=false; return; }
+            { if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false); if(piano)ClosePrivateKeyboard(); return; }
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
             if(!eye)return;
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             UpdatePrivateKeyboard();
+            UpdateSettingRows();
+            bool movingKeyboard=UpdateKeyboardDrag(eye);
+            bool spinningWardrobe=Player.IsVR&&UpdateWardrobeDrag(eye);
             if(Player.IsVR)
             {
-                if(MenuPointer.AimAt(eye, Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, LobbyPanelHit, out var input))
-                    Point(input.Ray,input.Pressed,input.Held);
+                bool aimed=MenuPointer.AimAt(eye, Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, LobbyPanelHit, out var input);
+                if(spinningWardrobe||BeginWardrobeDrag(input)||movingKeyboard||(lobby.CodeFocused&&BeginKeyboardDrag(input.Ray,input.Pressed,input.Device)))
+                {if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);}
+                else if(aimed)Point(input.Ray,input.Pressed,input.Held);
                 else Point(default,false);
             }
             else
             {
                 bool pressed=keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
                 Ray ray=session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
-                Point(ray,pressed,mouse!=null&&mouse.leftButton.isPressed);
+                if(!movingKeyboard&&!(lobby.CodeFocused&&BeginKeyboardDrag(ray,mouse?.leftButton.wasPressedThisFrame==true,0)))
+                    Point(ray,pressed,mouse!=null&&mouse.leftButton.isPressed);
             }
             UpdateStations();
         }
@@ -145,7 +151,7 @@ namespace DeadlyJenga.CastlePrototype
             if(lobby.CodeFocused)return MenuPointer.PanelHit(ray,piano);
             float range=MenuPointer.PanelRange;
             MarinaInteractionRange(ref range);
-            if(wardrobeOpen)return MenuPointer.PanelHit(ray,wardrobePanel,range);
+            if(wardrobeOpen)return WardrobePanelHit(ray,range);
             float room=MenuPointer.PanelHit(ray,roomPage,range);
             return room>0?room:MenuPointer.PanelHit(ray,setupStation,range);
         }
@@ -168,7 +174,6 @@ namespace DeadlyJenga.CastlePrototype
                 if(choice.physical)choice.button.image.color=Color.clear;
                 if(choice.physical)UpdatePhysicalKey(choice,false);
             }
-            UpdateWardrobeChoiceNotice(nearest?.id);
             if(nearest!=null)
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);

@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using DeadlyJenga.Presentation;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -39,7 +40,8 @@ namespace DeadlyJenga.CastlePrototype
             bool controller = session.IsVR;
             if (controller)
             {
-                bool aimed = DeadlyJenga.Presentation.MenuPointer.AimAt(camera,
+                var trackingCamera = MenuPointer.TrackingCamera(session, camera);
+                bool aimed = DeadlyJenga.Presentation.MenuPointer.AimAt(camera, trackingCamera,
                     session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded==true,
                     ray => DeadlyJenga.Presentation.MenuPointer.PanelHit(ray, (RectTransform)transform), out var input);
                 pointerRay=input.Ray;

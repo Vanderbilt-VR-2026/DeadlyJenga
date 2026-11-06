@@ -1,19 +1,26 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 
 namespace DeadlyJenga.CastlePrototype
 {
     // This keyboard belongs only to the local view and is never sent over the network.
     public sealed partial class IslandLobbyView
     {
-        RectTransform piano;
+        RectTransform piano, keyboardGrabBar;
+        Image keyboardGrabFace;
         Material keyboardMaterial;
         Mesh keyboardMesh;
         Text privateCode;
         bool keyboardWasOpen;
+        bool draggingKeyboard;
+        int keyboardDragDevice;
+        float keyboardDragDistance;
+        Vector3 keyboardDragOffset;
         public Transform GiantKeyboard=>piano;
         void BuildKeyboard(RectTransform panel)
         {
@@ -22,7 +29,7 @@ namespace DeadlyJenga.CastlePrototype
             var yaw=panel.rotation;
             go.transform.SetPositionAndRotation(new Vector3(panel.position.x,.94f,.55f),yaw*Quaternion.Euler(40,0,0));
             go.transform.localScale=Vector3.one*(1000*StationScale/1680);
-            piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
+            piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,880);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
             Box(piano,"Glossy piano case",new Vector3(0,0,80),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
             privateCode=Label(piano,"",323,42,1100,74);
             var close=Add(piano,"keyboard-close",()=>"×",318,ClosePrivateKeyboard,()=>true,762,128,94);
@@ -41,6 +48,14 @@ namespace DeadlyJenga.CastlePrototype
             var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
             PhysicalKey("clear-code","Clear",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
             PhysicalKey("keyboard-enter","Join room",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
+            var grab=new GameObject("Keyboard grab bar",typeof(RectTransform),typeof(Image));
+            keyboardGrabBar=(RectTransform)grab.transform;
+            keyboardGrabBar.SetParent(piano,false);
+            keyboardGrabBar.anchoredPosition=new Vector2(0,-403);
+            keyboardGrabBar.sizeDelta=new Vector2(520,38);
+            keyboardGrabFace=grab.GetComponent<Image>();
+            keyboardGrabFace.sprite=CandyHudVisuals.Pill;keyboardGrabFace.type=Image.Type.Sliced;
+            keyboardGrabFace.color=CandyHudVisuals.Muted;keyboardGrabFace.raycastTarget=false;
         }
         Choice PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
@@ -77,10 +92,12 @@ namespace DeadlyJenga.CastlePrototype
                 var eye=Player.ViewCamera.transform;
                 var forward=Vector3.ProjectOnPlane(eye.forward,Vector3.up).normalized;
                 if(forward.sqrMagnitude<.5f)forward=Vector3.forward;
-                piano.SetPositionAndRotation(eye.position+forward*1.05f-Vector3.up*.22f,Quaternion.LookRotation(forward));
-                piano.localScale=Vector3.one*(1.15f/1680);
+                piano.SetPositionAndRotation(eye.position+forward*.63f-Vector3.up*.20f,
+                    Quaternion.LookRotation(forward)*Quaternion.Euler(22,0,0));
+                piano.localScale=Vector3.one*(.79f/1680);
             }
             piano.gameObject.SetActive(open);keyboardWasOpen=open;
+            if(!open)draggingKeyboard=false;
             privateCode.text=string.IsNullOrEmpty(lobby.EnteredCode)?"Room code":lobby.EnteredCode;
             if(!open&&lobby.CodeFocused)lobby.UnfocusCode();
         }
@@ -88,7 +105,43 @@ namespace DeadlyJenga.CastlePrototype
         {
             lobby.UnfocusCode();
             keyboardWasOpen=false;
+            draggingKeyboard=false;
             if(piano)piano.gameObject.SetActive(false);
+        }
+        bool BeginKeyboardDrag(Ray ray,bool pressed,int device)
+        {
+            float hit=MenuPointer.PanelHit(ray,keyboardGrabBar);
+            keyboardGrabFace.color=hit>0?CandyHudVisuals.Mint:CandyHudVisuals.Muted;
+            if(!pressed||hit<=0)return false;
+            draggingKeyboard=true;
+            keyboardDragDevice=device;
+            keyboardDragDistance=hit;
+            keyboardDragOffset=piano.position-ray.GetPoint(hit);
+            return true;
+        }
+        bool UpdateKeyboardDrag(Camera eye)
+        {
+            if(!draggingKeyboard)return false;
+            Ray ray;
+            if(keyboardDragDevice!=0)
+            {
+                if(!MenuPointer.TryReadDevice(eye,keyboardDragDevice,out var input)||!input.Held)
+                {draggingKeyboard=false;return false;}
+                ray=input.Ray;
+            }
+            else
+            {
+                var mouse=Mouse.current;
+                if(mouse?.leftButton.isPressed!=true){draggingKeyboard=false;return false;}
+                ray=eye.ScreenPointToRay(mouse.position.ReadValue());
+            }
+            Vector3 position=ray.GetPoint(keyboardDragDistance)+keyboardDragOffset;
+            Vector3 offset=Vector3.ClampMagnitude(position-eye.transform.position,1.8f);
+            Vector3 forward=Vector3.ProjectOnPlane(offset,Vector3.up);
+            if(forward.sqrMagnitude<.16f)return true;
+            piano.SetPositionAndRotation(eye.transform.position+offset,
+                Quaternion.LookRotation(forward)*Quaternion.Euler(22,0,0));
+            return true;
         }
 
         // Kept for existing callers; keys now require a controller ray and trigger.

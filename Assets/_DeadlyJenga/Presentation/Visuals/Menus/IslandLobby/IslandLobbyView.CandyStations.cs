@@ -12,10 +12,10 @@ namespace DeadlyJenga.CastlePrototype
             caption.fontStyle=FontStyle.Bold;
             var code=CandyPlace("code",0,167,940,140);
             code.faceColor=CandyFace;code.label.enabled=false;code.selected=()=>lobby.CodeFocused;
-            for(int i=0;i<12;i++)
+            for(int i=0;i<6;i++)
             {
-                var slot=CandyPanel((RectTransform)code.button.transform,"Code character "+i,0,0,88,76,new Color(.12f,.09f,.20f));
-                candyCodeSlots.Add(slot);var letter=CandyReadout(slot,"Character","",0,0,78,66,40);letter.fontStyle=FontStyle.Bold;candyCodeLetters.Add(letter);
+                var slot=CandyPanel((RectTransform)code.button.transform,"Code character "+i,(i-2.5f)*136,0,128,108,new Color(.12f,.09f,.20f));
+                var letter=CandyReadout(slot,"Character","",0,0,122,96,40);letter.fontStyle=FontStyle.Bold;candyCodeLetters.Add(letter);
             }
             var join=CandyPlace("join",0,25,540,100);
             CandyPrimary(join);join.title=()=>"Join room";
@@ -118,12 +118,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyText(CandyChoice("setup-back"),12,0,154,48,25);
             CandyStyleModeCards();
             var confirm=CandyAdd(candySetupContent,"mode-confirm",()=>"Choose map",0,-350,1000,50,()=>OpenPicker("maps"),()=>lobby.CanConfigure,()=>setupPage=="modes");CandyPrimary(confirm);CandyChoiceIcon(confirm,LobbyTerminalGlyph.Symbol.Play,-440);
-            for(int i=0;i<6;i++)
-            {
-                CandyPlace("setting-value-"+i,0,225-i*84,800,70);CandyText(CandyChoice("setting-value-"+i),0,0,760,62,26);
-                CandyPlace("setting-minus-"+i,-470,225-i*84,80,70);CandyPlace("setting-plus-"+i,470,225-i*84,80,70);
-                setupFills[i].rectTransform.anchoredPosition=new Vector2(-380,-26);
-            }
+            BuildSettingRows();
             CandyPlace("settings-prev",-255,-290,490,58);CandyPlace("settings-next",255,-290,490,58);
         }
         void CandyStyleModeCards()

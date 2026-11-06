@@ -17,10 +17,10 @@ namespace DeadlyJenga.CastlePrototype
         void BuildTerminals()
         {
             var l=lobby;
-            roomPage=Terminal("Room",new Vector3(0,StationY,StationZ),0,new Vector2(1880,900),CandyHudVisuals.Mint);
+            roomPage=Terminal("Room",new Vector3(0,StationY,StationZ),0,new Vector2(1100,880),CandyHudVisuals.Mint);
             roomPage.GetComponentInChildren<Text>().enabled=false;
             joinStation=RoomSection("Join a room");
-            Add(roomPage,"marina-close",()=>"Back",385,CloseMarinaDetail,()=>true,-780,220,72);
+            Add(roomPage,"marina-close",()=>"Back",365,CloseMarinaDetail,()=>true,-412,192,58);
             Add(joinStation,"code",()=>l.EnteredCode.Length>0?l.EnteredCode:"Enter code",170,l.FocusCode,()=>l.JoinEnabled,-90,690,95);
             Add(joinStation,"join",()=>"JOIN",170,l.Join,()=>l.JoinEnabled&&l.CodeValid,360,145,95);
             Add(joinStation,"detect-nearby",()=>"Find nearby rooms",-35,l.DetectNearby,()=>l.JoinEnabled,0,870,105);
@@ -49,7 +49,7 @@ namespace DeadlyJenga.CastlePrototype
             hostHint.text=!string.IsNullOrEmpty(lobby.HostHint)?lobby.HostHint:notice??"";
             setupHint.text=lobby.SetupHint;
             joinHint.text=lobby.Busy||lobby.JoinHint.StartsWith("Connection failed",StringComparison.Ordinal)||
-                lobby.JoinHint.StartsWith("Check the code",StringComparison.Ordinal)?lobby.JoinHint:"";
+                lobby.JoinHint.StartsWith("Check the six-character",StringComparison.Ordinal)?lobby.JoinHint:"";
             if(codeKeyboard!=Keyboard.current){if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;codeKeyboard=Keyboard.current;if(codeKeyboard!=null)codeKeyboard.onTextInput+=CodeText;}
             if(lobby.CodeFocused&&codeKeyboard!=null)
             {
