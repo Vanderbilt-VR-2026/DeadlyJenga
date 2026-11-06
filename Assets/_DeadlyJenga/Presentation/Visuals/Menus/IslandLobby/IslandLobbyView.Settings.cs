@@ -85,15 +85,15 @@ namespace DeadlyJenga.CastlePrototype
                 Add(setupStation,"setting-minus-"+i,()=>"−",y,()=>Adjust(slot,-1),()=>lobby.CanConfigure,-360,85,80,()=>setupPage=="settings"&&Setting(slot)!=null);
                 Add(setupStation,"setting-plus-"+i,()=>"+",y,()=>Adjust(slot,1),()=>lobby.CanConfigure,360,85,80,()=>setupPage=="settings"&&Setting(slot)!=null);
             }
-            Add(setupStation,"settings-prev",()=>"PREVIOUS SETTINGS",-395,()=>settingsPage=Mathf.Max(0,settingsPage-1),()=>true,-220,390,55,()=>setupPage=="settings"&&settingsPage>0);
-            Add(setupStation,"settings-next",()=>"MORE SETTINGS",-395,()=>settingsPage++,()=>true,220,390,55,()=>setupPage=="settings"&&(settingsPage+1)*6<setupSettings.Count(ShowSetting));
+            Add(setupStation,"settings-prev",()=>"Previous",-395,()=>settingsPage=Mathf.Max(0,settingsPage-1),()=>true,-220,390,55,()=>setupPage=="settings"&&settingsPage>0);
+            Add(setupStation,"settings-next",()=>"Next",-395,()=>settingsPage++,()=>true,220,390,55,()=>setupPage=="settings"&&(settingsPage+1)*6<setupSettings.Count(ShowSetting));
         }
         string SettingTitle(int slot)
         {
             var setting=Setting(slot);if(setting==null||Details==null)return "";var value=setting.read(Details.Setup);
             if(setting.type==typeof(int)&&setting.options!=null)value=setting.options[Mathf.Clamp((int)value,0,setting.options.Length-1)];
             float fill=setting.type==typeof(float)||setting.type==typeof(int)?Mathf.InverseLerp(setting.min,setting.max,Convert.ToSingle(setting.read(Details.Setup))):0;if(slot<setupFills.Count)setupFills[slot].rectTransform.sizeDelta=new Vector2(fill*760,5);
-            return setting.label+"\n"+(value is float f?f.ToString("0.##"):value is bool b?b?"ON":"OFF":value?.ToString());
+            return setting.label+"\n"+(value is float f?f.ToString("0.##"):value is bool b?b?"On":"Off":value?.ToString());
         }
         void Adjust(int slot,int step)
         {

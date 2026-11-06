@@ -27,9 +27,11 @@ namespace DeadlyJenga.CastlePrototype
 
         int wardrobeCategory,wardrobePage;
 
-        static readonly string[] wardrobeCategories={"ADD ONS","SKINS","HAIR","EYEWEAR","CLOTHING"};
+        static readonly string[] wardrobeCategories={"Accessories","Skins","Hair","Eyewear","Clothing"};
 
         Vector3 wardrobeCenter=new Vector3(0,.65f,-5.3f);
+        const float WardrobeEnterRadius=1.25f, WardrobeExitRadius=1.65f;
+        bool wardrobeVisited;
 
         readonly System.Collections.Generic.List<Tuple<RectTransform,Action>> wardrobeButtons=new System.Collections.Generic.List<Tuple<RectTransform,Action>>();
 
@@ -150,7 +152,7 @@ namespace DeadlyJenga.CastlePrototype
 
             wardrobeWorldReason=Label(wardrobePanel,"POINT TO A CHOICE FOR LAYER DETAILS. SELECT TO SAVE YOUR REQUEST.",450,18,1000,110);
 
-            Add(wardrobePanel,"wardrobe-open",()=>wardrobeOpen?"DONE / B OR Y TO EXIT":"CUSTOMIZE YOUR AVATAR",-605,()=>SetWardrobeOpen(!wardrobeOpen),()=>AppearanceTarget()!=null,0,950,60);
+            Add(wardrobePanel,"wardrobe-open",()=>"Done",-605,()=>SetWardrobeOpen(false),()=>wardrobeOpen,0,950,60);
 
             for(int i=0;i<12;i++)
 
@@ -160,17 +162,17 @@ namespace DeadlyJenga.CastlePrototype
 
             }
 
-            Add(wardrobePanel,"wardrobe-clear",()=>"< PAGE",-435,()=>ChangeWardrobePage(-1),()=>wardrobeOpen,-260,500,48);
+            Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-435,()=>ChangeWardrobePage(-1),()=>wardrobeOpen,-260,500,48);
 
-            Add(wardrobePanel,"wardrobe-reset",()=>"PAGE "+(wardrobePage+1)+" / "+WardrobePages+" >",-435,()=>ChangeWardrobePage(1),()=>wardrobeOpen,260,500,48);
+            Add(wardrobePanel,"wardrobe-reset",()=>"Next · "+(wardrobePage+1)+" / "+WardrobePages,-435,()=>ChangeWardrobePage(1),()=>wardrobeOpen,260,500,48);
 
             string[] viewNames={"LEFT","RIGHT","UP","DOWN","CLOSER","FURTHER"};
 
             for(int i=0;i<6;i++){int control=i;var button=Add(wardrobePanel,"wardrobe-view-"+i,()=>viewNames[control],-40,()=>{},()=>wardrobeOpen,-425+i*170,155,44);button.slide=_=>AdjustWardrobeView(control);}
 
             for(int category=0;category<wardrobeCategories.Length;category++){int selected=category;Add(wardrobePanel,"wardrobe-category-"+category,()=>wardrobeCategories[selected],-485,()=>SetWardrobeCategory(selected),()=>wardrobeOpen,-400+category*200,190,42);}
-            Add(wardrobePanel,"wardrobe-clear-look",()=>"CLEAR LOOK",-545,ClearAccessories,()=>wardrobeOpen,-260,500,48);
-            Add(wardrobePanel,"wardrobe-reset-view",()=>"RESET VIEW",-545,ResetWardrobeView,()=>wardrobeOpen,260,500,48);
+            Add(wardrobePanel,"wardrobe-clear-look",()=>"Clear outfit",-545,ClearAccessories,()=>wardrobeOpen,-260,500,48);
+            Add(wardrobePanel,"wardrobe-reset-view",()=>"Reset view",-545,ResetWardrobeView,()=>wardrobeOpen,260,500,48);
             wardrobeTexture=new RenderTexture(768,768,24){name="Wardrobe third person preview"};
 
             var image=new GameObject("Third person mirror",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(wardrobePanel,false);
@@ -180,6 +182,9 @@ namespace DeadlyJenga.CastlePrototype
             var cameraObject=new GameObject("Visual - wardrobe camera");cameraObject.transform.SetParent(transform,false);wardrobeCamera=cameraObject.AddComponent<Camera>();wardrobeCamera.enabled=false;wardrobeCamera.targetTexture=wardrobeTexture;wardrobeCamera.fieldOfView=44;wardrobeCamera.nearClipPlane=.05f;wardrobeCamera.farClipPlane=60;wardrobeCamera.cullingMask=1<<31;wardrobeCamera.clearFlags=CameraClearFlags.SolidColor;wardrobeCamera.backgroundColor=new Color(.07f,.045f,.12f);wardrobeCamera.GetUniversalAdditionalCameraData().allowXRRendering=false;
 
             foreach(var t in wardrobePanel.GetComponentsInChildren<Transform>(true))t.gameObject.layer=5;
+            wardrobePanel.gameObject.SetActive(false);
+            var rear=transform.Cast<Transform>().FirstOrDefault(child=>child.name=="WARDROBE / readable back");
+            if(rear)rear.gameObject.SetActive(false);
 
         }
 
@@ -229,15 +234,11 @@ namespace DeadlyJenga.CastlePrototype
 
         void ClearAccessories(){if(wardrobeAvatar==null)return;wardrobeAvatar.ApplyAppearance(default);RefreshWardrobeLabels();}
 
-        Vector3 wardrobePanelPosition;
-        Quaternion wardrobePanelRotation;
-        void PlaceWardrobeForEye()
+        float DistanceToWardrobe()
         {
-            var eye=wardrobePlayer.ViewCamera.transform;
-            var forward=Vector3.ProjectOnPlane(eye.forward,Vector3.up).normalized;
-            if(forward.sqrMagnitude<.01f)forward=wardrobePlayer.transform.forward;
-            wardrobePanel.SetPositionAndRotation(eye.position+forward*1.8f,Quaternion.LookRotation(forward,Vector3.up));
-            Physics.SyncTransforms();
+            var location=Player.IsVR&&Player.ViewCamera?Player.ViewCamera.transform.position:Player.transform.position;
+            var offset=location-WardrobePosition;
+            return new Vector2(offset.x,offset.z).magnitude;
         }
         public void SetWardrobeOpen(bool open)
 
@@ -249,11 +250,12 @@ namespace DeadlyJenga.CastlePrototype
 
             {
 
-                wardrobeAvatar=AppearanceTarget();if(wardrobeAvatar==null||!NetworkActors.Alive(Player))return;
+                if(!NetworkActors.Alive(Player)||DistanceToWardrobe()>WardrobeEnterRadius)return;
+                wardrobeAvatar=AppearanceTarget();if(wardrobeAvatar==null)return;
 
                 wardrobePlayer=Player;wardrobePaused=Player.InputSuspended;wardrobeCursor=Cursor.lockState;wardrobeCursorVisible=Cursor.visible;ResetWardrobeView();
 
-                wardrobeOpen=true;ResetWardrobeNotice();Player.InputSuspended=true;
+                wardrobeOpen=true;wardrobeVisited=true;ResetWardrobeNotice();Player.InputSuspended=true;
 
                 wardrobeShowcase=Player.gameObject.GetComponent<IAvatarShowcase>();
 
@@ -263,11 +265,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 if(!Player.IsVR){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;BuildDesktopWardrobe();}
 
-                if(Player.IsVR&&Player.ViewCamera)
-                {
-                    wardrobePanelPosition=wardrobePanel.position;wardrobePanelRotation=wardrobePanel.rotation;
-                    PlaceWardrobeForEye();
-                }
+                wardrobePanel.gameObject.SetActive(Player.IsVR);
                 PresentWardrobe();
 
             }
@@ -276,9 +274,8 @@ namespace DeadlyJenga.CastlePrototype
 
             {
 
-                wardrobeOpen=false;wardrobeFromPortrait=false;portraitReady=false;
-                if(NetworkActors.Alive(wardrobePlayer)&&wardrobePlayer.IsVR&&wardrobePanel)
-                    wardrobePanel.SetPositionAndRotation(wardrobePanelPosition,wardrobePanelRotation);
+                wardrobeOpen=false;portraitReady=false;
+                if(wardrobePanel)wardrobePanel.gameObject.SetActive(false);
 
                 if(wardrobeShowcase!=null&&NetworkActors.Alive(wardrobePlayer))wardrobeShowcase.Showcasing=wardrobeWasShowcasing;
 
@@ -313,7 +310,7 @@ namespace DeadlyJenga.CastlePrototype
             var panel=new GameObject("Options",typeof(RectTransform));panel.transform.SetParent(wardrobeDesktop,false);var rect=panel.GetComponent<RectTransform>();rect.anchoredPosition=new Vector2(315,0);rect.sizeDelta=new Vector2(590,780);
 
             var heading=Label(rect,"YOUR WARDROBE",340,32,360,60);heading.rectTransform.anchoredPosition=new Vector2(-100,340);
-            DesktopButton(rect,"DONE",340,190,175,50,()=>SetWardrobeOpen(false),"Done");Label(rect,"Select to save your requested look.\nCovered choices stay saved and restore when uncovered.",278,18,570,44);
+            DesktopButton(rect,"Done",340,190,175,50,()=>SetWardrobeOpen(false),"Done");Label(rect,"Changes apply as you select items.",278,18,570,44);
 
             for(int i=0;i<12;i++){int item=i;DesktopButton(rect,AccessoryTitle(i),198-(i/2)*65,(i%2==0?-1:1)*145,275,56,()=>ChooseWardrobeEntry(item),"Accessory "+i);}
 
@@ -363,24 +360,22 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         RawImage lobbyPortrait;
-        bool wardrobeFromPortrait,portraitReady;
+        Text lobbyPortraitName;
+        bool portraitReady;
         AvatarAppearance portraitAppearance;
         string portraitName;
         float nextPortraitCheck;
         LobbyParticipant LocalPortraitIdentity=>Details?.Participants.FirstOrDefault(p=>p.id==Details.LocalParticipantId);
         void BuildLobbyPortrait()
         {
-            var profile=Add(hostStation,"player-portrait",()=>portraitName??"My avatar",294,
-                ()=>{wardrobeFromPortrait=true;SetWardrobeOpen(true);},()=>AppearanceTarget()!=null,-359,270,56);
-            profile.label.rectTransform.sizeDelta=new Vector2(200,48);
-            profile.label.rectTransform.anchoredPosition=new Vector2(27,0);
-            profile.label.fontSize=18;
-            var image=new GameObject("Your portrait · open wardrobe",typeof(RectTransform),typeof(RawImage));
-            image.transform.SetParent(profile.button.transform,false);
+            lobbyPortraitName=Label(hostStation,"My avatar",294,18,200,48);
+            lobbyPortraitName.rectTransform.anchoredPosition=new Vector2(-332,294);
+            var image=new GameObject("Your portrait",typeof(RectTransform),typeof(RawImage));
+            image.transform.SetParent(hostStation,false);
             lobbyPortrait=image.GetComponent<RawImage>();
             lobbyPortrait.raycastTarget=false;
             lobbyPortrait.rectTransform.sizeDelta=new Vector2(48,48);
-            lobbyPortrait.rectTransform.anchoredPosition=new Vector2(-104,0);
+            lobbyPortrait.rectTransform.anchoredPosition=new Vector2(-463,294);
         }
         void RefreshLobbyPortrait()
         {
@@ -395,7 +390,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 PresentWardrobe(true);
                 lobbyPortrait.texture=wardrobeTexture;portraitAppearance=appearance;
-                portraitName=identity.displayName;portraitReady=true;
+                portraitName=identity.displayName;lobbyPortraitName.text=portraitName;portraitReady=true;
             }
             finally{wardrobePlayer=previousPlayer;}
         }
@@ -405,18 +400,15 @@ namespace DeadlyJenga.CastlePrototype
 
             if(!wardrobePanel)return false;
 
-            var location=Player.IsVR&&Player.ViewCamera?Player.ViewCamera.transform.position:Player.transform.position;
-
-            float distance=Vector2.Distance(new Vector2(location.x,location.z),new Vector2(WardrobePosition.x,WardrobePosition.z));
-
-
-
-
+            float distance=DistanceToWardrobe();
+            if(distance>WardrobeExitRadius)wardrobeVisited=false;
+            if(!wardrobeOpen&&!wardrobeVisited&&distance<=WardrobeEnterRadius&&!lobby.CodeFocused)
+                SetWardrobeOpen(true);
             if(!wardrobeOpen)return false;
             if(Player.IsVR&&(Player.MenuPressed||wardrobeCancel?.WasPressedThisFrame()==true)){SetWardrobeOpen(false);return true;}
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){SetWardrobeOpen(false);return true;}
 
-            if(!ReferenceEquals(Player,wardrobePlayer)||(!wardrobeFromPortrait&&distance>2)){SetWardrobeOpen(false);return false;}
+            if(!ReferenceEquals(Player,wardrobePlayer)||distance>WardrobeExitRadius){SetWardrobeOpen(false);return false;}
 
             RefreshWardrobeLabels();
             if(!Player.IsVR&&wardrobeDesktop&&wardrobeChoiceReason&&Mouse.current!=null)

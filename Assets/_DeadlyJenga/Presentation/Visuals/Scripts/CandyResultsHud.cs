@@ -112,7 +112,8 @@ namespace DeadlyJenga.Presentation
                 && RectTransformUtility.RectangleContainsScreenPoint(roomCode.rectTransform, mouse.position.ReadValue()))
                 GUIUtility.systemCopyBuffer = code;
             MenuPointer.Sample input=default;
-            bool hasPointer=wasVr&&MenuPointer.TryRead(eye,session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out input);
+            bool hasPointer=wasVr&&MenuPointer.AimAt(eye,session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
+                ray => MenuPointer.PanelHit(ray, (RectTransform)canvas.transform), out input);
             var ray=input.Ray;
             for (int i = 0; i < targets.Length; i++)
             {

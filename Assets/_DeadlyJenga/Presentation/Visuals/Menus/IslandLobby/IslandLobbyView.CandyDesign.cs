@@ -19,8 +19,7 @@ namespace DeadlyJenga.CastlePrototype
         Texture2D candyAtlas;
         Sprite candyFaceSprite,candyRimSprite;
         RectTransform candyJoinContent,candyHostContent,candySetupContent;
-        Text candySetupHeading,candyJoinStatus,candyPlayerValue,candyMapDescription,candyRoomStatus,candyJoinEmpty,candyJoinedNote;
-        GameObject candyHostHelp,candyJoinCodeFrame,candyHostCodeFrame;
+        Text candySetupHeading,candyPlayerValue,candyMapDescription,candyRoomStatus,candyJoinEmpty;
         readonly List<GameObject> candyMainDecor=new List<GameObject>();
         readonly List<Text> candyCodeLetters=new List<Text>();
         readonly List<RectTransform> candyCodeSlots=new List<RectTransform>();
@@ -31,13 +30,13 @@ namespace DeadlyJenga.CastlePrototype
         void BuildCandyDesign()
         {
             BuildCandyAtlas();
-            candyJoinContent=CandyContent(joinStation,CandyLavender,out var joinHeading);joinHeading.text="JOIN A GAME";
-            candyHostContent=CandyContent(hostStation,CandyMint,out var hostHeading);hostHeading.text="HOST YOUR GAME";
+            candyJoinContent=CandyContent(joinStation,CandyLavender,out var joinHeading);joinHeading.text="Join a room";
+            candyHostContent=CandyContent(hostStation,CandyMint,out var hostHeading);hostHeading.text="Your room";
             candySetupContent=CandyContent(setupStation,CandyPeach,out candySetupHeading);
             foreach(var choice in choices)
                 if(!choice.physical&&(choice.button.transform.IsChildOf(joinStation)||choice.button.transform.IsChildOf(hostStation)||choice.button.transform.IsChildOf(setupStation)))
                     CandyStyle(choice);
-            BuildCandyJoin();BuildCandyHost();BuildCandySetup();CoatCandyCabinets();
+            BuildCandyJoin();BuildCandyHost();BuildCandySetup();CandyStyle(CandyChoice("marina-close"));CoatCandyCabinets();
             foreach(var key in choices.Where(c=>c.physical))
             {
                 key.keyColor=key.id=="keyboard-enter"?CandyMint:key.id=="backspace"||key.id=="clear-code"?CandyPeach:new Color(.18f,.12f,.28f);
@@ -124,14 +123,12 @@ namespace DeadlyJenga.CastlePrototype
 
         void PaintCandyChoice(Choice choice,bool hover,bool usable)
         {
-            if(!choice.physical&&choice.label)
-                choice.label.rectTransform.localScale=hover?Vector3.one*1.07f:Vector3.one;
             if(choice.physical)
             {choice.label.color=usable?(choice.keyColor.grayscale>.6f?CandyInk:CandyCream):CandyMuted;return;}
             if(!choice.candy)
             {choice.label.color=hover?CandyHudVisuals.Ink:usable?Color.white:CandyHudVisuals.Muted;choice.button.image.color=hover?CandyHudVisuals.Mint:usable?CandyHudVisuals.Card:new Color(.11f,.14f,.2f);return;}
             bool selected=choice.selected!=null&&choice.selected();
-            var face=!usable?new Color(.17f,.14f,.23f):hover?CandyMint:Time.unscaledTime<choice.pressedUntil?Color.Lerp(choice.faceColor,CandyInk,.2f):choice.faceColor;
+            var face=!usable?new Color(.17f,.14f,.23f):hover?Color.Lerp(choice.faceColor,CandyMint,.28f):Time.unscaledTime<choice.pressedUntil?Color.Lerp(choice.faceColor,CandyInk,.2f):choice.faceColor;
             choice.button.image.color=face;
             var foreground=!usable?CandyMuted:CandyForeground(face);
             choice.label.color=foreground;
@@ -144,39 +141,30 @@ namespace DeadlyJenga.CastlePrototype
             if(!candyAtlas)return;
             setupFace.Opacity=1;
             bool main=setupPage=="main";
-            candySetupHeading.text=setupPage=="modes"?"CHOOSE YOUR MODE":setupPage=="maps"?"CHOOSE YOUR MAP":setupPage=="settings"?"MODE SETTINGS":"MODE + MAP";
+            candySetupHeading.text=setupPage=="modes"?"Game mode":setupPage=="experimental-maps"?"Experimental maps":setupPage=="maps"?"Maps":setupPage=="settings"?"Match settings":"Match";
             foreach(var item in candyMainDecor)item.SetActive(main);
-            candyJoinStatus.text=lobby.Busy?"CONNECTING":lobby.Connected?"IN ROOM":lobby.JoinEnabled?"READY TO JOIN":"HOSTING";
             var launch=CandyChoice("launch");launch.faceColor=lobby.StartPending?CandyPeach:CandyMint;launch.edgeColor=launch.faceColor;
             var symbol=lobby.StartPending?LobbyTerminalGlyph.Symbol.Back:LobbyTerminalGlyph.Symbol.Play;
             if(launch.glyph&&launch.glyph.symbol!=symbol){launch.glyph.symbol=symbol;launch.glyph.SetVerticesDirty();}
             CandyChoice("invite-all").faceColor=lobby.Connected?CandyMint:CandyFace;CandyChoice("invite-all").edgeColor=lobby.Connected?CandyMint:CandyLavender;
-            candyHostHelp.SetActive(!lobby.Connected&&!lobby.Busy);
-            candyHostCodeFrame.SetActive(lobby.Connected&&!lobby.Busy);
-            candyJoinedNote.gameObject.SetActive(lobby.Connected&&(Details?.HostRequests.Count??0)==0);
-            candyJoinEmpty.gameObject.SetActive(!lobby.Connected&&!lobby.Busy&&lobby.InvitationFrom==null&&(!lobby.ShowingNearby||!lobby.HasNearby(0)));
-            candyJoinEmpty.text=lobby.ShowingNearby?"Searching your local networkâ€¦\n"+lobby.JoinHint:"Have a room code? Enter it above.\nOr search for a nearby island.";
+            candyJoinEmpty.gameObject.SetActive(lobby.ShowingNearby&&!lobby.HasNearby(0));
+            candyJoinEmpty.text=lobby.ShowingNearby?lobby.JoinHint:"";
             joinHint.gameObject.SetActive(!lobby.ShowingNearby);
             candyPlayerValue.text=(Details?.Setup.population??MatchChoices.BotTarget).ToString();
-            var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"Choose your arena.":CandyBrief(map.description);
+            var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"":CandyBrief(map.description);
             candyRoomStatus.text="ROOM\n"+Mathf.Max(1,Details?.ConnectedCount??1)+" / "+(Details?.Setup.population??MatchChoices.BotTarget);
-            var back=CandyChoice("setup-back");((RectTransform)back.button.transform).anchoredPosition=new Vector2(0,setupPage=="modes"?-410:setupPage=="maps"?-407:-370);
-            foreach(string id in new[]{"picker-previous","picker-next"}){var r=(RectTransform)CandyChoice(id).button.transform;r.anchoredPosition=new Vector2(r.anchoredPosition.x,setupPage=="modes"?-260:setupPage=="maps"?-344:-290);}
-            if(setupPage=="maps")for(int i=0;i<PickerPageSize;i++)
+            foreach(string id in new[]{"picker-previous","picker-next"})
             {
-                var row=PickerRow(i);var choice=CandyChoice("picker-"+i);if(row==null)continue;
-                bool header=row.map==null;float indent=header?(row.collection?0:12):24;
-                choice.faceColor=header?row.collection?new Color(.37f,.26f,.53f):CandyFace:new Color(.19f,.14f,.29f);
-                choice.label.fontStyle=header?FontStyle.Bold:FontStyle.Normal;
-                CandyText(choice,indent,0,440-indent*2,44,22,TextAnchor.MiddleLeft);
+                var rect=(RectTransform)CandyChoice(id).button.transform;
+                rect.anchoredPosition=new Vector2(rect.anchoredPosition.x,setupPage=="modes"?-260:-290);
             }
             if(candyLastCode!=(lobby.EnteredCode??""))
             {
-                candyLastCode=lobby.EnteredCode??"";int count=Mathf.Clamp(Mathf.Max(6,candyLastCode.Length),6,12);float cell=Mathf.Min(98,650f/count);
+                candyLastCode=lobby.EnteredCode??"";int count=Mathf.Clamp(Mathf.Max(6,candyLastCode.Length),6,12);float cell=Mathf.Min(136,880f/count);
                 for(int i=0;i<candyCodeSlots.Count;i++)
                 {
                     candyCodeSlots[i].gameObject.SetActive(i<count);candyCodeSlots[i].anchoredPosition=new Vector2((i-(count-1)*.5f)*cell,0);
-                    candyCodeSlots[i].sizeDelta=new Vector2(cell-8,76);candyCodeLetters[i].rectTransform.sizeDelta=new Vector2(cell-14,66);
+                    candyCodeSlots[i].sizeDelta=new Vector2(cell-8,108);candyCodeLetters[i].rectTransform.sizeDelta=new Vector2(cell-14,96);
                     candyCodeLetters[i].text=i<candyLastCode.Length?candyLastCode[i].ToString():"";
                 }
             }
@@ -206,7 +194,7 @@ namespace DeadlyJenga.CastlePrototype
             if(cache.TryGetValue(value,out var summary))return summary;
             int sentence=value.IndexOf(". ",StringComparison.Ordinal);
             summary=sentence>=0?value.Substring(0,sentence+1):value;
-            if(summary.Length>limit){int end=summary.LastIndexOf(' ',limit-4,limit-4);summary=summary.Substring(0,end>20?end:limit-4).TrimEnd()+ "â€¦";}
+            if(summary.Length>limit){int end=summary.LastIndexOf(' ',limit-4,limit-4);summary=summary.Substring(0,end>20?end:limit-4).TrimEnd()+ "…";}
             cache[value]=summary;return summary;
         }
         static Color CandyForeground(Color face)

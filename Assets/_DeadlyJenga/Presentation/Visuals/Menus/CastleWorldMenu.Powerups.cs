@@ -13,7 +13,7 @@ namespace DeadlyJenga.CastlePrototype
             EquipmentKind.NeedleDrill,EquipmentKind.StockPistol};
         void PointGiveEquipmentPage(Camera camera,bool pressed)
         {
-            scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
+            HideDisasterSliders();
             heading.text=quickGunPage?"GIVE YOURSELF A GUN":"GIVE EQUIPMENT\n"+(giveAllEquipment?"All survivor players + bots":"Myself");
             var runtime=MatchRuntime.Current;var controls=runtime as IDemoEquipmentControls;
             var everyone=runtime as IDemoLoadoutControls;bool host=DemoMode&&CanCommand&&runtime?.Authority==true;
@@ -47,7 +47,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PointPowerupPage(Camera camera,bool pressed)
         {
-            scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
+            HideDisasterSliders();
             heading.text="POWERUPS / ENEMIES\nHost can spawn jaguar enemies for testing";
             var enemies=session.SurvivorBots as IEnemyPopulation;bool canEnemies=enemies!=null&&MatchRuntime.Current?.Authority==true;
             var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();

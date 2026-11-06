@@ -148,7 +148,8 @@ namespace DeadlyJenga.CastlePrototype
         void PointMirror()
         {
             foreach(var control in controls)control.GetComponent<Image>().color=CandyHudVisuals.Ink;
-            if(!DeadlyJenga.Presentation.MenuPointer.TryRead(original,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out var input))return;
+            if(!DeadlyJenga.Presentation.MenuPointer.AimAt(original,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
+                ray => DeadlyJenga.Presentation.MenuPointer.PanelHit(ray, (RectTransform)panel.transform), out var input))return;
             var ray = input.Ray;
             var plane = new Plane(panel.transform.forward, panel.transform.position);
             if (!plane.Raycast(ray, out float enter) || enter > 4) return;

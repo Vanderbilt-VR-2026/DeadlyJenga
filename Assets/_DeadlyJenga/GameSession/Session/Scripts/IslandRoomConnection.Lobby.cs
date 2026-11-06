@@ -174,7 +174,27 @@ namespace DeadlyJenga.CastlePrototype
             identities.Remove(id);hostRequests.Remove(id);requestAfter.Remove(id);
             if(IsHost&&leaderId==id){var candidates=Runner.ActivePlayers.Where(p=>p.ToString()!=id).ToArray();leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)].ToString():LocalLobbyId;LaunchPending=false;RefreshHostFlags();}
         }
-        float nextRosterCheck;
+        const string LobbyHandoffProperty="lobbyHandoff";
+        string pendingLobbyHost;
+        float nextRosterCheck,lobbyHandoffDeadline;
+        void PublishLobbyHandoff()
+        {
+            var remaining=Runner.ActivePlayers.Where(player=>player!=Runner.LocalPlayer).Select(player=>player.ToString()).ToArray();
+            if(remaining.Length==0)return;
+            string successor=remaining.Contains(leaderId)?leaderId:remaining[UnityEngine.Random.Range(0,remaining.Length)];
+            Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,successor}});
+        }
+        void ReadLobbyHandoff()
+        {
+            pendingLobbyHost=Runner.SessionInfo.Properties.TryGetValue(LobbyHandoffProperty,out var successor)?(string)successor:null;
+            if(string.IsNullOrEmpty(pendingLobbyHost)){pendingLobbyHost=null;return;}
+            lobbyHandoffDeadline=Time.unscaledTime+12;
+        }
+        void ClearLobbyHandoff()
+        {
+            pendingLobbyHost=null;
+            if(IsHost)Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,""}});
+        }
         void ReconcileLobbyRoster()
         {
             if(Time.unscaledTime<nextRosterCheck)return;nextRosterCheck=Time.unscaledTime+.5f;
@@ -186,6 +206,16 @@ namespace DeadlyJenga.CastlePrototype
                 leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)]:LocalLobbyId;
                 LaunchPending=false;RefreshHostFlags();
             }
+            if(pendingLobbyHost==null)return;
+            if(active.Contains(pendingLobbyHost))
+            {
+                leaderId=pendingLobbyHost;
+                hostRequests.Clear();
+                LaunchPending=false;
+                RefreshHostFlags();
+                ClearLobbyHandoff();
+            }
+            else if(Time.unscaledTime>=lobbyHandoffDeadline)ClearLobbyHandoff();
         }
         string LobbyStateJson()=>JsonUtility.ToJson(new LobbyState{leader=leaderId,roster=identities.Values.ToArray(),requests=hostRequests.ToArray(),notice=lobbyNotice,setup=Setup});
         void ReadLobbyState(string json)

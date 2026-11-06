@@ -40,7 +40,6 @@ namespace DeadlyJenga.Presentation
         {
             if(session==null)return;
             if(!MenuAccess.HostTools(session)) open=false;
-            if(Keyboard.current?.f6Key.wasPressedThisFrame==true&&Services.Session==session){if(open)open=false;else Open(session);}
             if(open&&!session.MenuOpen)open=false;
             if(!canvas&&open)Build();
             if(!canvas)return;

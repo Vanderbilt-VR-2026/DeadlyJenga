@@ -32,18 +32,19 @@ namespace DeadlyJenga.CastlePrototype
             if(!camera||!isActiveAndEnabled)return;
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
-            ((RectTransform)transform).sizeDelta=new Vector2(600,1080);
+            bool guest=DeadlyJenga.Presentation.MenuAccess.GuestPause(session);
+            ((RectTransform)transform).sizeDelta=new Vector2(600,guest?590:1080);
+            heading.rectTransform.anchoredPosition=new Vector2(0,guest?171:355);
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
             bool controller = session.IsVR;
             if (controller)
             {
-                if (!DeadlyJenga.Presentation.MenuPointer.TryRead(camera, session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded==true, out var input))
-                {
-                    if(pointerDot)pointerDot.gameObject.SetActive(false);
-                            if(focusOutline)focusOutline.gameObject.SetActive(false);
-                    requireRelease=true; return;
-                }
-                pointerRay=input.Ray; pressed=input.Pressed; held=input.Held;
+                bool aimed = DeadlyJenga.Presentation.MenuPointer.AimAt(camera,
+                    session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded==true,
+                    ray => DeadlyJenga.Presentation.MenuPointer.PanelHit(ray, (RectTransform)transform), out var input);
+                pointerRay=input.Ray;
+                pressed=aimed&&input.Pressed;
+                held=aimed&&input.Held;
             }
             else pointerRay=new Ray(camera.transform.position,camera.transform.forward);
             if(startedAim&&usingController!=controller)requireRelease=true;
@@ -53,7 +54,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(!pressed&&!held)requireRelease=false;
                 pressed=held=false;
             }
-            PointPage(camera,pressed,held);
+            if(guest)PointGuestPause(pressed);
+            else PointPage(camera,pressed,held);
             if(!isActiveAndEnabled)return;
             if(pressed&&focus){pressedTarget=focus;pressedUntil=Time.unscaledTime+.13f;}
             ApplyLabelContrast();PresentPointer();
@@ -111,7 +113,6 @@ namespace DeadlyJenga.CastlePrototype
                 focusOutline.transform.position=row.TransformPoint(new Vector3(row.rect.xMin+8,0,-3));
                 focusOutline.transform.SetAsLastSibling();if(dot)pointerDot.transform.SetAsLastSibling();
             }
-            if(usingController)DeadlyJenga.Presentation.MenuPointer.Draw(session.ActiveCamera,pointerRay,dot?Vector3.Distance(pointerRay.origin,at):4);
         }
 
         Image PointerImage(string name,Vector2 size)

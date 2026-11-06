@@ -12,48 +12,66 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;}
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed,visible;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
         bool ModalBlocked=>!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
-        InputAction select;RectTransform canvas;Text modeTitle,mapTitle,playTitle,partyTitle,gameExperienceTitle,demoExperienceTitle,browseTitle;
-        RawImage modePicture,mapPicture,otherPicture;string modeId,mapId;float refreshAt;
+        RectTransform canvas;Text modeTitle,mapTitle,playTitle,partyTitle;
+        RawImage modePicture,mapPicture;string modeId,mapId;float refreshAt;
         public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
             if(canvas)return;lobby=controls;session=Services.Session;detail=openDetail;
-            var go=new GameObject("Marina · live play screen",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);canvas=go.GetComponent<RectTransform>();canvas.sizeDelta=new Vector2(720,320);canvas.position=MayhemMarina.PlayScreen+Vector3.back*.11f;canvas.localScale=Vector3.one*.0098f;
-            var c=go.GetComponent<Canvas>();c.renderMode=RenderMode.WorldSpace;c.overrideSorting=true;c.sortingOrder=70;
-            Text("MODE",new Vector2(-236,135),new Vector2(225,40),30,canvas);Text("MAP",new Vector2(236,135),new Vector2(220,40),30,canvas);
-            modePicture=Card("marina-modes",new Vector2(-236,30),()=>detail?.Invoke("modes"));
-            otherPicture=Card("marina-more-modes",new Vector2(0,30),()=>detail?.Invoke("modes"));
-            mapPicture=Card("marina-maps",new Vector2(236,30),()=>detail?.Invoke("maps"));
-            modeTitle=Text("",new Vector2(-236,-68),new Vector2(225,27),17,canvas);
-            browseTitle=Text("BROWSE MODES",new Vector2(0,-68),new Vector2(225,27),17,canvas);
-            mapTitle=Text("",new Vector2(236,-68),new Vector2(225,27),17,canvas);
-            var play=Button("marina-play",new Vector2(0,-111),new Vector2(330,55),new Color(.15f,.62f,.14f),()=>lobby.StartOrCancel(),()=>lobby.CanStart);
-            playTitle=Text("PLAY",Vector2.zero,new Vector2(300,53),42,play);
-            string[] ids={"join","host","settings","style"};string[] captions={"JOIN","HOST","SETTINGS","STYLE"};
-            for(int i=0;i<4;i++){string id=ids[i];var b=Button("marina-"+id,new Vector2(-270+i*180,-153),new Vector2(165,25),new Color(.16f,.36f,.34f),()=>detail?.Invoke(id),()=>true);Text(captions[i],Vector2.zero,new Vector2(160,24),16,b);}
-            partyTitle=Text("",new Vector2(0,92),new Vector2(200,20),15,canvas);partyTitle.color=new Color(.86f,.98f,.88f);
-            var experience=GameExperiencePanel.Resolve(session);
-            if(experience!=null)
-            {
-                var game=Button("marina-experience-game",new Vector2(-62,135),new Vector2(110,32),new Color(.16f,.36f,.34f),()=>GameExperiencePanel.Resolve(session)?.SetExperience(GameExperience.Game),()=>GameExperiencePanel.CanChooseExperience(GameExperiencePanel.Resolve(session)));
-                gameExperienceTitle=Text("GAME",Vector2.zero,new Vector2(106,30),22,game);
-                var demo=Button("marina-experience-demo",new Vector2(62,135),new Vector2(110,32),new Color(.16f,.36f,.34f),()=>GameExperiencePanel.Resolve(session)?.SetExperience(GameExperience.Demo),()=>GameExperiencePanel.CanChooseExperience(GameExperiencePanel.Resolve(session)));
-                demoExperienceTitle=Text("DEMO",Vector2.zero,new Vector2(106,30),22,demo);
-                var round=Button("marina-experience",new Vector2(-270,-111),new Vector2(165,55),new Color(.16f,.36f,.34f),()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
-                Text("ROUND INFO",Vector2.zero,new Vector2(156,52),24,round);
-                partyTitle.rectTransform.anchoredPosition=new Vector2(270,-111);partyTitle.rectTransform.sizeDelta=new Vector2(165,55);partyTitle.fontSize=23;
-            }
-            select=new InputAction("Marina select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();Refresh();
+            var go=new GameObject("Lobby terminal",typeof(RectTransform),typeof(Canvas),typeof(Image));
+            go.transform.SetParent(transform,false);
+            canvas=(RectTransform)go.transform;
+            canvas.sizeDelta=new Vector2(720,320);
+            canvas.position=MayhemMarina.PlayScreen+Vector3.back*.11f;
+            canvas.localScale=Vector3.one*.0098f;
+            var surface=go.GetComponent<Image>();
+            surface.sprite=CandyHudVisuals.Pill;
+            surface.type=Image.Type.Sliced;
+            surface.color=CandyHudVisuals.Ink;
+            surface.raycastTarget=false;
+            var c=go.GetComponent<Canvas>();
+            c.renderMode=RenderMode.WorldSpace;
+            c.overrideSorting=true;
+            c.sortingOrder=70;
+
+            Text("Lobby",new Vector2(-274,133),new Vector2(140,38),29,canvas);
+            partyTitle=Text("",new Vector2(259,133),new Vector2(176,44),16,canvas);
+            modePicture=Card("marina-modes",-176,"Mode",()=>detail?.Invoke("modes"),out modeTitle);
+            mapPicture=Card("marina-maps",176,"Map",()=>detail?.Invoke("maps"),out mapTitle);
+
+            ActionButton("marina-room","Room",-280,()=>detail?.Invoke("room"),()=>true);
+            ActionButton("marina-join","Join",-146,()=>detail?.Invoke("join"),()=>lobby.JoinEnabled,
+                ()=>((lobby as ILobbyDetails)?.ConnectedCount??0)<=1);
+            ActionButton("marina-experience","Round",-12,()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
+            ActionButton("marina-settings","Match rules",122,()=>detail?.Invoke("settings"),()=>true);
+            var play=Button("marina-play",new Vector2(269,-121),new Vector2(158,52),new Color(.11f,.42f,.32f),lobby.StartOrCancel,()=>lobby.CanStart);
+            playTitle=Text("Start match",Vector2.zero,new Vector2(150,50),21,play);
+            Refresh();
         }
-        RawImage Card(string id,Vector2 p,Action action)
+
+        void ActionButton(string id,string title,float x,Action action,Func<bool> allowed,Func<bool> visible=null)
         {
-            var r=Button(id,p,new Vector2(220,156),new Color(1,.95f,.84f),action,()=>GameExperiencePanel.CanEditRawChoices(session));
-            var go=new GameObject("Live destination image",typeof(RectTransform),typeof(RawImage));go.transform.SetParent(r,false);var image=go.GetComponent<RawImage>();image.rectTransform.sizeDelta=new Vector2(211,147);image.raycastTarget=false;return image;
+            var button=Button(id,new Vector2(x,-121),new Vector2(124,52),CandyHudVisuals.Card,action,allowed);
+            targets[^1].visible=visible;
+            Text(title,Vector2.zero,new Vector2(118,50),20,button);
+        }
+
+        RawImage Card(string id,float x,string caption,Action action,out Text title)
+        {
+            var card=Button(id,new Vector2(x,15),new Vector2(334,208),CandyHudVisuals.Card,action,()=>GameExperiencePanel.CanEditRawChoices(session));
+            Text(caption,new Vector2(0,83),new Vector2(310,28),19,card);
+            title=Text("",new Vector2(0,-80),new Vector2(316,36),20,card);
+            var go=new GameObject("Preview",typeof(RectTransform),typeof(RawImage));
+            go.transform.SetParent(card,false);
+            var image=go.GetComponent<RawImage>();
+            image.rectTransform.sizeDelta=new Vector2(310,126);
+            image.raycastTarget=false;
+            return image;
         }
         RectTransform Button(string id,Vector2 p,Vector2 size,Color color,Action action,Func<bool> allowed)
         {
@@ -67,29 +85,25 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Refresh()
         {
-            if(!canvas||lobby==null)return;modeTitle.text=lobby.ModeTitle.ToUpperInvariant();mapTitle.text=lobby.MapTitle.ToUpperInvariant();playTitle.text=lobby.StartPending?"CANCEL":"PLAY";
-            var details=lobby as ILobbyDetails;partyTitle.text=details==null?"":details.ConnectedCount+" PLAYER"+(details.ConnectedCount==1?"":"S");
-            var experience=GameExperiencePanel.Resolve(session);
-            if(experience!=null&&gameExperienceTitle&&demoExperienceTitle)
-            {
-                gameExperienceTitle.text=experience.Experience==GameExperience.Game?"GAME [X]":"GAME";
-                demoExperienceTitle.text=experience.Experience==GameExperience.Demo?"DEMO [X]":"DEMO";
-                gameExperienceTitle.color=demoExperienceTitle.color=GameExperiencePanel.CanChooseExperience(experience)?Color.white:CandyHudVisuals.Muted;
-                partyTitle.text=experience.GamePhase+"\n"+experience.ReadyCount+" / "+experience.RequiredReadyCount+" ready";
-                browseTitle.text=experience.Experience==GameExperience.Game?"CURATED PROFILE":"BROWSE MODES";
-            }
+            if(!canvas||lobby==null)return;
+            modeTitle.text=lobby.ModeTitle;
+            mapTitle.text=lobby.MapTitle;
+            playTitle.text=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true?"Return to match":lobby.StartPending?"Cancel start":"Start match";
+            int count=(lobby as ILobbyDetails)?.ConnectedCount??1;
+            partyTitle.text=lobby.Busy?"Connecting…":lobby.Connected?$"{lobby.HostCode}  ·  {count} {(count==1?"player":"players")}":"Offline";
+            var details=lobby as ILobbyDetails;
             string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
-            if(modeId!=nextMode){modeId=nextMode;modePicture.texture=Resources.Load<Texture2D>("LobbyModePictures/"+modeId);otherPicture.texture=Resources.Load<Texture2D>("LobbyModePictures/"+(modeId=="ctf"?"disasters":"ctf"));FitPreview(modePicture);FitPreview(otherPicture);}
+            if(modeId!=nextMode){modeId=nextMode;modePicture.texture=Resources.Load<Texture2D>("LobbyModePictures/"+modeId);FitPreview(modePicture);}
             if(mapId!=nextMap){mapId=nextMap;mapPicture.texture=MapPreviewImages.Get(mapId);FitPreview(mapPicture);}
         }
         static void FitPreview(RawImage image)
         {
             if(!image.texture)return;
-            float scale=Mathf.Min(211f/image.texture.width,147f/image.texture.height);
+            float scale=Mathf.Min(310f/image.texture.width,126f/image.texture.height);
             image.rectTransform.sizeDelta=new Vector2(image.texture.width*scale,image.texture.height*scale);
         }
         public bool Invoke(string id)
-        {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&Visible&&target.allowed()){target.action();return true;}return false;}
+        {if(ModalBlocked||requireRelease)return false;if(id=="marina-host")id="marina-room";foreach(var target in targets)if(target.id==id&&Visible&&(target.visible?.Invoke()??true)&&target.allowed()){target.action();return true;}return false;}
         void Update()
         {
             if(!Visible||ModalBlocked){requireRelease=true;return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
@@ -101,23 +115,32 @@ namespace DeadlyJenga.CandyArt.Marina
             Ray ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             if(player.IsVR)
             {
-                if(!MenuPointer.TryRead(camera,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out var input))return;
-                ray=input.Ray;held=input.Held;pressed=input.Pressed;
+                bool aimed=MenuPointer.AimAt(camera,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
+                    candidate=>MenuPointer.PanelHit(candidate,canvas,MenuPointer.LobbyRange),out var input);
+                ray=input.Ray;
+                held=aimed&&input.Held;
+                pressed=aimed&&input.Pressed;
             }
-            if(requireRelease){if(!held)requireRelease=false;return;}
-            Target nearest=null;float distance=11;
+            if(requireRelease){if(!held)requireRelease=false;pressed=false;}
+            Target nearest=null;
+            float distance=MenuPointer.LobbyRange;
             foreach(var target in targets)
             {
+                bool visible=target.visible?.Invoke()??true;
+                if(target.collider.gameObject.activeSelf!=visible)target.collider.gameObject.SetActive(visible);
+                if(!visible)continue;
                 target.collider.enabled=target.allowed();
-                if(target.collider.enabled&&target.collider.Raycast(ray,out var hit,distance)&&Vector3.Dot(ray.direction,target.collider.transform.forward)>0){nearest=target;distance=hit.distance;}
+                if(target.collider.enabled&&Vector3.Dot(ray.direction,target.collider.transform.forward)>0&&target.collider.Raycast(ray,out var hit,distance))
+                {nearest=target;distance=hit.distance;}
             }
-            if(player.IsVR)MenuPointer.Draw(camera,ray,nearest!=null?distance:4);
-            foreach(var target in targets)target.face.color=target==nearest?CandyHudVisuals.Mint:target.color;
+            foreach(var target in targets)
+                target.face.color=!target.collider.enabled?Color.Lerp(target.color,CandyHudVisuals.Ink,.55f):
+                    target==nearest?Color.Lerp(target.color,CandyHudVisuals.Mint,.22f):target.color;
             if(pressed&&nearest!=null)Invoke(nearest.id);
         }
-        void OnEnable(){requireRelease=true;select?.Enable();}
+        void OnEnable(){requireRelease=true;}
+
         void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
-        void OnDisable(){select?.Disable();}
-        void OnDestroy(){select?.Dispose();if(canvas)Destroy(canvas.gameObject);}
+        void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
     }
 }

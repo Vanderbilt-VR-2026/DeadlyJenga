@@ -23,9 +23,12 @@ namespace DeadlyJenga.CastlePrototype
             go.transform.SetPositionAndRotation(new Vector3(panel.position.x,.94f,.55f),yaw*Quaternion.Euler(40,0,0));
             go.transform.localScale=Vector3.one*(1000*StationScale/1680);
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
-            var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
-            privateCode=Label(piano,"",335,36,1200,60);
-            Add(piano,"keyboard-close",()=>"CLOSE",335,lobby.UnfocusCode,()=>true,710,220,60);
+            Box(piano,"Glossy piano case",new Vector3(0,0,80),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
+            privateCode=Label(piano,"",323,42,1100,74);
+            var close=Add(piano,"keyboard-close",()=>"×",318,ClosePrivateKeyboard,()=>true,762,128,94);
+            close.label.fontSize=68;
+            close.label.resizeTextMaxSize=68;
+            piano.gameObject.SetActive(false);
             string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM-"};
             for(int row=0;row<rows.Length;row++)
             for(int col=0;col<rows[row].Length;col++)
@@ -36,8 +39,8 @@ namespace DeadlyJenga.CastlePrototype
             var back=PhysicalKey("backspace","\u232b",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
             back.label.enabled=false;
             var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
-            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
-            PhysicalKey("keyboard-enter","JOIN ROOM",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
+            PhysicalKey("clear-code","Clear",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
+            PhysicalKey("keyboard-enter","Join room",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
         }
         Choice PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
@@ -78,9 +81,16 @@ namespace DeadlyJenga.CastlePrototype
                 piano.localScale=Vector3.one*(1.15f/1680);
             }
             piano.gameObject.SetActive(open);keyboardWasOpen=open;
-            privateCode.text=string.IsNullOrEmpty(lobby.EnteredCode)?"ENTER ROOM CODE":lobby.EnteredCode;
+            privateCode.text=string.IsNullOrEmpty(lobby.EnteredCode)?"Room code":lobby.EnteredCode;
             if(!open&&lobby.CodeFocused)lobby.UnfocusCode();
         }
+        void ClosePrivateKeyboard()
+        {
+            lobby.UnfocusCode();
+            keyboardWasOpen=false;
+            if(piano)piano.gameObject.SetActive(false);
+        }
+
         // Kept for existing callers; keys now require a controller ray and trigger.
         public bool TouchKeyboard(Vector3 point,int hand)=>false;
         void EnsureKeyboardArt()

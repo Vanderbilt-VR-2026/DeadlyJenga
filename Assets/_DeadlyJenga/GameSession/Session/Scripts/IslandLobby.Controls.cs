@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         // Join terminal
-        public bool JoinEnabled=>!VisitingLobby&&Room&&!Room.Busy&&!Room.LaunchPending;
+        public bool JoinEnabled=>!VisitingLobby&&Room&&!Room.Busy&&!Room.LaunchPending&&Room.HumanCount<=1;
         public bool JoinStationEnabled=>JoinEnabled;
         public bool SetupStationEnabled=>VisitingLobby||Room&&Room.CanConfigure;
         public bool ShowingNearby=>showingNearby;
@@ -68,10 +68,10 @@ namespace DeadlyJenga.CastlePrototype
         public bool HasMoreNearby=>(Room.Discovery?.Joinable.Count??0)>3;
         public void NextNearbyPage()=>nearbyPage++;
         public string InvitationFrom=>Room.Discovery?.Invitation?.message.name;
-        public void AcceptInvitation(){if(!VisitingLobby)Room.AcceptInvite();}
-        public bool CanLeave=>!VisitingLobby&&(Room.Connected||Room.Busy);
+        public void AcceptInvitation(){if(JoinEnabled)Room.AcceptInvite();}
+        public bool CanLeave=>!VisitingLobby&&Room.Connected&&!Room.Busy&&Room.HumanCount>1;
         public bool Busy=>Room.Busy;
-        public void Leave(){if(CanLeave)_=Room.Leave();}
+        public void Leave(){if(CanLeave)_=Room.LeaveLobby();}
         public string JoinHint{get;private set;}=""; 
 
         // Host terminal
@@ -113,17 +113,17 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!JoinEnabled)codeFocused=false;
             var inviteStatus=Room.Discovery?.InviteStatus;
-            HostHint=Room.Busy?Room.Status:!string.IsNullOrEmpty(inviteStatus)?inviteStatus:
+            HostHint=Room.Busy||Room.Status.StartsWith("Could not transfer host",StringComparison.Ordinal)?Room.Status:
+                !string.IsNullOrEmpty(inviteStatus)?inviteStatus:
                 Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
-                Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):
-                "Start solo now, or create a code / invite nearby.";
+                "";
             SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
             JoinHint=Room.Busy?Room.Status:showingNearby?
                 (Room.Discovery?.HasJoinable==true?"Pick a room, or enter a code above.":
                     Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
                     Time.unscaledTime<scanningUntil?"Detecting nearby islands…":"No rooms found. Open the game on both devices on the same local network, or enter a room code."):
                 Room.Connected?"Joining another room leaves this island.":"Enter six room characters, such as ABC234.\nUse a region prefix only for a different region.";
-            if(!Room.Busy&&!Room.Connected&&Room.Status.StartsWith("Connection failed",StringComparison.Ordinal))JoinHint=HostHint=Room.Status;
+            if(!Room.Busy&&Room.Status.StartsWith("Connection failed",StringComparison.Ordinal))JoinHint=HostHint=Room.Status;
             else if(JoinEnabled&&!showingNearby&&IslandRoomAddress.TryParse(enteredCode,Room.Region,out var region,out var address))
                 JoinHint="Join "+address+" · "+(enteredCode.Contains("-")?"region specified":"using "+region.ToUpperInvariant()+" as the default region");
             else if(JoinEnabled&&!showingNearby&&enteredCode.Length>=6&&!CodeValid)JoinHint="Check the code. Example: US-ABC234.\nUse the host's region prefix, or six room characters.";

@@ -89,7 +89,7 @@ namespace DeadlyJenga.Presentation
             panel.SetParent(root.transform,false);panel.sizeDelta=new Vector2(820,760);
             var background=panel.GetComponent<Image>();background.sprite=CandyHudVisuals.Pill;background.type=Image.Type.Sliced;
             background.color=CandyHudVisuals.Ink;background.raycastTarget=false;
-            Label("GAME / DEMO",new Vector2(0,335),new Vector2(750,48),32);
+            Label("Round",new Vector2(0,335),new Vector2(750,48),32);
             profile=Label("",new Vector2(0,279),new Vector2(750,68),25);
             status=Label("",new Vector2(0,210),new Vector2(750,60),23);
             var preview=new GameObject("Selected map",typeof(RectTransform),typeof(RawImage));
@@ -97,13 +97,13 @@ namespace DeadlyJenga.Presentation
             mapImage.rectTransform.anchoredPosition=new Vector2(-190,108);mapImage.rectTransform.sizeDelta=new Vector2(330,130);
             mapName=Label("",new Vector2(-190,27),new Vector2(348,32),22);
             readiness=Label("",new Vector2(190,98),new Vector2(348,150),23);
-            Add(new Vector2(-190,-30),()=>"GAME"+(controls.Experience==GameExperience.Game?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
-            Add(new Vector2(190,-30),()=>"DEMO"+(controls.Experience==GameExperience.Demo?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Demo));
-            Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"ON":"OFF"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
-            Add(new Vector2(190,-118),()=>DuringRound?"Leave automatic playlist":controls.LocalReady?"Unready / leave playlist":"Ready / join playlist",
+            Add(new Vector2(-190,-30),()=>"Match"+(controls.Experience==GameExperience.Game?" ✓":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
+            Add(new Vector2(190,-30),()=>"Sandbox"+(controls.Experience==GameExperience.Demo?" ✓":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Demo));
+            Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"On":"Off"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
+            Add(new Vector2(190,-118),()=>DuringRound?"Leave auto rounds":controls.LocalReady?"Not ready":"Ready",
                 ()=>controls.GamePhase==RoomGamePhase.Selected||controls.GamePhase==RoomGamePhase.WaitingReady||DuringRound&&controls.AutomaticRounds&&controls.LocalReady,()=>controls.SetReady(!controls.LocalReady));
             Add(new Vector2(-190,-206),()=>"Cancel start",()=>controls.CanCancelGameStart,()=>controls.CancelGameStart());
-            Add(new Vector2(190,-206),()=>"Retry transition",()=>controls.CanRetryGameTransition,()=>controls.RetryGameTransition());
+            Add(new Vector2(190,-206),()=>"Retry start",()=>controls.CanRetryGameTransition,()=>controls.RetryGameTransition());
             actionHint=Label("",new Vector2(0,-353),new Vector2(748,46),19);
             Add(new Vector2(-190,-294),()=>"Recenter panel",()=>openingVr,Anchor);
             Add(new Vector2(190,-294),()=>"Back",()=>true,()=>Close(true));
@@ -133,11 +133,11 @@ namespace DeadlyJenga.Presentation
         {
             refreshAt=Time.unscaledTime+.2f;
             profile.text=controls.Experience==GameExperience.Game
-                ?"PROTOTYPE / UNVALIDATED / NO DISASTERS\n"+controls.ProfileId:"DEMO / MANUAL CONTROLS";
+                ?"Match · Preset rules":"Sandbox · Custom rules";
             status.text=controls.GameStatus;actionHint.text=controls.GameActionHint;
             string countdown=controls.CountdownSeconds>0?"\nCountdown: "+Mathf.CeilToInt(controls.CountdownSeconds)+" s":"";
             readiness.text=controls.ReadyCount+" / "+controls.RequiredReadyCount+" ready"+
-                "\nPopulation "+controls.MinimumPopulation+" - "+controls.MaximumPopulation+countdown;
+                "\nPlayers "+controls.MinimumPopulation+" - "+controls.MaximumPopulation+countdown;
             for(int i=0;i<captions.Count;i++)captions[i].text=titles[i]();
             var details=lobby as ILobbyDetails;string next=details?.SelectedMapId;
             if(next!=mapId)
@@ -150,7 +150,7 @@ namespace DeadlyJenga.Presentation
                 }
             }
             mapImage.gameObject.SetActive(mapImage.texture);
-            mapName.text=lobby?.MapTitle??"Map preview: lobby only";
+            mapName.text=lobby?.MapTitle??"";
         }
         void Anchor()
         {

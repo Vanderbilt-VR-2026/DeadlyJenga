@@ -76,11 +76,10 @@ namespace DeadlyJenga.CastlePrototype
             var rect=(RectTransform)root.transform;rect.sizeDelta=new Vector2(520,300);
             var image=root.AddComponent<Image>();
             image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
-            Label("HAND APPEARANCE",new Vector2(0,107),new Vector2(480,44),27);
+            Label("Hand appearance",new Vector2(0,107),new Vector2(480,44),27);
             nameLabel=Label("",new Vector2(0,32),new Vector2(332,62),32);
             Add("Previous",new Vector2(-210,32),new Vector2(68,72),"<",()=>Pick(-1));
             Add("Next",new Vector2(210,32),new Vector2(68,72),">",()=>Pick(1));
-            Label("Choose a look for your flying hand",new Vector2(0,-34),new Vector2(474,40),20).color=CandyHudVisuals.Muted;
             Add("Recenter",new Vector2(-123,-103),new Vector2(226,62),"Recenter",Anchor);
             Add("Close",new Vector2(123,-103),new Vector2(226,62),"Done",()=>Close(true));
             leftSelect=new InputAction("Hand appearance left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");

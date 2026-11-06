@@ -34,24 +34,5 @@ namespace DeadlyJenga.CastlePrototype
                 lobby.AddBlocker(root.transform,new Vector3(0,(y-.15f)*.5f,Mathf.Lerp(front,back,(t0+t1)*.5f)),new Vector3(corners[1].x-corners[0].x,y+.15f,Mathf.Abs(back-front)/8));
             }
         }
-        void StyleJoinArcade()
-        {
-            var yaw=Quaternion.Euler(0,piano.eulerAngles.y,0);
-            joinStation.SetPositionAndRotation(new Vector3(piano.position.x,StationY,StationZ),yaw);joinStation.localScale=Vector3.one*StationScale;
-            Box(transform,"JOIN monitor support",new Vector3(piano.position.x,1.35f,1.12f),new Vector3(.24f,.95f,.18f),new Color(.63f,.018f,.055f));
-            var red=new Color(.63f,.018f,.055f);
-            Box(joinStation,"CRT red back shell",new Vector3(0,0,110),new Vector3(1140,880,70),red);
-            Box(joinStation,"CRT dark glass",new Vector3(0,0,50),new Vector3(1010,770,80),new Color(.012f,.008f,.025f));
-            Box(joinStation,"CRT left bezel",new Vector3(-535,0,35),new Vector3(95,880,160),red);
-            Box(joinStation,"CRT right bezel",new Vector3(535,0,35),new Vector3(95,880,160),red);
-            Box(joinStation,"CRT top bezel",new Vector3(0,405,35),new Vector3(1070,95,160),red);
-            Box(joinStation,"CRT bottom bezel",new Vector3(0,-405,35),new Vector3(1070,95,160),red);
-            joinStation.GetComponent<Image>().color=new Color(.025f,.014f,.05f);
-            foreach(var choice in choices)if(choice.button.transform.IsChildOf(joinStation))
-            {choice.label.fontSize=32;choice.label.resizeTextMaxSize=32;choice.label.resizeTextMinSize=24;}
-            var stripe=joinStation.Find("Candy accent");if(stripe)stripe.gameObject.SetActive(false);
-            joinFace.RearOffset=.19f;joinFace.Refresh();
-            lobby.AddBlocker(joinStation,new Vector3(0,0,70),new Vector3(1140,880,210));
-        }
     }
 }

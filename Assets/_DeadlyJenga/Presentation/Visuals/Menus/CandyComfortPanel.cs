@@ -2,11 +2,8 @@ using System;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
-using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
 namespace DeadlyJenga.Presentation
@@ -17,18 +14,31 @@ namespace DeadlyJenga.Presentation
         IBlasterControls weaponHand;
         Canvas canvas;
         RectTransform panel;
-        Text mode,bindings,feedback,leftRoles,rightRoles;
-        bool home; Camera homeCamera; bool homeVr;
-        readonly List<Button> buttons=new List<Button>();
-        readonly List<Action> actions=new List<Action>();
+        const string Preference = "CandyComfort.";
+        static readonly string[] TurnModes = { "Smooth", "Snap", "PhysicalOnly" };
+        static readonly float[] SnapAngles = { 15, 30, 45, 60 };
+        static readonly float[] TurnSpeeds = { 60, 90, 120, 180, 270, 360 };
+        sealed class Control
+        {
+            public Button button;
+            public Text value, label;
+            public Func<string> title;
+            public Func<bool> enabled;
+            public Action select;
+            public bool primary;
+        }
+        readonly List<Control> controls = new List<Control>();
+        bool home,homeVr,open,returnToMenu,readyToSelect,wasVr;
+        bool initialLeft,draftLeft;
+        Camera homeCamera,eye;
         InputAction rightSelect,leftSelect;
-        bool open,returnToMenu,readyToSelect,wasVr;
-        Camera eye;
-        float nextSample,feedbackUntil;
-        int controllerCount;
-        bool singleLeft;
-        ISurvivorSettings Settings=>session?.Player as ISurvivorSettings;
+        ISurvivorSettings settings;
+        MatchRules initial,draft;
         bool PreferredLeft=>weaponHand?.LeftHanded==true;
+        bool RulesChanged=>initial!=null&&(draft.turn!=initial.turn||draft.snapAngle!=initial.snapAngle||
+            draft.smoothDegrees!=initial.smoothDegrees||draft.movement!=initial.movement);
+        bool Changed=>draftLeft!=initialLeft||RulesChanged;
+
         public static bool HomeShowing(GameObject owner)=>owner&&owner.GetComponent<CandyComfortPanel>()?.open==true;
         public static void OpenHome(GameObject owner,Camera camera,bool vr)
         {
@@ -36,8 +46,7 @@ namespace DeadlyJenga.Presentation
             var view=owner.GetComponent<CandyComfortPanel>()??owner.AddComponent<CandyComfortPanel>();
             view.home=true;view.homeCamera=camera;view.homeVr=vr;
             view.weaponHand=owner.GetComponent<IBlasterControls>();
-            if(!view.canvas)view.Build();
-            view.open=true;view.readyToSelect=false;view.nextSample=0;view.Configure(true);
+            if(!view.open)view.Begin();
         }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -48,22 +57,63 @@ namespace DeadlyJenga.Presentation
         }
         static void Attach(GameObject root)
         {
-            if(!root.GetComponent<CandyComfortPanel>())
-                root.AddComponent<CandyComfortPanel>().session=root.GetComponent<ISessionInfo>();
+            if(root.GetComponent<CandyComfortPanel>())return;
+            var view=root.AddComponent<CandyComfortPanel>();
+            view.session=root.GetComponent<ISessionInfo>();
+            ApplyPreferences(view.session?.Player as ISurvivorSettings);
         }
         public static bool Showing(ISessionInfo owner)=>(owner as Component)?.GetComponent<CandyComfortPanel>()?.open==true;
         public static void Open(ISessionInfo owner)
         {
             var view=(owner as Component)?.GetComponent<CandyComfortPanel>();
-            if(!view)return;
-            view.home=false;view.weaponHand=owner.Player?.gameObject.GetComponent<IBlasterControls>();
-            if(!view.canvas)view.Build();
+            if(!view||view.open)return;
+            view.home=false;
+            view.weaponHand=owner.Player?.gameObject.GetComponent<IBlasterControls>();
             view.returnToMenu=owner.MenuOpen;
-            view.open=true;
-            view.readyToSelect=false;
-            view.nextSample=0;
             owner.SetMenu(true);
-            view.Configure(true);
+            view.Begin();
+        }
+        void Begin()
+        {
+            settings=home?null:session.Player as ISurvivorSettings;
+            initial=settings?.CurrentRules;
+            draft=Copy(initial);
+            initialLeft=draftLeft=PreferredLeft;
+            if(!canvas)Build();
+            open=true;
+            readyToSelect=false;
+            Configure(true);
+            canvas.gameObject.SetActive(true);
+            Refresh(false,default);
+        }
+        static MatchRules Copy(MatchRules source)=>source==null?null:JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(source));
+        static void ApplyPreferences(ISurvivorSettings target)
+        {
+            if(target==null||!PlayerPrefs.HasKey(Preference+"Turn")&&!PlayerPrefs.HasKey(Preference+"Snap")&&
+                !PlayerPrefs.HasKey(Preference+"Speed")&&!PlayerPrefs.HasKey(Preference+"Movement"))return;
+            var rules=Copy(target.CurrentRules);
+            if(rules==null)return;
+            rules.playStyle="";
+            rules.turn=PlayerPrefs.GetString(Preference+"Turn",rules.turn);
+            rules.snapAngle=PlayerPrefs.GetFloat(Preference+"Snap",rules.snapAngle);
+            rules.smoothDegrees=PlayerPrefs.GetFloat(Preference+"Speed",rules.smoothDegrees);
+            rules.movement=PlayerPrefs.GetString(Preference+"Movement",rules.movement);
+            target.ApplyMatchRules(rules);
+        }
+        void Save()
+        {
+            if(!Changed)return;
+            if(draftLeft!=initialLeft)weaponHand?.SetLeftHanded(draftLeft);
+            if(RulesChanged)
+            {
+                if(draft.turn!=initial.turn)PlayerPrefs.SetString(Preference+"Turn",draft.turn);
+                if(draft.snapAngle!=initial.snapAngle)PlayerPrefs.SetFloat(Preference+"Snap",draft.snapAngle);
+                if(draft.smoothDegrees!=initial.smoothDegrees)PlayerPrefs.SetFloat(Preference+"Speed",draft.smoothDegrees);
+                if(draft.movement!=initial.movement)PlayerPrefs.SetString(Preference+"Movement",draft.movement);
+                ApplyPreferences(settings);
+            }
+            PlayerPrefs.Save();
+            Close(true);
         }
         void Build()
         {
@@ -75,53 +125,34 @@ namespace DeadlyJenga.Presentation
             scaler.referenceResolution=new Vector2(1200,900);
             scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;
             panel=new GameObject("Comfort panel",typeof(RectTransform),typeof(Image)).GetComponent<RectTransform>();
-            panel.SetParent(root.transform,false);panel.sizeDelta=new Vector2(1040,880);
+            panel.SetParent(root.transform,false);panel.sizeDelta=new Vector2(940,720);
             var back=panel.GetComponent<Image>();back.sprite=CandyHudVisuals.Pill;back.type=Image.Type.Sliced;back.color=CandyHudVisuals.Ink;back.raycastTarget=false;
-            Label("CONTROLS / DOMINANT HAND",new Vector2(0,390),new Vector2(980,48),32);
-            mode=Label("",new Vector2(0,345),new Vector2(980,38),21);
-            Add(new Vector2(-250,270),()=>"LEFT DOMINANT"+(PreferredLeft?" / SELECTED":""),()=>SetDominant(true));
-            Add(new Vector2(250,270),()=>"RIGHT DOMINANT"+(!PreferredLeft?" / SELECTED":""),()=>SetDominant(false));
-            ControllerPicture(true,new Vector2(-425,157));ControllerPicture(false,new Vector2(425,157));
-            leftRoles=Label("",new Vector2(-190,157),new Vector2(340,112),23);
-            rightRoles=Label("",new Vector2(190,157),new Vector2(340,112),23);
-            Add(new Vector2(-250,45),()=>"Look turning / "+(Settings?.TurnLabel??"Set in lobby"),()=>Settings?.CycleTurn());
-            Add(new Vector2(250,45),()=>"Look speed / "+(Settings?.SmoothTurnSpeed.ToString("0")??"--")+" deg/s",()=>Settings?.CycleSmoothTurnSpeed());
-            Add(new Vector2(-250,-40),()=>"Movement / "+(Settings?.MovementLabel??"Set in lobby"),()=>Settings?.CycleMovement());
-            Add(new Vector2(250,-40),()=>"Play style / "+(Settings?.StandingPlay==true?"Standing":"Seated"),()=>{if(Settings?.StandingPlay==true)Settings.UseStationaryPreset();else Settings?.UseStandingPreset();});
-            Add(new Vector2(-250,-125),()=>"Snap angle / "+(Settings?.SnapAngle.ToString("0")??"--")+" degrees",()=>Settings?.CycleSnapAngle());
-            Add(new Vector2(250,-125),()=>"Recalibrate seated height",()=>Settings?.RecalibrateSeatedHeight());
-            Add(new Vector2(-250,-210),()=>"Recenter this panel",()=>Configure(true));
-            Add(new Vector2(250,-210),()=>"Joystick look / enable",()=>EnableJoystickLook());
-            bindings=Label("",new Vector2(0,-287),new Vector2(980,74),19);
-            feedback=Label("",new Vector2(0,-340),new Vector2(980,30),20);
-            Add(new Vector2(-250,-390),()=>home?"Back to Home":"Back",Close);
-            Add(new Vector2(250,-390),()=>home?"Done":"Resume",()=>{Close();session?.SetMenu(false);});
+            Label("Controls & Comfort",new Vector2(0,291),new Vector2(820,64),42).fontStyle=FontStyle.Bold;
+            AddRow("Dominant Hand",200,()=>draftLeft?"Left":"Right",()=>draftLeft=!draftLeft,()=>weaponHand!=null);
+            AddRow("Turn Mode",110,()=>draft?.turn=="PhysicalOnly"?"Physical Only":draft?.turn,
+                ()=>draft.turn=MatchOptions.Next(TurnModes,draft.turn),()=>draft!=null);
+            AddRow("Snap Angle",20,()=>draft==null?null:$"{draft.snapAngle:0} Degrees",
+                ()=>draft.snapAngle=Next(SnapAngles,draft.snapAngle),()=>draft?.turn=="Snap");
+            AddRow("Turn Speed",-70,()=>draft==null?null:$"{draft.smoothDegrees:0} deg/s",
+                ()=>draft.smoothDegrees=Next(TurnSpeeds,draft.smoothDegrees),()=>draft?.turn=="Smooth");
+            AddRow("Movement",-160,()=>draft?.movement=="BodyRelative"?"Body Relative":draft==null?null:"Head Relative",
+                ()=>draft.movement=MatchOptions.Next(MatchOptions.Movements,draft.movement),()=>draft!=null);
+            Add(new Vector2(-205,-271),new Vector2(370,70),()=>"Back",()=>Close(false),()=>true);
+            Add(new Vector2(205,-271),new Vector2(370,70),()=>"Save & Exit",Save,()=>Changed,true);
             rightSelect=new InputAction("Comfort right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             leftSelect=new InputAction("Comfort left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
             rightSelect.Enable();leftSelect.Enable();
         }
-        readonly List<Func<string>> titles=new List<Func<string>>();
-        void SetDominant(bool left)
+        static float Next(float[] options,float current)
         {
-            weaponHand?.SetLeftHanded(left);
-            nextSample=0;feedbackUntil=Time.unscaledTime+2;
+            foreach(float value in options)if(value>current)return value;
+            return options[0];
         }
-        void EnableJoystickLook()
+        void AddRow(string name,float y,Func<string> value,Action select,Func<bool> enabled)
         {
-            var settings=Settings;if(settings==null)return;
-            var rules=JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(settings.CurrentRules));
-            rules.turn="Smooth";settings.ApplyMatchRules(rules);
-        }
-        void ControllerPicture(bool left,Vector2 position)
-        {
-            var image=new GameObject(left?"Left controller":"Right controller",typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
-            image.transform.SetParent(panel,false);image.rectTransform.anchoredPosition=position;
-            image.rectTransform.sizeDelta=new Vector2(86,112);image.texture=CandyHudVisuals.ControllerDiagram(0,left);image.raycastTarget=false;
-        }
-        string Roles(bool left)
-        {
-            string side=left?"LEFT":"RIGHT";
-            return side+(left==PreferredLeft?" / DOMINANT\nStick: LOOK\n"+(left?"X":"A")+": JUMP / HOLD CLIMB\nTrigger: FIRE":" / NON-DOMINANT\nStick: MOVE\nStick click: SPRINT");
+            var label=Label(name,new Vector2(-190,y),new Vector2(425,64),30);
+            label.alignment=TextAnchor.MiddleLeft;
+            Add(new Vector2(205,y),new Vector2(370,64),value,select,enabled).label=label;
         }
         void Configure(bool anchor)
         {
@@ -152,75 +183,53 @@ namespace DeadlyJenga.Presentation
             if(!open)return;
             if(!home&&(session==null||Services.Session!=session||!session.MenuOpen)||home&&!homeCamera){open=false;canvas.gameObject.SetActive(false);return;}
             if(!home&&(eye!=session.ActiveCamera||wasVr!=session.IsVR))Configure(true);
-            canvas.gameObject.SetActive(true);
-            if(Time.unscaledTime>=nextSample)
-            {
-                nextSample=Time.unscaledTime+.2f;
-                var settings=Settings;if(!home)weaponHand=session.Player?.gameObject.GetComponent<IBlasterControls>();
-                controllerCount=0;
-                foreach(var device in InputSystem.devices)
-                    if(PhysicalController(device))
-                    {
-                        controllerCount++;
-                        singleLeft=HasUsage(device,CommonUsages.LeftHand);
-                    }
-                string input=!wasVr?"Keyboard + mouse":controllerCount==1?"One "+(singleLeft?"LEFT":"RIGHT")+" controller"+(session?.Player?.HasHandTracking==true?" + tracked hand":""):
-                    controllerCount>1?"VR controllers":session?.Player?.HasHandTracking==true?"Hand tracking":"VR / waiting for tracking";
-                mode.text="Preferred dominant hand: "+(PreferredLeft?"LEFT":"RIGHT")+" / "+input;
-                leftRoles.text=Roles(true);rightRoles.text=Roles(false);
-                bindings.text=home?"Preference saves for Game and Demo. Look speed and comfort are also available in Lobby / Pause.":
-                    controllerCount==1?"One controller: stick moves; grip + stick looks. Your preferred hand stays saved.\nJump: controller primary button. Fire: trigger. Add both controllers for the layout above.":
-                    settings?.TurnLabel=="PhysicalOnly"?"JOYSTICK LOOK IS OFF: physical turning selected. Choose Joystick look / enable.\nTurn your head freely. Menu: bare left Y / native; right-only Grip + B.":
-                    "Dominant stick looks left/right AND up/down. Non-dominant stick moves.\nJump: dominant X / A. Fire equipped weapon: dominant trigger. Menu: bare left Y / native.";
-                for(int i=0;i<buttons.Count;i++)
-                {
-                    buttons[i].GetComponentInChildren<Text>().text=titles[i]();
-                    buttons[i].gameObject.SetActive(!home||i<2||i>=10);
-                    buttons[i].interactable=i<2?weaponHand!=null:i>=8||settings!=null;
-                }
-                buttons[7].interactable=wasVr&&settings!=null&&!settings.StandingPlay;
-                feedback.text=Time.unscaledTime<feedbackUntil?"Preference applied locally.":weaponHand==null?"Hand preference provider unavailable.":"Select either dominant hand. This remains available in every game mode.";
-            }
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(false);return;}
             if(!readyToSelect)
             {
                 if(session?.MenuSelectHeld!=true&&!rightSelect.IsPressed()&&!leftSelect.IsPressed()&&Mouse.current?.leftButton.isPressed!=true)readyToSelect=true;
                 return;
             }
-            bool pressed=false;Vector2 point;
+            bool pressed=false;
+            Vector2 point=default;
+            bool onPanel;
             if(wasVr)
-            {
-                if(!DeadlyJenga.Presentation.MenuPointer.OnPanel(eye, panel, PreferredLeft, out point, out pressed)) return;
-            }
+                onPanel=MenuPointer.OnPanel(eye,panel,PreferredLeft,out point,out pressed);
             else
             {
-                if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point))return;
-                pressed=Mouse.current.leftButton.wasPressedThisFrame;
+                onPanel=Mouse.current!=null&&RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point);
+                pressed=onPanel&&Mouse.current.leftButton.wasPressedThisFrame;
             }
-            for(int i=0;i<buttons.Count;i++)
+            var selected=Refresh(onPanel,point);
+            if(pressed&&selected!=null)
             {
-                var rect=(RectTransform)buttons[i].transform;
-                var local=point-rect.anchoredPosition;
-                bool hover=rect.rect.Contains(local)&&buttons[i].interactable;
-                bool selected=i<2&&(i==0)==PreferredLeft;
-                buttons[i].image.color=hover||selected?CandyHudVisuals.Mint:buttons[i].interactable?CandyHudVisuals.Panel:new Color(.18f,.14f,.24f);
-                buttons[i].GetComponentInChildren<Text>().color=hover||selected?CandyHudVisuals.Ink:Color.white;
-                if(pressed&&hover)
-                {
-                    actions[i]();readyToSelect=false;nextSample=0;
-                    if(i<8)feedbackUntil=Time.unscaledTime+1.5f;
-                    return;
-                }
+                selected.select();
+                readyToSelect=false;
+                if(open)Refresh(onPanel,point);
             }
         }
-        static bool PhysicalController(InputDevice device)=>device is XRController controller&&controller.isTracked.isPressed&&device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)<0;
-        static bool HasUsage(InputDevice device,UnityEngine.InputSystem.Utilities.InternedString usage)
-        {foreach(var value in device.usages)if(value==usage)return true;return false;}
-        void Close()
+        Control Refresh(bool onPanel,Vector2 point)
+        {
+            Control hovered=null;
+            foreach(var control in controls)
+            {
+                var rect=(RectTransform)control.button.transform;
+                bool enabled=control.enabled();
+                bool hover=enabled&&onPanel&&rect.rect.Contains(point-rect.anchoredPosition);
+                if(hover)hovered=control;
+                control.button.interactable=enabled;
+                control.button.image.color=!enabled?CandyHudVisuals.Panel:hover||control.primary?CandyHudVisuals.Mint:CandyHudVisuals.Card;
+                control.value.text=control.title()??"—";
+                control.value.color=!enabled?CandyHudVisuals.Muted:hover||control.primary?CandyHudVisuals.Ink:Color.white;
+                if(control.label)control.label.color=enabled?Color.white:CandyHudVisuals.Muted;
+            }
+            return hovered;
+        }
+        void Close(bool saved)
         {
             if(!open)return;
             open=false;
-            if(canvas)canvas.gameObject.SetActive(false);
-            if(!home&&Services.Session==session)session.SetMenu(returnToMenu);
+            canvas.gameObject.SetActive(false);
+            if(!home&&Services.Session==session)session.SetMenu(!saved&&returnToMenu);
         }
         Text Label(string value,Vector2 position,Vector2 size,int fontSize)
         {
@@ -229,13 +238,15 @@ namespace DeadlyJenga.Presentation
             var label=rect.GetComponent<Text>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=fontSize;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;label.text=value;
             return label;
         }
-        void Add(Vector2 position,Func<string> title,Action action)
+        Control Add(Vector2 position,Vector2 size,Func<string> title,Action action,Func<bool> enabled,bool primary=false)
         {
             var rect=new GameObject("Comfort control",typeof(RectTransform),typeof(Image),typeof(Button)).GetComponent<RectTransform>();
-            rect.SetParent(panel,false);rect.anchoredPosition=position;rect.sizeDelta=new Vector2(470,76);
-            var button=rect.GetComponent<Button>();button.image.sprite=CandyHudVisuals.Pill;button.image.type=Image.Type.Sliced;button.image.color=CandyHudVisuals.Panel;button.image.raycastTarget=false;
-            var label=Label(title(),Vector2.zero,new Vector2(448,68),24);label.transform.SetParent(rect,false);
-            buttons.Add(button);titles.Add(title);actions.Add(action);
+            rect.SetParent(panel,false);rect.anchoredPosition=position;rect.sizeDelta=size;
+            var button=rect.GetComponent<Button>();button.image.sprite=CandyHudVisuals.Pill;button.image.type=Image.Type.Sliced;button.image.raycastTarget=false;
+            var label=Label("",Vector2.zero,size-new Vector2(20,6),28);label.transform.SetParent(rect,false);
+            var control=new Control{button=button,value=label,title=title,select=action,enabled=enabled,primary=primary};
+            controls.Add(control);
+            return control;
         }
         void OnDestroy()
         {

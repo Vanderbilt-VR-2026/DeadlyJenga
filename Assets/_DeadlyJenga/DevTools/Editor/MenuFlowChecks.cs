@@ -134,12 +134,26 @@ namespace DeadlyJenga.DevTools.Editor
             Call(view,"UpdatePrivateKeyboard");Check(!keyboard.gameObject.activeSelf,"Private keyboard starts hidden");
             yield return Until(()=>!room.Busy,"Automatic host attempt finishes");
             Check(room.Connected&&lobby.IsHost,"Island automatically hosts a Fusion room");
-            lobby.FocusCode();Call(view,"UpdatePrivateKeyboard");
+            var openPage=view.GetType().GetMethod("OpenMarinaDetail",Private);
+            openPage.Invoke(view,new object[]{"room"});
+            var roomPage=Field<RectTransform>(view,"roomPage");
+            var matchPage=Field<RectTransform>(view,"setupStation");
+            Check(roomPage.gameObject.activeInHierarchy&&
+                Field<RectTransform>(view,"hostStation").IsChildOf(roomPage)&&Field<RectTransform>(view,"joinStation").IsChildOf(roomPage)&&
+                Vector3.Distance(roomPage.position,matchPage.position)<.01f,
+                "Room and join controls share a page at the match terminal");
+            Check(view.InvokeChoice("code"),"Room code field opens the keyboard");
+            Call(view,"UpdatePrivateKeyboard");
             Check(keyboard.gameObject.activeSelf&&Vector3.Distance(keyboard.position,lobby.Player.ViewCamera.transform.position)<1.3f,"Room field opens a keyboard in front of the local player");
             Check(!keyboard.GetComponentInParent<NetworkObject>()&&!keyboard.GetComponentInChildren<NetworkBehaviour>(true),"Keyboard and typed text are not network objects");
             lobby.TypeCode('A');Call(view,"UpdatePrivateKeyboard");
             Check(!view.TouchKeyboard(keyboard.position,0)&&lobby.EnteredCode=="A","Fingertip contact cannot enter room characters");
-            view.InvokeChoice("keyboard-close");Call(view,"UpdatePrivateKeyboard");Check(!keyboard.gameObject.activeSelf&&!lobby.CodeFocused,"Close dismisses keyboard and code focus");
+            view.InvokeChoice("keyboard-close");
+            Check(!keyboard.gameObject.activeSelf&&!lobby.CodeFocused,"Keyboard × immediately dismisses the popup");
+            Check(view.InvokeChoice("marina-close")&&!roomPage.gameObject.activeSelf,"Back on the Room page returns to the lobby overview");
+            openPage.Invoke(view,new object[]{"maps"});
+            Check(matchPage.gameObject.activeSelf&&view.InvokeChoice("setup-back")&&!matchPage.gameObject.activeSelf,
+                "Back inside the map browser returns to the lobby overview");
             var app=Fusion.Photon.Realtime.PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=room.Region;app.AppVersion=(app.AppVersion??"")+"/"+room.Catalog.NetworkVersion;
             var go=new GameObject("Menu flow second Fusion host");Object.DontDestroyOnLoad(go);probe=go.AddComponent<NetworkRunner>();
             string oldCode=room.Code,address=IslandRoomAddress.Create(room.Region);
@@ -177,6 +191,17 @@ namespace DeadlyJenga.DevTools.Editor
                 Pose(right,new Vector3(.2f,1.3f,.2f));Pose(left,new Vector3(-.2f,1.3f,.2f));
                 bool read=MenuPointer.TryRead(camera,false,out var sample);
                 Check(read&&Vector3.Distance(sample.Ray.origin,go.transform.TransformPoint(right.devicePosition.ReadValue()))<.001f,"Controller ray respects the translated and rotated XR tracking origin (read="+read+", actual="+sample.Ray.origin+", expected="+go.transform.TransformPoint(right.devicePosition.ReadValue())+", tracked="+right.isTracked.isPressed+")");
+                var panel=(RectTransform)new GameObject("Pointer range test",typeof(RectTransform)).transform;
+                panel.SetParent(go.transform,false);
+                panel.localPosition=new Vector3(0,1.3f,2);
+                panel.sizeDelta=new Vector2(2,1);
+                float Hit(Ray ray)=>MenuPointer.PanelHit(ray,panel);
+                Check(MenuPointer.AimAt(camera,false,Hit,out _)&&camera.GetComponentsInChildren<LineRenderer>().Count(beam=>beam.enabled)==2,
+                    "Both controllers show a laser when aimed at a nearby panel");
+                panel.localPosition=new Vector3(0,1.3f,20);
+                Check(!MenuPointer.AimAt(camera,false,Hit,out _),"Out-of-range panels cannot be selected");
+                yield return null;yield return null;
+                Check(camera.GetComponentsInChildren<LineRenderer>().All(beam=>!beam.enabled),"Both lasers disappear when no nearby panel is hit");
                 InputState.Change(left.GetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger"),1f);yield return null;
                 Check(MenuPointer.TryRead(camera,false,out sample)&&sample.Pressed&&sample.Held&&Vector3.Distance(sample.Ray.origin,go.transform.TransformPoint(left.devicePosition.ReadValue()))<.001f,"Pressing left trigger selects the left controller laser");
                 yield return null;MenuPointer.TryRead(camera,false,out sample);Check(!sample.Pressed&&sample.Held,"Holding trigger does not repeatedly click");
