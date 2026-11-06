@@ -79,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
             return end<0?info.Substring(6):info.Substring(6,end-6);
         }
         public static string LobbyAction(IMultiplayerControls net)
-            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.IsClient?"Visit Lobby":"Return Room to Lobby";
+            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.CanToggleSharedControls?"Return Room to Lobby":"Visit Lobby";
         static readonly RoomLeaveConfirmation desktopLeave=new RoomLeaveConfirmation();
         public static void ClearLeaveConfirmation()=>desktopLeave.Clear();
         public static string EndAction(IMultiplayerControls net)

@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
             ActionCard(119,CandyHudIcon.Home,"Reset / rebuild map","Rebuild the current map and reposition Demo actors.",()=>{session.ResetMap();session.SetMenu(false);},EditWorld,CandyHudVisuals.Peach);
             if(Demo is IBuildUpControls build&&build.Available)ActionCard(223,CandyHudIcon.Play,"Deliver next scaffold tier",build.Delivering?"Delivery in progress":"Advance the staged scaffold map.",()=>build.AdvanceStage(),build.CanAdvance);
             var review=MatchRuntime.Current as IMatchReviewControls;
-            if(review?.DevelopmentReviewEnabled==true)
+            if(review!=null&&(review.DevelopmentReviewEnabled||review.CanEndGame))
                 ActionCard(327,CandyHudIcon.Play,MultiplayerPanel.EndAction(session.Multiplayer),"Show results for the current round.",()=>review.EndGame(),review.CanEndGame);
             var wildlife=Wildlife;
             if(wildlife==null)return;

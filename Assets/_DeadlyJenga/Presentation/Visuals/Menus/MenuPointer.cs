@@ -173,8 +173,7 @@ namespace DeadlyJenga.Presentation
             if(room==null)return false;
             if(room.IsFusion&&!string.IsNullOrEmpty(room.RoomInfo))
             {
-                if(room.CanToggleSharedControls||GameExperiencePanel.Resolve(session)?.CanConfigureExperience==true)return false;
-                if(MatchRuntime.Current?.Rules?.mode==GameModeKind.Demo)return true;
+                return !room.CanToggleSharedControls&&GameExperiencePanel.Resolve(session)?.CanConfigureExperience!=true;
             }
             return room.IsClient;
         }

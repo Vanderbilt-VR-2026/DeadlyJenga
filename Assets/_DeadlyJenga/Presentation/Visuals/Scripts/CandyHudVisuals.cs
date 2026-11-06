@@ -8,8 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     public static class CandyHudVisuals
     {
         public static readonly Color Ink=new Color(.095f,.055f,.18f),Panel=new Color(.18f,.115f,.29f),Card=new Color(.25f,.17f,.38f),
-            Mint=new Color(.35f,1,.77f),Lavender=new Color(.78f,.64f,1),Peach=new Color(1,.71f,.53f),Muted=new Color(.80f,.75f,.90f),
-            ReadyBlue=new Color(.28f,.72f,1);
+            Mint=new Color(.35f,1,.77f),Lavender=new Color(.78f,.64f,1),Peach=new Color(1,.71f,.53f),Muted=new Color(.80f,.75f,.90f);
         static Texture2D rounded;static Sprite pill;
         static readonly Dictionary<CandyHudIcon,Texture2D> icons=new Dictionary<CandyHudIcon,Texture2D>();
         public static Texture2D Rounded

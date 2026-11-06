@@ -12,6 +12,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
+        static readonly Color MatchActionColor=new Color(.11f,.42f,.32f);
         sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed,visible;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
@@ -20,7 +21,7 @@ namespace DeadlyJenga.CandyArt.Marina
         IGameExperienceControls readiness;
         bool VisitingMatch=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
         bool JoinedLobby=>lobby.Connected&&!lobby.IsHost&&!VisitingMatch;
-        RectTransform roomButton,rulesButton;
+        RectTransform rulesButton;
         Target readyTarget;
         RectTransform canvas;Text modeTitle,mapTitle,playTitle,readyTitle,partyTitle;
         RawImage modePicture,mapPicture;string modeId,mapId;float refreshAt;
@@ -50,16 +51,16 @@ namespace DeadlyJenga.CandyArt.Marina
             modePicture=Card("marina-modes",-176,"Mode",()=>detail?.Invoke("modes"),out modeTitle);
             mapPicture=Card("marina-maps",176,"Map",()=>detail?.Invoke("maps"),out mapTitle);
 
-            roomButton=ActionButton("marina-room","Room",-280,()=>detail?.Invoke("room"),()=>true);
+            ActionButton("marina-room","Room",-280,()=>detail?.Invoke("room"),()=>true);
             ActionButton("marina-join","Join",-146,()=>detail?.Invoke("join"),()=>lobby.JoinEnabled,
                 ()=>((lobby as ILobbyDetails)?.ConnectedCount??0)<=1);
-            var ready=Button("marina-ready",new Vector2(-280,-121),new Vector2(124,52),CandyHudVisuals.ReadyBlue,
+            var ready=Button("marina-ready",new Vector2(269,-121),new Vector2(158,52),MatchActionColor,
                 ()=>readiness.SetReady(!readiness.LocalReady),()=>lobby.CanLeave&&!lobby.StartPending&&readiness.ReadyCount>0);
             readyTarget=targets[^1];
             readyTarget.visible=()=>readiness!=null&&JoinedLobby;
-            readyTitle=Text("Ready",Vector2.zero,new Vector2(118,50),20,ready);
+            readyTitle=Text("Ready",Vector2.zero,new Vector2(150,50),21,ready);
             rulesButton=ActionButton("marina-settings","Match Rules",122,()=>detail?.Invoke("settings"),()=>true);
-            var play=Button("marina-play",new Vector2(269,-121),new Vector2(158,52),new Color(.11f,.42f,.32f),lobby.StartOrCancel,()=>lobby.CanStart);
+            var play=Button("marina-play",new Vector2(269,-121),new Vector2(158,52),MatchActionColor,lobby.StartOrCancel,()=>lobby.CanStart);
             targets[^1].visible=()=>lobby.IsHost||VisitingMatch;
             playTitle=Text("Start match",Vector2.zero,new Vector2(150,50),21,play);
             Refresh();
@@ -101,13 +102,10 @@ namespace DeadlyJenga.CandyArt.Marina
             modeTitle.text=lobby.ModeTitle;
             mapTitle.text=lobby.MapTitle;
             playTitle.text=VisitingMatch?"Return to match":lobby.StartPending?"Cancel start":"Start match";
-            bool joined=JoinedLobby;
-            roomButton.anchoredPosition=new Vector2(joined?280:-280,-121);
-            rulesButton.anchoredPosition=new Vector2(joined?0:122,-121);
+            rulesButton.anchoredPosition=new Vector2(JoinedLobby?0:122,-121);
             bool ready=readiness?.LocalReady==true;
             readyTitle.text=ready?"Unready":"Ready";
-            readyTarget.color=ready?CandyHudVisuals.Card:CandyHudVisuals.ReadyBlue;
-            readyTitle.color=ready?Color.white:CandyHudVisuals.Ink;
+            readyTarget.color=ready?CandyHudVisuals.Card:MatchActionColor;
             partyTitle.text=lobby.Busy?"Connecting…":lobby.Connected
                 ?$"{lobby.HostCode}  ·  {readiness?.ReadyCount??0} of {readiness?.RequiredReadyCount??0} ready"
                 :"Offline";

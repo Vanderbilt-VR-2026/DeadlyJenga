@@ -111,7 +111,15 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void AcceptInvite(){var invite=Discovery?.Invitation;if(invite!=null&&!Busy){string code=invite.message.code;Discovery.Dismiss();_=Join(code);}}
         public void SetSharedControls(bool value){if(CanConfigure)Act(new LobbyAction{verb="shared",index=value?1:0});}
-        public void ReceiveSharedControls(bool value){if(!IsHost)SharedDemoControls=value;}
+        internal void SetMatchSharedControls(bool shared)
+        {if(IsHost)SharedDemoControls=shared;}
+        internal void ReceiveMatchPermissions(string leader,bool shared)
+        {
+            if(!Connected||IsHost)return;
+            leaderId=leader;
+            SharedDemoControls=shared;
+            RefreshHostFlags();
+        }
         public void ScanNearby()
         {
             if (Discovery == null) StartDiscovery();

@@ -227,7 +227,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(wildlife!=null)Add("Island wildlife",()=>wildlifePage=true,icon:CandyHudIcon.Survivor);
                     Add("Rebuild map",()=>{if(DeadlyJenga.Presentation.MenuAccess.HostTools(session))session.ResetMap();},DeadlyJenga.Presentation.MenuAccess.HostTools(session));
                     if(Demo is IBuildUpControls build&&build.Available)Add("Deliver scaffold tier",()=>{if(build.CanAdvance)build.AdvanceStage();},build.CanAdvance);
-                    if(match is IMatchReviewControls review&&review.DevelopmentReviewEnabled)
+                    if(match is IMatchReviewControls review&&(review.DevelopmentReviewEnabled||review.CanEndGame))
                         Add(MultiplayerPanel.EndAction(session.Multiplayer),()=>{if(review.CanEndGame)review.EndGame();},review.CanEndGame,CandyHudIcon.Play);
                 }
                 if(name=="Enemies")

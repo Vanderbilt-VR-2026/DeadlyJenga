@@ -153,7 +153,7 @@ namespace DeadlyJenga.CastlePrototype
             var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"":CandyBrief(map.description);
             var readiness=lobby as IGameExperienceControls;
             var ready=CandyChoice("lobby-ready");
-            ready.faceColor=readiness?.LocalReady==true?CandyFace:CandyHudVisuals.ReadyBlue;
+            ready.faceColor=readiness?.LocalReady==true?CandyFace:CandyMint;
             ready.edgeColor=ready.faceColor;
             candyRoomStatus.text=$"{readiness?.ReadyCount??0} of {readiness?.RequiredReadyCount??0}\nREADY";
             foreach(string id in new[]{"picker-previous","picker-next"})
