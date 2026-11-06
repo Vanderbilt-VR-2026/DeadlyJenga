@@ -19,6 +19,9 @@ namespace DeadlyJenga.CandyArt.Marina
         bool ModalBlocked=>!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
         IGameExperienceControls readiness;
         bool VisitingMatch=>(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
+        bool JoinedLobby=>lobby.Connected&&!lobby.IsHost&&!VisitingMatch;
+        RectTransform roomButton,rulesButton;
+        Target readyTarget;
         RectTransform canvas;Text modeTitle,mapTitle,playTitle,readyTitle,partyTitle;
         RawImage modePicture,mapPicture;string modeId,mapId;float refreshAt;
         public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
@@ -47,25 +50,27 @@ namespace DeadlyJenga.CandyArt.Marina
             modePicture=Card("marina-modes",-176,"Mode",()=>detail?.Invoke("modes"),out modeTitle);
             mapPicture=Card("marina-maps",176,"Map",()=>detail?.Invoke("maps"),out mapTitle);
 
-            ActionButton("marina-room","Room",-280,()=>detail?.Invoke("room"),()=>true);
+            roomButton=ActionButton("marina-room","Room",-280,()=>detail?.Invoke("room"),()=>true);
             ActionButton("marina-join","Join",-146,()=>detail?.Invoke("join"),()=>lobby.JoinEnabled,
                 ()=>((lobby as ILobbyDetails)?.ConnectedCount??0)<=1);
-            var ready=Button("marina-ready",new Vector2(-12,-121),new Vector2(124,52),CandyHudVisuals.Card,
+            var ready=Button("marina-ready",new Vector2(-280,-121),new Vector2(124,52),CandyHudVisuals.ReadyBlue,
                 ()=>readiness.SetReady(!readiness.LocalReady),()=>lobby.CanLeave&&!lobby.StartPending&&readiness.ReadyCount>0);
-            targets[^1].visible=()=>readiness!=null&&lobby.Connected&&!lobby.IsHost&&!VisitingMatch;
+            readyTarget=targets[^1];
+            readyTarget.visible=()=>readiness!=null&&JoinedLobby;
             readyTitle=Text("Ready",Vector2.zero,new Vector2(118,50),20,ready);
-            ActionButton("marina-settings","Match Rules",122,()=>detail?.Invoke("settings"),()=>true);
+            rulesButton=ActionButton("marina-settings","Match Rules",122,()=>detail?.Invoke("settings"),()=>true);
             var play=Button("marina-play",new Vector2(269,-121),new Vector2(158,52),new Color(.11f,.42f,.32f),lobby.StartOrCancel,()=>lobby.CanStart);
             targets[^1].visible=()=>lobby.IsHost||VisitingMatch;
             playTitle=Text("Start match",Vector2.zero,new Vector2(150,50),21,play);
             Refresh();
         }
 
-        void ActionButton(string id,string title,float x,Action action,Func<bool> allowed,Func<bool> visible=null)
+        RectTransform ActionButton(string id,string title,float x,Action action,Func<bool> allowed,Func<bool> visible=null)
         {
             var button=Button(id,new Vector2(x,-121),new Vector2(124,52),CandyHudVisuals.Card,action,allowed);
             targets[^1].visible=visible;
             Text(title,Vector2.zero,new Vector2(118,50),20,button);
+            return button;
         }
 
         RawImage Card(string id,float x,string caption,Action action,out Text title)
@@ -96,7 +101,13 @@ namespace DeadlyJenga.CandyArt.Marina
             modeTitle.text=lobby.ModeTitle;
             mapTitle.text=lobby.MapTitle;
             playTitle.text=VisitingMatch?"Return to match":lobby.StartPending?"Cancel start":"Start match";
-            readyTitle.text=readiness?.LocalReady==true?"Unready":"Ready";
+            bool joined=JoinedLobby;
+            roomButton.anchoredPosition=new Vector2(joined?280:-280,-121);
+            rulesButton.anchoredPosition=new Vector2(joined?0:122,-121);
+            bool ready=readiness?.LocalReady==true;
+            readyTitle.text=ready?"Unready":"Ready";
+            readyTarget.color=ready?CandyHudVisuals.Card:CandyHudVisuals.ReadyBlue;
+            readyTitle.color=ready?Color.white:CandyHudVisuals.Ink;
             partyTitle.text=lobby.Busy?"Connecting…":lobby.Connected
                 ?$"{lobby.HostCode}  ·  {readiness?.ReadyCount??0} of {readiness?.RequiredReadyCount??0} ready"
                 :"Offline";

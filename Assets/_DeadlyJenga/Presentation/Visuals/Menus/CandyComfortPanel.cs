@@ -28,7 +28,7 @@ namespace DeadlyJenga.Presentation
             public bool primary;
         }
         readonly List<Control> controls = new List<Control>();
-        bool home,homeVr,open,readyToSelect,wasVr;
+        bool home,homeVr,open,readyToSelect,wasVr,returnToMenuOnBack;
         bool initialLeft,draftLeft;
         Camera homeCamera,eye;
         InputAction rightSelect,leftSelect;
@@ -68,6 +68,7 @@ namespace DeadlyJenga.Presentation
             var view=(owner as Component)?.GetComponent<CandyComfortPanel>();
             if(!view||view.open)return;
             view.home=false;
+            view.returnToMenuOnBack=owner.MenuOpen&&owner is not ILobbyControls;
             view.weaponHand=owner.Player?.gameObject.GetComponent<IBlasterControls>();
             owner.SetMenu(true);
             view.Begin();
@@ -136,7 +137,7 @@ namespace DeadlyJenga.Presentation
                 ()=>draft.smoothDegrees=Next(TurnSpeeds,draft.smoothDegrees),()=>draft?.turn=="Smooth");
             AddRow("Movement",-160,()=>draft?.movement=="BodyRelative"?"Body Relative":draft==null?null:"Head Relative",
                 ()=>draft.movement=MatchOptions.Next(MatchOptions.Movements,draft.movement),()=>draft!=null);
-            Add(new Vector2(-205,-271),new Vector2(370,70),()=>"Back",Close,()=>true);
+            Add(new Vector2(-205,-271),new Vector2(370,70),()=>"Back",Back,()=>true);
             Add(new Vector2(205,-271),new Vector2(370,70),()=>"Save & Exit",Save,()=>Changed,true);
             rightSelect=new InputAction("Comfort right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             leftSelect=new InputAction("Comfort left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
@@ -182,7 +183,7 @@ namespace DeadlyJenga.Presentation
             if(!open)return;
             if(!home&&(session==null||Services.Session!=session||!session.MenuOpen)||home&&!homeCamera){open=false;canvas.gameObject.SetActive(false);return;}
             if(!home&&(eye!=session.ActiveCamera||wasVr!=session.IsVR))Configure(true);
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Back();return;}
             if(!readyToSelect)
             {
                 if(session?.MenuSelectHeld!=true&&!rightSelect.IsPressed()&&!leftSelect.IsPressed()&&Mouse.current?.leftButton.isPressed!=true)readyToSelect=true;
@@ -223,12 +224,13 @@ namespace DeadlyJenga.Presentation
             }
             return hovered;
         }
-        void Close()
+        void Back()=>Close(returnToMenuOnBack);
+        void Close(bool keepMenuOpen=false)
         {
             if(!open)return;
             open=false;
             canvas.gameObject.SetActive(false);
-            if(!home&&Services.Session==session)session.SetMenu(false);
+            if(!home&&!keepMenuOpen&&Services.Session==session)session.SetMenu(false);
         }
         Text Label(string value,Vector2 position,Vector2 size,int fontSize)
         {
