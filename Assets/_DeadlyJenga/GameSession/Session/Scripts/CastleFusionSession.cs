@@ -16,10 +16,88 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<PlayerRef,CastleSocialChannel> socialPeers=new Dictionary<PlayerRef,CastleSocialChannel>();
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
-        const int LivePose = 20, LivePoses = 21, PoseReceipt = 22;
+        const int LivePose = 20, LivePoses = 21, PoseReceiptGroup = 23;
         const int PoseWindow = 6, MaxPoseSize = 4096, MaxLiveBatchSize=64*1024;
+        internal static class LivePoseCodec
+        {
+            internal const int HeaderBytes=17;
+            const uint Magic=0x3150534c;
+            static readonly uint[] CrcTable=BuildCrcTable();
+            static uint[] BuildCrcTable()
+            {
+                var table=new uint[256];
+                for(int i=0;i<table.Length;i++){uint value=(uint)i;for(int bit=0;bit<8;bit++)value=(value>>1)^((value&1)!=0?0xedb88320u:0);table[i]=value;}
+                return table;
+            }
+            static uint Crc(byte[] data)
+            {uint crc=uint.MaxValue;foreach(byte value in data)crc=(crc>>8)^CrcTable[(crc^value)&255];return ~crc;}
+            internal static byte[] Pack(byte[] raw,int maximum)
+            {
+                if(raw==null||raw.Length<1||raw.Length>maximum)throw new System.IO.InvalidDataException("Live pose size is invalid");
+                byte[] body;
+                using(var zipped=new System.IO.MemoryStream())
+                {using(var zip=new System.IO.Compression.GZipStream(zipped,System.IO.Compression.CompressionLevel.Fastest,true))zip.Write(raw,0,raw.Length);body=zipped.ToArray();}
+                bool compressed=body.Length<raw.Length;if(!compressed)body=raw;
+                using var output=new System.IO.MemoryStream();using var writer=new System.IO.BinaryWriter(output);
+                writer.Write(Magic);writer.Write((byte)(compressed?1:0));writer.Write(raw.Length);writer.Write(body.Length);writer.Write(Crc(raw));writer.Write(body);return output.ToArray();
+            }
+            internal static byte[] Unpack(byte[] packet,int maximum)
+            {
+                if(packet==null||packet.Length<HeaderBytes||packet.Length>maximum+HeaderBytes)throw new System.IO.InvalidDataException("Live pose envelope size is invalid");
+                using var input=new System.IO.MemoryStream(packet,false);using var reader=new System.IO.BinaryReader(input);
+                if(reader.ReadUInt32()!=Magic)throw new System.IO.InvalidDataException("Live pose protocol differs");
+                byte mode=reader.ReadByte();int length=reader.ReadInt32(),stored=reader.ReadInt32();uint crc=reader.ReadUInt32();
+                if(mode>1||length<1||length>maximum||stored<1||stored!=packet.Length-HeaderBytes||stored>length||mode==0&&stored!=length||mode==1&&stored>=length)
+                    throw new System.IO.InvalidDataException("Live pose declared lengths are invalid");
+                var raw=new byte[length];
+                if(mode==0)System.Buffer.BlockCopy(packet,HeaderBytes,raw,0,length);
+                else
+                {
+                    int at=HeaderBytes,end=packet.Length;
+                    if(stored<18||packet[at]!=31||packet[at+1]!=139||packet[at+2]!=8||packet[at+3]!=0||
+                        BitConverter.ToUInt32(packet,end-8)!=crc||BitConverter.ToUInt32(packet,end-4)!=(uint)length)
+                        throw new System.IO.InvalidDataException("Live pose gzip framing is invalid");
+                    // Buffered gzip consumption is bounded by the envelope and exact decoded size.
+                    using var compressed=new System.IO.MemoryStream(packet,at,stored,false);
+                    using var zip=new System.IO.Compression.GZipStream(compressed,System.IO.Compression.CompressionMode.Decompress);
+                    int count=0,read;
+                    while(count<length&&(read=zip.Read(raw,count,length-count))>0)count+=read;
+                    if(count!=length||zip.ReadByte()!=-1)throw new System.IO.InvalidDataException("Live pose expansion differs from its bound");
+                }
+                if(Crc(raw)!=crc)throw new System.IO.InvalidDataException("Live pose checksum differs");return raw;
+            }
+        }
+        internal sealed class LivePoseReceipts
+        {
+            internal const int Capacity=64;
+            readonly HashSet<int> serials=new HashSet<int>();
+            internal int Count=>serials.Count;
+            internal void Add(int serial)
+            {if(serial==0)throw new System.IO.InvalidDataException("Zero pose receipt");if(serials.Contains(serial))return;if(serials.Count>=Capacity)throw new System.IO.InvalidDataException("Pose receipts exceed their bound");serials.Add(serial);}
+            internal static byte[] Encode(int[] values)
+            {
+                if(values==null||values.Length<1||values.Length>Capacity)throw new System.IO.InvalidDataException("Pose receipt count invalid");
+                using var output=new System.IO.MemoryStream();using var writer=new System.IO.BinaryWriter(output);writer.Write((byte)167);writer.Write((byte)1);writer.Write((byte)values.Length);
+                var used=new HashSet<int>();foreach(int value in values){if(value==0||!used.Add(value))throw new System.IO.InvalidDataException("Pose receipt serial invalid");writer.Write(value);}return output.ToArray();
+            }
+            internal static int[] Decode(byte[] packet)
+            {
+                if(packet==null||packet.Length<7||packet.Length>3+Capacity*4||packet[0]!=167||packet[1]!=1||packet[2]<1||packet[2]>Capacity||packet.Length!=3+packet[2]*4)throw new System.IO.InvalidDataException("Pose receipt group invalid");
+                var result=new int[packet[2]];var used=new HashSet<int>();
+                for(int i=0;i<result.Length;i++){int value=BitConverter.ToInt32(packet,3+i*4);if(value==0||!used.Add(value))throw new System.IO.InvalidDataException("Pose receipt serial invalid");result[i]=value;}return result;
+            }
+            internal int Flush(Action<byte[]> send)
+            {
+                if(serials.Count==0)return 0;var values=serials.ToArray();var packet=Encode(values);send(packet);
+                foreach(int value in values)serials.Remove(value);return values.Length;
+            }
+            internal void Clear()=>serials.Clear();
+        }
         public sealed class LivePoseTraffic
         {
+            public long RawSubmittedBytes{get;internal set;}public long RawReceivedBytes{get;internal set;}public long CompressedSubmittedFrames{get;internal set;}
+            public long ReceiptGroupsSubmitted{get;internal set;}public long ReceiptSerialsSubmitted{get;internal set;}public long ReceiptGroupsReceived{get;internal set;}public long ReceiptSerialsReceived{get;internal set;}
+            public int PendingReceiptCount{get;internal set;}
             public string PeerId{get;internal set;}="";
             public int CountLimit{get;internal set;}public int ByteLimit{get;internal set;}public int PayloadLimit{get;internal set;}
             public int PendingCount{get;internal set;}public int PendingBytes{get;internal set;}public int PeakCount{get;internal set;}public int PeakBytes{get;internal set;}
@@ -74,7 +152,7 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -90,22 +168,40 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool IsCurrentScene=>sceneTag==SceneTag(runner);
         float nextPoseSend;
-        readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,24*1024,MaxPoseSize);
+        readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,24*1024,MaxPoseSize+LivePoseCodec.HeaderBytes);
         bool hasPoseBatch;
+        readonly LivePoseReceipts poseReceipts=new LivePoseReceipts();
+        float nextReceiptFlush;
+        void FlushPoseReceipts(float now)
+        {
+            if(now<nextReceiptFlush)return;nextReceiptFlush=now+.1f;
+            try
+            {
+                if(runner.IsServer)
+                {foreach(var pair in peers.ToArray()){int count=pair.Value.receipts.Flush(packet=>Send(pair.Key,PoseReceiptGroup,packet));if(count>0){pair.Value.posesInFlight.Traffic.ReceiptGroupsSubmitted++;pair.Value.posesInFlight.Traffic.ReceiptSerialsSubmitted+=count;}pair.Value.posesInFlight.Traffic.PendingReceiptCount=pair.Value.receipts.Count;}}
+                else{int count=poseReceipts.Flush(packet=>Send(default,PoseReceiptGroup,packet));if(count>0){posesInFlight.Traffic.ReceiptGroupsSubmitted++;posesInFlight.Traffic.ReceiptSerialsSubmitted+=count;}posesInFlight.Traffic.PendingReceiptCount=poseReceipts.Count;}
+            }
+            catch(Exception){Fail("Pose receipt send failed. Rejoin with the same game build.");poseSendFailed=true;}
+        }
+        static void ApplyPoseReceipts(LivePoseWindow window,byte[] packet,float now)
+        {var values=LivePoseReceipts.Decode(packet);window.Traffic.ReceiptGroupsReceived++;window.Traffic.ReceiptSerialsReceived+=values.Length;foreach(int value in values)window.Ack(value,now);}
         public LivePoseTraffic LocalPoseTraffic=>posesInFlight.Traffic;
         public LivePoseTraffic[] PeerPoseTraffic=>peers.Values.Select(peer=>peer.posesInFlight.Traffic).ToArray();
         public long WorldTransfersSubmitted{get;private set;}
         public long WorldPayloadBytesSubmitted{get;private set;}
         void ResetPoseWindows()
-        {posesInFlight.Clear();foreach(var peer in peers.Values)peer.posesInFlight.Clear();hasPoseBatch=false;lastPoseBatch=0;nextPoseSend=0;poseSendFailed=false;}
+        {posesInFlight.Clear();poseReceipts.Clear();posesInFlight.Traffic.PendingReceiptCount=0;nextReceiptFlush=0;foreach(var peer in peers.Values){peer.posesInFlight.Clear();peer.receipts.Clear();peer.posesInFlight.Traffic.PendingReceiptCount=0;}hasPoseBatch=false;lastPoseBatch=0;nextPoseSend=0;poseSendFailed=false;}
         bool SendPose(PlayerRef target,int kind,LivePoseWindow window,byte[] packet,float now)
         {
             if(closing||poseSendFailed||runner==null||!runner.IsRunning||!IsCurrentScene)return false;
             int serial=LivePoseWindow.NextSequence(ref poseSequence);
-            if(packet==null||packet.Length<1||packet.Length>window.Traffic.PayloadLimit)
+            int rawLength=packet?.Length??0;
+            if(packet==null||packet.Length<1||packet.Length>(kind==LivePose?MaxPoseSize:MaxLiveBatchSize))
             {window.Reserve(serial,packet?.Length??0,now);Fail("Live pose payload exceeds the supported bound. Rejoin with the same game build.");poseSendFailed=true;return false;}
-            if(!window.Reserve(serial,packet?.Length??0,now))return false;
-            try{Send(target,kind,packet,serial);window.Submitted(packet.Length);return true;}
+            try{packet=LivePoseCodec.Pack(packet,kind==LivePose?MaxPoseSize:MaxLiveBatchSize);}
+            catch(Exception){Fail("Live pose encoding failed. Rejoin with the same game build.");poseSendFailed=true;return false;}
+            if(!window.Reserve(serial,packet.Length,now))return false;
+            try{Send(target,kind,packet,serial);window.Submitted(packet.Length);window.Traffic.RawSubmittedBytes+=rawLength;if(packet[4]==1)window.Traffic.CompressedSubmittedFrames++;return true;}
             catch(Exception){window.Cancel(serial);Fail("Live pose send failed. Rejoin with the same game build.");poseSendFailed=true;return false;}
         }
 
@@ -118,11 +214,12 @@ namespace DeadlyJenga.CastlePrototype
                 if(welcomed&&!castle.WaitingForWorld&&posesInFlight.CanCapture())SendPose(default,LivePose,posesInFlight,castle.FusionCapturePlayer(),now);
                 return;
             }
-            byte[] batch=null;
+            CastleLanProtocol.Actor[] actors=null;
             foreach(var pair in peers)
             {
                 if(!pair.Value.ready||!pair.Value.posesInFlight.CanCapture())continue;
-                batch??=castle.FusionCaptureLivePoses();
+                actors??=castle.FusionCaptureLiveActors();
+                var batch=CastleLanSession.FusionEncodeLivePosesFor(actors,pair.Key.ToString());
                 if(!SendPose(pair.Key,LivePoses,pair.Value.posesInFlight,batch,now)&&poseSendFailed)return;
             }
         }
@@ -245,20 +342,21 @@ namespace DeadlyJenga.CastlePrototype
                             var room=IslandRoomConnection.Instance;
                             if(room&&room.Owns(runner))room.NoteMatchPeer(player.ToString());
                         }
-                        else if (kind == LivePose && peer.ready && payload.Length <= MaxPoseSize)
+                        else if (kind == LivePose && peer.ready && payload.Length <= MaxPoseSize+LivePoseCodec.HeaderBytes)
                         {
+                            var rawPose=LivePoseCodec.Unpack(payload.ToArray(),MaxPoseSize);peer.posesInFlight.Traffic.RawReceivedBytes+=rawPose.Length;
                             if (LivePoseWindow.Newer(serial,peer.lastPoseSequence,peer.hasPoseSequence))
                             {
-                                castle.FusionReceivePlayer(player.ToString(), payload.ToArray());
+                                castle.FusionReceivePlayer(player.ToString(),rawPose);
                                 peer.lastPoseSequence = serial;peer.hasPoseSequence=true;
                                 peer.lastPose = Time.unscaledTime;
                                 peer.posesInFlight.Applied(payload.Length,Time.unscaledTime);
                             }
                             else peer.posesInFlight.Skipped();
                             peer.posesInFlight.Received(payload.Length,Time.unscaledTime);
-                            Send(player, PoseReceipt, Array.Empty<byte>(), serial);
+                            peer.receipts.Add(serial);peer.posesInFlight.Traffic.PendingReceiptCount=peer.receipts.Count;
                         }
-                        else if (kind == PoseReceipt) peer.posesInFlight.Ack(serial,Time.unscaledTime);
+                        else if (kind == PoseReceiptGroup&&payload.Length>=7&&payload.Length<=3+LivePoseReceipts.Capacity*4) ApplyPoseReceipts(peer.posesInFlight,payload.ToArray(),Time.unscaledTime);
                         else if (kind == Ack && peer.waiting == serial) peer.waiting = 0;
                     }
                 }
@@ -275,18 +373,19 @@ namespace DeadlyJenga.CastlePrototype
                         castle.FusionApplyWorld(CastleFusionWire.Decompress(payload.ToArray())); lastWorld = Time.unscaledTime;
                         Send(default, Ack, Array.Empty<byte>(), serial);
                     }
-                    else if (kind == LivePoses && welcomed && payload.Length <= MaxPoseSize * 64)
+                    else if (kind == LivePoses && welcomed && payload.Length <= MaxLiveBatchSize+LivePoseCodec.HeaderBytes)
                     {
+                        var rawPoses=LivePoseCodec.Unpack(payload.ToArray(),MaxLiveBatchSize);posesInFlight.Traffic.RawReceivedBytes+=rawPoses.Length;
                         if (LivePoseWindow.Newer(serial,lastPoseBatch,hasPoseBatch) && !castle.WaitingForWorld)
                         {
-                            castle.FusionApplyLivePoses(payload.ToArray(), runner.ActivePlayers.Select(p => p.ToString()));
+                            castle.FusionApplyLivePoses(rawPoses, runner.ActivePlayers.Select(p => p.ToString()));
                             lastPoseBatch = serial;hasPoseBatch=true;posesInFlight.Applied(payload.Length,Time.unscaledTime);
                         }
                         else posesInFlight.Skipped();
                         posesInFlight.Received(payload.Length,Time.unscaledTime);
-                        Send(default, PoseReceipt, Array.Empty<byte>(), serial);
+                        poseReceipts.Add(serial);posesInFlight.Traffic.PendingReceiptCount=poseReceipts.Count;
                     }
-                    else if (kind == PoseReceipt) posesInFlight.Ack(serial,Time.unscaledTime);
+                    else if (kind == PoseReceiptGroup&&payload.Length>=7&&payload.Length<=3+LivePoseReceipts.Capacity*4) ApplyPoseReceipts(posesInFlight,payload.ToArray(),Time.unscaledTime);
                     else if(kind==MatchState&&welcomed&&payload.Length<=512000)ReceiveMatch(payload);
                     else if(kind==ModeOutcome&&welcomed&&payload.Length<=1024)ReceiveOutcome(payload);
                     else if(kind==MysterySecret&&welcomed&&payload.Length<=8192){ConnectModes();modeRuntime?.ReceiveSecret(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
@@ -311,6 +410,7 @@ namespace DeadlyJenga.CastlePrototype
             if (closing || poseSendFailed || runner == null || !runner.IsRunning || !IsCurrentScene) return;
             castle.FusionRender();ConnectModes();
             float now = Time.unscaledTime;
+            FlushPoseReceipts(now);if(poseSendFailed)return;
             PumpPoses(now);if(poseSendFailed)return;
             if(pendingStamina!=null&&now>=nextStamina){if(SessionDevelopmentPolicy.CanRequestLocal(session))Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(pendingStamina)));pendingStamina=null;nextStamina=now+.2f;}
             if(runner.IsServer){foreach(var pair in socialPeers)if(peers.TryGetValue(pair.Key,out var ready)&&ready.ready)pair.Value.Pump(now,(serial,data)=>SendSocialPacket(pair.Key,1,serial,data));}
@@ -362,7 +462,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void RemovePlayer(PlayerRef player)
         {
-            if(peers.TryGetValue(player,out var departing))departing.posesInFlight.Clear();
+            if(peers.TryGetValue(player,out var departing)){departing.posesInFlight.Clear();departing.receipts.Clear();}
             modeRuntime?.UnregisterRemote(player.ToString());peers.Remove(player); socialPeers.Remove(player); castle.FusionRemovePlayer(player.ToString());
             if (runner.IsServer) session.SurvivorBots?.SetHumanPlayerCount(runner.ActivePlayers.Count(p => p != player));
         }

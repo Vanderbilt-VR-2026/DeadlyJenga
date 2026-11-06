@@ -202,16 +202,18 @@ namespace DeadlyJenga.CastlePrototype
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
-        public byte[] FusionCaptureLivePoses()
+        public P.Actor[] FusionCaptureLiveActors()
         {
-            var actors = new List<P.Actor> { LocalActor() };
-            foreach (var pair in fusionActors) actors.Add(Rebroadcast(pair.Key, pair.Value));
-            return P.Encode(P.Player, writer =>
-            {
-                writer.Write(actors.Count);
-                foreach (var actor in actors) P.Write(writer, actor);
-            });
+            var actors=new List<P.Actor>{LocalActor()};
+            foreach(var pair in fusionActors)actors.Add(Rebroadcast(pair.Key,pair.Value));
+            return actors.ToArray();
         }
+        public static byte[] FusionEncodeLivePosesFor(P.Actor[] actors,string recipient)
+        {
+            var selected=actors.Where(actor=>actor.id!=recipient||actor.kind!=NetworkKinds.Survivor).ToArray();
+            return P.Encode(P.Player,writer=>{writer.Write(selected.Length);foreach(var actor in selected)P.Write(writer,actor);});
+        }
+        public byte[] FusionCaptureLivePoses()=>FusionEncodeLivePosesFor(FusionCaptureLiveActors(),null);
         public void FusionApplyWorld(byte[] data)
         {
             var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
