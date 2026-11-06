@@ -42,9 +42,13 @@ namespace DeadlyJenga.CastlePrototype
             if(modeRuntime.Active)foreach(var pair in peers)if(pair.Value.ready)
             {
                 Send(pair.Key,MysterySecret,Encoding.UTF8.GetBytes(modeRuntime.CaptureSecret(pair.Key.ToString())));
-                var peer=pair.Value;if(peer.mysteryRound!=modeRuntime.TrailRound){peer.mysteryRound=modeRuntime.TrailRound;peer.trailCount=0;}
-                for(int i=0;i<2&&(peer.trailCount<modeRuntime.Trails.Count||i==0&&peer.trailCount==0);i++)
-                {int count=Mathf.Min(64,modeRuntime.Trails.Count-peer.trailCount);Send(pair.Key,MysteryTrails,Encoding.UTF8.GetBytes(modeRuntime.CaptureTrails(peer.trailCount)));peer.trailCount+=count;}
+                var peer=pair.Value;int round=modeRuntime.TrailRound,cursor=peer.mysteryRound==round?peer.trailCount:0;
+                for(int i=0;i<2&&(cursor<modeRuntime.Trails.Count||i==0&&cursor==0);i++)
+                {
+                    int count=Mathf.Min(64,modeRuntime.Trails.Count-cursor),next=cursor+count;
+                    var packet=Encoding.UTF8.GetBytes(modeRuntime.CaptureTrails(cursor));
+                    Send(pair.Key,MysteryTrails,packet,0,()=>{peer.mysteryRound=round;peer.trailCount=next;});cursor=next;
+                }
             }
         }
         void ReceiveMatch(ReadOnlySpan<byte> bytes)
