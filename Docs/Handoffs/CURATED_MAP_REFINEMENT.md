@@ -16,3 +16,7 @@ Crown layout GUID: `f424358e4c46e744db95bb13c7e0fa10`. Harbor layout GUID: `735d
 ## Acceptance still required
 
 This is an integrated source checkpoint, not shipping-map acceptance. Actual player routes, capsule/spawn clearance, grounded carrier trips, bot execution, settling, support removal, objective recovery and map reset still need gameplay tests. The upper-ramp seams need direct movement testing. Matched current screenshots and same-version two-peer checks remain pending. No physical Quest test is claimed. Other experimental designs are not promoted by this checkpoint.
+
+The first native low-route tests on source `60b0c2b5dcf46665eeaf582985e3e38e25ca3fec` passed structural, spawn and disaster-setup checks, but neither completed pickup/capture/reset. Crown reached all eight route points and stood within 0.18 metres horizontally of the enemy ground home without picking up its flag. The support probe searched downward from above the entire world, selecting the roof over that home. It now probes below the current home, preserving its intended floor and existing downward/water recovery. A 113-source compile and 16 extracted-method assertions passed; actual pickup, raised-home and destruction regressions remain pending. The old native trace did not record the flag's exact height.
+
+Harbor's first test drifted away from its authored street before stalling; its steering and the large pale visual strips seen in the actual overview need diagnosis. Those failures are retained, and the map is not promoted to shipping-ready status.

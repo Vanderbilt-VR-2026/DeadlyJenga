@@ -83,7 +83,8 @@ namespace DeadlyJenga.Modes
             var world=Services.World;if(world==null)return;
             foreach(var flag in simulation.Flags)
             {
-                var homeRay=new Ray(new Vector3(flag.home.x,world.PlayableBounds.max.y+10,flag.home.z),Vector3.down);
+                // Probe below the home so an overhead floor cannot lift a covered flag.
+                var homeRay=new Ray(flag.home,Vector3.down);
                 if(Physics.Raycast(homeRay,out var homeHit,world.PlayableBounds.size.y+100,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))
                     simulation.UpdateFlagSupport(flag.team,Mathf.Max(world.WaterHeight(flag.home)+.2f,homeHit.point.y+.1f,flag.home.y-1.8f));
                 if(flag.carrier!=null||flag.atHome)continue;
