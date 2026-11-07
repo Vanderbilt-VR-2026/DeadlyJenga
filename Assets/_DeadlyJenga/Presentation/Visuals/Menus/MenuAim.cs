@@ -86,13 +86,28 @@ namespace DeadlyJenga.Presentation
                 lateral=Mathf.Clamp(Vector3.Dot(offset,eye.transform.right),-.28f,.28f);
                 height=Mathf.Clamp(Vector3.Dot(offset,eye.transform.up)+.16f,-.22f,.12f);
             }
+            float width=Mathf.Max(1,panel.rect.width),panelHeight=Mathf.Max(1,panel.rect.height);
+            float vertical=Mathf.Clamp(eye.fieldOfView,20,150)*Mathf.Deg2Rad*.5f;
+            float horizontal=Mathf.Atan(Mathf.Tan(vertical)*Mathf.Max(.2f,eye.aspect));
+            float halfWidth=Mathf.Min(20*Mathf.Deg2Rad,horizontal*.84f);
+            float halfHeight=Mathf.Atan(Mathf.Tan(halfWidth)*panelHeight/width);
+            if(halfHeight>vertical*.84f)
+            {
+                halfHeight=vertical*.84f;
+                halfWidth=Mathf.Atan(Mathf.Tan(halfHeight)*width/panelHeight);
+            }
+            float horizontalInset=Mathf.Max(0,horizontal*.9f-halfWidth);
+            float verticalInset=Mathf.Max(0,vertical*.9f-halfHeight);
+            lateral=Mathf.Clamp(lateral,-depth*Mathf.Tan(horizontalInset),depth*Mathf.Tan(horizontalInset));
+            height=Mathf.Clamp(height,-depth*Mathf.Tan(verticalInset),depth*Mathf.Tan(verticalInset));
             Vector3 position=eye.transform.position+eye.transform.forward*depth+eye.transform.right*lateral+eye.transform.up*height;
             Vector3 forward=position-eye.transform.position;
             if(forward.sqrMagnitude<.01f)return;
-            float scale=.0005f*Mathf.Min(1,960/Mathf.Max(1,panel.rect.width));
-            float blend=Mathf.Abs(panel.localScale.x-scale)<.00001f?1-Mathf.Exp(-20*Time.unscaledDeltaTime):1;
+            float scale=2*forward.magnitude*Mathf.Tan(halfWidth)/width;
+            bool initialized=panel.localScale.x>.0001f&&panel.localScale.x<.0018f;
+            float blend=initialized?1-Mathf.Exp(-20*Time.unscaledDeltaTime):1;
             panel.SetPositionAndRotation(Vector3.Lerp(panel.position,position,blend),Quaternion.Slerp(panel.rotation,Quaternion.LookRotation(forward.normalized,eye.transform.up),blend));
-            panel.localScale=Vector3.one*scale;
+            panel.localScale=Vector3.Lerp(panel.localScale,Vector3.one*scale,blend);
         }
         public static bool TryPoint(Ray ray,RectTransform target,float range,out Vector2 local,out Vector3 hit)
         {

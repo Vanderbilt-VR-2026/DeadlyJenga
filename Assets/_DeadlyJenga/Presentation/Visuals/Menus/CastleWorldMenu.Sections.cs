@@ -35,18 +35,20 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<tabButtons.Length;i++)
             {
                 tabButtons[i]=HeaderButton(DemoMenuSections.Tabs[i],0,out tabTargets[i]);
-                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,518),new Vector2(216,58),23);
+                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,518),new Vector2(216,58),30);
                 tabLabels[i]=tabButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
+                tabLabels[i].supportRichText=true;tabLabels[i].resizeTextForBestFit=false;tabLabels[i].lineSpacing=.85f;
+                tabLabels[i].text=DemoMenuSections.Tabs[i]+"\n<size=22>"+DemoMenuSections.TabDescriptions[i]+"</size>";
             }
             backButton=HeaderButton("Back",0,out backTarget);homeButton=HeaderButton("Demo Home",0,out homeTarget);
-            SizeNavigation(backButton,backTarget,new Vector2(-345,440),new Vector2(210,52),22);
-            SizeNavigation(homeButton,homeTarget,new Vector2(-115,440),new Vector2(210,52),22);
-            navigationPath=Text("",new Vector2(235,440),new Vector2(430,58),21);
-            sectionTitle=Text("SECTIONS",new Vector2(-350,378),new Vector2(210,38),18);sectionTitle.color=CandyHudVisuals.Muted;
+            SizeNavigation(backButton,backTarget,new Vector2(-345,440),new Vector2(210,52),26);
+            SizeNavigation(homeButton,homeTarget,new Vector2(-115,440),new Vector2(210,52),26);
+            navigationPath=Text("",new Vector2(235,440),new Vector2(430,58),26);
+            sectionTitle=Text("SECTIONS",new Vector2(-350,378),new Vector2(210,38),20);sectionTitle.color=CandyHudVisuals.Muted;
             for(int i=0;i<sectionButtons.Length;i++)
             {
                 sectionButtons[i]=HeaderButton("",0,out sectionTargets[i]);
-                SizeNavigation(sectionButtons[i],sectionTargets[i],new Vector2(-350,320-i*70),new Vector2(210,60),20);
+                SizeNavigation(sectionButtons[i],sectionTargets[i],new Vector2(-350,320-i*70),new Vector2(210,60),24);
                 sectionLabels[i]=sectionButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
             }
         }
