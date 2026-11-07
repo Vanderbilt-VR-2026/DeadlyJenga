@@ -61,7 +61,7 @@ namespace DeadlyJenga.Presentation
             CandyHudCards.Badge(teams);CandyHudCards.Tint(teams,CandyHudVisuals.Mint,.31f);
             CandyHudCards.Emblem(objective,"flag",new Color(.79f,.69f,1));
             waypoints=new CandyWaypointLayer(root);
-            standingsHint=Label("Standings shortcut",new Vector2(300,28),new Vector2(446,348),TextAnchor.MiddleRight,15);
+            standingsHint=Label("Standings shortcut",new Vector2(400,28),new Vector2(396,348),TextAnchor.MiddleRight,15);
             scorePortraits = CandyScorePortraits.For(gameObject);
             eliminationFeed = new CandyEliminationFeed(root, scorePortraits);
             BuildStandingsRows();
@@ -212,18 +212,20 @@ namespace DeadlyJenga.Presentation
             if(own!=null)healthFill.color=Color.Lerp(own.color,Color.white,.18f);
             healthText.text="HEALTH  "+Mathf.CeilToInt(target*100)+"%";
         }
-        // The dominant stick click is sprint; a lone controller uses its click for mode switching.
+        // Movement-stick click is sprint; bare look-stick click holds the board with two controllers.
         static bool VrStandingsHeld(out string control)
         {
             bool leftTracked = false, rightTracked = false, leftHeld = false, rightHeld = false;
-            bool emoteChord = false;
+            bool gripHeld = false;
             foreach (var device in InputSystem.devices)
             {
                 if (!(device is XRController controller) || !controller.isTracked.isPressed) continue;
-                var click = controller.TryGetChildControl<ButtonControl>("primary2DAxisClick");
+                var click = controller.TryGetChildControl<ButtonControl>("thumbstickClicked")
+                    ?? controller.TryGetChildControl<ButtonControl>("primary2DAxisClick")
+                    ?? controller.TryGetChildControl<ButtonControl>("joystickClicked");
                 if (click == null) continue;
                 bool gripping = controller.TryGetChildControl<ButtonControl>("gripPressed")?.isPressed == true;
-                emoteChord |= gripping && click.isPressed;
+                gripHeld |= gripping;
                 foreach (var usage in controller.usages)
                 {
                     if (usage == CommonUsages.LeftHand) { leftTracked = true; leftHeld |= click.isPressed && !gripping; }
@@ -232,8 +234,8 @@ namespace DeadlyJenga.Presentation
             }
             bool leftDominant = PlayerPrefs.GetInt("CandyBlaster.LeftHanded", 0) != 0;
             bool available = leftTracked && rightTracked;
-            control = available ? leftDominant ? "RIGHT STICK" : "LEFT STICK" : "";
-            return available && !emoteChord && !EmoteWheel.IsOpen && (leftDominant ? rightHeld : leftHeld);
+            control = available ? leftDominant ? "LEFT LOOK STICK CLICK" : "RIGHT LOOK STICK CLICK" : "";
+            return available && !gripHeld && !EmoteWheel.IsOpen && (leftDominant ? leftHeld : rightHeld);
         }
 
         internal static IEnumerable<MatchPlayerFrame> StandingsParticipants(MatchFrame frame,
