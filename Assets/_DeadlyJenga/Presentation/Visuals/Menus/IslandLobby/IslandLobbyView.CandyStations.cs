@@ -115,16 +115,16 @@ namespace DeadlyJenga.CastlePrototype
                 c.title=()=>PickerTitle(slot).Replace("[current]","").Trim();
                 CandyText(c,0,0,440,44,22,TextAnchor.MiddleLeft);
             }
-            browserMapPreview=Picture(candySetupContent,"Large map browser preview",0,140,940,290);
-            browserMapName=CandyReadout(candySetupContent,"Previewed map name","",0,-25,960,30,25);
+            browserMapPreview=Picture(candySetupContent,"Large map browser preview",0,160,940,250);
+            browserMapName=CandyReadout(candySetupContent,"Previewed map name","",0,15,960,30,25);
             browserMapName.fontStyle=FontStyle.Bold;browserMapName.color=CandyMint;
-            browserMapMissing=CandyReadout(candySetupContent,"Map preview unavailable","MAP PREVIEW COMING SOON",0,140,900,60,28);browserMapMissing.color=CandyMuted;
+            browserMapDescription=CandyReadout(candySetupContent,"Previewed map description","",0,-23,960,40,20);browserMapDescription.color=CandyCream;
+            browserMapMissing=CandyReadout(candySetupContent,"Map preview unavailable","MAP PREVIEW COMING SOON",0,160,900,60,28);browserMapMissing.color=CandyMuted;
             CandyPlace("picker-previous",-255,-290,490,58);CandyPlace("picker-next",255,-290,490,58);CandyPlace("setup-back",0,-370,700,58);
             CandyChoice("picker-previous").visible=()=> (setupPage=="maps"||setupPage=="modes")&&PickerPages>1;
             CandyChoice("picker-next").visible=()=> (setupPage=="maps"||setupPage=="modes")&&PickerPages>1;
             CandyChoiceIcon(CandyChoice("setup-back"),LobbyTerminalGlyph.Symbol.Back,-280);
             CandyStyleModeCards();
-            var confirm=CandyAdd(candySetupContent,"mode-confirm",()=>"USE THIS MODE",0,-350,1000,50,()=>OpenPicker("maps"),()=>lobby.CanConfigure,()=>setupPage=="modes");CandyPrimary(confirm);CandyChoiceIcon(confirm,LobbyTerminalGlyph.Symbol.Play,-440);
             for(int i=0;i<6;i++)
             {
                 CandyPlace("setting-value-"+i,0,225-i*84,800,70);CandyText(CandyChoice("setting-value-"+i),0,0,760,62,26);

@@ -45,7 +45,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!giveEquipmentPage)RestoreEquipmentWheelLayout();
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
-            ((RectTransform)transform).sizeDelta=new Vector2(600,1080);
+            ((RectTransform)transform).sizeDelta=new Vector2(960,1120);
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
             bool controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
             PlaceTablet(camera);
@@ -96,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
             DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft);
             if(!tabletFrame)
             {
-                tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(640,1120));
+                tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(1000,1160));
                 tabletFrame.type=Image.Type.Sliced;tabletFrame.fillCenter=false;tabletFrame.color=CandyHudVisuals.Lavender;
                 tabletFrame.transform.SetAsFirstSibling();
                 BuildTabletCase();
@@ -114,8 +114,8 @@ namespace DeadlyJenga.CastlePrototype
             for(int ring=0;ring<2;ring++)for(int i=0;i<count;i++)
             {
                 int corner=i/8;float angle=(corner*90+i%8*90f/7)*Mathf.Deg2Rad;
-                float x=(corner==0||corner==3?285:-285)+Mathf.Cos(angle)*35;
-                float y=(corner<2?525:-525)+Mathf.Sin(angle)*35;
+                float x=(corner==0||corner==3?465:-465)+Mathf.Cos(angle)*35;
+                float y=(corner<2?545:-545)+Mathf.Sin(angle)*35;
                 vertices[ring*count+i]=new Vector3(x,y,ring==0?10:36);
             }
             vertices[count*2]=new Vector3(0,0,10);vertices[count*2+1]=new Vector3(0,0,36);

@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
         public CandyEnvironment Environment {get;private set;}
         CandyArtProfile localArt;
         InputAction select,wardrobeCancel;
-        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
+        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Vector3 focusBaseScale;public bool focusInitialized;public Outline focusOutline;public Shadow focusGlow;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
         readonly List<Choice> choices=new List<Choice>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -143,17 +143,28 @@ namespace DeadlyJenga.CastlePrototype
                 bool rawChoice=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
                 bool usable=(choice.enabled==null||choice.enabled())&&(!rawChoice||DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session));choice.button.interactable=usable;choice.collider.enabled=usable;
                 if(choice.title!=null)choice.label.text=choice.title();
-                PaintCandyChoice(choice,false,usable);
-                if(usable&&Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
+                if(usable)
+                {
+                    if(choice.physical)
+                    {
+                        if(Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}
+                    }
+                    else if(DeadlyJenga.Presentation.MenuAim.TryPoint(ray,(RectTransform)choice.button.transform,distance,out _,out var point))
+                    {
+                        float depth=Vector3.Distance(ray.origin,point);
+                        if(depth<distance){nearest=choice;distance=depth;selectionPoint=point;}
+                    }
+                }
                 if(choice.physical)choice.button.image.color=Color.clear;
                 if(choice.physical)UpdatePhysicalKey(choice,false);
             }
+            foreach(var choice in choices)
+                if(choice.button&&choice.button.gameObject.activeInHierarchy)PaintCandyChoice(choice,choice==nearest,choice.button.interactable);
             PreviewMapChoice(nearest?.id);
             UpdateWardrobeChoiceNotice(nearest?.id);
             if(nearest!=null)
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);
-                PaintCandyChoice(nearest,true,true);
                 if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
                 else if(pressed)InvokeChoice(nearest.id);
             }

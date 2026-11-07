@@ -124,8 +124,21 @@ namespace DeadlyJenga.CastlePrototype
 
         void PaintCandyChoice(Choice choice,bool hover,bool usable)
         {
-            if(!choice.physical&&choice.label)
-                choice.label.rectTransform.localScale=hover?Vector3.one*1.07f:Vector3.one;
+            if(!choice.physical)
+            {
+                var rect=(RectTransform)choice.button.transform;
+                if(!choice.focusInitialized)
+                {
+                    choice.focusInitialized=true;choice.focusBaseScale=rect.localScale;
+                    choice.focusOutline=choice.button.gameObject.AddComponent<Outline>();choice.focusOutline.effectDistance=new Vector2(4,-4);
+                    choice.focusGlow=choice.button.gameObject.AddComponent<Shadow>();choice.focusGlow.effectDistance=new Vector2(0,-8);
+                }
+                bool focused=hover&&usable;
+                choice.focusOutline.effectColor=new Color(CandyMint.r,CandyMint.g,CandyMint.b,focused?.95f:0);
+                choice.focusGlow.effectColor=new Color(CandyMint.r,CandyMint.g,CandyMint.b,focused?.45f:0);
+                if(choice.slide==null&&!choice.id.StartsWith("mode-card-",System.StringComparison.Ordinal))
+                    rect.localScale=Vector3.Lerp(rect.localScale,choice.focusBaseScale*(focused?1.12f:1),1-Mathf.Exp(-22*Time.unscaledDeltaTime));
+            }
             if(choice.physical)
             {choice.label.color=usable?(choice.keyColor.grayscale>.6f?CandyInk:CandyCream):CandyMuted;return;}
             if(!choice.candy)

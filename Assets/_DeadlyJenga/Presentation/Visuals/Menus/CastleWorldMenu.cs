@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1080); transform.localScale = Vector3.one * .002f;
+            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(960, 1120); transform.localScale = Vector3.one * .002f;
             sectionGlyphs=new RawImage[buttons.Length];
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.color = CandyHudVisuals.Ink;
             heading=Text("DEADLY JENGA / DEMO\nAim at a button  /  RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
@@ -55,7 +55,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         Slider CreateDisasterSlider(string name,out Text caption,out BoxCollider hit)
         {
-            var root=new GameObject(name,typeof(RectTransform),typeof(Slider),typeof(BoxCollider));root.transform.SetParent(transform,false);
+            var root=new GameObject(name,typeof(RectTransform),typeof(Slider),typeof(BoxCollider));root.transform.SetParent(menuBody?menuBody:transform,false);
             var rect=root.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(500,48);hit=root.GetComponent<BoxCollider>();hit.size=new Vector3(500,48,4);hit.isTrigger=true;
             caption=Text(name,new Vector2(0,14),new Vector2(500,30),19);caption.transform.SetParent(root.transform,false);caption.rectTransform.anchoredPosition=new Vector2(0,14);
             var bar=new GameObject("Track",typeof(RectTransform),typeof(Image));bar.transform.SetParent(root.transform,false);var track=bar.GetComponent<Image>();track.sprite=CandyHudVisuals.Pill;track.type=Image.Type.Sliced;track.color=CandyHudVisuals.Card;track.rectTransform.sizeDelta=new Vector2(500,9);track.rectTransform.anchoredPosition=new Vector2(0,-13);

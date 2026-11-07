@@ -11,18 +11,98 @@ namespace DeadlyJenga.CastlePrototype
         UnityEngine.UI.Button backButton,homeButton;
         BoxCollider backTarget,homeTarget;
         Texture2D disasterPreview;
+        RectTransform menuBody;
+        readonly UnityEngine.UI.Button[] tabButtons=new UnityEngine.UI.Button[4],sectionButtons=new UnityEngine.UI.Button[6];
+        readonly BoxCollider[] tabTargets=new BoxCollider[4],sectionTargets=new BoxCollider[6];
+        UnityEngine.UI.Text navigationPath,sectionTitle;
+        readonly UnityEngine.UI.Text[] tabLabels=new UnityEngine.UI.Text[4],sectionLabels=new UnityEngine.UI.Text[6];
         bool AtHome=>!batchPage&&!mapPage&&!spectatePage&&!giveEquipmentPage&&!randomPowerupPage&&!powerupPage&&
             !tabletopPage&&!hudPage&&!modePage&&!disasterPage&&!networkPage&&!comfortPage&&!tuningPage&&menuCategory<0;
 
+        void SizeNavigation(UnityEngine.UI.Button button,BoxCollider target,Vector2 position,Vector2 size,int font)
+        {
+            var rect=(RectTransform)button.transform;rect.anchoredPosition=position;rect.sizeDelta=size;
+            target.size=new Vector3(size.x,size.y,4);
+            var text=button.GetComponentInChildren<UnityEngine.UI.Text>();text.rectTransform.sizeDelta=size-new Vector2(12,6);text.fontSize=font;
+        }
         void BuildNavigation()
         {
-            backButton=HeaderButton("Back",0,out backTarget);
-            homeButton=HeaderButton("Demo Home",0,out homeTarget);
-            ((RectTransform)backButton.transform).anchoredPosition=new Vector2(-206,510);
-            ((RectTransform)homeButton.transform).anchoredPosition=new Vector2(206,510);
+            var original=new System.Collections.Generic.List<Transform>();foreach(Transform child in transform)original.Add(child);
+            menuBody=new GameObject("Tablet page contents",typeof(RectTransform)).GetComponent<RectTransform>();
+            menuBody.SetParent(transform,false);menuBody.sizeDelta=new Vector2(600,1080);
+            foreach(var child in original)child.SetParent(menuBody,false);
+            menuBody.anchoredPosition=new Vector2(120,-50);menuBody.localScale=Vector3.one*.8f;
+            for(int i=0;i<tabButtons.Length;i++)
+            {
+                tabButtons[i]=HeaderButton(DemoMenuSections.Tabs[i],0,out tabTargets[i]);
+                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,518),new Vector2(216,58),23);
+                tabLabels[i]=tabButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
+            }
+            backButton=HeaderButton("Back",0,out backTarget);homeButton=HeaderButton("Demo Home",0,out homeTarget);
+            SizeNavigation(backButton,backTarget,new Vector2(-345,440),new Vector2(210,52),22);
+            SizeNavigation(homeButton,homeTarget,new Vector2(-115,440),new Vector2(210,52),22);
+            navigationPath=Text("",new Vector2(235,440),new Vector2(430,58),21);
+            sectionTitle=Text("SECTIONS",new Vector2(-350,378),new Vector2(210,38),18);sectionTitle.color=CandyHudVisuals.Muted;
+            for(int i=0;i<sectionButtons.Length;i++)
+            {
+                sectionButtons[i]=HeaderButton("",0,out sectionTargets[i]);
+                SizeNavigation(sectionButtons[i],sectionTargets[i],new Vector2(-350,320-i*70),new Vector2(210,60),20);
+                sectionLabels[i]=sectionButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
+            }
+        }
+        void OpenNavigationTab(int index)
+        {
+            RestoreEquipmentWheelLayout();ResetPages();menuCategory=index;OpenMenuSection(0);
+        }
+        int NavigationCategory()
+        {
+            if(giveEquipmentPage)return giveAllEquipment?1:0;
+            if(batchPage)return 1;
+            if(disasterPage||mapPage||modePage||powerupPage||randomPowerupPage||tabletopPage)return 2;
+            if(comfortPage||networkPage||tuningPage||hudPage)return 3;
+            if(spectatePage)return 0;
+            return menuCategory>=0?menuCategory:0;
+        }
+        string NavigationSection()
+        {
+            if(giveEquipmentPage)return giveAllEquipment?"Bot equipment":"Equipment";
+            if(batchPage)return "Survivors";
+            if(disasterPage)return "Disasters";if(mapPage)return "Maps";
+            if(modePage||tabletopPage)return "Modes";if(powerupPage)return "Ground pickups";
+            if(randomPowerupPage)return "Powerup spawning";if(networkPage)return "Friends";
+            if(comfortPage||tuningPage||hudPage)return "Settings";if(spectatePage)return "Spectate";
+            var sections=DemoMenuSections.Sections[NavigationCategory()];
+            return menuSection>=0&&menuSection<sections.Length?sections[menuSection]:"Overview";
+        }
+        bool PointPersistentNavigation(bool pressed)
+        {
+            int category=NavigationCategory();
+            for(int i=0;i<tabButtons.Length;i++)
+            {
+                bool hover=Hit(tabTargets[i],pointerRay);bool selected=category==i;
+                tabButtons[i].image.color=hover?CandyHudVisuals.Mint:selected?CandyHudVisuals.Lavender:CandyHudVisuals.Panel;
+                tabLabels[i].color=hover||selected?CandyHudVisuals.Ink:Color.white;
+                if(hover&&pressed){OpenNavigationTab(i);return true;}
+            }
+            var sections=DemoMenuSections.Sections[category];sectionTitle.text=DemoMenuSections.Tabs[category].ToUpperInvariant()+" / SECTIONS";
+            for(int i=0;i<sectionButtons.Length;i++)
+            {
+                bool visible=i<sections.Length;sectionButtons[i].gameObject.SetActive(visible);if(!visible)continue;
+                string name=sections[i];sectionLabels[i].text=name;
+                bool selected=NavigationSection()==name;bool hover=Hit(sectionTargets[i],pointerRay);
+                sectionButtons[i].image.color=hover?CandyHudVisuals.Mint:selected?CandyHudVisuals.Lavender:CandyHudVisuals.Card;
+                sectionLabels[i].color=hover||selected?CandyHudVisuals.Ink:Color.white;
+                if(hover)help.text=DemoMenuSections.Caption(name);
+                if(hover&&pressed){RestoreEquipmentWheelLayout();ResetPages();menuCategory=category;OpenMenuSection(i);return true;}
+            }
+            navigationPath.text=DemoMenuSections.Tabs[category]+" / "+NavigationSection();
+            if(disasterPage&&disasterSelection>=0)navigationPath.text="Match / Disasters / Settings";
+            if(giveEquipmentPage)navigationPath.text=(giveAllEquipment?"Bots":"Personal")+" / Equipment";
+            return false;
         }
         bool PointNavigation(bool pressed)
         {
+            if(PointPersistentNavigation(pressed))return true;
             bool available=!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session);
             backButton.gameObject.SetActive(available);homeButton.gameObject.SetActive(available);
             if(!available)return false;
