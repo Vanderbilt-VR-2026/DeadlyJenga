@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         string optionsMode;float nextOptionsRefresh;
         readonly System.Collections.Generic.Dictionary<string,Texture2D> modeTextures=new System.Collections.Generic.Dictionary<string,Texture2D>();
         readonly RawImage[] modePictures=new RawImage[8];
-        RawImage browserMapPreview;Text browserMapName,browserMapMissing;string browserMapId;
+        RawImage browserMapPreview;Text browserMapName,browserMapMissing,browserMapDescription;string browserMapId;
         readonly Text[] modeDescriptions=new Text[8],modePictureMissing=new Text[8];
         Choice GameChoice(string id,Func<string> title,float y,Action action,float x=0,float width=730,float height=64)
             =>Add(setupStation,id,title,y,action,()=>lobby.CanConfigure,x,width,height,()=>setupPage=="main");
@@ -99,7 +99,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PickModeCard(int slot)
         {
-            var option=ModeCardOption(slot);if(option!=null&&option.available)lobby.SelectMode(option.id);
+            var option=ModeCardOption(slot);if(lobby.CanConfigure&&option!=null&&option.available&&lobby.SelectMode(option.id))OpenPicker("maps");
         }
         RawImage Picture(RectTransform parent,string name,float x,float y,float width,float height)
         {
@@ -175,20 +175,22 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!browserMapPreview)return;
             bool visible=setupPage=="maps";
-            browserMapPreview.gameObject.SetActive(visible);browserMapName.gameObject.SetActive(visible);
+            browserMapPreview.gameObject.SetActive(visible);browserMapName.gameObject.SetActive(visible);if(browserMapDescription)browserMapDescription.gameObject.SetActive(visible);
             if(!visible){browserMapMissing.gameObject.SetActive(false);return;}
             id=id??browserMapId??Details?.SelectedMapId;
             if(browserMapId!=id||!browserMapPreview.texture)
             {
                 browserMapId=id;var texture=MapPreviewImages.Get(id);
-                SetPicture(browserMapPreview,texture,940,290);
+                SetPicture(browserMapPreview,texture,940,250);
                 if(texture)
                 {
                     float aspect=texture.width/(float)texture.height;
-                    browserMapPreview.rectTransform.sizeDelta=new Vector2(Mathf.Min(940,290*aspect),Mathf.Min(290,940/aspect));
+                    browserMapPreview.rectTransform.sizeDelta=new Vector2(Mathf.Min(940,250*aspect),Mathf.Min(250,940/aspect));
                     browserMapPreview.uvRect=new Rect(0,0,1,1);
                 }
-                browserMapName.text=mapOptions.FirstOrDefault(m=>m.id==id)?.title??"Choose a map";
+                var option=mapOptions.FirstOrDefault(m=>m.id==id);
+                browserMapName.text=option?.title??"Choose a map";
+                if(browserMapDescription)browserMapDescription.text=CandyBrief(string.IsNullOrWhiteSpace(option?.description)?"Point to a map to preview it. Select to use it.":option.description);
             }
             browserMapMissing.gameObject.SetActive(!browserMapPreview.texture);
         }

@@ -78,11 +78,18 @@ namespace DeadlyJenga.Presentation
                 held=distance>.01f&&distance<3;
             }
             bool dual=PhysicalPose(eye,dominantLeft,out _,out _)&&held;
-            Vector3 position=dual?anchor.position+eye.transform.right*(holderLeft ? .12f : -.12f)+eye.transform.up*.18f
-                :eye.transform.position+eye.transform.forward*.62f-eye.transform.up*.06f;
+            float depth=1.05f,lateral=0,height=-.06f;
+            if(dual)
+            {
+                var offset=anchor.position-eye.transform.position;
+                depth=Mathf.Clamp(Vector3.Dot(offset,eye.transform.forward)+.50f,.95f,1.35f);
+                lateral=Mathf.Clamp(Vector3.Dot(offset,eye.transform.right),-.28f,.28f);
+                height=Mathf.Clamp(Vector3.Dot(offset,eye.transform.up)+.16f,-.22f,.12f);
+            }
+            Vector3 position=eye.transform.position+eye.transform.forward*depth+eye.transform.right*lateral+eye.transform.up*height;
             Vector3 forward=position-eye.transform.position;
             if(forward.sqrMagnitude<.01f)return;
-            float scale=.00055f*Mathf.Min(1,600/Mathf.Max(1,panel.rect.width));
+            float scale=.0005f*Mathf.Min(1,960/Mathf.Max(1,panel.rect.width));
             float blend=Mathf.Abs(panel.localScale.x-scale)<.00001f?1-Mathf.Exp(-20*Time.unscaledDeltaTime):1;
             panel.SetPositionAndRotation(Vector3.Lerp(panel.position,position,blend),Quaternion.Slerp(panel.rotation,Quaternion.LookRotation(forward.normalized,eye.transform.up),blend));
             panel.localScale=Vector3.one*scale;

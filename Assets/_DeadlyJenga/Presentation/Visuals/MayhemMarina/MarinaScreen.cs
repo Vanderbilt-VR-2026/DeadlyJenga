@@ -12,13 +12,13 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;}
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;public Text[] labels;public Outline outline;public Shadow glow;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
         bool ModalBlocked=>MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
         InputAction select,leftSelect;Image aimDot;RectTransform canvas;Text modeTitle,mapTitle,playTitle,partyTitle,gameExperienceTitle,demoExperienceTitle,browseTitle;
-        RawImage modePicture,mapPicture,otherPicture;string modeId,mapId;float refreshAt;
+        RawImage modePicture,mapPicture,otherPicture;string modeId,mapId,focusTarget,focusMode,focusMap;float refreshAt;Text focusDescription;RectTransform focusPanel;
         public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
@@ -32,6 +32,7 @@ namespace DeadlyJenga.CandyArt.Marina
             modeTitle=Text("",new Vector2(-236,-68),new Vector2(225,27),17,canvas);
             browseTitle=Text("BROWSE MODES",new Vector2(0,-68),new Vector2(225,27),17,canvas);
             mapTitle=Text("",new Vector2(236,-68),new Vector2(225,27),17,canvas);
+            AttachCardTitle(modeTitle,modePicture);AttachCardTitle(browseTitle,otherPicture);AttachCardTitle(mapTitle,mapPicture);
             var play=Button("marina-play",new Vector2(0,-111),new Vector2(330,55),new Color(.15f,.62f,.14f),()=>lobby.StartOrCancel(),()=>lobby.CanStart);
             playTitle=Text("PLAY",Vector2.zero,new Vector2(300,53),42,play);
             string[] ids={"join","host","settings","style"};string[] captions={"JOIN","HOST","SETTINGS","STYLE"};
@@ -48,7 +49,16 @@ namespace DeadlyJenga.CandyArt.Marina
                 Text("ROUND INFO",Vector2.zero,new Vector2(156,52),24,round);
                 partyTitle.rectTransform.anchoredPosition=new Vector2(270,-111);partyTitle.rectTransform.sizeDelta=new Vector2(165,55);partyTitle.fontSize=23;
             }
+            var description=new GameObject("Focused destination description",typeof(RectTransform),typeof(Image));description.transform.SetParent(canvas,false);
+            focusPanel=description.GetComponent<RectTransform>();focusPanel.anchoredPosition=new Vector2(0,-23);focusPanel.sizeDelta=new Vector2(700,44);
+            var backing=description.GetComponent<Image>();backing.sprite=CandyHudVisuals.Pill;backing.type=Image.Type.Sliced;backing.color=new Color(.06f,.11f,.17f,.94f);backing.raycastTarget=false;
+            focusDescription=Text("",Vector2.zero,new Vector2(676,40),17,focusPanel);focusDescription.fontStyle=FontStyle.Normal;focusPanel.gameObject.SetActive(false);
+            foreach(var target in targets)target.labels=target.face.GetComponentsInChildren<Text>(true);
             select=new InputAction("Marina select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();leftSelect=new InputAction("Marina left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");leftSelect.Enable();aimDot=MenuAim.CreateReticle(canvas);Refresh();
+        }
+        static void AttachCardTitle(Text title,RawImage picture)
+        {
+            title.transform.SetParent(picture.transform.parent,false);title.rectTransform.anchoredPosition=new Vector2(0,-90);title.rectTransform.sizeDelta=new Vector2(220,24);
         }
         RawImage Card(string id,Vector2 p,Action action)
         {
@@ -59,7 +69,9 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             var go=new GameObject(id,typeof(RectTransform),typeof(Image),typeof(BoxCollider));go.layer=5;go.transform.SetParent(canvas,false);var r=go.GetComponent<RectTransform>();r.anchoredPosition=p;r.sizeDelta=size;
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
-            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);targets.Add(new Target{id=id,collider=hit,face=image,color=color,action=action,allowed=allowed});return r;
+            var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);var outline=go.AddComponent<Outline>();outline.effectDistance=new Vector2(4,-4);outline.effectColor=Color.clear;
+            var glow=go.AddComponent<Shadow>();glow.effectDistance=new Vector2(0,-8);glow.effectColor=Color.clear;
+            targets.Add(new Target{id=id,collider=hit,face=image,color=color,action=action,allowed=allowed,outline=outline,glow=glow});return r;
         }
         static Text Text(string value,Vector2 p,Vector2 size,int font,Transform parent)
         {
@@ -92,7 +104,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&Visible&&target.allowed()){MenuAim.Consume();target.action();return true;}return false;}
         void Update()
         {
-            if(!Visible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
+            if(!Visible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera)return;
             var mouse=Mouse.current;var keyboard=Keyboard.current;
             bool held=select?.IsPressed()==true||leftSelect?.IsPressed()==true||player.SelectHeld||keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
@@ -104,15 +116,31 @@ namespace DeadlyJenga.CandyArt.Marina
             foreach(var target in targets)
             {
                 target.collider.enabled=target.allowed();
-                if(target.collider.enabled&&target.collider.Raycast(ray,out var hit,distance)&&Vector3.Dot(ray.direction,target.collider.transform.forward)>0){nearest=target;distance=hit.distance;}
+                if(target.collider.enabled&&MenuAim.TryPoint(ray,target.face.rectTransform,distance,out _,out var hit)){nearest=target;distance=Vector3.Distance(ray.origin,hit);}
             }
             foreach(var target in targets)
             {
-                bool hover=target==nearest;target.face.color=hover?CandyHudVisuals.Mint:target.allowed()?target.color:CandyHudVisuals.Card;
-                foreach(var text in target.face.GetComponentsInChildren<Text>())text.color=hover?CandyHudVisuals.Ink:target.allowed()?Color.white:CandyHudVisuals.Muted;
+                bool hover=target==nearest,allowed=target.allowed();target.face.color=hover?CandyHudVisuals.Mint:allowed?target.color:CandyHudVisuals.Card;
+                target.face.rectTransform.localScale=Vector3.Lerp(target.face.rectTransform.localScale,Vector3.one*(hover?1.10f:1),1-Mathf.Exp(-22*Time.unscaledDeltaTime));
+                target.outline.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?1:0);
+                target.glow.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?.5f:0);
+                foreach(var text in target.labels)text.color=hover?CandyHudVisuals.Ink:allowed?Color.white:CandyHudVisuals.Muted;
             }
+            PreviewDestination(nearest?.id);
             if(MenuAim.TryPoint(ray,canvas,11,out _,out var point))MenuAim.Present(aimDot,point,true,nearest!=null);else aimDot.gameObject.SetActive(false);
             if(pressed&&nearest!=null){Invoke(nearest.id);requireRelease=true;}
+        }
+        void PreviewDestination(string id)
+        {
+            bool map=id=="marina-maps",mode=id=="marina-modes"||id=="marina-more-modes";
+            focusPanel.gameObject.SetActive(map||mode);if(!map&&!mode)return;
+            if(focusTarget==id&&focusMode==modeId&&focusMap==mapId)return;
+            focusTarget=id;focusMode=modeId;focusMap=mapId;
+            var details=lobby as ILobbyDetails;string selected=map?mapId:id=="marina-more-modes"?(modeId=="ctf"?"disasters":"ctf"):modeId;
+            var options=map?details?.Maps:details?.Modes;string description="";
+            if(options!=null)foreach(var option in options)if(option.id==selected){description=option.description;break;}
+            if(string.IsNullOrWhiteSpace(description))description=map?"Browse maps. Point to a map for its picture and description; select to use it.":"Browse modes. Point to a mode to preview it; select to use it and choose a map.";
+            focusDescription.text=description.Length>150?description.Substring(0,147)+"...":description;
         }
         void OnEnable(){requireRelease=true;select?.Enable();leftSelect?.Enable();}
         void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
