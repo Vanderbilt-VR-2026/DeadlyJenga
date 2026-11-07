@@ -1,9 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
-using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
-using UnityEngine.InputSystem.XR;
-using Unity.XR.CoreUtils;
+using DeadlyJenga.Presentation;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -13,11 +10,8 @@ namespace DeadlyJenga.CastlePrototype
         Ray pointerRay;
         BoxCollider focus,pressedTarget;
         Image pointerDot,focusOutline;
-        LineRenderer pointerBeam;
         float pressedUntil;
         bool requireRelease,startedAim,usingController;
-        Camera rigCamera;
-        Transform trackingSpace;
 
         public void Show(bool show,Camera camera)
         {
@@ -29,9 +23,8 @@ namespace DeadlyJenga.CastlePrototype
             if(flat.sqrMagnitude<.015f)flat=Vector3.Cross(eye.right,Vector3.up);
             flat=flat.sqrMagnitude>.001f?flat.normalized:Vector3.forward;
             transform.SetPositionAndRotation(eye.position+flat*MenuDistance,Quaternion.LookRotation(flat,Vector3.up));
-            startedAim=false;requireRelease=true;focus=pressedTarget=null;rigCamera=null;
+            startedAim=false;requireRelease=true;focus=pressedTarget=null;
             if(pointerDot)pointerDot.gameObject.SetActive(false);
-            if(pointerBeam)pointerBeam.enabled=false;
             if(focusOutline)focusOutline.gameObject.SetActive(false);
         }
 
@@ -40,10 +33,22 @@ namespace DeadlyJenga.CastlePrototype
             if(!camera||!isActiveAndEnabled)return;
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
-            ((RectTransform)transform).sizeDelta=new Vector2(600,1080);
+            bool guest=DeadlyJenga.Presentation.MenuAccess.GuestPause(session);
+            ((RectTransform)transform).sizeDelta=new Vector2(600,guest?590:1080);
+            heading.rectTransform.anchoredPosition=new Vector2(0,guest?171:355);
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
-            bool controller=ControllerRay(camera,out pointerRay);
-            if(!controller)pointerRay=new Ray(camera.transform.position,camera.transform.forward);
+            bool controller = session.IsVR;
+            if (controller)
+            {
+                var trackingCamera = MenuPointer.TrackingCamera(session, camera);
+                bool aimed = DeadlyJenga.Presentation.MenuPointer.AimAt(camera, trackingCamera,
+                    session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded==true,
+                    ray => DeadlyJenga.Presentation.MenuPointer.PanelHit(ray, (RectTransform)transform), out var input);
+                pointerRay=input.Ray;
+                pressed=aimed&&input.Pressed;
+                held=aimed&&input.Held;
+            }
+            else pointerRay=new Ray(camera.transform.position,camera.transform.forward);
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
             if(requireRelease)
@@ -51,38 +56,11 @@ namespace DeadlyJenga.CastlePrototype
                 if(!pressed&&!held)requireRelease=false;
                 pressed=held=false;
             }
-            PointPage(camera,pressed,held);
+            if(guest)PointGuestPause(pressed);
+            else PointPage(camera,pressed,held);
             if(!isActiveAndEnabled)return;
             if(pressed&&focus){pressedTarget=focus;pressedUntil=Time.unscaledTime+.13f;}
             ApplyLabelContrast();PresentPointer();
-        }
-
-        bool ControllerRay(Camera camera,out Ray ray)
-        {
-            ray=default;
-            if(rigCamera!=camera)
-            {
-                rigCamera=camera;
-                var rig=camera.GetComponentInParent<XROrigin>();
-                trackingSpace=rig&&rig.Camera==camera&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
-            }
-            if(!trackingSpace)return false;
-            foreach(var device in InputSystem.devices)
-            {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||
-                    device.layout.IndexOf("HandInteraction",System.StringComparison.OrdinalIgnoreCase)>=0)continue;
-                bool right=false;foreach(var usage in device.usages)right|=usage==UnityEngine.InputSystem.CommonUsages.RightHand;
-                if(!right)continue;
-                var position=device.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                var rotation=device.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                if(position==null||rotation==null)continue;
-                var origin=trackingSpace.TransformPoint(position.ReadValue());
-                var direction=trackingSpace.TransformDirection(rotation.ReadValue()*Vector3.forward);
-                float span=(origin-camera.transform.position).sqrMagnitude;
-                if(!(span<9&&direction.sqrMagnitude>.5f&&direction.sqrMagnitude<2))continue;
-                ray=new Ray(origin,direction.normalized);return true;
-            }
-            return false;
         }
 
         static bool Project(Ray ray,Transform plane,out Vector3 point)
@@ -115,14 +93,7 @@ namespace DeadlyJenga.CastlePrototype
                 pointerDot=PointerImage("Pointer dot",new Vector2(15,15));
                 var edge=pointerDot.gameObject.AddComponent<Outline>();edge.effectColor=CandyHudVisuals.Ink;edge.effectDistance=new Vector2(2,-2);
                 focusOutline=PointerImage("Pointed control focus bar",Vector2.zero);
-                var source=Resources.Load<Material>("CandyUtilityGlow");
-                if(source)
-                {
-                    var beam=new GameObject("Right controller menu ray");beam.transform.SetParent(transform,false);
-                    pointerBeam=beam.AddComponent<LineRenderer>();pointerBeam.sharedMaterial=source;pointerBeam.useWorldSpace=true;
-                    pointerBeam.positionCount=2;pointerBeam.startWidth=.005f;pointerBeam.endWidth=.002f;
-                    pointerBeam.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;pointerBeam.receiveShadows=false;
-                }
+
             }
             var panel=(RectTransform)transform;
             bool intersects=Project(pointerRay,panel,out var at);
@@ -143,15 +114,6 @@ namespace DeadlyJenga.CastlePrototype
                 focusOutline.color=color;focusOutline.rectTransform.sizeDelta=new Vector2(5,row.rect.height*.67f);
                 focusOutline.transform.position=row.TransformPoint(new Vector3(row.rect.xMin+8,0,-3));
                 focusOutline.transform.SetAsLastSibling();if(dot)pointerDot.transform.SetAsLastSibling();
-            }
-            if(pointerBeam)
-            {
-                pointerBeam.enabled=usingController;
-                if(usingController)
-                {
-                    pointerBeam.startColor=color;pointerBeam.endColor=color;
-                    pointerBeam.SetPosition(0,pointerRay.GetPoint(.025f));pointerBeam.SetPosition(1,dot?at-transform.forward*.01f:pointerRay.GetPoint(MenuDistance));
-                }
             }
         }
 

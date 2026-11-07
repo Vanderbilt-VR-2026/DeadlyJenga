@@ -300,7 +300,7 @@ namespace DeadlyJenga.Modes
             var room=IslandRoomConnection.Instance;
             if(room&&room.Connected)
             {
-                if(room.IsHost){room.ReturnMatchToLobby();return;}
+                if(room.LocalIsLobbyHost){CastleDemoCommands.Run(session,CastleDemoAction.ReturnRoom);return;}
                 if(session)session.VisitLobby();return;
             }
             UnityEngine.SceneManagement.SceneManager.LoadScene("Lobby");

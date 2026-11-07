@@ -12,10 +12,11 @@ namespace DeadlyJenga.CastlePrototype
     {
         MayhemMarina marina;
         MarinaScreen marinaScreen;
-        RectTransform marinaBack,marinaMirror;
+        RectTransform marinaMirror;
         Texture2D marinaMaskTexture;
         Sprite marinaMaskSprite;
         string marinaDetail="";
+        int terminalPageChangedFrame=-1;
         float nextMarinaMirror;
         partial void BuildMayhemMarina()
         {
@@ -38,38 +39,62 @@ namespace DeadlyJenga.CastlePrototype
             }
             wardrobeCenter=MayhemMarina.Wardrobe;
             var pod=transform.Find("Visual - wardrobe pod");if(pod)pod.gameObject.SetActive(false);
-            wardrobePanel.SetPositionAndRotation(wardrobeCenter+new Vector3(2.8f,1.8f,1.3f),Quaternion.Euler(0,-35,0));
-            joinStation.SetPositionAndRotation(new Vector3(-4.25f,3.5f,9.25f),Quaternion.Euler(0,-12,0));
-            hostStation.SetPositionAndRotation(new Vector3(4.15f,3.5f,9.3f),Quaternion.Euler(0,12,0));
-            setupStation.SetPositionAndRotation(MayhemMarina.PlayScreen+Vector3.back*.10f,Quaternion.identity);setupStation.localScale=Vector3.one*.0036f;
-            piano.SetPositionAndRotation(new Vector3(-4.2f,2.65f,7.6f),Quaternion.Euler(35,-12,0));
-            marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);
-            var go=new GameObject("Marina detail back control",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);marinaBack=go.GetComponent<RectTransform>();marinaBack.position=new Vector3(0,2.9f,4.15f);marinaBack.localScale=Vector3.one*.0028f;marinaBack.sizeDelta=new Vector2(1000,125);go.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;go.GetComponent<Canvas>().overrideSorting=true;go.GetComponent<Canvas>().sortingOrder=100;
-            Add(marinaBack,"marina-close",()=>"BACK TO MARINA",0,CloseMarinaDetail,()=>true,0,1000,125);
+            wardrobePanel.SetPositionAndRotation(WardrobePosition+new Vector3(2.4f,1.8f,.65f),Quaternion.Euler(0,75,0));
+            var screenPosition=MayhemMarina.PlayScreen+Vector3.back*.12f;
+            setupStation.SetPositionAndRotation(screenPosition,Quaternion.identity);
+            setupStation.localScale=Vector3.one*.0036f;
+            roomPage.SetPositionAndRotation(screenPosition,Quaternion.identity);
+            roomPage.localScale=Vector3.one*.0036f;
+            marinaScreen=gameObject.AddComponent<MarinaScreen>();
+            marinaScreen.Build(lobby,OpenMarinaDetail);
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
             BuildMarinaMirror();CloseMarinaDetail();SyncMarinaBacks();
         }
         void OpenMarinaDetail(string page)
         {
-            if(page=="style"){if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
-            marinaDetail=page;joinStation.gameObject.SetActive(page=="join");hostStation.gameObject.SetActive(page=="host");setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");piano.gameObject.SetActive(page=="join");
+            if(page=="host")page="room";
+            if((page=="maps"||page=="modes")&&!lobby.CanConfigure)return;
+            if(page=="join"&&(!lobby.JoinEnabled||RoomHasGuests))return;
+            marinaDetail=page;
+            terminalPageChangedFrame=Time.frameCount;
+            hostStation.gameObject.SetActive(page=="room");
+            joinStation.gameObject.SetActive(page=="join");
+            roomPage.gameObject.SetActive(page=="room"||page=="join");
+            setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");
+            ClosePrivateKeyboard();
             if(page=="maps"||page=="modes")OpenPicker(page);
-            if(page=="settings"){setupPage="settings";settingsPage=0;}
-            marinaScreen.Visible=false;marinaBack.gameObject.SetActive(true);SyncMarinaBacks();
+            if(page=="settings")OpenMatchSettings();
+            if(marinaScreen)marinaScreen.Visible=false;
+            SyncMarinaBacks();
         }
         void CloseMarinaDetail()
         {
-            marinaDetail="";joinStation.gameObject.SetActive(false);hostStation.gameObject.SetActive(false);setupStation.gameObject.SetActive(false);piano.gameObject.SetActive(false);wardrobePanel.gameObject.SetActive(false);
-            if(wardrobeOpen)SetWardrobeOpen(false);if(marinaBack)marinaBack.gameObject.SetActive(false);if(marinaScreen)marinaScreen.Visible=true;SyncMarinaBacks();
+            ClosePrivateKeyboard();
+            marinaDetail="";
+            terminalPageChangedFrame=Time.frameCount;
+            setupPage="main";
+            roomPage.gameObject.SetActive(false);
+            setupStation.gameObject.SetActive(!marina);
+            if(wardrobeOpen)SetWardrobeOpen(false);
+            if(marinaScreen)marinaScreen.Visible=true;
+            SyncMarinaBacks();
         }
-        partial void MarinaInteractionRange(ref float distance){if(marina)distance=11;}
+        partial void MarinaInteractionRange(ref float distance)
+        {
+            if(marina)distance=DeadlyJenga.Presentation.MenuPointer.LobbyRange;
+        }
         partial void UpdateMayhemMarina()
         {
-            if(!marina)return;
-            if(marinaDetail!=""&&Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame)CloseMarinaDetail();
-            if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
-            if(wardrobePanel)wardrobePanel.gameObject.SetActive(wardrobeOpen&&Player.IsVR);
+            if(marinaDetail=="join"&&RoomHasGuests)CloseMarinaDetail();
+            if((marinaDetail=="maps"||marinaDetail=="modes")&&!lobby.IsHost)CloseMarinaDetail();
+            if(marinaDetail!=""&&!lobby.CodeFocused&&Keyboard.current?.escapeKey.wasPressedThisFrame==true)
+            {
+                if(setupPage=="dev-settings")OpenMatchSettings();
+                else CloseMarinaDetail();
+            }
             SyncMarinaBacks();
+            if(!marina)return;
+            if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)
             {
                 nextMarinaMirror=Time.unscaledTime+.2f;var previous=wardrobePlayer;wardrobePlayer=Player;
@@ -79,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
         void SyncMarinaBacks()
         {
             void Sync(string name,RectTransform front){var back=transform.Find(name+" / readable back");if(back)back.gameObject.SetActive(front&&front.gameObject.activeInHierarchy);}
-            Sync("JOIN",joinStation);Sync("HOST",hostStation);Sync("MODE + MAP",setupStation);Sync("WARDROBE",wardrobePanel);
+            Sync("Room",roomPage);Sync("MODE + MAP",setupStation);
         }
         void BuildMarinaMirror()
         {
@@ -88,8 +113,9 @@ namespace DeadlyJenga.CastlePrototype
             for(int y=0;y<64;y++)for(int x=0;x<64;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),Vector2.one*32);pixels[y*64+x]=new Color(1,1,1,Mathf.Clamp01(32-d));}
             marinaMaskTexture.SetPixels(pixels);marinaMaskTexture.Apply();marinaMaskSprite=Sprite.Create(marinaMaskTexture,new Rect(0,0,64,64),Vector2.one*.5f);go.GetComponent<Image>().sprite=marinaMaskSprite;go.GetComponent<Image>().color=new Color(.42f,.68f,.75f);go.GetComponent<Mask>().showMaskGraphic=true;
             var image=new GameObject("Mirror image",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(go.transform,false);var raw=image.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.color=Color.white;raw.raycastTarget=false;raw.rectTransform.sizeDelta=new Vector2(348,348);
+            BuildMirrorRotateIcon(marinaMirror,-127,54);
         }
         partial void DisposeMayhemMarina()
-        {if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
+        {if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
     }
 }

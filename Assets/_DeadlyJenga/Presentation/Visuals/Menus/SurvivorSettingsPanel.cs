@@ -12,24 +12,28 @@ namespace DeadlyJenga.CastlePrototype
 
         // staminaEditable: false for joined players (the host owns stamina rules).
         // shareStamina: called with the new stamina rules after a change, so the host can share them.
-        public static void Draw(ISurvivorSettings survivor, bool staminaEditable = true, System.Action<string> shareStamina = null)
+        public static void Draw(ISurvivorSettings survivor, bool staminaEditable = true, System.Action<string> shareStamina = null, bool showComfort = true)
         {
             if (survivor == null) return;
             var rules = survivor.CurrentRules;
             bool changed = false;
             string staminaBefore = survivor.SaveStaminaRules();
 
-            GUILayout.Label(survivor.ControlDescription);
-            GUILayout.BeginHorizontal();
-            if (GUILayout.Button("Seated / smooth turn")) survivor.UseStationaryPreset();
-            if (GUILayout.Button("Standing / physical turn")) survivor.UseStandingPreset();
-            GUILayout.EndHorizontal();
-            if (GUILayout.Button("Standing jump gesture: " + survivor.JumpGestureLabel)) survivor.CycleJumpGesture();
-            if (!survivor.StandingPlay && GUILayout.Button("Recalibrate seated eye height")) survivor.RecalibrateSeatedHeight();
-            if (GUILayout.Button("Movement: " + survivor.MovementLabel)) survivor.CycleMovement();
-            if (GUILayout.Button("Right-stick turn: " + survivor.TurnLabel)) survivor.CycleTurn();
-            changed |= Slider("Snap: " + rules.snapAngle.ToString("0") + "\u00b0", ref rules.snapAngle, 15, 90);
-            changed |= Slider("Smooth: " + rules.smoothDegrees.ToString("0") + "\u00b0 / sec", ref rules.smoothDegrees, 15, 180);
+            if(showComfort)
+            {
+                GUILayout.Label(survivor.ControlDescription);
+                GUILayout.BeginHorizontal();
+                if (GUILayout.Button("Seated / smooth turn")) survivor.UseStationaryPreset();
+                if (GUILayout.Button("Standing / physical turn")) survivor.UseStandingPreset();
+                GUILayout.EndHorizontal();
+                if (GUILayout.Button("Standing jump gesture: " + survivor.JumpGestureLabel)) survivor.CycleJumpGesture();
+                if (!survivor.StandingPlay && GUILayout.Button("Recalibrate seated eye height")) survivor.RecalibrateSeatedHeight();
+                if (GUILayout.Button("Movement: " + survivor.MovementLabel)) survivor.CycleMovement();
+                if (GUILayout.Button("Right-stick turn: " + survivor.TurnLabel)) survivor.CycleTurn();
+                changed |= Slider("Snap: " + rules.snapAngle.ToString("0") + "\u00b0", ref rules.snapAngle, 15, 90);
+                changed |= Slider("Smooth: " + rules.smoothDegrees.ToString("0") + "\u00b0 / sec", ref rules.smoothDegrees, 15, 180);
+
+            }
 
             staminaOpen = GUILayout.Toggle(staminaOpen, "Live climbing stamina settings" + (staminaEditable ? "" : " (host only)"));
             if (staminaOpen)

@@ -2,10 +2,8 @@ using System;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
-using Unity.XR.CoreUtils;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.XR;
 using UnityEngine.UI;
 
@@ -25,7 +23,6 @@ namespace DeadlyJenga.Presentation
         readonly List<Func<string>> titles=new();
         readonly List<Func<bool>> available=new();
         readonly List<Action> actions=new();
-        InputAction leftSelect,rightSelect;
         Camera eye;
         bool open,returnToMenu,openingVr,openingHand,selectReady;
         int openingInput,closedFrame=-1;
@@ -67,7 +64,6 @@ namespace DeadlyJenga.Presentation
             owner=session;controls=Resolve(session);
             lobby=session as ILobbyControls??(session as Component)?.GetComponent<ILobbyControls>();
             if(!canvas)Build();
-            leftSelect.Enable();rightSelect.Enable();
             eye=session.ActiveCamera;openingVr=session.IsVR;openingHand=session.PlayingHand;
             openingInput=InputSignature();returnToMenu=session.MenuOpen;selectReady=false;open=true;
             session.SetMenu(true);
@@ -89,7 +85,7 @@ namespace DeadlyJenga.Presentation
             panel.SetParent(root.transform,false);panel.sizeDelta=new Vector2(820,760);
             var background=panel.GetComponent<Image>();background.sprite=CandyHudVisuals.Pill;background.type=Image.Type.Sliced;
             background.color=CandyHudVisuals.Ink;background.raycastTarget=false;
-            Label("GAME / DEMO",new Vector2(0,335),new Vector2(750,48),32);
+            Label("Round",new Vector2(0,335),new Vector2(750,48),32);
             profile=Label("",new Vector2(0,279),new Vector2(750,68),25);
             status=Label("",new Vector2(0,210),new Vector2(750,60),23);
             var preview=new GameObject("Selected map",typeof(RectTransform),typeof(RawImage));
@@ -97,18 +93,16 @@ namespace DeadlyJenga.Presentation
             mapImage.rectTransform.anchoredPosition=new Vector2(-190,108);mapImage.rectTransform.sizeDelta=new Vector2(330,130);
             mapName=Label("",new Vector2(-190,27),new Vector2(348,32),22);
             readiness=Label("",new Vector2(190,98),new Vector2(348,150),23);
-            Add(new Vector2(-190,-30),()=>"GAME"+(controls.Experience==GameExperience.Game?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
-            Add(new Vector2(190,-30),()=>"DEMO"+(controls.Experience==GameExperience.Demo?" / selected":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Demo));
-            Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"ON":"OFF"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
-            Add(new Vector2(190,-118),()=>DuringRound?"Leave automatic playlist":controls.LocalReady?"Unready / leave playlist":"Ready / join playlist",
+            Add(new Vector2(-190,-30),()=>"Match"+(controls.Experience==GameExperience.Game?" ✓":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Game));
+            Add(new Vector2(190,-30),()=>"Sandbox"+(controls.Experience==GameExperience.Demo?" ✓":""),()=>CanChooseExperience(controls),()=>controls.SetExperience(GameExperience.Demo));
+            Add(new Vector2(-190,-118),()=>"Automatic rounds: "+(controls.AutomaticRounds?"On":"Off"),()=>controls.CanConfigureExperience,()=>controls.SetAutomaticRounds(!controls.AutomaticRounds));
+            Add(new Vector2(190,-118),()=>DuringRound?"Leave auto rounds":controls.LocalReady?"Not ready":"Ready",
                 ()=>controls.GamePhase==RoomGamePhase.Selected||controls.GamePhase==RoomGamePhase.WaitingReady||DuringRound&&controls.AutomaticRounds&&controls.LocalReady,()=>controls.SetReady(!controls.LocalReady));
             Add(new Vector2(-190,-206),()=>"Cancel start",()=>controls.CanCancelGameStart,()=>controls.CancelGameStart());
-            Add(new Vector2(190,-206),()=>"Retry transition",()=>controls.CanRetryGameTransition,()=>controls.RetryGameTransition());
+            Add(new Vector2(190,-206),()=>"Retry start",()=>controls.CanRetryGameTransition,()=>controls.RetryGameTransition());
             actionHint=Label("",new Vector2(0,-353),new Vector2(748,46),19);
             Add(new Vector2(-190,-294),()=>"Recenter panel",()=>openingVr,Anchor);
             Add(new Vector2(190,-294),()=>"Back",()=>true,()=>Close(true));
-            leftSelect=new InputAction("Experience left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
-            rightSelect=new InputAction("Experience right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
             root.SetActive(false);
         }
         Text Label(string value,Vector2 position,Vector2 size,int font)
@@ -133,11 +127,11 @@ namespace DeadlyJenga.Presentation
         {
             refreshAt=Time.unscaledTime+.2f;
             profile.text=controls.Experience==GameExperience.Game
-                ?"PROTOTYPE / UNVALIDATED / NO DISASTERS\n"+controls.ProfileId:"DEMO / MANUAL CONTROLS";
+                ?"Match · Preset rules":"Sandbox · Custom rules";
             status.text=controls.GameStatus;actionHint.text=controls.GameActionHint;
             string countdown=controls.CountdownSeconds>0?"\nCountdown: "+Mathf.CeilToInt(controls.CountdownSeconds)+" s":"";
             readiness.text=controls.ReadyCount+" / "+controls.RequiredReadyCount+" ready"+
-                "\nPopulation "+controls.MinimumPopulation+" - "+controls.MaximumPopulation+countdown;
+                "\nPlayers "+controls.MinimumPopulation+" - "+controls.MaximumPopulation+countdown;
             for(int i=0;i<captions.Count;i++)captions[i].text=titles[i]();
             var details=lobby as ILobbyDetails;string next=details?.SelectedMapId;
             if(next!=mapId)
@@ -150,7 +144,7 @@ namespace DeadlyJenga.Presentation
                 }
             }
             mapImage.gameObject.SetActive(mapImage.texture);
-            mapName.text=lobby?.MapTitle??"Map preview: lobby only";
+            mapName.text=lobby?.MapTitle??"";
         }
         void Anchor()
         {
@@ -163,41 +157,37 @@ namespace DeadlyJenga.Presentation
         {
             if(!open)return;
             var session=owner;open=false;closedFrame=Time.frameCount;selectReady=false;owner=null;controls=null;eye=null;
-            leftSelect?.Disable();rightSelect?.Disable();
             if(canvas)canvas.gameObject.SetActive(false);
             if(restore&&ReferenceEquals(Services.Session,session))session.SetMenu(returnToMenu);
         }
         void Update()
         {
             if(!open)return;
-            if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
-                owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls)||InputSignature()!=openingInput)
+            if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
+            if(!owner.ActiveCamera||owner.IsVR!=openingVr||owner.PlayingHand!=openingHand)
+            {Close(true);return;}
+            if(owner.ActiveCamera!=eye)
+            {
+                eye=owner.ActiveCamera;
+                if(openingVr){canvas.worldCamera=eye;Anchor();}
+                selectReady=false;
+            }
+            int inputSignature=InputSignature();
+            if(inputSignature!=openingInput){openingInput=inputSignature;selectReady=false;}
             if(Time.unscaledTime>=refreshAt)Refresh();
-            bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             for(int i=0;i<buttons.Count;i++){buttons[i].GetComponent<Image>().color=available[i]()?CandyHudVisuals.Card:CandyHudVisuals.Ink;captions[i].color=available[i]()?Color.white:CandyHudVisuals.Muted;}
-            if(!selectReady){if(!held)selectReady=true;return;}
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                Ray ray=new Ray(eye.transform.position,eye.transform.forward);var controller=Controller();bool left=false;
-                if(controller!=null)
-                {
-                    var rig=eye.GetComponentInParent<XROrigin>();var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
-                    if(space)
-                    {
-                        var position=controller.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                        var rotation=controller.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                        ray=new Ray(space.TransformPoint(position.ReadValue()),space.TransformDirection(rotation.ReadValue()*Vector3.forward));
-                        foreach(var usage in controller.usages)left|=usage==CommonUsages.LeftHand;
-                    }
-                    else controller=null;
-                }
-                if(Vector3.Dot(ray.direction,panel.forward)<=.01f||!new Plane(panel.forward,panel.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.InverseTransformPoint(ray.GetPoint(distance));pressed=controller!=null?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
+                var trackingCamera=MenuPointer.TrackingCamera(owner,eye);
+                bool aimed=MenuPointer.OnPanel(eye,trackingCamera,panel,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,out point,out pressed);
+                if(!selectReady){selectReady=!MenuPointer.TriggerHeld(trackingCamera);return;}
+                if(!aimed)return;
             }
             else
             {
+                if(!selectReady){selectReady=Mouse.current?.leftButton.isPressed!=true;return;}
                 if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point))return;
                 pressed=Mouse.current.leftButton.wasPressedThisFrame;
             }
@@ -207,16 +197,6 @@ namespace DeadlyJenga.Presentation
                 buttons[i].GetComponent<Image>().color=CandyHudVisuals.Mint;captions[i].color=CandyHudVisuals.Ink;
                 if(pressed){selectReady=false;actions[i]();if(this&&open&&canvas&&ReferenceEquals(Services.Session,owner)&&ReferenceEquals(Resolve(owner),controls))Refresh();}return;
             }
-        }
-        XRController Controller()
-        {
-            bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;XRController fallback=null;
-            foreach(var device in InputSystem.devices)
-            {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0)continue;
-                fallback??=controller;foreach(var usage in controller.usages)if(usage==(left?CommonUsages.LeftHand:CommonUsages.RightHand))return controller;
-            }
-            return fallback;
         }
         int InputSignature()
         {
@@ -229,8 +209,8 @@ namespace DeadlyJenga.Presentation
             return signature;
         }
         void OnApplicationFocus(bool focused){if(!focused)Close(false);}
-        void OnDisable(){Close(false);leftSelect?.Disable();rightSelect?.Disable();}
-        void OnDestroy(){Close(false);leftSelect?.Dispose();rightSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
+        void OnDisable()=>Close(false);
+        void OnDestroy(){Close(false);if(canvas)Destroy(canvas.gameObject);}
     }
 }
 

@@ -1,11 +1,21 @@
 using DeadlyJenga.Core;
+using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.Modes
 {
     public sealed partial class MatchModeRuntime
     {
         public bool DevelopmentReviewEnabled=>session&&session.developmentReviewTools&&Authority&&DeadlyJenga.CastlePrototype.SessionDevelopmentPolicy.CanExecuteLocal(session);
-        public bool CanEndGame=>DevelopmentReviewEnabled&&frame.phase==RoundPhase.Playing;
+        public bool CanEndGame=>session&&session.developmentReviewTools&&frame.phase==RoundPhase.Playing&&
+            SessionDevelopmentPolicy.CanRequestLocal(session)&&IsRoomLeader;
+        bool IsRoomLeader
+        {
+            get
+            {
+                var room=IslandRoomConnection.Instance;
+                return !room||!room.Connected?Authority:room.LocalIsLobbyHost;
+            }
+        }
         public string PlayerInRole(MysteryRole role)
         {
             if(!DevelopmentReviewEnabled||!MysteryActive||(role!=MysteryRole.Murderer&&role!=MysteryRole.Sheriff))return "";
@@ -24,9 +34,18 @@ namespace DeadlyJenga.Modes
         public void EndGame()
         {
             if(!CanEndGame)return;
+            if(Authority)EndGameForDevelopment();
+            else CastleDemoCommands.Run(session,CastleDemoAction.EndGame);
+            session.SetMenu(false);
+        }
+        internal bool EndGameForDevelopment()
+        {
+            if(!Authority||!session||!session.developmentReviewTools||frame.phase!=RoundPhase.Playing||
+                !SessionDevelopmentPolicy.CanExecuteServer(session))return false;
             simulation.EndForDevelopmentReview();frame=simulation.Snapshot();PublishEnemyActions();PublishEquipment();
             if(MysteryActive)frame.mystery=MysteryFrame();
-            ApplyFrames();session.SetMenu(false);
+            ApplyFrames();
+            return true;
         }
     }
 }

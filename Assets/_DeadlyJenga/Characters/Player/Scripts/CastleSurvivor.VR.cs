@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused){ClearSprint();ResetVRJump();}}
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
-        float seatedHeightOffset,vrLookPitch;
+        float seatedHeightOffset;
         public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
             ? "Standing: move stick; turn physically; "+jumpGesture+" jumps / holds to climb"
@@ -73,29 +73,20 @@ namespace DeadlyJenga.CastlePrototype
                 angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,360)*Mathf.Max(0,dt);
             if(angle!=0)transform.RotateAround(viewCamera.transform.position,Vector3.up,angle);
         }
-        public void ApplyVRLook(Vector2 stick,float dt)
-        {
-            ApplyVRTurn(stick.x,dt);
-            if(!IsVR||externallyDriven||InputSuspended||!cameraOffset||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
-            float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
-            float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*Mathf.Clamp(vrSmoothDegreesPerSecond*.65f,65,220)*dt,-65,80);
-            if(next!=vrLookPitch)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,next-vrLookPitch);
-            vrLookPitch=next;
-        }
-        public void UseStationaryVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Seated);
-        public void UseStandingVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Standing);
-        void ResetVRLook()
-        {
-            if(cameraOffset&&viewCamera&&vrLookPitch!=0)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,-vrLookPitch);
-            vrLookPitch=0;
-        }
+        public void ApplyVRLook(Vector2 stick,float dt)=>ApplyVRTurn(stick.x,dt);
+        public void UseStationaryVR()=>ApplyVRPlayStyle(SurvivorVRPlayStyle.Seated,true,SurvivorVRMovement.BodyRelative);
+        public void UseStandingVR()=>ApplyVRPlayStyle(SurvivorVRPlayStyle.Standing,true,SurvivorVRMovement.HeadRelative);
         public void SetVRPlayStyle(SurvivorVRPlayStyle style,bool remember=true)
+            =>ApplyVRPlayStyle(style,remember,null);
+
+        void ApplyVRPlayStyle(SurvivorVRPlayStyle style,bool remember,SurvivorVRMovement? movement)
         {
             if(Climbing||Vaulting){ActionStatus="Finish traversal before switching controls";return;}
             if(style==SurvivorVRPlayStyle.Standing&&cameraOffset)
             {cameraOffset.localPosition-=Vector3.up*seatedHeightOffset;seatedHeightOffset=0;}
-            ClearSprint();ResetVRLook();
-            vrPlayStyle=style;vrMovement=style==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
+            ClearSprint();
+            vrPlayStyle=style;
+            if(movement.HasValue)vrMovement=movement.Value;
             vrTurn=style==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
             turnReady=false;ResetVRJump();calibrateSeated=style==SurvivorVRPlayStyle.Seated;
             if(remember)PlayerPrefs.SetInt("SurvivorVRPlayStyle",(int)style);
@@ -162,8 +153,8 @@ namespace DeadlyJenga.CastlePrototype
                 hybridProfileActive=false;
             }
         }
-        public void UseFluidVR(){SetVRPlayStyle(SurvivorVRPlayStyle.Seated);vrMovement=SurvivorVRMovement.HeadRelative;}
-        public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;ResetVRLook();}
+        public void UseFluidVR()=>ApplyVRPlayStyle(SurvivorVRPlayStyle.Seated,true,SurvivorVRMovement.HeadRelative);
+        public void CycleVRTurn(){vrTurn=(SurvivorVRTurn)(((int)vrTurn+1)%3);turnReady=false;}
         public void CycleVRMovement(){vrMovement=vrMovement==SurvivorVRMovement.HeadRelative?SurvivorVRMovement.BodyRelative:SurvivorVRMovement.HeadRelative;}
     }
 }

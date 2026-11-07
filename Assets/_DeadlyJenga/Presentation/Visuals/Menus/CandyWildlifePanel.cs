@@ -28,7 +28,7 @@ namespace DeadlyJenga.Presentation
         public static void Open(ISessionInfo owner)
         {
             var view=(owner as Component)?.GetComponent<CandyWildlifePanel>();
-            if(view)
+            if(view && MenuAccess.HostTools(owner))
             {
                 view.open=true;var camera=owner.ActiveCamera;
                 view.openingForward=camera?camera.transform.forward:Vector3.forward;view.openingForward.y=0;
@@ -39,7 +39,7 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(session==null)return;
-            if(Keyboard.current?.f6Key.wasPressedThisFrame==true&&Services.Session==session){if(open)open=false;else Open(session);}
+            if(!MenuAccess.HostTools(session)) open=false;
             if(open&&!session.MenuOpen)open=false;
             if(!canvas&&open)Build();
             if(!canvas)return;
@@ -55,15 +55,13 @@ namespace DeadlyJenga.Presentation
                 panel.localScale=Vector3.one*.0017f;
                 var forward=openingForward;
                 panel.position=camera.transform.position+forward.normalized*1.7f;panel.rotation=Quaternion.LookRotation(forward);
-                var ray=new Ray(camera.transform.position,camera.transform.forward);
-                if(new Plane(panel.forward,panel.position).Raycast(ray,out float distance))
+                if(MenuPointer.OnPanel(camera, panel, session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, out var point, out bool pressed))
                 {
-                    Vector2 point=panel.InverseTransformPoint(ray.GetPoint(distance));
                     for(int i=0;i<buttons.Count;i++)
                     {
                         var rect=(RectTransform)buttons[i].transform;bool hover=rect.rect.Contains(point-(Vector2)rect.localPosition);
                         buttons[i].image.color=hover?new Color(.15f,.85f,.65f):new Color(.25f,.14f,.39f);
-                        if(hover&&session.MenuSelectPressed&&buttons[i].interactable){actions[i]();break;}
+                        if(hover&&pressed&&buttons[i].interactable){actions[i]();break;}
                     }
                 }
             }

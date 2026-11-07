@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype
             get
             {
                 var room=IslandRoomConnection.Instance;
-                return CanCommand&&session.HasWorldAuthority&&(!room||!room.Connected||room.IsHost&&!room.Busy&&!room.SwitchingMap&&!room.RoomSceneBusy);
+                return CanCommand&&(!room||!room.Connected?session.HasWorldAuthority:room.LocalIsLobbyHost);
             }
         }
         public string MapStatus
@@ -64,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
             var map = Array.Find(MapCatalog.maps, value => value.id == id);
             if (map == null || !map.SupportsMode(MatchSetup.ModeId) || UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath) < 0) return;
             var room = IslandRoomConnection.Instance;
-            if (room && room.Connected) { room.SwitchGameMap(id); return; }
+            if (room && room.Connected) { CastleDemoCommands.Run(session,CastleDemoAction.SwitchMap,id); return; }
             if (Net && Net.IsHost) return;
             MatchSetup.MapId = id; MatchSetup.FromLobby = true;
             UnityEngine.SceneManagement.SceneManager.LoadScene(UnityEngine.SceneManagement.SceneUtility.GetBuildIndexByScenePath(map.scenePath));

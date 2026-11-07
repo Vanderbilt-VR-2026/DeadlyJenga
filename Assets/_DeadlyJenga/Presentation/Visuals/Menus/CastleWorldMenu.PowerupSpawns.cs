@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
         bool randomPowerupPage;int weightOffset;
         void PointRandomPowerups(Camera camera,bool pressed)
         {
-            scaffoldButton.gameObject.SetActive(false);HideDisasterSliders();
+            HideDisasterSliders();
             var runtime=MatchRuntime.Current;var controls=runtime as IPowerupSpawnControls;if(controls==null){randomPowerupPage=false;return;}
             var settings=controls.SpawnSettings;heading.text="RANDOM BLOCK POWERUPS\nAll heights · Host settings";
             float total=0;foreach(var type in settings.types)total+=type.weight;

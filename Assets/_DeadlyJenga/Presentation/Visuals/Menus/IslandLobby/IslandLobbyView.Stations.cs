@@ -6,47 +6,50 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // The three terminals: JOIN (code, nearby rooms, invitations), HOST, and MAP + MODE.
+    // Match and room pages share the same terminal position.
     public sealed partial class IslandLobbyView
     {
         const float StationY = 1.95f, StationZ = 1f, StationScale = .0022f;
-        RectTransform joinStation,hostStation,setupStation;
-        LobbyTerminalFaces joinFace,setupFace;
+        RectTransform roomPage,joinStation,hostStation,setupStation;
+        LobbyTerminalFaces setupFace;
         Text joinHint,hostHint,setupHint,hostCode;
         Keyboard codeKeyboard;
         void BuildTerminals()
         {
             var l=lobby;
-            joinStation=Terminal("JOIN",new Vector3(-3.05f,StationY,StationZ),0,new Vector2(1000,760),CandyHudVisuals.Lavender);
-            joinFace=joinStation.GetComponent<LobbyTerminalFaces>();
-            Add(joinStation,"code",()=>l.EnteredCode.Length>0?l.EnteredCode:"ENTER A CODE",170,l.FocusCode,()=>l.JoinEnabled,-90,690,95);
+            roomPage=Terminal("Room",new Vector3(0,StationY,StationZ),0,new Vector2(1100,880),CandyHudVisuals.Mint);
+            roomPage.GetComponentInChildren<Text>().enabled=false;
+            joinStation=RoomSection("Join a room");
+            Add(roomPage,"marina-close",()=>"Back",365,CloseMarinaDetail,()=>true,-412,192,58);
+            Add(joinStation,"code",()=>l.EnteredCode.Length>0?l.EnteredCode:"Enter code",170,l.FocusCode,()=>l.JoinEnabled,-90,690,95);
             Add(joinStation,"join",()=>"JOIN",170,l.Join,()=>l.JoinEnabled&&l.CodeValid,360,145,95);
-            Label(joinStation,"OR",60,28,870,44).color=CandyHudVisuals.Muted;
-            Add(joinStation,"detect-nearby",()=>"SEARCH LOCAL",-35,l.DetectNearby,()=>l.JoinEnabled,0,870,105);
+            Add(joinStation,"detect-nearby",()=>"Find nearby rooms",-35,l.DetectNearby,()=>l.JoinEnabled,0,870,105);
             for(int i=0;i<3;i++)
             {int slot=i;Add(joinStation,"nearby-room-"+i,()=>l.NearbyTitle(slot),-125-i*67,()=>l.JoinNearby(slot),()=>l.JoinEnabled&&l.HasNearby(slot),0,870,54,()=>l.ShowingNearby&&l.HasNearby(slot));}
-            Add(joinStation,"nearby-next",()=>"MORE ROOMS",-310,l.NextNearbyPage,()=>l.JoinEnabled,235,390,38,()=>l.ShowingNearby&&l.HasMoreNearby);
-            Add(joinStation,"code-instead",()=>"HIDE RESULTS",-310,l.ShowCodeEntry,()=>l.JoinEnabled,-235,390,38,()=>l.ShowingNearby);
-            Add(joinStation,"accept-invite",()=>"JOIN INVITATION: "+(l.InvitationFrom??""),-155,l.AcceptInvitation,()=>l.JoinEnabled,0,870,60,()=>!l.ShowingNearby&&l.InvitationFrom!=null);
-            Add(joinStation,"leave-guest",()=>TerminalLeaveLabel(l.Busy?"CANCEL JOIN":"LEAVE ROOM"),-260,LeaveFromTerminal,()=>l.CanLeave,0,870,65,()=>!l.HostActive&&l.CanLeave);
-            joinHint=Label(joinStation,"Use the enormous keyboard below.",-340,14,900,28);joinHint.color=CandyHudVisuals.Muted;
+            Add(joinStation,"nearby-next",()=>"More rooms",-310,l.NextNearbyPage,()=>l.JoinEnabled,235,390,38,()=>l.ShowingNearby&&l.HasMoreNearby);
+            Add(joinStation,"code-instead",()=>"Enter code",-310,l.ShowCodeEntry,()=>l.JoinEnabled,-235,390,38,()=>l.ShowingNearby);
+            Add(joinStation,"accept-invite",()=>"Join "+(l.InvitationFrom??""),-155,l.AcceptInvitation,()=>l.JoinEnabled,0,870,60,()=>!l.ShowingNearby&&l.InvitationFrom!=null);
+            joinHint=Label(joinStation,"",-340,14,900,28);joinHint.color=CandyHudVisuals.Muted;
             BuildKeyboard(joinStation);
-            StyleJoinArcade();
             BuildRoomStation();
             BuildLobbyPortrait();
             BuildGameStation();
-            FitTerminal(hostStation,new Vector2(1000,800),1.20f,.84f);
+            Add(setupStation,"open-room",()=>"Room",467,()=>OpenMarinaDetail("room"),()=>true,-340,160,66,()=>!marina&&setupPage=="main");
+            Add(setupStation,"open-join",()=>"Join",467,()=>OpenMarinaDetail("join"),()=>l.JoinEnabled,340,160,66,()=>!marina&&setupPage=="main"&&!RoomHasGuests);
+            CandyChoice("marina-close").button.transform.SetAsLastSibling();
+            roomPage.SetPositionAndRotation(setupStation.position,setupStation.rotation);
+            roomPage.gameObject.SetActive(false);
             FitTerminal(setupStation,new Vector2(1100,820),1.22f,.74f);
-            BuildControlCabinet(hostStation,false);
             BuildControlCabinet(setupStation,true);
         }        void UpdateStations()
         {
-            joinFace.Opacity=1;setupFace.Opacity=lobby.IsHost?1:.38f;UpdateRoomStation();UpdateGameStation();
-            hostCode.gameObject.SetActive(lobby.Connected&&!lobby.Busy);hostCode.text=lobby.HostCode;
+            UpdateRoomStation();UpdateGameStation();
+            hostCode.text=lobby.Connected||lobby.Busy?lobby.HostCode:"—";
             string notice=Details?.Notification;
-            hostHint.text=lobby.Connected&&!string.IsNullOrEmpty(notice)?notice:lobby.HostHint;
+            hostHint.text=!string.IsNullOrEmpty(lobby.HostHint)?lobby.HostHint:notice??"";
             setupHint.text=lobby.SetupHint;
-            joinHint.text=ConfirmingTerminalLeave&&!lobby.IsHost?"Leaving disconnects you from the host.":lobby.JoinHint;
+            joinHint.text=lobby.Busy||lobby.JoinHint.StartsWith("Connection failed",StringComparison.Ordinal)||
+                lobby.JoinHint.StartsWith("Check the six-character",StringComparison.Ordinal)?lobby.JoinHint:"";
             if(codeKeyboard!=Keyboard.current){if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;codeKeyboard=Keyboard.current;if(codeKeyboard!=null)codeKeyboard.onTextInput+=CodeText;}
             if(lobby.CodeFocused&&codeKeyboard!=null)
             {
@@ -54,10 +57,21 @@ namespace DeadlyJenga.CastlePrototype
                 if(codeKeyboard.enterKey.wasPressedThisFrame&&lobby.CodeValid)lobby.Join();
                 if(codeKeyboard.escapeKey.wasPressedThisFrame)lobby.UnfocusCode();
             }
-            UpdateKeyboardTouches();
             UpdateCandyDesign();
             RefreshLobbyPortrait();
         }
+        RectTransform RoomSection(string title)
+        {
+            var go=new GameObject(title,typeof(RectTransform),typeof(Image));
+            var rect=(RectTransform)go.transform;
+            rect.SetParent(roomPage,false);
+            rect.sizeDelta=roomPage.sizeDelta;
+            rect.anchoredPosition=Vector2.zero;
+            go.GetComponent<Image>().raycastTarget=false;
+            Label(rect,title,310,48,800,75);
+            return rect;
+        }
+
         void FitTerminal(RectTransform screen,Vector2 size,float x,float y)
         {
             screen.sizeDelta=size;

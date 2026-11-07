@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using DeadlyJenga.Core;
-using DeadlyJenga.CandyArt;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -13,103 +12,239 @@ namespace DeadlyJenga.CastlePrototype
     {
         sealed class SetupSetting
         {
-            public string label,id;
-            public bool mysteryOnly;
+            public string label;
+            public bool teamOnly, whole;
+            public string unit, zeroLabel;
             public Func<LobbySetup,object> read;
             public Action<LobbySetup,object> write;
             public Type type;
-            public float min,max;
+            public float min,max,increment;
             public string[] options;
+            public bool Numeric=>options==null&&(type==typeof(float)||type==typeof(int));
         }
-        readonly List<SetupSetting> setupSettings=new List<SetupSetting>();
-        readonly List<Image> setupFills=new List<Image>();
-        int settingsPage;float nextSettingSend;
-        bool ShowSetting(SetupSetting setting)=>!setting.mysteryOnly||Details?.SelectedModeId=="mystery";
+        const int SettingsPageSize=6;
+        readonly List<SetupSetting> matchSettings=new List<SetupSetting>();
+        readonly List<(string title, SetupSetting[] rows)> devSettings=new List<(string, SetupSetting[])>();
+        Text devSettingsSection,devSettingsPageLabel;
+        readonly Text[] settingNames=new Text[6],settingNumbers=new Text[6],settingChoices=new Text[6];
+        int settingsPage;
+        bool DevSettingsOpen=>setupPage=="dev-settings"&&lobby.CanConfigure;
+        bool SettingsOpen=>setupPage=="settings"||DevSettingsOpen;
+        string SettingsHeading=>DevSettingsOpen?"Dev Settings":"Match Rules";
+
         SetupSetting Setting(int slot)
         {
-            int index=settingsPage*6+slot;
-            foreach(var setting in setupSettings)
-                if(ShowSetting(setting)&&index--==0)return setting;
+            if(DevSettingsOpen)
+            {
+                var rows=devSettings[settingsPage].rows;
+                return slot<rows.Length?rows[slot]:null;
+            }
+            bool teamMode=Details?.SelectedModeId is "blockcontrol" or "ctf" or "teamtickets";
+            foreach(var setting in matchSettings)
+                if((!setting.teamOnly||teamMode)&&slot--==0)return setting;
             return null;
         }
+
+        void OpenMatchSettings()
+        {
+            setupPage="settings";
+            settingsPage=0;
+        }
+
+        static SetupSetting Field<T>(Func<LobbySetup,T> owner,string name,string label=null)
+        {
+            var field=typeof(T).GetField(name,BindingFlags.Public|BindingFlags.Instance);
+            var setting=new SetupSetting
+            {
+                label=label??ModeSetupPanel.Label(name),
+                read=state=>field.GetValue(owner(state)),
+                write=(state,value)=>field.SetValue(owner(state),value),
+                type=field.FieldType
+            };
+            ModeSetupPanel.Range(name,out setting.min,out setting.max);
+            return setting;
+        }
+
+        void AddDevPages(string title,SetupSetting[] settings)
+        {
+            for(int start=0;start<settings.Length;start+=SettingsPageSize)
+                devSettings.Add((title,settings.Skip(start).Take(SettingsPageSize).ToArray()));
+        }
+
         void BuildSetupSettings()
         {
-            void Fields(Type type,Func<LobbySetup,object> owner,bool movement=false)
+            SetupSetting Lobby(string name,string label=null)=>Field(s=>s,name,label);
+            SetupSetting Rule(string name,string label=null)=>Field(s=>s.rules,name,label);
+            void Rules(string title,params string[] names)=>AddDevPages(title,names.Select(name=>Rule(name)).ToArray());
+
+            var population=Lobby(nameof(LobbySetup.population),"Total players");
+            population.min=1;
+            population.max=100;
+            var hands=Lobby(nameof(LobbySetup.hands),"AI hands");
+            hands.max=100;
+            var round=Rule(nameof(ModeRules.roundSeconds),"Round length");
+            round.unit="s";
+            round.zeroLabel="No limit";
+            round.increment=10;
+            var teams=Rule(nameof(ModeRules.teamCount),"Teams");
+            var friendlyFire=Rule(nameof(ModeRules.friendlyFire));
+            var sameTeam=Lobby(nameof(LobbySetup.sameHumanTeam),"Keep humans on one team");
+            teams.teamOnly=friendlyFire.teamOnly=sameTeam.teamOnly=true;
+            matchSettings.AddRange(new[]{population,hands,round,teams,friendlyFire,sameTeam});
+
+            var survivorPreset=Lobby(nameof(LobbySetup.survivorPreset),"Survivor personality");
+            survivorPreset.options=MatchOptions.SurvivorPersonalities();
+            var handPreset=Lobby(nameof(LobbySetup.handPreset),"Hand personality");
+            handPreset.options=MatchOptions.HandPersonalities();
+            AddDevPages("Bots",new[]{survivorPreset,handPreset}.Where(setting=>setting.options?.Length>0).ToArray());
+
+            Rules("Combat",nameof(ModeRules.punchEnabled),nameof(ModeRules.punchDistance),nameof(ModeRules.punchDamage),
+                nameof(ModeRules.punchCooldown),nameof(ModeRules.healthEnabled),nameof(ModeRules.deathEnabled),
+                nameof(ModeRules.fallDamage),nameof(ModeRules.fallDamageStart),nameof(ModeRules.fallDamagePerMeter),nameof(ModeRules.defaultDagger));
+            Rules("Round flow",nameof(ModeRules.countdownSeconds),nameof(ModeRules.victorySeconds),nameof(ModeRules.handPowerSeconds));
+            Rules("Island",nameof(ModeRules.island),nameof(ModeRules.blockDestruction),nameof(ModeRules.sinkGraceSeconds),
+                nameof(ModeRules.sinkSpeed),nameof(ModeRules.sinkMoveScale));
+            Rules("King of the Hill",nameof(ModeRules.hillRadius),nameof(ModeRules.hillInterval));
+            Rules("Color Control",nameof(ModeRules.claimSeconds),nameof(ModeRules.reclaimSeconds),nameof(ModeRules.claimDecaySeconds),
+                nameof(ModeRules.pointsPerBlockSecond),nameof(ModeRules.enemyClimbBlocked));
+            Rules("Other modes",nameof(ModeRules.flagTarget),nameof(ModeRules.flagWinByTwo),nameof(ModeRules.tickets),nameof(ModeRules.starterInfected));
+
+            string[] mysteryFields={nameof(MysterySettings.attackGraceSeconds),nameof(MysterySettings.reviveSeconds),
+                nameof(MysterySettings.interactDistance),nameof(MysterySettings.reportDelaySeconds),nameof(MysterySettings.suspicionSeconds),
+                nameof(MysterySettings.trailRadius),nameof(MysterySettings.firstDisasterSeconds),nameof(MysterySettings.vetoSeconds),
+                nameof(MysterySettings.chooseSeconds),nameof(MysterySettings.disasterMinSeconds),nameof(MysterySettings.disasterMaxSeconds),
+                nameof(MysterySettings.sheriffMistakes)};
+            AddDevPages("Murder Mystery",mysteryFields.Select(name=>
             {
-                foreach(var f in type.GetFields(BindingFlags.Public|BindingFlags.Instance))
-                {
-                    if(f.Name=="downed"||f.FieldType!=typeof(float)&&f.FieldType!=typeof(int)&&f.FieldType!=typeof(bool)&&f.FieldType!=typeof(string)&&!f.FieldType.IsEnum)continue;
-                    if(f.Name=="mode"||f.Name=="carryingFlag"||f.Name=="sinking"||f.Name=="sinkProgress"||f.Name=="disasters"||f.Name=="rules"||f.FieldType==typeof(MatchRules)||f.Name=="playStyle")continue;
-                    var entry=new SetupSetting{id=f.Name,mysteryOnly=type==typeof(MysterySettings),label=(movement?"Player / ":"")+ModeSetupPanel.Label(f.Name),read=s=>f.GetValue(owner(s)),write=(s,v)=>f.SetValue(owner(s),v),type=f.FieldType};
-                    ModeSetupPanel.Range(f.Name,out entry.min,out entry.max);
-                    if(f.Name=="population"){entry.min=1;entry.max=100;}if(f.Name=="hands"){entry.min=0;entry.max=100;}
-                    if(f.Name=="survivorPreset")entry.options=MatchOptions.SurvivorPersonalities();if(f.Name=="handPreset")entry.options=MatchOptions.HandPersonalities();
-                    if(entry.options!=null){entry.min=0;entry.max=entry.options.Length-1;}
-                    if(f.Name=="environmentSkin")entry.options=CandySceneSkins.Names;
-                    if(f.Name.EndsWith("Curve",StringComparison.Ordinal))entry.options=MatchOptions.Curves;
-                    if(f.Name=="turn")entry.options=MatchOptions.Turns;if(f.FieldType==typeof(MatchRules))entry.options=MatchOptions.Movements;
-                    if(movement&&f.FieldType==typeof(float)){entry.min=f.Name=="gripSeconds"?.5f:0;entry.max=f.Name=="snapAngle"?90:f.Name=="smoothDegrees"?180:f.Name.Contains("Degree")?6:f.Name=="gripSeconds"?20:f.Name=="recoveryDelay"?5:4;}
-                    setupSettings.Add(entry);
-                }
-            }
-            Fields(typeof(LobbySetup),s=>s);Fields(typeof(ModeRules),s=>s.rules);Fields(typeof(MatchRules),s=>s.movement,true);
-            Fields(typeof(MysterySettings),s=>s.rules.mystery);
-            string[] common={"population","hands","survivorPreset","healthEnabled","friendlyFire","punchEnabled"};
-            var ordered=setupSettings.OrderBy(setting=>
-            {
-                int index=Array.IndexOf(common,setting.id);
-                return index>=0?index:common.Length;
-            }).ToArray();
-            setupSettings.Clear();setupSettings.AddRange(ordered);
+                var setting=Field(s=>s.rules.mystery,name);
+                if(name==nameof(MysterySettings.sheriffMistakes)){setting.min=1;setting.max=10;}
+                else if(name==nameof(MysterySettings.interactDistance))setting.max=5;
+                else if(name==nameof(MysterySettings.trailRadius))setting.max=15;
+                else setting.max=180;
+                return setting;
+            }).ToArray());
+
+            Rules("Disaster timing",nameof(ModeRules.automaticDisasters),nameof(ModeRules.disasterMinInterval),
+                nameof(ModeRules.disasterMaxInterval),nameof(ModeRules.disasterLateInterval),nameof(ModeRules.disasterWarningSeconds),
+                nameof(ModeRules.maxConcurrentDisasters));
+
             var hazards=Resources.Load<HazardCatalog>("DisasterCatalog");
             if(hazards)foreach(var prefab in hazards.prefabs)
             {
-                var hazard=prefab.GetComponent<IDemoHazard>();if(hazard==null)continue;
-                for(int i=0;i<hazard.Parameters.Count;i++)
+                if(!prefab||prefab.GetComponent<IDemoHazard>() is not IDemoHazard hazard)continue;
+                var rows=new SetupSetting[hazard.Parameters.Count];
+                for(int i=0;i<rows.Length;i++)
                 {
-                    int parameter=i;string id=prefab.name;var p=hazard.Parameters[i];
-                    setupSettings.Add(new SetupSetting{label=(prefab.GetComponent<IHazard>()?.Type?.name??id)+" / "+p.label,type=typeof(float),min=p.min,max=p.max,read=s=>s.disasters.FirstOrDefault(h=>h.id==id)?.values[parameter]??p.initial,write=(s,v)=>{var h=s.disasters.FirstOrDefault(h=>h.id==id);if(h!=null)h.values[parameter]=p.Clamp((float)v);}});
+                    int parameter=i;
+                    string id=prefab.name;
+                    var p=hazard.Parameters[i];
+                    rows[i]=new SetupSetting
+                    {
+                        label=p.label,type=typeof(float),min=p.min,max=p.max,whole=p.whole,unit=p.unit,
+                        read=s=>s.disasters.FirstOrDefault(h=>h.id==id)?.values[parameter]??p.initial,
+                        write=(s,v)=>{var h=s.disasters.FirstOrDefault(h=>h.id==id);if(h!=null)h.values[parameter]=p.Clamp((float)v);}
+                    };
                 }
+                AddDevPages(prefab.GetComponent<IHazard>()?.Type?.name??prefab.name,rows);
             }
+
             for(int i=0;i<6;i++)
             {
-                int slot=i;float y=310-i*115;
-                var choice=Add(setupStation,"setting-value-"+i,()=>SettingTitle(slot),y,()=>Adjust(slot,1),()=>lobby.CanConfigure,0,600,80,()=>setupPage=="settings"&&Setting(slot)!=null);
-                choice.slide=fraction=>SetFraction(slot,fraction);
-                choice.slideEnabled=()=>
-                {
-                    var type=Setting(slot)?.type;
-                    return type==typeof(float)||type==typeof(int);
-                };
-                var fill=new GameObject("Value fill",typeof(RectTransform),typeof(Image));fill.transform.SetParent(choice.button.transform,false);var image=fill.GetComponent<Image>();image.color=CandyHudVisuals.Mint;image.raycastTarget=false;image.rectTransform.pivot=new Vector2(0,.5f);image.rectTransform.anchoredPosition=new Vector2(-280,-28);image.rectTransform.sizeDelta=new Vector2(0,5);setupFills.Add(image);
-                Add(setupStation,"setting-minus-"+i,()=>"−",y,()=>Adjust(slot,-1),()=>lobby.CanConfigure,-360,85,80,()=>setupPage=="settings"&&Setting(slot)!=null);
-                Add(setupStation,"setting-plus-"+i,()=>"+",y,()=>Adjust(slot,1),()=>lobby.CanConfigure,360,85,80,()=>setupPage=="settings"&&Setting(slot)!=null);
+                int slot=i;float y=225-i*84;
+                Add(setupStation,"setting-value-"+i,()=>settingChoices[slot]?.text??"",y,()=>Adjust(slot,1),()=>lobby.CanConfigure,
+                    270,460,62,()=>SettingVisible(slot)&&!Setting(slot).Numeric);
+                Add(setupStation,"setting-minus-"+i,()=>"−",y,()=>Adjust(slot,-1),()=>lobby.CanConfigure,
+                    100,90,62,()=>SettingVisible(slot)&&Setting(slot).Numeric);
+                Add(setupStation,"setting-plus-"+i,()=>"+",y,()=>Adjust(slot,1),()=>lobby.CanConfigure,
+                    440,90,62,()=>SettingVisible(slot)&&Setting(slot).Numeric);
             }
-            Add(setupStation,"settings-prev",()=>"PREVIOUS SETTINGS",-395,()=>settingsPage=Mathf.Max(0,settingsPage-1),()=>true,-220,390,55,()=>setupPage=="settings"&&settingsPage>0);
-            Add(setupStation,"settings-next",()=>"MORE SETTINGS",-395,()=>settingsPage++,()=>true,220,390,55,()=>setupPage=="settings"&&(settingsPage+1)*6<setupSettings.Count(ShowSetting));
+            Add(setupStation,"settings-dev",()=>"Dev Settings",-360,()=>
+            {
+                if(setupPage!="settings"||!lobby.CanConfigure)return;
+                settingsPage=0;
+                setupPage="dev-settings";
+            },()=>lobby.CanConfigure,0,270,48,()=>setupPage=="settings"&&lobby.CanConfigure);
+            Add(setupStation,"settings-prev",()=>"Previous",-290,()=>settingsPage--,()=>settingsPage>0,
+                -310,300,50,()=>DevSettingsOpen);
+            Add(setupStation,"settings-next",()=>"Next",-290,()=>settingsPage++,()=>settingsPage+1<devSettings.Count,
+                310,300,50,()=>DevSettingsOpen);
         }
-        string SettingTitle(int slot)
+
+        bool SettingVisible(int slot)=>SettingsOpen&&Setting(slot)!=null;
+        void BuildSettingRows()
         {
-            var setting=Setting(slot);if(setting==null||Details==null)return "";var value=setting.read(Details.Setup);
-            if(setting.type==typeof(int)&&setting.options!=null)value=setting.options[Mathf.Clamp((int)value,0,setting.options.Length-1)];
-            float fill=setting.type==typeof(float)||setting.type==typeof(int)?Mathf.InverseLerp(setting.min,setting.max,Convert.ToSingle(setting.read(Details.Setup))):0;if(slot<setupFills.Count)setupFills[slot].rectTransform.sizeDelta=new Vector2(fill*760,5);
-            return setting.label+"\n"+(value is float f?f.ToString("0.##"):value is bool b?b?"ON":"OFF":value?.ToString());
+            devSettingsSection=CandyReadout(candySetupContent,"Dev settings section","",0,285,900,42,30);
+            devSettingsSection.color=CandyMuted;
+            devSettingsPageLabel=CandyReadout(candySetupContent,"Dev settings page","",0,-290,200,50,24);
+            devSettingsPageLabel.color=CandyMuted;
+            CandyPlace("settings-dev",0,-360,270,48);
+            CandyPlace("settings-prev",-310,-290,300,50);
+            CandyPlace("settings-next",310,-290,300,50);
+            for(int i=0;i<6;i++)
+            {
+                float y=225-i*84;
+                settingNames[i]=CandyReadout(candySetupContent,"Setting name","",-255,y,490,70,28);
+                settingNames[i].alignment=TextAnchor.MiddleLeft;
+                var number=CandyPanel(candySetupContent,"Numeric setting",270,y,216,62,CandyInk);
+                settingNumbers[i]=CandyReadout(number,"Setting number","",0,0,196,54,30);
+                var choice=CandyPlace("setting-value-"+i,270,y,430,62);
+                CandyText(choice,0,0,402,54,27);
+                settingChoices[i]=choice.label;
+                CandyPlace("setting-minus-"+i,100,y,88,62);
+                CandyPlace("setting-plus-"+i,440,y,88,62);
+            }
+        }
+        void UpdateSettingRows()
+        {
+            if(setupPage=="dev-settings"&&!lobby.CanConfigure)OpenMatchSettings();
+            bool dev=DevSettingsOpen;
+            devSettingsSection.gameObject.SetActive(dev);
+            devSettingsPageLabel.gameObject.SetActive(dev);
+            if(dev)
+            {
+                devSettingsSection.text=devSettings[settingsPage].title;
+                devSettingsPageLabel.text=$"{settingsPage+1} / {devSettings.Count}";
+            }
+            var state=SettingsOpen?Details?.Setup:null;
+            for(int i=0;i<settingNames.Length;i++)
+            {
+                var setting=state!=null?Setting(i):null;
+                settingNames[i].gameObject.SetActive(setting!=null);
+                settingNumbers[i].transform.parent.gameObject.SetActive(setting?.Numeric==true);
+                if(setting==null)continue;
+                settingNames[i].text=setting.label;
+                var value=setting.read(state);
+                if(value is int index&&setting.options?.Length>0)
+                    value=setting.options[Mathf.Clamp(index,0,setting.options.Length-1)];
+                string display=value is float number?number.ToString("0.##"):value is bool flag?flag?"On":"Off":value?.ToString();
+                if(setting.Numeric)
+                {
+                    if(setting.zeroLabel!=null&&value is float seconds&&seconds==0)display=setting.zeroLabel;
+                    else if(!string.IsNullOrEmpty(setting.unit))display+=" "+setting.unit;
+                    settingNumbers[i].text=display;
+                }
+                else settingChoices[i].text=display;
+            }
         }
         void Adjust(int slot,int step)
         {
-            var entry=Setting(slot);if(entry==null||!lobby.CanConfigure)return;var state=Details.Setup;object value=entry.read(state);
+            if(!SettingsOpen||!lobby.CanConfigure)return;
+            var entry=Setting(slot);var state=Details?.Setup;
+            if(entry==null||state==null)return;
+            object value=entry.read(state),previous=value;
             if(entry.type==typeof(bool))value=!(bool)value;
             else if(entry.type.IsEnum){var all=Enum.GetValues(entry.type);value=all.GetValue((Array.IndexOf(all,value)+step+all.Length)%all.Length);}
-            else if(entry.type==typeof(string)){var all=entry.options;if(all==null||all.Length==0)return;value=all[(Array.IndexOf(all,(string)value)+step+all.Length)%all.Length];}
-            else{float amount=entry.type==typeof(int)?1:entry.max>100?5:entry.max>20?1:.1f;float next=Mathf.Clamp(Convert.ToSingle(value)+step*amount,entry.min,entry.max);value=entry.type==typeof(int)?(object)Mathf.RoundToInt(next):next;}
+            else if(entry.type==typeof(int)&&entry.options?.Length>0)
+                value=(Mathf.Clamp((int)value,0,entry.options.Length-1)+step+entry.options.Length)%entry.options.Length;
+            else
+            {
+                float amount=entry.increment;
+                if(amount<=0)amount=entry.type==typeof(int)||entry.whole?1:entry.max>100?5:entry.max>20?1:.1f;
+                float next=Mathf.Clamp(Convert.ToSingle(value)+step*amount,entry.min,entry.max);
+                value=entry.type==typeof(int)?(object)Mathf.RoundToInt(next):next;
+            }
+            if(Equals(previous,value))return;
             entry.write(state,value);Details.ConfigureSetup(state);
-        }
-        void SetFraction(int slot,float fraction)
-        {
-            var entry=Setting(slot);if(entry==null)return;
-            if(entry.type!=typeof(float)&&entry.type!=typeof(int))return;
-            if(Time.unscaledTime<nextSettingSend)return;nextSettingSend=Time.unscaledTime+.12f;
-            var state=Details.Setup;float value=Mathf.Lerp(entry.min,entry.max,fraction);entry.write(state,entry.type==typeof(int)?(object)Mathf.RoundToInt(value):value);Details.ConfigureSetup(state);
         }
     }
 }

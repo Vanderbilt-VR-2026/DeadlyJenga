@@ -76,11 +76,10 @@ namespace DeadlyJenga.CastlePrototype
             var rect=(RectTransform)root.transform;rect.sizeDelta=new Vector2(520,300);
             var image=root.AddComponent<Image>();
             image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
-            Label("HAND APPEARANCE",new Vector2(0,107),new Vector2(480,44),27);
+            Label("Hand appearance",new Vector2(0,107),new Vector2(480,44),27);
             nameLabel=Label("",new Vector2(0,32),new Vector2(332,62),32);
             Add("Previous",new Vector2(-210,32),new Vector2(68,72),"<",()=>Pick(-1));
             Add("Next",new Vector2(210,32),new Vector2(68,72),">",()=>Pick(1));
-            Label("Choose a look for your flying hand",new Vector2(0,-34),new Vector2(474,40),20).color=CandyHudVisuals.Muted;
             Add("Recenter",new Vector2(-123,-103),new Vector2(226,62),"Recenter",Anchor);
             Add("Close",new Vector2(123,-103),new Vector2(226,62),"Done",()=>Close(true));
             leftSelect=new InputAction("Hand appearance left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
@@ -143,26 +142,7 @@ namespace DeadlyJenga.CastlePrototype
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                var ray=new Ray(openingCamera.transform.position,openingCamera.transform.forward);
-                var controller=Controller();
-                if(controller!=null)
-                {
-                    var rig=openingCamera.GetComponentInParent<XROrigin>();
-                    var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
-                    if(space)
-                    {
-                        var pos=controller.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                        var rot=controller.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                        ray=new Ray(space.TransformPoint(pos.ReadValue()),space.TransformDirection(rot.ReadValue()*Vector3.forward));
-                    }
-                    else controller=null;
-                }
-                if(Vector3.Dot(ray.direction,panel.transform.forward)<=.01f||
-                    !new Plane(panel.transform.forward,panel.transform.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.transform.InverseTransformPoint(ray.GetPoint(distance));
-                bool left=false;
-                if(controller!=null)foreach(var usage in controller.usages)left|=usage==CommonUsages.LeftHand;
-                pressed=controller!=null?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
+                if(!DeadlyJenga.Presentation.MenuPointer.OnPanel(openingCamera, (RectTransform)panel.transform, owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, out point, out pressed)) return;
             }
             else
             {
@@ -189,20 +169,6 @@ namespace DeadlyJenga.CastlePrototype
             return signature;
         }
         void OnApplicationFocus(bool focused){if(!focused)Close(false);}
-        XRController Controller()
-        {
-            bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
-            XRController fallback=null;
-            foreach(var device in InputSystem.devices)
-            {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||
-                    device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0)continue;
-                fallback??=controller;
-                foreach(var usage in controller.usages)
-                    if(usage==(left?CommonUsages.LeftHand:CommonUsages.RightHand))return controller;
-            }
-            return fallback;
-        }
         void OnDisable()
         {
             Close(false);

@@ -111,19 +111,22 @@ namespace DeadlyJenga.Presentation
             if (!wasVr && code.Length > 0 && mouse != null && mouse.leftButton.wasPressedThisFrame
                 && RectTransformUtility.RectangleContainsScreenPoint(roomCode.rectTransform, mouse.position.ReadValue()))
                 GUIUtility.systemCopyBuffer = code;
-            var ray = eye ? new Ray(eye.transform.position, eye.transform.forward) : default;
+            MenuPointer.Sample input=default;
+            bool hasPointer=wasVr&&MenuPointer.AimAt(eye,session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
+                ray => MenuPointer.PanelHit(ray, (RectTransform)canvas.transform), out input);
+            var ray=input.Ray;
             for (int i = 0; i < targets.Length; i++)
             {
                 bool enabled = i == 0 ? CanStartRound(match.Authority, session as IGameExperienceControls) : i == 1 ||
                     (split ? i == 2 ? Pages(sorted.Length, PageSize) > 1 : Pages(infectors.Length, SplitPage) > 1
                     : i == 2 ? page > 0 : page + 1 < Pages(sorted.Length, PageSize));
                 bool hovered = enabled && (wasVr
-                    ? eye && targets[i].Raycast(ray, out _, 4)
+                    ? hasPointer && targets[i].Raycast(ray, out _, 4)
                     : mouse != null && RectTransformUtility.RectangleContainsScreenPoint(buttons[i].rectTransform, mouse.position.ReadValue()));
                 buttons[i].color = !enabled ? new Color(.17f, .12f, .24f) : hovered ? new Color(.23f, .39f, .46f)
                     : i < 2 ? new Color(.19f, .25f, .36f) : new Color(.20f, .13f, .33f);
                 labels[i].color = enabled ? (i == 0 ? Mint : Color.white) : new Color(.69f, .65f, .76f);
-                if (hovered && (wasVr ? session.MenuSelectPressed : mouse.leftButton.wasPressedThisFrame))
+                if (hovered && (wasVr ? input.Pressed : mouse.leftButton.wasPressedThisFrame))
                 {
                     Act(i);
                     break;

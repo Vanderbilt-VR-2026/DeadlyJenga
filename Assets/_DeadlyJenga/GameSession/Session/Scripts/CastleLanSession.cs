@@ -685,9 +685,13 @@ namespace DeadlyJenga.CastlePrototype
                 return !string.IsNullOrEmpty(inviteStatus) ? inviteStatus : Room.DiscoveryNotice;
             }
         }
-        public bool CanToggleSharedControls => Room && Room.LocalIsLobbyHost && MatchSetup.ModeId == "demo";
+        public bool CanToggleSharedControls => Room && Room.Connected && Room.LocalIsLobbyHost && SessionDevelopmentPolicy.CanRequestLocal(session);
         public bool SharedControls => Room && Room.SharedDemoControls;
-        public void ToggleSharedControls() { if (CanToggleSharedControls) Room.SetSharedControls(!Room.SharedDemoControls); }
+        public void ToggleSharedControls()
+        {
+            if(CanToggleSharedControls)
+                CastleDemoCommands.Run(session,CastleDemoAction.SharedControls,Room.SharedDemoControls?"off":"on");
+        }
         public bool CanInviteNearby => Room && Room.Connected&&!Room.Busy;
         public void InviteNearby() { if (CanInviteNearby) Room.InviteNearby(); }
         public string InvitationFrom => Room && Room.Discovery?.Invitation != null ? Room.Discovery.Invitation.message.name : "";

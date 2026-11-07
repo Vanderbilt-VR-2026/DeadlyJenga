@@ -71,7 +71,7 @@ namespace DeadlyJenga.CastlePrototype
         [Serializable] public sealed class DemoState
         {public DeadlyJenga.Core.WaveFrame wave;public bool shared,autoFill;public int survivors,hands,capacity,target,survivorPreset,handPreset,handLimit;public string survivorName,handName,leader,roomNotice;}
         public DemoState Demo {get;private set;}=new DemoState();
-        public bool CanUseDemoControls=>SessionDevelopmentPolicy.DemoEnabled(session)&&runner&&runner.IsRunning&&(runner.IsServer?(!IslandRoomConnection.Instance||IslandRoomConnection.Instance.LocalIsLobbyHost||IslandRoomConnection.Instance.SharedDemoControls):(Demo.shared||Demo.leader==runner.LocalPlayer.ToString()));
+        public bool CanUseDemoControls=>SessionDevelopmentPolicy.DemoEnabled(session)&&runner&&runner.IsRunning&&(IslandRoomConnection.Instance?IslandRoomConnection.Instance.HasDemoPermission(runner.LocalPlayer.ToString()):runner.IsServer);
         public bool IsHost=>runner&&runner.IsRunning&&runner.IsServer;
         public void SetSharedControls(bool value){var room=IslandRoomConnection.Instance;if(IsHost&&room)room.SetSharedControls(value);}
         CastleDemoCommand pendingStamina;float nextStamina;string authoritativeRules;
@@ -221,7 +221,7 @@ namespace DeadlyJenga.CastlePrototype
                     else if(kind==MysterySecret&&welcomed&&payload.Length<=8192){ConnectModes();modeRuntime?.ReceiveSecret(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
                     else if(kind==MysteryTrails&&welcomed&&payload.Length<=64000){ConnectModes();modeRuntime?.ReceiveTrails(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
                     else if(kind==Admin&&welcomed&&payload.Length<2048)
-                    {Demo=JsonUtility.FromJson<DemoState>(System.Text.Encoding.UTF8.GetString(payload.ToArray()));ReceiveWave(Demo.wave);IslandRoomConnection.Instance?.ReceiveSharedControls(Demo.shared);castle.FusionRoomNotice(Demo.roomNotice);}
+                    {Demo=JsonUtility.FromJson<DemoState>(System.Text.Encoding.UTF8.GetString(payload.ToArray()));ReceiveWave(Demo.wave);var room=IslandRoomConnection.Instance;if(room&&room.Owns(runner))room.ReceiveMatchPermissions(Demo.leader,Demo.shared);castle.FusionRoomNotice(Demo.roomNotice);}
                     else if(kind==DisasterImpact&&welcomed&&payload.Length<512)ReceiveDisasterImpact(payload.ToArray());
                     else if(kind==DisasterVisuals&&welcomed&&payload.Length<256*1024)ReceiveDisasters(payload.ToArray());
                     else if(kind==Rules&&welcomed&&payload.Length<4096){authoritativeRules=System.Text.Encoding.UTF8.GetString(payload.ToArray());MatchSetup.ApplyRules(session.Player,authoritativeRules);}

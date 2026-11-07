@@ -96,7 +96,8 @@ namespace DeadlyJenga.CastlePrototype
         public IslandDiscovery Discovery {get;private set;}
         public string DiscoveryStatus {get;private set;}="";
         public string DiscoveryNotice => DiscoveryStatus.Length > 0 ? DiscoveryStatus : Discovery?.Status ?? "";
-        float nextMigrationSnapshot;bool pushingSnapshot;int nearbySelection;
+        float nextMigrationSnapshot;Task<bool> migrationSnapshot;int nearbySelection;
+        NetworkRunner confirmedMigrationRunner;
         public string SelectedNearby=>SelectedRoom()?.message.name??"No nearby rooms";
         IslandDiscovery.Entry SelectedRoom(){var list=Discovery?.Nearby;return list!=null&&list.Count>0?list[nearbySelection%list.Count]:null;}
         public void NextNearby()=>nearbySelection++;
@@ -110,7 +111,15 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void AcceptInvite(){var invite=Discovery?.Invitation;if(invite!=null&&!Busy){string code=invite.message.code;Discovery.Dismiss();_=Join(code);}}
         public void SetSharedControls(bool value){if(CanConfigure)Act(new LobbyAction{verb="shared",index=value?1:0});}
-        public void ReceiveSharedControls(bool value){if(!IsHost)SharedDemoControls=value;}
+        internal void SetMatchSharedControls(bool shared)
+        {if(IsHost)SharedDemoControls=shared;}
+        internal void ReceiveMatchPermissions(string leader,bool shared)
+        {
+            if(!Connected||IsHost)return;
+            leaderId=leader;
+            SharedDemoControls=shared;
+            RefreshHostFlags();
+        }
         public void ScanNearby()
         {
             if (Discovery == null) StartDiscovery();
@@ -170,7 +179,8 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<PlayerRef,CastleSocialChannel> socialPeers=new Dictionary<PlayerRef,CastleSocialChannel>();
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
         const int SocialChannel=0x49534C56;
-        public bool CanLaunch=>LocalIsLobbyHost&&!Busy&&!LaunchPending&&!Departing&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available&&Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id);
+        public bool CanLaunch=>LocalIsLobbyHost&&!LaunchPending&&CanLaunchSelection&&EveryoneReadyForLobby;
+        bool CanLaunchSelection=>!Busy&&!Departing&&!transitioning&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available&&Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id);
         NetworkDelegates callbacks;float nextSend,nextHello,lastServer;int serial,waitingPose,generation;bool leaving,transitioning,welcomed;
         NetworkRunner ownedRunner;
         CancellationTokenSource connecting;
@@ -180,11 +190,11 @@ namespace DeadlyJenga.CastlePrototype
         public void SelectMap(int index){if(CanConfigure&&Catalog&&index>=0&&index<Catalog.maps.Length&&Catalog.maps[index].SupportsMode(Catalog.modes[ModeIndex].id))Act(new LobbyAction{verb="map",index=index});}
         public void SelectMode(int index){if(CanConfigure&&Catalog&&index>=0&&index<Catalog.modes.Length&&Catalog.modes[index].available&&Catalog.maps.Any(m=>m.SupportsMode(Catalog.modes[index].id)))Act(new LobbyAction{verb="mode",index=index});}
         void PublishSelection()
-        {if(IsHost){selectionVersion++;lastPublishedPopulation=MatchSetup.BotTarget;Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",lastPublishedPopulation}});}}
+        {if(IsHost){ResetLobbyReadiness();selectionVersion++;lastPublishedPopulation=MatchSetup.BotTarget;Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",lastPublishedPopulation}});}}
         public Task Host()=>Connect(true,IslandRoomAddress.Create(Region));
         public async Task Join(string input)
         {
-            if(Busy||!Catalog)return;
+            if(Busy||!Catalog||IslandLobby.Current&&HumanCount>1)return;
             if(!IslandRoomAddress.TryParse(input,Region,out var region,out var code)){Status="Check the room code before joining.";return;}
             if(Connected&&Region==region&&Code==code){Status="You are already on this island.";return;}
             string previous=Connected?Code:null;bool wasAlone=HumanCount==1;
@@ -206,10 +216,10 @@ namespace DeadlyJenga.CastlePrototype
                 var config=MigrationConfig();
                 var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
                     EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
-                    Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget}}:null});
+                    Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget},{LobbyHandoffProperty,""}}:null});
                 if(attempt!=generation)return;
                 if(!result.Ok){Status="Connection failed: "+result.ShutdownReason+". Check code, region and Internet, then retry.";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
-                else{Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await PushMigration();}
+                else{Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await (migrationSnapshot=PushMigration());}
             }
             catch(Exception e){if(attempt!=generation)return;Status="Connection failed: "+e.Message;HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
             finally{if(attempt==generation){Busy=false;connecting?.Dispose();connecting=null;}}
@@ -221,8 +231,8 @@ namespace DeadlyJenga.CastlePrototype
         void AttachCallbacks()
         {
             callbacks=new NetworkDelegates();callbacks.OnReliableDataReceived=Receive;
-            callbacks.OnPlayerJoined=(_,player)=>{nextMigrationSnapshot=0;};
-            callbacks.OnPlayerLeft=(_,player)=>{DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());};
+            callbacks.OnPlayerJoined=(runner,_)=>{if(runner.IsServer)ResetLobbyReadiness();nextMigrationSnapshot=0;};
+            callbacks.OnPlayerLeft=(runner,player)=>{if(runner.IsServer)ResetLobbyReadiness();DepartIdentity(player.ToString());peers.Remove(player);socialPeers.Remove(player);IslandLobby.Current?.RemovePeer(player.ToString());ParticipantLeft?.Invoke(player.ToString());};
             callbacks.OnShutdown=(ended,reason)=>{if(Runner==ended&&!Migrating&&reason!=ShutdownReason.HostMigration)Disconnected(reason.ToString());};Runner.AddCallbacks(callbacks);
             callbacks.OnSceneLoadStart=runner=>
             {
@@ -230,6 +240,7 @@ namespace DeadlyJenga.CastlePrototype
                 loadingRoomScene=scenes.SceneCount>0?scenes.Scenes[scenes.SceneCount-1]:SceneRef.None;
                 transitioning=true;
                 if(IsLobbyScene(loadingRoomScene)){ClearPendingMap();return;}
+                if(runner.IsServer)ResetLobbyReadiness();
                 IslandLobby.Persistent?.ParkForMatch();
                 ApplySceneSelection();
                 var experience=RoomGameExperience.Ensure(this);
@@ -286,7 +297,14 @@ namespace DeadlyJenga.CastlePrototype
                     CustomPhotonAppSettings=app,Config=MigrationConfig(),Scene=scenes,SceneManager=go.AddComponent<NetworkSceneManagerDefault>()});
                 if(!result.Ok)throw new InvalidOperationException(result.ShutdownReason.ToString());
                 HostSelected=IsHost;lastServer=Time.unscaledTime;nextSend=0;nextMigrationSnapshot=0;transitioning=false;
-                if(IsHost){foreach(var id in identities.Keys.ToArray())if(!Runner.ActivePlayers.Any(p=>p.ToString()==id))DepartIdentity(id);if(!Runner.ActivePlayers.Any(p=>p.ToString()==leaderId))leaderId=LocalLobbyId;RefreshHostFlags();}
+                if(IsHost)
+                {
+                    foreach(var id in identities.Keys.ToArray())if(!Runner.ActivePlayers.Any(p=>p.ToString()==id))DepartIdentity(id);
+                    if(!Runner.ActivePlayers.Any(p=>p.ToString()==leaderId))leaderId=LocalLobbyId;
+                    ResetLobbyReadiness();
+                    ReadLobbyHandoff();
+                    RefreshHostFlags();
+                }
                 RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);
                 if(game)game.ResumeAfterMigration(Runner);
                 Status="Room "+Code+" · "+(IsHost?"you are the new host":"host reassigned");
@@ -381,7 +399,8 @@ namespace DeadlyJenga.CastlePrototype
             if(Catalog&&Discovery==null&&DiscoveryStatus.Length==0)StartDiscovery();
             try{Discovery?.Tick(Time.unscaledTime,Connected?Code:"",HumanCount,IsHost&&!Busy);}catch(Exception e){DiscoveryStatus="Wi-Fi discovery: "+e.Message;Discovery?.Dispose();Discovery=null;}
             if(Connected&&Discovery?.Invitation!=null&&Discovery.Invitation.message.code==Code)Discovery.Dismiss();
-            if(IsHost&&!Busy&&!pushingSnapshot&&Time.unscaledTime>=nextMigrationSnapshot){nextMigrationSnapshot=Time.unscaledTime+2;_=PushMigration();}
+            if(IsHost&&!Busy&&migrationSnapshot?.IsCompleted!=false&&Time.unscaledTime>=nextMigrationSnapshot)
+            {nextMigrationSnapshot=Time.unscaledTime+2;migrationSnapshot=PushMigration();}
             if(Connected&&IslandLobby.Current&&!Busy&&!transitioning)CheckLaunch();
             if(!Connected||!IslandLobby.Current||Busy||transitioning)return;
             float now=Time.unscaledTime;
@@ -403,17 +422,24 @@ namespace DeadlyJenga.CastlePrototype
                 if(now-lastServer>20){Status="Lobby connection lost.";_=Leave();}
             }
         }
-        async Task PushMigration()
-        {pushingSnapshot=true;try{if(Runner&&Runner.IsRunning)await Runner.PushHostMigrationSnapshot();}catch(Exception e){Debug.LogWarning("Host snapshot: "+e.Message);}finally{pushingSnapshot=false;}}
+        async Task<bool> PushMigration()
+        {
+            var runner=Runner;
+            try
+            {
+                if(!runner||!runner.IsRunning||!await runner.PushHostMigrationSnapshot())return false;
+                confirmedMigrationRunner=runner;
+                return true;
+            }
+            catch(Exception e){Debug.LogWarning("Host snapshot: "+e.Message);return false;}
+        }
         public void Launch()
         {
-            var experience=RoomGameExperience.Ensure(this);
-            if(experience&&experience.Experience==GameExperience.Game){experience.RequestStart();return;}
             if(CanLaunch)Act(new LobbyAction{verb="launch"});
         }
         void LaunchAuthoritative()
         {
-            if(Busy||LaunchPending||!Catalog||!Catalog.modes[ModeIndex].available)return;
+            if(LaunchPending||!CanLaunchSelection||!EveryoneReadyForLobby)return;
             if(!Connected)
             {
                 var map=Catalog.maps[MapIndex];
@@ -421,25 +447,61 @@ namespace DeadlyJenga.CastlePrototype
                 MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=map.id;
                 BeginDeparture(SceneUtility.GetBuildIndexByScenePath(map.scenePath),false);return;
             }
-            LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Waiting for players to confirm the selected mode and map…";CheckLaunch();
+            LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Confirming the lobby setup…";CheckLaunch();
         }
         public void CancelLaunch()
         {
-            var experience=RoomGameExperience.Ensure(this);
-            if(experience&&experience.Experience==GameExperience.Game){experience.CancelGameStart();return;}
             if(LocalIsLobbyHost&&!Departing)Act(new LobbyAction{verb="cancel"});
         }
         void CheckLaunch()
         {
             if(!LaunchPending||!IsHost||Departing)return;
+            if(!EveryoneReadyForLobby)
+            {
+                LaunchPending=false;
+                lobbyNotice="Start cancelled. Wait for everyone to ready up.";
+                return;
+            }
             bool ready=Runner.ActivePlayers.Where(p=>p!=Runner.LocalPlayer).All(p=>peers.TryGetValue(p,out var peer)&&peer.ready&&peer.ackedSelection==selectionVersion);
-            if(!ready){if(Time.unscaledTime>launchDeadline){LaunchPending=false;Status="A player has not confirmed the lobby setup. Retry Start when everyone is ready.";}return;}
+            if(!ready){if(Time.unscaledTime>launchDeadline){LaunchPending=false;Status="A device did not finish syncing the lobby. Try starting again.";}return;}
             LaunchPending=false;
             int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);
             if(index<0){Status="Selected map is not enabled in this build.";return;}
             MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=Catalog.maps[MapIndex].id;
             Status="Starting "+Catalog.modes[ModeIndex].title+"…";BeginDeparture(index,true);
         }
+        public async Task LeaveLobby()
+        {
+            if(!IslandLobby.Current||!Connected||Busy||HumanCount<=1)return;
+            if(IsHost)
+            {
+                var runner=Runner;
+                Busy=true;
+                Status="Transferring host…";
+                try
+                {
+                    if(migrationSnapshot!=null)await migrationSnapshot;
+                    if(!Connected||Runner!=runner)return;
+                    PublishLobbyHandoff();
+                    for(int attempt=0;attempt<3&&Connected&&Runner==runner;attempt++)
+                    {
+                        if(await (migrationSnapshot=PushMigration())||confirmedMigrationRunner==runner)break;
+                        await Task.Delay(750);
+                    }
+                    if(!Connected||Runner!=runner)return;
+                    if(confirmedMigrationRunner!=runner)
+                    {
+                        ClearLobbyHandoff();
+                        Status="Could not transfer host. Try leaving again.";
+                        return;
+                    }
+                }
+                finally{if(Runner==runner)Busy=false;}
+            }
+            await Leave();
+            if(IslandLobby.Current&&!Connected&&!Busy)await Host();
+        }
+
         public async Task Leave()
         {if(leaving)return;leaving=true;generation++;connecting?.Cancel();Busy=true;if(Runner){FusionMigrationCleanup.BeforeShutdown(Runner);await Runner.Shutdown();}else Disconnected("Left room");}
         void Disconnected(string reason)
@@ -452,7 +514,7 @@ namespace DeadlyJenga.CastlePrototype
             connecting?.Dispose();connecting=null;
             if(IslandLobby.Current&&IslandLobby.Current.Voice)IslandLobby.Current.Voice.ResetLobbyAudio();
             if(Runner){Runner.RemoveCallbacks(callbacks);Destroy(Runner.gameObject);}Runner=null;peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;HostSelected=false;SharedDemoControls=false;LaunchPending=false;Busy=false;leaving=false;transitioning=false;
-            Code="";PrepareSoloIdentity();if(inGame)SceneManager.LoadScene("Lobby");else IslandLobby.Current?.ClearPeers();
+            Code="";pendingLobbyHost=null;PrepareSoloIdentity();if(inGame)SceneManager.LoadScene("Lobby");else IslandLobby.Current?.ClearPeers();
         }
         public bool Owns(NetworkRunner runner)=>ownedRunner==runner;
         void OnApplicationQuit(){FusionMigrationCleanup.BeforeShutdown(Runner);}

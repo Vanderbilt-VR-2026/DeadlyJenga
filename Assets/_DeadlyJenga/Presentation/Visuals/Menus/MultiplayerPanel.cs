@@ -79,12 +79,12 @@ namespace DeadlyJenga.CastlePrototype
             return end<0?info.Substring(6):info.Substring(6,end-6);
         }
         public static string LobbyAction(IMultiplayerControls net)
-            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.IsClient?"Visit Lobby":"Return Room to Lobby";
+            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.CanToggleSharedControls?"Return Room to Lobby":"Visit Lobby";
         static readonly RoomLeaveConfirmation desktopLeave=new RoomLeaveConfirmation();
         public static void ClearLeaveConfirmation()=>desktopLeave.Clear();
         public static string EndAction(IMultiplayerControls net)
             =>string.IsNullOrEmpty(JoinCode(net))?"End Game":"End Game for Room";
-        public static void Draw(IMultiplayerControls net)
+        public static void Draw(IMultiplayerControls net,bool hostTools=true)
         {
             if (net == null) return;
             if (net.IsFusion)
@@ -95,8 +95,8 @@ namespace DeadlyJenga.CastlePrototype
                     GUILayout.Label(net.RoomInfo);
                     string code=JoinCode(net);
                     if(code.Length>0&&GUILayout.Button("Copy join code",GUILayout.Height(30)))GUIUtility.systemCopyBuffer=code;
-                    if (net.CanToggleSharedControls && GUILayout.Button("Demo controls: " + (net.SharedControls ? "EVERYONE" : "HOST ONLY"), GUILayout.Height(32))) net.ToggleSharedControls();
-                    if (net.CanInviteNearby && GUILayout.Button("Invite everyone on this Wi-Fi", GUILayout.Height(32))) net.InviteNearby();
+                    if (hostTools && net.CanToggleSharedControls && GUILayout.Button("Demo controls: " + (net.SharedControls ? "EVERYONE" : "HOST ONLY"), GUILayout.Height(32))) net.ToggleSharedControls();
+                    if (hostTools && net.CanInviteNearby && GUILayout.Button("Invite everyone on this Wi-Fi", GUILayout.Height(32))) net.InviteNearby();
                     if (net.InvitationFrom.Length > 0)
                     {
                         GUILayout.Label("Nearby invitation from " + net.InvitationFrom + ". Leave this room to accept it on the island.");

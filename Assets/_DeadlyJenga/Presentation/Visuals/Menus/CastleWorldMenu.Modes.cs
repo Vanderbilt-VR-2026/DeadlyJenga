@@ -19,10 +19,10 @@ namespace DeadlyJenga.CastlePrototype
             var fields=modeOffset==0?quickModeFields:modeFields;
             int pageStart=modeOffset==0?0:modeOffset-1;
             heading.text="MATCH RULES / SCENERY\n"+rules.mode+" · "+match.Frame.phase;
-            HideDisasterSliders();bool canConfigure=match.Authority||(rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);
+            HideDisasterSliders();bool canConfigure=match.Authority||CanCommand;
             for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);targets[i].enabled=i==0||canConfigure;}
             labels[0].text="Back to demo";labels[1].text="Start / restart round";labels[2].text="Skin: "+rules.environmentSkin;
-            for(int i=3;i<=9;i++){int index=pageStart+i-3;if(index<fields.Length){var field=fields[index];labels[i].text=ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules);if(field.Name=="mode")targets[i].enabled=match.Authority;}else buttons[i].gameObject.SetActive(false);}
+            for(int i=3;i<=9;i++){int index=pageStart+i-3;if(index<fields.Length){var field=fields[index];labels[i].text=ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules);}else buttons[i].gameObject.SetActive(false);}
             labels[10].text="HUD / standings / tuning";labels[11].text="Temporary team hand power";labels[12].text=modeOffset==0?"Common settings":"Previous settings";labels[13].text=modeOffset==0?"Advanced settings":"More settings";labels[14].text="Sea spirit / tabletop AR";
             var mystery=match as IMysteryControls;
             if(mystery?.Active==true){labels[11].text="Special punch: "+(mystery.Personal.specialAttack?"ON":"OFF");labels[14].text="Demo role: "+mystery.Personal.role;targets[11].enabled=true;}
@@ -53,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 match.Configure(copy);return;
             }
-            help.text="Look + trigger / pinch to cycle a value. More settings reveals all mode options.";
+            help.text="Controller laser + trigger to cycle a value. More settings reveals all mode options.";
         }
         void PointHudPage(Camera camera,bool pressed)
         {
@@ -64,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
             string[] titles={"Back to match rules",DeadlyJenga.Presentation.CandyMatchHud.ScoreboardPinned?"Hide full standings":"Show full standings",mystery?"Next body report page":"Track next enemy flag","Movement / stamina / audio","Scene skin: "+match.Rules.environmentSkin,"Control prompts: "+(hints?hints.hintMode.ToString():"Unavailable")};
             for(int i=0;i<buttons.Length;i++)
             {
-                bool visible=i<titles.Length&&(i!=2||mystery||flags)&&(i!=5||hints);buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible&&(i!=4||match.Authority||match.Rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);if(visible)labels[i].text=titles[i];
+                bool visible=i<titles.Length&&(i!=2||mystery||flags)&&(i!=5||hints);buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible&&(i!=4||match.Authority||CanCommand);if(visible)labels[i].text=titles[i];
             }
             var ray=pointerRay;
             for(int i=0;i<titles.Length;i++)
@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(i==5){hints.hintMode=(CandyDemoHud.HintMode)(((int)hints.hintMode+1)%3);labels[i].text="Control prompts: "+hints.hintMode;return;}
                 var copy=match.Rules.Copy();copy.environmentSkin=CandySceneSkins.Names[(DeadlyJenga.Presentation.CandyMatchVisuals.SkinIndex(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];match.Configure(copy);return;
             }
-            help.text="Standings: trigger / pinch turns pages. Open this page again to hide. Body reports keep their numbered location markers.";
+            help.text="Standings: trigger turns pages. Open this page again to hide. Body reports keep their numbered location markers.";
         }
     }
 }

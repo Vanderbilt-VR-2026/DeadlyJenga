@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
         public static string Turn => Rules.turn;
         public static float MasterVolume = .8f, MusicVolume = .22f;
 
-        // Seated (body-directed, smooth turn) or Standing (head-directed, turn physically). Saved per device.
+        // Seated smooth turn or standing physical turn. Saved per device.
         public static string PlayStyle
         {
             get { RefreshLocalControls(); return Rules.playStyle; }
@@ -96,7 +96,6 @@ namespace DeadlyJenga.CastlePrototype
         static void SetPlayStyle(string style)
         {
             Rules.playStyle = style;
-            Rules.movement = style == "Standing" ? "HeadRelative" : "BodyRelative";
             Rules.turn = style == "Standing" ? "PhysicalOnly" : "Smooth";
         }
 
