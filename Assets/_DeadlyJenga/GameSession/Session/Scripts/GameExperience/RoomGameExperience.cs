@@ -56,7 +56,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal IslandRoomConnection Room=>room;
         internal bool IsAuthority=>room&&(!room.Connected||room.IsHost);
-        bool WaitingForRoster=>room&&room.Connected&&room.Runner&&room.Runner.ActivePlayers.Any()&&room.GameExperienceRosterIds.Length==0;
+        bool WaitingForRoster=>IsAuthority&&room&&room.Connected&&room.Runner&&room.Runner.ActivePlayers.Any()&&room.GameExperienceRosterIds.Length==0;
         internal bool DevelopmentAllowed=>Experience==GameExperience.Demo&&!TransportRecovering;
         GameFlowState State
         {
@@ -90,9 +90,9 @@ namespace DeadlyJenga.CastlePrototype
                 var state=State;if(state==null)return "Preparing room";
                 if(!string.IsNullOrEmpty(TransportStatus))return TransportStatus;
                 if(TransportRecovering)return "Restoring room authority; waiting for verified checkpoints.";
+                if(state.phase==GameFlowPhase.Failed)return sceneSelectionError.Length>0?sceneSelectionError:state.error;
                 if(WaitingForRoster)return "Waiting for connected player identities before changing the room.";
                 if(state.demo)return "Demo · development controls available to permitted players.";
-                if(state.phase==GameFlowPhase.Failed)return sceneSelectionError.Length>0?sceneSelectionError:state.error;
                 if((state.phase==GameFlowPhase.LoadingGame||state.phase==GameFlowPhase.Playing||state.phase==GameFlowPhase.Results)&&!string.IsNullOrEmpty(MatchStatus))return MatchStatus;
                 return "PROTOTYPE · unvalidated · no disasters · "+state.phase+" · "+ReadyCount+"/"+RequiredReadyCount+" ready";
             }

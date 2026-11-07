@@ -38,3 +38,11 @@ Legacy kind 1 keys with `id=0, attempt=0` remain accepted, with finite duration 
 4. Confirm no per-peer join/leave effects were added and the visual-only lobby cue does not move the player, suspend input or raise a curtain. Quest/headset behavior remains unverified until a device run.
 
 This candidate is a source checkpoint pending the native acceptance above, not a claim that the combined feature, APK or headset is verified.
+
+## Readiness status correction after native peer attempt r05
+
+The guest's public status incorrectly reported missing connected identities even when its authoritative checkpoint already said `Failed`. Client SDK lookups intentionally expose only the local member ID, while the old `WaitingForRoster` hint attempted the server's complete-roster lookup on every client. The readiness hint now applies only to authority, and an existing Failed error takes precedence over that hint. The authority's actual roster validation and every identity, consent, transition, checkpoint and timing rule are unchanged.
+
+Seven checks compile and execute the actual production status/readiness getters with stand-ins. The old source fails the guest-error case; the corrected source passes guest/host failure visibility, retained authority waiting, normal guest status, complete authority roster, specific scene failure and existing transport diagnostic priority. Full GameSession source preflight still passes. These are formatting/gating model checks, not proof of native peer recovery.
+
+The r05 peer reports did not preserve the underlying authoritative flow error or match preparation gates. Its guest's misleading identity hint is not evidence that the host lost identities. The actual managed-Playing failure remains undiagnosed; it requires the next bounded native diagnostic to preserve the full defensive flow snapshot, MatchStatus, cohort and checkpoint state at the first Failed phase on both roles before cleanup. No timeout or participant gate was relaxed to make a test pass.
