@@ -48,6 +48,25 @@ namespace DeadlyJenga.CandyPlayers
             return new Vector3(0,-.015f,.43f);
         }
 
+        public bool TryOpticAnchor(EquipmentState state,out Pose anchor)
+        {
+            anchor=default;
+            if(!root||state==null||kind!=state.kind)return false;
+            string name=kind==EquipmentKind.DualRifle?(state.shotgun?"Shotgun optic":"Rifle optic"):
+                kind==EquipmentKind.Blaster?"Blaster optic":kind==EquipmentKind.SheriffHammer?"Revolver optic":null;
+            if(name==null)return false;
+            var optic=kind==EquipmentKind.DualRifle&&barrel?barrel.Find(name):root.Find(name);
+            if(!optic)return false;
+            if(kind==EquipmentKind.DualRifle)
+            {
+                // The carriage rotates during a mode change; the held receiver must not counter-rotate with it.
+                var settled=Quaternion.Euler(0,0,state.shotgun?0:180);
+                anchor=new Pose(barrel.localPosition+settled*optic.localPosition,settled*optic.localRotation);
+            }
+            else anchor=new Pose(root.InverseTransformPoint(optic.position),Quaternion.Inverse(root.rotation)*optic.rotation);
+            return true;
+        }
+
         static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
         {
             if(!MeleeMount(kind,left,out var palm,out var mount))return new Pose(hand.position,hand.rotation);

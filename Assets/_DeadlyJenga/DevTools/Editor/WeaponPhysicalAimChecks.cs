@@ -35,7 +35,7 @@ namespace DeadlyJenga.DevTools.Editor
             public int frame;
             public string kind;
             public bool left,shotgun,dominantGrip,supportGrip,physicalSightAligned;
-            public float scale,trackedGripError,renderedGripError,modelGripError;
+            public float scale,trackedGripError,renderedGripError,modelGripError,opticCenterError;
             public Pose grip,muzzle,trackedGrip;
             public Vector3 eye,optic,renderedWrist,modelRoot;
             public Quaternion eyeRotation,opticRotation;
@@ -48,7 +48,7 @@ namespace DeadlyJenga.DevTools.Editor
             check(motor&&motor.IsVR&&motor.Alive&&avatar&&avatar.tracking,"Actual living VR survivor and tracking source");
             var state=equipment.Equipment;bool left=state.leftHanded;
             check(state.drawn&&HybridXRInput.ControllerTracked(left),"Weapon drawn with actual tracked dominant controller");
-            check(HybridXRInput.GripHeld(left),"Dominant grip is held during physical raising test");
+            check(HybridXRInput.GripHeld(left)==expectedSight,"Actual dominant AIM grip matches pressed/released test phase");
             check(avatar.tracking.TryControllerAim(left,out var tracked),"Actual controller pointer pose available");
             var grip=equipment.GripPose;var rendered=avatar.LastFrame;
             var wrist=left?rendered.left:rendered.right;
@@ -66,11 +66,18 @@ namespace DeadlyJenga.DevTools.Editor
                 dominantGrip=HybridXRInput.GripHeld(left),supportGrip=supportAction?.IsPressed()==true,grip=grip,muzzle=equipment.MuzzlePose,trackedGrip=tracked,
                 eye=camera.transform.position,eyeRotation=camera.transform.rotation,renderedWrist=wrist.position,modelRoot=root.position,
                 trackedGripError=Vector3.Distance(grip.position,tracked.position),renderedGripError=Vector3.Distance(wrist.position,grip.position),modelGripError=Vector3.Distance(root.position,grip.position)};
-            check(sample.trackedGripError<.001f,"Holding grip preserves the actual controller position instead of head locking");
+            if(!expectedSight)check(sample.trackedGripError<.001f,"Released aim restores the actual tracked hip position");
+            else check(sample.trackedGripError>.01f,"AIM button physically moves the weapon away from its unchanged tracked hip position");
             check(sample.renderedGripError<.001f&&sample.modelGripError<.001f,"Rendered wrist and weapon use the actual grip position");
             if(optic)
             {
                 sample.optic=optic.position;sample.opticRotation=optic.rotation;
+                sample.opticCenterError=Vector3.Distance(optic.position,sample.eye+camera.transform.forward*.18f);
+                if(expectedSight)
+                {
+                    check(sample.opticCenterError<.002f,"Actual model optic reaches the centered binocular eye line");
+                    check(Vector3.Angle(optic.forward,camera.transform.forward)<.5f,"Actual optic points along the eye aim line");
+                }
                 sample.physicalSightAligned=CandyGunSights.EyeBoxContains(sample.eye,camera.transform.forward,optic.position,optic.forward,Mathf.Abs(optic.lossyScale.z));
             }
             else sample.physicalSightAligned=CandyGunSights.OpenSightAligned(sample.eye,camera.transform.forward,sample.muzzle,state,sample.scale);
