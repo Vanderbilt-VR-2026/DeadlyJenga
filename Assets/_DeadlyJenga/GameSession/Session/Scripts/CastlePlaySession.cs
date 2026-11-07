@@ -118,6 +118,8 @@ namespace DeadlyJenga.CastlePrototype
                 Network=gameObject.AddComponent<CastleLanSession>();
                 Network.Initialize(this);
             }
+            if(!room&&!MatchSetup.FromLobby&&!Network&&runner==null)
+                room=IslandRoomConnection.Ensure();
             MatchSetup.Apply(this);
             if(!RoomGameExperience.Manages(this))MatchSetup.FillRecommended(this);
             var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);

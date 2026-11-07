@@ -46,6 +46,11 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
+                if(!Catalog)
+                {
+                    var fallback=new LobbySetup{rules=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(MatchSetup.ModeId),MatchSetup.SelectedMap),movement=MatchChoices.Rules,population=MatchSetup.BotTarget,hands=MatchSetup.HandCount,sameHumanTeam=MatchChoices.SameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,disasters=Array.Empty<LobbyHazardSetup>()};
+                    return JsonUtility.FromJson<LobbySetup>(JsonUtility.ToJson(fallback));
+                }
                 if(setup==null)ResetModeSetup();
                 if(LocalIsLobbyHost){setup.population=MatchSetup.BotTarget;setup.hands=MatchSetup.HandCount;setup.sameHumanTeam=MatchChoices.SameHumanTeam;setup.survivorPreset=MatchSetup.SurvivorPreset;setup.handPreset=MatchSetup.HandPreset;setup.movement=MatchChoices.Rules;}
                 return JsonUtility.FromJson<LobbySetup>(JsonUtility.ToJson(setup));
@@ -57,7 +62,7 @@ namespace DeadlyJenga.CastlePrototype
             setup=new LobbySetup{rules=MatchSetup.DefaultModeRules(kind,Catalog.maps[MapIndex]),movement=MatchChoices.Rules,population=MatchSetup.BotTarget,hands=MatchSetup.HandCount,sameHumanTeam=MatchChoices.SameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,disasters=DemoDisasters.Prefabs.Select(p=>new LobbyHazardSetup{id=p.name,values=DemoDisasters.Parameters(p).Select(v=>v.initial).ToArray()}).ToArray()};
         }
         public void ConfigureSetup(LobbySetup value)
-        {if(CanConfigure&&ValidSetup(value))Act(new LobbyAction{verb="setup",setup=value});}
+        {if(CanConfigure&&Catalog&&ValidSetup(value))Act(new LobbyAction{verb="setup",setup=value});}
         static bool ValidSetup(LobbySetup value)
         {
             if(value==null||!ModeFrameValidation.Rules(value.rules)||value.movement==null||value.population<1||value.population>100||value.hands<0||value.hands>100||value.survivorPreset<0||value.survivorPreset>100||value.handPreset<0||value.handPreset>100)return false;
