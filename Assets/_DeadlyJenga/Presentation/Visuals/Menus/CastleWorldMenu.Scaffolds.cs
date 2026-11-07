@@ -140,7 +140,7 @@ namespace DeadlyJenga.CastlePrototype
             var controls=Demo as IBuildUpControls;
             bool shown=!networkPage&&!comfortPage&&!tuningPage&&!modePage&&!tabletopPage&&!disasterPage&&controls!=null&&controls.Available;
             scaffoldButton.gameObject.SetActive(shown);
-            var rect=GetComponent<RectTransform>();rect.sizeDelta=new Vector2(600,shown?1140:1080);
+            if(menuBody)menuBody.sizeDelta=new Vector2(600,shown?1140:1080);
             help.rectTransform.anchoredPosition=new Vector2(0,shown?-535:-480);
             if(!shown)return;
             scaffoldLabel.text=controls.Delivering?"Next tier arriving":controls.ClimbSecondsRemaining>0?"Climb window: "+Mathf.CeilToInt(controls.ClimbSecondsRemaining)+"s":controls.Stage>=controls.StageCount-1?"All tiers delivered":"Deliver next scaffold tier";
