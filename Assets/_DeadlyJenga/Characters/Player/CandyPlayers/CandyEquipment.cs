@@ -167,11 +167,7 @@ namespace DeadlyJenga.CandyPlayers
                         var secondary=avatar.tracking.WorldHand(!left);var delta=secondary.position-primary.position;
                         if(secondary.tracked&&delta.magnitude>.12f*Scale&&delta.magnitude<1.1f*Scale)aim.rotation=Quaternion.LookRotation(delta,primary.rotation*Vector3.up);
                     }
-                    if(Local&&Equipment.drawn&&HybridXRInput.GripHeld(left))
-                    {
-                        if(TryAimGripOffset(Equipment,left,true,out var offset))
-                            aim=new Pose(head.position+head.rotation*offset*Scale,head.rotation);
-                    }
+                    // In VR the player raises the actual weapon; a held grip must not attach it to the head.
                 }
                 else
                 {

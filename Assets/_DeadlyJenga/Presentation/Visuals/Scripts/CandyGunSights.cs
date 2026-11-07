@@ -133,10 +133,15 @@ namespace DeadlyJenga.Presentation
         }
         public static bool EyeBoxContains(Vector3 eye,Vector3 view,Vector3 rear,Vector3 forward,float scale)
         {
+            scale=Mathf.Max(.1f,Mathf.Abs(scale));
             Vector3 delta=rear-eye;
             float relief=Vector3.Dot(delta,forward);
-            return relief>=.025f*scale&&relief<=.30f*scale&&
-                (delta-forward*relief).sqrMagnitude<=.055f*.055f*scale*scale&&Vector3.Dot(view,forward)>.94f;
+            // Human eye spacing does not shrink with the avatar. Allow natural wrist clearance in front of the face.
+            float radius=Mathf.Max(.06f,.055f*scale);
+            float minimumRelief=Mathf.Max(.04f,.025f*scale);
+            float maximumRelief=Mathf.Max(.45f,.65f*scale);
+            return relief>=minimumRelief&&relief<=maximumRelief&&
+                (delta-forward*relief).sqrMagnitude<=radius*radius&&Vector3.Dot(view,forward)>.985f;
         }
         void EnsureLens()
         {
