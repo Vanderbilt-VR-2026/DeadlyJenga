@@ -17,6 +17,16 @@ namespace DeadlyJenga.Presentation
         Canvas canvas;RectTransform root;Text board,teams,claim,status,warning,objective;Image claimFill;Camera camera;bool vr;float sampleAt, objectiveUntil;RoundPhase lastPhase=(RoundPhase)(-1);GameModeKind lastMode=(GameModeKind)(-1);
         CandyWaypointLayer waypoints;int boardPage;
         CandyEliminationFeed eliminationFeed;
+        const int BoardPageSize = 6;
+        sealed class StandingsRow
+        {
+            public Image card;
+            public Text rank, name, stats, initial;
+            public RawImage portrait;
+        }
+        readonly StandingsRow[] standingsRows = new StandingsRow[BoardPageSize];
+        CandyScorePortraits scorePortraits;
+        Text standingsFooter;
         Text standingsHint;
         string standingsControl;
         float nextBoardPageAt;
@@ -52,7 +62,9 @@ namespace DeadlyJenga.Presentation
             CandyHudCards.Emblem(objective,"flag",new Color(.79f,.69f,1));
             waypoints=new CandyWaypointLayer(root);
             standingsHint=Label("Standings shortcut",new Vector2(300,28),new Vector2(446,348),TextAnchor.MiddleRight,15);
-            eliminationFeed = new CandyEliminationFeed(root, CandyScorePortraits.For(gameObject));
+            scorePortraits = CandyScorePortraits.For(gameObject);
+            eliminationFeed = new CandyEliminationFeed(root, scorePortraits);
+            BuildStandingsRows();
             claim=Label("Block ownership",new Vector2(400,36),new Vector2(0,-246),TextAnchor.MiddleCenter,17);
             var fill=new GameObject("Claim juice",typeof(RectTransform),typeof(Image));fill.transform.SetParent(root,false);claimFill=fill.GetComponent<Image>();claimFill.color=new Color(.25f,1,.8f,.8f);claimFill.raycastTarget=false;claimFill.rectTransform.anchoredPosition=new Vector2(-160,-268);claimFill.rectTransform.pivot=new Vector2(0,.5f);claimFill.rectTransform.sizeDelta=new Vector2(0,6);
             var health=new GameObject("Health bar",typeof(RectTransform),typeof(CanvasGroup));health.transform.SetParent(root,false);
@@ -117,7 +129,7 @@ namespace DeadlyJenga.Presentation
             }
             if(Expanded&&vr&&Time.unscaledTime>=nextBoardPageAt)
             {
-                boardPage=(boardPage+1)%Mathf.Max(1,Mathf.CeilToInt(StandingsParticipants(match.Frame,session as IGameExperienceControls,out _).Count()/(match.Frame.teams.Length>2?6f:10f)));
+                boardPage=(boardPage+1)%Mathf.Max(1,Mathf.CeilToInt(StandingsParticipants(match.Frame,session as IGameExperienceControls,out _).Count()/(float)BoardPageSize));
                 sampleAt=0;
                 nextBoardPageAt=Time.unscaledTime+5;
             }
@@ -224,15 +236,6 @@ namespace DeadlyJenga.Presentation
             return available && !emoteChord && !EmoteWheel.IsOpen && (leftDominant ? rightHeld : leftHeld);
         }
 
-        void Row(MatchPlayerFrame player, bool own, int rank, bool whole, GameModeKind mode)
-        {
-            if(own)text.Append("YOU · ");
-            text.Append(rank).Append(". <color=#").Append(ColorUtility.ToHtmlStringRGB(player.color)).Append(">●</color> ")
-                .Append(CandyHudContent.Safe(player.name,22)).Append("  ").Append(player.metric.ToString(whole?"0":"0.0"));
-            if (mode != GameModeKind.Survival)
-                text.Append("   ·   ").Append(CandyHudContent.ResultStats(player, mode));
-            text.Append('\n');
-        }
         internal static IEnumerable<MatchPlayerFrame> StandingsParticipants(MatchFrame frame,
             IGameExperienceControls controls, out bool curated)
         {
@@ -253,54 +256,70 @@ namespace DeadlyJenga.Presentation
             return "";
         }
 
-        void UpdateBoard(MatchFrame f,MatchPlayerFrame own)
+        void BuildStandingsRows()
         {
-            bool mystery=f.rules.mode==GameModeKind.MurderMystery;
-            bool statusRoster=(f.rules.mode==GameModeKind.Survival||f.rules.mode==GameModeKind.Infection)&&f.rules.metric==ScoreMetric.SurvivalTime;
-            // Snapshots only number the top ten. Order the remaining public scores the same way.
-            var participants=StandingsParticipants(f,Services.Session as IGameExperienceControls,out bool curated);
-            var rows=mystery?participants.OrderBy(p=>p.name).ToArray():participants.OrderByDescending(p=>p.metric).ThenBy(p=>p.id,System.StringComparer.Ordinal).ToArray();
-            bool whole=f.rules.metric==ScoreMetric.TeamPoints||f.rules.metric==ScoreMetric.BlocksOwned||f.rules.metric==ScoreMetric.InfectedKills||f.rules.metric==ScoreMetric.Eliminations||f.rules.metric==ScoreMetric.FlagCaptures||f.rules.metric==ScoreMetric.BlocksClaimed||f.rules.metric==ScoreMetric.AliveStatus;
-            int pageSize=f.teams.Length>2?6:10;
-            int pages=Mathf.Max(1,Mathf.CeilToInt(rows.Length/(float)pageSize));boardPage=Mathf.Clamp(boardPage,0,pages-1);
-            CandyHudCards.Place(board,Expanded?new Vector2(0,10):new Vector2(438,88),Expanded?new Vector2(1010,580):new Vector2(350,350));board.fontSize=Expanded?23:19;
-            text.Clear();text.Append(mystery?"PLAYER ROSTER · ROLES PRIVATE":statusRoster?(curated?"COMPETITORS · CURRENT STATUS":"PARTICIPANTS · CURRENT STATUS"):"STANDINGS · "+CandyHudContent.Safe(f.metricLabel,28)+(f.rules.metric==ScoreMetric.TeamPoints?" (team)":""));
-            if(curated&&Expanded)text.Append(" · ").Append(StandingsCount(rows.Length,true));
-            text.Append("\n\n");
-            if(Expanded&&f.teams.Length==2)text.Append("TEAMS · ").Append(string.Join(" | ",f.teams.Select(t=>CandyHudContent.Safe(t.name,10)+" "+(f.rules.mode==GameModeKind.CaptureFlag?t.captures:f.rules.mode==GameModeKind.TeamTickets?t.tickets:Mathf.RoundToInt(t.points))))).Append('\n');
-            if(Expanded&&f.teams.Length>2)text.Append("TEAM SCORES\n").Append(string.Join(" | ",f.teams.Select(t=>CandyHudContent.Safe(t.name,10)+" "+(f.rules.mode==GameModeKind.CaptureFlag?t.captures:f.rules.mode==GameModeKind.TeamTickets?t.tickets:Mathf.RoundToInt(t.points))))).Append("\n\n");
-            var shown=Expanded?rows.Skip(boardPage*pageSize).Take(pageSize).ToArray():rows.Take(5).ToArray();
-            foreach(var p in shown)
+            var parent = board.transform.parent;
+            for (int i = 0; i < standingsRows.Length; i++)
             {
-                if(mystery)text.Append(p.id==own?.id?"YOU · ":"").Append(CandyHudContent.Safe(p.name,26)).Append(f.mystery.bodies.Any(b=>b.reported&&b.id==p.id)?" · REPORTED":"").Append('\n');
-                else if(statusRoster||f.rules.metric==ScoreMetric.AliveStatus)
-                {
-                    text.Append(p.id==own?.id?"YOU · ":"").Append(CandyHudContent.Safe(p.name,22))
-                        .Append(p.role=="infected"?" · INFECTED":p.alive&&!p.dying?" · ACTIVE":" · ELIMINATED")
-                        .Append("   ·   ").Append(CandyHudContent.ResultStats(p, f.rules.mode)).Append('\n');
-                }
-                else Row(p,p.id==own?.id,System.Array.IndexOf(rows,p)+1,whole,f.rules.mode);
+                var go = new GameObject("Standings player", typeof(RectTransform), typeof(Image));
+                go.transform.SetParent(parent, false);
+                var card = go.GetComponent<Image>();
+                card.sprite = CandyHudVisuals.Pill; card.type = Image.Type.Sliced; card.raycastTarget = false;
+                card.rectTransform.sizeDelta = new Vector2(966, 60);
+                card.rectTransform.anchoredPosition = new Vector2(0, 157 - i * 66);
+                var rank = Label("Rank", new Vector2(40, 50), new Vector2(-460, 0), TextAnchor.MiddleCenter, 23);
+                rank.transform.SetParent(go.transform, false);
+                var icon = new GameObject("Avatar portrait", typeof(RectTransform), typeof(RawImage));
+                icon.transform.SetParent(go.transform, false);
+                var portrait = icon.GetComponent<RawImage>(); portrait.raycastTarget = false;
+                portrait.rectTransform.sizeDelta = new Vector2(48, 48);
+                portrait.rectTransform.anchoredPosition = new Vector2(-409, 0);
+                var initial = Label("Portrait initial", new Vector2(48, 48), Vector2.zero, TextAnchor.MiddleCenter, 26);
+                initial.transform.SetParent(icon.transform, false);
+                var name = Label("Player name", new Vector2(830, 34), new Vector2(38, 12), TextAnchor.MiddleLeft, 28);
+                name.transform.SetParent(go.transform, false); name.supportRichText = false;
+                name.horizontalOverflow = HorizontalWrapMode.Overflow;
+                var stats = Label("Public mode stats", new Vector2(830, 24), new Vector2(38, -18), TextAnchor.MiddleLeft, 19);
+                stats.transform.SetParent(go.transform, false); stats.supportRichText = false;
+                standingsRows[i] = new StandingsRow { card = card, rank = rank, name = name, stats = stats, portrait = portrait, initial = initial };
             }
-            if(own!=null&&!shown.Any(p=>p.id==own.id))
+            standingsFooter = Label("Standings page and controls", new Vector2(966, 60), new Vector2(0, -247), TextAnchor.MiddleCenter, 18);
+            standingsFooter.transform.SetParent(parent, false); standingsFooter.color = CandyHudCards.Ink;
+        }
+
+        void UpdateBoard(MatchFrame f, MatchPlayerFrame own)
+        {
+            bool mystery = f.rules.mode == GameModeKind.MurderMystery;
+            bool statusRoster = (f.rules.mode == GameModeKind.Survival || f.rules.mode == GameModeKind.Infection) && f.rules.metric == ScoreMetric.SurvivalTime;
+            var participants = StandingsParticipants(f, Services.Session as IGameExperienceControls, out bool curated);
+            var rows = mystery ? participants.OrderBy(p => p.name).ToArray() : participants.OrderByDescending(p => p.metric).ThenBy(p => p.id, System.StringComparer.Ordinal).ToArray();
+            int pages = Mathf.Max(1, Mathf.CeilToInt(rows.Length / (float)BoardPageSize));
+            boardPage = Mathf.Clamp(boardPage, 0, pages - 1);
+            CandyHudCards.Place(board, new Vector2(0, 10), new Vector2(1010, 580)); board.fontSize = 22;
+            board.rectTransform.offsetMin = new Vector2(22, 480); board.rectTransform.offsetMax = new Vector2(-22, -18);
+            text.Clear(); text.Append(mystery ? "PLAYER ROSTER · ROLES PRIVATE" : statusRoster ? "PARTICIPANTS · CURRENT STATUS" : "STANDINGS · " + CandyHudContent.Safe(f.metricLabel, 28));
+            text.Append(" · ").Append(StandingsCount(rows.Length, curated));
+            if (f.teams.Length > 0) text.Append('\n').Append(string.Join(" | ", f.teams.Select(t => CandyHudContent.Safe(t.name, 10) + " " + (f.rules.mode == GameModeKind.CaptureFlag ? t.captures : f.rules.mode == GameModeKind.TeamTickets ? t.tickets : Mathf.RoundToInt(t.points)))));
+            board.text = text.ToString();
+            for (int i = 0; i < standingsRows.Length; i++)
             {
-                if(curated&&own.role=="spectator")text.Append('\n').Append(StandingsPlace(own,-1,true)).Append('\n');
-                else
-                {
-                    text.Append("\nYOUR POSITION\n");
-                    if(mystery)text.Append("YOU · ").Append(CandyHudContent.Safe(own.name)).Append('\n');
-                    else if(statusRoster||f.rules.metric==ScoreMetric.AliveStatus)
-                        text.Append("YOU · ").Append(CandyHudContent.Safe(own.name,22))
-                            .Append(own.role=="infected"?" · INFECTED":own.alive&&!own.dying?" · ACTIVE":" · ELIMINATED")
-                            .Append("   ·   ").Append(CandyHudContent.ResultStats(own,f.rules.mode)).Append('\n');
-                    else Row(own,true,System.Array.IndexOf(rows,own)+1,whole,f.rules.mode);
-                }
+                int rank = boardPage * BoardPageSize + i; var row = standingsRows[i]; bool show = rank < rows.Length;
+                row.card.gameObject.SetActive(show); if (!show) continue;
+                var player = rows[rank]; bool local = player.id == own?.id;
+                row.card.color = local ? new Color(.70f, 1f, .88f, .96f) : new Color(.91f, .85f, 1f, .82f);
+                row.rank.color = row.name.color = row.stats.color = CandyHudCards.Ink;
+                row.rank.text = mystery ? "·" : (rank + 1).ToString();
+                scorePortraits.SetName(row.name, (local ? "YOU · " : "") + player.name);
+                if (mystery) row.stats.text = f.mystery.bodies.Any(body => body.reported && body.id == player.id) ? "REPORTED" : "";
+                else if (statusRoster || f.rules.metric == ScoreMetric.AliveStatus) row.stats.text = (player.role == "infected" ? "INFECTED" : player.alive && !player.dying ? "ACTIVE" : "ELIMINATED") + " · " + CandyHudContent.ResultStats(player, f.rules.mode);
+                else row.stats.text = player.metric.ToString("0.#") + " · " + CandyHudContent.ResultStats(player, f.rules.mode);
+                CandyScorePortraits.Show(row.portrait, row.initial, scorePortraits.Get(MatchRuntime.Current, player), player);
             }
-            if(f.rules.mode==GameModeKind.Infection&&!mystery&&f.secondaryLeaders.Length>0)text.Append("\nInfections leader: ").Append(CandyHudContent.Safe(f.secondaryLeaders[0].name,20)).Append(" · ").Append(f.secondaryLeaders[0].infections).Append('\n');
-            string footer = vr
-                ? ScoreboardPinned ? "Pages cycle every 5s · Hide in Modes menu" : "Pages cycle every 5s · Release " + standingsControl + " to close"
-                : ScoreboardPinned ? "PgUp / PgDn · Hide in Modes menu" : "PgUp / PgDn · Release F2 to close";
-            text.Append("\nPAGE ").Append(boardPage + 1).Append(" / ").Append(pages).Append('\n');
-            text.Append(footer);board.text=text.ToString();
+            text.Clear(); if (own != null) text.Append(StandingsPlace(own, System.Array.FindIndex(rows, p => p.id == own.id), curated)).Append(" · ");
+            text.Append("PAGE ").Append(boardPage + 1).Append(" / ").Append(pages);
+            if (f.rules.mode == GameModeKind.Infection && f.secondaryLeaders.Length > 0) text.Append(" · Infections leader: ").Append(CandyHudContent.Safe(f.secondaryLeaders[0].name, 18)).Append(" · ").Append(f.secondaryLeaders[0].infections);
+            text.Append('\n').Append(vr ? ScoreboardPinned ? "Pages cycle every 5s · Hide in Modes menu" : "Pages cycle every 5s · Release " + standingsControl + " to close" : ScoreboardPinned ? "PgUp / PgDn · Hide in Modes menu" : "PgUp / PgDn · Release F2 to close");
+            standingsFooter.text = text.ToString();
         }
         void UpdateObjective(MatchFrame f,MatchPlayerFrame own)
         {

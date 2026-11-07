@@ -10,7 +10,7 @@ namespace DeadlyJenga.Presentation
 {
     public sealed class CandyResultsHud : MonoBehaviour
     {
-        const int FullPage = 8, SplitPage = 5;
+        const int FullPage = 6, SplitPage = 5;
         static readonly Color Ink = new Color(.065f, .032f, .135f, .98f);
         static readonly Color Mint = new Color(.58f, 1f, .83f);
         sealed class Row
@@ -206,17 +206,22 @@ namespace DeadlyJenga.Presentation
                 var player = players[rank];
                 bool own = player.id == match.LocalActorId;
                 var rect = row.background.rectTransform;
-                rect.sizeDelta = new Vector2(width, 36);
-                rect.anchoredPosition = new Vector2(x, 151 - i * 41);
+                rect.sizeDelta = new Vector2(width, split ? 62 : 52);
+                rect.anchoredPosition = new Vector2(x, 137 - i * (split ? 66 : 54));
                 row.background.color = own ? new Color(.12f, .31f, .32f) : new Color(.145f, .09f, .24f);
                 row.rank.text = (rank + 1).ToString();
-                row.name.text = CandyHudContent.Safe(player.name, split ? own ? 14 : 19 : 29) + (own ? "  ·  YOU" : "");
+
                 row.name.color = own ? Mint : Color.white;
-                row.name.rectTransform.sizeDelta = new Vector2(split ? 216 : 300, 36);
-                row.name.rectTransform.anchoredPosition = new Vector2(split ? 196 : 238, 0);
-                float statsWidth = split ? 158 : 510;
-                row.stats.rectTransform.sizeDelta = new Vector2(statsWidth, 36);
-                row.stats.rectTransform.anchoredPosition = new Vector2(-statsWidth * .5f - 14, 0);
+                row.name.rectTransform.sizeDelta = new Vector2(split ? 352 : 420, 32);
+                row.name.rectTransform.anchoredPosition = new Vector2(split ? 282 : 316, split ? 13 : 0);
+                portraits.SetName(row.name, (own ? "YOU · " : "") + player.name);
+                float statsWidth = split ? 352 : 410;
+                row.stats.rectTransform.sizeDelta = new Vector2(statsWidth, 26);
+                row.stats.rectTransform.anchoredPosition = new Vector2(-statsWidth * .5f - 14, split ? -17 : 0);
+                row.stats.resizeTextForBestFit = true;
+                row.stats.resizeTextMinSize = 18;
+                row.stats.resizeTextMaxSize = 20;
+                row.stats.alignment = split ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight;
                 row.stats.text = infections ? player.infections + " infected" : split ? player.survivalSeconds.ToString("0.0") + "s survived" : CandyHudContent.ResultStats(player, mode);
                 CandyScorePortraits.Show(row.portrait, row.initial, portraits.Get(match, player), player);
             }
@@ -241,7 +246,7 @@ namespace DeadlyJenga.Presentation
             for (int i = 0; i < primary.Length; i++) primary[i] = BuildRow(panel);
             for (int i = 0; i < secondary.Length; i++) secondary[i] = BuildRow(panel);
 
-            paging = Label("Page count", panel, new Vector2(405, 34), new Vector2(0, -183), 18);
+            paging = Label("Page count", panel, new Vector2(360, 34), new Vector2(0, -183), 18);
             string[] names = { "STAY / NEXT ROUND", "RETURN TO LOBBY", "PREVIOUS", "NEXT" };
             for (int i = 0; i < buttons.Length; i++)
             {
@@ -258,23 +263,24 @@ namespace DeadlyJenga.Presentation
 
         static Row BuildRow(Transform parent)
         {
-            var background = Panel("Score row", parent, new Vector2(982, 36), Vector2.zero, Ink);
+            var background = Panel("Score row", parent, new Vector2(982, 52), Vector2.zero, Ink);
             var row = background.transform;
-            var rank = Label("Rank", row, new Vector2(46, 36), new Vector2(24, 0), 17);
+            var rank = Label("Rank", row, new Vector2(40, 48), new Vector2(22, 0), 21);
             Anchor(rank.rectTransform, 0);
             var portraitObject = new GameObject("Avatar portrait", typeof(RectTransform), typeof(RawImage));
             portraitObject.transform.SetParent(row, false);
             portraitObject.layer = 5;
             var portrait = portraitObject.GetComponent<RawImage>();
             portrait.raycastTarget = false;
-            portrait.rectTransform.sizeDelta = new Vector2(32, 32);
-            portrait.rectTransform.anchoredPosition = new Vector2(64, 0);
+            portrait.rectTransform.sizeDelta = new Vector2(48, 48);
+            portrait.rectTransform.anchoredPosition = new Vector2(74, 0);
             Anchor(portrait.rectTransform, 0);
-            var initial = Label("Initial", portrait.transform, new Vector2(32, 32), Vector2.zero, 17);
-            var name = Label("Player name", row, new Vector2(242, 36), new Vector2(210, 0), 18);
+            var initial = Label("Initial", portrait.transform, new Vector2(48, 48), Vector2.zero, 25);
+            var name = Label("Player name", row, new Vector2(420, 32), new Vector2(316, 0), 26);
             Anchor(name.rectTransform, 0);
             name.alignment = TextAnchor.MiddleLeft;
-            var stats = Label("Mode stats", row, new Vector2(510, 36), new Vector2(-269, 0), 17);
+            name.horizontalOverflow = HorizontalWrapMode.Overflow;
+            var stats = Label("Mode stats", row, new Vector2(410, 26), new Vector2(-219, 0), 20);
             Anchor(stats.rectTransform, 1);
             stats.alignment = TextAnchor.MiddleRight;
             return new Row { background = background, rank = rank, name = name, stats = stats, portrait = portrait, initial = initial };
@@ -308,6 +314,8 @@ namespace DeadlyJenga.Presentation
             label.fontStyle = FontStyle.Bold;
             label.supportRichText = false;
             label.raycastTarget = false;
+            label.horizontalOverflow = HorizontalWrapMode.Wrap;
+            label.verticalOverflow = VerticalWrapMode.Truncate;
             label.alignment = TextAnchor.MiddleCenter;
             label.color = Color.white;
             label.rectTransform.sizeDelta = size;
