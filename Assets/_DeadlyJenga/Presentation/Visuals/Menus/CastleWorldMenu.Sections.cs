@@ -35,7 +35,7 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<tabButtons.Length;i++)
             {
                 tabButtons[i]=HeaderButton(DemoMenuSections.Tabs[i],0,out tabTargets[i]);
-                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,518),new Vector2(216,58),30);
+                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,508),new Vector2(216,76),30);
                 tabLabels[i]=tabButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
                 tabLabels[i].supportRichText=true;tabLabels[i].resizeTextForBestFit=false;tabLabels[i].lineSpacing=.85f;
                 tabLabels[i].text=DemoMenuSections.Tabs[i]+"\n<size=22>"+DemoMenuSections.TabDescriptions[i]+"</size>";

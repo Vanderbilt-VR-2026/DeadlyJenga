@@ -98,7 +98,7 @@ namespace DeadlyJenga.Presentation
                 if (source is SkinnedMeshRenderer skin && skin.sharedMesh)
                 {
                     mesh = new Mesh();
-                    skin.BakeMesh(mesh);
+                    skin.BakeMesh(mesh, true);
                     baked.Add(mesh);
                 }
                 else if (source is MeshRenderer && source.TryGetComponent<MeshFilter>(out var filter))
