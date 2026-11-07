@@ -13,6 +13,7 @@ namespace DeadlyJenga.CandyPlayers
         bool left,armed,sheriffShotgun,primaryJumpReserved;float nextHandSync;float nextFire,lastAttackTime=float.NegativeInfinity;EquipmentKind lastPower;
         Vector3 lastHand;bool handReady;float nextSwing;
         Vector3 desktopAimTarget;
+        float aimBlend;int aimBlendFrame=-1;EquipmentKind aimBlendKind;bool aimBlendLeft;
         readonly RaycastHit[] aimHits=new RaycastHit[32];
         EffectType speedEffect,jumpEffect;
         int pendingPickup,dismissedPickup;float nextPickupRequest;
@@ -96,7 +97,7 @@ namespace DeadlyJenga.CandyPlayers
             if(isActiveAndEnabled){trigger.Enable();offTrigger.Enable();grip.Enable();}armed=false;
         }
         void OnEnable(){trigger?.Enable();offTrigger?.Enable();grip?.Enable();}
-        void OnDisable(){ResetBashTracking();CancelBashPresentation();ResetPickupCancel();pendingPickup=dismissedPickup=0;primaryJumpReserved=false;ignoreSwapBack=false;if(Local){ReleaseHeldArsenal();SetSuitThrust(false);motor.ClearHoverFlight();suitWasFlying=false;}trigger?.Disable();offTrigger?.Disable();grip?.Disable();visual?.Hide();}
+        void OnDisable(){aimBlend=0;aimBlendFrame=-1;ResetBashTracking();CancelBashPresentation();ResetPickupCancel();pendingPickup=dismissedPickup=0;primaryJumpReserved=false;ignoreSwapBack=false;if(Local){ReleaseHeldArsenal();SetSuitThrust(false);motor.ClearHoverFlight();suitWasFlying=false;}trigger?.Disable();offTrigger?.Disable();grip?.Disable();visual?.Hide();}
         void OnDestroy(){trigger?.Dispose();offTrigger?.Dispose();grip?.Dispose();}
         public void SetEquipped(bool value)
         {
@@ -148,8 +149,31 @@ namespace DeadlyJenga.CandyPlayers
                 _=>new Vector3(0,-.24f,.12f)
             };
             if(leftHanded)offset.x=-offset.x;
-            if(vr)offset.x+=leftHanded?-.031f:.031f;
             return true;
+        }
+        Pose RaiseForAim(Pose tracked,Transform head)
+        {
+            var state=Equipment;
+            bool supported=TryAimGripOffset(state,left,true,out var offset);
+            bool available=Local&&state.drawn&&supported&&motor.Alive&&motor.HasInputFocus&&!motor.InputSuspended&&
+                !motor.Climbing&&!motor.Vaulting&&Services.Session?.MenuOpen!=true&&pendingPickup==0&&!SlingForEmote(state);
+            if(!available||aimBlendKind!=state.kind||aimBlendLeft!=left)aimBlend=0;
+            aimBlendKind=state.kind;aimBlendLeft=left;
+            bool requested=available&&HybridXRInput.GripHeld(left);
+            if(Time.frameCount!=aimBlendFrame)
+            {
+                aimBlendFrame=Time.frameCount;
+                aimBlend=Mathf.MoveTowards(aimBlend,requested?1:0,Time.unscaledDeltaTime/.16f);
+            }
+            if(aimBlend<=0)return tracked;
+            var raised=new Pose(head.position+head.rotation*offset*Scale,head.rotation);
+            if(visual!=null&&visual.TryOpticAnchor(state,out var anchor))
+            {
+                raised.rotation=head.rotation*Quaternion.Inverse(anchor.rotation);
+                raised.position=head.position+head.forward*.18f-raised.rotation*anchor.position*Scale;
+            }
+            float blend=Mathf.SmoothStep(0,1,aimBlend);
+            return new Pose(Vector3.Lerp(tracked.position,raised.position,blend),Quaternion.Slerp(tracked.rotation,raised.rotation,blend));
         }
         public Pose GripPose
         {
@@ -167,14 +191,12 @@ namespace DeadlyJenga.CandyPlayers
                         var secondary=avatar.tracking.WorldHand(!left);var delta=secondary.position-primary.position;
                         if(secondary.tracked&&delta.magnitude>.12f*Scale&&delta.magnitude<1.1f*Scale)aim.rotation=Quaternion.LookRotation(delta,primary.rotation*Vector3.up);
                     }
-                    if(Local&&Equipment.drawn&&HybridXRInput.GripHeld(left))
-                    {
-                        if(TryAimGripOffset(Equipment,left,true,out var offset))
-                            aim=new Pose(head.position+head.rotation*offset*Scale,head.rotation);
-                    }
+                    // Dominant grip is explicit aim; releasing it restores the tracked hip pose.
+                    aim=RaiseForAim(aim,head);
                 }
                 else
                 {
+                    if(motor&&motor.IsVR){aimBlend=0;aimBlendFrame=-1;}
                     var position=head.position+head.rotation*new Vector3(left?-.25f:.25f,-.22f,.36f)*Scale;
                     if(Local&&Equipment.drawn&&Mouse.current?.rightButton.isPressed==true&&
                         TryAimGripOffset(Equipment,left,false,out var offset))
