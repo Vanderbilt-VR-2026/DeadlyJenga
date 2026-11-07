@@ -148,7 +148,9 @@ namespace FlyingHand
             if(followYaw)
             {
                 float delta=Mathf.DeltaAngle(yaw,target.eulerAngles.y);
-                if(vr&&vrSnapYaw&&!dual){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
+                // The motor already interpolates dual-stick turns. Keep the observer with its actual heading.
+                if(dual)yaw=target.eulerAngles.y;
+                else if(vr&&vrSnapYaw){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
                 else yaw=Mathf.LerpAngle(yaw,target.eulerAngles.y,1-Mathf.Exp(-yawResponse*dt));
             }
             Quaternion rotation=Quaternion.Euler(vrPitch,yaw,0);
