@@ -23,8 +23,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         readonly System.Collections.Generic.List<MarinaDetailPose> marinaDetailPoses=new();
         Vector3 marinaDetailEye,marinaDetailForward,marinaDetailUp;
+        Vector3 marinaDetailPanelBase,marinaDetailBackBase;
         Quaternion marinaDetailRotation;
-        float marinaDetailDistance,marinaDetailWidth;
+        float marinaDetailDistance,marinaDetailWidth,marinaJoinKeyboardLift;
         bool marinaKeyboardVisible;
         readonly System.Collections.Generic.Dictionary<Graphic,Material> marinaGraphicMaterials=new();
         readonly System.Collections.Generic.Dictionary<Material,Material> marinaFocusMaterials=new();
@@ -104,7 +105,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             foreach(var pose in marinaDetailPoses)
                 if(pose.target){pose.target.localPosition=pose.position;pose.target.localRotation=pose.rotation;pose.target.localScale=pose.scale;}
-            marinaDetailPoses.Clear();marinaKeyboardVisible=false;
+            marinaDetailPoses.Clear();marinaKeyboardVisible=false;marinaJoinKeyboardLift=0;
         }
         static void MarinaWorldScale(RectTransform target,float scale)
         {
@@ -130,12 +131,31 @@ namespace DeadlyJenga.CastlePrototype
             panel.SetPositionAndRotation(center-marinaDetailUp*((backHeight+gap)*scale*.5f),marinaDetailRotation);MarinaWorldScale(panel,scale);
             marinaBack.SetPositionAndRotation(panel.position+marinaDetailUp*((height*.5f+gap+backHeight*.5f)*scale)-marinaDetailForward*.01f,marinaDetailRotation);
             MarinaWorldScale(marinaBack,scale*backRatio);marinaDetailWidth=width*scale;
+            marinaDetailPanelBase=panel.position;marinaDetailBackBase=marinaBack.position;
+            marinaJoinKeyboardLift=0;
+            if(panel==joinStation)
+            {
+                float lift=.32f,slope=Mathf.Tan(vertical*.9f);
+                var corners=new Vector3[4];marinaBack.GetWorldCorners(corners);
+                foreach(var corner in corners)
+                {
+                    var relative=corner-marinaDetailEye;
+                    lift=Mathf.Min(lift,Vector3.Dot(relative,marinaDetailForward)*slope-Vector3.Dot(relative,marinaDetailUp));
+                }
+                marinaJoinKeyboardLift=Mathf.Max(0,lift);
+            }
             marinaKeyboardVisible=false;PlaceMarinaKeyboard();PrioritizeMarinaDetailMaterials();
         }
         void PlaceMarinaKeyboard()
         {
             if(!piano)return;
             bool visible=marinaDetail=="join"&&lobby.CodeFocused;
+            if(marinaDetail=="join"&&marinaDetailPoses.Count>0&&joinStation&&marinaBack)
+            {
+                var offset=marinaDetailUp*(visible?marinaJoinKeyboardLift:0);
+                joinStation.position=marinaDetailPanelBase+offset;
+                marinaBack.position=marinaDetailBackBase+offset;
+            }
             piano.gameObject.SetActive(visible);
             if(!visible){marinaKeyboardVisible=false;return;}
             if(marinaKeyboardVisible)return;

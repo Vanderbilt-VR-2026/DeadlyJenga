@@ -20,7 +20,7 @@ namespace DeadlyJenga.CastlePrototype
                 candyCodeSlots.Add(slot);var letter=CandyReadout(slot,"Character","",0,0,78,66,40);letter.fontStyle=FontStyle.Bold;candyCodeLetters.Add(letter);
             }
             var join=CandyPlace("join",380,185,250,96);CandyPrimary(join);join.title=()=>"JOIN ROOM";CandyText(join,0,0,226,80,30);
-            CandyReadout(candyJoinContent,"Typing help","Use six room characters, or enter a full region code.",0,103,950,28,21).color=CandyMuted;
+            CandyReadout(candyJoinContent,"Typing help","Use six room characters, or enter a full region code.",0,112,950,28,21).color=CandyMuted;
             CandyReadout(candyJoinContent,"Discovery divider","OR FIND A ROOM",0,60,650,34,23).color=CandyMuted;
             var search=CandyPlace("detect-nearby",0,-10,1000,80);search.faceColor=new Color(.74f,.55f,.96f);CandyText(search,25,13,780,38,31);
             search.description=CandyReadout((RectTransform)search.button.transform,"Search subtitle","Find hosts on your local network.",25,-22,780,28,21);
@@ -33,7 +33,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyPlace("nearby-next",250,-323,470,44);CandyPlace("code-instead",-250,-323,470,44);
             var invitation=CandyPlace("accept-invite",0,-210,1000,76);CandyPrimary(invitation);CandyText(invitation,0,0,950,66,26);
             CandyPlace("leave-guest",0,-315,1000,60);
-            joinHint.rectTransform.anchoredPosition=new Vector2(0,-393);joinHint.rectTransform.sizeDelta=new Vector2(1000,56);
+            joinHint.rectTransform.anchoredPosition=new Vector2(0,-380);joinHint.rectTransform.sizeDelta=new Vector2(1000,56);
             joinHint.fontSize=20;joinHint.resizeTextMaxSize=20;joinHint.resizeTextMinSize=18;joinHint.color=CandyMuted;
             candyJoinEmpty=CandyReadout(candyJoinContent,"Discovery empty state","",0,-245,960,100,24);candyJoinEmpty.color=CandyMuted;
         }
