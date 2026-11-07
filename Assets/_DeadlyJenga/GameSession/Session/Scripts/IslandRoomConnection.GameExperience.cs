@@ -94,9 +94,9 @@ namespace DeadlyJenga.CastlePrototype
             MapIndex=map;ModeIndex=mode;SharedDemoControls=false;ApplySetup(next);MatchSetup.MapId=profile.mapId;MatchSetup.ModeId=profile.modeId;return true;
         }
 
-        bool ExperienceOperation(string operation,int attempt,GameFlowEffect effect)
+        bool ExperienceOperation(string operation,int attempt,GameFlowEffect effect,bool allowDeparture=false)
         {
-            if(Connected&&!IsHost||Busy||Migrating||Departing||SwitchingMap||string.IsNullOrEmpty(operation)||attempt<1||attempt>3)return false;
+            if(Connected&&!IsHost||Busy||Migrating||(Departing&&!allowDeparture)||SwitchingMap||string.IsNullOrEmpty(operation)||attempt<1||attempt>3)return false;
             var state=RoomGameExperience.Ensure(this).CaptureSnapshot();
             return state.operationId==operation&&state.attempts==attempt&&state.pending==effect&&
                 state.phase==(effect==GameFlowEffect.LoadGame?GameFlowPhase.LoadingGame:GameFlowPhase.LoadingLobby);
@@ -108,24 +108,24 @@ namespace DeadlyJenga.CastlePrototype
 
         internal bool ExperienceLoadGame(CuratedGameProfile profile,string operation,int attempt,Action failed)
         {
-            if(profile==null||!ExperienceOperation(operation,attempt,GameFlowEffect.LoadGame)||!Catalog)return false;
+            if(profile==null||!ExperienceOperation(operation,attempt,GameFlowEffect.LoadGame,true)||!Catalog)return false;
             if(ExperienceAlreadyDispatched(operation,attempt))return true;
-            if(RoomSceneBusy)return false;
+            if(Departing||RoomSceneBusy)return false;
             int map=Array.FindIndex(Catalog.maps,value=>value!=null&&value.id==profile.mapId);
             int mode=Array.FindIndex(Catalog.modes,value=>value!=null&&value.id==profile.modeId&&value.available);
             if(map<0||mode<0||!Catalog.maps[map].SupportsMode(profile.modeId))return false;
             var state=RoomGameExperience.Ensure(this).CaptureSnapshot();if(state.profileId!=profile.id)return false;
             int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[map].scenePath);if(index<0)return false;
             MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.MapId=profile.mapId;MatchSetup.ModeId=profile.modeId;
-            ExperienceRememberDispatch(operation,attempt);
-            if(Connected)return LoadRoomScene(index,"map",failed);
-            try{SceneManager.LoadScene(index);return true;}
-            catch(Exception){failed?.Invoke();return false;}
+            var owner=Runner;
+            if(!BeginSceneDeparture(index,Connected,"map",failed,()=>ReferenceEquals(Runner,owner)&&
+                ExperienceOperation(operation,attempt,GameFlowEffect.LoadGame,true)))return false;
+            ExperienceRememberDispatch(operation,attempt);return true;
         }
 
         internal bool ExperienceReturnLobby(string operation,int attempt,Action failed)
         {
-            if(!ExperienceOperation(operation,attempt,GameFlowEffect.ReturnLobby))return false;
+            if(!ExperienceOperation(operation,attempt,GameFlowEffect.ReturnLobby,true))return false;
             if(ExperienceAlreadyDispatched(operation,attempt))return true;
             for(int index=0;index<SceneManager.sceneCountInBuildSettings;index++)
             {
@@ -138,12 +138,11 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 else alreadySelected=SceneManager.GetActiveScene().buildIndex==index;
                 if(alreadySelected){ExperienceRememberDispatch(operation,attempt);return true;}
-                if(RoomSceneBusy)return false;
-                ExperienceRememberDispatch(operation,attempt);
-                // Same authority/scene resolver as ReturnMatchToLobby, with the actual failure callback retained.
-                if(Connected)return LoadRoomScene(index,"lobby",failed);
-                try{SceneManager.LoadScene(index);return true;}
-                catch(Exception){failed?.Invoke();return false;}
+                if(Departing||RoomSceneBusy)return false;
+                var owner=Runner;
+                if(!BeginSceneDeparture(index,Connected,"lobby",failed,()=>ReferenceEquals(Runner,owner)&&
+                    ExperienceOperation(operation,attempt,GameFlowEffect.ReturnLobby,true)))return false;
+                ExperienceRememberDispatch(operation,attempt);return true;
             }
             failed?.Invoke();return false;
         }

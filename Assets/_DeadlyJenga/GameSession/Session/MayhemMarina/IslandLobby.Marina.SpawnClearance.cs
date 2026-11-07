@@ -11,6 +11,7 @@ namespace DeadlyJenga.CastlePrototype
         bool marinaFloorSetupCompleted;
         int marinaFloorRevision;
         bool marinaArrivalPending,marinaArrivalPlaced,marinaWasConnected;
+        bool marinaArrivalAnnounced,marinaArrivalCuePrepared,marinaArrivalBeforeDeparture;
         int marinaPlacedGeneration=int.MinValue,marinaPlacedFloorRevision=-1;
         float nextMarinaArrival;
         readonly Collider[] marinaSpawnOverlaps=new Collider[64];
@@ -94,16 +95,34 @@ namespace DeadlyJenga.CastlePrototype
             }
             return MarinaSpawnResult.Accepted;
         }
+        internal void PrepareMarinaArrivalCue()
+        {
+            if(marinaArrivalCuePrepared)return;
+            marinaArrivalBeforeDeparture=marinaArrivalAnnounced;
+            marinaArrivalAnnounced=false;marinaArrivalCuePrepared=true;
+        }
+        internal void CancelMarinaArrivalCue()
+        {
+            if(!marinaArrivalCuePrepared)return;
+            marinaArrivalAnnounced=marinaArrivalBeforeDeparture;marinaArrivalCuePrepared=false;
+        }
+        void AnnounceMarinaArrival()
+        {
+            if(marinaArrivalAnnounced||MatchResident||VisitOwner||!ReferenceEquals(Services.Session,this)||
+                !NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
+            marinaArrivalAnnounced=true;marinaArrivalCuePrepared=false;
+            GameEvents.RaiseEmoted(Player.gameObject,"PlayerArrival");
+        }
         internal bool ApplyReservedMarinaSpawn(P.Pose pose)
         {
             if(!NetworkActors.Alive(Player)||MatchResident&&!VisitOwner||!MarinaFinite(pose.position)||!MarinaFinite(pose.rotation))return false;
             Player.Place(pose.position,pose.rotation);marinaArrivalPending=false;marinaArrivalPlaced=true;
             marinaWasConnected=Room&&Room.Connected;marinaPlacedGeneration=Room?Room.MarinaSpawnGeneration:int.MinValue;marinaPlacedFloorRevision=marinaFloorRevision;
-            SetMenu(MenuOpen);return true;
+            SetMenu(MenuOpen);AnnounceMarinaArrival();return true;
         }
         bool PlaceLocalLobbyArrival()
         {
-            if(!UsesMarinaSpawns){Player.Place(SafeSpawnPoint(),Quaternion.identity);return true;}
+            if(!UsesMarinaSpawns){Player.Place(SafeSpawnPoint(),Quaternion.identity);AnnounceMarinaArrival();return true;}
             P.Pose pose;string reason;MarinaSpawnResult result;
             if(Room&&Room.Connected&&!VisitOwner)result=Room.TryGetLocalMarinaSpawn(out pose,out reason);
             else result=TryMarinaSpawnPose(2,out pose,out reason,Player.gameObject);
