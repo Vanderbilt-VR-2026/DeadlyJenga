@@ -43,8 +43,8 @@ namespace DeadlyJenga.CastlePrototype
                     keys.dKey.isPressed||keys.qKey.isPressed||keys.eKey.isPressed))return true;
                 if(!IsVR)return false;
                 bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-                var dominant=HybridXRInput.Controller(dominantLeft);
-                var support=HybridXRInput.Controller(!dominantLeft);
+                var dominant=HybridXRInput.ControllerWithStick(dominantLeft);
+                var support=HybridXRInput.ControllerWithStick(!dominantLeft);
                 var controller=dominant??support;
                 float Axis(string name)=>controller?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
                 if(dominant!=null&&support!=null)
@@ -52,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
                     var look=HybridXRInput.Stick(dominant);
                     return HybridXRInput.Stick(support).magnitude>motor.stickDeadzone||
                         Mathf.Abs(look.x)>motor.stickDeadzone||Mathf.Abs(look.y)>motor.stickDeadzone||
-                        Axis("trigger")!=Axis("grip");
+                        FlyingHandController.FilterControllerLift(Axis("trigger"),Axis("grip"))!=0;
                 }
                 if(controller!=null)
                 {
@@ -62,11 +62,11 @@ namespace DeadlyJenga.CastlePrototype
                         bool turning=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton")?.isPressed==true;
                         bool stickHeld=turning?Mathf.Abs(stick.x)>motor.stickDeadzone||Mathf.Abs(stick.y)>motor.stickDeadzone:
                             stick.magnitude>motor.stickDeadzone;
-                        return stickHeld||Axis("trigger")!=Axis("grip");
+                        return stickHeld||FlyingHandController.FilterControllerLift(Axis("trigger"),Axis("grip"))!=0;
                     }
                     return motor.move.ReadValue<Vector2>().magnitude>motor.stickDeadzone||
                         Mathf.Abs(motor.turn.ReadValue<Vector2>().x)>motor.stickDeadzone||
-                        motor.ascend.ReadValue<float>()!=motor.descend.ReadValue<float>();
+                        FlyingHandController.FilterControllerLift(motor.ascend.ReadValue<float>(),motor.descend.ReadValue<float>())!=0;
                 }
                 if(!HandTracking)return false;
                 return FlightPinchHeld(HandTracking.WorldHand(true))||FlightPinchHeld(HandTracking.WorldHand(false));

@@ -2,6 +2,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
 using System.Collections.Generic;
+using XRController = UnityEngine.InputSystem.XR.XRController;
 
 namespace FlyingHand
 {
@@ -32,6 +33,9 @@ namespace FlyingHand
         [HideInInspector] public bool externallyDriven;
         public IFlyingHandInputSource InputDriver {get;set;}
         public ITrackedFlightInputSource TrackedInputDriver {get;set;}
+        public System.Func<bool,XRController> ControllerSource {get;set;}
+        XRController previousFlightController;
+        bool previousDualController;
         readonly List<XRDisplaySubsystem> displays = new List<XRDisplaySubsystem>();
         bool modeInitialized;
         CursorLockMode previousCursorLock;
@@ -207,23 +211,31 @@ namespace FlyingHand
                 return;
             }
             bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-            UnityEngine.InputSystem.XR.XRController dominant=null,support=null;
-            foreach(var device in InputSystem.devices)
-            {
-                if(device is not UnityEngine.InputSystem.XR.XRController candidate||!candidate.isTracked.isPressed||
-                    candidate.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")==null)continue;
-                foreach(var usage in candidate.usages)
-                {
-                    if(usage!=UnityEngine.InputSystem.CommonUsages.LeftHand&&usage!=UnityEngine.InputSystem.CommonUsages.RightHand)continue;
-                    if((usage==UnityEngine.InputSystem.CommonUsages.LeftHand)==dominantLeft)dominant=candidate;
-                    else support=candidate;
-                    break;
-                }
-            }
+            var dominant=FindController(dominantLeft);
+            var support=FindController(!dominantLeft);
             var flightController=dominant??support;
+            bool dual=dominant!=null&&support!=null;
+            if(previousFlightController!=flightController||previousDualController!=dual)
+            {
+                snapArmed=false;
+                TrackedInputDriver?.ResetFlightInput();
+                previousFlightController=flightController;previousDualController=dual;
+            }
             Vector2 Stick(UnityEngine.InputSystem.XR.XRController controller)=>
                 controller?.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
             float Axis(string name)=>flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>(name)?.ReadValue()??0;
+            // Explicit keyboard input also works while the XR simulator is running.
+            var keys=Keyboard.current;
+            Vector2 keyboardMove=keys==null?Vector2.zero:new Vector2(
+                (keys.dKey.isPressed?1:0)-(keys.aKey.isPressed?1:0),
+                (keys.wKey.isPressed?1:0)-(keys.sKey.isPressed?1:0));
+            float keyboardLift=keys==null?0:(keys.eKey.isPressed?1:0)-(keys.qKey.isPressed?1:0);
+            if(keyboardMove.sqrMagnitude>0||keyboardLift!=0)
+            {
+                TrackedInputDriver?.ResetFlightInput();snapArmed=false;
+                MoveInput=Vector2.ClampMagnitude(keyboardMove,1);VerticalInput=keyboardLift;YawInput=0;
+                return;
+            }
             if(dominant!=null&&support!=null)
             {
                 TrackedInputDriver?.ResetFlightInput();
@@ -233,24 +245,22 @@ namespace FlyingHand
                 MoveInput=moveStick.normalized*Mathf.InverseLerp(stickDeadzone,1,moveStick.magnitude);
                 YawInput=Deadzone(lookStick.x);
                 CameraPitchInput=Deadzone(lookStick.y);
-                VerticalInput=Mathf.Clamp(Axis("trigger")-Axis("grip"),-1,1);
+                VerticalInput=FilterControllerLift(Axis("trigger"),Axis("grip"));
                 return;
             }
-            if(flightController==null&&TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
+            if(flightController==null)
             {
-                var local=Quaternion.Inverse(Quaternion.Euler(0,Body.rotation.eulerAngles.y,0))*trackedCommand.moveWorld;
-                MoveInput=Vector2.ClampMagnitude(new Vector2(local.x,local.z),1);
-                VerticalInput=Mathf.Clamp(local.y,-1,1);YawInput=Mathf.Clamp(trackedCommand.yaw,-1,1);
+                snapArmed=false;
+                if(TrackedInputDriver!=null&&TrackedInputDriver.TryReadFlightInput(out var trackedCommand))
+                {
+                    var local=Quaternion.Inverse(Quaternion.Euler(0,Body.rotation.eulerAngles.y,0))*trackedCommand.moveWorld;
+                    MoveInput=Vector2.ClampMagnitude(new Vector2(local.x,local.z),1);
+                    VerticalInput=Mathf.Clamp(local.y,-1,1);YawInput=Mathf.Clamp(trackedCommand.yaw,-1,1);
+                }
+                else {MoveInput=Vector2.zero;VerticalInput=YawInput=0;}
                 return;
             }
-            // Keep keyboard flight available when the editor XR simulator is running too.
-            var keys = Keyboard.current;
-            Vector2 keyboardMove = keys == null ? Vector2.zero : new Vector2(
-                (keys.dKey.isPressed ? 1 : 0) - (keys.aKey.isPressed ? 1 : 0),
-                (keys.wKey.isPressed ? 1 : 0) - (keys.sKey.isPressed ? 1 : 0));
-            float keyboardLift = keys == null ? 0 : (keys.eKey.isPressed ? 1 : 0) - (keys.qKey.isPressed ? 1 : 0);
-            Vector2 raw = move.ReadValue<Vector2>();
-            if (keyboardMove.sqrMagnitude > 0) raw = Vector2.ClampMagnitude(keyboardMove, 1);
+            Vector2 raw=move.ReadValue<Vector2>();
             if(leftControllerFlight)
             {
                 TrackedInputDriver?.ResetFlightInput();
@@ -260,13 +270,30 @@ namespace FlyingHand
             }
             MoveInput = raw.sqrMagnitude > stickDeadzone * stickDeadzone ? raw.normalized * Mathf.InverseLerp(stickDeadzone, 1, raw.magnitude) : Vector2.zero;
             YawInput = focused ? Deadzone(turn.ReadValue<Vector2>().x) : 0;
-            VerticalInput = focused ? Mathf.Clamp(ascend.ReadValue<float>() - descend.ReadValue<float>() + keyboardLift, -1, 1) : 0;
+            VerticalInput = focused ? FilterControllerLift(ascend.ReadValue<float>(),descend.ReadValue<float>()) : 0;
+        }
+        XRController FindController(bool left)
+        {
+            if(ControllerSource!=null)return ControllerSource(left);
+            foreach(var device in InputSystem.devices)
+            {
+                if(device is not XRController controller||!controller.isTracked.isPressed||
+                    controller.TryGetChildControl<UnityEngine.InputSystem.Controls.Vector2Control>("primary2DAxis")==null)continue;
+                foreach(var usage in controller.usages)
+                    if(usage==(left?UnityEngine.InputSystem.CommonUsages.LeftHand:UnityEngine.InputSystem.CommonUsages.RightHand))return controller;
+            }
+            return null;
+        }
+        public static float FilterControllerLift(float up,float down)
+        {
+            float value=Mathf.Clamp(up-down,-1,1);
+            return Mathf.Sign(value)*Mathf.InverseLerp(.12f,1,Mathf.Abs(value));
         }
         void ReadLeftController(Vector2 stick,float up,float down,bool turning)
         {
             float magnitude=Mathf.InverseLerp(stickDeadzone,1,stick.magnitude);
             MoveInput=turning?Vector2.zero:stick.normalized*magnitude*magnitude;
-            VerticalInput=Mathf.Clamp(up-down,-1,1);YawInput=0;
+            VerticalInput=FilterControllerLift(up,down);YawInput=0;
             if(Mathf.Abs(stick.x)<.25f)snapArmed=true;
             if(turning&&snapArmed&&Mathf.Abs(stick.x)>.7f)
             {

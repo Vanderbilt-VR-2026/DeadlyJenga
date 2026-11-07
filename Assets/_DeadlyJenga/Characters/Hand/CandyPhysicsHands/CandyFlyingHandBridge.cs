@@ -98,6 +98,7 @@ namespace DeadlyJenga.CandyPhysicsHands
         readonly CandyHandFlightGesture flightGesture=new CandyHandFlightGesture();
         void Awake()
         {
+            actor.motor.ControllerSource=HybridXRInput.ControllerWithStick;
             if(!actor.motor.externallyDriven){source=gameObject.AddComponent<CandyTrackingSource>();source.style=trackingStyle;actor.motor.TrackedInputDriver=this;}
             var visuals=actor.motor.transform.Find("HandVisual");pointerRenderers=visuals?visuals.GetComponentsInChildren<Renderer>(true):new Renderer[0];
             pointerColliders=actor.motor.GetComponentsInChildren<Collider>(true);
