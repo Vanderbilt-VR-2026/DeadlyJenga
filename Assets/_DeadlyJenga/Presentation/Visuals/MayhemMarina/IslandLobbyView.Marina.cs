@@ -26,6 +26,42 @@ namespace DeadlyJenga.CastlePrototype
         Quaternion marinaDetailRotation;
         float marinaDetailDistance,marinaDetailWidth;
         bool marinaKeyboardVisible;
+        readonly System.Collections.Generic.Dictionary<Graphic,Material> marinaGraphicMaterials=new();
+        readonly System.Collections.Generic.Dictionary<Material,Material> marinaFocusMaterials=new();
+        readonly System.Collections.Generic.List<Graphic> marinaGraphics=new();
+        float nextMarinaMaterials;
+        void PrioritizeMarinaDetailMaterials()
+        {
+            if(marinaDetail==""||!isActiveAndEnabled)return;
+            foreach(var root in new[]{marinaDetail=="join"?joinStation:marinaDetail=="host"?hostStation:setupStation,marinaBack,piano})
+            {
+                if(!root||!root.gameObject.activeInHierarchy)continue;
+                marinaGraphics.Clear();root.GetComponentsInChildren(true,marinaGraphics);
+                foreach(var graphic in marinaGraphics)
+                {
+                    if(!graphic||marinaGraphicMaterials.ContainsKey(graphic))continue;
+                    var original=graphic.material;if(!original||!original.shader)continue;
+                    string shader=original.shader.name;
+                    if(shader!="UI/Default"&&shader!="UI/Default Font")continue;
+                    if(!marinaFocusMaterials.TryGetValue(original,out var focused))
+                    {
+                        focused=new Material(original){name=original.name+" / focused Marina",hideFlags=HideFlags.HideAndDontSave,renderQueue=4000};
+                        focused.SetInt("unity_GUIZTestMode",(int)UnityEngine.Rendering.CompareFunction.Always);
+                        marinaFocusMaterials.Add(original,focused);
+                    }
+                    marinaGraphicMaterials.Add(graphic,original);graphic.material=focused;
+                }
+            }
+            nextMarinaMaterials=Time.unscaledTime+.25f;
+        }
+        void RestoreMarinaDetailMaterials()
+        {
+            foreach(var pair in marinaGraphicMaterials)
+                if(pair.Key&&marinaFocusMaterials.TryGetValue(pair.Value,out var focused)&&pair.Key.material==focused)pair.Key.material=pair.Value;
+            marinaGraphicMaterials.Clear();
+            foreach(var material in marinaFocusMaterials.Values)if(material)Destroy(material);
+            marinaFocusMaterials.Clear();marinaGraphics.Clear();nextMarinaMaterials=0;
+        }
         partial void BuildMayhemMarina()
         {
             if(!(lobby is IWorldQuery world)||world.Radius<30)return;
@@ -94,7 +130,7 @@ namespace DeadlyJenga.CastlePrototype
             panel.SetPositionAndRotation(center-marinaDetailUp*((backHeight+gap)*scale*.5f),marinaDetailRotation);MarinaWorldScale(panel,scale);
             marinaBack.SetPositionAndRotation(panel.position+marinaDetailUp*((height*.5f+gap+backHeight*.5f)*scale)-marinaDetailForward*.01f,marinaDetailRotation);
             MarinaWorldScale(marinaBack,scale*backRatio);marinaDetailWidth=width*scale;
-            marinaKeyboardVisible=false;PlaceMarinaKeyboard();
+            marinaKeyboardVisible=false;PlaceMarinaKeyboard();PrioritizeMarinaDetailMaterials();
         }
         void PlaceMarinaKeyboard()
         {
@@ -114,7 +150,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OpenMarinaDetail(string page)
         {
-            if(page=="style"){RestoreMarinaDetailLayout();if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
+            if(page=="style"){RestoreMarinaDetailMaterials();marinaDetail="";RestoreMarinaDetailLayout();if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
             marinaDetail=page;joinStation.gameObject.SetActive(page=="join");hostStation.gameObject.SetActive(page=="host");setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");piano.gameObject.SetActive(page=="join");
             if(page=="maps"||page=="modes")OpenPicker(page);
             if(page=="settings"){setupPage="settings";settingsPage=0;}
@@ -123,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void CloseMarinaDetail()
         {
-            lobby?.UnfocusCode();RestoreMarinaDetailLayout();terminalRequireRelease=true;DeadlyJenga.Presentation.MenuAim.Consume();
+            lobby?.UnfocusCode();RestoreMarinaDetailMaterials();RestoreMarinaDetailLayout();terminalRequireRelease=true;DeadlyJenga.Presentation.MenuAim.Consume();
             marinaDetail="";joinStation.gameObject.SetActive(false);hostStation.gameObject.SetActive(false);setupStation.gameObject.SetActive(false);piano.gameObject.SetActive(false);wardrobePanel.gameObject.SetActive(false);
             if(wardrobeOpen)SetWardrobeOpen(false);if(marinaBack)marinaBack.gameObject.SetActive(false);if(marinaScreen)marinaScreen.Visible=true;SyncMarinaBacks();
         }
@@ -133,7 +169,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!marina)return;
             if(marinaDetail!=""&&Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame)CloseMarinaDetail();
             if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
-            if(marinaDetail!="")PlaceMarinaKeyboard();
+            if(marinaDetail!=""){PlaceMarinaKeyboard();if(Time.unscaledTime>=nextMarinaMaterials)PrioritizeMarinaDetailMaterials();}
             if(wardrobePanel)wardrobePanel.gameObject.SetActive(wardrobeOpen&&Player.IsVR);
             SyncMarinaBacks();
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)
@@ -156,6 +192,6 @@ namespace DeadlyJenga.CastlePrototype
             var image=new GameObject("Mirror image",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(go.transform,false);var raw=image.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.color=Color.white;raw.raycastTarget=false;raw.rectTransform.sizeDelta=new Vector2(348,348);
         }
         partial void DisposeMayhemMarina()
-        {if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
+        {RestoreMarinaDetailMaterials();if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
     }
 }
