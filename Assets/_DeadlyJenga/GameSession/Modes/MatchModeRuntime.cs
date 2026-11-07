@@ -303,7 +303,7 @@ namespace DeadlyJenga.Modes
                 if(room.IsHost){room.ReturnMatchToLobby();return;}
                 if(session)session.VisitLobby();return;
             }
-            UnityEngine.SceneManagement.SceneManager.LoadScene("Lobby");
+            IslandRoomConnection.Ensure().ReturnMatchToLobby();
         }
         public bool HandleEliminated(GameObject who,GameObject source)
         {

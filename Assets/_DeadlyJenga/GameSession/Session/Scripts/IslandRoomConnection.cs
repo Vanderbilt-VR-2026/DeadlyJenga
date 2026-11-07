@@ -442,11 +442,8 @@ namespace DeadlyJenga.CastlePrototype
             key.GetInts(out int channel,out int kind,out int id,out int attempt);
             if(channel==DepartureChannel)
             {
-                if(!IsHost&&Connected&&IslandLobby.Current&&kind==1&&data.Length==4)
-                {
-                    float seconds=BitConverter.ToSingle(data.ToArray(),0);
-                    if(!float.IsNaN(seconds)&&!float.IsInfinity(seconds)&&seconds>=.3f&&seconds<=3)ReceiveDeparture(seconds);
-                }
+                if(TrustedServerData(runner,source,generation)&&
+                    (IslandLobby.Current||Services.Session is CastlePlaySession))ReceiveDeparturePacket(kind,id,attempt,data);
                 return;
             }
             if (channel == MapSwitchChannel && runner == Runner && Connected && data.Length > 0 && data.Length <= 256)
