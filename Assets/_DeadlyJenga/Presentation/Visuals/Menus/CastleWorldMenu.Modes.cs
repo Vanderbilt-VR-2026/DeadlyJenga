@@ -78,7 +78,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(i==5){hints.hintMode=(CandyDemoHud.HintMode)(((int)hints.hintMode+1)%3);labels[i].text="Control prompts: "+hints.hintMode;return;}
                 var copy=match.Rules.Copy();copy.environmentSkin=CandySceneSkins.Names[(DeadlyJenga.Presentation.CandyMatchVisuals.SkinIndex(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];match.Configure(copy);return;
             }
-            help.text="Standings: trigger / pinch turns pages. Open this page again to hide. Body reports keep their numbered location markers.";
+            help.text="Standings pages cycle every 5s in VR. Hold the look-stick click with no grip, or pin standings here. Reopen to hide. Body reports retain numbered markers.";
         }
     }
 }
