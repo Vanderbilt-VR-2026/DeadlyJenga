@@ -14,7 +14,8 @@ namespace DeadlyJenga.Presentation
         float nextBotRefresh;
         Canvas canvas; Image curtain; Mesh columnMesh; Material columnMaterial;
         float started,duration,finishedAt,finishFrom,fade;
-        bool finishing,arrival;float columnHeight=150,arrivalTime,arrivalTick;
+        bool finishing,arrival,visualArrival,replayQueuedArrival;float columnHeight=150,arrivalTime,arrivalTick;
+        GameObject queuedVisualArrival;
         public float FadeAmount=>fade;
         public bool Arriving=>arrival;
 
@@ -23,13 +24,19 @@ namespace DeadlyJenga.Presentation
         {current=null;GameEvents.DepartureStarted-=Begin;GameEvents.DepartureStarted+=Begin;GameEvents.Emoted-=ArrivalCue;GameEvents.Emoted+=ArrivalCue;}
         static void ArrivalCue(GameObject who,string cue)
         {
-            if(cue!="SpawnArrival"||who!=Services.Session?.Player?.gameObject)return;
+            if((cue!="SpawnArrival"&&cue!="PlayerArrival")||!who||who!=Services.Session?.Player?.gameObject)return;
+            bool visualOnly=cue=="PlayerArrival";
+            if(visualOnly&&current)
+            {
+                if(!current.visualArrival&&current.finishing)current.queuedVisualArrival=who;
+                return;
+            }
             if(!current)
             {
                 var go=new GameObject("Visual - player arrival beacon");DontDestroyOnLoad(go);current=go.AddComponent<CandySessionTravel>();
-                current.arrival=true;current.duration=3;current.started=Time.unscaledTime;current.Build();
+                current.arrival=true;current.visualArrival=visualOnly;current.duration=visualOnly?1.2f:3;current.started=Time.unscaledTime;current.Build();
             }
-            else current.StartArrival();
+            else{current.visualArrival=visualOnly;current.StartArrival();}
         }
         static void Begin(float seconds)
         {
@@ -66,7 +73,7 @@ namespace DeadlyJenga.Presentation
                 columnHeight=arrival?ArrivalHeight():150;columnMesh=CandySummoningColumn.CreateMesh(columnHeight);
                 var player=Services.Session?.Player;
                 if(NetworkActors.Alive(player))AddTarget(player.transform,targets);
-                foreach(var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude,FindObjectsSortMode.None))
+                if(!visualArrival)foreach(var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude,FindObjectsSortMode.None))
                 {
                     if(!(behaviour is INetworkActorView actor)||!actor.NetworkActive||actor.NetworkKind!=NetworkKinds.Survivor)continue;
                     AddTarget(behaviour.transform,targets);
@@ -87,15 +94,16 @@ namespace DeadlyJenga.Presentation
         }
         void StartArrival()
         {
-            foreach(var column in columns)if(column)Destroy(column.gameObject);columns.Clear();
+            foreach(var column in columns)if(column){column.SetVisible(false);column.gameObject.SetActive(false);Destroy(column.gameObject);}columns.Clear();
             if(columnMesh)Destroy(columnMesh);
-            arrival=true;finishing=false;started=arrivalTick=Time.unscaledTime;arrivalTime=0;duration=3;columnHeight=ArrivalHeight();
+            queuedVisualArrival=null;replayQueuedArrival=false;
+            arrival=true;finishing=false;started=arrivalTick=Time.unscaledTime;arrivalTime=0;duration=visualArrival?1.2f:3;columnHeight=ArrivalHeight();
             columnMesh=CandySummoningColumn.CreateMesh(columnHeight);
             if(columnMaterial)
             {
                 targets.Clear();var player=Services.Session?.Player;
                 if(NetworkActors.Alive(player))AddTarget(player.transform,targets);
-                foreach(var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude,FindObjectsSortMode.None))
+                if(!visualArrival)foreach(var behaviour in FindObjectsByType<MonoBehaviour>(FindObjectsInactive.Exclude,FindObjectsSortMode.None))
                 {
                     if(!(behaviour is INetworkActorView actor)||!actor.NetworkActive||actor.NetworkKind!=NetworkKinds.Survivor)continue;
                     AddTarget(behaviour.transform,targets);
@@ -105,6 +113,7 @@ namespace DeadlyJenga.Presentation
         }
         void AddBots()
         {
+            if(visualArrival)return;
             var bots=Services.Session?.SurvivorBots;
             if(bots==null||!columnMesh||!columnMaterial)return;
             foreach(var bot in bots.Members)
@@ -126,15 +135,16 @@ namespace DeadlyJenga.Presentation
         {
             if(!finishing&&Time.unscaledTime>=nextBotRefresh)
             {nextBotRefresh=Time.unscaledTime+.1f;AddBots();}
-            if(arrival&&!finishing){float now=Time.unscaledTime;arrivalTime+=Mathf.Clamp(now-arrivalTick,0,.05f);arrivalTick=now;}
+            if(arrival&&!finishing){float now=Time.unscaledTime;arrivalTime=visualArrival?now-started:arrivalTime+Mathf.Clamp(now-arrivalTick,0,.05f);arrivalTick=now;}
+            if(visualArrival&&arrival&&!finishing&&arrivalTime>=duration)Finish(false);
             if(!finishing&&(arrival?arrivalTime:Time.unscaledTime-started)>duration+20)Finish(false);
-            Render();if(finishing&&Time.unscaledTime-finishedAt>.65f)Destroy(gameObject);
+            Render();if(finishing&&Time.unscaledTime-finishedAt>.65f){replayQueuedArrival=true;Destroy(gameObject);}
         }
         void Render()
         {
             float elapsed=arrival?arrivalTime:Time.unscaledTime-started,p=Mathf.Clamp01(elapsed/Mathf.Max(.3f,duration));
             float end=finishing?Mathf.Clamp01((Time.unscaledTime-finishedAt)/.6f):0;
-            fade=finishing?finishFrom*(1-Mathf.SmoothStep(0,1,end)):arrival?1-Mathf.SmoothStep(0,1,Mathf.Clamp01(elapsed/.55f)):Mathf.SmoothStep(0,1,Mathf.InverseLerp(.82f,.99f,p));
+            fade=visualArrival?0:finishing?finishFrom*(1-Mathf.SmoothStep(0,1,end)):arrival?1-Mathf.SmoothStep(0,1,Mathf.Clamp01(elapsed/.55f)):Mathf.SmoothStep(0,1,Mathf.InverseLerp(.82f,.99f,p));
             float strength=finishing?1-Mathf.SmoothStep(0,1,Mathf.Clamp01((Time.unscaledTime-finishedAt)/.35f)):arrival?1:Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.12f,p));
             foreach(var column in columns)if(column)column.Render(arrival?-elapsed:elapsed,arrival?1:p,strength);
             var session=Services.Session;var view=session?.ActiveCamera;
@@ -159,7 +169,13 @@ namespace DeadlyJenga.Presentation
         {
             GameEvents.Emoted-=Emoted;GameEvents.LobbyStarted-=Lobby;GameEvents.HomeStarted-=Lobby;
             RenderPipelineManager.beginCameraRendering-=ForCamera;
-            if(columnMaterial)Destroy(columnMaterial);if(columnMesh)Destroy(columnMesh);if(current==this)current=null;
+            if(columnMaterial)Destroy(columnMaterial);if(columnMesh)Destroy(columnMesh);
+            if(current==this)
+            {
+                current=null;
+                if(replayQueuedArrival&&Application.isPlaying&&queuedVisualArrival&&queuedVisualArrival.activeInHierarchy&&queuedVisualArrival==Services.Session?.Player?.gameObject)
+                    ArrivalCue(queuedVisualArrival,"PlayerArrival");
+            }
         }
     }
 }

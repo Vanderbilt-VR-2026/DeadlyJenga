@@ -6,7 +6,7 @@ namespace DeadlyJenga.Presentation
 {
     public sealed class CandySummoningColumn : MonoBehaviour
     {
-        Transform target; Vector3 origin; MeshRenderer visual; MaterialPropertyBlock properties; float seed,columnHeight;bool follow;
+        Transform target; Vector3 origin; MeshRenderer visual; MaterialPropertyBlock properties; float seed,columnHeight;bool follow,requestedVisible=true;
         public Transform Target=>target;
         public Vector3 Origin=>origin;
         public bool Visible=>visual&&visual.enabled;
@@ -19,10 +19,11 @@ namespace DeadlyJenga.Presentation
             visual.lightProbeUsage=LightProbeUsage.Off;visual.reflectionProbeUsage=ReflectionProbeUsage.Off;
             properties=new MaterialPropertyBlock();
         }
-        public void SetVisible(bool visible){if(visual)visual.enabled=visible;}
+        public void SetVisible(bool visible){requestedVisible=visible;if(visual)visual.enabled=visible&&target&&target.gameObject.activeInHierarchy;}
         public void Render(float elapsed,float progress,float strength)
         {
-            if(!target||!target.gameObject.activeInHierarchy){SetVisible(false);return;}
+            if(!target||!target.gameObject.activeInHierarchy){if(visual)visual.enabled=false;return;}
+            visual.enabled=requestedVisible;
             transform.position=follow?target.position:new Vector3(target.position.x,origin.y,target.position.z);
             properties.SetFloat("_FlowTime",elapsed);properties.SetFloat("_Progress",progress);
             properties.SetFloat("_Strength",strength);properties.SetFloat("_Lift",follow?0:Mathf.Max(0,target.position.y-origin.y));properties.SetFloat("_ColumnHeight",columnHeight);
