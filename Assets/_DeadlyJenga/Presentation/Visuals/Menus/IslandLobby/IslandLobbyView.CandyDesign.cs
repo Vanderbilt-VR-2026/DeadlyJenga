@@ -168,7 +168,7 @@ namespace DeadlyJenga.CastlePrototype
             candyHostCodeFrame.SetActive(lobby.Connected&&!lobby.Busy);
             candyJoinedNote.gameObject.SetActive(lobby.Connected&&(Details?.HostRequests.Count??0)==0);
             candyJoinEmpty.gameObject.SetActive(!lobby.Connected&&!lobby.Busy&&lobby.InvitationFrom==null&&(!lobby.ShowingNearby||!lobby.HasNearby(0)));
-            candyJoinEmpty.text=lobby.ShowingNearby?"Searching your local networkâ€¦\n"+lobby.JoinHint:"Have a room code? Enter it above.\nOr search for a nearby island.";
+            candyJoinEmpty.text=lobby.ShowingNearby?"Searching your local network\u2026\n"+lobby.JoinHint:"Have a room code? Enter it above.\nOr search for a nearby island.";
             joinHint.gameObject.SetActive(!lobby.ShowingNearby);
             candyPlayerValue.text=(Details?.Setup.population??MatchChoices.BotTarget).ToString();
             var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"Choose your arena.":CandyBrief(map.description);
@@ -219,7 +219,7 @@ namespace DeadlyJenga.CastlePrototype
             if(cache.TryGetValue(value,out var summary))return summary;
             int sentence=value.IndexOf(". ",StringComparison.Ordinal);
             summary=sentence>=0?value.Substring(0,sentence+1):value;
-            if(summary.Length>limit){int end=summary.LastIndexOf(' ',limit-4,limit-4);summary=summary.Substring(0,end>20?end:limit-4).TrimEnd()+ "â€¦";}
+            if(summary.Length>limit){int end=summary.LastIndexOf(' ',limit-4,limit-4);summary=summary.Substring(0,end>20?end:limit-4).TrimEnd()+ "\u2026";}
             cache[value]=summary;return summary;
         }
         static Color CandyForeground(Color face)
