@@ -10,9 +10,47 @@ namespace DeadlyJenga.Presentation
     internal sealed class CandyScorePortraits : MonoBehaviour
     {
         const int PortraitLayer = 31;
-        const int Size = 72;
+        const int Size = 96;
         readonly Dictionary<string, Texture2D> portraits = new Dictionary<string, Texture2D>();
         readonly List<Mesh> baked = new List<Mesh>();
+        sealed class NameFit
+        {
+            public string source, fitted;
+            public float width;
+            public Font font;
+            public int size;
+        }
+        readonly Dictionary<Text, NameFit> nameFits = new Dictionary<Text, NameFit>();
+
+        public void SetName(Text label, string value)
+        {
+            string source = CandyHudContent.Safe(value, 64);
+            float width = label.rectTransform.rect.width;
+            if (!nameFits.TryGetValue(label, out var fit) || fit.source != source || fit.width != width
+                || fit.font != label.font || fit.size != label.fontSize)
+            {
+                var settings = label.GetGenerationSettings(new Vector2(width, label.rectTransform.rect.height));
+                settings.scaleFactor = 1;
+                settings.horizontalOverflow = HorizontalWrapMode.Overflow;
+                string fitted = source;
+                if (label.cachedTextGeneratorForLayout.GetPreferredWidth(source, settings) > width)
+                {
+                    int low = 0, high = source.Length;
+                    while (low < high)
+                    {
+                        int count = (low + high + 1) / 2;
+                        string candidate = source.Substring(0, count) + "…";
+                        if (label.cachedTextGeneratorForLayout.GetPreferredWidth(candidate, settings) <= width) low = count;
+                        else high = count - 1;
+                    }
+                    if (low > 0 && char.IsHighSurrogate(source[low - 1])) low--;
+                    fitted = source.Substring(0, low) + "…";
+                }
+                fit = new NameFit { source = source, fitted = fitted, width = width, font = label.font, size = label.fontSize };
+                nameFits[label] = fit;
+            }
+            label.text = fit.fitted;
+        }
         IMatchRuntime owner;
         Camera portraitCamera;
         GameObject stage;
@@ -168,6 +206,7 @@ namespace DeadlyJenga.Presentation
         {
             foreach (var texture in portraits.Values) Destroy(texture);
             portraits.Clear();
+            nameFits.Clear();
         }
 
         void OnEnable() => GameEvents.RoundStarted += Clear;
