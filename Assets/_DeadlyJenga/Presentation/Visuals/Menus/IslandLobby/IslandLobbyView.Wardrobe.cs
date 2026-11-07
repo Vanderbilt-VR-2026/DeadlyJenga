@@ -625,7 +625,7 @@ namespace DeadlyJenga.CastlePrototype
 
         }
 
-        void OnDisable(){SetWardrobeOpen(false);wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Dispose();mirrorGeometry=null;}
+        void OnDisable(){RestoreMarinaDetailMaterials();SetWardrobeOpen(false);wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Dispose();mirrorGeometry=null;}
 
         void DisposeWardrobe()
 
