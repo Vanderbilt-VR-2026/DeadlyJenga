@@ -17,6 +17,15 @@ namespace DeadlyJenga.CastlePrototype
         Sprite marinaMaskSprite;
         string marinaDetail="";
         float nextMarinaMirror;
+        struct MarinaDetailPose
+        {
+            public RectTransform target;public Vector3 position,scale;public Quaternion rotation;
+        }
+        readonly System.Collections.Generic.List<MarinaDetailPose> marinaDetailPoses=new();
+        Vector3 marinaDetailEye,marinaDetailForward,marinaDetailUp;
+        Quaternion marinaDetailRotation;
+        float marinaDetailDistance,marinaDetailWidth;
+        bool marinaKeyboardVisible;
         partial void BuildMayhemMarina()
         {
             if(!(lobby is IWorldQuery world)||world.Radius<30)return;
@@ -49,17 +58,72 @@ namespace DeadlyJenga.CastlePrototype
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
             BuildMarinaMirror();CloseMarinaDetail();SyncMarinaBacks();
         }
+        void RememberMarinaDetailLayout()
+        {
+            if(marinaDetailPoses.Count>0)return;
+            foreach(var target in new[]{joinStation,hostStation,setupStation,piano,marinaBack})
+                if(target)marinaDetailPoses.Add(new MarinaDetailPose{target=target,position=target.localPosition,rotation=target.localRotation,scale=target.localScale});
+        }
+        void RestoreMarinaDetailLayout()
+        {
+            foreach(var pose in marinaDetailPoses)
+                if(pose.target){pose.target.localPosition=pose.position;pose.target.localRotation=pose.rotation;pose.target.localScale=pose.scale;}
+            marinaDetailPoses.Clear();marinaKeyboardVisible=false;
+        }
+        static void MarinaWorldScale(RectTransform target,float scale)
+        {
+            var parent=target.parent?target.parent.lossyScale:Vector3.one;
+            target.localScale=new Vector3(scale/Mathf.Max(.0001f,Mathf.Abs(parent.x)),scale/Mathf.Max(.0001f,Mathf.Abs(parent.y)),scale/Mathf.Max(.0001f,Mathf.Abs(parent.z)));
+        }
+        void FocusMarinaDetail(RectTransform panel)
+        {
+            var eye=Player?.ViewCamera;if(!eye||!panel||!marinaBack)return;
+            RememberMarinaDetailLayout();
+            marinaDetailEye=eye.transform.position;marinaDetailRotation=eye.transform.rotation;
+            marinaDetailForward=eye.transform.forward;marinaDetailUp=eye.transform.up;marinaDetailDistance=2.1f;
+            float width=Mathf.Max(1,panel.rect.width),height=Mathf.Max(1,panel.rect.height);
+            float backRatio=width*.72f/Mathf.Max(1,marinaBack.rect.width);
+            float backHeight=marinaBack.rect.height*backRatio,gap=24;
+            float vertical=eye.fieldOfView*Mathf.Deg2Rad*.5f;
+            float horizontal=Mathf.Atan(Mathf.Tan(vertical)*Mathf.Max(.3f,eye.aspect));
+            float halfHeight=Mathf.Min(vertical*.8f,(Player.IsVR?24:29)*Mathf.Deg2Rad);
+            float halfWidth=Mathf.Min(horizontal*.8f,42*Mathf.Deg2Rad);
+            float scale=Mathf.Min(2*marinaDetailDistance*Mathf.Tan(halfWidth)/width,
+                2*marinaDetailDistance*Mathf.Tan(halfHeight)/(height+backHeight+gap));
+            var center=marinaDetailEye+marinaDetailForward*marinaDetailDistance;
+            panel.SetPositionAndRotation(center-marinaDetailUp*((backHeight+gap)*scale*.5f),marinaDetailRotation);MarinaWorldScale(panel,scale);
+            marinaBack.SetPositionAndRotation(panel.position+marinaDetailUp*((height*.5f+gap+backHeight*.5f)*scale)-marinaDetailForward*.01f,marinaDetailRotation);
+            MarinaWorldScale(marinaBack,scale*backRatio);marinaDetailWidth=width*scale;
+            marinaKeyboardVisible=false;PlaceMarinaKeyboard();
+        }
+        void PlaceMarinaKeyboard()
+        {
+            if(!piano)return;
+            bool visible=marinaDetail=="join"&&lobby.CodeFocused;
+            piano.gameObject.SetActive(visible);
+            if(!visible){marinaKeyboardVisible=false;return;}
+            if(marinaKeyboardVisible)return;
+            marinaKeyboardVisible=true;
+            float distance=Player.IsVR?.85f:1.1f;
+            float width=Mathf.Min(1.65f,marinaDetailWidth*distance/Mathf.Max(.1f,marinaDetailDistance));
+            float down=Mathf.Min(.42f,Mathf.Max(.18f,(marinaDetailEye.y-Player.transform.position.y)*.5f));
+            var position=marinaDetailEye+marinaDetailForward*distance-marinaDetailUp*down;
+            position.y=Mathf.Max(position.y,Player.transform.position.y+.35f);
+            piano.SetPositionAndRotation(position,marinaDetailRotation*Quaternion.Euler(55,0,0));
+            MarinaWorldScale(piano,width/Mathf.Max(1,piano.rect.width));
+        }
         void OpenMarinaDetail(string page)
         {
-            if(page=="style"){if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
+            if(page=="style"){RestoreMarinaDetailLayout();if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
             marinaDetail=page;joinStation.gameObject.SetActive(page=="join");hostStation.gameObject.SetActive(page=="host");setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");piano.gameObject.SetActive(page=="join");
             if(page=="maps"||page=="modes")OpenPicker(page);
             if(page=="settings"){setupPage="settings";settingsPage=0;}
-            marinaScreen.Visible=false;marinaBack.gameObject.SetActive(true);SyncMarinaBacks();
+            marinaScreen.Visible=false;marinaBack.gameObject.SetActive(true);
+            FocusMarinaDetail(page=="join"?joinStation:page=="host"?hostStation:setupStation);SyncMarinaBacks();
         }
         void CloseMarinaDetail()
         {
-            lobby?.UnfocusCode();terminalRequireRelease=true;DeadlyJenga.Presentation.MenuAim.Consume();
+            lobby?.UnfocusCode();RestoreMarinaDetailLayout();terminalRequireRelease=true;DeadlyJenga.Presentation.MenuAim.Consume();
             marinaDetail="";joinStation.gameObject.SetActive(false);hostStation.gameObject.SetActive(false);setupStation.gameObject.SetActive(false);piano.gameObject.SetActive(false);wardrobePanel.gameObject.SetActive(false);
             if(wardrobeOpen)SetWardrobeOpen(false);if(marinaBack)marinaBack.gameObject.SetActive(false);if(marinaScreen)marinaScreen.Visible=true;SyncMarinaBacks();
         }
@@ -69,6 +133,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!marina)return;
             if(marinaDetail!=""&&Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame)CloseMarinaDetail();
             if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
+            if(marinaDetail!="")PlaceMarinaKeyboard();
             if(wardrobePanel)wardrobePanel.gameObject.SetActive(wardrobeOpen&&Player.IsVR);
             SyncMarinaBacks();
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)

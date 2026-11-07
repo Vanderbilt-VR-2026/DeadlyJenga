@@ -38,3 +38,11 @@ Use the existing single QA-operated warm editor after serial integration. Keep c
 - Settings: current path, accessible controls and modal Back/Resume return.
 
 Capture about five terminal states and five tablet states, plus a short hover/pointer/navigation motion sample. Inspect hand/weapon occlusion, Marina caption spacing, enlarged-control overlap, text size and layout after leaving specialised pages. Verify keyboard/mouse and XR-simulator pointing, then physical Quest separately. Reuse existing scenario adapters and preserve their assertions; do not manufacture a pass with forced modal opening or authority changes.
+
+## Actual Marina detail-flow follow-up
+
+Actual integrated-source `8f0602fad12148a9cb670c82e055568c9fb034e5` Game View captures exposed a production navigation discontinuity: selecting JOIN/HOST on the central Marina hid that screen and enabled a side panel outside the unchanged player's view. Map/mode details were centered but too small. The shared Back control was behind the natural arrival position. Public command assertions did not establish visual acceptance or physical pointer interaction.
+
+The bounded follow-up reuses those existing panels. On open it records their original local transforms, establishes a fixed world pose in the actual view, and fits the detail plus Back header to both camera axes. It does not move or lock the camera/player. The JOIN keyboard is shown on code focus, uses a closer lower pose and matching apparent width, and keeps its existing keys/solid case and commands; the case is placed in front of and below the head, above the player's feet. Back stays above the panel while typing. Closing restores the saved station, keyboard and Back transforms. No bot removal, new blocker API, Core, camera or rendering framework is introduced.
+
+Static Core77/Presentation180 Unity-reference compilation and diff checks pass for this follow-up. Actual same-camera runtime readability, physical/ray activation, JOIN code entry, keyboard/body/floor clearance, Back/close restoration and bot occlusion still require QA. The original six captures remain historical failed visual evidence, not a pass. Retest only the changed Marina flow on the combined successor; unchanged Session/network evidence remains separate.
