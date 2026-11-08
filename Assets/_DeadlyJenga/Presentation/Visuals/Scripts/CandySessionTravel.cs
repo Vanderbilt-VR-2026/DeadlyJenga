@@ -28,8 +28,8 @@ namespace DeadlyJenga.Presentation
             bool visualOnly=cue=="PlayerArrival";
             if(visualOnly&&current)
             {
-                if(!current.visualArrival&&current.finishing)current.queuedVisualArrival=who;
-                return;
+                if(current.arrival&&!current.finishing&&current.targets.Contains(who.transform.GetInstanceID()))return;
+                current.visualArrival=true;current.StartArrival();return;
             }
             if(!current)
             {
@@ -53,9 +53,9 @@ namespace DeadlyJenga.Presentation
         void OnEnable()
         {GameEvents.Emoted+=Emoted;GameEvents.LobbyStarted+=Lobby;GameEvents.HomeStarted+=Lobby;RenderPipelineManager.beginCameraRendering+=ForCamera;}
         void ForCamera(ScriptableRenderContext context,Camera camera)
-        {if(curtain)curtain.enabled=(Services.Session?.IsVR??false)&&camera==Services.Session.ActiveCamera;}
+        {if(curtain)curtain.enabled=false;}
         void Emoted(GameObject who,string emote)
-        {if(emote=="TravelArrived"&&!arrival)Finish(true);else if(emote=="DepartureCancelled"||emote=="SpawnArrivalSettled"&&who==Services.Session?.Player?.gameObject)Finish(false);}
+        {if(emote=="TravelArrived"&&!arrival)Finish(true);else if(emote=="DepartureCancelled"&&!arrival||emote=="SpawnArrivalSettled"&&arrival&&!visualArrival&&who==Services.Session?.Player?.gameObject)Finish(false);}
         void Lobby(GameObject who)=>Finish(false);
         void Finish(bool arrived)
         {
@@ -86,12 +86,7 @@ namespace DeadlyJenga.Presentation
             var rect=curtain.rectTransform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
             AddBots();Render();
         }
-        float ArrivalHeight()
-        {
-            var player=Services.Session?.Player;float height=player?.gameObject.GetComponent<IMovementState>()?.Height??1.8f;
-            if(player!=null&&player.IsVR&&player.ViewCamera)height=Mathf.Max(height,player.ViewCamera.transform.position.y-player.transform.position.y+.2f);
-            return Mathf.Max(.6f,height+Mathf.Clamp(height*.4f,.25f,.7f));
-        }
+        float ArrivalHeight()=>150;
         void StartArrival()
         {
             foreach(var column in columns)if(column){column.SetVisible(false);column.gameObject.SetActive(false);Destroy(column.gameObject);}columns.Clear();
@@ -144,18 +139,10 @@ namespace DeadlyJenga.Presentation
         {
             float elapsed=arrival?arrivalTime:Time.unscaledTime-started,p=Mathf.Clamp01(elapsed/Mathf.Max(.3f,duration));
             float end=finishing?Mathf.Clamp01((Time.unscaledTime-finishedAt)/.6f):0;
-            fade=visualArrival?0:finishing?finishFrom*(1-Mathf.SmoothStep(0,1,end)):arrival?1-Mathf.SmoothStep(0,1,Mathf.Clamp01(elapsed/.55f)):Mathf.SmoothStep(0,1,Mathf.InverseLerp(.82f,.99f,p));
+            fade=0;
             float strength=finishing?1-Mathf.SmoothStep(0,1,Mathf.Clamp01((Time.unscaledTime-finishedAt)/.35f)):arrival?1:Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.12f,p));
             foreach(var column in columns)if(column)column.Render(arrival?-elapsed:elapsed,arrival?1:p,strength);
-            var session=Services.Session;var view=session?.ActiveCamera;
-            curtain.enabled=session?.IsVR??false;curtain.color=new Color(.985f,.99f,1,fade);
-            if(!view)return;
-            if(!session.IsVR){canvas.renderMode=RenderMode.ScreenSpaceOverlay;return;}
-            canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;
-            float distance=Mathf.Max(.2f,view.nearClipPlane+.05f);
-            float height=2*distance*Mathf.Tan(Mathf.Clamp(view.fieldOfView,100,130)*Mathf.Deg2Rad*.5f)*1.3f;
-            var rect=canvas.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(height*Mathf.Max(view.aspect,1.3f),height);
-            rect.localScale=Vector3.one;rect.SetPositionAndRotation(view.transform.position+view.transform.forward*distance,view.transform.rotation);
+            if(curtain)curtain.enabled=false;
         }
         void OnGUI()
         {

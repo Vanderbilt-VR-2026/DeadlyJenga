@@ -6,8 +6,6 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyWeaponVisual
     {
         bool wasEmbedded;
-        static Mesh binocularRimMesh;
-        Transform binocularRim,binocularSocket,blasterRiser;
         readonly EquipmentState slungFeedState = new EquipmentState();
         readonly Transform parent;readonly Material material;Transform root,barrel;EquipmentKind kind;float barrelAngle,barrelTarget,barrelSpeed=600;bool barrelMode,barrelInitialized;
         public CandyWeaponVisual(Transform parent,Material material){this.parent=parent;this.material=material;PreparePickupModels();}
@@ -173,66 +171,15 @@ namespace DeadlyJenga.CandyPlayers
                 barrelAngle=Mathf.MoveTowards(barrelAngle,barrelTarget,Time.deltaTime*barrelSpeed);
                 barrel.localRotation=Quaternion.Euler(0,0,barrelAngle);
             }
-            PresentBinocularEyepiece();
-        }
-        void PresentBinocularEyepiece()
-        {
-            if(kind!=EquipmentKind.DualRifle&&kind!=EquipmentKind.Blaster&&kind!=EquipmentKind.SheriffHammer)return;
-            if(!binocularRim)
-            {
-                var optic=kind==EquipmentKind.DualRifle?barrel.Find("Rifle optic"):root.Find(kind==EquipmentKind.Blaster?"Blaster optic":"Revolver optic");
-                if(!optic)return;
-                binocularSocket=optic.Find("Optic lens");if(!binocularSocket)return;
-                if(!binocularRimMesh)
-                {
-                    const int sides=48;var vertices=new Vector3[(sides+1)*4];var triangles=new int[sides*4*6];
-                    for(int ring=0;ring<4;ring++)for(int i=0;i<=sides;i++)
-                    {
-                        float angle=i*Mathf.PI*2/sides,radius=ring<2?1.12f:1;
-                        int n=ring*(sides+1)+i;vertices[n]=new Vector3(Mathf.Cos(angle)*radius,Mathf.Sin(angle)*radius,ring==0||ring==3?-.5f:.5f);
-                        if(i==sides)continue;int next=((ring+1)%4)*(sides+1)+i,t=(ring*sides+i)*6;
-                        triangles[t]=n;triangles[t+1]=n+1;triangles[t+2]=next;triangles[t+3]=n+1;triangles[t+4]=next+1;triangles[t+5]=next;
-                    }
-                    binocularRimMesh=new Mesh{name="Binocular rear eyecup rim",hideFlags=HideFlags.DontSave};
-                    binocularRimMesh.vertices=vertices;binocularRimMesh.triangles=triangles;binocularRimMesh.RecalculateNormals();binocularRimMesh.RecalculateBounds();
-                }
-                MeshPart(optic,"Binocular rear eyecup",binocularRimMesh,new Color(.075f,.095f,.12f));binocularRim=optic.Find("Binocular rear eyecup");
-            }
-            float scale=Mathf.Max(.001f,Mathf.Abs(binocularRim.parent.lossyScale.z));
-            if(kind==EquipmentKind.Blaster)
-            {
-                // The rear fins and shell must stay below the whole physical opening.
-                var optic=binocularSocket.parent;
-                optic.localPosition=new Vector3(0,Mathf.Max(.38f,.268f+.030f/scale),.12f);
-                if(!blasterRiser)
-                {
-                    Part(root,"Blaster optic riser",PrimitiveType.Cube,Vector3.zero,Vector3.one,new Color(.075f,.095f,.12f));
-                    blasterRiser=root.Find("Blaster optic riser");
-                }
-                if(blasterRiser)
-                {
-                    float top=optic.localPosition.y-.028f/scale,bottom=.215f;
-                    blasterRiser.localPosition=new Vector3(0,(top+bottom)*.5f,.12f-.020f/scale);
-                    var bounds=blasterRiser.GetComponent<MeshFilter>().sharedMesh.bounds.size;
-                    blasterRiser.localScale=new Vector3(.025f/bounds.x,(top-bottom)/bounds.y,.045f/bounds.z);
-                }
-            }
-            // The exit pupil fits human eye spacing even when the avatar is small.
-            binocularRim.localPosition=Vector3.back*(.020f/scale);
-            binocularRim.localScale=new Vector3(.055f/scale,.025f/scale,.012f/scale);
-            binocularSocket.localPosition=binocularRim.localPosition;
-            binocularSocket.localScale=new Vector3(.055f/scale,.025f/scale,1/scale);
         }
         Transform Create(EquipmentKind value)
         {
-            binocularRim=binocularSocket=blasterRiser=null;
             barrel=null;barrelInitialized=false;
             var root=new GameObject("Visual - "+value).transform;root.SetParent(parent,false);
             var dark=new Color(.065f,.09f,.15f);var cyan=new Color(.1f,.95f,1);var gold=new Color(1,.65f,.12f);
             if(value==EquipmentKind.Blaster)
             {
                 BuildDetailedAlienBlaster(root);
-                root.Find("Blaster optic").localPosition=new Vector3(0,.38f,.12f);
             }
             else if (value == EquipmentKind.PoweredArmor)
             {

@@ -185,10 +185,11 @@ namespace DeadlyJenga.CastlePrototype
                     bool bothControllers=DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
                         DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false);
                     var moveController=HybridXRInput.MovementController(dominantLeft);
-                    if(sprintController!=moveController){ClearSprint();sprintController=moveController;}
-                    sprintInput=moveController!=null;
-                    sprintClick=HybridXRInput.MoveClickPressed(moveController);
-                    sprintHeld=HybridXRInput.MoveClickHeld(moveController);
+                    var runController=HybridXRInput.ControllerWithStick(!dominantLeft);
+                    if(sprintController!=runController){ClearSprint();sprintController=runController;}
+                    sprintInput=runController!=null;
+                    sprintClick=HybridXRInput.MoveClickPressed(runController);
+                    sprintHeld=HybridXRInput.MoveClickHeld(runController);
                     walking=FilterVRMove(HybridXRInput.Stick(moveController));
                     var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)

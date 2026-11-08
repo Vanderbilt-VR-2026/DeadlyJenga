@@ -21,6 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         Image tabletFrame;
         Mesh tabletCaseMesh;
         Material tabletCaseMaterial;
+        LineRenderer tabletStick,tabletHandle;
 
         public void Show(bool show,Camera camera)
         {
@@ -101,6 +102,41 @@ namespace DeadlyJenga.CastlePrototype
                 tabletFrame.transform.SetAsFirstSibling();
                 BuildTabletCase();
             }
+            PresentTabletStick(camera);
+        }
+
+        void PresentTabletStick(Camera camera)
+        {
+            bool held=ControllerPose(camera,!DominantLeft,out var grip,out _);
+            if(session.Player is DeadlyJenga.Core.IModeActor actor&&(held||session.Player.HasHandTracking))
+            {
+                grip=actor.HandPose(!DominantLeft);
+                held=(grip.position-camera.transform.position).sqrMagnitude<3;
+            }
+            if(!tabletStick&&tabletCaseMaterial)
+            {
+                tabletStick=StickLine("Tablet selfie stick",.014f);
+                tabletHandle=StickLine("Tablet selfie stick grip",.035f);
+            }
+            if(!tabletStick)return;
+            tabletStick.enabled=tabletHandle.enabled=held;
+            if(!held)return;
+            var mount=transform.TransformPoint(new Vector3(0,-490,28));
+            var direction=mount-grip.position;
+            if(direction.sqrMagnitude<.0001f)return;
+            direction.Normalize();
+            tabletStick.SetPosition(0,grip.position);tabletStick.SetPosition(1,mount);
+            tabletHandle.SetPosition(0,grip.position-direction*.055f);
+            tabletHandle.SetPosition(1,grip.position+direction*.055f);
+        }
+        LineRenderer StickLine(string name,float width)
+        {
+            var go=new GameObject(name);go.transform.SetParent(transform,false);go.layer=gameObject.layer;
+            var line=go.AddComponent<LineRenderer>();line.useWorldSpace=true;line.positionCount=2;
+            line.startWidth=line.endWidth=width;line.numCapVertices=6;line.numCornerVertices=4;
+            line.sharedMaterial=tabletCaseMaterial;
+            line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;line.receiveShadows=false;
+            return line;
         }
 
         void BuildTabletCase()
