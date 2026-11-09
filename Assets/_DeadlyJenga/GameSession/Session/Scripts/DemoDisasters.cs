@@ -79,18 +79,22 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static bool Execute(CastlePlaySession session, string id,float? speed=null,float? force=null,float[] values=null)
-            => SessionDevelopmentPolicy.CanExecuteLocal(session)&&ExecuteInternal(session,id,speed,force,values,true);
+            => SessionDevelopmentPolicy.CanExecuteLocal(session)&&ExecuteInternal(session,id,speed,force,values,out _);
 
         internal static bool ExecuteDevelopmentAuthorized(CastlePlaySession session,string id,float? speed=null,float? force=null,float[] values=null)
-            => SessionDevelopmentPolicy.CanExecuteServer(session)&&ExecuteInternal(session,id,speed,force,values,true);
+            => SessionDevelopmentPolicy.CanExecuteServer(session)&&ExecuteInternal(session,id,speed,force,values,out _);
 
         public static bool ExecuteForMode(CastlePlaySession session,string id,float[] values=null)
-            => ExecuteInternal(session,id,null,null,values,true);
+            => ExecuteForMode(session,id,values,out _);
 
-        static bool ExecuteInternal(CastlePlaySession session,string id,float? speed,float? force,float[] values,bool modeOwned)
+        internal static bool ExecuteForMode(CastlePlaySession session,string id,float[] values,out IHazard started)
+            => ExecuteInternal(session,id,null,null,values,out started);
+
+        static bool ExecuteInternal(CastlePlaySession session,string id,float? speed,float? force,float[] values,out IHazard started)
         {
+            started=null;
             if(values!=null&&values.Length==0)values=null;
-            if (!(modeOwned?session&&session.HasWorldAuthority:CanTrigger(session)) || string.IsNullOrEmpty(id)) return false;
+            if (!session||!session.HasWorldAuthority || string.IsNullOrEmpty(id)) return false;
             if(speed.HasValue&&(float.IsNaN(speed.Value)||float.IsInfinity(speed.Value))||force.HasValue&&(float.IsNaN(force.Value)||float.IsInfinity(force.Value)))return false;
             var network = session.GetComponent<CastleFusionSession>();
             if (network && !network.IsHost) return false;
@@ -113,7 +117,7 @@ namespace DeadlyJenga.CastlePrototype
             if(values!=null)instance.GetComponent<IDemoHazard>()?.Configure(values);
             hazard.Begin();
             if (!hazard.Active) UnityEngine.Object.Destroy(instance);
-            else instance.AddComponent<DemoDisasterLifetime>();
+            else{started=hazard;instance.AddComponent<DemoDisasterLifetime>();}
             return true;
         }
 

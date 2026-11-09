@@ -9,7 +9,17 @@ namespace DeadlyJenga.Modes
     {
         readonly ModeDisasterClock disasters=new ModeDisasterClock();
         readonly System.Random disasterRandom=new System.Random();
+        const float SurvivalDisasterDuration=60;
+        readonly List<(IHazard hazard,float end)> survivalDisasters=new List<(IHazard,float)>();
         string lastDisaster="";
+
+        static bool SupportsSurvivalDuration(IDemoHazard hazard)
+        {
+            if(hazard==null)return false;
+            foreach(var parameter in hazard.Parameters)
+                if(parameter.id=="duration")return parameter.min<=SurvivalDisasterDuration&&parameter.max>=SurvivalDisasterDuration;
+            return false;
+        }
         string ChooseDisaster()
         {
             var choices=new List<GameObject>();
@@ -17,7 +27,9 @@ namespace DeadlyJenga.Modes
             {
                 if(!prefab||prefab.name==lastDisaster)continue;
                 string key=prefab.name.ToLowerInvariant();
-                if(prefab.GetComponent<IDemoHazard>()?.Toggle==true||key.Contains("planet")||key.Contains("vampire"))continue;
+                var options=prefab.GetComponent<IDemoHazard>();
+                if(options?.Toggle==true||key.Contains("planet")||key.Contains("vampire"))continue;
+                if(Rules.mode==GameModeKind.Survival&&!SupportsSurvivalDuration(options))continue;
                 bool team=ModeSimulation.TeamMode(Rules.mode);
                 if(team&&(key.Contains("fire")||key.Contains("meteor")||key.Contains("acid")||key.Contains("antigravity"))&&simulation.Elapsed<180)continue;
                 if(!(prefab.GetComponent<IHazard>() is IMapHazard definition)||!definition.TryValidate(Services.World,out _))continue;
@@ -30,12 +42,13 @@ namespace DeadlyJenga.Modes
         bool LaunchScheduled(string id)
         {
             GameObject prefab=null;foreach(var candidate in DemoDisasters.Prefabs)if(candidate&&candidate.name==id){prefab=candidate;break;}
-            if(!prefab)return false;
+            if(!prefab||Rules.mode==GameModeKind.Survival&&!SupportsSurvivalDuration(prefab.GetComponent<IDemoHazard>()))return false;
             var parameters=DemoDisasters.Parameters(prefab);var values=new float[parameters.Count];
             for(int i=0;i<values.Length;i++)
             {
                 values[i]=parameters[i].initial;
                 if(parameters[i].id=="warning")values[i]=parameters[i].min;
+                if(Rules.mode==GameModeKind.Survival&&parameters[i].id=="duration")values[i]=SurvivalDisasterDuration;
                 if(ModeSimulation.TeamMode(Rules.mode))
                 {
                     string parameter=parameters[i].id.ToLowerInvariant();
@@ -43,7 +56,13 @@ namespace DeadlyJenga.Modes
                     if(parameter=="duration")values[i]=parameters[i].Clamp(Mathf.Min(values[i],18));
                 }
             }
-            bool started=DemoDisasters.ExecuteForMode(session,id,values);if(started)lastDisaster=id;
+            bool started=DemoDisasters.ExecuteForMode(session,id,values,out var hazard);
+            if(Rules.mode==GameModeKind.Survival)
+            {
+                if(hazard==null)return false;
+                survivalDisasters.Add((hazard,simulation.Elapsed+SurvivalDisasterDuration));
+            }
+            if(started)lastDisaster=id;
             return started;
         }
         int ActiveDisasters()
@@ -51,6 +70,18 @@ namespace DeadlyJenga.Modes
         void TickDisasters()
         {
             if(!Authority||simulation.Phase!=RoundPhase.Playing||Rules.mode==GameModeKind.Demo)return;
+            // Retire the oldest hazard before checking the overlap cap for the next activation.
+            for(int i=survivalDisasters.Count-1;i>=0;i--)
+            {
+                var scheduled=survivalDisasters[i];
+                if(!(scheduled.hazard is Component owner)||!owner||!scheduled.hazard.Active)
+                    survivalDisasters.RemoveAt(i);
+                else if(simulation.Elapsed>=scheduled.end)
+                {
+                    scheduled.hazard.End();
+                    survivalDisasters.RemoveAt(i);
+                }
+            }
             string before=disasters.Pending;
             disasters.Tick(Rules,simulation.Elapsed,ActiveDisasters(),ChooseDisaster,LaunchScheduled);
             if(before!=disasters.Pending&&disasters.Pending.Length>0)GameEvents.RaiseEmoted(gameObject,"DisasterWarning");

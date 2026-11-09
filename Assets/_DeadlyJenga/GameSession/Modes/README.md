@@ -23,6 +23,8 @@ Block Control uses standing support, not arbitrary touching. The majority team's
 
 The selected metric labels both the live top ten and final results. Only the leading ten receive live rank numbers; a local player outside that group gets a highlighted additional row. Final reports rank the full roster. Infection has separate survival and infected-kill standings.
 
+Disaster Survival's timed rotation starts at 20 seconds, then activates a hazard every 30 seconds by default. The warning precedes activation and each scheduled hazard has a 60-second window. Map-dependent and one-shot hazards use their existing manual controls.
+
 ## Destruction protocol
 
 ### Murder Mystery
