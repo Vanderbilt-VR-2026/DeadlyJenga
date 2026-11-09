@@ -55,6 +55,7 @@ namespace DeadlyJenga.CastleSocial
         public void AudioPlaying(string id,double until){if(bots.ContainsKey(id))active[id]=until;}
         public void AudioFinished(string id){active.Remove(id);}
         public Func<string,SocialEvent,double> Perception;
+        internal bool UseBundledVoiceLines { get; set; }
         public SocialDirector(SocialConfiguration c,IEnumerable<SocialIdentity> population)
         {
             c.Validate();config=c;random=new Random(c.seed^0x18217);
@@ -128,7 +129,7 @@ namespace DeadlyJenga.CastleSocial
             foreach(var bid in bids.OrderByDescending(x=>x.Value).Take(slots))
             {
                 if(pending.Count>=config.maxSpeechQueue){Dropped++;break;}
-                var b=bid.Key;string text=SocialText.Reaction(e,b,config,random);
+                var b=bid.Key;string text=SocialText.Reaction(e,b,config,random,!UseBundledVoiceLines);
                 if(!used.Add(text))continue;
                 if(!signatures.TryGetValue(b.identity.id,out var recent))signatures[b.identity.id]=recent=new HashSet<string>();
                 if(recent.Contains(text))continue;if(recent.Count>16)recent.Clear();recent.Add(text);
@@ -153,7 +154,8 @@ namespace DeadlyJenga.CastleSocial
             foreach(var word in new[]{"system prompt","ignore previous","api_key","kill yourself","racial slur","[system]","password"})if(lower.Contains(word))return "Let's focus on the tower.";
             if(!profanity)foreach(var word in new[]{"fuck","shit","bitch"})if(lower.Contains(word))return "Oh, come on!";return text;
         }
-        public static string Reaction(SocialEvent e,SocialState b,SocialConfiguration c,Random r)
+        public static string Reaction(SocialEvent e,SocialState b,SocialConfiguration c,Random r)=>Reaction(e,b,c,r,true);
+        internal static string Reaction(SocialEvent e,SocialState b,SocialConfiguration c,Random r,bool decorate)
         {
             string Pick(params string[] x)=>x[r.Next(x.Length)];
             string opener=c.slang>r.NextDouble()?Pick("Okay, ","Bro, ","Wait, ","Honestly, ","Yo, "):"";
@@ -179,6 +181,7 @@ namespace DeadlyJenga.CastleSocial
                 default:line=Pick("I'm checking the next tower.","anyone taking the high route?","this ledge is suspiciously comfortable.","I give this floor about twelve seconds.","we should probably keep moving.","does anyone else hear that hand?");break;
             }
             if((e.kind==SocialEventKind.Collapse||e.kind==SocialEventKind.NearMiss)&&r.NextDouble()<c.screaming*b.emotion.fear)line=Pick("WAIT WAIT WAIT!","NO, NOT THAT BLOCK!","MOVE MOVE MOVE!");
+            if(!decorate)return Safe(line,c.allowProfanity);
             if(c.verbosity<.2f)opener="";
             if(c.verbosity>.7f&&r.NextDouble()<.3)line+=" "+Pick("I'm watching the next support.","Give me a second to get across.","We still have a route up.");
             return Safe(opener+line,c.allowProfanity);

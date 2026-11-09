@@ -15,33 +15,43 @@ namespace DeadlyJenga.CastleSocial.Editor
     {
         const string Key="OnDeviceConversationChecks";
         static readonly List<string> lines=new List<string>();
-        static string Report=>ProjectPath.Report("OnDeviceUnity.txt");
+        static bool Bundled=>SessionState.GetBool(Key+"Bundled",false);
+        static string Report=>ProjectPath.Report(Bundled?"BundledBotVoicesUnity.txt":"OnDeviceUnity.txt");
         static OnDeviceConversationChecks()
         {
             EditorApplication.update+=()=>
             {
-                string request=Path.Combine("Logs","Validation","OnDevice.request");
+                string bundledRequest=Path.Combine("Logs","Validation","BundledVoices.request");
+                bool bundled=File.Exists(bundledRequest);
+                string request=bundled?bundledRequest:Path.Combine("Logs","Validation","OnDevice.request");
                 if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
-                try{File.Delete(request);}catch(IOException){return;}Run();
+                try{File.Delete(request);}catch(IOException){return;}
+                if(bundled){AssetDatabase.Refresh();RunBundledBatch();}
+                else Run();
             };
             EditorApplication.playModeStateChanged+=state=>
             {
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode)EditorApplication.delayCall+=()=>
-                {var session=UnityEngine.Object.FindFirstObjectByType<CastlePlaySession>();session.StartCoroutine(Guard(Check(session)));};
+                {var session=UnityEngine.Object.FindFirstObjectByType<CastlePlaySession>();session.StartCoroutine(Guard(Bundled?CheckBundled(session):Check(session)));};
                 if(state==PlayModeStateChange.EnteredEditMode)
-                {SessionState.SetBool(Key,false);MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;string previous=SessionState.GetString(Key+"Scene","");if(!string.IsNullOrEmpty(previous))EditorSceneManager.OpenScene(previous);if(SessionState.GetBool(Key+"Batch",false))EditorApplication.Exit(lines.Any(line=>line.StartsWith("FAIL "))?1:0);}
+                {SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Bundled",false);MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;string previous=SessionState.GetString(Key+"Scene","");if(!string.IsNullOrEmpty(previous))EditorSceneManager.OpenScene(previous);if(SessionState.GetBool(Key+"Batch",false))EditorApplication.Exit(lines.Any(line=>line.StartsWith("FAIL "))?1:0);}
             };
         }
         [MenuItem("Tools/Castle Social/Run On-device Conversation Checks")]
         public static void Run()
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode||UnityEngine.SceneManagement.SceneManager.GetActiveScene().isDirty){Debug.LogError("Save scene edits and stop Play Mode before conversation checks.");return;}
-            lines.Clear();File.WriteAllText(Report,"Real native conversation integration checks (desktop, not Quest)\n");
+            lines.Clear();File.WriteAllText(Report,Bundled?"Bundled bot speech checks (desktop Unity)\n":"Real native conversation integration checks (desktop, not Quest)\n");
             SessionState.SetString(Key+"Scene",UnityEngine.SceneManagement.SceneManager.GetActiveScene().path);SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
         public static void RunBatch(){SessionState.SetBool(Key+"Batch",true);Run();}
+        public static void RunBundledBatch()
+        {
+            SessionState.SetBool(Key+"Bundled",true);
+            RunBatch();
+        }
         static void Assert(bool value,string message)
         {lines.Add((value?"PASS ":"FAIL ")+message);File.WriteAllLines(Report,lines);if(!value)throw new Exception(message);}
         static IEnumerator Until(Func<bool> predicate,float seconds,string message)
@@ -113,6 +123,43 @@ namespace DeadlyJenga.CastleSocial.Editor
             yield return Until(()=>world.OnDevice.Ready&&!world.OnDevice.Busy,40,"Toggle during pending inference safely recovers its worker budget");world.OnDevice.SetEnabled(false);
             lines.Add("MEASURED desktop last text-to-audio latency: "+world.OnDevice.LastReplySeconds.ToString("F2")+" s; contextual replies: "+world.OnDevice.GeneratedReplies+"; recognized turns: "+world.OnDevice.RecognizedTurns);
             lines.Add("NOT VERIFIED: Quest microphone/acoustic echo, thermal load, real Fusion peers, headset frame budget.");File.WriteAllLines(Report,lines);EditorApplication.ExitPlaymode();
+        }
+
+        static IEnumerator CheckBundled(CastlePlaySession session)
+        {
+            yield return null;
+            var world=session.GetComponent<SocialWorld>();
+            Assert(world&&world.Settings.mode==SocialOperatingMode.BundledVoices,"Game selects bundled bot voices by default");
+            Assert(world.Speech.Status=="Bundled bot voices ready","Unity imported and validated the voice bank");
+            for(int attempt=0;attempt<2&&session.SurvivorBots.Count<2;attempt++)
+                session.SurvivorBots.SpawnOne();
+            yield return Until(()=>world.Agents.Count>=2,5,"Two actual survivor bots have social identities");
+            world.Config.spontaneous=0;
+            world.Config.respondBot=0;
+            world.Config.typicalResponses=1;
+            var bots=world.Agents.Take(2).ToArray();
+            var samples=new float[256];
+            foreach(var turn in new[]{(bots[0],SocialEventKind.NearMiss),(bots[1],SocialEventKind.NearMiss),(bots[0],SocialEventKind.Success)})
+            {
+                var state=turn.Item1.State;
+                string id=state.identity.id;
+                world.Director.Cancel(id);
+                world.Playback.Remove(id);
+                state.nextSpeech=0;
+                world.Publish(turn.Item2,world.LocalParticipantId,1,recipient:id);
+                yield return Until(()=>
+                {
+                    var child=world.transform.Find("Voice · "+id);
+                    var source=child?child.GetComponent<AudioSource>():null;
+                    if(!source||!source.isPlaying)return false;
+                    source.GetOutputData(samples,0);
+                    return samples.Any(sample=>Mathf.Abs(sample)>.001f);
+                },5,"Scheduled reaction reaches non-silent Unity AudioSource output for "+id);
+                Assert(world.Caption.StartsWith(state.identity.name+" [AI]:",StringComparison.Ordinal),"Caption matches the speaking bot");
+                yield return Until(()=>world.Director.Speaking==0,8,"Bundled voice releases its speech slot");
+            }
+            Assert(world.Speech.ActiveRequests==0&&!world.OnDevice.Requested,"Bundled dialogue plays without a server or on-device language model");
+            EditorApplication.ExitPlaymode();
         }
     }
 }
