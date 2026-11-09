@@ -53,7 +53,7 @@ namespace DeadlyJenga.CastlePrototype
             go.GetComponent<Canvas>().overrideSorting = true;
             go.GetComponent<Canvas>().sortingOrder = 100;
             var back = Add(marinaBack, "marina-close", () => "BACK TO MARINA", 0,
-                () => SetMarinaDetail(setupStation, false), () => true, 0, 1000, 125,
+                CloseSetupPage, () => true, 0, 1000, 125,
                 () => setupStation.gameObject.activeSelf);
             back.button.image.color = CandyInk;
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
@@ -161,7 +161,7 @@ namespace DeadlyJenga.CastlePrototype
             if (!wardrobeOpen && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {
                 if (lobby.CodeFocused) CloseRoomCodeKeyboard();
-                else if (setupStation.gameObject.activeSelf) SetMarinaDetail(setupStation, false);
+                else if (setupStation.gameObject.activeSelf) CloseSetupPage();
                 else if (joinStation.gameObject.activeSelf) SetMarinaDetail(joinStation, false);
                 else if (hostStation.gameObject.activeSelf) SetMarinaDetail(hostStation, false);
             }

@@ -58,9 +58,15 @@ namespace DeadlyJenga.CastlePrototype
             BuildModeCards();
             Add(setupStation,"picker-previous",()=>"< PREVIOUS",-390,()=>pickerOffset=Mathf.Max(0,pickerOffset-PageSize),()=>pickerOffset>0,-215,380,60,()=>setupPage=="maps"||setupPage=="modes");
             Add(setupStation,"picker-next",()=>"NEXT >",-390,()=>pickerOffset+=PageSize,()=>PickerPages>pickerOffset/PageSize+1,215,380,60,()=>setupPage=="maps"||setupPage=="modes");
-            Add(setupStation,"setup-back",()=>"BACK",-470,()=>setupPage="main",()=>true,0,380,60,()=>setupPage!="main");
+            Add(setupStation,"setup-back",()=>"BACK",-470,CloseSetupPage,()=>true,0,380,60,()=>setupPage!="main");
             BuildSetupSettings();
         }
+        void CloseSetupPage()
+        {
+            setupPage = "main";
+            if (marina) SetMarinaDetail(setupStation, false);
+        }
+
         void CycleSetup(bool map,int step)
         {
             if(Details==null||!lobby.CanConfigure)return;
@@ -82,7 +88,7 @@ namespace DeadlyJenga.CastlePrototype
             var row=PickerRow(slot);if(row==null)return;
             if(row.map==null){lobbyMapPicker.Toggle(row);pickerOffset=lobbyMapPicker.HeaderIndex/PageSize*PageSize;return;}
             if(!lobby.CanConfigure||!row.map.available)return;
-            if(lobby.SelectMap(row.map.id))setupPage="main";
+            if(lobby.SelectMap(row.map.id))CloseSetupPage();
         }
         static bool SurvivalMode(string id)=>id=="survival"||id=="infection"||id=="mystery"||id=="demo";
         LobbyOption[] ModeColumn(bool survival)=>survival?survivalModes:pvpModes;
@@ -104,7 +110,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PickModeCard(int slot)
         {
-            var option=ModeCardOption(slot);if(lobby.CanConfigure&&option!=null&&option.available&&lobby.SelectMode(option.id))OpenPicker("maps");
+            var option = ModeCardOption(slot);
+            if (!lobby.CanConfigure || option == null || !option.available || !lobby.SelectMode(option.id)) return;
+            if (marina) CloseSetupPage();
+            else OpenPicker("maps");
         }
         RawImage Picture(RectTransform parent,string name,float x,float y,float width,float height)
         {

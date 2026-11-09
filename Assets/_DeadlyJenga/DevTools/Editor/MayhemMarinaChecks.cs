@@ -238,6 +238,16 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(view.InvokeChoice(ArcadeBack(id)),id+" returns to its arcade face");
             }
             yield return null;
+            Check(screen.Invoke("marina-modes"),"Mode picker opens from the starting layout");
+            yield return null;
+            Check(Enumerable.Range(0,8).Any(slot=>view.InvokeChoice("mode-card-"+slot)),
+                "A selectable mode can be committed");
+            Check(screen.Visible,"Selecting a mode restores the original map and mode cards");
+            yield return null;
+            Check(screen.Invoke("marina-maps"),"Map picker opens only when requested");
+            yield return null;
+            Check(view.InvokeChoice("setup-back")&&screen.Visible,"Picker Back restores the same starting layout");
+            yield return null;
             Check(screen.Invoke("marina-style")&&view.WardrobeOpen,"Style opens the wardrobe");
             var appearance=lobby.Player.gameObject.GetComponent<IAvatarAppearance>();
             var original=appearance.Appearance;
