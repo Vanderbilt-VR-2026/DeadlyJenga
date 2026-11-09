@@ -72,12 +72,10 @@ namespace DeadlyJenga.CastleSocial
             {
                 if(!Requested||version!=lifecycle)return;
                 if(failure!=null){busy=false;FailLoad("On-device conversation unavailable: "+SocialText.Clean(failure,180));return;}
-                VoiceCast=string.IsNullOrEmpty(cast)?"kitten-nano-0.2":cast;
+                VoiceCast=cast;
                 try
                 {
-                    fastBanterVoices=string.IsNullOrEmpty(cast)
-                        ? BundledBotVoiceBank.Load("FastBanterVoices")
-                        : BundledBotVoiceBank.LoadFile(Path.Combine(pack,"voice","fast-banter.bytes"));
+                    fastBanterVoices=BundledBotVoiceBank.Load("FastBanterVoices");
                 }
                 catch(Exception exception) when(exception is IOException||exception is InvalidDataException)
                 { fastBanterVoices=null; }

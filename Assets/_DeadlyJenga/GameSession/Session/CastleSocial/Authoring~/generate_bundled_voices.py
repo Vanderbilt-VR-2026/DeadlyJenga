@@ -1,9 +1,10 @@
-"""Bake the game's authored reactions into eight fixed KittenTTS voices."""
+"""Bake the game's authored reactions into eight fixed Pocket TTS voices."""
 import argparse
 import json
 from pathlib import Path
 import re
 import struct
+import wave
 
 import numpy as np
 import sherpa_onnx
@@ -22,7 +23,7 @@ def authored_lines(source):
     lines = set()
     for literal in re.findall(r'"(?:[^"\\]|\\.)*"', reactions + backchannels):
         line = json.loads(literal)
-        if line.endswith((".", "!", "?")):
+        if line.endswith((".", "!", "?")) and any(char.isalpha() for char in line):
             lines.add(line)
     return sorted(lines)
 
@@ -43,26 +44,68 @@ def pcm(audio):
     return np.round(samples * gain * 32767).astype("<i2").tobytes()
 
 
+def open_pocket(model, threads):
+    pocket = sherpa_onnx.OfflineTtsPocketModelConfig(
+        lm_flow=str(model / "lm_flow.int8.onnx"),
+        lm_main=str(model / "lm_main.int8.onnx"),
+        encoder=str(model / "encoder.onnx"),
+        decoder=str(model / "decoder.int8.onnx"),
+        text_conditioner=str(model / "text_conditioner.onnx"),
+        vocab_json=str(model / "vocab.json"),
+        token_scores_json=str(model / "token_scores.json"),
+        voice_embedding_cache_capacity=VOICE_COUNT,
+    )
+    config = sherpa_onnx.OfflineTtsConfig(
+        model=sherpa_onnx.OfflineTtsModelConfig(pocket=pocket, num_threads=threads, provider="cpu"),
+        max_num_sentences=1, silence_scale=.15)
+    return sherpa_onnx.OfflineTts(config)
+
+
+def voice_settings(path):
+    with wave.open(str(path), "rb") as voice:
+        if voice.getnchannels() != 1 or voice.getsampwidth() != 2:
+            raise ValueError(f"Expected a mono PCM16 reference: {path}")
+        config = sherpa_onnx.GenerationConfig()
+        config.reference_audio = (np.frombuffer(voice.readframes(voice.getnframes()), dtype="<i2")
+                                  .astype(np.float32) / 32768).tolist()
+        config.reference_sample_rate = voice.getframerate()
+    config.num_steps = 2
+    config.speed = 1.0
+    config.silence_scale = .15
+    config.extra = {"temperature": "0.3", "max_frames": "120", "chunk_size": "5"}
+    return config
+
+
+def render(tts, text, voice, seed_offset=0):
+    repeated = re.fullmatch(r"(\w+)(?:,\s+\1)+!", text, re.IGNORECASE)
+    if repeated:
+        word = repeated.group(1) + "!"
+        return (b"\0" * (RATE // 10)).join(
+            render(tts, word, voice, index) for index in range(text.count(",") + 1))
+
+    # Some samples run past the intended line. Keep a complete, bounded take.
+    spoken = text[0].upper() + text[1:]
+    for seed, end, reference_seconds in ((42, "", "10"), (101, "!", "10"), (202, ".", "5"), (303, "!", "5")):
+        voice.extra = dict(voice.extra, seed=str(seed + seed_offset), max_reference_audio_len=reference_seconds)
+        candidate = spoken.rstrip(".?!") + end if end else spoken
+        try:
+            return pcm(tts.generate(candidate, config=voice))
+        except ValueError:
+            if seed == 303:
+                raise ValueError(f"No bounded Pocket take for {text!r}") from None
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model-dir", type=Path, required=True)
-    parser.add_argument("--model-file", default="model.fp16.onnx")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--staging", type=Path, required=True,
                         help="Temporary file outside Unity's Assets directory")
     parser.add_argument("--line-list", type=Path, help="Optional UTF-8 inventory with one exact line per row")
     parser.add_argument("--threads", type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
-    model = args.model_dir
-    kitten = sherpa_onnx.OfflineTtsKittenModelConfig(
-        model=str(model / args.model_file), voices=str(model / "voices.bin"),
-        tokens=str(model / "tokens.txt"), data_dir=str(model / "espeak-ng-data"))
-    config = sherpa_onnx.OfflineTtsConfig(
-        model=sherpa_onnx.OfflineTtsModelConfig(kitten=kitten, num_threads=args.threads, provider="cpu"),
-        max_num_sentences=1, silence_scale=.15)
-    tts = sherpa_onnx.OfflineTts(config)
-    if tts.num_speakers < VOICE_COUNT:
-        raise ValueError("The Kitten voice pack does not contain eight speakers")
+    tts = open_pocket(args.model_dir, args.threads)
+    cast = [voice_settings(args.model_dir / f"voice-{i}.wav") for i in range(VOICE_COUNT)]
     if args.line_list:
         lines = [line.strip() for line in args.line_list.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
         if not 1 <= len(lines) <= 128 or len(set(lines)) != len(lines) or any(len(line.encode()) > 960 for line in lines):
@@ -110,8 +153,8 @@ def main():
             encoded = text.encode("utf-8")
             out.write(struct.pack("<H", len(encoded)))
             out.write(encoded)
-            for voice in range(VOICE_COUNT):
-                speech = pcm(tts.generate(text[0].upper() + text[1:], sid=voice, speed=1.0))
+            for voice in cast:
+                speech = render(tts, text, voice)
                 out.write(struct.pack("<I", len(speech) // 2))
                 out.write(speech)
             if index % 10 == 0:

@@ -19,11 +19,6 @@ namespace DeadlyJenga.CastleSocial
         {
 #if UNITY_EDITOR
             string local=Path.GetFullPath(Path.Combine(Application.dataPath,"..",settings.editorPackFolder));
-            if(settings.editorPackFolder==OnDeviceConversationSettings.DefaultEditorPack)
-            {
-                string preferred=Path.Combine(Path.GetDirectoryName(local),"realistic");
-                if(File.Exists(Path.Combine(preferred,"manifest.json")))local=preferred;
-            }
             if(!File.Exists(Path.Combine(local,"manifest.json"))){done(null,null,"Model pack missing. Run Tools/OnDeviceConversation/prepare.py once before using this demo.");yield break;}
             progress("Checking local conversation models");
             string key=local+File.GetLastWriteTimeUtc(Path.Combine(local,"manifest.json")).Ticks;
@@ -33,7 +28,7 @@ namespace DeadlyJenga.CastleSocial
                 try
                 {
                     var manifest=JsonUtility.FromJson<Manifest>(File.ReadAllText(Path.Combine(local,"manifest.json")));
-                    if(manifest.nativeApi!=1||!ValidCast(manifest)||
+                    if(manifest.nativeApi!=2||manifest.version!="dj-conversation-2"||manifest.voiceCast!="pocket-tts-int8"||
                         !manifest.files.All(entry=>Matches(Path.Combine(local,entry.path),entry)))return null;
                     return manifest.voiceCast??"";
                 }
@@ -52,7 +47,7 @@ namespace DeadlyJenga.CastleSocial
                 json=request.downloadHandler.text;
             }
             Manifest manifest=null;string failure=null;
-            try{manifest=JsonUtility.FromJson<Manifest>(json);if(manifest.nativeApi!=1||manifest.version!="dj-conversation-1"||manifest.files==null||manifest.files.Length>2000||!ValidCast(manifest))throw new IOException("Unsupported conversation pack");}
+            try{manifest=JsonUtility.FromJson<Manifest>(json);if(manifest.nativeApi!=2||manifest.version!="dj-conversation-2"||manifest.files==null||manifest.files.Length>2000||manifest.voiceCast!="pocket-tts-int8")throw new IOException("Unsupported conversation pack");}
             catch(Exception e){failure=e.Message;}
             if(failure!=null){done(null,null,failure);yield break;}
             string root=Path.Combine(Application.persistentDataPath,"Conversation",manifest.version);Directory.CreateDirectory(root);
@@ -80,13 +75,6 @@ namespace DeadlyJenga.CastleSocial
             done(root,manifest.voiceCast??"",null);
 #endif
         }
-        static bool ValidCast(Manifest manifest)
-        {
-            if(string.IsNullOrEmpty(manifest.voiceCast))return true;
-            return manifest.voiceCast=="kitten-mini-0.8"&&
-                manifest.files.Any(entry=>entry.path=="voice/fast-banter.bytes");
-        }
-
         static bool Matches(string path,Entry entry)
         {
             try{if(!File.Exists(path)||new FileInfo(path).Length!=entry.bytes)return false;using(var input=File.OpenRead(path))using(var hash=SHA256.Create())return BitConverter.ToString(hash.ComputeHash(input)).Replace("-","").Equals(entry.sha256,StringComparison.OrdinalIgnoreCase);}

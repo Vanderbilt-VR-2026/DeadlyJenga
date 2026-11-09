@@ -19,7 +19,7 @@ The normal human speech interruption, mute and round invalidation apply.
 
 By default, the game composes brief match banter from the observed facts.
 Direct player speech and the optional improviseGameReactions setting use
-local model generation. The selected line goes to Kitten speech synthesis
+local model generation. The selected line goes to local speech synthesis
 using the same speaker ordinal as bundled playback. For collapses, the
 dialogue check filters copied lines, unsupported sight claims and common
 unsupported causal claims. A failed line is replaced with a composition

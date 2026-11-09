@@ -1,6 +1,7 @@
 #include "llama.h"
 #include "sherpa-c-api.h"
 #include <algorithm>
+#include <array>
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -17,6 +18,7 @@
 #endif
 using Clock=std::chrono::steady_clock;
 static thread_local std::string error;
+using Wave=std::unique_ptr<const SherpaOnnxWave,decltype(&SherpaOnnxFreeWave)>;
 struct Conversation {
     llama_model *model=nullptr;llama_context *context=nullptr;
     const SherpaOnnxOnlineRecognizer *recognizer=nullptr;
@@ -24,15 +26,17 @@ struct Conversation {
     std::map<int,const SherpaOnnxOnlineStream*> streams;
     std::atomic<bool> cancelled{false};Clock::time_point deadline;
     std::vector<float> audio;
+    std::vector<Wave> voices;
+    static constexpr int VoiceCount=8;
     ~Conversation(){for(auto &s:streams)SherpaOnnxDestroyOnlineStream(s.second);if(tts)SherpaOnnxDestroyOfflineTts(tts);if(recognizer)SherpaOnnxDestroyOnlineRecognizer(recognizer);if(context)llama_free(context);if(model)llama_model_free(model);}
 };
 static bool abort_work(void *data){auto *c=static_cast<Conversation*>(data);return c->cancelled||Clock::now()>c->deadline;}
 static int copy(const std::string &s,char *output,int capacity){int n=std::min(static_cast<int>(s.size()),capacity-1);if(n<0)return 0;std::memcpy(output,s.data(),n);output[n]=0;return n;}
-DJ int dj_api_version(){return 1;}
+DJ int dj_api_version(){return 2;}
 DJ const char *dj_error(){return error.c_str();}
 DJ void dj_cancel(Conversation *c){if(c)c->cancelled=true;}
 DJ void dj_destroy(Conversation *c){delete c;}
-DJ Conversation *dj_create(const char *backend,const char *model,const char *encoder,const char *decoder,const char *joiner,const char *tokens,const char *voiceModel,const char *voices,const char *voiceTokens,const char *espeak,int threads,int contextSize){
+DJ Conversation *dj_create(const char *backend,const char *model,const char *encoder,const char *decoder,const char *joiner,const char *tokens,const char *voiceDirectory,int threads,int contextSize){
     try {
         auto c=std::make_unique<Conversation>();
         static std::once_flag initialized;
@@ -50,7 +54,22 @@ DJ Conversation *dj_create(const char *backend,const char *model,const char *enc
         asr.model_config.transducer={encoder,decoder,joiner};asr.model_config.tokens=tokens;asr.model_config.provider="cpu";asr.model_config.num_threads=std::clamp(threads,1,2);asr.model_config.model_type="zipformer";
         asr.decoding_method="greedy_search";asr.max_active_paths=4;
         c->recognizer=SherpaOnnxCreateOnlineRecognizer(&asr);if(!c->recognizer){error="Could not load streaming speech recognition";return nullptr;}
-        SherpaOnnxOfflineTtsConfig speech{};speech.model.kitten={voiceModel,voices,voiceTokens,espeak,1};speech.model.provider="cpu";speech.model.num_threads=std::clamp(threads,1,2);speech.max_num_sentences=1; speech.silence_scale=.15f;
+        const std::string voiceRoot=std::string(voiceDirectory)+"/";
+        const std::array<std::string,7> files={
+            voiceRoot+"lm_flow.int8.onnx",voiceRoot+"lm_main.int8.onnx",voiceRoot+"encoder.onnx",
+            voiceRoot+"decoder.int8.onnx",voiceRoot+"text_conditioner.onnx",voiceRoot+"vocab.json",
+            voiceRoot+"token_scores.json"};
+        for(int i=0;i<Conversation::VoiceCount;i++){
+            auto path=voiceRoot+"voice-"+std::to_string(i)+".wav";
+            Wave wave(SherpaOnnxReadWave(path.c_str()),SherpaOnnxFreeWave);
+            if(!wave||wave->num_samples<=0){error="Could not load Pocket voice slot "+std::to_string(i);return nullptr;}
+            c->voices.push_back(std::move(wave));
+        }
+        SherpaOnnxOfflineTtsConfig speech{};
+        speech.model.pocket={files[0].c_str(),files[1].c_str(),files[2].c_str(),files[3].c_str(),
+            files[4].c_str(),files[5].c_str(),files[6].c_str(),Conversation::VoiceCount};
+        speech.model.provider="cpu";speech.model.num_threads=std::clamp(threads,1,2);
+        speech.max_num_sentences=1;speech.silence_scale=.15f;
         c->tts=SherpaOnnxCreateOfflineTts(&speech);if(!c->tts){error="Could not load the voice model";return nullptr;}
         error.clear();return c.release();
     }catch(const std::exception &e){error=e.what();return nullptr;}
@@ -95,12 +114,19 @@ DJ int dj_listen(Conversation *c,int speaker,const float *audio,int count,int fi
     }catch(const std::exception &e){error=e.what();return -1;}
 }
 DJ void dj_forget(Conversation *c,int speaker){if(!c)return;auto s=c->streams.find(speaker);if(s!=c->streams.end()){SherpaOnnxDestroyOnlineStream(s->second);c->streams.erase(s);}}
-static int audio_callback(const float*,int,void *arg){return !static_cast<Conversation*>(arg)->cancelled;}
+static int audio_callback(const float*,int,float,void *arg){return !static_cast<Conversation*>(arg)->cancelled;}
 DJ int dj_synthesize(Conversation *c,const char *text,int speaker,float speed,const float **samples,int *sampleRate){
     if(!c)return -1;
     try {
         c->cancelled=false;
-        auto *audio=SherpaOnnxOfflineTtsGenerateWithCallbackWithArg(c->tts,text,std::abs(speaker)%std::max(1,SherpaOnnxOfflineTtsNumSpeakers(c->tts)),std::clamp(speed,.8f,1.2f),audio_callback,c);
+        if(speaker<0||speaker>=Conversation::VoiceCount){error="Invalid bot voice slot";return -1;}
+        const auto &voice=c->voices[speaker];
+        SherpaOnnxGenerationConfig generation{};
+        generation.speed=std::clamp(speed,.8f,1.2f);generation.silence_scale=.15f;generation.num_steps=2;
+        generation.reference_audio=voice->samples;generation.reference_audio_len=voice->num_samples;
+        generation.reference_sample_rate=voice->sample_rate;
+        generation.extra=R"({"temperature":0.3,"max_frames":120,"chunk_size":5})";
+        auto *audio=SherpaOnnxOfflineTtsGenerateWithConfig(c->tts,text,&generation,audio_callback,c);
         if(!audio){error="Voice synthesis failed";return -1;}
         if(audio->n>480000){SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);error="Voice reply exceeds its audio budget";return -1;}
         c->audio.assign(audio->samples,audio->samples+audio->n);*sampleRate=audio->sample_rate;SherpaOnnxDestroyOfflineTtsGeneratedAudio(audio);*samples=c->audio.data();

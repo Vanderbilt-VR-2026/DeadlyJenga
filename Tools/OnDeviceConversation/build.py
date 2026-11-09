@@ -76,7 +76,7 @@ def main():
 
 def assemble_pack():
     win=CACHE/'llama-b11714-bin-win-cpu-x64'
-    pack=ROOT/'.models/pack';pack.mkdir(parents=True,exist_ok=True)
+    pack=ROOT/'.models/pocket';pack.mkdir(parents=True,exist_ok=True)
     llm=pack/'language.gguf'
     if not llm.exists() or llm.stat().st_size<100000000:
         partial=pack/'language.partial.gguf'
@@ -85,14 +85,22 @@ def assemble_pack():
     asr=find(CACHE/'sherpa-onnx-streaming-zipformer-en-20M-2023-02-17','tokens.txt').parent
     recognition=pack/'recognition';recognition.mkdir(exist_ok=True)
     for name in ['encoder-epoch-99-avg-1.int8.onnx','decoder-epoch-99-avg-1.int8.onnx','joiner-epoch-99-avg-1.int8.onnx','tokens.txt']:shutil.copy2(asr/name,recognition/name)
-    tts=find(CACHE/'kitten-nano-en-v0_2-fp16','model.fp16.onnx').parent
-    shutil.copytree(tts,pack/'voice',dirs_exist_ok=True)
-    shutil.copytree(ROOT/'licenses',pack/'licenses',dirs_exist_ok=True)
+    tts=find(CACHE/'sherpa-onnx-pocket-tts-int8-2026-01-26','lm_main.int8.onnx').parent
+    voice=pack/'voice';voice.mkdir(exist_ok=True)
+    for name in ('lm_flow.int8.onnx','lm_main.int8.onnx','encoder.onnx','decoder.int8.onnx',
+                 'text_conditioner.onnx','vocab.json','token_scores.json'):
+        shutil.copy2(tts/name,voice/name)
+    downloads=json.loads((ROOT/'downloads.lock.json').read_text(encoding='utf-8'))
+    references=[item['file'] for item in downloads if item['file'].endswith('.wav')]
+    if len(references)!=8:raise ValueError("Pocket cast needs eight reference voices")
+    for slot,name in enumerate(references):shutil.copy2(CACHE/name,voice/f'voice-{slot}.wav')
+    shutil.copytree(ROOT/'licenses',pack/'licenses',dirs_exist_ok=True,ignore=shutil.ignore_patterns('Kitten-*'))
+    shutil.copy2(tts/'LICENSE',pack/'licenses/Pocket-TTS.txt')
     records=[]
     for path in sorted(pack.rglob('*')):
         if path.is_file() and path.name!='manifest.json':
             records.append({'path':path.relative_to(pack).as_posix(),'bytes':path.stat().st_size,'sha256':hashlib.file_digest(path.open('rb'),'sha256').hexdigest()})
-    manifest={'version':'dj-conversation-1','nativeApi':1,'files':records}
+    manifest={'version':'dj-conversation-2','nativeApi':2,'voiceCast':'pocket-tts-int8','files':records}
     (pack/'manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     print('READY '+str(sum(r['bytes'] for r in records)//1048576)+' MiB model pack, '+str(len(records))+' files',flush=True)
 if __name__=='__main__':main()

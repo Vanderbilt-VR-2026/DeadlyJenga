@@ -1,11 +1,12 @@
 """Exercise the real embedded engines without Unity, microphones, or a speech service."""
 import array,ctypes as c,json,math,os,pathlib,threading,time,wave
 ROOT=pathlib.Path(__file__).resolve().parent;PROJECT=ROOT.parents[1]
-LIB=PROJECT/'Assets/_DeadlyJenga/GameSession/Session/CastleSocial/Plugins/Windows';PACK=ROOT/'.models/pack'
+LIB=PROJECT/'Assets/_DeadlyJenga/GameSession/Session/CastleSocial/Plugins/Windows';PACK=ROOT/'.models/pocket'
 OUTPUT=PROJECT/'Logs/Validation';OUTPUT.mkdir(parents=True,exist_ok=True)
 directory=os.add_dll_directory(str(LIB));loaded=[c.CDLL(str(LIB/name)) for name in ['ggml-base.dll','ggml.dll','llama.dll','onnxruntime.dll','sherpa-onnx-c-api.dll']]
 api=c.CDLL(str(LIB/'deadlyjenga_conversation.dll'));ptr=c.c_void_p
-api.dj_create.argtypes=[c.c_char_p]*10+[c.c_int]*2;api.dj_create.restype=ptr
+assert api.dj_api_version()==2
+api.dj_create.argtypes=[c.c_char_p]*7+[c.c_int]*2;api.dj_create.restype=ptr
 api.dj_error.restype=c.c_char_p;api.dj_destroy.argtypes=[ptr];api.dj_cancel.argtypes=[ptr]
 api.dj_generate.argtypes=[ptr,c.c_char_p,c.c_char_p,c.c_int,c.c_int,c.c_char_p,c.c_int]
 api.dj_listen.argtypes=[ptr,c.c_int,c.POINTER(c.c_float),c.c_int,c.c_int,c.c_char_p,c.c_int]
@@ -14,7 +15,7 @@ def encoded(path):return str(path).encode()
 def checked(result):
     if result<0:raise RuntimeError(api.dj_error().decode()+' return '+str(result))
     return result
-paths=[LIB,PACK/'language.gguf',PACK/'recognition/encoder-epoch-99-avg-1.int8.onnx',PACK/'recognition/decoder-epoch-99-avg-1.int8.onnx',PACK/'recognition/joiner-epoch-99-avg-1.int8.onnx',PACK/'recognition/tokens.txt',PACK/'voice/model.fp16.onnx',PACK/'voice/voices.bin',PACK/'voice/tokens.txt',PACK/'voice/espeak-ng-data']
+paths=[LIB,PACK/'language.gguf',PACK/'recognition/encoder-epoch-99-avg-1.int8.onnx',PACK/'recognition/decoder-epoch-99-avg-1.int8.onnx',PACK/'recognition/joiner-epoch-99-avg-1.int8.onnx',PACK/'recognition/tokens.txt',PACK/'voice']
 start=time.perf_counter();ctx=api.dj_create(*map(encoded,paths),1,1024)
 if not ctx:raise RuntimeError(api.dj_error().decode())
 report={'platform':'Windows desktop native CPU, one thread; not a Quest benchmark','load_seconds':time.perf_counter()-start}
