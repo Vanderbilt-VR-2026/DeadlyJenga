@@ -150,24 +150,43 @@ namespace DeadlyJenga.CastlePrototype
             ApplyRole(hand);
         }
         internal void SetRoleForMode(bool hand) => ApplyRole(hand);
-        void ApplyRole(bool hand)
+
+        internal bool TryEnterTimedHand(Pose spawn)
+        {
+            if(!Ready||VisitingLobby||!Hand.ViewCamera||Network&&Network.WaitingForWorld)return false;
+            if(!PlayingHand)ApplyRole(true,spawn);
+            return PlayingHand&&Hand.gameObject.activeInHierarchy;
+        }
+
+        void ApplyRole(bool hand,Pose? handSpawn=null)
         {
             if(VisitingLobby)return;
             if(Modes&&Modes.Rules.mode!=GameModeKind.Demo&&Modes.Authority)
             {bool accepted=Modes.SetDevelopmentHand(hand);if(hand&&!accepted)return;}
             if(Modes&&Modes.DemoSpectating)Modes.SetDemoSpectating(false);
             if(!hand&&SeaSpiritActive)seaSpirit.SetSeaSpirit(false);
+            if(handSpawn.HasValue)
+            {
+                // Place the receiving rig before removing the survivor and its camera.
+                Hand.gameObject.SetActive(true);
+                try { Hand.Place(handSpawn.Value.position,handSpawn.Value.rotation); }
+                catch
+                {
+                    if(!PlayingHand)Hand.gameObject.SetActive(false);
+                    throw;
+                }
+            }
             PlayingHand = hand;
             Player.gameObject.SetActive(!hand); Hand.gameObject.SetActive(hand);
             if(Player.ViewCamera)Player.ViewCamera.enabled=!hand;
             if(Hand.ViewCamera)Hand.ViewCamera.enabled=hand;
-            if (hand)
+            if (hand && !handSpawn.HasValue)
             {
                 // Float beside the map, a little above its top.
                 var world = Services.World;
                 Hand.Place(world.Center + new Vector3(0, world.TopHeight - world.Center.y + 3, -world.Radius - 10), Quaternion.identity);
             }
-            else RespawnPlayer();
+            else if (!hand) RespawnPlayer();
             SetMenu(MenuOpen);
         }
         // The ocean (or any hazard) eliminated someone. In this demo the local survivor just respawns.
