@@ -159,6 +159,13 @@ namespace DeadlyJenga.DevTools.Editor
             Check(join.parent==host.parent&&join.localPosition.x<0&&host.localPosition.x>0,
                 "Join and Host physically flank the central screen");
             Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
+            var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
+            var televisionBlocker=lobby.transform.Find("Island blocker · "+television.name).GetComponent<BoxCollider>();
+            Physics.SyncTransforms();
+            var approach=lobby.transform.TransformPoint(new Vector3(0,3.51f,3.40f));
+            var toHost=host.position-approach;
+            Check(!televisionBlocker.Raycast(new Ray(approach,toHost.normalized),out _,toHost.magnitude),
+                "The spectator televisions leave the Host cabinet visible from the pavilion approach");
             captureOrigin=lobby.transform.position;
             lobby.Player.Place(lobby.transform.TransformPoint(new Vector3(-3.8f,1.87f,5.4f)),Quaternion.identity);
             yield return Wait(3);
@@ -373,7 +380,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(activities && ski && ski.Find("Jet ski hull") && lobby.transform.Find("Marina jet ski 2"),
                 "Two playable jet ski bodies have visible hulls at the real dock");
             var tv = lobby.GetComponentInChildren<LobbySpectatorTVWall>();
-            Check(tv && tv.transform.localPosition.z > 8 && tv.transform.localPosition.z < 11 && tv.transform.localPosition.y < 2,
+            Check(tv && tv.transform.localPosition.x > 5 && tv.transform.localPosition.z > 6 && tv.transform.localPosition.z < 9 && tv.transform.localPosition.y < 2,
                 "The live spectator wall is installed at the pavilion");
             var gull = lobby.transform.Find("Marina gull calls")?.GetComponent<AudioSource>();
             Check(gull && gull.clip && gull.clip.length > 3 && gull.spatialBlend > .95f,
