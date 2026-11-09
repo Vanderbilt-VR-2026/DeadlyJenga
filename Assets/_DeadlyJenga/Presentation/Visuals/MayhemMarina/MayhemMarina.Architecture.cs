@@ -112,11 +112,76 @@ namespace DeadlyJenga.CandyArt.Marina
                 Lantern(new Vector3(side*4.2f,4.75f,5.1f),.2f);
             }
             mesh.CurvedRoof(new Vector3(0,4.8f,8.3f),15.1f,8.6f,2.15f,F.Coral);
-            // The screen frame is real architecture; the live controls are supplied by the lobby view.
-            mesh.Box(new Vector3(0,3.9f,11.32f),new Vector3(7.75f,3.9f,.23f),F.Wood,.17f);
-            mesh.Box(new Vector3(0,3.9f,11.17f),new Vector3(7.38f,3.57f,.10f),F.Ivory,.18f);
-            mesh.Box(new Vector3(0,3.9f,11.10f),new Vector3(7.12f,3.31f,.05f),F.Teal,.13f);
-            Lantern(new Vector3(0,5.15f,7),.24f);
+            BuildCandyArcade();
+            Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
+            Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
+        }
+        void BuildCandyArcade()
+        {
+            mesh.Box(new Vector3(0,3.78f,11.35f),new Vector3(7.68f,3.84f,.54f),F.CandyCream,.23f);
+            mesh.Box(new Vector3(0,3.85f,11.20f),new Vector3(7.55f,3.56f,.48f),F.CandyCoral,.18f);
+            mesh.Box(new Vector3(0,3.85f,11.04f),new Vector3(7.18f,3.24f,.16f),F.CandyLilac,.06f);
+            mesh.Box(new Vector3(0,3.85f,11.04f),new Vector3(7.04f,3.13f,.12f),F.CandyGrape,.04f);
+            mesh.Box(new Vector3(0,1.94f,11.28f),new Vector3(7.72f,.19f,.60f),F.CandyLilac,.08f);
+            mesh.Ellipsoid(new Vector3(0,5.51f,11.25f),new Vector3(1.37f,.70f,.27f),F.CandyCream);
+            CandyRainbow(new Vector3(0,5.53f,10.98f),1.05f);
+            for(int i=0;i<3;i++)
+            {
+                mesh.Box(new Vector3(-1.86f,5.57f+i*.10f,11.13f),new Vector3(.40f,.05f,.19f),F.CandyGrape,.02f);
+                mesh.Ellipsoid(new Vector3(1.61f+i*.19f,5.67f,11.06f),Vector3.one*.068f,
+                    i==0?F.CandyMint:i==1?F.Glow:F.CandyLilac,rings:5,sides:10);
+            }
+            BuildCandyCabinet(false);
+            BuildCandyCabinet(true);
+        }
+        void CandyRainbow(Vector3 origin,float width)
+        {
+            for(int band=0;band<3;band++)
+            {
+                var path=new List<Vector3>();
+                float scale=1-band*.19f;
+                for(int i=0;i<=18;i++)
+                {
+                    float angle=Mathf.PI*i/18;
+                    path.Add(origin+new Vector3(Mathf.Cos(angle)*width,Mathf.Sin(angle)*width*.49f,0)*scale);
+                }
+                mesh.Tube(path,width*.055f,band==0?F.CandyCoral:band==1?F.Glow:F.CandyMint,8);
+            }
+        }
+        void BuildCandyCabinet(bool host)
+        {
+            float x=host?4.87f:-4.87f;
+            var color=host?F.CandyMint:F.CandyLilac;
+            mesh.Box(new Vector3(x,3.41f,11.19f),new Vector3(2.12f,3.12f,.94f),F.CandyCream,.31f);
+            mesh.Ellipsoid(new Vector3(x,4.89f,11.07f),new Vector3(.89f,.51f,.27f),color);
+            CandyRainbow(new Vector3(x,4.98f,10.80f),.59f);
+            mesh.Box(new Vector3(x,3.93f,10.96f),new Vector3(2.07f,1.97f,.63f),color,.25f);
+            mesh.Box(new Vector3(x,3.93f,10.66f),new Vector3(1.86f,1.73f,.20f),F.CandyCream,.075f);
+            mesh.Box(new Vector3(x,3.93f,10.62f),new Vector3(1.75f,1.63f,.17f),F.CandyGrape,.065f);
+            mesh.Box(new Vector3(x,1.96f,11.00f),new Vector3(2.19f,.21f,1.27f),color,.082f);
+            for(int stripe=0;stripe<2;stripe++)
+                mesh.Box(new Vector3(x,2.18f+stripe*.10f,10.71f),new Vector3(2.14f,.055f,.08f),stripe==0?F.CandyCoral:F.Glow,.02f);
+            var deck=new Vector3(x,2.60f,10.55f);
+            var slope=Quaternion.Euler(29,0,0);
+            mesh.Box(deck,new Vector3(2.07f,.24f,.97f),color,.09f,false,slope);
+            mesh.Box(deck+slope*Vector3.up*.13f,new Vector3(1.89f,.095f,.82f),F.CandyCream,.035f,false,slope);
+            if(host)
+            {
+                var dpad=deck+slope*new Vector3(-.46f,.23f,0);
+                mesh.Box(dpad,new Vector3(.56f,.14f,.19f),F.CandyGrape,.05f,false,slope);
+                mesh.Box(dpad,new Vector3(.19f,.14f,.55f),F.CandyGrape,.05f,false,slope);
+                var wheel=deck+slope*new Vector3(.49f,.24f,0);
+                mesh.Ellipsoid(wheel,new Vector3(.22f,.16f,.31f),F.CandyMint,slope,7,16);
+                for(int tooth=0;tooth<5;tooth++)
+                    mesh.Box(wheel+slope*new Vector3(0,.11f,(tooth-2)*.083f),new Vector3(.30f,.085f,.06f),F.CandyCream,.022f,false,slope);
+            }
+            else
+            {
+                for(int row=0;row<3;row++)for(int col=0;col<10;col++)
+                    mesh.Box(deck+slope*new Vector3((col-4.5f)*.165f,.21f,(row-1)*.17f),
+                        new Vector3(.145f,.105f,.145f),row==1?F.CandyCream:F.CandyLilac,.033f,false,slope);
+                mesh.Box(deck+slope*new Vector3(0,.21f,-.34f),new Vector3(.76f,.095f,.12f),F.CandyLilac,.033f,false,slope);
+            }
         }
         void WardrobeConnector()
         {

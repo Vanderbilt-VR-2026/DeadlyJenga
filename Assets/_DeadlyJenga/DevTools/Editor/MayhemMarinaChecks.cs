@@ -55,6 +55,17 @@ namespace DeadlyJenga.DevTools.Editor
             }
             catch(Exception e){File.AppendAllText(Report,"PREFLIGHT FAIL "+e+"\n");Debug.LogException(e);EditorApplication.Exit(2);}
         }
+        public static void RunArcade()
+        {
+            File.WriteAllText(Report,"Mayhem Marina candy arcade · actual Unity Play Mode.\n");
+            SessionState.SetInt(Key+"Preference",PlayerPrefs.GetInt(IslandLobby.LegacyLobbyPreference,-1));
+            SessionState.SetBool(Key+"Layout",true);
+            SessionState.SetBool(Key+"Arcade",true);
+            SelectLayout(false);
+            SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
+            EditorApplication.EnterPlaymode();
+        }
         public static void RunSolo()
         {
             File.WriteAllText(Report,"Actual Game.unity solo smoke test with Marina sources installed; shared lobby hooks remain pending.\n");
@@ -98,14 +109,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
             }
         }
         static void Log(string value,string stack,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;
@@ -121,6 +132,36 @@ namespace DeadlyJenga.DevTools.Editor
         {if(!value)throw new InvalidOperationException(message);File.AppendAllText(Report,"PASS "+message+"\n");}
         static IEnumerator Wait(float duration)
         {float end=Time.realtimeSinceStartup+duration;while(Time.realtimeSinceStartup<end)yield return null;}
+        static IEnumerator RunArcadeScene()
+        {
+            Application.runInBackground=true;
+            float until=Time.realtimeSinceStartup+45;
+            while((!IslandLobby.Current||!IslandLobby.Current.GetComponent<MarinaScreen>())&&
+                Time.realtimeSinceStartup<until)yield return null;
+            var lobby=IslandLobby.Current;
+            Check(lobby&&lobby.View()&&lobby.GetComponent<MayhemMarina>(),"Actual Mayhem Marina loaded");
+            var screen=lobby.GetComponent<MarinaScreen>();
+            var view=lobby.View();
+            Check(screen&&screen.Visible,"Candy arcade screens are visible");
+            var faces=lobby.GetComponentsInChildren<RectTransform>();
+            var join=faces.Single(face=>face.name=="Lavender Join display");
+            var host=faces.Single(face=>face.name=="Mint Host display");
+            Check(join.parent==host.parent&&join.localPosition.x<0&&host.localPosition.x>0,
+                "Join and Host physically flank the central screen");
+            Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
+            yield return Wait(1);
+            captureOrigin=lobby.transform.position;
+            Capture(new Vector3(0,3.51f,3.40f),new Vector3(0,3.95f,10.7f),52,"Marina-Candy-Arcade.png");
+            Capture(new Vector3(0,3.76f,6.12f),new Vector3(0,3.94f,10.97f),43,"Marina-Candy-Arcade-Screen.png");
+            foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
+            {
+                yield return null;
+                yield return null;
+                Check(screen.Invoke(id),id+" opens the existing control flow");
+                yield return null;
+                Check(view.InvokeChoice("marina-close"),id+" returns to the arcade");
+            }
+        }
         static IEnumerator RunLayoutScene()
         {
             Application.runInBackground=true;AudioListener.volume=0;

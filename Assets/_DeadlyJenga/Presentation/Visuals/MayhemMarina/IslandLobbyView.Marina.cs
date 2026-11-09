@@ -77,6 +77,8 @@ namespace DeadlyJenga.CastlePrototype
                 var old=transform.Find(name);if(old)foreach(var r in old.GetComponentsInChildren<Renderer>())r.enabled=false;
             }
             marina=gameObject.AddComponent<MayhemMarina>();marina.Build(lobby,Environment);
+            foreach(float x in new[]{-4.87f,4.87f})
+                lobby.AddBlocker(marina.transform,new Vector3(x,3.40f,11.13f),new Vector3(2.08f,3.08f,.96f));
             foreach(var television in GetComponentsInChildren<LobbySpectatorTVWall>(true))
             {
                 television.transform.localPosition=new Vector3(-10,4.16f,20.2f);television.transform.localRotation=Quaternion.identity;
@@ -171,6 +173,12 @@ namespace DeadlyJenga.CastlePrototype
         void OpenMarinaDetail(string page)
         {
             if(page=="style"){RestoreMarinaDetailMaterials();marinaDetail="";RestoreMarinaDetailLayout();if(Vector3.Distance(Player.transform.position,WardrobePosition)>2)Player.Place(WardrobePosition+Vector3.up*.04f,transform.rotation);SetWardrobeOpen(true);return;}
+            bool code=page=="join-code",nearby=page=="join-nearby",invite=page=="host-invite";
+            if(code||nearby)page="join";
+            if(invite)page="host";
+            if(code&&lobby.JoinEnabled){lobby.ShowCodeEntry();lobby.FocusCode();}
+            if(nearby&&lobby.JoinEnabled)lobby.DetectNearby();
+            if(invite&&lobby.CanInvite)lobby.InviteNearby();
             marinaDetail=page;joinStation.gameObject.SetActive(page=="join");hostStation.gameObject.SetActive(page=="host");setupStation.gameObject.SetActive(page=="maps"||page=="modes"||page=="settings");piano.gameObject.SetActive(page=="join");
             if(page=="maps"||page=="modes")OpenPicker(page);
             if(page=="settings"){setupPage="settings";settingsPage=0;}
