@@ -20,7 +20,7 @@ namespace DeadlyJenga.CandyArt
         CandyEnvironment environment;
         void Awake()
         {
-            environment=GetComponent<CandyEnvironment>();sphere=Sphere();InitializeObjects();InitializeFire();
+            environment=GetComponent<CandyEnvironment>();sphere=Sphere();InitializeObjects();InitializeFire();InitializeEarthquake();
             coral=Material(new Color(1,.13f,.06f));lemon=Material(new Color(1,.7f,.08f));lavender=Material(new Color(.54f,.25f,1));aqua=Material(new Color(.24f,.9f,1));lime=Material(new Color(.45f,1,.08f));
         }
         Material Material(Color color)
@@ -34,10 +34,21 @@ namespace DeadlyJenga.CandyArt
             if(!sphere||!coral)return;
             var mode=MatchRuntime.Current?.Rules.mode??GameModeKind.Demo;if(!hasIceMode||mode!=iceMode){RestoreIce();iceMode=mode;hasIceMode=true;}
             bool ending=MatchRuntime.Current?.Frame.phase==RoundPhase.Victory||MatchRuntime.Current?.Frame.phase==RoundPhase.Results;
-            orange.Clear();yellow.Clear();purple.Clear();blue.Clear();green.Clear();BeginObjects();BeginFire();bool icy=false;
+            orange.Clear();yellow.Clear();purple.Clear();blue.Clear();green.Clear();BeginObjects();BeginFire();BeginEarthquake();bool icy=false;
             foreach(var source in DisasterStates.Active)
             {
-                var f=source.Capture();if(f==null||f.warning>0)continue;drawingSource=source;
+                var f=source.Capture();if(f==null)continue;
+                if(f.kind=="Earthquake")
+                {
+                    if(!ending)
+                    {
+                        SampleEarthquake(f);
+                        if(f.warning<=0)Earthquake(f);
+                    }
+                    continue;
+                }
+                if(f.warning>0)continue;
+                drawingSource=source;
                 switch(f.kind)
                 {
                     case "MeteorShower":case "PlanetKillerMeteor":Meteors(f);break;
@@ -46,12 +57,11 @@ namespace DeadlyJenga.CandyArt
                     case "Icey":if(!ending){icy=true;Ice();}break;
                     case "AcidRain":Rain(f);break;
                     case "AntiGravity":Bubbles(f);break;
-                    case "Earthquake":Dust(f);break;
                 }
             }
             RenderDepartedTornado();
             if(!icy)RestoreIce();
-            Draw(orange,coral);Draw(yellow,lemon);Draw(purple,gravityBubble);Draw(blue,aqua);Draw(green,lime);RenderFire();RenderObjects();
+            Draw(orange,coral);Draw(yellow,lemon);Draw(purple,gravityBubble);Draw(blue,aqua);Draw(green,lime);RenderFire();RenderObjects();RenderEarthquake();
         }
         static float Hash(int i)=>Mathf.Repeat(Mathf.Sin(i*127.1f+311.7f)*43758.54f,1);
         void Ball(List<Matrix4x4> list,Vector3 p,Vector3 scale)=>list.Add(Matrix4x4.TRS(p,Quaternion.identity,scale));
@@ -88,7 +98,7 @@ namespace DeadlyJenga.CandyArt
             return new Mesh{name="Smooth candy disaster sphere",vertices=v,normals=n,uv=uv,triangles=t};
         }
         void OnEnable()=>GameEvents.BlockHit+=MeteorContact;
-        void OnDisable(){RestoreIce();ClearCharred();GameEvents.BlockHit-=MeteorContact;ClearObjects();}
-        void OnDestroy(){RestoreIce();DestroyObjects();DestroyFire();foreach(var m in new[]{coral,lemon,lavender,aqua,lime,shardMaterial})if(m)Destroy(m);if(sphere)Destroy(sphere);if(funnel)Destroy(funnel);if(shard)Destroy(shard);}
+        void OnDisable(){RestoreIce();ClearCharred();GameEvents.BlockHit-=MeteorContact;ClearObjects();ClearEarthquake();}
+        void OnDestroy(){RestoreIce();DestroyObjects();DestroyFire();DestroyEarthquake();foreach(var m in new[]{coral,lemon,lavender,aqua,lime,shardMaterial})if(m)Destroy(m);if(sphere)Destroy(sphere);if(funnel)Destroy(funnel);if(shard)Destroy(shard);}
     }
 }

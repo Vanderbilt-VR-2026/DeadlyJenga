@@ -395,11 +395,6 @@ namespace DeadlyJenga.CandyArt
                 Engulf(rb,id);
             }
         }
-        void Dust(DisasterFrame f)
-        {
-            float water=Services.World?.WaterHeight(f.center)??0;
-            for(int i=0;i<36;i++){float a=i*Mathf.PI*2/36,r=Mathf.Max(f.size.x,f.size.z)*.4f;Puff(dustPuffs,new Vector3(f.center.x+Mathf.Cos(a)*r,water+.6f+Mathf.Abs(Mathf.Sin(Time.time+i))*.5f,f.center.z+Mathf.Sin(a)*r),2.5f,1.8f,i*31);}
-        }
         void Rain(DisasterFrame f)
         {
             if(f.values==null||f.values.Length<2)return;int count=Mathf.Clamp(Mathf.RoundToInt(f.values[1]*.7f),10,420);
