@@ -65,7 +65,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public static System.Threading.Tasks.Task<StartGameResult> ConnectDirect(
-            NetworkRunner runner, GameObject holder, bool host, string code)
+            NetworkRunner runner, GameObject holder, bool host, string code, int playerCount = 2)
         {
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-native") >= 0)
                 holder.AddComponent<CastleMotionProvider>();
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 GameMode = host ? GameMode.Host : GameMode.Client,
                 SessionName = code,
-                PlayerCount = 2,
+                PlayerCount = playerCount,
                 IsVisible = false,
                 EnableClientSessionCreation = false,
                 CustomPhotonAppSettings = app,

@@ -32,6 +32,11 @@ namespace DeadlyJenga.CastlePrototype
         void Log(string message,string trace,LogType type)
         {
             if(done||type!=LogType.Error&&type!=LogType.Exception&&type!=LogType.Assert)return;
+            if (FullRoom && SystemInfo.graphicsDeviceType == UnityEngine.Rendering.GraphicsDeviceType.Null &&
+                (message.StartsWith("RenderTexture.", StringComparison.Ordinal) ||
+                 message.StartsWith("RenderingCommandBuffer:", StringComparison.Ordinal) ||
+                 message.StartsWith("EndRenderPass:", StringComparison.Ordinal) ||
+                 message.Contains("Unable to find surface for attachment"))) return;
             // Explicit deliberate disconnect can race Fusion's current cloud request.
             File.AppendAllText(Report,"ERROR "+message+"\n"+trace+"\n");
         }
@@ -524,7 +529,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             const int Seats = 10;
             bool host = role == "host";
-            Application.targetFrameRate = 30;
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = role == "host" || role == "guest-01" ? 90 : 30;
+            if (Environment.GetCommandLineArgs().Contains("--dj-full-room-direct"))
+            {
+                yield return CheckDirectFullRoom(host, Seats);
+                yield break;
+            }
             HomeSession home = null;
             yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && !string.IsNullOrEmpty(home.Region),
                 "Home is ready", 95);
@@ -589,6 +600,42 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role + "-finished"), "ready");
             yield return Until(() => Directory.GetFiles(folder, "guest-*-finished").Length == Seats - 1,
                 "All surviving peers measured post-migration movement", 50);
+        }
+
+        IEnumerator CheckDirectFullRoom(bool host, int seats)
+        {
+            string codePath = Mark("direct-full-code");
+            if (!host) yield return Until(() => File.Exists(codePath), "Host publishes the stress-room code", 120);
+            string code = host ? "dj-full-" + Guid.NewGuid().ToString("N") : File.ReadAllText(codePath);
+            var holder = new GameObject("Full room load fixture");
+            DontDestroyOnLoad(holder);
+            var runner = holder.AddComponent<Fusion.NetworkRunner>();
+            var connection = CastleMotionStateProbe.ConnectDirect(runner, holder, host, code, seats);
+            yield return Until(() => connection.IsCompleted, "Independent Fusion connection completes", 100);
+            Require(!connection.IsFaulted && connection.Result.Ok, "Connected to Photon");
+            if (host)
+            {
+                File.WriteAllText(Mark("direct-full-pending"), code);
+                File.Move(Mark("direct-full-pending"), codePath);
+            }
+            yield return Until(() => runner.ActivePlayers.Count() == seats, "All ten clients are connected", 125);
+            MatchSetup.FromLobby = true;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.ModeId = "ctf";
+            MatchSetup.MapId = "mode-ctf";
+            MatchSetup.BotTarget = seats;
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Game");
+            CastlePlaySession game = null;
+            yield return Until(() => (game = FindFirstObjectByType<CastlePlaySession>()) && game.Network &&
+                !game.Network.WaitingForWorld && (!host || game.Network.HumanCount == seats),
+                "Authoritative world reached every client", 125);
+            File.WriteAllText(Mark(role + "-playing"), "ready");
+            yield return Until(() => Directory.GetFiles(folder, "*-playing").Length == seats,
+                "All ten clients are playing CTF", 60);
+            yield return DriveFullRoom(game, role + "-before");
+            File.WriteAllText(Mark(role + "-moving"), "ready");
+            yield return Until(() => Directory.GetFiles(folder, "*-moving").Length == seats,
+                "All ten clients measured motion", 60);
         }
 
         IEnumerator DriveFullRoom(CastlePlaySession game, string phase)

@@ -20,6 +20,8 @@ namespace DeadlyJenga.CastlePrototype
         const int Channel=0x49534C44, Ready=1, Pose=2, State=3, Ack=4, Spawn=5;
         sealed class Peer {public P.Actor actor;public bool ready;public int waiting,sentSelection,ackedSelection=-1;public float seen,sent;}
         readonly Dictionary<PlayerRef,Peer> peers=new Dictionary<PlayerRef,Peer>();
+        readonly List<KeyValuePair<PlayerRef,Peer>> lobbySendPeers = new List<KeyValuePair<PlayerRef,Peer>>(10);
+        int lobbySendCursor;
         public static IslandRoomConnection Instance {get;private set;}
         public NetworkRunner Runner {get;private set;}
         public IslandLobbyCatalog Catalog {get;set;}
@@ -564,10 +566,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
                 if(now<nextSend)return;nextSend=now+.1f;
-                var actors=new List<P.Actor>{IslandLobby.Current.Capture(Runner.LocalPlayer.ToString())};actors.AddRange(peers.Values.Where(p=>p.actor!=null).Select(p=>p.actor));
-                IslandLobby.Current.CaptureLobbyBots(actors);
-                byte[] bytes=P.Encode(P.World,w=>{w.Write(MapIndex);w.Write(ModeIndex);w.Write(actors.Count);foreach(var actor in actors)P.Write(w,actor);w.Write(SharedDemoControls);w.Write(LobbyStateJson());});
-                foreach(var pair in peers)if(pair.Value.ready&&pair.Value.waiting==0){pair.Value.waiting=++serial;pair.Value.sent=now;pair.Value.sentSelection=selectionVersion;Send(pair.Key,State,bytes,pair.Value.waiting);}
+                PumpLobbyState(now);
             }
             else if(now>=nextSend)
             {
@@ -582,6 +581,64 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
         }
+        void PumpLobbyState(float now)
+        {
+            lobbySendPeers.Clear();
+            lobbySendPeers.AddRange(peers);
+            int count = lobbySendPeers.Count;
+            if (count == 0) return;
+
+            const int Budget = 4;
+            int sent = 0;
+            string roster = null;
+            byte[] arrival = null, update = null;
+            P.Actor local = null;
+            // A new guest needs the room and roster before downloading all avatar poses.
+            for (int pass = 0; pass < 2 && sent < Budget; pass++)
+            {
+                for (int inspected = 0; inspected < count && sent < Budget; inspected++)
+                {
+                    int index = lobbySendCursor % count;
+                    lobbySendCursor = (index + 1) % count;
+                    var pair = lobbySendPeers[index];
+                    var peer = pair.Value;
+                    if (!peer.ready || peer.waiting != 0 || (peer.ackedSelection < 0) != (pass == 0)) continue;
+                    roster ??= LobbyStateJson();
+                    local ??= IslandLobby.Current.Capture(Runner.LocalPlayer.ToString());
+                    byte[] packet;
+                    if (pass == 0)
+                        packet = arrival ??= EncodeLobbyState(new[] { local }, roster);
+                    else
+                    {
+                        if (update == null)
+                        {
+                            var actors = new List<P.Actor>(10) { local };
+                            foreach (var member in peers.Values)
+                                if (member.actor != null) actors.Add(member.actor);
+                            IslandLobby.Current.CaptureLobbyBots(actors);
+                            update = EncodeLobbyState(actors, roster);
+                        }
+                        packet = update;
+                    }
+                    peer.waiting = ++serial;
+                    peer.sent = now;
+                    peer.sentSelection = selectionVersion;
+                    Send(pair.Key, State, packet, peer.waiting);
+                    sent++;
+                }
+            }
+        }
+
+        byte[] EncodeLobbyState(IReadOnlyList<P.Actor> actors, string roster) => P.Encode(P.World, writer =>
+        {
+            writer.Write(MapIndex);
+            writer.Write(ModeIndex);
+            writer.Write(actors.Count);
+            foreach (var actor in actors) P.Write(writer, actor);
+            writer.Write(SharedDemoControls);
+            writer.Write(roster);
+        });
+
         async Task<bool> PushMigration(NetworkRunner runner)
         {
             try
