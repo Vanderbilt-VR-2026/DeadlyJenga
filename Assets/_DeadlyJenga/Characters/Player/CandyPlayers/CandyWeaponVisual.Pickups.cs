@@ -24,8 +24,11 @@ namespace DeadlyJenga.CandyPlayers
                 foreach(var renderer in model.GetComponentsInChildren<MeshRenderer>())
                 {
                     if(!renderer.enabled)continue;var mesh=renderer.GetComponent<MeshFilter>();if(!mesh||!mesh.sharedMesh)continue;
-                    var block=new MaterialPropertyBlock();renderer.GetPropertyBlock(block);var color=block.GetColor("_BaseColor");if(color.a==0)color=Color.white;
-                    parts.Add(new EquipmentModelPart{mesh=mesh.sharedMesh,material=renderer.sharedMaterial,local=model.worldToLocalMatrix*renderer.transform.localToWorldMatrix,color=color});
+                    var material=renderer.sharedMaterial;
+                    var block=new MaterialPropertyBlock();renderer.GetPropertyBlock(block);
+                    var color=block.HasColor("_BaseColor") ? block.GetColor("_BaseColor") :
+                        material && material.HasProperty("_BaseColor") ? material.GetColor("_BaseColor") : Color.white;
+                    parts.Add(new EquipmentModelPart{mesh=mesh.sharedMesh,material=material,local=model.worldToLocalMatrix*renderer.transform.localToWorldMatrix,color=color});
                 }
                 EquipmentModelData.Parts[value]=parts.ToArray();model.gameObject.SetActive(false);Object.Destroy(model.gameObject);
             }

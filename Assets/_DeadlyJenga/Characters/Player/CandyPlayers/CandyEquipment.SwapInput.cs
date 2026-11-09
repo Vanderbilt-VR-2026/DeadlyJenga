@@ -27,7 +27,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if (!accept) { ClearPickupFocus(); return; }
             if (Local && motor.Alive && motor.HasInputFocus && !motor.InputSuspended &&
-                !motor.Climbing && !motor.Vaulting && Services.Session?.MenuOpen != true)
+                !motor.Climbing && !motor.Vaulting && Services.Session?.MenuOpen != true && !PickupFireHeld())
                 TakeFocusedPickup();
         }
 
@@ -54,9 +54,13 @@ namespace DeadlyJenga.CandyPlayers
 
             var eye = avatar.viewCamera.transform;
             bool vr = motor.IsVR;
-            bool fireHeld = vr && (trigger?.IsPressed() == true || offTrigger?.IsPressed() == true);
-            var leftPoint = PickupHand(true, vr, fireHeld, ref leftGrabUntil);
-            var rightPoint = PickupHand(false, vr, fireHeld, ref rightGrabUntil);
+            bool fireHeld = PickupFireHeld();
+            bool weaponInHand = current.drawn && !current.builtIn && current.kind != EquipmentKind.Dagger;
+            bool bothHandsBusy = weaponInHand && (EquipmentSpecifications.Get(current.kind).twoHanded ||
+                current.kind is EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws);
+            // Aim and support grips belong to the drawn weapon. A free hand can still pick up loot.
+            var leftPoint = PickupHand(true, vr, !fireHeld && (!weaponInHand || !left && !bothHandsBusy), ref leftGrabUntil);
+            var rightPoint = PickupHand(false, vr, !fireHeld && (!weaponInHand || left && !bothHandsBusy), ref rightGrabUntil);
             float now = Time.unscaledTime;
             bool leftGrab = leftGrabUntil > now;
             bool rightGrab = rightGrabUntil > now;
@@ -105,7 +109,7 @@ namespace DeadlyJenga.CandyPlayers
             if (focused != null)
             {
                 pendingPickup = focused.id;
-                bool activate = vr ? bestPriority == 2 : Keyboard.current?.eKey.wasPressedThisFrame == true;
+                bool activate = !fireHeld && (vr ? bestPriority == 2 : Keyboard.current?.eKey.wasPressedThisFrame == true);
                 if (activate) return TakeFocusedPickup();
             }
             else if (touchingPower != null && Time.unscaledTime >= nextPickupRequest)
@@ -116,7 +120,11 @@ namespace DeadlyJenga.CandyPlayers
             return false;
         }
 
-        Vector3? PickupHand(bool left, bool vr, bool fireHeld, ref float grabUntil)
+        bool PickupFireHeld() => motor.IsVR
+            ? trigger?.IsPressed() == true || offTrigger?.IsPressed() == true
+            : Mouse.current?.leftButton.isPressed == true;
+
+        Vector3? PickupHand(bool left, bool vr, bool canGrab, ref float grabUntil)
         {
             var tracking = avatar.tracking;
             var hand = vr && tracking ? tracking.WorldHand(left) : default;
@@ -131,7 +139,7 @@ namespace DeadlyJenga.CandyPlayers
                 left ? tracking.LeftPinching : tracking.RightPinching;
             bool pressed = controller ? HybridXRInput.GripPressed(left) :
                 left ? tracking.LeftPinchPressed : tracking.RightPinchPressed;
-            if (!held || fireHeld) grabUntil = 0;
+            if (!held || !canGrab) grabUntil = 0;
             else if (pressed) grabUntil = Time.unscaledTime + GrabBuffer;
 
             return !controller && tracking.TryIndexTip(left, out var tip) ? tip : hand.position;

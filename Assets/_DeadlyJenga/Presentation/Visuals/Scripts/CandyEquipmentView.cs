@@ -230,7 +230,14 @@ namespace DeadlyJenga.Presentation
             bool showPickup=canvas.enabled&&!session.PlayingHand&&pending!=null;
             if(showPickup)
             {
-                swapNotice.text=SwapMessage(equipment,pending,SwapInputHint(session));
+                string input = SwapInputHint(session);
+                if (vr && equipment?.drawn == true && !equipment.builtIn && equipment.kind != EquipmentKind.Dagger)
+                {
+                    bool bothHandsBusy = EquipmentSpecifications.Get(equipment.kind).twoHanded ||
+                        equipment.kind is EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws;
+                    input = bothHandsBusy ? "Holster, then reach and grab" : "Use your free hand or holster first";
+                }
+                swapNotice.text=SwapMessage(equipment,pending,input);
                 CandyHudCards.Tint(swapNotice,CandyHudVisuals.Mint,.62f);
             }
             CandyHudCards.Visible(swapNotice,showPickup);
