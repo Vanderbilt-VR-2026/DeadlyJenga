@@ -21,7 +21,8 @@ namespace DeadlyJenga.CastlePrototype
         Image tabletFrame;
         Mesh tabletCaseMesh;
         Material tabletCaseMaterial;
-        LineRenderer tabletStick,tabletHandle;
+        Mesh tabletStickMesh;
+        Transform tabletStick,tabletHandle,tabletMount;
 
         public void Show(bool show,Camera camera)
         {
@@ -107,36 +108,72 @@ namespace DeadlyJenga.CastlePrototype
 
         void PresentTabletStick(Camera camera)
         {
-            bool held=ControllerPose(camera,!DominantLeft,out var grip,out _);
-            if(session.Player is DeadlyJenga.Core.IModeActor actor&&(held||session.Player.HasHandTracking))
+            if(!tabletCaseMaterial)return;
+            if(!tabletStick)
             {
-                grip=actor.HandPose(!DominantLeft);
-                held=(grip.position-camera.transform.position).sqrMagnitude<3;
+                tabletStickMesh=BuildStickMesh();
+                tabletStick=StickPart("Tablet selfie stick",new Color(.25f,.32f,.44f));
+                tabletHandle=StickPart("Tablet selfie stick grip",new Color(.065f,.08f,.12f));
+                tabletMount=StickPart("Tablet selfie stick mount",CandyHudVisuals.Lavender);
             }
-            if(!tabletStick&&tabletCaseMaterial)
+            bool left=!DominantLeft;
+            var eye=camera.transform;
+            Vector3 grip=eye.TransformPoint(new Vector3(left?-.24f:.24f,-.24f,.61f));
+            bool controller=ControllerPose(camera,left,out var tracked,out _);
+            if(controller)grip=tracked.position;
+            var player=session.Player;
+            var tips=player?.gameObject.GetComponent<DeadlyJenga.Core.IFingerTips>();
+            if(player is DeadlyJenga.Core.IModeActor actor&&(controller||
+                player.HasHandTracking&&tips!=null&&tips.TryIndexTip(left,out _)))
             {
-                tabletStick=StickLine("Tablet selfie stick",.014f);
-                tabletHandle=StickLine("Tablet selfie stick grip",.035f);
+                var palm=actor.HandPose(left).position;
+                if((palm-eye.position).sqrMagnitude>.01f&&(palm-eye.position).sqrMagnitude<3&&
+                    (!controller||(palm-grip).sqrMagnitude<.09f))grip=palm;
             }
-            if(!tabletStick)return;
-            tabletStick.enabled=tabletHandle.enabled=held;
-            if(!held)return;
-            var mount=transform.TransformPoint(new Vector3(0,-490,28));
-            var direction=mount-grip.position;
-            if(direction.sqrMagnitude<.0001f)return;
-            direction.Normalize();
-            tabletStick.SetPosition(0,grip.position);tabletStick.SetPosition(1,mount);
-            tabletHandle.SetPosition(0,grip.position-direction*.055f);
-            tabletHandle.SetPosition(1,grip.position+direction*.055f);
+            var mount=transform.TransformPoint(new Vector3(0,-548,24));
+            var direction=(mount-grip).normalized;
+            if(direction.sqrMagnitude<.01f)direction=transform.forward;
+            PoseStickPart(tabletStick,grip,mount,.028f);
+            PoseStickPart(tabletHandle,grip-direction*.07f,grip+direction*.07f,.052f);
+            PoseStickPart(tabletMount,mount-direction*.09f,mount,.065f);
         }
-        LineRenderer StickLine(string name,float width)
+        Transform StickPart(string name,Color color)
         {
-            var go=new GameObject(name);go.transform.SetParent(transform,false);go.layer=gameObject.layer;
-            var line=go.AddComponent<LineRenderer>();line.useWorldSpace=true;line.positionCount=2;
-            line.startWidth=line.endWidth=width;line.numCapVertices=6;line.numCornerVertices=4;
-            line.sharedMaterial=tabletCaseMaterial;
-            line.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;line.receiveShadows=false;
-            return line;
+            var go=new GameObject(name,typeof(MeshFilter),typeof(MeshRenderer));
+            go.transform.SetParent(transform,false);go.layer=gameObject.layer;
+            go.GetComponent<MeshFilter>().sharedMesh=tabletStickMesh;
+            var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=tabletCaseMaterial;
+            var properties=new MaterialPropertyBlock();properties.SetColor("_BaseColor",color);renderer.SetPropertyBlock(properties);
+            renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
+            return go.transform;
+        }
+        void PoseStickPart(Transform part,Vector3 from,Vector3 to,float diameter)
+        {
+            var a=transform.InverseTransformPoint(from);var b=transform.InverseTransformPoint(to);
+            var axis=b-a;
+            part.localPosition=(a+b)*.5f;
+            part.localRotation=axis.sqrMagnitude>.001f?Quaternion.FromToRotation(Vector3.up,axis):Quaternion.identity;
+            float width=diameter/Mathf.Max(.0001f,transform.lossyScale.x);
+            part.localScale=new Vector3(width,Mathf.Max(.01f,axis.magnitude),width);
+        }
+        static Mesh BuildStickMesh()
+        {
+            const int sides=16;
+            var vertices=new Vector3[sides*2+2];var triangles=new int[sides*12];
+            vertices[sides*2]=Vector3.down*.5f;vertices[sides*2+1]=Vector3.up*.5f;
+            for(int i=0;i<sides;i++)
+            {
+                float angle=i*Mathf.PI*2/sides;
+                vertices[i]=new Vector3(Mathf.Cos(angle)*.5f,-.5f,Mathf.Sin(angle)*.5f);
+                vertices[i+sides]=vertices[i]+Vector3.up;
+                int j=(i+1)%sides,k=i*12;
+                triangles[k]=i;triangles[k+1]=i+sides;triangles[k+2]=j;
+                triangles[k+3]=j;triangles[k+4]=i+sides;triangles[k+5]=j+sides;
+                triangles[k+6]=sides*2;triangles[k+7]=i;triangles[k+8]=j;
+                triangles[k+9]=sides*2+1;triangles[k+10]=j+sides;triangles[k+11]=i+sides;
+            }
+            var mesh=new Mesh{name="Tablet stick cylinder",hideFlags=HideFlags.DontSave};
+            mesh.vertices=vertices;mesh.triangles=triangles;mesh.RecalculateNormals();mesh.RecalculateBounds();return mesh;
         }
 
         void BuildTabletCase()
@@ -170,6 +207,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
+            if(tabletStickMesh)Destroy(tabletStickMesh);
             if(tabletCaseMesh)Destroy(tabletCaseMesh);
             if(tabletCaseMaterial)Destroy(tabletCaseMaterial);
         }
