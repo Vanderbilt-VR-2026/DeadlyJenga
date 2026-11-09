@@ -69,7 +69,7 @@ namespace DeadlyJenga.Presentation
         {
             var root = new GameObject("Last match billboard", typeof(RectTransform), typeof(Canvas));
             root.transform.SetParent(transform, false);
-            root.transform.localPosition = new Vector3(13.65f, 3.05f, 8.72f);
+            root.transform.localPosition = new Vector3(13.65f, 3.6f, 8.72f);
             root.transform.localScale = Vector3.one * .0045f;
             var canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
