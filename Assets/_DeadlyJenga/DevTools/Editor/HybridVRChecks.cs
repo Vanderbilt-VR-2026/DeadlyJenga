@@ -152,9 +152,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(DeadlyJenga.Presentation.CandyGunSights.OpenSightAligned(Vector3.zero,Vector3.forward,muzzle)&&
                       !DeadlyJenga.Presentation.CandyGunSights.OpenSightAligned(Vector3.up*.4f,Vector3.forward,muzzle),"Scopeless VR aim detects a raised weapon and rejects a lowered weapon");
                 var avatar=player.GetComponent<CandyPlayerAvatar>();var rig=avatar.Rig;var sample=avatar.ReadFrame();
-                rig.SeatedVisual=true;rig.ApplyFrame(sample);float seatedHead=rig.HeadAnchor.position.y;
-                sample.head.y+=.60f;rig.ApplyFrame(sample);
-                Check(Mathf.Abs(seatedHead-rig.HeadAnchor.position.y)<.001f,"Local seated rig posture does not stretch with headset height");
+                rig.ApplyFrame(sample);float uprightHead=rig.HeadAnchor.position.y;
+                rig.SeatedVisual=true;sample.seated=true;rig.ApplyFrame(sample);
+                Check(Mathf.Abs(uprightHead-rig.HeadAnchor.position.y)<.001f,"Seated comfort keeps the avatar in its upright pose");
                 rig.SeatedVisual=false;
                 using(var packet=new MemoryStream())
                 using(var writer=new BinaryWriter(packet))
@@ -165,7 +165,7 @@ namespace DeadlyJenga.DevTools.Editor
                     packet.Position=0;
                     DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(reader,out var received,out _,out _,out _);
                     rig.ApplyFrame(received);
-                    Check(received.seated&&Mathf.Abs(seatedHead-rig.HeadAnchor.position.y)<.001f,"Network survivor frame preserves the seated pose on the receiving rig");
+                    Check(received.seated&&Mathf.Abs(uprightHead-rig.HeadAnchor.position.y)<.001f,"The seated wire flag decodes without changing the upright avatar pose");
                     packet.SetLength(0);
                     sample.seated=false;
                     DeadlyJenga.CharacterNetwork.CharacterWire.WriteSurvivor(writer,sample,0,default);
