@@ -116,6 +116,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
 
+        bool StressMotion => Environment.GetCommandLineArgs().Contains("--dj-motion-stress");
         bool ProbeMotion => Environment.GetCommandLineArgs().Contains("--dj-motion-probe");
 
         sealed class MotionProbeDriver : DeadlyJenga.CastleBots.ICastleSurvivorDriver
@@ -172,9 +173,9 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(() => runner.ActivePlayers.Count() == 2, "Direct match has both independent peers", 100);
             MatchSetup.FromLobby = true;
             MatchSetup.StartLocalSession = false;
-            MatchSetup.ModeId = "ctf";
-            MatchSetup.MapId = "mode-ctf";
-            MatchSetup.BotTarget = 3;
+            MatchSetup.ModeId = StressMotion ? "demo" : "ctf";
+            MatchSetup.MapId = StressMotion ? "skyline-island" : "mode-ctf";
+            MatchSetup.BotTarget = StressMotion ? 26 : 3;
             connected(runner);
             if (!host)
                 yield return Until(() => File.Exists(Mark("host-game-bound")), "Host already bound its Game transport", 100);
@@ -266,7 +267,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 session.SurvivorBots.AutoFill = false;
                 session.SurvivorBots.Clear();
-                session.SurvivorBots.SpawnOne();
+                UnityEngine.Random.InitState(1109);
+                int bots = StressMotion ? 24 : 1;
+                for (int i = 0; i < bots; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == bots, $"Host spawned exactly {bots} bots");
                 yield return Until(() => session.SurvivorBots.Members.Any(), "Host has an authoritative bot", 40);
                 bot = session.SurvivorBots.Members.First();
             }
@@ -281,6 +285,7 @@ namespace DeadlyJenga.CastlePrototype
                 $"connection={probeRunner.CurrentConnectionType} fixture=scripted-collision-motor,authoritative-bot,dynamic-block-impulse\n");
             File.WriteAllText(Mark(role + "-trace-ready"), "ready");
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-ready")), "Peer is ready to trace", 60);
+            Require(world.Blocks[block].isKinematic != host, "Selected block preserves host physics authority");
             yield return new WaitForSecondsRealtime(1.25f);
             var driver = new MotionProbeDriver(player.transform.position);
             try
@@ -288,16 +293,18 @@ namespace DeadlyJenga.CastlePrototype
                 double start = Time.realtimeSinceStartupAsDouble;
                 var data = new System.Text.StringBuilder(160 * 1024);
                 data.AppendLine("elapsed,clock,frameMs,gc0,rttSeconds,worldSerial,worldWaitSeconds,poseSerial,posePending,poseSuppressed,poseSent,poseSentBytes,poseApplied,localX,localY,localZ,remoteTargetX,remoteTargetY,remoteTargetZ,remoteRenderX,remoteRenderY,remoteRenderZ,botX,botY,botZ,blockX,blockY,blockZ,stateSequence,stateTick,stateHumanX,stateHumanY,stateHumanZ,stateBotX,stateBotY,stateBotZ,stateBlockX,stateBlockY,stateBlockZ");
-                bool pushed = false;
+                bool pushed = false, sawWave = false;
                 double nextRtt = 0, rtt = 0;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
-                while (Time.realtimeSinceStartupAsDouble - start < 12)
+                while (Time.realtimeSinceStartupAsDouble - start < (StressMotion ? 24 : 12))
                 {
                     double now = Time.realtimeSinceStartupAsDouble, elapsed = now - start;
+                    if (StressMotion && !sawWave) sawWave = Tracked.Waves.Any(wave => wave.Wave.active);
                     if (host && !pushed && elapsed >= 2)
                     {
                         var body = world.Blocks[block];
                         if (body && !body.isKinematic) body.AddForce(new Vector3(5, 4, 2), ForceMode.VelocityChange);
+                        if (StressMotion) Require(DemoDisasters.Execute(session, "Tsunami"), "Host started the live tsunami");
                         pushed = true;
                     }
                     if (elapsed >= nextRtt)
@@ -333,6 +340,7 @@ namespace DeadlyJenga.CastlePrototype
                     yield return null;
                 }
                 File.WriteAllText(Mark(role + "-motion.csv"), data.ToString());
+                if (StressMotion) Require(sawWave, "Tsunami was active during the sample");
                 FusionMotionWireTrace.Save(Mark(role + "-wire.csv"));
             }
             finally
