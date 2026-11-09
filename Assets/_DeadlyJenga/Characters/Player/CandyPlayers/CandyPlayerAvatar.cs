@@ -142,6 +142,19 @@ namespace DeadlyJenga.CandyPlayers
 
             Quaternion facing = Quaternion.Euler(0f, frame.headRotation.eulerAngles.y, 0f);
             float idle = Mathf.Sin(Time.time * 1.8f + side) * (1f - handSwing);
+            if (!survivor.IsVR)
+            {
+                // Keep the wrists in the lower view with the palms facing each other.
+                var desktopOffset = new Vector3(side * (.23f - swing * .012f),
+                    -.22f + swing * .027f + idle * .008f, .50f + swing * .075f);
+                return new CandyHandPose
+                {
+                    position = frame.head + facing * (desktopOffset * frame.scale),
+                    rotation = facing * Quaternion.Euler(38f - swing * 15f, -side * 5f, -side * (67f + swing * 8f + idle * 3f)),
+                    skeleton = CandyHandSkeleton.Rest(isLeft, .38f + swing * .10f),
+                    skeletonTracked = true
+                };
+            }
             Vector3 offset = new Vector3(side * .29f, -.51f + Mathf.Abs(swing) * .024f + idle * .006f,
                 .25f + swing * .065f);
             return new CandyHandPose {
