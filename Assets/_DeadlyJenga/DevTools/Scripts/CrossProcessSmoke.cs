@@ -226,7 +226,19 @@ namespace DeadlyJenga.CastlePrototype
             var player = ((Component)session.Player).GetComponent<CastleSurvivor>();
             session.SetMenu(false);
             var world = Services.World;
-            int block = world.Blocks.Count / 2;
+            int block;
+            if (host)
+            {
+                block = Enumerable.Range(0, world.Blocks.Count).Where(i => world.Blocks[i] && !world.Blocks[i].isKinematic)
+                    .OrderByDescending(i => world.Blocks[i].position.y).First();
+                File.WriteAllText(Mark("tracked-block"), block.ToString());
+                CastleMotionStateProbe.SelectedBlock = block;
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("tracked-block")), "Host selects a dynamic block", 35);
+                block = int.Parse(File.ReadAllText(Mark("tracked-block")));
+            }
             var viewField = ProbeField(lan, "views");
             var views = (Dictionary<string, INetworkActorView>)viewField.GetValue(lan);
             var receiver = ProbeField(sync, "worldReceiver").GetValue(sync);
@@ -254,13 +266,11 @@ namespace DeadlyJenga.CastlePrototype
             }
             var source = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--dj-source="));
             File.AppendAllText(Report, $"TRACE {source} map={MatchSetup.MapId} blocks={world.Blocks.Count} role={role} " +
-                $"connection={probeRunner.CurrentConnectionType} fixture=normal-motor-driver,authoritative-bot,one-block-impulse\n");
+                $"connection={probeRunner.CurrentConnectionType} fixture=scripted-collision-motor,authoritative-bot,dynamic-block-impulse\n");
             File.WriteAllText(Mark(role + "-trace-ready"), "ready");
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-ready")), "Peer is ready to trace", 60);
-            var originalDriver = player.InputDriver;
-            bool originalDriven = player.externallyDriven;
-            player.externallyDriven = true;
-            player.InputDriver = new MotionProbeDriver(player.transform.position);
+            yield return new WaitForSecondsRealtime(1.25f);
+            var driver = new MotionProbeDriver(player.transform.position);
             try
             {
                 double start = Time.realtimeSinceStartupAsDouble;
@@ -275,13 +285,18 @@ namespace DeadlyJenga.CastlePrototype
                     if (host && !pushed && elapsed >= 2)
                     {
                         var body = world.Blocks[block];
-                        if (body && !body.isKinematic) body.AddForce(new Vector3(3, 4, 1), ForceMode.VelocityChange);
+                        if (body && !body.isKinematic) body.AddForce(new Vector3(5, 4, 2), ForceMode.VelocityChange);
                         pushed = true;
                     }
                     if (elapsed >= nextRtt)
                     {
                         rtt = probeRunner.GetPlayerRtt(probeRunner.ActivePlayers.Single(p => p != probeRunner.LocalPlayer));
                         nextRtt = elapsed + 1;
+                    }
+                    if (player.Capsule && player.Capsule.enabled)
+                    {
+                        var command = driver.ReadCommand(player, Time.deltaTime);
+                        player.Capsule.Move(command.move * Mathf.Min(Time.deltaTime, .04f) * 2.4f);
                     }
                     views.TryGetValue(remoteId, out var remote);
                     var botView = host ? null : views.FirstOrDefault(pair => pair.Key != remoteId &&
@@ -310,8 +325,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             finally
             {
-                player.InputDriver = originalDriver;
-                player.externallyDriven = originalDriven;
+                CastleMotionStateProbe.SelectedBlock = -1;
             }
             File.WriteAllText(Mark(role + "-trace-done"), "done");
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-done")), "Both independent peer traces completed", 40);

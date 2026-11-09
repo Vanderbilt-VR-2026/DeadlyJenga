@@ -159,6 +159,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             var restoreWorld=targetWorld;
             if(!client&&restoreWorld==null)restoreWorld=CaptureWorld();
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            ResetProbeMotion();
+#endif
             id=newId;fusionClient=client;fusionActors.Clear();livePoseAt.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
             if(!client)
             {
@@ -214,6 +217,75 @@ namespace DeadlyJenga.CastlePrototype
             return P.Encode(P.Player,writer=>{writer.Write(selected.Length);foreach(var actor in selected)P.Write(writer,actor);});
         }
         public byte[] FusionCaptureLivePoses()=>FusionEncodeLivePosesFor(FusionCaptureLiveActors(),null);
+
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+        readonly HashSet<string> probeMotionActors = new HashSet<string>();
+        int probeBlock = -1, probeMotionRevision = -1;
+        P.Pose probeFrom, probeTo;
+        float probeFromAt, probeToAt;
+
+        internal byte[] CaptureProbeMotionActors()
+        {
+            var host = LocalActor();
+            var bot = session.SurvivorBots?.Members.FirstOrDefault();
+            var actor = bot ? bot.GetComponent<INetworkActor>() : null;
+            var selected = actor == null ? new[] { host } : new[] { host, P.Capture(LocalActorId(bot.transform), actor) };
+            return FusionEncodeLivePosesFor(selected, null);
+        }
+
+        internal void ApplyProbeMotion(int revision, byte[] actors, int bytes, int index, Vector3 position, Quaternion rotation)
+        {
+            if (!IsClient || !receivedWorld || revision != hostRevision || index < 0 || index >= World.Blocks.Count) return;
+            if (probeMotionRevision != revision) ResetProbeMotion();
+            probeMotionRevision = revision;
+            if (bytes > 0)
+            {
+                // The prototype uses the existing actor codec and caps the decoded set at two.
+                using var stream = new MemoryStream(actors, 0, bytes, false);
+                using var reader = new BinaryReader(stream);
+                if (reader.ReadByte() != P.Player) return;
+                int count = P.Count(reader, 2);
+                probeMotionActors.Clear();
+                for (int i = 0; i < count; i++)
+                {
+                    var actor = P.ReadActor(reader);
+                    if (actor.id == id) continue;
+                    probeMotionActors.Add(actor.id);
+                    ShowActor(actor, false);
+                }
+            }
+            float now = Time.unscaledTime;
+            if (probeBlock != index)
+            {
+                probeBlock = index;
+                probeFrom = probeTo = new P.Pose(position, rotation);
+                probeFromAt = probeToAt = now;
+                return;
+            }
+            probeFrom = probeTo;
+            probeFromAt = probeToAt;
+            probeTo = new P.Pose(position, rotation);
+            probeToAt = now;
+        }
+
+        void ResetProbeMotion()
+        {
+            probeMotionActors.Clear();
+            probeBlock = -1;
+            probeMotionRevision = -1;
+        }
+
+        bool InterpolateProbeBlock(int index, Rigidbody body)
+        {
+            if (index != probeBlock || probeMotionRevision != hostRevision) return false;
+            float duration = probeToAt - probeFromAt;
+            float t = duration <= .001f ? 1 : Mathf.Clamp01((Time.unscaledTime - .075f - probeFromAt) / duration);
+            body.position = Vector3.Lerp(probeFrom.position, probeTo.position, t);
+            body.rotation = Quaternion.Slerp(probeFrom.rotation, probeTo.rotation, t);
+            return true;
+        }
+#endif
+
         public void FusionApplyWorld(byte[] data)
         {
             var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
@@ -240,6 +312,9 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     ApplyOwnHandFeedback(actor);livePoseAt[actor.id]=Time.unscaledTime;continue;
                 }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (probeMotionActors.Contains(actor.id)) continue;
+#endif
                 ShowActor(actor, false);
                 livePoseAt[actor.id] = Time.unscaledTime;
             }
@@ -573,6 +648,9 @@ namespace DeadlyJenga.CastlePrototype
             bool rebuild = !receivedWorld || hostRevision != s.revision;
             if (rebuild)
             {
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                ResetProbeMotion();
+#endif
                 if (!w.LoadLayout(s.settings, s.blocks.Length, new Pose(s.origin.position, s.origin.rotation), s.originScale))
                     throw new InvalidDataException("Demo layouts do not match");
                 hostRevision = s.revision;
@@ -592,6 +670,9 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var actor in s.actors)
             {
                 present.Add(actor.id);
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (probeMotionActors.Contains(actor.id) && views.TryGetValue(actor.id, out var owned) && owned.NetworkActive == actor.active) continue;
+#endif
                 if(HasFreshPose(actor.id))continue;
                 if(actor.id==id)ApplyOwnHandFeedback(actor);
                 else ShowActor(actor,false);
@@ -615,6 +696,9 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < targetWorld.blocks.Length; i++)
             {
                 var b = World.Blocks[i]; var p = targetWorld.blocks[i];
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+                if (InterpolateProbeBlock(i, b)) continue;
+#endif
                 b.position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
                 b.rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
             }

@@ -23,6 +23,45 @@ namespace DeadlyJenga.CastlePrototype
         [Networked] public Quaternion BlockRotation { get; private set; }
 
 
+
+        [Networked] public int WorldRevision { get; private set; }
+        [Networked] public int ActorBytes { get; private set; }
+        [Networked, Capacity(1024)] NetworkArray<int> ActorWords => default;
+        readonly byte[] incoming = new byte[4096];
+        int lastApplied;
+        public static int SelectedBlock { get; set; } = -1;
+        public static bool ApplyEnabled => Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-state-apply") >= 0;
+
+        void CaptureActors(CastlePlaySession session)
+        {
+            var data = session.Network.CaptureProbeMotionActors();
+            if (data.Length > incoming.Length) { ActorBytes = 0; return; }
+            var words = ActorWords;
+            int count = (data.Length + 3) / 4;
+            for (int index = 0; index < count; index++)
+            {
+                int start = index * 4;
+                int value = 0;
+                for (int i = 0; i < 4 && start + i < data.Length; i++)
+                    value |= data[start + i] << (8 * i);
+                words.Set(index, value);
+            }
+            ActorBytes = data.Length;
+        }
+
+        public override void Render()
+        {
+            if (!ApplyEnabled || HasStateAuthority || Sequence == 0 || unchecked(Sequence - lastApplied) <= 0 ||
+                Services.Session is not CastlePlaySession session || !session.Network) return;
+            int bytes = ActorBytes;
+            if (bytes <= 0 || bytes > incoming.Length) return;
+            var words = ActorWords;
+            for (int i = 0; i < bytes; i++)
+                incoming[i] = (byte)(words[i / 4] >> (8 * (i % 4)));
+            session.Network.ApplyProbeMotion(WorldRevision, incoming, bytes, BlockIndex, Block, BlockRotation);
+            lastApplied = Sequence;
+        }
+
         public static System.Threading.Tasks.Task<StartGameResult> ConnectDirect(
             NetworkRunner runner, GameObject holder, bool host, string code)
         {
@@ -63,13 +102,18 @@ namespace DeadlyJenga.CastlePrototype
                 Services.World is not { } world || world.Blocks.Count == 0 ||
                 session.Player is not Component player) return;
             var bot = session.SurvivorBots?.Members.FirstOrDefault();
-            int index = world.Blocks.Count / 2;
+            int index = SelectedBlock >= 0 && SelectedBlock < world.Blocks.Count ? SelectedBlock : world.Blocks.Count / 2;
             var block = world.Blocks[index];
             Human = player.transform.position;
             Bot = bot ? bot.transform.position : Vector3.zero;
             BlockIndex = index;
             Block = block ? block.position : Vector3.zero;
             BlockRotation = block ? block.rotation : Quaternion.identity;
+            if (ApplyEnabled && session.Network && world is ISyncedWorld synced)
+            {
+                WorldRevision = synced.Revision;
+                CaptureActors(session);
+            }
             CaptureTick = Runner.Tick;
             Sequence++;
         }
