@@ -230,7 +230,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(i>=1&&i<=9){p.ApplyMatchRules(rules);string after=p.SaveStaminaRules();if(after!=before)Demo?.ApplyStaminaRules(after);}
                     break;
                 }
-                if(i==13){modePage=true;comfortPage=networkPage=false;break;}
+                if(i==13){modePage=modeWheel=true;comfortPage=networkPage=false;break;}
                 if(comfortPage&&Settings!=null)
                 {
                     var p=Settings;var social=session.Social;

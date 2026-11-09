@@ -29,8 +29,10 @@ namespace DeadlyJenga.Presentation
             ObserveLocalLife(runtime,f);
             if(skin!=f.rules.environmentSkin){skin=f.rules.environmentSkin;CandySceneSkins.Select(SkinIndex(skin));}
             bool outage=false;foreach(var hazard in DisasterStates.Active){var state=hazard.Capture();if(state!=null&&state.warning<=0&&state.kind=="PowerOutage"&&f.phase!=RoundPhase.Victory&&f.phase!=RoundPhase.Results){outage=true;break;}}
-            bool restoringOutage=wasOutage&&!outage;wasOutage=outage;
-            if(!outage)Health(runtime,f);
+            bool restoringOutage=wasOutage&&!outage;
+            if(outage&&!wasOutage)RestoreLooks();
+            wasOutage=outage;
+            if(!outage&&!restoringOutage)Health(runtime,f);
             if(Time.unscaledTime>=scanAt&&!restoringOutage){scanAt=Time.unscaledTime+.2f;Deaths(runtime,f);TeamHands(runtime,f);if(!outage){Winner(f);if(f.phase!=RoundPhase.Victory)Claims(f);}else claimRevision=-1;}
             Transition();
             if(Time.unscaledTime>=environmentAt){environmentAt=Time.unscaledTime+1;environments=FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None);}

@@ -130,6 +130,7 @@ namespace DeadlyJenga.CastlePrototype
         void ResetPages()
         {
             roomLeave.Clear();
+            modeWheel=false;
             networkPage=comfortPage=tuningPage=modePage=hudPage=mapPage=spectatePage=
                 tabletopPage=disasterPage=giveEquipmentPage=randomPowerupPage=powerupPage=batchPage=quickGunPage=false;
             equipmentOffset=disasterOffset=mapOffset=batchTarget=0;disasterSelection=-1;
@@ -282,7 +283,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             menuSection=index;string name=DemoMenuSections.Sections[menuCategory][index];equipmentOffset=0;
             if(name=="Equipment"||name=="Bot equipment"){giveAllEquipment=name=="Bot equipment";giveEquipmentPage=true;}
-            if(name=="Spectate")spectatePage=true;if(name=="Maps")mapPage=true;if(name=="Modes")modePage=true;if(name=="Disasters")disasterPage=true;
+            if(name=="Spectate")spectatePage=true;if(name=="Maps")mapPage=true;if(name=="Modes")modePage=modeWheel=true;if(name=="Disasters")disasterPage=true;
             if(name=="Settings"||name=="Voice")comfortPage=true;if(name=="Friends")networkPage=true;if(name=="Powerup spawning")randomPowerupPage=true;
         }
     }

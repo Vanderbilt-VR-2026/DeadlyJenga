@@ -125,6 +125,16 @@ namespace DeadlyJenga.CandyArt
                 if(!neon.TryGetValue(key,out var material)){if(neon.Count>=VariantLimit){if(slots[i]==look.applied[i]){slots[i]=source;changed=true;}look.applied[i]=null;continue;}material=new Material(shader);neon.Add(key,material);}
                 material.shader=shader;material.SetColor("_BaseColor",source.GetColor("_BaseColor"));
                 if(source.HasProperty("_BaseMap")){material.SetTexture("_BaseMap",source.GetTexture("_BaseMap"));material.SetTextureScale("_BaseMap",source.GetTextureScale("_BaseMap"));material.SetTextureOffset("_BaseMap",source.GetTextureOffset("_BaseMap"));}
+                bool normalMapped=source.HasProperty("_BumpMap")&&source.IsKeywordEnabled("_NORMALMAP")&&source.GetTexture("_BumpMap");
+                material.SetFloat("_BumpScale",normalMapped?(source.HasProperty("_BumpScale")?source.GetFloat("_BumpScale"):1):0);
+                if(normalMapped)
+                {
+                    material.SetTexture("_BumpMap",source.GetTexture("_BumpMap"));
+                    material.SetTextureScale("_BumpMap",source.GetTextureScale("_BumpMap"));
+                    material.SetTextureOffset("_BumpMap",source.GetTextureOffset("_BumpMap"));
+                }
+                material.SetFloat("_Smoothness",source.HasProperty("_Smoothness")?source.GetFloat("_Smoothness"):.6f);
+                material.SetFloat("_Metallic",source.HasProperty("_Metallic")?source.GetFloat("_Metallic"):0f);
                 material.SetFloat("_Filled",style==1?1:0);material.SetFloat("_Character",style==4?1:0);material.SetFloat("_Rim",reach);material.SetVector("_BoundsCenter",center);material.SetVector("_BoundsSize",size);material.enableInstancing=true;
                 if(slots[i]!=material){slots[i]=material;changed=true;}look.applied[i]=material;
             }

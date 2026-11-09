@@ -388,23 +388,58 @@ namespace DeadlyJenga.CastlePrototype
             }
             GUI.Box(new Rect(8,Screen.height-34,Mathf.Min(Screen.width-16,490),26),"← / → switch players   ·   Esc spectator menu",spectatorLabel);GUI.backgroundColor=old;
         }
+        int desktopDisaster, desktopDisasterOffset;
+
+        Rect DesktopChoiceSlot(int index)
+        {
+            var direction = ModeSetupPanel.WheelDirection(index);
+            var center = new Vector2(271 + 163 * direction.x, 254 - 125 * direction.y);
+            return new Rect(center.x - 55, center.y - 25, 110, 50);
+        }
+
+        void DesktopChoiceCard(int index, string title, bool selected, Action select, bool enabled = true)
+        {
+            Rect rect = DesktopChoiceSlot(index);
+            Color tint = rect.Contains(Event.current.mousePosition) && enabled
+                ? CandyHudVisuals.Mint : selected ? CandyHudVisuals.Lavender : CandyHudVisuals.Card;
+            DesktopWheelButton(rect, "", select, enabled, tint);
+            desktopWheelCenter ??= new GUIStyle(small){fontSize=15,alignment=TextAnchor.MiddleCenter,wordWrap=true};
+            var style = desktopWheelCenter;
+            var oldColor = style.normal.textColor;
+            style.normal.textColor = tint.grayscale > .5f ? CandyHudVisuals.Ink : Color.white;
+            GUI.Label(new Rect(rect.x + 4, rect.y + 2, rect.width - 8, rect.height - 4), title, style);
+            style.normal.textColor = oldColor;
+        }
+
         float DisasterContentHeight()
         {
-            float height=350;
-            if(Demo!=null)for(int d=0;d<Demo.DisasterCount;d++)height+=104+Demo.DisasterParameters(d).Count*64+44;
-            return height;
+            if(Demo==null||Demo.DisasterCount==0)return 420;
+            int selected=Mathf.Clamp(desktopDisaster,0,Demo.DisasterCount-1);
+            return 445+Demo.DisasterParameters(selected).Count*64;
         }
         void DisastersPage()
         {
-            if(Demo==null){Note(125,"Disasters are getting ready...");return;}
-            ActionCard(119,CandyHudIcon.Play,"Stop all disasters","Extinguish fires and stop disasters. Reset the map to clear charring.",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
-            float y=223;
-            for(int d=0;d<Demo.DisasterCount;d++)
+            if(Demo==null||Demo.DisasterCount==0){Note(125,"Disasters are getting ready...");return;}
+            const int size=ModeSetupPanel.ChoiceWheelSize;
+            desktopDisaster=Mathf.Clamp(desktopDisaster,0,Demo.DisasterCount-1);
+            desktopDisasterOffset=Mathf.Clamp(desktopDisasterOffset/size,0,(Demo.DisasterCount-1)/size)*size;
+            for(int i=0;i<size&&desktopDisasterOffset+i<Demo.DisasterCount;i++)
             {
-                int index=d;var definitions=Demo.DisasterParameters(index);var values=Demo.DisasterValues(index);
-                bool toggle=Demo.DisasterIsToggle(index);
-                ActionCard(y,CandyHudIcon.Play,Demo.DisasterLabel(index)+(toggle?" · toggle":""),toggle?"Turn slippery surfaces on or off.":"Launch with the settings selected below.",()=>disasterStatus=Demo.LaunchDisaster(index),CanCommand,CandyHudVisuals.Peach);
-                y+=104;Panel(new Rect(8,y,824,definitions.Count*64+36),CandyHudVisuals.Card);
+                int choice=desktopDisasterOffset+i;
+                DesktopChoiceCard(i,Demo.DisasterLabel(choice),choice==desktopDisaster,()=>desktopDisaster=choice);
+            }
+            int index=desktopDisaster;
+            Panel(new Rect(203,215,136,78),CandyHudVisuals.Panel);
+            GUI.Label(new Rect(207,217,128,74),Demo.DisasterLabel(index),desktopWheelCenter);
+            GUI.Label(new Rect(490,124,330,48),"DISASTER CONTROLS",heading);
+            DesktopWheelButton(new Rect(490,180,330,48),Demo.DisasterIsToggle(index)?"TOGGLE SELECTED":"LAUNCH SELECTED",()=>disasterStatus=Demo.LaunchDisaster(index),CanCommand,CandyHudVisuals.Peach);
+            DesktopWheelButton(new Rect(490,238,330,42),"STOP ALL DISASTERS",()=>Demo.Run(DemoCommand.StopDisasters),CanCommand);
+            DesktopWheelButton(new Rect(490,297,154,36),"PREVIOUS",()=>{desktopDisasterOffset-=size;desktopDisaster=desktopDisasterOffset;},desktopDisasterOffset>0);
+            DesktopWheelButton(new Rect(666,297,154,36),"NEXT",()=>{desktopDisasterOffset+=size;desktopDisaster=desktopDisasterOffset;},desktopDisasterOffset+size<Demo.DisasterCount);
+            GUI.Label(new Rect(490,342,330,64),disasterStatus??"",small);
+            var definitions=Demo.DisasterParameters(index);var values=Demo.DisasterValues(index);
+            float y=422;
+            Panel(new Rect(8,y,824,definitions.Count*64+23),CandyHudVisuals.Card);
                 bool old=GUI.enabled;GUI.enabled=old&&CanCommand;
                 for(int i=0;i<definitions.Count;i++)
                 {
@@ -418,8 +453,7 @@ namespace DeadlyJenga.CastlePrototype
                     var p=definitions[i];GUI.Label(new Rect(28,y+6+i*64,780,26),p.label+" · "+values[i].ToString(p.whole?"F0":"F1")+" "+p.unit,body);
                     float v=GUI.HorizontalSlider(new Rect(28,y+37+i*64,780,20),values[i],p.min,p.max);if(!Mathf.Approximately(v,values[i]))Demo.SetDisasterValue(index,i,v);
                 }
-                GUI.enabled=old;GUI.Label(new Rect(28,y+definitions.Count*64+4,780,26),"Next launch only · Stop all restores temporary changes",small);y+=definitions.Count*64+48;
-            }
+                GUI.enabled=old;GUI.Label(new Rect(28,y+definitions.Count*64,780,23),"Settings apply on the next launch",small);
         }
         void BotsPage()
         {
@@ -449,8 +483,25 @@ namespace DeadlyJenga.CastlePrototype
         void ModesPage()
         {
             var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
-            bool editable=GUI.enabled;GUI.enabled=editable&&GameExperiencePanel.CanEditRawChoices(session);
-            GUILayout.BeginArea(new Rect(12,115,816,5800));ModeSetupPanel.Draw();GUILayout.EndArea();GUI.enabled=editable;
+            bool editable=GUI.enabled;
+            var match=MatchRuntime.Current;
+            bool canPick=editable&&match?.Authority==true&&GameExperiencePanel.CanEditRawChoices(session);
+            if(match!=null)
+            {
+                for(int i=0;i<ModeSetupPanel.WheelModes.Length;i++)
+                {
+                    var choice=ModeSetupPanel.WheelModes[i];
+                    DesktopChoiceCard(i,CandyHudContent.Mode(choice),choice==match.Rules.mode,
+                        ()=>{if(choice!=match.Rules.mode)match.Configure(ModeDefaults.Create(choice));},canPick);
+                }
+                var picture=ModeSetupPanel.WheelModePicture(match.Rules.mode);
+                if(picture)GUI.DrawTexture(new Rect(203,209,136,90),picture,ScaleMode.ScaleToFit);
+                GUI.Label(new Rect(490,133,330,48),CandyHudContent.Mode(match.Rules.mode),heading);
+                GUI.Label(new Rect(490,188,326,72),canPick?"Select a mode, then start a round. Settings are below.":"The host selects the mode.",body);
+                DesktopWheelButton(new Rect(490,275,330,48),"START / RESTART ROUND",()=>match.StartRound(),canPick,CandyHudVisuals.Peach);
+            }
+            GUI.enabled=editable&&GameExperiencePanel.CanEditRawChoices(session);
+            GUILayout.BeginArea(new Rect(12,422,816,5550));ModeSetupPanel.Draw();GUILayout.EndArea();GUI.enabled=editable;
             GUI.backgroundColor=background;
         }
         void SettingsPage()

@@ -34,22 +34,14 @@ namespace DeadlyJenga.CastlePrototype
         {var p=Demo.DisasterParameters(disaster)[index];disasterCaptions[index].text=p.label+" · "+Demo.DisasterValues(disaster)[index].ToString(p.whole?"F0":"F1")+" "+p.unit;}
         void PointDisasterPage(Camera camera,bool pressed,bool held)
         {
+            if(disasterSelection>=0&&(Demo==null||disasterSelection>=Demo.DisasterCount))disasterSelection=-1;
+            if(disasterSelection<0){PointDisasterWheel(pressed);return;}
             EnsureDisasterSliders();HideDisasterSliders();
-            int count=Demo!=null?Demo.DisasterCount:0;bool allowed=CanCommand;int switchParameter=-1;
+            bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
             {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(540,48);}
             ButtonAt(0,"Resume",277);
-            if(disasterSelection>=count)disasterSelection=-1;
-            if(disasterSelection<0)
-            {
-                heading.text="NATURAL DISASTERS\nChoose one to tune and launch";
-                for(int i=0;i<9&&disasterOffset+i<count;i++)ButtonAt(i+1,Demo.DisasterLabel(disasterOffset+i)+" · settings",220-i*53);
-                ButtonAt(10,"Stop all disasters",-310,allowed);ButtonAt(12,"Back to demo controls",-370);
-                if(disasterOffset>0)ButtonAt(13,"Previous disasters",-420);
-                else if(disasterOffset+9<count)ButtonAt(14,"More disasters",-420);
-            }
-            else
             {
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
                 heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\nSettings apply to the next launch";
@@ -74,12 +66,9 @@ namespace DeadlyJenga.CastlePrototype
                 if(!hover||!pressed)continue;
                 if(i==0)session.SetMenu(false);
                 else if(i==10)Demo?.Run(DemoCommand.StopDisasters);
-                else if(i==12){if(disasterSelection>=0)disasterSelection=-1;else disasterPage=false;}
-                else if(i==13)disasterOffset=Mathf.Max(0,disasterOffset-9);
-                else if(i==14)disasterOffset+=9;
+                else if(i==12)disasterSelection=-1;
                 else if(i==11&&switchParameter>=0)Demo.SetDisasterValue(disasterSelection,switchParameter,Demo.DisasterValues(disasterSelection)[switchParameter]>.5f?0:1);
                 else if(disasterSelection>=0&&i==1)disasterStatus=Demo.LaunchDisaster(disasterSelection);
-                else if(i>=1&&i<=9){disasterSelection=disasterOffset+i-1;disasterStatus="";}
                 break;
             }
         }

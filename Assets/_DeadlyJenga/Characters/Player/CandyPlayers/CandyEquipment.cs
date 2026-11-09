@@ -11,6 +11,7 @@ namespace DeadlyJenga.CandyPlayers
         CastleSurvivor motor;CandyPlayerAvatar avatar;CandyWeaponVisual visual;
         InputAction trigger,offTrigger,grip;
         bool left,armed,sheriffShotgun,primaryJumpReserved;float nextHandSync;float nextFire,lastAttackTime=float.NegativeInfinity;EquipmentKind lastPower;
+        EquipmentKind lastAttackKind;
         Vector3 lastHand;bool handReady;float nextSwing;
         Vector3 desktopAimTarget;
         float aimBlend;int aimBlendFrame=-1;EquipmentKind aimBlendKind;bool aimBlendLeft;
@@ -178,7 +179,7 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     float age=Time.time-lastAttackTime;
                     bool melee=EquipmentSpecifications.Get(Equipment.kind).melee;
-                    if(age>=0&&age<.3f)aim.position+=aim.rotation*Vector3.forward*(Mathf.Sin(age/.3f*Mathf.PI)*(melee?.30f:-.035f)*Scale);
+                    if(!melee&&age>=0&&age<.3f)aim.position-=aim.rotation*Vector3.forward*(Mathf.Sin(age/.3f*Mathf.PI)*.035f*Scale);
                 }
                 if(Equipment.kind>EquipmentKind.PoweredArmor&&Equipment.triggerHeld)aim.position-=aim.rotation*Vector3.forward*(.012f*Mathf.Abs(Mathf.Sin(Time.time*55))*Scale);
                 return aim;
@@ -224,7 +225,7 @@ namespace DeadlyJenga.CandyPlayers
             if(Runtime?.RequestEquipmentAttack(muzzle)!=true)return false;
             if(!EquipmentSpecifications.Get(state.kind).twoHanded)
                 GetComponent<SurvivorMoments>()?.Cancel();
-            lastAttackTime=Time.time;nextFire=Time.time+(state.kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(state.kind).cooldown:((state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.65f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):.9f));return true;
+            lastAttackKind=state.kind;lastAttackTime=Time.time;nextFire=Time.time+(state.kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(state.kind).cooldown:((state.kind==EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor)?.45f:state.kind==EquipmentKind.DualRifle?(state.shotgun?.20f:.65f):state.kind==EquipmentKind.SheriffHammer?(state.shotgun?.28f:.75f):.9f));return true;
         }
         Pose AxeCarry(Pose gripPose,bool handLeft)
         {
@@ -249,13 +250,101 @@ namespace DeadlyJenga.CandyPlayers
             return new Pose(gripPose.position+rotation*Quaternion.Inverse(mount)*palm*Scale,rotation);
         }
 
+        Pose DesktopMeleePose(Pose gripPose, EquipmentState state)
+        {
+            if (motor.IsVR || lastAttackKind != state.kind || !EquipmentSpecifications.Get(state.kind).melee ||
+                state.shotgun && (state.kind == EquipmentKind.LaserAxe || state.kind == EquipmentKind.Chainsaw))
+                return gripPose;
+
+            float side = state.leftHanded ? -1f : 1f;
+            float duration = .43f;
+            Vector3 windup, strike, follow, windAngle, hitAngle, followAngle;
+            switch (state.kind)
+            {
+                case EquipmentKind.Dagger:
+                    duration = .29f;
+                    windup = new(0, -.035f, -.13f); strike = new(-.03f, .045f, .27f); follow = new(-.04f, -.025f, .14f);
+                    windAngle = new(-18, 12, -18); hitAngle = new(3, 0, -8); followAngle = new(19, -12, -18);
+                    break;
+                case EquipmentKind.FlamingMarshmallow:
+                    duration = .34f;
+                    windup = new(.08f, -.04f, -.10f); strike = new(-.02f, .06f, .22f); follow = new(-.09f, .13f, .08f);
+                    windAngle = new(28, 20, 13); hitAngle = new(-12, -10, 0); followAngle = new(-40, -28, -12);
+                    break;
+                case EquipmentKind.MurderSword:
+                    duration = .40f;
+                    windup = new(.17f, .26f, -.13f); strike = new(-.04f, .10f, .20f); follow = new(-.20f, -.13f, .12f);
+                    windAngle = new(-45, 58, 34); hitAngle = new(10, -16, -8); followAngle = new(57, -62, -38);
+                    break;
+                case EquipmentKind.BarbedBat:
+                    duration = .51f;
+                    windup = new(.22f, .20f, -.16f); strike = new(-.04f, .08f, .19f); follow = new(-.24f, -.07f, .05f);
+                    windAngle = new(-24, 82, 33); hitAngle = new(-7, -17, 9); followAngle = new(21, -100, -28);
+                    break;
+                case EquipmentKind.SawStaff:
+                    duration = .57f;
+                    windup = new(.24f, .05f, -.19f); strike = new(.01f, .06f, .20f); follow = new(-.23f, .09f, .08f);
+                    windAngle = new(13, 67, 26); hitAngle = new(-11, -8, 4); followAngle = new(-22, -74, -17);
+                    break;
+                case EquipmentKind.LaserAxe:
+                    duration = .65f;
+                    windup = new(.14f, .30f, -.12f); strike = new(-.06f, .11f, .16f); follow = new(-.12f, -.16f, .12f);
+                    windAngle = new(-64, 33, 19); hitAngle = new(8, -20, -12); followAngle = new(67, -44, -25);
+                    break;
+                case EquipmentKind.Chainsaw:
+                    duration = .54f;
+                    windup = new(.16f, -.05f, -.08f); strike = new(.03f, .05f, .18f); follow = new(-.22f, -.06f, .12f);
+                    windAngle = new(-8, 34, 12); hitAngle = new(-6, 5, 0); followAngle = new(12, -46, -16);
+                    break;
+                case EquipmentKind.LaserClaws:
+                    duration = .37f;
+                    windup = new(.19f, .15f, -.10f); strike = new(-.04f, .08f, .19f); follow = new(-.21f, -.15f, .08f);
+                    windAngle = new(-23, 52, 18); hitAngle = new(11, -16, 3); followAngle = new(51, -72, -31);
+                    break;
+                default:
+                    duration = .32f;
+                    windup = new(.12f, .05f, -.12f); strike = new(-.03f, .07f, .22f); follow = new(-.15f, -.04f, .12f);
+                    windAngle = new(-22, 34, 14); hitAngle = new(1, -9, 0); followAngle = new(22, -34, -19);
+                    break;
+            }
+            float progress = (Time.time - lastAttackTime) / duration;
+            if (progress < 0f || progress >= 1f) return gripPose;
+            Vector3 offset, euler;
+            if (progress < .16f)
+            {
+                float t = Mathf.SmoothStep(0, 1, progress / .16f);
+                offset = windup * t; euler = windAngle * t;
+            }
+            else if (progress < .40f)
+            {
+                float t = Mathf.SmoothStep(0, 1, (progress - .16f) / .24f);
+                offset = Vector3.Lerp(windup, strike, t); euler = Vector3.Lerp(windAngle, hitAngle, t);
+            }
+            else
+            {
+                float recovery = (progress - .40f) / .60f;
+                float t = Mathf.SmoothStep(0, 1, recovery * 3f);
+                float settle = 1f - Mathf.SmoothStep(0, 1, (recovery - .32f) / .68f);
+                offset = Vector3.Lerp(strike, follow, t) * settle;
+                euler = Vector3.Lerp(hitAngle, followAngle, t) * settle;
+            }
+            offset.x *= side; euler.y *= side; euler.z *= side;
+            return new Pose(gripPose.position + gripPose.rotation * offset * Scale,
+                gripPose.rotation * Quaternion.Euler(euler));
+        }
+
         public void PoseHands(ref CandyAvatarFrame frame)
         {
             var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||motor&&(motor.Climbing||motor.Vaulting))return;
-            ReadAcceptedBashes(state);var hand=state.leftHanded?frame.left:frame.right;var gripPose=GripPose;var pose=PresentedBashGrip(PresentedReloadGrip(gripPose,state,state.leftHanded),state);hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
+            ReadAcceptedBashes(state);var hand=state.leftHanded?frame.left:frame.right;var gripPose=GripPose;var pose=DesktopMeleePose(PresentedBashGrip(PresentedReloadGrip(gripPose,state,state.leftHanded),state),state);hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
             if(state.kind==EquipmentKind.LaserAxe)
             {
-                var carry=AxeCarry(pose,state.leftHanded);
+                var carry=AxeCarry(gripPose,state.leftHanded);
+                if (!motor.IsVR)
+                {
+                    var delta = pose.rotation * Quaternion.Inverse(gripPose.rotation);
+                    carry = new Pose(pose.position + delta * (carry.position - gripPose.position), delta * carry.rotation);
+                }
                 CandyWeaponVisual.MeleeMount(state.kind,state.leftHanded,out var palm,out var axeMount);
                 hand.rotation=carry.rotation*Quaternion.Inverse(axeMount);
                 hand.position=carry.position-hand.rotation*palm*Scale;
