@@ -213,11 +213,11 @@ namespace DeadlyJenga.CandyArt
             float flash=Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-1.8f)/.1f),2)+.55f*Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-2f)/.075f),2);
             if(previewStormFlash>=0)flash=previewStormFlash;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
-            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.30f,.38f,.50f,.62f),new Color(.48f,.62f,1.1f,.72f),flash));
-            stormRibbon.SetColor("_BaseColor",Color.Lerp(new Color(.40f,.51f,.63f,compactStorm?.12f:.19f),new Color(.7f,.9f,1.3f,.28f),flash));
+            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f),new Color(.40f,.49f,.86f,.70f),flash));
+            stormRibbon.SetColor("_BaseColor",Color.Lerp(new Color(.27f,.34f,.46f,compactStorm?.12f:.19f),new Color(.59f,.71f,1.1f,.28f),flash));
             if(flash>.02f)
             {
-                stormFlash.SetColor("_BaseColor",new Color(.8f,1.2f,2.8f,flash*.9f));
+                stormFlash.SetColor("_BaseColor",new Color(.8f,1.2f,2.8f,flash*.7f));
                 Vector3 start=f.center+new Vector3(size*.5f,height+size*.8f,size*.3f),fork=f.center+new Vector3(size*1.2f,height-size*.3f,size*.8f);
                 StormBolt(start,fork,17,2.2f,10);
                 StormBolt(Vector3.Lerp(start,fork,.45f),f.center+new Vector3(size*2.5f,height+size*.1f,-size*.3f),42,1.6f,7);

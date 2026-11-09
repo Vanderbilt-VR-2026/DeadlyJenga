@@ -46,27 +46,36 @@ Shader "Candy Tropical/Storm Funnel"
     float size=_StormInfo.x,height=_StormInfo.y,t=saturate(p.y/height);
     float2 lean=float2(sin(t*3+time*.7),cos(t*4-time*.6))*size*.13*t;
     float2 q=p.xz-lean;
-    float r=length(q),radius=lerp(size*.125,size*.77,t*(.79+.21*t));
+    float r=length(q),radius=lerp(size*.155,size*.82,t*(.79+.21*t));
     float twist=t*9-time*_StormInfo.z*2.2;
     float2 flow=Turn(q,twist);
     float rel=r/max(.1,radius);
     float capY=(p.y-height)/size;
     float body=0;cloud=0;grain=.5;edge=saturate(rel);
-    if(rel<1.6&&p.y>=-1&&capY<.24)
+    float skirtHeight=max(.7,size*.17);
+    bool inSkirt=p.y<skirtHeight&&r<size*.88;
+    if((rel<1.6||inSkirt)&&p.y>=-1&&capY<.24)
     {
      float3 v=float3(flow.x*.046,p.y*.067-time*.65,flow.y*.046);
      float large=Noise(v,.3);
      float fine=_MarchBudget>20?Noise(v*2.63+2.8,.2):large;
      float striation=sin(p.y*.44+flow.x*.27+large*5)*.5+.5;
      grain=large*.63+fine*.26+striation*.11;
-     body=saturate((1.22-rel+(grain-.5)*1.18)*3.1);
-     body*=smoothstep(-1,1.8,p.y)*(1-smoothstep(.02,.24,capY))*(.42+grain*1.9);
+     body=saturate((1.29-rel+(grain-.5)*1.26)*3.1);
+     body*=smoothstep(-1,1.2,p.y)*(1-smoothstep(.02,.24,capY))*(.66+grain*2.05);
+     // Reuse the same advected noise for the low, ragged wall of debris.
+     if(inSkirt)
+     {
+      float spread=saturate((.84-r/size+(grain-.5)*.24)*5);
+      float lift=smoothstep(-1,.12,p.y)*(1-smoothstep(skirtHeight*.18,skirtHeight,p.y));
+      body+=spread*lift*smoothstep(.24,.64,grain)*.78;
+     }
     }
     if(capY>-.92)
     {
      float2 rotation=Turn(p.xz,-time*_StormInfo.z*.18);
      float rim=length(rotation)/size;
-     float shelf=.32+.18*sin(rotation.x*.16+rotation.y*.11);
+     float shelf=.25+.21*sin(rotation.x*.16+rotation.y*.11);
      float dist=length(float3(rotation.x/(size*3.32),(capY-shelf)/.99,rotation.y/(size*3.32)));
      if(dist<1.34)
      {
@@ -74,12 +83,12 @@ Shader "Candy Tropical/Storm Funnel"
       float large=Noise(v,0);
       float fine=_MarchBudget>20?Noise(v*2.78+4,.15):large;
       float lobes=large*.72+fine*.28;
-      cloud=saturate((1.06-dist+(lobes-.5)*1.35)*3.8)*(1-smoothstep(1.10,1.30,dist));
+      cloud=saturate((1.12-dist+(lobes-.5)*1.40)*3.8)*(1-smoothstep(1.10,1.30,dist));
       grain=lerp(grain,lobes,cloud);
       edge=lerp(edge,saturate(rim/3.4),cloud);
      }
     }
-    return body+cloud*(.68+grain*1.3);
+    return body+cloud*(.96+grain*1.50);
    }
 
    half4 frag(V i):SV_Target
@@ -116,16 +125,20 @@ Shader "Candy Tropical/Storm Funnel"
     {
      if(k>=steps)break;
      float t=(k+jitter)*stepSize;
-     float3 p=ro+rd*(t<first?a.x+t:b.x+t-first);
+     float rayDistance=t<first?a.x+t:b.x+t-first;
+     float3 p=ro+rd*rayDistance;
      float grain,cloud,edge;
      float density=Density(p,_Time.y,grain,cloud,edge);
      if(density<.005)continue;
-     float alpha=1-exp(-density*stepSize*.68);
+     // Fade only the cloud immediately against the eyes, even inside the funnel.
+     float nearFade=smoothstep(.15,1.10,rayDistance);
+     float alpha=1-exp(-density*stepSize*.95*nearFade);
      float lightSide=saturate(.52+dot(p.xz,float2(-.39,-.26))/max(size,length(p.xz)));
      float heightLight=saturate((p.y-height*.43)/max(1,height*.57));
-     float light=saturate(.10+lightSide*.38+grain*.68+edge*.14+heightLight*.16-density*.19);
-     float3 color=lerp(float3(.014,.020,.035),float3(.45,.54,.66),light*light);
-     color+=float3(.035,.024,.009)*(1-heightLight)*(1-cloud);
+     float light=saturate(.045+lightSide*.35+grain*.74+edge*.19+heightLight*.13-density*.25);
+     // Charcoal folds with cold lit edges; keep low grit slightly warm.
+     float3 color=lerp(float3(.009,.013,.025),float3(.42,.48,.60),light*light);
+     color+=float3(.027,.019,.009)*(1-heightLight)*(1-cloud);
      if(_StormInfo.w>.01)
       color+=_StormInfo.w*float3(.20,.32,.78)*exp(-length((p-float3(size,height+size*.15,size*.4))/size))*cloud;
      sum+=trans*alpha*color;trans*=1-alpha;
