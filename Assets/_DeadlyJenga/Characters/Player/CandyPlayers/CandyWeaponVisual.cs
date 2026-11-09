@@ -227,6 +227,10 @@ namespace DeadlyJenga.CandyPlayers
             {
                 Part(root, "Left repulsor shutter", PrimitiveType.Cube, Vector3.zero, new Vector3(.025f,.033f,.006f), dark);
                 Part(root, "Right repulsor shutter", PrimitiveType.Cube, Vector3.zero, new Vector3(.025f,.033f,.006f), dark);
+                var hinges=new CandyAccessoryMeshes.Builder();
+                foreach(float side in new[]{-1f,1f})
+                    hinges.Box(new Vector3(side*.030f,0,-.008f),new Vector3(.027f,.036f,.020f));
+                MeshPart(root,"Repulsor shutter hinge rails",hinges.Mesh("Repulsor hinge rails"),dark);
             }
             else if(value==EquipmentKind.FlyingHand)
             {

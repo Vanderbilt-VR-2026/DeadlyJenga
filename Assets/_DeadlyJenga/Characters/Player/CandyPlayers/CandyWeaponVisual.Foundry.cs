@@ -149,7 +149,12 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     var b=new CandyAccessoryMeshes.Builder();
                     if(kind==EquipmentKind.ChainGun)
+                    {
+                        b.Cone(Vector3.back*.09f,Vector3.forward*.018f,.040f,.043f,20);
+                        b.Cone(Vector3.back*.008f,Vector3.forward*.028f,.109f,.109f,24);
+                        b.Ring(Vector3.forward*.449f,.108f,.018f,Quaternion.identity);
                         for(int i=0;i<6;i++){float a=i*Mathf.PI/3;var p=new Vector3(Mathf.Cos(a)*.083f,Mathf.Sin(a)*.083f,0);b.Cone(p,p+Vector3.forward*.58f,.022f,.022f,12);b.Cone(p+Vector3.forward*.52f,p+Vector3.forward*.61f,.028f,.026f,12);}
+                    }
                     else
                     {
                         b.Cone(Vector3.left*.025f,Vector3.right*.025f,.195f,.195f,32);
@@ -354,7 +359,7 @@ namespace DeadlyJenga.CandyPlayers
             foreach(float side in new[]{-1f,1f})
             {
                 b.Plate(Finish.LauncherGraphite,new Vector3(side*.101f,.137f,.178f),new Vector3(.018f,.085f,.34f),.005f);
-                LauncherBolts(b,side*.112f,.113f,.054f,.112f);
+                LauncherBolts(b,side*.108f,.113f,.054f,.112f);
                 b.Shape(Finish.LauncherStencil,mesh=>
                 {
                     for(int i=0;i<4;i++)mesh.Beam(new Vector3(side*.112f,.148f,.16f+i*.023f),
@@ -369,7 +374,10 @@ namespace DeadlyJenga.CandyPlayers
             b.Tube(Finish.LauncherSteel,.357f,.366f,.397f,.049f,.030f);
             b.Tube(Finish.LauncherGraphite,.357f,.159f,.168f,.029f,0);
             b.Tube(Finish.LauncherGraphite,.357f,.378f,.383f,.030f,0);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.040f,0),new Vector3(.074f,.024f,.080f),.004f);
             LauncherGrip(b,0);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.055f,RocketSupportDepth),
+                new Vector3(.077f,.066f,.087f),.006f);
             LauncherGrip(b,RocketSupportDepth);
             LauncherTrigger(b);
         }
@@ -393,6 +401,15 @@ namespace DeadlyJenga.CandyPlayers
                 feed.Tube(Finish.LauncherGunmetal,y,-.037f+drum,.265f+drum,.046f,.035f,x);
                 feed.Tube(Finish.LauncherSteel,y,-.050f+drum,-.019f+drum,.048f,.035f,x);
                 feed.Tube(Finish.LauncherGraphite,y,.232f+drum,.280f+drum,.049f,.037f,x);
+                var radial=new Vector3(Mathf.Cos(a),Mathf.Sin(a),0);
+                feed.Shape(Finish.LauncherGunmetal,spider=>
+                {
+                    foreach(float depth in new[]{.018f,.216f})
+                    {
+                        var hub=new Vector3(0,GrenadeDrumHeight,depth+drum);
+                        spider.Beam(hub+radial*.035f,hub+radial*.077f,.013f);
+                    }
+                });
             }
             b.Plate(Finish.LauncherGraphite,new Vector3(0,.315f,.098f+drum),new Vector3(.224f,.061f,.40f));
             b.Plate(Finish.LauncherGunmetal,new Vector3(0,.095f,-.106f),new Vector3(.155f,.182f,.125f));
@@ -409,7 +426,7 @@ namespace DeadlyJenga.CandyPlayers
             });
             foreach(float side in new[]{-1f,1f})
             {
-                LauncherBolts(b,side*.114f,.321f,.126f,.106f);
+                LauncherBolts(b,side*.110f,.321f,.126f,.106f);
                 b.Plate(Finish.LauncherSteel,new Vector3(side*.087f,.128f,-.077f),
                     new Vector3(.018f,.042f,.065f),.004f);
                 b.Shape(Finish.LauncherStencil,mesh=>
@@ -422,9 +439,14 @@ namespace DeadlyJenga.CandyPlayers
             b.Plate(Finish.LauncherGunmetal,new Vector3(0,.341f,.240f),new Vector3(.073f,.025f,.333f));
             for(int i=0;i<8;i++)b.Plate(Finish.LauncherGunmetal,new Vector3(0,.355f,.096f+i*.041f),
                 new Vector3(.080f,.022f,.027f),.004f);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.333f,.627f),
+                new Vector3(.068f,.048f,.056f),.006f);
             b.Plate(Finish.LauncherSteel,new Vector3(0,.378f,.627f),new Vector3(.038f,.065f,.032f));
             b.Plate(Finish.LauncherStencil,new Vector3(0,.413f,.627f),new Vector3(.009f,.009f,.012f),.002f);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.065f,-.008f),new Vector3(.073f,.079f,.075f),.006f);
             LauncherGrip(b,0);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.100f,GrenadeSupportDepth),
+                new Vector3(.088f,.146f,.094f),.007f);
             LauncherGrip(b,GrenadeSupportDepth);
             LauncherTrigger(b,.104f);
         }
@@ -468,9 +490,10 @@ namespace DeadlyJenga.CandyPlayers
             b.Tube(Finish.Charcoal,0,-.035f,-.015f,.058f,.040f);
             feed.Plate(Finish.Charcoal,new Vector3(0,.067f,-.065f),new Vector3(.110f,.055f,.19f));
             feed.Plate(Finish.Ceramic,new Vector3(0,.092f,-.075f),new Vector3(.073f,.009f,.115f),.002f);
+            b.Plate(Finish.Charcoal,new Vector3(0,.069f,.048f),new Vector3(.074f,.069f,.155f),.007f);
             b.Tube(Finish.Steel,.12f,.075f,.163f,.035f,.026f);
             b.Tube(Finish.Amber,.12f,.163f,.17f,.026f);
-            feed.Plate(Finish.Amber,new Vector3(0,.104f,-.075f),new Vector3(.047f,.007f,.075f),.0015f);
+            feed.Plate(Finish.Amber,new Vector3(0,.101f,-.075f),new Vector3(.047f,.010f,.075f),.0015f);
         }
         static void ForgeChainGun(FoundryBuilder b,FoundryBuilder feed)
         {
@@ -479,11 +502,12 @@ namespace DeadlyJenga.CandyPlayers
             b.Tube(Finish.Steel,axis,-.19f,.24f,.14f);
             b.Tube(Finish.Charcoal,axis,-.215f,-.16f,.12f);
             b.Tube(Finish.Steel,axis,.32f,.49f,.151f,.118f);
-            b.Tube(Finish.Charcoal,axis,.82f,.89f,.134f,.114f);
+
             feed.Plate(Finish.Charcoal,new Vector3(.225f,axis-.025f,.12f),new Vector3(.19f,.24f,.35f));
 
             ForgeChainGunHandle(b,.075f,.09f,axis+.10f);
             float frontHandle=SupportGripOffset(EquipmentKind.ChainGun,false).z+.075f;
+            b.Plate(Finish.Steel,new Vector3(0,axis+.103f,frontHandle),new Vector3(.106f,.094f,.061f),.007f);
             b.Plate(Finish.Steel,new Vector3(0,axis+.143f,frontHandle),new Vector3(.35f,.026f,.075f));
             ForgeChainGunHandle(b,frontHandle,.154f,axis+.11f);
         }
@@ -502,6 +526,7 @@ namespace DeadlyJenga.CandyPlayers
         static void ForgeChainsaw(FoundryBuilder b,FoundryBuilder feed)
         {
             b.Plate(Finish.Ceramic,new Vector3(0,.045f,.20f),new Vector3(.25f,.22f,.36f));
+            b.Plate(Finish.Steel,new Vector3(0,.158f,.22f),new Vector3(.108f,.034f,.31f),.004f);
             feed.Plate(Finish.Charcoal,new Vector3(0,.19f,.22f),new Vector3(.115f,.047f,.31f));
             b.Plate(Finish.Steel,new Vector3(0,0,.63f),new Vector3(.056f,.18f,.59f));
             for(int i=0;i<12;i++)foreach(float y in new[]{-.092f,.092f})
@@ -556,6 +581,7 @@ namespace DeadlyJenga.CandyPlayers
                     new Vector2(-.075f,.69f),new Vector2(.10f,.69f),new Vector2(.39f,.78f),
                     new Vector2(.44f,.91f),new Vector2(.34f,1.055f),new Vector2(.08f,.99f),
                     new Vector2(-.075f,.95f)}),Matrix4x4.identity);
+                b.Plate(Finish.Steel,new Vector3(0,-.081f,.83f),new Vector3(.138f,.084f,.169f),.011f);
                 b.Plate(Finish.Steel,new Vector3(0,-.235f,.84f),new Vector3(.22f,.27f,.29f),.025f);
                 b.Plate(Finish.Charcoal,new Vector3(0,-.355f,.84f),new Vector3(.18f,.035f,.245f),.009f);
                 b.Tube(Finish.Brass,0,.70f,.765f,.063f);

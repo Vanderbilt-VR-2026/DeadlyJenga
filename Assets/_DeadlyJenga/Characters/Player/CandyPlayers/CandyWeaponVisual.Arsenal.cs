@@ -173,13 +173,14 @@ namespace DeadlyJenga.CandyPlayers
                 Box("Forward magazine",6+0,new Vector3(0,.021f,.233f),new Vector3(.075f,.101f,.065f),.005f);
                 Box("Magazine floor plate",6+1,new Vector3(0,-.032f,.232f),new Vector3(.084f,.014f,.076f),.003f);
                 // Open rear notch and front post keep the sight line readable.
+                Box("Rear sight saddle",1,new Vector3(0,.192f,-.045f),new Vector3(.067f,.017f,.033f),.002f);
                 foreach(float side in new[]{-1f,1f})Box("Rear notch ear",2,new Vector3(side*.023f,.211f,-.045f),new Vector3(.017f,.031f,.028f),.002f);
                 Box("Front sight base",1,new Vector3(0,.169f,.462f),new Vector3(.032f,.014f,.033f),.002f);
                 Box("Front sight blade",2,new Vector3(0,.194f,.462f),new Vector3(.011f,.040f,.020f),.001f);
-                Box("Ivory sight dot",5,new Vector3(0,.202f,.450f),new Vector3(.005f,.008f,.002f),.0005f);
+                Box("Ivory sight dot",5,new Vector3(0,.202f,.451f),new Vector3(.005f,.008f,.004f),.0005f);
                 Solid("Exposed cocking hammer",1,.027f,.002f,new Vector2(.163f,-.075f),new Vector2(.180f,-.042f),new Vector2(.233f,-.076f),new Vector2(.222f,-.101f));
                 Cylinder(1,new Vector3(-.058f,.089f,-.030f),new Vector3(.058f,.089f,-.030f),.010f);
-                Cylinder(1,new Vector3(-.057f,.117f,-.020f),new Vector3(-.063f,.117f,-.020f),.012f);
+                Cylinder(1,new Vector3(-.048f,.117f,-.020f),new Vector3(-.063f,.117f,-.020f),.012f);
                 Box("Fire selector lever",4,new Vector3(-.064f,.136f,-.006f),new Vector3(.009f,.014f,.047f),.002f);
                 Box("Burst selector witness",5,new Vector3(-.058f,.153f,.021f),new Vector3(.002f,.006f,.014f),.001f);
                 // Oversized wooden shoulder stock, slim neck and a generous butt.
@@ -498,6 +499,8 @@ namespace DeadlyJenga.CandyPlayers
                     var ring=new CandyAccessoryMeshes.Builder();ring.Ring(new Vector3(0,.230f,z),.022f,.0035f,Quaternion.identity);Add(1,ring.Mesh("Fine polished optic rim"),Vector3.zero);
                 }
                 Box(0,new Vector3(0,.190f,.192f),new Vector3(.049f,.010f,.075f),.002f);
+                foreach(float z in new[]{.170f,.215f})
+                    Box(1,new Vector3(0,.203f,z),new Vector3(.025f,.023f,.013f),.002f);
                 foreach(float side in new[]{-1f,1f})Box(0,new Vector3(side*.018f,.208f,.192f),new Vector3(.008f,.030f,.025f),.002f);
                 Box(5,new Vector3(0,.230f,.174f),new Vector3(.029f,.0012f,.001f),.0002f);
                 Box(5,new Vector3(0,.230f,.174f),new Vector3(.0012f,.029f,.001f),.0002f);
@@ -611,8 +614,15 @@ namespace DeadlyJenga.CandyPlayers
             for(int i=0;i<12;i++)
             {
                 float a=i*Mathf.PI/6,b=(i+1)*Mathf.PI/6,ra=i%2==0?.025f:.012f,rb=(i+1)%2==0?.025f:.012f;
-                int n=vertices.Count;vertices.Add(new Vector3(side*.053f,-.060f,-.025f));vertices.Add(new Vector3(side*.053f,-.060f+Mathf.Sin(a)*ra,-.025f+Mathf.Cos(a)*ra));vertices.Add(new Vector3(side*.053f,-.060f+Mathf.Sin(b)*rb,-.025f+Mathf.Cos(b)*rb));
-                uv.AddRange(new[]{Vector2.zero,Vector2.right,Vector2.up});triangles.AddRange(side>0?new[]{n,n+2,n+1}:new[]{n,n+1,n+2});
+                int n=vertices.Count;
+                var tip=new Vector3(side*.053f,-.060f+Mathf.Sin(a)*ra,-.025f+Mathf.Cos(a)*ra);
+                var next=new Vector3(side*.053f,-.060f+Mathf.Sin(b)*rb,-.025f+Mathf.Cos(b)*rb);
+                var inset=Vector3.left*(side*.007f);
+                vertices.AddRange(new[]{new Vector3(side*.053f,-.060f,-.025f),tip,next,tip+inset,next+inset});
+                uv.AddRange(new[]{Vector2.zero,Vector2.right,Vector2.up,Vector2.zero,Vector2.one});
+                triangles.AddRange(side>0
+                    ? new[]{n,n+2,n+1,n+1,n+2,n+3,n+2,n+4,n+3}
+                    : new[]{n,n+1,n+2,n+1,n+3,n+2,n+2,n+3,n+4});
             }
             var mesh=new Mesh{name="Six-point brass sheriff grip medallion"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();return mesh;
         }
@@ -684,6 +694,7 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 var guard=new CandyAccessoryMeshes.Builder();guard.Ring(Vector3.zero,.047f,.007f,Quaternion.Euler(0,90,0));var gm=guard.Mesh("Continuous rifle trigger guard");var gv=gm.vertices;
                 for(int i=0;i<gv.Length;i++)gv[i]=new Vector3(gv[i].x,gv[i].y*.80f-.025f,gv[i].z*1.20f+.092f);gm.vertices=gv;gm.RecalculateNormals();Add(0,gm,Matrix4x4.identity);
+                Box(0,new Vector3(0,.021f,.092f),new Vector3(.024f,.021f,.060f),.002f);
                 Cylinder(2,new Vector3(0,.019f,.081f),new Vector3(0,-.031f,.093f),.006f);Cylinder(2,new Vector3(0,-.031f,.093f),new Vector3(0,-.041f,.108f),.006f);
                 // All following geometry is local to the original rotating carriage pivot.
                 RingPart(8,new Vector3(0,0,.004f),.106f,.009f);
@@ -695,6 +706,7 @@ namespace DeadlyJenga.CandyPlayers
                 foreach(int side in new[]{-1,1})
                 {
                     bool shotgun=side==1;float y=side*.06f,length=shotgun?.43f:.70f,outer=shotgun?.0525f:.0325f,inner=shotgun?.037f:.017f;
+                    Tube(6,new Vector3(0,y,.009f),outer*1.04f,inner,.073f);
                     Tube(6,new Vector3(0,y,.07f),outer,inner,length);
                     Tube(8,new Vector3(0,y,.07f+length-.038f),outer*1.10f,outer*.995f,.037f);
                     Box(7,new Vector3(0,y,.177f),new Vector3(outer*2.20f,outer*2.20f,.186f),.008f);
@@ -837,6 +849,7 @@ namespace DeadlyJenga.CandyPlayers
                 Box(0,new Vector3(0,-.155f,.003f),new Vector3(.095f,.018f,.108f),.006f);
                 var guard=new CandyAccessoryMeshes.Builder();guard.Ring(Vector3.zero,.042f,.006f,Quaternion.Euler(0,90,0));var gm=guard.Mesh("Continuous alien trigger guard");var gv=gm.vertices;
                 for(int i=0;i<gv.Length;i++)gv[i]=new Vector3(gv[i].x,gv[i].y*.76f-.018f,gv[i].z*1.08f+.123f);gm.vertices=gv;gm.RecalculateNormals();Add(3,gm,Vector3.zero);
+                Box(3,new Vector3(0,.035f,.119f),new Vector3(.022f,.052f,.036f),.004f);
                 Cylinder(5,new Vector3(0,.014f,.109f),new Vector3(0,-.030f,.118f),.005f);Cylinder(5,new Vector3(0,-.030f,.118f),new Vector3(0,-.036f,.132f),.005f);
                 // Three thin induction lenses, each with a metal rim, a glowing inner coil and clear center.
                 for(int i=0;i<3;i++)
@@ -845,6 +858,13 @@ namespace DeadlyJenga.CandyPlayers
                     Add(6,WeaponBoreTube(radius,.025f,.006f),new Vector3(0,.125f,z-.003f));
                     RingPart(2,new Vector3(0,.125f,z),radius,.0035f);
                     RingPart(4,new Vector3(0,.125f,z),.029f,.004f);
+                    for(int spoke=0;spoke<3;spoke++)
+                    {
+                        float a=spoke*Mathf.PI*2/3+Mathf.PI*.5f;
+                        var radial=new Vector3(Mathf.Cos(a),Mathf.Sin(a),0);
+                        var center=new Vector3(0,.125f,z);
+                        Cylinder(2,center+radial*.014f,center+radial*(radius-.002f),.0045f);
+                    }
                     for(int marker=0;marker<8;marker++)
                     {
                         float a=marker*Mathf.PI/4;Sphere(3,new Vector3(Mathf.Cos(a)*(radius-.007f),.125f+Mathf.Sin(a)*(radius-.007f),z+.0035f),new Vector3(.0025f,.0025f,.0014f));
@@ -929,7 +949,7 @@ namespace DeadlyJenga.CandyPlayers
                     for(int i=0;i<6;i++)Box(2,new Vector3(side*.047f,-.084f+i*.027f,-.008f),new Vector3(.005f,.009f,.066f),.002f);
                     Box(1,new Vector3(side*.066f,.116f,.113f),new Vector3(.009f,.066f,.266f),.003f);
                     for(int i=0;i<5;i++)Box(2,new Vector3(side*.072f,.111f,.08f+i*.032f),new Vector3(.004f,.035f,.012f),.001f);
-                    Box(3,new Vector3(side*.075f,.145f,.12f),new Vector3(.003f,.005f,.20f),.0005f);
+                    Box(3,new Vector3(side*.071f,.145f,.12f),new Vector3(.004f,.005f,.20f),.0005f);
                     for(float z=-.045f;z<.30f;z+=.315f)Tube(4,new Vector3(side*.073f,.091f,z),.007f,.003f,.010f);
                     // Folded structural stock stays narrow enough for a paired weapon.
                     Line(0,new Vector3(side*.041f,.085f,-.07f),new Vector3(side*.045f,.065f,-.245f),.008f);
@@ -1055,6 +1075,8 @@ namespace DeadlyJenga.CandyPlayers
                         Ellipsoid(2,new Vector3(side*.171f,0,.191f),new Vector3(.019f,.023f,.023f),Quaternion.identity);
                     }
                     Box(2,new Vector3(0,0,.151f),new Vector3(.098f,.050f,.051f),.007f);
+                    Box(2,new Vector3(0,0,.147f),new Vector3(.061f,.041f,.066f),.005f);
+                    Box(1,new Vector3(0,0,.180f),new Vector3(.078f,.036f,.029f),.004f);
                     foreach(float side in new[]{-1f,1f})
                     {
                         Ellipsoid(4,new Vector3(0,side*.026f,.151f),new Vector3(.029f,.004f,.020f),Quaternion.identity);
