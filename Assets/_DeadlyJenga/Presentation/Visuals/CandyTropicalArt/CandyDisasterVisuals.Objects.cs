@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 
 namespace DeadlyJenga.CandyArt
 {
@@ -33,7 +34,9 @@ namespace DeadlyJenga.CandyArt
         Mesh stormRibbons;
         Vector3[] streamVertices;
         float nextStormStreamUpdate,lastStreamSize,lastStreamHeight,lastVolumeSize,lastVolumeHeight;
-        bool compactStorm;
+        bool compactStorm, supportsTornadoVolume;
+        UniversalAdditionalCameraData tornadoDepthCamera;
+        CameraOverrideOption savedTornadoDepth;
         Quaternion billboard;
         void InitializeObjects()
         {
@@ -59,7 +62,9 @@ namespace DeadlyJenga.CandyArt
             storm=ObjectMaterial("CandyStormFunnel",new Color(.22f,.27f,.32f,.88f));
             compactStorm=Application.isMobilePlatform;
             storm.SetFloat("_MarchBudget",compactStorm?20:52);
-            BuildStormDensity();
+            supportsTornadoVolume = storm.shader.isSupported && SystemInfo.supports3DTextures &&
+                SystemInfo.SupportsTextureFormat(TextureFormat.R8);
+            if (supportsTornadoVolume) BuildStormDensity();
             stormMist=ObjectMaterial("CandyStormMist",new Color(.30f,.38f,.50f,.62f));
             var stormCloud=Resources.Load<Texture2D>("CandyScenery/StormCloudPuff");
             if(stormCloud){stormMist.SetTexture("_CloudTexture",stormCloud);stormMist.SetFloat("_UseCloudTexture",1);}
@@ -81,6 +86,8 @@ namespace DeadlyJenga.CandyArt
         {
             acidStreaks.Clear();stones.Clear();chips.Clear();candyChips.Clear();smokePuffs.Clear();flames.Clear();dustPuffs.Clear();windPuffs.Clear();stormBolts.Clear();seaSpray.Clear();seaFoam.Clear();stormRemnants.Clear();
             var camera=Services.Session?.ActiveCamera;
+            if (lastTornado == null || (tornadoDepthCamera && camera != tornadoDepthCamera.GetComponent<Camera>()))
+                ReleaseTornadoDepth();
             billboard=camera?camera.transform.rotation:Quaternion.identity;
         }
         void Puff(List<Matrix4x4> list,Vector3 position,float width,float height,float roll=0)
@@ -195,8 +202,35 @@ namespace DeadlyJenga.CandyArt
             DrawTornado(lastTornado, Mathf.SmoothStep(0f, 1f, elapsed / 1.6f));
         }
 
+        bool RequestTornadoDepth(Camera camera)
+        {
+            if (!camera || !(GraphicsSettings.currentRenderPipeline is UniversalRenderPipelineAsset)) return false;
+            var data = camera.GetUniversalAdditionalCameraData();
+            if (data.requiresDepthTexture) return true;
+            if (tornadoDepthCamera != data)
+            {
+                ReleaseTornadoDepth();
+                tornadoDepthCamera = data;
+                savedTornadoDepth = data.requiresDepthOption;
+            }
+            data.requiresDepthOption = CameraOverrideOption.On;
+            return true;
+        }
+
+        void ReleaseTornadoDepth()
+        {
+            if (tornadoDepthCamera && tornadoDepthCamera.requiresDepthOption == CameraOverrideOption.On)
+                tornadoDepthCamera.requiresDepthOption = savedTornadoDepth;
+            tornadoDepthCamera = null;
+        }
+
         void DrawTornado(DisasterFrame frame, float tail)
         {
+            if (environment && !environment.isActiveAndEnabled)
+            {
+                ReleaseTornadoDepth();
+                return;
+            }
             bool hasMotion = frame.points != null && frame.points.Length > 0 && frame.values.Length >= 6;
             float ageSinceSample = hasMotion ? Mathf.Clamp(Time.time - frame.sampledAt, 0f, .2f) : 0f;
             Vector3 center = frame.center;
@@ -212,8 +246,13 @@ namespace DeadlyJenga.CandyArt
                 1 << Layers.Surface, QueryTriggerInteraction.Ignore);
             PrepareTornadoAt(frame, center, water);
             var transform = Matrix4x4.TRS(center, Quaternion.identity, Vector3.one);
-            tornadoVolume.SetFloat("_StormDissolve", tornadoDissolve);
-            Graphics.DrawMesh(funnel, transform, storm, 0, null, 0, tornadoVolume, ShadowCastingMode.Off, false);
+            if (supportsTornadoVolume)
+            {
+                var camera = Services.Session?.ActiveCamera;
+                tornadoVolume.SetFloat("_StormDissolve", tornadoDissolve);
+                tornadoVolume.SetFloat("_StormUseSceneDepth", RequestTornadoDepth(camera) ? 1f : 0f);
+                Graphics.DrawMesh(funnel, transform, storm, 0, camera, 0, tornadoVolume, ShadowCastingMode.Off, false);
+            }
             if (tornadoDissolve < .96f)
                 Graphics.DrawMesh(stormRibbons, transform, stormRibbon, 0, null, 0, null, ShadowCastingMode.Off, false);
 
@@ -244,6 +283,15 @@ namespace DeadlyJenga.CandyArt
             float foamWidth = size * 2.4f + breakup * 1.7f;
             seaFoam.Add(Matrix4x4.TRS(center + Vector3.up * .11f, Quaternion.Euler(90f, 0f, 0f),
                 new Vector3(foamWidth, foamWidth, 1f)));
+            int baseClouds = compactStorm ? 5 : 8;
+            for (int i = 0; i < baseClouds; i++)
+            {
+                float angle = i * 2.399963f + Time.time * (1.25f + force * .025f);
+                float radius = size * (.22f + Hash(i + 87) * .43f) + breakup * .45f;
+                var position = center + new Vector3(Mathf.Cos(angle) * radius,
+                    size * (.065f + Hash(i + 113) * .095f), Mathf.Sin(angle) * radius);
+                Puff(windPuffs, position, size * .72f * life, size * .24f * life, Mathf.Sin(angle) * 12f);
+            }
             int count = compactStorm ? 12 : 26;
             for (int i = 0; i < count; i++)
             {
@@ -306,7 +354,9 @@ namespace DeadlyJenga.CandyArt
             flash *= visibility;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
             stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f*visibility),new Color(.40f,.49f,.86f,.70f*visibility),flash));
-            stormRibbon.SetColor("_BaseColor",Color.Lerp(new Color(.27f,.34f,.46f,(compactStorm?.12f:.19f)*visibility),new Color(.59f,.71f,1.1f,.28f),flash));
+            float ribbonOpacity = !supportsTornadoVolume ? .88f : compactStorm ? .30f : .19f;
+            stormRibbon.SetColor("_BaseColor", Color.Lerp(new Color(.27f, .34f, .46f, ribbonOpacity * visibility),
+                new Color(.59f, .71f, 1.1f, .28f * visibility), flash));
             if(flash>.02f)
             {
                 stormFlash.SetColor("_BaseColor",new Color(.8f,1.2f,2.8f,flash*.7f));
@@ -377,7 +427,7 @@ namespace DeadlyJenga.CandyArt
             for(int band=0;band<bands;band++)for(int y=0;y<=rows;y++)for(int x=0;x<=columns;x++)
             {
                 float t=y/(float)rows,u=x/(float)columns,bodyT=Mathf.Min(1,t/.82f),capT=Mathf.Clamp01((t-.82f)/.18f);
-                float a=bodyT*19+capT*6+band*Mathf.PI*2/bands+Time.time*speed*1.8f+(u-.5f)*.85f;
+                float a=bodyT*19+capT*6+band*Mathf.PI*2/bands+Time.time*speed*1.8f+(u-.5f)*(supportsTornadoVolume?.85f:3.8f);
                 float radius=Mathf.Lerp(size*.14f,size*.8f,Mathf.Pow(bodyT,1.2f))*(1+.06f*Mathf.Sin(bodyT*31+band));
                 if(capT>0)radius=Mathf.Lerp(size*.8f,size*3.9f,capT);
                 var lean=new Vector3(Mathf.Sin(bodyT*3+Time.time*.7f),0,Mathf.Cos(bodyT*4-Time.time*.6f))*size*.13f*bodyT;
@@ -400,7 +450,7 @@ namespace DeadlyJenga.CandyArt
             if(f.values==null||f.values.Length<2)return;int count=Mathf.Clamp(Mathf.RoundToInt(f.values[1]*.7f),10,420);
             for(int i=0;i<count;i++){float h=Mathf.Repeat(Hash(i+300)-Time.time*.45f,1);var p=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(h-.4f)*(f.size.y+30),(Hash(i+800)-.5f)*f.size.z);Puff(acidStreaks,p,.045f,.65f+Hash(i+33)*.65f,-7);}
         }
-        void ClearObjects(){meteorLooks.Clear();fragments.Clear();lastTornado=null;}
+        void ClearObjects(){meteorLooks.Clear();fragments.Clear();lastTornado=null;ReleaseTornadoDepth();}
         void DestroyObjects(){foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
     }
 }
