@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
     public struct CastlePoseInputProbe : INetworkInput
     {
         [StructLayout(LayoutKind.Sequential)]
-        struct WordBlock
+        public struct WordBlock : INetworkStruct
         {
             public ulong a, b, c, d, e, f, g, h;
         }
