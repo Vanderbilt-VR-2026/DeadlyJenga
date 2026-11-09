@@ -6,7 +6,7 @@ using UnityEngine.XR;
 namespace DeadlyJenga.CandyAudio
 {
     // Bounded controller output. Bare-hand tracking safely has no haptic device.
-    public sealed class CandyFeedback : MonoBehaviour
+    public sealed partial class CandyFeedback : MonoBehaviour
     {
         static CandyFeedback instance;
         [Range(0,1)] public float hapticStrength=.65f;
@@ -16,11 +16,12 @@ namespace DeadlyJenga.CandyAudio
         {
             public Transform anchor;
             public int fireCursor,nearestFire=-1;
+            public bool warned,started,nearTornado;
+            public float coverMix;
         }
         readonly Dictionary<string,HazardAudio> anchors=new Dictionary<string,HazardAudio>();
         readonly Dictionary<string,int> hazardCounts=new Dictionary<string,int>();
         readonly HashSet<string> seen=new HashSet<string>();
-        readonly HashSet<string> heardMeteors=new HashSet<string>(),activeMeteors=new HashSet<string>();
         readonly List<string> expired=new List<string>();
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -29,11 +30,16 @@ namespace DeadlyJenga.CandyAudio
         }
         public static void Pulse(float amount,float duration=.08f)
         {if(!instance)return;instance.impulse=Mathf.Max(instance.impulse,Mathf.Clamp01(amount));instance.until=Mathf.Max(instance.until,Time.unscaledTime+Mathf.Clamp(duration,.02f,.3f));}
-        void OnEnable(){GameEvents.BlockHit+=Rubble;GameEvents.Pushed+=Push;GameEvents.Damaged+=Damage;GameEvents.Eliminated+=Death;GameEvents.HazardStarted+=Started;GameEvents.HazardEnded+=Ended;}
-        void OnDisable(){GameEvents.BlockHit-=Rubble;GameEvents.Pushed-=Push;GameEvents.Damaged-=Damage;GameEvents.Eliminated-=Death;GameEvents.HazardStarted-=Started;GameEvents.HazardEnded-=Ended;}
+        void OnEnable(){GameEvents.BlockHit+=Rubble;GameEvents.Pushed+=Push;GameEvents.Damaged+=Damage;GameEvents.Eliminated+=Death;}
+        void OnDisable(){GameEvents.BlockHit-=Rubble;GameEvents.Pushed-=Push;GameEvents.Damaged-=Damage;GameEvents.Eliminated-=Death;}
         static bool Local(GameObject who)=>who&&Services.Session?.Player!=null&&who.transform.root==Services.Session.Player.transform.root;
         void Push(GameObject who,Vector3 force){var e=CandyAudioEngine.Instance;if(e&&who)e.Play(CandySound.PushImpact,who.transform.position,Mathf.Clamp01(force.magnitude/8),who.GetInstanceID());if(Local(who))Pulse(.5f);}
-        void Damage(GameObject who,float amount){if(amount>0&&Local(who))Pulse(Mathf.Clamp(amount/30,.12f,.65f));}
+        void Damage(GameObject who,float amount)
+        {
+            if(amount<=0||!Local(who))return;
+            Pulse(Mathf.Clamp(amount/30,.12f,.65f));
+            if(who==Services.Session?.Player?.gameObject)LocalHazardDamage(who,amount);
+        }
         void Death(GameObject who,GameObject source){if(Local(who))Pulse(.7f,.25f);}
         public static void Weapon(EquipmentActionFrame action)
         {
@@ -62,17 +68,12 @@ namespace DeadlyJenga.CandyAudio
             if(strength>=12&&distance<90&&Time.unscaledTime>=nextHeavyImpact)
             {
                 nextHeavyImpact=Time.unscaledTime+.22f;
-                CandyAudioEngine.Instance?.Play(CandySound.MeteorImpact,point,Mathf.Clamp(strength/40,.25f,.85f),GetInstanceID());
+                CandyAudioEngine.Instance?.Play(CandySound.BlockSmash,point,Mathf.Clamp(strength/40,.25f,.85f),GetInstanceID());
             }
             if(strength<6||Time.unscaledTime<nextRubble||Services.Session?.IsVR!=true||distance>14)return;
             nextRubble=Time.unscaledTime+.14f;
             Pulse(Mathf.Clamp01((strength-3)/24)*(1-distance/14)*.32f,.10f);
         }
-        void Started(HazardType type,Vector3 position)
-        {var e=CandyAudioEngine.Instance;if(e)e.Play(IsPower(type)?CandySound.PowerDown:CandySound.DisasterHorn,position,.8f,type?type.GetInstanceID():0,1,true);}
-        void Ended(HazardType type,Vector3 position)
-        {var e=CandyAudioEngine.Instance;if(e&&IsPower(type))e.Play(CandySound.PowerUp,position,.7f,0,1,true);}
-        static bool IsPower(HazardType t)=>t&&(t.name.ToLowerInvariant().Contains("power")||t.name.ToLowerInvariant().Contains("outage"));
         void Update()
         {
             if(Time.unscaledTime>=nextScan){nextScan=Time.unscaledTime+.1f;Hazards();}
@@ -94,11 +95,16 @@ namespace DeadlyJenga.CandyAudio
         }
         void Hazards()
         {
-            var e=CandyAudioEngine.Instance;if(!e||!e.Listener)return;seen.Clear();hazardCounts.Clear();activeMeteors.Clear();int meteorRequests=0;bool rewinding=Services.Rewind?.Rewinding==true;
+            var e=CandyAudioEngine.Instance;if(!e||!e.Listener)return;
+            var session=Services.Session;
+            bool sameSession=BeginDisasterScan(e,session);
+            seen.Clear();hazardCounts.Clear();
+            bool rewinding=Services.Rewind?.Rewinding==true,sunExposed=false;
             foreach(var source in DisasterStates.Active)
             {
                 if(source==null)continue;
-                var f=source.Capture();if(f==null||f.residualOnly)continue;
+                var f=source.Capture();if(f==null)continue;
+                if(f.residualOnly){PlayMeteorContacts(e,f);continue;}
                 if(f.kind=="TimeSlip"&&f.warning<=0){rewinding=true;continue;}
                 string kind=f.kind??"Disaster";
                 hazardCounts.TryGetValue(kind,out int occurrence);hazardCounts[kind]=occurrence+1;
@@ -144,8 +150,19 @@ namespace DeadlyJenga.CandyAudio
                     reach=45;
                 }
                 float distance=Vector3.Distance(e.Listener.position,anchor.position),proximity=1-Mathf.Clamp01(distance/reach);
-                if(f.warning>0){e.Loop(CandySound.DisasterTension,anchor,.22f+.35f*proximity,false,Mathf.Lerp(.8f,1.3f,1-Mathf.Clamp01(f.warning/10)));continue;}
-                CandySound? sound=f.kind=="Tornado"?CandySound.CycloneWind:f.kind=="Earthquake"?CandySound.EarthRumble:f.kind=="Fire"?CandySound.FireCrackle:f.kind=="AcidRain"?CandySound.AcidSizzle:f.kind=="Icey"?CandySound.FrostCreak:f.kind=="AntiGravity"?CandySound.LowGravityHum:f.kind=="PowerOutage"?CandySound.OutageHum:f.kind=="Vampire"?CandySound.DisasterTension:null;
+                if(f.warning>0)
+                {
+                    if(!target.warned)target.warned=Warn(e,kind,f.warning);
+                    continue;
+                }
+                if(!target.started)
+                {
+                    target.started=true;
+                    if(target.warned||f.age<1)PlayDisasterArrival(e,kind,anchor.position);
+                }
+                if(kind=="AcidRain"){AcidRain(e,target,f,proximity);continue;}
+                if(kind=="Vampire")sunExposed|=VampireExposed(f);
+                CandySound? sound=f.kind=="Tornado"?CandySound.CycloneWind:f.kind=="Earthquake"?CandySound.EarthRumble:f.kind=="Fire"?CandySound.FireCrackle:f.kind=="Icey"?CandySound.FrostCreak:f.kind=="AntiGravity"?CandySound.LowGravityHum:f.kind=="PowerOutage"?CandySound.OutageHum:null;
                 float intensity=f.kind=="Tornado"?.5f+.5f*ferocity:1;
                 if(f.values!=null&&f.values.Length>0)
                 {
@@ -154,26 +171,21 @@ namespace DeadlyJenga.CandyAudio
                     if(f.kind=="Icey")intensity=Mathf.Clamp01(f.values[0])*.55f;
                 }
                 if(f.kind=="PowerOutage")intensity=.35f;
-                if(f.kind=="Vampire")intensity=.15f;
-                float shelter=f.kind=="AcidRain"&&Services.World?.IsSheltered(e.Listener.position)==true?.8f:0;
-                if(sound.HasValue)e.Loop(sound.Value,anchor,(.22f+.65f*proximity)*intensity*(1-shelter*.65f),false,Mathf.Lerp(.85f,1.15f,proximity),shelter);
-                if(f.kind=="Tornado"&&proximity>.25f)e.Loop(CandySound.CycloneDebris,anchor,proximity*ferocity*.48f,false,Mathf.Lerp(.8f,1.2f,ferocity));
+                if(sound.HasValue)e.Loop(sound.Value,anchor,(.22f+.65f*proximity)*intensity,false,Mathf.Lerp(.85f,1.15f,proximity));
+                if(kind=="Tornado")Tornado(e,target,f,proximity,ferocity);
                 if(proximity>.1f&&(f.kind=="Tornado"||f.kind=="Earthquake"))Pulse(proximity*.17f,.12f);
-                if(f.points!=null&&(f.kind=="MeteorShower"||f.kind=="PlanetKillerMeteor"))
-                {
-                    for(int i=0;i<f.points.Length;i++)
-                    {
-                        var point=f.points[i];string meteor=key+"/"+point.id;activeMeteors.Add(meteor);
-                        if(heardMeteors.Contains(meteor)||meteorRequests>=2||(point.position-e.Listener.position).sqrMagnitude>=2500)continue;
-                        meteorRequests++;
-                        if(e.Play(CandySound.MeteorWhistle,point.position,.35f,point.id))heardMeteors.Add(meteor);
-                    }
-                }
+                if(kind=="MeteorShower"||kind=="PlanetKillerMeteor")MeteorFlybys(e,key,f);
             }
-            if(rewinding)e.Loop(CandySound.HandSwirl,e.Listener,.22f,true,.7f);
-            heardMeteors.IntersectWith(activeMeteors);
+            EndDisasterScan(e,rewinding,sunExposed,sameSession);
             expired.Clear();foreach(var pair in anchors)if(!seen.Contains(pair.Key))expired.Add(pair.Key);
-            foreach(var key in expired){if(anchors[key].anchor)Destroy(anchors[key].anchor.gameObject);anchors.Remove(key);}
+            foreach(var key in expired)
+            {
+                var state=anchors[key];
+                if(sameSession&&state.started&&key.StartsWith("PowerOutage:"))
+                    e.Play(CandySound.PowerUp,e.Listener.position,.75f,GetInstanceID(),local:true);
+                if(state.anchor)Destroy(state.anchor.gameObject);
+                anchors.Remove(key);
+            }
         }
         void OnDestroy(){if(instance==this)instance=null;}
     }

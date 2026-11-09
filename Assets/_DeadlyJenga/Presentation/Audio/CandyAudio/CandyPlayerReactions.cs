@@ -46,7 +46,8 @@ namespace DeadlyJenga.CandyAudio
                 return;
             }
             bool nearby=cue==MatchSoundCue.NearbyHit||cue==MatchSoundCue.NearbyShot||cue==MatchSoundCue.NearbyDeath;
-            if(!engine.Play(CandySoundSuite.FromMatch(cue),position,local:!nearby))return;
+            float gain=cue==MatchSoundCue.PersonalHit?CandyFeedback.PersonalHitGain():1;
+            if(!engine.Play(CandySoundSuite.FromMatch(cue),position,gain,local:!nearby))return;
             if(cue==MatchSoundCue.NearbyDeath||cue==MatchSoundCue.PlayerDeath||cue==MatchSoundCue.IslandDeath||cue==MatchSoundCue.DrowningDeath)DeathCues++;
             else PainCues++;
         }
