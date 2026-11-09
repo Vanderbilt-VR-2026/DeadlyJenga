@@ -260,7 +260,26 @@ namespace DeadlyJenga.CastlePrototype
             {
                 Vaulting=false;vaultSurface=null;vaultTime=0;ClearSprint();ActionStatus="Vault cancelled";
             }
-            if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt)){ClearSprint();return;}
+            bool canClimbNow = climbHeld && !InputSuspended && !CarryingFlag && (modeRules?.canClimb ?? true);
+            if (!Sinking || Vaulting || InputSuspended || !Alive || !externallyDriven && !vrInputFocused)
+                sinkVaultPending = false;
+            else if (jumpPressed && canClimbNow && climbingEnabled)
+            {
+                // A held press gets a chance to latch. A tap uses the standing escape vault on release.
+                sinkVaultPending = true;
+                jumpPressed = false;
+            }
+            else if (sinkVaultPending && !climbHeld)
+            {
+                sinkVaultPending = false;
+                jumpPressed = true;
+            }
+            if (UpdateClimb(Vector2.ClampMagnitude(input,1),canClimbNow,dt))
+            {
+                sinkVaultPending = false;
+                ClearSprint();
+                return;
+            }
             if (Vaulting) { ClearSprint();AdvanceVault(dt); return; }
             if (support && Grounded)
             {

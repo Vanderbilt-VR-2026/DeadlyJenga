@@ -13,7 +13,7 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<string,List<Look>> looks=new Dictionary<string,List<Look>>();
         readonly Dictionary<string,float> displayedHealth=new Dictionary<string,float>();
         MaterialPropertyBlock props;
-        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid;bool viewVR;
+        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100,sinkCurtain;bool curtainStereo;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid;bool viewVR;
         bool wasOutage;string skin="";int winner=-2;readonly Dictionary<Renderer,MaterialPropertyBlock> winnerOriginal=new Dictionary<Renderer,MaterialPropertyBlock>();
         readonly Dictionary<Renderer,Material> blockOriginals=new Dictionary<Renderer,Material>();readonly Dictionary<(Material,string),Material> teamMaterials=new Dictionary<(Material,string),Material>();int claimRevision=-1;
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
@@ -34,7 +34,7 @@ namespace DeadlyJenga.Presentation
             wasOutage=outage;
             if(!outage&&!restoringOutage)Health(runtime,f);
             if(Time.unscaledTime>=scanAt&&!restoringOutage){scanAt=Time.unscaledTime+.2f;Deaths(runtime,f);TeamHands(runtime,f);if(!outage){Winner(f);if(f.phase!=RoundPhase.Victory)Claims(f);}else claimRevision=-1;}
-            Transition();
+            Transition(f);
             if(Time.unscaledTime>=environmentAt){environmentAt=Time.unscaledTime+1;environments=FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None);}
             if(f.phase==RoundPhase.Victory&&f.winnerTeam>=0)foreach(var team in f.teams)if(team.id==f.winnerTeam)foreach(var env in environments??System.Array.Empty<CandyEnvironment>())if(env&&env.waterRenderer)Tint(env.waterRenderer,team.color);
         }
@@ -185,7 +185,7 @@ namespace DeadlyJenga.Presentation
                 {if(p.dying||!p.alive){r.forceRenderingOff=true;hidden.Add(r);}else if(hidden.Remove(r))r.forceRenderingOff=false;}
             }
         }
-        void Transition()
+        void Transition(MatchFrame frame)
         {
             var session=Services.Session;if(session?.ActiveCamera==null){if(canvas)canvas.enabled=false;return;}
             if(!canvas)
@@ -195,13 +195,65 @@ namespace DeadlyJenga.Presentation
                 var shader=Resources.Load<Shader>("CandyScenery/CandyLiquidCurtain");if(shader){liquid=new Material(shader);curtain.material=liquid;}
             }
             if(view!=session.ActiveCamera||viewVR!=session.IsVR)
-            {view=session.ActiveCamera;viewVR=session.IsVR;var r=canvas.GetComponent<RectTransform>();if(session.IsVR){canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;r.SetParent(view.transform,false);r.sizeDelta=new Vector2(4,4);r.localPosition=new Vector3(0,0,.15f);r.localRotation=Quaternion.identity;r.localScale=Vector3.one;}else{canvas.renderMode=RenderMode.ScreenSpaceOverlay;r.SetParent(transform,false);}}
+            {view=session.ActiveCamera;viewVR=session.IsVR;var r=canvas.GetComponent<RectTransform>();if(session.IsVR){canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;r.SetParent(view.transform,false);r.localRotation=Quaternion.identity;r.localScale=Vector3.one;FitCurtain(r,view);}else{canvas.renderMode=RenderMode.ScreenSpaceOverlay;r.SetParent(transform,false);}}
             float age=Time.unscaledTime-transitionAt;float alpha=age<.3f?Mathf.SmoothStep(0,1,age/.3f):1-Mathf.SmoothStep(0,1,(age-.3f)/.9f);
-            var world=Services.World;if(world!=null&&view.transform.position.y<world.WaterHeight(view.transform.position)+.08f&&!(CandyTabletop.Current&&CandyTabletop.Current.Enabled)){alpha=1;transitionColor=new Color(.025f,.48f,.65f);}
-            var sink=MatchRuntime.Current!=null&&session.Player!=null?MatchRuntime.Current.RulesFor(session.Player.gameObject):null;
-            if(sink!=null&&sink.sinking&&alpha<.001f){alpha=.05f+sink.sinkProgress*.22f;transitionColor=new Color(.82f,.64f,.36f);}
-            if(liquid){liquid.SetFloat("_Progress",Mathf.Lerp(-.1f,1.1f,Mathf.Clamp01(alpha)));curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,1);}else curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,Mathf.Clamp01(alpha));canvas.enabled=alpha>.001f||Shader.GetGlobalFloat("_CandyHeat")>.01f;
+            if (viewVR && curtainStereo != view.stereoEnabled)
+                FitCurtain((RectTransform)canvas.transform, view);
+            Color tint = transitionColor;
+            bool tabletop = CandyTabletop.Current && CandyTabletop.Current.Enabled;
+            var world = Services.World;
+            if (world != null && view.transform.position.y < world.WaterHeight(view.transform.position) + .08f && !tabletop)
+            {
+                alpha = 1;
+                tint = new Color(.025f,.48f,.65f);
+            }
+            float sandTarget = 0;
+            var player = session.Player;
+            if (frame.phase == RoundPhase.Playing && player != null && !player.InputSuspended && !tabletop &&
+                !session.MenuOpen && !session.PlayingHand)
+            {
+                var movement = player.gameObject.GetComponent<IMovementState>();
+                var sink = MatchRuntime.Current.RulesFor(player.gameObject);
+                if (sink.sinking && movement?.Climbing != true && movement?.Vaulting != true)
+                    sandTarget = Mathf.Lerp(.15f, .37f, Mathf.Clamp01(sink.sinkProgress));
+            }
+            sinkCurtain = Mathf.MoveTowards(sinkCurtain, sandTarget, Time.unscaledDeltaTime * (sandTarget > 0 ? .85f : 1.4f));
+            bool sand = alpha < .001f && sinkCurtain > .001f && !session.MenuOpen && !tabletop && !session.PlayingHand &&
+                frame.phase == RoundPhase.Playing;
+            if (sand)
+            {
+                alpha = sinkCurtain;
+                tint = new Color(.69f,.41f,.17f,.68f);
+            }
+            if (liquid)
+            {
+                liquid.SetFloat("_Progress", Mathf.Lerp(-.1f,1.1f,Mathf.Clamp01(alpha)));
+                liquid.SetFloat("_Sand", sand ? 1 : 0);
+                curtain.color = new Color(tint.r,tint.g,tint.b,sand ? tint.a : 1);
+            }
+            else curtain.color = new Color(tint.r,tint.g,tint.b,Mathf.Clamp01(alpha) * (sand ? .55f : 1));
+            canvas.enabled = alpha > .001f || Shader.GetGlobalFloat("_CandyHeat") > .01f;
         }
+        void FitCurtain(RectTransform plane, Camera camera)
+        {
+            curtainStereo = camera.stereoEnabled;
+            float depth = camera.nearClipPlane + Mathf.Min(.12f, (camera.farClipPlane - camera.nearClipPlane) * .5f);
+            Vector2 extent = Vector2.zero;
+            for (int eye = 0; eye < (curtainStereo ? 2 : 1); eye++)
+            {
+                var projection = !curtainStereo ? Camera.MonoOrStereoscopicEye.Mono :
+                    eye == 0 ? Camera.MonoOrStereoscopicEye.Left : Camera.MonoOrStereoscopicEye.Right;
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    var world = camera.ViewportToWorldPoint(new Vector3(corner & 1, corner >> 1, depth), projection);
+                    var local = camera.transform.InverseTransformPoint(world);
+                    extent = Vector2.Max(extent, new Vector2(Mathf.Abs(local.x), Mathf.Abs(local.y)));
+                }
+            }
+            plane.localPosition = new Vector3(0, 0, depth);
+            plane.sizeDelta = extent * 2.12f + Vector2.one * .01f;
+        }
+
         void OnDestroy(){RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;foreach(var m in teamMaterials.Values)if(m)Destroy(m);if(healthMaterial)Destroy(healthMaterial);if(liquid)Destroy(liquid);if(canvas)Destroy(canvas.gameObject);}
     }
 
