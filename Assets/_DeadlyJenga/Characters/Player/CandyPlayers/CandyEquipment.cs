@@ -435,7 +435,6 @@ namespace DeadlyJenga.CandyPlayers
             {
                 if(motor.IsVR)
                 {
-                    if(!support.tracked)return;
                     var offhandAim=new Pose(support.position,support.rotation);
                     if(avatar.tracking&&avatar.tracking.TryControllerAim(supportLeft,out var aim))offhandAim=aim;
                     CandyWeaponVisual.TryPrimaryContact(ref support,offhandAim,state.kind,supportLeft,

@@ -6,6 +6,7 @@ using DeadlyJenga.Core;
 using DeadlyJenga.Modes;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CandyAudio;
+using DeadlyJenga.CandyPlayers;
 using UnityEngine;
 using Object=UnityEngine.Object;
 
@@ -34,11 +35,43 @@ namespace DeadlyJenga.DevTools.Editor
                 player.Place(new Vector3(150,10.05f,150),Quaternion.identity);player.InputSuspended=true;
                 yield return new WaitForSeconds(.2f);Physics.SyncTransforms();
                 var point=player.transform.position+Vector3.forward*.6f+Vector3.up*.2f;
+                var controls=player.GetComponent<CandyEquipment>();
+                int spikers=Grant(inventory,EquipmentKind.DualUzi,point);
+                Check(inventory.RequestPickup(spikers,true),"Authority equips the paired spikers");
+                controls.SetEquipped(true);
+                yield return new WaitForSeconds(.55f);
+                var paired=player.transform.Find("Visual - paired DualUzi");
+                Check(paired&&paired.gameObject.activeInHierarchy,"Offhand spiker is rendered");
+                Check(inventory.RequestEquipmentAttack(controls.MuzzlePose),"Primary spiker shot is accepted");
+                yield return new WaitForSeconds(.12f);
+                var expected=paired.TransformPoint(new Vector3(0,.12f,.51f));
+                Check(inventory.RequestEquipmentAttack(controls.MuzzlePose),"Alternate spiker shot is accepted");
+                var offhand=runtime.Frame.weaponProjectiles.Last(p=>p.kind==EquipmentKind.DualUzi);
+                Check(Vector3.Distance(offhand.position,expected)<.025f,
+                    "Alternate spiker projectile starts at the rendered offhand muzzle");
+                float drainBy=Time.realtimeSinceStartup+9;
+                while(inventory.EquipmentFor(runtime.LocalActorId).reloadRemaining<=0&&Time.realtimeSinceStartup<drainBy)
+                {
+                    inventory.RequestEquipmentAttack(controls.MuzzlePose);
+                    yield return new WaitForSeconds(.08f);
+                }
+                var magazine=inventory.EquipmentFor(runtime.LocalActorId);
+                Check(magazine.rounds==0&&magazine.reloadRemaining>0,"Empty spiker magazine starts automatic reload");
+                Check(!inventory.RequestEquipmentAttack(controls.MuzzlePose),"Reload blocks firing");
+                float refillBy=Time.realtimeSinceStartup+4;
+                while(inventory.EquipmentFor(runtime.LocalActorId).reloadRemaining>0&&Time.realtimeSinceStartup<refillBy)
+                    yield return null;
+                magazine=inventory.EquipmentFor(runtime.LocalActorId);
+                Check(magazine.reloadRemaining==0&&magazine.rounds==EquipmentSpecifications.Get(EquipmentKind.DualUzi).magazine,
+                    "Reload restores one full spiker magazine");
                 int id=Grant(inventory,EquipmentKind.DualRifle,point);Check(id>0,"Registers actual rifle pickup");
                 bool occupied=inventory.EquipmentFor(runtime.LocalActorId).kind!=EquipmentKind.None;
                 Check(inventory.RequestPickup(id,occupied),"Authority accepts actual rifle collection");
                 Check(Last(runtime).action==(occupied?EquipmentAction.Swap:EquipmentAction.Pickup),"Collection announces only after accepted inventory transition");
+                Check(inventory.EquipmentFor(runtime.LocalActorId).drawn,"An explicit rifle swap draws the new weapon");
+                Check(inventory.RequestEquipment(false,false,false),"Authority can holster the swapped rifle");
                 Check(inventory.RequestEquipment(true,false,false),"Authority draws rifle");Check(Last(runtime).action==EquipmentAction.Draw,"Draw emits authoritative event");
+                yield return new WaitForSeconds(.50f);
                 int sequence=runtime.Frame.equipmentSequence;
                 Check(inventory.RequestEquipment(true,false,false)&&runtime.Frame.equipmentSequence==sequence,"Unchanged state emits no duplicate draw");
                 var muzzle=new Pose(player.ViewPose.position+Vector3.forward*.5f,Quaternion.identity);

@@ -45,6 +45,9 @@ namespace DeadlyJenga.CharacterNetwork
         public Pose HandPose(bool left)
         {
             var f=initialized?frame:target;var hand=left?f.left:f.right;
+            var weapon=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId);
+            if(weapon?.kind==EquipmentKind.DualUzi&&weapon.drawn)
+                return CandyWeaponVisual.DrawnPose(weapon.kind,hand,left,f.scale);
             return new Pose(hand.position,hand.rotation);
         }
         public Rigidbody StandingBody { get { ProbeStanding();return standingHit.collider&&Climbables.TryGet(standingHit.collider,out var owner)?owner.Body:standingHit.rigidbody; } }

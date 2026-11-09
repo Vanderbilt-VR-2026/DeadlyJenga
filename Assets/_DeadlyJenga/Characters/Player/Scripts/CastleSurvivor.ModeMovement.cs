@@ -39,7 +39,16 @@ namespace DeadlyJenga.CastlePrototype
         public Pose HandPose(bool left)
         {
             var avatar=GetComponent<CandyPlayerAvatar>();
-            if(avatar&&avatar.Rig){var f=avatar.ReadFrame();var hand=left?f.left:f.right;return new Pose(hand.position,hand.rotation);}
+            if(avatar&&avatar.Rig)
+            {
+                var frame=avatar.ReadFrame();
+                var hand=left?frame.left:frame.right;
+                // Spiker alternation transfers the muzzle offset between gameplay grips.
+                var weapon=GetComponent<CandyEquipment>()?.Equipment;
+                if(weapon?.kind==EquipmentKind.DualUzi&&weapon.drawn)
+                    return CandyWeaponVisual.DrawnPose(weapon.kind,hand,left,frame.scale);
+                return new Pose(hand.position,hand.rotation);
+            }
             var view=ViewPose;return new Pose(view.position+view.rotation*new Vector3(left?-.25f:.25f,-.4f,.35f),view.rotation);
         }
         public Rigidbody StandingBody => Grounded&&StandingSurface ? Climbables.TryGet(StandingSurface,out var owner)?owner.Body:StandingSurface.attachedRigidbody : null;
