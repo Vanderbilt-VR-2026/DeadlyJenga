@@ -12,7 +12,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;public Text[] labels;public Outline outline;public Shadow glow;}
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;public Text[] labels;public Outline outline;public Shadow glow;public float pressedUntil;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
@@ -71,22 +71,22 @@ namespace DeadlyJenga.CandyArt.Marina
 
             modePicture=Card("marina-modes","GAME MODE",new Vector2(-169,1),()=>detail?.Invoke("modes"),out modeTitle);
             mapPicture=Card("marina-maps","MAP",new Vector2(169,1),()=>detail?.Invoke("maps"),out mapTitle);
-            var play=Button("marina-play",new Vector2(0,-124),new Vector2(378,48),Coral,lobby.StartOrCancel,()=>lobby.CanStart);
-            playTitle=Text("Start match",Vector2.zero,new Vector2(355,47),29,play);
+            var play=Button("marina-play",new Vector2(0,-119),new Vector2(378,42),Coral,lobby.StartOrCancel,()=>lobby.CanStart);
+            playTitle=Text("Start match",Vector2.zero,new Vector2(355,41),29,play);
             SmallButton("marina-settings","Settings",new Vector2(-263,-124),()=>detail?.Invoke("settings"));
             SmallButton("marina-style","Style",new Vector2(263,-124),()=>detail?.Invoke("style"));
-            var round=Button("marina-experience",new Vector2(0,-151),new Vector2(190,18),Plum,
+            var round=Button("marina-experience",new Vector2(0,-152),new Vector2(190,16),Plum,
                 ()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
-            Text("Round info",Vector2.zero,new Vector2(180,18),13,round);
+            Text("Round info",Vector2.zero,new Vector2(180,16),13,round);
 
             joinFace=CabinetFace("Lavender Join display",false);
             hostFace=CabinetFace("Mint Host display",true);
             CabinetHeading(joinFace,"JOIN FRIENDS",Lilac);
             CabinetHeading(hostFace,"HOST ROOM",Mint);
             CabinetAction(joinFace,"marina-join","Room code",17,Lilac,()=>detail?.Invoke("join-code"));
-            CabinetAction(joinFace,"marina-nearby","Find nearby",-27,new Color(.34f,.17f,.45f),()=>detail?.Invoke("join-nearby"));
+            CabinetAction(joinFace,"marina-nearby","Find nearby",-27,new Color(.34f,.17f,.45f),()=>detail?.Invoke("join-nearby"),()=>lobby.JoinEnabled);
             hostTitle=CabinetAction(hostFace,"marina-host","Create room",17,Mint,()=>detail?.Invoke("host"));
-            CabinetAction(hostFace,"marina-invite","Invite nearby",-27,new Color(.29f,.18f,.41f),()=>detail?.Invoke("host-invite"));
+            CabinetAction(hostFace,"marina-invite","Invite nearby",-27,new Color(.29f,.18f,.41f),()=>detail?.Invoke("host-invite"),()=>lobby.CanInvite);
 
             focusPanel=new GameObject("Marina · selection preview",typeof(RectTransform)).GetComponent<RectTransform>();
             focusPanel.SetParent(mainFace,false);focusPanel.anchoredPosition=new Vector2(0,-94);
@@ -128,9 +128,9 @@ namespace DeadlyJenga.CandyArt.Marina
             var label=Text(title,new Vector2(0,59),new Vector2(165,34),21,parent);
             label.color=Plum;
         }
-        Text CabinetAction(RectTransform parent,string id,string title,float y,Color color,Action action)
+        Text CabinetAction(RectTransform parent,string id,string title,float y,Color color,Action action,Func<bool> allowed=null)
         {
-            var button=Button(id,new Vector2(0,y),new Vector2(154,36),color,action,()=>true,parent);
+            var button=Button(id,new Vector2(0,y),new Vector2(154,36),color,action,allowed??(()=>true),parent);
             return Text(title,Vector2.zero,new Vector2(147,36),18,button);
         }
         RawImage Card(string id,string section,Vector2 position,Action action,out Text title)
@@ -187,16 +187,45 @@ namespace DeadlyJenga.CandyArt.Marina
             float width=Mathf.Min(1,target/source),height=Mathf.Min(1,source/target);
             image.uvRect=new Rect((1-width)*.5f,(1-height)*.5f,width,height);
         }
-        public bool Invoke(string id)
-        {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&target.face.gameObject.activeInHierarchy&&target.allowed()){MenuAim.Consume();target.action();return true;}return false;}
+        public bool Invoke(string id) => Activate(targets.Find(target => target.id == id), 0);
+
+        bool Activate(Target target, int pointerDevice)
+        {
+            if (ModalBlocked || requireRelease || target == null ||
+                !target.face.gameObject.activeInHierarchy || !target.allowed()) return false;
+            target.pressedUntil = Time.unscaledTime + .16f;
+            PaintTarget(target, true, true);
+            requireRelease = true;
+            MenuAim.Consume();
+            MenuAim.PulsePress(pointerDevice);
+            target.action();
+            return true;
+        }
+
+        static void PaintTarget(Target target, bool hover, bool allowed)
+        {
+            bool pressed = allowed && Time.unscaledTime < target.pressedUntil;
+            target.face.color = !allowed ? Color.Lerp(target.color, Plum, .70f) :
+                pressed ? Color.Lerp(target.color, Mint, .70f) :
+                hover ? Color.Lerp(target.color, Cream, .35f) : target.color;
+            var rim = pressed ? Cream : CandyHudVisuals.Mint;
+            float outline = allowed && (hover || pressed) ? 1 : 0;
+            target.outline.effectColor = new Color(rim.r, rim.g, rim.b, outline);
+            target.glow.effectColor = new Color(rim.r, rim.g, rim.b, outline * (pressed ? .85f : .50f));
+            var ink = target.face.color.grayscale > .6f ? Plum : Cream;
+            foreach (var text in target.labels) text.color = allowed ? ink : CandyHudVisuals.Muted;
+        }
         void Update()
         {
             if(!AnyFaceVisible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera)return;
             var mouse=Mouse.current;var keyboard=Keyboard.current;
-            bool held=select?.IsPressed()==true||leftSelect?.IsPressed()==true||player.SelectHeld||!lobby.CodeFocused&&keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
+            bool held=player.IsVR ? select.IsPressed() || leftSelect.IsPressed() || player.SelectHeld :
+                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true;
             if(requireRelease){if(!held)requireRelease=false;return;}
-            bool pressed=select!=null&&select.WasPressedThisFrame()||leftSelect?.WasPressedThisFrame()==true||player.SelectPressed||!lobby.CodeFocused&&keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
+            bool pressed=player.IsVR ? player.SelectPressed :
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true;
+            int pointerDevice = 0;
             var camera=player.ViewCamera;
             Ray ray;
             if (player.IsVR)
@@ -205,9 +234,9 @@ namespace DeadlyJenga.CandyArt.Marina
                 ray=MenuAim.Resolve(camera,camera.transform.parent,preferredLeft,false,false,out _,out _);
                 var controllerAction=leftSelect.WasPressedThisFrame()?leftSelect:select.WasPressedThisFrame()?select:
                     leftSelect.IsPressed()&&(!select.IsPressed()||preferredLeft)?leftSelect:select;
-                if (controllerAction.IsPressed())
+                if (controllerAction.IsPressed() || controllerAction.WasPressedThisFrame())
                 {
-                    if (MenuAim.TryActionPointer(camera,controllerAction,out var controllerRay,out _))
+                    if (MenuAim.TryActionPointer(camera,controllerAction,out var controllerRay,out pointerDevice))
                     {
                         ray=controllerRay;
                         pressed=controllerAction.WasPressedThisFrame();
@@ -217,34 +246,36 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             else
                 ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
-            Target nearest=null;float distance=11;
-            if (Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
-                distance = obstruction.distance;
-            float screenRange = distance;
-            foreach(var target in targets)
-            {
-                if(!target.face.gameObject.activeInHierarchy)continue;
-                target.collider.enabled=target.allowed();
-                if(target.collider.enabled&&MenuAim.TryPoint(ray,target.face.rectTransform,distance,out _,out var hit)){nearest=target;distance=Vector3.Distance(ray.origin,hit);}
-            }
-            foreach(var target in targets)
-            {
-                if(!target.face.gameObject.activeInHierarchy)continue;
-                bool hover=target==nearest,allowed=target.allowed();target.face.color=hover?Color.Lerp(target.color,Cream,.35f):allowed?target.color:Color.Lerp(target.color,Plum,.6f);
-                target.face.rectTransform.localScale=Vector3.Lerp(target.face.rectTransform.localScale,Vector3.one*(hover?1.035f:1),1-Mathf.Exp(-22*Time.unscaledDeltaTime));
-                target.outline.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?1:0);
-                target.glow.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?.5f:0);
-                foreach(var text in target.labels)text.color=allowed?(target.color.grayscale>.6f?Plum:Cream):CandyHudVisuals.Muted;
-            }
+            float screenRange = 11;
+            if (Physics.Raycast(ray, out var obstruction, screenRange, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
+                screenRange = obstruction.distance;
+            var nearest = PickTarget(ray, screenRange);
+            foreach (var target in targets)
+                if (target.face.gameObject.activeInHierarchy) PaintTarget(target, target == nearest, target.collider.enabled);
             PreviewDestination(nearest?.id);
             if (nearest != null && MenuAim.TryPoint(ray, nearest.face.rectTransform, screenRange, out _, out var point) ||
                 VisibleFacePoint(ray, mainFace, screenRange, out point) ||
                 VisibleFacePoint(ray, joinFace, screenRange, out point) ||
                 VisibleFacePoint(ray, hostFace, screenRange, out point))
-                MenuAim.Present(aimDot, point, true, nearest != null);
+                MenuAim.Present(aimDot, point, true, nearest != null && nearest.collider.enabled);
             else aimDot.gameObject.SetActive(false);
-            if(pressed&&nearest!=null){Invoke(nearest.id);requireRelease=true;}
+            if (pressed && nearest != null) Activate(nearest, pointerDevice);
         }
+        Target PickTarget(Ray ray, float range)
+        {
+            Target nearest = null;
+            foreach (var target in targets)
+            {
+                if (!target.face.gameObject.activeInHierarchy) continue;
+                target.collider.enabled = target.allowed();
+                // A disabled control still owns its area. Never click through it to another button.
+                if (!MenuAim.TryPoint(ray, target.face.rectTransform, range, out _, out var hit)) continue;
+                nearest = target;
+                range = Vector3.Distance(ray.origin, hit);
+            }
+            return nearest;
+        }
+
         static bool VisibleFacePoint(Ray ray, RectTransform face, float distance, out Vector3 point)
         {
             point = default;

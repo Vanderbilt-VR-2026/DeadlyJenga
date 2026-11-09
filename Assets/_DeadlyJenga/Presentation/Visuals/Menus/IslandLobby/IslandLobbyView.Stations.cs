@@ -51,7 +51,7 @@ namespace DeadlyJenga.CastlePrototype
             if(lobby.CodeFocused&&codeKeyboard!=null)
             {
                 if(codeKeyboard.backspaceKey.wasPressedThisFrame)lobby.EraseCode();
-                if(codeKeyboard.enterKey.wasPressedThisFrame&&lobby.CodeValid)lobby.Join();
+                if(codeKeyboard.enterKey.wasPressedThisFrame)InvokeChoice("join");
                 if(codeKeyboard.escapeKey.wasPressedThisFrame)lobby.UnfocusCode();
             }
             keyboardCode.gameObject.SetActive(lobby.CodeFocused);
@@ -70,7 +70,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             screen.GetComponent<LobbyTerminalFaces>().Refresh();
         }
-        void CodeText(char value){if(lobby!=null&&lobby.CodeFocused)lobby.TypeCode(value);}
+        void CodeText(char value){if(inputFocused&&!LocalModalBlocked&&lobby!=null&&lobby.CodeFocused)lobby.TypeCode(value);}
         RectTransform Terminal(string title,Vector3 position,float yaw,Vector2 size,Color accent)
         {
             var go=new GameObject(title,typeof(RectTransform),typeof(Canvas),typeof(Image));go.transform.SetParent(transform,false);go.transform.SetPositionAndRotation(position,Quaternion.Euler(0,yaw,0));go.transform.localScale=Vector3.one*(title=="WARDROBE"?.0022f:StationScale);

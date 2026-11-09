@@ -96,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
             if(lobby.JoinEnabled)
             foreach(var choice in choices)
             {
-                if(!choice.physical||!choice.collider.enabled||choice.enabled!=null&&!choice.enabled())continue;
+                if(!choice.physical||!choice.collider.gameObject.activeInHierarchy||!choice.collider.enabled||choice.enabled!=null&&!choice.enabled())continue;
                 if(choice.collider.transform.InverseTransformPoint(point).z>-10)continue;
                 float d=(choice.collider.ClosestPoint(point)-point).sqrMagnitude;
                 if(d<=distance){hit=choice;distance=d;}

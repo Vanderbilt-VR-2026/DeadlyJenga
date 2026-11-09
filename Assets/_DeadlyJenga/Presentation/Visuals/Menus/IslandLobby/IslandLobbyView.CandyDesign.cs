@@ -123,6 +123,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void PaintCandyChoice(Choice choice,bool hover,bool usable)
         {
+            bool pressed = usable && Time.unscaledTime < choice.pressedUntil;
             if(!choice.physical)
             {
                 if(!choice.focusInitialized)
@@ -131,22 +132,27 @@ namespace DeadlyJenga.CastlePrototype
                     choice.focusOutline=choice.button.gameObject.AddComponent<Outline>();choice.focusOutline.effectDistance=new Vector2(4,-4);
                     choice.focusGlow=choice.button.gameObject.AddComponent<Shadow>();choice.focusGlow.effectDistance=new Vector2(0,-8);
                 }
-                bool focused=hover&&usable;
-                choice.focusOutline.effectColor=new Color(CandyMint.r,CandyMint.g,CandyMint.b,focused?.95f:0);
-                choice.focusGlow.effectColor=new Color(CandyMint.r,CandyMint.g,CandyMint.b,focused?.45f:0);
+                bool focused=usable&&(hover||pressed);
+                Color edge=pressed?CandyCream:CandyMint;
+                choice.focusOutline.effectColor=new Color(edge.r,edge.g,edge.b,focused?.95f:0);
+                choice.focusGlow.effectColor=new Color(edge.r,edge.g,edge.b,focused?(pressed?.85f:.45f):0);
 
             }
             if(choice.physical)
             {choice.label.color=usable?(choice.keyColor.grayscale>.6f?CandyInk:CandyCream):CandyMuted;return;}
             if(!choice.candy)
-            {choice.label.color=hover?CandyHudVisuals.Ink:usable?Color.white:CandyHudVisuals.Muted;choice.button.image.color=hover?CandyHudVisuals.Mint:usable?CandyHudVisuals.Card:new Color(.11f,.14f,.2f);return;}
+            {
+                choice.label.color=usable&&(hover||pressed)?CandyHudVisuals.Ink:usable?Color.white:CandyHudVisuals.Muted;
+                choice.button.image.color=!usable?new Color(.11f,.14f,.2f):pressed?CandyCream:hover?CandyMint:CandyHudVisuals.Card;
+                return;
+            }
             bool selected=choice.selected!=null&&choice.selected();
-            var face=!usable?new Color(.17f,.14f,.23f):hover?CandyMint:Time.unscaledTime<choice.pressedUntil?Color.Lerp(choice.faceColor,CandyInk,.2f):choice.faceColor;
+            var face=!usable?new Color(.17f,.14f,.23f):pressed?Color.Lerp(CandyMint,CandyCream,.42f):hover?CandyMint:choice.faceColor;
             choice.button.image.color=face;
             var foreground=!usable?CandyMuted:CandyForeground(face);
             choice.label.color=foreground;
             if(choice.description)choice.description.color=CandyForeground(face)==CandyInk?new Color(.10f,.07f,.19f):CandyCream;
-            if(choice.rim)choice.rim.color=selected||hover?CandyMint:usable?choice.edgeColor:new Color(CandyLavender.r,CandyLavender.g,CandyLavender.b,.4f);
+            if(choice.rim)choice.rim.color=pressed?CandyCream:usable&&(selected||hover)?CandyMint:usable?choice.edgeColor:new Color(CandyLavender.r,CandyLavender.g,CandyLavender.b,.4f);
             if(choice.glyph){choice.glyph.color=selected&&!hover?CandyMint:foreground;choice.glyph.gameObject.SetActive(!choice.selectionGlyph||selected);}
         }
         void UpdateCandyDesign()
