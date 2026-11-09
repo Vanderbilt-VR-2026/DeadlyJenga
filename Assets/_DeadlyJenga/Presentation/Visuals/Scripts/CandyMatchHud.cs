@@ -26,11 +26,12 @@ namespace DeadlyJenga.Presentation
         }
         readonly StandingsRow[] standingsRows = new StandingsRow[BoardPageSize];
         CandyScorePortraits scorePortraits;
+        CandyScorePodium podium;
         Text standingsFooter;
         Text standingsHint;
         string standingsControl;
         float nextBoardPageAt;
-        void OnDisable(){Expanded=false;}
+        void OnDisable(){Expanded=false;podium?.Hide();}
         public static bool ScoreboardPinned;
         public static int FlagFocusIndex;
         public static bool Expanded {get;private set;}
@@ -109,6 +110,7 @@ namespace DeadlyJenga.Presentation
             {
                 Expanded = false;
                 if(canvas)canvas.enabled=false;
+                podium?.Hide();
                 eliminationFeed?.Update(null, false);
                 return;
             }
@@ -140,6 +142,7 @@ namespace DeadlyJenga.Presentation
             standingsHint.text = vr ? "HOLD " + standingsControl + " · STANDINGS" : "HOLD F2 · STANDINGS";
             if(watching)
             {
+                podium?.Hide();
                 board.text=teams.text=claim.text=warning.text="";claimFill.enabled=false;
                 status.text=vr?"WATCHING "+spectator.WatchedName(0)+"\nRight stick switches players":"";
                 foreach(var plate in plates.Values)if(plate)plate.gameObject.SetActive(false);
@@ -148,6 +151,8 @@ namespace DeadlyJenga.Presentation
             }
             UpdateHealthBar(match.Frame,match.LocalActorId);
             healthGroup.gameObject.SetActive(!Expanded);
+            if (!Expanded || !canvas.enabled) podium?.Hide();
+            else podium?.Draw();
             if(Time.unscaledTime<sampleAt)return;sampleAt=Time.unscaledTime+.2f;
             var f=match.Frame;MatchPlayerFrame own=null;foreach(var p in f.players)if(p.id==match.LocalActorId){own=p;break;}
             if(lastPhase!=f.phase||lastMode!=f.rules.mode)
@@ -261,31 +266,33 @@ namespace DeadlyJenga.Presentation
         void BuildStandingsRows()
         {
             var parent = board.transform.parent;
+            podium?.Dispose();
+            podium = new CandyScorePodium(transform, parent, new Vector2(405, -12));
             for (int i = 0; i < standingsRows.Length; i++)
             {
                 var go = new GameObject("Standings player", typeof(RectTransform), typeof(Image));
                 go.transform.SetParent(parent, false);
                 var card = go.GetComponent<Image>();
                 card.sprite = CandyHudVisuals.Pill; card.type = Image.Type.Sliced; card.raycastTarget = false;
-                card.rectTransform.sizeDelta = new Vector2(966, 60);
-                card.rectTransform.anchoredPosition = new Vector2(0, 157 - i * 66);
-                var rank = Label("Rank", new Vector2(40, 50), new Vector2(-460, 0), TextAnchor.MiddleCenter, 23);
+                card.rectTransform.sizeDelta = new Vector2(776, 74);
+                card.rectTransform.anchoredPosition = new Vector2(-202, 179 - i * 79);
+                var rank = Label("Rank", new Vector2(40, 50), new Vector2(-363, 0), TextAnchor.MiddleCenter, 23);
                 rank.transform.SetParent(go.transform, false);
                 var icon = new GameObject("Avatar portrait", typeof(RectTransform), typeof(RawImage));
                 icon.transform.SetParent(go.transform, false);
                 var portrait = icon.GetComponent<RawImage>(); portrait.raycastTarget = false;
-                portrait.rectTransform.sizeDelta = new Vector2(48, 48);
-                portrait.rectTransform.anchoredPosition = new Vector2(-409, 0);
-                var initial = Label("Portrait initial", new Vector2(48, 48), Vector2.zero, TextAnchor.MiddleCenter, 26);
+                portrait.rectTransform.sizeDelta = new Vector2(70, 70);
+                portrait.rectTransform.anchoredPosition = new Vector2(-303, 0);
+                var initial = Label("Portrait initial", new Vector2(70, 70), Vector2.zero, TextAnchor.MiddleCenter, 34);
                 initial.transform.SetParent(icon.transform, false);
-                var name = Label("Player name", new Vector2(830, 34), new Vector2(38, 12), TextAnchor.MiddleLeft, 28);
+                var name = Label("Player name", new Vector2(631, 34), new Vector2(56, 14), TextAnchor.MiddleLeft, 28);
                 name.transform.SetParent(go.transform, false); name.supportRichText = false;
                 name.horizontalOverflow = HorizontalWrapMode.Overflow;
-                var stats = Label("Public mode stats", new Vector2(830, 24), new Vector2(38, -18), TextAnchor.MiddleLeft, 19);
+                var stats = Label("Public mode stats", new Vector2(631, 26), new Vector2(56, -18), TextAnchor.MiddleLeft, 19);
                 stats.transform.SetParent(go.transform, false); stats.supportRichText = false;
                 standingsRows[i] = new StandingsRow { card = card, rank = rank, name = name, stats = stats, portrait = portrait, initial = initial };
             }
-            standingsFooter = Label("Standings page and controls", new Vector2(966, 60), new Vector2(0, -247), TextAnchor.MiddleCenter, 18);
+            standingsFooter = Label("Standings page and controls", new Vector2(776, 54), new Vector2(-202, -284), TextAnchor.MiddleCenter, 18);
             standingsFooter.transform.SetParent(parent, false); standingsFooter.color = CandyHudCards.Ink;
         }
 
@@ -297,8 +304,11 @@ namespace DeadlyJenga.Presentation
             var rows = mystery ? participants.OrderBy(p => p.name).ToArray() : participants.OrderByDescending(p => p.metric).ThenBy(p => p.id, System.StringComparer.Ordinal).ToArray();
             int pages = Mathf.Max(1, Mathf.CeilToInt(rows.Length / (float)BoardPageSize));
             boardPage = Mathf.Clamp(boardPage, 0, pages - 1);
-            CandyHudCards.Place(board, new Vector2(0, 10), new Vector2(1010, 580)); board.fontSize = 22;
-            board.rectTransform.offsetMin = new Vector2(22, 480); board.rectTransform.offsetMax = new Vector2(-22, -18);
+            CandyHudCards.Place(board, new Vector2(0, 10), new Vector2(1220, 660)); board.fontSize = 22;
+            board.rectTransform.offsetMin = new Vector2(mystery ? 222 : 20, 552);
+            board.rectTransform.offsetMax = new Vector2(mystery ? -222 : -424, -18);
+            podium.SetPlayers(MatchRuntime.Current, rows, !mystery && canvas.enabled);
+            standingsFooter.rectTransform.anchoredPosition = new Vector2(mystery ? 0 : -202, -284);
             text.Clear(); text.Append(mystery ? "PLAYER ROSTER · ROLES PRIVATE" : statusRoster ? "PARTICIPANTS · CURRENT STATUS" : "STANDINGS · " + CandyHudContent.Safe(f.metricLabel, 28));
             text.Append(" · ").Append(StandingsCount(rows.Length, curated));
             if (f.teams.Length > 0) text.Append('\n').Append(string.Join(" | ", f.teams.Select(t => CandyHudContent.Safe(t.name, 10) + " " + (f.rules.mode == GameModeKind.CaptureFlag ? t.captures : f.rules.mode == GameModeKind.TeamTickets ? t.tickets : Mathf.RoundToInt(t.points)))));
@@ -308,6 +318,7 @@ namespace DeadlyJenga.Presentation
                 int rank = boardPage * BoardPageSize + i; var row = standingsRows[i]; bool show = rank < rows.Length;
                 row.card.gameObject.SetActive(show); if (!show) continue;
                 var player = rows[rank]; bool local = player.id == own?.id;
+                row.card.rectTransform.anchoredPosition = new Vector2(mystery ? 0 : -202, 179 - i * 79);
                 row.card.color = local ? new Color(.70f, 1f, .88f, .96f) : new Color(.91f, .85f, 1f, .82f);
                 row.rank.color = row.name.color = row.stats.color = CandyHudCards.Ink;
                 row.rank.text = mystery ? "·" : (rank + 1).ToString();
@@ -418,6 +429,6 @@ namespace DeadlyJenga.Presentation
         {
             waypoints.Show(camera,world,name,color);
         }
-        void OnDestroy(){if(canvas)Destroy(canvas.gameObject);foreach(var p in plates.Values)if(p)Destroy(p.gameObject);}
+        void OnDestroy(){podium?.Dispose();if(canvas)Destroy(canvas.gameObject);foreach(var p in plates.Values)if(p)Destroy(p.gameObject);}
     }
 }
