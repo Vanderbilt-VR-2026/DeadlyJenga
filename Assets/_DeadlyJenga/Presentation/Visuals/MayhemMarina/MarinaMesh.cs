@@ -100,6 +100,9 @@ namespace DeadlyJenga.CandyArt.Marina
                 if(i==segments-1)Q(o1,i1,o1+up,i1+up,(i1-i0).normalized);
             }
         }
+        public void WalkStrip(Vector3 from,Vector3 to,Vector3 halfWidth)
+        {Quad(collision,from-halfWidth,to-halfWidth,from+halfWidth,to+halfWidth,Vector3.up);}
+
         public void Disk(Vector3 center,float radius,float height,MarinaFinish finish,bool solid=true,int sides=48)
         {ArcSlab(center,Vector2.zero,Vector2.one*radius,height,0,360,finish,solid,sides);}
         public void Tube(IList<Vector3> points,float radius,MarinaFinish finish,int sides=10,bool solid=false,float endRadius=-1)
@@ -180,7 +183,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             Color[] colors={new(1,.91f,.77f),new(1,.91f,.81f),Color.white,new(.32f,.13f,.047f),new(1,.25f,.32f),new(.10f,.47f,.44f),new(.95f,.045f,.06f),new(.075f,.79f,.29f),new(.57f,.12f,.85f),new(.075f,.28f,.09f),new(.22f,.52f,.095f),new(.80f,.63f,.40f),new(.53f,.49f,.42f),new(.10f,.16f,.19f),new(.69f,.40f,.12f),new(1,.74f,.34f),new(.93f,.77f,.56f),new(.35f,.66f,.58f),new(.95f,.37f,.32f),new(.15f,.56f,.64f,.19f),new(1,.85f,.63f),new(1,.25f,.27f),new(.69f,.37f,.93f),new(.27f,.85f,.66f),new(.12f,.055f,.19f)};
             var m=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Marina "+finish,enableInstancing=true};m.SetColor("_BaseColor",colors[(int)finish]);
-            float gloss=finish>=MarinaFinish.CandyCream ? .81f:finish==MarinaFinish.Coral||finish==MarinaFinish.Red||finish==MarinaFinish.Green||finish==MarinaFinish.Purple ? .78f:finish==MarinaFinish.Wood ? .48f:finish==MarinaFinish.Stone ? .72f:finish>=MarinaFinish.CreamFabric ? .16f:.32f;
+            float gloss=finish>=MarinaFinish.CandyCream ? .81f:finish==MarinaFinish.Red||finish==MarinaFinish.Green||finish==MarinaFinish.Purple ? .69f:finish==MarinaFinish.Wood ? .36f:finish==MarinaFinish.Stone ? .29f:finish>=MarinaFinish.CreamFabric ? .19f:.38f;
             m.SetFloat("_Smoothness",gloss);m.SetFloat("_Metallic",finish==MarinaFinish.Metal||finish==MarinaFinish.Brass ? .72f:.02f);
             if(finish==MarinaFinish.Wood||finish==MarinaFinish.DarkWood)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaWood"));
             if(finish==MarinaFinish.Stone||finish==MarinaFinish.Ivory)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaStone"));
