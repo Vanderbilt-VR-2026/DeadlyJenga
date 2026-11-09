@@ -136,6 +136,206 @@ namespace DeadlyJenga.Presentation
             foreach(var mesh in projectileMeshes.Values)if(mesh)Destroy(mesh);
             if(ordnanceRibbon)Destroy(ordnanceRibbon);if(ordnanceMetal)Destroy(ordnanceMetal);if(ordnanceHot)Destroy(ordnanceHot);if(detailGlow)Destroy(detailGlow);if(ordnanceBurst)Destroy(ordnanceBurst);
         }
+        sealed class Shell
+        {
+            public Transform model;
+            public Vector3 origin,velocity,spin;
+            public Quaternion rotation;
+            public float born,floor,scale;
+        }
+
+        readonly List<Shell> shells=new List<Shell>(48);
+        int shellWrite;
+        Material shellMaterial;
+        Mesh shellMesh;
+
+        static Vector3 ShotAnchor(EquipmentKind kind,bool alternate) => kind switch
+        {
+            EquipmentKind.Blaster => new(0,.125f,.57f),
+            EquipmentKind.SheriffHammer => new(0,.12f,.53f),
+            EquipmentKind.DualRifle => new(0,.15f,alternate?.73f:1f),
+            EquipmentKind.StockPistol or EquipmentKind.DualUzi => new(0,.12f,.51f),
+            EquipmentKind.ChainGun => new(0,-.235f,1f),
+            EquipmentKind.RocketLauncher => new(0,.205f,1.065f),
+            EquipmentKind.GrenadeLauncher => new(0,.235f,.80f),
+            EquipmentKind.WristLaser => new(0,.12f,.17f),
+            EquipmentKind.NeedleDrill => new(0,.145f,.72f),
+            EquipmentKind.Chainsaw => new(0,0,.78f),
+            _ => Vector3.zero
+        };
+
+        static (Color tint,float length,int sparks) FlashProfile(EquipmentKind kind,bool alternate)
+        {
+            var fire=new Color(1,.48f,.11f);
+            return kind switch
+            {
+                EquipmentKind.RocketLauncher => (fire,.58f,12),
+                EquipmentKind.GrenadeLauncher => (new Color(.69f,.38f,1),.32f,10),
+                EquipmentKind.ChainGun => (fire,.29f,5),
+                EquipmentKind.DualRifle => (fire,alternate?.45f:.30f,alternate?10:6),
+                EquipmentKind.SheriffHammer => (fire,alternate?.40f:.30f,8),
+                EquipmentKind.StockPistol => (fire,.22f,6),
+                EquipmentKind.DualUzi => (new Color(.45f,1,.10f),.18f,4),
+                EquipmentKind.Blaster or EquipmentKind.PoweredArmor => (new Color(.19f,.85f,1),.28f,7),
+                EquipmentKind.WristLaser => (new Color(1,.24f,.045f),.12f,3),
+                EquipmentKind.NeedleDrill => (new Color(1,.77f,.23f),.16f,4),
+                EquipmentKind.Chainsaw when alternate => (new Color(1,.74f,.32f),.26f,9),
+                EquipmentKind.LaserAxe when alternate => (LightningBlue,.37f,9),
+                _ => (Color.clear,0,0)
+            };
+        }
+
+        void PresentShot(EquipmentActionFrame action)
+        {
+            var profile=FlashProfile(action.kind,action.shotgun);
+            if(profile.length<=0||effectsRuntime==null||string.IsNullOrEmpty(action.actor))return;
+            var owner=effectsRuntime.FindParticipantRoot(action.actor);
+            var model=owner?owner.Find("Visual - "+action.kind):null;
+            var anchor=ShotAnchor(action.kind,action.shotgun);
+            if(owner&&(action.kind==EquipmentKind.DualUzi||action.kind==EquipmentKind.PoweredArmor))
+            {
+                var second=owner.Find("Visual - paired "+action.kind);
+                if(second&&(!model||
+                    (second.TransformPoint(anchor)-action.position).sqrMagnitude<
+                    (model.TransformPoint(anchor)-action.position).sqrMagnitude))model=second;
+            }
+            bool mounted=model&&model.gameObject.activeInHierarchy;
+            float scale=mounted?Mathf.Clamp(Mathf.Abs(model.lossyScale.z),.1f,2f):1;
+            var origin=action.position;
+            if(mounted&&anchor!=Vector3.zero)
+            {
+                var socket=model.TransformPoint(anchor);
+                if((socket-origin).sqrMagnitude<.16f*scale*scale)origin=socket;
+            }
+            Vector3 direction=mounted?model.forward:owner?owner.forward:Vector3.forward;
+            if(action.endpoints!=null&&action.endpoints.Length>0&&
+                (action.endpoints[0]-action.position).sqrMagnitude>.005f)
+                direction=(action.endpoints[0]-action.position).normalized;
+            else if(EquipmentSpecifications.Get(action.kind).projectileSpeed>0||action.kind==EquipmentKind.Chainsaw)
+            {
+                // Travelling shots have no endpoint until impact.
+                float best=.36f;
+                foreach(var shot in effectsRuntime.Frame.weaponProjectiles)
+                {
+                    if(shot.kind!=action.kind||shot.owner!=action.actor||shot.velocity.sqrMagnitude<.001f)continue;
+                    float distance=(shot.position-action.position).sqrMagnitude;
+                    if(distance>=best)continue;
+                    best=distance;direction=shot.velocity.normalized;
+                }
+            }
+            var orientation=Quaternion.LookRotation(direction);
+            EmitMuzzle(origin,orientation,profile.tint,profile.length*scale,profile.sparks,action.id);
+            if(mounted&&action.kind==EquipmentKind.RocketLauncher)
+                EmitMuzzle(model.TransformPoint(new Vector3(0,.205f,-.43f)),
+                    Quaternion.LookRotation(-model.forward),new Color(1,.32f,.07f),.70f*scale,8,action.id);
+            if(mounted&&(action.kind==EquipmentKind.StockPistol||action.kind==EquipmentKind.DualRifle||
+                action.kind==EquipmentKind.ChainGun))EjectShell(model,action,scale);
+        }
+
+        void EmitMuzzle(Vector3 origin,Quaternion orientation,Color tint,float size,int sparks,int seed)
+        {
+            if(burstParticles.isStopped)burstParticles.Play();
+            var forward=orientation*Vector3.forward;
+            burstParticles.Emit(new ParticleSystem.EmitParams{
+                position=origin+forward*size*.16f,velocity=forward*size*12,startLifetime=.041f,
+                startSize=size*.82f,startColor=Color.Lerp(tint,Color.white,.76f)},1);
+            burstParticles.Emit(new ParticleSystem.EmitParams{
+                position=origin+forward*size*.22f,velocity=forward*size*8,startLifetime=.076f,
+                startSize=size*1.04f,startColor=tint},1);
+            if(size>.27f)
+                burstParticles.Emit(new ParticleSystem.EmitParams{
+                    position=origin+forward*size*.24f,velocity=forward*size*2.6f+Vector3.up*.38f,
+                    startLifetime=.27f,startSize=size*.62f,startColor=new Color(.63f,.59f,.57f,.34f)},1);
+            for(int i=0;i<sparks;i++)
+            {
+                float angle=i*2.39996f+seed*.59f;
+                var radial=orientation*new Vector3(Mathf.Cos(angle),Mathf.Sin(angle),0);
+                var direction=forward*(2.6f+i%4*.72f)+radial*(.55f+i%3*.43f);
+                burstParticles.Emit(new ParticleSystem.EmitParams{
+                    position=origin+forward*size*.22f,velocity=direction,startLifetime=.08f+i%4*.024f,
+                    startSize=size*(.12f+i%3*.044f),startColor=tint},1);
+            }
+        }
+
+        void EjectShell(Transform weapon,EquipmentActionFrame action,float scale)
+        {
+            if(!shellMesh)
+            {
+                shellMesh=BuildShellMesh();
+                shellMaterial=new Material(ordnanceMetal){name="Ejected cartridge brass",color=new Color(.84f,.57f,.22f)};
+            }
+            Shell shell=null;
+            foreach(var available in shells)if(!available.model.gameObject.activeSelf){shell=available;break;}
+            if(shell==null)
+            {
+                if(shells.Count<48)
+                {
+                    shell=new Shell{model=ModelPiece(transform,"Ejected cartridge",shellMesh,shellMaterial,Vector3.zero,Vector3.one)};
+                    shells.Add(shell);
+                }
+                else{shell=shells[shellWrite];shellWrite=(shellWrite+1)%shells.Count;}
+            }
+            bool rotary=action.kind==EquipmentKind.ChainGun;
+            bool rifle=action.kind==EquipmentKind.DualRifle;
+            var port=rotary?new Vector3(.27f,-.19f,.23f):rifle?new Vector3(.086f,.10f,.14f):
+                new Vector3(.060f,.145f,.125f);
+            shell.origin=weapon.TransformPoint(port);
+            shell.velocity=(weapon.right*(2.2f+action.id%5*.24f)+weapon.up*(1.3f+action.id%3*.24f)
+                -weapon.forward*.66f)*scale;
+            shell.spin=new Vector3(620+action.id%7*84,580+action.id%5*114,130);
+            shell.rotation=weapon.rotation*Quaternion.Euler(0,0,25);
+            shell.born=Time.time;
+            shell.scale=scale*(rotary?1.22f:rifle?1.14f:.9f);
+            shell.floor=shell.origin.y-3;
+            if(Physics.Raycast(shell.origin+Vector3.up*.04f,Vector3.down,out var floor,2.6f,
+                (1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))
+                shell.floor=floor.point.y+.024f*scale;
+            shell.model.SetPositionAndRotation(shell.origin,shell.rotation);
+            shell.model.localScale=Vector3.one*shell.scale;
+            shell.model.gameObject.SetActive(true);
+        }
+
+        void UpdateShells()
+        {
+            foreach(var shell in shells)
+            {
+                if(!shell.model.gameObject.activeSelf)continue;
+                float age=Time.time-shell.born;
+                if(age>=1.7f){shell.model.gameObject.SetActive(false);continue;}
+                const float gravity=9.81f;
+                float flight=(shell.velocity.y+Mathf.Sqrt(shell.velocity.y*shell.velocity.y+
+                    2*gravity*Mathf.Max(0,shell.origin.y-shell.floor)))/gravity;
+                float t=Mathf.Min(age,flight);
+                var position=shell.origin+shell.velocity*t+Vector3.down*(.5f*gravity*t*t);
+                if(age>flight)
+                {
+                    float bounce=age-flight;
+                    position.y=shell.floor+Mathf.Max(0,(gravity*flight-shell.velocity.y)*.30f*bounce-.5f*gravity*bounce*bounce);
+                    position+=Vector3.ProjectOnPlane(shell.velocity,Vector3.up)*(.26f*Mathf.Min(.28f,bounce));
+                }
+                shell.model.SetPositionAndRotation(position,shell.rotation*Quaternion.Euler(shell.spin*Mathf.Min(age,flight+.28f)));
+                shell.model.localScale=Vector3.one*(shell.scale*Mathf.Clamp01((1.7f-age)/.24f));
+            }
+        }
+
+        static Mesh BuildShellMesh()
+        {
+            const int sides=12;
+            Vector2[] rings={new(-.025f,0),new(-.025f,.013f),new(-.021f,.014f),new(-.016f,.011f),
+                new(-.012f,.012f),new(.024f,.010f),new(.024f,.007f),new(.009f,.007f),new(.009f,0)};
+            var vertices=new Vector3[rings.Length*sides];
+            var triangles=new List<int>((rings.Length-1)*sides*6);
+            for(int ring=0;ring<rings.Length;ring++)for(int i=0;i<sides;i++)
+            {
+                float angle=i*2*Mathf.PI/sides;
+                int a=ring*sides+i,b=ring*sides+(i+1)%sides;
+                vertices[a]=new Vector3(Mathf.Cos(angle)*rings[ring].y,Mathf.Sin(angle)*rings[ring].y,rings[ring].x);
+                if(ring<rings.Length-1)triangles.AddRange(new[]{a,b,a+sides,b,b+sides,a+sides});
+            }
+            var mesh=new Mesh{name="Open brass cartridge with extractor rim",vertices=vertices,triangles=triangles.ToArray()};
+            mesh.RecalculateNormals();mesh.RecalculateBounds();
+            return mesh;
+        }
         void EmitBlast(EquipmentActionFrame action)
         {
             bool rocket=action.kind==EquipmentKind.RocketLauncher;

@@ -40,7 +40,7 @@ namespace DeadlyJenga.CandyPlayers
 
         void UpdateWeaponBash(EquipmentState state)
         {
-            ReadAcceptedBashes(state);
+            ReadAcceptedWeaponMotion(state);
             if (!Local || !CanBash(state) || motor.InputSuspended || !motor.HasInputFocus || !motor.Alive ||
                 motor.Climbing || motor.Vaulting || motor.CarryingFlag || Services.Session?.MenuOpen == true ||
                 state.reloadRemaining > 0 || state.triggerHeld || Time.time - lastAttackTime < .22f)
@@ -93,7 +93,12 @@ namespace DeadlyJenga.CandyPlayers
             bashJab.Consume();
         }
 
-        void ReadAcceptedBashes(EquipmentState state)
+        float primaryKickAt=float.NegativeInfinity,pairedKickAt=float.NegativeInfinity;
+        EquipmentKind kickKind;
+        float sprintCarryBlend;
+        int sprintCarryFrame=-1;
+
+        void ReadAcceptedWeaponMotion(EquipmentState state)
         {
             var runtime = MatchRuntime.Current;
             var frame = runtime?.Frame;
@@ -104,6 +109,7 @@ namespace DeadlyJenga.CandyPlayers
                 bashEpoch = frame.equipmentEpoch;
                 bashSequence = frame.equipmentSequence;
                 acceptedBashAt = float.NegativeInfinity;
+                primaryKickAt=pairedKickAt=float.NegativeInfinity;
                 return;
             }
             if (frame.equipmentSequence <= bashSequence) return;
@@ -116,7 +122,16 @@ namespace DeadlyJenga.CandyPlayers
                     action.action == EquipmentAction.Reload)
                 {
                     acceptedBashAt = float.NegativeInfinity;
+                    primaryKickAt=pairedKickAt=float.NegativeInfinity;
                     continue;
+                }
+                if(action.kind==state.kind&&action.action==EquipmentAction.Shot&&action.remaining>=.55f&&
+                    (!EquipmentSpecifications.Get(action.kind).melee||action.shotgun))
+                {
+                    kickKind=action.kind;
+                    if(action.kind==EquipmentKind.DualUzi&&visual!=null&&visual.IsPairedShot(action.position))
+                        pairedKickAt=Time.time;
+                    else primaryKickAt=Time.time;
                 }
                 if (action.kind != state.kind || action.action != EquipmentAction.Bash || action.remaining < .40f ||
                     !CanBash(state)) continue;
@@ -125,6 +140,77 @@ namespace DeadlyJenga.CandyPlayers
                 acceptedBashLeft = state.leftHanded;
             }
             bashSequence = frame.equipmentSequence;
+        }
+
+        internal static Vector3 RecoilProfile(EquipmentKind kind,bool alternate) => kind switch
+        {
+            EquipmentKind.RocketLauncher => new(.106f,11,.30f),
+            EquipmentKind.GrenadeLauncher => new(.085f,12,.26f),
+            EquipmentKind.SheriffHammer => alternate?new(.085f,17,.27f):new(.072f,14,.24f),
+            EquipmentKind.DualRifle => alternate?new(.090f,12,.24f):new(.062f,8,.21f),
+            EquipmentKind.ChainGun => new(.023f,2.5f,.10f),
+            EquipmentKind.DualUzi => new(.018f,0,.11f),
+            EquipmentKind.StockPistol => new(.045f,8,.16f),
+            EquipmentKind.NeedleDrill => new(.021f,2.4f,.12f),
+            EquipmentKind.WristLaser => new(.013f,1.5f,.10f),
+            EquipmentKind.Blaster => new(.039f,6,.19f),
+            EquipmentKind.PoweredArmor => new(.025f,4,.16f),
+            EquipmentKind.LaserAxe when alternate => new(.065f,8,.25f),
+            EquipmentKind.Chainsaw when alternate => new(.052f,6,.21f),
+            _ => Vector3.zero
+        };
+
+        internal static float RecoilCurve(float seconds,float duration)
+        {
+            if(seconds<0||seconds>=duration)return 0;
+            float t=seconds/duration;
+            if(t<.15f)return Mathf.Lerp(.35f,1,t/.15f);
+            float settle=Mathf.InverseLerp(.15f,1,t);
+            return (1-settle)*(1-settle)-.11f*Mathf.Sin(settle*Mathf.PI*2)*settle;
+        }
+
+        Pose PresentedRecoil(Pose grip,EquipmentState state,bool handLeft,bool secondary=false)
+        {
+            if(state.kind!=kickKind)return grip;
+            var profile=RecoilProfile(state.kind,state.shotgun);
+            float impulse=RecoilCurve(Time.time-(secondary?pairedKickAt:primaryKickAt),profile.z);
+            if(impulse==0)return grip;
+            float strength=impulse*(motor.IsVR?.24f:1);
+            float side=handLeft?-1:1;
+            var shift=new Vector3(side*.004f,profile.x*.15f,-profile.x)*(strength*Scale);
+            return new Pose(grip.position+grip.rotation*shift,
+                grip.rotation*Quaternion.Euler(-profile.y*strength,0,side*profile.y*.12f*strength));
+        }
+
+        Pose PresentedSprintGrip(Pose grip,EquipmentState state,CandyAvatarFrame frame,bool handLeft)
+        {
+            bool vr=motor.IsVR;
+            bool input=Local&&(vr?trigger?.IsPressed()==true||aimBlend>.05f:
+                Mouse.current?.leftButton.isPressed==true||Mouse.current?.rightButton.isPressed==true);
+            bool shooting=state.triggerHeld||Time.time-Mathf.Max(primaryKickAt,pairedKickAt)<.24f||input;
+            bool sprint=frame.sprinting&&!shooting&&state.reloadRemaining<=0;
+            // Paired fire needs both weapon axes settled as soon as the trigger is pressed.
+            if(shooting&&state.kind==EquipmentKind.DualUzi){sprintCarryBlend=0;return grip;}
+            if(sprintCarryFrame!=Time.frameCount)
+            {
+                sprintCarryFrame=Time.frameCount;
+                sprintCarryBlend=Mathf.MoveTowards(sprintCarryBlend,sprint?1:0,Time.deltaTime*(sprint?6:15));
+            }
+            if(sprintCarryBlend<=0)return grip;
+
+            var spec=EquipmentSpecifications.Get(state.kind);
+            bool heavy=spec.twoHanded||state.kind==EquipmentKind.Chainsaw;
+            bool melee=spec.melee&&!state.shotgun;
+            float side=handLeft?-1:1;
+            float phase=frame.hasGaitPhase?frame.gaitPhase:Time.time*13;
+            float sway=Mathf.Sin(phase),bounce=Mathf.Cos(phase*2);
+            var offset=new Vector3(side*(.045f+sway*.023f),
+                (melee?-.045f:-.092f)+(heavy?.020f:.031f)*bounce,-.070f);
+            var rotation=Quaternion.Euler((melee?-9:heavy?16:28)+bounce*3,
+                side*(heavy?6:12)+sway*3,side*(heavy?7:15)+sway*4);
+            float weight=Mathf.SmoothStep(0,1,sprintCarryBlend)*(vr?.13f:1);
+            return new Pose(grip.position+grip.rotation*(offset*(Scale*weight)),
+                grip.rotation*Quaternion.Slerp(Quaternion.identity,rotation,weight));
         }
 
         Pose PresentedBashGrip(Pose pose, EquipmentState state)
