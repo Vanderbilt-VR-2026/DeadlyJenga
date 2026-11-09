@@ -21,7 +21,9 @@ namespace DeadlyJenga.CandyAudio
         SuitThruster,SuitIgnition,SuitShutdown,PlayerHeal,
         KrakenRise,KrakenIdle,KrakenSurface,KrakenReach,KrakenGrip,KrakenDrag,KrakenWindup,KrakenSlam,KrakenSubmerge,KrakenRetreat,
         WaveSubmerged,WaveSurfaceBreath,WaveRoar=100,CycloneDebris=101,FrostCreak=102,LowGravityHum=103,OutageHum=104,
-        ScoreboardOpen, PointScored, RoundResults, BeamFlyout, BeamArrival, HitConfirm, KillConfirm, PersonalHit, PersonalShot, NearbyHit, NearbyShot, PlayerKilled, NearbyDeath, IslandSinking, IslandDeath, DrowningDeath, StaminaLow, StaminaEmpty, StaminaUsable, HealthRegenerating
+        ScoreboardOpen, PointScored, RoundResults, BeamFlyout, BeamArrival, HitConfirm, KillConfirm, PersonalHit, PersonalShot, NearbyHit, NearbyShot, PlayerKilled, NearbyDeath, IslandSinking, IslandDeath, DrowningDeath, StaminaLow, StaminaEmpty, StaminaUsable, HealthRegenerating,
+        AcidRoofRain, DisasterWarningTone, EarthJolt, MeteorFlyby, MeteorWaterImpact, PlanetApproach,
+        PlanetImpact, TornadoPass, TornadoPressure, RewindStart, RewindRelease, VampireShade, RewindBed
     }
     public enum CandyBus { World,Character,Ambience,Music,UI }
     [Serializable]

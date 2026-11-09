@@ -7,7 +7,7 @@ namespace DeadlyJenga.CandyArt
 {
     public sealed class CandyWaveFeedback : MonoBehaviour
     {
-        readonly HashSet<IWaveState> known=new HashSet<IWaveState>(),impact=new HashSet<IWaveState>();float nextScan;bool hadWave;
+        readonly HashSet<IWaveState> impact=new HashSet<IWaveState>();float nextScan,nextSpray;bool hadWave;
         CandyWaveContactVisual contacts;
         readonly Dictionary<IWaveState,Transform> roarAnchors=new Dictionary<IWaveState,Transform>();
         readonly HashSet<IWaveState> audibleWaves=new HashSet<IWaveState>();
@@ -19,8 +19,7 @@ namespace DeadlyJenga.CandyArt
             {
                 if(wave==null)continue;
                 var f=wave.Wave;if(!f.active)continue;active=true;
-                if(known.Add(wave))audio.Play(CandySound.DisasterHorn,f.center,.85f,GetInstanceID(),1,true);
-                if(f.warningRemaining>0){audio.Loop(CandySound.DisasterTension,transform,.45f,true,Mathf.Lerp(.8f,1.3f,1-Mathf.Clamp01(f.warningRemaining/8)));continue;}
+                if(f.warningRemaining>0)continue;
                 if(f.height<=0||f.width<=0||f.depth<=0)continue;
                 audibleWaves.Add(wave);
                 if(audio.Listener)
@@ -44,21 +43,21 @@ namespace DeadlyJenga.CandyArt
                 if(contacts&&contacts.TryGetImpact(out var point))
                 {
                     if(impact.Add(wave))audio.Play(CandySound.WaveImpact,point,1,GetInstanceID());
-                    audio.Play(CandySound.WaveSpray,point,.65f,GetInstanceID());
+                    if(Time.time>=nextSpray){nextSpray=Time.time+.55f;audio.Play(CandySound.WaveSpray,point,.54f,GetInstanceID());}
                     if(audio.Listener&&(audio.Listener.position-point).sqrMagnitude<18*18)CandyFeedback.Pulse(.15f,.16f);
                 }
             }
             expiredWaves.Clear();
             foreach(var pair in roarAnchors)if(!audibleWaves.Contains(pair.Key))expiredWaves.Add(pair.Key);
             foreach(var wave in expiredWaves){if(roarAnchors[wave])Destroy(roarAnchors[wave].gameObject);roarAnchors.Remove(wave);}
-            if(hadWave&&!active){Puddle();known.Clear();impact.Clear();}hadWave=active;
+            if(hadWave&&!active){Puddle();impact.Clear();}hadWave=active;
         }
         void ClearAnchors()
         {
             foreach(var anchor in roarAnchors.Values)if(anchor)Destroy(anchor.gameObject);
             roarAnchors.Clear();audibleWaves.Clear();expiredWaves.Clear();
         }
-        void OnDisable(){ClearAnchors();known.Clear();impact.Clear();hadWave=false;}
+        void OnDisable(){ClearAnchors();impact.Clear();hadWave=false;}
         void Puddle()
         {
             var world=Services.World;if(world==null)return;var environment=GetComponent<CandyEnvironment>();float surface=environment&&environment.sandRenderer?environment.sandRenderer.transform.position.y:world.Center.y;var go=new GameObject("Visual - tsunami soaking puddles");go.transform.position=world.Center;go.AddComponent<CandySoakingPuddle>().Build(world.Center,world.Radius,surface+.02f);

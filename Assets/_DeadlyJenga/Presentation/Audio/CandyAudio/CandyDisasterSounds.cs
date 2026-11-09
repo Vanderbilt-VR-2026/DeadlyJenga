@@ -13,27 +13,36 @@ namespace DeadlyJenga.CandyAudio
             CandySound.EarthRumble,CandySound.FireCrackle,CandySound.MeteorWhistle,CandySound.MeteorImpact,
             CandySound.PowerDown,CandySound.PowerUp,CandySound.FingerFlex,CandySound.HandSwirl,
             CandySound.PushImpact,CandySound.ClaimWin,CandySound.IslandSink,CandySound.VampireSizzle,
-            CandySound.LobbyLaunch,CandySound.SpawnSlam,CandySound.WaveRoar,CandySound.CycloneDebris,CandySound.FrostCreak,CandySound.LowGravityHum,CandySound.OutageHum };
+            CandySound.LobbyLaunch,CandySound.SpawnSlam,CandySound.WaveRoar,CandySound.CycloneDebris,CandySound.FrostCreak,CandySound.LowGravityHum,CandySound.OutageHum,
+            CandySound.AcidRoofRain,CandySound.DisasterWarningTone,CandySound.EarthJolt,
+            CandySound.MeteorFlyby,CandySound.MeteorWaterImpact,CandySound.PlanetApproach,CandySound.PlanetImpact,
+            CandySound.TornadoPass,CandySound.TornadoPressure,CandySound.RewindStart,CandySound.RewindRelease,CandySound.VampireShade,CandySound.RewindBed };
         static readonly Dictionary<CandySound,AudioClip> clips = new Dictionary<CandySound,AudioClip>();
         public static CandyAudioCue DefaultCue(CandySound sound)
         {
             bool loop = sound==CandySound.DisasterTension||sound==CandySound.AcidSizzle||sound==CandySound.CycloneWind||
                 sound==CandySound.EarthRumble||sound==CandySound.FireCrackle||sound==CandySound.HandSwirl||
-                sound==CandySound.IslandSink||sound==CandySound.VampireSizzle||sound==CandySound.WaveRoar||sound==CandySound.CycloneDebris||sound==CandySound.FrostCreak||sound==CandySound.LowGravityHum||sound==CandySound.OutageHum;
+                sound==CandySound.IslandSink||sound==CandySound.WaveRoar||sound==CandySound.CycloneDebris||sound==CandySound.FrostCreak||sound==CandySound.LowGravityHum||sound==CandySound.OutageHum||
+                sound==CandySound.AcidRoofRain||sound==CandySound.MeteorFlyby||sound==CandySound.PlanetApproach||sound==CandySound.TornadoPressure||sound==CandySound.RewindBed;
             if(!clips.TryGetValue(sound,out var clip)||!clip)clips[sound]=clip=Make(sound,loop);
             bool travel=sound==CandySound.LobbyLaunch||sound==CandySound.SpawnSlam;
-            bool storm=sound==CandySound.WaveRoar||sound==CandySound.CycloneWind;
+            bool storm=sound==CandySound.WaveRoar||sound==CandySound.CycloneWind||sound==CandySound.PlanetApproach||sound==CandySound.PlanetImpact;
+            bool warning=sound==CandySound.DisasterWarningTone;
+            bool threat=sound==CandySound.AcidBurn||sound==CandySound.EarthJolt||sound==CandySound.TornadoPass;
             bool ambience=sound==CandySound.FrostCreak||sound==CandySound.LowGravityHum||sound==CandySound.OutageHum;
-            return new CandyAudioCue { sound=sound,variants=new[]{clip},bus=travel?CandyBus.Character:CandyBus.World,loop=loop,
-                volume=travel?.9f:ambience?.28f:sound==CandySound.FingerFlex?.12f:.45f,priority=travel?20:sound==CandySound.DisasterHorn?25:storm?50:ambience?115:90,
+            return new CandyAudioCue { sound=sound,variants=new[]{clip},bus=warning?CandyBus.UI:travel?CandyBus.Character:CandyBus.World,loop=loop,
+                volume=warning?.68f:travel?.9f:ambience?.28f:sound==CandySound.FingerFlex?.12f:threat?.62f:.45f,
+                priority=warning?16:travel?20:sound==CandySound.DisasterHorn?25:threat?38:storm?50:ambience?115:90,
                 maxVoices=sound==CandySound.FingerFlex?2:4,cooldown=sound==CandySound.FingerFlex?.18f:.12f,
                 pitch=new Vector2(.97f,1.03f),minDistance=storm?8:3,maxDistance=storm?240:100 };
         }
         static AudioClip Make(CandySound kind,bool loop)
         {
-            const int rate=22050; float seconds=kind==CandySound.WaveRoar||kind==CandySound.CycloneWind?4:kind==CandySound.WaveImpact?1.4f:loop?2.4f:kind==CandySound.DisasterHorn?2.3f:kind==CandySound.LobbyLaunch?1.05f:kind==CandySound.PowerDown||kind==CandySound.PowerUp?1.1f:.7f;
-            bool smoothLoop=loop&&(kind==CandySound.WaveRoar||kind==CandySound.CycloneWind||kind==CandySound.CycloneDebris||kind==CandySound.FrostCreak||kind==CandySound.LowGravityHum||kind==CandySound.OutageHum);
-            var pcm=new float[Mathf.CeilToInt(rate*seconds)];var random=new System.Random(4201+(int)kind*37);float low=0,mid=0;
+            const int rate=22050;
+            bool rain=kind==CandySound.AcidSizzle||kind==CandySound.AcidRoofRain;
+            float seconds=rain?8:kind==CandySound.PlanetImpact?2.6f:kind==CandySound.TornadoPass?1.6f:kind==CandySound.WaveRoar||kind==CandySound.CycloneWind?4:kind==CandySound.WaveImpact?1.4f:loop?2.4f:kind==CandySound.DisasterHorn?2.3f:kind==CandySound.LobbyLaunch?1.05f:kind==CandySound.PowerDown||kind==CandySound.PowerUp?1.1f:.7f;
+            bool smoothLoop=loop&&(rain||kind==CandySound.MeteorFlyby||kind==CandySound.PlanetApproach||kind==CandySound.TornadoPressure||kind==CandySound.RewindBed||kind==CandySound.WaveRoar||kind==CandySound.CycloneWind||kind==CandySound.CycloneDebris||kind==CandySound.FrostCreak||kind==CandySound.LowGravityHum||kind==CandySound.OutageHum);
+            var pcm=new float[Mathf.CeilToInt(rate*seconds)];var random=new System.Random(4201+(int)kind*37);float low=0,mid=0,drops=0;
             for(int i=0;i<pcm.Length;i++)
             {
                 float t=i/(float)rate,u=t/seconds,noise=(float)(random.NextDouble()*2-1);
@@ -77,11 +86,46 @@ namespace DeadlyJenga.CandyAudio
                     case CandySound.DisasterHorn: signal=.36f*Mathf.Sin(t*2*Mathf.PI*91)+.18f*Mathf.Sin(t*2*Mathf.PI*137)+body*.12f;break;
                     case CandySound.DisasterTension: signal=(Mathf.Sin(t*2*Mathf.PI*69.3f)+.4f*Mathf.Sin(t*2*Mathf.PI*103.8f))*.17f*(.45f+.55f*Mathf.Pow(.5f+.5f*Mathf.Sin(t*2*Mathf.PI*1.25f),4));break;
                     case CandySound.PowerDown: case CandySound.PowerUp:
-                        float f=kind==CandySound.PowerDown?Mathf.Lerp(240,24,u):Mathf.Lerp(24,240,u);signal=Mathf.Sin(t*f*2*Mathf.PI)*.23f+air*.14f;break;
+                        float start=kind==CandySound.PowerDown?240:24;
+                        float sweep=kind==CandySound.PowerDown?-216:216;
+                        signal=Mathf.Sin(t*(start+sweep*u*.5f)*2*Mathf.PI)*.23f+air*.14f;break;
                     case CandySound.ClaimWin: signal=(Mathf.Sin(t*2*Mathf.PI*523)+Mathf.Sin(t*2*Mathf.PI*659)+Mathf.Sin(t*2*Mathf.PI*784))*.14f;break;
                     case CandySound.FingerFlex: signal=(air*.28f+Mathf.Sin(t*2*Mathf.PI*(210+85*Mathf.Sin(t*38)))*.13f)*Mathf.Exp(-u*7);break;
-                    case CandySound.EarthRumble: case CandySound.MeteorImpact: signal=body*.9f+Mathf.Sin(t*2*Mathf.PI*37)*.17f;break;
-                    case CandySound.AcidSizzle: case CandySound.AcidBurn: case CandySound.VampireSizzle: signal=air*(.23f+.2f*Mathf.Abs(Mathf.Sin(t*71)))+noise*.08f;break;
+                    case CandySound.EarthRumble: signal=body*.9f+Mathf.Sin(t*2*Mathf.PI*37)*.17f;break;
+                    case CandySound.EarthJolt: signal=(body*1.15f+air*.55f)*Mathf.Exp(-t*5)+Mathf.Sin(t*2*Mathf.PI*72)*.36f*Mathf.Exp(-t*7);break;
+                    case CandySound.MeteorImpact: case CandySound.PlanetImpact:
+                        float heavy=kind==CandySound.PlanetImpact?1.6f:1;
+                        signal=heavy*(body*.95f+Mathf.Sin(t*2*Mathf.PI*(74-18*u))*.24f)*Mathf.Exp(-t*2.2f)+air*.85f*Mathf.Exp(-t*13);break;
+                    case CandySound.MeteorWaterImpact: signal=body*.85f*Mathf.Exp(-t*5)+air*.95f*Mathf.Exp(-t*2.5f);break;
+                    case CandySound.AcidSizzle:
+                        drops*=.965f;
+                        if(random.NextDouble()<.013) drops+=.38f;
+                        signal=air*(.34f+drops)+noise*.075f+body*.12f;break;
+                    case CandySound.AcidRoofRain:
+                        drops*=.986f;
+                        if(random.NextDouble()<.006) drops+=.62f;
+                        signal=body*(.42f+drops)+air*.10f;break;
+                    case CandySound.AcidBurn:
+                        signal=(air*.85f+noise*.10f)*Mathf.Exp(-t*4.5f)+Mathf.Sin(t*2*Mathf.PI*(870-275*u))*.18f*Mathf.Exp(-t*7);break;
+                    case CandySound.VampireSizzle: signal=air*.68f*Mathf.Exp(-t*3)+Mathf.Sin(t*2*Mathf.PI*150)*.18f*Mathf.Exp(-t*6);break;
+                    case CandySound.VampireShade: signal=air*.36f*Mathf.Exp(-t*6)+Mathf.Sin(t*2*Mathf.PI*(300+70*u))*.13f;break;
+                    case CandySound.DisasterWarningTone:
+                        float beat=t<.23f?t:t-.23f;
+                        signal=(Mathf.Sin(t*2*Mathf.PI*325)+.42f*Mathf.Sin(t*2*Mathf.PI*487))*Mathf.Exp(-beat*15)*.40f;break;
+                    case CandySound.MeteorFlyby:
+                        signal=air*.48f+body*.21f+Mathf.Sin(t*2*Mathf.PI*420)*.10f;break;
+                    case CandySound.PlanetApproach:
+                        signal=body*.67f+air*.22f+Mathf.Sin(t*2*Mathf.PI*66)*.26f+Mathf.Sin(t*2*Mathf.PI*99)*.07f;break;
+                    case CandySound.TornadoPass:
+                        signal=(body*.84f+air*.88f)*(1-Mathf.Abs(u*2-1))+.24f*Mathf.Sin(t*2*Mathf.PI*(120-34*u));break;
+                    case CandySound.TornadoPressure:
+                        signal=body*.71f+Mathf.Sin(t*2*Mathf.PI*63)*.19f+air*.075f;break;
+                    case CandySound.RewindBed:
+                        float grain=t%.32f/.32f;
+                        signal=body*.24f+air*.48f*grain*grain+Mathf.Sin(t*2*Mathf.PI*(190+28*Mathf.Sin(t*7)))*.14f;break;
+                    case CandySound.RewindStart: case CandySound.RewindRelease:
+                        float slope=kind==CandySound.RewindStart?-280:280;
+                        signal=air*.32f*(kind==CandySound.RewindStart?u:1-u)+Mathf.Sin(t*(500+slope*u*.5f)*2*Mathf.PI)*.26f;break;
                     case CandySound.FireCrackle: signal=body*.12f+air*(random.NextDouble()>.997?.9f:.12f);break;
                     case CandySound.PuddleDrain: case CandySound.IslandSink: signal=body*.5f+Mathf.Sin(t*2*Mathf.PI*(110+50*Mathf.Sin(t*15)))*.14f*(.5f+.5f*Mathf.Sin(t*23));break;
                     case CandySound.MeteorWhistle: signal=air*.14f+Mathf.Sin(t*2*Mathf.PI*(440+550*u))*.16f;break;
