@@ -242,7 +242,10 @@ namespace DeadlyJenga.CandyPlayers
             }
             wasVaulting=vaulting;LastFrame=frame;
             var activeMoments = Moments;
-            RenderedFrame = activeMoments ? activeMoments.Pose(frame) : frame;
+            var visualFrame = frame;
+            if (!Showcasing && !overridePose && survivor && survivor.IsVR && !survivor.externallyDriven)
+                visualFrame = CandyPlayerRig.UprightTrackingPose(visualFrame);
+            RenderedFrame = activeMoments ? activeMoments.Pose(visualFrame) : visualFrame;
             var presentationFrame = RenderedFrame;
             GetComponent<CandyEquipment>()?.PoseWeaponPresentationHands(ref presentationFrame, dt);
             Rig.ApplyFrame(presentationFrame, survivor ? survivor.Grounded : true, dt);
