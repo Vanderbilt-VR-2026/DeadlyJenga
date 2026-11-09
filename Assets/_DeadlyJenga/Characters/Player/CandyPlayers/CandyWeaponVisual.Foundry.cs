@@ -8,7 +8,11 @@ namespace DeadlyJenga.CandyPlayers
 {
     public sealed partial class CandyWeaponVisual
     {
-        enum Finish { Steel, Charcoal, Ceramic, Brass, Walnut, Violet, Cyan, Amber, BladeSteel, BladeEdge }
+        enum Finish
+        {
+            Steel, Charcoal, Ceramic, Brass, Walnut, Violet, Cyan, Amber, BladeSteel, BladeEdge,
+            LauncherOlive, LauncherGunmetal, LauncherRubber, LauncherSteel, LauncherGraphite, LauncherStencil
+        }
         static readonly Dictionary<EquipmentKind,FoundryModel> foundry=new Dictionary<EquipmentKind,FoundryModel>();
         static readonly Dictionary<Finish,Material> finishes=new Dictionary<Finish,Material>();
         sealed class FoundryModel
@@ -166,6 +170,7 @@ namespace DeadlyJenga.CandyPlayers
         static Material FoundrySurface(Finish finish)
         {
             if(finishes.TryGetValue(finish,out var mat)&&mat)return mat;
+            if(finish>=Finish.LauncherOlive)return finishes[finish]=LauncherSurface(finish);
             bool blade=finish==Finish.BladeSteel||finish==Finish.BladeEdge;
             Color color=finish==Finish.BladeEdge?new Color(.78f,.81f,.84f):finish==Finish.BladeSteel?new Color(.49f,.53f,.57f):finish==Finish.Steel?new Color(.44f,.52f,.59f):finish==Finish.Charcoal?new Color(.06f,.075f,.09f):
                 finish==Finish.Ceramic?new Color(.85f,.24f,.06f):finish==Finish.Brass?new Color(.82f,.55f,.22f):
@@ -196,47 +201,232 @@ namespace DeadlyJenga.CandyPlayers
             b.Plate(Finish.Charcoal,new Vector3(x,-.066f+y,z),new Vector3(.094f,.185f,.11f));
             for(int i=0;i<4;i++)b.Plate(Finish.Steel,new Vector3(x,-.13f+y+i*.029f,z-.047f),new Vector3(.082f,.009f,.018f),.002f);
         }
+        sealed class LauncherMaps
+        {
+            public Texture2D albedo, normal, metalRoughness;
+        }
+        enum LauncherMaterial { Coated, Steel, Polymer }
+        static readonly Dictionary<LauncherMaterial,LauncherMaps> launcherMaps=new Dictionary<LauncherMaterial,LauncherMaps>();
+
+        static Material LauncherSurface(Finish finish)
+        {
+            var substrate=finish switch
+            {
+                Finish.LauncherSteel or Finish.LauncherGunmetal => LauncherMaterial.Steel,
+                Finish.LauncherRubber => LauncherMaterial.Polymer,
+                _ => LauncherMaterial.Coated
+            };
+            var color=finish switch
+            {
+                Finish.LauncherOlive => new Color(.46f,.49f,.32f),
+                Finish.LauncherGraphite => new Color(.34f,.36f,.38f),
+                Finish.LauncherGunmetal => new Color(.31f,.34f,.37f),
+                Finish.LauncherSteel => new Color(.63f,.65f,.65f),
+                Finish.LauncherStencil => new Color(.80f,.70f,.45f),
+                _ => new Color(.115f,.119f,.116f)
+            };
+            if(!launcherMaps.TryGetValue(substrate,out var maps))
+                launcherMaps[substrate]=maps=BuildLauncherMaps(substrate);
+            var material=new Material(Shader.Find("Universal Render Pipeline/Lit"))
+            {
+                name="Launcher "+finish,color=color,enableInstancing=true
+            };
+            material.SetTexture("_BaseMap",maps.albedo);
+            material.SetTexture("_BumpMap",maps.normal);
+            material.SetFloat("_BumpScale",substrate==LauncherMaterial.Polymer?.46f:.62f);
+            material.SetTexture("_MetallicGlossMap",maps.metalRoughness);
+            material.SetFloat("_Metallic",substrate==LauncherMaterial.Steel?.86f:.12f);
+            material.SetFloat("_Smoothness",1);
+            material.EnableKeyword("_NORMALMAP");
+            material.EnableKeyword("_METALLICSPECGLOSSMAP");
+            return material;
+        }
+
+        static LauncherMaps BuildLauncherMaps(LauncherMaterial substrate)
+        {
+            const int size=256;
+            Texture2D Map(string name,bool linear)=>new Texture2D(size,size,TextureFormat.RGBA32,true,linear)
+            {
+                name="Launcher "+substrate+" "+name,filterMode=FilterMode.Trilinear,
+                anisoLevel=2,wrapMode=TextureWrapMode.Repeat
+            };
+            var maps=new LauncherMaps
+            {
+                albedo=Map("color",false),normal=Map("normal",true),metalRoughness=Map("metal and smoothness",true)
+            };
+            var color=new Color32[size*size];
+            var normal=new Color32[color.Length];
+            var metal=new Color32[color.Length];
+            var heights=new float[color.Length];
+            bool steel=substrate==LauncherMaterial.Steel, rubber=substrate==LauncherMaterial.Polymer;
+            byte Byte(float value)=>(byte)Mathf.RoundToInt(Mathf.Clamp01(value)*255);
+            // Wrapped noise avoids a stripe at the UV seam of each turned part.
+            float Grain(float u,float v,float xScale,float yScale)
+            {
+                float a=Mathf.Lerp(Mathf.PerlinNoise(11+u*xScale,23+v*yScale),
+                    Mathf.PerlinNoise(11+(u-1)*xScale,23+v*yScale),u);
+                float b=Mathf.Lerp(Mathf.PerlinNoise(11+u*xScale,23+(v-1)*yScale),
+                    Mathf.PerlinNoise(11+(u-1)*xScale,23+(v-1)*yScale),u);
+                return Mathf.Lerp(a,b,v);
+            }
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                float u=x/(float)size,v=y/(float)size;
+                int i=y*size+x;
+                float broad=Grain(u,v,11,13);
+                float micro=Grain(u,v,steel?47:61,steel?6:57);
+                float scoring=steel?Mathf.Max(0,Grain(u,v,86,3)-.70f):0;
+                float worn=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.56f,.79f,broad))*(.4f+.6f*micro);
+                float shade=.79f+(broad-.5f)*.19f+(micro-.5f)*.16f-scoring*.38f+worn*.12f;
+                color[i]=new Color32(Byte(shade),Byte(shade*(rubber?.99f:.98f)),Byte(shade*.96f),255);
+                heights[i]=micro*(rubber?.50f:.30f)+broad*.11f-scoring*.38f;
+                float smooth=steel?.44f+micro*.17f:rubber?.24f+micro*.15f:.35f+micro*.17f+worn*.07f;
+                metal[i]=new Color32(Byte(steel?.81f+worn*.15f:rubber?.015f:.09f+worn*.25f),0,0,Byte(smooth));
+            }
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                float dx=heights[y*size+(x+1)%size]-heights[y*size+(x+size-1)%size];
+                float dy=heights[((y+1)%size)*size+x]-heights[((y+size-1)%size)*size+x];
+                var n=new Vector3(-dx*.72f,-dy*.72f,1).normalized;
+                normal[y*size+x]=new Color32(Byte(.5f+n.x*.5f),Byte(.5f+n.y*.5f),Byte(.5f+n.z*.5f),255);
+            }
+            maps.albedo.SetPixels32(color);maps.albedo.Apply(true,true);
+            maps.normal.SetPixels32(normal);maps.normal.Apply(true,true);
+            maps.metalRoughness.SetPixels32(metal);maps.metalRoughness.Apply(true,true);
+            return maps;
+        }
+
+        static void LauncherGrip(FoundryBuilder b,float z,float height=0)
+        {
+            b.Plate(Finish.LauncherRubber,new Vector3(0,height-.064f,z),new Vector3(.074f,.154f,.086f),.013f);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,height+.020f,z),new Vector3(.072f,.034f,.096f),.005f);
+            for(int i=0;i<5;i++)
+                b.Plate(Finish.LauncherRubber,new Vector3(0,height-.119f+i*.022f,z+.045f),
+                    new Vector3(.064f,.008f,.012f),.003f);
+        }
+
+        static void LauncherTrigger(FoundryBuilder b,float front=.156f)
+        {
+            b.Shape(Finish.LauncherGunmetal,mesh=>
+            {
+                var heel=new Vector3(0,-.105f,.026f);
+                var toe=new Vector3(0,-.105f,front-.022f);
+                mesh.Beam(heel,toe,.010f);
+                mesh.Beam(toe,new Vector3(0,.047f,front),.010f);
+            });
+            b.Shape(Finish.LauncherSteel,mesh=>mesh.Beam(new Vector3(0,.04f,.092f),
+                new Vector3(0,-.045f,.076f),.008f));
+        }
+
+        static void LauncherBolts(FoundryBuilder b,float x,float y,float z,float spacing)
+        {
+            b.Shape(Finish.LauncherSteel,mesh=>
+            {
+                for(int i=0;i<3;i++)
+                {
+                    var point=new Vector3(x,y,z+i*spacing);
+                    mesh.Cone(point,point+Vector3.right*Mathf.Sign(x)*.005f,.008f,.007f,6);
+                }
+            });
+        }
+
         static void ForgeRocket(FoundryBuilder b,FoundryBuilder feed)
         {
-            foreach(float x in new[]{-.084f,.084f})
-            {
-                b.Tube(Finish.Steel,.20f,-.49f,1.04f,.083f,.055f,x);
-                b.Tube(Finish.Charcoal,.20f,.91f,1.085f,.101f,.060f,x);
-                b.Tube(Finish.Brass,.20f,1.045f,1.10f,.097f,.063f,x);
-                b.Tube(Finish.Charcoal,.20f,-.525f,-.39f,.102f,.063f,x);
-            }
-            b.Plate(Finish.Ceramic,new Vector3(0,.19f,.33f),new Vector3(.38f,.28f,.56f));
-            feed.Plate(Finish.Charcoal,new Vector3(0,.05f,.09f),new Vector3(.20f,.12f,.52f));
-            b.Plate(Finish.Charcoal,new Vector3(0,.01f,-.34f),new Vector3(.26f,.15f,.31f));
+            float y=RocketMuzzle.y;
+            // The rear bell, pressure tube and visible bore share the projectile axis.
+            b.Profile(Finish.LauncherGunmetal,new Vector2(0,y),
+                new Vector2(-.365f,.100f),new Vector2(-.365f,.125f),new Vector2(-.343f,.127f),
+                new Vector2(-.225f,.079f),new Vector2(-.10f,.068f),new Vector2(.875f,.068f),
+                new Vector2(.940f,.083f),new Vector2(RocketMuzzle.z,.083f),new Vector2(RocketMuzzle.z,.058f),
+                new Vector2(.93f,.055f),new Vector2(-.21f,.052f),new Vector2(-.365f,.100f));
+            b.Tube(Finish.LauncherOlive,y,-.18f,.48f,.086f,.065f);
+            b.Tube(Finish.LauncherSteel,y,.96f,.997f,.088f,.068f);
+            b.Tube(Finish.LauncherGunmetal,y,1.012f,RocketMuzzle.z,.093f,.058f);
+            b.Tube(Finish.LauncherSteel,y,-.358f,-.333f,.128f,.113f);
+            b.Tube(Finish.LauncherOlive,y,.515f,.815f,.081f,.067f);
+            for(int i=0;i<7;i++)b.Tube(Finish.LauncherGunmetal,y,.53f+i*.040f,.545f+i*.040f,.087f,.077f);
+            b.Plate(Finish.LauncherOlive,new Vector3(0,.091f,.18f),new Vector3(.196f,.096f,.40f));
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.110f,.67f),new Vector3(.110f,.075f,.20f),.008f);
+            b.Plate(Finish.LauncherRubber,new Vector3(0,.069f,-.246f),new Vector3(.127f,.070f,.205f));
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.121f,-.244f),new Vector3(.098f,.047f,.154f),.005f);
+            feed.Plate(Finish.LauncherGunmetal,new Vector3(0,.056f,.06f),new Vector3(.163f,.093f,.415f));
+            feed.Plate(Finish.LauncherOlive,new Vector3(0,.016f,.058f),new Vector3(.174f,.022f,.425f));
             foreach(float side in new[]{-1f,1f})
             {
-                b.Plate(Finish.Steel,new Vector3(side*.197f,.21f,.31f),new Vector3(.025f,.18f,.43f),.005f);
-                b.Plate(Finish.Cyan,new Vector3(side*.211f,.24f,.29f),new Vector3(.012f,.022f,.22f),.002f);
-                for(int i=0;i<5;i++)b.Plate(Finish.Charcoal,new Vector3(side*.215f,.18f,.18f+i*.046f),new Vector3(.012f,.035f,.022f),.002f);
+                b.Plate(Finish.LauncherGraphite,new Vector3(side*.101f,.137f,.178f),new Vector3(.018f,.085f,.34f),.005f);
+                LauncherBolts(b,side*.112f,.113f,.054f,.112f);
+                b.Shape(Finish.LauncherStencil,mesh=>
+                {
+                    for(int i=0;i<4;i++)mesh.Beam(new Vector3(side*.112f,.148f,.16f+i*.023f),
+                        new Vector3(side*.112f,.172f,.175f+i*.023f),.0028f);
+                    mesh.Box(new Vector3(side*.112f,.170f,.087f),new Vector3(.004f,.007f,.050f));
+                });
             }
-            b.Plate(Finish.Charcoal,new Vector3(0,.46f,.29f),new Vector3(.084f,.045f,.38f));
-            foreach(float z in new[]{.14f,.45f})b.Plate(Finish.Steel,new Vector3(0,.397f,z),new Vector3(.08f,.117f,.054f));
-            b.Tube(Finish.Charcoal,.36f,.49f,.74f,.048f,.031f,-.125f);
-            b.Tube(Finish.Cyan,.36f,.719f,.727f,.031f,0,-.125f);
-            b.Plate(Finish.Charcoal,new Vector3(0,.073f,.625f),new Vector3(.155f,.13f,.32f));
-            b.Plate(Finish.Steel,new Vector3(0,.127f,.67f),new Vector3(.25f,.07f,.22f));
-            b.Shape(Finish.Brass,nails=>{foreach(float x in new[]{-.221f,.221f})for(int i=0;i<4;i++){var p=new Vector3(x,.255f,.132f+i*.106f);nails.Cone(p,p+Vector3.right*Mathf.Sign(x)*.009f,.012f,.009f,8);}});
-            Grip(b);Grip(b,.69f);
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.306f,.290f),new Vector3(.072f,.033f,.38f),.006f);
+            for(int i=0;i<7;i++)b.Plate(Finish.LauncherSteel,new Vector3(0,.329f,.148f+i*.044f),
+                new Vector3(.072f,.013f,.023f),.003f);
+            b.Tube(Finish.LauncherGunmetal,.357f,.145f,.385f,.042f,.028f);
+            b.Tube(Finish.LauncherSteel,.357f,.366f,.397f,.049f,.030f);
+            b.Tube(Finish.LauncherGraphite,.357f,.159f,.168f,.029f,0);
+            b.Tube(Finish.LauncherGraphite,.357f,.378f,.383f,.030f,0);
+            LauncherGrip(b,0);
+            LauncherGrip(b,RocketSupportDepth);
+            LauncherTrigger(b);
         }
+
         static void ForgeGrenade(FoundryBuilder b,FoundryBuilder feed)
         {
-            b.Tube(Finish.Steel,.12f,.28f,.77f,.077f,.055f);b.Tube(Finish.Charcoal,.12f,.69f,.82f,.108f,.057f);
-            b.Tube(Finish.Violet,.12f,.766f,.79f,.110f,.057f);feed.Tube(Finish.Charcoal,.12f,-.075f,.27f,.15f);
+            float axis=GrenadeMuzzle.y;
+            float drum=GrenadeDrumOffset;
+            b.Tube(Finish.LauncherGunmetal,axis,.275f+drum,GrenadeMuzzle.z,.071f,.043f);
+            b.Tube(Finish.LauncherSteel,axis,.288f+drum,.335f+drum,.079f,.065f);
+            b.Tube(Finish.LauncherGraphite,axis,.51f,.701f,.080f,.068f);
+            for(int i=0;i<5;i++)b.Tube(Finish.LauncherGunmetal,axis,.52f+i*.041f,.533f+i*.041f,.089f,.076f);
+            b.Tube(Finish.LauncherSteel,axis,.732f,.765f,.080f,.061f);
+            b.Tube(Finish.LauncherGunmetal,axis,.767f,GrenadeMuzzle.z,.083f,.045f);
+            // Leave real air around each chamber and through the front of the muzzle.
+            feed.Tube(Finish.LauncherGunmetal,GrenadeDrumHeight,-.078f+drum,.278f+drum,.064f,.019f);
             for(int i=0;i<6;i++)
             {
-                float a=i*Mathf.PI/3;float x=Mathf.Cos(a)*.115f,y=.12f+Mathf.Sin(a)*.115f;
-                feed.Tube(Finish.Steel,y,-.035f,.27f,.046f,.035f,x);
+                float a=Mathf.PI*.5f+i*Mathf.PI/3;
+                float x=Mathf.Cos(a)*GrenadeChamberRadius,y=GrenadeDrumHeight+Mathf.Sin(a)*GrenadeChamberRadius;
+                feed.Tube(Finish.LauncherGunmetal,y,-.037f+drum,.265f+drum,.046f,.035f,x);
+                feed.Tube(Finish.LauncherSteel,y,-.050f+drum,-.019f+drum,.048f,.035f,x);
+                feed.Tube(Finish.LauncherGraphite,y,.232f+drum,.280f+drum,.049f,.037f,x);
             }
-            b.Plate(Finish.Ceramic,new Vector3(0,.33f,.145f),new Vector3(.26f,.11f,.46f));
-            b.Plate(Finish.Charcoal,new Vector3(0,.05f,-.32f),new Vector3(.123f,.145f,.40f));
-            b.Plate(Finish.Steel,new Vector3(0,.035f,.52f),new Vector3(.128f,.10f,.28f));
-            for(int i=0;i<7;i++)b.Plate(Finish.Charcoal,new Vector3(0,.401f,-.024f+i*.057f),new Vector3(.082f,.031f,.032f),.004f);
-            Grip(b);
+            b.Plate(Finish.LauncherGraphite,new Vector3(0,.315f,.098f+drum),new Vector3(.224f,.061f,.40f));
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.095f,-.106f),new Vector3(.155f,.182f,.125f));
+            b.Plate(Finish.LauncherGraphite,new Vector3(0,.137f,.040f),new Vector3(.119f,.087f,.20f));
+            b.Plate(Finish.LauncherGraphite,new Vector3(0,.117f,.390f),new Vector3(.143f,.082f,.235f));
+            b.Plate(Finish.LauncherRubber,new Vector3(0,.093f,-.320f),new Vector3(.116f,.164f,.065f),.009f);
+            b.Shape(Finish.LauncherGunmetal,mesh=>
+            {
+                foreach(float side in new[]{-1f,1f})
+                {
+                    mesh.Beam(new Vector3(side*.042f,.153f,-.30f),new Vector3(side*.052f,.185f,-.102f),.015f);
+                    mesh.Beam(new Vector3(side*.042f,.053f,-.31f),new Vector3(side*.052f,.083f,-.11f),.015f);
+                }
+            });
+            foreach(float side in new[]{-1f,1f})
+            {
+                LauncherBolts(b,side*.114f,.321f,.126f,.106f);
+                b.Plate(Finish.LauncherSteel,new Vector3(side*.087f,.128f,-.077f),
+                    new Vector3(.018f,.042f,.065f),.004f);
+                b.Shape(Finish.LauncherStencil,mesh=>
+                {
+                    for(int i=0;i<3;i++)mesh.Box(new Vector3(side*.115f,.309f,.168f+i*.026f),
+                        new Vector3(.005f,.012f,.014f));
+                    mesh.Box(new Vector3(side*.115f,.299f,.193f),new Vector3(.005f,.004f,.070f));
+                });
+            }
+            b.Plate(Finish.LauncherGunmetal,new Vector3(0,.341f,.240f),new Vector3(.073f,.025f,.333f));
+            for(int i=0;i<8;i++)b.Plate(Finish.LauncherGunmetal,new Vector3(0,.355f,.096f+i*.041f),
+                new Vector3(.080f,.022f,.027f),.004f);
+            b.Plate(Finish.LauncherSteel,new Vector3(0,.378f,.627f),new Vector3(.038f,.065f,.032f));
+            b.Plate(Finish.LauncherStencil,new Vector3(0,.413f,.627f),new Vector3(.009f,.009f,.012f),.002f);
+            LauncherGrip(b,0);
+            LauncherGrip(b,GrenadeSupportDepth);
+            LauncherTrigger(b,.104f);
         }
         static void ForgeBat(FoundryBuilder b)
         {

@@ -48,9 +48,16 @@ namespace DeadlyJenga.CandyPlayers
         internal const float ChainGunRotorStart = .39f;
         internal const float ChainGunMuzzleDepth = ChainGunRotorStart + .61f;
 
+        internal static readonly Vector3 RocketMuzzle = new Vector3(0,.205f,1.065f);
+        internal const float RocketSupportDepth = .69f;
+        internal const float GrenadeDrumHeight = .12f, GrenadeChamberRadius = .115f, GrenadeDrumOffset = .16f;
+        internal static readonly Vector3 GrenadeMuzzle = new Vector3(0,GrenadeDrumHeight+GrenadeChamberRadius,.80f);
+        internal const float GrenadeSupportDepth = .515f;
+
         public static Vector3 SupportGripOffset(EquipmentKind kind,bool leftHanded)
         {
-            if(kind==EquipmentKind.RocketLauncher)return new Vector3(0,-.015f,.69f);
+            if(kind==EquipmentKind.RocketLauncher)return new Vector3(0,-.015f,RocketSupportDepth);
+            if(kind==EquipmentKind.GrenadeLauncher)return new Vector3(0,-.015f,GrenadeSupportDepth);
             if(kind==EquipmentKind.ChainGun)return new Vector3(0,0,.40f);
             return new Vector3(0,-.015f,.43f);
         }
