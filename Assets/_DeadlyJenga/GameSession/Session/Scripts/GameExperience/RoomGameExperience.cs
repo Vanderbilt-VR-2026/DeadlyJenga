@@ -59,7 +59,7 @@ namespace DeadlyJenga.CastlePrototype
         bool WaitingForRoster=>IsAuthority&&room&&room.Connected&&room.Runner&&room.Runner.ActivePlayers.Any()&&room.GameExperienceRosterIds.Length==0;
         internal bool PlayerPlaylist=>State?.playerPlaylist==true;
         internal bool OpenDevelopment=>State?.openDevelopment==true&&DevelopmentAllowed;
-        internal bool CanChooseFirstRound=>PlayerPlaylist&&State.round==0&&State.phase==GameFlowPhase.Idle;
+        internal bool CanChooseFirstRound=>PlayerPlaylist&&!TransportRecovering&&State.round==0&&State.phase==GameFlowPhase.Idle;
         internal bool IsRotatingLobby=>PlayerPlaylist&&State.round>0&&LobbyVisible;
         internal bool DevelopmentAllowed=>Experience==GameExperience.Demo&&!TransportRecovering;
         GameFlowState State
