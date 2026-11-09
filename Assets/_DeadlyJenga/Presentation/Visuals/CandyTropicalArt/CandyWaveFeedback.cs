@@ -61,22 +61,84 @@ namespace DeadlyJenga.CandyArt
         void OnDisable(){ClearAnchors();known.Clear();impact.Clear();hadWave=false;}
         void Puddle()
         {
-            var world=Services.World;if(world==null)return;var environment=GetComponent<CandyEnvironment>();float surface=environment&&environment.sandRenderer?environment.sandRenderer.transform.position.y:world.Center.y;var go=new GameObject("Visual - tsunami soaking puddles");go.transform.position=world.Center;go.AddComponent<CandySoakingPuddle>().Build(world.Center,world.Radius,surface+.02f);
+            var world=Services.World;
+            if(world==null)return;
+            var environment=GetComponent<CandyEnvironment>();
+            var ocean=environment?environment.waterRenderer:null;
+            if(ocean&&ocean.sharedMaterial&&ocean.sharedMaterial.HasProperty("_SoakingPool"))
+            {
+                float surface=environment.sandRenderer?environment.sandRenderer.transform.position.y:world.Center.y;
+                var go=new GameObject("Visual - tsunami soaking puddles");
+                go.transform.SetParent(transform,false);
+                go.transform.position=world.Center;
+                go.AddComponent<CandySoakingPuddle>().Build(world.Center,world.Radius,surface+.02f,ocean);
+            }
             CandyAudioEngine.Instance.Play(CandySound.PuddleDrain,world.Center,.5f,GetInstanceID());
         }
     }
     public sealed class CandySoakingPuddle : MonoBehaviour
     {
-        readonly List<Transform> drops=new List<Transform>();readonly List<Vector3> sizes=new List<Vector3>();Material material;float born;
-        public void Build(Vector3 center,float radius,float water)
+        static readonly int Pool=Shader.PropertyToID("_SoakingPool");
+        readonly List<(MeshRenderer renderer,Vector3 size)> drops=new();
+        MaterialPropertyBlock properties;
+        Mesh disk;
+        float born;
+
+        public void Build(Vector3 center,float radius,float water,Renderer ocean)
         {
-            born=Time.time;var shader=Resources.Load<Shader>("CandyScenery/CandySpirit");material=new Material(shader);material.SetColor("_BaseColor",new Color(.03f,.6f,.72f));
+            born=Time.time;
+            disk=BuildDisk();
+            properties=new MaterialPropertyBlock();
+            ocean.GetPropertyBlock(properties);
+            properties.SetVector(Pool,new Vector4(1,.55f,1,0));
             for(int i=0;i<9;i++)
             {
-                float a=i*2.399963f,r=Mathf.Sqrt(i/9f)*radius*.6f;var go=new GameObject("Soaking patch",typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(transform,false);go.transform.position=new Vector3(center.x+Mathf.Cos(a)*r,water,center.z+Mathf.Sin(a)*r);go.GetComponent<MeshFilter>().sharedMesh=Resources.GetBuiltinResource<Mesh>("Sphere.fbx");go.GetComponent<MeshRenderer>().sharedMaterial=material;go.GetComponent<MeshRenderer>().shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;Vector3 size=new Vector3(radius*.55f,.014f,radius*.4f);go.transform.localScale=size;drops.Add(go.transform);sizes.Add(size);
+                float a=i*2.399963f,r=Mathf.Sqrt(i/9f)*radius*.6f;
+                var go=new GameObject("Soaking patch",typeof(MeshFilter),typeof(MeshRenderer));
+                go.transform.SetParent(transform,false);
+                go.transform.position=new Vector3(center.x+Mathf.Cos(a)*r,water,center.z+Mathf.Sin(a)*r);
+                go.GetComponent<MeshFilter>().sharedMesh=disk;
+                var renderer=go.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial=ocean.sharedMaterial;
+                renderer.SetPropertyBlock(properties);
+                renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                var size=new Vector3(radius*.55f,1,radius*.4f);
+                go.transform.localScale=size;
+                drops.Add((renderer,size));
             }
         }
-        void Update(){float t=Mathf.Clamp01((Time.time-born)/14);for(int i=0;i<drops.Count;i++)if(drops[i])drops[i].localScale=sizes[i]*Mathf.Pow(1-t,1+i*.08f);if(t>=1)Destroy(gameObject);}
-        void OnDestroy(){if(material)Destroy(material);}
+
+        static Mesh BuildDisk()
+        {
+            const int sides=40;
+            var vertices=new Vector3[sides+1];
+            var triangles=new int[sides*3];
+            for(int i=0;i<sides;i++)
+            {
+                float angle=i*Mathf.PI*2/sides;
+                vertices[i+1]=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*.5f;
+                triangles[i*3+1]=(i+1)%sides+1;
+                triangles[i*3+2]=i+1;
+            }
+            var mesh=new Mesh{name="Tsunami pool surface",vertices=vertices,triangles=triangles};
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        void Update()
+        {
+            if(properties==null)return;
+            float t=Mathf.Clamp01((Time.time-born)/14);
+            if(t>=1){Destroy(gameObject);return;}
+            properties.SetVector(Pool,new Vector4(1,.55f,1-Mathf.SmoothStep(0,1,t),0));
+            for(int i=0;i<drops.Count;i++)
+            {
+                var (renderer,size)=drops[i];
+                if(!renderer)continue;
+                renderer.transform.localScale=size*Mathf.Pow(1-t,1+i*.08f);
+                renderer.SetPropertyBlock(properties);
+            }
+        }
+        void OnDestroy(){if(disk)Destroy(disk);}
     }
 }

@@ -25,6 +25,7 @@ Shader "Candy Tropical/Ocean"
         _TerrainHeight("Static terrain heights",2D)="black"{}
         _TerrainBounds("Terrain center / size",Vector)=(0,0,40,40)
         _HasTerrain("Terrain height map available",Float)=0
+        [HideInInspector] _SoakingPool("Soaking pool mode, depth and fade",Vector)=(0,0,0,0)
     }
     SubShader
     {
@@ -47,7 +48,7 @@ Shader "Candy Tropical/Ocean"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
-            float4 _TerrainBounds;
+            float4 _TerrainBounds,_SoakingPool;
             float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
             float4 _SurgeOrigin, _SurgeDirection;
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
@@ -56,7 +57,7 @@ Shader "Candy Tropical/Ocean"
             #include "CandySurgeSurface.hlsl"
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
-            struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float wave:TEXCOORD2;float fog:TEXCOORD3;UNITY_VERTEX_OUTPUT_STEREO};
+            struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 poolLocal:TEXCOORD2;float fog:TEXCOORD3;UNITY_VERTEX_OUTPUT_STEREO};
             float IslandDistance(float2 world)
             {
                 float2 q=(world-_Island.xy)/max(_Island.zw,float2(1,1));float a=atan2(q.y,q.x);
@@ -85,6 +86,12 @@ Shader "Candy Tropical/Ocean"
             {
                 Varyings o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);
                 float3 world=TransformObjectToWorld(i.positionOS.xyz);float2 p=world.xz-_Island.xy;
+                o.poolLocal=i.positionOS.xz*2;
+                if(_SoakingPool.x>.5)
+                {
+                    o.world=world;o.normal=float3(0,1,0);
+                    o.positionCS=TransformWorldToHClip(world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
+                }
                 float fade=1-smoothstep(_WaveExtent*.76,_WaveExtent,max(abs(p.x),abs(p.y)));
                 float depth=max(0,_WaterHeight-TerrainHeight(world.xz));
                 float amplitude=_WaveHeight*fade*lerp(.14,1,smoothstep(.15,2.2,depth));
@@ -93,7 +100,7 @@ Shader "Candy Tropical/Ocean"
                 Wave(float2(-.6,.8),7.5,amplitude*.3,p,time*.87,offset,dx,dz);
                 Wave(float2(.24,-.971),17,amplitude*.15,p,time*.68,offset,dx,dz);
                 float3 wake=_SurgeHeight>.001?(CandySurgeWakeSample(world.xz)+CandySurgeOuterSample(world.xz)):0;
-                o.world=world+offset+float3(0,wake.x,0);o.normal=normalize(cross(dz,dx)+float3(wake.y,0,wake.z));o.wave=offset.y+wake.x;
+                o.world=world+offset+float3(0,wake.x,0);o.normal=normalize(cross(dz,dx)+float3(wake.y,0,wake.z));
                 o.positionCS=TransformWorldToHClip(o.world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
             }
             float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -102,7 +109,10 @@ Shader "Candy Tropical/Ocean"
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
-                float depth=max(.01,i.world.y-TerrainHeight(i.world.xz)),deep=smoothstep(.15,3.2,depth);
+                bool pool=_SoakingPool.x>.5;
+                float poolEdge=pool?1-smoothstep(.74,1,length(i.poolLocal)):1;
+                float depth=pool?max(.01,_SoakingPool.y*poolEdge):max(.01,i.world.y-TerrainHeight(i.world.xz));
+                float deep=smoothstep(.15,3.2,depth);
                 float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;
                 float detailFade=(1-smoothstep(25,140,distanceToEye))*(1-smoothstep(.15,.8,max(length(ddx(p)),length(ddy(p)))));
                 float rippleA=sin(p.x*2.1+p.y*1.3+t),rippleB=sin(p.y*2.4-p.x*1.1-t*.85);
@@ -119,10 +129,11 @@ Shader "Candy Tropical/Ocean"
                 float spec=pow(nh,55)*.3+pow(nh,18)*.025;
                 color+=light.color*spec*_Shine*light.shadowAttenuation;
                 // No thresholded white speckles or repeating crossed sparkle pattern.
-                float foam=CandySurgeWhitecaps(i.world.xz);
+                float foam=pool?0:CandySurgeWhitecaps(i.world.xz);
                 color=lerp(color,_Foam.rgb,foam);
                 color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,saturate(fresnel*.82+foam));
+                if(pool)alpha*=poolEdge*_SoakingPool.z;
                 return half4(color,alpha);
             }
             ENDHLSL
