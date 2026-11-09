@@ -56,6 +56,50 @@ namespace DeadlyJenga.CandyPlayers
         const float BarGripRadius = .027f;
         internal const float SawBailHeight = .315f, SawBailDepth = .275f;
         internal const float AxeSupportDepth = .43f;
+        static readonly Vector3 StormbreakerEmitter = new Vector3(0, .397f, .827f);
+
+        internal static Pose StormbreakerCarry(Pose aim, bool left, bool lightning, float scale,
+            Vector3? support, out bool holdingSupport)
+        {
+            Vector3 forward = aim.rotation * Vector3.forward;
+            Vector3 up = Vector3.ProjectOnPlane(Vector3.up, forward);
+            if (up.sqrMagnitude < .01f) up = aim.rotation * Vector3.up;
+            var stance = Quaternion.LookRotation(forward, up);
+            float side = left ? 1 : -1;
+            Vector3 shaft = stance * (lightning
+                ? new Vector3(side * .18f, .84f, .50f)
+                : new Vector3(side * .40f, .89f, .21f)).normalized;
+
+            holdingSupport = false;
+            if (support.HasValue)
+            {
+                var separation = support.Value - aim.position;
+                float distance = separation.magnitude / scale;
+                // Match the two leather grips. An unrelated squeeze must not flip the axe.
+                if (distance >= .24f && distance <= .65f && Vector3.Dot(shaft, separation.normalized) > .45f)
+                {
+                    shaft = separation.normalized;
+                    holdingSupport = true;
+                }
+            }
+
+            var blade = Vector3.ProjectOnPlane(forward, shaft);
+            if (blade.sqrMagnitude < .01f) blade = Vector3.ProjectOnPlane(stance * Vector3.up, shaft);
+            var rotation = Quaternion.LookRotation(shaft, blade);
+            MeleeMount(EquipmentKind.LaserAxe, left, out var palm, out var mount);
+            var wrist = rotation * Quaternion.Inverse(mount);
+            return new Pose(aim.position + wrist * palm * scale, rotation);
+        }
+
+        internal static Pose StormbreakerShot(Pose carry, Vector3 target, Vector3 aimForward, float scale)
+        {
+            var origin = carry.position + carry.rotation * StormbreakerEmitter * scale;
+            var direction = target - origin;
+            // If the aim point is already behind the blade, keep the shot facing forward.
+            if (Vector3.Dot(direction, aimForward) <= .025f) direction = aimForward;
+            return new Pose(origin, Quaternion.LookRotation(direction));
+        }
+
 
         // These are model-space measurements of the wrapped surfaces and trigger faces.
         readonly struct PistolContact
