@@ -6,6 +6,18 @@ namespace DeadlyJenga.CandyAudio
 {
     static class CandySoundSuite
     {
+        internal static bool Contains(CandySound sound)
+            => sound>=CandySound.ScoreboardOpen&&sound<=CandySound.HealthRegenerating;
+
+        // The quieter UI and recovery recordings need more lift than impact transients.
+        internal static float MixGain(CandySound sound) => sound switch
+        {
+            CandySound.ScoreboardOpen or CandySound.PointScored or CandySound.RoundResults or
+            CandySound.StaminaLow or CandySound.StaminaUsable or CandySound.HealthRegenerating => 2f,
+            CandySound.HitConfirm or CandySound.KillConfirm => 1.3f,
+            _ => Contains(sound) ? 1.65f : 1f
+        };
+
         public static void AddDefaults(Dictionary<CandySound,CandyAudioCue> cues)
         {
             for(int index=(int)CandySound.ScoreboardOpen;index<=(int)CandySound.HealthRegenerating;index++)
@@ -18,8 +30,8 @@ namespace DeadlyJenga.CandyAudio
                 cues.Add(sound,new CandyAudioCue
                 {
                     sound=sound,variants=new[]{clip},bus=nearby?CandyBus.Character:CandyBus.UI,
-                    volume=nearby?.8f:1,pitch=Vector2.one,minDistance=1.4f,maxDistance=42,
-                    cooldown=0,maxVoices=8,priority=nearby?96:40
+                    volume=nearby?.8f:1,pitch=Vector2.one,minDistance=nearby?3f:1.4f,maxDistance=42,
+                    cooldown=0,maxVoices=8,priority=nearby?58:26
                 });
             }
         }
