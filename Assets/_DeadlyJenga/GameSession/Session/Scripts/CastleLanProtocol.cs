@@ -28,6 +28,7 @@ namespace DeadlyJenga.CastlePrototype
         public sealed class Snapshot
         {
             public int revision;
+            public int? motionTick;
             public string settings;
             public Pose origin;
             public Vector3 originScale;
@@ -95,6 +96,7 @@ namespace DeadlyJenga.CastlePrototype
             w.Write(s.blocks.Length);
             for (int i = 0; i < s.blocks.Length; i++) { w.Write(s.active[i]); Write(w, s.blocks[i]); }
             w.Write(s.actors.Length); foreach (var a in s.actors) Write(w, a);
+            if (s.motionTick.HasValue) w.Write(s.motionTick.Value);
         });
         public static Snapshot DecodeWorld(byte[] data)
         {
@@ -104,6 +106,7 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++) { s.active[i] = r.ReadBoolean(); s.blocks[i] = ReadPose(r); }
             s.actors = new Actor[Count(r, data.Length / 16)];
             for (int i = 0; i < s.actors.Length; i++) s.actors[i] = ReadActor(r);
+            if (r.BaseStream.Length - r.BaseStream.Position == sizeof(int)) s.motionTick = r.ReadInt32();
             if (r.BaseStream.Position != r.BaseStream.Length) throw new InvalidDataException("Trailing LAN state data");
             return s;
         }

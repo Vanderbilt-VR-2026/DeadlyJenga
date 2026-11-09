@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using System.Runtime.InteropServices;
 using Fusion;
@@ -19,6 +18,8 @@ namespace DeadlyJenga.CastlePrototype
         public const int Capacity = BlockCount * 64;
         public int Sequence;
         public int Length;
+        public int SceneEpoch;
+        int reserved;
         WordBlock block0, block1, block2, block3, block4, block5;
         WordBlock block6, block7, block8, block9, block10, block11;
 
@@ -42,4 +43,3 @@ namespace DeadlyJenga.CastlePrototype
         }
     }
 }
-#endif

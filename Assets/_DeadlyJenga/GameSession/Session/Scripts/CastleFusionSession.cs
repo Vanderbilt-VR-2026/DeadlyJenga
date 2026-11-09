@@ -175,7 +175,7 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence;public bool hasPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence,lastNativeSequence;public bool hasPoseSequence,hasNativeSequence;public float lastNativePose; public bool ready,hasInitialMotionWorld; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -234,9 +234,8 @@ namespace DeadlyJenga.CastlePrototype
             if(scope==worldScope)return;
             foreach(var peer in peers.Values)peer.world.Invalidate();worldScope=scope;
         }
-        static string WorldContext(byte[] raw)
+        static string WorldContext(CastleLanProtocol.Snapshot frame)
         {
-            var frame=CastleLanProtocol.DecodeWorld(raw);
             var identity=new CastleLanProtocol.Snapshot{revision=frame.revision,settings=frame.settings,origin=frame.origin,originScale=frame.originScale,
                 blocks=Array.Empty<CastleLanProtocol.Pose>(),active=Array.Empty<bool>(),actors=frame.actors.OrderBy(a=>a.id,StringComparer.Ordinal)
                     .Select(a=>new CastleLanProtocol.Actor{id=a.id,kind=a.kind,active=a.active,state=Array.Empty<byte>()}).ToArray()};
@@ -345,6 +344,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void PumpPoses(float now)
         {
+            if (UsesNativeMotion && (runner.IsServer || !inputFallback)) return;
             posesInFlight.Observe(now);foreach(var peer in peers.Values)peer.posesInFlight.Observe(now);
             if(now<nextPoseSend)return;nextPoseSend=now+1f/30;
             if(!runner.IsServer)
@@ -378,17 +378,18 @@ namespace DeadlyJenga.CastlePrototype
             else if(command.action==CastleDemoAction.Stamina){pendingStamina=command;if(authoritativeRules!=null)MatchSetup.ApplyRules(session.Player,authoritativeRules);}
             else Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(command)));
         }
-        public void PauseForMigration(){ResetPoseWindows();ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
+        public void PauseForMigration(){UnbindMotion(false);ResetPoseWindows();ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
         public void ResumeAfterMigration(NetworkRunner next)
         {
             ResetPoseWindows();peers.Clear();socialPeers.Clear();socialServer.Clear();welcomed=false;closing=false;nextSend=0;
             runner=next;posesInFlight.Traffic.PeerId=next.LocalPlayer.ToString();sceneTag=SceneTag(next);BindWorldConnection();if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
-            AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
+            BindMotion();AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
         }
         void AttachCallbacks()
         {
             callbacks=new NetworkDelegates();callbacks.OnReliableDataReceived=Receive;
+            if (UsesNativeMotion) callbacks.OnInput = CollectMotionInput;
             callbacks.OnPlayerLeft=(source,player)=>{if(source==runner&&IsCurrentScene)RemovePlayer(player);};callbacks.OnPlayerJoined=(source,player)=>{if(source==runner&&IsCurrentScene)UpdatePopulation();};
             callbacks.OnShutdown=(source,reason)=>{if(source==runner&&IsCurrentScene&&reason!=ShutdownReason.HostMigration&&!(IslandRoomConnection.Instance&&IslandRoomConnection.Instance.Migrating))ReturnToLobby();};
             runner.AddCallbacks(callbacks);
@@ -403,6 +404,7 @@ namespace DeadlyJenga.CastlePrototype
             var physics = runner.GetComponent<Fusion.Addons.Physics.RunnerSimulatePhysics>();
             if (physics) physics.Update3DPhysicsScene = true;
             castle.InitializeFusion(owner, runner.LocalPlayer.ToString(), !runner.IsServer);
+            BindMotion();
             AttachCallbacks();
             lastWorld = Time.unscaledTime;
             UpdatePopulation();
@@ -504,7 +506,8 @@ namespace DeadlyJenga.CastlePrototype
                         else if (kind == LivePose && peer.ready && payload.Length <= MaxPoseSize+LivePoseCodec.HeaderBytes)
                         {
                             var rawPose=LivePoseCodec.Unpack(payload.ToArray(),MaxPoseSize,out var receipts);ApplyPiggybackReceipts(peer.posesInFlight,receipts,Time.unscaledTime);peer.posesInFlight.Traffic.RawReceivedBytes+=rawPose.Length;
-                            if (LivePoseWindow.Newer(serial,peer.lastPoseSequence,peer.hasPoseSequence))
+                            if ((!UsesNativeMotion || !peer.hasNativeSequence || Time.unscaledTime-peer.lastNativePose>.18f) &&
+                                LivePoseWindow.Newer(serial,peer.lastPoseSequence,peer.hasPoseSequence))
                             {
                                 long applyStarted=FusionMotionWireTrace.Now;castle.FusionReceivePlayer(player.ToString(),rawPose);
                                 FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied,LivePose,serial,rawPose.Length,applyStarted);
@@ -582,6 +585,7 @@ namespace DeadlyJenga.CastlePrototype
             long renderStarted=FusionMotionWireTrace.Now;castle.FusionRender();
             FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Render,0,0,0,renderStarted);ConnectModes();
             float now = Time.unscaledTime;
+            PumpNativeMotion(now);
             PumpPoses(now);if(poseSendFailed)return;
             try{PumpWorldResync(now);}catch(Exception){Fail("World resynchronization send failed. Rejoin with the same game build.");return;}
             FlushPoseReceipts(now);if(poseSendFailed)return;
@@ -607,18 +611,23 @@ namespace DeadlyJenga.CastlePrototype
                 castle.FusionRoomNotice(Demo.roomNotice);
                 string admin=JsonUtility.ToJson(Demo);
                 byte[] world = null;string worldContext=null;
+                bool worldDue = !UsesNativeMotion || now >= nextMotionWorld;
                 foreach (var pair in peers)
                 {
-                    if (!pair.Value.ready || pair.Value.waiting != 0) continue;
+                    if (!pair.Value.ready) continue;
                     if(matchPacket!=null&&!ReferenceEquals(pair.Value.match,matchPacket)){var packet=matchPacket;Send(pair.Key,MatchState,packet,0,()=>pair.Value.match=packet);}
                     if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>pair.Value.disasters=packet);}
                     if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin),0,()=>pair.Value.admin=admin);}
                     string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>pair.Value.rules=rules);}
-                    if(world==null){long captureStarted=FusionMotionWireTrace.Now;world=castle.FusionCaptureWorld();
+                    if(pair.Value.waiting != 0 || (!worldDue && pair.Value.hasInitialMotionWorld)) continue;
+                    if(world==null){long captureStarted=FusionMotionWireTrace.Now;
+                        var snapshot = castle.FusionCaptureWorldSnapshot(UsesNativeMotion ? runner.Tick.Raw : (int?)null);
+                        world = CastleLanProtocol.EncodeWorld(snapshot);
+                        nextMotionWorld = now + .25f;
                         FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Capture,World,0,world.Length,captureStarted);
-                        long contextStarted=FusionMotionWireTrace.Now;worldContext=WorldContext(world);
+                        long contextStarted=FusionMotionWireTrace.Now;worldContext=WorldContext(snapshot);
                         FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Context,World,0,world.Length,contextStarted);}
-                    try{SendWorld(pair.Key,pair.Value,world,worldContext,now);}
+                    try{SendWorld(pair.Key,pair.Value,world,worldContext,now);pair.Value.hasInitialMotionWorld=true;}
                     catch(Exception){Fail("World transfer encoding or send failed. Rejoin with the same game build.");return;}
                 }
             }
@@ -684,6 +693,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void OnDestroy()
         {
+            UnbindMotion(true);
             DisconnectModes();ResetPoseWindows();
             ResetDisasters();
             if (runner != null && callbacks != null) runner.RemoveCallbacks(callbacks);

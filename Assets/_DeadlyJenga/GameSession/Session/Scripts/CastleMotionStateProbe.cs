@@ -67,7 +67,9 @@ namespace DeadlyJenga.CastlePrototype
         public static System.Threading.Tasks.Task<StartGameResult> ConnectDirect(
             NetworkRunner runner, GameObject holder, bool host, string code)
         {
-            if (Enabled) holder.AddComponent<CastleMotionStateProbeProvider>();
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-native") >= 0)
+                holder.AddComponent<CastleMotionProvider>();
+            else if (Enabled) holder.AddComponent<CastleMotionStateProbeProvider>();
             var app = Fusion.Photon.Realtime.PhotonAppSettings.Global.AppSettings.GetCopy();
             app.FixedRegion = "us";
             app.AppVersion += "/motion-probe";

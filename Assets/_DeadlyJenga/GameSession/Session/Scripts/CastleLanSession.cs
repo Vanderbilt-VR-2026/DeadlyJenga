@@ -12,7 +12,7 @@ using P = DeadlyJenga.CastlePrototype.CastleLanProtocol;
 namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(-150)]
-    public sealed class CastleLanSession : MonoBehaviour, IMultiplayerControls
+    public sealed partial class CastleLanSession : MonoBehaviour, IMultiplayerControls
     {
         [Serializable] public sealed class Advertisement
         {
@@ -162,6 +162,7 @@ namespace DeadlyJenga.CastlePrototype
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
             ResetProbeMotion();
 #endif
+            ResetNativeMotion();
             id=newId;fusionClient=client;fusionActors.Clear();livePoseAt.Clear();foreach(var key in views.Keys.ToArray())RemoveView(key);
             if(!client)
             {
@@ -204,6 +205,12 @@ namespace DeadlyJenga.CastlePrototype
             ReceiveWelcome(data);
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
+        internal P.Snapshot FusionCaptureWorldSnapshot(int? tick)
+        {
+            var snapshot = CaptureWorld();
+            snapshot.motionTick = tick;
+            return snapshot;
+        }
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
         public P.Actor[] FusionCaptureLiveActors()
         {
@@ -326,7 +333,11 @@ namespace DeadlyJenga.CastlePrototype
         public void FusionReceivePlayer(string playerID, byte[] data)
         {
             using var reader = P.Reader(data, P.Player);
-            var actor = P.ReadActor(reader); actor.id = playerID;
+            var actor = P.ReadActor(reader);
+            if (reader.BaseStream.Position != reader.BaseStream.Length ||
+                actor.kind != NetworkKinds.Survivor && actor.kind != NetworkKinds.Hand)
+                throw new InvalidDataException("Invalid player pose");
+            actor.id = playerID;
             ShowActor(actor, true);
             fusionActors[playerID] = actor;
         }
@@ -648,6 +659,7 @@ namespace DeadlyJenga.CastlePrototype
             bool rebuild = !receivedWorld || hostRevision != s.revision;
             if (rebuild)
             {
+                ResetNativeMotion();
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 ResetProbeMotion();
 #endif
@@ -658,12 +670,22 @@ namespace DeadlyJenga.CastlePrototype
                 previousBlocks = new P.Pose[World.Blocks.Count];
             }
             var blocks = World.Blocks;
+            if (s.motionTick.HasValue)
+            {
+                nativeWorld = true;
+                nativeWorldTick = s.motionTick.Value;
+                if (nativeBlocks.Length != blocks.Count) nativeBlocks = new BlockMotion[blocks.Count];
+            }
             if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
                 previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
-                b.gameObject.SetActive(s.active[i]);
+                if (!nativeWorld || nativeBlocks[i].Duration <= 0 || !IsLaterTick(nativeBlocks[i].Tick, nativeWorldTick))
+                {
+                    if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
+                    if (nativeWorld && !s.active[i]) nativeBlocks[i] = default;
+                }
             }
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
             var present = new HashSet<string>();
@@ -673,12 +695,14 @@ namespace DeadlyJenga.CastlePrototype
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (probeMotionActors.Contains(actor.id) && views.TryGetValue(actor.id, out var owned) && owned.NetworkActive == actor.active) continue;
 #endif
-                if(HasFreshPose(actor.id))continue;
+                if (nativeWorld ? NewerNativeActor(actor.id, nativeWorldTick) : HasFreshPose(actor.id)) continue;
+                if (nativeWorld) nativeActorTicks.Remove(actor.id);
                 if(actor.id==id)ApplyOwnHandFeedback(actor);
                 else ShowActor(actor,false);
             }
-            foreach (var key in views.Keys.Where(key => !present.Contains(key) && !HasFreshPose(key)).ToArray())
-            { livePoseAt.Remove(key); RemoveView(key); }
+            foreach (var key in views.Keys.Where(key => !present.Contains(key) &&
+                         !(nativeWorld ? NewerNativeActor(key, nativeWorldTick) : HasFreshPose(key))).ToArray())
+            { nativeActorTicks.Remove(key); livePoseAt.Remove(key); RemoveView(key); }
             if (!receivedWorld)
             {
                 receivedWorld = true; InterpolateWorld(); Physics.SyncTransforms();
@@ -692,15 +716,19 @@ namespace DeadlyJenga.CastlePrototype
         void InterpolateWorld()
         {
             if (targetWorld == null) return;
-            float t = Mathf.Clamp01((Time.unscaledTime - worldAt) * 15);
+            float now = Time.unscaledTime;
+            float t = Mathf.Clamp01((now - worldAt) * 15);
             for (int i = 0; i < targetWorld.blocks.Length; i++)
             {
                 var b = World.Blocks[i]; var p = targetWorld.blocks[i];
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (InterpolateProbeBlock(i, b)) continue;
 #endif
-                b.position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
-                b.rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
+                if (RenderNativeBlock(i, b, now) || !b || !b.gameObject.activeSelf) continue;
+                var position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
+                var rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
+                if ((b.position - position).sqrMagnitude > .0000001f) b.position = position;
+                if (Quaternion.Dot(b.rotation, rotation) < .9999999f) b.rotation = rotation;
             }
         }
         void ApplyOwnHandFeedback(P.Actor actor)
