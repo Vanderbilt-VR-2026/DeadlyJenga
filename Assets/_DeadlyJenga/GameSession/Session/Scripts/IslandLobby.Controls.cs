@@ -91,20 +91,24 @@ namespace DeadlyJenga.CastlePrototype
         // Map + mode terminal
         public bool IsHost=>Room.LocalIsLobbyHost;
         public bool Connected=>Room.Connected;
-        public bool CanConfigure=>!VisitingLobby&&(Room.CanConfigure);
+        public bool CanConfigure=>!VisitingLobby&&Room.CanConfigure&&(!ExperienceProvider.PlayerPlaylist||ExperienceProvider.CanChooseFirstRound);
+        bool AllowsMode(string id)=>!ExperienceProvider.PlayerPlaylist||ExperienceProvider.CanChoosePlayMode(id);
+        bool AllowsMap(IslandLobbyCatalog.Map map,string mode)=>map.SupportsMode(mode)&&
+            (!ExperienceProvider.PlayerPlaylist||ExperienceProvider.CanChoosePlayPair(map.id,mode));
         public string MapTitle=>catalog.maps[Room.MapIndex].title;
         public string ModeTitle=>catalog.modes[Room.ModeIndex].title;
         public void CycleMap(int step)
         {
-            if(!CanConfigure)return;int at=Room.MapIndex;for(int i=0;i<catalog.maps.Length;i++){at=(at+step+catalog.maps.Length)%catalog.maps.Length;if(!catalog.maps[at].SupportsMode(SelectedModeId))continue;Room.SelectMap(at);return;}
+            if(!CanConfigure)return;int at=Room.MapIndex;for(int i=0;i<catalog.maps.Length;i++){at=(at+step+catalog.maps.Length)%catalog.maps.Length;if(!AllowsMap(catalog.maps[at],SelectedModeId))continue;Room.SelectMap(at);return;}
         }
         public void CycleMode(int step)
         {
-            if(!CanConfigure)return;int at=Room.ModeIndex;for(int i=0;i<catalog.modes.Length;i++){at=(at+step+catalog.modes.Length)%catalog.modes.Length;if(!catalog.modes[at].available||!Array.Exists(catalog.maps,m=>m.SupportsMode(catalog.modes[at].id)))continue;Room.SelectMode(at);return;}
+            if(!CanConfigure)return;int at=Room.ModeIndex;for(int i=0;i<catalog.modes.Length;i++){at=(at+step+catalog.modes.Length)%catalog.modes.Length;if(!catalog.modes[at].available||!AllowsMode(catalog.modes[at].id)||!Array.Exists(catalog.maps,m=>AllowsMap(m,catalog.modes[at].id)))continue;Room.SelectMode(at);return;}
         }
-        public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!CanConfigure||!catalog.maps[i].SupportsMode(SelectedModeId))return false;Room.SelectMap(i);return true;}
-        public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!CanConfigure||!catalog.modes[i].available||!Array.Exists(catalog.maps,m=>m.SupportsMode(id)))return false;Room.SelectMode(i);return true;}
-        public bool CanStart=>VisitingLobby||Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost;
+        public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!CanConfigure||!AllowsMap(catalog.maps[i],SelectedModeId))return false;Room.SelectMap(i);return true;}
+        public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!CanConfigure||!catalog.modes[i].available||!AllowsMode(id)||!Array.Exists(catalog.maps,m=>AllowsMap(m,id)))return false;Room.SelectMode(i);return true;}
+        public bool CanStart=>VisitingLobby||(ExperienceProvider.PlayerPlaylist?
+            ExperienceProvider.CanChooseFirstRound&&Room.CanLaunch:Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost);
         public bool StartPending=>!VisitingLobby&&Room.LaunchPending;
         public void StartOrCancel(){if(VisitingLobby){ReturnToMatch();return;}if(!CanStart)return;if(Room.LaunchPending)Room.CancelLaunch();else Room.Launch();}
         public string SetupHint{get;private set;}="";
@@ -118,6 +122,7 @@ namespace DeadlyJenga.CastlePrototype
                 Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):
                 "Start solo now, or create a code / invite nearby.";
             SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
+            if(ExperienceProvider.PlayerPlaylist)SetupHint=ExperienceProvider.GameStatus;
             JoinHint=Room.Busy?Room.Status:showingNearby?
                 (Room.Discovery?.HasJoinable==true?"Pick a room, or enter a code above.":
                     Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:

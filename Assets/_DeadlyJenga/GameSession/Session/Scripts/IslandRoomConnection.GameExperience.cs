@@ -86,7 +86,7 @@ namespace DeadlyJenga.CastlePrototype
             if(map<0||mode<0||!Catalog.maps[map].SupportsMode(profile.modeId)||profile.targetPopulation<profile.minimumPopulation||
                 profile.targetPopulation>profile.maximumPopulation||profile.maximumPopulation>100||profile.minimumPopulation<1)return false;
             var copy=JsonUtility.FromJson<ModeRules>(JsonUtility.ToJson(rules));
-            copy.mode=DeadlyJenga.Modes.MatchModeRuntime.ParseMode(profile.modeId);copy.automaticDisasters=false;
+            copy.mode=DeadlyJenga.Modes.MatchModeRuntime.ParseMode(profile.modeId);
             var next=new LobbySetup{rules=copy,movement=MatchChoices.Rules,population=profile.targetPopulation,hands=0,
                 sameHumanTeam=copy.sameHumanTeam,survivorPreset=MatchSetup.SurvivorPreset,handPreset=MatchSetup.HandPreset,
                 disasters=Array.Empty<LobbyHazardSetup>()};

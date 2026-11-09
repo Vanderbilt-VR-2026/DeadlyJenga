@@ -96,8 +96,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!member||Departing)return;
             var experience=RoomGameExperience.Ensure(this);
             if(experience&&experience.Experience==GameExperience.Game&&
-                (action.verb=="setup"||action.verb=="map"||action.verb=="mode"||
-                 action.verb=="launch"||action.verb=="cancel"))return;
+                (action.verb=="setup"||action.verb=="launch"||action.verb=="cancel"||
+                 (action.verb=="map"||action.verb=="mode")&&!experience.CanChooseFirstRound))return;
             if(action.verb=="request")
             {
                 if(source==leaderId||hostRequests.Contains(source)||hostRequests.Count>=10)return;
@@ -113,13 +113,17 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if(!LaunchPending&&action.verb=="map"&&action.index>=0&&action.index<Catalog.maps.Length&&Catalog.maps[action.index].SupportsMode(Catalog.modes[ModeIndex].id))
             {
+                if(experience.PlayerPlaylist&&!experience.CanChoosePlayPair(Catalog.maps[action.index].id,Catalog.modes[ModeIndex].id))return;
                 MapIndex=action.index;
                 if(setup!=null)setup.rules.island=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(Catalog.modes[ModeIndex].id),Catalog.maps[MapIndex]).island;
             }
             else if(!LaunchPending&&action.verb=="mode"&&action.index>=0&&action.index<Catalog.modes.Length&&Catalog.modes[action.index].available)
             {
-                int compatible=Array.FindIndex(Catalog.maps,m=>m.SupportsMode(Catalog.modes[action.index].id));if(compatible<0)return;
-                ModeIndex=action.index;if(!Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id))MapIndex=compatible;ResetModeSetup();
+                string mode=Catalog.modes[action.index].id;
+                bool Compatible(IslandLobbyCatalog.Map map)=>map.SupportsMode(mode)&&
+                    (!experience.PlayerPlaylist||experience.CanChoosePlayPair(map.id,mode));
+                int compatible=Array.FindIndex(Catalog.maps,Compatible);if(compatible<0)return;
+                ModeIndex=action.index;if(!Compatible(Catalog.maps[MapIndex]))MapIndex=compatible;ResetModeSetup();
             }
             else if(!LaunchPending&&action.verb=="setup"&&ValidSetup(action.setup))ApplySetup(action.setup);
             else if(!LaunchPending&&action.verb=="shared")

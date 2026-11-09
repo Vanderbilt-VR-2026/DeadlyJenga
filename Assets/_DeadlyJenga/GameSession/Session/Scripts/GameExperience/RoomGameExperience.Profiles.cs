@@ -25,13 +25,26 @@ namespace DeadlyJenga.CastlePrototype
             if(!asset)return;
             ProfileList list;
             try{list=JsonUtility.FromJson<ProfileList>(asset.text);}catch(ArgumentException){return;}
-            profiles=list?.profiles??Array.Empty<CuratedGameProfile>();
+            var catalog = room.Catalog;
+            var playable = from mode in catalog.modes
+                           where mode!=null&&mode.available&&mode.id!="demo"
+                           from map in catalog.maps
+                           where map!=null&&map.SupportsMode(mode.id)&&
+                               (map.id=="castle"||map.mapPrefab&&map.recommendedMode==mode.id)&&
+                               SceneUtility.GetBuildIndexByScenePath(map.scenePath)>=0
+                           select new CuratedGameProfile
+                           {
+                               id="play:"+mode.id+"/"+map.id, modeId=mode.id, mapId=map.id,
+                               enabled=true, evidence="Catalog-compatible Play pair",
+                               minimumPopulation=mode.id=="mystery"?3:2, maximumPopulation=10, targetPopulation=10
+                           };
+            profiles=(list?.profiles??Array.Empty<CuratedGameProfile>()).Concat(playable).ToArray();
             // These trial profiles pin the first observed authored prefab structure in this room.
             // This is not a measured shipping cohort or a source-code hash.
             foreach(var p in profiles)
             {
                 var map=MapFor(p?.mapId);if(p==null||map==null)continue;
-                p.layoutSignature=StructureSignature(map);
+                p.layoutSignature=IsPlayProfile(p)?"catalog:"+map.id:StructureSignature(map);
                 signatures[p.id]=p.layoutSignature;
             }
             profilesLoaded=true;
@@ -43,13 +56,49 @@ namespace DeadlyJenga.CastlePrototype
         {
             var p=FindProfile(id);if(p==null||!signatures.TryGetValue(id,out var pinned))return false;
             var map=MapFor(p.mapId);
-            if(map==null||!map.mapPrefab||StructureSignature(map)!=pinned||SceneUtility.GetBuildIndexByScenePath(map.scenePath)<0)return false;
+            if(map==null||(!map.mapPrefab&&map.id!="castle")||
+                (!IsPlayProfile(p)&&StructureSignature(map)!=pinned)||SceneUtility.GetBuildIndexByScenePath(map.scenePath)<0)return false;
             return CuratedGamePolicy.Eligible(p,pinned,humans,true,(mapId,modeId)=>
                 map.id==mapId&&map.SupportsMode(modeId)&&Array.Exists(room.Catalog.modes,m=>m!=null&&m.id==modeId&&m.available),out _);
         }
+        internal CuratedGameProfile[] PlayPairs()
+        {
+            EnsureProfiles();
+            return profiles.Where(IsPlayProfile).ToArray();
+        }
+        static bool IsPlayProfile(CuratedGameProfile profile)=>profile!=null&&profile.id.StartsWith("play:",StringComparison.Ordinal);
+        internal bool CanChoosePlayMode(string id)=>PlayPairs().Any(pair=>pair.modeId==id);
+        internal bool CanChoosePlayPair(string map,string mode)=>FindProfile("play:"+mode+"/"+map)!=null;
+        void EnsureFirstRoundSelection()
+        {
+            if(CanChoosePlayPair(room.Catalog.maps[room.MapIndex].id,room.Catalog.modes[room.ModeIndex].id))return;
+            var first=PlayPairs().FirstOrDefault();
+            if(first!=null)room.ExperienceSelect(first,ProfileRules(first));
+        }
+        internal bool StartQuickPlay(string profileId)
+        {
+            if(!PrepareHomeLobbyEntry(false))return false;
+            preparedHomeRoom="";
+            UpdateRoster();
+            return StartPlayerFirstRound(profileId);
+        }
+        internal bool StartPlayerFirstRound(string profileId)
+        {
+            var state=State;
+            if(!IsAuthority||!CanChooseFirstRound||WaitingForRoster||room.Busy||room.RoomSceneBusy||
+                room.Departing||room.Migrating||TransportRecovering)return false;
+            var profile=FindProfile(profileId);
+            if(!IsPlayProfile(profile)||!ProfileAvailable(profileId,state.humanIds.Length)||
+                !room.ExperienceSelect(profile,ProfileRules(profile)))return false;
+            if(!flow.StartPlayerFirstRound(state.authorityTerm,profileId,true))return false;
+            CommitFlow();
+            return true;
+        }
+
         internal ModeRules ProfileRules(CuratedGameProfile p)
         {
             var rules=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(p.modeId),MapFor(p.mapId));
+            if(IsPlayProfile(p))return rules;
             rules.teamCount=2;rules.sameHumanTeam=false;rules.automaticDisasters=false;
             rules.roundSeconds=120;rules.countdownSeconds=3;rules.victorySeconds=5;
             rules.starterInfected=p.modeId=="infection";
@@ -58,11 +107,11 @@ namespace DeadlyJenga.CastlePrototype
         void SelectNext()
         {
             EnsureProfiles();var s=State;
-            var candidates=profiles.Where(p=>p!=null&&ProfileAvailable(p.id,s.humanIds.Length)).ToArray();
+            var candidates=profiles.Where(p=>p!=null&&IsPlayProfile(p)==s.playerPlaylist&&ProfileAvailable(p.id,s.humanIds.Length)).ToArray();
             if(candidates.Length==0)
             {
                 if(s.pending==GameFlowEffect.ChooseProfile&&flow.ChooseCompleted(s.authorityTerm,s.operationId,s.attempts,"",false))CommitFlow();
-                else if(s.pending==GameFlowEffect.None&&flow.RejectSetup(s.authorityTerm,"No compatible prototype profile is available for this build and human roster."))CommitFlow();
+                else if(s.pending==GameFlowEffect.None&&flow.RejectSetup(s.authorityTerm,"No compatible game is available for this room."))CommitFlow();
                 return;
             }
             // The random room identity seeds a choice that stays stable after replay or migration.

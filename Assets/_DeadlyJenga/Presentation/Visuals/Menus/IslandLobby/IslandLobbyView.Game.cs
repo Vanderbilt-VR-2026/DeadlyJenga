@@ -3,6 +3,7 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -21,7 +22,9 @@ namespace DeadlyJenga.CastlePrototype
         RawImage browserMapPreview;Text browserMapName,browserMapMissing,browserMapDescription;string browserMapId;
         readonly Text[] modeDescriptions=new Text[8],modePictureMissing=new Text[8];
         Choice GameChoice(string id,Func<string> title,float y,Action action,float x=0,float width=730,float height=64)
-            =>Add(setupStation,id,title,y,action,()=>lobby.CanConfigure,x,width,height,()=>setupPage=="main");
+            =>Add(setupStation,id,title,y,action,()=>lobby.CanConfigure,x,width,height,()=>setupPage=="main"&&
+                (id!="island-effects"&&id!="mode-settings"&&id!="human-team"&&id!="player-target"||
+                 GameExperiencePanel.Resolve(session)?.Experience!=GameExperience.Game));
         void BuildGameStation()
         {
             setupStation=Terminal("MODE + MAP",new Vector3(3.05f,StationY,StationZ),0,new Vector2(900,1100),CandyHudVisuals.Peach);setupStation.name="MAP + MODE";setupFace=setupStation.GetComponent<LobbyTerminalFaces>();
@@ -142,7 +145,9 @@ namespace DeadlyJenga.CastlePrototype
                 modePictureMissing[i].gameObject.SetActive(!texture);modeDescriptions[i].text=CandyBrief(option?.description??"",true);
             }
             UpdateMapBrowserPreview();
-            gameHint.text=setupPage=="maps"||setupPage=="modes"?(setupPage=="maps"?"2 - CHOOSE MAP":"1 - CHOOSE GAME MODE")+"  -  "+(pickerOffset/PageSize+1)+" / "+PickerPages:setupPage=="settings"?"DEMO / MODE SETTINGS":"";gameHint.gameObject.SetActive(!main);
+            gameHint.text=setupPage=="maps"||setupPage=="modes"?(setupPage=="maps"?"2 - CHOOSE MAP":"1 - CHOOSE GAME MODE")+"  -  "+(pickerOffset/PageSize+1)+" / "+PickerPages:setupPage=="settings"?"DEMO / MODE SETTINGS":
+                GameExperiencePanel.Resolve(session)?.Experience==GameExperience.Game?lobby.SetupHint:"";
+            gameHint.gameObject.SetActive(!main||!string.IsNullOrEmpty(gameHint.text));
         }
         void UpdateModeCardFocus(string choiceId)
         {

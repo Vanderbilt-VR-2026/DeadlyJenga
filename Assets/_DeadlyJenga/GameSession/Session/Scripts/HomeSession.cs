@@ -1,12 +1,13 @@
 using System;
 using System.Threading.Tasks;
+using System.Linq;
 using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed class HomeSession : MonoBehaviour, IHomeMenuControls, IBlasterControls
+    public sealed class HomeSession : MonoBehaviour, IHomeMenuControls, IHomeQuickPlayControls, IBlasterControls
     {
         public bool TestingEnabled => false;
         public bool Drawn => false;
@@ -181,9 +182,42 @@ namespace DeadlyJenga.CastlePrototype
             catch (Exception error) { if(request==entryGeneration){pendingEntry=null;message = "Unable to connect: " + error.Message;} }
             finally { if(request==entryGeneration)loading = false; }
         }
-        public void RandomLobby() { if (!Busy) _ = OpenLocal(false); }
-        public void Demo() { if (!Busy) _ = OpenLocal(true); }
-        async Task OpenLocal(bool demo)
+        IslandLobbyCatalog.Mode[] PlayModes
+        {
+            get
+            {
+                if(!room||!room.Catalog)return Array.Empty<IslandLobbyCatalog.Mode>();
+                var pairs=RoomGameExperience.Ensure(room).PlayPairs();
+                return room.Catalog.modes.Where(mode=>mode!=null&&pairs.Any(pair=>pair.modeId==mode.id)).ToArray();
+            }
+        }
+        int quickMode;
+        CuratedGameProfile[] SelectedPairs
+        {
+            get
+            {
+                var modes=PlayModes;
+                if(quickMode<0||quickMode>=modes.Length)return Array.Empty<CuratedGameProfile>();
+                return RoomGameExperience.Ensure(room).PlayPairs().Where(pair=>pair.modeId==modes[quickMode].id).ToArray();
+            }
+        }
+        public string[] QuickPlayModes=>PlayModes.Select(mode=>mode.title).ToArray();
+        public string[] QuickPlayMaps=>SelectedPairs.Select(pair=>Array.Find(room.Catalog.maps,map=>map.id==pair.mapId).title).ToArray();
+        public void SelectQuickPlayMode(int index)
+        {
+            if(!Busy&&index>=0&&index<PlayModes.Length)quickMode=index;
+        }
+        public void StartQuickPlay(int mapIndex)
+        {
+            if(Busy||!room)return;
+            var pairs=mapIndex==-1?RoomGameExperience.Ensure(room).PlayPairs():SelectedPairs;
+            if(pairs.Length==0){message="There are no compatible games in this build.";return;}
+            int index=mapIndex==-1?UnityEngine.Random.Range(0,pairs.Length):mapIndex;
+            if(index>=0&&index<pairs.Length)_=OpenLocal(pairs[index].id);
+        }
+        public void RandomLobby()=>StartQuickPlay(-1);
+        public void Demo() { if (!Busy&&room) _ = OpenLocal(null); }
+        async Task OpenLocal(string profileId)
         {
             loading = true;
             int request = ++entryGeneration; pendingEntry = null;
@@ -191,20 +225,25 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if (room.Connected) await room.Leave();
                 if (!this || request != entryGeneration) return;
-                if (demo && !RoomGameExperience.Ensure(room).PrepareStandaloneDemo())
-                { message = "The previous room is still closing. Try Demo again in a moment."; return; }
-                var entry = demo ? null : PrepareEntry(room, true, request);
-                if (!demo && !CurrentEntry(entry))
-                { pendingEntry = null; message = "The previous room is still closing. Try Random Lobby again in a moment."; return; }
-                MatchSetup.BotTarget = 10; MatchSetup.HandCount = 0;
-                AutofillLobby = true;
-                if (demo)
+                var experience=RoomGameExperience.Ensure(room);
+                AutofillLobby=profileId==null;
+                if(profileId==null)
                 {
-                    MatchSetup.MapId = "castle"; MatchSetup.ModeId = "demo";
-                    MatchSetup.FromLobby = true; MatchSetup.StartLocalSession = false;
-                    SceneManager.LoadScene(gameScene);
+                    if(!experience.PrepareStandaloneDemo(openDevelopment:true))
+                    {message="The previous room is still closing. Try Developer again in a moment.";return;}
+                    room.SelectMode(Array.FindIndex(room.Catalog.modes,mode=>mode.id=="demo"));
+                    MatchSetup.BotTarget=10;MatchSetup.HandCount=0;
+                    SceneManager.LoadScene(lobbyScene);
                 }
-                else SceneManager.LoadScene(lobbyScene);
+                else if(experience.StartQuickPlay(profileId))
+                {
+                    message="Loading your game…";
+                    // Keep input disabled through the room's departure animation.
+                    while(this&&request==entryGeneration&&experience.GamePhase==RoomGamePhase.LoadingGame)
+                        await Task.Yield();
+                    if(this&&experience.GamePhase==RoomGamePhase.Failed)message=experience.GameStatus;
+                }
+                else message="Could not start that game. Select a pair and try again.";
             }
             catch (Exception error) { if(request==entryGeneration){pendingEntry=null;message = "Unable to open game: " + error.Message;} }
             finally { if(request==entryGeneration)loading = false; }

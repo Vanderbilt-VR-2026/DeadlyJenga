@@ -9,6 +9,30 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class RoomGameExperience
     {
         CastlePlaySession match;
+        readonly List<(string name, Color color, AvatarAppearance? appearance)> returningBots = new();
+        internal void ApplyReturningBot(GameObject bot, int index)
+        {
+            if(index>=returningBots.Count)return;
+            var saved=returningBots[index];
+            var actor=bot.GetComponent<IModeActor>();
+            if(actor!=null&&(actor.DisplayName!=saved.name||actor.Color!=saved.color))
+                actor.SetIdentity(actor.ActorId,saved.name,-1,saved.color);
+            if(saved.appearance.HasValue&&bot.GetComponent<IAvatarAppearance>() is { } wardrobe&&
+                !wardrobe.Appearance.Equals(saved.appearance.Value))wardrobe.ApplyAppearance(saved.appearance.Value);
+        }
+        void RememberReturningBots()
+        {
+            returningBots.Clear();
+            var members=match?match.SurvivorBots?.Members:null;
+            if(members==null)return;
+            foreach(var bot in members)
+            {
+                if(!bot||returningBots.Count==9||bot.GetComponent<IEnemyActor>()?.IsEnemy==true)continue;
+                var actor=bot.GetComponent<IModeActor>();
+                if(actor==null||!actor.IsBot)continue;
+                returningBots.Add((actor.DisplayName,actor.Color,bot.GetComponent<IAvatarAppearance>()?.Appearance));
+            }
+        }
         string matchMap="",matchMode="",preparingOperation="";
         int preparingAttempt,preparingRound,preparingTerm;
         bool matchEventsBound,preparingRematch,matchRulesApplied,populationReset,modeStartIssued,startPermit,matchFailed,resultsNotified;
@@ -155,7 +179,7 @@ namespace DeadlyJenga.CastlePrototype
             if(match.SurvivorBots!=null)match.SurvivorBots.AutoFill=false;
             if(s.phase==GameFlowPhase.Playing)
             {
-                MatchStatus="PROTOTYPE · round running · no disasters";
+                MatchStatus=s.playerPlaylist?"Round in progress.":"PROTOTYPE · round running · no disasters";
                 if(!resultsNotified&&match.Modes&&match.Modes.Frame?.phase==RoundPhase.Results)
                 {resultsNotified=true;MatchResultsReached();MatchStatus="Round results · Next Round rematches; Return keeps the room.";}
                 return;
@@ -181,7 +205,7 @@ namespace DeadlyJenga.CastlePrototype
                 // ExperienceSelect seeds these rules before deferred Initialize. Public Configure is a debug command.
                 var expected=ProfileRules(profile);
                 if(expected==null||expected.mode==GameModeKind.Demo||expected.mode!=MatchModeRuntime.ParseMode(profile.modeId)||
-                    expected.automaticDisasters||JsonUtility.ToJson(expected)!=JsonUtility.ToJson(match.Modes.Rules))
+                    !s.playerPlaylist&&expected.automaticDisasters||JsonUtility.ToJson(expected)!=JsonUtility.ToJson(match.Modes.Rules))
                 {FailMatch("The initialized match rules do not match the selected curated profile.");return;}
                 matchRulesApplied=true;
             }
@@ -216,7 +240,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 // Capacity/SpawnOne return is not proof: success is observed next time through Members+Frame.
                 if(population.Count<target-expectedHumans&&population.Count<population.Capacity)population.SpawnOne();
-                MatchStatus="Staffing prototype · observed "+(humans+bots)+"/"+target+" · waiting for real bot actors";return;
+                MatchStatus="Preparing players and bots · "+(humans+bots)+"/"+target+" · waiting for real bot actors";return;
             }
             if(humans+bots<profile.minimumPopulation){MatchStatus="Waiting for the profile's minimum observed population…";return;}
             if(modeStartIssued)return;

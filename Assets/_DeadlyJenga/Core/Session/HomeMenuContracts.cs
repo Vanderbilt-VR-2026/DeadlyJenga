@@ -1,5 +1,13 @@
 namespace DeadlyJenga.Core
 {
+    public interface IHomeQuickPlayControls
+    {
+        string[] QuickPlayModes { get; }
+        string[] QuickPlayMaps { get; }
+        void SelectQuickPlayMode(int index);
+        void StartQuickPlay(int mapIndex);
+    }
+
     public interface IHomeMenuControls
     {
         bool Busy { get; }
