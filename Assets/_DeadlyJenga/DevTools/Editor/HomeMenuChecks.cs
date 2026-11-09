@@ -147,10 +147,13 @@ namespace DeadlyJenga.DevTools.Editor
             experience.SetExperience(GameExperience.Demo);
             Require(experience.Experience==GameExperience.Game&&!experience.CanConfigureExperience,"Play room rejects the Developer toggle");
             experience.RequestReturn();
-            yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.SurvivorBots?.Count==9,"Returning Play lobby fills to ten including player",60);
+            yield return Until(()=>IslandLobby.Current&&experience.GamePhase==RoomGamePhase.Selected&&
+                experience.GameStatus.StartsWith("NEXT",StringComparison.Ordinal),
+                "The lobby reveals a mode/map pair while counting down",60);
+            Require(experience.CountdownSeconds>0&&experience.CountdownSeconds<=30,
+                "The live lobby countdown is within the 30-second window ("+experience.CountdownSeconds+" seconds)");
+            yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.SurvivorBots?.Count==9,"Returning Play lobby fills to ten including player",45);
             Require(!IslandLobby.Current.Room.Connected,"Quick Play is available offline");
-            Require(experience.GamePhase==RoomGamePhase.Selected&&experience.CountdownSeconds>20&&
-                experience.GameStatus.Contains("NEXT"),"The lobby reveals a mode/map pair during its 30-second countdown");
             yield return Until(()=>experience.GamePhase==RoomGamePhase.Playing&&!IslandLobby.Current,
                 "The selected rotation launches automatically",70);
             SceneManager.LoadScene("Home");yield return Until(()=>Object.FindFirstObjectByType<HomeSession>(),"Home can reopen");
