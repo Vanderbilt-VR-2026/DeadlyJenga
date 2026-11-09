@@ -176,7 +176,15 @@ namespace DeadlyJenga.CastlePrototype
             MatchSetup.MapId = "mode-ctf";
             MatchSetup.BotTarget = 3;
             connected(runner);
+            if (!host)
+                yield return Until(() => File.Exists(Mark("host-game-bound")), "Host already bound its Game transport", 100);
             yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Game");
+            if (host)
+            {
+                yield return Until(() => FindFirstObjectByType<CastlePlaySession>() is { } game && game.Network,
+                    "Host binds Game transport before guest enters", 70);
+                File.WriteAllText(Mark("host-game-bound"), "bound");
+            }
         }
 
         IEnumerator CheckMotionProbe()
