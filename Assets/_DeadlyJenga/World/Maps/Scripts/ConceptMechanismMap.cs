@@ -21,14 +21,14 @@ namespace DeadlyJenga.CastlePrototype
         Transform generated;
         Material[] ownedPalette;
         Material islandMaterial;
-        Texture2D islandTexture;
+        Texture2D islandTexture,islandDetail;
         PhysicsMaterial connectorSlide;
         readonly List<Mesh> finishes=new();
         Bounds authored;
         bool replica,collisionOwned,oldIgnored;
         int spawnCursor;
         float nextCleanup;
-        const float SkylineShoreExtent=48;
+        const float SkylineShoreExtent=20;
         const string Prefix="concept-mechanisms-v2:";
         public int Revision {get;private set;}
         public Transform Root=>transform;
@@ -39,7 +39,7 @@ namespace DeadlyJenga.CastlePrototype
         public float TopHeight=>PlayableBounds.max.y;
         public float Radius=>new Vector2(PlayableBounds.extents.x,PlayableBounds.extents.z).magnitude;
         public float StepHeight=>.75f;
-        public int FootprintVersion=>kind==ConceptMapKind.SkylineIsland?9306:9200+(int)kind;
+        public int FootprintVersion=>kind==ConceptMapKind.SkylineIsland?9307:9200+(int)kind;
         public float FootprintHalfSize {get{var size=ConceptMapLayout.FoundationSize(kind);return Mathf.Max(size.x,size.y)*.5f;}}
         public Bounds PlayableBounds
         {
@@ -216,7 +216,7 @@ namespace DeadlyJenga.CastlePrototype
             var triangles=new List<int>();
             // The city sits on a level inland shelf. The same mesh continues down to the water.
             float[] depths={0,.38f,.75f,1,1.18f};
-            float[] heights={.4f,.39f,.22f,.06f,-.65f};
+            float[] heights={.4f,.39f,.22f,.06f,-2f};
             for(int ring=0;ring<depths.Length;ring++)
                 for(int side=0;side<sides;side++)
                 {
@@ -227,7 +227,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(ring==1)
                     {
                         float dune=Mathf.Sin(3*angle-.65f)*.58f+Mathf.Sin(5*angle-1.1f)*.32f;
-                        height+=Mathf.Max(0,dune)*1.6f;
+                        height+=Mathf.Max(0,dune)*.65f;
                     }
                     vertices.Add(new Vector3(point.x,height,point.y));
                     uv.Add(new Vector2(.5f+.5f*point.x/textureHalf.x,.5f+.5f*point.y/textureHalf.y));
@@ -258,18 +258,19 @@ namespace DeadlyJenga.CastlePrototype
 
         static float SkylinePlateauRadius(Vector2 direction,float angle,Vector2 half)
         {
-            float x=Mathf.Abs(direction.x)/(half.x+25),z=Mathf.Abs(direction.y)/(half.y+25);
-            float rounded=Mathf.Pow(Mathf.Max(1e-9f,x*x*x+z*z*z),-1f/3);
-            return rounded+2*Mathf.Sin(3*angle+.35f)+1.2f*Mathf.Sin(7*angle-1);
+            float x=Mathf.Abs(direction.x)/(half.x+6),z=Mathf.Abs(direction.y)/(half.y+1);
+            float x3=x*x*x,z3=z*z*z;
+            float rounded=Mathf.Pow(Mathf.Max(1e-15f,x3*x3+z3*z3),-1f/6);
+            return rounded+1.25f*Mathf.Sin(3*angle+.35f)+.7f*Mathf.Sin(7*angle-1);
         }
 
         static float SkylineBeachWidth(float angle)
-            =>10+3*Mathf.Sin(3*angle+.6f)+2*Mathf.Sin(5*angle+1.7f)+Mathf.Sin(9*angle);
+            =>6+1.5f*Mathf.Sin(3*angle+.6f)+Mathf.Sin(5*angle+1.7f)+.65f*Mathf.Sin(9*angle);
 
         Material SkylineTerrainMaterial(Vector2 half,Vector2 textureHalf)
         {
             if(islandMaterial)return islandMaterial;
-            const int size=512;
+            const int size=1024;
             var colors=new Color32[size*size];
             var grass=new Color(.27f,.46f,.21f);
             var brightGrass=new Color(.55f,.63f,.30f);
@@ -279,7 +280,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var point=new Vector2((2f*x/(size-1)-1)*textureHalf.x,(2f*y/(size-1)-1)*textureHalf.y);
                 float broad=Mathf.PerlinNoise(point.x*.057f+29,point.y*.057f+14);
-                float detail=Mathf.PerlinNoise(point.x*.79f+9,point.y*.79f+63);
+                float detail=Mathf.PerlinNoise(point.x*2.1f+9,point.y*2.1f+63);
                 float angle=Mathf.Atan2(point.y,point.x);
                 float coast=(point.magnitude-SkylinePlateauRadius(point.normalized,angle,half))/SkylineBeachWidth(angle);
                 float beach=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.28f,.38f,coast+(broad-.5f)*.24f));
@@ -287,10 +288,27 @@ namespace DeadlyJenga.CastlePrototype
                 var shore=Color.Lerp(sand,wetSand,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.72f,1.05f,coast)));
                 colors[y*size+x]=Color.Lerp(turf,shore,beach)*Mathf.Lerp(.84f,1.12f,detail);
             }
-            islandTexture=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Skyline grass and beach",wrapMode=TextureWrapMode.Clamp};
+            islandTexture=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Skyline grass and beach",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Trilinear,anisoLevel=8};
             islandTexture.SetPixels32(colors);islandTexture.Apply(true,true);
             islandMaterial=new Material(ownedPalette[0]){name="Skyline terrain material",color=Color.white,mainTexture=islandTexture};
             islandMaterial.SetFloat("_Smoothness",.12f);
+            if(islandMaterial.HasProperty("_DetailAlbedoMap"))
+            {
+                const int tile=128;
+                var grain=new Color32[tile*tile];
+                var random=new System.Random(713);
+                for(int i=0;i<grain.Length;i++)
+                {
+                    byte tone=(byte)random.Next(87,170);
+                    grain[i]=new Color32(tone,tone,tone,255);
+                }
+                islandDetail=new Texture2D(tile,tile,TextureFormat.RGBA32,true)
+                    {name="Skyline turf and sand grain",wrapMode=TextureWrapMode.Repeat,filterMode=FilterMode.Trilinear,anisoLevel=8};
+                islandDetail.SetPixels32(grain);islandDetail.Apply(true,true);
+                islandMaterial.SetTexture("_DetailAlbedoMap",islandDetail);
+                islandMaterial.SetTextureScale("_DetailAlbedoMap",textureHalf*.75f);
+                islandMaterial.EnableKeyword("_DETAIL_MULX2");
+            }
             return islandMaterial;
         }
 
@@ -599,6 +617,7 @@ namespace DeadlyJenga.CastlePrototype
             if(connectorSlide)Dispose(connectorSlide);
             if(islandMaterial)Dispose(islandMaterial);
             if(islandTexture)Dispose(islandTexture);
+            if(islandDetail)Dispose(islandDetail);
             if(ownedPalette!=null)foreach(var material in ownedPalette)if(material)Dispose(material);
         }
     }

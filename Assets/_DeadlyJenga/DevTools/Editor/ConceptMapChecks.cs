@@ -534,11 +534,17 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void CheckSkylineBeach(PhysicsScene physics)
         {
-            var shore=gameMap.Root.TransformPoint(new Vector3(132,2,0));
+            var shore=gameMap.Root.TransformPoint(new Vector3(109,2,0));
             Check(physics.Raycast(shore,Vector3.down,out var beach,3,1,QueryTriggerInteraction.Ignore)
                 &&beach.collider is MeshCollider&&beach.normal.y>.9f&&beach.point.y<shore.y-1.6f,
                 "Walkable island terrain extends beyond the former rectangular floor and slopes to the sea");
-            var deep=gameMap.Root.TransformPoint(new Vector3(155,2,0));
+            var environment=Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyEnvironment>();
+            var properties=new MaterialPropertyBlock();
+            Check(environment&&environment.waterRenderer&&environment.waterRenderer.enabled,"Skyline uses the active Candy Ocean renderer");
+            environment.waterRenderer.GetPropertyBlock(properties);
+            Check(properties.GetFloat("_CoastalDetail")>0&&properties.GetTexture("_TerrainHeight")!=null
+                &&properties.GetFloat("_WaveExtent")>109,"Ocean samples the physical shoreline and resolves waves beyond the beach");
+            var deep=gameMap.Root.TransformPoint(new Vector3(122,2,0));
             Check(!physics.Raycast(deep,Vector3.down,out _,3,1,QueryTriggerInteraction.Ignore),
                 "There is no invisible rectangular floor past the beach");
         }
@@ -650,6 +656,12 @@ namespace DeadlyJenga.DevTools.Editor
                     view.transform.position=bounds.center+new Vector3(half*1.45f,half*1.65f,-half*1.75f);
                     view.transform.LookAt(new Vector3(bounds.center.x,gameMap.Root.position.y+.45f,bounds.center.z));
                     SaveCamera(overview,name+"-overview");
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland&&phase=="intact")
+                    {
+                        view.transform.position=gameMap.Root.TransformPoint(new Vector3(104,4,-22));
+                        view.transform.LookAt(gameMap.Root.TransformPoint(new Vector3(83,6,52)));
+                        SaveCamera(overview,name+"-coast");
+                    }
                 }
                 finally{Object.DestroyImmediate(view);}
             }
@@ -733,7 +745,9 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static void Fallback(ConceptMechanismMap map,PhysicsScene physics,ConceptMapKind kind)
         {
-            var size=ConceptMapLayout.FoundationSize(kind);float z=size.y*.5f-.65f;
+            var size=ConceptMapLayout.FoundationSize(kind);
+            if(kind==ConceptMapKind.SkylineIsland)size=new Vector2(188,130);
+            float z=size.y*.5f-.65f;
             var hits=new Collider[16];
             for(float x=-size.x*.5f+1;x<=size.x*.5f-1;x+=2)
             {
