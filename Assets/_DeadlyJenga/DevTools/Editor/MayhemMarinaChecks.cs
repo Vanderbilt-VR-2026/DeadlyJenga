@@ -149,10 +149,14 @@ namespace DeadlyJenga.DevTools.Editor
             Check(join.parent==host.parent&&join.localPosition.x<0&&host.localPosition.x>0,
                 "Join and Host physically flank the central screen");
             Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
-            yield return Wait(1);
             captureOrigin=lobby.transform.position;
+            lobby.Player.Place(lobby.transform.TransformPoint(new Vector3(-3.8f,1.87f,5.4f)),Quaternion.identity);
+            yield return Wait(3);
+            lobby.SurvivorBots?.Clear();
             Capture(new Vector3(0,3.51f,3.40f),new Vector3(0,3.95f,10.7f),52,"Marina-Candy-Arcade.png");
             Capture(new Vector3(0,3.76f,6.12f),new Vector3(0,3.94f,10.97f),43,"Marina-Candy-Arcade-Screen.png");
+            // The hidden batch has no OS focus. Exercise the command routes with simulated focus.
+            screen.SendMessage("OnApplicationFocus",true);
             foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
             {
                 yield return null;
