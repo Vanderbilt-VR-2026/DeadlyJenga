@@ -34,7 +34,7 @@ namespace DeadlyJenga.DevTools.Editor
         static DateTime deadlineUtc;
         static string Project=>Path.GetFullPath(Path.Combine(Application.dataPath,".."));
         static bool GameRun=>SessionState.GetBool(Key+"Game",false);
-        static readonly string[] MapIds={"moving-shelter","peel-away-screen","collapse-created-route","pivoting-causeway","refuge-exchange","break-contact-borough"};
+        static readonly string[] MapIds={"moving-shelter","peel-away-screen","collapse-created-route","pivoting-causeway","refuge-exchange","break-contact-borough","skyline-island"};
         enum GamePhase {Load,Ready,Settle,Observe,Late,Reset}
         static GamePhase gamePhase;
         static int gameIndex,gameLast,gameFrame,resetRevision;
@@ -52,6 +52,8 @@ namespace DeadlyJenga.DevTools.Editor
         public static void BeginPeelAway(){Start((int)ConceptMapKind.PeelAwayScreen,false);}
         [MenuItem("Tools/Deadly Jenga/Validation/Check Six Concept Maps In Game")]
         public static void BeginGame(){Start(-1,true);}
+        [MenuItem("Tools/Deadly Jenga/Validation/Check Skyline Exchange In Game")]
+        public static void BeginGameSkyline(){Start((int)ConceptMapKind.SkylineIsland,true);}
         [MenuItem("Tools/Deadly Jenga/Validation/Check Peel-Away Screen In Game")]
         public static void BeginGamePeelAway(){Start((int)ConceptMapKind.PeelAwayScreen,true);}
         [Serializable] sealed class Choices
@@ -66,7 +68,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             if(!Application.isBatchMode)return true;
             var args=Environment.GetCommandLineArgs();int i=Array.IndexOf(args,"-executeMethod");
-            return i>=0&&i+1<args.Length&&new[]{"Begin","BeginPeelAway","BeginGame","BeginGamePeelAway"}.Any(name=>args[i+1]==typeof(ConceptMapChecks).FullName+"."+name);
+            return i>=0&&i+1<args.Length&&new[]{"Begin","BeginPeelAway","BeginGame","BeginGamePeelAway","BeginGameSkyline"}.Any(name=>args[i+1]==typeof(ConceptMapChecks).FullName+"."+name);
         }
         static void Start(int selected,bool game)
         {
@@ -245,7 +247,7 @@ namespace DeadlyJenga.DevTools.Editor
                 int selected=SessionState.GetInt(Key+"Selected",-1);
                 foreach(ConceptMapKind kind in Enum.GetValues(typeof(ConceptMapKind)))
                 {
-                    if(selected>=0&&(int)kind!=selected)continue;
+                    if(kind==ConceptMapKind.SkylineIsland||selected>=0&&(int)kind!=selected)continue;
                     identity.cases++;
                     try{RunCase(kind);}
                     catch(Exception error){failed.Add(kind+": "+error.Message);report.AppendLine("CASE FAIL "+kind+" "+error);}
@@ -323,13 +325,20 @@ namespace DeadlyJenga.DevTools.Editor
                 if(gamePhase==GamePhase.Settle)
                 {
                     CheckSettledGame();Fallback(gameMap,physics,(ConceptMapKind)gameIndex);
-                    CaptureGameCamera("intact");gameProbe=BeginProbe(gameMap,physics,(ConceptMapKind)gameIndex);
-                    gameFrame=Time.frameCount;gameFixed=Time.fixedTime;gamePhase=GamePhase.Observe;phaseUntil=Time.realtimeSinceStartup+2;return;
+                    CaptureGameCamera("intact");
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland)CheckSkylineRoutes(physics);
+                    var probeKind=gameMap.kind==ConceptMapKind.SkylineIsland?ConceptMapKind.PivotingCauseway:gameMap.kind;
+                    gameProbe=BeginProbe(gameMap,physics,probeKind);
+                    gameFrame=Time.frameCount;gameFixed=Time.fixedTime;gamePhase=GamePhase.Observe;phaseUntil=Time.realtimeSinceStartup+2;
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland)Deadline(70);
+                    return;
                 }
                 if(gamePhase==GamePhase.Observe)
                 {
                     Check(Time.frameCount>gameFrame+3&&Time.fixedTime>gameFixed+.05f,"Game frames and fixed physics advance after actual probe input");
-                    ValidateProbe(gameMap,physics,gameProbe);CaptureGameCamera("after-probe");gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+4;return;
+                    ValidateProbe(gameMap,physics,gameProbe);
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland)CheckSkylineRoutes(physics);
+                    CaptureGameCamera("after-probe");gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+4;return;
                 }
                 if(gamePhase==GamePhase.Late)
                 {
@@ -386,7 +395,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(session.SurvivorBots.Count==0&&session.HandBots.Count==0,"One local survivor slot and zero AI bots/hands realized");
             CheckActorSupport();
             gameStart=map.Authored.Select(m=>new Pose(map.transform.TransformPoint(m.position),map.transform.rotation*m.rotation*m.shapes[0].rotation)).ToArray();
-            gamePhase=GamePhase.Settle;phaseUntil=Time.realtimeSinceStartup+4;Deadline(25);
+            gamePhase=GamePhase.Settle;phaseUntil=Time.realtimeSinceStartup+4;Deadline(map.kind==ConceptMapKind.SkylineIsland?80:25);
             Note("GAME READY "+map.kind+"; frames="+(Time.frameCount-gameFrame)+"; fixedSeconds="+(Time.fixedTime-gameFixed)+"; actor="+player.GetInstanceID()+"; actualCamera="+session.ActiveCamera.GetInstanceID());
         }
         static void CheckActorSupport()
@@ -403,6 +412,77 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(Vector3.Distance(gameStart[i].position,body.position)<.25f&&Quaternion.Angle(gameStart[i].rotation,body.rotation)<5&&body.linearVelocity.magnitude<.2f&&body.angularVelocity.magnitude<.2f,"Game intact body settles near authored pose "+i);
             }
         }
+        static void CheckSkylineRoutes(PhysicsScene physics)
+        {
+            Check(gameMap.Authored.Select(module=>module.district).Distinct().Count()==7,"Six original districts and the shared towers are present");
+            const float ground=.4f;
+            const float lane=ConceptMapLayout.TowerLane;
+            const float depth=ConceptMapLayout.TowerHalfDepth;
+            const float outer=depth+ConceptMapLayout.TowerRun;
+            const float sideStreet=94;
+            var hits=new Collider[24];
+            var capsule=gameSession.Survivor().Capsule;
+            int samples=0;
+            void Segment(Vector3 a,Vector3 b)
+            {
+                int count=Mathf.CeilToInt(Vector3.Distance(a,b)/.45f);
+                for(int i=0;i<=count;i++)
+                {
+                    var p=gameMap.Root.TransformPoint(Vector3.Lerp(a,b,i/(float)count));
+                    if(!physics.Raycast(p+Vector3.up*.35f,Vector3.down,out var hit,.7f,(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore)
+                        ||hit.normal.y<=.72f||Mathf.Abs(hit.point.y-p.y)>=.12f)
+                        throw new InvalidOperationException("Skyline route lacks its expected walkable surface at "+p);
+                    float radius=capsule.radius;
+                    if(physics.OverlapCapsule(hit.point+Vector3.up*(radius+.05f),hit.point+Vector3.up*(capsule.height-radius+.05f),
+                        radius,hits,1<<Layers.Block,QueryTriggerInteraction.Ignore)>0)
+                        throw new InvalidOperationException("Skyline route is blocked at "+p+" by "+hits[0].name);
+                    samples++;
+                }
+            }
+            foreach(float z in new[]{-62f,0,62f})
+                Segment(new Vector3(-sideStreet,ground,z),new Vector3(sideStreet,ground,z));
+            foreach(float x in new[]{-sideStreet,0,sideStreet})
+                Segment(new Vector3(x,ground,-62),new Vector3(x,ground,62));
+            foreach(var district in ConceptMapLayout.SkylineDistricts)
+                Segment(new Vector3(district.x,ground,0),new Vector3(district.x,ground,Mathf.Sign(district.z)*34));
+            foreach(var tower in ConceptMapLayout.SkylineTowers)
+            {
+                float x=tower.x,z=tower.z;
+                Vector3 P(float localX,float y,float localZ)=>new Vector3(x+localX,y,z+localZ);
+                float first=ConceptMapLayout.TowerDeck(1),entry=ConceptMapLayout.TowerEntrySide(z);
+                float approach=entry*(outer+.85f);
+                if(z==0)
+                {
+                    Segment(P(lane,ground,0),P(lane,ground,approach));
+                    Segment(P(lane,ground,approach),P(-lane,ground,approach));
+                }
+                else Segment(new Vector3(Mathf.Sign(x)*sideStreet,ground,z+approach),P(-lane,ground,approach));
+                Segment(P(-lane,ground,approach),P(-lane,ground,entry*outer));
+                Segment(P(-lane,ground,entry*outer),P(-lane,first,entry*depth));
+                Segment(P(-lane,first,entry*depth),P(-lane,first,-entry*depth));
+                for(int level=2;level<=tower.floors;level++)
+                {
+                    float side=level%2==0?-entry:entry;
+                    float previous=ConceptMapLayout.TowerDeck(level-1),height=ConceptMapLayout.TowerDeck(level);
+                    Segment(P(-lane,previous,side*depth),P(-lane,height,side*outer));
+                    Segment(P(-lane,height,side*outer),P(-lane,height,side*(outer+1.1f)));
+                    Segment(P(-lane,height,side*(outer+1.1f)),P(lane,height,side*(outer+1.1f)));
+                    Segment(P(lane,height,side*(outer+1.1f)),P(lane,height,side*(depth-.6f)));
+                    Segment(P(lane,height,side*(depth-.6f)),P(-lane,height,side*(depth-.6f)));
+                    Segment(P(-lane,height,side*(depth-.6f)),P(-lane,height,level<tower.floors?-side*depth:0));
+                }
+                Note("SKYLINE walkable collider chain to "+tower.name+" summit at "+ConceptMapLayout.TowerDeck(tower.floors)+"m");
+            }
+            foreach(int floor in ConceptMapLayout.SkylineBridgeFloors)
+            {
+                float y=ConceptMapLayout.TowerDeck(floor);
+                Segment(new Vector3(-31,y,0),new Vector3(31,y,0));
+            }
+            foreach(float x in new[]{-84f,84f})
+                Segment(new Vector3(x,ConceptMapLayout.TowerDeck(3),-35),new Vector3(x,ConceptMapLayout.TowerDeck(3),35));
+            Note($"SKYLINE {samples} actual floor and capsule samples; six towers, five elevated crossings, district entrances and independent ground routes. No motor traversal claim.");
+        }
+
         static void CaptureGameCamera(string phase)
         {
             var camera=gameSession.ActiveCamera;Check(camera&&camera.enabled,"Actual survivor camera available for "+phase);

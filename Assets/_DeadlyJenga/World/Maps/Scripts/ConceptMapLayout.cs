@@ -7,16 +7,17 @@ namespace DeadlyJenga.CastlePrototype
     public enum ConceptMapKind
     {
         MovingShelter, PeelAwayScreen, CollapseCreatedRoute,
-        PivotingCauseway, RefugeExchange, BreakContactBorough
+        PivotingCauseway, RefugeExchange, BreakContactBorough, SkylineIsland
     }
 
     // Layouts use the island deck at 0.4 m as the common ground level.
     public static partial class ConceptMapLayout
     {
-        public static readonly string[] Names={"Moving Shelter","Peel-Away Screen","Collapse-Created Route","Pivoting Causeway","Refuge Exchange","Break-Contact Borough"};
+        public static readonly string[] Names={"Moving Shelter","Peel-Away Screen","Collapse-Created Route","Pivoting Causeway","Refuge Exchange","Break-Contact Borough","Skyline Exchange"};
         public static List<MayhemModule> Build(ConceptMapKind kind)
         {
             if(!Enum.IsDefined(typeof(ConceptMapKind),kind))throw new ArgumentOutOfRangeException(nameof(kind));
+            if(kind==ConceptMapKind.SkylineIsland)return Skyline();
             var b=new Builder((int)kind);
             switch(kind)
             {
@@ -39,11 +40,14 @@ namespace DeadlyJenga.CastlePrototype
                 case ConceptMapKind.CollapseCreatedRoute:return new Vector2(30,30);
                 case ConceptMapKind.PivotingCauseway:return new Vector2(32,30);
                 case ConceptMapKind.RefugeExchange:return new Vector2(34,30);
+                case ConceptMapKind.SkylineIsland:return new Vector2(200,144);
                 default:return new Vector2(36,24);
             }
         }
         public static Vector3[] SpawnCandidates(ConceptMapKind kind)
         {
+            if(kind==ConceptMapKind.SkylineIsland)
+                return new[]{new Vector3(0,.45f,-5),new Vector3(0,.45f,5),new Vector3(-55,.45f,0),new Vector3(55,.45f,0),new Vector3(-94,.45f,-55),new Vector3(94,.45f,55)};
             var size=FoundationSize(kind);float x=size.x*.5f-3;
             return new[]{new Vector3(-x,.45f,-7),new Vector3(x,.45f,-7),new Vector3(-x,.45f,7),new Vector3(x,.45f,7),new Vector3(0,.45f,-9),new Vector3(0,.45f,9)};
         }
@@ -57,6 +61,114 @@ namespace DeadlyJenga.CastlePrototype
                 case ConceptMapKind.PivotingCauseway:return new[]{"Pivot route plate"};
                 case ConceptMapKind.RefugeExchange:return new[]{"Loose low-refuge roof"};
                 default:return new[]{"Connector west","Connector east","Fuel pod west","Fuel pod middle","Fuel pod east"};
+            }
+        }
+
+        public const float TowerLane=2.6f,TowerHalfDepth=4.25f,TowerRun=12f,TowerHalfWidth=5f;
+        public static float TowerDeck(int floor)=>.4f+floor*3.6f;
+        public static float TowerEntrySide(float z)=>z>0?1:-1;
+        public static readonly int[] SkylineBridgeFloors={1,4,7};
+        public static readonly Vector3[] SkylineDistricts=
+        {
+            new(-61,0,-40),new(-61,0,40),new(0,0,40),
+            new(0,0,-40),new(61,0,40),new(61,0,-40)
+        };
+        public static readonly (float x,float z,int floors,string name)[] SkylineTowers=
+        {
+            (-31,0,7,"West Crown"),(31,0,7,"East Crown"),
+            (-84,-35,5,"Shelter Spire"),(-84,35,4,"Screen Spire"),
+            (84,-35,4,"Borough Spire"),(84,35,5,"Refuge Spire")
+        };
+        static List<MayhemModule> Skyline()
+        {
+            var b=new Builder((int)ConceptMapKind.SkylineIsland);
+            for(int district=0;district<SkylineDistricts.Length;district++)
+            {
+                var offset=SkylineDistricts[district];
+                foreach(var module in Build((ConceptMapKind)district))
+                {
+                    module.position+=offset;
+                    if(module.hingeSupport!=null)module.pivot+=offset;
+                    b.modules.Add(module);
+                }
+            }
+            foreach(var tower in SkylineTowers)Tower(b,tower.x,tower.z,tower.floors,tower.name);
+            foreach(int floor in SkylineBridgeFloors)
+                SkylineBridge(b,"Crown crossing "+floor,new Vector3(0,TowerDeck(floor)-.2f,0),52,0,floor==7?5:2);
+            foreach(float x in new[]{-84f,84f})
+                SkylineBridge(b,x<0?"West district skyway":"East district skyway",
+                    new Vector3(x,TowerDeck(3)-.2f,0),70-TowerHalfDepth*2,90,1);
+            foreach(float x in new[]{-52f,52f})
+            {
+                var gate=b.Module("Fixed boulevard arch",new Vector3(x,.4f,0));
+                foreach(float side in new[]{-1f,1f})
+                {
+                    b.Part(gate,new Vector3(0,3.4f,side*5.4f),new Vector3(1.7f,6.8f,1.7f),3);
+                    b.Part(gate,new Vector3(0,6.6f,side*5.4f),new Vector3(2.3f,.6f,2.3f),5);
+                }
+                b.Part(gate,new Vector3(0,7,0),new Vector3(1.8f,.85f,12.6f),2);
+            }
+            return b.modules;
+        }
+        static void SkylineBridge(Builder b,string name,Vector3 center,float length,float yaw,int finish)
+        {
+            var bridge=b.Module("Fixed "+name,center,heading:yaw);
+            b.Part(bridge,Vector3.zero,new Vector3(length,.4f,4.1f),finish);
+            b.Part(bridge,new Vector3(0,-.38f,0),new Vector3(length,.38f,2.75f),3);
+            b.Rail(bridge,0,1.88f,.2f,length-.5f);
+            b.Rail(bridge,0,-1.88f,.2f,length-.5f);
+            for(float x=-length*.5f+4;x<length*.5f-1;x+=4)
+                foreach(float side in new[]{-1f,1f})
+                    b.Part(bridge,new Vector3(x,.44f,side*1.88f),new Vector3(.32f,.5f,.32f),5);
+        }
+        static void Tower(Builder b,float x,float z,int floors,string name)
+        {
+            var frame=b.Module("Fixed "+name+" tower frame",new Vector3(x,.4f,z));
+            // One rigid frame carries all terraces. The open corners leave the ground plaza connected.
+            foreach(float side in new[]{-1f,1f})foreach(float end in new[]{-1f,1f})
+            {
+                float height=TowerDeck(floors)-.8f;
+                b.Part(frame,new Vector3(side*4.35f,height*.5f,end*3.58f),new Vector3(1.25f,height,1.25f),3);
+                b.Part(frame,new Vector3(side*4.35f,.3f,end*3.58f),new Vector3(1.8f,.6f,1.8f),4);
+                for(int level=1;level<=floors;level++)
+                    b.Part(frame,new Vector3(side*4.35f,TowerDeck(level)-.65f,end*3.58f),new Vector3(1.6f,.48f,1.6f),5);
+            }
+            for(int level=1;level<=floors;level++)
+            {
+                float deck=TowerDeck(level)-.4f;
+                b.Part(frame,new Vector3(0,deck-.2f,0),new Vector3(TowerHalfWidth*2,.4f,TowerHalfDepth*2),level==floors?5:level%2==0?1:2);
+                if(level==floors)
+                    foreach(float side in new[]{-1f,1f})foreach(float end in new[]{-1f,1f})
+                    {
+                        b.Part(frame,new Vector3(side*4.34f,deck+.95f,end*3.58f),new Vector3(1.25f,1.9f,1.25f),2);
+                        b.Part(frame,new Vector3(side*4.34f,deck+1.94f,end*3.58f),new Vector3(1.5f,.24f,1.5f),5);
+                    }
+            }
+            float outer=TowerHalfDepth+TowerRun;
+            float entry=TowerEntrySide(z);
+            b.Ramp("Fixed "+name+" ground flight",new Vector3(x-TowerLane,.4f,z+entry*outer),
+                new Vector3(x-TowerLane,TowerDeck(1),z+entry*TowerHalfDepth),3.5f);
+            foreach(float side in new[]{entry,-entry})
+            {
+                int last=(floors%2!=0)==(side==entry)?floors:floors-1;
+                float postHeight=TowerDeck(last)-.8f;
+                foreach(float end in new[]{-1f,1f})
+                {
+                    float postX=end*4.08f,postZ=side*(outer+2.03f);
+                    b.Part(frame,new Vector3(postX,postHeight*.5f,postZ),new Vector3(.82f,postHeight,.72f),3);
+                    b.Part(frame,new Vector3(postX,postHeight-.12f,postZ),new Vector3(1,.24f,.9f),5);
+                }
+            }
+            for(int level=2;level<=floors;level++)
+            {
+                float side=level%2==0?-entry:entry;
+                float height=TowerDeck(level);
+                b.Ramp("Fixed "+name+" flight "+level,new Vector3(x-TowerLane,TowerDeck(level-1),z+side*TowerHalfDepth),
+                    new Vector3(x-TowerLane,height,z+side*outer),3.5f,true);
+                var turn=b.Box("Fixed "+name+" landing "+level,new Vector3(x,height-.2f,z+side*(outer+1.2f)),new Vector3(9.1f,.4f,2.4f),5);
+                b.Rail(turn,0,side*1.06f,.2f,8.8f);
+                b.Box("Fixed "+name+" gallery "+level,new Vector3(x+TowerLane,height-.2f,z+side*(TowerHalfDepth+TowerRun*.5f)),
+                    new Vector3(3.5f,.4f,TowerRun),2);
             }
         }
 
@@ -103,7 +215,7 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(float end in new[]{-.5f,.5f})
                     Part(m,new Vector3(x+length*end,top+.25f,z),new Vector3(.32f,.5f,.34f),5);
             }
-            public MayhemModule Ramp(string purpose,Vector3 low,Vector3 high,float width=3)
+            public MayhemModule Ramp(string purpose,Vector3 low,Vector3 high,float width=3,bool raised=false)
             {
                 if(high.y<=low.y)throw new ArgumentException("Ramp must rise.");
                 var horizontal=Vector3.ProjectOnPlane(high-low,Vector3.up);
@@ -111,7 +223,8 @@ namespace DeadlyJenga.CastlePrototype
                 float run=horizontal.magnitude,rise=high.y-low.y;
                 var center=(low+high)*.5f;var m=Module(purpose,center);
                 float half=width*.5f,z=run*.5f,bottom=-rise*.5f-.05f;
-                var vertices=new[]{new Vector3(-half,bottom,-z),new Vector3(half,bottom,-z),new Vector3(half,-rise*.5f,-z),new Vector3(-half,-rise*.5f,-z),new Vector3(-half,bottom,z),new Vector3(half,bottom,z),new Vector3(half,rise*.5f,z),new Vector3(-half,rise*.5f,z)};
+                float lowerEdge=raised?-rise*.5f-.28f:bottom,upperEdge=raised?rise*.5f-.28f:bottom;
+                var vertices=new[]{new Vector3(-half,lowerEdge,-z),new Vector3(half,lowerEdge,-z),new Vector3(half,-rise*.5f,-z),new Vector3(-half,-rise*.5f,-z),new Vector3(-half,upperEdge,z),new Vector3(half,upperEdge,z),new Vector3(half,rise*.5f,z),new Vector3(-half,rise*.5f,z)};
                 for(int i=0;i<vertices.Length;i++)vertices[i]=heading*vertices[i];
                 // Geometry is pre-rotated so the first shape retains identity rotation.
                 m.shapes.Add(new MayhemShape(Vector3.zero,new Vector3(width,rise+.05f,run),2,Quaternion.identity,vertices));return m;
