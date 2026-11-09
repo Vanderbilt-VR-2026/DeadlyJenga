@@ -24,7 +24,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||test.ProbeMotion?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||test.ProbeMotion||FullRoom?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -58,6 +58,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(!done)Finish(!File.ReadAllText(Report).Contains("ERROR "),"Separate-process multiplayer run");
         }
+        static bool FullRoom => Environment.GetCommandLineArgs().Contains("--dj-full-room");
         static bool LobbyHandoff => Environment.GetCommandLineArgs().Contains("--dj-lobby-handoff");
         bool ProbePoses => Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
         const System.Reflection.BindingFlags PrivateField =
@@ -519,9 +520,124 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        IEnumerator CheckFullRoom()
+        {
+            const int Seats = 10;
+            bool host = role == "host";
+            Application.targetFrameRate = 30;
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && !string.IsNullOrEmpty(home.Region),
+                "Home is ready", 95);
+            if (host)
+            {
+                home.Host();
+                yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.IsHost &&
+                    IslandLobby.Current.CanStart, "Normal room is open", 70);
+                Require(IslandLobby.Current.SelectMode("ctf") && IslandLobby.Current.SelectMap("mode-ctf"),
+                    "Host selects CTF");
+                File.WriteAllText(Mark("pending-code"), IslandLobby.Current.Room.Code);
+                File.Move(Mark("pending-code"), Mark("code"));
+                yield return Until(() => IslandLobby.Current.Room.HumanCount == Seats &&
+                    Directory.GetFiles(folder, "guest-*-ready").Length == Seats - 1,
+                    "Nine other processes confirmed the full lobby", 145, () => IslandLobby.Current.Room.Status);
+                IslandLobby.Current.StartOrCancel();
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("code")), "Host published code", 120);
+                home.Code = File.ReadAllText(Mark("code"));
+                home.JoinCode();
+                yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.Connected &&
+                    IslandLobby.Current.SelectedMapId == "mode-ctf", "Guest joined the configured room", 100,
+                    () => IslandRoomConnection.Instance?.Status);
+                File.WriteAllText(Mark(role + "-ready"), "ready");
+            }
+
+            var room = IslandRoomConnection.Instance;
+            CastlePlaySession game = null;
+            yield return Until(() => (game = FindFirstObjectByType<CastlePlaySession>()) && game.Network &&
+                !game.Network.WaitingForWorld && room.Runner.ActivePlayers.Count() == Seats &&
+                (!host || game.Network.HumanCount == Seats), "All ten processes are in the active match", 125,
+                () => room.Status);
+            string code = room.Code;
+            var originalRunner = room.Runner;
+            File.WriteAllText(Mark(role + "-playing"), "ready");
+            yield return Until(() => Directory.GetFiles(folder, "*-playing").Length == Seats,
+                "All peers received their initial match state", 60);
+            yield return DriveFullRoom(game, role + "-before");
+            File.WriteAllText(Mark(role + "-moving"), "ready");
+            if (host)
+            {
+                yield return Until(() => Directory.GetFiles(folder, "*-moving").Length == Seats,
+                    "All peers measured movement before handoff", 50);
+                var leave = room.Leave();
+                yield return Until(() => leave.IsCompleted && !room.Connected, "Original host left mid-match", 50);
+                yield break;
+            }
+            yield return Until(() => room.Connected && room.Runner != originalRunner && !room.Migrating &&
+                room.Runner.ActivePlayers.Count() == Seats - 1 &&
+                (game = FindFirstObjectByType<CastlePlaySession>()) && game.Network && !game.Network.WaitingForWorld,
+                "Match recovered on the new runner with nine peers", 90, () => room.Status);
+            Require(room.Code == code && MatchSetup.ModeId == "ctf", "Room and mode survive the host departure");
+            Require(room.IsHost == !game.Network.IsClient, "Simulation authority matches the new runner");
+            File.WriteAllText(Mark(role + "-authority"), room.IsHost ? "host" : "guest");
+            yield return Until(() => Directory.GetFiles(folder, "guest-*-authority").Length == Seats - 1,
+                "All surviving peers reported authority", 50);
+            Require(Directory.GetFiles(folder, "guest-*-authority").Count(path => File.ReadAllText(path) == "host") == 1,
+                "Exactly one survivor became host");
+            yield return DriveFullRoom(game, role + "-after");
+            File.WriteAllText(Mark(role + "-finished"), "ready");
+            yield return Until(() => Directory.GetFiles(folder, "guest-*-finished").Length == Seats - 1,
+                "All surviving peers measured post-migration movement", 50);
+        }
+
+        IEnumerator DriveFullRoom(CastlePlaySession game, string phase)
+        {
+            var survivor = ((Component)game.Player).GetComponent<CastleSurvivor>();
+            var views = (Dictionary<string, INetworkActorView>)ProbeField(game.Network, "views").GetValue(game.Network);
+            var driver = new MotionProbeDriver(survivor.transform.position);
+            var moved = new HashSet<string>();
+            var previous = new Dictionary<string, Vector3>();
+            var lastMove = new Dictionary<string, float>();
+            var data = new System.Text.StringBuilder("elapsed,frameMs,visibleActors,movedActors,worstObservedMoveGapMs\n");
+            float worst = 0;
+            float start = Time.realtimeSinceStartup;
+            while (Time.realtimeSinceStartup - start < 7)
+            {
+                float elapsed = Time.realtimeSinceStartup - start;
+                if (survivor.Capsule && survivor.Capsule.enabled)
+                {
+                    var command = driver.ReadCommand(survivor, Time.deltaTime);
+                    survivor.Capsule.Move(command.move * Mathf.Min(Time.deltaTime, .04f) * 2.4f);
+                }
+                foreach (var pair in views)
+                {
+                    if (!pair.Key.StartsWith("[Player:", StringComparison.Ordinal) ||
+                        pair.Value == null || !pair.Value.NetworkActive) continue;
+                    var point = RenderedFeet(pair.Value);
+                    if (previous.TryGetValue(pair.Key, out var earlier) && (point - earlier).sqrMagnitude > .000009f)
+                    {
+                        moved.Add(pair.Key);
+                        if (lastMove.TryGetValue(pair.Key, out float last)) worst = Mathf.Max(worst, elapsed - last);
+                        lastMove[pair.Key] = elapsed;
+                    }
+                    previous[pair.Key] = point;
+                }
+                data.AppendLine(FormattableString.Invariant($"{elapsed:F4},{Time.unscaledDeltaTime * 1000:F3},{previous.Count},{moved.Count},{worst * 1000:F1}"));
+                yield return null;
+            }
+            File.WriteAllText(Mark(phase + ".csv"), data.ToString());
+            Require(moved.Count > 0, "Observed real remote movement during " + phase);
+        }
+
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(FullRoom)
+            {
+                yield return CheckFullRoom();
+                yield break;
+            }
             if(ProbeMotion)
             {
                 yield return CheckMotionProbe();

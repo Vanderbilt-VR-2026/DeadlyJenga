@@ -16,7 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         const int NearBlockSamples = 24, FarBlockSamples = 16;
         const int BlockScanBudget = 120;
         const byte ActorPage = 1, BlockPage = 2;
-        internal const string MotionProtocol = "/native-motion-1";
+        internal const string MotionProtocol = "/native-motion-2";
         readonly CastleMotionPage[] motionPages = new CastleMotionPage[HumanLanes + BotLanes + BlockLanes];
         readonly List<INetworkActor> motionBots = new List<INetworkActor>(64);
         readonly HashSet<INetworkActor> motionBotSet = new HashSet<INetworkActor>();
@@ -25,8 +25,9 @@ namespace DeadlyJenga.CastlePrototype
         BinaryWriter motionWriter;
         CastleMotionProvider motionProvider;
         CastlePoseInputProbe latestInput;
-        int motionStep, inputSequence, nearBlockCursor, blockCursor, botCursor, fastBotCursor, motionRevision = -1;
-        float nextInputCapture, nextMotionFrame, nextHumanFrame, nextBotRoster, nextMotionWorld;
+        int motionStep, humanCursor, inputSequence, nearBlockCursor, blockCursor, botCursor, fastBotCursor, motionRevision = -1;
+        float nextInputCapture, nextMotionFrame, nextBotRoster, nextMotionWorld;
+        readonly float[] nextHumanLane = new float[HumanLanes];
         bool[] movingBlocks = Array.Empty<bool>();
         bool inputFallback;
         bool UsesNativeMotion => motionProvider;
@@ -50,8 +51,9 @@ namespace DeadlyJenga.CastlePrototype
             motionProvider.Session = this;
             runner.ProvideInput = !runner.IsServer;
             motionWriter ??= new BinaryWriter(motionStream);
-            nextMotionFrame = nextHumanFrame = nextInputCapture = nextBotRoster = nextMotionWorld = 0;
-            motionStep = inputSequence = nearBlockCursor = blockCursor = botCursor = fastBotCursor = 0;
+            nextMotionFrame = nextInputCapture = nextBotRoster = nextMotionWorld = 0;
+            Array.Clear(nextHumanLane, 0, nextHumanLane.Length);
+            motionStep = humanCursor = inputSequence = nearBlockCursor = blockCursor = botCursor = fastBotCursor = 0;
             latestInput = default;
             inputFallback = false;
             motionRevision = -1;
@@ -166,11 +168,10 @@ namespace DeadlyJenga.CastlePrototype
                 nearBlockCursor = blockCursor = 0;
             }
             int phase = motionStep++;
-            if (now >= nextHumanFrame)
-            {
-                nextHumanFrame = now + .045f;
-                PublishHumanPages(tick);
-            }
+            PublishHumanPages(tick, now);
+            // Establish small empty pages before blocks wake, so the first impact
+            // does not also have to announce two new network objects.
+            for (int lane = HumanLanes + BotLanes; lane < motionPages.Length; lane++) EnsureMotionPage(lane);
 
             if (now >= nextBotRoster)
             {
@@ -178,20 +179,27 @@ namespace DeadlyJenga.CastlePrototype
                 castle.CollectMotionBots(motionBots, motionBotSet);
                 castle.CollectMotionAnchors(motionAnchors);
             }
-            PublishBotPage(phase, tick);
-            PublishBlockPage(phase, tick);
+            if ((phase & 1) == 0) PublishBotPage(phase >> 1, tick);
+            else PublishBlockPage(phase >> 1, tick);
         }
 
-        void PublishHumanPages(int tick)
+        void PublishHumanPages(int tick, float now)
         {
-            for (int lane = 0; lane < HumanLanes; lane++)
+            int budget = Mathf.Clamp((peers.Count + 2) / 2, 1, 4);
+            for (int inspected = 0; inspected < HumanLanes && budget > 0; inspected++)
             {
+                int lane = humanCursor;
+                humanCursor = (humanCursor + 1) % HumanLanes;
+                if (now < nextHumanLane[lane]) continue;
                 StartPage(ActorPage);
                 int count = lane == 0 && TryWriteActor(castle.CaptureMotionHuman()) ? 1 : 0;
                 foreach (var pair in peers)
                     if (pair.Value.ready && pair.Value.motionLane == lane &&
                         castle.TryCaptureMotionHuman(pair.Key.ToString(), out var actor) && TryWriteActor(actor)) count++;
+                if (count == 0) continue;
+                nextHumanLane[lane] = now + .045f;
                 PublishPage(lane, tick, count);
+                budget--;
             }
         }
 
@@ -212,18 +220,21 @@ namespace DeadlyJenga.CastlePrototype
             return true;
         }
 
+        bool EnsureMotionPage(int lane)
+        {
+            if (motionPages[lane]) return true;
+            var obj = runner.Spawn(NetworkPrefabId.FromRaw(CastleMotionPage.PrefabNumber),
+                onBeforeSpawned: (_, instance) => instance.GetComponent<CastleMotionPage>().Lane = lane);
+            if (!obj) return false;
+            motionPages[lane] = obj.GetComponent<CastleMotionPage>();
+            if (IsDistantMotionLane(lane))
+                foreach (var player in peers.Keys) obj.SetPriority(player, 2);
+            return true;
+        }
+
         void PublishPage(int lane, int tick, int count)
         {
-            if (count == 0) return;
-            if (!motionPages[lane])
-            {
-                var obj = runner.Spawn(NetworkPrefabId.FromRaw(CastleMotionPage.PrefabNumber),
-                    onBeforeSpawned: (_, instance) => instance.GetComponent<CastleMotionPage>().Lane = lane);
-                if (!obj) return;
-                motionPages[lane] = obj.GetComponent<CastleMotionPage>();
-                if (IsDistantMotionLane(lane))
-                    foreach (var player in peers.Keys) obj.SetPriority(player, 2);
-            }
+            if (count == 0 || !EnsureMotionPage(lane)) return;
             var buffer = motionStream.GetBuffer();
             buffer[1] = (byte)count;
             int bytes = (int)motionStream.Position;
@@ -267,7 +278,7 @@ namespace DeadlyJenga.CastlePrototype
         void PublishBlockPage(int phase, int tick)
         {
             StartPage(BlockPage);
-            int lane = phase % BlockLanes;
+            int lane = phase % 3 == 2 ? 1 : 0;
             int count = lane == 0
                 ? WriteBlocks(ref nearBlockCursor, NearBlockSamples, true)
                 : WriteBlocks(ref blockCursor, FarBlockSamples, false);
