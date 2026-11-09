@@ -31,6 +31,15 @@ namespace DeadlyJenga.CastlePrototype
         public bool Rewinding => rewinding;
         public float Recorded => count * sampleEvery;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Boot()
+        {
+            if (Services.Rewind != null) return;
+            var go = new GameObject("Block timeline");
+            DontDestroyOnLoad(go);
+            go.AddComponent<BlockTimeline>();
+        }
+
         void OnEnable() => Services.Rewind = this;
         void OnDisable() { if (ReferenceEquals(Services.Rewind, this)) Services.Rewind = null; }
 

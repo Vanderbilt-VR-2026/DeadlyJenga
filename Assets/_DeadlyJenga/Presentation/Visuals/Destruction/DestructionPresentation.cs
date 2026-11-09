@@ -46,16 +46,6 @@ namespace DeadlyJenga.Destruction
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatic() => Instance = null;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void Boot()
-        {
-            if (Instance) return;
-            var go = new GameObject("Destruction — presentation only");
-            DontDestroyOnLoad(go);
-            go.AddComponent<DestructionPresentation>();
-            go.AddComponent<CollapseReplay>();
-        }
-
         void Awake()
         {
             Instance = this;

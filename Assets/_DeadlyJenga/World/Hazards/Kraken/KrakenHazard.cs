@@ -152,7 +152,7 @@ namespace DeadlyJenga.World.Hazards
                         var b = arm.held;
                         b.linearVelocity = Vector3.Lerp(b.linearVelocity, (arm.tip - b.position) * 7 * strength, .6f);
                         b.angularVelocity = Vector3.Lerp(b.angularVelocity, Random.insideUnitSphere * 3, .1f);
-                        if (b.position.y < water - 2.5f) { b.GetComponent<IBreakable>()?.Break(gameObject); Release(arm); }
+                        if (b.position.y < water - 2.5f) Release(arm);
                     }
                     if (arm.t >= 1) { Release(arm); Go(arm, Arm.Sinking, Vector3.zero); arm.from = arm.tip; arm.wait = V(1) * Random.Range(.6f, 1.2f); }
                     break;

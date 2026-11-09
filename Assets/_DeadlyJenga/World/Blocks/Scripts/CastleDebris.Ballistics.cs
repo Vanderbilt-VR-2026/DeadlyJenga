@@ -20,7 +20,15 @@ namespace DeadlyJenga.CastlePrototype
         public bool TryPush(Rigidbody body,Vector3 force)
         {
             if(!Authoritative || !lookup.TryGetValue(body,out var block))return false;
-            if(block.sinking)return true;
+            if(block.sinking)
+            {
+                if(!HazardActive)return true;
+                sinking.Remove(block);
+                block.sinking=false;
+                body.isKinematic=false;
+                body.collisionDetectionMode=block.detection;
+                return false;
+            }
             if(block.visual){block.velocity+=force;return true;}
             float threshold=VisualSpeed;
             var predicted=body.linearVelocity+force;
@@ -63,7 +71,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool TryConvert(Block block,Vector3 velocity,float threshold=-1)
         {
-            if(!VisualFastDebris || !ShatterOnImpact || DisasterStates.Active.Count>0 || block.sinking || block.visual || !block.body || block.body.isKinematic || Time.time-born<2)return false;
+            if(!VisualFastDebris || !ShatterOnImpact || HazardActive || block.sinking || block.visual || !block.body || block.body.isKinematic || Time.time-born<2)return false;
             threshold=threshold<0?VisualSpeed:threshold;
             if(velocity.sqrMagnitude<threshold*threshold)return false;
             var delta=block.body.position-block.origin;
@@ -98,7 +106,7 @@ namespace DeadlyJenga.CastlePrototype
         void Update()
         {
             if(!Authoritative)return;
-            if(!VisualFastDebris || !ShatterOnImpact || DisasterStates.Active.Count>0){RestoreVisuals();return;}
+            if(!VisualFastDebris || !ShatterOnImpact || HazardActive){RestoreVisuals();return;}
             float dt=Time.deltaTime;if(dt<=0)return;
             for(int i=visual.Count-1;i>=0;i--)
             {

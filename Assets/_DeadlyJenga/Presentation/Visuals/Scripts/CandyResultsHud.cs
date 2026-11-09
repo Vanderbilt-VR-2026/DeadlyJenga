@@ -34,6 +34,7 @@ namespace DeadlyJenga.Presentation
         int rankedRevision, page, infectionPage;
         bool visible, wasVr, split, rankedCurated, modalHidden;
         Camera camera;
+        ISessionInfo source;
         Vector3 openingForward;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -42,11 +43,15 @@ namespace DeadlyJenga.Presentation
             if (!go.GetComponent<CandyResultsHud>()) go.AddComponent<CandyResultsHud>();
         };
 
+        void Awake() => source = GetComponent<ISessionInfo>();
+
         void Update()
         {
             var match = MatchRuntime.Current;
             var session = Services.Session;
             var frame = match?.Frame;
+            if (ReferenceEquals(session, source))
+                LobbyLastRoundBoard.Observe(match, session);
             bool show = frame?.phase == RoundPhase.Results && session != null
                 && (session as ILobbyMatchVisitControls)?.VisitingLobby != true;
             if (!show)
@@ -107,9 +112,8 @@ namespace DeadlyJenga.Presentation
                 rankedCurated = curated;
                 rankedRevision = frame.revision;
                 split = frame.rules.mode == GameModeKind.Infection;
-                sorted = participants.OrderByDescending(p => split ? p.survivalSeconds : p.metric).ThenBy(p => p.id, StringComparer.Ordinal).ToArray();
-                infectors = split ? participants.OrderByDescending(p => p.infections)
-                    .ThenBy(p => p.id, StringComparer.Ordinal).ToArray() : Array.Empty<MatchPlayerFrame>();
+                sorted = Rank(participants, split);
+                infectors = split ? Rank(participants, true, true) : Array.Empty<MatchPlayerFrame>();
                 page = Mathf.Min(page, Pages(sorted.Length, PageSize) - 1);
                 infectionPage = Mathf.Min(infectionPage, Pages(infectors.Length, SplitPage) - 1);
             }
@@ -144,6 +148,13 @@ namespace DeadlyJenga.Presentation
         }
 
         int PageSize => split ? SplitPage : FullPage;
+        internal static MatchPlayerFrame[] Rank(System.Collections.Generic.IEnumerable<MatchPlayerFrame> players, bool split, bool infections = false)
+            => players.OrderByDescending(p => infections ? p.infections : split ? p.survivalSeconds : p.metric)
+                .ThenBy(p => p.id, StringComparer.Ordinal).ToArray();
+
+        internal static string RankStats(MatchPlayerFrame player, GameModeKind mode, bool infections)
+            => infections ? player.infections + " infected" : mode == GameModeKind.Infection
+                ? player.survivalSeconds.ToString("0.0") + "s survived" : CandyHudContent.ResultStats(player, mode);
         static int Pages(int count, int size) => Mathf.Max(1, (count + size - 1) / size);
 
         internal static bool CanStartRound(bool authority, IGameExperienceControls controls)
@@ -233,7 +244,7 @@ namespace DeadlyJenga.Presentation
                 row.stats.resizeTextMinSize = 18;
                 row.stats.resizeTextMaxSize = 20;
                 row.stats.alignment = split ? TextAnchor.MiddleLeft : TextAnchor.MiddleRight;
-                row.stats.text = infections ? player.infections + " infected" : split ? player.survivalSeconds.ToString("0.0") + "s survived" : CandyHudContent.ResultStats(player, mode);
+                row.stats.text = RankStats(player, mode, infections);
                 CandyScorePortraits.Show(row.portrait, row.initial, portraits.Get(match, player), player);
             }
         }
@@ -300,7 +311,7 @@ namespace DeadlyJenga.Presentation
 
         static void Anchor(RectTransform rect, float x) => rect.anchorMin = rect.anchorMax = new Vector2(x, .5f);
 
-        static Image Panel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
+        internal static Image Panel(string name, Transform parent, Vector2 size, Vector2 position, Color color)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
@@ -315,7 +326,7 @@ namespace DeadlyJenga.Presentation
             return panel;
         }
 
-        static Text Label(string name, Transform parent, Vector2 size, Vector2 position, int fontSize)
+        internal static Text Label(string name, Transform parent, Vector2 size, Vector2 position, int fontSize)
         {
             var go = new GameObject(name, typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent, false);
