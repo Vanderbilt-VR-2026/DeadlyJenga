@@ -103,6 +103,8 @@ namespace DeadlyJenga.CastlePrototype
         public string DiscoveryNotice => DiscoveryStatus.Length > 0 ? DiscoveryStatus : Discovery?.Status ?? "";
         float nextMigrationSnapshot;
         Task<bool> migrationSnapshot;
+        NetworkRunner lastMigrationSnapshotRunner;
+        NetworkSceneInfo lastMigrationSnapshotScenes;
         bool transferringLobbyHost;
         int nearbySelection;
         public string SelectedNearby=>SelectedRoom()?.message.name??"No nearby rooms";
@@ -570,7 +572,18 @@ namespace DeadlyJenga.CastlePrototype
         }
         async Task<bool> PushMigration(NetworkRunner runner)
         {
-            try { return runner && runner.IsRunning && await runner.PushHostMigrationSnapshot(); }
+            try
+            {
+                if(!runner||!runner.IsRunning)return false;
+                var scenes=runner.SceneInfo;
+                if(!await runner.PushHostMigrationSnapshot())return false;
+                if(this&&ReferenceEquals(Runner,runner))
+                {
+                    lastMigrationSnapshotRunner=runner;
+                    lastMigrationSnapshotScenes=scenes;
+                }
+                return true;
+            }
             catch(Exception error) { Debug.LogWarning("Host snapshot: "+error.Message); return false; }
         }
 
@@ -619,7 +632,14 @@ namespace DeadlyJenga.CastlePrototype
                     if(saved||HumanCount<=1){prepared=true;return true;}
                     if(attempt<2)await Task.Delay(750);
                 }
-                Debug.LogWarning("Lobby host transfer could not upload a Fusion migration snapshot.");
+                // Fusion can defer a fresh push while an earlier snapshot is in flight.
+                // The current room settings have already been acknowledged separately by the guest.
+                if(ReferenceEquals(lastMigrationSnapshotRunner,runner)&&lastMigrationSnapshotScenes.Equals(runner.SceneInfo))
+                {
+                    prepared=true;
+                    return true;
+                }
+                Debug.LogWarning("Lobby host transfer has no Fusion snapshot for the current scene.");
                 return false;
             }
             catch(Exception error)
@@ -695,6 +715,7 @@ namespace DeadlyJenga.CastlePrototype
         void Disconnected(string reason)
         {
             if(!this)return;
+            lastMigrationSnapshotRunner=null;
             Migrating=false;ClearMarinaSpawnReservations();ResetMarinaCallbacks();
             GetComponent<RoomGameExperience>()?.TransportDisconnected();
             CancelDeparture();
