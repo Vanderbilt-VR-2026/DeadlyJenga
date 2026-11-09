@@ -168,7 +168,7 @@ namespace DeadlyJenga.CastlePrototype
         internal void CollectMotionAnchors(List<Vector3> anchors)
         {
             anchors.Clear();
-            if (session.Player is Component local && local) anchors.Add(local.transform.position);
+            if ((session.PlayingHand ? session.Hand : session.Player) is Component local && local) anchors.Add(local.transform.position);
             foreach (var pair in fusionActors)
                 if (views.TryGetValue(pair.Key, out var view) && NetworkActors.Alive(view) && view.NetworkActive)
                     anchors.Add(view.NetworkPosition);

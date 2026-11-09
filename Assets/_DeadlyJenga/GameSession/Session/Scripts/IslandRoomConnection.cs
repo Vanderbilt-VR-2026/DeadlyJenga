@@ -323,7 +323,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 connecting=new CancellationTokenSource(TimeSpan.FromSeconds(30));var cancellation=connecting;
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1"+CastleFusionSession.MotionProtocol;
-                var config=MigrationConfig();
+                var config=MigrationConfig(true);
                 var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
                     EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
                     Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget},{LobbyHandoffProperty,""}}:null});
@@ -336,10 +336,11 @@ namespace DeadlyJenga.CastlePrototype
         }
         GameObject CreateRunner()
         {var go=new GameObject("Island Fusion Runner");DontDestroyOnLoad(go);Runner=go.AddComponent<NetworkRunner>();ownedRunner=Runner;go.AddComponent<CastleMotionProvider>();Runner.ProvideInput=false;return go;}
-        public static NetworkProjectConfig MigrationConfig()
+        public static NetworkProjectConfig MigrationConfig(bool nativeMotion = false)
         {
             var config=NetworkProjectConfig.Deserialize(NetworkProjectConfig.Serialize(NetworkProjectConfig.Global));
             config.Network.ReliableDataTransferModes=NetworkConfiguration.ReliableDataTransfers.ClientToServer;
+            if (nativeMotion) config.Simulation.InputTransferMode = SimulationConfig.InputTransferModes.LatestState;
             config.HostMigration.EnableAutoUpdate=false;config.HostMigration.UpdateDelay=2;return config;
         }
         internal int ConnectionGeneration=>generation;
@@ -423,7 +424,7 @@ namespace DeadlyJenga.CastlePrototype
                 NetworkSceneInfo scenes=default;
                 if(game){int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);scenes.AddSceneRef(SceneRef.FromIndex(index),LoadSceneMode.Single);}
                 var result=await operationRunner.StartGame(new StartGameArgs{GameMode=token.GameMode,HostMigrationToken=token,HostMigrationResume=_=>{},PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
-                    CustomPhotonAppSettings=app,Config=MigrationConfig(),Scene=scenes,SceneManager=go.AddComponent<NetworkSceneManagerDefault>()});
+                    CustomPhotonAppSettings=app,Config=MigrationConfig(true),Scene=scenes,SceneManager=go.AddComponent<NetworkSceneManagerDefault>()});
                 if(!CurrentOperation(attempt,operationRunner))return;
                 if(!result.Ok)throw new InvalidOperationException(result.ShutdownReason.ToString());
                 HostSelected=IsHost;lastServer=Time.unscaledTime;nextSend=0;nextMigrationSnapshot=0;transitioning=false;

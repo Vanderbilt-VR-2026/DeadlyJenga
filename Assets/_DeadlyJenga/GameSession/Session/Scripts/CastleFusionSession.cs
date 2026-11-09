@@ -486,6 +486,7 @@ namespace DeadlyJenga.CastlePrototype
                         {
                             var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString()),motionLane=AssignMotionLane()};
                             added.posesInFlight.Traffic.PeerId=player.ToString();peers.Add(player,added);
+                            if (UsesNativeMotion) SetDistantMotionPriority(player);
                         }
                         if (!peers[player].ready) Send(player, Welcome, peers[player].welcome);
                     }

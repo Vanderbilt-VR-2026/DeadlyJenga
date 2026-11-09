@@ -10,10 +10,10 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleFusionSession
     {
-        const int HumanLanes = 5;
+        const int HumanLanes = 10;
         const int BotLanes = 2;
         const int BlockLanes = 2;
-        const int BlockSamples = 36;
+        const int NearBlockSamples = 24, FarBlockSamples = 16;
         const int BlockScanBudget = 120;
         const byte ActorPage = 1, BlockPage = 2;
         internal const string MotionProtocol = "/native-motion-1";
@@ -28,7 +28,6 @@ namespace DeadlyJenga.CastlePrototype
         int motionStep, inputSequence, nearBlockCursor, blockCursor, botCursor, fastBotCursor, motionRevision = -1;
         float nextInputCapture, nextMotionFrame, nextHumanFrame, nextBotRoster, nextMotionWorld;
         bool[] movingBlocks = Array.Empty<bool>();
-        int[] blockPublishedTicks = Array.Empty<int>();
         bool inputFallback;
         bool UsesNativeMotion => motionProvider;
 
@@ -164,7 +163,6 @@ namespace DeadlyJenga.CastlePrototype
             {
                 motionRevision = synced.Revision;
                 movingBlocks = new bool[Services.World.Blocks.Count];
-                blockPublishedTicks = new int[movingBlocks.Length];
                 nearBlockCursor = blockCursor = 0;
             }
             int phase = motionStep++;
@@ -223,6 +221,8 @@ namespace DeadlyJenga.CastlePrototype
                     onBeforeSpawned: (_, instance) => instance.GetComponent<CastleMotionPage>().Lane = lane);
                 if (!obj) return;
                 motionPages[lane] = obj.GetComponent<CastleMotionPage>();
+                if (IsDistantMotionLane(lane))
+                    foreach (var player in peers.Keys) obj.SetPriority(player, 2);
             }
             var buffer = motionStream.GetBuffer();
             buffer[1] = (byte)count;
@@ -255,15 +255,26 @@ namespace DeadlyJenga.CastlePrototype
             PublishPage(HumanLanes + phase % BotLanes, tick, count);
         }
 
+        static bool IsDistantMotionLane(int lane) =>
+            lane == HumanLanes + 1 || lane == HumanLanes + BotLanes + 1;
+
+        void SetDistantMotionPriority(PlayerRef player)
+        {
+            for (int lane = HumanLanes; lane < motionPages.Length; lane++)
+                if (IsDistantMotionLane(lane) && motionPages[lane]) motionPages[lane].Object.SetPriority(player, 2);
+        }
+
         void PublishBlockPage(int phase, int tick)
         {
             StartPage(BlockPage);
-            int count = WriteBlocks(ref nearBlockCursor, BlockSamples * 2 / 3, tick, true);
-            count += WriteBlocks(ref blockCursor, BlockSamples - count, tick, false);
-            PublishPage(HumanLanes + BotLanes + phase % BlockLanes, tick, count);
+            int lane = phase % BlockLanes;
+            int count = lane == 0
+                ? WriteBlocks(ref nearBlockCursor, NearBlockSamples, true)
+                : WriteBlocks(ref blockCursor, FarBlockSamples, false);
+            PublishPage(HumanLanes + BotLanes + lane, tick, count);
         }
 
-        int WriteBlocks(ref int cursor, int capacity, int tick, bool near)
+        int WriteBlocks(ref int cursor, int capacity, bool near)
         {
             var blocks = Services.World.Blocks;
             int scan = Mathf.Min(BlockScanBudget, blocks.Count);
@@ -273,14 +284,13 @@ namespace DeadlyJenga.CastlePrototype
                 int index = cursor;
                 if (++cursor >= blocks.Count) cursor = 0;
                 var block = blocks[index];
-                if (!block || !block.gameObject.activeSelf || blockPublishedTicks[index] == tick) continue;
+                if (!block || !block.gameObject.activeSelf) continue;
                 bool moving = !block.isKinematic && !block.IsSleeping() &&
                     (block.linearVelocity.sqrMagnitude > .0004f || block.angularVelocity.sqrMagnitude > .0025f);
                 if (!moving && !movingBlocks[index]) continue;
                 var position = block.position;
-                if (near && !IsNearPlayer(position)) continue;
+                if (near != IsNearPlayer(position)) continue;
                 movingBlocks[index] = moving;
-                blockPublishedTicks[index] = tick;
                 motionWriter.Write((ushort)index);
                 Protocol.Write(motionWriter, new Protocol.Pose(position, block.rotation));
                 written++;

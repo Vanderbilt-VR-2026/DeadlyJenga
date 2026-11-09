@@ -73,7 +73,7 @@ namespace DeadlyJenga.CastlePrototype
             var app = Fusion.Photon.Realtime.PhotonAppSettings.Global.AppSettings.GetCopy();
             app.FixedRegion = "us";
             app.AppVersion += "/motion-probe";
-            var config = IslandRoomConnection.MigrationConfig();
+            var config = IslandRoomConnection.MigrationConfig(holder.GetComponent<CastleMotionProvider>());
             if (Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-jitter") >= 0)
             {
                 config.NetworkConditions.Enabled = true;

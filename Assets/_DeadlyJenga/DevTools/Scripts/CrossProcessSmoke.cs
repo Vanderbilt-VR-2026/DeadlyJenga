@@ -408,6 +408,35 @@ namespace DeadlyJenga.CastlePrototype
             }
             File.WriteAllText(Mark(role + "-trace-done"), "done");
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-done")), "Both independent peer traces completed", 40);
+            if (!Environment.GetCommandLineArgs().Contains("--dj-motion-lifecycle")) yield break;
+
+            var room = IslandRoomConnection.Instance;
+            var synced = (ISyncedWorld)Services.World;
+            int before = synced.Revision;
+            if (host)
+            {
+                ((IRebuildable)Services.World).Rebuild();
+                Require(synced.Revision != before, "Host rebuild changes the world revision");
+                File.WriteAllText(Mark("rebuild-revision"), synced.Revision.ToString());
+                yield return Until(() => File.Exists(Mark("guest-rebuild-ready")),
+                    "Guest acknowledges the rebuilt world", 55);
+                Require(room.ReturnMatchToLobby(), "Host requests normal return to lobby");
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("rebuild-revision")), "Host publishes new revision", 55);
+                int expected = int.Parse(File.ReadAllText(Mark("rebuild-revision")));
+                var revision = ProbeField(lan, "hostRevision");
+                yield return Until(() => (int)revision.GetValue(lan) == expected && Services.World.Blocks.Count > 0,
+                    "Guest applies the rebuilt world revision", 55);
+                File.WriteAllText(Mark("guest-rebuild-ready"), "ready");
+            }
+            yield return Until(() => IslandLobby.Current && room.Connected && room.HumanCount == 2 &&
+                ReferenceEquals(Services.Session, IslandLobby.Current), "Both clients stay connected on return to lobby", 75,
+                () => room.Status);
+            File.WriteAllText(Mark(role + "-lobby-returned"), "ready");
+            yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-lobby-returned")),
+                "Other client confirms the lobby return", 25);
         }
 
         static void SaveMotionFrame(Camera camera, RenderTexture output, Texture2D pixels, string path)
