@@ -113,7 +113,7 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator CheckLobbyHandoff()
         {
             HomeSession home=null;
-            yield return Until(()=>(home=FindFirstObjectByType<HomeSession>()),"Playable Home opens");
+            yield return Until(()=>(home=FindFirstObjectByType<HomeSession>())&&!string.IsNullOrEmpty(home.Region),"Home initializes its room connection");
             if(role=="host")
             {
                 home.Host();
