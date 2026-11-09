@@ -176,7 +176,7 @@ namespace DeadlyJenga.CandyPlayers
             var offset = kind switch
             {
                 EquipmentKind.SheriffHammer => new Vector3(0, .042f, .04f),
-                EquipmentKind.GrenadeLauncher => new Vector3(0, .025f, .08f),
+                EquipmentKind.GrenadeLauncher => new Vector3(0, .025f, .08f + GrenadeDrumOffset),
                 EquipmentKind.ChainGun => new Vector3(.23f, -.31f, .12f),
                 EquipmentKind.RocketLauncher => new Vector3(0, -.038f, .14f),
                 EquipmentKind.StockPistol => new Vector3(0, -.044f, .23f),
@@ -297,11 +297,13 @@ namespace DeadlyJenga.CandyPlayers
             if (cylinder)
             {
                 assembly.localPosition = travel * open;
+                float chamberStep = kind == EquipmentKind.GrenadeLauncher ? -60 : 60;
                 assembly.localRotation = Quaternion.Euler(0, 29 * side * open,
-                    (spec.magazine - Mathf.Clamp(state.rounds, 0, spec.magazine)) * 60 *
+                    (spec.magazine - Mathf.Clamp(state.rounds, 0, spec.magazine)) * chamberStep *
                     (state.magazineInitialized && !reloading ? 1 : 0));
                 // Spin about the cylinder axis instead of the weapon origin.
-                var axis = new Vector3(0, kind == EquipmentKind.SheriffHammer ? .072f : .12f, .12f);
+                var axis = kind == EquipmentKind.SheriffHammer ? new Vector3(0,.072f,.12f) :
+                    new Vector3(0,GrenadeDrumHeight,.12f+GrenadeDrumOffset);
                 assembly.localPosition += axis - assembly.localRotation * axis;
             }
             else
@@ -367,7 +369,8 @@ namespace DeadlyJenga.CandyPlayers
                     CachedMesh(item, "Round casing " + kind, body, new Color(.76f,.44f,.14f));
                     CachedMesh(item, "Round tip " + kind, tip,
                         kind == EquipmentKind.DualUzi ? new Color(.35f,1,.10f) :
-                        kind == EquipmentKind.GrenadeLauncher ? new Color(.57f,.22f,.88f) : new Color(.85f,.72f,.50f));
+                        kind == EquipmentKind.GrenadeLauncher ? new Color(.30f,.33f,.24f) :
+                        kind == EquipmentKind.RocketLauncher ? new Color(.29f,.33f,.28f) : new Color(.85f,.72f,.50f));
                     rounds[i] = item;
                 }
                 if (secondary) { secondaryRoundFeed = assembly; secondaryRounds = rounds; }
@@ -385,7 +388,7 @@ namespace DeadlyJenga.CandyPlayers
                 bool loading = cylinder && reloading && phase >= .34f + i * .064f;
                 float extract = Ease(.17f, .34f, phase);
                 var item = rounds[i];
-                bool loaded = i < remaining;
+                bool loaded = kind == EquipmentKind.GrenadeLauncher ? i >= count - remaining : i < remaining;
                 bool spentCase = kind == EquipmentKind.SheriffHammer && !loaded &&
                     reloading && phase >= .17f && extract < 1;
                 item.localScale = spentCase ? new Vector3(1,1,.65f) : Vector3.one;
@@ -396,7 +399,7 @@ namespace DeadlyJenga.CandyPlayers
                 var seat = kind switch
                 {
                     EquipmentKind.SheriffHammer => new Vector3(Mathf.Cos(angle)*.048f,.072f+Mathf.Sin(angle)*.048f,.035f),
-                    EquipmentKind.GrenadeLauncher => new Vector3(Mathf.Cos(angle)*.115f,.12f+Mathf.Sin(angle)*.115f,.018f),
+                    EquipmentKind.GrenadeLauncher => new Vector3(Mathf.Cos(angle)*GrenadeChamberRadius,GrenadeDrumHeight+Mathf.Sin(angle)*GrenadeChamberRadius,.018f+GrenadeDrumOffset),
                     EquipmentKind.ChainGun => new Vector3(.165f+i*.023f,ChainGunBarrelHeight+.105f,.18f),
                     EquipmentKind.RocketLauncher => new Vector3(.106f,.044f,-.111f+i*.081f),
                     EquipmentKind.StockPistol => new Vector3(.040f,-.017f+i*.017f,.209f),

@@ -101,9 +101,9 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.DualRifle=>new Vector3(0,-.28f,vr?-.20f:-.07f),
                 EquipmentKind.Blaster=>new Vector3(0,-.24f,vr?.03f:.12f),
                 EquipmentKind.SheriffHammer=>new Vector3(0,-.23f,vr?-.02f:.12f),
-                EquipmentKind.RocketLauncher=>new Vector3(.20f,-.35f,0),
+                EquipmentKind.RocketLauncher=>new Vector3(.33f,-.51f,.66f),
                 EquipmentKind.ChainGun=>new Vector3(.26f,-.48f,.36f),
-                EquipmentKind.GrenadeLauncher=>new Vector3(0,-.43f,.12f),
+                EquipmentKind.GrenadeLauncher=>new Vector3(.29f,-.52f,.61f),
                 EquipmentKind.NeedleDrill=>new Vector3(0,-.31f,.12f),
                 EquipmentKind.StockPistol=>new Vector3(0,-.218f,.12f),
                 EquipmentKind.WristLaser=>new Vector3(0,-.17f,.35f),
@@ -162,8 +162,9 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     if(motor&&motor.IsVR){aimBlend=0;aimBlendFrame=-1;}
                     var carryOffset=new Vector3(left?-.25f:.25f,-.22f,.36f);
-                    if(Equipment.drawn&&Equipment.kind==EquipmentKind.ChainGun)
-                        TryAimGripOffset(Equipment,left,false,out carryOffset);
+                    var carried=Equipment;
+                    if(carried.drawn&&(carried.kind==EquipmentKind.ChainGun||IsShoulderLauncher(carried.kind)))
+                        TryAimGripOffset(carried,left,false,out carryOffset);
                     var position=head.position+head.rotation*carryOffset*Scale;
                     if(Local&&Equipment.drawn&&Mouse.current?.rightButton.isPressed==true&&
                         TryAimGripOffset(Equipment,left,false,out var offset))
@@ -180,10 +181,48 @@ namespace DeadlyJenga.CandyPlayers
                     bool melee=EquipmentSpecifications.Get(Equipment.kind).melee;
                     if(age>=0&&age<.3f)aim.position+=aim.rotation*Vector3.forward*(Mathf.Sin(age/.3f*Mathf.PI)*(melee?.30f:-.035f)*Scale);
                 }
-                if(Equipment.kind>EquipmentKind.PoweredArmor&&Equipment.triggerHeld)aim.position-=aim.rotation*Vector3.forward*(.012f*Mathf.Abs(Mathf.Sin(Time.time*55))*Scale);
+                var state=Equipment;
+                if(state.kind>EquipmentKind.PoweredArmor&&state.triggerHeld)
+                    aim.position-=aim.rotation*Vector3.forward*(.012f*Mathf.Abs(Mathf.Sin(Time.time*55))*Scale);
+                if(Local&&state.drawn&&IsShoulderLauncher(state.kind))
+                    aim=ClearLauncherView(aim,head.position,head.rotation,Scale,
+                        avatar.viewCamera?avatar.viewCamera.nearClipPlane:.035f,state.kind);
                 return aim;
             }
         }
+        static bool IsShoulderLauncher(EquipmentKind kind)=>
+            kind==EquipmentKind.RocketLauncher||kind==EquipmentKind.GrenadeLauncher;
+
+        // Y and Z locate each bulky section. W is its conservative profile radius.
+        static readonly Vector4[] rocketClearance=
+        {
+            new Vector4(0,.205f,-.345f,.132f),new Vector4(0,.16f,.11f,.155f),
+            new Vector4(0,.205f,.56f,.113f),new Vector4(0,.205f,.96f,.096f)
+        };
+        static readonly Vector4[] grenadeClearance=
+        {
+            new Vector4(0,.092f,-.325f,.085f),new Vector4(0,.12f,.11f+CandyWeaponVisual.GrenadeDrumOffset,.169f),
+            new Vector4(0,.235f,.48f,.092f),new Vector4(0,.235f,.74f,.088f)
+        };
+
+        internal static Pose ClearLauncherView(Pose grip,Vector3 eye,Quaternion view,float scale,float nearClip,EquipmentKind kind)
+        {
+            var toView=new Quaternion(-view.x,-view.y,-view.z,view.w);
+            float shift=0;
+            foreach(var section in kind==EquipmentKind.RocketLauncher?rocketClearance:grenadeClearance)
+            {
+                var point=grip.position+grip.rotation*(new Vector3(section.x,section.y,section.z)*scale);
+                var local=toView*(point-eye);
+                float radius=section.w*scale;
+                if(Mathf.Abs(local.x)>.29f*scale+radius||local.y>.24f*scale+radius||
+                    local.y<-.72f*scale-radius||local.z<-.39f*scale-radius)continue;
+                float safeDepth=Mathf.Max(nearClip+.055f,.17f*scale)+radius;
+                shift=Mathf.Max(shift,safeDepth-local.z);
+            }
+            grip.position+=view*Vector3.forward*Mathf.Min(shift,.68f*scale);
+            return grip;
+        }
+
         public Pose MuzzlePose
         {
             get
@@ -202,8 +241,18 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 if(state.kind>EquipmentKind.PoweredArmor)
                 {
-                    float offset=state.kind==EquipmentKind.Chainsaw&&state.shotgun?.78f:state.kind==EquipmentKind.RocketLauncher?1.05f:state.kind==EquipmentKind.ChainGun?CandyWeaponVisual.ChainGunMuzzleDepth:state.kind==EquipmentKind.GrenadeLauncher?.80f:state.kind==EquipmentKind.NeedleDrill?.72f:state.kind==EquipmentKind.StockPistol||state.kind==EquipmentKind.DualUzi?.51f:state.kind==EquipmentKind.WristLaser?.17f:.1f;
-                    pose.position+=pose.rotation*new Vector3(0,EquipmentSpecifications.Get(state.kind).melee?0:state.kind==EquipmentKind.RocketLauncher?.20f:state.kind==EquipmentKind.ChainGun?CandyWeaponVisual.ChainGunBarrelHeight:.12f,offset)*Scale;
+                    var localMuzzle=state.kind switch
+                    {
+                        EquipmentKind.RocketLauncher=>CandyWeaponVisual.RocketMuzzle,
+                        EquipmentKind.GrenadeLauncher=>CandyWeaponVisual.GrenadeMuzzle,
+                        EquipmentKind.ChainGun=>new Vector3(0,CandyWeaponVisual.ChainGunBarrelHeight,CandyWeaponVisual.ChainGunMuzzleDepth),
+                        EquipmentKind.Chainsaw when state.shotgun=>new Vector3(0,0,.78f),
+                        EquipmentKind.NeedleDrill=>new Vector3(0,.12f,.72f),
+                        EquipmentKind.StockPistol or EquipmentKind.DualUzi=>new Vector3(0,.12f,.51f),
+                        EquipmentKind.WristLaser=>new Vector3(0,.12f,.17f),
+                        _=>new Vector3(0,EquipmentSpecifications.Get(state.kind).melee?0:.12f,.10f)
+                    };
+                    pose.position+=pose.rotation*localMuzzle*Scale;
                     if(!motor.externallyDriven&&!motor.IsVR&&(desktopAimTarget-pose.position).sqrMagnitude>.001f)pose.rotation=Quaternion.LookRotation(desktopAimTarget-pose.position);
                     return pose;
                 }
@@ -252,7 +301,19 @@ namespace DeadlyJenga.CandyPlayers
         public void PoseHands(ref CandyAvatarFrame frame)
         {
             var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||motor&&(motor.Climbing||motor.Vaulting))return;
-            ReadAcceptedBashes(state);var hand=state.leftHanded?frame.left:frame.right;var gripPose=GripPose;var pose=PresentedBashGrip(PresentedReloadGrip(gripPose,state,state.leftHanded),state);hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
+            ReadAcceptedBashes(state);
+            var hand=state.leftHanded?frame.left:frame.right;
+            var gripPose=GripPose;
+            var pose=PresentedBashGrip(PresentedReloadGrip(gripPose,state,state.leftHanded),state);
+            bool cosmeticMove=(pose.position-gripPose.position).sqrMagnitude>.000001f||
+                Mathf.Abs(Quaternion.Dot(pose.rotation,gripPose.rotation))<.99999f;
+            if(cosmeticMove&&Local&&IsShoulderLauncher(state.kind)&&avatar.viewCamera)
+            {
+                var eye=avatar.viewCamera;
+                pose=ClearLauncherView(pose,eye.transform.position,eye.transform.rotation,Scale,
+                    eye.nearClipPlane,state.kind);
+            }
+            hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
             if(state.kind==EquipmentKind.LaserAxe)
             {
                 var carry=AxeCarry(pose,state.leftHanded);
