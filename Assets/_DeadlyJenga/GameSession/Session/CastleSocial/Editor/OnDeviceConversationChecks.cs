@@ -45,6 +45,8 @@ namespace DeadlyJenga.CastleSocial.Editor
                         var arguments=File.ReadAllLines(request);
                         SessionState.SetString(Key+"Pack",arguments.FirstOrDefault()?.Trim()??"");
                         SessionState.SetBool(Key+"KeepEditor",arguments.Skip(1).Any(line=>line.Trim()=="keep-open"));
+                        SessionState.SetBool(Key+"TimingFixture",arguments.Skip(1).Any(line=>line.Trim()=="timing-fixture"));
+                        SessionState.SetBool(Key+"EventFixture",arguments.Skip(1).Any(line=>line.Trim()=="event-fixture"));
                     }
                     File.Delete(request);
                 }
@@ -187,18 +189,38 @@ namespace DeadlyJenga.CastleSocial.Editor
             yield return Until(()=>world.Agents.Count==2&&world.Agents.All(AvailableForCollapse),8,
                 "Two fresh survivor bots are alive and have social identities");
             var bots=world.Agents.ToArray();
-            var original=Services.World.Blocks.FirstOrDefault(body=>body&&!body.isKinematic&&body.GetComponent<IBreakable>() is IBreakable item&&!item.Broken);
-            Assert(original,"Found an unbroken live map block to stage");
+            bool timingFixture=SessionState.GetBool(Key+"TimingFixture",false);
+            bool eventFixture=SessionState.GetBool(Key+"EventFixture",false);
+            GameObject eventSubject=null;
             var at=new Vector3(Services.World.Center.x,Services.World.TopHeight+15,Services.World.Center.z);
-            // The map owns its pooled originals. Stage an independent instance of its actual block.
-            var block=UnityEngine.Object.Instantiate(original,at,Quaternion.identity);
-            block.name="Fixture tower block";
-            block.isKinematic=false;
-            block.position=at;
-            block.transform.position=at;
-            block.useGravity=false;
-            block.linearVelocity=Vector3.zero;
-            block.constraints=RigidbodyConstraints.FreezeAll;
+            Rigidbody block=null;
+            if(timingFixture)
+            {
+                lines.Add("FIXTURE Injected observer facts to time production dialogue and playback. Physical collapse detection is separate.");
+                File.WriteAllLines(Report,lines);
+            }
+            else if(eventFixture)
+            {
+                eventSubject=new GameObject("Fixture collapse event");
+                eventSubject.transform.position=at;
+                lines.Add("FIXTURE Injected BlockBroken at a known position to exercise sensing, dialogue and playback.");
+                File.WriteAllLines(Report,lines);
+            }
+            else
+            {
+                var original=Services.World.Blocks.FirstOrDefault(body=>body&&body.gameObject.activeInHierarchy&&
+                    !body.isKinematic&&body.GetComponent<IBreakable>() is IBreakable item&&!item.Broken);
+                Assert(original,"Found an active unbroken live map block to stage");
+                // The map owns its pooled originals. Stage an independent instance of its actual block.
+                block=UnityEngine.Object.Instantiate(original,at,Quaternion.identity);
+                block.name="Fixture tower block";
+                block.isKinematic=false;
+                block.position=at;
+                block.transform.position=at;
+                block.useGravity=false;
+                block.linearVelocity=Vector3.zero;
+                block.constraints=RigidbodyConstraints.FreezeAll;
+            }
             Vector3 seenFrom=at+new Vector3(-2,-.7f,-4);
             Vector3 heardFrom=at+new Vector3(2,-.7f,-4);
             PlaceForCollapse(bots[0],seenFrom);
@@ -207,34 +229,65 @@ namespace DeadlyJenga.CastleSocial.Editor
             wall.name="Fixture sight blocker";
             wall.transform.position=at+new Vector3(1,0,-2);
             wall.transform.localScale=new Vector3(.6f,3,.5f);
-            // Break removes the target collider before announcing its last position.
-            block.detectCollisions=false;
             Physics.SyncTransforms();
             yield return new WaitForFixedUpdate();
+            if(block)
+            {
+                // Reassert the fixture pose after the first physics step, before observing the break.
+                block.position=at;
+                block.transform.position=at;
+                Physics.SyncTransforms();
+                Assert(Vector3.Distance(block.position,at)<.3f,
+                    $"Fixture rigidbody is at the observation point ({block.position})");
+            }
+            // The placement frame may still contain a bot look update. Fix the
+            // observer pose at the exact event, then use those actual eye positions.
+            bots[0].transform.SetPositionAndRotation(seenFrom,Quaternion.identity);
+            bots[1].transform.SetPositionAndRotation(heardFrom,Quaternion.identity);
+            Physics.SyncTransforms();
+            Vector3 eyesA=bots[0].transform.position+Vector3.up*.7f;
+            Vector3 eyesB=bots[1].transform.position+Vector3.up*.7f;
+            float facing=Vector3.Dot(bots[0].transform.forward,(at-eyesA).normalized);
+            Assert(facing>.5f,$"Witness is facing the event at trigger time ({facing:F2})");
             const int sightMask=~(1<<Layers.Survivor);
-            bool blockedA=Physics.Linecast(seenFrom+Vector3.up*.7f,at,out var hitA,sightMask,QueryTriggerInteraction.Ignore);
-            bool blockedB=Physics.Linecast(heardFrom+Vector3.up*.7f,at,out var hitB,sightMask,QueryTriggerInteraction.Ignore);
-            bool targetA=blockedA&&(hitA.collider.transform.IsChildOf(block.transform)||
+            bool blockedA=Physics.Linecast(eyesA,at,out var hitA,sightMask,QueryTriggerInteraction.Ignore);
+            bool blockedB=Physics.Linecast(eyesB,at,out var hitB,sightMask,QueryTriggerInteraction.Ignore);
+            bool targetA=block&&blockedA&&(hitA.collider.transform.IsChildOf(block.transform)||
                 Climbables.TryGet(hitA.collider,out var climbable)&&climbable.Body==block);
             Assert((!blockedA||targetA)&&blockedB&&hitB.collider.gameObject==wall&&Vector3.Distance(seenFrom,heardFrom)<12,
                 $"Unity geometry gives A sight and B a wall in hearing range (A: {(blockedA?hitA.collider.name:"clear")}, B: {(blockedB?hitB.collider.name:"clear")})");
 
             Assert(bots.All(AvailableForCollapse),"Both staged survivors are available to speak: "+
                 string.Join("; ",bots.Select(bot=>$"{bot.State.identity.name} {bot.transform.position} respawning={bot.Bot.Respawning}")));
-            var breakable=block.GetComponent<IBreakable>();
             foreach(var bot in bots)world.Director.Cancel(bot.State.identity.id);
             world.Config.enableBots=true;
-            Vector3? reportedPoint=null;
-            void CaptureBreak(GameObject actor,Vector3 position,Vector3 velocity)
-            {
-                if(actor==block.gameObject)reportedPoint=position;
-            }
             float started=Time.realtimeSinceStartup;
-            GameEvents.BlockBroken+=CaptureBreak;
-            try{breakable.Break(null);}
-            finally{GameEvents.BlockBroken-=CaptureBreak;}
-            Assert(breakable.Broken&&reportedPoint.HasValue,"Real map block went through IBreakable.Break and emitted its position");
-            Assert(Vector3.Distance(at,reportedPoint.Value)<.3f,$"Break was at the staged position ({at}, reported {reportedPoint.Value})");
+            if(timingFixture)
+                QueueTimingObservation(world.OnDevice,bots);
+            else if(eventFixture)
+            {
+                GameEvents.RaiseBlockBroken(eventSubject,at,Vector3.zero);
+                bool hitAfter=Physics.Linecast(eyesA,at,out var effectHit,sightMask,QueryTriggerInteraction.Ignore);
+                lines.Add("POST-EVENT raw witness ray: "+(hitAfter
+                    ? effectHit.collider.name+" excludes "+effectHit.collider.excludeLayers.value : "clear"));
+                File.WriteAllLines(Report,lines);
+            }
+            else
+            {
+                var breakable=block.GetComponent<IBreakable>();
+                Vector3? reportedPoint=null;
+                void CaptureBreak(GameObject actor,Vector3 position,Vector3 velocity)
+                {
+                    if(actor==block.gameObject)reportedPoint=position;
+                }
+                GameEvents.BlockBroken+=CaptureBreak;
+                try{breakable.Break(null);}
+                finally{GameEvents.BlockBroken-=CaptureBreak;}
+                Assert(reportedPoint.HasValue&&breakable.Broken,
+                    "Real map block went through IBreakable.Break and emitted its position");
+                Assert(Vector3.Distance(at,reportedPoint.Value)<.3f,
+                    $"Break was at the staged position ({at}, reported {reportedPoint.Value})");
+            }
             AssertQueuedObservations(world.OnDevice);
             var heard=new List<string>();
             var samples=new float[256];
@@ -254,19 +307,73 @@ namespace DeadlyJenga.CastleSocial.Editor
                 lines.Add($"AUDIO {Time.realtimeSinceStartup-started:F2}s {caption} ({world.OnDevice.LastReplySeconds:F2}s text and synthesis, {world.OnDevice.LastReplyKind})");
                 File.WriteAllLines(Report,lines);
                 Assert(world.OnDevice.LastReplyKind.EndsWith("Collapse",StringComparison.Ordinal),"Played line belongs to this collapse");
+                Assert(world.OnDevice.LastReplyKind.StartsWith("Baked banter",StringComparison.Ordinal),
+                    "Known collapse phrases play on first use without text inference or live synthesis");
                 heard.Add(caption.Substring(caption.IndexOf("[AI]:",StringComparison.Ordinal)+5).Trim());
             }
-            Assert(world.OnDevice.GeneratedReplies+world.OnDevice.FallbackReplies==2&&world.Speech.ActiveRequests==0,
-                $"Two offline turns ({world.OnDevice.GeneratedReplies} model, {world.OnDevice.FallbackReplies} composed); no speech service");
+            Assert(world.OnDevice.ComposedReplies==2&&world.OnDevice.GeneratedReplies==0&&world.Speech.ActiveRequests==0,
+                "Both offline turns used the contextual banter path without waiting for text generation");
             string seen=heard[0].ToLowerInvariant(), reply=heard[1].ToLowerInvariant();
             Assert((seen.Contains("block")||seen.Contains("tower"))&&(seen.Contains("broke")||seen.Contains("break")||seen.Contains("crack")||seen.Contains("fall")||seen.Contains("crash")||seen.Contains("collapse")),
                 "Witness actually talks about the break");
-            Assert(!reply.Contains("i saw")&&(reply.Contains("hear")||reply.Contains("heard")||reply.Contains("?")||reply.Contains("couldn't see")),
-                "Listener acknowledges what it heard or asks the witness instead of claiming sight");
+            Assert(!reply.Contains("i saw")&&reply.Contains("your right"),
+                "Listener's reply uses the spoken direction in the witness's perspective");
             Assert(seen!=reply,"The second turn uses distinct wording");
             Assert(bots.All(bot=>!bot.Bot.Respawning)&&Vector3.Distance(bots[0].transform.position,seenFrom)<.3f&&
                 Vector3.Distance(bots[1].transform.position,heardFrom)<.3f,"Both observer positions stayed fixed through playback");
+            yield return CheckDamageCache(world,bots[0]);
             EditorApplication.ExitPlaymode();
+        }
+
+        static void QueueTimingObservation(OnDeviceConversation native,SocialBotAgent[] bots)
+        {
+            const BindingFlags flags=BindingFlags.Instance|BindingFlags.NonPublic;
+            var type=typeof(OnDeviceConversation).Assembly.GetType("DeadlyJenga.CastleSocial.ObservedSpeech",true);
+            var turn=Activator.CreateInstance(type,true);
+            void Set(string field,object value)=>type.GetField(field,flags).SetValue(turn,value);
+            Set("Kind",SocialEventKind.Collapse);
+            Set("Fact","A tower block broke apart on my right. I saw it happen.");
+            Set("PartnerId",bots[1].State.identity.id);
+            Set("PartnerFact","I heard a crash nearby. I could not see what happened.");
+            Set("PartnerHeardOnly",true);
+            Set("Expires",Time.unscaledTime+12);
+            typeof(OnDeviceConversation).GetMethod("QueueObserved",flags).Invoke(native,
+                new[]{(object)bots[0].State.identity,turn});
+        }
+
+        static IEnumerator CheckDamageCache(SocialWorld world, SocialBotAgent bot)
+        {
+            world.Config.respondBot=0;
+            string id=bot.State.identity.id;
+            var damageable=bot.GetComponent<IDamageable>();
+            Assert(damageable!=null,"Staged bot has the game's damage ability");
+            var samples=new float[256];
+            for(int attempt=0;attempt<2;attempt++)
+            {
+                yield return Until(()=>!world.OnDevice.Busy&&Time.unscaledTime>=bot.State.nextSpeech,9,
+                    "Prior turn and speaking cooldown cleared");
+                int replies=world.OnDevice.ComposedReplies;
+                float priorHealth=damageable.Health;
+                float started=Time.realtimeSinceStartup;
+                damageable.Damage(1,null);
+                Assert(damageable.Health<priorHealth,"Real damage was accepted by the survivor");
+                yield return Until(()=>
+                {
+                    if(world.OnDevice.ComposedReplies<=replies)return false;
+                    var child=world.transform.Find("Voice · "+id);
+                    var source=child?child.GetComponent<AudioSource>():null;
+                    if(!source||!source.isPlaying)return false;
+                    source.GetOutputData(samples,0);
+                    return samples.Any(sample=>Mathf.Abs(sample)>.001f);
+                },9,"Damage reaction reaches non-silent AudioSource");
+                string route=world.OnDevice.LastReplyKind;
+                Assert(route==(attempt==0?"Contextual banter · Damage":"Cached banter · Damage"),
+                    "Damage uses the expected audio path ("+route+")");
+                Assert(world.Caption.EndsWith("I took a hit.",StringComparison.Ordinal),
+                    "The affected bot reports the hit without a joke or an attacker claim");
+                lines.Add($"AUDIO {Time.realtimeSinceStartup-started:F2}s {world.Caption} ({world.OnDevice.LastReplySeconds:F2}s preparation, {route})");
+                File.WriteAllLines(Report,lines);
+            }
         }
 
         static void AssertQueuedObservations(OnDeviceConversation native)

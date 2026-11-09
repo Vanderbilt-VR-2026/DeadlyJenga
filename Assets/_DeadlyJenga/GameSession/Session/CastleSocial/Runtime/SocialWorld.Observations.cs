@@ -25,6 +25,8 @@ namespace DeadlyJenga.CastleSocial
         const float EventHearingRange = 17;
         const float SightRange = 24;
         const int SightMask = ~(1 << Layers.Survivor);
+        const int NonGameplayCollision = (1 << Layers.Survivor) | (1 << Layers.Block) | (1 << Layers.Surface);
+        static readonly RaycastHit[] observationHits = new RaycastHit[24];
         readonly Dictionary<SocialEventKind, float> nextObservation = new();
         readonly Dictionary<string, (string fact, float at)> recentObservations = new();
         int roundSpeechEpoch;
@@ -36,6 +38,10 @@ namespace DeadlyJenga.CastleSocial
         void SubscribeToObservations()
         {
             GameEvents.BlockBroken += ObserveBreak;
+            GameEvents.BlockCracked += ObserveCrack;
+            GameEvents.Emoted += ObserveHumanEmote;
+            GameEvents.EffectStarted += ObserveEffect;
+            GameEvents.RewindEnded += ObserveRewindEnd;
             GameEvents.Damaged += ObserveDamage;
             GameEvents.Pushed += ObservePush;
             GameEvents.Eliminated += ObserveElimination;
@@ -49,6 +55,10 @@ namespace DeadlyJenga.CastleSocial
         void UnsubscribeFromObservations()
         {
             GameEvents.BlockBroken -= ObserveBreak;
+            GameEvents.BlockCracked -= ObserveCrack;
+            GameEvents.Emoted -= ObserveHumanEmote;
+            GameEvents.EffectStarted -= ObserveEffect;
+            GameEvents.RewindEnded -= ObserveRewindEnd;
             GameEvents.Damaged -= ObserveDamage;
             GameEvents.Pushed -= ObservePush;
             GameEvents.Eliminated -= ObserveElimination;
@@ -73,6 +83,32 @@ namespace DeadlyJenga.CastleSocial
         void ObserveBreak(GameObject block, Vector3 at, Vector3 velocity) =>
             ObserveNearby(SocialEventKind.Collapse, at, "a tower block broke apart", "a crash", block, 3);
 
+        void ObserveCrack(GameObject block, float stress)
+        {
+            if (block && stress >= .65f)
+                ObserveNearby(SocialEventKind.Wobble, block.transform.position, "a block cracked",
+                    "a crack", block, 6);
+        }
+
+        void ObserveHumanEmote(GameObject actor, string emote)
+        {
+            if (actor && !actor.GetComponent<SocialBotAgent>() && actor.GetComponent<IModeActor>() is IModeActor player && !player.IsBot)
+                ObserveNearby(SocialEventKind.Joke, actor.transform.position + Vector3.up * .7f,
+                    "someone struck a pose", null, actor, 10);
+        }
+
+        void ObserveEffect(GameObject actor, EffectType effect)
+        {
+            if (actor) ObserveNearby(SocialEventKind.Effect, actor.transform.position + Vector3.up * .7f,
+                "someone got hit by an effect", null, actor, 7);
+        }
+
+        void ObserveRewindEnd()
+        {
+            if (ContextualSpeech && OnDevice.Ready && IsAuthority && Config.enableBots && Config.enableVoice)
+                ObservePublic(SocialEventKind.Rewind, "The rewind ended.");
+        }
+
         void ObserveDamage(GameObject actor, float damage)
         {
             if (actor && damage > 0) ObserveNearby(SocialEventKind.Damage, actor.transform.position + Vector3.up * .7f,
@@ -92,10 +128,17 @@ namespace DeadlyJenga.CastleSocial
         }
 
         void ObserveHazardStart(HazardType hazard, Vector3 at) =>
-            ObserveNearby(SocialEventKind.Hazard, at, "a hazard started", null, null, 4);
+            ObserveNearby(SocialEventKind.Hazard, at, HazardLabel(hazard) + " started", null, null, 4);
 
         void ObserveHazardEnd(HazardType hazard, Vector3 at) =>
-            ObserveNearby(SocialEventKind.Hazard, at, "a hazard ended", null, null, 4);
+            ObserveNearby(SocialEventKind.Hazard, at, HazardLabel(hazard) + " ended", null, null, 4);
+
+        static string HazardLabel(HazardType hazard)
+        {
+            if (!hazard) return "a hazard";
+            string label = SocialText.Clean(hazard.name.Replace('_', ' '), 48);
+            return string.IsNullOrEmpty(label) ? "a hazard" : label;
+        }
 
         void ObserveNearby(SocialEventKind kind, Vector3 at, string seen, string sound, GameObject subject, float cooldown)
         {
@@ -163,8 +206,7 @@ namespace DeadlyJenga.CastleSocial
             bool self = subject == agent.gameObject;
             float facing = Vector3.Dot(agent.transform.forward, delta.normalized);
             saw = self || distance <= SightRange * SightRange && (facing >= -.1f || distance <= 4)
-                && (!Physics.Linecast(eyes, at, out var hit, SightMask, QueryTriggerInteraction.Ignore)
-                    || IsObservedTarget(hit.collider, subject));
+                && HasObservationSight(eyes, at, subject);
             if (saw)
             {
                 string place = delta.y > 1.5f ? "above me" : delta.y < -1.5f ? "below me" :
@@ -175,6 +217,33 @@ namespace DeadlyJenga.CastleSocial
             return sound != null && distance <= EventHearingRange * EventHearingRange
                 ? "I heard " + sound + " nearby. I could not see what happened." : null;
         }
+
+        static bool HasObservationSight(Vector3 eyes, Vector3 target, GameObject subject)
+        {
+            if (!Physics.Linecast(eyes, target, out var first, SightMask, QueryTriggerInteraction.Ignore) ||
+                IsObservedTarget(first.collider, subject)) return true;
+            if (!IsDecorativeCollision(first.collider)) return false;
+
+            // Shards are already excluded from every gameplay body. Skip them
+            // but still find the nearest wall, block or subject behind them.
+            Vector3 delta = target - eyes;
+            int count = Physics.RaycastNonAlloc(eyes, delta.normalized, observationHits, delta.magnitude,
+                SightMask, QueryTriggerInteraction.Ignore);
+            if (count == observationHits.Length) return false;
+            Collider nearest = null;
+            float distance = float.PositiveInfinity;
+            for (int i = 0; i < count; i++)
+            {
+                var hit = observationHits[i];
+                if (hit.distance >= distance || IsDecorativeCollision(hit.collider)) continue;
+                distance = hit.distance;
+                nearest = hit.collider;
+            }
+            return !nearest || IsObservedTarget(nearest, subject);
+        }
+
+        static bool IsDecorativeCollision(Collider collider) =>
+            (collider.excludeLayers.value & NonGameplayCollision) == NonGameplayCollision;
 
         static bool IsObservedTarget(Collider collider, GameObject subject)
         {

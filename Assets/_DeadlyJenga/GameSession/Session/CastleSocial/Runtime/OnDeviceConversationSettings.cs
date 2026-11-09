@@ -14,7 +14,9 @@ namespace DeadlyJenga.CastleSocial
         [Range(0,80)] public float frameBudgetMs=22;
         [Range(.2f,3)] public float quietBeforeReply=.45f;
         [Range(0,6)] public float minimumReplyGap=1;
-        [Range(4,32)] public int cachedVoiceClips=16;
+        [Range(4,32)] public int cachedVoiceClips=24;
+        [Tooltip("Use the language model for observed game events as well as direct player conversation.")]
+        public bool improviseGameReactions;
         [Tooltip("Developer pack location; builds use their embedded StreamingAssets pack.")]
         public string editorPackFolder="Tools/OnDeviceConversation/.models/pack";
     }

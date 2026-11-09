@@ -7,7 +7,7 @@ namespace DeadlyJenga.CastleSocial
 {
     public sealed partial class SocialWorld
     {
-        readonly Dictionary<string, (int captures, int returns, int claims, int revives, int infections, int kills)> objectiveTotals = new();
+        readonly Dictionary<string, (int captures, int returns, int claims, int revives, int infections, int kills, float hill, float survival)> objectiveTotals = new();
         GameModeKind observedMode;
         RoundPhase observedPhase;
         bool haveMatchFrame;
@@ -59,10 +59,16 @@ namespace DeadlyJenga.CastleSocial
                     switch (action.action)
                     {
                         case EquipmentAction.Shot:
-                            ObserveNearby(SocialEventKind.Combat, action.position, "a shot went off", "a weapon fire", null, 4);
+                            ObserveNearby(SocialEventKind.Combat, action.position, "a shot went off", "a weapon go off", null, 4);
                             break;
                         case EquipmentAction.Pickup:
                             ObserveNearby(SocialEventKind.Equipment, action.position, "someone picked up equipment", null, null, 4);
+                            break;
+                        case EquipmentAction.Drop:
+                            ObserveNearby(SocialEventKind.Equipment, action.position, "someone dropped equipment", null, null, 4);
+                            break;
+                        case EquipmentAction.Bash:
+                            ObserveNearby(SocialEventKind.Combat, action.position, "someone swung a weapon", null, null, 4);
                             break;
                     }
                 }
@@ -77,14 +83,16 @@ namespace DeadlyJenga.CastleSocial
                 if (!agent) continue;
                 bool hadTotal = objectiveTotals.TryGetValue(player.id, out var previous);
                 objectiveTotals[player.id] = (player.captures, player.flagReturns, player.blocksClaimed,
-                    player.revives, player.infections, player.kills);
+                    player.revives, player.infections, player.kills, player.hillSeconds, player.survivalSeconds);
                 if (!hadTotal) continue;
                 string fact = mode == GameModeKind.CaptureFlag && player.captures > previous.captures ? "I scored a confirmed flag capture." :
                     mode == GameModeKind.CaptureFlag && player.flagReturns > previous.returns ? "I returned a flag to its base." :
                     mode == GameModeKind.BlockControl && player.blocksClaimed > previous.claims ? "I claimed a block for my team." :
                     player.revives > previous.revives ? "I revived a player." :
                     mode == GameModeKind.Infection && player.infections > previous.infections ? "I infected a player." :
-                    player.kills > previous.kills ? "I got a confirmed elimination." : null;
+                    player.kills > previous.kills ? "I got a confirmed elimination." :
+                    mode == GameModeKind.KingOfHill && previous.hill < 5 && player.hillSeconds >= 5 ? "I put five seconds on the hill." :
+                    mode == GameModeKind.Survival && previous.survival < 60 && player.survivalSeconds >= 60 ? "I made it to a minute." : null;
                 if (fact != null) SpeakOwnEvent(agent, SocialEventKind.Objective, fact);
             }
         }
