@@ -29,6 +29,8 @@ namespace DeadlyJenga.CastlePrototype
         int berth;
         float speed, nextThrow;
         bool knifeArmed;
+        internal bool IsRiding => mounted != null;
+        internal void ReturnRiderToDock() => ReturnToDock(false);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Register() => GameEvents.LobbyStarted += Attach;
@@ -154,6 +156,8 @@ namespace DeadlyJenga.CastlePrototype
         void ReturnToDock(bool restoreInput)
         {
             if (!mounted) return;
+            var ski=mounted;
+            mounted=null;
             if (NetworkActors.Alive(lobby.Player))
             {
                 var player = lobby.Player;
@@ -162,8 +166,7 @@ namespace DeadlyJenga.CastlePrototype
                 (player as ITeleportable)?.Teleport(transform.TransformPoint(DockReturn), transform.rotation);
                 if (restoreInput) lobby.SetMenu(lobby.MenuOpen);
             }
-            mounted.SetLocalPositionAndRotation(Berths[berth], Quaternion.Euler(0, 180, 0));
-            mounted = null;
+            ski.SetLocalPositionAndRotation(Berths[berth], Quaternion.Euler(0, 180, 0));
             riderBody = null;
             speed = 0;
         }
