@@ -8,6 +8,7 @@ using DeadlyJenga.CandyArt.Marina;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -321,6 +322,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(animals.All(animal=>animal.DistanceTravelled<10),"Wildlife movement does not count the lobby relocation");
             File.AppendAllText(Report,$"INPUT initial focus={Application.isFocused} suspended={lobby.Player.InputSuspended} setup={lobby.SetupHint}\n");
             if(Application.isFocused)Check(!lobby.Player.InputSuspended,"Focused Marina input available");
+            CheckRiderStrands();
             var oldPlayer=lobby.Player;
             var ocean=lobby.GetComponentsInChildren<Renderer>(true).Single(r=>r.name=="Marina ocean");
             var water=lobby.transform.TransformPoint(new Vector3(-14,0,-37));
@@ -364,6 +366,62 @@ namespace DeadlyJenga.DevTools.Editor
             motor.InputDriver=null;motor.externallyDriven=false;
             Check(Vector3.ProjectOnPlane(motor.transform.position-start,Vector3.up).magnitude>.45f,
                 "The real survivor motor accepts movement after the match return");
+        }
+        static void CheckRiderStrands()
+        {
+            var shader=Resources.Load<Shader>("CandyScenery/CandySummoningColumn");
+            Check(shader&&shader.isSupported,"Travel beacon shader is supported");
+            var material=new Material(shader);
+            var mesh=CandySummoningColumn.CreateMesh();
+            var target=new GameObject("Beacon rider fixture");
+            target.transform.position=new Vector3(2000,300,2000);
+            var effect=new GameObject("Beacon strand render fixture");
+            effect.layer=31;
+            var column=effect.AddComponent<CandySummoningColumn>();
+            column.Initialize(target.transform,mesh,material,0);
+            var eye=new GameObject("Beacon eye fixture").AddComponent<Camera>();
+            eye.enabled=false;
+            eye.cullingMask=1<<31;
+            eye.clearFlags=CameraClearFlags.SolidColor;
+            eye.backgroundColor=Color.black;
+            eye.allowHDR=false;
+            eye.GetUniversalAdditionalCameraData().allowXRRendering=false;
+            var output=new RenderTexture(96,96,16);
+            var pixels=new Texture2D(96,96,TextureFormat.RGB24,false);
+            var previous=RenderTexture.active;
+            eye.targetTexture=output;
+            int LitPixels()
+            {
+                eye.Render();
+                RenderTexture.active=output;
+                pixels.ReadPixels(new Rect(0,0,96,96),0,0);
+                return pixels.GetPixels32().Count(pixel=>pixel.r>18||pixel.g>18||pixel.b>18);
+            }
+            try
+            {
+                eye.transform.position=target.transform.position+new Vector3(.35f,1.6f,0);
+                column.Render(.1f,.05f,1);
+                int distantReveal=LitPixels();
+                typeof(CandySummoningColumn).GetMethod("SetRiderCamera",
+                    System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(column,new object[]{eye});
+                column.Render(.1f,.05f,1);
+                int groundReveal=LitPixels();
+                target.transform.position+=Vector3.up*32;
+                eye.transform.position+=Vector3.up*32;
+                column.Render(.2f,.08f,1);
+                int flyingReveal=LitPixels();
+                File.AppendAllText(Report,$"BEACON lit pixels exterior={distantReveal} ground={groundReveal} flying={flyingReveal}\n");
+                Check(groundReveal>distantReveal+64&&flyingReveal>distantReveal+64,
+                    "Early strands render near the rider before lift and at altitude");
+            }
+            finally
+            {
+                RenderTexture.active=previous;
+                eye.targetTexture=null;
+                output.Release();
+                Object.Destroy(output);Object.Destroy(pixels);Object.Destroy(eye.gameObject);
+                Object.Destroy(effect);Object.Destroy(target);Object.Destroy(mesh);Object.Destroy(material);
+            }
         }
         static IEnumerator RunLayoutScene()
         {
