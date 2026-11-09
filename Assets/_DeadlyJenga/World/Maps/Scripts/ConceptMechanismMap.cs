@@ -112,7 +112,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     bool west=body.name=="Screen west";
                     var joint=body.gameObject.AddComponent<HingeJoint>();joint.autoConfigureConnectedAnchor=false;
-                    var pivot=body.transform.TransformPoint(new Vector3(-2,0,0));
+                    var pivot=body.transform.TransformPoint(new Vector3(-2*DistrictScale,0,0));
                     joint.anchor=body.transform.InverseTransformPoint(pivot);joint.connectedAnchor=pivot;
                     joint.axis=body.transform.InverseTransformDirection(transform.forward);joint.useLimits=true;
                     joint.limits=new JointLimits{min=west?0:-100,max=west?100:0,bounciness=0,contactDistance=1};
@@ -124,10 +124,11 @@ namespace DeadlyJenga.CastlePrototype
                 joint.axis=roof.transform.InverseTransformDirection(transform.right);joint.secondaryAxis=roof.transform.InverseTransformDirection(transform.up);
                 joint.xMotion=ConfigurableJointMotion.Limited;joint.yMotion=joint.zMotion=ConfigurableJointMotion.Locked;
                 joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Locked;
-                joint.linearLimit=new SoftJointLimit{limit=2.5f*transform.lossyScale.x,contactDistance=.02f};joint.enableCollision=false;
+                joint.linearLimit=new SoftJointLimit{limit=2.5f*DistrictScale*transform.lossyScale.x,contactDistance=.02f};joint.enableCollision=false;
             }
             EnableCollision();Physics.SyncTransforms();Revision++;
         }
+        float DistrictScale=>kind==ConceptMapKind.SkylineIsland?ConceptMapLayout.SkylineDistrictScale:1;
         static void IgnorePair(Rigidbody a,Rigidbody b)
         {
             foreach(var ca in a.GetComponentsInChildren<Collider>())foreach(var cb in b.GetComponentsInChildren<Collider>())
@@ -188,11 +189,12 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     var bearing=new GameObject("Independent connector bearing");
                     bearing.transform.SetParent(floor.transform,false);
-                    bearing.transform.localPosition=new Vector3(module.position.x,.665f,module.position.z);
+                    float scale=DistrictScale;
+                    bearing.transform.localPosition=new Vector3(module.position.x,.4f+.265f*scale,module.position.z);
                     var support=bearing.AddComponent<BoxCollider>();
-                    support.size=new Vector3(1.5f,.53f,2.2f);
+                    support.size=new Vector3(1.5f,.53f,2.2f)*scale;
                     support.sharedMaterial=ConnectorSlide();
-                    top.Box(bearing.transform.localPosition,new Vector3(1.5f,.53f,2.2f),Quaternion.identity,4);
+                    top.Box(bearing.transform.localPosition,support.size,Quaternion.identity,4);
                 }
             AddFinish(floor.transform,top,"Island ground");
             AddFinish(floor.transform,cliff,"Molded candy shoreline");

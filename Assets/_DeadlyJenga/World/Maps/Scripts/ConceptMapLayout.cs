@@ -67,18 +67,49 @@ namespace DeadlyJenga.CastlePrototype
         public const float TowerLane=2.6f,TowerHalfDepth=4.25f,TowerRun=12f,TowerHalfWidth=5f;
         public static float TowerDeck(int floor)=>.4f+floor*3.6f;
         public static float TowerEntrySide(float z)=>z>0?1:-1;
-        public static readonly int[] SkylineBridgeFloors={1,4,7};
+        public const float SkylineDistrictScale=1.5f;
+        public const float HallBay=9.4f,HallHalfWidth=4.2f,HallNear=11.5f,HallFar=19.5f,HallTurn=28f;
+        public const float HallLane=2.6f;
+        public static readonly int[] SkylineBridgeFloors={1,4,7,10};
         public static readonly Vector3[] SkylineDistricts=
         {
             new(-61,0,-40),new(-61,0,40),new(0,0,40),
-            new(0,0,-40),new(61,0,40),new(61,0,-40)
+            new(0,0,-40),new(61,0,40),new(58.5f,0,-40)
         };
         public static readonly (float x,float z,int floors,string name)[] SkylineTowers=
         {
-            (-31,0,7,"West Crown"),(31,0,7,"East Crown"),
+            (-31,0,11,"West Crown"),(31,0,10,"East Crown"),
             (-84,-35,5,"Shelter Spire"),(-84,35,4,"Screen Spire"),
-            (84,-35,4,"Borough Spire"),(84,35,5,"Refuge Spire")
+            (84,-35,4,"Borough Spire"),(84,35,5,"Refuge Spire"),
+            (-31,-43,8,"Caramel Pinnacle"),(31,-43,9,"Cherry Pinnacle"),
+            (-31,43,9,"Mint Pinnacle"),(31,43,8,"Lemon Pinnacle")
         };
+        public static Vector3 HallPoint(Vector3 district,float x,float y,float distance)
+            =>new Vector3(district.x+x,y,Mathf.Sign(district.z)*distance);
+
+        public static IEnumerable<(string name,Vector3 a,Vector3 b,float width,int finish)> SkylineCrossings()
+        {
+            foreach(int floor in SkylineBridgeFloors)
+                yield return ("Crown crossing "+floor,new Vector3(-26,TowerDeck(floor),0),
+                    new Vector3(26,TowerDeck(floor),0),4.1f,floor>=7?5:2);
+            float middle=TowerDeck(3),high=TowerDeck(7);
+            foreach(float x in new[]{-84f,84f})
+                yield return ("Outer skyway",new Vector3(x,middle,-35+TowerHalfDepth),
+                    new Vector3(x,middle,35-TowerHalfDepth),4.1f,1);
+            foreach(float side in new[]{-1f,1f})
+            {
+                yield return ("Pinnacle crossing",new Vector3(-26,high,side*43),new Vector3(26,high,side*43),4.1f,5);
+                foreach(float xSide in new[]{-1f,1f})
+                {
+                    // Enter the spires along X; the long flights run along Z.
+                    yield return ("District skyway",new Vector3(xSide*36,middle,side*43),
+                        new Vector3(xSide*79,middle,side*35),3.2f,1);
+                    float y=TowerDeck(side>0?5:6),x=xSide*31;
+                    yield return ("Crown spur",new Vector3(x,y,side*TowerHalfDepth),
+                        new Vector3(x,y,side*(43-TowerHalfDepth)),1.45f,2);
+                }
+            }
+        }
         static List<MayhemModule> Skyline()
         {
             var b=new Builder((int)ConceptMapKind.SkylineIsland);
@@ -87,17 +118,16 @@ namespace DeadlyJenga.CastlePrototype
                 var offset=SkylineDistricts[district];
                 foreach(var module in Build((ConceptMapKind)district))
                 {
-                    module.position+=offset;
-                    if(module.hingeSupport!=null)module.pivot+=offset;
+                    EnlargeDistrictModule(module,offset);
+                    if(district==(int)ConceptMapKind.BreakContactBorough&&module.purpose.EndsWith(" pod access",StringComparison.Ordinal))
+                        module.position.z-=.08f;
                     b.modules.Add(module);
                 }
+                DistrictHalls(b,offset,district);
             }
             foreach(var tower in SkylineTowers)Tower(b,tower.x,tower.z,tower.floors,tower.name);
-            foreach(int floor in SkylineBridgeFloors)
-                SkylineBridge(b,"Crown crossing "+floor,new Vector3(0,TowerDeck(floor)-.2f,0),52,0,floor==7?5:2);
-            foreach(float x in new[]{-84f,84f})
-                SkylineBridge(b,x<0?"West district skyway":"East district skyway",
-                    new Vector3(x,TowerDeck(3)-.2f,0),70-TowerHalfDepth*2,90,1);
+            foreach(var link in SkylineCrossings())SkylineBridge(b,link.name,link.a,link.b,link.width,link.finish);
+            LandmarkRoofAccess(b);
             foreach(float x in new[]{-52f,52f})
             {
                 var gate=b.Module("Fixed boulevard arch",new Vector3(x,.4f,0));
@@ -110,16 +140,79 @@ namespace DeadlyJenga.CastlePrototype
             }
             return b.modules;
         }
-        static void SkylineBridge(Builder b,string name,Vector3 center,float length,float yaw,int finish)
+        static void EnlargeDistrictModule(MayhemModule module,Vector3 offset)
         {
-            var bridge=b.Module("Fixed "+name,center,heading:yaw);
-            b.Part(bridge,Vector3.zero,new Vector3(length,.4f,4.1f),finish);
-            b.Part(bridge,new Vector3(0,-.38f,0),new Vector3(length,.38f,2.75f),3);
-            b.Rail(bridge,0,1.88f,.2f,length-.5f);
-            b.Rail(bridge,0,-1.88f,.2f,length-.5f);
-            for(float x=-length*.5f+4;x<length*.5f-1;x+=4)
+            const float scale=SkylineDistrictScale;
+            var floor=Vector3.up*.4f;
+            module.position=offset+floor+(module.position-floor)*scale;
+            if(module.hingeSupport!=null)module.pivot=offset+floor+(module.pivot-floor)*scale;
+            module.mass*=scale*scale*scale;
+            for(int i=0;i<module.shapes.Count;i++)
+            {
+                var shape=module.shapes[i];
+                var vertices=shape.vertices==null?null:Array.ConvertAll(shape.vertices,v=>v*scale);
+                module.shapes[i]=new MayhemShape(shape.center*scale,shape.size*scale,shape.finish,shape.rotation,vertices);
+            }
+        }
+
+        static void DistrictHalls(Builder b,Vector3 district,int index)
+        {
+            float lower=TowerDeck(1),upper=TowerDeck(2),side=Mathf.Sign(district.z);
+            int accent=index%3;
+            string name=Names[index]+" hall";
+            Vector3 P(float x,float y,float distance)=>HallPoint(district,x,y,distance);
+            for(int bay=-1;bay<=1;bay++)
+            {
+                var hall=b.Module("Fixed "+name+" bay "+bay,P(bay*HallBay,.4f,15.5f));
+                foreach(float x in new[]{-3.55f,3.55f})foreach(float z in new[]{-3.5f,3.5f})
+                {
+                    b.Part(hall,new Vector3(x,3.4f,z),new Vector3(.86f,6.8f,.86f),accent);
+                    b.Part(hall,new Vector3(x,3.34f,z),new Vector3(1.3f,.54f,1.3f),5);
+                    b.Part(hall,new Vector3(x,6.9f,z),new Vector3(1.26f,.6f,1.26f),5);
+                }
+                b.Part(hall,new Vector3(0,lower-.6f,0),new Vector3(HallHalfWidth*2,.4f,8),accent);
+                b.Part(hall,new Vector3(0,upper-.6f,0),new Vector3(HallHalfWidth*2,.4f,8),bay==0?5:accent);
+                b.Rail(hall,0,-side*3.82f,upper-.4f,7.9f);
+                if(bay!=0)b.Rail(hall,0,side*3.82f,upper-.4f,7.9f);
+                if(bay==0)continue;
+                float xGap=(bay*.5f)*HallBay;
+                b.Box("Fixed "+name+" bypass",P(xGap,lower-.2f,14.3f),new Vector3(HallBay-HallHalfWidth*2,.4f,3.8f),5);
+            }
+            b.Ramp("Fixed "+name+" entry",P(HallLane,.4f,4.5f),P(HallLane,lower,HallNear),3.2f);
+            b.Ramp("Fixed "+name+" roof flight",P(HallLane,lower,HallFar),P(HallLane,upper,HallTurn),3.2f,true);
+            var turn=b.Platform("Fixed "+name+" outlook",P(0,0,HallTurn+1.2f),upper,new Vector2(9.2f,2.4f),accent,5);
+            b.Rail(turn,0,side*1.06f,upper-.4f,8.8f);
+            b.Box("Fixed "+name+" roof return",P(-HallLane,upper-.2f,(HallFar+HallTurn)*.5f),
+                new Vector3(3.2f,.4f,HallTurn-HallFar),accent);
+        }
+
+        static void LandmarkRoofAccess(Builder b)
+        {
+            float Roof(float standalone)=>.4f+(standalone-.4f)*SkylineDistrictScale;
+            b.Ramp("Fixed sliding canopy roof access",new Vector3(-55,.4f,-58),new Vector3(-55,Roof(3.75f),-44.5f),3.1f);
+            b.Ramp("Fixed loose refuge roof access",new Vector3(52,.4f,58),new Vector3(52,Roof(3.75f),44.5f),3.1f);
+            float boroughRoof=Roof(4.15f);
+            var borough=SkylineDistricts[(int)ConceptMapKind.BreakContactBorough];
+            float roofAccessX=borough.x+15;
+            b.Ramp("Fixed borough roof access",new Vector3(roofAccessX,.4f,-24.5f),new Vector3(roofAccessX,boroughRoof,borough.z+4.58f),2.4f);
+            foreach(float x in new[]{-7.5f,7.5f})
+                b.Platform("Fixed borough roof stepping block",borough+Vector3.right*x,boroughRoof,new Vector2(4,8.2f),3,5);
+        }
+
+        static void SkylineBridge(Builder b,string name,Vector3 a,Vector3 end,float width,int finish)
+        {
+            Vector3 delta=end-a;
+            float length=delta.magnitude+.5f,edge=width*.5f-.12f;
+            var bridge=b.Module("Fixed "+name,(a+end)*.5f-Vector3.up*.2f,
+                heading:Mathf.Atan2(-delta.z,delta.x)*Mathf.Rad2Deg);
+            b.Part(bridge,Vector3.zero,new Vector3(length,.4f,width),finish);
+            b.Part(bridge,new Vector3(0,-.38f,0),new Vector3(length,.38f,width*.65f),3);
+            if(width<2)return;
+            b.Rail(bridge,0,edge,.2f,length-1.4f);
+            b.Rail(bridge,0,-edge,.2f,length-1.4f);
+            for(float x=-length*.5f+4;x<length*.5f-1;x+=6)
                 foreach(float side in new[]{-1f,1f})
-                    b.Part(bridge,new Vector3(x,.44f,side*1.88f),new Vector3(.32f,.5f,.32f),5);
+                    b.Part(bridge,new Vector3(x,.44f,side*edge),new Vector3(.24f,.5f,.24f),5);
         }
         static void Tower(Builder b,float x,float z,int floors,string name)
         {
@@ -166,7 +259,12 @@ namespace DeadlyJenga.CastlePrototype
                 b.Ramp("Fixed "+name+" flight "+level,new Vector3(x-TowerLane,TowerDeck(level-1),z+side*TowerHalfDepth),
                     new Vector3(x-TowerLane,height,z+side*outer),3.5f,true);
                 var turn=b.Box("Fixed "+name+" landing "+level,new Vector3(x,height-.2f,z+side*(outer+1.2f)),new Vector3(9.1f,.4f,2.4f),5);
-                b.Rail(turn,0,side*1.06f,.2f,8.8f);
+                if(Mathf.Abs(x)==31&&(level==5||level==6))
+                {
+                    b.Rail(turn,-2.73f,side*1.06f,.2f,3.3f);
+                    b.Rail(turn,2.73f,side*1.06f,.2f,3.3f);
+                }
+                else b.Rail(turn,0,side*1.06f,.2f,8.8f);
                 b.Box("Fixed "+name+" gallery "+level,new Vector3(x+TowerLane,height-.2f,z+side*(TowerHalfDepth+TowerRun*.5f)),
                     new Vector3(3.5f,.4f,TowerRun),2);
             }

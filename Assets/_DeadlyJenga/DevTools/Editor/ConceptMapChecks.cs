@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using DeadlyJenga.Core;
+using DeadlyJenga.CastleBots;
 using DeadlyJenga.CastlePrototype;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -35,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
         static string Project=>Path.GetFullPath(Path.Combine(Application.dataPath,".."));
         static bool GameRun=>SessionState.GetBool(Key+"Game",false);
         static readonly string[] MapIds={"moving-shelter","peel-away-screen","collapse-created-route","pivoting-causeway","refuge-exchange","break-contact-borough","skyline-island"};
-        enum GamePhase {Load,Ready,Settle,Observe,Late,Reset}
+        enum GamePhase {Load,Ready,Settle,Observe,RoofReady,RoofJump,Late,Reset}
         static GamePhase gamePhase;
         static int gameIndex,gameLast,gameFrame,resetRevision;
         static float gameFixed,phaseUntil;
@@ -44,6 +45,8 @@ namespace DeadlyJenga.DevTools.Editor
         static CastlePlaySession gameSession;
         static Probe gameProbe;
         static Pose[] gameStart;
+        static SkylineJumpDriver roofDriver;
+        static Pose roofReturn;
         static ConceptMapChecks(){EditorApplication.playModeStateChanged-=State;EditorApplication.playModeStateChanged+=State;Rearm();}
 
         [MenuItem("Tools/Deadly Jenga/Validation/Check Six Concept Maps")]
@@ -324,9 +327,11 @@ namespace DeadlyJenga.DevTools.Editor
                 var physics=gameMap.gameObject.scene.GetPhysicsScene();
                 if(gamePhase==GamePhase.Settle)
                 {
-                    CheckSettledGame();Fallback(gameMap,physics,(ConceptMapKind)gameIndex);
+                    string stability=CheckSettledGame();
+                    Fallback(gameMap,physics,(ConceptMapKind)gameIndex);
                     CaptureGameCamera("intact");
                     if(gameMap.kind==ConceptMapKind.SkylineIsland)CheckSkylineRoutes(physics);
+                    if(stability!=null)throw new InvalidOperationException(stability);
                     var probeKind=gameMap.kind==ConceptMapKind.SkylineIsland?ConceptMapKind.PivotingCauseway:gameMap.kind;
                     gameProbe=BeginProbe(gameMap,physics,probeKind);
                     gameFrame=Time.frameCount;gameFixed=Time.fixedTime;gamePhase=GamePhase.Observe;phaseUntil=Time.realtimeSinceStartup+2;
@@ -338,7 +343,35 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(Time.frameCount>gameFrame+3&&Time.fixedTime>gameFixed+.05f,"Game frames and fixed physics advance after actual probe input");
                     ValidateProbe(gameMap,physics,gameProbe);
                     if(gameMap.kind==ConceptMapKind.SkylineIsland)CheckSkylineRoutes(physics);
-                    CaptureGameCamera("after-probe");gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+4;return;
+                    CaptureGameCamera("after-probe");
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland){BeginRoofJumps();return;}
+                    gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+4;return;
+                }
+                if(gamePhase==GamePhase.RoofReady)
+                {
+                    CheckActorSupport();
+                    CaptureGameCamera("roof-run",false);
+                    var player=gameSession.Survivor();
+                    player.externallyDriven=true;
+                    player.InputDriver=roofDriver;
+                    player.InputSuspended=false;
+                    gamePhase=GamePhase.RoofJump;
+                    Deadline(18);
+                    return;
+                }
+                if(gamePhase==GamePhase.RoofJump)
+                {
+                    if(roofDriver.Failure!=null)throw new InvalidOperationException(roofDriver.Failure);
+                    if(!roofDriver.Finished)return;
+                    var player=gameSession.Survivor();
+                    CheckActorSupport();
+                    Check(roofDriver.Jumps==2&&roofDriver.Landings==2,"Actual survivor jumps and lands across both rooftop gaps in sequence");
+                    Note("SKYLINE motor chained two roof jumps with 2.5m/s target input and no climbing or mid-run placement.");
+                    player.InputDriver=null;
+                    player.externallyDriven=false;
+                    player.Place(roofReturn.position,roofReturn.rotation);
+                    gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+1;Deadline(25);
+                    return;
                 }
                 if(gamePhase==GamePhase.Late)
                 {
@@ -404,14 +437,72 @@ namespace DeadlyJenga.DevTools.Editor
             Check(player&&player.Capsule&&player.Capsule.enabled&&player.Grounded&&Finite(player.transform.position),"Real survivor motor is enabled, finite and grounded");
             Check(gameMap.gameObject.scene.GetPhysicsScene().Raycast(player.FootPosition+Vector3.up*.2f,Vector3.down,out var hit,1,(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore)&&hit.normal.y>.5f,"Real survivor feet have physical upward support");
         }
-        static void CheckSettledGame()
+        static string CheckSettledGame()
         {
+            string failure=null;
             for(int i=0;i<gameMap.Blocks.Count;i++)
             {
                 var body=gameMap.Blocks[i];Check(body&&body.gameObject.activeInHierarchy&&Finite(body.position)&&Finite(body.linearVelocity)&&Finite(body.angularVelocity),"Game intact body finite/active "+i);
-                Check(Vector3.Distance(gameStart[i].position,body.position)<.25f&&Quaternion.Angle(gameStart[i].rotation,body.rotation)<5&&body.linearVelocity.magnitude<.2f&&body.angularVelocity.magnitude<.2f,"Game intact body settles near authored pose "+i);
+                float shift=Vector3.Distance(gameStart[i].position,body.position),tilt=Quaternion.Angle(gameStart[i].rotation,body.rotation);
+                if(shift<.25f&&tilt<5&&body.linearVelocity.magnitude<.2f&&body.angularVelocity.magnitude<.2f)continue;
+                string detail=$"{body.name} shifted {shift:F3}m, rotated {tilt:F1}deg; actual position {body.position}, speed {body.linearVelocity.magnitude:F3}.";
+                Note(detail);
+                failure??=detail;
+            }
+            if(failure==null)Note("PASS All intact Game bodies settled near their authored poses.");
+            return failure;
+        }
+        static void BeginRoofJumps()
+        {
+            var player=gameSession.Survivor();
+            roofReturn=new Pose(player.transform.position,player.transform.rotation);
+            var district=ConceptMapLayout.SkylineDistricts[1];
+            float y=ConceptMapLayout.TowerDeck(2);
+            float edge=ConceptMapLayout.HallBay-ConceptMapLayout.HallHalfWidth;
+            var start=ConceptMapLayout.HallPoint(district,-edge-.38f,y+.05f,15.5f);
+            roofDriver=new SkylineJumpDriver(gameMap.Root,district.x,y);
+            player.Place(gameMap.Root.TransformPoint(start),gameMap.Root.rotation*Quaternion.LookRotation(Vector3.right));
+            gamePhase=GamePhase.RoofReady;phaseUntil=Time.realtimeSinceStartup+.5f;Deadline(30);
+        }
+
+        sealed class SkylineJumpDriver : ICastleSurvivorDriver
+        {
+            readonly Transform root;
+            readonly float center,height;
+            bool airborne;
+            public int Jumps{get;private set;}
+            public int Landings{get;private set;}
+            public string Failure{get;private set;}
+            public bool Finished=>Landings==2;
+            public SkylineJumpDriver(Transform root,float center,float height)
+            {this.root=root;this.center=center;this.height=height;}
+            public CastleBotCommand ReadCommand(CastleSurvivor motor,float dt)
+            {
+                var feet=root.InverseTransformPoint(motor.FootPosition);
+                float x=feet.x-center;
+                if(Jumps>Landings)
+                {
+                    airborne|=!motor.Grounded;
+                    if(airborne&&motor.Grounded)
+                    {
+                        float target=Landings==0?-ConceptMapLayout.HallHalfWidth:ConceptMapLayout.HallBay-ConceptMapLayout.HallHalfWidth;
+                        if(x<target+.1f||Mathf.Abs(feet.y-height)>.15f)
+                        {
+                            Failure=$"Roof jump {Jumps} missed its deck at local x={x:F2}, y={feet.y:F2}.";
+                            return default;
+                        }
+                        Landings++;
+                        airborne=false;
+                    }
+                }
+                float edge=Jumps==0?ConceptMapLayout.HallHalfWidth-ConceptMapLayout.HallBay:ConceptMapLayout.HallHalfWidth;
+                bool jump=!Finished&&Jumps==Landings&&motor.Grounded&&x>=edge-.42f;
+                if(jump)Jumps++;
+                var direction=root.right;
+                return new CastleBotCommand{look=direction,move=Finished?Vector3.zero:direction*Mathf.Clamp01(2.5f/motor.EffectiveWalkSpeed),jump=jump};
             }
         }
+
         static void CheckSkylineRoutes(PhysicsScene physics)
         {
             Check(gameMap.Authored.Select(module=>module.district).Distinct().Count()==7,"Six original districts and the shared towers are present");
@@ -423,6 +514,7 @@ namespace DeadlyJenga.DevTools.Editor
             var hits=new Collider[24];
             var capsule=gameSession.Survivor().Capsule;
             int samples=0;
+            var blocked=new List<string>();
             void Segment(Vector3 a,Vector3 b)
             {
                 int count=Mathf.CeilToInt(Vector3.Distance(a,b)/.45f);
@@ -431,11 +523,17 @@ namespace DeadlyJenga.DevTools.Editor
                     var p=gameMap.Root.TransformPoint(Vector3.Lerp(a,b,i/(float)count));
                     if(!physics.Raycast(p+Vector3.up*.35f,Vector3.down,out var hit,.7f,(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore)
                         ||hit.normal.y<=.72f||Mathf.Abs(hit.point.y-p.y)>=.12f)
-                        throw new InvalidOperationException("Skyline route lacks its expected walkable surface at "+p);
+                    {
+                        blocked.Add("No expected walkable surface at "+p);
+                        return;
+                    }
                     float radius=capsule.radius;
                     if(physics.OverlapCapsule(hit.point+Vector3.up*(radius+.05f),hit.point+Vector3.up*(capsule.height-radius+.05f),
                         radius,hits,1<<Layers.Block,QueryTriggerInteraction.Ignore)>0)
-                        throw new InvalidOperationException("Skyline route is blocked at "+p+" by "+hits[0].name);
+                    {
+                        blocked.Add("Blocked at "+p+" by "+hits[0].name+" on "+hits[0].transform.root.name);
+                        return;
+                    }
                     samples++;
                 }
             }
@@ -444,7 +542,21 @@ namespace DeadlyJenga.DevTools.Editor
             foreach(float x in new[]{-sideStreet,0,sideStreet})
                 Segment(new Vector3(x,ground,-62),new Vector3(x,ground,62));
             foreach(var district in ConceptMapLayout.SkylineDistricts)
+            {
                 Segment(new Vector3(district.x,ground,0),new Vector3(district.x,ground,Mathf.Sign(district.z)*34));
+                float low=ConceptMapLayout.TowerDeck(1),high=ConceptMapLayout.TowerDeck(2);
+                const float hall=ConceptMapLayout.HallLane,near=ConceptMapLayout.HallNear,far=ConceptMapLayout.HallFar,turn=ConceptMapLayout.HallTurn;
+                Vector3 H(float x,float y,float z)=>ConceptMapLayout.HallPoint(district,x,y,z);
+                Segment(H(hall,ground,4.5f),H(hall,low,near));
+                Segment(H(hall,low,near),H(hall,low,far));
+                Segment(H(-ConceptMapLayout.HallBay,low,13.1f),H(ConceptMapLayout.HallBay,low,13.1f));
+                Segment(H(hall,low,far),H(hall,high,turn));
+                Segment(H(hall,high,turn),H(hall,high,turn+1.2f));
+                Segment(H(hall,high,turn+1.2f),H(-hall,high,turn+1.2f));
+                Segment(H(-hall,high,turn+1.2f),H(-hall,high,15.5f));
+                for(int bay=-1;bay<=1;bay++)
+                    Segment(H(bay*ConceptMapLayout.HallBay-3.9f,high,15.5f),H(bay*ConceptMapLayout.HallBay+3.9f,high,15.5f));
+            }
             foreach(var tower in ConceptMapLayout.SkylineTowers)
             {
                 float x=tower.x,z=tower.z;
@@ -456,6 +568,7 @@ namespace DeadlyJenga.DevTools.Editor
                     Segment(P(lane,ground,0),P(lane,ground,approach));
                     Segment(P(lane,ground,approach),P(-lane,ground,approach));
                 }
+                else if(Mathf.Abs(z)>40)Segment(new Vector3(x-lane,ground,Mathf.Sign(z)*62),P(-lane,ground,approach));
                 else Segment(new Vector3(Mathf.Sign(x)*sideStreet,ground,z+approach),P(-lane,ground,approach));
                 Segment(P(-lane,ground,approach),P(-lane,ground,entry*outer));
                 Segment(P(-lane,ground,entry*outer),P(-lane,first,entry*depth));
@@ -473,17 +586,12 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 Note("SKYLINE walkable collider chain to "+tower.name+" summit at "+ConceptMapLayout.TowerDeck(tower.floors)+"m");
             }
-            foreach(int floor in ConceptMapLayout.SkylineBridgeFloors)
-            {
-                float y=ConceptMapLayout.TowerDeck(floor);
-                Segment(new Vector3(-31,y,0),new Vector3(31,y,0));
-            }
-            foreach(float x in new[]{-84f,84f})
-                Segment(new Vector3(x,ConceptMapLayout.TowerDeck(3),-35),new Vector3(x,ConceptMapLayout.TowerDeck(3),35));
-            Note($"SKYLINE {samples} actual floor and capsule samples; six towers, five elevated crossings, district entrances and independent ground routes. No motor traversal claim.");
+            foreach(var crossing in ConceptMapLayout.SkylineCrossings())Segment(crossing.a,crossing.b);
+            if(blocked.Count>0)throw new InvalidOperationException(string.Join("\n",blocked));
+            Note($"SKYLINE {samples} floor and capsule samples across ten towers, sixteen elevated crossings, six halls and ground routes.");
         }
 
-        static void CaptureGameCamera(string phase)
+        static void CaptureGameCamera(string phase,bool includeOverview=true)
         {
             var camera=gameSession.ActiveCamera;Check(camera&&camera.enabled,"Actual survivor camera available for "+phase);
             bool menu=gameSession.MenuOpen,suspended=gameSession.Player.InputSuspended;gameSession.SetMenu(false);gameSession.Player.InputSuspended=true;
@@ -491,6 +599,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 string name="Game-"+(ConceptMapKind)gameIndex+"-"+phase;
                 SaveCamera(camera,name+"-actual-camera");
+                if(!includeOverview)return;
                 var view=new GameObject("Explicit Game overview");
                 try
                 {
