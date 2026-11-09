@@ -17,7 +17,7 @@ Start from Lobby. The host selects a mode and map at the setup terminal. In a ma
 | Murder Mystery | Discover and stop the murderer, or eliminate the remaining innocents | Walkable / rim |
 | Demo | Host-controlled sandbox, including optional health/death rules | Configurable |
 
-Normal timed rounds default to five minutes, with a three-second countdown and five-second winner reveal. CTF, Infection and Team Tickets default to objective-driven endings; a time limit is configurable. CTF defaults to three captures with a two-capture winning margin. Teams support two through eight colors. The lobby can group human friends on one team or distribute them normally.
+Default hosted rounds use a three-second countdown and a five-second winner reveal. Survival, King of the Hill, Color Control and Infection use five-minute limits. Murder Mystery uses eight minutes. Capture the Flag and Last Team Standing use ten minutes. Demo has no timer. CTF ends early at three captures with a one-capture lead, and Last Team Standing starts with 30 respawn tickets per team. These limits and criteria can be changed by the host. Teams support two through eight colors. The lobby can group human friends on one team or distribute them normally. Maps marked walkable override the mode's island default.
 
 Block Control uses standing support, not arbitrary touching. The majority team's standing count drives capture speed; equal opposing counts cancel. Empty blocks decay after the configured interval. Enemy-owned climbing restrictions are optional; vaulting stays available. CTF carriers move and vault more slowly, cannot climb or punch, and have a frontal shield rather than immunity from every direction. Dropped flags require manual recovery.
 
@@ -41,7 +41,7 @@ Private role and choice records use targeted Fusion messages, separate from publ
 
 Validation reports are in Logs/Validation/MysteryRules.txt and MysteryPlay.txt. The rule model and desktop gameplay checks cover assignment, attacks, penalties, revives and private/public separation. Separate-device Mystery play, Quest input ergonomics, corpse agreement under violent networked motion and large-population performance still need device testing.
 
-Competitive rounds schedule catalog hazards after 90–120 seconds, announce them eight seconds ahead, and gradually approach a 60-second interval. At most two run concurrently by default. Early team play uses gentler choices; destructive fire, meteors and acid rain enter later. Persistent toggles, Planet Killer and Vampire are excluded from automatic selection. These choices and intervals are editable, not requirements for new modes.
+Demo and Disaster Survival enable the shared automatic hazard scheduler by default. When the scheduler is enabled, its default initial interval is 90–120 seconds, with eight seconds of warning, a late interval of 60 seconds and at most two active disasters. Early team play uses gentler choices; destructive fire, meteors and acid rain enter later. Persistent toggles, Planet Killer and Vampire are excluded from automatic selection. Murder Mystery has its own sheriff veto and murderer choice schedule.
 
 ## Bots and new modes
 
