@@ -130,7 +130,28 @@ namespace DeadlyJenga.CastlePrototype
             TickMarinaLocalArrival();
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
             ApplyLobbyIdentities();UpdateControls();
-            if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation){nextLobbyPopulation=Time.unscaledTime+1;bool offline=HomeSession.AutofillLobby&&!Room.Connected&&!Room.Busy&&!Room.Departing;lobbyBots.AutoFill=false;lobbyBots.Running=offline;if(!offline){if(lobbyBots.Count>0)lobbyBots.Clear();}else{lobbyBots.SetHumanPlayerCount(1);lobbyBots.TargetPopulation=10;lobbyBots.FillToTarget();}}
+            if(lobbyBots!=null&&Time.unscaledTime>=nextLobbyPopulation)
+            {
+                nextLobbyPopulation=Time.unscaledTime+1;
+                bool populate=(!Room.Connected||Room.IsHost)&&!Room.Busy&&!Room.Departing&&
+                    (ExperienceProvider.IsRotatingLobby||HomeSession.AutofillLobby&&!Room.Connected&&Experience==GameExperience.Demo);
+                lobbyBots.AutoFill=false;
+                lobbyBots.Running=populate;
+                if(!populate){if(lobbyBots.Count>0)lobbyBots.Clear();}
+                else
+                {
+                    int humans=Room.Connected?Mathf.Max(1,Room.HumanCount):1;
+                    lobbyBots.SetHumanPlayerCount(humans);
+                    lobbyBots.TargetPopulation=10;
+                    lobbyBots.FillToTarget();
+                    if(ExperienceProvider.IsRotatingLobby)
+                    {
+                        int index=0;
+                        foreach(var bot in lobbyBots.Members)
+                            if(bot)ExperienceProvider.ApplyReturningBot(bot,index++);
+                    }
+                }
+            }
         }
         public static Vector3 SpawnPoint(int slot)
         {float angle=(Math.Abs(slot)%10)*2.399963f;var point=(Persistent?Persistent.Center:Vector3.zero)+new Vector3(Mathf.Sin(angle)*1.8f,.65f,-3.2f+Mathf.Cos(angle)*.8f);MayhemMarinaSpawn(slot,ref point);return point;}
@@ -145,6 +166,16 @@ namespace DeadlyJenga.CastlePrototype
         {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=marinaArrivalPending||departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
         void OnApplicationFocus(bool value){focused=value;if(!value&&(!MatchResident||VisitOwner))SetMenu(true);}
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
+        internal void CaptureLobbyBots(List<P.Actor> actors)
+        {
+            if(lobbyBots?.Members==null||!ExperienceProvider.IsRotatingLobby)return;
+            foreach(var bot in lobbyBots.Members)
+            {
+                if(actors.Count>=10)break;
+                if(bot&&bot.GetComponent<INetworkActor>() is { } actor)
+                    actors.Add(P.Capture("lobby-bot:"+bot.GetInstanceID(),actor));
+            }
+        }
         public bool TryPeerPosition(string id,out Vector3 position)
         {if(Voice&&id==Voice.LocalParticipantId){position=Player.ViewCamera.transform.position;return true;}if(id!=null&&peers.TryGetValue(id,out var peer)){position=peer.NetworkPosition+Vector3.up*1.6f;return true;}position=default;return false;}
         public void ReceivePeer(P.Actor actor)

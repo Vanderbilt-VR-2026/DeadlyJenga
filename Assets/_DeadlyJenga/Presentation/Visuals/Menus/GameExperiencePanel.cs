@@ -38,7 +38,12 @@ namespace DeadlyJenga.Presentation
             if(session is Component&&!host)return null;
             return session as IGameExperienceControls??(host?host.GetComponent<IGameExperienceControls>():null);
         }
-        public static bool CanEditRawChoices(ISessionInfo session)=>Resolve(session)?.Experience!=GameExperience.Game;
+        public static bool CanEditRawChoices(ISessionInfo session)
+        {
+            var experience=Resolve(session);
+            return experience?.Experience!=GameExperience.Game||
+                session is ILobbyControls lobby&&lobby.CanConfigure&&experience.GamePhase==RoomGamePhase.Idle;
+        }
         public static bool CanEnableDemo(IGameExperienceControls value)
             =>value!=null&&value.Experience!=GameExperience.Demo&&value.CanConfigureExperience&&value.GamePhase!=RoomGamePhase.LoadingGame&&value.GamePhase!=RoomGamePhase.LoadingLobby;
         public static bool CanChooseExperience(IGameExperienceControls value)

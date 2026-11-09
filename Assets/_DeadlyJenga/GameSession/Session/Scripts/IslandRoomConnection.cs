@@ -91,7 +91,12 @@ namespace DeadlyJenga.CastlePrototype
             SwitchingMap=false;ClearPendingMap();
         }
         void ClearPendingMap(){pendingGameMap=null;pendingGameMode=-1;}
-        public bool SharedDemoControls {get;private set;}
+        bool sharedDemoControls;
+        public bool SharedDemoControls
+        {
+            get=>sharedDemoControls||RoomGameExperience.Current?.OpenDevelopment==true;
+            private set=>sharedDemoControls=value;
+        }
         public bool Migrating {get;private set;}
         public IslandDiscovery Discovery {get;private set;}
         public string DiscoveryStatus {get;private set;}="";
@@ -528,6 +533,7 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}
                 if(now<nextSend)return;nextSend=now+.1f;
                 var actors=new List<P.Actor>{IslandLobby.Current.Capture(Runner.LocalPlayer.ToString())};actors.AddRange(peers.Values.Where(p=>p.actor!=null).Select(p=>p.actor));
+                IslandLobby.Current.CaptureLobbyBots(actors);
                 byte[] bytes=P.Encode(P.World,w=>{w.Write(MapIndex);w.Write(ModeIndex);w.Write(actors.Count);foreach(var actor in actors)P.Write(w,actor);w.Write(SharedDemoControls);w.Write(LobbyStateJson());});
                 foreach(var pair in peers)if(pair.Value.ready&&pair.Value.waiting==0){pair.Value.waiting=++serial;pair.Value.sent=now;pair.Value.sentSelection=selectionVersion;Send(pair.Key,State,bytes,pair.Value.waiting);}
             }

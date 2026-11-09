@@ -162,6 +162,9 @@ namespace DeadlyJenga.Presentation
 
         internal static string NextRoundLabel(bool authority, IGameExperienceControls controls)
         {
+            if (controls?.Experience==GameExperience.Game&&controls.AutomaticRounds&&
+                controls.GamePhase==RoomGamePhase.Results)
+                return "NEXT LOBBY IN "+Mathf.CeilToInt(controls.CountdownSeconds)+" S";
             if (CanStartRound(authority, controls)) return "STAY / NEXT ROUND";
             return controls?.Experience == GameExperience.Game ? "STAY · WAIT FOR ROOM LEADER" : "STAY · WAIT FOR HOST";
         }

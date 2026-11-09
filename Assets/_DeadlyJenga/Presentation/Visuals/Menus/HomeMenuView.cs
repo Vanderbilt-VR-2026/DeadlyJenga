@@ -22,7 +22,10 @@ namespace DeadlyJenga.Presentation
         Text status, region, nearby;
         InputField code;
         Button join;
-        GameObject mainPage, joinPage;
+        GameObject entryPage, mainPage, joinPage, quickPage;
+        IHomeQuickPlayControls quick;
+        Button quickModeButton, quickMapButton, quickStartButton;
+        int modeIndex, mapIndex, quickModes, quickMaps;
         Camera eye;
         bool vr;
         float slideTime, nextNearby;
@@ -91,12 +94,18 @@ namespace DeadlyJenga.Presentation
             Label(content,"JENGA",new Vector2(0,305),new Vector2(590,110),102,new Color(.52f,1,.78f));
             Label(content,"BUILD HIGH.  FALL HARD.",new Vector2(0,215),new Vector2(590,50),23,new Color(.77f,.72f,.94f));
             mainPage=Node("Home actions",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
-            ActionButton(mainPage.transform,"JOIN", "Room code or nearby friends",160,()=>ShowJoin(true));
-            ActionButton(mainPage.transform,"HOST", "Create a private lobby / no bots",40,controls.Host);
-            ActionButton(mainPage.transform,"JOIN RANDOM SESSION", "Jump into a lobby / bots fill to 10",-80,controls.RandomLobby);
-            ActionButton(mainPage.transform,"DEMO", "Straight to Candy Castle / sandbox",-200,controls.Demo);
+            quick=source as IHomeQuickPlayControls;
+            entryPage=Node("Choose startup experience",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
+            ActionButton(entryPage.transform,"PLAY","Start a match, join friends or host a lobby",120,()=>ShowPage(mainPage));
+            ActionButton(entryPage.transform,"DEVELOPER","Open the sandbox lobby with shared developer controls",-10,controls.Demo);
+            ActionButton(mainPage.transform,"QUICK PLAY","Choose a mode and arena, or start a random match",160,()=>ShowQuickPlay());
+            ActionButton(mainPage.transform,"JOIN FRIENDS","Room code or nearby friends",40,()=>ShowJoin(true));
+            ActionButton(mainPage.transform,"HOST LOBBY","Invite friends and choose your first match",-80,controls.Host);
+            ButtonAt(mainPage.transform,"BACK",new Vector2(0,-190),new Vector2(220,52),()=>ShowPage(entryPage));
+            quickPage=Node("Quick Play",content,new Vector2(0,-70),new Vector2(620,520)).gameObject;
+            BuildQuickPlay();
             joinPage=Node("Join a session",content,new Vector2(0,-65),new Vector2(620,520)).gameObject;
-            BuildJoin();joinPage.SetActive(false);
+            BuildJoin();ShowPage(entryPage);
             status=Label(content,"",new Vector2(0,-450),new Vector2(580,65),22,new Color(.85f,.83f,.95f));
             Label(frame,"PHYSICS. FRIENDS. PURE MAYHEM.",new Vector2(425,-470),new Vector2(900,50),23,Color.white);
             ButtonAt(frame,"CONTROLS / LEFT OR RIGHT HAND",new Vector2(285,448),new Vector2(570,70),()=>CandyComfortPanel.OpenHome(gameObject,eye,vr));
@@ -111,6 +120,50 @@ namespace DeadlyJenga.Presentation
             trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.AddBinding("<XRController>{LeftHand}/trigger");trigger.AddBinding("<HandInteraction>{LeftHand}/pinchValue");trigger.AddBinding("<HandInteraction>{RightHand}/pinchValue");trigger.Enable();
             pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(vr);
             SetSlide();
+        }
+        void ShowPage(GameObject page)
+        {
+            foreach(var candidate in new[]{entryPage,mainPage,joinPage,quickPage})candidate.SetActive(candidate==page);
+        }
+        void BuildQuickPlay()
+        {
+            var root=quickPage.transform;
+            ButtonAt(root,"BACK",new Vector2(-215,228),new Vector2(150,48),()=>ShowPage(mainPage));
+            Label(root,"QUICK PLAY",new Vector2(90,228),new Vector2(390,60),30,Color.white);
+            Label(root,"1 · GAME MODE",new Vector2(0,148),new Vector2(580,40),22,Color.white);
+            quickModeButton=ButtonAt(root,"",new Vector2(0,95),new Vector2(580,66),()=>
+            {
+                int count=quick?.QuickPlayModes.Length??0;
+                if(count==0)return;
+                modeIndex=(modeIndex+1)%count;
+                quick.SelectQuickPlayMode(modeIndex);
+                mapIndex=0;
+                RefreshQuickPlay();
+            });
+            Label(root,"2 · MAP",new Vector2(0,29),new Vector2(580,40),22,Color.white);
+            quickMapButton=ButtonAt(root,"",new Vector2(0,-22),new Vector2(580,66),()=>
+            {
+                int count=quick?.QuickPlayMaps.Length??0;
+                if(count==0)return;
+                mapIndex=(mapIndex+1)%count;
+                RefreshQuickPlay();
+            });
+            quickStartButton=ButtonAt(root,"START MATCH",new Vector2(0,-123),new Vector2(580,72),()=>quick?.StartQuickPlay(mapIndex));
+            ButtonAt(root,"RANDOM START",new Vector2(0,-216),new Vector2(580,65),controls.RandomLobby);
+        }
+        void ShowQuickPlay()
+        {
+            ShowPage(quickPage);
+            RefreshQuickPlay();
+        }
+        void RefreshQuickPlay()
+        {
+            var modes=quick?.QuickPlayModes??Array.Empty<string>();
+            var maps=quick?.QuickPlayMaps??Array.Empty<string>();
+            quickModes=modes.Length;
+            quickMaps=maps.Length;
+            quickModeButton.GetComponentInChildren<Text>().text=quickModes>0?modes[modeIndex]+"  ›":"No available modes";
+            quickMapButton.GetComponentInChildren<Text>().text=quickMaps>0?maps[mapIndex]+"  ›":"No available maps";
         }
         void BuildJoin()
         {
@@ -135,7 +188,7 @@ namespace DeadlyJenga.Presentation
         }
         public void ShowJoin(bool value)
         {
-            mainPage.SetActive(!value);joinPage.SetActive(value);
+            ShowPage(value?joinPage:mainPage);
             if(value){code.SetTextWithoutNotify(controls.Code);controls.DetectNearby();nextNearby=0;}
         }
         void Update()
@@ -150,6 +203,12 @@ namespace DeadlyJenga.Presentation
             AnimateSlideshow(Time.unscaledDeltaTime);Crop();
             status.text=controls.Status;
             foreach(var button in buttons)button.interactable=!controls.Busy;
+            if(quickPage.activeSelf)
+            {
+                quickModeButton.interactable=!controls.Busy&&quickModes>1;
+                quickMapButton.interactable=!controls.Busy&&quickMaps>1;
+                quickStartButton.interactable=!controls.Busy&&quickMaps>0;
+            }
             join.interactable=!controls.Busy&&controls.CodeValid;
             region.text="SHORT CODE REGION / "+controls.Region.ToUpperInvariant();
             if(joinPage.activeSelf&&Time.unscaledTime>=nextNearby)
@@ -158,7 +217,8 @@ namespace DeadlyJenga.Presentation
                 nearby.text=controls.NearbyCount==0?"No nearby rooms yet. You can still enter a code.":controls.NearbyCount+" nearby room(s)";
                 for(int i=0;i<2;i++){int index=nearbyPage*2+i;nearbyButtons[i].gameObject.SetActive(index<controls.NearbyCount);nearbyButtons[i].GetComponentInChildren<Text>().text=controls.NearbyTitle(index);}
             }
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&!controls.Busy)ShowJoin(false);
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&!controls.Busy&&!entryPage.activeSelf)
+                ShowPage(mainPage.activeSelf?entryPage:mainPage);
             if(Keyboard.current?.enterKey.wasPressedThisFrame==true&&joinPage.activeSelf&&!controls.Busy&&controls.CodeValid)controls.JoinCode();
             if(vr && recenterFrames==0)Point();
         }

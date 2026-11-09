@@ -24,7 +24,7 @@ namespace DeadlyJenga.CastlePrototype
         public string[] withdrawnIds = Array.Empty<string>();
         public string modeStartOperation="";
         public int modeStartRound;
-        public bool demo, automatic, startRequested;
+        public bool demo, automatic, startRequested, playerPlaylist, openDevelopment;
         public GameFlowPhase phase;
         public GameFlowEffect pending;
         public double remaining;
@@ -49,6 +49,7 @@ namespace DeadlyJenga.CastlePrototype
             authorityTerm=s.authorityTerm, revision=s.revision, selectionVersion=s.selectionVersion,
             rosterVersion=s.rosterVersion, round=s.round, operationSequence=s.operationSequence, attempts=s.attempts,
             demo=s.demo, automatic=s.automatic, startRequested=s.startRequested, phase=s.phase,
+            playerPlaylist=s.playerPlaylist, openDevelopment=s.openDevelopment,
             pending=s.pending, remaining=s.remaining,
             humanIds=(string[])s.humanIds.Clone(), readyIds=(string[])s.readyIds.Clone(), launchIds=(string[])s.launchIds.Clone(),
             playlistIds=(string[])s.playlistIds.Clone(),
@@ -87,6 +88,8 @@ namespace DeadlyJenga.CastlePrototype
             if ((s.phase == GameFlowPhase.Selected || s.phase == GameFlowPhase.WaitingReady || s.phase == GameFlowPhase.LoadingGame ||
                 s.phase == GameFlowPhase.Playing || s.phase == GameFlowPhase.Results) && string.IsNullOrEmpty(s.profileId))
                 throw new ArgumentException("Game phase needs a selected profile.");
+            if (s.playerPlaylist && s.demo || s.openDevelopment && !s.demo)
+                throw new ArgumentException("Conflicting room entry policies.");
             if (s.demo && (s.automatic || s.phase != GameFlowPhase.Idle || s.pending != GameFlowEffect.None))
                 throw new ArgumentException("Demo cannot own an automatic Game transition.");
             if (!ValidIds(s.humanIds) || !ValidIds(s.readyIds) || !ValidIds(s.launchIds) || !ValidIds(s.playlistIds) || !ValidIds(s.withdrawnIds))
@@ -136,7 +139,10 @@ namespace DeadlyJenga.CastlePrototype
             data.playlistIds=Array.FindAll(data.playlistIds,id=>Array.IndexOf(sorted,id)>=0);
             data.withdrawnIds=Array.FindAll(data.withdrawnIds,id=>Array.IndexOf(sorted,id)>=0);
             if (!Transitioning && (data.phase==GameFlowPhase.Selected || data.phase==GameFlowPhase.WaitingReady))
-            { checked { data.selectionVersion++; } data.phase=GameFlowPhase.Selected; data.remaining=data.timings.selection; }
+            {
+                checked { data.selectionVersion++; }
+                if(!data.playerPlaylist){data.phase=GameFlowPhase.Selected;data.remaining=data.timings.selection;}
+            }
             if (ids.Length==0 && !Transitioning && data.phase!=GameFlowPhase.Playing && data.phase!=GameFlowPhase.Results)
             { ClearOperation(); data.phase=GameFlowPhase.Idle; data.remaining=0; data.profileId=""; data.launchIds=Array.Empty<string>(); }
             Changed(); return true;
@@ -200,7 +206,7 @@ namespace DeadlyJenga.CastlePrototype
             bool everyoneReady=humans>0 && data.readyIds.Length==humans;
             // A lobby visit from a live match is never a new automatic selection.
             if (data.phase == GameFlowPhase.Idle && data.automatic && humans > 0 && lobbyVisible)
-            { data.phase = GameFlowPhase.Choosing; data.remaining = ChooseDelay; Changed(); return true; }
+            { data.phase = GameFlowPhase.Choosing; data.remaining = data.playerPlaylist ? 0 : ChooseDelay; Changed(); return true; }
             if (humans == 0 && !Transitioning)
             {
                 // Stop scheduling without lying about an existing loaded round or its results.
@@ -227,7 +233,7 @@ namespace DeadlyJenga.CastlePrototype
                 Begin(GameFlowEffect.ChooseProfile, GameFlowPhase.Choosing, data.timings.profileTimeout);
             else if (data.phase == GameFlowPhase.Selected && data.remaining == 0)
                 data.phase = GameFlowPhase.WaitingReady;
-            else if (data.phase == GameFlowPhase.WaitingReady && everyoneReady && eligible && humans > 0 && (data.automatic || data.startRequested))
+            else if (data.phase == GameFlowPhase.WaitingReady && (everyoneReady || data.playerPlaylist) && eligible && humans > 0 && (data.automatic || data.startRequested))
             { checked { data.round++; } data.launchIds=(string[])data.humanIds.Clone(); ClearReady(); Begin(GameFlowEffect.LoadGame, GameFlowPhase.LoadingGame, data.timings.sceneTimeout); }
             else if (data.phase == GameFlowPhase.Results && data.automatic && data.remaining == 0)
                 Begin(GameFlowEffect.ReturnLobby, GameFlowPhase.LoadingLobby, data.timings.sceneTimeout);
@@ -241,6 +247,19 @@ namespace DeadlyJenga.CastlePrototype
             if (!eligible || string.IsNullOrEmpty(profile) || profile.Length > 128)
             { data.phase = GameFlowPhase.Failed; data.error = "No compatible curated profile is available."; Changed(); return true; }
             return Select(term, profile, true);
+        }
+
+        public bool StartPlayerFirstRound(int term, string profile, bool eligible)
+        {
+            if (!Owns(term) || !data.playerPlaylist || data.round != 0 ||
+                data.phase != GameFlowPhase.Idle || data.humanIds.Length == 0 ||
+                !Select(term, profile, eligible)) return false;
+            data.automatic = true;
+            data.round++;
+            data.launchIds = (string[])data.humanIds.Clone();
+            Begin(GameFlowEffect.LoadGame, GameFlowPhase.LoadingGame, data.timings.sceneTimeout);
+            Changed();
+            return true;
         }
 
         public bool RequestStart(int term, int selectionVersion, int rosterVersion)
@@ -312,7 +331,7 @@ namespace DeadlyJenga.CastlePrototype
             if (data.phase != GameFlowPhase.LoadingGame && data.phase != GameFlowPhase.LoadingLobby && data.phase != GameFlowPhase.Failed) return false;
             bool game = destination == GameFlowEffect.LoadGame;
             ClearOperation(); data.phase = game ? GameFlowPhase.Playing : data.automatic ? GameFlowPhase.Choosing : GameFlowPhase.Idle;
-            data.remaining = !game && data.automatic ? ChooseDelay : 0;
+            data.remaining = !game && data.automatic && !data.playerPlaylist ? ChooseDelay : 0;
             if (!game) data.profileId = "";
             if (!game) { ClearReady(); data.launchIds=Array.Empty<string>(); }
             Changed(); return true;
