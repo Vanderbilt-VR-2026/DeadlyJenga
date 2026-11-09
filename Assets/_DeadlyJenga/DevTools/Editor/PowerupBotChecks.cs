@@ -44,7 +44,7 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode)
-                {SessionState.SetBool(Key+"Entered",true);AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();errors=checks=0;failed=false;Application.logMessageReceived+=Log;EditorApplication.delayCall+=()=>new GameObject("Powerup bot checks").AddComponent<PowerupBotCheckDriver>().StartCoroutine(Guard());}
+                {SessionState.SetBool(Key+"Entered",true);AssetDatabase.DisallowAutoRefresh();EditorApplication.LockReloadAssemblies();errors=checks=0;failed=false;Application.logMessageReceived+=Log;EditorApplication.update+=StartChecksOnce;}
                 if(state==PlayModeStateChange.EnteredEditMode&&SessionState.GetBool(Key+"Entered",false))
                 {
                     Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
@@ -75,6 +75,13 @@ namespace DeadlyJenga.DevTools.Editor
             typeof(BotCombatChecks).GetMethod("Begin",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic).Invoke(null,new object[]{new[]{"approach-face-hit","mystery-murder","ctf-contact","mystery-unknown-contact","mystery-repel"}});
             SessionState.SetBool(Key+"Combat",true);
         }
+        static void StartChecksOnce()
+        {
+            EditorApplication.update-=StartChecksOnce;
+            if(EditorApplication.isPlaying&&SessionState.GetBool(Key,false))
+                new GameObject("Powerup bot checks").AddComponent<PowerupBotCheckDriver>().StartCoroutine(Guard());
+        }
+
         static void Log(string message,string trace,LogType type)
         {
             if(TransportActive&&message.EndsWith("PeerModes.Multiple requires a scene to be set in StartGameArgs.Scene. Set a scene or disable Multiple Peer mode in the NetworkProjectConfig.",StringComparison.Ordinal)){File.AppendAllText(Report,"FIXTURE NOTE Fusion multiple-peer empty-scene diagnostic; transport assertions remain enabled.\n");return;}
