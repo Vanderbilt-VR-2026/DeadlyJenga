@@ -684,6 +684,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (!b) continue;
                 previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
                 if (HasNewerNativeBlock(i)) continue;
+                if (nativeWorld) nativeBlocks[i].Count = 0;
                 if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
                 if (s.active[i] && ((b.position - s.blocks[i].position).sqrMagnitude > .0000001f ||
                     Mathf.Abs(Quaternion.Dot(b.rotation, s.blocks[i].rotation)) < .9999999f))

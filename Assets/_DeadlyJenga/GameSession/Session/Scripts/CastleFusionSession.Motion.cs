@@ -105,8 +105,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 nextInputCapture = now + 1f / 30;
                 byte[] raw = castle.FusionCapturePlayer();
-                var payload = LivePoseCodec.Pack(raw, MaxPoseSize, Array.Empty<int>(), out _);
-                if (CastlePoseInputProbe.TryPack(payload, ++inputSequence, out var sample))
+                ++inputSequence;
+                if (CastlePoseInputProbe.TryPack(raw, inputSequence, out var sample) ||
+                    raw.Length <= MaxPoseSize && CastlePoseInputProbe.TryPack(
+                        LivePoseCodec.Pack(raw, MaxPoseSize), inputSequence, out sample))
                 {
                     sample.SceneEpoch = sceneTag;
                     latestInput = sample;
@@ -133,7 +135,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     var payload = CastlePoseInputProbe.Unpack(ref input);
                     if (payload == null) continue;
-                    var raw = LivePoseCodec.Unpack(payload, MaxPoseSize, out _);
+                    var raw = payload[0] == Protocol.Player ? payload : LivePoseCodec.Unpack(payload, MaxPoseSize);
                     long applyStarted = FusionMotionWireTrace.Now;
                     castle.FusionReceivePlayer(player.ToString(), raw);
                     peer.lastNativeSequence = input.Sequence;

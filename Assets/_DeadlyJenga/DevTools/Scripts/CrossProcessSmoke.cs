@@ -209,7 +209,7 @@ namespace DeadlyJenga.CastlePrototype
                 Require(lobby.SelectMode("ctf") && lobby.SelectMap("mode-ctf"), "Both peers use the same CTF fixture");
                 File.WriteAllText(Mark("pending-code"), lobby.Room.Code);
                 File.Move(Mark("pending-code"), Mark("code"));
-                yield return Until(() => lobby.Room.HumanCount == 2 && File.Exists(Mark("guest-joined")), "Guest joined the room", 120);
+                yield return Until(() => lobby.Room.HumanCount == 2 && File.Exists(Mark("guest-joined")), "Guest joined the room", 120, () => lobby.Room.Status);
                 lobby.StartOrCancel();
             }
             else
@@ -220,7 +220,9 @@ namespace DeadlyJenga.CastlePrototype
                 home.JoinCode();
                 yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.Connected &&
                     !IslandLobby.Current.Room.IsHost && IslandLobby.Current.SelectedMapId == "mode-ctf",
-                    "Guest joined the same CTF room", 90);
+                    "Guest joined the same CTF room", 90, () =>
+                    $"{IslandRoomConnection.Instance?.Status} lobby={IslandLobby.Current != null} " +
+                    $"selected={IslandLobby.Current?.SelectedMapId} peers={IslandRoomConnection.Instance?.HumanCount}");
                 File.WriteAllText(Mark("guest-joined"), "joined");
             }
 

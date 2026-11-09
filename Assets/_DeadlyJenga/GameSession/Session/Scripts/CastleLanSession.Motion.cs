@@ -8,13 +8,18 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleLanSession
     {
-        struct BlockMotion
+        struct BlockFrame
         {
             public int Tick;
+            public Protocol.Pose Pose;
+        }
+
+        struct BlockMotion
+        {
+            public BlockFrame Oldest, Older, Previous, Latest;
+            public int Count;
             public bool Queued;
-            public Protocol.Pose From, To;
-            public Vector3 Velocity;
-            public float Arrived, Duration, Delay;
+            public float Arrived, TickSeconds, Delay;
         }
 
         readonly Dictionary<string, int> nativeActorTicks = new Dictionary<string, int>();
@@ -57,31 +62,44 @@ namespace DeadlyJenga.CastlePrototype
             var body = World.Blocks[index];
             if (!body || !body.gameObject.activeSelf) return;
             ref var sample = ref nativeBlocks[index];
-            bool hadSample = sample.Duration > 0;
-            if (hadSample && !IsLaterTick(tick, sample.Tick)) return;
+            bool hadSample = sample.Count > 0;
+            if (hadSample && !IsLaterTick(tick, sample.Latest.Tick)) return;
+            float dt = hadSample ? unchecked(tick - sample.Latest.Tick) * tickSeconds : .067f;
             var from = new Protocol.Pose(body.position, body.rotation);
-            float dt = hadSample ? unchecked(tick - sample.Tick) * tickSeconds : .07f;
-            Vector3 delta = target.position - (hadSample ? sample.To.position : from.position);
-            bool discontinuity = delta.sqrMagnitude > Mathf.Pow(Mathf.Max(3, Mathf.Min(dt, .2f) * 40), 2);
+            Vector3 delta = target.position - (hadSample ? sample.Latest.Pose.position : from.position);
+            float teleportDistance = Mathf.Max(3, Mathf.Min(dt, .2f) * 40);
+            bool discontinuity = delta.sqrMagnitude > teleportDistance * teleportDistance;
             float jitter = hadSample ? Mathf.Abs(arrival - sample.Arrived - dt) : 0;
-            float delay = Mathf.Clamp(.04f + jitter, .04f, .10f);
             if (!sample.Queued) nativeRenderingBlocks.Add(index);
-            sample = new BlockMotion
+            sample.Queued = true;
+            sample.Arrived = arrival;
+            sample.TickSeconds = tickSeconds;
+            sample.Delay = discontinuity ? 0 : Mathf.Clamp(.04f + jitter, .04f, .10f);
+            if (discontinuity)
             {
-                Tick = tick,
-                Queued = true,
-                Arrived = arrival,
-                Duration = discontinuity ? .001f : Mathf.Clamp(dt, .025f, .12f),
-                Delay = discontinuity ? 0 : delay,
-                From = discontinuity ? target : from,
-                To = target,
-                Velocity = hadSample && !discontinuity && dt >= .015f && dt <= .3f
-                    ? Vector3.ClampMagnitude(delta / dt, 30) : Vector3.zero
-            };
+                sample.Count = 1;
+            }
+            else if (!hadSample)
+            {
+                sample.Count = 2;
+                sample.Previous = new BlockFrame
+                {
+                    Tick = unchecked(tick - Mathf.Max(1, Mathf.RoundToInt(.067f / tickSeconds))),
+                    Pose = from
+                };
+            }
+            else
+            {
+                sample.Oldest = sample.Older;
+                sample.Older = sample.Previous;
+                sample.Previous = sample.Latest;
+                sample.Count = Mathf.Min(4, sample.Count + 1);
+            }
+            sample.Latest = new BlockFrame { Tick = tick, Pose = target };
         }
 
-        bool HasNewerNativeBlock(int index) => index < nativeBlocks.Length && nativeBlocks[index].Duration > 0 &&
-            (!nativeWorld || IsLaterTick(nativeBlocks[index].Tick, nativeWorldTick));
+        bool HasNewerNativeBlock(int index) => index < nativeBlocks.Length && nativeBlocks[index].Count > 0 &&
+            (!nativeWorld || IsLaterTick(nativeBlocks[index].Latest.Tick, nativeWorldTick));
 
         void RenderNativeBlocks(float now)
         {
@@ -102,16 +120,40 @@ namespace DeadlyJenga.CastlePrototype
             ref var sample = ref nativeBlocks[index];
 
             float elapsed = now - sample.Arrived - sample.Delay;
-            float ratio = Mathf.Clamp01(elapsed / sample.Duration);
-            Vector3 position = Vector3.Lerp(sample.From.position, sample.To.position, ratio);
-            float lead = Mathf.Clamp(elapsed - sample.Duration, 0, .04f);
-            // Fade extrapolation back to the authoritative endpoint when updates stop.
-            lead *= 1f - Mathf.Clamp01((elapsed - sample.Duration - .04f) / .08f);
-            position += Vector3.ClampMagnitude(sample.Velocity * lead, .5f);
-            var rotation = Quaternion.Slerp(sample.From.rotation, sample.To.rotation, ratio);
+            var position = sample.Latest.Pose.position;
+            var rotation = sample.Latest.Pose.rotation;
+            if (sample.Count > 1)
+            {
+                float beforeLatest = -elapsed / sample.TickSeconds;
+                var left = sample.Previous;
+                var right = sample.Latest;
+                if (sample.Count >= 3 && beforeLatest > unchecked(sample.Latest.Tick - left.Tick))
+                {
+                    right = left;
+                    left = sample.Older;
+                }
+                if (sample.Count == 4 && beforeLatest > unchecked(sample.Latest.Tick - left.Tick))
+                {
+                    right = left;
+                    left = sample.Oldest;
+                }
+
+                int leftAge = unchecked(sample.Latest.Tick - left.Tick);
+                int rightAge = unchecked(sample.Latest.Tick - right.Tick);
+                float ratio = Mathf.Clamp01((leftAge - beforeLatest) / Mathf.Max(1, leftAge - rightAge));
+                position = Vector3.Lerp(left.Pose.position, right.Pose.position, ratio);
+                rotation = Quaternion.Slerp(left.Pose.rotation, right.Pose.rotation, ratio);
+                float spacing = unchecked(sample.Latest.Tick - sample.Previous.Tick) * sample.TickSeconds;
+                if (elapsed > 0 && spacing >= .015f && spacing <= .3f)
+                {
+                    float lead = Mathf.Min(elapsed, .04f) * (1f - Mathf.Clamp01((elapsed - .04f) / .08f));
+                    var velocity = (sample.Latest.Pose.position - sample.Previous.Pose.position) / spacing;
+                    position += Vector3.ClampMagnitude(Vector3.ClampMagnitude(velocity, 30) * lead, .5f);
+                }
+            }
             if ((body.position - position).sqrMagnitude > .0000001f) body.position = position;
-            if (Quaternion.Dot(body.rotation, rotation) < .9999999f) body.rotation = rotation;
-            return elapsed < sample.Duration + .12f;
+            if (Mathf.Abs(Quaternion.Dot(body.rotation, rotation)) < .9999999f) body.rotation = rotation;
+            return elapsed < .12f;
         }
 
         internal Protocol.Actor CaptureMotionHuman() => LocalActor();
