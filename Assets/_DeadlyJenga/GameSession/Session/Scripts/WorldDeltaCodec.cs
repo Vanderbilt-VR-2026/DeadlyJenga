@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
         internal sealed class Prepared
         {
             internal readonly byte[] Raw, Full, HashBytes;
-            byte[] lastAnchor, lastDelta;
+            byte[] lastAnchor, lastDelta, previousAnchor, previousDelta;
 
             internal Prepared(byte[] raw)
             {
@@ -53,9 +53,12 @@ namespace DeadlyJenga.CastlePrototype
             internal byte[] Delta(byte[] anchor)
             {
                 if (ReferenceEquals(anchor, lastAnchor)) return lastDelta;
+                if (ReferenceEquals(anchor, previousAnchor)) return previousDelta;
                 var xor = new byte[Raw.Length];
                 for (int i = 0; i < Raw.Length; i++)
                     xor[i] = (byte)(Raw[i] ^ (i < anchor.Length ? anchor[i] : 0));
+                previousAnchor = lastAnchor;
+                previousDelta = lastDelta;
                 lastAnchor = anchor;
                 return lastDelta = Zip(xor);
             }
@@ -72,6 +75,10 @@ namespace DeadlyJenga.CastlePrototype
             internal void Reset(){generation=Guid.NewGuid();context=null;anchor=pending=anchorHash=pendingHash=null;anchorSerial=pendingSerial=pendingLength=0;invalidated=false;}
             internal void Invalidate()
             {if(pendingSerial==0){Reset();return;}anchor=pending=anchorHash=null;anchorSerial=0;context=null;invalidated=true;}
+            // Called on the main thread. Anchors only reference immutable captures.
+            internal byte[] AnchorFor(string nextContext) =>
+                pendingSerial == 0 && nextContext == context && !invalidated ? anchor : null;
+
             internal byte[] Prepare(byte[] raw,string nextContext,int serial) =>
                 Prepare(new Prepared(raw == null ? null : (byte[])raw.Clone()), nextContext, serial);
 
