@@ -43,7 +43,7 @@ namespace DeadlyJenga.CandyPlayers
             ReadAcceptedBashes(state);
             if (!Local || !CanBash(state) || motor.InputSuspended || !motor.HasInputFocus || !motor.Alive ||
                 motor.Climbing || motor.Vaulting || motor.CarryingFlag || Services.Session?.MenuOpen == true ||
-                pendingPickup != 0 || state.reloadRemaining > 0 || state.triggerHeld || Time.time - lastAttackTime < .22f)
+                state.reloadRemaining > 0 || state.triggerHeld || Time.time - lastAttackTime < .22f)
             {
                 ResetBashTracking();
                 CancelBashPresentation();
