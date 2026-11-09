@@ -27,17 +27,22 @@ namespace DeadlyJenga.CharacterNetwork
             return p;
         }
 
+        // Packed avatar color already carries presentation flags. Older readers ignore this bit.
+        const int SprintPoseBit = 1 << 24;
+
         // Survivor: body frame plus color.
         public static void WriteSurvivor(BinaryWriter w, CandyAvatarFrame f, int color)
         {
             NetWire.Write(w, f.feet); NetWire.Write(w, f.head); NetWire.Write(w, f.headRotation); w.Write(f.scale);
-            WriteHandPose(w, f.left); WriteHandPose(w, f.right); w.Write(color);
+            WriteHandPose(w, f.left); WriteHandPose(w, f.right); w.Write((color & ~SprintPoseBit) | (f.sprinting ? SprintPoseBit : 0));
         }
         public static void ReadSurvivor(BinaryReader r, out CandyAvatarFrame frame, out int color)
         {
             frame = new CandyAvatarFrame { feet = NetWire.ReadVector(r), head = NetWire.ReadVector(r), headRotation = NetWire.ReadRotation(r), scale = NetWire.ReadNumber(r), left = ReadHandPose(r), right = ReadHandPose(r) };
             if (frame.scale < .1f || frame.scale > 2) throw new InvalidDataException("Invalid avatar scale");
             color = r.ReadInt32();
+            frame.sprinting = (color & SprintPoseBit) != 0;
+            color &= ~SprintPoseBit;
         }
         const int AppearanceMagic=0x41565031;
         public static void WriteSurvivor(BinaryWriter w,CandyAvatarFrame frame,int color,AvatarAppearance appearance,IEnemyActor enemy=null,IBlasterControls blaster=null,byte remoteBlaster=0)

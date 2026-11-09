@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool climbingEnabled=true;
         public float climbSpeed=1.8f;
         [Tooltip("Stamina capacity in effort units. At default drain, one unit is one second of moving climb.")]
-        [Min(.2f)] public float climbGripSeconds=4;
+        [Min(.2f)] public float climbGripSeconds=8;
         [Tooltip("Normalized recovery speed: .65 restores 65% per second with the linear curve. Zero disables recovery.")]
         [Min(0)] public float climbRecoveryPerSecond=.65f;
         [Tooltip("Maximum nearby seam search in human-scale metres; scaled with the player. Never bridges empty space without finding a real face.")]
@@ -108,8 +108,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!Climbing)
             {
                 // Rest on secure ground only. Dropping/regrabbing or changing blocks never refills grip.
-                if(!sprintStaminaActive&&Grounded&&GroundAngle<=slopeGripAngle&&SupportAtRest())climbGroundRest+=dt;else climbGroundRest=0;
-                if(!sprintStaminaActive&&climbGroundRest>Mathf.Max(0,climbRecoveryDelay))GripRemaining=CastleStaminaCurve.Advance(GripRemaining,Mathf.Max(0,climbRecoveryPerSecond)*dt,climbRecoveryCurve,climbRecoveryDegree);
+                if(Grounded&&GroundAngle<=slopeGripAngle&&SupportAtRest())climbGroundRest+=dt;else climbGroundRest=0;
+                if(climbGroundRest>Mathf.Max(0,climbRecoveryDelay))GripRemaining=CastleStaminaCurve.Advance(GripRemaining,Mathf.Max(0,climbRecoveryPerSecond)*dt,climbRecoveryCurve,climbRecoveryDegree);
                 if(!climbingEnabled||(modeRules!=null&&!modeRules.canClimb)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
                 var facing=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 if(!FindClimbFace(Feet,facing,out var initial))return false;

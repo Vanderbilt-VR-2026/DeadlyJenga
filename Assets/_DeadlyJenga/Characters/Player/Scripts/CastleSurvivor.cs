@@ -43,7 +43,7 @@ namespace DeadlyJenga.CastlePrototype
         const float SprintMultiplier=1.4f;
         XRController sprintController;
         public bool Sprinting {get;private set;}
-        void ClearSprint(){SprintRequested=false;Sprinting=false;sprintStaminaActive=false;sprintToggleArmed=false;sprintFeedbackUntil=0;}
+        void ClearSprint(){SprintRequested=false;Sprinting=false;sprintToggleArmed=false;sprintFeedbackUntil=0;}
         [HideInInspector] public bool externallyDriven;
         public DeadlyJenga.CastleBots.ICastleSurvivorDriver InputDriver { get; set; }
         public bool IsVR { get; private set; }
@@ -259,7 +259,6 @@ namespace DeadlyJenga.CastlePrototype
             {
                 Vaulting=false;vaultSurface=null;vaultTime=0;ClearSprint();ActionStatus="Vault cancelled";
             }
-            sprintStaminaActive=CanSprint(input);
             if(UpdateClimb(Vector2.ClampMagnitude(input,1),climbHeld&&!InputSuspended&&!Sinking&&!CarryingFlag,dt)){ClearSprint();return;}
             if (Vaulting) { ClearSprint();AdvanceVault(dt); return; }
             if (support && Grounded)
@@ -286,7 +285,7 @@ namespace DeadlyJenga.CastlePrototype
                 else if ((Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
                 else ActionStatus = "No reachable ledge — no double jump";
             }
-            UpdateSprintStamina(input,dt);
+            Sprinting=CanSprint(input);
             Vector3 forward = MovementForward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
             input = Vector2.ClampMagnitude(input, 1);
