@@ -33,6 +33,17 @@ namespace DeadlyJenga.DevTools.Editor
             if(legacy)PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,1);else PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);
             PlayerPrefs.Save();Debug.Log((legacy?"Previous lobby backup":"Mayhem Marina default")+" selected. Enter Play Mode to load it.");
         }
+        public static void RunRecovery()
+        {
+            File.WriteAllText(Report,"Marina ocean recovery and solo match return in actual Unity Play Mode.\n");
+            SessionState.SetInt(Key+"Preference",PlayerPrefs.GetInt(IslandLobby.LegacyLobbyPreference,-1));
+            SessionState.SetBool(Key+"Layout",true);
+            SessionState.SetBool(Key+"Recovery",true);
+            SelectLayout(false);
+            SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
+            EditorApplication.EnterPlaymode();
+        }
         public static void RunBackup(){RunLayout(true);}
         public static void RunDefault(){RunLayout(false);}
         public static void RunWildlifeDistribution()
@@ -119,14 +130,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
             }
         }
         static void Log(string value,string stack,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;
@@ -185,6 +196,55 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return null;
                 Check(view.InvokeChoice("marina-close"),id+" returns to the arcade");
             }
+        }
+        static IEnumerator RunRecoveryScene()
+        {
+            Application.runInBackground=true;
+            float until=Time.realtimeSinceStartup+45;
+            while (!IslandLobby.Current&&Time.realtimeSinceStartup<until) yield return null;
+            var lobby=IslandLobby.Current;
+            Check(lobby&&lobby.GetComponent<MayhemMarina>()&&NetworkActors.Alive(lobby.Player),"Actual Marina lobby and survivor loaded");
+            yield return Wait(.5f);
+            lobby.SetMenu(false);
+            Check(!lobby.Player.InputSuspended,"Initial Marina input available");
+            var oldPlayer=lobby.Player;
+            var ocean=lobby.GetComponentsInChildren<Renderer>(true).Single(r=>r.name=="Marina ocean");
+            var water=lobby.transform.TransformPoint(new Vector3(-14,0,-37));
+            water.y=lobby.WaterHeight(water)-.06f;
+            lobby.Player.Place(water,Quaternion.identity);
+            yield return Wait(.45f);
+            var recovered=lobby.transform.InverseTransformPoint(lobby.Player.transform.position);
+            Check(recovered.y>1.15f&&Vector2.Distance(new Vector2(recovered.x,recovered.z),new Vector2(-10,-8))<5,
+                "Ocean crossing near water level returns the survivor to the dry arrival pier");
+            Check(!lobby.Player.InputSuspended,"Ocean recovery keeps movement available");
+            lobby.Player.Place(lobby.transform.TransformPoint(new Vector3(17,.47f,-8)),Quaternion.identity);
+            yield return Wait(.4f);
+            var pool=lobby.transform.InverseTransformPoint(lobby.Player.transform.position);
+            Check(Vector2.Distance(new Vector2(pool.x,pool.z),new Vector2(17,-8))<1.2f,"Practice basin stays playable");
+
+            MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;
+            MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(ProjectPath.Find("Game.unity"));
+            yield return Wait(.5f);
+            Check(lobby.MatchResident&&!oldPlayer.gameObject.activeInHierarchy&&Services.Session is CastlePlaySession,
+                "Real match scene parks the persistent lobby body");
+            Check(!ocean.gameObject.activeInHierarchy,"Parked Marina ocean does not render in the match");
+            Check(lobby.Room.ReturnMatchToLobby(),"Solo room accepts return to the lobby");
+            until=Time.realtimeSinceStartup+45;
+            while (IslandLobby.Current!=lobby&&Time.realtimeSinceStartup<until) yield return null;
+            Check(IslandLobby.Current==lobby,"Return reloads the retained Marina through the room");
+            yield return Wait(.5f);
+            Check(ReferenceEquals(oldPlayer,lobby.Player)&&oldPlayer.gameObject.activeInHierarchy&&oldPlayer.ViewCamera.enabled,
+                "Retained survivor and camera are active after return");
+            Check(ocean.gameObject.activeInHierarchy&&RenderSettings.skybox,"Marina ocean and sky are restored");
+            Check(!lobby.MenuOpen&&!lobby.Player.InputSuspended,"Returned survivor is ready for movement");
+            var motor=lobby.Survivor();
+            var start=motor.transform.position;
+            motor.externallyDriven=true;motor.InputDriver=new MarinaWalkDriver{target=start+lobby.transform.right*1.1f};
+            yield return Wait(1);
+            motor.InputDriver=null;motor.externallyDriven=false;
+            Check(Vector3.ProjectOnPlane(motor.transform.position-start,Vector3.up).magnitude>.45f,
+                "The real survivor motor accepts movement after the match return");
         }
         static IEnumerator RunLayoutScene()
         {

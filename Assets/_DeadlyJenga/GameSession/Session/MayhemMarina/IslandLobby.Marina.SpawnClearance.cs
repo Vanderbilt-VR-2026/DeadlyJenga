@@ -13,7 +13,13 @@ namespace DeadlyJenga.CastlePrototype
         bool marinaArrivalPending,marinaArrivalPlaced,marinaWasConnected;
         bool marinaArrivalAnnounced,marinaArrivalCuePrepared,marinaArrivalBeforeDeparture;
         int marinaPlacedGeneration=int.MinValue,marinaPlacedFloorRevision=-1;
-        float nextMarinaArrival;
+        float nextMarinaArrival,nextMarinaRecovery;
+        static readonly Vector3[] MarinaRecoveryPoints =
+        {
+            new(-10,1.33f,-8),new(-11.5f,1.33f,-8),new(-8.5f,1.33f,-8),
+            new(-10,1.33f,-6.5f),new(-10,1.33f,-9.5f),new(-7,1.33f,-7),
+            new(-13,1.33f,-7),new(-13,1.33f,-9),new(-7,1.33f,-9),new(-10,1.33f,-5.2f)
+        };
         readonly Collider[] marinaSpawnOverlaps=new Collider[64];
         internal bool UsesMarinaSpawns=>Radius>=30&&PlayerPrefs.GetInt(LegacyLobbyPreference,0)!=1;
         internal int MarinaFloorRevision=>marinaFloorRevision;
@@ -61,19 +67,13 @@ namespace DeadlyJenga.CastlePrototype
             var forward=Vector3.ProjectOnPlane(transform.forward,Vector3.up);
             if(forward.sqrMagnitude<.01f){reason="Lobby orientation is invalid.";return MarinaSpawnResult.Rejected;}
             var rotation=Quaternion.LookRotation(forward,Vector3.up);
-            for(int candidate=0;candidate<10;candidate++)
-            {
-                var target=transform.TransformPoint(new Vector3(-2.4f+1.2f*(candidate%5),1.86f,6.2f+1.4f*(candidate/5)));
-                float expected=gray?floor.bounds.max.y:target.y;
-                var ray=new Ray(new Vector3(target.x,expected+.35f,target.z),Vector3.down);
-                if(!floor.Raycast(ray,out var hit,1.2f)||Mathf.Abs(hit.point.y-expected)>.12f||hit.normal.y<.85f)
-                {reason="Lobby slot "+candidate+" has no safe platform floor.";return MarinaSpawnResult.Rejected;}
-                var root=hit.point+Vector3.up*(.06f-bottom);
-                var status=CheckMarinaCapsule(root,rotation,radius,height,center,ignoreActor,false,out reason);
-                if(status!=MarinaSpawnResult.Accepted)return status;
-                if(candidate==slot)pose=new P.Pose(root,rotation);
-            }
-            return occupancy?CheckMarinaCapsule(pose.position,pose.rotation,radius,height,center,ignoreActor,true,out reason):MarinaSpawnResult.Accepted;
+            var target=transform.TransformPoint(new Vector3(-2.4f+1.2f*(slot%5),1.86f,6.2f+1.4f*(slot/5)));
+            float expected=gray?floor.bounds.max.y:target.y;
+            var ray=new Ray(new Vector3(target.x,expected+.35f,target.z),Vector3.down);
+            if(!floor.Raycast(ray,out var hit,1.2f)||Mathf.Abs(hit.point.y-expected)>.12f||hit.normal.y<.85f)
+            {reason="Lobby slot "+slot+" has no safe platform floor.";return MarinaSpawnResult.Rejected;}
+            pose=new P.Pose(hit.point+Vector3.up*(.06f-bottom),rotation);
+            return CheckMarinaCapsule(pose.position,pose.rotation,radius,height,center,ignoreActor,occupancy,out reason);
         }
         MarinaSpawnResult CheckMarinaCapsule(Vector3 position,Quaternion rotation,float radius,float height,Vector3 center,GameObject ignoreActor,bool occupancy,out string reason)
         {
@@ -120,13 +120,53 @@ namespace DeadlyJenga.CastlePrototype
             marinaWasConnected=Room&&Room.Connected;marinaPlacedGeneration=Room?Room.MarinaSpawnGeneration:int.MinValue;marinaPlacedFloorRevision=marinaFloorRevision;
             SetMenu(MenuOpen);AnnounceMarinaArrival();return true;
         }
-        bool PlaceLocalLobbyArrival()
+        void RecoverMarinaPlayer()
+        {
+            if (Time.unscaledTime < nextMarinaRecovery) return;
+            nextMarinaRecovery=Time.unscaledTime+.25f;
+            if (TryMarinaRecoveryPose(out var pose))
+                Player.Place(pose.position,pose.rotation);
+        }
+
+        bool TryMarinaRecoveryPose(out P.Pose pose)
+        {
+            pose=default;
+            Collider floor=marinaSpawnFloor;
+            if (!floor && flatFloor) floor=flatFloor.GetComponent<Collider>();
+            if (!floor||!floor.enabled) return false;
+            MarinaEnvelope(out float radius,out float height,out var center,out float bottom);
+            if (!MarinaFinite(center)||!float.IsFinite(radius)||!float.IsFinite(height)) return false;
+            var rotation=Quaternion.Euler(0,transform.eulerAngles.y,0);
+            Physics.SyncTransforms();
+            int count=MarinaRecoveryPoints.Length;
+            int first=Room&&Room.Connected?(int)((uint)Room.Runner.LocalPlayer.RawEncoded % (uint)count):0;
+            for (int i=0;i<count;i++)
+            {
+                var target=transform.TransformPoint(MarinaRecoveryPoints[(first+i)%count]);
+                if (!floor.Raycast(new Ray(target+Vector3.up*.5f,Vector3.down),out var hit,1f) ||
+                    hit.normal.y<.85f || hit.point.y<=WaterHeight(hit.point)) continue;
+                var feet=hit.point+Vector3.up*(.06f-bottom);
+                if (CheckMarinaCapsule(feet,rotation,radius,height,center,Player.gameObject,true,out _) != MarinaSpawnResult.Accepted)
+                    continue;
+                pose=new P.Pose(feet,rotation);
+                return true;
+            }
+            return false;
+        }
+
+        bool PlaceLocalLobbyArrival(bool returning=false)
         {
             if(!UsesMarinaSpawns){Player.Place(SafeSpawnPoint(),Quaternion.identity);AnnounceMarinaArrival();return true;}
+            bool connected=Room&&Room.Connected&&!VisitOwner;
+            // Keep the same admission when the persistent lobby resumes on the same floor and room generation.
+            bool alreadyAdmitted=marinaArrivalPlaced&&marinaWasConnected==connected&&
+                marinaPlacedFloorRevision==marinaFloorRevision&&(!connected||marinaPlacedGeneration==Room.MarinaSpawnGeneration);
             P.Pose pose;string reason;MarinaSpawnResult result;
-            if(Room&&Room.Connected&&!VisitOwner)result=Room.TryGetLocalMarinaSpawn(out pose,out reason);
+            if(connected)result=Room.TryGetLocalMarinaSpawn(out pose,out reason);
             else result=TryMarinaSpawnPose(2,out pose,out reason,Player.gameObject);
             if(result==MarinaSpawnResult.Accepted)return ApplyReservedMarinaSpawn(pose);
+            if((!connected||returning&&alreadyAdmitted)&&TryMarinaRecoveryPose(out pose))
+                return ApplyReservedMarinaSpawn(pose);
             marinaArrivalPending=true;SetupHint=reason;Player.InputSuspended=true;nextMarinaArrival=Time.unscaledTime+.25f;
             return false;
         }

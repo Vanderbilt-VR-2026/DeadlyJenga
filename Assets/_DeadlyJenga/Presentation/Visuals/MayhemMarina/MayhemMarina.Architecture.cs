@@ -86,6 +86,10 @@ namespace DeadlyJenga.CandyArt.Marina
         void JetSkiDock()
         {
             mesh.Box(new Vector3(-20.8f, 1.12f, -25.0f), new Vector3(6.8f, .24f, 2.8f), F.Wood, .045f, true);
+            // Mark the open water edge with a flush contrasting trim.
+            mesh.Box(new Vector3(-20.8f,1.244f,-26.27f),new Vector3(6.32f,.014f,.16f),F.DarkWood,.006f);
+            for (int i=0;i<9;i++)
+                mesh.Box(new Vector3(-23.6f+i*.70f,1.254f,-26.27f),new Vector3(.27f,.012f,.13f),F.Brass,.005f);
             for (int i = 0; i < 4; i++)
             {
                 var point = new Vector3(-23.9f + i * 1.9f, 1.24f, -26.36f);

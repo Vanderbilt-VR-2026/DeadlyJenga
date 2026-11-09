@@ -135,12 +135,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             CloseLobbyVisit(false);
             seaSpirit?.SetSeaSpirit(false);
-            if (ReferenceEquals(Services.Session, this)) Services.Session = null;
+            bool ownedSession = ReferenceEquals(Services.Session, this);
+            if (ownedSession) Services.Session = null;
             GameEvents.Eliminated -= OnEliminated;
             select?.Dispose();
             if (NetworkActors.Alive(Player)) Destroy(Player.gameObject);
             if (NetworkActors.Alive(Hand)) Destroy(Hand.gameObject);
-            Cursor.lockState = CursorLockMode.None; Cursor.visible = true;
+            if (ownedSession) { Cursor.lockState = CursorLockMode.None; Cursor.visible = true; }
         }
         bool Ready => NetworkActors.Alive(Player) && NetworkActors.Alive(Hand);
         void OnApplicationFocus(bool value) { focused = value; HoldMenuGameplayInput(); if (!value && Ready) SetMenu(true); }
