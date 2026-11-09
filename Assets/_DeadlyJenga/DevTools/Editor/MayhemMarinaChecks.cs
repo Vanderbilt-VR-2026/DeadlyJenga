@@ -471,9 +471,12 @@ namespace DeadlyJenga.DevTools.Editor
             motor.Place(lobby.transform.TransformPoint(points[0]),Quaternion.identity);
             for(int i=1;i<points.Length;i++)
             {
-                driver.target=lobby.transform.TransformPoint(points[i]);float until=Time.realtimeSinceStartup+12;
-                while(Vector3.ProjectOnPlane(driver.target-motor.transform.position,Vector3.up).magnitude>.45f&&Time.realtimeSinceStartup<until)yield return null;
-                File.AppendAllText(Report,$"WALK {label} at={motor.transform.position} target={driver.target} status={motor.ActionStatus}\n");
+                driver.target = lobby.transform.TransformPoint(points[i]);
+                float simulatedStart = Time.time, wallStart = Time.realtimeSinceStartup;
+                while (Vector3.ProjectOnPlane(driver.target - motor.transform.position, Vector3.up).magnitude > .45f &&
+                    Time.time < simulatedStart + 12 && Time.realtimeSinceStartup < wallStart + 35)
+                    yield return null;
+                File.AppendAllText(Report, $"WALK {label} at={motor.transform.position} target={driver.target} status={motor.ActionStatus} simulatedSeconds={Time.time - simulatedStart:F2}\n");
                 Check(Vector3.ProjectOnPlane(driver.target-motor.transform.position,Vector3.up).magnitude<.6f,label+" waypoint "+i+" reached by actual survivor motor");
                 Check(motor.transform.position.y>lobby.transform.position.y+minHeight,label+" remains above the waterline or basin floor");
             }
