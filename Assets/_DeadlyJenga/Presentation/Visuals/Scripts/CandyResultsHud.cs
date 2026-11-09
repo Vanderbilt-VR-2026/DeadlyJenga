@@ -10,7 +10,7 @@ namespace DeadlyJenga.Presentation
 {
     public sealed class CandyResultsHud : MonoBehaviour
     {
-        const int FullPage = 6, SplitPage = 5;
+        const int FullPage = 5, SplitPage = 5, PortraitSize = 74;
         static readonly Color Ink = new Color(.065f, .032f, .135f, .98f);
         static readonly Color Mint = new Color(.58f, 1f, .83f);
         sealed class Row
@@ -28,6 +28,7 @@ namespace DeadlyJenga.Presentation
         Canvas canvas;
         Text title, summary, roomCode, primaryHeading, secondaryHeading, paging;
         CandyScorePortraits portraits;
+        CandyScorePodium podium;
         IMatchRuntime owner;
         MatchFrame rankedFrame;
         int rankedRevision, page, infectionPage;
@@ -53,6 +54,7 @@ namespace DeadlyJenga.Presentation
                 visible = false;
                 modalHidden = false;
                 rankedFrame = null;
+                podium?.Hide();
                 if (canvas) canvas.gameObject.SetActive(false);
                 return;
             }
@@ -113,6 +115,7 @@ namespace DeadlyJenga.Presentation
             }
 
             Draw(match, frame);
+            if (canvas.enabled) podium.Draw();
             labels[1].text = MultiplayerPanel.LobbyAction(session.Multiplayer).ToUpperInvariant();
             string code = MultiplayerPanel.JoinCode(session.Multiplayer);
             roomCode.text = code.Length > 0 ? "JOIN CODE   " + code + (wasVr ? "" : "   ·   COPY") : "";
@@ -179,12 +182,19 @@ namespace DeadlyJenga.Presentation
             summary.text = CandyHudContent.Mode(frame.rules.mode) + "  ·  " + CandyHudContent.Safe(frame.metricLabel)
                 + "  ·  " + CandyMatchHud.StandingsCount(sorted.Length, rankedCurated)
                 + (place.Length > 0 ? "  ·  " + place : "");
+            bool showPodium = frame.rules.mode != GameModeKind.MurderMystery && sorted.Length > 0;
+            float standingsX = showPodium ? -202 : 0;
             primaryHeading.text = split ? "LONGEST SURVIVORS" : "FINAL STANDINGS";
-            primaryHeading.rectTransform.anchoredPosition = new Vector2(split ? -250 : 0, 183);
+            primaryHeading.rectTransform.anchoredPosition = new Vector2(standingsX - (split ? 200 : 0), 219);
+            secondaryHeading.rectTransform.anchoredPosition = new Vector2(standingsX + 200, 219);
             secondaryHeading.gameObject.SetActive(split);
             secondaryHeading.text = "SURVIVORS INFECTED";
-            DrawRows(primary, sorted, page, PageSize, split ? -250 : 0, split ? 482 : 982, match, frame.rules.mode, false);
-            DrawRows(secondary, infectors, infectionPage, split ? SplitPage : 0, 250, 482, match, frame.rules.mode, true);
+            DrawRows(primary, sorted, page, PageSize, standingsX - (split ? 200 : 0), split ? 380 : 780, match, frame.rules.mode, false);
+            DrawRows(secondary, infectors, infectionPage, split ? SplitPage : 0, standingsX + 200, 380, match, frame.rules.mode, true);
+            podium.SetPlayers(match, sorted, showPodium && canvas.enabled);
+            paging.rectTransform.anchoredPosition = new Vector2(standingsX, -232);
+            buttons[2].rectTransform.anchoredPosition = new Vector2(standingsX - 290, -232);
+            buttons[3].rectTransform.anchoredPosition = new Vector2(standingsX + 290, -232);
             paging.text = split
                 ? $"Survivors {page + 1} / {Pages(sorted.Length, PageSize)}    ·    Infections {infectionPage + 1} / {Pages(infectors.Length, SplitPage)}"
                 : $"Page {page + 1} / {Pages(sorted.Length, PageSize)}";
@@ -206,18 +216,19 @@ namespace DeadlyJenga.Presentation
                 var player = players[rank];
                 bool own = player.id == match.LocalActorId;
                 var rect = row.background.rectTransform;
-                rect.sizeDelta = new Vector2(width, split ? 62 : 52);
-                rect.anchoredPosition = new Vector2(x, 137 - i * (split ? 66 : 54));
+                rect.sizeDelta = new Vector2(width, 80);
+                rect.anchoredPosition = new Vector2(x, 162 - i * 83);
                 row.background.color = own ? new Color(.12f, .31f, .32f) : new Color(.145f, .09f, .24f);
                 row.rank.text = (rank + 1).ToString();
 
                 row.name.color = own ? Mint : Color.white;
-                row.name.rectTransform.sizeDelta = new Vector2(split ? 352 : 420, 32);
-                row.name.rectTransform.anchoredPosition = new Vector2(split ? 282 : 316, split ? 13 : 0);
+                float nameWidth = split ? 248 : 360;
+                row.name.rectTransform.sizeDelta = new Vector2(nameWidth, 36);
+                row.name.rectTransform.anchoredPosition = new Vector2(120 + nameWidth * .5f, split ? 15 : 0);
                 portraits.SetName(row.name, (own ? "YOU · " : "") + player.name);
-                float statsWidth = split ? 352 : 410;
+                float statsWidth = split ? 248 : 274;
                 row.stats.rectTransform.sizeDelta = new Vector2(statsWidth, 26);
-                row.stats.rectTransform.anchoredPosition = new Vector2(-statsWidth * .5f - 14, split ? -17 : 0);
+                row.stats.rectTransform.anchoredPosition = new Vector2(-statsWidth * .5f - (split ? 12 : 14), split ? -19 : 0);
                 row.stats.resizeTextForBestFit = true;
                 row.stats.resizeTextMinSize = 18;
                 row.stats.resizeTextMaxSize = 20;
@@ -235,23 +246,24 @@ namespace DeadlyJenga.Presentation
             canvas = root.GetComponent<Canvas>();
             canvas.sortingOrder = 80;
             portraits = CandyScorePortraits.For(gameObject);
-            var panel = Panel("Results panel", root.transform, new Vector2(1040, 654), Vector2.zero, Ink).transform;
-            title = Label("Winner", panel, new Vector2(982, 48), new Vector2(0, 280), 34);
-            summary = Label("Mode and local rank", panel, new Vector2(982, 26), new Vector2(0, 242), 19);
+            var panel = Panel("Results panel", root.transform, new Vector2(1220, 728), Vector2.zero, Ink).transform;
+            podium = new CandyScorePodium(transform, panel, new Vector2(405, -22));
+            title = Label("Winner", panel, new Vector2(982, 48), new Vector2(0, 322), 34);
+            summary = Label("Mode and local rank", panel, new Vector2(982, 26), new Vector2(0, 281), 19);
             summary.color = Mint;
-            roomCode = Label("Join code", panel, new Vector2(982, 26), new Vector2(0, 213), 20);
+            roomCode = Label("Join code", panel, new Vector2(982, 26), new Vector2(0, 252), 20);
             roomCode.color = Mint;
-            primaryHeading = Label("Standings heading", panel, new Vector2(480, 28), new Vector2(0, 183), 19);
-            secondaryHeading = Label("Infection heading", panel, new Vector2(480, 28), new Vector2(250, 183), 19);
+            primaryHeading = Label("Standings heading", panel, new Vector2(380, 28), new Vector2(0, 219), 19);
+            secondaryHeading = Label("Infection heading", panel, new Vector2(380, 28), new Vector2(200, 219), 19);
             for (int i = 0; i < primary.Length; i++) primary[i] = BuildRow(panel);
             for (int i = 0; i < secondary.Length; i++) secondary[i] = BuildRow(panel);
 
-            paging = Label("Page count", panel, new Vector2(360, 34), new Vector2(0, -183), 18);
+            paging = Label("Page count", panel, new Vector2(360, 34), new Vector2(-202, -232), 18);
             string[] names = { "STAY / NEXT ROUND", "RETURN TO LOBBY", "PREVIOUS", "NEXT" };
             for (int i = 0; i < buttons.Length; i++)
             {
-                Vector2 size = i < 2 ? new Vector2(474, 61) : new Vector2(220, 36);
-                Vector2 position = i < 2 ? new Vector2(i == 0 ? -246 : 246, -270) : new Vector2(i == 2 ? -305 : 305, -183);
+                Vector2 size = i < 2 ? new Vector2(474, 61) : new Vector2(194, 36);
+                Vector2 position = i < 2 ? new Vector2(i == 0 ? -246 : 246, -324) : new Vector2(i == 2 ? -492 : 88, -232);
                 buttons[i] = Panel(names[i], panel, size, position, Ink);
                 labels[i] = Label(names[i], buttons[i].transform, size, Vector2.zero, i < 2 ? 23 : 16);
                 labels[i].text = names[i];
@@ -263,7 +275,7 @@ namespace DeadlyJenga.Presentation
 
         static Row BuildRow(Transform parent)
         {
-            var background = Panel("Score row", parent, new Vector2(982, 52), Vector2.zero, Ink);
+            var background = Panel("Score row", parent, new Vector2(780, 80), Vector2.zero, Ink);
             var row = background.transform;
             var rank = Label("Rank", row, new Vector2(40, 48), new Vector2(22, 0), 21);
             Anchor(rank.rectTransform, 0);
@@ -272,10 +284,10 @@ namespace DeadlyJenga.Presentation
             portraitObject.layer = 5;
             var portrait = portraitObject.GetComponent<RawImage>();
             portrait.raycastTarget = false;
-            portrait.rectTransform.sizeDelta = new Vector2(48, 48);
-            portrait.rectTransform.anchoredPosition = new Vector2(74, 0);
+            portrait.rectTransform.sizeDelta = Vector2.one * PortraitSize;
+            portrait.rectTransform.anchoredPosition = new Vector2(77, 0);
             Anchor(portrait.rectTransform, 0);
-            var initial = Label("Initial", portrait.transform, new Vector2(48, 48), Vector2.zero, 25);
+            var initial = Label("Initial", portrait.transform, Vector2.one * PortraitSize, Vector2.zero, 36);
             var name = Label("Player name", row, new Vector2(420, 32), new Vector2(316, 0), 26);
             Anchor(name.rectTransform, 0);
             name.alignment = TextAnchor.MiddleLeft;
@@ -323,7 +335,7 @@ namespace DeadlyJenga.Presentation
             return label;
         }
 
-        void OnDisable() { visible = false; if (canvas) canvas.gameObject.SetActive(false); }
-        void OnDestroy() { if (canvas) Destroy(canvas.gameObject); }
+        void OnDisable() { visible = false; podium?.Hide(); if (canvas) canvas.gameObject.SetActive(false); }
+        void OnDestroy() { podium?.Dispose(); if (canvas) Destroy(canvas.gameObject); }
     }
 }

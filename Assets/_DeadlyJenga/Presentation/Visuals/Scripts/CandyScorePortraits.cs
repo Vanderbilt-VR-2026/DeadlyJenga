@@ -10,7 +10,7 @@ namespace DeadlyJenga.Presentation
     internal sealed class CandyScorePortraits : MonoBehaviour
     {
         const int PortraitLayer = 31;
-        const int Size = 96;
+        const int Size = 144;
         readonly Dictionary<string, Texture2D> portraits = new Dictionary<string, Texture2D>();
         readonly List<Mesh> baked = new List<Mesh>();
         sealed class NameFit
@@ -172,7 +172,7 @@ namespace DeadlyJenga.Presentation
             fallback.text = texture || name.Length == 0 ? "" : name.Substring(0, 1).ToUpperInvariant();
         }
 
-        static bool VisibleInAvatar(Transform part, Transform visual)
+        internal static bool VisibleInAvatar(Transform part, Transform visual)
         {
             while (part != visual)
             {

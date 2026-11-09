@@ -8,6 +8,7 @@ namespace DeadlyJenga.Presentation
     internal sealed class CandyEliminationFeed
     {
         const int Capacity = 4;
+        const int PortraitSize = 76;
         const float Lifetime = 5, Fade = 1.2f;
         struct Notice
         {
@@ -38,16 +39,16 @@ namespace DeadlyJenga.Presentation
             this.portraits = portraits;
             for (int i = 0; i < Capacity; i++)
             {
-                var text = CandyHudCards.Create(parent, "Elimination feed", new Vector2(-413, -80 - i * 78),
-                    new Vector2(410, 72), 22, TextAnchor.MiddleLeft);
+                var text = CandyHudCards.Create(parent, "Elimination feed", new Vector2(-414, -65 - i * 86),
+                    new Vector2(412, 82), 22, TextAnchor.MiddleLeft);
                 var panel = text.transform.parent.gameObject;
                 var group = panel.AddComponent<CanvasGroup>();
                 group.blocksRaycasts = group.interactable = false;
                 text.horizontalOverflow = HorizontalWrapMode.Overflow;
                 text.resizeTextForBestFit = false;
                 text.supportRichText = false;
-                var victim = Portrait(panel.transform, text.font, -174, out var victimInitial);
-                var killer = Portrait(panel.transform, text.font, -174, out var killerInitial);
+                var victim = Portrait(panel.transform, text.font, -161, out var victimInitial);
+                var killer = Portrait(panel.transform, text.font, -161, out var killerInitial);
                 rows[i] = new Row
                 {
                     group = group, message = text, victimPortrait = victim, victimInitial = victimInitial,
@@ -63,7 +64,7 @@ namespace DeadlyJenga.Presentation
             icon.transform.SetParent(parent, false);
             var portrait = icon.GetComponent<RawImage>();
             portrait.raycastTarget = false;
-            portrait.rectTransform.sizeDelta = new Vector2(44, 44);
+            portrait.rectTransform.sizeDelta = Vector2.one * PortraitSize;
             portrait.rectTransform.anchoredPosition = new Vector2(x, 0);
             var letter = new GameObject("Initial", typeof(RectTransform), typeof(Text));
             letter.transform.SetParent(icon.transform, false);
@@ -72,9 +73,9 @@ namespace DeadlyJenga.Presentation
             initial.fontStyle = FontStyle.Bold;
             initial.alignment = TextAnchor.MiddleCenter;
             initial.color = Color.white;
-            initial.fontSize = 24;
+            initial.fontSize = 34;
             initial.raycastTarget = false;
-            initial.rectTransform.sizeDelta = new Vector2(44, 44);
+            initial.rectTransform.sizeDelta = Vector2.one * PortraitSize;
             return portrait;
         }
 
@@ -132,8 +133,8 @@ namespace DeadlyJenga.Presentation
                 var notice = notices[notices.Count - 1 - i];
                 bool paired = notice.killer != null;
                 row.group.alpha = Mathf.Clamp01((notice.expires - now) / Fade);
-                row.victimPortrait.rectTransform.anchoredPosition = new Vector2(paired ? -122 : -174, 0);
-                row.message.rectTransform.offsetMin = new Vector2(paired ? 112 : 60, 6);
+                row.victimPortrait.rectTransform.anchoredPosition = new Vector2(paired ? -77 : -161, 0);
+                row.message.rectTransform.offsetMin = new Vector2(paired ? 176 : 92, 6);
                 row.message.rectTransform.offsetMax = new Vector2(-12, -6);
                 if (row.shownVictim != notice.victim || row.shownKiller != notice.killer)
                 {
