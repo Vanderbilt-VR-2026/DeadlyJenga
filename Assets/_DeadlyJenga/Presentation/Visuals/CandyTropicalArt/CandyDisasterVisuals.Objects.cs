@@ -251,7 +251,7 @@ namespace DeadlyJenga.CandyArt
                 var camera = Services.Session?.ActiveCamera;
                 tornadoVolume.SetFloat("_StormDissolve", tornadoDissolve);
                 tornadoVolume.SetFloat("_StormUseSceneDepth", RequestTornadoDepth(camera) ? 1f : 0f);
-                Graphics.DrawMesh(funnel, transform, storm, 0, camera, 0, tornadoVolume, ShadowCastingMode.Off, false);
+                Graphics.DrawMesh(funnel, transform, storm, 0, null, 0, tornadoVolume, ShadowCastingMode.Off, false);
             }
             if (tornadoDissolve < .96f)
                 Graphics.DrawMesh(stormRibbons, transform, stormRibbon, 0, null, 0, null, ShadowCastingMode.Off, false);
