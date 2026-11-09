@@ -10,6 +10,7 @@ Shader "Candy Tropical/Slow Liquid Death"
   _MeltProgress("Liquefying",Range(0,1))=0
   _DryProgress("Drying",Range(0,1))=0
   _PuddleMesh("Puddle mesh",Float)=0
+  _PuddleSpread("Puddle spread",Range(0,1))=0
  }
  SubShader
  {
@@ -27,7 +28,7 @@ Shader "Candy Tropical/Slow Liquid Death"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
    CBUFFER_START(UnityPerMaterial)
    float4 _BaseColor, _MeltCenter, _BaseMap_ST, _PigmentColor;
-   float _BodyHeight, _MeltProgress, _DryProgress, _PuddleMesh;
+   float _BodyHeight, _MeltProgress, _DryProgress, _PuddleMesh, _PuddleSpread;
    CBUFFER_END
    TEXTURE2D(_BaseMap);SAMPLER(sampler_BaseMap);
    struct Attributes {float4 positionOS:POSITION;float3 normalOS:NORMAL;float2 uv:TEXCOORD0;UNITY_VERTEX_INPUT_INSTANCE_ID};
@@ -60,6 +61,20 @@ Shader "Candy Tropical/Slow Liquid Death"
     float dry=saturate(_DryProgress);
     float2 radial=(input.world.xz-_MeltCenter.xz)/max(.1,_BodyHeight);
     float edge=length(radial*float2(1/ .72,1/ .59));
+    if(_PuddleMesh>.5)
+    {
+     // The surface mesh stays fixed while the wet outline spreads across it.
+     edge=length(input.uv);
+     float angle=edge>.0001?atan2(input.uv.y,input.uv.x):0;
+     float rim=1+.055*sin(angle*5+.7)+.035*sin(angle*9);
+     clip(_PuddleSpread*rim-edge-.0001);
+     radial=input.uv;
+    }
+    else if(_MeltProgress>.78)
+    {
+     // Clear the last flattened body pixels so only the supported puddle remains.
+     clip(noise(radial*41)-smoothstep(.78,.99,_MeltProgress));
+    }
     float grain=noise(radial*23)*.09;
     // The wet rim retreats inward before the last tiny islands evaporate.
     if(dry>.0001)clip(1.12-dry*1.25-edge+grain);
