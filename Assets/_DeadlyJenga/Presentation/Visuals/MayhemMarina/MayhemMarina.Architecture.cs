@@ -119,9 +119,9 @@ namespace DeadlyJenga.CandyArt.Marina
         void BuildCandyArcade()
         {
             mesh.Box(new Vector3(0,3.78f,11.35f),new Vector3(7.68f,3.84f,.54f),F.CandyCream,.23f);
-            mesh.Box(new Vector3(0,3.85f,11.20f),new Vector3(7.55f,3.56f,.48f),F.CandyCoral,.18f);
+            mesh.Box(new Vector3(0,3.85f,11.24f),new Vector3(7.55f,3.56f,.48f),F.CandyCoral,.18f);
             mesh.Box(new Vector3(0,3.85f,11.04f),new Vector3(7.18f,3.24f,.16f),F.CandyLilac,.06f);
-            mesh.Box(new Vector3(0,3.85f,11.04f),new Vector3(7.04f,3.13f,.12f),F.CandyGrape,.04f);
+            mesh.Box(new Vector3(0,3.85f,10.98f),new Vector3(7.04f,3.13f,.12f),F.CandyGrape,.04f);
             mesh.Box(new Vector3(0,1.94f,11.28f),new Vector3(7.72f,.19f,.60f),F.CandyLilac,.08f);
             mesh.Ellipsoid(new Vector3(0,5.51f,11.25f),new Vector3(1.37f,.70f,.27f),F.CandyCream);
             CandyRainbow(new Vector3(0,5.53f,10.98f),1.05f);
@@ -162,7 +162,7 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int stripe=0;stripe<2;stripe++)
                 mesh.Box(new Vector3(x,2.18f+stripe*.10f,10.71f),new Vector3(2.14f,.055f,.08f),stripe==0?F.CandyCoral:F.Glow,.02f);
             var deck=new Vector3(x,2.60f,10.55f);
-            var slope=Quaternion.Euler(29,0,0);
+            var slope=Quaternion.Euler(-29,0,0);
             mesh.Box(deck,new Vector3(2.07f,.24f,.97f),color,.09f,false,slope);
             mesh.Box(deck+slope*Vector3.up*.13f,new Vector3(1.89f,.095f,.82f),F.CandyCream,.035f,false,slope);
             if(host)

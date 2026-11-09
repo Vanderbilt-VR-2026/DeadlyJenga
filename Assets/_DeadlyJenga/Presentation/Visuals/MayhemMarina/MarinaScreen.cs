@@ -38,7 +38,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var go=new GameObject("Marina · live candy arcade",typeof(RectTransform),typeof(Canvas));
             go.transform.SetParent(transform,false);
             canvas=go.GetComponent<RectTransform>();canvas.sizeDelta=new Vector2(720,320);
-            canvas.localPosition=MayhemMarina.PlayScreen+Vector3.back*.14f;canvas.localScale=Vector3.one*.0095f;
+            canvas.localPosition=MayhemMarina.PlayScreen+Vector3.back*.20f;canvas.localScale=Vector3.one*.0095f;
             var worldCanvas=go.GetComponent<Canvas>();worldCanvas.renderMode=RenderMode.WorldSpace;
             worldCanvas.overrideSorting=true;worldCanvas.sortingOrder=70;
 
@@ -97,7 +97,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var face=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();
             face.SetParent(canvas,false);
             face.sizeDelta=new Vector2(175,157);
-            face.localPosition=new Vector3(worldX/.0095f,8f,-50f);
+            face.localPosition=new Vector3(worldX/.0095f,8f,-44f);
             return face;
         }
         static void CabinetHeading(RectTransform parent,string title,Color trim)
@@ -146,7 +146,7 @@ namespace DeadlyJenga.CandyArt.Marina
             bool rotating=experience?.Experience==GameExperience.Game&&experience.AutomaticRounds&&!lobby.CanStart;
             playTitle.text=rotating&&experience.GamePhase==RoomGamePhase.Selected?
                 "Next match in "+Mathf.CeilToInt(experience.CountdownSeconds)+" s":lobby.StartPending?"Cancel start":"Start match";
-            hostTitle.text=lobby.HostActive?"Manage room":"Create room";
+            hostTitle.text=lobby.Connected&&lobby.HostActive?"Manage room":"Create room";
             var details=lobby as ILobbyDetails;
             string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
             if(modeId!=nextMode)

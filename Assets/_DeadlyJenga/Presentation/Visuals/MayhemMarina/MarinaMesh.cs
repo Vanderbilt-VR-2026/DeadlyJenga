@@ -184,6 +184,11 @@ namespace DeadlyJenga.CandyArt.Marina
             m.SetFloat("_Smoothness",gloss);m.SetFloat("_Metallic",finish==MarinaFinish.Metal||finish==MarinaFinish.Brass ? .72f:.02f);
             if(finish==MarinaFinish.Wood||finish==MarinaFinish.DarkWood)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaWood"));
             if(finish==MarinaFinish.Stone||finish==MarinaFinish.Ivory)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaStone"));
+            if(finish>=MarinaFinish.CandyCream&&finish!=MarinaFinish.CandyGrape)
+            {
+                m.EnableKeyword("_EMISSION");
+                m.SetColor("_EmissionColor",colors[(int)finish]*.075f);
+            }
             if(finish==MarinaFinish.Glass)
             {
                 m.SetFloat("_Surface",1);m.SetFloat("_ZWrite",0);m.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha);m.SetFloat("_DstBlend",(float)BlendMode.OneMinusSrcAlpha);m.SetFloat("_Smoothness",.88f);m.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");m.SetOverrideTag("RenderType","Transparent");m.renderQueue=3000;
