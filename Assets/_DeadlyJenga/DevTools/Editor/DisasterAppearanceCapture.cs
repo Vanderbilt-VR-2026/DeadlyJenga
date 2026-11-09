@@ -157,12 +157,15 @@ namespace DeadlyJenga.DevTools.Editor
                 var forward=TornadoView(eye,warning);
                 camera.transform.SetPositionAndRotation(eye,forward);
                 var baseline=ReadTornadoCamera(camera,null);
-                until=Time.realtimeSinceStartup+14;
-                while ((source.Capture()?.warning??1)>0 && Time.realtimeSinceStartup<until) yield return null;
-                yield return null;
+                until=Time.realtimeSinceStartup+45;
                 var live=source.Capture();
+                while (Time.realtimeSinceStartup<until && (live==null || live.warning>0 || !cameraData.requiresDepthTexture))
+                {
+                    yield return null;
+                    live=source.Capture();
+                }
                 if (live==null || live.warning>0 || !cameraData.requiresDepthTexture)
-                    throw new InvalidOperationException("The active tornado did not obtain depth on the player camera.");
+                    throw new InvalidOperationException($"Tornado state age={live?.age:F2}, warning={live?.warning:F2}, camera depth={cameraData.requiresDepthOption}, active camera unchanged={session.ActiveCamera==camera}.");
                 camera.transform.SetPositionAndRotation(eye,forward);
                 visualType.GetMethod("LateUpdate",member).Invoke(art,null);
                 var actual=ReadTornadoCamera(camera,"Tornado-Player-Mobile-URP.png");
