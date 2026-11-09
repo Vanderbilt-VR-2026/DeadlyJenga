@@ -49,6 +49,7 @@ namespace DeadlyJenga.CandyArt
                     case "Earthquake":Dust(f);break;
                 }
             }
+            RenderDepartedTornado();
             if(!icy)RestoreIce();
             Draw(orange,coral);Draw(yellow,lemon);Draw(purple,gravityBubble);Draw(blue,aqua);Draw(green,lime);RenderFire();RenderObjects();
         }

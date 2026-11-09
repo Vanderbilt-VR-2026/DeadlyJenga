@@ -12,17 +12,105 @@ namespace DeadlyJenga.CastlePrototype
         static readonly FieldInfo[] modeFields=typeof(ModeRules).GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>f.Name!="carryingFlag"&&f.Name!="sinking"&&f.Name!="sinkProgress"&&f.Name!="downed"&&f.Name!="mystery").ToArray();
         static readonly string[] commonModeFields={"mode","healthEnabled","friendlyFire","punchEnabled","automaticDisasters","roundSeconds","island"};
         static readonly FieldInfo[] quickModeFields=commonModeFields.Select(name=>modeFields.First(field=>field.Name==name)).ToArray();
-        int modeOffset;bool hudPage;
+        int modeOffset;bool hudPage,modeWheel;
+
+        void BeginChoiceWheel(string title, string subtitle)
+        {
+            BeginEquipmentWheel();
+            HideDisasterSliders();
+            scaffoldButton.gameObject.SetActive(false);
+            heading.text=title+"\n"+subtitle;
+            foreach(var preview in mapThumbnails)if(preview)preview.gameObject.SetActive(false);
+            for(int i=0;i<buttons.Length;i++)
+            {
+                buttons[i].gameObject.SetActive(false);
+                targets[i].enabled=false;
+            }
+            help.rectTransform.anchoredPosition=new Vector2(0,-435);
+            help.rectTransform.sizeDelta=new Vector2(550,52);
+        }
+
+        void ChoiceWheelSlot(int index, string label, bool selected, bool enabled)
+        {
+            Vector2 direction=ModeSetupPanel.WheelDirection(index);
+            WheelRow(index,new Vector2(direction.x*202f,48f+direction.y*169f),new Vector2(136,65),label,enabled,18);
+            if(selected)buttons[index].image.color=CandyHudVisuals.Lavender;
+        }
+
+        int PointChoiceWheel(bool pressed)
+        {
+            for(int i=0;i<buttons.Length;i++)
+            {
+                if(!buttons[i].gameObject.activeSelf)continue;
+                bool hover=targets[i].enabled&&Hit(targets[i],pointerRay);
+                if(hover)buttons[i].image.color=CandyHudVisuals.Mint;
+                labels[i].color=buttons[i].image.color.grayscale>.5f?CandyHudVisuals.Ink:targets[i].enabled?Color.white:CandyHudVisuals.Muted;
+                if(hover&&pressed)return i;
+            }
+            return -1;
+        }
+
+        void PointDisasterWheel(bool pressed)
+        {
+            const int size=ModeSetupPanel.ChoiceWheelSize;
+            int count=Demo?.DisasterCount??0;
+            disasterOffset=Mathf.Clamp(disasterOffset/size,0,Mathf.Max(0,(count-1)/size))*size;
+            BeginChoiceWheel("NATURAL DISASTERS","Choose a disaster to tune and launch");
+            for(int i=0;i<size&&disasterOffset+i<count;i++)
+                ChoiceWheelSlot(i,Demo.DisasterLabel(disasterOffset+i),false,true);
+            WheelRow(8,new Vector2(0,48),new Vector2(130,65),"DISASTERS",false);
+            WheelRow(9,new Vector2(0,-194),new Vector2(310,50),"STOP ALL DISASTERS",CanCommand);
+            WheelRow(10,new Vector2(-174,-267),new Vector2(130,46),"PREVIOUS",disasterOffset>0);
+            WheelRow(11,new Vector2(174,-267),new Vector2(130,46),"NEXT",disasterOffset+size<count);
+            WheelRow(12,new Vector2(0,-267),new Vector2(170,46),"BACK",true);
+            help.text=CanCommand?"Point and select a disaster. Settings are on the next screen.":"The host controls disaster launch.";
+            int pick=PointChoiceWheel(pressed);
+            if(pick>=0&&pick<size)
+            {
+                RestoreEquipmentWheelLayout();disasterSelection=disasterOffset+pick;disasterStatus="";
+            }
+            else if(pick==9)Demo?.Run(DemoCommand.StopDisasters);
+            else if(pick==10)disasterOffset-=size;
+            else if(pick==11)disasterOffset+=size;
+            else if(pick==12){RestoreEquipmentWheelLayout();disasterPage=false;}
+        }
+
+        void PointModeWheel(IMatchRuntime match, bool pressed)
+        {
+            bool allowed=match.Authority&&DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session);
+            BeginChoiceWheel("GAME MODES","Select a mode, then start the round");
+            for(int i=0;i<ModeSetupPanel.WheelModes.Length;i++)
+            {
+                var mode=ModeSetupPanel.WheelModes[i];
+                ChoiceWheelSlot(i,DeadlyJenga.Presentation.CandyHudContent.Mode(mode),mode==match.Rules.mode,allowed);
+            }
+            WheelRow(8,new Vector2(0,48),new Vector2(130,65),DeadlyJenga.Presentation.CandyHudContent.Mode(match.Rules.mode),false,17);
+            WheelRow(9,new Vector2(0,-194),new Vector2(310,50),"START / RESTART ROUND",allowed);
+            WheelRow(10,new Vector2(-135,-267),new Vector2(202,46),"BACK TO DEMO",true);
+            WheelRow(12,new Vector2(135,-267),new Vector2(202,46),"MATCH SETTINGS",true);
+            help.text=allowed?"Choose any mode directly. Back returns to match settings.":"The host selects the mode.";
+            int pick=PointChoiceWheel(pressed);
+            if(pick>=0&&pick<ModeSetupPanel.WheelModes.Length)
+            {
+                var mode=ModeSetupPanel.WheelModes[pick];
+                if(mode!=match.Rules.mode)match.Configure(ModeDefaults.Create(mode));
+            }
+            else if(pick==9)match.StartRound();
+            else if(pick==10){RestoreEquipmentWheelLayout();modePage=modeWheel=false;}
+            else if(pick==12){RestoreEquipmentWheelLayout();modeWheel=false;}
+        }
         void PointModePage(Camera camera,bool pressed)
         {
-            var match=MatchRuntime.Current;if(match==null){modePage=false;return;}var rules=match.Rules;
+            var match=MatchRuntime.Current;if(match==null){modePage=modeWheel=false;return;}
+            if(modeWheel){PointModeWheel(match,pressed);return;}
+            var rules=match.Rules;
             var fields=modeOffset==0?quickModeFields:modeFields;
             int pageStart=modeOffset==0?0:modeOffset-1;
             heading.text="MATCH RULES / SCENERY\n"+rules.mode+" · "+match.Frame.phase;
             HideDisasterSliders();bool canConfigure=match.Authority||(rules.mode==GameModeKind.Demo&&Services.Session?.Demo?.CanCommand==true);
             for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);targets[i].enabled=i==0||canConfigure;}
             labels[0].text="Back to demo";labels[1].text="Start / restart round";labels[2].text="Skin: "+rules.environmentSkin;
-            for(int i=3;i<=9;i++){int index=pageStart+i-3;if(index<fields.Length){var field=fields[index];labels[i].text=ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules);if(field.Name=="mode")targets[i].enabled=match.Authority;}else buttons[i].gameObject.SetActive(false);}
+            for(int i=3;i<=9;i++){int index=pageStart+i-3;if(index<fields.Length){var field=fields[index];labels[i].text=ModeSetupPanel.Label(field.Name)+": "+field.GetValue(rules);if(field.Name=="mode"){labels[i].text="Open game mode wheel";targets[i].enabled=match.Authority;}}else buttons[i].gameObject.SetActive(false);}
             labels[10].text="HUD / standings / tuning";labels[11].text="Temporary team hand power";labels[12].text=modeOffset==0?"Common settings":"Previous settings";labels[13].text=modeOffset==0?"Advanced settings":"More settings";labels[14].text="Sea spirit / tabletop AR";
             var mystery=match as IMysteryControls;
             if(mystery?.Active==true){labels[11].text="Special punch: "+(mystery.Personal.specialAttack?"ON":"OFF");labels[14].text="Demo role: "+mystery.Personal.role;targets[11].enabled=true;}
@@ -47,6 +135,7 @@ namespace DeadlyJenga.CastlePrototype
                 else
                 {
                     var f=fields[pageStart+i-3];var type=f.FieldType;
+                    if(f.Name=="mode"){modeWheel=true;return;}
                     if(type==typeof(bool))f.SetValue(copy,!(bool)f.GetValue(copy));
                     else if(type.IsEnum){var values=Enum.GetValues(type);var next=values.GetValue((Array.IndexOf(values,f.GetValue(copy))+1)%values.Length);if(f.Name=="mode")copy=ModeDefaults.Create((GameModeKind)next);else f.SetValue(copy,next);}
                     else if(type==typeof(float)||type==typeof(int)){ModeSetupPanel.Range(f.Name,out float min,out float max);float next=Convert.ToSingle(f.GetValue(copy))+Mathf.Max(type==typeof(int)?1:.1f,(max-min)/20);if(next>max)next=min;if(type==typeof(int))f.SetValue(copy,Mathf.RoundToInt(next));else f.SetValue(copy,next);}

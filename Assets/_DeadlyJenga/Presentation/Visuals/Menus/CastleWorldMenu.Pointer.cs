@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype
         public void Point(Camera camera,bool pressed,bool held=false)
         {
             if(!camera||!isActiveAndEnabled||DeadlyJenga.Presentation.MenuAim.InputConsumed)return;
-            if(!giveEquipmentPage)RestoreEquipmentWheelLayout();
+            if(!giveEquipmentPage&&!(disasterPage&&disasterSelection<0)&&!(modePage&&modeWheel))RestoreEquipmentWheelLayout();
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
             ((RectTransform)transform).sizeDelta=new Vector2(960,1120);

@@ -86,7 +86,7 @@ namespace DeadlyJenga.World.Hazards
         protected override void BeginHazard(IWorldQuery map,Bounds bounds,float intensity,float seconds)
         {
             EnsureValues();world=map;area=bounds;strength=intensity;age=nextTick=0;started=false;cached=null;capturedAt=-1;
-            if(Kind=="Tornado"){tornadoCursor=0;tornadoBudgetFrame=-1;tornadoPushAt.Clear();}
+            if(Kind=="Tornado"){tornadoCursor=0;tornadoBudgetFrame=-1;tornadoPushAt.Clear();BeginTornadoRoute();}
             DisasterStates.Active.Add(this);
             if(Kind=="Vampire")GameEvents.Eliminated+=ResetSunlight;
         }
@@ -102,7 +102,7 @@ namespace DeadlyJenga.World.Hazards
             if(!started){started=true;if(Kind=="Fire")SeedFire();if(Kind=="PowerOutage")SeedLights();}
             if(Kind=="MeteorShower"||Kind=="PlanetKillerMeteor")TickMeteors(dt);
             if(Kind=="AntiGravity")TickGravity(dt);
-            if(Kind=="Tornado"){TickTornadoBlocks(dt);}
+            if(Kind=="Tornado"){AdvanceTornadoRoute(dt);TickTornadoBlocks(dt);}
             if(age<nextTick)return;
             nextTick=age+.1f;
             switch(Kind)
@@ -189,7 +189,7 @@ namespace DeadlyJenga.World.Hazards
 
         void TickTornadoBlocks(float dt)
         {
-            float force=V("force")*strength;
+            float force=V("force")*strength*tornadoPower;
             if(force<=0)return;
             using var sample=TornadoForces.Auto();
             var blocks=world.Blocks;
@@ -255,7 +255,7 @@ namespace DeadlyJenga.World.Hazards
 
         void TickTornadoPlayers(float dt)
         {
-            float force=V("force")*strength;
+            float force=V("force")*strength*tornadoPower;
             if(force<=0)return;
             Vector3 center=TornadoCenter;
             float radius=V("reach"),height=V("height");
@@ -274,7 +274,59 @@ namespace DeadlyJenga.World.Hazards
                     body.AddForce(Vector3.ClampMagnitude(impulse,30),ForceMode.VelocityChange);
             }
         }
-        Vector3 TornadoCenter=>new Vector3(area.center.x+Mathf.Sin(age*.18f)*area.extents.x*.35f,world.WaterHeight(area.center),area.center.z+Mathf.Cos(age*.14f)*area.extents.z*.35f);
+        Vector3 TornadoCenter, tornadoStart, tornadoExit, tornadoVelocity;
+        float tornadoAngle, tornadoTurn, tornadoWeave, tornadoPower;
+
+        void BeginTornadoRoute()
+        {
+            tornadoAngle = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            tornadoTurn = UnityEngine.Random.Range(.85f, 1.65f) * Mathf.PI * 2f;
+            if (UnityEngine.Random.value < .5f) tornadoTurn = -tornadoTurn;
+            tornadoWeave = UnityEngine.Random.Range(0f, Mathf.PI * 2f);
+            tornadoStart = Offshore(tornadoAngle);
+            tornadoExit = Offshore(tornadoAngle + tornadoTurn);
+            TornadoCenter = tornadoStart;
+            tornadoVelocity = Vector3.zero;
+            tornadoPower = 0f;
+        }
+
+        Vector3 Offshore(float angle)
+        {
+            var direction = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+            float envelope = new Vector2(area.extents.x, area.extents.z).magnitude;
+            float step = Mathf.Max(12f, V("size"));
+            float distance = Mathf.Max(envelope, world.Radius) + step;
+            Vector3 point = area.center;
+            for (int i = 0; i < 6; i++)
+            {
+                point = area.center + direction * (distance + i * step);
+                point.y = world.WaterHeight(point);
+                // Some islands extend past the authored play area.
+                float top = Mathf.Max(area.max.y + 1f, point.y + 12f);
+                var above = new Vector3(point.x, top, point.z);
+                if (!Physics.Raycast(above, Vector3.down, top - point.y + .1f,
+                    1 << Layers.Surface, QueryTriggerInteraction.Ignore)) break;
+            }
+            return point;
+        }
+
+        void AdvanceTornadoRoute(float dt)
+        {
+            float progress = Mathf.Clamp01((age - V("warning")) / V("duration"));
+            float orbit = Mathf.InverseLerp(.24f, .8f, progress);
+            float angle = tornadoAngle + tornadoTurn * orbit +
+                Mathf.Sin(orbit * Mathf.PI * 2f) * .28f;
+            float radius = .49f + .24f * Mathf.Sin(orbit * Mathf.PI * 5f + tornadoWeave);
+            var inland = area.center + new Vector3(Mathf.Cos(angle) * area.extents.x * radius, 0f,
+                Mathf.Sin(angle) * area.extents.z * radius);
+            float entry = Mathf.SmoothStep(0f, 1f, progress / .24f);
+            float departure = Mathf.SmoothStep(0f, 1f, (progress - .8f) / .2f);
+            Vector3 next = Vector3.Lerp(Vector3.Lerp(tornadoStart, inland, entry), tornadoExit, departure);
+            next.y = world.WaterHeight(next);
+            tornadoVelocity = (next - TornadoCenter) / dt;
+            TornadoCenter = next;
+            tornadoPower = Mathf.SmoothStep(0f, 1f, progress / .12f) * (1f - departure);
+        }
         void TickEarthquake(float dt)
         {
             float phase=(age-V("warning"))*V("frequency")*Mathf.PI*2;
@@ -314,7 +366,7 @@ namespace DeadlyJenga.World.Hazards
             if(!Active)return null;
             if(capturedAt==Time.frameCount&&cached!=null)return cached;
             capturedAt=Time.frameCount;
-            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
+            return cached=new DisasterFrame{sampledAt=Time.time,kind=Kind,label=Kind=="AntiGravity"?"Low Gravity":Type?Type.name:Kind,center=Kind=="Tornado"?TornadoCenter:area.center,size=area.size,age=age,warning=Mathf.Max(0,V("warning")-age),remaining=Kind=="Fire"?FireRemaining():Toggle||Kind=="PlanetKillerMeteor"?-1:Mathf.Max(0,V("duration")+V("warning")-age),values=values,points=Kind=="Tornado"?new[]{new DisasterPoint{position=TornadoCenter,velocity=tornadoVelocity}}:meteors.ToArray(),blocks=burning.ToArray(),burns=Kind=="Fire"?CaptureBurns():null};
         }
         protected override void EndHazard()
         {

@@ -27,6 +27,7 @@ namespace DeadlyJenga.Presentation
             public Transform source, model;
             public Vector3 position;
             public Text label, rank;
+            public bool disappointed;
             public Image platform;
             public Joint[] joints;
             public Vector3 leftShoulder, rightShoulder, leftHip, rightHip;
@@ -129,10 +130,31 @@ namespace DeadlyJenga.Presentation
                 Reset();
                 match = runtime;
             }
+            var frame = runtime.Frame;
+            bool results = frame.phase == RoundPhase.Results || frame.phase == RoundPhase.Victory;
+            int winningTeam = frame.winnerTeam;
+            bool infection = frame.rules.mode == GameModeKind.Infection;
+            bool Won(MatchPlayerFrame player) => winningTeam >= 0 ? player.team == winningTeam
+                : infection ? (frame.winner == "Infected" ? player.role == "infected" : player.alive && player.role != "infected")
+                : frame.winner != "Draw" && player.name == frame.winner;
+            int winnerIndex = results ? Array.FindIndex(players, player => Won(player)) : -1;
+            int rival = -1;
+            if (winnerIndex >= 0 && (winningTeam >= 0 || infection) && players.Length >= leaders.Length)
+            {
+                bool rivalVisible = false;
+                for (int i = 1; i < leaders.Length; i++)
+                    rivalVisible |= !Won(players[i <= winnerIndex ? i - 1 : i]);
+                if (!rivalVisible) rival = Array.FindIndex(players, player => !Won(player));
+            }
             for (int i = 0; i < leaders.Length; i++)
             {
                 var leader = leaders[i];
-                var player = i < players.Length ? players[i] : null;
+                int rank = i == 0 && winnerIndex >= 0 ? winnerIndex : i <= winnerIndex ? i - 1 : i;
+                if (i == leaders.Length - 1 && rival >= 0) rank = rival;
+                var player = rank < players.Length ? players[rank] : null;
+                leader.disappointed = results && player != null && !Won(player);
+                leader.rank.text = "#" + (rank + 1);
+                leader.rank.color = leader.disappointed ? CandyHudVisuals.Muted : Medals[i];
                 leader.rank.gameObject.SetActive(player != null);
                 leader.platform.gameObject.SetActive(player != null);
                 var visual = player == null ? null : runtime.FindActor(player.id)?.Visual;
@@ -223,7 +245,9 @@ namespace DeadlyJenga.Presentation
             var renderers = new List<Renderer>();
             foreach (var original in source.GetComponentsInChildren<Renderer>(true))
             {
-                if (!original.enabled || original.forceRenderingOff || !CandyScorePortraits.VisibleInAvatar(original.transform, source)) continue;
+                bool avatarBody = original is SkinnedMeshRenderer && original.name == "Candy body and shared hands";
+                if ((!avatarBody && (!original.enabled || original.forceRenderingOff)) ||
+                    !CandyScorePortraits.VisibleInAvatar(original.transform, source)) continue;
                 Renderer copy;
                 if (original is SkinnedMeshRenderer skin && skin.sharedMesh)
                 {
@@ -359,8 +383,12 @@ namespace DeadlyJenga.Presentation
                 if (!leader.model) continue;
                 float beat = now * 6.5f + i * 1.4f;
                 float sway = Mathf.Sin(beat);
-                leader.model.localPosition = leader.position + new Vector3(.05f * sway, .10f * Mathf.Abs(sway), 0);
-                leader.model.localRotation = Quaternion.Euler(0, 18 * sway, 8 * sway);
+                leader.model.localPosition = leader.position + (leader.disappointed
+                    ? new Vector3(0f, -.035f - .018f * Mathf.Abs(sway), 0f)
+                    : new Vector3(.05f * sway, .10f * Mathf.Abs(sway), 0f));
+                leader.model.localRotation = leader.disappointed
+                    ? Quaternion.Euler(13f + 3f * sway, 0f, 3f * sway)
+                    : Quaternion.Euler(0, 18 * sway, 8 * sway);
                 foreach (var joint in leader.joints)
                 {
                     Vector3 pivot;
@@ -372,6 +400,17 @@ namespace DeadlyJenga.Presentation
                         case 2: pivot = leader.leftHip; move = Quaternion.Euler(28 * Mathf.Max(0, sway), 0, -6); break;
                         case 3: pivot = leader.rightHip; move = Quaternion.Euler(28 * Mathf.Max(0, -sway), 0, 6); break;
                         default: pivot = joint.position; move = Quaternion.Euler(8 * Mathf.Cos(beat), 0, -6 * sway); break;
+                    }
+                    if (leader.disappointed)
+                    {
+                        // The shoulders sag and one hand rises toward the face in short sobs.
+                        switch (joint.group)
+                        {
+                            case 0: move = Quaternion.Euler(-16f + 3f * sway, 0f, 14f); break;
+                            case 1: move = Quaternion.Euler(-111f + 8f * sway, -18f, -35f); break;
+                            case 2: case 3: move = Quaternion.identity; break;
+                            default: move = Quaternion.Euler(20f + 5f * sway, -8f, 8f); break;
+                        }
                     }
                     joint.bone.localPosition = pivot + move * (joint.position - pivot);
                     joint.bone.localRotation = move * joint.rotation;

@@ -6,6 +6,7 @@ Shader "Candy Tropical/Storm Funnel"
   _DensityTex("Density volume",3D)="white"{}
   _StormInfo("Size height speed",Vector)=(16,65,2,0)
   _MarchBudget("Maximum ray steps",Float)=52
+  _StormDissolve("Breakup",Range(0,1))=0
  }
  SubShader
  {
@@ -22,7 +23,7 @@ Shader "Candy Tropical/Storm Funnel"
    #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareDepthTexture.hlsl"
    TEXTURE3D(_DensityTex);SAMPLER(sampler_DensityTex);
    float4 _BaseColor,_StormInfo;
-   float _MarchBudget;
+   float _MarchBudget,_StormDissolve;
    struct A {float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
    struct V {float4 positionCS:SV_POSITION;float3 local:TEXCOORD0;UNITY_VERTEX_OUTPUT_STEREO};
    V vert(A i)
@@ -87,6 +88,13 @@ Shader "Candy Tropical/Storm Funnel"
       grain=lerp(grain,lobes,cloud);
       edge=lerp(edge,saturate(rim/3.4),cloud);
      }
+    }
+    if(_StormDissolve>.001)
+    {
+     float liftedBase=smoothstep(_StormDissolve*.9-.12,_StormDissolve*.9+.16,t);
+     body*=lerp(1,liftedBase,smoothstep(0,.28,_StormDissolve));
+     float breakup=smoothstep(_StormDissolve*.84-.14,_StormDissolve*.84+.2,grain);
+     return (body+cloud*(.96+grain*1.50))*lerp(1,breakup,_StormDissolve)*(1-_StormDissolve);
     }
     return body+cloud*(.96+grain*1.50);
    }

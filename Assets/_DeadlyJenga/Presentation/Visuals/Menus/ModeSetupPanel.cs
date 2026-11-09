@@ -12,6 +12,30 @@ namespace DeadlyJenga.CastlePrototype
     {
         static readonly FieldInfo[] fields=typeof(ModeRules).GetFields(BindingFlags.Public|BindingFlags.Instance).Where(f=>f.Name!="carryingFlag"&&f.Name!="sinking"&&f.Name!="sinkProgress"&&f.Name!="downed"&&f.Name!="mystery").ToArray();
         static int ruleGroup;
+        internal const int ChoiceWheelSize = 8;
+        internal static readonly GameModeKind[] WheelModes = (GameModeKind[])Enum.GetValues(typeof(GameModeKind));
+        static readonly Texture2D[] modeWheelPictures = new Texture2D[WheelModes.Length];
+        static readonly bool[] checkedModePicture = new bool[WheelModes.Length];
+
+        internal static Vector2 WheelDirection(int index)
+        {
+            float angle = index * (Mathf.PI * 2f / ChoiceWheelSize);
+            return new Vector2(Mathf.Sin(angle), Mathf.Cos(angle));
+        }
+
+        internal static Texture2D WheelModePicture(GameModeKind mode)
+        {
+            int index = Array.IndexOf(WheelModes, mode);
+            if (index < 0) return null;
+            if (checkedModePicture[index]) return modeWheelPictures[index];
+            checkedModePicture[index] = true;
+            string id = mode switch
+            {
+                GameModeKind.CaptureFlag => "ctf", GameModeKind.KingOfHill => "hill",
+                GameModeKind.MurderMystery => "mystery", _ => mode.ToString().ToLowerInvariant()
+            };
+            return modeWheelPictures[index] = Resources.Load<Texture2D>("LobbyModePictures/" + id);
+        }
         static readonly string[] groups={"Round / scoring","Combat / health","Movement / traversal","World / disasters"};
         static int Group(string name)
         {
@@ -24,7 +48,7 @@ namespace DeadlyJenga.CastlePrototype
         public static void Draw()
         {
             var match=MatchRuntime.Current;if(match==null){GUILayout.Label("Match rules are starting...");return;}
-            var copy=match.Rules.Copy();bool was=GUI.enabled;GUI.enabled=match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo);
+            var copy=match.Rules.Copy();bool was=GUI.enabled;GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             if(GUILayout.Button("Start / restart round"))match.StartRound();
             GUILayout.Label("Mode: "+copy.mode+"  ·  "+match.Frame.phase);
             GUI.enabled=was;
@@ -60,7 +84,6 @@ namespace DeadlyJenga.CastlePrototype
             GUI.enabled=was&&match.Authority;
             GUILayout.Label("Live HUD prioritizes the mode objective. Full standings stay available on demand; final results include contributions.");
             if(GUILayout.Button("Restore recommended defaults for this mode"))copy=ModeDefaults.Create(copy.mode);
-            if(GUILayout.Button("Next game mode"))copy=ModeDefaults.Create((GameModeKind)(((int)copy.mode+1)%Enum.GetValues(typeof(GameModeKind)).Length));
             GUI.enabled=was&&(match.Authority||(Services.Session?.Demo?.CanCommand==true&&copy.mode==GameModeKind.Demo));
             if(GUILayout.Button("Scene skin: "+CandySceneSkins.Names[CandyMatchVisualsSkin(copy.environmentSkin)]))copy.environmentSkin=CandySceneSkins.Names[(CandyMatchVisualsSkin(copy.environmentSkin)+1)%CandySceneSkins.Names.Length];
             if(GUILayout.Button("Temporary team hand power"))match.ActivateHandPower(copy.handPowerSeconds);
