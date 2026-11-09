@@ -450,10 +450,7 @@ namespace DeadlyJenga.CandyPlayers
                 for(int chamber=0;chamber<6;chamber++)
                 {
                     float a=Mathf.PI*.5f+chamber*Mathf.PI/3;var p=new Vector3(Mathf.Cos(a)*.048f,.072f+Mathf.Sin(a)*.048f,0);
-                    // Deep dark bases and brass cartridge rims behind the cylinder.
                     Cylinder(6+2,p+Vector3.forward*.175f,p+Vector3.forward*.177f,.0125f);
-                    Cylinder(6+4,p+Vector3.forward*.042f,p+Vector3.forward*.047f,.015f);
-                    Cylinder(6+2,p+Vector3.forward*.040f,p+Vector3.forward*.042f,.0045f);
                 }
                 Add(0,RevolverOctagonalBarrel(),Vector3.zero);
                 Add(1,RevolverMuzzle(),Vector3.zero);
@@ -945,14 +942,11 @@ namespace DeadlyJenga.CandyPlayers
                 Line(4,new Vector3(0,.061f,.072f),new Vector3(0,-.018f,.11f),.006f);
                 Tube(0,new Vector3(0,.122f,.285f),.039f,.020f,.215f);Tube(1,new Vector3(0,.122f,.470f),.045f,.022f,.032f);Tube(2,new Vector3(0,.122f,.500f),.030f,.019f,.014f);
                 for(int i=0;i<3;i++)Tube(4,new Vector3(0,.122f,.334f+i*.047f),.042f,.037f,.009f);
-                // Exposed crystalline spike cartridges sit in individual machined feed sockets.
+                // Feed sockets remain visible when the magazine is depleted.
                 for(int i=0;i<5;i++)
                 {
                     var p=new Vector3(0,.185f,-.031f+i*.060f);var q=Quaternion.Euler(-34,0,0);
                     Add(4,WeaponBoreTube(.022f,.013f,.035f),p,q,Vector3.one);
-                    var b=new CandyAccessoryMeshes.Builder();b.Cone(Vector3.zero,Vector3.forward*.10f,.014f,.014f,8);b.Cone(Vector3.forward*.10f,Vector3.forward*.19f,.014f,0,8);var mesh=b.Mesh("Large faceted neon green spike cartridge");
-                    var uv=new Vector2[mesh.vertexCount];var vs=mesh.vertices;for(int v=0;v<uv.Length;v++)uv[v]=new Vector2(vs[v].x*20,vs[v].z*8);mesh.uv=uv;
-                    Add(3,mesh,p+q*Vector3.forward*.014f,q,Vector3.one);
                     Add(5,WeaponBoreTube(.019f,.016f,.073f),p+q*Vector3.forward*.033f,q,Vector3.one);
                 }
                 Box(2,new Vector3(0,.203f,-.080f),new Vector3(.065f,.032f,.030f));Box(4,new Vector3(0,.218f,-.082f),new Vector3(.025f,.004f,.012f),.001f);

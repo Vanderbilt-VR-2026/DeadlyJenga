@@ -228,8 +228,7 @@ namespace DeadlyJenga.CandyPlayers
             for(int i=0;i<6;i++)
             {
                 float a=i*Mathf.PI/3;float x=Mathf.Cos(a)*.115f,y=.12f+Mathf.Sin(a)*.115f;
-                feed.Tube(Finish.Steel,y,-.035f,.27f,.046f,.035f,x);feed.Tube(Finish.Brass,y,.025f,.22f,.036f,0,x);
-                feed.Tube(Finish.Violet,y,.225f,.25f,.036f,0,x);
+                feed.Tube(Finish.Steel,y,-.035f,.27f,.046f,.035f,x);
             }
             b.Plate(Finish.Ceramic,new Vector3(0,.33f,.145f),new Vector3(.26f,.11f,.46f));
             b.Plate(Finish.Charcoal,new Vector3(0,.05f,-.32f),new Vector3(.123f,.145f,.40f));
@@ -290,7 +289,6 @@ namespace DeadlyJenga.CandyPlayers
             b.Tube(Finish.Steel,axis,.32f,.49f,.151f,.118f);
             b.Tube(Finish.Charcoal,axis,.82f,.89f,.134f,.114f);
             feed.Plate(Finish.Charcoal,new Vector3(.225f,axis-.025f,.12f),new Vector3(.19f,.24f,.35f));
-            for(int i=0;i<6;i++)feed.Tube(Finish.Brass,axis+.096f,.07f,.28f,.014f,0,.165f+i*.023f);
 
             ForgeChainGunHandle(b,.075f,.09f,axis+.10f);
             float frontHandle=SupportGripOffset(EquipmentKind.ChainGun,false).z+.075f;

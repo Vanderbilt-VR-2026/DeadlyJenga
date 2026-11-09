@@ -218,7 +218,9 @@ namespace DeadlyJenga.CandyPlayers
             wasVaulting=vaulting;LastFrame=frame;
             var activeMoments = Moments;
             RenderedFrame = activeMoments ? activeMoments.Pose(frame) : frame;
-            Rig.ApplyFrame(RenderedFrame, survivor ? survivor.Grounded : true, dt);
+            var presentationFrame = RenderedFrame;
+            GetComponent<CandyEquipment>()?.PoseWeaponPresentationHands(ref presentationFrame, dt);
+            Rig.ApplyFrame(presentationFrame, survivor ? survivor.Grounded : true, dt);
         }
         public void ApplyRemote(CandyAvatarFrame frame,int color)
         {
