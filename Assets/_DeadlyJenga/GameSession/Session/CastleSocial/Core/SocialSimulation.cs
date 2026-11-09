@@ -194,21 +194,21 @@ namespace DeadlyJenga.CastleSocial
             switch(e.kind)
             {
                 case SocialEventKind.Collapse:case SocialEventKind.NearMiss:case SocialEventKind.Wobble:
-                    line=playful?Pick("the floor just unsubscribed!","that block has places to be.","who ordered express demolition?","gravity is absolutely showing off.","this is not the staircase I signed up for.","the island is collecting rent."):
+                    line=playful?Pick("Wait, the floor moved!","Oh, that block is gone.","Wait, was that our floor?","Okay, I liked that floor.","I was about to step there.","Yeah, I am not jumping that."):
                         b.emotion.fear>.5?Pick("move, move, move!","that side is going!","I'm getting off this edge!","watch the blocks above you!","find a stable ledge!"):Pick("take the other side!","let it settle first.","we can cross after that falls.","hold on to the next ledge.");break;
-                case SocialEventKind.Greeting:line=Pick("hey, you made it!","welcome to the world's worst elevator.","hey! There's room over here.","good timing. The floor is still here.","what's up?","you taking the high route?");break;
-                case SocialEventKind.Elimination:line=playful?Pick("a very committed shortcut.","ten out of ten landing. Wrong island though.","we are calling that a tactical descent."):Pick("rough landing. You'll get the next one.","I nearly went with you.","that support moved right under you.");break;
+                case SocialEventKind.Greeting:line=Pick("hey, you made it!","Hey, you coming up?","hey! There's room over here.","good timing. The floor is still here.","what's up?","you taking the high route?");break;
+                case SocialEventKind.Elimination:line=playful?Pick("Oh no.","I thought we were done there.","That was so close."):Pick("rough landing. You'll get the next one.","I nearly went with you.","that support moved right under you.");break;
                 case SocialEventKind.Success:case SocialEventKind.Victory:line=Pick("that was clean!","you actually made that jump!","nice one!","that's the route!","I thought we were done there.");break;
                 case SocialEventKind.HumanSpeech:
                     string t=(e.text??"").ToLowerInvariant();
-                    line=t.Contains("where")||t.Contains("how")?Pick("try the next ledge when it stops moving.","I'd take the stable side, then vault up.","wait for the hand to pass first."):
+                    line=t.Contains("where")||t.Contains("how")?Pick("Which ledge do you mean?","Wait, where are you?","I don't know from here."):
                         t.Contains("hello")||t.Contains("hey")?Pick("hey! Watch your step.","hey, welcome up here!","what's up? We're still standing."):
-                        t.Contains("?")?Pick("not sure yet. Give that block a second.","yeah, but watch the support underneath.","I'd try it from the other side."):Pick("yeah, I saw that.","same. I thought that was it.","that's what I was watching too.","let's see if this side holds.");break;
-                case SocialEventKind.BotSpeech:line=b.Relationship(e.speaker)>.3?Pick("you said that last time too.","I'm right behind you. Probably.","this is why we can't have nice towers.","okay, I trust you. Slightly."):Pick("fair point.","I'm trying the other ledge.","let's not test gravity twice.","I'll watch this side.");break;
-                case SocialEventKind.Betrayal:line=c.trashTalk>r.NextDouble()?Pick("you're paying for the next tower.","I saw that. Very subtle.","interesting definition of teamwork."):Pick("careful, I'm standing here!","give me a second to move.");break;
+                        t.Contains("?")?Pick("not sure yet. Give that block a second.","yeah, but watch the support underneath.","I'd try it from the other side."):Pick("Oh, gotcha.","Wait, what happened?","Hang on, say that again?","let's see if this side holds.");break;
+                case SocialEventKind.BotSpeech:line=b.Relationship(e.speaker)>.3?Pick("you said that last time too.","I'm right behind you. Probably.","Wait, what do you mean?","okay, I trust you. Slightly."):Pick("fair point.","I'm trying the other ledge.","let's not test gravity twice.","I'll watch this side.");break;
+                case SocialEventKind.Betrayal:line=c.trashTalk>r.NextDouble()?Pick("you're paying for the next tower.","Wait, what do you mean?","Okay, give me a little room."):Pick("careful, I'm standing here!","give me a second to move.");break;
                 case SocialEventKind.Collision:line=Pick("excuse me!","little crowded up here.","one at a time on this ledge.");break;
                 case SocialEventKind.Joke:line=Pick("okay, that got me.","terrible joke. Keep going.","I can't climb and laugh at the same time.");break;
-                default:line=Pick("I'm checking the next tower.","anyone taking the high route?","this ledge is suspiciously comfortable.","I give this floor about twelve seconds.","we should probably keep moving.","does anyone else hear that hand?");break;
+                default:line=Pick("I'm checking the next tower.","anyone taking the high route?","I'm good here for a sec.","Give me a sec, I'm lining this up.","we should probably keep moving.","does anyone else hear that hand?");break;
             }
             if((e.kind==SocialEventKind.Collapse||e.kind==SocialEventKind.NearMiss)&&r.NextDouble()<c.screaming*b.emotion.fear)line=Pick("WAIT WAIT WAIT!","NO, NOT THAT BLOCK!","MOVE MOVE MOVE!");
             if(!decorate)return Safe(line,c.allowProfanity);

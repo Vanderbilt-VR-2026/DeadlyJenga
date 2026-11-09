@@ -16,3 +16,15 @@ Round just started.
 Round's over.
 Flag scored.
 The rewind ended.
+A block just broke on my right.
+A block just broke on my left.
+A block just broke above me.
+A block just broke below me.
+A block just broke in front of me.
+Wait, on your right?
+Wait, on your left?
+Wait, above you?
+Wait, below you?
+Whoa, what was that?
+Yeah, I'm a bot.
+A block just broke.

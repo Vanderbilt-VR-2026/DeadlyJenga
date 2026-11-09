@@ -100,3 +100,52 @@ non-silent clips and 10,979,155 bytes. SHA-256
 The results are from a prepared desktop checkout. Individual modes,
 full-match repetition, Quest performance and independent peers are
 separate validation cases.
+
+## Player voice direction
+
+The Portal Dialogue Corpus records 11.5 hours of co-op Portal 2. Its
+authors document compact spatial references, clarifications and
+self-corrections. The Warzone study analyzed 5,915 real player utterances
+and found casual players used more social and emotional talk than esports
+players. Mondada's recorded football sessions show players shifting
+between action-timed talk and conversation around the game.
+
+- [Portal Dialogue Corpus](https://arxiv.org/abs/2512.03381)
+- [Warzone communication study](https://doi.org/10.1177/21522715261417553)
+- [Coordination and talk in and out of games](https://doi.org/10.1075/pbns.224.10mon)
+
+For Deadly Jenga, the first callout names the useful detail. A nearby
+listener asks for the part they missed in the speaker's frame of
+reference. A variable beat leaves room for a human to take the floor.
+A playful bot can add an aside later. Damage, combat and disaster
+warnings stay plain. Game-aware humor refers to a confirmed rewind or
+round ending. A direct question about being a bot gets a plain answer.
+Write original lines for the game.
+
+In on-device conversation, a nearby named bot gets the turn. A nearby
+question can go to one eligible listener. Unaddressed side talk stays
+quiet. The local model gets the bot's recent observation and the previous
+turn with that same player. It can use a fragment or ask for clarification.
+The regular mode uses the revised Pocket recordings, and live answers
+use the same cast.
+
+The standalone corpus covers hearing-only facts, four directions,
+danger tone, turn eligibility, sparse asides, repetition and bot
+identity. The Game fixture checks a staged collapse, two actual hits
+and injected player transcripts using the live audio route. A short
+dry audition concatenates the two Pocket takes without the Unity mix.
+
+### Limits of open conversation
+
+The small local model sometimes echoed its instructions, repeated part of
+the player's question, or contradicted a confirmed hit in desktop checks.
+A direct hit confirmation reads the speaker's recent personal
+observation. That fact cannot confirm the attacker. An invitation to play
+another round gets a social reply without triggering a match action.
+Open replies go through a simple filter for prompt echoes, stage
+directions and parroting. This filter is a wording check. It cannot prove
+a novel answer is funny, relevant or true.
+
+The standalone suite has 175 assertions. Both voice banks were checked
+against the current phrase inventories. The desktop replay uses injected
+transcripts and the game's existing AudioSources.

@@ -191,9 +191,22 @@ namespace DeadlyJenga.CastleSocial
             string recipient=null;
             if(OnDevice&&OnDevice.Requested)
             {
-                var addressed=Agents.FirstOrDefault(a=>a&&text.IndexOf(a.State.identity.name,StringComparison.OrdinalIgnoreCase)>=0);
-                if(!addressed&&TryPosition(speaker,out var from))addressed=Agents.Where(a=>a&&!a.State.muted).OrderBy(a=>(a.transform.position-from).sqrMagnitude).FirstOrDefault();
-                if(addressed)
+                if(string.IsNullOrWhiteSpace(text)||!TryPosition(speaker,out var from))return;
+                SocialBotAgent addressed=null;
+                bool question=MatchBanter.IsQuestion(text);
+                bool named=false;
+                float nearest=VoiceHearingRange*VoiceHearingRange;
+                foreach(var agent in Agents)
+                {
+                    if(!CanTalk(agent))continue;
+                    float distance=(agent.transform.position-from).sqrMagnitude;
+                    if(distance>VoiceHearingRange*VoiceHearingRange)continue;
+                    bool callsThisBot=MatchBanter.ContainsWords(text,agent.State.identity.name);
+                    if((!callsThisBot&&(!question||named))||
+                        (callsThisBot==named&&distance>=nearest))continue;
+                    addressed=agent;named=callsThisBot;nearest=distance;
+                }
+                if(addressed&&(named||!Agents.Any(a=>a&&a.State!=null&&MatchBanter.ContainsWords(text,a.State.identity.name))))
                 {
                     recipient=addressed.State.identity.id;addressed.State.focus=speaker;
                     addressed.State.Remember(new SocialEvent{id="human:"+speaker+":"+utterance,speaker=speaker,text=text,human=true,kind=SocialEventKind.HumanSpeech,time=Time.unscaledTime},Config.memoryLimit,Config.retainHumanText);
