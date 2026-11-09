@@ -30,7 +30,16 @@ namespace DeadlyJenga.CandyArt.Marina
         string modeId,mapId,focusTarget,focusMode,focusMap;
         float refreshAt;
         RectTransform focusPanel;
-        public bool Visible {get=>mainFace&&mainFace.gameObject.activeSelf;set{if(mainFace)mainFace.gameObject.SetActive(value);}}
+        public bool Visible
+        {
+            get => mainFace && mainFace.gameObject.activeSelf;
+            set
+            {
+                if (!mainFace || mainFace.gameObject.activeSelf == value) return;
+                if (value) Refresh();
+                mainFace.gameObject.SetActive(value);
+            }
+        }
         bool AnyFaceVisible => Visible || (joinFace && joinFace.gameObject.activeSelf) ||
             (hostFace && hostFace.gameObject.activeSelf);
 
