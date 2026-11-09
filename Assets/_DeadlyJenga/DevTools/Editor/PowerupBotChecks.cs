@@ -51,20 +51,21 @@ namespace DeadlyJenga.DevTools.Editor
                     SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);
                     var setup=JsonUtility.FromJson<Setup>(SessionState.GetString(Key+"Scenes",""));if(setup.scenes.Any(s=>s.isActive&&s.isLoaded))EditorSceneManager.RestoreSceneManagerSetup(setup.scenes);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
                     File.AppendAllText(Report,$"COMPLETE checks={checks} errors={errors} failed={failed}. Native fixture surfaces and actual Game modes; no Quest test.\n");
-                    if(Application.isBatchMode)EditorApplication.Exit(failed||errors>0||checks<20?1:0);
+                    if(Application.isBatchMode)EditorApplication.Exit(failed||errors>0||checks<(SessionState.GetBool(Key+"Calibration",false)?6:20)?1:0);
                 }
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Random Powerups and Bot Guns")]
         public static void Run()=>Start(false);
         public static void RunWeaponTactics()=>Start(true);
-        static void Start(bool focused)
+        public static void RunAimCalibration()=>Start(true,true);
+        static void Start(bool focused,bool calibration=false)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit Play Mode first.");
             var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
             BotObjectiveContractChecks.Run();if(!BotObjectiveContractChecks.LastPassed)throw new InvalidOperationException("Bot contracts failed.");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Setup{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key+"Entered",false);SessionState.SetBool(Key,true);
-            SessionState.SetBool(Key+"Focused",focused);
+            SessionState.SetBool(Key+"Focused",focused);SessionState.SetBool(Key+"Calibration",calibration);
             File.WriteAllText(Report,"Random spawning, native support/expiry, real bot collection, ordinary weapon skill fixtures and production Mystery witness acceptance.\n");
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";MatchSetup.MapId="castle";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -92,7 +93,8 @@ namespace DeadlyJenga.DevTools.Editor
         {float until=Time.realtimeSinceStartup+timeout;while(!condition()&&Time.realtimeSinceStartup<until)yield return null;bool passed=condition();Check(passed,label+(!passed&&diagnostic!=null?" · "+diagnostic():""));}
         static IEnumerator Guard()
         {
-            var tests=SessionState.GetBool(Key+"Focused",false)?new[]{Test()}:new[]{Test(),AimTest(),ModelGallery()};
+            var tests=SessionState.GetBool(Key+"Calibration",false)?new[]{AimCalibration()}:
+                SessionState.GetBool(Key+"Focused",false)?new[]{Test()}:new[]{Test(),AimTest(),ModelGallery()};
             foreach(var test in tests)
             {
             var stack=new Stack<IEnumerator>();stack.Push(test);
@@ -110,6 +112,56 @@ namespace DeadlyJenga.DevTools.Editor
             int id=runtime.RegisterPickup(new Source{Kind=kind,Position=bot.transform.position+Vector3.forward*.65f+Vector3.up*.2f});
             runtime.ReceiveCommand(bot.ActorId,"equipment:"+JsonUtility.ToJson(new MatchModeRuntime.EquipmentCommand{action="pickup",pickup=id,swap=true}));Check(runtime.EquipmentFor(bot.ActorId).kind==kind,"Actual bot pickup grants "+kind);
         }
+        static IEnumerator AimCalibration()
+        {
+            yield return Until(()=>Services.Session is CastlePlaySession s&&s.Modes!=null,"Actual Game starts",30);
+            var session=(CastlePlaySession)Services.Session;
+            session.SetRole(false);session.SetMenu(false);
+            session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots.Clear();
+            if(session.Social!=null)session.Social.VoiceEnabled=false;
+            var runtime=session.Modes;
+            var rules=ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds=0;rules.island=IslandRule.Walkable;rules.healthEnabled=true;rules.deathEnabled=false;
+            runtime.Configure(rules);runtime.StartRound();
+            var floor=Block(new Vector3(150,9.5f,150),new Vector3(90,1,75));
+            var originalProvider=BotObjectives.Current;
+            try
+            {
+                var target=session.Survivor();
+                target.Place(new Vector3(150,10.05f,170),Quaternion.identity);target.InputSuspended=true;
+                var spawned=session.SurvivorBots.SpawnOne();
+                Check(spawned,"Calibration shooter spawns in Game");
+                var bot=spawned.GetComponent<CastleSurvivor>();var brain=spawned.GetComponent<CastleBotBrain>();
+                bot.InputSuspended=true;
+                yield return new WaitForSeconds(.25f);
+                bot.Place(new Vector3(150,10.05f,150),Quaternion.identity);
+                Physics.SyncTransforms();
+                Grant(runtime,bot,EquipmentKind.SheriffHammer);
+                BotObjectives.Current=new Goal{actor=bot.gameObject,target=target.gameObject};
+                float health=target.Health,started=Time.time;
+                int before=brain.WeaponShotsAccepted;
+                bot.InputSuspended=false;
+                yield return Until(()=>brain.WeaponShotsAccepted>before,"Bot accepts its first revolver shot",5,()=>brain.WeaponReason);
+                Check(Time.time-started>=.18f,"Revolver shot follows an acquisition delay");
+                yield return Until(()=>target.Health<health,"Bot revolver can hit a stationary target at 20m",9,()=>brain.WeaponReason);
+                before=brain.WeaponShotsAccepted;
+                float strafing=Time.time;
+                while(Time.time-strafing<3.5f)
+                {
+                    target.Place(new Vector3(150+Mathf.Sin((Time.time-strafing)*2)*1.7f,10.05f,170),Quaternion.identity);
+                    Physics.SyncTransforms();yield return null;
+                }
+                Check(brain.WeaponShotsAccepted>before,"Bot continues to engage a strafing target");
+                var cover=Block(new Vector3(150,13,160),new Vector3(34,6,1));
+                cover.transform.SetParent(floor.transform,true);Physics.SyncTransforms();
+                yield return new WaitForSeconds(.24f);before=brain.WeaponShotsAccepted;
+                yield return new WaitForSeconds(1);
+                Check(brain.WeaponShotsAccepted==before,"Bot withholds fire after its target is occluded");
+                bot.InputSuspended=true;
+            }
+            finally{BotObjectives.Current=originalProvider;Object.Destroy(floor.gameObject);}
+        }
+
         static IEnumerator Test()
         {
             yield return Until(()=>Services.Session is CastlePlaySession s&&s.Modes!=null,"Actual Game starts",30);
