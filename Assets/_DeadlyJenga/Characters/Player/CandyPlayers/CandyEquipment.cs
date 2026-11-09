@@ -176,15 +176,7 @@ namespace DeadlyJenga.CandyPlayers
                     desktopAimTarget=target;
                     aim=new Pose(position,Quaternion.LookRotation(target-position));
                 }
-                if(motor&&!motor.IsVR&&Equipment.drawn)
-                {
-                    float age=Time.time-lastAttackTime;
-                    bool melee=EquipmentSpecifications.Get(Equipment.kind).melee;
-                    if(!melee&&age>=0&&age<.3f)aim.position-=aim.rotation*Vector3.forward*(Mathf.Sin(age/.3f*Mathf.PI)*.035f*Scale);
-                }
                 var state=Equipment;
-                if(state.kind>EquipmentKind.PoweredArmor&&state.triggerHeld)
-                    aim.position-=aim.rotation*Vector3.forward*(.012f*Mathf.Abs(Mathf.Sin(Time.time*55))*Scale);
                 if(Local&&state.drawn&&IsShoulderLauncher(state.kind))
                     aim=ClearLauncherView(aim,head.position,head.rotation,Scale,
                         avatar.viewCamera?avatar.viewCamera.nearClipPlane:.035f,state.kind);
@@ -384,11 +376,22 @@ namespace DeadlyJenga.CandyPlayers
 
         public void PoseHands(ref CandyAvatarFrame frame)
         {
-            var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||state.kind==EquipmentKind.PoweredArmor||motor&&(motor.Climbing||motor.Vaulting))return;
-            ReadAcceptedBashes(state);
+            var state=Equipment;if(!state.drawn||state.kind<EquipmentKind.Blaster||motor&&(motor.Climbing||motor.Vaulting))return;
+            ReadAcceptedWeaponMotion(state);
+            if(state.kind==EquipmentKind.PoweredArmor)
+            {
+                bool emitterLeft=motor.IsVR&&Local?SuitShootingLeft:state.leftHanded;
+                var emitterHand=emitterLeft?frame.left:frame.right;
+                var suitRecoil=PresentedRecoil(new Pose(emitterHand.position,emitterHand.rotation),state,emitterLeft);
+                emitterHand.position=suitRecoil.position;emitterHand.rotation=suitRecoil.rotation;
+                if(emitterLeft)frame.left=emitterHand;else frame.right=emitterHand;
+                return;
+            }
             var hand=state.leftHanded?frame.left:frame.right;
             var gripPose=GripPose;
-            var pose=DesktopMeleePose(PresentedBashGrip(PresentedReloadGrip(gripPose,state,state.leftHanded),state),state);
+            var carryPose=PresentedSprintGrip(gripPose,state,frame,state.leftHanded);
+            var pose=DesktopMeleePose(PresentedBashGrip(PresentedReloadGrip(carryPose,state,state.leftHanded),state),state);
+            pose=PresentedRecoil(pose,state,state.leftHanded);
             bool cosmeticMove=(pose.position-gripPose.position).sqrMagnitude>.000001f||
                 Mathf.Abs(Quaternion.Dot(pose.rotation,gripPose.rotation))<.99999f;
             if(cosmeticMove&&Local&&IsShoulderLauncher(state.kind)&&avatar.viewCamera)
@@ -406,11 +409,8 @@ namespace DeadlyJenga.CandyPlayers
             if(state.kind==EquipmentKind.LaserAxe)
             {
                 var carry=AxeCarry(gripPose,state.leftHanded);
-                if (!motor.IsVR)
-                {
-                    var delta = pose.rotation * Quaternion.Inverse(gripPose.rotation);
-                    carry = new Pose(pose.position + delta * (carry.position - gripPose.position), delta * carry.rotation);
-                }
+                var delta=pose.rotation*Quaternion.Inverse(gripPose.rotation);
+                carry=new Pose(pose.position+delta*(carry.position-gripPose.position),delta*carry.rotation);
                 CandyWeaponVisual.MeleeMount(state.kind,state.leftHanded,out var palm,out var axeMount);
                 hand.rotation=carry.rotation*Quaternion.Inverse(axeMount);
                 hand.position=carry.position-hand.rotation*palm*Scale;
@@ -437,13 +437,16 @@ namespace DeadlyJenga.CandyPlayers
                 {
                     var offhandAim=new Pose(support.position,support.rotation);
                     if(avatar.tracking&&avatar.tracking.TryControllerAim(supportLeft,out var aim))offhandAim=aim;
+                    offhandAim=PresentedSprintGrip(offhandAim,state,frame,supportLeft);
+                    offhandAim=PresentedRecoil(offhandAim,state,supportLeft,true);
                     CandyWeaponVisual.TryPrimaryContact(ref support,offhandAim,state.kind,supportLeft,
                         offTrigger?.IsPressed()==true,Scale);
                 }
                 else
                 {
                     var offhand=new Pose(gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale,gripPose.rotation);
-                    offhand=PresentedReloadGrip(offhand,state,supportLeft);
+                    offhand=PresentedSprintGrip(offhand,state,frame,supportLeft);
+                    offhand=PresentedRecoil(PresentedReloadGrip(offhand,state,supportLeft),state,supportLeft,true);
                     CandyWeaponVisual.TryPrimaryContact(ref support,offhand,state.kind,supportLeft,pressed,Scale);
                 }
                 if(supportLeft)frame.left=support;else frame.right=support;
@@ -451,8 +454,10 @@ namespace DeadlyJenga.CandyPlayers
             }
             if(state.kind==EquipmentKind.LaserClaws&&!motor.IsVR)
             {
-                support.position=gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale;
-                support.rotation=gripPose.rotation;
+                var clawGrip=new Pose(gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale,gripPose.rotation);
+                clawGrip=PresentedSprintGrip(clawGrip,state,frame,supportLeft);
+                support.position=clawGrip.position;
+                support.rotation=clawGrip.rotation;
                 support.skeleton=CandyHandSkeleton.Rest(supportLeft,.96f);
                 support.skeletonTracked=true;
                 if(supportLeft)frame.left=support;else frame.right=support;

@@ -66,12 +66,15 @@ namespace DeadlyJenga.Presentation
             }
             stale.Clear();foreach(var item in shots)if(!seen.Contains(item.Key)){ReturnProjectile(item.Value);stale.Add(item.Key);}foreach(int id in stale)shots.Remove(id);
             cursor.Read(match.Frame,Action);
+            UpdateShells();
             foreach(var beam in beams.Values)beam.line.enabled=Time.time<beam.until;
             UpdateWeaponEffects(match);
             UpdateThunderbolts();
         }
         void Action(EquipmentActionFrame action)
         {
+            if(action.action==EquipmentAction.Shot&&action.remaining>=.55f)
+                PresentShot(action);
             if(action.action==EquipmentAction.Shot&&UsesHeat(action.kind)&&!string.IsNullOrEmpty(action.actor))
             {
                 var effect=EffectFor(action.actor,action.kind);
@@ -375,12 +378,15 @@ namespace DeadlyJenga.Presentation
             foreach(var bolt in thunderbolts.Values)foreach(var line in bolt.lines)if(line)Destroy(line.gameObject);
             thunderbolts.Clear();
             if(steam)steam.Clear();
+            foreach(var shell in shells)if(shell.model)shell.model.gameObject.SetActive(false);
         }
 
         void OnDestroy()
         {
             ClearWeaponEffects();
             ReleaseOrdnance();
+            if(shellMaterial)Destroy(shellMaterial);
+            if(shellMesh)Destroy(shellMesh);
             foreach(var s in shots.Values)if(s)Destroy(s.gameObject);
             foreach(var b in beams.Values)if(b.line)Destroy(b.line.gameObject);
         }

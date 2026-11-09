@@ -263,6 +263,13 @@ namespace DeadlyJenga.CandyPlayers
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
         }
 
+        internal bool IsPairedShot(Vector3 origin)
+        {
+            if(!root||!paired||kind!=EquipmentKind.DualUzi)return false;
+            var muzzle=new Vector3(0,.12f,.51f);
+            return (paired.TransformPoint(muzzle)-origin).sqrMagnitude<(root.TransformPoint(muzzle)-origin).sqrMagnitude;
+        }
+
         public void Present(EquipmentState state,CandyAvatarFrame frame,bool active) =>
             Present(state,frame,active,false);
 
