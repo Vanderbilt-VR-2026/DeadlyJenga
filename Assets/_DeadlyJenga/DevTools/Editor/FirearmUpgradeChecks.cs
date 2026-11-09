@@ -51,15 +51,19 @@ namespace DeadlyJenga.DevTools.Editor
         [MenuItem("Tools/Deadly Jenga/Validation/Check Revolver and Gun Sights")]
         public static void Run()=>Start(false);
         public static void RunAimOnly()=>Start(true);
-        static void Start(bool aimOnly)
+        public static void RunWeaponEventsOnly()=>Start(false,true);
+        static void Start(bool aimOnly,bool eventsOnly=false)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit Play Mode first.");
             var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
-            BotObjectiveContractChecks.Run();
-            if(!BotObjectiveContractChecks.LastPassed)throw new InvalidOperationException("Bot objective contracts failed.");
+            if(!eventsOnly)
+            {
+                BotObjectiveContractChecks.Run();
+                if(!BotObjectiveContractChecks.LastPassed)throw new InvalidOperationException("Bot objective contracts failed.");
+            }
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Setup{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));
             SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key+"Entered",false);SessionState.SetBool(Key,true);
-            SessionState.SetBool(Key+"Complete",false);SessionState.SetBool(Key+"AimOnly",aimOnly);
+            SessionState.SetBool(Key+"Complete",false);SessionState.SetBool(Key+"AimOnly",aimOnly);SessionState.SetBool(Key+"EventsOnly",eventsOnly);
             File.WriteAllText(Report,"Actual Game firearm, death drop, Mystery handoff and local zoom checks.\n");
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";MatchSetup.MapId="castle";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
@@ -88,6 +92,13 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Services.Session as CastlePlaySession;Check(session&&session.Modes!=null,"Game initializes");session.SetRole(false);session.SetMenu(false);session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots.Clear();if(session.Social!=null)session.Social.VoiceEnabled=false;
             var runtime=session.Modes;var rules=ModeSimulation.Defaults(GameModeKind.Demo);rules.countdownSeconds=0;rules.island=IslandRule.Walkable;runtime.Configure(rules);runtime.StartRound();yield return new WaitForSeconds(.3f);
             if(SessionState.GetBool(Key+"AimOnly",false)){yield return AimOnly(session);yield break;}
+            if(SessionState.GetBool(Key+"EventsOnly",false))
+            {
+                yield return WeaponEventChecks.Run(session);
+                Check(File.ReadAllText(ProjectPath.Report("WeaponEvents.txt")).Contains("COMPLETE checks="),
+                    "Weapon event checks complete");
+                yield break;
+            }
             yield return WeaponPresentationChecks.Run();yield return WeaponEventChecks.Run(session);
             runtime.Configure(rules);runtime.StartRound();yield return new WaitForSeconds(.3f);
             var floor=GameObject.CreatePrimitive(PrimitiveType.Cube);floor.layer=Layers.Surface;floor.transform.position=new Vector3(150,9,150);floor.transform.localScale=new Vector3(35,2,110);
