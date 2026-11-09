@@ -49,6 +49,7 @@ def main():
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--staging", type=Path, required=True,
                         help="Temporary file outside Unity's Assets directory")
+    parser.add_argument("--line-list", type=Path, help="Optional UTF-8 inventory with one exact line per row")
     args = parser.parse_args()
     model = args.model_dir
     kitten = sherpa_onnx.OfflineTtsKittenModelConfig(
@@ -60,9 +61,14 @@ def main():
     tts = sherpa_onnx.OfflineTts(config)
     if tts.num_speakers < VOICE_COUNT:
         raise ValueError("The Kitten voice pack does not contain eight speakers")
-    lines = authored_lines(Path(__file__).resolve().parents[1] / "Core/SocialSimulation.cs")
-    if not 40 <= len(lines) <= 128:
-        raise ValueError(f"Unexpected authored reaction inventory: {len(lines)}")
+    if args.line_list:
+        lines = [line.strip() for line in args.line_list.read_text(encoding="utf-8-sig").splitlines() if line.strip()]
+        if not 1 <= len(lines) <= 128 or len(set(lines)) != len(lines) or any(len(line.encode()) > 960 for line in lines):
+            raise ValueError("The custom line inventory must contain 1–128 distinct short lines")
+    else:
+        lines = authored_lines(Path(__file__).resolve().parents[1] / "Core/SocialSimulation.cs")
+        if not 40 <= len(lines) <= 128:
+            raise ValueError(f"Unexpected authored reaction inventory: {len(lines)}")
     partial = args.staging
     header = struct.pack("<4sHH", b"DJB1", VOICE_COUNT, len(lines))
     completed = 0

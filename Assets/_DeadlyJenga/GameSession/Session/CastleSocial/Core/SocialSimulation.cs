@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DeadlyJenga.CastleSocial
 {
-    public enum SocialEventKind { Greeting,HumanSpeech,BotSpeech,Wobble,Collapse,NearMiss,Elimination,Success,Collision,Joke,Victory,Silence,Betrayal,Damage,Hazard,Round,Combat,Equipment,Objective }
+    public enum SocialEventKind { Greeting,HumanSpeech,BotSpeech,Wobble,Collapse,NearMiss,Elimination,Success,Collision,Joke,Victory,Silence,Betrayal,Damage,Hazard,Round,Combat,Equipment,Objective,Effect,Rewind }
     [Serializable] public sealed class SocialEvent
     {public string id,speaker,recipient,topic="castle",text;public SocialEventKind kind;public double time,salience=1;public int depth;public bool human;}
     [Serializable] public sealed class SocialEmotion

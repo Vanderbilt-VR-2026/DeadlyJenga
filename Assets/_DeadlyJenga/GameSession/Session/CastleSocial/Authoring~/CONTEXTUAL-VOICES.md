@@ -17,7 +17,9 @@ first speaker and receives its own observation and the exact line after
 that line is sent for playback. Each exchange can have one follow-up.
 The normal human speech interruption, mute and round invalidation apply.
 
-The local model writes a short line which goes to Kitten speech synthesis
+By default, the game composes brief match banter from the observed facts.
+Direct player speech and the optional improviseGameReactions setting use
+local model generation. The selected line goes to Kitten speech synthesis
 using the same speaker ordinal as bundled playback. For collapses, the
 dialogue check filters copied lines, unsupported sight claims and common
 unsupported causal claims. A failed line is replaced with a composition

@@ -139,7 +139,7 @@ namespace DeadlyJenga.CastleSocial
                 {
                     ObserveMatchFrame();
                     if(nearby>=3)ObserveNearby(nearby>=8?SocialEventKind.Collapse:SocialEventKind.Wobble,anchor,
-                        "several tower blocks moving together",nearby>=8?"blocks crashing":null,anchorBody.gameObject,3);
+                        "several tower blocks shifted together",nearby>=8?"blocks crashing":null,anchorBody.gameObject,3);
                 }
                 else if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));
                 else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);

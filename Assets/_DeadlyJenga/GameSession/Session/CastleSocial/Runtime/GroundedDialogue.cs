@@ -28,21 +28,5 @@ namespace DeadlyJenga.CastleSocial
                 (line.Contains("broke") || line.Contains("break") || line.Contains("crack") || line.Contains("fall") ||
                  line.Contains("crash") || line.Contains("collapse") || line.Contains("moving"));
         }
-
-        internal static string Compose(ObservedSpeech turn)
-        {
-            if (string.IsNullOrEmpty(turn.HeardText)) return turn.Fact;
-            string words = turn.HeardText.ToLowerInvariant();
-            if (turn.Kind == SocialEventKind.Collapse)
-            {
-                string opening = turn.HeardOnly ? "I heard that crash. " : "I caught that too. ";
-                if (words.Contains("right")) return opening + "How close was it on your right?";
-                if (words.Contains("left")) return opening + "How close was it on your left?";
-                if (words.Contains("above")) return opening + "Was it right above you?";
-                if (words.Contains("below")) return opening + "Did it fall far below you?";
-                return opening + "Where did that block come down?";
-            }
-            return turn.HeardOnly ? "I heard you. Where did that happen?" : turn.Fact + " Did you see anything else?";
-        }
     }
 }

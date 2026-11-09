@@ -27,18 +27,23 @@ namespace DeadlyJenga.CastleSocial
             internal float[] Read(int offset, int count)
             {
                 var samples = new float[count];
+                CopyTo(samples, 0, offset, count);
+                return samples;
+            }
+
+            internal void CopyTo(float[] samples, int destination, int offset, int count)
+            {
                 int index = start + offset * 2;
                 for (int i = 0; i < count; i++, index += 2)
-                    samples[i] = unchecked((short)(pcm[index] | pcm[index + 1] << 8)) / 32768f;
-                return samples;
+                    samples[destination + i] = unchecked((short)(pcm[index] | pcm[index + 1] << 8)) / 32768f;
             }
         }
 
         readonly Dictionary<string, Clip[]> lines = new Dictionary<string, Clip[]>(StringComparer.Ordinal);
 
-        internal static BundledBotVoiceBank Load()
+        internal static BundledBotVoiceBank Load(string bankName = "BundledBotVoices")
         {
-            var asset = Resources.Load<TextAsset>("CastleSocial/BundledBotVoices");
+            var asset = Resources.Load<TextAsset>("CastleSocial/" + bankName);
             if (!asset) throw new InvalidDataException("Bundled bot voice bank is missing.");
             try { return new BundledBotVoiceBank(asset.bytes); }
             finally { Resources.UnloadAsset(asset); }
@@ -78,6 +83,33 @@ namespace DeadlyJenga.CastleSocial
             int separator = identity.LastIndexOf(':');
             return int.TryParse(identity.AsSpan(separator + 1), out int ordinal) && ordinal >= 0
                 ? ordinal % VoiceCount : 0;
+        }
+
+        internal bool TryRenderLine(string identity, string text, out float[] samples)
+        {
+            samples = null;
+            if (TryGet(identity, text, out var whole))
+            {
+                samples = whole.Read(0, whole.Count);
+                return true;
+            }
+
+            // Match exact spoken phrases. A missing phrase keeps the whole
+            // line on the live synthesizer instead of changing the dialogue.
+            int split = -1;
+            for (int i = 0; i + 1 < text.Length; i++)
+            {
+                if (text[i + 1] == ' ' && (text[i] == '.' || text[i] == '?' || text[i] == '!'))
+                { split = i; break; }
+            }
+            if (split < 0 || !TryGet(identity, text.Substring(0, split + 1), out var first) ||
+                !TryGet(identity, text.Substring(split + 2), out var second)) return false;
+
+            const int pauseSamples = SampleRate / 20;
+            samples = new float[first.Count + pauseSamples + second.Count];
+            first.CopyTo(samples, 0, 0, first.Count);
+            second.CopyTo(samples, first.Count + pauseSamples, 0, second.Count);
+            return true;
         }
 
         internal bool TryGet(string identity, string text, out Clip clip)
