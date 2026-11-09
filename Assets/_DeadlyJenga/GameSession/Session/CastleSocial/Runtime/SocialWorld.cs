@@ -89,6 +89,7 @@ namespace DeadlyJenga.CastleSocial
                 if(Lobby&&identity.group>=0)foreach(var other in Director.bots.Values)
                     if(other!=state&&other.identity.group==identity.group){state.relationships[other.identity.id]=Config.sharedHistory;other.relationships[identity.id]=Config.sharedHistory;}
             }
+            if(Settings.mode==SocialOperatingMode.BundledVoices)identity.vocal.pitch=1;
             agent.Initialize(this,bot,state);Publish(SocialEventKind.Greeting,identity.id,.6);
         }
         void Update()
@@ -112,7 +113,11 @@ namespace DeadlyJenga.CastleSocial
             }
             foreach(var id in lastVoice.Where(p=>Time.unscaledTime-p.Value>.35f).Select(p=>p.Key).ToArray()){Director.HumanActivity(id,false,Time.unscaledTime);lastVoice.Remove(id);}
             if(Time.unscaledTime>=nextTick)
-            {nextTick=Time.unscaledTime+Config.tickSeconds;if(Config.enableBots)Director.Tick(Time.unscaledTime);}
+            {
+                nextTick=Time.unscaledTime+Config.tickSeconds;
+                Director.UseBundledVoiceLines=Speech.UsesBundledVoices;
+                if(Config.enableBots)Director.Tick(Time.unscaledTime);
+            }
             if(Session&&Time.unscaledTime>=nextThreat)
             {
                 nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
@@ -170,9 +175,12 @@ namespace DeadlyJenga.CastleSocial
         void OnSpeech(SocialSpeech intent)
         {
             if(!Director.bots.TryGetValue(intent.botId,out var state))return;
+            var agent=Agents.FirstOrDefault(a=>a&&a.State==state);
+            if(Speech.UsesBundledVoices&&(!agent||!agent.isActiveAndEnabled))
+            {Director.AudioFinished(intent.botId);return;}
             if(!OnDevice||!OnDevice.Requested){Caption=state.identity.name+" [AI]: "+intent.text;SendNotice(new SocialNotice{kind="caption",id=intent.botId,text=intent.text,name=state.identity.name,topic=intent.topic});}
             Speech.Speak(intent,state.identity);
-            var agent=Agents.FirstOrDefault(a=>a&&a.State==state);if(agent&&NetworkActors.Alive(agent.Bot))agent.Bot.PlayEmote(state.emotion.fear>.6?SocialEmote.Scared:SocialEmote.Friendly);
+            if(agent&&NetworkActors.Alive(agent.Bot))agent.Bot.PlayEmote(state.emotion.fear>.6?SocialEmote.Scared:SocialEmote.Friendly);
         }
         public void SpokenText(string id,string text)
         {

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using UnityEngine;
@@ -31,20 +32,99 @@ namespace DeadlyJenga.CastleSocial
         readonly Dictionary<string,int> utterances=new Dictionary<string,int>();int jobs,transcriptions,sequence;long serial;
         readonly Dictionary<string,PendingTranscript> pendingTranscripts=new Dictionary<string,PendingTranscript>();
         readonly Dictionary<string,string> lastTranscripts=new Dictionary<string,string>();
+        BundledBotVoiceBank bundledVoices;
+        bool triedBundledVoices;
+        internal bool UsesBundledVoices=>world.Settings.mode==SocialOperatingMode.BundledVoices&&(!world.OnDevice||!world.OnDevice.Requested);
         public string Status {get;private set;}="Offline captions; optional speech bridge not enabled";
         public int ActiveRequests=>jobs+transcriptions;public int Failures {get;private set;}
         public float LastFirstAudioSeconds {get;private set;}
         public int TranscriptsReceived {get;private set;}
-        public void Initialize(SocialWorld owner){world=owner;}
+        public void Initialize(SocialWorld owner)
+        {
+            world=owner;
+            if(UsesBundledVoices&&world.IsAuthority)LoadBundledVoices();
+        }
         public void Speak(SocialSpeech intent,SocialIdentity identity)
         {
             if(world.OnDevice&&world.OnDevice.Requested){world.OnDevice.Speak(intent,identity);return;}
+            if(UsesBundledVoices){SpeakBundled(intent,identity.id);return;}
             if(world.Settings.mode==SocialOperatingMode.Offline||world.Settings.mode==SocialOperatingMode.ReducedResource){Status="Offline captions (no synthetic speech provider)";return;}
             if(jobs>=2){Status="Speech budget full; keeping gameplay responsive";return;}
             if(!ValidEndpoint())return;
             Cancel(identity.id);long token=++serial;tokens[identity.id]=token;StartCoroutine(Stream(intent,identity,token));
         }
         bool Current(string id,long token)=>world&&world.Config.enableVoice&&tokens.TryGetValue(id,out var current)&&token==current&&world.Director.bots.TryGetValue(id,out var bot)&&!bot.muted;
+
+        void LoadBundledVoices()
+        {
+            if(triedBundledVoices)return;
+            triedBundledVoices=true;
+            try
+            {
+                bundledVoices=BundledBotVoiceBank.Load();
+                Status="Bundled bot voices ready";
+            }
+            catch(Exception error) when(error is IOException||error is InvalidDataException)
+            {
+                Status=error.Message;
+                Debug.LogWarning(Status,this);
+            }
+        }
+
+        void SpeakBundled(SocialSpeech intent,string id)
+        {
+            LoadBundledVoices();
+            if(!world.IsAuthority||Time.unscaledTime>intent.expires||
+                bundledVoices==null||!bundledVoices.TryGet(id,intent.text,out var clip))
+            {
+                world.Director.AudioFinished(id);
+                return;
+            }
+            Cancel(id);
+            long token=++serial;
+            tokens[id]=token;
+            StartCoroutine(StreamBundled(intent,id,token,clip));
+        }
+
+        IEnumerator StreamBundled(SocialSpeech intent,string id,long token,BundledBotVoiceBank.Clip clip)
+        {
+            const int packetSamples=800;
+            const int rate=BundledBotVoiceBank.SampleRate;
+            float began=Time.unscaledTime;
+            float ends=began+clip.Count/(float)rate+.1f;
+            world.Director.AudioPlaying(id,ends);
+            int offset=0;
+            bool ended=false;
+            try
+            {
+                while(Current(id,token)&&UsesBundledVoices&&world.isActiveAndEnabled&&world.IsAuthority)
+                {
+                    float now=Time.unscaledTime;
+                    int target=Mathf.Min(clip.Count,(int)((now-began+.1f)*rate));
+                    for(int packet=0;offset<target&&packet<3;packet++)
+                    {
+                        int count=Math.Min(packetSamples,clip.Count-offset);
+                        var frame=clip.Read(offset,count);
+                        if(world.Director.HumanHasFloor(now)&&!intent.interjection)
+                            for(int i=0;i<count;i++)frame[i]*=.4f-.3f*world.Config.interruptSensitivity;
+                        if(offset==0)LastFirstAudioSeconds=now-began;
+                        offset+=count;
+                        ended=offset==clip.Count;
+                        world.SendAudio(new SocialAudioPacket{speaker=id,samples=frame,end=ended},false);
+                    }
+                    if(ended&&now>=ends)yield break;
+                    yield return null;
+                }
+            }
+            finally
+            {
+                if(tokens.TryGetValue(id,out var current)&&current==token)
+                {
+                    tokens.Remove(id);
+                    if(world&&world.Director!=null)world.Director.AudioFinished(id);
+                }
+            }
+        }
         IEnumerator Stream(SocialSpeech intent,SocialIdentity identity,long token)
         {
             jobs++;float began=Time.realtimeSinceStartup;bool first=true,cancelled=false;string spokenText=null;var dsp=new SocialAudioProcessor();
@@ -108,7 +188,7 @@ namespace DeadlyJenga.CastleSocial
         public void HumanAudio(string id,SocialAudioPacket packet)
         {
             if(world.OnDevice&&world.OnDevice.Requested){world.OnDevice.HumanAudio(id,packet);return;}
-            if(world.Settings.mode==SocialOperatingMode.Offline||world.Settings.mode==SocialOperatingMode.ReducedResource)return;
+            if(UsesBundledVoices||world.Settings.mode==SocialOperatingMode.Offline||world.Settings.mode==SocialOperatingMode.ReducedResource)return;
             if(!humanBuffers.TryGetValue(id,out var buffer)){if(humanBuffers.Count>=16)return;humanBuffers[id]=buffer=new List<float>();}
             buffer.AddRange(packet.samples);if(buffer.Count>96000)buffer.RemoveRange(0,buffer.Count-96000);
             float now=Time.unscaledTime;

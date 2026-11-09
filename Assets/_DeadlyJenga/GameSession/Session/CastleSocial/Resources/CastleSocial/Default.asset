@@ -259,7 +259,7 @@ MonoBehaviour:
     allowProfanity: 0
     retainHumanText: 0
     recordDemonstrations: 0
-  mode: 1
+  mode: 5
   serviceUrl: http://127.0.0.1:8765
   microphoneEnabled: 0
   showRuntimePanel: 1
