@@ -13,6 +13,13 @@ namespace DeadlyJenga.CandyPlayers
         // Retained for compatibility. Comfort mode does not change the avatar stance.
         public bool SeatedVisual {get;set;}
         public CandyAvatarCalibration calibration;
+
+        internal static CandyAvatarFrame UprightTrackingPose(CandyAvatarFrame frame)
+        {
+            // The headset can change height independently of the avatar's standing proportions.
+            frame.head.y = frame.feet.y + 1.6f * Mathf.Max(.1f, frame.scale);
+            return frame;
+        }
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
         MaterialPropertyBlock colorProperties;

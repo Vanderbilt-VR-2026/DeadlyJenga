@@ -135,11 +135,12 @@ namespace DeadlyJenga.CharacterNetwork
             frame.feet = Vector3.Lerp(frame.feet, target.feet, t); frame.head = Vector3.Lerp(frame.head, target.head, t);
             frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale; frame.seated = target.seated; frame.sprinting = target.sprinting;
             frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
-            rig.ApplyFrame(frame, true, dt);
+            bool generatedActor = IsBot || context.actorId?.StartsWith("lobby-bot:", System.StringComparison.Ordinal) == true;
+            var rendered = generatedActor ? frame : CandyPlayerRig.UprightTrackingPose(frame);
+            rig.ApplyFrame(rendered, true, dt);
             var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
             bool held = equipment.drawn && equipment.kind >= EquipmentKind.Blaster && equipment.kind != EquipmentKind.PoweredArmor;
             bool twoHanded = held && EquipmentSpecifications.Get(equipment.kind).twoHanded;
-            var rendered = frame;
             if (emote != null)
             {
                 float age = Time.time - emoteStart;
