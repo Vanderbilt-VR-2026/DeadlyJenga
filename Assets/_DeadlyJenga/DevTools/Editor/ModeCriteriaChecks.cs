@@ -81,6 +81,17 @@ namespace DeadlyJenga.DevTools.Editor
                 var infection=Create(GameModeKind.Infection);custom=infection.Rules.Copy();custom.starterInfected=false;custom.roundSeconds=10;infection.Tune(custom);
                 for(int i=0;i<21;i++)infection.Tick(.5f);
                 Check(infection.Winner=="Survivors","Infection deadline awards survivor faction");
+                foreach(var timedMode in new[]{GameModeKind.Survival,GameModeKind.KingOfHill,GameModeKind.BlockControl,
+                    GameModeKind.CaptureFlag,GameModeKind.Infection,GameModeKind.TeamTickets})
+                {
+                    var solo=Create(timedMode);
+                    var timed=solo.Rules.Copy();timed.roundSeconds=10;solo.Tune(timed);
+                    solo.Remove("b");
+                    for(int i=0;i<19;i++)solo.Tick(.5f);
+                    Check(solo.Phase==RoundPhase.Playing,timedMode+" does not end early with one remaining player");
+                    solo.Tick(.5f);
+                    Check(solo.Phase==RoundPhase.Victory,timedMode+" resolves its deadline with one remaining player");
+                }
                 var mystery=Create(GameModeKind.MurderMystery);mystery.Find("a").frame.kills=7;mystery.Find("a").frame.deaths=2;
                 var secret=mystery.Snapshot();Check(secret.topTen.Length==0&&secret.players.All(p=>p.kills==0&&p.deaths==0&&p.metric==0),"Live Mystery snapshot does not expose identifying kill totals");
                 mystery.FinishMystery("Innocents");Check(mystery.Snapshot().players.First(p=>p.id=="a").kills==7,"Mystery totals become available after round conclusion");

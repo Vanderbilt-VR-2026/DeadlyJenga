@@ -309,15 +309,17 @@ namespace DeadlyJenga.Modes
             if(Rules.mode==GameModeKind.MurderMystery)return;
             int present=0,alive=0;Participant last=null;
             foreach(var p in players.Values)if(p.present&&!p.deferredParticipation){present++;if(p.frame.alive&&p.frame.role!="infected"){alive++;last=p;}}
-            if(present<2)return;
-            if(Rules.mode==GameModeKind.Survival && alive<=1){Finish(last?.frame.name??"Nobody",-1);return;}
-            if(Rules.mode==GameModeKind.Infection && alive==0){Finish("Infected",-2);return;}
-            if(Rules.mode==GameModeKind.TeamTickets)
+            if(present==0)return;
+            bool deadlineReached=Rules.roundSeconds>0&&Elapsed>=Rules.roundSeconds;
+            bool resolveEliminations=present>=2||deadlineReached;
+            if(Rules.mode==GameModeKind.Survival && resolveEliminations && alive<=1){Finish(last?.frame.name??"Nobody",-1);return;}
+            if(Rules.mode==GameModeKind.Infection && resolveEliminations && alive==0){Finish("Infected",-2);return;}
+            if(Rules.mode==GameModeKind.TeamTickets && resolveEliminations)
             {
                 var active=new HashSet<int>();foreach(var p in players.Values)if(p.present&&p.frame.alive&&p.frame.team>=0)active.Add(p.frame.team);
                 if(active.Count<=1){int t=-1;foreach(int value in active)t=value;Finish(t>=0?teams[t].name:"Nobody",t);return;}
             }
-            if(Rules.roundSeconds<=0||Elapsed<Rules.roundSeconds)return;
+            if(!deadlineReached)return;
             if(Rules.mode==GameModeKind.Infection){Finish("Survivors",-1);return;}
             FinishByScore();
         }
