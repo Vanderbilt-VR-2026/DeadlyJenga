@@ -178,13 +178,13 @@ namespace DeadlyJenga.CastlePrototype
         public bool Connected=>Runner&&Runner.IsRunning;
         public bool IsHost=>Connected&&Runner.IsServer;
         public int HumanCount=>Connected?Runner.ActivePlayers.Count():1;
-        public bool CanConfigure=>!Busy&&!LaunchPending&&!Departing&&LocalIsLobbyHost;
+        public bool CanConfigure=>!transferringLobbyHost&&!Busy&&!LaunchPending&&!Departing&&LocalIsLobbyHost;
         public event Action<string,byte[]> SocialReceived;
         public event Action<string> ParticipantLeft;
         readonly Dictionary<PlayerRef,CastleSocialChannel> socialPeers=new Dictionary<PlayerRef,CastleSocialChannel>();
         readonly CastleSocialChannel socialServer=new CastleSocialChannel();
         const int SocialChannel=0x49534C56;
-        public bool CanLaunch=>LocalIsLobbyHost&&!Busy&&!LaunchPending&&!Departing&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available&&Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id);
+        public bool CanLaunch=>!transferringLobbyHost&&LocalIsLobbyHost&&!Busy&&!LaunchPending&&!Departing&&Catalog&&ModeIndex>=0&&ModeIndex<Catalog.modes.Length&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.modes[ModeIndex].available&&Catalog.maps[MapIndex].SupportsMode(Catalog.modes[ModeIndex].id);
         NetworkDelegates callbacks;float nextSend,nextHello,lastServer;int serial,waitingPose,generation;bool leaving,transitioning,welcomed;
         bool marinaLocalSpawnPending;
         bool marinaFreshReadyPending,marinaDeferredTrusted;
@@ -300,7 +300,7 @@ namespace DeadlyJenga.CastlePrototype
         public Task Host()=>Connect(true,IslandRoomAddress.Create(Region));
         public async Task Join(string input)
         {
-            if(Busy||!Catalog)return;
+            if(transferringLobbyHost||Busy||!Catalog)return;
             if(!IslandRoomAddress.TryParse(input,Region,out var region,out var code)){Status="Check the room code before joining.";return;}
             if(Connected&&Region==region&&Code==code){Status="You are already on this island.";return;}
             if(Connected)
@@ -643,6 +643,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Launch()
         {
+            if(transferringLobbyHost)return;
             var experience=RoomGameExperience.Ensure(this);
             if(experience&&experience.Experience==GameExperience.Game){experience.RequestStart();return;}
             if(CanLaunch)Act(new LobbyAction{verb="launch"});
