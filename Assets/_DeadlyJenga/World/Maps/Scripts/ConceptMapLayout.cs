@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
         PivotingCauseway, RefugeExchange, BreakContactBorough
     }
 
-    // Small experimental maps. The caller supplies a fixed foundation with its top at 0.4 m.
+    // Layouts use the island deck at 0.4 m as the common ground level.
     public static partial class ConceptMapLayout
     {
         public static readonly string[] Names={"Moving Shelter","Peel-Away Screen","Collapse-Created Route","Pivoting Causeway","Refuge Exchange","Break-Contact Borough"};
@@ -34,7 +34,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             switch(kind)
             {
-                case ConceptMapKind.MovingShelter:return new Vector2(30,22);
+                case ConceptMapKind.MovingShelter:return new Vector2(27,20);
                 case ConceptMapKind.PeelAwayScreen:return new Vector2(28,22);
                 case ConceptMapKind.CollapseCreatedRoute:return new Vector2(30,30);
                 case ConceptMapKind.PivotingCauseway:return new Vector2(32,30);
@@ -74,11 +74,34 @@ namespace DeadlyJenga.CastlePrototype
             {var m=Module(purpose,p,mass);Part(m,Vector3.zero,size,finish);return m;}
             public void Part(MayhemModule m,Vector3 p,Vector3 size,int finish=0)
             {m.shapes.Add(new MayhemShape(p,size,finish,Quaternion.identity));}
-            public MayhemModule Platform(string purpose,Vector3 center,float top,Vector2 size)
+            public MayhemModule Platform(string purpose,Vector3 center,float top,Vector2 size,int postFinish=0,int deckFinish=1)
             {
                 var m=Module(purpose,new Vector3(center.x,.4f,center.z));
-                // A solid grounded platform is intentionally fixed rather than a hidden floating deck.
-                Part(m,new Vector3(0,(top-.4f)*.5f,0),new Vector3(size.x,top-.4f,size.y),1);return m;
+                float height=top-.4f;
+                if(height<.9f)
+                    Part(m,new Vector3(0,height*.5f,0),new Vector3(size.x,height,size.y),deckFinish);
+                else
+                {
+                    const float deck=.38f;
+                    Part(m,new Vector3(0,height-deck*.5f,0),new Vector3(size.x,deck,size.y),deckFinish);
+                    Posts(m,size.x*.5f-.48f,size.y*.5f-.48f,height-deck,postFinish);
+                }
+                return m;
+            }
+            public void Posts(MayhemModule m,float x,float z,float height,int finish=0)
+            {
+                foreach(float side in new[]{-1f,1f})foreach(float end in new[]{-1f,1f})
+                {
+                    Part(m,new Vector3(side*x,height*.5f,end*z),new Vector3(.64f,height,.64f),finish);
+                    Part(m,new Vector3(side*x,.15f,end*z),new Vector3(.92f,.3f,.92f),4);
+                    Part(m,new Vector3(side*x,height-.14f,end*z),new Vector3(.88f,.28f,.88f),5);
+                }
+            }
+            public void Rail(MayhemModule m,float x,float z,float top,float length)
+            {
+                Part(m,new Vector3(x,top+.38f,z),new Vector3(length,.22f,.22f),5);
+                foreach(float end in new[]{-.5f,.5f})
+                    Part(m,new Vector3(x+length*end,top+.25f,z),new Vector3(.32f,.5f,.34f),5);
             }
             public MayhemModule Ramp(string purpose,Vector3 low,Vector3 high,float width=3)
             {
@@ -99,59 +122,92 @@ namespace DeadlyJenga.CastlePrototype
         {
             var fixedRoof=b.Module("Fixed sheltered refuge",new Vector3(-6,.4f,0));
             b.Part(fixedRoof,new Vector3(0,3.175f,0),new Vector3(8,.35f,6),1);
-            foreach(float x in new[]{-3.4f,3.4f})b.Part(fixedRoof,new Vector3(x,1.5f,0),new Vector3(.8f,3,5.5f),0);
+            b.Posts(fixedRoof,3.4f,2.45f,3,3);
             var support=b.Module("Fixed roof frame A",new Vector3(4,.4f,0));
-            foreach(float x in new[]{-3.4f,3.4f})b.Part(support,new Vector3(x,1.5f,0),new Vector3(.8f,3,5.5f),0);
+            b.Posts(support,3.4f,2.45f,3,3);
             b.Box("Moving roof",new Vector3(4,3.575f,0),new Vector3(8,.35f,6),2,48);
+            b.Box("Fixed seaward bench",new Vector3(-6,.7f,-4.4f),new Vector3(4,.6f,1),1);
+            b.Box("Fixed outer shelter bench",new Vector3(7,.7f,-4.4f),new Vector3(3,.6f,1),0);
+            b.Box("Fixed courtyard divider",new Vector3(-.6f,.7f,-5.8f),new Vector3(2,.6f,.7f),5);
         }
 
         static void Screens(Builder b)
         {
             Screen(b,"Screen west",new Vector3(-1.5f,.4f,-1.5f),0);
             Screen(b,"Screen east",new Vector3(1.5f,.4f,1.5f),180);
+            var exit=b.Module("Fixed courtyard gateway",new Vector3(0,.4f,8.45f));
+            foreach(float side in new[]{-1f,1f})
+            {
+                b.Part(exit,new Vector3(side*2.3f,1.55f,0),new Vector3(.8f,3.1f,.8f),1);
+                b.Part(exit,new Vector3(side*2.3f,2.98f,0),new Vector3(1,.28f,1),5);
+            }
+            b.Part(exit,new Vector3(0,3.2f,0),new Vector3(5.55f,.55f,.92f),1);
+            foreach(float x in new[]{-6.5f,6.5f})
+            {
+                var gate=b.Module("Fixed bypass arch",new Vector3(x,.4f,-6.4f));
+                foreach(float side in new[]{-1f,1f})
+                    b.Part(gate,new Vector3(side*1.55f,1.5f,0),new Vector3(.7f,3,.85f),1);
+                b.Part(gate,new Vector3(0,3,0),new Vector3(4,.55f,1.1f),1);
+                b.Box("Fixed courtyard cover",new Vector3(x,.96f,3.4f),new Vector3(2,1.12f,.8f),0);
+            }
         }
         static void Screen(Builder b,string purpose,Vector3 p,float heading)
         {
             var m=b.Module(purpose,p,55,heading);
             b.Part(m,new Vector3(0,.15f,0),new Vector3(4,.3f,2.4f),2);
-            b.Part(m,new Vector3(0,1.8f,0),new Vector3(4,3,.35f),1);
+            b.Part(m,new Vector3(0,1.8f,0),new Vector3(4,3,.35f),heading==0?0:1);
             b.Part(m,new Vector3(-1.825f,1.8f,.8f),new Vector3(.35f,3,1.25f),0);
         }
 
         static void Afterfall(Builder b)
         {
-            // The high shelf holds one end. Whether the plate becomes a useful ramp is tested, not assumed.
-            var shelf=b.Module("Fixed high landing and plate shelf",new Vector3(6.5f,.4f,0));
-            b.Part(shelf,new Vector3(0,1.175f,0),new Vector3(3.4f,2.35f,5),1);
-            b.Part(shelf,new Vector3(-1.85f,1,0),new Vector3(.7f,2,3),0);
+            var shelf=b.Platform("Fixed high landing and plate shelf",new Vector3(7,0,0),2.75f,new Vector2(4.4f,6));
+            b.Rail(shelf,0,2.7f,2.35f,3.5f);
             b.Box("Removable support",new Vector3(-4.5f,1.525f,0),new Vector3(.8f,1.75f,3),0,70);
-            b.Box("Falling route",new Vector3(0,2.575f,0),new Vector3(9.6f,.35f,3),2,65);
-            b.Ramp("Fixed independent high-landing ramp",new Vector3(6.5f,.4f,-12),new Vector3(6.5f,2.75f,-2.5f),3);
-            b.Platform("Fixed low catch landing",new Vector3(-5.5f,0,0),.65f,new Vector2(4,5));
+            var falling=b.Box("Falling route",new Vector3(0,2.575f,0),new Vector3(9.6f,.35f,3),2,65);
+            falling.hingeSupport=shelf;
+            falling.pivot=new Vector3(4.7f,2.575f,0);
+            b.Ramp("Fixed independent high-landing ramp",new Vector3(7,.4f,-12),new Vector3(7,2.75f,-3),3.6f);
+            b.Platform("Fixed low catch landing",new Vector3(-6.5f,0,0),.65f,new Vector2(5,5));
+            b.Ramp("Fixed catch approach",new Vector3(-6.5f,.4f,-5),new Vector3(-6.5f,.65f,-2.5f),3);
+            var deck=b.Platform("Fixed outer upper gallery",new Vector3(7,0,6.2f),2.75f,new Vector2(4.4f,6.4f));
+            b.Rail(deck,0,2.9f,2.35f,3.5f);
         }
 
         static void Causeway(Builder b)
         {
             var west=b.Platform("Fixed west landing",new Vector3(-7,0,0),2.4f,new Vector2(5,5));
-            b.Platform("Fixed east landing",new Vector3(7,0,0),2.4f,new Vector2(5,5));
-            var pivot=b.Box("Fixed causeway pivot",new Vector3(-4.5f,1.225f,0),new Vector3(1.2f,1.65f,3),0);
-            var plate=b.Box("Pivot route plate",new Vector3(0,2.225f,0),new Vector3(9,.35f,3),2,80);
+            var east=b.Platform("Fixed east landing",new Vector3(7,0,0),2.4f,new Vector2(5,5));
+            b.Rail(west,-1.9f,-2.25f,2,.65f);
+            b.Rail(east,1.9f,-2.25f,2,.65f);
+            var pivot=b.Box("Fixed causeway pivot",new Vector3(-4.5f,1.225f,0),new Vector3(1.2f,1.65f,3),5);
+            var plate=b.Box("Pivot route plate",new Vector3(0,2.225f,0),new Vector3(9,.35f,3),0,80);
             plate.hingeSupport=pivot;plate.pivot=new Vector3(-4.5f,2.225f,0);
             b.Ramp("Fixed west access ramp",new Vector3(-7,.4f,-11),new Vector3(-7,2.4f,-2.5f));
             b.Ramp("Fixed east access ramp",new Vector3(7,.4f,-11),new Vector3(7,2.4f,-2.5f));
-            b.Box("Fixed outer route bridge",new Vector3(0,2.225f,6.5f),new Vector3(14,.35f,3),1);
-            b.Box("Fixed west outer landing",new Vector3(-7,1.4f,4.5f),new Vector3(3,2,4),0);
-            b.Box("Fixed east outer landing",new Vector3(7,1.4f,4.5f),new Vector3(3,2,4),0);
+            var bypass=b.Platform("Fixed outer route bridge",new Vector3(0,0,6.5f),2.4f,new Vector2(14,3.4f));
+            b.Rail(bypass,0,1.5f,2,13.2f);
+            b.Platform("Fixed west outer landing",new Vector3(-7,0,4.5f),2.4f,new Vector2(4.8f,4));
+            b.Platform("Fixed east outer landing",new Vector3(7,0,4.5f),2.4f,new Vector2(4.8f,4));
         }
 
         static void Refuges(Builder b)
         {
             var low=b.Module("Fixed low-refuge piers",new Vector3(-6,.4f,0));
-            foreach(float x in new[]{-3.4f,3.4f})b.Part(low,new Vector3(x,1.5f,0),new Vector3(.8f,3,5.5f),0);
+            b.Posts(low,3.4f,2.45f,3,3);
             b.Box("Loose low-refuge roof",new Vector3(-6,3.575f,0),new Vector3(8,.35f,6),1,48);
-            b.Platform("Fixed high open refuge",new Vector3(6,0,0),4.4f,new Vector2(7,7));
+            var high=b.Platform("Fixed high open refuge",new Vector3(6,0,0),4.4f,new Vector2(7,7),3,2);
+            foreach(float side in new[]{-1f,1f})
+            {
+                b.Rail(high,side*2.62f,3.15f,4,1.15f);
+                b.Rail(high,side*2.62f,-3.15f,4,1.15f);
+            }
+            // The two ramp mouths remain open down the center of their respective sides.
             b.Ramp("Fixed broad high-refuge ramp south",new Vector3(6,.4f,-14),new Vector3(6,4.4f,-3.5f),3.5f);
             b.Ramp("Fixed broad high-refuge ramp north",new Vector3(6,.4f,14),new Vector3(6,4.4f,3.5f),3.5f);
+            b.Box("Fixed low refuge bench",new Vector3(-6,.66f,2.2f),new Vector3(3,.52f,.75f),5);
+            b.Box("Fixed approach marker west",new Vector3(-1.6f,.68f,-3.5f),new Vector3(.7f,.56f,.7f),5);
+            b.Box("Fixed approach marker east",new Vector3(1.4f,.68f,-3.5f),new Vector3(.7f,.56f,.7f),5);
         }
 
         static void Borough(Builder b)
@@ -159,8 +215,8 @@ namespace DeadlyJenga.CastlePrototype
             FuelPod(b,"Fuel pod west",new Vector3(-10,.4f,0));
             FuelPod(b,"Fuel pod middle",new Vector3(0,.4f,0));
             FuelPod(b,"Fuel pod east",new Vector3(10,.4f,0));
-            b.Box("Connector west",new Vector3(-5,1.16f,0),new Vector3(4.8f,.02f,3),2,20);
-            b.Box("Connector east",new Vector3(5,1.16f,0),new Vector3(4.8f,.02f,3),2,20);
+            b.Box("Connector west",new Vector3(-5,1.04f,0),new Vector3(3.7f,.22f,3),2,20);
+            b.Box("Connector east",new Vector3(5,1.04f,0),new Vector3(3.7f,.22f,3),2,20);
             b.Ramp("Fixed west pod access",new Vector3(-10,.4f,-7),new Vector3(-10,1.15f,-3),3);
             b.Ramp("Fixed middle pod access",new Vector3(0,.4f,-7),new Vector3(0,1.15f,-3),3);
             b.Ramp("Fixed east pod access",new Vector3(10,.4f,-7),new Vector3(10,1.15f,-3),3);
@@ -169,9 +225,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             var m=b.Module(purpose,p,110);
             b.Part(m,new Vector3(0,.375f,0),new Vector3(6,.75f,6),0);
-            b.Part(m,new Vector3(0,3.575f,0),new Vector3(6,.35f,6),1);
+            b.Part(m,new Vector3(0,3.575f,0),new Vector3(6,.35f,6),p.x<0?1:p.x>0?5:2);
             foreach(float x in new[]{-2.6f,2.6f})foreach(float z in new[]{-2.6f,2.6f})
-                b.Part(m,new Vector3(x,2.075f,z),new Vector3(.65f,2.65f,.65f),0);
+                b.Part(m,new Vector3(x,2.075f,z),new Vector3(.65f,2.65f,.65f),p.x==0?0:3);
         }
     }
 }
