@@ -413,7 +413,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(kind==World){WorldTransfersSubmitted++;WorldPayloadBytesSubmitted+=bytes.Length;}
                 onSubmitted?.Invoke();
             };
-            if(collectingHotpath)
+            // Standalone so earlier clients can ignore the new cue without rejecting a bundle.
+            if(collectingHotpath&&kind!=ModeMatchSound)
             {
                 try{GetHotpathFrame(player).outbox.Add(kind,serial,sceneTag,bytes,submitted,onCanceled);}
                 catch{onCanceled?.Invoke();throw;}
@@ -543,6 +544,7 @@ namespace DeadlyJenga.CastlePrototype
                     else if (kind == PoseReceiptGroup&&payload.Length>=7&&payload.Length<=3+LivePoseReceipts.Capacity*4) ApplyPoseReceipts(posesInFlight,payload.ToArray(),Time.unscaledTime);
                     else if(kind==MatchState&&welcomed&&payload.Length<=512000)ReceiveMatch(payload);
                     else if(kind==ModeOutcome&&welcomed&&payload.Length<=1024)ReceiveOutcome(payload);
+                    else if(kind==ModeMatchSound&&welcomed&&receivedTag==sceneTag&&payload.Length==MatchSoundBytes)ReceiveMatchSound(payload);
                     else if(kind==MysterySecret&&welcomed&&payload.Length<=8192){ConnectModes();modeRuntime?.ReceiveSecret(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
                     else if(kind==MysteryTrails&&welcomed&&payload.Length<=64000){ConnectModes();modeRuntime?.ReceiveTrails(System.Text.Encoding.UTF8.GetString(payload.ToArray()));}
                     else if(kind==Admin&&welcomed&&payload.Length<2048)

@@ -282,7 +282,7 @@ namespace DeadlyJenga.Modes
             bool melee=state.kind!=EquipmentKind.DualRifle&&!revolver;float range=melee?1.4f:state.shotgun?(revolver?18:14):(revolver?90:65);
             var direction=command.forward.normalized;
             int pellets=!melee&&state.shotgun?7:1;
-            var hits=new Dictionary<IModeActor,float>();var endpoints=new Vector3[pellets];
+            var hits=new Dictionary<IModeActor,(float damage,Vector3 point)>();var endpoints=new Vector3[pellets];
             for(int pellet=0;pellet<pellets;pellet++)
             {
                 var aim=direction;
@@ -295,21 +295,22 @@ namespace DeadlyJenga.Modes
                 {
                     var hit=plasmaHits[i];var candidate=hit.collider.GetComponentInParent<IModeActor>();
                     if(candidate==source||hit.collider.isTrigger&&candidate==null||hit.distance>=nearest)continue;
-                    nearest=hit.distance;target=candidate;endpoint=hit.point;
+                    nearest=hit.distance;target=candidate;endpoint=hit.distance>0?hit.point:hit.collider.ClosestPoint(command.position);
                     if(!Finite(endpoint)||(endpoint-command.position).sqrMagnitude>(range+.05f)*(range+.05f))endpoint=command.position+aim*nearest;
                 }
                 endpoints[pellet]=endpoint;
-                if(target!=null)hits[target]=(hits.TryGetValue(target,out float damage)?damage:0)+(state.kind==EquipmentKind.BoxingGlove?80:state.kind==EquipmentKind.MurderSword?60:revolver?(state.shotgun?10:85):state.shotgun?13:55);
+                if(target==null)continue;
+                float damage=state.kind==EquipmentKind.BoxingGlove?80:state.kind==EquipmentKind.MurderSword?60:revolver?(state.shotgun?10:85):state.shotgun?13:55;
+                hits[target]=hits.TryGetValue(target,out var prior)?(prior.damage+damage,prior.point):(damage,endpoint);
             }
             AnnounceEquipment(id,state,EquipmentAction.Shot,command.position,endpoints);
             foreach(var hit in hits)
             {
                 var target=hit.Key;var p=simulation.Find(target.ActorId);if(p==null||!p.frame.alive||p.frame.dying||target.Team>=0&&target.Team==source.Team&&!Rules.friendlyFire)continue;
-                float damage=hit.Value;
+                float damage=hit.Value.damage;
                 if(MysteryActive&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(id,target.ActorId,ref damage))continue;
                 var push=direction*(state.kind==EquipmentKind.BoxingGlove?22:4)+Vector3.up*(state.kind==EquipmentKind.BoxingGlove?6:.6f);
-                if(target.IsLocal||target.IsBot){target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);target.gameObject.GetComponent<IDamageable>()?.Damage(damage,source.gameObject);}
-                else{RecordRemoteDamage(target.ActorId,damage,id);RemoteImpact?.Invoke(target.ActorId,push,damage);}
+                ApplyCombatImpact(source,target,damage,push,hit.Value.point,!melee);
             }
             return true;
         }

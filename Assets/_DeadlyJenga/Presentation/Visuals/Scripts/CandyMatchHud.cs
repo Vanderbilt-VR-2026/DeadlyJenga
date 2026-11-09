@@ -103,12 +103,31 @@ namespace DeadlyJenga.Presentation
             }
             seconds=name!=null?next:0;return name;
         }
+        IMatchRuntime soundMatch;
+        RoundPhase soundPhase;
+        int soundTeam=-1, soundCaptures;
+        bool soundSinking;
+        void ObserveMatchSound(IMatchRuntime match,MatchFrame frame,MatchPlayerFrame own)
+        {
+            var team=own==null?null:System.Array.Find(frame.teams,row=>row.id==own.team);
+            bool same=ReferenceEquals(soundMatch,match);
+            if(same&&soundPhase!=frame.phase&&frame.phase==RoundPhase.Results)
+                DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.RoundResults);
+            if(same&&soundPhase==RoundPhase.Playing&&frame.phase==RoundPhase.Playing&&team!=null&&soundTeam==team.id&&team.captures>soundCaptures)
+                DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.PointScored);
+            bool sinking=own?.sinking==true;
+            if(sinking&&!soundSinking)
+                DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.IslandSinking);
+            soundMatch=match;soundPhase=frame.phase;soundTeam=team?.id??-1;
+            soundCaptures=team?.captures??0;soundSinking=sinking;
+        }
         void Update()
         {
             var session=Services.Session;var match=MatchRuntime.Current;
             if(session==null||match?.Frame==null||(session as ILobbyMatchVisitControls)?.VisitingLobby==true)
             {
                 Expanded = false;
+                soundMatch=null;soundSinking=false;
                 if(canvas)canvas.enabled=false;
                 podium?.Hide();
                 eliminationFeed?.Update(null, false);
@@ -121,7 +140,14 @@ namespace DeadlyJenga.Presentation
             bool wasExpanded=Expanded;
             bool heldBoard=vr?VrStandingsHeld(out standingsControl):Keyboard.current?.f2Key.isPressed==true;
             Expanded=!watching&&!results&&!session.MenuOpen&&!EmoteWheel.IsOpen&&(ScoreboardPinned||heldBoard);
-            if(Expanded&&!wasExpanded){boardPage=0;sampleAt=0;nextBoardPageAt=Time.unscaledTime+5;}
+            if(Expanded&&!wasExpanded)
+            {
+                boardPage=0;sampleAt=0;nextBoardPageAt=Time.unscaledTime+5;
+                DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.ScoreboardOpen);
+            }
+            var audioFrame=match.Frame;
+            var audioPlayer=System.Array.Find(audioFrame.players,row=>row.id==match.LocalActorId);
+            ObserveMatchSound(match,audioFrame,audioPlayer);
             if(wasExpanded&&!Expanded)sampleAt=0;
             CandyHudCards.Visible(board,Expanded);
             if(Expanded&&!vr&&Keyboard.current!=null)
@@ -193,7 +219,7 @@ namespace DeadlyJenga.Presentation
                     claim.text=own.standingBlock<0?"STAND ON A BLOCK TO CLAIM":changing?(claimant<0?"CONTESTED":claimant==own.team?"CLAIMING  "+Mathf.RoundToInt(progress*100)+"%":"ENEMY CLAIMING  "+Mathf.RoundToInt(progress*100)+"%"):own.blockOwner==own.team?"YOUR TEAM'S BLOCK":own.blockOwner<0?"UNCLAIMED BLOCK":"ENEMY BLOCK";
                     claim.color=new Color(1,1,1,own.standingBlock<0||own.blockOwner==own.team&&!changing?.4f:1);claimFill.color=claimant>=0?TeamColor(f,claimant):new Color(.9f,.8f,.55f);claimFill.rectTransform.sizeDelta=new Vector2(changing?320*Mathf.Clamp01(progress):0,6);
                     if(own.standingBlock>=0&&own.blockOwner==own.team&&previousOwners.TryGetValue(own.standingBlock,out int oldOwner)&&oldOwner!=own.team)
-                    {DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.25f);var audio=DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;if(audio)audio.Play(DeadlyJenga.CandyAudio.CandySound.ClaimWin,own.position,.35f,GetInstanceID(),1,true);}
+                    {DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.25f);var audio=DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;if(audio)audio.Play(DeadlyJenga.CandyAudio.CandySound.PointScored,own.position,.35f,GetInstanceID(),1,true);}
                 }
                 if(f.rules.mode!=GameModeKind.BlockControl)previousOwners.Clear();else foreach(var entry in f.claims)previousOwners[entry.block]=entry.owner;
                 if(session.Player!=null&&match.RulesFor(session.Player.gameObject).sinking)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.12f,.25f);

@@ -68,12 +68,7 @@ namespace DeadlyJenga.Modes
             var targetState=simulation.Find(targetId);
             if(!rules.friendlyFire && (p.frame.team>=0&&p.frame.team==targetState?.frame.team || p.frame.role=="infected"&&targetState?.frame.role=="infected"))damage=0;
             if(!held.drawn&&!source.IsBot)PublishPunchContact(id,source,target,origin,direction);
-            if(target.IsLocal||target.IsBot)
-            {
-                target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);
-                if(damage>0)target.gameObject.GetComponent<IDamageable>()?.Damage(damage,source.gameObject);
-            }
-            else {if(damage>0)RecordRemoteDamage(targetId,damage,id);RemoteImpact?.Invoke(targetId,push,damage);}
+            ApplyCombatImpact(source,target,damage,push,target.transform.position+Vector3.up*.6f,false);
             return true;
         }
         void PublishPunchContact(string attacker,IModeActor source,IModeActor target,Vector3 origin,Vector3 direction)

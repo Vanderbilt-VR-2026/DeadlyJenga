@@ -1,5 +1,7 @@
 using System;
 using System.Text;
+using System.Buffers.Binary;
+using DeadlyJenga.Core;
 using Fusion;
 using UnityEngine;
 using DeadlyJenga.Modes;
@@ -8,6 +10,8 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class CastleFusionSession
     {
         const int MatchState=12, ModeCommand=13, ModeOutcome=14, MysterySecret=15, MysteryTrails=16;
+        const int ModeMatchSound=17, MatchSoundBytes=13;
+        int soundSerial;
         MatchModeRuntime modeRuntime;
         byte[] matchPacket;
         float nextMatch;
@@ -19,6 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             modeRuntime=session.Modes;
             modeRuntime.CommandRequested+=SendModeCommand;
             modeRuntime.RemoteImpact+=QueueModeImpact;
+            modeRuntime.RemoteMatchSound+=SendMatchSound;
             modeRuntime.RemoteEliminated+=SendModeOutcome;
             if(!IsHost)SendModeCommand("mystery:preference:"+DeadlyJenga.Core.MysteryChoices.RequestedRole);
         }
@@ -26,6 +31,30 @@ namespace DeadlyJenga.CastlePrototype
         { QueueDisasterImpact(actorId,push,damage,false); }
         void SendModeCommand(string command)
         { if(!IsHost&&welcomed&&command!=null&&command.Length<=8192)Send(default,ModeCommand,Encoding.UTF8.GetBytes(command)); }
+        void SendMatchSound(string id,MatchSoundCue cue,Vector3 point)
+        {
+            if(!IsHost)return;
+            foreach(var pair in peers)
+            {
+                if(!pair.Value.ready||pair.Key.ToString()!=id)continue;
+                var bytes=new byte[MatchSoundBytes];
+                bytes[0]=(byte)cue;
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(1,4),BitConverter.SingleToInt32Bits(point.x));
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(5,4),BitConverter.SingleToInt32Bits(point.y));
+                BinaryPrimitives.WriteInt32LittleEndian(bytes.AsSpan(9,4),BitConverter.SingleToInt32Bits(point.z));
+                Send(pair.Key,ModeMatchSound,bytes,unchecked(++soundSerial));
+                return;
+            }
+        }
+        static void ReceiveMatchSound(ReadOnlySpan<byte> bytes)
+        {
+            if(bytes[0]>(byte)MatchSoundCue.NearbyDeath)return;
+            var point=new Vector3(
+                BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(1,4))),
+                BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(5,4))),
+                BitConverter.Int32BitsToSingle(BinaryPrimitives.ReadInt32LittleEndian(bytes.Slice(9,4))));
+            if(float.IsFinite(point.sqrMagnitude))GameEvents.RaiseMatchSound((MatchSoundCue)bytes[0],point);
+        }
         void SendModeOutcome(string id,EliminationOutcome outcome)
         {
             if(!IsHost||!modeRuntime)return;
@@ -65,6 +94,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!modeRuntime)return;
             modeRuntime.CommandRequested-=SendModeCommand;
             modeRuntime.RemoteImpact-=QueueModeImpact;
+            modeRuntime.RemoteMatchSound-=SendMatchSound;
             modeRuntime.RemoteEliminated-=SendModeOutcome;
             modeRuntime=null;
         }

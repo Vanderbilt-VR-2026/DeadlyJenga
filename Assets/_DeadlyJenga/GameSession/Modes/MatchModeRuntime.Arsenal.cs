@@ -102,7 +102,7 @@ namespace DeadlyJenga.Modes
                 if(touching==plasmaOverlaps.Length)return true;
                 for(int i=0;i<touching;i++){var collider=plasmaOverlaps[i];var candidate=collider.GetComponentInParent<IModeActor>();if(candidate==source||collider.isTrigger&&candidate==null)continue;target=candidate;nearest=0;endpoint=command.position;contact=true;contactPoint=collider.ClosestPoint(command.position);break;}
             }
-            for(int i=0;i<count;i++){var hit=plasmaHits[i];var candidate=hit.collider.GetComponentInParent<IModeActor>();if(candidate==source||hit.collider.isTrigger&&candidate==null||hit.distance>=nearest)continue;nearest=hit.distance;endpoint=command.position+direction*nearest;target=candidate;contact=true;contactPoint=hit.point;}
+            for(int i=0;i<count;i++){var hit=plasmaHits[i];var candidate=hit.collider.GetComponentInParent<IModeActor>();if(candidate==source||hit.collider.isTrigger&&candidate==null||hit.distance>=nearest)continue;nearest=hit.distance;endpoint=command.position+direction*nearest;target=candidate;contact=true;contactPoint=hit.distance>0?hit.point:hit.collider.ClosestPoint(command.position);}
             AnnounceEquipment(id,state,EquipmentAction.Shot,command.position,new[]{endpoint});
             if(target!=null)
             {
@@ -113,7 +113,7 @@ namespace DeadlyJenga.Modes
                     else if(state.kind==EquipmentKind.FlamingMarshmallow)damage=target.MaxHealth*.5f;
                     else if(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe)damage=target.MaxHealth;
                 }
-                bool alive=target.Alive;bool accepted=ArsenalDamage(source,target,damage,direction*spec.push+Vector3.up*.4f);
+                bool alive=target.Alive;bool accepted=ArsenalDamage(source,target,damage,direction*spec.push+Vector3.up*.4f,contactPoint,!spec.melee||state.kind==EquipmentKind.LaserAxe&&state.shotgun);
                 if(accepted)AnnounceEquipment(id,state,EquipmentAction.Impact,contactPoint);
                 if(alive&&!target.Alive&&(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe)&&!state.shotgun)
                 {state.embeddedVictim=target.ActorId;state.embeddedPoint=endpoint;state.embedRemaining=.65f;equipment[id]=state;}
@@ -137,13 +137,12 @@ namespace DeadlyJenga.Modes
                 if(state.embedRemaining>0){state.embedRemaining=Mathf.Max(0,state.embedRemaining-dt);if(state.embedRemaining==0)state.embeddedVictim=null;}
             }
         }
-        bool ArsenalDamage(IModeActor source,IModeActor target,float damage,Vector3 push)
+        bool ArsenalDamage(IModeActor source,IModeActor target,float damage,Vector3 push,Vector3 point,bool shot=true)
         {
             if(source==null||target==null)return false;var p=simulation.Find(target.ActorId);
             if(p==null||!p.frame.alive||p.frame.dying||p.frame.role=="hand"||p.frame.role=="spectator"||source!=target&&source.Team>=0&&source.Team==target.Team&&!Rules.friendlyFire)return false;
             if(MysteryActive&&source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(source.ActorId,target.ActorId,ref damage))return false;
-            if(target.IsLocal||target.IsBot){target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);target.gameObject.GetComponent<IDamageable>()?.Damage(damage,source.gameObject);}
-            else{RecordRemoteDamage(target.ActorId,damage,source.ActorId);RemoteImpact?.Invoke(target.ActorId,push,damage);}
+            ApplyCombatImpact(source,target,damage,push,point,shot);
             return true;
         }
         void TickArsenalProjectiles(float dt)
@@ -153,7 +152,7 @@ namespace DeadlyJenga.Modes
             {
                 var shot=arsenalProjectiles[i];var spec=EquipmentSpecifications.Get(shot.kind);bool done=false;
                 int overlaps=Physics.OverlapSphereNonAlloc(shot.position,Mathf.Max(.08f,spec.radius),plasmaOverlaps,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);
-                for(int h=0;h<overlaps;h++){var shape=plasmaOverlaps[h];var actor=shape.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||shape.isTrigger&&actor==null)continue;ImpactArsenal(shot,actor);done=true;break;}
+                for(int h=0;h<overlaps;h++){var shape=plasmaOverlaps[h];var actor=shape.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||shape.isTrigger&&actor==null)continue;ImpactArsenal(shot,actor,shape.ClosestPoint(shot.position));done=true;break;}
                 if(done||overlaps==plasmaOverlaps.Length){arsenalProjectiles.RemoveAt(i);continue;}
                 float elapsed=Mathf.Min(dt,Mathf.Max(0,Time.time-shot.bornAt));if(elapsed<=0)continue;
                 int steps=Mathf.Clamp(Mathf.CeilToInt(elapsed/.025f),1,8);float step=elapsed/steps;
@@ -162,10 +161,10 @@ namespace DeadlyJenga.Modes
                     var delta=shot.velocity*step+Vector3.down*(spec.gravity*step*step*.5f);shot.velocity+=Vector3.down*spec.gravity*step;shot.life-=step;
                     int count=Physics.SphereCastNonAlloc(shot.position,Mathf.Max(.08f,spec.radius),delta.normalized,plasmaHits,delta.magnitude,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);
                     if(count==plasmaHits.Length){done=true;break;}
-                    float nearest=delta.magnitude;bool hit=false;IModeActor direct=null;
-                    for(int h=0;h<count;h++){var contact=plasmaHits[h];var actor=contact.collider.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||contact.collider.isTrigger&&actor==null||contact.distance>nearest)continue;nearest=contact.distance;hit=true;direct=actor;}
+                    float nearest=delta.magnitude;bool hit=false;IModeActor direct=null;Vector3 point=default;
+                    for(int h=0;h<count;h++){var contact=plasmaHits[h];var actor=contact.collider.GetComponentInParent<IModeActor>();if(actor?.ActorId==shot.owner||contact.collider.isTrigger&&actor==null||contact.distance>nearest)continue;nearest=contact.distance;hit=true;direct=actor;point=contact.distance>0?contact.point:contact.collider.ClosestPoint(shot.position);}
                     shot.position+=delta.normalized*nearest;
-                    if(hit||shot.life<=0){ImpactArsenal(shot,direct);done=true;break;}
+                    if(hit||shot.life<=0){ImpactArsenal(shot,direct,point);done=true;break;}
                 }
                 if(done)arsenalProjectiles.RemoveAt(i);
             }
@@ -179,13 +178,13 @@ namespace DeadlyJenga.Modes
             frame.weaponProjectiles=new EquipmentProjectileFrame[arsenalProjectiles.Count];
             for(int i=0;i<arsenalProjectiles.Count;i++){var s=arsenalProjectiles[i];frame.weaponProjectiles[i]=new EquipmentProjectileFrame{id=s.id,kind=s.kind,owner=s.owner,position=s.position,velocity=s.velocity,remaining=s.life};}
         }
-        void ImpactArsenal(ArsenalProjectile shot,IModeActor direct)
+        void ImpactArsenal(ArsenalProjectile shot,IModeActor direct,Vector3 contact)
         {
             var source=FindActor(shot.owner);var spec=EquipmentSpecifications.Get(shot.kind);
             AnnounceEquipment(shot.owner,new EquipmentState{kind=shot.kind},EquipmentAction.Impact,shot.position);
             if(source==null)return;
-            if(shot.kind==EquipmentKind.DualUzi){if(direct!=null)ArsenalDamage(source,direct,spec.damage,shot.velocity.normalized*spec.push);return;}
-            if(shot.kind==EquipmentKind.Chainsaw){if(direct!=null)ArsenalDamage(source,direct,55,shot.velocity.normalized*8);return;}
+            if(shot.kind==EquipmentKind.DualUzi){if(direct!=null)ArsenalDamage(source,direct,spec.damage,shot.velocity.normalized*spec.push,contact);return;}
+            if(shot.kind==EquipmentKind.Chainsaw){if(direct!=null)ArsenalDamage(source,direct,55,shot.velocity.normalized*8,contact);return;}
             int count=Physics.OverlapSphereNonAlloc(shot.position,spec.blastRadius,plasmaOverlaps,(1<<Layers.Survivor)|(1<<Layers.Block),QueryTriggerInteraction.Collide);
             arsenalVictims.Clear();plasmaBlocks.Clear();
             for(int i=0;i<count;i++)
@@ -193,7 +192,7 @@ namespace DeadlyJenga.Modes
                 var shape=plasmaOverlaps[i];var target=shape.GetComponentInParent<IModeActor>();var point=shape.ClosestPoint(shot.position);float distance=Vector3.Distance(point,shot.position);
                 if(distance>.05f&&Physics.Raycast(shot.position,(point-shot.position).normalized,distance-.03f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))continue;
                 float falloff=Mathf.Lerp(1,.2f,Mathf.Clamp01(distance/spec.blastRadius));var push=((point-shot.position).normalized+Vector3.up*.35f)*spec.push*falloff;
-                if(target!=null){if(arsenalVictims.Add(target))ArsenalDamage(source,target,spec.damage*falloff,push);}
+                if(target!=null){if(arsenalVictims.Add(target))ArsenalDamage(source,target,spec.damage*falloff,push,point);}
                 else{var body=HitAbilities.Get<Rigidbody>(shape);if(body&&plasmaBlocks.Add(body))HitAbilities.Get<IPushable>(shape)?.Push(push,source.gameObject);}
             }
         }

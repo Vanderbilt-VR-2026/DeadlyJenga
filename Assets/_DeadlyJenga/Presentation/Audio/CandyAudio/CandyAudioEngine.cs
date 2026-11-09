@@ -40,6 +40,7 @@ namespace DeadlyJenga.CandyAudio
             foreach(var sound in CandyJaguarSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyJaguarSounds.DefaultCue(sound);
             foreach(var sound in CandyPlayerSounds.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyPlayerSounds.DefaultCue(sound);
             CandyKrakenSounds.AddDefaults(cues);
+            CandySoundSuite.AddDefaults(cues);
             foreach(var sound in CandyUnderwaterAudio.Sounds)if(!cues.ContainsKey(sound))cues[sound]=CandyUnderwaterAudio.DefaultCue(sound);
             for(int i=0;i<bank.oneShotVoices+bank.loopVoices;i++)
             {

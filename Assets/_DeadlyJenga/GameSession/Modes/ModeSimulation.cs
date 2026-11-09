@@ -243,7 +243,11 @@ namespace DeadlyJenga.Modes
             var list=new List<Participant>();foreach(var p in players.Values)if(p.present&&!p.deferredParticipation&&p.frame.alive&&!p.frame.dying&&p.frame.role!="spectator")list.Add(p);
             if(list.Count>1)MakeInfected(list[(sequence+17)%list.Count]);
         }
-        public EliminationOutcome Kill(string id, string killerId)
+        internal event Action<string, string, MatchSoundCue?> DeathRecorded;
+
+        public EliminationOutcome Kill(string id, string killerId) => Kill(id, killerId, null);
+
+        internal EliminationOutcome Kill(string id, string killerId, MatchSoundCue? cause)
         {
             var p=Find(id);if(p==null||!p.frame.alive||p.frame.dying||Phase!=RoundPhase.Playing)return EliminationOutcome.None;
             if(enemies.ContainsKey(id)){p.frame.alive=false;Eliminated?.Invoke(id,EliminationOutcome.Spectator);return EliminationOutcome.Spectator;}
@@ -257,6 +261,7 @@ namespace DeadlyJenga.Modes
                     sequence = ++eliminationSequence, victim = id, killer = killer != null && killer != p ? killerId : ""
                 });
             }
+            DeathRecorded?.Invoke(id, killer != null && killer != p ? killerId : null, cause);
             EliminationOutcome outcome;
             if(Rules.mode==GameModeKind.Demo || Rules.mode==GameModeKind.KingOfHill || Rules.mode==GameModeKind.BlockControl || Rules.mode==GameModeKind.CaptureFlag)outcome=EliminationOutcome.Respawn;
             else if(Rules.mode==GameModeKind.Infection){MakeInfected(p);return EliminationOutcome.Infected;}

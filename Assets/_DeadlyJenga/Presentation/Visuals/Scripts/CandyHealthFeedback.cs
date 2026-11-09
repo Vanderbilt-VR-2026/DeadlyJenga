@@ -8,13 +8,13 @@ namespace DeadlyJenga.Presentation
     public sealed class CandyHealthFeedback:MonoBehaviour
     {
         Canvas canvas;Image rim,bar;Text label;Texture2D texture;Sprite sprite;Camera eye;
-        IMatchRuntime owner;string actor;float previous=-1,pulse,healing;bool wasAlive,vr;
+        IMatchRuntime owner;string actor;float previous=-1,pulse,healing;bool wasAlive,vr;float lastHealthRise=-100;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=go=>{if(!go.GetComponent<CandyHealthFeedback>())go.AddComponent<CandyHealthFeedback>();};
         void OnEnable()=>GameEvents.Damaged+=Hit;
         void OnDisable(){GameEvents.Damaged-=Hit;ResetDisplay();}
         void ResetDisplay()
-        {if(canvas)canvas.enabled=false;owner=null;actor=null;previous=-1;pulse=healing=0;wasAlive=false;}
+        {if(canvas)canvas.enabled=false;owner=null;actor=null;previous=-1;pulse=healing=0;wasAlive=false;lastHealthRise=-100;}
         void Hit(GameObject who,float amount)
         {if(who&&amount>0&&Services.Session?.Player!=null&&who.transform.root==Services.Session.Player.transform.root)pulse=Mathf.Max(pulse,Mathf.Clamp(.35f+amount*.02f,.35f,1));}
         void Build()
@@ -39,14 +39,21 @@ namespace DeadlyJenga.Presentation
         {
             var match=MatchRuntime.Current;var session=Services.Session;
             if(match==null||session==null||!session.ActiveCamera||!session.ActiveCamera.isActiveAndEnabled){ResetDisplay();return;}
-            if(!ReferenceEquals(owner,match)||actor!=match.LocalActorId){owner=match;actor=match.LocalActorId;previous=-1;pulse=healing=0;}
+            if(!ReferenceEquals(owner,match)||actor!=match.LocalActorId){owner=match;actor=match.LocalActorId;previous=-1;pulse=healing=0;lastHealthRise=-100;}
             var p=System.Array.Find(match.Frame.players,v=>v.id==actor);if(p==null){ResetDisplay();return;}
             bool alive=p.alive&&!p.dying;
             if(previous>=0&&wasAlive&&alive)
             {
                 float change=p.health-previous;
                 if(change<-.001f)pulse=Mathf.Min(1,pulse+.35f-change*2);
-                if(change>.001f){pulse=0;healing=Mathf.Max(.65f,Mathf.Min(1,healing+.25f+change));CandyAudioEngine.Instance?.Play(CandySound.PlayerHeal,p.position,.6f,0,1,true);}
+                if(change>.001f)
+                {
+                    pulse=0;healing=Mathf.Max(.65f,Mathf.Min(1,healing+.25f+change));
+                    float now=Time.unscaledTime;
+                    if(now-lastHealthRise>1.2f)CandySoundSuite.Local(CandySound.HealthRegenerating);
+                    lastHealthRise=now;
+                }
+                else if(change<-.001f)lastHealthRise=-100;
             }
             previous=p.health;wasAlive=alive;pulse=Mathf.MoveTowards(pulse,0,Time.unscaledDeltaTime*1.3f);healing=Mathf.MoveTowards(healing,0,Time.unscaledDeltaTime);
             if(!canvas)Build();if(eye!=session.ActiveCamera||vr!=session.IsVR){eye=session.ActiveCamera;vr=session.IsVR;CandyHudLayout.Configure(canvas,transform,eye,vr);rim.rectTransform.sizeDelta=vr?new Vector2(2800,2000):CandyHudLayout.ReferenceSize;}

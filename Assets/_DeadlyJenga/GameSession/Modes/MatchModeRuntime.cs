@@ -54,6 +54,8 @@ namespace DeadlyJenga.Modes
             initial.sameHumanTeam=MatchChoices.SameHumanTeam;
             simulation=new ModeSimulation(initial);
             simulation.Eliminated+=OnEliminated;
+            simulation.DeathRecorded+=OnCombatDeath;
+            GameEvents.Damaged+=OnOtherDamage;
             simulation.PhaseChanged+=OnPhase;
             simulation.OwnershipChanged+=OnOwnership;
             simulation.PowerFinished+=OnPowerFinished;
@@ -78,13 +80,14 @@ namespace DeadlyJenga.Modes
         }
         void OnDestroy()
         {
+            GameEvents.Damaged-=OnOtherDamage;
             ResetObjectiveDirector("Session destroyed");
             ClearPickupTargets();ClearDemoCameras();ClearEnemyActions();equipmentAnnouncements.Clear();
             ClearMysteryBodies();
             if(ReferenceEquals(MatchRuntime.Current,this))MatchRuntime.Current=null;
             if(ReferenceEquals(BotObjectives.Current,this))BotObjectives.Current=null;
             if(session&&session.Network)session.Network.ParticipantLeft-=OnParticipantConnectionLeft;
-            if(simulation!=null){simulation.Eliminated-=OnEliminated;simulation.PhaseChanged-=OnPhase;simulation.OwnershipChanged-=OnOwnership;simulation.PowerFinished-=OnPowerFinished;}
+            if(simulation!=null){simulation.Eliminated-=OnEliminated;simulation.DeathRecorded-=OnCombatDeath;simulation.PhaseChanged-=OnPhase;simulation.OwnershipChanged-=OnOwnership;simulation.PowerFinished-=OnPowerFinished;}
         }
         public IModeActor FindActor(string id)=>id!=null&&actors.TryGetValue(id,out var actor)&&NetworkActors.Alive(actor)?actor:null;
         public Transform FindParticipantRoot(string id)

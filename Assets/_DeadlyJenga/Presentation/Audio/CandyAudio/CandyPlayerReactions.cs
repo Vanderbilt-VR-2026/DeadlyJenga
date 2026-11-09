@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyAudio
 {
-    // Local events respond immediately. Remote health/death transitions come from match snapshots.
+    // Match reactions use the cue and position chosen by the host.
     public sealed class CandyPlayerReactions : MonoBehaviour
     {
         sealed class Reaction
@@ -16,13 +16,40 @@ namespace DeadlyJenga.CandyAudio
         readonly Dictionary<string,Reaction> players=new Dictionary<string,Reaction>();
         readonly List<string> expired=new List<string>();
         IMatchRuntime owner;float nextPrune;
+        AudioSource confirmSpeaker;
+        AudioClip hitClip,killClip;
         public int PainCues {get;private set;}
         public int DeathCues {get;private set;}
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]static void Reset()=>instance=null;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot(){if(instance)return;var go=new GameObject("Player pain and death audio");DontDestroyOnLoad(go);instance=go.AddComponent<CandyPlayerReactions>();}
-        void OnEnable(){GameEvents.Damaged+=Damage;GameEvents.Eliminated+=Death;}
-        void OnDisable(){GameEvents.Damaged-=Damage;GameEvents.Eliminated-=Death;}
+        void Awake()
+        {
+            confirmSpeaker=gameObject.AddComponent<AudioSource>();
+            confirmSpeaker.playOnAwake=false;
+            confirmSpeaker.spatialBlend=0;
+            confirmSpeaker.priority=24;
+            hitClip=Resources.Load<AudioClip>("CandyAudio/SoundSuite/HitConfirm");
+            killClip=Resources.Load<AudioClip>("CandyAudio/SoundSuite/KillConfirm");
+        }
+        void OnEnable(){GameEvents.Damaged+=Damage;GameEvents.Eliminated+=Death;GameEvents.MatchSound+=MatchSound;}
+        void OnDisable(){GameEvents.Damaged-=Damage;GameEvents.Eliminated-=Death;GameEvents.MatchSound-=MatchSound;}
+        void MatchSound(MatchSoundCue cue,Vector3 position)
+        {
+            if(MatchRuntime.Current==null||Services.Session==null)return;
+            var engine=CandyAudioEngine.Instance;
+            if(!engine||!engine.bank)return;
+            if(cue==MatchSoundCue.HitConfirm||cue==MatchSoundCue.KillConfirm)
+            {
+                var clip=cue==MatchSoundCue.HitConfirm?hitClip:killClip;
+                if(clip)confirmSpeaker.PlayOneShot(clip,engine.bank.master*engine.bank.ui);
+                return;
+            }
+            bool nearby=cue==MatchSoundCue.NearbyHit||cue==MatchSoundCue.NearbyShot||cue==MatchSoundCue.NearbyDeath;
+            if(!engine.Play(CandySoundSuite.FromMatch(cue),position,local:!nearby))return;
+            if(cue==MatchSoundCue.NearbyDeath||cue==MatchSoundCue.PlayerDeath||cue==MatchSoundCue.IslandDeath||cue==MatchSoundCue.DrowningDeath)DeathCues++;
+            else PainCues++;
+        }
         void OnDestroy(){if(instance==this)instance=null;}
         Reaction Get(string id)
         {
@@ -34,12 +61,12 @@ namespace DeadlyJenga.CandyAudio
         static bool Human(GameObject who)=>who&&(who.GetComponent<IMovementState>()!=null||who.GetComponent<IModeActor>()!=null)&&!CandyJaguarAudio.IsJaguar(who.transform)&&who.GetComponent<IEnemyActor>()?.IsEnemy!=true;
         void Damage(GameObject who,float amount)
         {
-            if(!Human(who)||float.IsNaN(amount)||float.IsInfinity(amount)||amount<=0)return;
+            if(MatchRuntime.Current!=null||!Human(who)||float.IsNaN(amount)||float.IsInfinity(amount)||amount<=0)return;
             var health=who.GetComponent<IDamageable>();if(health!=null&&health.Health<=0)return;
             Cue(Get(Id(who)),false,who.transform.position+Vector3.up*.9f,Mathf.Clamp(amount/30,.4f,1),who);
         }
         void Death(GameObject who,GameObject source)
-        {if(Human(who))Cue(Get(Id(who)),true,who.transform.position+Vector3.up*.6f,1,who);}
+        {if(MatchRuntime.Current==null&&Human(who))Cue(Get(Id(who)),true,who.transform.position+Vector3.up*.6f,1,who);}
         void Cue(Reaction state,bool death,Vector3 position,float gain,GameObject who)
         {
             float now=Time.unscaledTime;
@@ -50,7 +77,6 @@ namespace DeadlyJenga.CandyAudio
             if(CandyAudioEngine.Instance&&CandyAudioEngine.Instance.Play(death?CandySound.PlayerDeath:CandySound.PlayerPain,position,gain,seed,.94f+Mathf.Abs(seed%13)*.01f,local))
             {if(death)DeathCues++;else PainCues++;}
         }
-        void Update()=>Observe(MatchRuntime.Current,MatchRuntime.Current?.Frame);
         public void Observe(IMatchRuntime runtime,MatchFrame frame)
         {
             if(!ReferenceEquals(owner,runtime)){owner=runtime;players.Clear();}
