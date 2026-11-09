@@ -244,7 +244,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void SendWorld(PlayerRef player,Peer peer,byte[] raw,string context,float now)
         {
-            int serial=LivePoseWindow.NextSequence(ref sequence);var packet=peer.world.Prepare(raw,context,serial);
+            int serial=LivePoseWindow.NextSequence(ref sequence);long encodeStarted=FusionMotionWireTrace.Now;var packet=peer.world.Prepare(raw,context,serial);
+            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Encode,World,serial,packet.Length,encodeStarted);
             int fullAlternativeBytes=peer.world.LastFullPacketBytes;
             peer.waiting=serial; // Admission reserves the one world slot; timeout starts after SDK return.
             try
@@ -259,13 +260,15 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ReceiveWorld(byte[] packet,int serial)
         {
-            var frame=worldReceiver.Decode(packet,serial);
+            long decodeStarted=FusionMotionWireTrace.Now;var frame=worldReceiver.Decode(packet,serial);
+            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Decode,World,serial,packet.Length,decodeStarted);
             if(frame.status==WorldDeltaCodec.Status.Stale)return;
             if(frame.status==WorldDeltaCodec.Status.MissingBase)
             {pendingWorldResync=frame.Token();pendingWorldResyncSerial=serial;return;}
             if(frame.status==WorldDeltaCodec.Status.Ready)
             {
-                castle.FusionApplyWorld(frame.raw);
+                long applyStarted=FusionMotionWireTrace.Now;castle.FusionApplyWorld(frame.raw);
+                FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied,World,serial,frame.raw.Length,applyStarted);
                 worldReceiver.Applied(frame);lastWorld=Time.unscaledTime;pendingWorldResync=null;pendingWorldResyncSerial=0;
             }
             Send(default,Ack,frame.Token(),serial);
@@ -408,8 +411,10 @@ namespace DeadlyJenga.CastlePrototype
         void Send(PlayerRef player,int kind,byte[] bytes,int serial=0,Action onSubmitted=null,Action onCanceled=null)
         {
             if(outboundFailed||closing||!IsCurrentScene){onCanceled?.Invoke();return;}
+            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Queued,kind,serial,bytes.Length);
             Action submitted=()=>
             {
+                FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Submitted,kind,serial,bytes.Length);
                 if(kind==World){WorldTransfersSubmitted++;WorldPayloadBytesSubmitted+=bytes.Length;}
                 onSubmitted?.Invoke();
             };
@@ -434,6 +439,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!IsCurrentScene)return;
             var key=ReliableKey.FromInts(SocialChannel,kind,serial,sceneTag);
             if(runner.IsServer)runner.SendReliableDataToPlayer(player,key,data);else runner.SendReliableDataToServer(key,data);
+            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Submitted,-kind,serial,data.Length);
         }
         public void SendSocial(byte[] data,string except=null)
         {
@@ -460,6 +466,7 @@ namespace DeadlyJenga.CastlePrototype
             key.GetInts(out int channel, out int kind, out int serial, out int receivedTag);
             if (outboundFailed || closing || source != runner || !IsCurrentScene || (receivedTag != 0 && receivedTag != sceneTag)) return;
             if (runner.IsServer && !source.ActivePlayers.Contains(player)) return;
+            if(channel==Channel||channel==SocialChannel) FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Received,channel==SocialChannel?-kind:kind,serial,payload.Length);
             if(channel==SocialChannel){ReceiveSocial(player,kind,serial,payload);return;}
             if(channel!=Channel)return;
             if((kind==World||kind==Ack||kind==WorldResync)&&receivedTag!=sceneTag)return;
@@ -499,7 +506,8 @@ namespace DeadlyJenga.CastlePrototype
                             var rawPose=LivePoseCodec.Unpack(payload.ToArray(),MaxPoseSize,out var receipts);ApplyPiggybackReceipts(peer.posesInFlight,receipts,Time.unscaledTime);peer.posesInFlight.Traffic.RawReceivedBytes+=rawPose.Length;
                             if (LivePoseWindow.Newer(serial,peer.lastPoseSequence,peer.hasPoseSequence))
                             {
-                                castle.FusionReceivePlayer(player.ToString(),rawPose);
+                                long applyStarted=FusionMotionWireTrace.Now;castle.FusionReceivePlayer(player.ToString(),rawPose);
+                                FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied,LivePose,serial,rawPose.Length,applyStarted);
                                 peer.lastPoseSequence = serial;peer.hasPoseSequence=true;
                                 peer.lastPose = Time.unscaledTime;
                                 peer.posesInFlight.Applied(payload.Length,Time.unscaledTime);
@@ -510,7 +518,7 @@ namespace DeadlyJenga.CastlePrototype
                         }
                         else if (kind == PoseReceiptGroup&&payload.Length>=7&&payload.Length<=3+LivePoseReceipts.Capacity*4) ApplyPoseReceipts(peer.posesInFlight,payload.ToArray(),Time.unscaledTime);
                         else if (kind == Ack && peer.waiting!=0 && peer.waiting==serial && payload.Length==WorldDeltaCodec.TokenBytes && peer.world.Acknowledge(serial,payload.ToArray()))
-                        {peer.waiting=0;peer.worldResyncs=0;peer.pendingWorldResync=null;}
+                        {FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Ack,World,serial,payload.Length);peer.waiting=0;peer.worldResyncs=0;peer.pendingWorldResync=null;}
                         else if(kind==WorldResync&&peer.ready&&peer.waiting!=0&&peer.waiting==serial&&payload.Length==WorldDeltaCodec.TokenBytes)
                         {
                             var token=payload.ToArray();if(peer.world.MatchesPending(serial,token))peer.pendingWorldResync=token;
@@ -534,7 +542,8 @@ namespace DeadlyJenga.CastlePrototype
                         var rawPoses=LivePoseCodec.Unpack(payload.ToArray(),MaxLiveBatchSize,out var receipts);ApplyPiggybackReceipts(posesInFlight,receipts,Time.unscaledTime);posesInFlight.Traffic.RawReceivedBytes+=rawPoses.Length;
                         if (LivePoseWindow.Newer(serial,lastPoseBatch,hasPoseBatch) && !castle.WaitingForWorld)
                         {
-                            castle.FusionApplyLivePoses(rawPoses, runner.ActivePlayers.Select(p => p.ToString()));
+                            long applyStarted=FusionMotionWireTrace.Now;castle.FusionApplyLivePoses(rawPoses, runner.ActivePlayers.Select(p => p.ToString()));
+                            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied,LivePoses,serial,rawPoses.Length,applyStarted);
                             lastPoseBatch = serial;hasPoseBatch=true;posesInFlight.Applied(payload.Length,Time.unscaledTime);
                         }
                         else posesInFlight.Skipped();
@@ -570,7 +579,8 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
 
-            castle.FusionRender();ConnectModes();
+            long renderStarted=FusionMotionWireTrace.Now;castle.FusionRender();
+            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Render,0,0,0,renderStarted);ConnectModes();
             float now = Time.unscaledTime;
             PumpPoses(now);if(poseSendFailed)return;
             try{PumpWorldResync(now);}catch(Exception){Fail("World resynchronization send failed. Rejoin with the same game build.");return;}
@@ -604,7 +614,10 @@ namespace DeadlyJenga.CastlePrototype
                     if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>pair.Value.disasters=packet);}
                     if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin),0,()=>pair.Value.admin=admin);}
                     string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>pair.Value.rules=rules);}
-                    if(world==null){world=castle.FusionCaptureWorld();worldContext=WorldContext(world);}
+                    if(world==null){long captureStarted=FusionMotionWireTrace.Now;world=castle.FusionCaptureWorld();
+                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Capture,World,0,world.Length,captureStarted);
+                        long contextStarted=FusionMotionWireTrace.Now;worldContext=WorldContext(world);
+                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Context,World,0,world.Length,contextStarted);}
                     try{SendWorld(pair.Key,pair.Value,world,worldContext,now);}
                     catch(Exception){Fail("World transfer encoding or send failed. Rejoin with the same game build.");return;}
                 }
@@ -768,8 +781,10 @@ namespace DeadlyJenga.CastlePrototype
                     frame.outbox.Flush(()=>HotpathCurrent(frame),items=>
                     {
                         var packet=HotpathBundleCodec.Pack(items,runner.IsServer);
-                        var key=ReliableKey.FromInts(Channel,HotpathBundle,LivePoseWindow.NextSequence(ref bundleSequence),sceneTag);
+                        int bundleSerial=LivePoseWindow.NextSequence(ref bundleSequence);
+                        var key=ReliableKey.FromInts(Channel,HotpathBundle,bundleSerial,sceneTag);
                         if(runner.IsServer)runner.SendReliableDataToPlayer(frame.player,key,packet);else runner.SendReliableDataToServer(key,packet);
+                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Submitted,HotpathBundle,bundleSerial,packet.Length);
                         HotpathBundlesSubmitted++;HotpathRecordsSubmitted+=items.Count;HotpathBytesSubmitted+=packet.Length;
                         HotpathMaxRecords=Math.Max(HotpathMaxRecords,items.Count);HotpathMaxBytes=Math.Max(HotpathMaxBytes,packet.Length);
                     });

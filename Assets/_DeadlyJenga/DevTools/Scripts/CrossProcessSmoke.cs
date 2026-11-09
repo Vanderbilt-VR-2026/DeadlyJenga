@@ -151,9 +151,42 @@ namespace DeadlyJenga.CastlePrototype
             return view is Component part ? part.transform.position : view.NetworkPosition;
         }
 
+
+        IEnumerator StartDirectMotionMatch(bool host, Action<Fusion.NetworkRunner> connected)
+        {
+            const string marker = "direct-room-code";
+            if (!host)
+                yield return Until(() => File.Exists(Mark(marker)), "Host publishes direct match room", 180);
+            string code = host ? "dj-motion-" + Guid.NewGuid().ToString("N").Substring(0, 16) : File.ReadAllText(Mark(marker));
+            var holder = new GameObject("Explicit motion probe runner");
+            DontDestroyOnLoad(holder);
+            var runner = holder.AddComponent<Fusion.NetworkRunner>();
+            var start = CastleMotionStateProbe.ConnectDirect(runner, holder, host, code);
+            yield return Until(() => start.IsCompleted, "Direct Fusion StartGame completed", 75);
+            Require(!start.IsFaulted && start.Result.Ok, "Direct match uses real Fusion connection");
+            if (host)
+            {
+                File.WriteAllText(Mark(marker + "-pending"), code);
+                File.Move(Mark(marker + "-pending"), Mark(marker));
+            }
+            yield return Until(() => runner.ActivePlayers.Count() == 2, "Direct match has both independent peers", 100);
+            MatchSetup.FromLobby = true;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.ModeId = "ctf";
+            MatchSetup.MapId = "mode-ctf";
+            MatchSetup.BotTarget = 3;
+            connected(runner);
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Game");
+        }
+
         IEnumerator CheckMotionProbe()
         {
             bool host = role == "host";
+            Fusion.NetworkRunner probeRunner = null;
+            if (Environment.GetCommandLineArgs().Contains("--dj-motion-direct"))
+                yield return StartDirectMotionMatch(host, runner => probeRunner = runner);
+            else
+            {
             HomeSession home = null;
             yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && !string.IsNullOrEmpty(home.Region),
                 "Home initialized before motion probe", 150);
@@ -182,11 +215,12 @@ namespace DeadlyJenga.CastlePrototype
                 File.WriteAllText(Mark("guest-joined"), "joined");
             }
 
+            probeRunner = IslandRoomConnection.Instance.Runner;
+            }
             CastlePlaySession session = null;
             yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && session.Network &&
-                IslandRoomConnection.Instance.HumanCount == 2 && !session.Network.WaitingForWorld && Services.World?.Blocks.Count > 0 &&
+                probeRunner && probeRunner.ActivePlayers.Count() == 2 && (!host || session.Network.HumanCount == 2) && !session.Network.WaitingForWorld && Services.World?.Blocks.Count > 0 &&
                 NetworkActors.Alive(session.Player), "Both humans and world are ready for movement", 125);
-            var room = IslandRoomConnection.Instance;
             var sync = session.GetComponent<CastleFusionSession>();
             var lan = session.Network;
             var player = ((Component)session.Player).GetComponent<CastleSurvivor>();
@@ -202,7 +236,7 @@ namespace DeadlyJenga.CastlePrototype
             var waiting = host ? ProbeField(peer, "waiting") : null;
             var sentAt = host ? ProbeField(peer, "sentAt") : null;
             var poseTraffic = host ? sync.PeerPoseTraffic.Single() : sync.LocalPoseTraffic;
-            string remoteId = room.Runner.ActivePlayers.Single(p => p != room.Runner.LocalPlayer).ToString();
+            string remoteId = probeRunner.ActivePlayers.Single(p => p != probeRunner.LocalPlayer).ToString();
             GameObject bot = null;
             if (host)
             {
@@ -212,9 +246,15 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => session.SurvivorBots.Members.Any(), "Host has an authoritative bot", 40);
                 bot = session.SurvivorBots.Members.First();
             }
+            if (CastleMotionStateProbe.Enabled)
+            {
+                if (host) Require(CastleMotionStateProbe.StartHost(probeRunner), "Host spawned Fusion state probe");
+                yield return Until(() => CastleMotionStateProbe.Local && CastleMotionStateProbe.Local.Sequence != 0,
+                    "Independent peer sees the woven Fusion state", 45);
+            }
             var source = Environment.GetCommandLineArgs().FirstOrDefault(a => a.StartsWith("--dj-source="));
             File.AppendAllText(Report, $"TRACE {source} map={MatchSetup.MapId} blocks={world.Blocks.Count} role={role} " +
-                $"connection={room.Runner.CurrentConnectionType} fixture=normal-motor-driver,authoritative-bot,one-block-impulse\n");
+                $"connection={probeRunner.CurrentConnectionType} fixture=normal-motor-driver,authoritative-bot,one-block-impulse\n");
             File.WriteAllText(Mark(role + "-trace-ready"), "ready");
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-ready")), "Peer is ready to trace", 60);
             var originalDriver = player.InputDriver;
@@ -225,7 +265,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 double start = Time.realtimeSinceStartupAsDouble;
                 var data = new System.Text.StringBuilder(160 * 1024);
-                data.AppendLine("elapsed,clock,frameMs,gc0,rttSeconds,worldSerial,worldWaitSeconds,poseSerial,posePending,poseSuppressed,poseSent,poseSentBytes,poseApplied,localX,localY,localZ,remoteTargetX,remoteTargetY,remoteTargetZ,remoteRenderX,remoteRenderY,remoteRenderZ,botX,botY,botZ,blockX,blockY,blockZ");
+                data.AppendLine("elapsed,clock,frameMs,gc0,rttSeconds,worldSerial,worldWaitSeconds,poseSerial,posePending,poseSuppressed,poseSent,poseSentBytes,poseApplied,localX,localY,localZ,remoteTargetX,remoteTargetY,remoteTargetZ,remoteRenderX,remoteRenderY,remoteRenderZ,botX,botY,botZ,blockX,blockY,blockZ,stateSequence,stateTick,stateHumanX,stateHumanY,stateHumanZ,stateBotX,stateBotY,stateBotZ,stateBlockX,stateBlockY,stateBlockZ");
                 bool pushed = false;
                 double nextRtt = 0, rtt = 0;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
@@ -240,12 +280,12 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     if (elapsed >= nextRtt)
                     {
-                        rtt = room.Runner.GetPlayerRtt(room.Runner.ActivePlayers.Single(p => p != room.Runner.LocalPlayer));
+                        rtt = probeRunner.GetPlayerRtt(probeRunner.ActivePlayers.Single(p => p != probeRunner.LocalPlayer));
                         nextRtt = elapsed + 1;
                     }
                     views.TryGetValue(remoteId, out var remote);
                     var botView = host ? null : views.FirstOrDefault(pair => pair.Key != remoteId &&
-                        pair.Key != room.Runner.LocalPlayer.ToString() && pair.Value.NetworkKind == NetworkKinds.Survivor).Value;
+                        pair.Key != probeRunner.LocalPlayer.ToString() && pair.Value.NetworkKind == NetworkKinds.Survivor).Value;
                     int serial = host ? (int)waiting.GetValue(peer) : (int)worldSerial.GetValue(receiver);
                     float wait = host && serial != 0 ? Time.unscaledTime - (float)sentAt.GetValue(peer) : 0;
                     data.AppendFormat(ci, "{0:F5},{1},{2:F3},{3},{4:F4},{5},{6:F5},{7},{8},{9},{10},{11},{12}",
@@ -257,10 +297,16 @@ namespace DeadlyJenga.CastlePrototype
                     AppendPosition(data, RenderedFeet(remote));
                     AppendPosition(data, bot ? bot.transform.position : RenderedFeet(botView));
                     AppendPosition(data, world.Blocks[block].position);
+                    var shadow = CastleMotionStateProbe.Local;
+                    data.AppendFormat(ci, ",{0},{1}", shadow ? shadow.Sequence : 0, shadow ? shadow.CaptureTick.Raw : 0);
+                    AppendPosition(data, shadow ? shadow.Human : Vector3.zero);
+                    AppendPosition(data, shadow ? shadow.Bot : Vector3.zero);
+                    AppendPosition(data, shadow ? shadow.Block : Vector3.zero);
                     data.AppendLine();
                     yield return null;
                 }
                 File.WriteAllText(Mark(role + "-motion.csv"), data.ToString());
+                FusionMotionWireTrace.Save(Mark(role + "-wire.csv"));
             }
             finally
             {
