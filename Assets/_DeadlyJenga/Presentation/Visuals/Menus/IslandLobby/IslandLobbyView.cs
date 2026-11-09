@@ -100,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
             controlsMenuWasOpen=session?.MenuOpen==true;
             if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
                 DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
-            if(LocalModalBlocked){terminalRequireRelease=true;wardrobeDragDevice=0;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(LocalModalBlocked){terminalRequireRelease=true;wardrobeDragDevice=0;draggingKeyboard=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
@@ -187,6 +187,11 @@ namespace DeadlyJenga.CastlePrototype
                 if(choice.button&&choice.button.gameObject.activeInHierarchy)PaintCandyChoice(choice,choice==nearest,choice.button.interactable);
             PreviewMapChoice(nearest?.id);
             UpdateWardrobeChoiceNotice(nearest?.id);
+            if (DragRoomCodeKeyboard(ray, pressed, held, pointerDevice, distance, out float keyboardDepth))
+            {
+                DrawLobbyAim(ray, keyboardDepth, true);
+                return;
+            }
             if (DragWardrobePreview(ray,pressed,held,pointerDevice,distance,out float dragDepth))
             {
                 DrawLobbyAim(ray,dragDepth,true);

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using DeadlyJenga.Presentation;
 using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
@@ -11,6 +12,12 @@ namespace DeadlyJenga.CastlePrototype
     {
         RectTransform piano;
         Text keyboardCode;
+        RectTransform keyboardGrabBar;
+        Image keyboardGrabFace;
+        bool draggingKeyboard;
+        int keyboardDragDevice;
+        float keyboardDragDepth;
+        Vector3 keyboardDragOffset;
         Material keyboardMaterial;
         Mesh keyboardMesh;
         readonly Choice[] touching=new Choice[2];
@@ -23,8 +30,9 @@ namespace DeadlyJenga.CastlePrototype
             go.transform.SetPositionAndRotation(new Vector3(panel.position.x,.94f,.55f),yaw*Quaternion.Euler(40,0,0));
             go.transform.localScale=Vector3.one*(1000*StationScale/1680);
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
-            var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
-            lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));   // the lobby makes the piano solid
+            Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
+            if (!UsesMayhemMarina)
+                lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));
             BuildArcadeCabinet();
             keyboardCode = Label(piano, "", 322, 42, 1160, 76);
             keyboardCode.fontStyle = FontStyle.Bold;
@@ -45,6 +53,65 @@ namespace DeadlyJenga.CastlePrototype
             var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
             PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
             PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
+        }
+        void BuildKeyboardGrabBar()
+        {
+            var grab = new GameObject("Keyboard grab bar", typeof(RectTransform), typeof(Image));
+            keyboardGrabBar = (RectTransform)grab.transform;
+            keyboardGrabBar.SetParent(piano, false);
+            keyboardGrabBar.anchoredPosition3D = new Vector3(0, -389, -67);
+            keyboardGrabBar.sizeDelta = new Vector2(510, 46);
+            keyboardGrabFace = grab.GetComponent<Image>();
+            keyboardGrabFace.sprite = CandyHudVisuals.Pill;
+            keyboardGrabFace.type = Image.Type.Sliced;
+            keyboardGrabFace.color = CandyHudVisuals.Muted;
+            keyboardGrabFace.raycastTarget = false;
+        }
+        void PlaceFloatingKeyboard(Camera eye)
+        {
+            var forward = Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up).normalized;
+            if (forward.sqrMagnitude < .5f) forward = Vector3.ProjectOnPlane(eye.transform.up, Vector3.up).normalized;
+            piano.localScale = Vector3.one * (.79f / 1680f);
+            piano.SetPositionAndRotation(eye.transform.position + forward * .91f - Vector3.up * .24f,
+                Quaternion.LookRotation(forward) * Quaternion.Euler(18, 0, 0));
+        }
+        bool DragRoomCodeKeyboard(Ray ray, bool pressed, bool held, int device, float range, out float depth)
+        {
+            depth = 0;
+            if (!keyboardGrabBar || !piano.gameObject.activeInHierarchy)
+            {
+                draggingKeyboard = false;
+                return false;
+            }
+            if (draggingKeyboard && (!held || device != keyboardDragDevice))
+                draggingKeyboard = false;
+            bool hit = MenuAim.TryPoint(ray, keyboardGrabBar, range, out _, out var point);
+            keyboardGrabFace.color = hit || draggingKeyboard ? CandyHudVisuals.Mint : CandyHudVisuals.Muted;
+            if (draggingKeyboard)
+            {
+                var eye = Player.ViewCamera.transform.position;
+                var offset = ray.GetPoint(keyboardDragDepth) + keyboardDragOffset - eye;
+                float distance = offset.magnitude;
+                if (distance > .15f)
+                {
+                    var forward = Vector3.ProjectOnPlane(offset, Vector3.up);
+                    if (forward.sqrMagnitude > .04f)
+                        piano.SetPositionAndRotation(eye + offset / distance * Mathf.Clamp(distance, .55f, 1.6f),
+                            Quaternion.LookRotation(forward) * Quaternion.Euler(18, 0, 0));
+                }
+                depth = keyboardDragDepth;
+                return true;
+            }
+            if (!hit) return false;
+            depth = Vector3.Distance(ray.origin, point);
+            if (pressed && held)
+            {
+                draggingKeyboard = true;
+                keyboardDragDevice = device;
+                keyboardDragDepth = depth;
+                keyboardDragOffset = piano.position - point;
+            }
+            return true;
         }
         void CloseRoomCodeKeyboard()
         {

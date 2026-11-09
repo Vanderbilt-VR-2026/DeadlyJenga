@@ -16,9 +16,10 @@ namespace DeadlyJenga.CastlePrototype
         Sprite marinaMaskSprite;
         string marinaDetail="";
         float nextMarinaMirror;
+        bool UsesMayhemMarina => lobby is IWorldQuery world && world.Radius >= 30;
         partial void BuildMayhemMarina()
         {
-            if(!(lobby is IWorldQuery world)||world.Radius<30)return;
+            if (!UsesMayhemMarina) return;
             if(marina)return;
             foreach(var resort in GetComponents<CandyLobbyResort>())
             {
@@ -39,8 +40,7 @@ namespace DeadlyJenga.CastlePrototype
             MountMarinaScreen(hostStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
             MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
-            piano.SetLocalPositionAndRotation(MayhemMarina.CodeKeyboard, MayhemMarina.CodeKeyboardFacing);
-            piano.localScale = Vector3.one * .00115f;
+            BuildKeyboardGrabBar();
             marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);
             var go = new GameObject("Marina detail back control", typeof(RectTransform), typeof(Canvas));
             go.transform.SetParent(transform, false);
@@ -74,8 +74,12 @@ namespace DeadlyJenga.CastlePrototype
         void UpdateMarinaKeyboard()
         {
             if (!piano) return;
-            bool visible = marinaDetail == "join" && lobby.CodeFocused;
-            if (piano.gameObject.activeSelf != visible) piano.gameObject.SetActive(visible);
+            var eye = Player.ViewCamera;
+            bool visible = marinaDetail == "join" && lobby.CodeFocused && eye;
+            if (piano.gameObject.activeSelf == visible) return;
+            draggingKeyboard = false;
+            if (visible) PlaceFloatingKeyboard(eye);
+            piano.gameObject.SetActive(visible);
         }
         void OpenMarinaDetail(string page)
         {
@@ -112,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
             joinStation.gameObject.SetActive(false);
             hostStation.gameObject.SetActive(false);
             setupStation.gameObject.SetActive(false);
-            piano.gameObject.SetActive(false);
+            UpdateMarinaKeyboard();
             wardrobePanel.gameObject.SetActive(false);
             if (wardrobeOpen) SetWardrobeOpen(false);
             if (marinaBack) marinaBack.gameObject.SetActive(false);

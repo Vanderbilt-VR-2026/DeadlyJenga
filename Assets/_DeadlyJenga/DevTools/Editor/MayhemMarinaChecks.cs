@@ -188,7 +188,17 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return null;
                 if(id=="marina-join")
                 {
-                    Check(lobby.CodeFocused&&view.GiantKeyboard.gameObject.activeSelf,"Room code focuses the cabinet keyboard");
+                    Check(lobby.CodeFocused&&view.GiantKeyboard.gameObject.activeSelf,"Room code opens the private keyboard");
+                    var keyboard = view.GiantKeyboard;
+                    var grabBar = keyboard.Find("Keyboard grab bar");
+                    Check(grabBar && Vector3.Distance(keyboard.position, lobby.Player.ViewCamera.transform.position) < 1.25f,
+                        "The private keyboard floats in front of the player with a grab bar");
+                    Vector3 originalPosition = keyboard.position;
+                    var grabRay = new Ray(grabBar.position - grabBar.forward * .3f, grabBar.forward);
+                    view.Point(grabRay, true, true);
+                    view.Point(new Ray(grabRay.origin + grabBar.right * .18f, grabRay.direction), false, true);
+                    view.Point(grabRay, false);
+                    Check(Vector3.Distance(keyboard.position, originalPosition) > .08f, "Dragging the grab bar moves the keyboard");
                     var originalCode=lobby.EnteredCode;
                     try
                     {
@@ -349,7 +359,7 @@ namespace DeadlyJenga.DevTools.Editor
             var styleEntry = view.transform.Find("Marina wardrobe entry");
             var keyboard = view.GiantKeyboard;
             Check(join && host && setup && back && wardrobe && styleEntry && keyboard, "All Marina terminals have mounts");
-            var mounts = new[] { join, host, setup, back, wardrobe, styleEntry, keyboard };
+            var mounts = new[] { join, host, setup, back, wardrobe, styleEntry };
             var positions = mounts.Select(mount => mount.localPosition).ToArray();
             var rotations = mounts.Select(mount => mount.localRotation).ToArray();
             var scales = mounts.Select(mount => mount.localScale).ToArray();
@@ -379,7 +389,9 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(join.gameObject.activeInHierarchy && !keyboard.gameObject.activeSelf, "Join opens at the pavilion mount with its keyboard hidden");
                 lobby.FocusCode();
                 yield return Wait(.15f);
-                Check(lobby.CodeFocused && keyboard.gameObject.activeInHierarchy, "Code focus reveals the keyboard on the fixed lectern");
+                Check(lobby.CodeFocused && keyboard.gameObject.activeInHierarchy &&
+                    Vector3.Distance(keyboard.position, player.ViewCamera.transform.position) < 1.25f,
+                    "Code focus floats the keyboard in front of the local player");
                 var slots = join.GetComponentsInChildren<RectTransform>(true).Where(rect => rect.name.StartsWith("Code character ", StringComparison.Ordinal)).ToArray();
                 var codeLayout = slots.Select(slot => (slot.anchoredPosition, slot.sizeDelta)).ToArray();
                 string originalCode = lobby.EnteredCode;
