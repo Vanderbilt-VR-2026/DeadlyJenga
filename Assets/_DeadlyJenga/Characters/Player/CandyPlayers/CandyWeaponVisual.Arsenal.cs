@@ -696,6 +696,10 @@ namespace DeadlyJenga.CandyPlayers
                 for(int i=0;i<gv.Length;i++)gv[i]=new Vector3(gv[i].x,gv[i].y*.80f-.025f,gv[i].z*1.20f+.092f);gm.vertices=gv;gm.RecalculateNormals();Add(0,gm,Matrix4x4.identity);
                 Box(0,new Vector3(0,.021f,.092f),new Vector3(.024f,.021f,.060f),.002f);
                 Cylinder(2,new Vector3(0,.019f,.081f),new Vector3(0,-.031f,.093f),.006f);Cylinder(2,new Vector3(0,-.031f,.093f),new Vector3(0,-.041f,.108f),.006f);
+                // A fixed under-barrel bracket keeps the hand clear of the rotating carriage.
+                Box(0,new Vector3(0,-.002f,.271f),new Vector3(.082f,.065f,.089f),.006f);
+                Box(0,new Vector3(0,-.027f,RifleSupportDepth-.034f),new Vector3(.073f,.039f,.124f),.006f);
+                Box(3,new Vector3(0,-.096f,RifleSupportDepth),new Vector3(.062f,.130f,.066f),.011f);
                 // All following geometry is local to the original rotating carriage pivot.
                 RingPart(8,new Vector3(0,0,.004f),.106f,.009f);
                 RingPart(7,new Vector3(0,0,.020f),.094f,.011f);

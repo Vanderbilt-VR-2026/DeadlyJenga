@@ -397,7 +397,12 @@ namespace DeadlyJenga.CandyPlayers
                 pose=ClearLauncherView(pose,eye.transform.position,eye.transform.rotation,Scale,
                     eye.nearClipPlane,state.kind);
             }
-            hand.position=pose.position;hand.rotation=pose.rotation;hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,(state.triggerHeld||motor&&motor.IsVR&&Local&&trigger?.IsPressed()==true)?1:0);hand.skeletonTracked=true;
+            bool pressed=state.triggerHeld || motor.IsVR && Local && trigger?.IsPressed()==true ||
+                Local && !motor.IsVR && Mouse.current?.leftButton.isPressed==true && state.reloadRemaining<=0;
+            hand.position=pose.position;
+            hand.rotation=pose.rotation;
+            hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,pressed?1:0);
+            hand.skeletonTracked=true;
             if(state.kind==EquipmentKind.LaserAxe)
             {
                 var carry=AxeCarry(gripPose,state.leftHanded);
@@ -409,32 +414,49 @@ namespace DeadlyJenga.CandyPlayers
                 CandyWeaponVisual.MeleeMount(state.kind,state.leftHanded,out var palm,out var axeMount);
                 hand.rotation=carry.rotation*Quaternion.Inverse(axeMount);
                 hand.position=carry.position-hand.rotation*palm*Scale;
-                hand.skeleton=CandyHandSkeleton.MeleeGrip(state.leftHanded,state.kind);
+                hand.skeleton=CandyWeaponVisual.ShaftGrip(state.kind,state.leftHanded);
             }
             else if(CandyWeaponVisual.MeleeMount(state.kind,state.leftHanded,out _,out var mount))
             {
                 hand.rotation=pose.rotation*Quaternion.Inverse(mount);
-                hand.skeleton=CandyHandSkeleton.MeleeGrip(state.leftHanded,state.kind);
+                hand.skeleton=CandyWeaponVisual.ShaftGrip(state.kind,state.leftHanded);
             }
-            else if(state.kind==EquipmentKind.ChainGun)
-                hand.skeleton=CandyHandSkeleton.MeleeGrip(state.leftHanded,state.kind);
             else if(state.kind==EquipmentKind.BoxingGlove||state.kind==EquipmentKind.LaserClaws)
                 hand.skeleton=CandyHandSkeleton.Rest(state.leftHanded,.96f);
+            else if(state.kind==EquipmentKind.WristLaser)
+                hand.skeleton=CandyHandSkeleton.Rest(state.leftHanded,pressed?.38f:.18f);
+            else
+                CandyWeaponVisual.TryPrimaryContact(ref hand,pose,state.kind,state.leftHanded,pressed,Scale);
             if(state.leftHanded)frame.left=hand;else frame.right=hand;
-            if((state.kind==EquipmentKind.DualUzi||state.kind==EquipmentKind.LaserClaws)&&!motor.IsVR)
+
+            bool supportLeft=!state.leftHanded;
+            var support=supportLeft?frame.left:frame.right;
+            if(state.kind==EquipmentKind.DualUzi)
             {
-                var other=state.leftHanded?frame.right:frame.left;var otherPose=new Pose(gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale,gripPose.rotation);otherPose=PresentedReloadGrip(otherPose,state,!state.leftHanded);other.position=otherPose.position;other.rotation=otherPose.rotation;other.skeleton=CandyHandSkeleton.Rest(!state.leftHanded,.88f);other.skeletonTracked=true;if(state.leftHanded)frame.right=other;else frame.left=other;
+                if(motor.IsVR)
+                {
+                    if(!support.tracked)return;
+                    var offhandAim=new Pose(support.position,support.rotation);
+                    if(avatar.tracking&&avatar.tracking.TryControllerAim(supportLeft,out var aim))offhandAim=aim;
+                    CandyWeaponVisual.TryPrimaryContact(ref support,offhandAim,state.kind,supportLeft,
+                        offTrigger?.IsPressed()==true,Scale);
+                }
+                else
+                {
+                    var offhand=new Pose(gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale,gripPose.rotation);
+                    offhand=PresentedReloadGrip(offhand,state,supportLeft);
+                    CandyWeaponVisual.TryPrimaryContact(ref support,offhand,state.kind,supportLeft,pressed,Scale);
+                }
+                if(supportLeft)frame.left=support;else frame.right=support;
+                return;
             }
-            if(state.kind==EquipmentKind.DualUzi&&motor.IsVR&&avatar.tracking&&
-                avatar.tracking.TryControllerAim(!state.leftHanded,out var offhandAim))
+            if(state.kind==EquipmentKind.LaserClaws&&!motor.IsVR)
             {
-                var other=state.leftHanded?frame.right:frame.left;
-                other.position=offhandAim.position;
-                other.rotation=offhandAim.rotation;
-                other.skeleton=CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,
-                    offTrigger?.IsPressed()==true?1:0);
-                other.skeletonTracked=true;
-                if(state.leftHanded)frame.right=other;else frame.left=other;
+                support.position=gripPose.position+gripPose.rotation*new Vector3(state.leftHanded?.42f:-.42f,0,0)*Scale;
+                support.rotation=gripPose.rotation;
+                support.skeleton=CandyHandSkeleton.Rest(supportLeft,.96f);
+                support.skeletonTracked=true;
+                if(supportLeft)frame.left=support;else frame.right=support;
             }
             if(state.kind==EquipmentKind.LaserClaws&&motor.IsVR)
             {
@@ -446,26 +468,16 @@ namespace DeadlyJenga.CandyPlayers
                     if(state.leftHanded)frame.right=other;else frame.left=other;
                 }
             }
-            if(EquipmentSpecifications.Get(state.kind).twoHanded&&(!motor.IsVR||grip.IsPressed()||avatar.tracking&&avatar.tracking.IsHybrid&&(state.leftHanded?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
+            if(EquipmentSpecifications.Get(state.kind).twoHanded||state.kind==EquipmentKind.Chainsaw)
             {
-                var support=state.leftHanded?frame.right:frame.left;
-                support.position=pose.position+pose.rotation*CandyWeaponVisual.SupportGripOffset(state.kind,state.leftHanded)*Scale;
-                if(state.kind==EquipmentKind.LaserAxe)
-                {
-                    var carry=CandyWeaponVisual.DrawnPose(state.kind,hand,state.leftHanded,Scale);
-                    CandyWeaponVisual.MeleeMount(state.kind,!state.leftHanded,out var palm,out var mount);
-                    support.rotation=carry.rotation*Quaternion.Inverse(mount);
-                    support.position=carry.position+carry.rotation*Vector3.forward*(.43f*Scale)-support.rotation*palm*Scale;
-                    support.skeleton=CandyHandSkeleton.MeleeGrip(!state.leftHanded,state.kind);
-                    support.skeletonTracked=true;
-                    if(state.leftHanded)frame.right=support;else frame.left=support;
-                    return;
-                }
-                bool topGrip=state.kind==EquipmentKind.ChainGun;
-                support.rotation=topGrip?pose.rotation:pose.rotation*Quaternion.Euler(0,0,state.leftHanded?-30:30);
-                support.skeleton=topGrip?CandyHandSkeleton.MeleeGrip(!state.leftHanded,state.kind):CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,1);
-                support.skeletonTracked=true;
-                if(state.leftHanded)frame.right=support;else frame.left=support;
+                bool holding=!motor.IsVR||support.tracked&&(grip?.IsPressed()==true||
+                    avatar.tracking&&avatar.tracking.IsHybrid&&(state.leftHanded?avatar.tracking.RightPinching:avatar.tracking.LeftPinching));
+                if(!holding||motor.IsVR&&state.reloadRemaining>0&&state.kind!=EquipmentKind.LaserAxe)return;
+                var weapon=CandyWeaponVisual.DrawnPose(state.kind,hand,state.leftHanded,Scale);
+                var freePosition=support.position;
+                if(!CandyWeaponVisual.TrySupportContact(ref support,weapon,state.kind,supportLeft,Scale))return;
+                if(motor.IsVR&&(support.position-freePosition).sqrMagnitude>.30f*.30f*Scale*Scale)return;
+                if(supportLeft)frame.left=support;else frame.right=support;
             }
         }
         void Update()

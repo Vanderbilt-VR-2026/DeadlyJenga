@@ -146,16 +146,24 @@ namespace DeadlyJenga.CandyPlayers
             var hand = left ? frame.left : frame.right;
             var grip = CarryPose(frame, hand, left, progress, state.drawn);
             float reach = Ease(.015f, .18f, progress);
-            bool meleeMount = MeleeMount(kind, left, out var palm, out var mount);
-            if (meleeMount)
+            var contact = hand;
+            if (!TryPrimaryContact(ref contact, grip, kind, left, false, frame.scale))
             {
-                grip.rotation *= Quaternion.Inverse(mount);
-                grip.position -= grip.rotation * palm * frame.scale;
+                contact.position = grip.position;
+                contact.rotation = grip.rotation;
+                if (MeleeMount(kind, left, out var palm, out var mount))
+                {
+                    contact.rotation *= Quaternion.Inverse(mount);
+                    contact.position -= contact.rotation * palm * frame.scale;
+                    contact.skeleton = ShaftGrip(kind, left);
+                }
+                else contact.skeleton = CandyHandSkeleton.Rest(left, .96f);
             }
-            hand.position = Vector3.Lerp(hand.position, grip.position, reach);
-            hand.rotation = Quaternion.Slerp(hand.rotation, grip.rotation, reach);
-            hand.skeleton = meleeMount
-                ? CandyHandSkeleton.MeleeGrip(left, kind) : CandyHandSkeleton.ControllerGrip(left, reach, 0);
+            var starting = hand.skeletonTracked ? hand.skeleton : CandyHandSkeleton.Rest(left);
+            hand.position = Vector3.Lerp(hand.position, contact.position, reach);
+            hand.rotation = Quaternion.Slerp(hand.rotation, contact.rotation, reach);
+            for (int joint = 0; joint < 20; joint++)
+                hand.skeleton.SetJoint(joint, Vector3.Lerp(starting.Joint(joint), contact.skeleton.Joint(joint), reach));
             hand.skeletonTracked = true;
             if (left) frame.left = hand; else frame.right = hand;
         }
