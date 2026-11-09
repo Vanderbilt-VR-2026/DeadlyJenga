@@ -288,6 +288,29 @@ namespace DeadlyJenga.CastlePrototype
             Require(world.Blocks[block].isKinematic != host, "Selected block preserves host physics authority");
             yield return new WaitForSecondsRealtime(1.25f);
             var driver = new MotionProbeDriver(player.transform.position);
+            Camera motionCamera = null;
+            RenderTexture motionTexture = null;
+            Texture2D motionPixels = null;
+            int motionFrame = 0;
+            long captureStart = 0;
+            bool footage = Environment.GetCommandLineArgs().Contains("--dj-motion-footage");
+            if (footage)
+            {
+                var cue = Mark("footage-start");
+                if (host) File.WriteAllText(cue, DateTime.UtcNow.AddSeconds(2).Ticks.ToString());
+                else yield return Until(() => File.Exists(cue), "Host publishes the shared footage clock", 12);
+                captureStart = long.Parse(File.ReadAllText(cue));
+                while (DateTime.UtcNow.Ticks < captureStart) yield return null;
+                var pivot = world.Blocks[block].position;
+                var cameraObject = new GameObject("Motion probe fixed capture view");
+                motionCamera = cameraObject.AddComponent<Camera>();
+                if (session.ActiveCamera) motionCamera.CopyFrom(session.ActiveCamera);
+                motionCamera.enabled = false;
+                motionCamera.transform.SetPositionAndRotation(pivot + new Vector3(6, 4, -8),
+                    Quaternion.LookRotation(new Vector3(-6, -4.4f, 8)));
+                motionTexture = new RenderTexture(640, 360, 24);
+                motionPixels = new Texture2D(640, 360, TextureFormat.RGB24, false);
+            }
             try
             {
                 double start = Time.realtimeSinceStartupAsDouble;
@@ -337,6 +360,11 @@ namespace DeadlyJenga.CastlePrototype
                     AppendPosition(data, shadow ? shadow.Bot : Vector3.zero);
                     AppendPosition(data, shadow ? shadow.Block : Vector3.zero);
                     data.AppendLine();
+                    if (motionCamera && elapsed >= motionFrame / 12d && motionFrame < 72)
+                    {
+                        SaveMotionFrame(motionCamera, motionTexture, motionPixels, Mark($"{role}-frame-{motionFrame:D4}.jpg"));
+                        motionFrame++;
+                    }
                     yield return null;
                 }
                 File.WriteAllText(Mark(role + "-motion.csv"), data.ToString());
@@ -346,9 +374,31 @@ namespace DeadlyJenga.CastlePrototype
             finally
             {
                 CastleMotionStateProbe.SelectedBlock = -1;
+                if (motionCamera) Destroy(motionCamera.gameObject);
+                if (motionTexture) Destroy(motionTexture);
+                if (motionPixels) Destroy(motionPixels);
             }
             File.WriteAllText(Mark(role + "-trace-done"), "done");
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-done")), "Both independent peer traces completed", 40);
+        }
+
+        static void SaveMotionFrame(Camera camera, RenderTexture output, Texture2D pixels, string path)
+        {
+            var previous = RenderTexture.active;
+            camera.targetTexture = output;
+            try
+            {
+                camera.Render();
+                RenderTexture.active = output;
+                pixels.ReadPixels(new Rect(0, 0, output.width, output.height), 0, 0);
+                pixels.Apply();
+                File.WriteAllBytes(path, pixels.EncodeToJPG(78));
+            }
+            finally
+            {
+                camera.targetTexture = null;
+                RenderTexture.active = previous;
+            }
         }
 
         static void AppendPosition(System.Text.StringBuilder data, Vector3 position) =>
