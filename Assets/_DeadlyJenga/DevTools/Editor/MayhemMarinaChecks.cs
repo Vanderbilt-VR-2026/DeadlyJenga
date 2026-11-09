@@ -35,6 +35,11 @@ namespace DeadlyJenga.DevTools.Editor
         }
         public static void RunBackup(){RunLayout(true);}
         public static void RunDefault(){RunLayout(false);}
+        public static void RunWildlifeDistribution()
+        {
+            SessionState.SetBool(Key + "WildlifeDistribution", true);
+            RunLayout(false);
+        }
         static void RunLayout(bool legacy)
         {
             SessionState.SetInt(Key+"Preference",PlayerPrefs.GetInt(IslandLobby.LegacyLobbyPreference,-1));
@@ -179,6 +184,12 @@ namespace DeadlyJenga.DevTools.Editor
             Check(legacy?!lobby.GetComponent<MayhemMarina>():lobby.GetComponent<MayhemMarina>().Built,"Correct layout art selected");
             Check(NetworkActors.Alive(lobby.Player),"Local survivor alive");Physics.SyncTransforms();
             Check(Physics.Raycast(lobby.SafeSpawnPoint()+Vector3.up*2,Vector3.down,5,~(1<<Layers.Survivor),QueryTriggerInteraction.Ignore),"Selected lobby safe spawn has solid support");
+            if (SessionState.GetBool(Key + "WildlifeDistribution", false))
+            {
+                SessionState.SetBool(Key + "WildlifeDistribution", false);
+                CheckWildlifeDistribution(lobby);
+                yield break;
+            }
             if(legacy)
             {
                 Check(lobby.GetComponents<CandyLobbyResort>().Any(x=>x.enabled),"Previous candy resort preserved and active");
@@ -321,6 +332,27 @@ namespace DeadlyJenga.DevTools.Editor
             }
             finally { close.Invoke(view, null); player.Place(start, facing); lobby.SetMenu(originalMenu); }
             Check(Anchored() && !join.gameObject.activeSelf, "Closing the detail changes visibility with every mount intact");
+        }
+        static void CheckWildlifeDistribution(IslandLobby lobby)
+        {
+            var controls = lobby.GetComponent<IWildlifeControls>();
+            var wild = lobby.GetComponentsInChildren<IWildlifeActor>().Cast<Component>().ToArray();
+            Check(controls?.Available == true && wild.Length == 4, "The four default wild animals spawn in the actual Marina");
+            Vector2 Flat(Vector3 p) => new Vector2(p.x, p.z);
+            var player = lobby.Player.transform;
+            var positions = wild.Select(animal => animal.transform.position).ToArray();
+            foreach (var animal in wild)
+                File.AppendAllText(Report, $"{((IWildlifeActor)animal).Species} local={lobby.transform.InverseTransformPoint(animal.transform.position)}\n");
+            Check(positions.All(p => lobby.PlayableBounds.Contains(p) && p.y > lobby.WaterHeight(p)),
+                "All default wildlife stays in bounds and above the waterline");
+            Check(positions.Count(p => Vector2.Distance(Flat(p), Flat(player.position)) > 6) >= 3,
+                "Default wildlife spreads beyond the arrival area");
+            Check(positions.SelectMany((a, i) => positions.Skip(i + 1).Select(b => Vector2.Distance(Flat(a), Flat(b)))).Min() > 2,
+                "Default animals occupy separate parts of the Marina");
+            var companion = controls.Spawn("fox", true);
+            Check(companion && companion.GetComponent<IWildlifeActor>().FollowTarget == player &&
+                Vector2.Distance(Flat(companion.transform.position), Flat(player.position)) < 5.5f,
+                "Companion still spawns nearby and follows the player");
         }
         static IEnumerator RunNetworkScene()
         {
