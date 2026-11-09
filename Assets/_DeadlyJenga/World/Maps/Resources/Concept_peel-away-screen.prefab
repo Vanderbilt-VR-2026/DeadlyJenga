@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 400000}
   - component: {fileID: 11400000}
+  - component: {fileID: 11400001}
   m_Layer: 0
   m_Name: Peel-Away Screen (Experimental)
   m_TagString: Untagged
@@ -43,3 +44,15 @@ MonoBehaviour:
   generateOnStart: 1
   palette: []
   friction: {fileID: 0}
+--- !u!114 &11400001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 48c6a0a4dbae06947883663d9dfdf475, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

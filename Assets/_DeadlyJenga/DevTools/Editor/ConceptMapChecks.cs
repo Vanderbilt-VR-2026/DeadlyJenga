@@ -81,6 +81,8 @@ namespace DeadlyJenga.DevTools.Editor
                 if(scene.isLoaded&&(scene.isDirty||string.IsNullOrEmpty(scene.path)&&scene.rootCount>0))
                     throw new InvalidOperationException("Unsaved scenes left untouched.");
             }
+            if(game&&!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
+                throw new InvalidOperationException("Disaster setup validation did not run.");
             if(!ValidationRunGate.TryAcquire(Key))throw new InvalidOperationException("Another validation owns this editor.");
             try
             {
@@ -405,7 +407,23 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var camera=gameSession.ActiveCamera;Check(camera&&camera.enabled,"Actual survivor camera available for "+phase);
             bool menu=gameSession.MenuOpen,suspended=gameSession.Player.InputSuspended;gameSession.SetMenu(false);gameSession.Player.InputSuspended=true;
-            try{SaveCamera(camera,"Game-"+(ConceptMapKind)gameIndex+"-"+phase+"-actual-camera");}
+            try
+            {
+                string name="Game-"+(ConceptMapKind)gameIndex+"-"+phase;
+                SaveCamera(camera,name+"-actual-camera");
+                var view=new GameObject("Explicit Game overview");
+                try
+                {
+                    var overview=view.AddComponent<Camera>();overview.CopyFrom(camera);overview.enabled=false;
+                    var bounds=gameMap.PlayableBounds;
+                    float half=Mathf.Max(bounds.extents.x,bounds.extents.z);
+                    overview.fieldOfView=45;
+                    view.transform.position=bounds.center+new Vector3(half*1.45f,half*1.65f,-half*1.75f);
+                    view.transform.LookAt(new Vector3(bounds.center.x,gameMap.Root.position.y+.45f,bounds.center.z));
+                    SaveCamera(overview,name+"-overview");
+                }
+                finally{Object.DestroyImmediate(view);}
+            }
             finally{gameSession.SetMenu(menu);gameSession.Player.InputSuspended=suspended;}
         }
         static void CompleteGameCase(Exception error)
