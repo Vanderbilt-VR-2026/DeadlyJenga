@@ -14,7 +14,7 @@ namespace DeadlyJenga.CandyArt
         float lastSize,lastExtent,stormExtent;
         static readonly Dictionary<string,Mesh> Cache=new Dictionary<string,Mesh>();
         static readonly HashSet<CandyOceanSurface> Live=new HashSet<CandyOceanSurface>();
-        internal float ShoreExtent {get;set;}
+        internal float DetailedExtent {get;set;}
         public float ActiveExtent{get;private set;}
         void OnEnable(){Live.Add(this);Refresh();}
         void OnDisable(){Live.Remove(this);PruneUnused();}
@@ -23,8 +23,8 @@ namespace DeadlyJenga.CandyArt
         {
             if(!profile)return;if(!filter)filter=GetComponent<MeshFilter>();
             int resolution=Mathf.Clamp(profile.waterResolution,24,128);
-            float size=Mathf.Max(100,profile.oceanSize),extent=Mathf.Min(Mathf.Max(16,Mathf.Max(profile.waveExtent,ShoreExtent)),size*.4f);
-            if(ShoreExtent>0)resolution=128;
+            float size=Mathf.Max(100,profile.oceanSize),extent=Mathf.Min(Mathf.Max(16,Mathf.Max(profile.waveExtent,DetailedExtent)),size*.4f);
+            if(DetailedExtent>0)resolution=128;
             bool storm=false;
             foreach(var source in Tracked.Waves)
             {

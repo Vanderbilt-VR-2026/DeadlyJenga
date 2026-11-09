@@ -6,7 +6,7 @@ namespace DeadlyJenga.Presentation
 {
     public sealed class VillageFlatScenery : MonoBehaviour
     {
-        public bool usePhysicalShore;
+        public bool openWater;
         Renderer hiddenSand;
         bool previous;
         void LateUpdate()

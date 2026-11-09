@@ -56,4 +56,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 48c6a0a4dbae06947883663d9dfdf475, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  usePhysicalShore: 1
+  openWater: 1
