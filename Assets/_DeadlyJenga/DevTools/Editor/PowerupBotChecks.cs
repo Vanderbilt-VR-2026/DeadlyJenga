@@ -147,7 +147,7 @@ namespace DeadlyJenga.DevTools.Editor
             var originalProvider=BotObjectives.Current;
             try
             {
-                var rules=ModeSimulation.Defaults(GameModeKind.Demo);rules.countdownSeconds=0;rules.island=IslandRule.Walkable;rules.healthEnabled=true;rules.punchEnabled=true;runtime.Configure(rules);runtime.StartRound();session.Survivor().Place(new Vector3(150,10.05f,120),Quaternion.identity);session.Survivor().InputSuspended=true;yield return new WaitForSeconds(.4f);
+                var rules=ModeSimulation.Defaults(GameModeKind.Demo);rules.countdownSeconds=0;rules.island=IslandRule.Walkable;rules.healthEnabled=true;rules.deathEnabled=false;rules.punchEnabled=true;runtime.Configure(rules);runtime.StartRound();session.Survivor().Place(new Vector3(150,10.05f,120),Quaternion.identity);session.Survivor().InputSuspended=true;yield return new WaitForSeconds(.4f);
                 for(int tier=0;tier<3;tier++)
                 {
                     for(int i=0;i<3;i++)world.blocks[i].gameObject.SetActive(i==tier);Physics.SyncTransforms();
@@ -190,7 +190,7 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     collector.InputSuspended=true;yield return Until(()=>runtime.Frame.blaster.shots.Length==0&&runtime.Frame.weaponProjectiles.Length==0,"Previous projectiles drain before testing "+kind,8);
                     collector.Place(new Vector3(150,10.05f,150),Quaternion.identity);collector.InputSuspended=true;float distance=BotGunPolicy.IsGun(kind)?kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?10:20:1.1f;
-                    victim.Place(collector.transform.position+Vector3.forward*distance,Quaternion.identity);victim.InputSuspended=true;Physics.SyncTransforms();Grant(runtime,collector,kind);yield return new WaitForSeconds(.25f);if(kind==EquipmentKind.GrenadeLauncher){var controls=collector.GetComponent<CandyEquipment>();var probe=new Pose(collector.ViewPose.position,Quaternion.Euler(-20,0,0));controls.SetBotAim(probe);Check(Vector3.Dot(controls.MuzzlePose.rotation*Vector3.forward,probe.rotation*Vector3.forward)>.999f,"Bot muzzle preserves ballistic elevation instead of desktop reticle correction");}
+                    victim.Revive();victim.Place(collector.transform.position+Vector3.forward*distance,Quaternion.identity);victim.InputSuspended=true;Physics.SyncTransforms();Grant(runtime,collector,kind);yield return new WaitForSeconds(.25f);if(kind==EquipmentKind.GrenadeLauncher){var controls=collector.GetComponent<CandyEquipment>();var probe=new Pose(collector.ViewPose.position,Quaternion.Euler(-20,0,0));controls.SetBotAim(probe);Check(Vector3.Dot(controls.MuzzlePose.rotation*Vector3.forward,probe.rotation*Vector3.forward)>.999f,"Bot muzzle preserves ballistic elevation instead of desktop reticle correction");}
                     float health=victim.Health;int shots=brain.WeaponShotsAccepted;bool observedShot=false;collector.InputSuspended=false;
                     yield return Until(()=>{observedShot|=runtime.Frame.equipmentActions.Any(a=>a.actor==collector.ActorId&&a.kind==kind&&a.action==EquipmentAction.Shot);return victim.Health<health;},"Actual bot skill damages a physical target using "+kind,9,()=>brain.WeaponReason+" / "+brain.ObjectiveId+" grounded="+collector.Grounded+" inventory="+JsonUtility.ToJson(runtime.EquipmentFor(collector.ActorId))+" shots="+brain.WeaponShotsAccepted+" muzzle="+collector.GetComponent<DeadlyJenga.CandyPlayers.CandyEquipment>().MuzzlePose.position+" target="+victim.Capsule.bounds.center);collector.InputSuspended=true;Check(brain.WeaponShotsAccepted>shots||observedShot,"Authoritative bot weapon fire observed for "+kind);File.AppendAllText(Report,$"WEAPON {kind}: damage={health-victim.Health:F1} reason={brain.WeaponReason}\n");
                 }
@@ -198,7 +198,7 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return Until(()=>runtime.EquipmentFor(collector.ActorId).shotgun,"Bot selects shotgun for a nearby target",5);collector.InputSuspended=true;
                 goal.kind=BotObjectiveKind.Travel;goal.point=collector.transform.position+Vector3.right*8;collector.InputSuspended=false;
                 yield return Until(()=>!runtime.EquipmentFor(collector.ActorId).drawn,"Travel assignment makes the bot holster its rifle",5);Check(runtime.RulesFor(collector.gameObject).canJump&&runtime.RulesFor(collector.gameObject).canClimb&&runtime.RulesFor(collector.gameObject).canVault,"Holstering restores traversal permissions");collector.InputSuspended=true;
-                goal.kind=BotObjectiveKind.Attack;collector.Place(new Vector3(150,10.05f,150),Quaternion.identity);victim.Place(new Vector3(150,10.05f,170),Quaternion.identity);victim.InputSuspended=true;
+                goal.kind=BotObjectiveKind.Attack;collector.Place(new Vector3(150,10.05f,150),Quaternion.identity);victim.Revive();victim.Place(new Vector3(150,10.05f,170),Quaternion.identity);victim.InputSuspended=true;
                 int before=brain.WeaponShotsAccepted;
                 float movingSince=Time.time,firstShot=-1,healthBefore=victim.Health;
                 collector.InputSuspended=false;

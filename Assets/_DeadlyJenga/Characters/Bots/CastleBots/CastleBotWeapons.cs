@@ -34,7 +34,7 @@ namespace DeadlyJenga.CastleBots
         public static Vector2 AimOffset(float seed,int cycle,float settled,float skill,float lateralSpeed,int shots)
         {
             float phase=seed*.73f+cycle*2.73f;
-            float radius=Mathf.Lerp(Mathf.Lerp(4.8f,2.0f,skill),Mathf.Lerp(1.9f,.65f,skill),settled);
+            float radius=Mathf.Lerp(Mathf.Lerp(4.8f,2.0f,skill),Mathf.Lerp(1.14f,.45f,skill),settled);
             radius+=Mathf.Min(1.6f,lateralSpeed*.20f);
             return new Vector2(Mathf.Sin(phase*1.37f)*radius*.72f+Mathf.Min(2,shots)*.45f,
                 Mathf.Cos(phase*1.61f)*radius);
@@ -125,7 +125,9 @@ namespace DeadlyJenga.CastleBots
             }
             if(now>=nextGunSample)
             {
-                var sample=target.transform.position+Vector3.up*.6f;
+                var feet=target.transform.position;
+                float torsoHeight=Mathf.Clamp((target.ViewPose.position.y-feet.y)*.58f,.25f,1.15f);
+                var sample=feet+Vector3.up*torsoHeight;
                 var delta=sample-eye.position;
                 bool inView=delta.sqrMagnitude<16||Vector3.Dot(eye.rotation*Vector3.forward,delta.normalized)>-.15f;
                 bool visible=inView&&!Physics.Raycast(eye.position,delta.normalized,delta.magnitude,CombatMask|1,QueryTriggerInteraction.Ignore);
