@@ -10,13 +10,14 @@ namespace DeadlyJenga.CastleSocial
     public sealed class OnDeviceConversation : MonoBehaviour
     {
         sealed class Input {public int number,turn;public readonly List<float> samples=new List<float>();public bool final;public float next;}
-        sealed class Reply {public SocialSpeech intent;public SocialIdentity identity;public float at;}
+        sealed class Reply {public SocialSpeech intent;public SocialIdentity identity;public float at,notBefore;public string direct;}
         BundledBotVoiceBank fastBanterVoices;
         SocialWorld world;OnDeviceNative worker;Coroutine loading,playing;Reply pending;
         readonly Dictionary<string,Input> inputs=new Dictionary<string,Input>();
         readonly Dictionary<string,bool> previousVoices=new Dictionary<string,bool>();
         readonly Dictionary<(int voice,float speed,string text),float[]> cache=new();readonly Queue<(int voice,float speed,string text)> cacheOrder=new();
-        readonly Dictionary<string,string> history=new Dictionary<string,string>();
+        readonly Dictionary<string,(string speaker,string context)> history=new();
+        readonly System.Random replyBeats=new System.Random();
         readonly DialogueRecency recency=new DialogueRecency();
         readonly int[] banterTurns=new int[Enum.GetValues(typeof(SocialEventKind)).Length];
         volatile int epoch;int lifecycle;bool busy,ownsMic,oldVoice;int oldConcurrent,oldResponses,sequence,nextInput;
@@ -109,6 +110,7 @@ namespace DeadlyJenga.CastleSocial
             pending = new Reply {
                 identity = identity,
                 at = Time.unscaledTime,
+                notBefore = Time.unscaledTime + (observation.HeardText == null ? 0 : .16f + .32f*(float)replyBeats.NextDouble()),
                 intent = new SocialSpeech { botId = identity.id, observation = observation }
             };
         }
@@ -122,7 +124,7 @@ namespace DeadlyJenga.CastleSocial
             if(activeId==id)Interrupt();
         }
         public void CancelAll(){Interrupt();inputs.Clear();}
-        internal void ForgetBot(string id)=>recency.Remove(id);
+        internal void ForgetBot(string id){recency.Remove(id);history.Remove(id);}
         void Interrupt()
         {
             epoch++;worker?.Cancel();pending=null;
@@ -152,7 +154,11 @@ namespace DeadlyJenga.CastleSocial
         public void Respond(SocialIdentity identity,string speaker,string text)
         {
             if(!Ready||!Requested||!world.Config.enableVoice)return;
-            pending=new Reply{identity=identity,at=Time.unscaledTime,intent=new SocialSpeech{botId=identity.id,recipient=speaker,text="Give that block a second.",context="HumanSpeech: "+SocialText.Clean(text,220)}};
+            pending=new Reply{
+                identity=identity,at=Time.unscaledTime,
+                direct=MatchBanter.DirectPlayerReply(text,identity.name,world.RecentObservation(identity.id)),
+                intent=new SocialSpeech{botId=identity.id,recipient=speaker,context="HumanSpeech: "+SocialText.Clean(text,220)}
+            };
         }
         public void SubmitText(string text)
         {
@@ -180,7 +186,7 @@ namespace DeadlyJenga.CastleSocial
             }
             if(pending==null)return;
             if(Time.unscaledTime-pending.at>8&&pending.intent.observation==null){world.Director.AudioFinished(pending.identity.id);pending=null;return;}
-            if(playing!=null||Time.unscaledTime-lastHuman<Options.quietBeforeReply||Time.unscaledTime-lastReply<Options.minimumReplyGap)return;
+            if(playing!=null||Time.unscaledTime<pending.notBefore||Time.unscaledTime-lastHuman<Options.quietBeforeReply||Time.unscaledTime-lastReply<Options.minimumReplyGap)return;
             if(pending.intent.observation is ObservedSpeech observation &&
                 (Time.unscaledTime>observation.Expires||!world.CanDeliverObserved(pending.identity.id)))
             {
@@ -188,8 +194,8 @@ namespace DeadlyJenga.CastleSocial
                 pending=null;
                 return;
             }
-            bool generate=IsHumanTurn(pending.intent)||
-                pending.intent.observation!=null&&Options.improviseGameReactions;
+            bool generate=(IsHumanTurn(pending.intent)&&pending.direct==null)||
+                (pending.intent.observation!=null&&Options.improviseGameReactions);
             if(BudgetPaused){Status="Conversation waiting for frame-time budget · "+frameMs.ToString("F0")+" ms";return;}
             StartReply(pending,generate);pending=null;
         }
@@ -200,7 +206,7 @@ namespace DeadlyJenga.CastleSocial
             int round=world.RoundSpeechEpoch;
             bool composed=observation!=null&&!generate;
             var recent=recency.Snapshot(id,Time.unscaledTime,observation!=null);
-            string candidate=SocialText.Safe(reply.intent.text,world.Config.allowProfanity);
+            string candidate=SocialText.Safe(reply.direct??reply.intent.text,world.Config.allowProfanity);
             if(composed)
             {
                 candidate=null;
@@ -208,7 +214,7 @@ namespace DeadlyJenga.CastleSocial
                 for(int attempt=0;attempt<12;attempt++)
                 {
                     int variant=banterTurns[kind]++;
-                    bool playful=variant%4!=3||identity.Trait("playfulness")>.7;
+                    bool playful=MatchBanter.CanQuip(observation,variant,identity.Trait("playfulness"));
                     string option=MatchBanter.Compose(observation,variant,playful);
                     if(DialogueRecency.Repeats(option,recent,false))continue;
                     candidate=option;
@@ -235,16 +241,17 @@ namespace DeadlyJenga.CastleSocial
                 if(!Requested||version!=epoch)return;
                 if(audio==null||audio.Length==0||!world.Director.bots.TryGetValue(id,out var state)||state.muted
                     ||observation!=null&&(round!=world.RoundSpeechEpoch||Time.unscaledTime>observation.Expires||!world.CanDeliverObserved(id)))
-                {activeId=null;world.Director.AudioFinished(id);return;}
+                {activeId=null;world.Director.AudioFinished(id);Status="Ready · listening for players";return;}
                 LastReplySeconds=Time.realtimeSinceStartup-began;
                 LastReplyKind=observation!=null
                     ? (composed?(cached!=null?"Cached banter":baked?"Baked banter":"Contextual banter"):fallback?"Contextual fallback":"Generated observation") + " · " + observation.Kind
-                    : generate?(fallback?"Fallback - model timed out or returned no text":"Generated response"):"Scripted game reaction";
+                    : generate?(fallback?"Fallback - model timed out or returned no text":"Generated response"):
+                        reply.direct!=null?"Direct player reply":"Scripted game reaction";
                 if(composed)ComposedReplies++;
                 if(generate)
                 {
                     if(fallback)FallbackReplies++;else GeneratedReplies++;
-                    if(IsHumanTurn(reply.intent))history[id]=SocialText.Clean(reply.intent.context+" Reply: "+text,350);
+                    if(IsHumanTurn(reply.intent))history[id]=(reply.intent.recipient,SocialText.Clean(reply.intent.context+" Reply: "+text,350));
                 }
                 if(observation!=null)state.nextSpeech=Time.unscaledTime+Mathf.Max(4,world.Config.minCooldown);
                 if(!generate&&!cache.ContainsKey(cacheKey))
@@ -262,22 +269,24 @@ namespace DeadlyJenga.CastleSocial
                 Complete(candidate,cached,false);
                 return;
             }
-            if(composed&&fastBanterVoices!=null&&fastBanterVoices.TryRenderLine(id,candidate,out var prepared))
+            if(!generate&&fastBanterVoices!=null&&fastBanterVoices.TryRenderLine(id,candidate,out var prepared))
             {
                 baked=true;
                 Complete(candidate,prepared,false);
                 return;
             }
+            bool allowProfanity=world.Config.allowProfanity;
+            string playerSpeech=IsHumanTurn(reply.intent)?reply.intent.context.Substring("HumanSpeech:".Length).Trim():null;
             if(!worker.Submit(native=>
             {
                 if(version!=epoch){native.Complete(()=>busy=false);return;}
                 string text=generate?native.Generate(system,message,tokens,timeout):candidate;
                 if(version!=epoch){native.Complete(()=>busy=false);return;}
                 bool fallback=generate&&string.IsNullOrWhiteSpace(text);
-                if(string.IsNullOrWhiteSpace(text))text="Give me a second. I'm watching these blocks.";
+                if(string.IsNullOrWhiteSpace(text))text="Give me a sec.";
                 if(generate)
                 {
-                    text=SocialText.Safe(text).Trim('"',' ','\n');
+                    text=SocialText.Safe(text,allowProfanity).Trim('"',' ','\n');
                     text=string.Join(" ",text.Split(new[]{' ','\n','\r'},StringSplitOptions.RemoveEmptyEntries).Take(16));
                 }
                 if(observation!=null&&generate&&(fallback||!GroundedDialogue.Accepts(observation,text)))
@@ -285,7 +294,8 @@ namespace DeadlyJenga.CastleSocial
                     fallback=true;
                     text=MatchBanter.Compose(observation,0,false);
                 }
-                if(generate&&DialogueRecency.Repeats(text,recent,true))
+                if(generate&&(!fallback&&playerSpeech!=null&&!MatchBanter.IsPlayerReply(text,playerSpeech)||
+                    DialogueRecency.Repeats(text,recent,true)))
                 {
                     native.Complete(()=>Complete(text,null,fallback));
                     return;
@@ -299,28 +309,29 @@ namespace DeadlyJenga.CastleSocial
         void BuildPrompt(Reply reply,ObservedSpeech observation,out string system,out string message)
         {
             var identity=reply.identity;
-            string id=identity.id;
-            system="You are "+identity.name+", a player in Deadly Jenga, climbing candy blocks over an ocean with flying hands and disasters. Speak like a wry teammate in one short sentence, under 16 words. Keep danger and distress direct. Vary your wording from the previous turn. No narration, role labels, reasoning, or invented abilities. Answer their actual question. You cannot control the game by speaking. Your traits: "+string.Join(", ",identity.traitIds.Zip(identity.traits,(name,value)=>name+"="+(int)value));
-            string memories=world.Director.bots.TryGetValue(id,out var bot)?string.Join("; ",bot.Recall(reply.intent.recipient,Time.unscaledTime,2).Select(m=>m.summary)):"";
-            message="Recent game events: "+SocialText.Clean(memories,160)+"\nRecent conversation: "+(history.TryGetValue(id,out var recent)?recent:"")+"\nPlayer now says: "+SocialText.Clean((reply.intent.context??"").Replace("HumanSpeech:",""),220);
             if (observation != null)
             {
-                system = "You are a wry teammate in a tower survival game. Speak up to 12 words. A quick joke fits low stakes. Keep danger direct. "
+                system = "You are playing this match on voice chat. Speak up to 12 words. Short fragments are fine. Keep danger direct. "
                     + "Use the exact event and location in your observation. Never invent a cause, player or action. "
                     + "If you only heard it, say so. If another player spoke, answer their actual words without repeating them.";
                 message = "Your observation: " + observation.Fact;
                 if (observation.HeardText != null)
                     message += "\n" + observation.HeardFrom + " said: \"" + observation.HeardText + "\"";
                 if (!string.IsNullOrEmpty(world.PublicModeName)) message += "\nMatch mode: " + world.PublicModeName;
-                message += observation.HeardOnly && observation.HeardText != null
-                    ? "\nAsk them a question about what they just said. You did not see the event."
-                    : "\nSay one short natural line now.";
+                if (observation.HeardOnly && observation.HeardText != null)
+                    message += "\nAsk for the detail you missed. You did not see the event.";
+                return;
             }
-            else if(IsHumanTurn(reply.intent))
-            {
-                string fact=world.RecentObservation(id);
-                if(!string.IsNullOrEmpty(fact))message="Your recent observation: "+fact+"\n"+message;
-            }
+
+            system="Reply as "+identity.name+", a teammate in Deadly Jenga voice chat. Answer in a few casual words. "
+                +"If unclear, ask. Use only the match facts given. No invented personal history.";
+            var speech=reply.intent.context.Substring("HumanSpeech:".Length).Trim();
+            message="Player: "+speech;
+            if(history.TryGetValue(identity.id,out var recent)&&recent.speaker==reply.intent.recipient)
+                message="Previous turn: "+recent.context+"\n"+message;
+            var fact=world.RecentObservation(identity.id);
+            if(!string.IsNullOrEmpty(fact))message="Observed: "+fact+"\n"+message;
+            if(!string.IsNullOrEmpty(world.PublicModeName))message="Game: "+world.PublicModeName+". "+message;
         }
 
         IEnumerator Play(string id,float[] audio,int version,string text,ObservedSpeech observation)
