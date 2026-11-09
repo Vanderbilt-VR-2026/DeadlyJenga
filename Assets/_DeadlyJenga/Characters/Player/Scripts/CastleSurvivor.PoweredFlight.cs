@@ -27,16 +27,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal bool MaintainPausedHoverFlight(float seconds)
         {
-            if(!InputSuspended&&vrInputFocused)return false;
             var session=Services.Session;
+            if(!InputSuspended&&vrInputFocused&&session?.MenuOpen!=true)return false;
             var state=GetComponent<CandyEquipment>()?.Equipment;
             if(!hoverEngaged||!Alive||externallyDriven||ParticipationBlocked||!isActiveAndEnabled||
-                !Capsule||!Capsule.enabled||Grounded||!float.IsFinite(seconds)||seconds<=0||
+                !Capsule||!Capsule.enabled||!float.IsFinite(seconds)||seconds<=0||
                 session==null||!ReferenceEquals(session.Player,this)||session.PlayingHand||
                 state==null||state.kind!=EquipmentKind.PoweredArmor||!state.drawn)
             {ClearHoverFlight();return false;}
             hoverUntil=Time.time+Mathf.Max(.05f,Mathf.Min(seconds,.1f)*2);
-            hoverVelocity=slopeVelocity=Vector3.zero;hoverVertical=verticalSpeed=0;peakFallSpeed=0;
+            hoverVelocity=slopeVelocity=iceVelocity=Vector3.zero;hoverVertical=verticalSpeed=0;peakFallSpeed=0;
             ActionStatus="Suit hover paused";
             return true;
         }

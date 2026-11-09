@@ -51,15 +51,24 @@ namespace DeadlyJenga.CandyPlayers
         {
             bool hovering=state.kind==EquipmentKind.PoweredArmor&&state.drawn&&suitWasFlying&&
                 motor.MaintainPausedHoverFlight(Time.unscaledDeltaTime);
-            if(!hovering){motor.ClearHoverFlight();suitWasFlying=false;}
+            if(hovering)suitTakeoffUntil=0;
+            else{motor.ClearHoverFlight();suitWasFlying=false;}
             return hovering;
         }
+        bool SuitTogglePressed()
+        {
+            if(!HybridXRInput.SecondaryPressed(left))return false;
+            // The tablet uses left secondary alone, or right grip + secondary with only a right controller.
+            if(left)return HybridXRInput.GripHeld(true);
+            return HybridXRInput.ControllerWithStick(true)!=null||!HybridXRInput.GripHeld(false);
+        }
+
         void UpdateSuit(EquipmentState state)
         {
             bool vr=motor.IsVR;
             bool controllerLeft=SuitFlightLeft;
             var keyboard=Keyboard.current;
-            if(vr?HybridXRInput.SecondaryPressed(left):keyboard?.vKey.wasPressedThisFrame==true)
+            if(vr?SuitTogglePressed():keyboard?.vKey.wasPressedThisFrame==true)
             {
                 SetEquipped(!state.drawn);
                 SetSuitThrust(false);
