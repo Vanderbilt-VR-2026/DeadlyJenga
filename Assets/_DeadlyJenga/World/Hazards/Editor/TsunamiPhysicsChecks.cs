@@ -45,7 +45,15 @@ namespace DeadlyJenga.World.Hazards.Editor
                 var prefab = Array.Find(catalog.prefabs, item => item.GetComponent<TsunamiHazard>());
                 instance = UnityEngine.Object.Instantiate(prefab);
                 var hazard = instance.GetComponent<TsunamiHazard>();
-                hazard.randomDirection = false; hazard.approachHeading = 0; hazard.height = 5; hazard.depth = 6;
+                hazard.randomDirection = false;
+                hazard.approachHeading = 0;
+                hazard.Begin();
+                float leadingEdge = hazard.Wave.center.z - hazard.Wave.depth * .5f;
+                Require(hazard.offshoreDistance >= 150 &&
+                    Mathf.Abs(leadingEdge - world.PlayableBounds.max.z - hazard.offshoreDistance) < .01f,
+                    "The authored front must start at least 150m past the map's near edge.");
+                hazard.End();
+                hazard.height = 5; hazard.depth = 6;
                 hazard.offshoreDistance = 4; hazard.warningTime = .1f; hazard.riseTime = .5f;
                 hazard.approachSpeed = 8; hazard.recessionDistance = 2; hazard.fallTime = .5f;
                 Physics.SyncTransforms();
@@ -78,7 +86,12 @@ namespace DeadlyJenga.World.Hazards.Editor
                 Require(normal.calls == 0, "Affected-target filter ignored Players = off.");
                 hazard.Begin(); hazard.End();
                 Require(!hazard.Active && !Tracked.Waves.Contains(hazard), "Stop/retrigger leaked an active wave.");
-                Debug.Log("Tsunami force checks passed: long block edge, compound submersion, duplicate colliders, resistance, speed cap, target filter and stop/retrigger.");
+                hazard.Configure(hazard.approachSpeed, 0);
+                hazard.Begin();
+                int calls = longBlock.calls;
+                for (int tick = 0; tick < 1000 && hazard.Active; tick++) step.Invoke(hazard, null);
+                Require(longBlock.calls == calls && hazard.LastTargetCount == 0, "Zero-force waves must skip target processing.");
+                Debug.Log("Tsunami force checks passed: offshore start, long block edge, compound submersion, duplicate colliders, resistance, speed cap, target filter and stop/retrigger.");
             }
             finally
             {
