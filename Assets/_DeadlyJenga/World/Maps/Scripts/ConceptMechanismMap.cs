@@ -88,7 +88,7 @@ namespace DeadlyJenga.CastlePrototype
                 body.interpolation=replica||anchored?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;
                 var member=go.AddComponent<MayhemStructuralMember>();
                 member.Build(m,palette!=null&&palette.Length>=4&&Array.TrueForAll(palette,material=>material)?palette:ownedPalette,friction);
-                if(kind==ConceptMapKind.BreakContactBorough&&m.purpose.StartsWith("Connector ",StringComparison.Ordinal))
+                if(m.district==(int)ConceptMapKind.BreakContactBorough&&m.purpose.StartsWith("Connector ",StringComparison.Ordinal))
                     member.Shapes[0].sharedMaterial=ConnectorSlide();
                 BuildBodyFinish(member.Visual,m);
                 bodies.Add(body);fixedBodies.Add(anchored);lookup.Add(m,body);
@@ -98,7 +98,7 @@ namespace DeadlyJenga.CastlePrototype
                 var body=lookup[m];var joint=body.gameObject.AddComponent<HingeJoint>();joint.connectedBody=lookup[m.hingeSupport];
                 joint.autoConfigureConnectedAnchor=false;var pivot=transform.TransformPoint(m.pivot);
                 joint.anchor=body.transform.InverseTransformPoint(pivot);joint.connectedAnchor=joint.connectedBody.transform.InverseTransformPoint(pivot);
-                bool falling=kind==ConceptMapKind.CollapseCreatedRoute;
+                bool falling=m.district==(int)ConceptMapKind.CollapseCreatedRoute;
                 joint.axis=body.transform.InverseTransformDirection(falling?transform.forward:transform.up);
                 joint.useLimits=true;
                 joint.limits=new JointLimits{min=falling?0:-65,max=falling?28:65,bounciness=0,contactDistance=1};
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(var other in bodies)if(other.name=="Fixed west landing"||other.name=="Fixed east landing")
                     IgnorePair(body,other);
             }
-            if(kind==ConceptMapKind.PeelAwayScreen)
+            if(kind==ConceptMapKind.PeelAwayScreen||kind==ConceptMapKind.SkylineIsland)
                 foreach(var body in bodies)if(body.name.StartsWith("Screen ",StringComparison.Ordinal))
                 {
                     bool west=body.name=="Screen west";
@@ -117,7 +117,7 @@ namespace DeadlyJenga.CastlePrototype
                     joint.axis=body.transform.InverseTransformDirection(transform.forward);joint.useLimits=true;
                     joint.limits=new JointLimits{min=west?0:-100,max=west?100:0,bounciness=0,contactDistance=1};
                 }
-            if(kind==ConceptMapKind.MovingShelter&&TryGetBody("Moving roof",out var roof)&&TryGetBody("Fixed roof frame A",out var frame))
+            if((kind==ConceptMapKind.MovingShelter||kind==ConceptMapKind.SkylineIsland)&&TryGetBody("Moving roof",out var roof)&&TryGetBody("Fixed roof frame A",out var frame))
             {
                 var joint=roof.gameObject.AddComponent<ConfigurableJoint>();joint.connectedBody=frame;joint.autoConfigureConnectedAnchor=false;
                 joint.anchor=Vector3.zero;joint.connectedAnchor=frame.transform.InverseTransformPoint(roof.position);
@@ -183,12 +183,12 @@ namespace DeadlyJenga.CastlePrototype
             finishes.Add(mesh);
             floor.AddComponent<MeshCollider>().sharedMesh=mesh;
             floor.GetComponent<MeshCollider>().sharedMaterial=friction;
-            if(kind==ConceptMapKind.BreakContactBorough)
-                foreach(float x in new[]{-5f,5f})
+            foreach(var module in modules)
+                if(module.district==(int)ConceptMapKind.BreakContactBorough&&module.purpose.StartsWith("Connector ",StringComparison.Ordinal))
                 {
                     var bearing=new GameObject("Independent connector bearing");
                     bearing.transform.SetParent(floor.transform,false);
-                    bearing.transform.localPosition=new Vector3(x,.665f,0);
+                    bearing.transform.localPosition=new Vector3(module.position.x,.665f,module.position.z);
                     var support=bearing.AddComponent<BoxCollider>();
                     support.size=new Vector3(1.5f,.53f,2.2f);
                     support.sharedMaterial=ConnectorSlide();
@@ -199,7 +199,8 @@ namespace DeadlyJenga.CastlePrototype
 
             // A single mesh supplies the paved route and the color changes at its edge.
             var paving=new FinishMesh();
-            int columns=Mathf.CeilToInt(size.x/1.6f),rows=Mathf.CeilToInt(size.y/1.6f);
+            float pitch=kind==ConceptMapKind.SkylineIsland?2.35f:1.6f;
+            int columns=Mathf.CeilToInt(size.x/pitch),rows=Mathf.CeilToInt(size.y/pitch);
             float dx=size.x/columns,dz=size.y/rows;
             for(int row=0;row<rows;row++)for(int column=0;column<columns;column++)
             {
@@ -215,10 +216,18 @@ namespace DeadlyJenga.CastlePrototype
                     ConceptMapKind.CollapseCreatedRoute=>Mathf.Abs(x+6.5f)<1.35f&&z<0,
                     ConceptMapKind.PivotingCauseway=>Mathf.Abs(z-6.5f)<1.6f,
                     ConceptMapKind.RefugeExchange=>Mathf.Abs(x-6)<1.8f,
+                    ConceptMapKind.SkylineIsland=>Mathf.Abs(z)<5.8f||Mathf.Abs(x)<3.25f||Mathf.Abs(Mathf.Abs(x)-94)<3.1f||Mathf.Abs(Mathf.Abs(x)-61)<3f,
                     _=>Mathf.Abs(z+5.2f)<1.1f
                 };
-                int finish=bypass||featureLane?((row+column)%5==0?3:5):((row+column*3)%9==0?1:(row+column)%3==0?4:2);
-                paving.Box(new Vector3(x,.405f,z),new Vector3(dx-.035f,.012f,dz-.035f),Quaternion.identity,finish);
+                int districtFinish=kind==ConceptMapKind.SkylineIsland?(column<columns/3?4:column>2*columns/3?0:2):2;
+                int finish=bypass||featureLane?((row+column)%5==0?3:5):((row+column*3)%9==0?1:(row+column)%3==0?4:districtFinish);
+                if(kind==ConceptMapKind.SkylineIsland)
+                {
+                    float u=(dx-.035f)*.5f,v=(dz-.035f)*.5f;
+                    paving.Quad(new Vector3(x-u,.411f,z-v),new Vector3(x-u,.411f,z+v),
+                        new Vector3(x+u,.411f,z+v),new Vector3(x+u,.411f,z-v),finish);
+                }
+                else paving.Box(new Vector3(x,.405f,z),new Vector3(dx-.035f,.012f,dz-.035f),Quaternion.identity,finish);
             }
             AddFinish(floor.transform,paving,"Tiled bypass and courtyard");
         }

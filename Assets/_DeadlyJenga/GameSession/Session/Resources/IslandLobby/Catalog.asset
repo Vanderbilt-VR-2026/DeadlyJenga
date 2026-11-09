@@ -422,6 +422,15 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes:
     - demo
+  - id: sparse-prototype-skyline-island
+    title: "Skyline Exchange (Experimental)"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 100000, guid: 73db7fb3df4f4b43ba16ba82e39e1378, type: 3}
+    recommendedPlayers: 1
+    recommendedMode: demo
+    walkableIsland: 1
+    supportedModes:
+    - demo
   modes:
   - id: demo
     title: Demo
