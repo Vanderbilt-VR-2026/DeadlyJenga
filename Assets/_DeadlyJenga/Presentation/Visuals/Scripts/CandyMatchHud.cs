@@ -14,9 +14,10 @@ namespace DeadlyJenga.Presentation
     // One canvas for desktop or headset; receives only host-authored snapshot values.
     public sealed class CandyMatchHud : MonoBehaviour
     {
-        Canvas canvas;RectTransform root;Text board,teams,claim,status,warning,objective;Image claimFill;Camera camera;bool vr;float sampleAt, objectiveUntil;RoundPhase lastPhase=(RoundPhase)(-1);GameModeKind lastMode=(GameModeKind)(-1);
+        Canvas canvas;RectTransform root;Text board,teams,claim,status,objective;Image claimFill;Camera camera;bool vr;float sampleAt, objectiveUntil;RoundPhase lastPhase=(RoundPhase)(-1);GameModeKind lastMode=(GameModeKind)(-1);
         CandyWaypointLayer waypoints;int boardPage;
         CandyEliminationFeed eliminationFeed;
+        CandyDisasterWarningCard warning;
         const int BoardPageSize = 6;
         sealed class StandingsRow
         {
@@ -56,7 +57,7 @@ namespace DeadlyJenga.Presentation
             board=CandyHudCards.Create(root,"Standings",new Vector2(438,88),new Vector2(350,350),20);
             teams=CandyHudCards.Create(root,"Team scores",new Vector2(0,311),new Vector2(384,36),17,TextAnchor.MiddleCenter);
             status=CandyHudCards.Create(root,"Round and spectators",new Vector2(0,362),new Vector2(334,56),17,TextAnchor.MiddleCenter);
-            warning=CandyHudCards.Create(root,"Disaster warning",new Vector2(0,233),new Vector2(480,76),23,TextAnchor.MiddleCenter);CandyHudCards.Badge(warning);CandyHudCards.Tint(warning,CandyHudVisuals.Peach,.50f);
+            warning=new CandyDisasterWarningCard(root);
             objective=CandyHudCards.Create(root,"Your objective",new Vector2(-420,215),new Vector2(380,190),19);
             CandyHudCards.Badge(status);CandyHudCards.Tint(status,CandyHudVisuals.Lavender,.29f);
             CandyHudCards.Badge(teams);CandyHudCards.Tint(teams,CandyHudVisuals.Mint,.31f);
@@ -169,10 +170,10 @@ namespace DeadlyJenga.Presentation
             if(watching)
             {
                 podium?.Hide();
-                board.text=teams.text=claim.text=warning.text="";claimFill.enabled=false;
+                board.text=teams.text=claim.text="";claimFill.enabled=false;
                 status.text=vr?"WATCHING "+spectator.WatchedName(0)+"\nRight stick switches players":"";
                 foreach(var plate in plates.Values)if(plate)plate.gameObject.SetActive(false);
-                waypoints.Begin(false);waypoints.End();CandyHudCards.Visible(board,false);CandyHudCards.Visible(teams,false);CandyHudCards.Visible(warning,false);CandyHudCards.Visible(objective,false);
+                waypoints.Begin(false);waypoints.End();CandyHudCards.Visible(board,false);CandyHudCards.Visible(teams,false);warning.Hide();CandyHudCards.Visible(objective,false);
                 return;
             }
             UpdateHealthBar(match.Frame,match.LocalActorId);
@@ -195,11 +196,10 @@ namespace DeadlyJenga.Presentation
             if(!Expanded&&canvas.enabled&&f.phase==RoundPhase.Playing)
             {
                 var next=IncomingDisaster(f,out float seconds);
-                warning.text=next==null?"":"INCOMING: "+CandyHudContent.Safe(next,39).ToUpperInvariant()+"\nStarts in "+Mathf.CeilToInt(seconds)+" s";
-                if(next!=null)CandyHudCards.Tint(warning,CandyHudVisuals.Peach,seconds<=2?.82f:.53f);
+                warning.Show(next,seconds);
             }
-            else warning.text="";
-            CandyHudCards.Visible(board,Expanded);CandyHudCards.Visible(teams,!Expanded&&f.teams.Length>0);CandyHudCards.Visible(status,!Expanded);CandyHudCards.Visible(warning,!Expanded&&!string.IsNullOrEmpty(warning.text));
+            else warning.Hide();
+            CandyHudCards.Visible(board,Expanded);CandyHudCards.Visible(teams,!Expanded&&f.teams.Length>0);CandyHudCards.Visible(status,!Expanded);
             bool showObjective=!Expanded&&own!=null&&f.rules.mode!=GameModeKind.MurderMystery&&
                 (f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode!=GameModeKind.Demo&&Time.unscaledTime<objectiveUntil);
             if(showObjective)UpdateObjective(f,own);
