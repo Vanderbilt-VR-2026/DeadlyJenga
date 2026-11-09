@@ -24,13 +24,23 @@ namespace DeadlyJenga.CandyArt.Marina
         static readonly Color Mint=new(.26f,.84f,.64f);
         InputAction select,leftSelect;
         Image aimDot;
-        RectTransform canvas,joinFace,hostFace;
+        RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,hostTitle,focusDescription;
         RawImage modePicture,mapPicture;
         string modeId,mapId,focusTarget,focusMode,focusMap;
         float refreshAt;
         RectTransform focusPanel;
-        public bool Visible {get=>canvas&&canvas.gameObject.activeSelf;set{if(canvas)canvas.gameObject.SetActive(value);}}
+        public bool Visible {get=>mainFace&&mainFace.gameObject.activeSelf;set{if(mainFace)mainFace.gameObject.SetActive(value);}}
+        bool AnyFaceVisible => Visible || (joinFace && joinFace.gameObject.activeSelf) ||
+            (hostFace && hostFace.gameObject.activeSelf);
+
+        internal static Vector3 CabinetScreen(bool host) => new Vector3(host ? 4.87f : -4.87f, 3.93f, 10.48f);
+
+        public void SetCabinetVisibility(bool join, bool host)
+        {
+            if (joinFace) joinFace.gameObject.SetActive(join);
+            if (hostFace) hostFace.gameObject.SetActive(host);
+        }
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
             if(canvas)return;
@@ -42,7 +52,10 @@ namespace DeadlyJenga.CandyArt.Marina
             var worldCanvas=go.GetComponent<Canvas>();worldCanvas.renderMode=RenderMode.WorldSpace;
             worldCanvas.overrideSorting=true;worldCanvas.sortingOrder=70;
 
-            var title=Text("PICK YOUR MATCH",new Vector2(0,119),new Vector2(635,54),46,canvas);
+            mainFace = new GameObject("Marina · map and mode display", typeof(RectTransform)).GetComponent<RectTransform>();
+            mainFace.SetParent(canvas,false);
+            mainFace.sizeDelta=canvas.sizeDelta;
+            var title=Text("PICK YOUR MATCH",new Vector2(0,119),new Vector2(635,54),46,mainFace);
             var depth=title.gameObject.AddComponent<Shadow>();depth.effectDistance=new Vector2(0,-5);depth.effectColor=Coral;
             Ornament(new Vector2(-286,118),Lilac,-12);
             Ornament(new Vector2(286,118),Mint,12);
@@ -57,8 +70,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 ()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
             Text("Round info",Vector2.zero,new Vector2(180,18),13,round);
 
-            joinFace=CabinetFace("Lavender Join display",-4.87f);
-            hostFace=CabinetFace("Mint Host display",4.87f);
+            joinFace=CabinetFace("Lavender Join display",false);
+            hostFace=CabinetFace("Mint Host display",true);
             CabinetHeading(joinFace,"JOIN FRIENDS",Lilac);
             CabinetHeading(hostFace,"HOST ROOM",Mint);
             CabinetAction(joinFace,"marina-join","Room code",17,Lilac,()=>detail?.Invoke("join-code"));
@@ -67,7 +80,7 @@ namespace DeadlyJenga.CandyArt.Marina
             CabinetAction(hostFace,"marina-invite","Invite nearby",-27,new Color(.29f,.18f,.41f),()=>detail?.Invoke("host-invite"));
 
             focusPanel=new GameObject("Marina Â· selection preview",typeof(RectTransform)).GetComponent<RectTransform>();
-            focusPanel.SetParent(canvas,false);focusPanel.anchoredPosition=new Vector2(0,-94);
+            focusPanel.SetParent(mainFace,false);focusPanel.anchoredPosition=new Vector2(0,-94);
             focusDescription=Text("",Vector2.zero,new Vector2(660,18),13,focusPanel);
             focusPanel.gameObject.SetActive(false);
             foreach(var target in targets)target.labels=target.face.GetComponentsInChildren<Text>(true);
@@ -92,12 +105,12 @@ namespace DeadlyJenga.CandyArt.Marina
             var button=Button(id,position,new Vector2(122,34),new Color(.32f,.17f,.40f),action,()=>true);
             Text(title,Vector2.zero,new Vector2(113,32),17,button);
         }
-        RectTransform CabinetFace(string name,float worldX)
+        RectTransform CabinetFace(string name,bool host)
         {
             var face=new GameObject(name,typeof(RectTransform)).GetComponent<RectTransform>();
             face.SetParent(canvas,false);
             face.sizeDelta=new Vector2(175,157);
-            face.localPosition=new Vector3(worldX/.0095f,8f,-44f);
+            face.localPosition=(CabinetScreen(host)-canvas.localPosition)/canvas.localScale.x;
             return face;
         }
         static void CabinetHeading(RectTransform parent,string title,Color trim)
@@ -128,7 +141,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         RectTransform Button(string id,Vector2 p,Vector2 size,Color color,Action action,Func<bool> allowed,RectTransform parent=null)
         {
-            var go=new GameObject(id,typeof(RectTransform),typeof(Image),typeof(BoxCollider));go.layer=5;go.transform.SetParent(parent?parent:canvas,false);var r=go.GetComponent<RectTransform>();r.anchoredPosition=p;r.sizeDelta=size;
+            var go=new GameObject(id,typeof(RectTransform),typeof(Image),typeof(BoxCollider));go.layer=5;go.transform.SetParent(parent?parent:mainFace,false);var r=go.GetComponent<RectTransform>();r.anchoredPosition=p;r.sizeDelta=size;
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=color;image.raycastTarget=false;
             var hit=go.GetComponent<BoxCollider>();hit.isTrigger=true;hit.size=new Vector3(size.x,size.y,6);var outline=go.AddComponent<Outline>();outline.effectDistance=new Vector2(4,-4);outline.effectColor=Color.clear;
             var glow=go.AddComponent<Shadow>();glow.effectDistance=new Vector2(0,-8);glow.effectColor=Color.clear;
@@ -166,15 +179,15 @@ namespace DeadlyJenga.CandyArt.Marina
             image.uvRect=new Rect((1-width)*.5f,(1-height)*.5f,width,height);
         }
         public bool Invoke(string id)
-        {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&Visible&&target.allowed()){MenuAim.Consume();target.action();return true;}return false;}
+        {if(ModalBlocked||requireRelease)return false;foreach(var target in targets)if(target.id==id&&target.face.gameObject.activeInHierarchy&&target.allowed()){MenuAim.Consume();target.action();return true;}return false;}
         void Update()
         {
-            if(!Visible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
+            if(!AnyFaceVisible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera)return;
             var mouse=Mouse.current;var keyboard=Keyboard.current;
-            bool held=select?.IsPressed()==true||leftSelect?.IsPressed()==true||player.SelectHeld||keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
+            bool held=select?.IsPressed()==true||leftSelect?.IsPressed()==true||player.SelectHeld||!lobby.CodeFocused&&keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
             if(requireRelease){if(!held)requireRelease=false;return;}
-            bool pressed=select!=null&&select.WasPressedThisFrame()||leftSelect?.WasPressedThisFrame()==true||player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
+            bool pressed=select!=null&&select.WasPressedThisFrame()||leftSelect?.WasPressedThisFrame()==true||player.SelectPressed||!lobby.CodeFocused&&keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
             var camera=player.ViewCamera;
             Ray ray;
             if (player.IsVR)
@@ -201,11 +214,13 @@ namespace DeadlyJenga.CandyArt.Marina
             float screenRange = distance;
             foreach(var target in targets)
             {
+                if(!target.face.gameObject.activeInHierarchy)continue;
                 target.collider.enabled=target.allowed();
                 if(target.collider.enabled&&MenuAim.TryPoint(ray,target.face.rectTransform,distance,out _,out var hit)){nearest=target;distance=Vector3.Distance(ray.origin,hit);}
             }
             foreach(var target in targets)
             {
+                if(!target.face.gameObject.activeInHierarchy)continue;
                 bool hover=target==nearest,allowed=target.allowed();target.face.color=hover?Color.Lerp(target.color,Cream,.35f):allowed?target.color:Color.Lerp(target.color,Plum,.6f);
                 target.face.rectTransform.localScale=Vector3.Lerp(target.face.rectTransform.localScale,Vector3.one*(hover?1.035f:1),1-Mathf.Exp(-22*Time.unscaledDeltaTime));
                 target.outline.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?1:0);
@@ -213,10 +228,20 @@ namespace DeadlyJenga.CandyArt.Marina
                 foreach(var text in target.labels)text.color=allowed?(target.color.grayscale>.6f?Plum:Cream):CandyHudVisuals.Muted;
             }
             PreviewDestination(nearest?.id);
-            if(MenuAim.TryPoint(ray,nearest!=null?nearest.face.rectTransform:canvas,screenRange,out _,out var point)||
-                MenuAim.TryPoint(ray,joinFace,screenRange,out _,out point)||MenuAim.TryPoint(ray,hostFace,screenRange,out _,out point))MenuAim.Present(aimDot,point,true,nearest!=null);else aimDot.gameObject.SetActive(false);
+            if (nearest != null && MenuAim.TryPoint(ray, nearest.face.rectTransform, screenRange, out _, out var point) ||
+                VisibleFacePoint(ray, mainFace, screenRange, out point) ||
+                VisibleFacePoint(ray, joinFace, screenRange, out point) ||
+                VisibleFacePoint(ray, hostFace, screenRange, out point))
+                MenuAim.Present(aimDot, point, true, nearest != null);
+            else aimDot.gameObject.SetActive(false);
             if(pressed&&nearest!=null){Invoke(nearest.id);requireRelease=true;}
         }
+        static bool VisibleFacePoint(Ray ray, RectTransform face, float distance, out Vector3 point)
+        {
+            point = default;
+            return face.gameObject.activeInHierarchy && MenuAim.TryPoint(ray, face, distance, out _, out point);
+        }
+
         void PreviewDestination(string id)
         {
             bool map=id=="marina-maps",mode=id=="marina-modes";

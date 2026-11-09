@@ -142,6 +142,13 @@ namespace DeadlyJenga.DevTools.Editor
         {if(!value)throw new InvalidOperationException(message);File.AppendAllText(Report,"PASS "+message+"\n");}
         static IEnumerator Wait(float duration)
         {float end=Time.realtimeSinceStartup+duration;while(Time.realtimeSinceStartup<end)yield return null;}
+        static string ArcadeBack(string id) => id switch
+        {
+            "marina-join" or "marina-nearby" => "marina-close-join",
+            "marina-host" or "marina-invite" => "marina-close-host",
+            _ => "marina-close"
+        };
+
         static IEnumerator RunArcadeScene()
         {
             Application.runInBackground=true;
@@ -158,6 +165,12 @@ namespace DeadlyJenga.DevTools.Editor
             var host=faces.Single(face=>face.name=="Mint Host display");
             Check(join.parent==host.parent&&join.localPosition.x<0&&host.localPosition.x>0,
                 "Join and Host physically flank the central screen");
+            var detailFaces=lobby.GetComponentsInChildren<RectTransform>(true);
+            var joinDetail=detailFaces.Single(face=>face.name=="JOIN");
+            var hostDetail=detailFaces.Single(face=>face.name=="HOST");
+            Check(Vector3.Distance(join.position,joinDetail.position)<.01f&&
+                Vector3.Distance(host.position,hostDetail.position)<.01f,
+                "Full room flows are mounted on their own cabinet glass");
             Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
             var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
@@ -207,12 +220,24 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(close&&close.gameObject.activeInHierarchy,"The keyboard shows a close control");
                         view.Point(new Ray(close.position-close.forward*.25f,close.forward),true);
                         Check(!lobby.CodeFocused&&!view.GiantKeyboard.gameObject.activeSelf&&
-                            lobby.EnteredCode=="ABC234"&&!screen.Visible,
-                            "Closing the keyboard preserves the typed code and leaves Join open");
+                            lobby.EnteredCode=="ABC234"&&joinDetail.gameObject.activeSelf&&screen.Visible,
+                            "Closing the keyboard preserves the code, Join and the map/mode screen");
                     }
                     finally { lobby.EnteredCode=originalCode; }
                     yield return null;
+                    Check(screen.Invoke("marina-maps"),"Map selection remains usable while Join is open");
+                    yield return null;
+                    Check(joinDetail.gameObject.activeSelf&&!screen.Visible,
+                        "The map picker replaces only the center face");
+                    Check(view.InvokeChoice("marina-close")&&joinDetail.gameObject.activeSelf&&screen.Visible,
+                        "Closing the map picker preserves the open Join screen");
+                    yield return null;
                 }
+                if(id=="marina-host")
+                    Check(hostDetail.gameObject.activeSelf&&!joinDetail.gameObject.activeSelf&&screen.Visible,
+                        "Host opens on its cabinet while the center face remains active");
+                if(id=="marina-nearby")
+                    Check(joinDetail.gameObject.activeSelf&&screen.Visible,"Nearby results stay on Join");
                 if(id=="marina-maps")
                 {
                     yield return null;
@@ -220,7 +245,7 @@ namespace DeadlyJenga.DevTools.Editor
                         image.name=="Map card thumbnail"&&image.enabled&&image.texture),
                         "The categorized map list shows thumbnails on the map cards");
                 }
-                Check(view.InvokeChoice("marina-close"),id+" returns to the arcade");
+                Check(view.InvokeChoice(ArcadeBack(id)),id+" returns to its arcade face");
             }
             yield return null;
             Check(screen.Invoke("marina-style")&&view.WardrobeOpen,"Style opens the wardrobe");
@@ -291,7 +316,7 @@ namespace DeadlyJenga.DevTools.Editor
                         yield return null;
                         Check(screen.Invoke(id),id+" opens");
                         yield return null;
-                        Check(view.InvokeChoice("marina-close"),id+" closes");
+                        Check(view.InvokeChoice(ArcadeBack(id)),id+" closes");
                         yield return null;
                     }
                 else File.AppendAllText(Report,"SKIP Terminal input requires a focused Game View. Facade presence verified.\n");
@@ -552,15 +577,20 @@ namespace DeadlyJenga.DevTools.Editor
                 finally{gray.SetActive(false);Object.Destroy(gray);}
                 var screen=lobby.GetComponent<MarinaScreen>();Check(screen&&screen.Visible,"Live Marina facade is active");
                 Check(screen.Invoke("marina-modes"),"Mode card opens existing full mode picker");
-                Check(!screen.Visible,"Facade yields to detail picker");Check(view.InvokeChoice("marina-close"),"Detail picker can return to facade");
-                Check(screen.Invoke("marina-maps"),"Map card opens existing category browser");Check(view.InvokeChoice("marina-close"),"Map browser can return");
+                Check(!screen.Visible,"Facade yields to detail picker");yield return null;
+                Check(view.InvokeChoice("marina-close"),"Detail picker can return to facade");yield return null;
+                Check(screen.Invoke("marina-maps"),"Map card opens existing category browser");yield return null;
+                Check(view.InvokeChoice("marina-close"),"Map browser can return");yield return null;
                 foreach(var id in new[]{"marina-host","marina-join","marina-settings"})
                 {
-                    Check(screen.Invoke(id),id+" opens existing controls");Check(view.InvokeChoice("marina-close"),id+" can return");
+                    Check(screen.Invoke(id),id+" opens existing controls");yield return null;
+                    Check(view.InvokeChoice(ArcadeBack(id)),id+" can return");yield return null;
                 }
-                screen.Invoke("marina-host");var back=view.GetComponentsInChildren<UnityEngine.UI.Button>(true).First(b=>b.name=="marina-close").transform;
+                Check(screen.Invoke("marina-host"),"Host cabinet detail opens for ray check");yield return null;
+                var back=view.GetComponentsInChildren<UnityEngine.UI.Button>(true).First(b=>b.name=="marina-close-host").transform;
                 view.Point(new Ray(back.position-back.forward*8,back.forward),true);
-                Check(screen.Visible,"Actual UI ray can close detail from eight meters");
+                Check(!back.gameObject.activeInHierarchy&&screen.Visible,"Actual UI ray closes only the Host cabinet from eight meters");
+                yield return null;
                 Check(screen.Invoke("marina-style"),"Style quick travel opens wardrobe");yield return Wait(.25f);
                 Check(view.WardrobeOpen,"Wardrobe remains open at new boutique position");
                 var appearance=lobby.Player.gameObject.GetComponent<IAvatarAppearance>();var before=appearance.Appearance;
