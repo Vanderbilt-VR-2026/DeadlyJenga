@@ -37,39 +37,145 @@ namespace DeadlyJenga.Wildlife
             if(Count>=24){Status="Wildlife limit reached (24). Clear some animals first.";return null;}
             var player=session.Player;
             if(player==null||!player.gameObject){Status="A player is needed to place wildlife safely.";return null;}
-            Vector3 origin=player.transform.position;Vector3 forward=player.transform.forward;
-            forward.y=0;if(forward.sqrMagnitude<.01f)forward=Vector3.forward;forward.Normalize();
-            var right=Vector3.Cross(Vector3.up,forward);
-            Vector3 point=origin;
-            bool found=false;
-            float size=BodyScale;
-            float clearanceRadius=.28f,lowerClearance=.36f,upperClearance=.90f;
-            if(size<1)
+            Vector3 origin = player.transform.position;
+            var clearance = SpawnClearance(id, tame);
+            Vector3 point = default;
+            if (!tame && animals.Count == 0) Physics.SyncTransforms();
+            bool found = !tame && TryWildSpawn(id, origin, clearance, out point);
+            if (!found) found = TryNearbySpawn(player.transform, clearance, !tame, out point);
+            if (!found)
             {
-                clearanceRadius=IslandAnimal.BodyRadius(id)*size;
-                float height=Mathf.Max(IslandAnimal.BodyHeight(id)*size,clearanceRadius*2,1.2f*size);
-                float lift=Mathf.Max(.005f,2*.025f*size);
-                lowerClearance=clearanceRadius+lift;upperClearance=Mathf.Max(lowerClearance,height-clearanceRadius+lift);
+                Status = tame ? "No nearby supported ground. Stand on a wider platform or the island."
+                    : "No open ground for this animal on the island.";
+                return null;
             }
-            for(int i=0;i<24;i++)
-            {
-                float angle=(serial*137.5f+i*47)*Mathf.Deg2Rad;
-                float radius=2.2f+(i/8)*1.4f;
-                Vector3 sample=origin+right*Mathf.Sin(angle)*radius+forward*Mathf.Cos(angle)*radius;
-                if(TryGround(sample,origin.y+1.8f,8,out point)&&!Physics.CheckCapsule(point+Vector3.up*lowerClearance,point+Vector3.up*upperClearance,clearanceRadius,GroundMask,QueryTriggerInteraction.Ignore)){found=true;break;}
-            }
-            if(!found){Status="No nearby supported ground. Stand on a wider platform or the island.";return null;}
             var root=new GameObject("Island wildlife - "+id);root.transform.SetParent(transform,true);root.transform.position=point;
             var animal=root.AddComponent<IslandAnimal>();animal.Initialize(this,id,++serial);
             if(tame)animal.SetCompanion(player.transform);
             animals.Add(animal);Status=(tame?"Companion: ":"Wild: ")+id+". "+Count+" / 24 animals.";return root;
         }
+        (float radius, float lower, float upper) SpawnClearance(string id, bool tame)
+        {
+            float size = BodyScale;
+            if (size >= 1)
+                return tame ? (.28f, .36f, .90f) : (Mathf.Max(.28f, IslandAnimal.BodyRadius(id)), .44f, 1.0f);
+            float radius = IslandAnimal.BodyRadius(id) * size;
+            float height = Mathf.Max(IslandAnimal.BodyHeight(id) * size, radius * 2, 1.2f * size);
+            float lift = Mathf.Max(.005f, .05f * size);
+            return (radius, radius + lift, Mathf.Max(radius, height - radius) + lift);
+        }
+        bool TryWildSpawn(string id, Vector3 player, (float radius, float lower, float upper) clearance, out Vector3 point)
+        {
+            point = default;
+            if (world == null) return false;
+
+            var bounds = world.PlayableBounds;
+            float radiusX = Mathf.Min(bounds.extents.x, world.Radius);
+            float radiusZ = Mathf.Min(bounds.extents.z, world.Radius);
+            if (radiusX < 1 || radiusZ < 1) return false;
+            float top = Mathf.Max(bounds.max.y, world.TopHeight) + .5f;
+            float depth = top - bounds.min.y + .5f;
+            float spread = Mathf.Clamp(Mathf.Min(radiusX, radiusZ) * .32f, 2.5f, 12);
+            float coastWeight = id switch
+            {
+                "crab" or "seal" or "otter" or "penguin" or "ray" => 1.1f,
+                "frog" or "tortoise" => .45f,
+                _ => -.75f
+            };
+            float best = float.NegativeInfinity;
+            const int samples = 48;
+            // The golden angle covers the map without visible rings or shared spawn points.
+            for (int i = 0; i < samples; i++)
+            {
+                float angle = (serial * .63f + i) * 2.399963f;
+                float radius = Mathf.Sqrt((i + .5f) / samples) * .97f;
+                var sample = bounds.center + new Vector3(Mathf.Cos(angle) * radius * radiusX, 0, Mathf.Sin(angle) * radius * radiusZ);
+                if (!TryGroundHit(sample, top, depth, out var hit) || hit.rigidbody ||
+                    hit.collider.gameObject.layer == Layers.Block || !IsDry(hit.point)) continue;
+
+                var floor = hit.point;
+                float spacing = spread;
+                bool occupied = false;
+                foreach (var animal in animals)
+                {
+                    if (!animal) continue;
+                    float distance = FlatDistance(floor, animal.transform.position);
+                    if (distance < clearance.radius + IslandAnimal.BodyRadius(animal.Species) * BodyScale + .35f)
+                    {
+                        occupied = true;
+                        break;
+                    }
+                    spacing = Mathf.Min(spacing, distance);
+                }
+                if (occupied) continue;
+
+                float score = spacing / spread * 1.7f + Mathf.Clamp01(FlatDistance(floor, player) / spread) * .9f;
+                score += hit.normal.y * .55f + Mathf.Sin(i * 4.37f + serial * 1.21f) * .13f;
+                score += IsNearShore(floor) ? coastWeight : 0;
+                score -= Mathf.Clamp((floor.y - world.Center.y) * .13f, 0, 1.5f);
+                if (score <= best || !HasClearance(floor, clearance) || !HasRoomToRoam(floor, clearance.radius)) continue;
+                best = score;
+                point = floor;
+            }
+            return !float.IsNegativeInfinity(best);
+        }
+        bool IsNearShore(Vector3 floor)
+        {
+            float water = world.WaterHeight(floor);
+            if (floor.y - water > 6) return false;
+            float reach = Mathf.Clamp(world.Radius * .14f, 1.8f, 5);
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = i * Mathf.PI * .5f;
+                var sample = floor + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * reach;
+                if (!TryGround(sample, floor.y + 1, floor.y - water + 2, out var neighbor) || !IsDry(neighbor)) return true;
+            }
+            return false;
+        }
+        bool HasRoomToRoam(Vector3 floor, float radius)
+        {
+            int supported = 0;
+            float stride = Mathf.Max(.4f, radius * 2);
+            for (int i = 0; i < 4; i++)
+            {
+                float angle = i * Mathf.PI * .5f;
+                var sample = floor + new Vector3(Mathf.Cos(angle), 0, Mathf.Sin(angle)) * stride;
+                if (TryGround(sample, floor.y + .35f, .7f, out var neighbor) && IsDry(neighbor) && ++supported >= 2) return true;
+            }
+            return false;
+        }
+        bool TryNearbySpawn(Transform player, (float radius, float lower, float upper) clearance, bool wild, out Vector3 point)
+        {
+            var origin = player.position;
+            var forward = Vector3.ProjectOnPlane(player.forward, Vector3.up).normalized;
+            if (forward.sqrMagnitude < .01f) forward = Vector3.forward;
+            var right = Vector3.Cross(Vector3.up, forward);
+            for (int i = 0; i < 24; i++)
+            {
+                float angle = (serial * 137.5f + i * 47) * Mathf.Deg2Rad;
+                float radius = 2.2f + (i / 8) * 1.4f;
+                var sample = origin + (right * Mathf.Sin(angle) + forward * Mathf.Cos(angle)) * radius;
+                if (TryGround(sample, origin.y + 1.8f, 8, out point) &&
+                    (!wild || IsDry(point)) && HasClearance(point, clearance)) return true;
+            }
+            point = default;
+            return false;
+        }
+        bool IsDry(Vector3 point) => world == null || point.y >= world.WaterHeight(point) + .02f;
+        static float FlatDistance(Vector3 a, Vector3 b) => Vector3.ProjectOnPlane(a - b, Vector3.up).magnitude;
+        static bool HasClearance(Vector3 point, (float radius, float lower, float upper) clearance)
+            => !Physics.CheckCapsule(point + Vector3.up * clearance.lower, point + Vector3.up * clearance.upper,
+                clearance.radius, GroundMask, QueryTriggerInteraction.Ignore);
+
+        static bool TryGroundHit(Vector3 point, float top, float depth, out RaycastHit hit)
+            => Physics.Raycast(new Vector3(point.x, top, point.z), Vector3.down, out hit, depth, GroundMask,
+                QueryTriggerInteraction.Ignore) && hit.normal.y > .65f;
+
         public bool TryGround(Vector3 point,float top,float depth,out Vector3 floor)
         {
-            int mask=GroundMask;
-            if(Physics.Raycast(new Vector3(point.x,top,point.z),Vector3.down,out var hit,depth,mask,QueryTriggerInteraction.Ignore)&&hit.normal.y>.65f)
-            {floor=hit.point;return true;}
-            floor=point;return false;
+            bool supported = TryGroundHit(point, top, depth, out var hit);
+            floor = supported ? hit.point : point;
+            return supported;
         }
         public void Clear()
         {
