@@ -22,18 +22,31 @@ namespace DeadlyJenga.CandyArt.Marina
         readonly List<Material> extraMaterials=new();
         readonly List<Mesh> extraMeshes=new();
         readonly Dictionary<string,Transform> anchors=new();
-        readonly List<Material> waterMaterials=new();
-        readonly List<Vector4> waterMasks=new();
-        readonly List<float> waterLevels=new();
-        Vector3 waterOrigin=new Vector3(float.PositiveInfinity,0,0);
+        const float OceanLevel = -.12f;
+        const float SeabedDepth = 1.55f;
+        Renderer ocean;
+        MaterialPropertyBlock oceanProperties;
+        Material poolWater;
+        Vector3 waterOrigin = new(float.PositiveInfinity, 0, 0);
         ReflectionProbe reflection;
         void LateUpdate()
         {
-            if(waterOrigin==transform.position)return;waterOrigin=transform.position;
-            for(int i=0;i<waterMaterials.Count;i++)
+            if (waterOrigin == transform.position) return;
+            waterOrigin = transform.position;
+            if (ocean)
             {
-                var mask=waterMasks[i];var center=transform.TransformPoint(new Vector3(mask.x,0,mask.y));
-                waterMaterials[i].SetVector("_Island",new Vector4(center.x,center.z,mask.z,mask.w));waterMaterials[i].SetFloat("_WaterHeight",transform.position.y+waterLevels[i]);
+                var center = transform.TransformPoint(Vector3.forward * 3);
+                oceanProperties.SetVector("_Island", new Vector4(center.x, center.z, 24, 23));
+                oceanProperties.SetFloat("_WaterHeight", center.y + OceanLevel);
+                oceanProperties.SetFloat("_SandTop", center.y + OceanLevel - SeabedDepth);
+                ocean.SetPropertyBlock(oceanProperties);
+            }
+            if (poolWater)
+            {
+                var center = transform.TransformPoint(new Vector3(17, .61f, -8));
+                poolWater.SetVector("_Island", new Vector4(center.x, center.z, 6, 5.16f));
+                poolWater.SetFloat("_WaterHeight", center.y);
+                poolWater.SetFloat("_SandTop", center.y - .72f);
             }
         }
         IEnumerator CaptureReflection()
@@ -71,6 +84,8 @@ namespace DeadlyJenga.CandyArt.Marina
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
             ShoreAndCourts();Pavilion();StyleShop();Lounge();UpperTerraces();Landmark();Planting();DistantIslands();
+            LightingFixtures();SignMounts();
+            mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
             Environment(environment);Water(environment);Signs();
@@ -89,15 +104,31 @@ namespace DeadlyJenga.CandyArt.Marina
             var go=new GameObject("Marina warm coastal grading");go.transform.SetParent(visual,false);volume=go.AddComponent<Volume>();volume.isGlobal=true;volume.priority=3;
             volumeProfile=ScriptableObject.CreateInstance<VolumeProfile>();volume.profile=volumeProfile;
             var tone=volumeProfile.Add<Tonemapping>();tone.mode.Override(TonemappingMode.ACES);
-            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(-.14f);color.contrast.Override(9);color.saturation.Override(-5);
+            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(-.1f);color.contrast.Override(13);color.saturation.Override(-2);
             var bloom=volumeProfile.Add<Bloom>();bloom.intensity.Override(.14f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.55f);
             var probeObject=new GameObject("Marina reflection capture");probeObject.transform.SetParent(visual,false);probeObject.transform.localPosition=new Vector3(0,4,3);
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
-            foreach(var p in new[]{new Vector3(0,4.0f,8),new Vector3(13.5f,3.6f,6),new Vector3(-13,3.6f,8)})
-            {
-                var lightObject=new GameObject("Marina sheltered warm bounce");lightObject.transform.SetParent(visual,false);lightObject.transform.localPosition=p;
-                var fill=lightObject.AddComponent<Light>();fill.type=LightType.Point;fill.color=new Color(1,.74f,.45f);fill.intensity=2.5f;fill.range=8;fill.shadows=LightShadows.None;
-            }
+            var amber = new Color(1, .68f, .34f);
+            var cool = new Color(.35f, .78f, 1);
+            Accent("Play Pavilion", new Vector3(0, 4.7f, 7), amber, 3.5f, 8);
+            Accent("Style", new Vector3(-13, 3.5f, 8.6f), new Color(1, .79f, .61f), 3, 6);
+            Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
+            Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
+            Accent("Practice pool", new Vector3(19, 2.1f, -3.25f), cool, 2.5f, 5.5f);
+            Accent("West terrace", new Vector3(-13.8f, 6.65f, 17.9f), amber, 3, 6.5f);
+            Accent("East terrace", new Vector3(16.5f, 5.1f, 17.8f), cool, 2, 5);
+        }
+        void Accent(string zone, Vector3 position, Color color, float intensity, float range)
+        {
+            var fixture = new GameObject("Marina light · " + zone);
+            fixture.transform.SetParent(visual, false);
+            fixture.transform.localPosition = position;
+            var light = fixture.AddComponent<Light>();
+            light.type = LightType.Point;
+            light.color = color;
+            light.intensity = intensity;
+            light.range = range;
+            light.shadows = LightShadows.None;
         }
         void ApplyLighting(CandyEnvironment environment)
         {
@@ -108,14 +139,17 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             if(environment)
             {
+                // Match skins own a temporary profile and update global ambient lighting every frame.
+                var matchSkins = environment.GetComponent<CandySceneSkins>();
+                if (matchSkins) matchSkins.enabled = false;
                 if(environment.sandRenderer)environment.sandRenderer.gameObject.SetActive(false);
                 if(environment.waterRenderer)environment.waterRenderer.gameObject.SetActive(false);
                 environment.enabled=false;
                 var sun=environment.sun;
-                if(sun){sun.transform.rotation=Quaternion.Euler(40,-46,0);sun.color=new Color(1,.92f,.80f);sun.intensity=1.85f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
+                if(sun){sun.transform.rotation=Quaternion.Euler(29,-53,0);sun.color=new Color(1,.85f,.69f);sun.intensity=2.05f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
             }
-            RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.69f,.78f,.88f);RenderSettings.ambientEquatorColor=new Color(.74f,.70f,.60f);RenderSettings.ambientGroundColor=new Color(.47f,.43f,.35f);RenderSettings.ambientIntensity=1;
-            var ambient=new SphericalHarmonicsL2();ambient.AddAmbientLight(new Color(.43f,.38f,.30f));ambient.AddDirectionalLight(Vector3.up,new Color(.65f,.78f,.91f),.48f);ambient.AddDirectionalLight(Vector3.forward,new Color(1,.71f,.4f),.22f);RenderSettings.ambientProbe=ambient;
+            RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.61f,.75f,.93f);RenderSettings.ambientEquatorColor=new Color(.58f,.66f,.74f);RenderSettings.ambientGroundColor=new Color(.41f,.35f,.30f);RenderSettings.ambientIntensity=1;
+            var ambient=new SphericalHarmonicsL2();ambient.AddAmbientLight(new Color(.33f,.34f,.35f));ambient.AddDirectionalLight(Vector3.up,new Color(.59f,.76f,.97f),.47f);ambient.AddDirectionalLight(Vector3.forward,new Color(1,.68f,.36f),.21f);RenderSettings.ambientProbe=ambient;
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Exponential;RenderSettings.fogColor=new Color(.68f,.84f,.91f);RenderSettings.fogDensity=.0017f;
             if(marinaSky)RenderSettings.skybox=marinaSky;
             if(Services.Session?.ActiveCamera)Services.Session.ActiveCamera.GetUniversalAdditionalCameraData().requiresDepthTexture=true;
@@ -123,27 +157,76 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Water(CandyEnvironment environment)
         {
-            Shader shader=Shader.Find("DeadlyJenga/Marina Water");if(!shader)return;
-            Material Material(Vector2 center,float water,float extent)
+            var profile = environment ? environment.profile : null;
+            var poolShader = Shader.Find("DeadlyJenga/Marina Water");
+            var oceanMaterial = profile ? profile.water : null;
+            if (!oceanMaterial && poolShader) oceanMaterial = CreateBasinWater(poolShader);
+            if (oceanMaterial)
             {
-                var m=new Material(shader);m.name="Marina turquoise water";
-                m.SetColor("_Shallow",new Color(.035f,.65f,.62f));m.SetColor("_Deep",new Color(.025f,.24f,.48f));m.SetColor("_Foam",new Color(.9f,1,.97f));m.SetFloat("_FoamStrength",.22f);m.SetFloat("_Glints",.34f);m.SetFloat("_Shine",.88f);m.SetFloat("_WaveHeight",extent>10 ? .12f : .025f);m.SetFloat("_WaveSpeed",.55f);m.SetFloat("_WaveChop",.25f);m.SetFloat("_WaveExtent",72);m.SetFloat("_WaterHeight",water);m.SetFloat("_SandTop",water-.72f);m.SetFloat("_SandDepth",3);m.SetFloat("_HasTerrain",0);m.SetFloat("_Submersion",.72f);m.SetFloat("_Plateau",.85f);m.SetVector("_Island",new Vector4(center.x,center.y,extent,extent*.86f));extraMaterials.Add(m);waterMaterials.Add(m);waterMasks.Add(new Vector4(center.x,center.y,extent,extent*.86f));waterLevels.Add(water);return m;
+                float size = profile ? Mathf.Max(100, profile.oceanSize) : 1800;
+                float extent = profile ? Mathf.Clamp(profile.waveExtent, 16, size * .4f) : 80;
+                var oceanMesh = CandyOceanSurface.Create(profile ? profile.waterResolution : 96, size, extent);
+                extraMeshes.Add(oceanMesh);
+                ocean = WaterSurface("Marina ocean", new Vector3(0, OceanLevel, 3), oceanMesh, oceanMaterial);
+                ocean.transform.localScale = new Vector3(size, 1, size);
+                oceanProperties = new MaterialPropertyBlock();
+                oceanProperties.SetFloat("_HasTerrain", 0);
+                oceanProperties.SetFloat("_Submersion", SeabedDepth);
+                oceanProperties.SetFloat("_SandDepth", profile ? profile.sandDepth : 3);
+                oceanProperties.SetFloat("_Plateau", profile ? profile.sandPlateau : .85f);
+                oceanProperties.SetFloat("_WaveExtent", extent);
+                oceanProperties.SetFloat("_WaveHeight", profile ? profile.waveHeight : .12f);
+                oceanProperties.SetFloat("_WaveSpeed", profile ? profile.waveSpeed : .55f);
+                oceanProperties.SetFloat("_WaveChop", profile ? profile.waveChop : .25f);
+                oceanProperties.SetColor("_Horizon", RenderSettings.fogColor);
             }
-            var oceanMesh=CandyOceanSurface.Create(96,1800,80);extraMeshes.Add(oceanMesh);
-            var ocean=new GameObject("Marina ocean",typeof(MeshFilter),typeof(MeshRenderer));ocean.transform.SetParent(visual,false);ocean.transform.localPosition=Vector3.down*.12f;ocean.transform.localScale=new Vector3(1800,1,1800);ocean.GetComponent<MeshFilter>().sharedMesh=oceanMesh;ocean.GetComponent<MeshRenderer>().sharedMaterial=Material(new Vector2(0,3),-.12f,38);ocean.GetComponent<MeshRenderer>().shadowCastingMode=ShadowCastingMode.Off;
+            if (!poolShader) { LateUpdate(); return; }
             var vertices=new List<Vector3>{Vector3.zero};var triangles=new List<int>();
             for(int i=0;i<=64;i++){float a=i*Mathf.PI/32;vertices.Add(new Vector3(Mathf.Sin(a)*4.77f,0,Mathf.Cos(a)*4.77f));if(i>0){triangles.Add(0);triangles.Add(i+1);triangles.Add(i);}}
             var poolMesh=new Mesh{name="Marina shallow practice pool"};poolMesh.SetVertices(vertices);poolMesh.SetTriangles(triangles,0);poolMesh.RecalculateNormals();poolMesh.RecalculateBounds();extraMeshes.Add(poolMesh);
-            var pool=new GameObject("Clear practice pool water",typeof(MeshFilter),typeof(MeshRenderer));pool.transform.SetParent(visual,false);pool.transform.localPosition=new Vector3(17,.61f,-8);pool.GetComponent<MeshFilter>().sharedMesh=poolMesh;pool.GetComponent<MeshRenderer>().sharedMaterial=Material(new Vector2(17,-8),.61f,6);pool.GetComponent<MeshRenderer>().shadowCastingMode=ShadowCastingMode.Off;
+            poolWater = CreateBasinWater(poolShader);
+            WaterSurface("Clear practice pool water", new Vector3(17, .61f, -8), poolMesh, poolWater);
+            LateUpdate();
+        }
+        Renderer WaterSurface(string label, Vector3 position, Mesh surface, Material material)
+        {
+            var go = new GameObject(label, typeof(MeshFilter), typeof(MeshRenderer));
+            go.transform.SetParent(visual, false);
+            go.transform.localPosition = position;
+            go.GetComponent<MeshFilter>().sharedMesh = surface;
+            var renderer = go.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial = material;
+            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            return renderer;
+        }
+        Material CreateBasinWater(Shader shader)
+        {
+            var material = new Material(shader) { name = "Marina turquoise water" };
+            material.SetColor("_Shallow", new Color(.035f, .65f, .62f));
+            material.SetColor("_Deep", new Color(.025f, .24f, .48f));
+            material.SetColor("_Foam", new Color(.9f, 1, .97f));
+            material.SetFloat("_FoamStrength", .22f);
+            material.SetFloat("_Glints", .34f);
+            material.SetFloat("_Shine", .88f);
+            material.SetFloat("_WaveHeight", .025f);
+            material.SetFloat("_WaveSpeed", .55f);
+            material.SetFloat("_WaveChop", .25f);
+            material.SetFloat("_WaveExtent", 72);
+            material.SetFloat("_SandDepth", 3);
+            material.SetFloat("_HasTerrain", 0);
+            material.SetFloat("_Submersion", .72f);
+            material.SetFloat("_Plateau", .85f);
+            extraMaterials.Add(material);
+            return material;
         }
         void Signs()
         {
-            var cream=new Color(.95f,.88f,.69f);
-            Sign("PLAY PAVILION",new Vector3(0,5.6f,3.57f),.066f,cream);
-            Sign("STYLE",new Vector3(-13,5.35f,4.25f),.12f,new Color(.26f,.12f,.055f));
-            Sign("WATERFRONT LOUNGE",new Vector3(13.7f,4.22f,2.36f),.048f,cream);
-            Sign("PRACTICE POOL",new Vector3(17,1.13f,-12.75f),.039f,cream,new Vector3(90,180,0));
-            Sign("MAYHEM MARINA",new Vector3(-10.0f,1.36f,-10.1f),.06f,cream,new Vector3(90,0,0));
+            var cream = new Color(.95f, .88f, .69f);
+            Sign("PLAY PAVILION", new Vector3(0, 5.58f, 3.58f), .066f, cream);
+            Sign("STYLE", new Vector3(-13, 5.18f, 4.85f), .095f, cream);
+            Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
+            Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));
+            Sign("MAYHEM MARINA", new Vector3(-10, 1.352f, -10.1f), .06f, new Color(.23f, .16f, .10f), new Vector3(90, 0, 0));
         }
         void Sign(string text,Vector3 position,float size,Color color,Vector3? rotation=null)
         {

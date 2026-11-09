@@ -22,11 +22,6 @@ namespace DeadlyJenga.CastlePrototype
             public RectTransform target;public Vector3 position,scale;public Quaternion rotation;
         }
         readonly System.Collections.Generic.List<MarinaDetailPose> marinaDetailPoses=new();
-        Vector3 marinaDetailEye,marinaDetailForward,marinaDetailUp;
-        Vector3 marinaDetailPanelBase,marinaDetailBackBase;
-        Quaternion marinaDetailRotation;
-        float marinaDetailDistance,marinaDetailWidth,marinaJoinKeyboardLift;
-        bool marinaKeyboardVisible;
         readonly System.Collections.Generic.Dictionary<Graphic,Material> marinaGraphicMaterials=new();
         readonly System.Collections.Generic.Dictionary<Material,Material> marinaFocusMaterials=new();
         readonly System.Collections.Generic.List<Graphic> marinaGraphics=new();
@@ -86,13 +81,13 @@ namespace DeadlyJenga.CastlePrototype
             }
             wardrobeCenter=MayhemMarina.Wardrobe;
             var pod=transform.Find("Visual - wardrobe pod");if(pod)pod.gameObject.SetActive(false);
-            wardrobePanel.SetPositionAndRotation(wardrobeCenter+new Vector3(2.8f,1.8f,1.3f),Quaternion.Euler(0,-35,0));
-            joinStation.SetPositionAndRotation(new Vector3(-4.25f,3.5f,9.25f),Quaternion.Euler(0,-12,0));
-            hostStation.SetPositionAndRotation(new Vector3(4.15f,3.5f,9.3f),Quaternion.Euler(0,12,0));
-            setupStation.SetPositionAndRotation(MayhemMarina.PlayScreen+Vector3.back*.10f,Quaternion.identity);setupStation.localScale=Vector3.one*.0036f;
-            piano.SetPositionAndRotation(new Vector3(-4.2f,2.65f,7.6f),Quaternion.Euler(35,-12,0));
+            wardrobePanel.SetLocalPositionAndRotation(wardrobeCenter+new Vector3(2.8f,1.8f,1.3f),Quaternion.Euler(0,-35,0));
+            joinStation.SetLocalPositionAndRotation(new Vector3(-4.25f,3.5f,9.25f),Quaternion.Euler(0,-12,0));
+            hostStation.SetLocalPositionAndRotation(new Vector3(4.15f,3.5f,9.3f),Quaternion.Euler(0,12,0));
+            setupStation.SetLocalPositionAndRotation(MayhemMarina.PlayScreen+Vector3.back*.10f,Quaternion.identity);setupStation.localScale=Vector3.one*.0036f;
+            piano.SetLocalPositionAndRotation(new Vector3(-4.2f,2.65f,7.6f),Quaternion.Euler(35,-12,0));
             marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);
-            var go=new GameObject("Marina detail back control",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);marinaBack=go.GetComponent<RectTransform>();marinaBack.position=new Vector3(0,2.9f,4.15f);marinaBack.localScale=Vector3.one*.0028f;marinaBack.sizeDelta=new Vector2(1000,125);go.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;go.GetComponent<Canvas>().overrideSorting=true;go.GetComponent<Canvas>().sortingOrder=100;
+            var go=new GameObject("Marina detail back control",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);marinaBack=go.GetComponent<RectTransform>();marinaBack.localPosition=new Vector3(0,2.9f,4.15f);marinaBack.localScale=Vector3.one*.0028f;marinaBack.sizeDelta=new Vector2(1000,125);go.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;go.GetComponent<Canvas>().overrideSorting=true;go.GetComponent<Canvas>().sortingOrder=100;
             Add(marinaBack,"marina-close",()=>"BACK TO MARINA",0,CloseMarinaDetail,()=>true,0,1000,125);
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
             BuildMarinaMirror();CloseMarinaDetail();SyncMarinaBacks();
@@ -107,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             foreach(var pose in marinaDetailPoses)
                 if(pose.target){pose.target.localPosition=pose.position;pose.target.localRotation=pose.rotation;pose.target.localScale=pose.scale;}
-            marinaDetailPoses.Clear();marinaKeyboardVisible=false;marinaJoinKeyboardLift=0;
+            marinaDetailPoses.Clear();
         }
         static void MarinaWorldScale(RectTransform target,float scale)
         {
@@ -118,8 +113,11 @@ namespace DeadlyJenga.CastlePrototype
         {
             var eye=Player?.ViewCamera;if(!eye||!panel||!marinaBack)return;
             RememberMarinaDetailLayout();
-            marinaDetailEye=eye.transform.position;marinaDetailRotation=eye.transform.rotation;
-            marinaDetailForward=eye.transform.forward;marinaDetailUp=eye.transform.up;marinaDetailDistance=2.1f;
+            var eyePosition = eye.transform.position;
+            var eyeRotation = eye.transform.rotation;
+            var forward = eye.transform.forward;
+            var up = eye.transform.up;
+            const float distance = 2.1f;
             float width=Mathf.Max(1,panel.rect.width),height=Mathf.Max(1,panel.rect.height);
             float backRatio=width*.72f/Mathf.Max(1,marinaBack.rect.width);
             float backHeight=marinaBack.rect.height*backRatio,gap=24;
@@ -127,48 +125,44 @@ namespace DeadlyJenga.CastlePrototype
             float horizontal=Mathf.Atan(Mathf.Tan(vertical)*Mathf.Max(.3f,eye.aspect));
             float halfHeight=Mathf.Min(vertical*.8f,(Player.IsVR?24:29)*Mathf.Deg2Rad);
             float halfWidth=Mathf.Min(horizontal*.8f,42*Mathf.Deg2Rad);
-            float scale=Mathf.Min(2*marinaDetailDistance*Mathf.Tan(halfWidth)/width,
-                2*marinaDetailDistance*Mathf.Tan(halfHeight)/(height+backHeight+gap));
-            var center=marinaDetailEye+marinaDetailForward*marinaDetailDistance;
-            panel.SetPositionAndRotation(center-marinaDetailUp*((backHeight+gap)*scale*.5f),marinaDetailRotation);MarinaWorldScale(panel,scale);
-            marinaBack.SetPositionAndRotation(panel.position+marinaDetailUp*((height*.5f+gap+backHeight*.5f)*scale)-marinaDetailForward*.01f,marinaDetailRotation);
-            MarinaWorldScale(marinaBack,scale*backRatio);marinaDetailWidth=width*scale;
-            marinaDetailPanelBase=panel.position;marinaDetailBackBase=marinaBack.position;
-            marinaJoinKeyboardLift=0;
-            if(panel==joinStation)
+            float scale = Mathf.Min(2 * distance * Mathf.Tan(halfWidth) / width,
+                2 * distance * Mathf.Tan(halfHeight) / (height + backHeight + gap));
+            var center = eyePosition + forward * distance;
+            panel.SetPositionAndRotation(center - up * ((backHeight + gap) * scale * .5f), eyeRotation);
+            MarinaWorldScale(panel, scale);
+            marinaBack.SetPositionAndRotation(panel.position + up * ((height * .5f + gap + backHeight * .5f) * scale) - forward * .01f, eyeRotation);
+            MarinaWorldScale(marinaBack, scale * backRatio);
+            if (panel == joinStation)
             {
-                float lift=.32f,slope=Mathf.Tan(vertical*.9f);
-                var corners=new Vector3[4];marinaBack.GetWorldCorners(corners);
-                foreach(var corner in corners)
+                // Reserve the keyboard's space when the page opens, so typing never moves the monitor.
+                float lift = .32f, slope = Mathf.Tan(vertical * .9f);
+                var corners = new Vector3[4];
+                marinaBack.GetWorldCorners(corners);
+                foreach (var corner in corners)
                 {
-                    var relative=corner-marinaDetailEye;
-                    lift=Mathf.Min(lift,Vector3.Dot(relative,marinaDetailForward)*slope-Vector3.Dot(relative,marinaDetailUp));
+                    var relative = corner - eyePosition;
+                    lift = Mathf.Min(lift, Vector3.Dot(relative, forward) * slope - Vector3.Dot(relative, up));
                 }
-                marinaJoinKeyboardLift=Mathf.Max(0,lift);
+                var offset = up * Mathf.Max(0, lift);
+                panel.position += offset;
+                marinaBack.position += offset;
+
+                float reach = Player.IsVR ? .85f : 1.1f;
+                float floorY = Player.transform.position.y;
+                float down = Mathf.Clamp((eyePosition.y - floorY) * .5f, .18f, .42f);
+                var keyboardPosition = eyePosition + forward * reach - up * down;
+                keyboardPosition.y = Mathf.Max(keyboardPosition.y, floorY + .35f);
+                piano.SetPositionAndRotation(keyboardPosition, eyeRotation * Quaternion.Euler(55, 0, 0));
+                MarinaWorldScale(piano, Mathf.Min(1.65f, width * scale * reach / distance) / Mathf.Max(1, piano.rect.width));
             }
-            marinaKeyboardVisible=false;PlaceMarinaKeyboard();PrioritizeMarinaDetailMaterials();
+            UpdateMarinaKeyboard();
+            PrioritizeMarinaDetailMaterials();
         }
-        void PlaceMarinaKeyboard()
+        void UpdateMarinaKeyboard()
         {
-            if(!piano)return;
-            bool visible=marinaDetail=="join"&&lobby.CodeFocused;
-            if(marinaDetail=="join"&&marinaDetailPoses.Count>0&&joinStation&&marinaBack)
-            {
-                var offset=marinaDetailUp*(visible?marinaJoinKeyboardLift:0);
-                joinStation.position=marinaDetailPanelBase+offset;
-                marinaBack.position=marinaDetailBackBase+offset;
-            }
-            piano.gameObject.SetActive(visible);
-            if(!visible){marinaKeyboardVisible=false;return;}
-            if(marinaKeyboardVisible)return;
-            marinaKeyboardVisible=true;
-            float distance=Player.IsVR?.85f:1.1f;
-            float width=Mathf.Min(1.65f,marinaDetailWidth*distance/Mathf.Max(.1f,marinaDetailDistance));
-            float down=Mathf.Min(.42f,Mathf.Max(.18f,(marinaDetailEye.y-Player.transform.position.y)*.5f));
-            var position=marinaDetailEye+marinaDetailForward*distance-marinaDetailUp*down;
-            position.y=Mathf.Max(position.y,Player.transform.position.y+.35f);
-            piano.SetPositionAndRotation(position,marinaDetailRotation*Quaternion.Euler(55,0,0));
-            MarinaWorldScale(piano,width/Mathf.Max(1,piano.rect.width));
+            if (!piano) return;
+            bool visible = marinaDetail == "join" && lobby.CodeFocused;
+            if (piano.gameObject.activeSelf != visible) piano.gameObject.SetActive(visible);
         }
         void OpenMarinaDetail(string page)
         {
@@ -197,7 +191,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!marina)return;
             if(marinaDetail!=""&&Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame)CloseMarinaDetail();
             if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
-            if(marinaDetail!=""){PlaceMarinaKeyboard();if(Time.unscaledTime>=nextMarinaMaterials)PrioritizeMarinaDetailMaterials();}
+            if(marinaDetail!=""){UpdateMarinaKeyboard();if(Time.unscaledTime>=nextMarinaMaterials)PrioritizeMarinaDetailMaterials();}
             if(wardrobePanel)wardrobePanel.gameObject.SetActive(wardrobeOpen&&Player.IsVR);
             SyncMarinaBacks();
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)
@@ -213,7 +207,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void BuildMarinaMirror()
         {
-            var go=new GameObject("Marina live wardrobe mirror",typeof(RectTransform),typeof(Canvas),typeof(Image),typeof(Mask));go.transform.SetParent(transform,false);marinaMirror=go.GetComponent<RectTransform>();marinaMirror.position=new Vector3(-13,3.4f,10.08f);marinaMirror.localScale=Vector3.one*.01f;marinaMirror.sizeDelta=new Vector2(247,348);go.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;go.GetComponent<Canvas>().overrideSorting=true;go.GetComponent<Canvas>().sortingOrder=60;
+            var go=new GameObject("Marina live wardrobe mirror",typeof(RectTransform),typeof(Canvas),typeof(Image),typeof(Mask));go.transform.SetParent(transform,false);marinaMirror=go.GetComponent<RectTransform>();marinaMirror.localPosition=new Vector3(-13,3.4f,10.08f);marinaMirror.localScale=Vector3.one*.01f;marinaMirror.sizeDelta=new Vector2(247,348);go.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;go.GetComponent<Canvas>().overrideSorting=true;go.GetComponent<Canvas>().sortingOrder=60;
             marinaMaskTexture=new Texture2D(64,64,TextureFormat.RGBA32,false);var pixels=new Color[4096];
             for(int y=0;y<64;y++)for(int x=0;x<64;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),Vector2.one*32);pixels[y*64+x]=new Color(1,1,1,Mathf.Clamp01(32-d));}
             marinaMaskTexture.SetPixels(pixels);marinaMaskTexture.Apply();marinaMaskSprite=Sprite.Create(marinaMaskTexture,new Rect(0,0,64,64),Vector2.one*.5f);go.GetComponent<Image>().sprite=marinaMaskSprite;go.GetComponent<Image>().color=new Color(.42f,.68f,.75f);go.GetComponent<Mask>().showMaskGraphic=true;
