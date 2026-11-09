@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff?300:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -116,13 +116,15 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(()=>(home=FindFirstObjectByType<HomeSession>())&&!string.IsNullOrEmpty(home.Region),"Home initializes its room connection");
             if(role=="host")
             {
+                yield return Until(()=>File.Exists(Mark("guest-home")),"Both processes are ready before opening the room",360);
                 home.Host();
                 yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.Room.IsHost&&IslandLobby.Current.CanStart,
                     "Home Host opens a normal Play lobby",65);
                 var lobby=IslandLobby.Current;
                 var room=lobby.Room;
                 Require(lobby.SelectMode("ctf")&&lobby.SelectMap("mode-ctf"),"Host chooses Capture the Flag and its map");
-                File.WriteAllText(Mark("code"),room.Code);
+                File.WriteAllText(Mark("code-pending"),room.Code);
+                File.Move(Mark("code-pending"),Mark("code"));
                 yield return Until(()=>room.HumanCount==2&&File.Exists(Mark("guest-ready")),
                     "Second process receives the configured room",150);
                 Require(lobby.CanLeave,"Production leave action is available to the host");
@@ -132,7 +134,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
-                yield return Until(()=>File.Exists(Mark("code")),"Original host publishes the room code",150);
+                File.WriteAllText(Mark("guest-home"),"ready");
+                yield return Until(()=>File.Exists(Mark("code")),"Original host publishes the room code",420);
                 string code=File.ReadAllText(Mark("code"));
                 home.Code=code;
                 home.JoinCode();
@@ -176,7 +179,8 @@ namespace DeadlyJenga.CastlePrototype
             if(role=="host")
             {
                 var task=room.Host();yield return Until(()=>task.IsCompleted&&room.IsHost,"Host connects to real Fusion");
-                File.WriteAllText(Mark("code"),room.Code);
+                File.WriteAllText(Mark("code-pending"),room.Code);
+                File.Move(Mark("code-pending"),Mark("code"));
                 yield return Until(()=>room.HumanCount==2&&IslandLobby.Current.PeerCount==1,"Independent guest avatar joins host island");
                 room.SetSharedControls(true);room.Launch();
                 yield return Until(()=>FindFirstObjectByType<CastlePlaySession>(),"Host transitions lobby to Castle Demo");
