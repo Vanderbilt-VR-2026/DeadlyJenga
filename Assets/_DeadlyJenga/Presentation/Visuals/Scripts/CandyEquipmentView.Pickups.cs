@@ -149,7 +149,7 @@ namespace DeadlyJenga.Presentation
                 foreach(var part in parts)
                 {
                     var go=new GameObject("Equipment geometry",typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(view.model,false);go.transform.localPosition=part.local.GetColumn(3);go.transform.localRotation=part.local.rotation;go.transform.localScale=part.local.lossyScale;go.GetComponent<MeshFilter>().sharedMesh=part.mesh;
-                    var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=part.material;var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",part.color);block.SetFloat("_Smoothness",.9f);block.SetFloat("_Metallic",.65f);renderer.SetPropertyBlock(block);renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+                    var renderer=go.GetComponent<MeshRenderer>();renderer.sharedMaterial=part.material;var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",part.color);renderer.SetPropertyBlock(block);renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
                     var b=renderer.bounds;if(first){bounds=b;first=false;}else bounds.Encapsulate(b);
                 }
                 if(!first){float scale=.52f/Mathf.Max(.1f,Mathf.Max(bounds.size.x,Mathf.Max(bounds.size.y,bounds.size.z)));var center=view.model.InverseTransformPoint(bounds.center);var content=new GameObject("Centered model geometry").transform;var children=new System.Collections.Generic.List<Transform>();foreach(Transform child in view.model)children.Add(child);content.SetParent(view.model,false);foreach(var child in children)child.SetParent(content,false);content.localPosition=-center;view.model.localScale=Vector3.one*scale;view.model.localPosition=Vector3.zero;}
