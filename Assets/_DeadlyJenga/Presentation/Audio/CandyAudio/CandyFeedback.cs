@@ -30,6 +30,14 @@ namespace DeadlyJenga.CandyAudio
         }
         public static void Pulse(float amount,float duration=.08f)
         {if(!instance)return;instance.impulse=Mathf.Max(instance.impulse,Mathf.Clamp01(amount));instance.until=Mathf.Max(instance.until,Time.unscaledTime+Mathf.Clamp(duration,.02f,.3f));}
+        internal static void MenuPress(bool left)
+        {
+            if (!instance || !instance.hapticsEnabled || instance.hapticStrength <= 0) return;
+            var device = InputDevices.GetDeviceAtXRNode(left ? XRNode.LeftHand : XRNode.RightHand);
+            if (device.isValid && device.TryGetHapticCapabilities(out var capabilities) && capabilities.supportsImpulse)
+                device.SendHapticImpulse(0, Mathf.Clamp01(instance.hapticStrength * .30f), .045f);
+        }
+
         void OnEnable(){GameEvents.BlockHit+=Rubble;GameEvents.Pushed+=Push;GameEvents.Damaged+=Damage;GameEvents.Eliminated+=Death;}
         void OnDisable(){GameEvents.BlockHit-=Rubble;GameEvents.Pushed-=Push;GameEvents.Damaged-=Damage;GameEvents.Eliminated-=Death;}
         static bool Local(GameObject who)=>who&&Services.Session?.Player!=null&&who.transform.root==Services.Session.Player.transform.root;

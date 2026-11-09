@@ -123,7 +123,11 @@ namespace DeadlyJenga.Presentation
         {
             if(!target||!targets.Add(target.GetInstanceID()))return;
             var go=new GameObject("Summoning column - "+target.name);go.transform.SetParent(transform,false);
-            var column=go.AddComponent<CandySummoningColumn>();column.Initialize(target,columnMesh,columnMaterial,columns.Count,columnHeight,arrival);
+            var column=go.AddComponent<CandySummoningColumn>();
+            column.Initialize(target,columnMesh,columnMaterial,columns.Count,columnHeight,arrival);
+            var localPlayer=Services.Session?.Player;
+            if (NetworkActors.Alive(localPlayer)&&localPlayer.transform==target)
+                column.SetRiderCamera(localPlayer.ViewCamera);
             columns.Add(column);
         }
         void LateUpdate()

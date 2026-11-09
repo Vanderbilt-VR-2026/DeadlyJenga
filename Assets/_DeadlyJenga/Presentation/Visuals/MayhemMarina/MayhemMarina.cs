@@ -68,8 +68,17 @@ namespace DeadlyJenga.CandyArt.Marina
         void Residence(GameObject owner,string state)
         {
             if(owner!=gameObject)return;
-            if(state=="LobbyParked"){RestoreLighting();if(volume)volume.enabled=false;}
-            else if(state=="LobbyResumed"){ApplyLighting(coastalEnvironment);if(volume)volume.enabled=true;}
+            if (state=="LobbyParked")
+            {
+                RestoreLighting();
+                if (visual) visual.gameObject.SetActive(false);
+                HideLegacyGround(coastalEnvironment);
+            }
+            else if (state=="LobbyResumed")
+            {
+                ApplyLighting(coastalEnvironment);
+                if (visual) visual.gameObject.SetActive(true);
+            }
         }
         void RestoreLighting()
         {
@@ -79,7 +88,12 @@ namespace DeadlyJenga.CandyArt.Marina
             RenderSettings.ambientSkyColor=previousSkyColor;RenderSettings.ambientEquatorColor=previousEquatorColor;RenderSettings.ambientGroundColor=previousGroundColor;RenderSettings.ambientIntensity=previousAmbientIntensity;RenderSettings.ambientProbe=previousProbe;
             RenderSettings.fog=previousFog;RenderSettings.fogMode=previousFogMode;RenderSettings.fogColor=previousFogColor;RenderSettings.fogDensity=previousFogDensity;
         }
-        Volume volume;
+        static void HideLegacyGround(CandyEnvironment environment)
+        {
+            if (!environment) return;
+            if (environment.sandRenderer) environment.sandRenderer.gameObject.SetActive(false);
+            if (environment.waterRenderer) environment.waterRenderer.gameObject.SetActive(false);
+        }
         VolumeProfile volumeProfile;
         public Transform Anchor(string id)=>anchors.TryGetValue(id,out var point)?point:null;
 
@@ -106,7 +120,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             coastalEnvironment=environment;marinaSky=Resources.Load<Material>("MayhemMarina/MarinaSky");
             ApplyLighting(environment);
-            var go=new GameObject("Marina warm coastal grading");go.transform.SetParent(visual,false);volume=go.AddComponent<Volume>();volume.isGlobal=true;volume.priority=3;
+            var go=new GameObject("Marina warm coastal grading");go.transform.SetParent(visual,false);var volume=go.AddComponent<Volume>();volume.isGlobal=true;volume.priority=3;
             volumeProfile=ScriptableObject.CreateInstance<VolumeProfile>();volume.profile=volumeProfile;
             var tone=volumeProfile.Add<Tonemapping>();tone.mode.Override(TonemappingMode.ACES);
             var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(-.1f);color.contrast.Override(13);color.saturation.Override(-2);
@@ -147,8 +161,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 // Match skins own a temporary profile and update global ambient lighting every frame.
                 var matchSkins = environment.GetComponent<CandySceneSkins>();
                 if (matchSkins) matchSkins.enabled = false;
-                if(environment.sandRenderer)environment.sandRenderer.gameObject.SetActive(false);
-                if(environment.waterRenderer)environment.waterRenderer.gameObject.SetActive(false);
+                HideLegacyGround(environment);
                 environment.enabled=false;
                 var sun=environment.sun;
                 if(sun){sun.transform.rotation=Quaternion.Euler(29,-53,0);sun.color=new Color(1,.85f,.69f);sun.intensity=2.05f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}

@@ -11,6 +11,8 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.Rendering;
+using UnityEngine.Rendering.Universal;
 using Object=UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
@@ -22,6 +24,20 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly Stack<IEnumerator> steps=new Stack<IEnumerator>();
         static string Output=>Path.Combine(Path.GetDirectoryName(Application.dataPath),"ArtDirection","DisasterRedesign-20261026");
         static string Report=>Path.Combine(Output,"Capture.txt");
+        const string GameplayKey=Key+"Gameplay";
+        static bool gameplayFailed;
+        static string GameplayReport=>ProjectPath.Report("TornadoGameplay.txt");
+
+        public static void RunTornadoGameplay()
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Use the checked batch runner.");
+            SessionState.SetBool(GameplayKey,true);
+            File.WriteAllText(GameplayReport,"Production Game, Candy Castle, exterior review and upper-tower camera, mobile URP settings on desktop.\n");
+            MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=1;MatchSetup.HandCount=0;
+            MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;
+            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+            EditorApplication.EnterPlaymode();
+        }
         static float volume;
         static bool background;
         [Serializable] sealed class Saved {public SceneSetup[] scenes;public string map,mode;public int population,hands;public bool fromLobby,local;}
@@ -51,15 +67,40 @@ namespace DeadlyJenga.DevTools.Editor
                     var step=steps.Peek();if(!step.MoveNext()){(step as IDisposable)?.Dispose();steps.Pop();continue;}
                     if(step.Current is IEnumerator nested){steps.Push(nested);continue;}return;
                 }
-                File.AppendAllText(Report,"COMPLETE: two current disasters, four 1920x1080 captures. No visual implementation changed.\n");
+                if (SessionState.GetBool(GameplayKey,false)) File.AppendAllText(GameplayReport,"PASS Gameplay tornado check completed.\n");
+                else File.AppendAllText(Report,"COMPLETE: two current disasters, four 1920x1080 captures. No visual implementation changed.\n");
             }
-            catch(Exception error){File.AppendAllText(Report,"FAILED: "+error+"\n");}
+            catch (Exception error)
+            {
+                if (SessionState.GetBool(GameplayKey,false))
+                {
+                    gameplayFailed=true;
+                    File.AppendAllText(GameplayReport,"FAIL "+error+"\n");
+                }
+                else File.AppendAllText(Report,"FAILED: "+error+"\n");
+            }
             while(steps.Count>0)(steps.Pop() as IDisposable)?.Dispose();run=null;
             AudioListener.volume=volume;Application.runInBackground=background;
             EditorApplication.ExitPlaymode();
         }
         static void State(PlayModeStateChange state)
         {
+            if (SessionState.GetBool(GameplayKey,false))
+            {
+                if (state==PlayModeStateChange.EnteredPlayMode)
+                {
+                    gameplayFailed=false;
+                    volume=AudioListener.volume;background=Application.runInBackground;
+                    AudioListener.volume=0;Application.runInBackground=true;
+                    run=CaptureTornadoGameplay();
+                }
+                else if (state==PlayModeStateChange.EnteredEditMode)
+                {
+                    SessionState.SetBool(GameplayKey,false);
+                    EditorApplication.Exit(gameplayFailed?2:0);
+                }
+                return;
+            }
             if(state==PlayModeStateChange.EnteredPlayMode&&SessionState.GetBool(Key,false))
             {
                 SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Running",true);
@@ -76,6 +117,118 @@ namespace DeadlyJenga.DevTools.Editor
                 EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
             }
         }
+        static IEnumerator CaptureTornadoGameplay()
+        {
+            float until=Time.realtimeSinceStartup+65;
+            while ((Services.Session?.Demo==null || Services.World==null) && Time.realtimeSinceStartup<until) yield return null;
+            var session=Object.FindFirstObjectByType<CastlePlaySession>();
+            var art=Object.FindFirstObjectByType<CandyDisasterVisuals>();
+            if (!session || !art || session.Network || !session.ActiveCamera) throw new InvalidOperationException("Game or active player camera is unavailable.");
+            session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots?.Clear();
+            var upperTowerEye=session.Player.ViewCamera.transform.position;
+            session.SetRole(true);session.SetMenu(false);
+            session.Player.InputSuspended=true;session.Hand.InputSuspended=true;
+            var camera=session.ActiveCamera;
+            var cameraData=camera.GetUniversalAdditionalCameraData();
+            var previousDepth=cameraData.requiresDepthOption;
+            var previousPipeline=QualitySettings.renderPipeline;
+            const BindingFlags member=BindingFlags.Instance|BindingFlags.NonPublic;
+            var visualType=typeof(CandyDisasterVisuals);
+            try
+            {
+                var mobile=AssetDatabase.LoadAssetAtPath<UniversalRenderPipelineAsset>(ProjectPath.Find("Mobile_RPAsset.asset"));
+                if (!mobile) throw new InvalidOperationException("Mobile URP asset is unavailable.");
+                QualitySettings.renderPipeline=mobile;
+                cameraData.requiresDepthOption=CameraOverrideOption.Off;
+                visualType.GetField("compactStorm",member).SetValue(art,true);
+                var material=(Material)visualType.GetField("storm",member).GetValue(art);
+                material.SetFloat("_MarchBudget",20);
+                if (!material.shader.isSupported || ShaderUtil.ShaderHasError(material.shader))
+                    throw new InvalidOperationException("The production funnel shader failed to compile.");
+                yield return null;
+                var tornado=DemoDisasters.Prefabs.First(prefab=>prefab.name=="Tornado");
+                File.AppendAllText(GameplayReport,DemoDisasters.Request(session,tornado)+"\n");
+                var source=DisasterStates.Active.FirstOrDefault(s=>s.Capture()?.kind=="Tornado");
+                var warning=source?.Capture();
+                if (warning==null || warning.warning<=0) throw new InvalidOperationException("The production request did not start the warning.");
+                // Keep the real Game camera settings while framing the live storm outside the walls.
+                var outward=Vector3.ProjectOnPlane(warning.center-Services.World.Center,Vector3.up).normalized;
+                var side=Vector3.Cross(Vector3.up,outward);
+                var eye=warning.center+outward*69+side*31+Vector3.up*6;
+                var forward=TornadoView(eye,warning);
+                camera.transform.SetPositionAndRotation(eye,forward);
+                var baseline=ReadTornadoCamera(camera,null);
+                until=Time.realtimeSinceStartup+45;
+                var live=source.Capture();
+                while (Time.realtimeSinceStartup<until && (live==null || live.warning>0 || !cameraData.requiresDepthTexture))
+                {
+                    yield return null;
+                    live=source.Capture();
+                }
+                if (live==null || live.warning>0 || !cameraData.requiresDepthTexture)
+                    throw new InvalidOperationException($"Tornado state age={live?.age:F2}, warning={live?.warning:F2}, camera depth={cameraData.requiresDepthOption}, active camera unchanged={session.ActiveCamera==camera}.");
+                camera.transform.SetPositionAndRotation(eye,forward);
+                visualType.GetMethod("LateUpdate",member).Invoke(art,null);
+                var actual=ReadTornadoCamera(camera,"Tornado-Player-Mobile-URP.png");
+                int changed=0;
+                for(int i=baseline.Length/2;i<baseline.Length;i++)
+                {
+                    int difference=Math.Abs(baseline[i].r-actual[i].r)+Math.Abs(baseline[i].g-actual[i].g)+Math.Abs(baseline[i].b-actual[i].b);
+                    if(difference>55)changed++;
+                }
+                File.AppendAllText(GameplayReport,$"Exterior review camera at {eye}; center {live.center}; far clip {camera.farClipPlane}; changed upper-screen pixels {changed}.\n");
+                if(changed<450)throw new InvalidOperationException("No substantial tornado silhouette appeared in the player view.");
+                until=Time.realtimeSinceStartup+13;
+                while ((source.Capture()?.age??0)<8.7f && Time.realtimeSinceStartup<until) yield return null;
+                live=source.Capture();
+                if(live==null) throw new InvalidOperationException("The tornado ended before the approach capture.");
+                camera.transform.SetPositionAndRotation(eye,TornadoView(eye,live));
+                visualType.GetMethod("LateUpdate",member).Invoke(art,null);
+                ReadTornadoCamera(camera,"Tornado-Player-Approach.png");
+                File.AppendAllText(GameplayReport,$"Exterior approach at event age {live.age:F2}s, center {live.center}, eye {eye}.\n");
+                camera.transform.SetPositionAndRotation(upperTowerEye,TornadoView(upperTowerEye,live));
+                visualType.GetMethod("LateUpdate",member).Invoke(art,null);
+                ReadTornadoCamera(camera,"Tornado-Player-Upper-Tower.png");
+                DemoDisasters.StopAll(session);
+                yield return new WaitForSecondsRealtime(1.9f);
+                if(cameraData.requiresDepthOption!=CameraOverrideOption.Off)
+                    throw new InvalidOperationException("Tornado did not release its camera depth override.");
+            }
+            finally
+            {
+                DemoDisasters.StopAll(session);
+                cameraData.requiresDepthOption=previousDepth;
+                QualitySettings.renderPipeline=previousPipeline;
+            }
+        }
+
+        static Quaternion TornadoView(Vector3 eye,DisasterFrame storm)
+        {
+            var foot=(storm.center-eye).normalized;
+            var crown=(storm.center+Vector3.up*(storm.values[0]+storm.values[1]*.65f)-eye).normalized;
+            return Quaternion.LookRotation(foot+crown);
+        }
+
+        static Color32[] ReadTornadoCamera(Camera camera,string filename)
+        {
+            var target=RenderTexture.GetTemporary(960,540,24);
+            var previous=RenderTexture.active;
+            var oldTarget=camera.targetTexture;
+            var texture=new Texture2D(target.width,target.height,TextureFormat.RGB24,false);
+            try
+            {
+                camera.targetTexture=target;camera.Render();RenderTexture.active=target;
+                texture.ReadPixels(new Rect(0,0,target.width,target.height),0,0);texture.Apply();
+                if(filename!=null)File.WriteAllBytes(ProjectPath.Report(filename),texture.EncodeToPNG());
+                return texture.GetPixels32();
+            }
+            finally
+            {
+                camera.targetTexture=oldTarget;RenderTexture.active=previous;
+                RenderTexture.ReleaseTemporary(target);Object.Destroy(texture);
+            }
+        }
+
         static IEnumerator Capture()
         {
             float deadline=Time.realtimeSinceStartup+40;

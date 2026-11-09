@@ -8,6 +8,7 @@ Shader "Candy Tropical/Player Summoning Column"
         _Lift("Player lift",Float)=0
         _Seed("Variation",Float)=0
         _ColumnHeight("Column height",Float)=150
+        _RiderEyeHeight("Rider eye height",Float)=-1
     }
     SubShader
     {
@@ -21,7 +22,7 @@ Shader "Candy Tropical/Player Summoning Column"
             #pragma fragment frag
             #pragma multi_compile_instancing
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            float _FlowTime,_Progress,_Strength,_Lift,_Seed,_ColumnHeight;
+            float _FlowTime,_Progress,_Strength,_Lift,_Seed,_ColumnHeight,_RiderEyeHeight;
             struct A {float4 positionOS:POSITION;float2 uv:TEXCOORD0;float2 info:TEXCOORD1;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct V {float4 positionCS:SV_POSITION;float2 uv:TEXCOORD0;float2 info:TEXCOORD1;float height:TEXCOORD2;UNITY_VERTEX_OUTPUT_STEREO};
             V vert(A i)
@@ -47,6 +48,10 @@ Shader "Candy Tropical/Player Summoning Column"
                 float reach=smoothstep(front-6,front+2,i.height)*(1-smoothstep(_ColumnHeight-min(25,max(.35,_ColumnHeight*.17)),_ColumnHeight,i.height));
                 float ring=i.info.x>.5?1:0;
                 if(ring>.5){reach=smoothstep(.07,.19,_Progress);streak=.62+.38*sin(t*9+seed+i.uv.y*7);}
+                // Let the rider see nearby strands while the main reveal is still high overhead.
+                float riderReach=step(0,_RiderEyeHeight)*(1-ring)*smoothstep(0,.035,_Progress);
+                riderReach*=1-smoothstep(.6,1.85,abs(i.height-_RiderEyeHeight));
+                reach=max(reach,riderReach*.75);
                 float mixColor=smoothstep(.25,.75,.5+.5*sin(seed*3+i.uv.y*.14-t*.7));
                 float3 color=lerp(float3(.17,1,.58),float3(.67,.26,1),mixColor);
                 float core=pow(edge,5);color=lerp(color,float3(.96,1,1),core*.5);

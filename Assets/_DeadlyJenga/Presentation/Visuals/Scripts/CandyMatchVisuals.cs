@@ -13,7 +13,7 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<string,List<Look>> looks=new Dictionary<string,List<Look>>();
         readonly Dictionary<string,float> displayedHealth=new Dictionary<string,float>();
         MaterialPropertyBlock props;
-        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid;bool viewVR;
+        Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100,sinkCurtain;bool curtainStereo;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid;bool viewVR;
         bool wasOutage;string skin="";int winner=-2;readonly Dictionary<Renderer,MaterialPropertyBlock> winnerOriginal=new Dictionary<Renderer,MaterialPropertyBlock>();
         readonly Dictionary<Renderer,Material> blockOriginals=new Dictionary<Renderer,Material>();readonly Dictionary<(Material,string),Material> teamMaterials=new Dictionary<(Material,string),Material>();int claimRevision=-1;
         readonly List<string> staleLooks=new List<string>();CandyEnvironment[] environments;float environmentAt;
@@ -34,7 +34,7 @@ namespace DeadlyJenga.Presentation
             wasOutage=outage;
             if(!outage&&!restoringOutage)Health(runtime,f);
             if(Time.unscaledTime>=scanAt&&!restoringOutage){scanAt=Time.unscaledTime+.2f;Deaths(runtime,f);TeamHands(runtime,f);if(!outage){Winner(f);if(f.phase!=RoundPhase.Victory)Claims(f);}else claimRevision=-1;}
-            Transition();
+            Transition(f);
             if(Time.unscaledTime>=environmentAt){environmentAt=Time.unscaledTime+1;environments=FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None);}
             if(f.phase==RoundPhase.Victory&&f.winnerTeam>=0)foreach(var team in f.teams)if(team.id==f.winnerTeam)foreach(var env in environments??System.Array.Empty<CandyEnvironment>())if(env&&env.waterRenderer)Tint(env.waterRenderer,team.color);
         }
@@ -185,7 +185,7 @@ namespace DeadlyJenga.Presentation
                 {if(p.dying||!p.alive){r.forceRenderingOff=true;hidden.Add(r);}else if(hidden.Remove(r))r.forceRenderingOff=false;}
             }
         }
-        void Transition()
+        void Transition(MatchFrame frame)
         {
             var session=Services.Session;if(session?.ActiveCamera==null){if(canvas)canvas.enabled=false;return;}
             if(!canvas)
@@ -195,13 +195,65 @@ namespace DeadlyJenga.Presentation
                 var shader=Resources.Load<Shader>("CandyScenery/CandyLiquidCurtain");if(shader){liquid=new Material(shader);curtain.material=liquid;}
             }
             if(view!=session.ActiveCamera||viewVR!=session.IsVR)
-            {view=session.ActiveCamera;viewVR=session.IsVR;var r=canvas.GetComponent<RectTransform>();if(session.IsVR){canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;r.SetParent(view.transform,false);r.sizeDelta=new Vector2(4,4);r.localPosition=new Vector3(0,0,.15f);r.localRotation=Quaternion.identity;r.localScale=Vector3.one;}else{canvas.renderMode=RenderMode.ScreenSpaceOverlay;r.SetParent(transform,false);}}
+            {view=session.ActiveCamera;viewVR=session.IsVR;var r=canvas.GetComponent<RectTransform>();if(session.IsVR){canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=view;r.SetParent(view.transform,false);r.localRotation=Quaternion.identity;r.localScale=Vector3.one;FitCurtain(r,view);}else{canvas.renderMode=RenderMode.ScreenSpaceOverlay;r.SetParent(transform,false);}}
             float age=Time.unscaledTime-transitionAt;float alpha=age<.3f?Mathf.SmoothStep(0,1,age/.3f):1-Mathf.SmoothStep(0,1,(age-.3f)/.9f);
-            var world=Services.World;if(world!=null&&view.transform.position.y<world.WaterHeight(view.transform.position)+.08f&&!(CandyTabletop.Current&&CandyTabletop.Current.Enabled)){alpha=1;transitionColor=new Color(.025f,.48f,.65f);}
-            var sink=MatchRuntime.Current!=null&&session.Player!=null?MatchRuntime.Current.RulesFor(session.Player.gameObject):null;
-            if(sink!=null&&sink.sinking&&alpha<.001f){alpha=.05f+sink.sinkProgress*.22f;transitionColor=new Color(.82f,.64f,.36f);}
-            if(liquid){liquid.SetFloat("_Progress",Mathf.Lerp(-.1f,1.1f,Mathf.Clamp01(alpha)));curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,1);}else curtain.color=new Color(transitionColor.r,transitionColor.g,transitionColor.b,Mathf.Clamp01(alpha));canvas.enabled=alpha>.001f||Shader.GetGlobalFloat("_CandyHeat")>.01f;
+            if (viewVR && curtainStereo != view.stereoEnabled)
+                FitCurtain((RectTransform)canvas.transform, view);
+            Color tint = transitionColor;
+            bool tabletop = CandyTabletop.Current && CandyTabletop.Current.Enabled;
+            var world = Services.World;
+            if (world != null && view.transform.position.y < world.WaterHeight(view.transform.position) + .08f && !tabletop)
+            {
+                alpha = 1;
+                tint = new Color(.025f,.48f,.65f);
+            }
+            float sandTarget = 0;
+            var player = session.Player;
+            if (frame.phase == RoundPhase.Playing && player != null && !player.InputSuspended && !tabletop &&
+                !session.MenuOpen && !session.PlayingHand)
+            {
+                var movement = player.gameObject.GetComponent<IMovementState>();
+                var sink = MatchRuntime.Current.RulesFor(player.gameObject);
+                if (sink.sinking && movement?.Climbing != true && movement?.Vaulting != true)
+                    sandTarget = Mathf.Lerp(.15f, .37f, Mathf.Clamp01(sink.sinkProgress));
+            }
+            sinkCurtain = Mathf.MoveTowards(sinkCurtain, sandTarget, Time.unscaledDeltaTime * (sandTarget > 0 ? .85f : 1.4f));
+            bool sand = alpha < .001f && sinkCurtain > .001f && !session.MenuOpen && !tabletop && !session.PlayingHand &&
+                frame.phase == RoundPhase.Playing;
+            if (sand)
+            {
+                alpha = sinkCurtain;
+                tint = new Color(.69f,.41f,.17f,.68f);
+            }
+            if (liquid)
+            {
+                liquid.SetFloat("_Progress", Mathf.Lerp(-.1f,1.1f,Mathf.Clamp01(alpha)));
+                liquid.SetFloat("_Sand", sand ? 1 : 0);
+                curtain.color = new Color(tint.r,tint.g,tint.b,sand ? tint.a : 1);
+            }
+            else curtain.color = new Color(tint.r,tint.g,tint.b,Mathf.Clamp01(alpha) * (sand ? .55f : 1));
+            canvas.enabled = alpha > .001f || Shader.GetGlobalFloat("_CandyHeat") > .01f;
         }
+        void FitCurtain(RectTransform plane, Camera camera)
+        {
+            curtainStereo = camera.stereoEnabled;
+            float depth = camera.nearClipPlane + Mathf.Min(.12f, (camera.farClipPlane - camera.nearClipPlane) * .5f);
+            Vector2 extent = Vector2.zero;
+            for (int eye = 0; eye < (curtainStereo ? 2 : 1); eye++)
+            {
+                var projection = !curtainStereo ? Camera.MonoOrStereoscopicEye.Mono :
+                    eye == 0 ? Camera.MonoOrStereoscopicEye.Left : Camera.MonoOrStereoscopicEye.Right;
+                for (int corner = 0; corner < 4; corner++)
+                {
+                    var world = camera.ViewportToWorldPoint(new Vector3(corner & 1, corner >> 1, depth), projection);
+                    var local = camera.transform.InverseTransformPoint(world);
+                    extent = Vector2.Max(extent, new Vector2(Mathf.Abs(local.x), Mathf.Abs(local.y)));
+                }
+            }
+            plane.localPosition = new Vector3(0, 0, depth);
+            plane.sizeDelta = extent * 2.12f + Vector2.one * .01f;
+        }
+
         void OnDestroy(){RestoreHandTints();RestoreLooks();RestoreWinner();RestoreBlocks();foreach(var r in hidden)if(r)r.forceRenderingOff=false;foreach(var m in teamMaterials.Values)if(m)Destroy(m);if(healthMaterial)Destroy(healthMaterial);if(liquid)Destroy(liquid);if(canvas)Destroy(canvas.gameObject);}
     }
 
@@ -210,6 +262,12 @@ namespace DeadlyJenga.Presentation
         public const float RagdollSeconds=1.4f, LiquefySeconds=4.5f, PuddleSeconds=1.25f, DrySeconds=2.75f;
         public const float Lifetime=RagdollSeconds+LiquefySeconds+PuddleSeconds+DrySeconds;
         float born,height,meltAt=-1,simulationTime;Vector3 meltCenter;VisualDeathRagdoll ragdoll;Transform puddle;readonly List<Material> owned=new List<Material>();readonly List<Mesh> meshes=new List<Mesh>();
+        Collider puddleSurface;
+        Vector3 puddleAnchor;
+        Quaternion puddleRotation;
+        Material puddleMaterial;
+        Color puddleColor;
+        Shader meltShader;
         readonly Dictionary<(Color,float,Texture,Vector4),Material> materials=new Dictionary<(Color,float,Texture,Vector4),Material>();
         public float Age=>Time.unscaledTime-born;
         public float MeltProgress=>meltAt<0?0:Mathf.SmoothStep(0,1,(Age-meltAt)/LiquefySeconds);
@@ -282,9 +340,8 @@ namespace DeadlyJenga.Presentation
                 r.localBounds=new Bounds(mesh.bounds.center,mesh.bounds.size+Vector3.one*driver.height*3);
                 driver.ragdoll.Attach(renderer,go.transform,mesh);
             }
-            var disk=new GameObject("Visual - spreading candy puddle");disk.transform.SetParent(root.transform,false);disk.transform.localPosition=Vector3.up*.014f;driver.puddle=disk.transform;
-            var diskMesh=MakePuddle();driver.meshes.Add(diskMesh);disk.AddComponent<MeshFilter>().sharedMesh=diskMesh;
-            var diskRenderer=disk.AddComponent<MeshRenderer>();diskRenderer.sharedMaterial=driver.MakeMaterial(shader,puddleColor,center,1);diskRenderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;
+            driver.puddleColor=puddleColor;
+            driver.meltShader=shader;
             driver.Present();
         }
         static Mesh BakeSnapshot(SkinnedMeshRenderer renderer)
@@ -347,24 +404,178 @@ namespace DeadlyJenga.Presentation
             if(texture)material.SetTexture("_BaseMap",texture);material.SetVector("_BaseMap_ST",uv);
             material.SetFloat("_BodyHeight",height);material.SetFloat("_PuddleMesh",disk);owned.Add(material);materials[key]=material;return material;
         }
-        static Mesh MakePuddle()
+        void CreatePuddle(ref Vector3 center)
         {
-            const int count=64;var vertices=new Vector3[count+1];var normals=new Vector3[count+1];var triangles=new int[count*3];normals[0]=Vector3.up;
-            for(int i=0;i<count;i++)
-            {
-                float angle=i*Mathf.PI*2/count;float radius=1+.055f*Mathf.Sin(angle*5+.7f)+.035f*Mathf.Sin(angle*9);
-                vertices[i+1]=new Vector3(Mathf.Cos(angle)*radius,0,Mathf.Sin(angle)*radius);normals[i+1]=Vector3.up;
-                triangles[i*3]=0;triangles[i*3+1]=(i+1)%count+1;triangles[i*3+2]=i+1;
-            }
-            var mesh=new Mesh{name="Candy puddle"};mesh.vertices=vertices;mesh.normals=normals;mesh.triangles=triangles;mesh.RecalculateBounds();return mesh;
+            var surface = ragdoll.SupportCollider;
+            if (!surface || !surface.enabled) return;
+            float probeHeight = Mathf.Max(.15f, height * .35f);
+            if (!SampleSurface(surface, center, probeHeight, out var anchor) &&
+                !SampleSurface(surface, ragdoll.SupportPoint, probeHeight, out anchor)) return;
+
+            center = anchor.point;
+            var mesh = MakePuddle(surface, anchor, height, probeHeight);
+            if (!mesh) return;
+            meshes.Add(mesh);
+            var disk = new GameObject("Visual - spreading candy puddle");
+            puddle = disk.transform;
+            puddle.SetParent(transform, false);
+            puddle.position = center;
+            puddleSurface = surface;
+            puddleAnchor = surface.transform.InverseTransformPoint(center);
+            puddleRotation = Quaternion.Inverse(surface.transform.rotation);
+            disk.AddComponent<MeshFilter>().sharedMesh = mesh;
+            var renderer = disk.AddComponent<MeshRenderer>();
+            puddleMaterial = MakeMaterial(meltShader, puddleColor, center, 1);
+            renderer.sharedMaterial = puddleMaterial;
+            renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
         }
+
+        static bool SampleSurface(Collider surface, Vector3 point, float height, out RaycastHit hit) =>
+            surface.Raycast(new Ray(point + Vector3.up * height, Vector3.down), out hit, height * 2) &&
+            hit.normal.y >= .45f;
+
+        static bool JoinSurface(Vector3 a, Vector3 b)
+        {
+            var delta = b - a;
+            float horizontal = new Vector2(delta.x, delta.z).magnitude;
+            return Mathf.Abs(delta.y) <= .025f + horizontal * 1.75f;
+        }
+
+        static Mesh MakePuddle(Collider surface, RaycastHit anchor, float height, float probeHeight)
+        {
+            const int spokes = 20, rings = 4, edgeSteps = 3;
+            var points = new List<Vector3>(1 + spokes * rings) { anchor.point };
+            var normals = new List<Vector3>(points.Capacity) { anchor.normal };
+            var triangles = new List<int>(spokes * (2 * rings - 1) * 3);
+            var index = new int[spokes, rings + 1];
+            var radius = new Vector2(height * .72f, height * .59f);
+            bool checkTerrain = !(surface is BoxCollider);
+
+            for (int spoke = 0; spoke < spokes; spoke++)
+            {
+                float angle = spoke * (2 * Mathf.PI / spokes);
+                // Sample beyond the final irregular rim so the shader can grow it in place.
+                var extent = new Vector3(Mathf.Cos(angle) * radius.x, 0, Mathf.Sin(angle) * radius.y) * 1.10f;
+                bool clipped = false;
+                int last = 0;
+                for (int ring = 1; ring <= rings; ring++)
+                {
+                    if (!clipped)
+                    {
+                        float outer = ring / (float)rings;
+                        var previous = points[last];
+                        var previousNormal = normals[last];
+                        bool Sample(float t, out RaycastHit hit)
+                        {
+                            var point = anchor.point + extent * t;
+                            point.y = previous.y;
+                            if (!SampleSurface(surface, point, probeHeight, out hit) || !JoinSurface(previous, hit.point)) return false;
+                            if (!checkTerrain) return Vector3.Dot(previousNormal, hit.normal) > .7f;
+                            // Do not step across a gap or a cliff on the same terrain collider.
+                            var middle = (previous + hit.point) * .5f;
+                            return SampleSurface(surface, middle, probeHeight, out var halfway) &&
+                                Mathf.Abs(middle.y - halfway.point.y) <= Mathf.Max(.035f, height * .04f);
+                        }
+
+                        if (Sample(outer, out var hit))
+                        {
+                            last = points.Count;
+                            points.Add(hit.point);
+                            normals.Add(hit.normal);
+                        }
+                        else
+                        {
+                            // Stop at the first gap. Refine the last supported point, not the lower floor.
+                            clipped = true;
+                            float inner = (ring - 1) / (float)rings;
+                            for (int step = 0; step < edgeSteps; step++)
+                            {
+                                float t = (inner + outer) * .5f;
+                                if (Sample(t, out var edge))
+                                {
+                                    inner = t;
+                                    hit = edge;
+                                }
+                                else outer = t;
+                            }
+                            if (inner > (ring - 1) / (float)rings)
+                            {
+                                last = points.Count;
+                                points.Add(hit.point);
+                                normals.Add(hit.normal);
+                            }
+                        }
+                    }
+                    index[spoke, ring] = last;
+                }
+            }
+
+            void Triangle(int a, int b, int c)
+            {
+                if (a == b || b == c || a == c ||
+                    !JoinSurface(points[a], points[b]) || !JoinSurface(points[b], points[c]) ||
+                    !JoinSurface(points[c], points[a])) return;
+                // Mesh terrain can have notches between spokes. Reject unsupported triangle centers.
+                if (checkTerrain)
+                {
+                    var middle = (points[a] + points[b] + points[c]) / 3;
+                    if (!SampleSurface(surface, middle, probeHeight, out var hit) ||
+                        Mathf.Abs(middle.y - hit.point.y) > Mathf.Max(.05f, height * .08f)) return;
+                }
+                else if (Vector3.Dot(normals[a], normals[b]) <= .7f ||
+                    Vector3.Dot(normals[b], normals[c]) <= .7f || Vector3.Dot(normals[c], normals[a]) <= .7f) return;
+                triangles.Add(a);
+                triangles.Add(b);
+                triangles.Add(c);
+            }
+
+            for (int spoke = 0; spoke < spokes; spoke++)
+            {
+                int next = (spoke + 1) % spokes;
+                for (int ring = 1; ring <= rings; ring++)
+                {
+                    Triangle(index[spoke, ring - 1], index[next, ring], index[spoke, ring]);
+                    Triangle(index[spoke, ring - 1], index[next, ring - 1], index[next, ring]);
+                }
+            }
+            if (triangles.Count == 0) return null;
+
+            var uv = new List<Vector2>(points.Count);
+            for (int i = 0; i < points.Count; i++)
+            {
+                var point = points[i] - anchor.point;
+                uv.Add(new Vector2(point.x / radius.x, point.z / radius.y));
+                points[i] = point + normals[i] * .012f;
+            }
+            var mesh = new Mesh { name = "Surface-conforming candy puddle" };
+            mesh.SetVertices(points);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uv);
+            mesh.SetTriangles(triangles, 0);
+            return mesh;
+        }
+
+        void FollowPuddle()
+        {
+            if (!puddle) return;
+            bool supported = puddleSurface && puddleSurface.enabled && puddleSurface.gameObject.activeInHierarchy;
+            if (puddle.gameObject.activeSelf != supported) puddle.gameObject.SetActive(supported);
+            if (!supported) return;
+            var surface = puddleSurface.transform;
+            puddle.SetPositionAndRotation(surface.TransformPoint(puddleAnchor), surface.rotation * puddleRotation);
+        }
+
         void Present()
         {
             float progress=MeltProgress;
             float meltingAge=meltAt<0?0:Mathf.Max(0,Age-meltAt);
             float dry=Mathf.Clamp01((meltingAge-LiquefySeconds-PuddleSeconds)/DrySeconds);
             foreach(var material in owned){material.SetFloat("_MeltProgress",progress);material.SetFloat("_DryProgress",dry);}
-            if(puddle){float spread=Mathf.SmoothStep(0,1,Mathf.Clamp01((meltingAge-.15f)/(LiquefySeconds-.15f)));puddle.localScale=new Vector3(height*.72f*spread,.01f,height*.59f*spread);}
+            if (puddleMaterial)
+            {
+                float spread = Mathf.SmoothStep(0, 1, Mathf.Clamp01((meltingAge - .15f) / (LiquefySeconds - .15f)));
+                puddleMaterial.SetFloat("_PuddleSpread", spread);
+            }
         }
         void Update()
         {
@@ -378,15 +589,17 @@ namespace DeadlyJenga.Presentation
                 if(Age>=RagdollSeconds&&(ragdoll.Settled||Age>=5))
                 {
                     meltAt=Age;var body=ragdoll.Bounds;
-                    var center=new Vector3(body.center.x,ragdoll.GroundHeight,body.center.z);meltCenter=center;
+                    var center=new Vector3(body.center.x,ragdoll.GroundHeight,body.center.z);
+                    CreatePuddle(ref center);
+                    meltCenter=center;
                     foreach(var material in owned)material.SetVector("_MeltCenter",center);
-                    puddle.position=center+Vector3.up*.014f;
                 }
             }
             else
             {
                 var delta=ragdoll.FollowSurface();
-                if(delta.sqrMagnitude>0){meltCenter+=delta;puddle.position+=delta;foreach(var material in owned)material.SetVector("_MeltCenter",meltCenter);}
+                if(delta.sqrMagnitude>0){meltCenter+=delta;foreach(var material in owned)material.SetVector("_MeltCenter",meltCenter);}
+                FollowPuddle();
                 if(Age-meltAt>=LiquefySeconds+PuddleSeconds+DrySeconds){Destroy(gameObject);return;}
             }
             Present();

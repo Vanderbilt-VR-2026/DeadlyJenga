@@ -70,8 +70,8 @@ static class Program
             Check(options.All(line=>line.Split(' ').Length<=18),row.kind+" line length");
             if(row.sober) Check(options.All(line=>line.Count(c=>c=='.')==1),row.kind+" no added punchline during danger");
             if(selfContact)Check(options.Distinct().Count()==3,row.kind+" varies personal contact wording");
-            if(!row.sober&&row.kind!=Greeting&&row.kind!=Silence&&row.kind!=Victory&&row.kind!=Betrayal)
-                Check(options.Distinct().Count()==3,row.kind+" rotates three options");
+            if(row.kind==Hazard) Check(options.All(line=>line==dry),"Disaster callouts stay plain");
+            Check(!MatchBanter.CanQuip(turn,0,1),row.kind+" first callout has no aside");
             Console.WriteLine($"{row.kind,-12} {options[0]}");
         }
 
@@ -89,7 +89,8 @@ static class Program
         foreach(var kind in new[]{Collapse,Wobble,Combat})
         {
             var turn=new ObservedSpeech{Kind=kind,Fact="I heard a crash nearby. I could not see what happened.",HeardOnly=true};
-            Check(MatchBanter.Compose(turn,0,true)=="I heard a crash nearby.",kind+" hearing-only remains hearing-only");
+            Check(MatchBanter.Compose(turn,0,true)==(kind==Collapse?"Whoa, what was that?":"I heard a crash nearby."),
+                kind+" hearing-only remains hearing-only");
         }
         foreach(var kind in Enum.GetValues<SocialEventKind>())
         {
@@ -101,17 +102,44 @@ static class Program
             (Equipment,"Someone dropped equipment.","drop"),
             (Equipment,"Someone picked up equipment.","pick"),
             (Round,"Round just started.","Ready"),
-            (Round,"Round's over.","Well played"),
+            (Round,"Round's over.","Good game"),
             (Objective,"Flag scored.","Flag"),
             (Combat,"A shot went off.","way"),
             (NearMiss,"Someone dropped below the ledge.","okay"),
             (Effect,"Someone got hit by an effect.","last"),
             (Hazard,"Flood started nearby.","close"),
-            (Rewind,"The rewind ended.","back")})
+            (Rewind,"The rewind ended.","another go")})
         {
             string reply=MatchBanter.Compose(new ObservedSpeech{Kind=pair.Item1,HeardText=pair.Item2},0,false);
             Check(reply.Contains(pair.Item3,StringComparison.OrdinalIgnoreCase),pair.Item1+" heard-line response");
         }
+        var rewind=new ObservedSpeech{Kind=Rewind,Fact="The rewind ended."};
+        Check(MatchBanter.Compose(rewind,2,true)=="The rewind ended. Wait, does that count as a do-over?",
+            "Meta aside is grounded in the confirmed rewind");
+        Check(MatchBanter.CanQuip(rewind,2,.8)&&!MatchBanter.CanQuip(rewind,2,.4),
+            "Rare asides depend on personality");
+        rewind.HeardOnly=true;
+        Check(!MatchBanter.CanQuip(rewind,2,1),"A listener doesn't joke about unseen facts");
+        Check(MatchBanter.ContainsWords("Wait, Jelly!", "Jelly")&&!MatchBanter.ContainsWords("jellyfish", "Jelly"),
+            "Addressing uses whole names");
+        Check(MatchBanter.IsQuestion("Wait, where did it go")&&!MatchBanter.IsQuestion("I'm just talking to my friend."),
+            "Questions without ASR punctuation invite a turn, side talk does not");
+        Check(MatchBanter.IsBotQuestion("Jelly, are you a real person?", "Jelly")&&!MatchBanter.IsBotQuestion("I didn't ask are you a bot", "Jelly"),
+            "Direct fourth-wall question gets a plain bot answer");
+        Check(MatchBanter.DirectPlayerReply("Jelly, did you get hit just then?", "Jelly",
+            "This happened to me: someone took a hit.")=="Yep, felt that.",
+            "Direct personal damage question uses confirmed observation");
+        Check(MatchBanter.DirectPlayerReply("Did you get hit?", "Jelly", "Someone took a hit on my right.")==null,
+            "Seeing another player get hit does not confirm a self hit");
+        Check(MatchBanter.DirectPlayerReply("Did you get hit by Jelly?", "Pebble",
+            "This happened to me: someone took a hit.")==null,
+            "A self hit alone doesn't confirm who caused it");
+        Check(MatchBanter.DirectPlayerReply("Jelly, this game is chaos. One more round?", "Jelly", "")=="Yeah, run it back.",
+            "A rematch invitation gets a social reply without claiming to start a round");
+        Check(!MatchBanter.IsPlayerReply("I'm a bot. Fragments are fine.", "One more round?")&&
+            !MatchBanter.IsPlayerReply("One more round?", "This game is chaos. One more round?")&&
+            MatchBanter.IsPlayerReply("I'm down.", "This game is chaos. One more round?"),
+            "Open replies reject instruction echoes and parroting the mic");
         var memory=new DialogueRecency();
         memory.Remember("Pebble","The block just fell on my right!",5,true);
         memory.Remember("Pebble","Hold on. I heard your question.",6,false);

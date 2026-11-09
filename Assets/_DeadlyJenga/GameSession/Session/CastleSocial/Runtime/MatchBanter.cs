@@ -4,27 +4,91 @@ namespace DeadlyJenga.CastleSocial
 {
     internal static class MatchBanter
     {
-        static readonly string[][] Tags =
+        internal const string BotIdentity = "Yeah, I'm a bot.";
+
+        // Keep the first callout clean. A playful bot can add an aside on a later beat.
+        internal static bool CanQuip(ObservedSpeech turn, int variant, double playfulness) =>
+            !turn.HeardOnly && string.IsNullOrEmpty(turn.HeardText) && playfulness > .6 &&
+            (uint)variant % 5 == 2;
+
+        internal static bool IsBotQuestion(string speech, string name)
         {
-            new[] { "Gravity, undefeated.", "The tower is shedding.", "That block quit." },
-            new[] { "Very normal flooring.", "Love a moving floor.", "Solid is a suggestion." },
-            new[] { "Nailed the part after jumping.", "Totally meant that.", "Put it on the reel." },
-            new[] { "The forecast has hands.", "Great. Weather with a grudge.", "So much for a quiet round." },
-            new[] { "New toy energy.", "Please read the manual.", "Fancy." },
-            new[] { "Put it on the board.", "A rare win for planning.", "We take those." },
-            new[] { "Okay. Deep breath.", "The tower can clock out too.", "Somehow, still standing." },
-            new[] { "Love the commitment.", "Strong visual argument.", "I'll allow it." },
-            new[] { "Gravity read the patch notes.", "That felt different.", "Well, that's new." },
-            new[] { "Time is having a day.", "I preferred that take.", "Continuity is optional." }
+            var words = QuestionText(speech, name);
+            return words is "are you a bot" or "are you ai" or "are you real"
+                or "are you a real person" or "are you human" or "are you a human";
+        }
+
+        static string QuestionText(string speech, string name)
+        {
+            var words = speech.Trim().TrimEnd('?', '.', '!', ' ');
+            if (words.StartsWith("hey ", StringComparison.OrdinalIgnoreCase)) words = words.Substring(4);
+            if (!string.IsNullOrEmpty(name) && words.StartsWith(name, StringComparison.OrdinalIgnoreCase))
+                words = words.Substring(name.Length).TrimStart(',', ' ');
+            return words.ToLowerInvariant();
+        }
+
+        internal static string DirectPlayerReply(string speech, string name, string fact)
+        {
+            if (IsBotQuestion(speech, name)) return BotIdentity;
+            var words = QuestionText(speech, name);
+            var lastSentence = words.Substring(words.LastIndexOf('.') + 1).TrimStart();
+            if (lastSentence is "one more round" or "wanna run it back" or "want to run it back")
+                return "Yeah, run it back.";
+            if (fact != "This happened to me: someone took a hit.") return null;
+            return words switch
+            {
+                "did you get hit" or "did you get hit just then" or "did you get hit there" => "Yep, felt that.",
+                _ => null
+            };
+        }
+
+        internal static bool IsPlayerReply(string answer, string speech)
+        {
+            string words = answer.Trim().TrimEnd('?', '.', '!');
+            if (words.Length == 0 || answer.IndexOfAny(new[]{'[',']','*'}) >= 0) return false;
+            return !ContainsWords(answer, "I'm a bot") && !ContainsWords(answer, "I am a bot") &&
+                !ContainsWords(answer, "as a bot") && !ContainsWords(answer, "fragments are fine") &&
+                !ContainsWords(speech, words);
+        }
+
+        internal static bool IsQuestion(string speech)
+        {
+            if (speech.TrimEnd().EndsWith("?", StringComparison.Ordinal)) return true;
+            if (speech.StartsWith("wait,", StringComparison.OrdinalIgnoreCase)) speech = speech.Substring(5).TrimStart();
+            else if (speech.StartsWith("wait ", StringComparison.OrdinalIgnoreCase)) speech = speech.Substring(5);
+            foreach (var start in QuestionStarts)
+                if (speech.StartsWith(start, StringComparison.OrdinalIgnoreCase)) return true;
+            return false;
+        }
+
+        static readonly string[] QuestionStarts = {
+            "where ", "what ", "which ", "how ", "who ", "why ", "can you ", "are you ", "did you ", "do you ", "should we "
         };
+
+        internal static bool ContainsWords(string speech, string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return false;
+            for (int start = 0; start < speech.Length;)
+            {
+                int at = speech.IndexOf(name, start, StringComparison.OrdinalIgnoreCase);
+                if (at < 0) return false;
+                int end = at + name.Length;
+                if ((at == 0 || !char.IsLetterOrDigit(speech[at - 1])) &&
+                    (end == speech.Length || !char.IsLetterOrDigit(speech[end]))) return true;
+                start = at + 1;
+            }
+            return false;
+        }
 
         internal static string Compose(ObservedSpeech turn, int variant, bool playful)
         {
-            if (!string.IsNullOrEmpty(turn.HeardText)) return Reply(turn, variant, playful);
+            if (!string.IsNullOrEmpty(turn.HeardText)) return Reply(turn, variant);
 
             string fact = FirstSentence(turn.Fact);
             const string warning = "The public disaster warning reads: ";
-            if (fact.StartsWith(warning, StringComparison.Ordinal)) fact = "Heads up. " + fact.Substring(warning.Length);
+            if (fact.StartsWith(warning, StringComparison.Ordinal)) fact = "Heads up, " + fact.Substring(warning.Length);
+            else if (fact.StartsWith("A tower block broke apart", StringComparison.Ordinal))
+                fact = "A block just broke" + fact.Substring("A tower block broke apart".Length);
             else if (fact == "The public match display says the round has started.") fact = "Round just started.";
             else if (fact == "The public match display says the round is over.") fact = "Round's over.";
             else if (fact == "I scored a confirmed flag capture.") fact = "Flag scored.";
@@ -38,37 +102,37 @@ namespace DeadlyJenga.CastleSocial
             }
             if (turn.HeardOnly && turn.Kind == SocialEventKind.Collapse)
                 return Pick(HeardCrashes, variant);
-            if (!playful || turn.HeardOnly || turn.Kind == SocialEventKind.Damage ||
-                turn.Kind == SocialEventKind.Elimination || turn.Kind == SocialEventKind.Combat ||
-                turn.Kind == SocialEventKind.NearMiss || turn.Kind == SocialEventKind.Collision)
-                return fact;
-
-            int index = TagIndex(turn.Kind);
-            return index < 0 ? fact : fact + " " + Pick(Tags[index], variant);
+            if (!playful || turn.HeardOnly) return fact;
+            switch (turn.Kind)
+            {
+                case SocialEventKind.Collapse: return fact + " Okay, I liked that block.";
+                case SocialEventKind.Success: return fact + " I would've missed that.";
+                case SocialEventKind.Rewind: return fact + " Wait, does that count as a do-over?";
+                case SocialEventKind.Round when fact == "Round's over.": return fact + " One more? I can do worse.";
+                default: return fact;
+            }
         }
 
-        static string Reply(ObservedSpeech turn, int variant, bool playful)
+        static string Reply(ObservedSpeech turn, int variant)
         {
             string words = turn.HeardText.ToLowerInvariant();
             if (turn.Kind == SocialEventKind.Collapse || turn.Kind == SocialEventKind.Wobble)
             {
-                string direction = words.Contains("on my right") ? "your right" :
-                    words.Contains("on my left") ? "your left" :
-                    words.Contains("above me") ? "above you" :
-                    words.Contains("below me") ? "below you" : "";
+                string direction = ContainsWords(words, "on my right") ? "your right" :
+                    ContainsWords(words, "on my left") ? "your left" :
+                    ContainsWords(words, "above me") ? "above you" :
+                    ContainsWords(words, "below me") ? "below you" : "";
                 if (direction.Length > 0)
                 {
                     string where = direction.StartsWith("your", StringComparison.Ordinal) ? "on " + direction : direction;
-                    if (!playful) return "How close was it " + where + "?";
-                    switch ((uint)variant % 4)
+                    return ((uint)variant % 4) switch
                     {
-                        case 0: return "Was it close " + where + " or just loud?";
-                        case 1: return "How close " + where + "? Asking for my knees.";
-                        case 2: return "Which block " + where + "? I liked most of them.";
-                        default: return "Did it fall far " + where + "?";
-                    }
+                        0 or 1 => "Wait, " + where + "?",
+                        2 => "How close " + where + "?",
+                        _ => "You mean " + where + "?"
+                    };
                 }
-                return turn.HeardOnly ? "I heard that. Which block went?" : "Which part did you see move?";
+                return turn.HeardOnly ? "Wait, which block?" : "Which one moved?";
             }
 
             switch (turn.Kind)
@@ -80,23 +144,23 @@ namespace DeadlyJenga.CastleSocial
                 case SocialEventKind.Hazard: return Pick(HazardReplies, variant);
                 case SocialEventKind.Combat: return Pick(CombatReplies, variant);
                 case SocialEventKind.Equipment: return words.Contains("dropped")
-                    ? (playful ? "Loot delivery. No contact, please." : "Where did they drop it?")
-                    : (playful ? "New toy? Please read the manual." : "What did they pick up?");
-                case SocialEventKind.Objective: return words.Contains("flag") ? "Flag play! Nicely done." : "Okay, put that on the highlight reel.";
-                case SocialEventKind.Success: return playful ? "The landing judge gives it a nine." : "Nice landing.";
+                    ? "Where did they drop it?"
+                    : "What did they pick up?";
+                case SocialEventKind.Objective: return words.Contains("flag") ? "Nice, the flag!" : "Oh, nice.";
+                case SocialEventKind.Success: return "Nice landing.";
                 case SocialEventKind.Round: return words.Contains("started")
-                    ? (playful ? "Okay, everyone look competent." : "Ready.")
-                    : (playful ? "Did the tower win too?" : "Well played.");
-                case SocialEventKind.Rewind: return playful ? "Does that count as two mistakes?" : "We're back where we started?";
+                    ? "Ready."
+                    : "Good game.";
+                case SocialEventKind.Rewind: return "Wait, we get another go?";
                 case SocialEventKind.Effect: return "How long does that last?";
-                case SocialEventKind.Joke: return playful ? "I'd clap, but I need both hands." : "Fair enough.";
+                case SocialEventKind.Joke: return "Okay, that got me.";
                 default: return "What happened next?";
             }
         }
 
         static readonly string[] SelfHits = { "I took a hit.", "That hit me.", "Yep, felt that.", "I just got tagged." };
         static readonly string[] SelfShoves = { "I got knocked back.", "That sent me backwards.", "So much for standing still.", "I just got shoved." };
-        static readonly string[] HeardCrashes = { "I heard a crash nearby.", "Something just crashed. I heard it.", "That was loud. What was it?", "Did anyone else hear that crash?" };
+        static readonly string[] HeardCrashes = { "Whoa, what was that?", "I heard a crash nearby.", "That was loud. What was it?", "Did you hear that?" };
         static readonly string[] EliminationReplies = { "Rough. Anyone still up there?", "Anyone left on that side?", "That was rough. You still up there?" };
         static readonly string[] HazardReplies = { "How close is it?", "Is it moving this way?", "Which side is it on?" };
         static readonly string[] CombatReplies = { "Which way did that come from?", "Was that close to you?", "Where was the shot?" };
@@ -109,13 +173,5 @@ namespace DeadlyJenga.CastleSocial
             int separator = fact.IndexOf(". ", StringComparison.Ordinal);
             return separator < 0 ? fact : fact.Substring(0, separator + 1);
         }
-
-        static int TagIndex(SocialEventKind kind) => kind switch
-        {
-            SocialEventKind.Collapse => 0, SocialEventKind.Wobble => 1, SocialEventKind.Success => 2,
-            SocialEventKind.Hazard => 3, SocialEventKind.Equipment => 4, SocialEventKind.Objective => 5,
-            SocialEventKind.Round => 6, SocialEventKind.Joke => 7, SocialEventKind.Effect => 8,
-            SocialEventKind.Rewind => 9, _ => -1
-        };
     }
 }

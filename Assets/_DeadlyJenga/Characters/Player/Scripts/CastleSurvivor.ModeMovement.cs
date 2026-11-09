@@ -10,6 +10,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         public bool Sinking { get; private set; }
         public float SinkProgress { get; private set; }
+        bool sinkVaultPending;
         public bool CarryingFlag { get; private set; }
         public bool HasWalkableIsland => modeRules!=null&&modeRules.island==IslandRule.Walkable;
         public bool PunchEnabled { get; private set; }
@@ -84,7 +85,7 @@ namespace DeadlyJenga.CastlePrototype
         public void SetSinking(bool value, float progress = 0)
         {
             Sinking = value; SinkProgress = value ? Mathf.Clamp01(progress) : 0;
-            if (value && Climbing) ReleaseClimb("Sinking — find a ledge", false);
+            if (!value) sinkVaultPending = false;
         }
         void ApplyFallImpact()
         {

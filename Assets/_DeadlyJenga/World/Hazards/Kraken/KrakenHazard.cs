@@ -132,8 +132,14 @@ namespace DeadlyJenga.World.Hazards
                     arm.t += dt / 1.6f;
                     if (arm.held) arm.to = arm.held.position;
                     arm.tip = Bend(arm.from, arm.to, Ease(Mathf.Clamp01(arm.t)), 6);
-                    if (arm.t >= 1) { arm.state = Arm.Holding; arm.t = 0; }
-                    if (!Alive(arm.held)) Release(arm);
+                    if (!Grabbable(arm.held)) { Release(arm); break; }
+                    if (arm.t >= 1)
+                    {
+                        if (arm.held.isKinematic && arm.held.TryGetComponent<IPushable>(out var receiver))
+                            receiver.Push((arm.basePoint-arm.held.position).normalized*12*strength, gameObject);
+                        if (!Alive(arm.held)) { Release(arm); break; }
+                        arm.state = Arm.Holding; arm.t = 0;
+                    }
                     break;
 
                 case Arm.Holding:
@@ -180,7 +186,10 @@ namespace DeadlyJenga.World.Hazards
             return Vector3.Lerp(a, b, t) + side * Mathf.Sin(t * Mathf.PI);
         }
 
-        static bool Alive(Rigidbody b) => b && !b.isKinematic && !(b.GetComponent<IBreakable>()?.Broken ?? false);
+        static bool Present(Rigidbody b) => b && b.gameObject.activeInHierarchy && !(b.GetComponent<IBreakable>()?.Broken ?? false);
+        static bool Alive(Rigidbody b) => Present(b) && !b.isKinematic;
+        static bool Grabbable(Rigidbody b) => Present(b) && (!b.isKinematic ||
+            b.TryGetComponent<IHazardMotion>(out _) && b.TryGetComponent<IPushable>(out _));
 
         void Release(Tentacle arm)
         {
@@ -217,13 +226,13 @@ namespace DeadlyJenga.World.Hazards
             Rigidbody best = null; float bestScore = float.MaxValue;
             foreach (var b in world.Blocks)
             {
-                if (!Alive(b) || claimed.Contains(b)) continue;
+                if (!Grabbable(b) || claimed.Contains(b)) continue;
                 var p = b.position;
                 if (p.y < water + 1.5f || p.y > Mathf.Lerp(water, top, .75f)) continue;
                 var flat = Vector3.ProjectOnPlane(p - center, Vector3.up);
-                if (flat.magnitude < towerRadius * .8f) continue;   // only the outside of the tower, so you can see it happen
+                float interior = Mathf.Max(0,towerRadius*.8f-flat.magnitude);
                 float facing = 1 - Vector3.Dot(flat.normalized, outward);   // 0 = right in front of this arm
-                float score = facing * 30 + Vector3.Distance(p, arm.basePoint) * .2f + Random.value * 4;
+                float score = facing * 30 + Vector3.Distance(p, arm.basePoint) * .2f + interior + Random.value * 4;
                 if (score < bestScore) { bestScore = score; best = b; }
             }
             return best;
@@ -242,6 +251,7 @@ namespace DeadlyJenga.World.Hazards
                 var impulse = dir * V(2) * strength;
                 if (col.gameObject.layer == Layers.Survivor) { push?.Push(impulse * dt * 6, gameObject); continue; }
                 if (body && !body.isKinematic) body.AddForce(impulse * .35f, ForceMode.VelocityChange);
+                else if (body && body.TryGetComponent<IHazardMotion>(out _)) push?.Push(impulse*.35f,gameObject);
             }
         }
 

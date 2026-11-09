@@ -70,7 +70,7 @@ namespace DeadlyJenga.Presentation
                         !Physics.Linecast(eye.transform.position,point,(1<<Layers.Block)|(1<<Layers.Surface),QueryTriggerInteraction.Ignore);
                     label.gameObject.SetActive(visible);
                     if(!visible)continue;
-                    label.text=CandyNameplate.ActorLabel(actor?.DisplayName??bot.name,true);
+                    label.text=actor?.DisplayName??bot.name;
                     label.color=new Color(.9f,.96f,1);
                     label.transform.position=point;
                     label.transform.rotation=Quaternion.LookRotation(point-eye.transform.position);

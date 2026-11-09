@@ -7,6 +7,7 @@ namespace DeadlyJenga.Presentation
     public sealed class CandySummoningColumn : MonoBehaviour
     {
         Transform target; Vector3 origin; MeshRenderer visual; MaterialPropertyBlock properties; float seed,columnHeight;bool follow,requestedVisible=true;
+        Camera riderCamera;
         public Transform Target=>target;
         public Vector3 Origin=>origin;
         public bool Visible=>visual&&visual.enabled;
@@ -19,6 +20,7 @@ namespace DeadlyJenga.Presentation
             visual.lightProbeUsage=LightProbeUsage.Off;visual.reflectionProbeUsage=ReflectionProbeUsage.Off;
             properties=new MaterialPropertyBlock();
         }
+        internal void SetRiderCamera(Camera camera) => riderCamera=camera;
         public void SetVisible(bool visible){requestedVisible=visible;if(visual)visual.enabled=visible&&target&&target.gameObject.activeInHierarchy;}
         public void Render(float elapsed,float progress,float strength)
         {
@@ -27,6 +29,14 @@ namespace DeadlyJenga.Presentation
             transform.position=follow?target.position:new Vector3(target.position.x,origin.y,target.position.z);
             properties.SetFloat("_FlowTime",elapsed);properties.SetFloat("_Progress",progress);
             properties.SetFloat("_Strength",strength);properties.SetFloat("_Lift",follow?0:Mathf.Max(0,target.position.y-origin.y));properties.SetFloat("_ColumnHeight",columnHeight);
+            if (riderCamera)
+            {
+                var offset=riderCamera.transform.position-target.position;
+                float sideways=new Vector2(offset.x,offset.z).magnitude;
+                float scale=Mathf.Clamp((sideways+.65f)/.46f,1.6f,3.5f);
+                transform.localScale=new Vector3(scale,1,scale);
+                properties.SetFloat("_RiderEyeHeight",riderCamera.transform.position.y-transform.position.y);
+            }
             properties.SetFloat("_Seed",seed);visual.SetPropertyBlock(properties);
         }
         public static Mesh CreateMesh(float height=150)

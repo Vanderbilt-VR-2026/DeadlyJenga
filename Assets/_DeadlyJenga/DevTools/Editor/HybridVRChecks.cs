@@ -87,6 +87,61 @@ namespace DeadlyJenga.DevTools.Editor
         static void Refresh(CandyTrackingSource source)=>typeof(CandyTrackingSource).GetMethod("ReadLatest",BindingFlags.Instance|BindingFlags.NonPublic).Invoke(source,null);
         static void Input(InputDevice device,string control,float value)
         {using(var state=StateEvent.From(device,out var inputEvent)){device.GetChildControl<AxisControl>(control).WriteValueIntoEvent(value,inputEvent);InputSystem.QueueEvent(inputEvent);}}
+        static void CheckTrackedAvatarHeight(CastleSurvivor player,CandyPlayerAvatar avatar)
+        {
+            var eye=player.viewCamera.transform;
+            var saved=eye.position;
+            var remoteRoot=new GameObject("XR posture remote fixture");
+            var remote=remoteRoot.AddComponent<DeadlyJenga.CharacterNetwork.SurvivorNetworkView>()
+                .Init(new NetworkContext{localSurvivor=player.gameObject,actorId="xr-posture-fixture"});
+            try
+            {
+                foreach(float height in new[]{.08f,1.05f,2.5f,1.05f})
+                {
+                    eye.position=new Vector3(saved.x,player.transform.position.y+height*player.playerScale,saved.z);
+                    avatar.RefreshNow();
+                    var tracking=avatar.LastFrame;
+                    Check(Mathf.Abs(tracking.head.y-eye.position.y)<.001f,
+                        "Local view and outgoing tracking preserve physical headset height");
+                    CheckStandingBody(avatar.Rig,tracking);
+
+                    using var stream=new MemoryStream();
+                    using var writer=new BinaryWriter(stream);
+                    using var reader=new BinaryReader(stream);
+                    avatar.WriteState(writer);
+                    stream.Position=0;
+                    remote.ReadState(reader,true);
+                    remote.Render(1);
+                    Check(Mathf.Abs(remote.ViewPose.position.y-tracking.head.y)<.015f,
+                        "Remote gameplay pose preserves transmitted headset height");
+                    CheckStandingBody(remote.Visual.GetComponent<CandyPlayerRig>(),tracking);
+                }
+            }
+            finally
+            {
+                eye.position=saved;
+                avatar.RefreshNow();
+                Object.Destroy(remoteRoot);
+            }
+        }
+
+        static void CheckStandingBody(CandyPlayerRig rig,CandyAvatarFrame tracking)
+        {
+            float scale=tracking.scale;
+            float expected=(1.6f-.14f)*scale+
+                (tracking.headRotation*(rig.style?rig.style.headCenterOffset:new Vector3(0,0,-.08f))).y*scale;
+            Check(Mathf.Abs(rig.HeadAnchor.position.y-tracking.feet.y-expected)<.015f,
+                "Tracked height changes leave the rendered avatar head at standing height");
+            Check(Mathf.Abs(rig.BodyAnchor.localScale.y-1)<.015f,
+                "Tracked height changes do not compress or stretch the torso");
+            foreach(int index in new[]{10,13})
+            {
+                float foot=rig.AppearanceBone(index).position.y;
+                Check(foot>=tracking.feet.y-.015f&&foot<rig.HeadAnchor.position.y,
+                    "The avatar foot stays below its head and above the floor");
+            }
+        }
+
         static IEnumerator Run()
         {
             yield return null;yield return null;
@@ -173,6 +228,7 @@ namespace DeadlyJenga.DevTools.Editor
                     DeadlyJenga.CharacterNetwork.CharacterWire.ReadSurvivor(reader,out received,out _,out _,out _);
                     Check(!received.seated,"Existing survivor packet without seated flag still decodes");
                 }
+                CheckTrackedAvatarHeight(player,avatar);
                 var testSkin=new Mesh{vertices=new[]{Vector3.zero},bindposes=new Matrix4x4[16]};
                 testSkin.boneWeights=new[]{new BoneWeight{boneIndex0=1,weight0=.6f,boneIndex1=4,weight1=.4f}};
                 var split=typeof(CandySmoothHandMesh).GetMethod("SeparateDigitWeights",BindingFlags.Static|BindingFlags.NonPublic);

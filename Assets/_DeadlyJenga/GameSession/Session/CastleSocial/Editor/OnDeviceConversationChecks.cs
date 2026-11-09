@@ -157,6 +157,7 @@ namespace DeadlyJenga.CastleSocial.Editor
             yield return null;
             var world=session.GetComponent<SocialWorld>();
             Assert(world&&world.IsAuthority,"Game scene and local match authority ready");
+            yield return CheckBundled(session,false);
             world.Config.enableBots=false;
             world.Settings.onDevice.editorPackFolder=SessionState.GetString(Key+"Pack","");
             world.Settings.onDevice.frameBudgetMs=0;
@@ -319,10 +320,13 @@ namespace DeadlyJenga.CastleSocial.Editor
                 "Witness actually talks about the break");
             Assert(!reply.Contains("i saw")&&reply.Contains("your right"),
                 "Listener's reply uses the spoken direction in the witness's perspective");
+            Assert(seen=="a block just broke on my right."&&reply=="wait, on your right?",
+                "First callout stays short and the listener repairs the direction without a punchline");
             Assert(seen!=reply,"The second turn uses distinct wording");
             Assert(bots.All(bot=>!bot.Bot.Respawning)&&Vector3.Distance(bots[0].transform.position,seenFrom)<.3f&&
                 Vector3.Distance(bots[1].transform.position,heardFrom)<.3f,"Both observer positions stayed fixed through playback");
             yield return CheckDamageVariation(world,bots[0]);
+            yield return CheckPlayerTurn(world,bots);
             EditorApplication.ExitPlaymode();
         }
 
@@ -340,6 +344,42 @@ namespace DeadlyJenga.CastleSocial.Editor
             Set("Expires",Time.unscaledTime+12);
             typeof(OnDeviceConversation).GetMethod("QueueObserved",flags).Invoke(native,
                 new[]{(object)bots[0].State.identity,turn});
+        }
+
+        static IEnumerator CheckPlayerTurn(SocialWorld world,SocialBotAgent[] bots)
+        {
+            yield return Until(()=>!world.OnDevice.Busy,10,"Previous bot turn releases the floor");
+            Assert(world.TryPosition(world.LocalParticipantId,out var player),"Local participant has a voice position");
+            PlaceForCollapse(bots[0],player+Vector3.right*2);
+            PlaceForCollapse(bots[1],player+Vector3.right*20);
+            string before=world.Caption;
+            world.HumanTranscript(world.LocalParticipantId,"Just talking to my friend.","side-chat",true);
+            world.HumanTranscript(world.LocalParticipantId,bots[1].State.identity.name+", are you a bot?","far-bot",true);
+            yield return new WaitForSecondsRealtime(1.3f);
+            Assert(!world.OnDevice.Busy&&world.Caption==before,"Side chat and a question to an out-of-range bot stay quiet");
+            world.HumanTranscript(world.LocalParticipantId,bots[0].State.identity.name+", are you a bot?","near-bot",true);
+            var pcm=new float[256];
+            yield return Until(()=>
+            {
+                var voice=world.transform.Find("Voice · "+bots[0].State.identity.id);
+                var source=voice?voice.GetComponent<AudioSource>():null;
+                if(!source||!source.isPlaying)return false;
+                source.GetOutputData(pcm,0);
+                return pcm.Any(sample=>Mathf.Abs(sample)>.001f);
+            },10,"Direct player question plays through the addressed bot's AudioSource");
+            Assert(world.Caption==bots[0].State.identity.name+" [AI]: Yeah, I'm a bot.",
+                "The addressed bot answers the fourth-wall question plainly");
+            yield return Until(()=>!world.OnDevice.Busy,10,"Identity answer releases the floor");
+            world.HumanTranscript(world.LocalParticipantId,bots[0].State.identity.name+", did you get hit just then?","hit-question",true);
+            yield return Until(()=>world.Caption.EndsWith("Yep, felt that.",StringComparison.Ordinal),10,
+                "A direct hit question uses the bot's confirmed personal observation");
+            yield return Until(()=>!world.OnDevice.Busy,10,"Grounded answer releases the floor");
+            world.HumanTranscript(world.LocalParticipantId,bots[0].State.identity.name+", this game is chaos. One more round?","follow-up",true);
+            yield return Until(()=>world.Caption==bots[0].State.identity.name+" [AI]: Yeah, run it back.",10,
+                "A casual rematch invitation gets a brief in-character answer");
+            Assert(world.OnDevice.LastReplyKind=="Direct player reply","The answer is labeled as a direct response");
+            lines.Add("PLAYER REPLY "+world.Caption);
+            File.WriteAllLines(Report,lines);
         }
 
         static IEnumerator CheckDamageVariation(SocialWorld world, SocialBotAgent bot)
@@ -408,7 +448,7 @@ namespace DeadlyJenga.CastleSocial.Editor
             agent.State.nextSpeech=0;
         }
 
-        static IEnumerator CheckBundled(CastlePlaySession session)
+        static IEnumerator CheckBundled(CastlePlaySession session,bool exit=true)
         {
             yield return null;
             var world=session.GetComponent<SocialWorld>();
@@ -442,7 +482,7 @@ namespace DeadlyJenga.CastleSocial.Editor
                 yield return Until(()=>world.Director.Speaking==0,8,"Bundled voice releases its speech slot");
             }
             Assert(world.Speech.ActiveRequests==0&&!world.OnDevice.Requested,"Bundled dialogue plays without a server or on-device language model");
-            EditorApplication.ExitPlaymode();
+            if(exit)EditorApplication.ExitPlaymode();
         }
     }
 }

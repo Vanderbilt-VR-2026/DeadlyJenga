@@ -17,7 +17,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             public Vector3[] position, velocity, spin;
             public Quaternion[] rotation;
-            public Frame(int n) { position = new Vector3[n]; velocity = new Vector3[n]; spin = new Vector3[n]; rotation = new Quaternion[n]; }
+            public bool[] held,active;
+            public Frame(int n) { position = new Vector3[n]; velocity = new Vector3[n]; spin = new Vector3[n]; rotation = new Quaternion[n]; held = new bool[n]; active = new bool[n]; }
         }
 
         Frame[] frames = new Frame[0];
@@ -58,7 +59,9 @@ namespace DeadlyJenga.CastlePrototype
                 var b = list[i];
                 if (!b) continue;
                 f.position[i] = b.position; f.rotation[i] = b.rotation;
-                f.velocity[i] = b.linearVelocity; f.spin[i] = b.angularVelocity;
+                f.held[i] = b.isKinematic; f.active[i] = b.gameObject.activeSelf;
+                f.velocity[i] = b.isKinematic ? Vector3.zero : b.linearVelocity;
+                f.spin[i] = b.isKinematic ? Vector3.zero : b.angularVelocity;
             }
             head = (head + 1) % frames.Length;
             count = Mathf.Min(count + 1, frames.Length);
@@ -74,8 +77,8 @@ namespace DeadlyJenga.CastlePrototype
 
         static bool Owner(IReadOnlyList<Rigidbody> list)
         {
-            if (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority) return false;
-            foreach (var b in list) if (b) return !b.isKinematic;
+            if (Services.Session is IWorldAuthority authority) return authority.HasWorldAuthority;
+            foreach (var b in list) if (b && !b.isKinematic) return true;
             return false;
         }
 
@@ -108,6 +111,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     var b = bodies[i];
                     if (!b) continue;
+                    if (b.gameObject.activeSelf != earlier.active[i]) b.gameObject.SetActive(earlier.active[i]);
                     var p = Vector3.Lerp(later.position[i], earlier.position[i], u);
                     // Never slide a block through the map on its way back from the graveyard.
                     if (CastleBlock.InGraveyard(later.position[i]) != CastleBlock.InGraveyard(earlier.position[i])) p = earlier.position[i];
@@ -123,8 +127,9 @@ namespace DeadlyJenga.CastlePrototype
                 var b = bodies[i];
                 if (!b) continue;
                 b.position = target.position[i]; b.rotation = target.rotation[i];
-                b.isKinematic = false;
-                b.linearVelocity = target.velocity[i]; b.angularVelocity = target.spin[i];
+                b.isKinematic = target.held[i];
+                if (!b.isKinematic) { b.linearVelocity = target.velocity[i]; b.angularVelocity = target.spin[i]; }
+                if (b.gameObject.activeSelf != target.active[i]) b.gameObject.SetActive(target.active[i]);
             }
             count = Mathf.Max(1, count - steps);
             head = (newest - steps + 1 + len * 4) % len;

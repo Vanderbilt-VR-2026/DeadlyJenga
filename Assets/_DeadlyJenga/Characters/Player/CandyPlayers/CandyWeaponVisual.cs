@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyPlayers
         internal static bool MeleeMount(EquipmentKind kind,bool left,out Vector3 palm,out Quaternion mount)
         {
             float side=left?1:-1;
-            palm=ShaftPalm;
+            palm=ShaftPalm(ShaftRadius(kind));
             switch(kind)
             {
                 case EquipmentKind.MurderSword:
@@ -52,9 +52,54 @@ namespace DeadlyJenga.CandyPlayers
 
         internal const float RifleSupportDepth = .354f;
         internal const float ChainGunRearGripDepth = .075f, ChainGunFrontGripDepth = .475f;
-        static readonly Vector3 ShaftPalm = new Vector3(0, -.031f, .075f);
+        static readonly Vector3 ChainGunRearHandle = new Vector3(0, -.031f, ChainGunRearGripDepth);
+        const float BarGripRadius = .027f;
         internal const float SawBailHeight = .315f, SawBailDepth = .275f;
         internal const float AxeSupportDepth = .43f;
+        static readonly Vector3 StormbreakerEmitter = new Vector3(0, .397f, .827f);
+
+        internal static Pose StormbreakerCarry(Pose aim, bool left, bool lightning, float scale,
+            Vector3? support, out bool holdingSupport)
+        {
+            Vector3 forward = aim.rotation * Vector3.forward;
+            Vector3 up = Vector3.ProjectOnPlane(Vector3.up, forward);
+            if (up.sqrMagnitude < .01f) up = aim.rotation * Vector3.up;
+            var stance = Quaternion.LookRotation(forward, up);
+            float side = left ? 1 : -1;
+            Vector3 shaft = stance * (lightning
+                ? new Vector3(side * .18f, .84f, .50f)
+                : new Vector3(side * .40f, .89f, .21f)).normalized;
+
+            holdingSupport = false;
+            if (support.HasValue)
+            {
+                var separation = support.Value - aim.position;
+                float distance = separation.magnitude / scale;
+                // Match the two leather grips. An unrelated squeeze must not flip the axe.
+                if (distance >= .24f && distance <= .65f && Vector3.Dot(shaft, separation.normalized) > .45f)
+                {
+                    shaft = separation.normalized;
+                    holdingSupport = true;
+                }
+            }
+
+            var blade = Vector3.ProjectOnPlane(forward, shaft);
+            if (blade.sqrMagnitude < .01f) blade = Vector3.ProjectOnPlane(stance * Vector3.up, shaft);
+            var rotation = Quaternion.LookRotation(shaft, blade);
+            MeleeMount(EquipmentKind.LaserAxe, left, out var palm, out var mount);
+            var wrist = rotation * Quaternion.Inverse(mount);
+            return new Pose(aim.position + wrist * palm * scale, rotation);
+        }
+
+        internal static Pose StormbreakerShot(Pose carry, Vector3 target, Vector3 aimForward, float scale)
+        {
+            var origin = carry.position + carry.rotation * StormbreakerEmitter * scale;
+            var direction = target - origin;
+            // If the aim point is already behind the blade, keep the shot facing forward.
+            if (Vector3.Dot(direction, aimForward) <= .025f) direction = aimForward;
+            return new Pose(origin, Quaternion.LookRotation(direction));
+        }
+
 
         // These are model-space measurements of the wrapped surfaces and trigger faces.
         readonly struct PistolContact
@@ -87,7 +132,9 @@ namespace DeadlyJenga.CandyPlayers
         static Pose ContactWrist(PistolContact grip, bool left)
         {
             float side = left ? -1 : 1;
-            return new Pose(grip.center + new Vector3(side * (grip.width + .018f), -.017f, -grip.depth - .055f),
+            float knuckleDepth = grip.center.z + grip.depth - .035f;
+            if (grip.trigger.z > 0) knuckleDepth = Mathf.Max(knuckleDepth, grip.trigger.z - .054f);
+            return new Pose(new Vector3(side * (grip.width + .014f), grip.center.y - .010f, knuckleDepth - .050f),
                 Quaternion.Euler(0, 0, -side * 86));
         }
 
@@ -95,39 +142,52 @@ namespace DeadlyJenga.CandyPlayers
         {
             float side = left ? -1 : 1;
             var inverse = Quaternion.Inverse(wrist.rotation);
-            var hand = CandyHandSkeleton.Rest(left, .7f);
-            void Joint(int index, Vector3 point) => hand.SetJoint(index, inverse * (point - wrist.position));
+            var rest = CandyHandSkeleton.Rest(left, .30f);
+            var hand = rest;
             for (int finger = 1; finger < 5; finger++)
             {
-                float y = grip.center.y + (2 - finger) * .019f;
-                float z = grip.center.z + (y - grip.center.y) * grip.rake;
-                float outside = side * (grip.width + .008f);
-                Joint(finger * 4, new Vector3(outside, y, z - grip.depth - .005f));
+                int root = finger * 4;
+                Vector3 p = wrist.position + wrist.rotation * rest.Joint(root);
+                float first = FingerLength(rest, root);
+                float second = FingerLength(rest, root + 1);
+                float third = FingerLength(rest, root + 2);
                 if (finger == 1 && grip.trigger.z > 0)
                 {
-                    // Index the side of the receiver, then enter the guard from its open side.
-                    float height = pressed ? grip.trigger.y : grip.trigger.y + .022f;
-                    float tip = grip.trigger.z + (pressed ? 0 : .015f);
-                    Joint(4, new Vector3(outside, Mathf.Lerp(y,height,.55f), tip - .054f));
-                    Joint(5, new Vector3(outside, height, tip - .030f));
-                    Joint(6, new Vector3(pressed ? side * .025f : outside, height, tip + (pressed ? .006f : -.009f)));
-                    Joint(7, new Vector3(pressed ? 0 : outside, height, tip));
+                    // Enter the guard from the side, and stop at the finger's natural reach.
+                    var tip = grip.trigger + new Vector3(pressed ? side * .006f : p.x,
+                        pressed ? 0 : .022f, pressed ? 0 : .010f);
+                    var entry = new Vector3(p.x, tip.y, tip.z - .016f);
+                    var approach = entry - p;
+                    Vector3 knuckle = p + (approach.sqrMagnitude > .000001f ? approach.normalized : Vector3.forward) * first;
+                    var towardTip = tip - knuckle;
+                    float reach = Mathf.Clamp(towardTip.magnitude, Mathf.Abs(second - third) + .001f, second + third - .001f);
+                    var along = towardTip.sqrMagnitude > .000001f ? towardTip.normalized : Vector3.forward;
+                    var bend = Vector3.ProjectOnPlane(Vector3.forward, along);
+                    if (bend.sqrMagnitude < .01f) bend = Vector3.ProjectOnPlane(Vector3.down, along);
+                    float run = (second * second - third * third + reach * reach) / (2 * reach);
+                    Vector3 middle = knuckle + along * run + bend.normalized * Mathf.Sqrt(Mathf.Max(0, second * second - run * run));
+                    hand.SetJoint(root + 1, inverse * (knuckle - wrist.position));
+                    hand.SetJoint(root + 2, inverse * (middle - wrist.position));
+                    hand.SetJoint(root + 3, inverse * (knuckle + along * reach - wrist.position));
                     continue;
                 }
 
-                float front = z + grip.depth + .008f;
-                Joint(finger * 4 + 1, new Vector3(outside, y, z + .012f));
-                Joint(finger * 4 + 2, new Vector3(outside * .91f, y, front));
-                Joint(finger * 4 + 3, new Vector3(outside * .21f, y, front));
+                // Stay on the outside of the grip until the finger reaches its front corner.
+                float front = grip.center.z + (p.y - grip.center.y) * grip.rake + grip.depth + .008f;
+                for (int joint = 0; joint < 3; joint++)
+                {
+                    float length = joint == 0 ? first : joint == 1 ? second : third;
+                    float forward = Mathf.Clamp(front - p.z, 0, length);
+                    float inward = Mathf.Sqrt(Mathf.Max(0, length * length - forward * forward));
+                    p += Vector3.forward * forward + new Vector3(-side * .98f, -.199f, 0) * inward;
+                    hand.SetJoint(root + joint + 1, inverse * (p - wrist.position));
+                }
             }
-            float thumbY = grip.center.y + .047f;
-            float rear = grip.center.z + .047f * grip.rake - grip.depth - .010f;
-            Joint(0, new Vector3(side * (grip.width + .014f), thumbY - .024f, rear - .025f));
-            Joint(1, new Vector3(side * grip.width * .50f, thumbY, rear));
-            Joint(2, new Vector3(-side * grip.width * .18f, thumbY, rear));
-            Joint(3, new Vector3(-side * grip.width * .60f, thumbY, rear + .007f));
             return hand;
         }
+
+        static float FingerLength(CandyHandSkeleton rest, int joint) =>
+            Vector3.Distance(rest.Joint(joint), rest.Joint(joint + 1));
 
         static void PlaceContact(ref CandyHandPose hand, Pose weapon, Pose wrist, float scale)
         {
@@ -136,34 +196,52 @@ namespace DeadlyJenga.CandyPlayers
             hand.skeletonTracked = true;
         }
 
-        static CandyHandSkeleton ShaftFingers(bool left, float radius)
+        const float ShaftStartAngle = -43f * Mathf.Deg2Rad;
+        static float ShaftClearance(float radius) => (radius + .007f) / .94f;
+        static Vector3 ShaftRadial(float angle) => new(0, Mathf.Cos(angle), Mathf.Sin(angle));
+        static Vector3 ShaftPalm(float radius) =>
+            new Vector3(0, -.004f, .05f) - ShaftRadial(ShaftStartAngle) * ShaftClearance(radius);
+
+        static CandyHandSkeleton ShaftFingers(bool left, float radius, bool pressed = false)
         {
-            var hand = CandyHandSkeleton.Rest(left, .90f);
-            var center = ShaftPalm;
-            // Digit segments are chords. Leave room for their thickness between joints.
-            float clearance = (radius + .007f) / .86f;
+            var rest = CandyHandSkeleton.Rest(left, .86f);
+            var hand = rest;
+            var center = ShaftPalm(radius);
+            float clearance = ShaftClearance(radius);
             for (int finger = 1; finger < 5; finger++)
             {
                 int root = finger * 4;
-                for (int joint = 0; joint < 4; joint++)
+                float angle = ShaftStartAngle;
+                Vector3 pivot = center + Vector3.right * rest.Joint(root).x;
+                for (int joint = 0; joint < 3; joint++)
                 {
-                    float angle = (joint * 59f - 24f) * Mathf.Deg2Rad;
-                    hand.SetJoint(root + joint, center + new Vector3(hand.Joint(root).x,
-                        Mathf.Cos(angle) * clearance, Mathf.Sin(angle) * clearance));
+                    float length = FingerLength(rest, root + joint);
+                    angle += 2 * Mathf.Asin(length / (2 * clearance));
+                    Vector3 point = pivot + ShaftRadial(angle) * clearance;
+                    if (pressed && finger == 1 && joint == 2)
+                    {
+                        var middle = hand.Joint(root + joint);
+                        point = middle + Quaternion.AngleAxis(-12, Vector3.right) * (point - middle).normalized * length;
+                    }
+                    hand.SetJoint(root + joint + 1, point);
                 }
             }
             float side = left ? 1 : -1;
-            hand.SetJoint(1, center + new Vector3(side * .037f, .016f, -clearance));
-            hand.SetJoint(2, center + new Vector3(side * .020f, -.006f, -clearance));
-            hand.SetJoint(3, center + new Vector3(side * .007f, -.023f, -clearance * .88f));
+            Vector3 thumb = rest.Joint(0);
+            thumb += new Vector3(side * .30f, .34f, .88f).normalized * FingerLength(rest, 0);
+            hand.SetJoint(1, thumb);
+            thumb += new Vector3(-side * .28f, .20f, .94f).normalized * FingerLength(rest, 1);
+            hand.SetJoint(2, thumb);
+            thumb += new Vector3(-side * .84f, -.18f, .51f).normalized * FingerLength(rest, 2);
+            hand.SetJoint(3, thumb);
             return hand;
         }
 
         static void ShaftContact(ref CandyHandPose hand, Pose weapon, bool left, float scale,
-            Vector3 center, Quaternion rotation, float radius)
+            Vector3 center, Quaternion rotation, float radius, bool pressed = false)
         {
-            PlaceContact(ref hand, weapon, new Pose(center - rotation * ShaftPalm, rotation), scale);
-            hand.skeleton = ShaftFingers(left, radius);
+            PlaceContact(ref hand, weapon, new Pose(center - rotation * ShaftPalm(radius), rotation), scale);
+            hand.skeleton = ShaftFingers(left, radius, pressed);
         }
 
         internal static bool TryPrimaryContact(ref CandyHandPose hand, Pose weapon, EquipmentKind kind,
@@ -179,14 +257,8 @@ namespace DeadlyJenga.CandyPlayers
             }
             if (kind == EquipmentKind.ChainGun)
             {
-                ShaftContact(ref hand, weapon, left, scale,
-                    new Vector3(0, -.031f, ChainGunRearGripDepth), Quaternion.identity, .027f);
-                if (pressed)
-                {
-                    var fingers = hand.skeleton;
-                    fingers.SetJoint(7, fingers.Joint(7) + Vector3.up * .005f);
-                    hand.skeleton = fingers;
-                }
+                ShaftContact(ref hand, weapon, left, scale, ChainGunRearHandle,
+                    Quaternion.identity, BarGripRadius, pressed);
                 return true;
             }
             return false;
@@ -202,7 +274,7 @@ namespace DeadlyJenga.CandyPlayers
                 var rotation = kind == EquipmentKind.LaserAxe ?
                     Quaternion.Euler(0, left ? -90 : 90, 0) : Quaternion.identity;
                 ShaftContact(ref hand, weapon, left, scale, center, rotation,
-                    kind == EquipmentKind.LaserAxe ? AxeWrapRadius : .027f);
+                    kind == EquipmentKind.LaserAxe ? AxeWrapRadius : BarGripRadius);
                 return true;
             }
 
@@ -220,7 +292,9 @@ namespace DeadlyJenga.CandyPlayers
             return true;
         }
 
-        internal static CandyHandSkeleton ShaftGrip(EquipmentKind kind, bool left) => ShaftFingers(left, kind switch
+        internal static CandyHandSkeleton ShaftGrip(EquipmentKind kind, bool left) => ShaftFingers(left, ShaftRadius(kind));
+
+        static float ShaftRadius(EquipmentKind kind) => kind switch
         {
             EquipmentKind.LaserAxe => AxeWrapRadius,
             EquipmentKind.SawStaff => .037f,
@@ -229,7 +303,7 @@ namespace DeadlyJenga.CandyPlayers
             EquipmentKind.Dagger => .034f,
             EquipmentKind.FlamingMarshmallow => .023f,
             _ => .030f
-        });
+        };
 
         public bool TryOpticAnchor(EquipmentState state,out Pose anchor)
         {
@@ -259,6 +333,8 @@ namespace DeadlyJenga.CandyPlayers
                 var rotation = hand.rotation * Quaternion.Inverse(wrist.rotation);
                 return new Pose(hand.position - rotation * wrist.position * scale, rotation);
             }
+            if(kind == EquipmentKind.ChainGun)
+                return new Pose(hand.position - hand.rotation * (ChainGunRearHandle - ShaftPalm(BarGripRadius)) * scale, hand.rotation);
             if(!MeleeMount(kind,left,out var palm,out var mount))return new Pose(hand.position,hand.rotation);
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
         }

@@ -230,7 +230,14 @@ namespace DeadlyJenga.Presentation
             bool showPickup=canvas.enabled&&!session.PlayingHand&&pending!=null;
             if(showPickup)
             {
-                swapNotice.text=SwapMessage(equipment,pending,SwapInputHint(session));
+                string input = SwapInputHint(session);
+                if (vr && equipment?.drawn == true && !equipment.builtIn && equipment.kind != EquipmentKind.Dagger)
+                {
+                    bool bothHandsBusy = EquipmentSpecifications.Get(equipment.kind).twoHanded ||
+                        equipment.kind is EquipmentKind.DualUzi or EquipmentKind.Chainsaw or EquipmentKind.LaserClaws;
+                    input = bothHandsBusy ? "Holster, then reach and grab" : "Use your free hand or holster first";
+                }
+                swapNotice.text=SwapMessage(equipment,pending,input);
                 CandyHudCards.Tint(swapNotice,CandyHudVisuals.Mint,.62f);
             }
             CandyHudCards.Visible(swapNotice,showPickup);
@@ -253,7 +260,7 @@ namespace DeadlyJenga.Presentation
                     EquipmentKind.SheriffHammer=>equipment.shotgun?" / Scatter":" / Precision",
                     EquipmentKind.StockPistol=>equipment.shotgun?" / Burst":" / Auto",
                     EquipmentKind.Chainsaw=>equipment.shotgun?" / Launch":" / Saw",
-                    EquipmentKind.LaserAxe=>equipment.shotgun?" / Laser":" / Axe",
+                    EquipmentKind.LaserAxe=>equipment.shotgun?" / Lightning":" / Axe",
                     _=>""
                 };
                 string ammo=spec.magazine>0?(equipment.reloadRemaining>0?"   Reloading":"   "+equipment.rounds+"/"+spec.magazine):"";
@@ -264,6 +271,17 @@ namespace DeadlyJenga.Presentation
                 if(equipment.drawn&&spec.modeSwitch)controlsHint+=vr?"   Off trigger / stick click mode":"   R mode";
                 if(vr&&equipment.drawn&&(equipment.kind==EquipmentKind.Blaster||equipment.kind==EquipmentKind.DualRifle||equipment.kind==EquipmentKind.SheriffHammer))
                     controlsHint+="   Grip aim";
+                if (equipment.kind == EquipmentKind.LaserAxe && equipment.drawn)
+                {
+                    string modeInput = "R";
+                    if (vr)
+                    {
+                        PhysicalControllers(out bool leftController, out bool rightController);
+                        modeInput = leftController != rightController ? "Grip + A/X" : "Off trigger";
+                    }
+                    string action = equipment.shotgun ? (vr ? "Trigger bolt · Grip look aim" : "Click bolt") : (vr ? "Swing" : "Click swing");
+                    controlsHint = action + "   " + modeInput + " mode";
+                }
                 status.text=Name(equipment.kind)+mode+ammo+"\n"+controlsHint;
             }
             else status.text=equipment==null||equipment.kind==EquipmentKind.None?"":Name(equipment.kind)+"   "+Mathf.CeilToInt(equipment.remaining)+"s";

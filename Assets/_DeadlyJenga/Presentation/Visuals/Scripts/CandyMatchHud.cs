@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Linq;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyAudio;
 using DeadlyJenga.CastlePrototype;
 using UnityEngine;
 using UnityEngine.UI;
@@ -18,6 +19,13 @@ namespace DeadlyJenga.Presentation
         CandyWaypointLayer waypoints;int boardPage;
         CandyEliminationFeed eliminationFeed;
         CandyDisasterWarningCard warning;
+        Text sinkWarning;
+        Image sinkMeter;
+        bool sinkUrgent;
+        float nextSinkPulse, sinkEscapeUntil;
+        string sinkActor;
+        int sinkSeconds = -1;
+        string sinkHint;
         const int BoardPageSize = 6;
         sealed class StandingsRow
         {
@@ -58,6 +66,21 @@ namespace DeadlyJenga.Presentation
             teams=CandyHudCards.Create(root,"Team scores",new Vector2(0,311),new Vector2(384,36),17,TextAnchor.MiddleCenter);
             status=CandyHudCards.Create(root,"Round and spectators",new Vector2(0,362),new Vector2(334,56),17,TextAnchor.MiddleCenter);
             warning=new CandyDisasterWarningCard(root);
+            sinkWarning = CandyHudCards.Create(root, "Sinking escape warning", new Vector2(0, 130),
+                new Vector2(480, 74), 20, TextAnchor.MiddleCenter);
+            CandyHudCards.Badge(sinkWarning);
+            var sinkTrack = new GameObject("Sink countdown", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            sinkTrack.transform.SetParent(sinkWarning.transform.parent, false);
+            sinkTrack.rectTransform.anchoredPosition = new Vector2(0, -31);
+            sinkTrack.rectTransform.sizeDelta = new Vector2(410, 5);
+            sinkTrack.color = new Color(.19f, .08f, .13f, .35f);
+            sinkTrack.raycastTarget = false;
+            sinkMeter = new GameObject("Time remaining", typeof(RectTransform), typeof(Image)).GetComponent<Image>();
+            sinkMeter.transform.SetParent(sinkTrack.transform, false);
+            sinkMeter.rectTransform.pivot = new Vector2(0, .5f);
+            sinkMeter.rectTransform.anchoredPosition = new Vector2(-205, 0);
+            sinkMeter.raycastTarget = false;
+            CandyHudCards.Visible(sinkWarning, false);
             objective=CandyHudCards.Create(root,"Your objective",new Vector2(-420,215),new Vector2(380,190),19);
             CandyHudCards.Badge(status);CandyHudCards.Tint(status,CandyHudVisuals.Lavender,.29f);
             CandyHudCards.Badge(teams);CandyHudCards.Tint(teams,CandyHudVisuals.Mint,.31f);
@@ -116,11 +139,93 @@ namespace DeadlyJenga.Presentation
                 DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.RoundResults);
             if(same&&soundPhase==RoundPhase.Playing&&frame.phase==RoundPhase.Playing&&team!=null&&soundTeam==team.id&&team.captures>soundCaptures)
                 DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.PointScored);
-            bool sinking=own?.sinking==true;
-            if(sinking&&!soundSinking)
-                DeadlyJenga.CandyAudio.CandySoundSuite.Local(DeadlyJenga.CandyAudio.CandySound.IslandSinking);
+            if (!same) ResetSinkFeedback();
             soundMatch=match;soundPhase=frame.phase;soundTeam=team?.id??-1;
-            soundCaptures=team?.captures??0;soundSinking=sinking;
+            soundCaptures=team?.captures??0;
+        }
+
+        void ResetSinkFeedback()
+        {
+            soundSinking = sinkUrgent = false;
+            nextSinkPulse = sinkEscapeUntil = 0;
+            sinkSeconds = -1;
+            sinkHint = null;
+            if (sinkWarning) CandyHudCards.Visible(sinkWarning, false);
+        }
+
+        void UpdateSinkFeedback(IMatchRuntime match, MatchPlayerFrame own, ISessionInfo session, bool watching)
+        {
+            if (sinkActor != own?.id) { ResetSinkFeedback(); sinkActor = own?.id; }
+            var player = session.Player;
+            if (!canvas.enabled || watching || session.PlayingHand || player == null || player.InputSuspended ||
+                match.Frame.phase != RoundPhase.Playing || own == null || !own.alive || own.dying)
+            {
+                ResetSinkFeedback();
+                return;
+            }
+
+            var movement = player.gameObject.GetComponent<IMovementState>();
+            bool escaping = movement != null && (movement.Climbing || movement.Vaulting);
+            bool sinking = own.sinking && !escaping;
+            float now = Time.unscaledTime;
+            if (!sinking)
+            {
+                if (soundSinking && (escaping || movement?.Grounded == true))
+                {
+                    sinkEscapeUntil = now + .95f;
+                    CandySoundSuite.Local(CandySound.StaminaUsable);
+                    if (vr) CandyFeedback.Pulse(.18f, .07f);
+                }
+                soundSinking = sinkUrgent = false;
+                sinkSeconds = -1;
+                bool recovered = now < sinkEscapeUntil && (escaping || movement?.Grounded == true);
+                if (recovered)
+                {
+                    sinkWarning.text = movement?.Climbing == true ? "GRIP CAUGHT · KEEP CLIMBING" :
+                        movement?.Vaulting == true ? "VAULTING OUT" : "CLEAR OF THE SINKING SAND";
+                    CandyHudCards.Tint(sinkWarning, CandyHudVisuals.Mint, .64f);
+                    sinkMeter.rectTransform.sizeDelta = new Vector2(0, 5);
+                }
+                CandyHudCards.Visible(sinkWarning, recovered);
+                return;
+            }
+
+            float progress = Mathf.Clamp01(own.sinkProgress);
+            if (!soundSinking)
+            {
+                CandySoundSuite.Local(CandySound.IslandSinking);
+                nextSinkPulse = now;
+                sinkUrgent = progress >= .68f;
+            }
+            else if (!sinkUrgent && progress >= .68f)
+            {
+                sinkUrgent = true;
+                CandyAudioEngine.Instance?.Play(CandySound.IslandSinking, Vector3.zero, .72f, GetInstanceID(), 1.23f, true);
+                nextSinkPulse = now;
+            }
+            soundSinking = true;
+            if (vr && now >= nextSinkPulse)
+            {
+                CandyFeedback.Pulse(Mathf.Lerp(.20f, .48f, progress), .10f);
+                nextSinkPulse = now + Mathf.Lerp(.90f, .28f, progress);
+            }
+
+            var rules = match.RulesFor(player.gameObject);
+            int seconds = Mathf.CeilToInt(Mathf.Max(0, rules.sinkGraceSeconds) * (1 - progress));
+            string hint = rules.canClimb && rules.canVault ? (vr ? "HOLD JUMP TO CLIMB · TAP TO VAULT" : "HOLD SPACE TO CLIMB · TAP TO VAULT") :
+                rules.canVault ? (vr ? "TAP JUMP TO VAULT A LEDGE" : "TAP SPACE TO VAULT A LEDGE") :
+                rules.canClimb ? (vr ? "HOLD JUMP TO CLIMB" : "HOLD SPACE TO CLIMB") : "MOVE TOWARD SOLID FOOTING";
+            if (seconds != sinkSeconds || hint != sinkHint)
+            {
+                sinkSeconds = seconds;
+                sinkHint = hint;
+                sinkWarning.text = $"SINKING SAND  ·  {seconds}s\n{hint}";
+            }
+            var urgency = Color.Lerp(CandyHudVisuals.Peach, new Color(1, .35f, .29f), progress);
+            CandyHudCards.Tint(sinkWarning, urgency, .65f);
+            sinkMeter.color = Color.Lerp(new Color(.62f,.28f,.06f), new Color(.75f,.08f,.09f), progress);
+            sinkMeter.rectTransform.sizeDelta = new Vector2(410 * (1 - progress), 5);
+            CandyHudCards.Visible(sinkWarning, true);
         }
         void Update()
         {
@@ -128,7 +233,7 @@ namespace DeadlyJenga.Presentation
             if(session==null||match?.Frame==null||(session as ILobbyMatchVisitControls)?.VisitingLobby==true)
             {
                 Expanded = false;
-                soundMatch=null;soundSinking=false;
+                soundMatch=null;ResetSinkFeedback();
                 if(canvas)canvas.enabled=false;
                 podium?.Hide();
                 eliminationFeed?.Update(null, false);
@@ -164,6 +269,7 @@ namespace DeadlyJenga.Presentation
             }
             if(!session.MenuOpen&&!Expanded&&!vr&&match.Rules.mode==GameModeKind.CaptureFlag&&Keyboard.current?.gKey.wasPressedThisFrame==true)FlagFocusIndex++;
             canvas.enabled=camera&&!session.MenuOpen&&!EmoteWheel.IsOpen&&!results&&(!watching||vr);
+            UpdateSinkFeedback(match, audioPlayer, session, watching);
             eliminationFeed.Update(match, canvas.enabled&&!watching&&!Expanded);
             standingsHint.enabled = !watching && !Expanded && (!vr || !string.IsNullOrEmpty(standingsControl));
             standingsHint.text = vr ? "HOLD " + standingsControl + " · STANDINGS" : "HOLD F2 · STANDINGS";
@@ -222,7 +328,6 @@ namespace DeadlyJenga.Presentation
                     {DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.25f);var audio=DeadlyJenga.CandyAudio.CandyAudioEngine.Instance;if(audio)audio.Play(DeadlyJenga.CandyAudio.CandySound.PointScored,own.position,.35f,GetInstanceID(),1,true);}
                 }
                 if(f.rules.mode!=GameModeKind.BlockControl)previousOwners.Clear();else foreach(var entry in f.claims)previousOwners[entry.block]=entry.owner;
-                if(session.Player!=null&&match.RulesFor(session.Player.gameObject).sinking)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.12f,.25f);
             }
             if(!Expanded)Markers(f,own);else waypoints.Begin(false);
             waypoints.End();
@@ -417,7 +522,7 @@ namespace DeadlyJenga.Presentation
                 if(!teamMode&&!visible&&(competitive||!plateSeen.TryGetValue(p.id,out float seen)||Time.unscaledTime-seen>2))continue;
                 shown++;active.Add(p.id);
                 if(!plates.TryGetValue(p.id,out var label)||!label){label=CandyNameplate.Create(transform,"Visual - nameplate");plates[p.id]=label;}
-                label.text=CandyNameplate.ActorLabel(p.name,p.bot);label.color=teamMode?p.color:Color.white;label.transform.position=point;label.transform.rotation=Quaternion.LookRotation(label.transform.position-camera.transform.position);label.gameObject.SetActive(true);
+                label.text=p.name;label.color=teamMode?p.color:Color.white;label.transform.position=point;label.transform.rotation=Quaternion.LookRotation(label.transform.position-camera.transform.position);label.gameObject.SetActive(true);
                 CandyNameplate.RefreshShadow(label);
             }
             remove.Clear();foreach(var pair in plates)if(!active.Contains(pair.Key)){if(pair.Value)pair.Value.gameObject.SetActive(false);if(!Contains(f.players,pair.Key))remove.Add(pair.Key);}

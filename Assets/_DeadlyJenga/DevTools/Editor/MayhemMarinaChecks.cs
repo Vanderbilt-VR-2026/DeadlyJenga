@@ -8,6 +8,7 @@ using DeadlyJenga.CandyArt.Marina;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -32,6 +33,17 @@ namespace DeadlyJenga.DevTools.Editor
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Stop Play Mode before changing lobby layout.");
             if(legacy)PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,1);else PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);
             PlayerPrefs.Save();Debug.Log((legacy?"Previous lobby backup":"Mayhem Marina default")+" selected. Enter Play Mode to load it.");
+        }
+        public static void RunRecovery()
+        {
+            File.WriteAllText(Report,"Marina ocean recovery and solo match return in actual Unity Play Mode.\n");
+            SessionState.SetInt(Key+"Preference",PlayerPrefs.GetInt(IslandLobby.LegacyLobbyPreference,-1));
+            SessionState.SetBool(Key+"Layout",true);
+            SessionState.SetBool(Key+"Recovery",true);
+            SelectLayout(false);
+            SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
+            EditorApplication.EnterPlaymode();
         }
         public static void RunBackup(){RunLayout(true);}
         public static void RunDefault(){RunLayout(false);}
@@ -119,14 +131,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
             }
         }
         static void Log(string value,string stack,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;
@@ -142,6 +154,13 @@ namespace DeadlyJenga.DevTools.Editor
         {if(!value)throw new InvalidOperationException(message);File.AppendAllText(Report,"PASS "+message+"\n");}
         static IEnumerator Wait(float duration)
         {float end=Time.realtimeSinceStartup+duration;while(Time.realtimeSinceStartup<end)yield return null;}
+        static string ArcadeBack(string id) => id switch
+        {
+            "marina-join" or "marina-nearby" => "marina-close-join",
+            "marina-host" or "marina-invite" => "marina-close-host",
+            _ => "marina-close"
+        };
+
         static IEnumerator RunArcadeScene()
         {
             Application.runInBackground=true;
@@ -158,7 +177,23 @@ namespace DeadlyJenga.DevTools.Editor
             var host=faces.Single(face=>face.name=="Mint Host display");
             Check(join.parent==host.parent&&join.localPosition.x<0&&host.localPosition.x>0,
                 "Join and Host physically flank the central screen");
+            var detailFaces=lobby.GetComponentsInChildren<RectTransform>(true);
+            var joinDetail=detailFaces.Single(face=>face.name=="JOIN");
+            var hostDetail=detailFaces.Single(face=>face.name=="HOST");
+            Check(Vector3.Distance(join.position,joinDetail.position)<.01f&&
+                Vector3.Distance(host.position,hostDetail.position)<.01f,
+                "Full room flows are mounted on their own cabinet glass");
             Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
+            var start = faces.Single(face => face.name == "marina-play");
+            var round = faces.Single(face => face.name == "marina-experience");
+            Check(start.anchoredPosition.y + start.rect.yMin > round.anchoredPosition.y + round.rect.yMax,
+                "Start Match and Round Info hit areas do not overlap");
+            var pickTarget = typeof(MarinaScreen).GetMethod("PickTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var roundUpperEdge = round.TransformPoint(new Vector3(0, round.rect.yMax - 1, 0));
+            var target = pickTarget.Invoke(screen, new object[] { new Ray(roundUpperEdge - round.forward, round.forward), 2f });
+            Check((string)target?.GetType().GetField("id").GetValue(target) == "marina-experience" && !lobby.StartPending,
+                "A ray at the top of Round Info selects its own control and cannot start a match");
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
             var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
                 .Single(blocker=>blocker.name=="Island blocker · "+television.name);
@@ -180,11 +215,14 @@ namespace DeadlyJenga.DevTools.Editor
             }
             // The hidden batch has no OS focus. Exercise the command routes with simulated focus.
             screen.SendMessage("OnApplicationFocus",true);
+            view.SendMessage("OnApplicationFocus",true);
             foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
             {
                 yield return null;
                 yield return null;
                 Check(screen.Invoke(id),id+" opens the existing control flow");
+                Check(!screen.Invoke("marina-play")&&!lobby.StartPending,
+                    id+" cannot pass the same input through to Start Match");
                 yield return null;
                 if(id=="marina-join")
                 {
@@ -207,12 +245,24 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(close&&close.gameObject.activeInHierarchy,"The keyboard shows a close control");
                         view.Point(new Ray(close.position-close.forward*.25f,close.forward),true);
                         Check(!lobby.CodeFocused&&!view.GiantKeyboard.gameObject.activeSelf&&
-                            lobby.EnteredCode=="ABC234"&&!screen.Visible,
-                            "Closing the keyboard preserves the typed code and leaves Join open");
+                            lobby.EnteredCode=="ABC234"&&joinDetail.gameObject.activeSelf&&screen.Visible,
+                            "Closing the keyboard preserves the code, Join and the map/mode screen");
                     }
                     finally { lobby.EnteredCode=originalCode; }
                     yield return null;
+                    Check(screen.Invoke("marina-maps"),"Map selection remains usable while Join is open");
+                    yield return null;
+                    Check(joinDetail.gameObject.activeSelf&&!screen.Visible,
+                        "The map picker replaces only the center face");
+                    Check(view.InvokeChoice("marina-close")&&joinDetail.gameObject.activeSelf&&screen.Visible,
+                        "Closing the map picker preserves the open Join screen");
+                    yield return null;
                 }
+                if(id=="marina-host")
+                    Check(hostDetail.gameObject.activeSelf&&!joinDetail.gameObject.activeSelf&&screen.Visible,
+                        "Host opens on its cabinet while the center face remains active");
+                if(id=="marina-nearby")
+                    Check(joinDetail.gameObject.activeSelf&&screen.Visible,"Nearby results stay on Join");
                 if(id=="marina-maps")
                 {
                     yield return null;
@@ -220,8 +270,18 @@ namespace DeadlyJenga.DevTools.Editor
                         image.name=="Map card thumbnail"&&image.enabled&&image.texture),
                         "The categorized map list shows thumbnails on the map cards");
                 }
-                Check(view.InvokeChoice("marina-close"),id+" returns to the arcade");
+                Check(view.InvokeChoice(ArcadeBack(id)),id+" returns to its arcade face");
             }
+            yield return null;
+            Check(screen.Invoke("marina-modes"),"Mode picker opens from the starting layout");
+            yield return null;
+            Check(Enumerable.Range(0,8).Any(slot=>view.InvokeChoice("mode-card-"+slot)),
+                "A selectable mode can be committed");
+            Check(screen.Visible,"Selecting a mode restores the original map and mode cards");
+            yield return null;
+            Check(screen.Invoke("marina-maps"),"Map picker opens only when requested");
+            yield return null;
+            Check(view.InvokeChoice("setup-back")&&screen.Visible,"Picker Back restores the same starting layout");
             yield return null;
             Check(screen.Invoke("marina-style")&&view.WardrobeOpen,"Style opens the wardrobe");
             var appearance=lobby.Player.gameObject.GetComponent<IAvatarAppearance>();
@@ -245,6 +305,122 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
                 yield return RunSoloScene();
+            }
+        }
+        static IEnumerator RunRecoveryScene()
+        {
+            Application.runInBackground=true;
+            float until=Time.realtimeSinceStartup+45;
+            while (!IslandLobby.Current&&Time.realtimeSinceStartup<until) yield return null;
+            var lobby=IslandLobby.Current;
+            Check(lobby&&lobby.GetComponent<MayhemMarina>()&&NetworkActors.Alive(lobby.Player),"Actual Marina lobby and survivor loaded");
+            yield return Wait(.5f);
+            lobby.SetMenu(false);
+            var animals=lobby.GetComponentsInChildren<DeadlyJenga.Wildlife.IslandAnimal>().ToArray();
+            Check(animals.Length==4&&animals.Select(a=>a.Species).OrderBy(id=>id).SequenceEqual(new[]{"crab","fox","frog","tortoise"}),
+                "Default wildlife is present exactly once after retaining the lobby");
+            Check(animals.All(animal=>animal.DistanceTravelled<10),"Wildlife movement does not count the lobby relocation");
+            File.AppendAllText(Report,$"INPUT initial focus={Application.isFocused} suspended={lobby.Player.InputSuspended} setup={lobby.SetupHint}\n");
+            if(Application.isFocused)Check(!lobby.Player.InputSuspended,"Focused Marina input available");
+            CheckRiderStrands();
+            var oldPlayer=lobby.Player;
+            var ocean=lobby.GetComponentsInChildren<Renderer>(true).Single(r=>r.name=="Marina ocean");
+            var water=lobby.transform.TransformPoint(new Vector3(-14,0,-37));
+            water.y=lobby.WaterHeight(water)-.06f;
+            lobby.Player.Place(water,Quaternion.identity);
+            yield return Wait(.45f);
+            var recovered=lobby.transform.InverseTransformPoint(lobby.Player.transform.position);
+            Check(recovered.y>1.15f&&Vector2.Distance(new Vector2(recovered.x,recovered.z),new Vector2(-10,-8))<5,
+                "Ocean crossing near water level returns the survivor to the dry arrival pier");
+            if(Application.isFocused)Check(!lobby.Player.InputSuspended,"Ocean recovery keeps focused movement available");
+            lobby.Player.Place(lobby.transform.TransformPoint(new Vector3(17,.47f,-8)),Quaternion.identity);
+            yield return Wait(.4f);
+            var pool=lobby.transform.InverseTransformPoint(lobby.Player.transform.position);
+            Check(Vector2.Distance(new Vector2(pool.x,pool.z),new Vector2(17,-8))<1.2f,"Practice basin stays playable");
+
+            MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;
+            MatchSetup.MapId="castle";MatchSetup.ModeId="demo";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;
+            yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync(ProjectPath.Find("Game.unity"));
+            yield return Wait(.5f);
+            Check(lobby.MatchResident&&!oldPlayer.gameObject.activeInHierarchy&&Services.Session is CastlePlaySession,
+                "Real match scene parks the persistent lobby body");
+            Check(!ocean.gameObject.activeInHierarchy,"Parked Marina ocean does not render in the match");
+            Check(animals.All(animal=>animal&&!animal.gameObject.activeInHierarchy),"Retained wildlife sleeps while the match is active");
+            Check(lobby.Room.ReturnMatchToLobby(),"Solo room accepts return to the lobby");
+            until=Time.realtimeSinceStartup+45;
+            while (IslandLobby.Current!=lobby&&Time.realtimeSinceStartup<until) yield return null;
+            Check(IslandLobby.Current==lobby,"Return reloads the retained Marina through the room");
+            yield return Wait(.5f);
+            Check(ReferenceEquals(oldPlayer,lobby.Player)&&oldPlayer.gameObject.activeInHierarchy&&oldPlayer.ViewCamera.enabled,
+                "Retained survivor and camera are active after return");
+            Check(ocean.gameObject.activeInHierarchy&&RenderSettings.skybox,"Marina ocean and sky are restored");
+            Check(animals.All(animal=>animal&&animal.gameObject.activeInHierarchy)&&lobby.GetComponent<IWildlifeControls>().Count==animals.Length,
+                "The same wildlife resumes without duplicate animals");
+            File.AppendAllText(Report,$"INPUT returned focus={Application.isFocused} suspended={lobby.Player.InputSuspended} setup={lobby.SetupHint}\n");
+            if(!Application.isFocused&&lobby.Player.InputSuspended)yield break;
+            Check(!lobby.MenuOpen&&!lobby.Player.InputSuspended,"Returned survivor is ready for movement");
+            var motor=lobby.Survivor();
+            var start=motor.transform.position;
+            motor.externallyDriven=true;motor.InputDriver=new MarinaWalkDriver{target=start+lobby.transform.right*1.1f};
+            yield return Wait(1);
+            motor.InputDriver=null;motor.externallyDriven=false;
+            Check(Vector3.ProjectOnPlane(motor.transform.position-start,Vector3.up).magnitude>.45f,
+                "The real survivor motor accepts movement after the match return");
+        }
+        static void CheckRiderStrands()
+        {
+            var shader=Resources.Load<Shader>("CandyScenery/CandySummoningColumn");
+            Check(shader&&shader.isSupported,"Travel beacon shader is supported");
+            var material=new Material(shader);
+            var mesh=CandySummoningColumn.CreateMesh();
+            var target=new GameObject("Beacon rider fixture");
+            target.transform.position=new Vector3(2000,300,2000);
+            var effect=new GameObject("Beacon strand render fixture");
+            effect.layer=31;
+            var column=effect.AddComponent<CandySummoningColumn>();
+            column.Initialize(target.transform,mesh,material,0);
+            var eye=new GameObject("Beacon eye fixture").AddComponent<Camera>();
+            eye.enabled=false;
+            eye.cullingMask=1<<31;
+            eye.clearFlags=CameraClearFlags.SolidColor;
+            eye.backgroundColor=Color.black;
+            eye.allowHDR=false;
+            eye.GetUniversalAdditionalCameraData().allowXRRendering=false;
+            var output=new RenderTexture(96,96,16);
+            var pixels=new Texture2D(96,96,TextureFormat.RGB24,false);
+            var previous=RenderTexture.active;
+            eye.targetTexture=output;
+            int LitPixels()
+            {
+                eye.Render();
+                RenderTexture.active=output;
+                pixels.ReadPixels(new Rect(0,0,96,96),0,0);
+                return pixels.GetPixels32().Count(pixel=>pixel.r>18||pixel.g>18||pixel.b>18);
+            }
+            try
+            {
+                eye.transform.position=target.transform.position+new Vector3(.35f,1.6f,0);
+                column.Render(.1f,.05f,1);
+                int distantReveal=LitPixels();
+                typeof(CandySummoningColumn).GetMethod("SetRiderCamera",
+                    System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).Invoke(column,new object[]{eye});
+                column.Render(.1f,.05f,1);
+                int groundReveal=LitPixels();
+                target.transform.position+=Vector3.up*32;
+                eye.transform.position+=Vector3.up*32;
+                column.Render(.2f,.08f,1);
+                int flyingReveal=LitPixels();
+                File.AppendAllText(Report,$"BEACON lit pixels exterior={distantReveal} ground={groundReveal} flying={flyingReveal}\n");
+                Check(groundReveal>distantReveal+64&&flyingReveal>distantReveal+64,
+                    "Early strands render near the rider before lift and at altitude");
+            }
+            finally
+            {
+                RenderTexture.active=previous;
+                eye.targetTexture=null;
+                output.Release();
+                Object.Destroy(output);Object.Destroy(pixels);Object.Destroy(eye.gameObject);
+                Object.Destroy(effect);Object.Destroy(target);Object.Destroy(mesh);Object.Destroy(material);
             }
         }
         static IEnumerator RunLayoutScene()
@@ -291,7 +467,7 @@ namespace DeadlyJenga.DevTools.Editor
                         yield return null;
                         Check(screen.Invoke(id),id+" opens");
                         yield return null;
-                        Check(view.InvokeChoice("marina-close"),id+" closes");
+                        Check(view.InvokeChoice(ArcadeBack(id)),id+" closes");
                         yield return null;
                     }
                 else File.AppendAllText(Report,"SKIP Terminal input requires a focused Game View. Facade presence verified.\n");
@@ -552,15 +728,20 @@ namespace DeadlyJenga.DevTools.Editor
                 finally{gray.SetActive(false);Object.Destroy(gray);}
                 var screen=lobby.GetComponent<MarinaScreen>();Check(screen&&screen.Visible,"Live Marina facade is active");
                 Check(screen.Invoke("marina-modes"),"Mode card opens existing full mode picker");
-                Check(!screen.Visible,"Facade yields to detail picker");Check(view.InvokeChoice("marina-close"),"Detail picker can return to facade");
-                Check(screen.Invoke("marina-maps"),"Map card opens existing category browser");Check(view.InvokeChoice("marina-close"),"Map browser can return");
+                Check(!screen.Visible,"Facade yields to detail picker");yield return null;
+                Check(view.InvokeChoice("marina-close"),"Detail picker can return to facade");yield return null;
+                Check(screen.Invoke("marina-maps"),"Map card opens existing category browser");yield return null;
+                Check(view.InvokeChoice("marina-close"),"Map browser can return");yield return null;
                 foreach(var id in new[]{"marina-host","marina-join","marina-settings"})
                 {
-                    Check(screen.Invoke(id),id+" opens existing controls");Check(view.InvokeChoice("marina-close"),id+" can return");
+                    Check(screen.Invoke(id),id+" opens existing controls");yield return null;
+                    Check(view.InvokeChoice(ArcadeBack(id)),id+" can return");yield return null;
                 }
-                screen.Invoke("marina-host");var back=view.GetComponentsInChildren<UnityEngine.UI.Button>(true).First(b=>b.name=="marina-close").transform;
+                Check(screen.Invoke("marina-host"),"Host cabinet detail opens for ray check");yield return null;
+                var back=view.GetComponentsInChildren<UnityEngine.UI.Button>(true).First(b=>b.name=="marina-close-host").transform;
                 view.Point(new Ray(back.position-back.forward*8,back.forward),true);
-                Check(screen.Visible,"Actual UI ray can close detail from eight meters");
+                Check(!back.gameObject.activeInHierarchy&&screen.Visible,"Actual UI ray closes only the Host cabinet from eight meters");
+                yield return null;
                 Check(screen.Invoke("marina-style"),"Style quick travel opens wardrobe");yield return Wait(.25f);
                 Check(view.WardrobeOpen,"Wardrobe remains open at new boutique position");
                 var appearance=lobby.Player.gameObject.GetComponent<IAvatarAppearance>();var before=appearance.Appearance;

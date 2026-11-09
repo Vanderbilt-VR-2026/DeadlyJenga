@@ -26,9 +26,11 @@ namespace DeadlyJenga.CastlePrototype
         public IslandRoomConnection Room {get;private set;}
         public bool MenuOpen {get;private set;}
         bool departing;float departureAt,departureSeconds;Pose departurePose;
+        bool refreshInputOnReturn;
         public void BeginDeparture(float seconds)
         {
             if(departing||!NetworkActors.Alive(Player))return;
+            GetComponent<MarinaDockActivities>()?.ReturnRiderToDock();
             SetMenu(false);departing=true;departureAt=Time.unscaledTime;departureSeconds=seconds;
             departurePose=new Pose(Player.transform.position,Player.transform.rotation);Player.InputSuspended=true;
         }
@@ -52,10 +54,13 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<string,INetworkActorView> peers=new Dictionary<string,INetworkActorView>();
         InputAction menu;bool focused=true;
         ISurvivorBotPopulation lobbyBots;IBotPopulation lobbyHands;float nextLobbyPopulation;
+        bool lobbyWildlifeSeeded;
         void PopulateLobbyWildlife()
         {
+            if (lobbyWildlifeSeeded || MatchResident || !Retained) return;
             var wildlife=GetComponent<IWildlifeControls>();
             if(wildlife?.Available!=true)return;
+            lobbyWildlifeSeeded=true;
             wildlife.Spawn("fox",false);
             wildlife.Spawn("tortoise",false);
             wildlife.Spawn("frog",false);
@@ -91,7 +96,6 @@ namespace DeadlyJenga.CastlePrototype
                 PlaceLocalLobbyArrival();
                 if(!match)
                 {
-                    PopulateLobbyWildlife();
                     CreateLobbyPopulation();Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);
                 }
                 menu=new InputAction("Lobby controls",InputActionType.Button,"<XRController>{LeftHand}/secondaryButton");menu.Enable();
@@ -120,8 +124,20 @@ namespace DeadlyJenga.CastlePrototype
                 foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);
                 return;
             }
+            if (refreshInputOnReturn)
+            {
+                refreshInputOnReturn=false;
+                SetMenu(MenuOpen);
+            }
             var feet=Player.transform.position;
-            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)PlaceLocalLobbyArrival();
+            bool outside=(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance;
+            if (UsesMarinaSpawns)
+            {
+                var dock=GetComponent<MarinaDockActivities>();
+                if ((outside||feet.y<WaterHeight(feet)-.025f) && !(dock&&dock.IsRiding))
+                    RecoverMarinaPlayer();
+            }
+            else if (outside||feet.y<-.9f) PlaceLocalLobbyArrival();
             var keyboard=Keyboard.current;
             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
@@ -163,8 +179,19 @@ namespace DeadlyJenga.CastlePrototype
             ClearPeers();
         }
         public void SetMenu(bool open)
-        {MenuOpen=open;if(NetworkActors.Alive(Player)){Player.InputSuspended=marinaArrivalPending||departing||!focused||open;Cursor.lockState=Player.IsVR||open?CursorLockMode.None:CursorLockMode.Locked;Cursor.visible=open&&!Player.IsVR;}}
-        void OnApplicationFocus(bool value){focused=value;if(!value&&(!MatchResident||VisitOwner))SetMenu(true);}
+        {
+            MenuOpen=open;
+            if (!NetworkActors.Alive(Player)) return;
+            var dock=GetComponent<MarinaDockActivities>();
+            Player.InputSuspended=marinaArrivalPending||departing||!focused||open||(dock&&dock.IsRiding);
+            Cursor.lockState=!Player.IsVR&&focused&&!open?CursorLockMode.Locked:CursorLockMode.None;
+            Cursor.visible=!Player.IsVR&&(open||!focused);
+        }
+        void OnApplicationFocus(bool value)
+        {
+            focused=value;
+            if (!MatchResident||VisitOwner) SetMenu(!value||MenuOpen);
+        }
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
         internal void CaptureLobbyBots(List<P.Actor> actors)
         {

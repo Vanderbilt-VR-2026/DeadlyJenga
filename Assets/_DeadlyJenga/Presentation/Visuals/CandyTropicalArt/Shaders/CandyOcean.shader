@@ -25,6 +25,7 @@ Shader "Candy Tropical/Ocean"
         _TerrainHeight("Static terrain heights",2D)="black"{}
         _TerrainBounds("Terrain center / size",Vector)=(0,0,40,40)
         _HasTerrain("Terrain height map available",Float)=0
+        [HideInInspector] _CoastalDetail("Physical coast detail",Float)=0
         [HideInInspector] _SoakingPool("Soaking pool mode, depth and fade",Vector)=(0,0,0,0)
     }
     SubShader
@@ -52,7 +53,7 @@ Shader "Candy Tropical/Ocean"
             float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
             float4 _SurgeOrigin, _SurgeDirection;
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
-            float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain;
+            float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain,_CoastalDetail;
             CBUFFER_END
             #include "CandySurgeSurface.hlsl"
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
@@ -130,8 +131,20 @@ Shader "Candy Tropical/Ocean"
                 color+=light.color*spec*_Shine*light.shadowAttenuation;
                 // No thresholded white speckles or repeating crossed sparkle pattern.
                 float foam=pool?0:CandySurgeWhitecaps(i.world.xz);
+                if(!pool&&_CoastalDetail>.5)
+                {
+                    float2 water=i.world.xz-_Island.xy;
+                    float band=sin(dot(water,float2(.53,.31))-_Time.y*1.5+sin(water.y*.12)*.65);
+                    float swell=sin(dot(water,float2(-.36,.47))-_Time.y*1.15);
+                    float visibility=1-smoothstep(160,540,distanceToEye);
+                    color*=1+(.09*band+.06*swell)*visibility;
+                    float surf=smoothstep(.03,.22,depth)*(1-smoothstep(.35,1.35,depth));
+                    foam=max(foam,surf*smoothstep(.47,.95,band)*.52*visibility);
+                }
                 color=lerp(color,_Foam.rgb,foam);
-                color=MixFog(color,i.fog);color=lerp(color,_Horizon.rgb,smoothstep(240,700,distanceToEye));
+                color=MixFog(color,i.fog);
+                float haze=_CoastalDetail>.5&&!pool?smoothstep(320,950,distanceToEye):smoothstep(240,700,distanceToEye);
+                color=lerp(color,_Horizon.rgb,haze);
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,saturate(fresnel*.82+foam));
                 if(pool)alpha*=poolEdge*_SoakingPool.z;
                 return half4(color,alpha);

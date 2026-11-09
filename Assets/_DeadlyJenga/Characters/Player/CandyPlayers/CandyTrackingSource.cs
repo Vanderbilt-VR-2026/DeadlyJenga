@@ -20,6 +20,7 @@ namespace DeadlyJenga.CandyPlayers
         public bool RightPinching{get;private set;}
         public bool LeftMenuPressed{get;private set;}
         public bool LeftMenuHeld{get;private set;}
+        internal bool LeftPinchPressed{get;private set;}
         public bool LeftPinching{get;private set;}
         public bool HasHandTracking=>left.skeletonTracked||right.skeletonTracked;
         public bool HasTrackedHands=>left.tracked||right.tracked;
@@ -39,7 +40,7 @@ namespace DeadlyJenga.CandyPlayers
         readonly List<XRHandSubsystem> subsystems=new List<XRHandSubsystem>();
         XRHandSubsystem subsystem;
         CandyHandPose left,right;
-        bool previousRight,previousMenu,previousSelect;
+        bool previousRight,previousLeft,previousMenu,previousSelect;
         public bool MenuSelectHeld=>RightPinching||LeftPinching;
         public bool MenuSelectPressed{get;private set;}
         static readonly XRHandJointID[] JointIds={XRHandJointID.ThumbMetacarpal,XRHandJointID.ThumbProximal,XRHandJointID.ThumbDistal,XRHandJointID.ThumbTip,XRHandJointID.IndexProximal,XRHandJointID.IndexIntermediate,XRHandJointID.IndexDistal,XRHandJointID.IndexTip,XRHandJointID.MiddleProximal,XRHandJointID.MiddleIntermediate,XRHandJointID.MiddleDistal,XRHandJointID.MiddleTip,XRHandJointID.RingProximal,XRHandJointID.RingIntermediate,XRHandJointID.RingDistal,XRHandJointID.RingTip,XRHandJointID.LittleProximal,XRHandJointID.LittleIntermediate,XRHandJointID.LittleDistal,XRHandJointID.LittleTip};
@@ -47,13 +48,15 @@ namespace DeadlyJenga.CandyPlayers
         void OnDisable()
         {
             Application.onBeforeRender-=ReadLatest;left=right=default;
-            RightPinchPressed=RightPinching=LeftMenuPressed=LeftMenuHeld=LeftPinching=previousRight=previousMenu=previousSelect=MenuSelectPressed=false;
+            RightPinchPressed=RightPinching=LeftMenuPressed=LeftMenuHeld=LeftPinchPressed=LeftPinching=previousLeft=previousRight=previousMenu=previousSelect=MenuSelectPressed=false;
         }
         void Update()
         {
             ReadLatest();
             bool rightPinch=right.skeletonTracked&&Vector3.Distance(right.skeleton.Joint(3),right.skeleton.Joint(7))<.023f;
             LeftPinching=left.skeletonTracked&&Vector3.Distance(left.skeleton.Joint(3),left.skeleton.Joint(7))<.023f;
+            LeftPinchPressed=LeftPinching&&!previousLeft;
+            previousLeft=LeftPinching;
             bool menu=left.skeletonTracked&&Vector3.Distance(left.skeleton.Joint(3),left.skeleton.Joint(11))<.023f&&!LeftPinching;
             LeftMenuHeld=menu;
             RightPinchPressed=rightPinch&&!previousRight;LeftMenuPressed=menu&&!previousMenu;

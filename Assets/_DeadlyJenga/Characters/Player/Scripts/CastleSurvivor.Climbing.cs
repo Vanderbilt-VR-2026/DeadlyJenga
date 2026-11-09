@@ -194,6 +194,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool ClimbMantle()
         {
+            if (modeRules?.canVault == false) return false;
             // Use wall-facing probes without turning the player's view (especially the HMD).
             if(!TryFindLedge(out var top,out var destination,-climbNormal))return false;
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;vrClimbVelocity=Vector3.zero;

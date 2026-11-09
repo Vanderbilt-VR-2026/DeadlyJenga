@@ -23,9 +23,8 @@ The bundled path uses those recordings without loading the live models.
 The desktop check entry point is
 `DeadlyJenga.CastleSocial.Editor.OnDeviceConversationChecks.RunBundledBatch`.
 
-The regular bank has 77 phrases and 616 verified takes. Its SHA-256 is
-`379ac009f3ea44d72bed213d6606768bfb63cebae28e9a9970830053e30381f9`.
-The contextual bank has 18 phrases and 144 takes. Its SHA-256 is
-`34ce98b0cab6d5961224cc17531df32c1b994f601a90adcabf16ee605570da89`.
-Each phrase has eight distinct, non-silent takes. The four contextual
-phrases exercised in Unity are byte-identical in the full fast bank.
+The regular bank has 74 phrases and 592 verified takes. Its SHA-256 is
+`154ee65c0ee352bfb4d7179aa1d7fa47c0f389ee9c81b5eed6b914072e12a53e`.
+The contextual bank has 30 phrases and 240 takes. Its SHA-256 is
+`9ccd13a75ba3a2689ea43db83e61773b3e8407fdbffb1756a2cd363b40abef43`.
+Each phrase has eight distinct, non-silent takes.

@@ -14,10 +14,19 @@ namespace DeadlyJenga.CastlePrototype
     public static partial class ConceptMapLayout
     {
         public static readonly string[] Names={"Moving Shelter","Peel-Away Screen","Collapse-Created Route","Pivoting Causeway","Refuge Exchange","Break-Contact Borough","Skyline Exchange"};
-        public static List<MayhemModule> Build(ConceptMapKind kind)
+        public static List<MayhemModule> Build(ConceptMapKind kind)=>Build(kind,null);
+
+        internal readonly struct SkylineSupport
+        {
+            public readonly MayhemModule piece,parent;
+            public SkylineSupport(MayhemModule piece,MayhemModule parent)
+            {this.piece=piece;this.parent=parent;}
+        }
+
+        internal static List<MayhemModule> Build(ConceptMapKind kind,List<SkylineSupport> supports)
         {
             if(!Enum.IsDefined(typeof(ConceptMapKind),kind))throw new ArgumentOutOfRangeException(nameof(kind));
-            if(kind==ConceptMapKind.SkylineIsland)return Skyline();
+            if(kind==ConceptMapKind.SkylineIsland)return Skyline(supports??new List<SkylineSupport>());
             var b=new Builder((int)kind);
             switch(kind)
             {
@@ -110,7 +119,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
         }
-        static List<MayhemModule> Skyline()
+        static List<MayhemModule> Skyline(List<SkylineSupport> supports)
         {
             var b=new Builder((int)ConceptMapKind.SkylineIsland);
             for(int district=0;district<SkylineDistricts.Length;district++)
@@ -123,14 +132,29 @@ namespace DeadlyJenga.CastlePrototype
                         module.position.z-=.08f;
                     b.modules.Add(module);
                 }
-                DistrictHalls(b,offset,district);
+                DistrictHalls(b,offset,district,supports);
             }
-            foreach(var tower in SkylineTowers)Tower(b,tower.x,tower.z,tower.floors,tower.name);
-            foreach(var link in SkylineCrossings())SkylineBridge(b,link.name,link.a,link.b,link.width,link.finish);
+            var towers=new List<(Vector3 center,MayhemModule[] decks)>();
+            foreach(var tower in SkylineTowers)
+                towers.Add((new Vector3(tower.x,0,tower.z),Tower(b,tower.x,tower.z,tower.floors,tower.name,supports)));
+            foreach(var link in SkylineCrossings())
+            {
+                var bridge=SkylineBridge(b,link.name,link.a,link.b,link.width,link.finish);
+                foreach(var end in new[]{link.a,link.b})
+                {
+                    var closest=towers[0];
+                    foreach(var tower in towers)
+                        if((tower.center-Vector3.ProjectOnPlane(end,Vector3.up)).sqrMagnitude<
+                           (closest.center-Vector3.ProjectOnPlane(end,Vector3.up)).sqrMagnitude)closest=tower;
+                    int level=Mathf.RoundToInt((end.y-.4f)/3.6f);
+                    supports.Add(new SkylineSupport(bridge,closest.decks[level]));
+                }
+            }
             LandmarkRoofAccess(b);
             foreach(float x in new[]{-52f,52f})
             {
-                var gate=b.Module("Fixed boulevard arch",new Vector3(x,.4f,0));
+                var gate=b.Module("Boulevard arch",new Vector3(x,.4f,0));
+                supports.Add(new SkylineSupport(gate,null));
                 foreach(float side in new[]{-1f,1f})
                 {
                     b.Part(gate,new Vector3(0,3.4f,side*5.4f),new Vector3(1.7f,6.8f,1.7f),3);
@@ -155,15 +179,18 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
-        static void DistrictHalls(Builder b,Vector3 district,int index)
+        static void DistrictHalls(Builder b,Vector3 district,int index,List<SkylineSupport> supports)
         {
             float lower=TowerDeck(1),upper=TowerDeck(2),side=Mathf.Sign(district.z);
             int accent=index%3;
             string name=Names[index]+" hall";
             Vector3 P(float x,float y,float distance)=>HallPoint(district,x,y,distance);
+            var bays=new MayhemModule[3];
             for(int bay=-1;bay<=1;bay++)
             {
-                var hall=b.Module("Fixed "+name+" bay "+bay,P(bay*HallBay,.4f,15.5f));
+                var hall=b.Module(name+" bay "+bay,P(bay*HallBay,.4f,15.5f));
+                bays[bay+1]=hall;
+                supports.Add(new SkylineSupport(hall,null));
                 foreach(float x in new[]{-3.55f,3.55f})foreach(float z in new[]{-3.5f,3.5f})
                 {
                     b.Part(hall,new Vector3(x,3.4f,z),new Vector3(.86f,6.8f,.86f),accent);
@@ -174,16 +201,25 @@ namespace DeadlyJenga.CastlePrototype
                 b.Part(hall,new Vector3(0,upper-.6f,0),new Vector3(HallHalfWidth*2,.4f,8),bay==0?5:accent);
                 b.Rail(hall,0,-side*3.82f,upper-.4f,7.9f);
                 if(bay!=0)b.Rail(hall,0,side*3.82f,upper-.4f,7.9f);
-                if(bay==0)continue;
-                float xGap=(bay*.5f)*HallBay;
-                b.Box("Fixed "+name+" bypass",P(xGap,lower-.2f,14.3f),new Vector3(HallBay-HallHalfWidth*2,.4f,3.8f),5);
             }
-            b.Ramp("Fixed "+name+" entry",P(HallLane,.4f,4.5f),P(HallLane,lower,HallNear),3.2f);
-            b.Ramp("Fixed "+name+" roof flight",P(HallLane,lower,HallFar),P(HallLane,upper,HallTurn),3.2f,true);
-            var turn=b.Platform("Fixed "+name+" outlook",P(0,0,HallTurn+1.2f),upper,new Vector2(9.2f,2.4f),accent,5);
+            foreach(int bay in new[]{-1,1})
+            {
+                float xGap=(bay*.5f)*HallBay;
+                var bypass=b.Box(name+" bypass "+bay,P(xGap,lower-.2f,14.3f),new Vector3(HallBay-HallHalfWidth*2,.4f,3.8f),5);
+                supports.Add(new SkylineSupport(bypass,bays[1]));
+                supports.Add(new SkylineSupport(bypass,bays[bay+1]));
+            }
+            var entry=b.Ramp(name+" entry",P(HallLane,.46f,4.5f),P(HallLane,lower,HallNear),3.2f);
+            supports.Add(new SkylineSupport(entry,bays[1]));
+            var flight=b.Ramp(name+" roof flight",P(HallLane,lower,HallFar),P(HallLane,upper,HallTurn),3.2f,true);
+            supports.Add(new SkylineSupport(flight,bays[1]));
+            var turn=b.Platform(name+" outlook",P(0,0,HallTurn+1.2f),upper,new Vector2(9.2f,2.4f),accent,5);
+            supports.Add(new SkylineSupport(turn,null));
             b.Rail(turn,0,side*1.06f,upper-.4f,8.8f);
-            b.Box("Fixed "+name+" roof return",P(-HallLane,upper-.2f,(HallFar+HallTurn)*.5f),
+            var roofReturn=b.Box(name+" roof return",P(-HallLane,upper-.2f,(HallFar+HallTurn)*.5f),
                 new Vector3(3.2f,.4f,HallTurn-HallFar),accent);
+            supports.Add(new SkylineSupport(roofReturn,bays[1]));
+            supports.Add(new SkylineSupport(roofReturn,turn));
         }
 
         static void LandmarkRoofAccess(Builder b)
@@ -199,25 +235,25 @@ namespace DeadlyJenga.CastlePrototype
                 b.Platform("Fixed borough roof stepping block",borough+Vector3.right*x,boroughRoof,new Vector2(4,8.2f),3,5);
         }
 
-        static void SkylineBridge(Builder b,string name,Vector3 a,Vector3 end,float width,int finish)
+        static MayhemModule SkylineBridge(Builder b,string name,Vector3 a,Vector3 end,float width,int finish)
         {
             Vector3 delta=end-a;
             float length=delta.magnitude+.5f,edge=width*.5f-.12f;
-            var bridge=b.Module("Fixed "+name,(a+end)*.5f-Vector3.up*.2f,
+            var bridge=b.Module(name,(a+end)*.5f-Vector3.up*.2f,
                 heading:Mathf.Atan2(-delta.z,delta.x)*Mathf.Rad2Deg);
             b.Part(bridge,Vector3.zero,new Vector3(length,.4f,width),finish);
             b.Part(bridge,new Vector3(0,-.38f,0),new Vector3(length,.38f,width*.65f),3);
-            if(width<2)return;
+            if(width<2)return bridge;
             b.Rail(bridge,0,edge,.2f,length-1.4f);
             b.Rail(bridge,0,-edge,.2f,length-1.4f);
             for(float x=-length*.5f+4;x<length*.5f-1;x+=6)
                 foreach(float side in new[]{-1f,1f})
                     b.Part(bridge,new Vector3(x,.44f,side*edge),new Vector3(.24f,.5f,.24f),5);
+            return bridge;
         }
-        static void Tower(Builder b,float x,float z,int floors,string name)
+        static MayhemModule[] Tower(Builder b,float x,float z,int floors,string name,List<SkylineSupport> supports)
         {
-            var frame=b.Module("Fixed "+name+" tower frame",new Vector3(x,.4f,z));
-            // One rigid frame carries all terraces. The open corners leave the ground plaza connected.
+            var frame=new MayhemModule{position=new Vector3(x,.4f,z)};
             foreach(float side in new[]{-1f,1f})foreach(float end in new[]{-1f,1f})
             {
                 float height=TowerDeck(floors)-.8f;
@@ -229,7 +265,7 @@ namespace DeadlyJenga.CastlePrototype
             for(int level=1;level<=floors;level++)
             {
                 float deck=TowerDeck(level)-.4f;
-                b.Part(frame,new Vector3(0,deck-.2f,0),new Vector3(TowerHalfWidth*2,.4f,TowerHalfDepth*2),level==floors?5:level%2==0?1:2);
+                b.Part(frame,new Vector3(0,deck-.2f,0),new Vector3(TowerHalfWidth*2,.4f,TowerHalfDepth*2+.06f),level==floors?5:level%2==0?1:2);
                 if(level==floors)
                     foreach(float side in new[]{-1f,1f})foreach(float end in new[]{-1f,1f})
                     {
@@ -239,8 +275,8 @@ namespace DeadlyJenga.CastlePrototype
             }
             float outer=TowerHalfDepth+TowerRun;
             float entry=TowerEntrySide(z);
-            b.Ramp("Fixed "+name+" ground flight",new Vector3(x-TowerLane,.4f,z+entry*outer),
-                new Vector3(x-TowerLane,TowerDeck(1),z+entry*TowerHalfDepth),3.5f);
+            var groundTop=new Vector3(x-TowerLane,TowerDeck(1),z+entry*TowerHalfDepth);
+            var groundFlight=b.Ramp(name+" ground flight",new Vector3(x-TowerLane,.46f,z+entry*outer),groundTop,3.5f);
             foreach(float side in new[]{entry,-entry})
             {
                 int last=(floors%2!=0)==(side==entry)?floors:floors-1;
@@ -252,22 +288,55 @@ namespace DeadlyJenga.CastlePrototype
                     b.Part(frame,new Vector3(postX,postHeight-.12f,postZ),new Vector3(1,.24f,.9f),5);
                 }
             }
+            var decks=SectionTower(b,frame,floors,name,supports);
+            supports.Add(new SkylineSupport(groundFlight,decks[1]));
             for(int level=2;level<=floors;level++)
             {
                 float side=level%2==0?-entry:entry;
                 float height=TowerDeck(level);
-                b.Ramp("Fixed "+name+" flight "+level,new Vector3(x-TowerLane,TowerDeck(level-1),z+side*TowerHalfDepth),
-                    new Vector3(x-TowerLane,height,z+side*outer),3.5f,true);
-                var turn=b.Box("Fixed "+name+" landing "+level,new Vector3(x,height-.2f,z+side*(outer+1.2f)),new Vector3(9.1f,.4f,2.4f),5);
+                var low=new Vector3(x-TowerLane,TowerDeck(level-1),z+side*TowerHalfDepth);
+                var high=new Vector3(x-TowerLane,height,z+side*outer);
+                var flight=b.Ramp(name+" flight "+level,low,high,3.5f,true);
+                var turn=b.Box(name+" landing "+level,new Vector3(x,height-.2f,z+side*(outer+1.2f)),new Vector3(9.1f,.4f,2.4f),5);
                 if(Mathf.Abs(x)==31&&(level==5||level==6))
                 {
                     b.Rail(turn,-2.73f,side*1.06f,.2f,3.3f);
                     b.Rail(turn,2.73f,side*1.06f,.2f,3.3f);
                 }
                 else b.Rail(turn,0,side*1.06f,.2f,8.8f);
-                b.Box("Fixed "+name+" gallery "+level,new Vector3(x+TowerLane,height-.2f,z+side*(TowerHalfDepth+TowerRun*.5f)),
+                var gallery=b.Box(name+" gallery "+level,new Vector3(x+TowerLane,height-.2f,z+side*(TowerHalfDepth+TowerRun*.5f)),
                     new Vector3(3.5f,.4f,TowerRun),2);
+                supports.Add(new SkylineSupport(flight,decks[level-1]));
+                supports.Add(new SkylineSupport(turn,decks[level]));
+                supports.Add(new SkylineSupport(gallery,decks[level]));
             }
+            return decks;
+        }
+
+        static MayhemModule[] SectionTower(Builder b,MayhemModule frame,int floors,string name,List<SkylineSupport> supports)
+        {
+            const int floorsPerSection=2;
+            var decks=new MayhemModule[floors+1];
+            MayhemModule lower=null;
+            for(int first=1;first<=floors;first+=floorsPerSection)
+            {
+                int last=Mathf.Min(first+floorsPerSection-1,floors);
+                float bottom=TowerDeck(first-1)-.4f;
+                float top=last==floors?TowerDeck(last)+3:TowerDeck(last)-.4f;
+                var section=b.Module(name+" tower section "+first,frame.position+Vector3.up*bottom);
+                foreach(var shape in frame.shapes)
+                {
+                    float low=Mathf.Max(bottom,shape.center.y-shape.size.y*.5f);
+                    float high=Mathf.Min(top,shape.center.y+shape.size.y*.5f);
+                    if(high-low<.001f)continue;
+                    var center=new Vector3(shape.center.x,(low+high)*.5f-bottom,shape.center.z);
+                    b.Part(section,center,new Vector3(shape.size.x,high-low,shape.size.z),shape.finish);
+                }
+                supports.Add(new SkylineSupport(section,lower));
+                for(int level=first;level<=last;level++)decks[level]=section;
+                lower=section;
+            }
+            return decks;
         }
 
         sealed class Builder
