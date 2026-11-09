@@ -58,6 +58,9 @@ namespace DeadlyJenga.CastlePrototype
         public static bool StartLocalSession;
         public static MatchRules Rules => MatchChoices.Rules;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void SetDefaultStamina() => MatchChoices.Rules.gripSeconds = 8f;
+
         public static string ModeId { get => MatchChoices.ModeId; set => MatchChoices.ModeId = value; }
         public static string MapId { get => MatchChoices.MapId; set => MatchChoices.MapId = value; }
         public static int BotTarget { get => MatchChoices.BotTarget; set => MatchChoices.BotTarget = value; }

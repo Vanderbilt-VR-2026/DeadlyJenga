@@ -23,7 +23,8 @@ namespace DeadlyJenga.CandyPlayers
         float currentSmoothness;
         int colorIndex=int.MinValue;
         Vector3 previousFeet;
-        float walkPhase;
+        float walkPhase, sprintBlend;
+        Vector3 strideDirection = Vector3.forward;
         float locomotionSpeed;
         public Transform LeftPalm=>bones[4];
         public Transform HeadAnchor=>bones[1];
@@ -117,7 +118,28 @@ namespace DeadlyJenga.CandyPlayers
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
-            Quaternion torsoTilt = Quaternion.Euler(frame.danceTorsoEuler * dance);
+            if(deltaTime>0f)
+            {
+                Vector3 travel = Vector3.ProjectOnPlane(frame.feet - previousFeet, Vector3.up);
+                previousFeet = frame.feet;
+                locomotionSpeed = travel.magnitude / (deltaTime * scale);
+                bool running = frame.sprinting && grounded && !downed && dance <= .01f;
+                float runTarget = running ? Mathf.InverseLerp(.3f, 2.4f, locomotionSpeed) : 0f;
+                sprintBlend = Mathf.MoveTowards(sprintBlend, runTarget, deltaTime * 6f);
+                if (travel.sqrMagnitude > .00001f)
+                {
+                    Vector3 targetDirection = transform.InverseTransformDirection(travel.normalized);
+                    Vector3 blendedDirection = Vector3.Lerp(strideDirection, targetDirection, 1f - Mathf.Exp(-12f * deltaTime));
+                    strideDirection = blendedDirection.sqrMagnitude > .01f ? blendedDirection.normalized : targetDirection;
+                }
+                float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, locomotionSpeed)) + sprintBlend * 3.8f;
+                walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
+            }
+            float run = grounded && !downed && dance <= .01f ? sprintBlend : 0f;
+            float counterSwing = Mathf.Cos(walkPhase);
+            Vector3 runningTilt = new(14f * strideDirection.z, 7f * counterSwing, -13f * strideDirection.x);
+            Quaternion torsoTilt = Quaternion.Euler(frame.danceTorsoEuler * dance + runningTilt * run);
+            torsoOffset.y -= run * (.038f - .017f * Mathf.Abs(counterSwing));
             Vector3 waist = Vector3.up * (.67f * crouch);
             torsoOffset += waist - torsoTilt * waist;
             bones[0].localPosition=torsoOffset;bones[0].localRotation=torsoTilt;bones[0].localScale=new Vector3(width,crouch,1);
@@ -125,21 +147,36 @@ namespace DeadlyJenga.CandyPlayers
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
             if(attachments)attachments.RefreshPalette(this);
-            if(deltaTime>0){locomotionSpeed=Vector3.ProjectOnPlane(frame.feet-previousFeet,Vector3.up).magnitude/deltaTime;previousFeet=frame.feet;walkPhase+=Mathf.Min(locomotionSpeed,6)*deltaTime*6;}
             float speed=locomotionSpeed;
             float stride=grounded?Mathf.Clamp01(speed/2)*.13f:0;
             for(int side=0;side<2;side++)
             {
                 float sign=side==0?-1:1,phase=walkPhase+(side==0?0:Mathf.PI);
                 Vector3 hip=transform.TransformPoint(torsoOffset+torsoTilt*new Vector3(sign*.105f*width,.67f*crouch,0));
-                Vector3 foot=transform.TransformPoint(new Vector3(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f));
+                Vector3 footLocal = new(sign*.12f,.075f+Mathf.Max(0,Mathf.Sin(phase))*stride*.55f,Mathf.Cos(phase)*stride+.025f);
+                float footPitch = 0f;
+                if (run > .001f)
+                {
+                    // The stance leg travels back at floor height. The swing leg lifts and returns.
+                    float cycle = Mathf.Repeat(phase / (2f * Mathf.PI), 1f);
+                    float flight = Mathf.InverseLerp(.58f, 1f, cycle);
+                    float step = cycle < .58f ? Mathf.Lerp(.27f, -.29f, cycle / .58f)
+                        : Mathf.SmoothStep(-.29f, .27f, flight);
+                    float lift = Mathf.Sin(flight * Mathf.PI);
+                    var sprintFoot = new Vector3(sign*.10f,.075f+lift*.19f,0) + strideDirection * step;
+                    footLocal = Vector3.Lerp(footLocal, sprintFoot, run);
+                    footPitch = run * (cycle < .58f
+                        ? Mathf.SmoothStep(0f, 24f, Mathf.InverseLerp(.31f, .58f, cycle))
+                        : Mathf.Lerp(24f, -9f, flight) * (1f - flight));
+                }
+                Vector3 foot=transform.TransformPoint(footLocal);
                 if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
                 if (dance > 0)
                     foot = Vector3.Lerp(foot, transform.TransformPoint(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
                 int thigh=side==0?8:11;
                 Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
-                bones[thigh+2].SetPositionAndRotation(foot,transform.rotation);bones[thigh+2].localScale=Vector3.one;
+                bones[thigh+2].SetPositionAndRotation(foot,transform.rotation*Quaternion.Euler(footPitch,0f,0f));bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
                 Quaternion torsoRotation=bones[0].localRotation;
                 Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(transform.InverseTransformPoint(hand.position)-torsoOffset);

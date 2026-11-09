@@ -25,7 +25,7 @@ namespace DeadlyJenga.CandyPlayers
         NearFarInteractor[] nearRays;
         XRRayInteractor[] farRays;
         bool overridePose,wasVaulting;
-        float handStride, handSwing;
+        float handStride, handSwing, handSprintBlend;
         int handMotionFrame = -1;
         CandyAvatarFrame overridden;
         CandyHandPose vaultStartLeft,vaultStartRight;
@@ -98,7 +98,13 @@ namespace DeadlyJenga.CandyPlayers
             var left=vr&&tracking?tracking.WorldHand(true):default;
             var right=vr&&tracking?tracking.WorldHand(false):default;
             bool animateHands = survivor && !survivor.externallyDriven;
-            if (animateHands) UpdateHandMotion();
+            if (animateHands)
+            {
+                UpdateHandMotion();
+                frame.sprinting = survivor.Sprinting;
+                frame.hasGaitPhase = true;
+                frame.gaitPhase = handStride;
+            }
             frame.left = LocomotionHand(frame, left, true, animateHands);
             frame.right = LocomotionHand(frame, right, false, animateHands);
             ApplyPunch(ref frame);
@@ -116,7 +122,9 @@ namespace DeadlyJenga.CandyPlayers
             float target = survivor.Grounded && !survivor.Climbing && !survivor.Vaulting
                 ? Mathf.InverseLerp(.12f, 4f, speed) : 0f;
             handSwing = Mathf.MoveTowards(handSwing, target, Time.deltaTime * 4f);
-            handStride = Mathf.Repeat(handStride + Time.deltaTime * Mathf.Lerp(6f, 12f, handSwing), 2f * Mathf.PI);
+            handSprintBlend = Mathf.MoveTowards(handSprintBlend, survivor.Sprinting ? target : 0f, Time.deltaTime * 6f);
+            float cadence = Mathf.Lerp(6f, 11f, handSwing) + handSprintBlend * 3.8f;
+            handStride = Mathf.Repeat(handStride + Time.deltaTime * cadence, 2f * Mathf.PI);
         }
 
         CandyHandPose LocomotionHand(CandyAvatarFrame frame, CandyHandPose hand, bool isLeft, bool animate)
@@ -147,11 +155,15 @@ namespace DeadlyJenga.CandyPlayers
                 // Keep the wrists in the lower view with the palms facing each other.
                 var desktopOffset = new Vector3(side * (.23f - swing * .012f),
                     -.22f + swing * .027f + idle * .008f, .50f + swing * .075f);
+                float pump = Mathf.Cos(handStride) * side;
+                var runningOffset = new Vector3(side * .21f, -.27f + pump * .086f, .47f + pump * .13f);
+                Vector3 walkingAngles = new(38f - swing * 15f, -side * 5f, -side * (67f + swing * 8f + idle * 3f));
+                Vector3 runningAngles = new(31f - pump * 24f, -side * (8f + 6f * pump), -side * 66f);
                 return new CandyHandPose
                 {
-                    position = frame.head + facing * (desktopOffset * frame.scale),
-                    rotation = facing * Quaternion.Euler(38f - swing * 15f, -side * 5f, -side * (67f + swing * 8f + idle * 3f)),
-                    skeleton = CandyHandSkeleton.Rest(isLeft, .38f + swing * .10f),
+                    position = frame.head + facing * (Vector3.Lerp(desktopOffset, runningOffset, handSprintBlend) * frame.scale),
+                    rotation = facing * Quaternion.Euler(Vector3.Lerp(walkingAngles, runningAngles, handSprintBlend)),
+                    skeleton = CandyHandSkeleton.Rest(isLeft, Mathf.Lerp(.38f + swing * .10f, .65f, handSprintBlend)),
                     skeletonTracked = true
                 };
             }

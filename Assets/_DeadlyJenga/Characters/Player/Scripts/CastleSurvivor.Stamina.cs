@@ -41,14 +41,14 @@ namespace DeadlyJenga.CastlePrototype
         [Min(0)] public float climbRecoveryDelay=.45f;
         public StaminaCurve climbDrainCurve=StaminaCurve.Linear,climbRecoveryCurve=StaminaCurve.Linear;
         [Range(1,6)] public float climbDrainDegree=2,climbRecoveryDegree=2;
-        public bool StaminaRecovering=>!Climbing&&!sprintStaminaActive&&GripRemaining<1&&climbGroundRest>Mathf.Max(0,climbRecoveryDelay)&&climbRecoveryPerSecond>0;
+        public bool StaminaRecovering=>!Climbing&&GripRemaining<1&&climbGroundRest>Mathf.Max(0,climbRecoveryDelay)&&climbRecoveryPerSecond>0;
         public bool StaminaExhausted=>GripRemaining<=.001f;
         public bool SprintRequested {get;private set;}
-        bool sprintToggleArmed,sprintStaminaActive;
+        bool sprintToggleArmed;
         float sprintFeedbackUntil;
         string sprintFeedback;
-        string SprintStatusText=>Sprinting?"SPRINTING · stamina "+Mathf.CeilToInt(GripRemaining*100)+"%":
-            SprintRequested?"SPRINT READY · move to run · stamina "+Mathf.CeilToInt(GripRemaining*100)+"%":sprintFeedback;
+        string SprintStatusText=>Sprinting?"SPRINTING":
+            SprintRequested?"SPRINT READY · move to run":sprintFeedback;
 
         void UpdateSprintToggle(bool available,bool pressed,bool held)
         {
@@ -60,29 +60,10 @@ namespace DeadlyJenga.CastlePrototype
             {
                 ClearSprint();sprintFeedback="SPRINT OFF";sprintFeedbackUntil=Time.unscaledTime+1.5f;
             }
-            else if(GripRemaining>.001f||PowerupUnlimitedStamina)SprintRequested=true;
-            else
-            {
-                sprintFeedback="SPRINT EXHAUSTED · recover first";sprintFeedbackUntil=Time.unscaledTime+2;
-            }
+            else SprintRequested=true;
         }
         bool CanSprint(Vector2 input)=>SprintRequested&&Grounded&&input.sqrMagnitude>.001f&&
             Alive&&!InputSuspended&&vrInputFocused&&!externallyDriven&&!Climbing&&!Vaulting&&!Sinking&&
-            modeRules?.downed!=true&&movementMultiplier>0&&(GripRemaining>.001f||PowerupUnlimitedStamina);
-
-        void UpdateSprintStamina(Vector2 input,float dt)
-        {
-            Sprinting=CanSprint(input);sprintStaminaActive=Sprinting;
-            if(!Sprinting)return;
-            climbGroundRest=0;
-            if(!PowerupUnlimitedStamina)
-                GripRemaining=1-CastleStaminaCurve.Advance(1-GripRemaining,
-                    dt*Mathf.Max(0,climbDrainPerSecond)/Mathf.Max(.2f,climbGripSeconds),climbDrainCurve,climbDrainDegree);
-            if(GripRemaining<=.001f&&!PowerupUnlimitedStamina)
-            {
-                ClearSprint();sprintFeedback="SPRINT EXHAUSTED · recover, then click to sprint";
-                sprintFeedbackUntil=Time.unscaledTime+2;
-            }
-        }
+            modeRules?.downed!=true&&movementMultiplier>0;
     }
 }
