@@ -684,7 +684,6 @@ namespace DeadlyJenga.CastlePrototype
             FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Render,0,0,0,renderStarted);ConnectModes();
             float now = Time.unscaledTime;
             PumpNativeMotion(now);
-            if (runner.IsServer) SubmitPreparedWorld(now);
             PumpPoses(now);if(poseSendFailed)return;
             try{PumpWorldResync(now);}catch(Exception){Fail("World resynchronization send failed. Rejoin with the same game build.");return;}
             FlushPoseReceipts(now);if(poseSendFailed)return;
@@ -698,6 +697,8 @@ namespace DeadlyJenga.CastlePrototype
                 foreach (var pair in peers.ToArray())
                     if (now - pair.Value.lastPose > 20 || pair.Value.waiting != 0 && now - pair.Value.sentAt > 20 || pair.Value.posesInFlight.Expired(now))
                     { runner.Disconnect(pair.Key); RemovePlayer(pair.Key); }
+                // Check sent transfers before a prepared packet reserves a slot.
+                SubmitPreparedWorld(now);
                 if (now < nextSend) return;
                 nextSend = now + .1f;ObserveWorldScope();
                 FlushDisasterImpacts();
