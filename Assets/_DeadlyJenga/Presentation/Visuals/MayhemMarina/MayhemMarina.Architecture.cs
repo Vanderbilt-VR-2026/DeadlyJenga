@@ -54,6 +54,47 @@ namespace DeadlyJenga.CandyArt.Marina
                 Rock(new Vector3(17+Mathf.Cos(a)*5.6f,-.2f,-8+Mathf.Sin(a)*5.6f),new Vector3(1.2f,.8f,1.5f),i+9);
             }
         }
+        void MarshAndBeach()
+        {
+            var center = new Vector3(0, .02f, 4);
+            mesh.ArcSlab(center, new Vector2(20, 17), new Vector2(27.8f, 24.7f), .28f, 67, 111, F.Sand, true, 28);
+            mesh.ArcSlab(center, new Vector2(20, 17), new Vector2(27.2f, 24.0f), .34f, -105, -62, F.Sand, true, 28);
+            mesh.ArcSlab(center, new Vector2(20, 18), new Vector2(27.5f, 25.7f), .37f, -34, 32, F.Sand, true, 38);
+            Ramp(new Vector3(23.12f, 1.25f, 8.8f), new Vector3(26.1f, .30f, 9.2f), 2.7f, false);
+            Ramp(new Vector3(-23.12f, 1.25f, 8.8f), new Vector3(-25.8f, .36f, 9.25f), 2.7f, false);
+            Ramp(new Vector3(1.1f, 1.25f, 24.62f), new Vector3(1.1f, .39f, 28.4f), 2.7f, false);
+            for (int i = 0; i < 22; i++)
+            {
+                float angle = Mathf.Lerp(-32, 30, i / 21f) * Mathf.Deg2Rad;
+                var p = new Vector3(Mathf.Sin(angle) * 26, .39f, 4 + Mathf.Cos(angle) * 24.35f);
+                if (Mathf.Abs(p.x - 1.1f) < 1.6f) continue;
+                for (int stalk = 0; stalk < 5; stalk++)
+                {
+                    float turn = i * 2.4f + stalk * 1.26f;
+                    var lean = new Vector3(Mathf.Cos(turn), 0, Mathf.Sin(turn));
+                    var foot = p + lean * .17f;
+                    mesh.Beam(foot, foot + Vector3.up * (.38f + stalk * .10f) + lean * .21f, .024f, stalk % 2 == 0 ? F.Leaf : F.LeafLight);
+                }
+            }
+            for (int i = 0; i < 8; i++)
+            {
+                float x = 25.5f * (i < 4 ? -1 : 1);
+                float z = -1.4f + i % 4 * 2.8f;
+                Rock(new Vector3(x, .31f, z), new Vector3(.72f, .33f, .57f), i);
+            }
+        }
+        void JetSkiDock()
+        {
+            mesh.Box(new Vector3(-20.8f, 1.12f, -25.0f), new Vector3(6.8f, .24f, 2.8f), F.Wood, .045f, true);
+            for (int i = 0; i < 4; i++)
+            {
+                var point = new Vector3(-23.9f + i * 1.9f, 1.24f, -26.36f);
+                mesh.Beam(point - Vector3.up * 1.65f, point + Vector3.up * .32f, .12f, F.DarkWood);
+                mesh.Disk(point + Vector3.up * .28f, .15f, .065f, F.Brass, false, 14);
+            }
+            DirectionBoard(new Vector3(-22.7f, 1.24f, -24.2f), Quaternion.Euler(0, 180, 0), 2.8f);
+        }
+
         static readonly Vector3 BeaconWalkStart = new(-5.65f, 1.33f, -8.45f);
         static readonly Vector3 BeaconWalkEnd = new(11.5f, 1.285f, 1.95f);
         static readonly Quaternion BeaconWalkFacing = Quaternion.LookRotation(

@@ -88,7 +88,7 @@ namespace DeadlyJenga.CandyArt.Marina
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
             ShoreAndCourts();Pavilion();StyleShop();Lounge();UpperTerraces();Landmark();Planting();DistantIslands();
-            BeaconWalk();LightingFixtures();SignMounts();
+            BeaconWalk();MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
@@ -227,6 +227,8 @@ namespace DeadlyJenga.CandyArt.Marina
         void Signs()
         {
             var cream = new Color(.95f, .88f, .69f);
+            Sign("JET SKIS", new Vector3(-22.7f, 2.69f, -24.115f), .047f, cream, new Vector3(0, 180, 0));
+            Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
             Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
                 BeaconWalkFacing.eulerAngles);
             Sign("PLAY  /  AHEAD", new Vector3(-9.2f, 2.68f, -5.082f), .034f, cream, new Vector3(0, 12, 0));

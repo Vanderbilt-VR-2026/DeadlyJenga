@@ -40,6 +40,11 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key + "WildlifeDistribution", true);
             RunLayout(false);
         }
+        public static void RunDockActivities()
+        {
+            SessionState.SetBool(Key + "DockActivities", true);
+            RunLayout(false);
+        }
         static void RunLayout(bool legacy)
         {
             SessionState.SetInt(Key+"Preference",PlayerPrefs.GetInt(IslandLobby.LegacyLobbyPreference,-1));
@@ -188,6 +193,13 @@ namespace DeadlyJenga.DevTools.Editor
             {
                 SessionState.SetBool(Key + "WildlifeDistribution", false);
                 CheckWildlifeDistribution(lobby);
+                yield break;
+            }
+            if (SessionState.GetBool(Key + "DockActivities", false))
+            {
+                SessionState.SetBool(Key + "DockActivities", false);
+                CheckWildlifeDistribution(lobby);
+                yield return CheckDockActivities(lobby);
                 yield break;
             }
             if(legacy)
@@ -353,6 +365,45 @@ namespace DeadlyJenga.DevTools.Editor
             Check(companion && companion.GetComponent<IWildlifeActor>().FollowTarget == player &&
                 Vector2.Distance(Flat(companion.transform.position), Flat(player.position)) < 5.5f,
                 "Companion still spawns nearby and follows the player");
+        }
+        static IEnumerator CheckDockActivities(IslandLobby lobby)
+        {
+            var activities = lobby.GetComponent<MarinaDockActivities>();
+            var ski = lobby.transform.Find("Marina jet ski 1");
+            Check(activities && ski && ski.Find("Jet ski hull") && lobby.transform.Find("Marina jet ski 2"),
+                "Two playable jet ski bodies have visible hulls at the real dock");
+            var tv = lobby.GetComponentInChildren<LobbySpectatorTVWall>();
+            Check(tv && tv.transform.localPosition.z > 8 && tv.transform.localPosition.z < 11 && tv.transform.localPosition.y < 2,
+                "The live spectator wall is installed at the pavilion");
+            var gull = lobby.transform.Find("Marina gull calls")?.GetComponent<AudioSource>();
+            Check(gull && gull.clip && gull.clip.length > 3 && gull.spatialBlend > .95f,
+                "The Marina loads its gull recording as positional ambience");
+            foreach (var point in new[] { new Vector3(-25.6f, 2, 9.2f), new Vector3(26.2f, 2, 9.1f), new Vector3(5, 2, 28) })
+                Check(Physics.Raycast(lobby.transform.TransformPoint(point), Vector3.down, 2, 1 << Layers.Surface, QueryTriggerInteraction.Ignore),
+                    $"Sandy habitat has actual surface at {point.x:F1}, {point.z:F1}");
+
+            const System.Reflection.BindingFlags flags = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var type = typeof(MarinaDockActivities);
+            void Call(string method, params object[] args) => type.GetMethod(method, flags).Invoke(activities, args);
+            var player = lobby.Player;
+            lobby.SetMenu(false);
+            player.Place(lobby.transform.TransformPoint(new Vector3(-23, 1.28f, -25.8f)), lobby.transform.rotation);
+            yield return null;
+            Call("TryBoard");
+            Check(player.transform.parent == ski && player.InputSuspended, "Boarding attaches the actual survivor to the ski seat");
+            var moored = ski.position;
+            for (int i = 0; i < 30; i++) Call("Drive", Vector2.up, .05f);
+            Check(Vector3.Distance(moored, ski.position) > 2 && player.transform.parent == ski,
+                "The ski accelerates offshore with the rider attached");
+            Call("ReturnToDock", true);
+            Check(player.transform.parent != ski && player.gameObject.GetComponent<CharacterController>().enabled && !player.InputSuspended &&
+                Vector3.Distance(moored, ski.position) < .02f, "Returning re-docks the ski and restores movement");
+            var start = lobby.transform.TransformPoint(new Vector3(10.5f, 5.16f, 15.9f));
+            Call("LaunchKnife", new Pose(start, lobby.transform.rotation));
+            yield return Wait(.52f);
+            var knife = lobby.transform.Find("Thrown practice knife");
+            Check(knife && knife.Find("Knife blade") && knife.localPosition.z > 17.55f && knife.localPosition.z < 18.25f,
+                "A ballistic practice knife travels into an actual target and sticks");
         }
         static IEnumerator RunNetworkScene()
         {

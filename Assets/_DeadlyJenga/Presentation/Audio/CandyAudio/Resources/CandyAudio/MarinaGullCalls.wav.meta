@@ -1,0 +1,21 @@
+fileFormatVersion: 2
+guid: 2b94e65ead1c42a4acc07e012946bf6b
+AudioImporter:
+  externalObjects: {}
+  serializedVersion: 7
+  defaultSettings:
+    serializedVersion: 2
+    loadType: 0
+    sampleRateSetting: 0
+    sampleRateOverride: 32000
+    compressionFormat: 1
+    quality: 0.75
+    conversionMode: 0
+  platformSettingOverrides: {}
+  forceToMono: 1
+  normalize: 0
+  preloadAudioData: 1
+  loadInBackground: 1
+  ambisonic: 0
+  3D: 1
+  userData: Soojay - Seagulls / gaviotas clean wildtrack.WAV (CC0 1.0). https://freesound.org/people/Soojay/sounds/462462/
