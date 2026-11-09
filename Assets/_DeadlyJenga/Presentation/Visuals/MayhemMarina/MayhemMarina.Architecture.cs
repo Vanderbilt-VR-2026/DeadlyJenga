@@ -62,7 +62,8 @@ namespace DeadlyJenga.CandyArt.Marina
 
         void BeaconWalk()
         {
-            Bridge(BeaconWalkStart, BeaconWalkEnd, 3.65f, .14f);
+            // A single planar walking surface avoids small joints under the survivor capsule.
+            Bridge(BeaconWalkStart, BeaconWalkEnd, 3.65f, 0);
             for (int side = -1; side <= 1; side += 2)
             {
                 var edge = BeaconWalkFacing * Vector3.right * (side * 1.93f);
