@@ -54,10 +54,13 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<string,INetworkActorView> peers=new Dictionary<string,INetworkActorView>();
         InputAction menu;bool focused=true;
         ISurvivorBotPopulation lobbyBots;IBotPopulation lobbyHands;float nextLobbyPopulation;
+        bool lobbyWildlifeSeeded;
         void PopulateLobbyWildlife()
         {
+            if (lobbyWildlifeSeeded || MatchResident || !Retained) return;
             var wildlife=GetComponent<IWildlifeControls>();
             if(wildlife?.Available!=true)return;
+            lobbyWildlifeSeeded=true;
             wildlife.Spawn("fox",false);
             wildlife.Spawn("tortoise",false);
             wildlife.Spawn("frog",false);
@@ -93,7 +96,6 @@ namespace DeadlyJenga.CastlePrototype
                 PlaceLocalLobbyArrival();
                 if(!match)
                 {
-                    PopulateLobbyWildlife();
                     CreateLobbyPopulation();Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);
                 }
                 menu=new InputAction("Lobby controls",InputActionType.Button,"<XRController>{LeftHand}/secondaryButton");menu.Enable();

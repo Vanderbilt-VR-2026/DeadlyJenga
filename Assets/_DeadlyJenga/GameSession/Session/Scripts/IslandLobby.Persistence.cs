@@ -15,7 +15,13 @@ namespace DeadlyJenga.CastlePrototype
         void HomeOpened(GameObject home){if(Persistent==this)ParkForMatch();}
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetResidence(){Persistent=null;Current=null;}
-        void Start(){if(!duplicate)RetainRoots();}
+        void Start()
+        {
+            if (duplicate) return;
+            RetainRoots();
+            // Animals keep world-space movement targets, so spawn after moving the retained lobby.
+            PopulateLobbyWildlife();
+        }
         void RetainRoots()
         {
             if(Retained||duplicate)return;
@@ -81,6 +87,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!Voice){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}else Voice.enabled=true;
             PlaceLocalLobbyArrival(returning:true);
             refreshInputOnReturn=true;
+            PopulateLobbyWildlife();
             GameEvents.RaiseEmoted(gameObject,"LobbyResumed");
             UpdateControls();SetMenu(false);
         }

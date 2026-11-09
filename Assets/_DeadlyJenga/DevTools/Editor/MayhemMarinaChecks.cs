@@ -206,7 +206,12 @@ namespace DeadlyJenga.DevTools.Editor
             Check(lobby&&lobby.GetComponent<MayhemMarina>()&&NetworkActors.Alive(lobby.Player),"Actual Marina lobby and survivor loaded");
             yield return Wait(.5f);
             lobby.SetMenu(false);
-            Check(!lobby.Player.InputSuspended,"Initial Marina input available");
+            var animals=lobby.GetComponentsInChildren<DeadlyJenga.Wildlife.IslandAnimal>().ToArray();
+            Check(animals.Length==4&&animals.Select(a=>a.Species).OrderBy(id=>id).SequenceEqual(new[]{"crab","fox","frog","tortoise"}),
+                "Default wildlife is present exactly once after retaining the lobby");
+            Check(animals.All(animal=>animal.DistanceTravelled<10),"Wildlife movement does not count the lobby relocation");
+            File.AppendAllText(Report,$"INPUT initial focus={Application.isFocused} suspended={lobby.Player.InputSuspended} setup={lobby.SetupHint}\n");
+            if(Application.isFocused)Check(!lobby.Player.InputSuspended,"Focused Marina input available");
             var oldPlayer=lobby.Player;
             var ocean=lobby.GetComponentsInChildren<Renderer>(true).Single(r=>r.name=="Marina ocean");
             var water=lobby.transform.TransformPoint(new Vector3(-14,0,-37));
@@ -216,7 +221,7 @@ namespace DeadlyJenga.DevTools.Editor
             var recovered=lobby.transform.InverseTransformPoint(lobby.Player.transform.position);
             Check(recovered.y>1.15f&&Vector2.Distance(new Vector2(recovered.x,recovered.z),new Vector2(-10,-8))<5,
                 "Ocean crossing near water level returns the survivor to the dry arrival pier");
-            Check(!lobby.Player.InputSuspended,"Ocean recovery keeps movement available");
+            if(Application.isFocused)Check(!lobby.Player.InputSuspended,"Ocean recovery keeps focused movement available");
             lobby.Player.Place(lobby.transform.TransformPoint(new Vector3(17,.47f,-8)),Quaternion.identity);
             yield return Wait(.4f);
             var pool=lobby.transform.InverseTransformPoint(lobby.Player.transform.position);
@@ -229,6 +234,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(lobby.MatchResident&&!oldPlayer.gameObject.activeInHierarchy&&Services.Session is CastlePlaySession,
                 "Real match scene parks the persistent lobby body");
             Check(!ocean.gameObject.activeInHierarchy,"Parked Marina ocean does not render in the match");
+            Check(animals.All(animal=>animal&&!animal.gameObject.activeInHierarchy),"Retained wildlife sleeps while the match is active");
             Check(lobby.Room.ReturnMatchToLobby(),"Solo room accepts return to the lobby");
             until=Time.realtimeSinceStartup+45;
             while (IslandLobby.Current!=lobby&&Time.realtimeSinceStartup<until) yield return null;
@@ -237,6 +243,10 @@ namespace DeadlyJenga.DevTools.Editor
             Check(ReferenceEquals(oldPlayer,lobby.Player)&&oldPlayer.gameObject.activeInHierarchy&&oldPlayer.ViewCamera.enabled,
                 "Retained survivor and camera are active after return");
             Check(ocean.gameObject.activeInHierarchy&&RenderSettings.skybox,"Marina ocean and sky are restored");
+            Check(animals.All(animal=>animal&&animal.gameObject.activeInHierarchy)&&lobby.GetComponent<IWildlifeControls>().Count==animals.Length,
+                "The same wildlife resumes without duplicate animals");
+            File.AppendAllText(Report,$"INPUT returned focus={Application.isFocused} suspended={lobby.Player.InputSuspended} setup={lobby.SetupHint}\n");
+            if(!Application.isFocused&&lobby.Player.InputSuspended)yield break;
             Check(!lobby.MenuOpen&&!lobby.Player.InputSuspended,"Returned survivor is ready for movement");
             var motor=lobby.Survivor();
             var start=motor.transform.position;
