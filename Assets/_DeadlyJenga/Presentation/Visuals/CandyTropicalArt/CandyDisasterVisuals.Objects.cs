@@ -25,6 +25,11 @@ namespace DeadlyJenga.CandyArt
         Mesh shard; Material shardMaterial;
         readonly List<Matrix4x4> stormBolts=new List<Matrix4x4>(32);
         float previewStormFlash=-1;
+        readonly List<Matrix4x4> seaSpray = new(40), seaFoam = new(2), stormRemnants = new(12);
+        Material tornadoSpray, tornadoFoam, tornadoRemnants;
+        MaterialPropertyBlock tornadoVolume;
+        DisasterFrame lastTornado;
+        float lastTornadoDrawn, tornadoDissolve;
         Mesh stormRibbons;
         Vector3[] streamVertices;
         float nextStormStreamUpdate,lastStreamSize,lastStreamHeight,lastVolumeSize,lastVolumeHeight;
@@ -60,6 +65,11 @@ namespace DeadlyJenga.CandyArt
             if(stormCloud){stormMist.SetTexture("_CloudTexture",stormCloud);stormMist.SetFloat("_UseCloudTexture",1);}
             stormRibbon=new Material(stormMist){name="Streaming vortex wisps"};stormRibbon.SetFloat("_Streamed",1);
             stormRibbon.SetColor("_BaseColor",new Color(.52f,.64f,.78f,.3f));
+            tornadoSpray = new Material(stormMist) { name = "Tornado sea spray" };
+            tornadoFoam = new Material(stormMist) { name = "Tornado surface foam" };
+            tornadoFoam.SetFloat("_SeaFoam", 1f);
+            tornadoRemnants = new Material(stormMist) { name = "Dissolving storm wisps" };
+            tornadoVolume = new MaterialPropertyBlock();
             stormFlash=new Material(stormMist){name="Internal storm lightning",renderQueue=storm.renderQueue+2};stormFlash.SetFloat("_Lightning",1);
         }
         static Material ObjectMaterial(string shader,Color tint)
@@ -69,7 +79,7 @@ namespace DeadlyJenga.CandyArt
         }
         void BeginObjects()
         {
-            acidStreaks.Clear();stones.Clear();chips.Clear();candyChips.Clear();smokePuffs.Clear();flames.Clear();dustPuffs.Clear();windPuffs.Clear();stormBolts.Clear();
+            acidStreaks.Clear();stones.Clear();chips.Clear();candyChips.Clear();smokePuffs.Clear();flames.Clear();dustPuffs.Clear();windPuffs.Clear();stormBolts.Clear();seaSpray.Clear();seaFoam.Clear();stormRemnants.Clear();
             var camera=Services.Session?.ActiveCamera;
             billboard=camera?camera.transform.rotation:Quaternion.identity;
         }
@@ -160,17 +170,91 @@ namespace DeadlyJenga.CandyArt
             DrawObjects(candyChips,shard,shardMaterial);
             DrawObjects(acidStreaks,quad,acid);DrawObjects(smokePuffs,quad,smoke);DrawObjects(dustPuffs,quad,dust);DrawObjects(flames,quad,flame);
             DrawObjects(windPuffs,quad,stormMist);DrawObjects(stormBolts,quad,stormFlash);
+            DrawObjects(seaFoam,quad,tornadoFoam);
+            DrawObjects(seaSpray,quad,tornadoSpray);
+            DrawObjects(stormRemnants,quad,tornadoRemnants);
         }
         void DrawObjects(List<Matrix4x4> list,Mesh mesh,Material material)
         {
             for(int start=0;start<list.Count;start+=1023){int count=Mathf.Min(1023,list.Count-start);list.CopyTo(start,matrices,0,count);Graphics.DrawMeshInstanced(mesh,0,material,matrices,count,null,ShadowCastingMode.Off,false);}
         }
-        void Tornado(DisasterFrame f)
+        void Tornado(DisasterFrame frame)
         {
-            if(f.values==null||f.values.Length<4)return;
-            PrepareTornado(f);
-            Graphics.DrawMesh(funnel,Matrix4x4.TRS(f.center,Quaternion.identity,Vector3.one),storm,0,null,0,null,ShadowCastingMode.Off,false);
-            Graphics.DrawMesh(stormRibbons,Matrix4x4.TRS(f.center,Quaternion.identity,Vector3.one),stormRibbon,0,null,0,null,ShadowCastingMode.Off,false);
+            if (frame.values == null || frame.values.Length < 4) return;
+            lastTornado = frame;
+            lastTornadoDrawn = Time.time;
+            DrawTornado(frame, 0f);
+        }
+
+        void RenderDepartedTornado()
+        {
+            if (lastTornado == null) return;
+            float elapsed = Time.time - lastTornadoDrawn;
+            if (elapsed <= 0f) return;
+            if (elapsed >= 1.6f) { lastTornado = null; return; }
+            DrawTornado(lastTornado, Mathf.SmoothStep(0f, 1f, elapsed / 1.6f));
+        }
+
+        void DrawTornado(DisasterFrame frame, float tail)
+        {
+            bool hasMotion = frame.points != null && frame.points.Length > 0 && frame.values.Length >= 6;
+            float ageSinceSample = hasMotion ? Mathf.Clamp(Time.time - frame.sampledAt, 0f, .2f) : 0f;
+            Vector3 center = frame.center;
+            if (hasMotion) center += frame.points[0].velocity * ageSinceSample;
+
+            float fadeSeconds = hasMotion ? frame.values[5] * .19f : 0f;
+            float endFade = fadeSeconds > 0f
+                ? Mathf.SmoothStep(0f, 1f, 1f - (frame.remaining - ageSinceSample) / fadeSeconds) : 0f;
+            tornadoDissolve = Mathf.Max(endFade, tail);
+            if (tornadoDissolve >= .995f) return;
+
+            bool water = !Physics.Raycast(center + Vector3.up * 12f, Vector3.down, 12.25f,
+                1 << Layers.Surface, QueryTriggerInteraction.Ignore);
+            PrepareTornadoAt(frame, center, water);
+            var transform = Matrix4x4.TRS(center, Quaternion.identity, Vector3.one);
+            tornadoVolume.SetFloat("_StormDissolve", tornadoDissolve);
+            Graphics.DrawMesh(funnel, transform, storm, 0, null, 0, tornadoVolume, ShadowCastingMode.Off, false);
+            if (tornadoDissolve < .96f)
+                Graphics.DrawMesh(stormRibbons, transform, stormRibbon, 0, null, 0, null, ShadowCastingMode.Off, false);
+
+            float size = frame.values[1];
+            if (water) BuildTornadoSpray(center, size, frame.values[2]);
+            if (tornadoDissolve > .01f)
+            {
+                float opacity = Mathf.Sin(tornadoDissolve * Mathf.PI);
+                tornadoRemnants.SetColor("_BaseColor", new Color(.43f, .52f, .64f, opacity * .45f));
+                for (int i = 0; i < 9; i++)
+                {
+                    float angle = i * 2.4f - Time.time * .55f;
+                    float radius = size * (.7f + tornadoDissolve * (1f + Hash(i)));
+                    float height = frame.values[0] * (.6f + Hash(i + 19) * .36f);
+                    var position = center + new Vector3(Mathf.Cos(angle) * radius,
+                        height + tornadoDissolve * size, Mathf.Sin(angle) * radius);
+                    Puff(stormRemnants, position, size * (1.1f + tornadoDissolve), size * .65f, i * 19f);
+                }
+            }
+        }
+
+        void BuildTornadoSpray(Vector3 center, float size, float force)
+        {
+            float life = 1f - tornadoDissolve;
+            float breakup = tornadoDissolve * size;
+            tornadoFoam.SetColor("_BaseColor", new Color(.71f, .95f, 1f, life * .72f));
+            tornadoSpray.SetColor("_BaseColor", new Color(.63f, .89f, 1f, life * .64f));
+            float foamWidth = size * 2.4f + breakup * 1.7f;
+            seaFoam.Add(Matrix4x4.TRS(center + Vector3.up * .11f, Quaternion.Euler(90f, 0f, 0f),
+                new Vector3(foamWidth, foamWidth, 1f)));
+            int count = compactStorm ? 12 : 26;
+            for (int i = 0; i < count; i++)
+            {
+                float rise = Mathf.Repeat(Time.time * (.52f + Hash(i) * .34f) + Hash(i + 15), 1f);
+                float angle = i * 2.4f + Time.time * (1.6f + force * .05f) + rise * 4.2f;
+                float radius = size * (.30f + Hash(i + 26) * .39f - rise * .22f) + breakup * .6f;
+                var position = center + new Vector3(Mathf.Cos(angle) * radius,
+                    size * rise * (.24f + Hash(i + 41) * .52f) * life, Mathf.Sin(angle) * radius);
+                float width = size * (.08f + Hash(i + 73) * .09f) * Mathf.Sin(rise * Mathf.PI);
+                Puff(seaSpray, position, width, width * 2.1f, Mathf.Sin(angle) * 34f);
+            }
         }
         void BuildStormDensity()
         {
@@ -189,6 +273,12 @@ namespace DeadlyJenga.CandyArt
             stormNoise.SetPixelData(voxels,0);stormNoise.Apply(true,true);storm.SetTexture("_DensityTex",stormNoise);
         }
         void PrepareTornado(DisasterFrame f)
+        {
+            tornadoDissolve = 0f;
+            PrepareTornadoAt(f, f.center, false);
+        }
+
+        void PrepareTornadoAt(DisasterFrame f, Vector3 center, bool water)
         {
             if(f.values==null||f.values.Length<4)return;
             float height=f.values[0],size=f.values[1],speed=1+f.values[2]*.1f;
@@ -212,40 +302,42 @@ namespace DeadlyJenga.CandyArt
             float cycle=Mathf.Repeat(Time.time,7);
             float flash=Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-1.8f)/.1f),2)+.55f*Mathf.Pow(Mathf.Clamp01(1-Mathf.Abs(cycle-2f)/.075f),2);
             if(previewStormFlash>=0)flash=previewStormFlash;
+            float visibility = 1f - tornadoDissolve;
+            flash *= visibility;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
-            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f),new Color(.40f,.49f,.86f,.70f),flash));
-            stormRibbon.SetColor("_BaseColor",Color.Lerp(new Color(.27f,.34f,.46f,compactStorm?.12f:.19f),new Color(.59f,.71f,1.1f,.28f),flash));
+            stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f*visibility),new Color(.40f,.49f,.86f,.70f*visibility),flash));
+            stormRibbon.SetColor("_BaseColor",Color.Lerp(new Color(.27f,.34f,.46f,(compactStorm?.12f:.19f)*visibility),new Color(.59f,.71f,1.1f,.28f),flash));
             if(flash>.02f)
             {
                 stormFlash.SetColor("_BaseColor",new Color(.8f,1.2f,2.8f,flash*.7f));
-                Vector3 start=f.center+new Vector3(size*.5f,height+size*.8f,size*.3f),fork=f.center+new Vector3(size*1.2f,height-size*.3f,size*.8f);
+                Vector3 start=center+new Vector3(size*.5f,height+size*.8f,size*.3f),fork=center+new Vector3(size*1.2f,height-size*.3f,size*.8f);
                 StormBolt(start,fork,17,2.2f,10);
-                StormBolt(Vector3.Lerp(start,fork,.45f),f.center+new Vector3(size*2.5f,height+size*.1f,-size*.3f),42,1.6f,7);
-                StormBolt(Vector3.Lerp(start,fork,.65f),f.center+new Vector3(size*.2f,height-size*.5f,size*1.5f),93,1.2f,5);
+                StormBolt(Vector3.Lerp(start,fork,.45f),center+new Vector3(size*2.5f,height+size*.1f,-size*.3f),42,1.6f,7);
+                StormBolt(Vector3.Lerp(start,fork,.65f),center+new Vector3(size*.2f,height-size*.5f,size*1.5f),93,1.2f,5);
             }
             BuildStormStreams(size,height,speed);
             int clouds=compactStorm?5:11;
             for(int i=0;i<clouds;i++)
             {
                 float a=i*Mathf.PI*2/clouds-Time.time*speed*.23f,r=size*(1.3f+Hash(i+18)*2.1f);
-                Vector3 p=f.center+new Vector3(Mathf.Cos(a)*r,height+size*(-.2f+Hash(i+161)*.7f),Mathf.Sin(a)*r);
+                Vector3 p=center+new Vector3(Mathf.Cos(a)*r,height+size*(-.2f+Hash(i+161)*.7f),Mathf.Sin(a)*r);
                 float w=size*(1.05f+Hash(i+234)*.55f);
                 Puff(windPuffs,p,w,w*.8f,Mathf.Sin(a)*20);
             }
-            int dustCount=compactStorm?5:11, debrisCount=compactStorm?15:36;
+            int dustCount=water?0:compactStorm?5:11, debrisCount=water?0:compactStorm?15:36;
             for(int i=0;i<dustCount+debrisCount;i++)
             {
                 float t=Hash(i+91),a=i*2.4f+Time.time*speed*(1.5f-t);
                 float radius=Mathf.Lerp(size*.10f,size*.68f,t*t);
-                Vector3 p=f.center+new Vector3(Mathf.Cos(a)*radius,t*height,Mathf.Sin(a)*radius);
+                Vector3 p=center+new Vector3(Mathf.Cos(a)*radius,t*height,Mathf.Sin(a)*radius);
                 if(i<dustCount)
                 {
-                    p.y=f.center.y+Hash(i+82)*size*.14f;
-                    Puff(dustPuffs,p,size*.28f,size*.19f,i*34);
+                    p.y=center.y+Hash(i+82)*size*.14f;
+                    Puff(dustPuffs,p,size*.28f*visibility,size*.19f*visibility,i*34);
                 }
                 else
                 {
-                    float scale=.12f+Hash(i)*.41f;
+                    float scale=(.12f+Hash(i)*.41f)*visibility;
                     chips.Add(Matrix4x4.TRS(p,Quaternion.Euler(i*39+Time.time*200,i*17,Time.time*120),new Vector3(scale*1.8f,scale*.63f,scale)));
                 }
             }
@@ -313,7 +405,7 @@ namespace DeadlyJenga.CandyArt
             if(f.values==null||f.values.Length<2)return;int count=Mathf.Clamp(Mathf.RoundToInt(f.values[1]*.7f),10,420);
             for(int i=0;i<count;i++){float h=Mathf.Repeat(Hash(i+300)-Time.time*.45f,1);var p=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(h-.4f)*(f.size.y+30),(Hash(i+800)-.5f)*f.size.z);Puff(acidStreaks,p,.045f,.65f+Hash(i+33)*.65f,-7);}
         }
-        void ClearObjects(){meteorLooks.Clear();fragments.Clear();}
-        void DestroyObjects(){foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
+        void ClearObjects(){meteorLooks.Clear();fragments.Clear();lastTornado=null;}
+        void DestroyObjects(){foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
     }
 }
