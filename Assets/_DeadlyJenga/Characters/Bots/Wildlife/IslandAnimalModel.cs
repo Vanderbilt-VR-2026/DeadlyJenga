@@ -10,7 +10,7 @@ namespace DeadlyJenga.Wildlife
         static readonly Dictionary<string, Mesh> meshes = new Dictionary<string, Mesh>();
         static readonly Dictionary<Color, Material> materials = new Dictionary<Color, Material>();
         readonly List<Transform> limbs = new List<Transform>();
-        readonly List<Quaternion> rests = new List<Quaternion>();
+        readonly List<Vector3> limbPivots = new List<Vector3>();
         Transform tail, leftWing, rightWing;
         public string Species { get; private set; }
         public int PartCount => GetComponentsInChildren<MeshRenderer>().Length;
@@ -56,7 +56,7 @@ namespace DeadlyJenga.Wildlife
             }
             var go=new GameObject(name);go.transform.SetParent(transform,false);go.transform.localPosition=pivot;
             go.AddComponent<MeshFilter>().sharedMesh=mesh;go.AddComponent<MeshRenderer>().sharedMaterial=Material(color);
-            if(moving){limbs.Add(go.transform);rests.Add(go.transform.localRotation);}
+            if(moving){limbs.Add(go.transform);limbPivots.Add(pivot);}
             return go.transform;
         }
         static void Ball(Builder b,float x,float y,float z,float rx,float ry,float rz)=>b.Sphere(new Vector3(x,y,z),new Vector3(rx,ry,rz));
@@ -183,13 +183,96 @@ namespace DeadlyJenga.Wildlife
             for(int i=0;i<6;i++){int side=i%2==0?-1:1;float z=-.24f+i/2*.21f;Part("Leg "+i,Dark,b=>Stroke(b,new[]{Vector3.zero,new Vector3(side*.12f,0,.015f),new Vector3(side*.19f,-.12f,.03f)},.035f),new Vector3(side*.23f,.15f,z),true);}
             Part("Antennae",Dark,b=>{for(int s=-1;s<=1;s+=2){b.Beam(new Vector3(s*.08f,.29f,.30f),new Vector3(s*.15f,.45f,.39f),.019f);Ball(b,s*.15f,.45f,.39f,.035f,.035f,.035f);}});
         }
-        public void Animate(float time,float motion)
+        internal float StrideRate => Species switch
         {
-            float pace=Species=="tortoise"?2:Species=="seal"?4:7;
-            for(int i=0;i<limbs.Count;i++)limbs[i].localRotation=rests[i]*Quaternion.Euler(Mathf.Sin(time*pace+(i%2)*Mathf.PI+(i/2)*Mathf.PI)*motion*19,0,0);
-            if(tail)tail.localRotation=Quaternion.Euler(0,Mathf.Sin(time*2.2f)*12,0);
-            if(leftWing)leftWing.localRotation=Quaternion.Euler(0,0,Mathf.Sin(time*2.5f)*17);
-            if(rightWing)rightWing.localRotation=Quaternion.Euler(0,0,-Mathf.Sin(time*2.5f)*17);
+            "tortoise"=>3.5f,"seal"=>6,"penguin"=>8,"crab"=>14,"beetle"=>16,
+            "fox"=>11,"jaguar"=>7,"frog"=>8,"otter"=>10,"monkey"=>9,"boar"=>9,_=>7
+        };
+
+        internal void Animate(float time,float stride,float motion,float lift,out float bob,out Vector3 tilt)
+        {
+            float step=Mathf.Sin(stride), doubleStep=Mathf.Cos(stride*2);
+            float idle=Mathf.Sin(time*1.8f);
+            bob=.004f*idle;
+            tilt=new Vector3(idle*.6f,0,0);
+            switch(Species)
+            {
+                case "ray":
+                    float fin=Mathf.Sin(time*2.7f)*(1+motion*.14f);
+                    bob=.5f+.10f*fin;
+                    tilt=new Vector3(-5*fin,0,Mathf.Sin(time*.9f)*6);
+                    leftWing.localRotation=Quaternion.Euler(fin*5,0,fin*28);
+                    rightWing.localRotation=Quaternion.Euler(fin*5,0,-fin*28);
+                    break;
+                case "penguin":
+                    bob+=.017f*(1-doubleStep)*motion;
+                    tilt.z=step*11*motion;
+                    for(int i=0;i<limbs.Count;i++)
+                    {
+                        float side=i<2?-1:1;
+                        if(i%2==0)Pose(i,-step*side*13*motion,0,side*(8+doubleStep*7*motion));
+                        else Pose(i,step*side*22*motion,0,0,Mathf.Max(0,step*side)*.046f*motion);
+                    }
+                    break;
+                case "frog":
+                    bob+=Mathf.Abs(lift)*.025f;
+                    tilt.x=-lift*14;
+                    for(int i=0;i<limbs.Count;i++)
+                        Pose(i,lift*(i<2?-22:44)+step*(i<2?9:-12)*motion,0,(i%2==0?-1:1)*Mathf.Abs(lift)*14);
+                    break;
+                case "seal":
+                    bob+=.022f*(1-doubleStep)*motion;
+                    tilt.x+=step*10*motion;
+                    for(int i=0;i<limbs.Count;i++)
+                    {
+                        float side=i==0?-1:1;
+                        Pose(i,step*10*motion,side*(7+step*22*motion),side*(4+doubleStep*13*motion));
+                    }
+                    break;
+                case "crab":
+                case "beetle":
+                    if(Species=="crab")tilt.y=90;
+                    tilt.z=step*3*motion;
+                    for(int i=0;i<6;i++)
+                    {
+                        float side=i%2==0?-1:1;
+                        float leg=Mathf.Sin(stride+(i%2+i/2)*Mathf.PI);
+                        Pose(i,0,leg*side*20*motion,Mathf.Max(0,leg)*side*20*motion,.019f*Mathf.Max(0,leg)*motion);
+                    }
+                    for(int i=6;i<limbs.Count;i++)
+                    {
+                        float side=i%2==0?-1:1;
+                        Pose(i,-8+idle*5+step*side*9*motion,side*idle*9,0);
+                    }
+                    break;
+                default:
+                    float reach=Species switch
+                    {
+                        "tortoise"=>13,"jaguar"=>33,"fox"=>37,"otter"=>29,"monkey"=>43,_=>24
+                    };
+                    float suspension=Species=="otter"||Species=="fox"||Species=="monkey"?.022f:.009f;
+                    bob+=suspension*(1-doubleStep)*motion;
+                    tilt.x+=doubleStep*(Species=="otter"?7:3)*motion;
+                    tilt.z+=step*(Species=="tortoise"?2:4)*motion;
+                    for(int i=0;i<limbs.Count;i++)
+                    {
+                        float offset=Species=="jaguar"?(i%2)*Mathf.PI+(i/2)*1.1f:(i%2+i/2)*Mathf.PI;
+                        float leg=Mathf.Sin(stride+offset);
+                        Pose(i,leg*reach*motion,0,0,Mathf.Max(0,leg)*suspension*1.8f*motion);
+                    }
+                    break;
+            }
+            if(tail)
+            {
+                float sweep=Species=="fox"||Species=="monkey"?19:11;
+                tail.localRotation=Quaternion.Euler(idle*5,Mathf.Sin(time*2.4f)*sweep,step*motion*6);
+            }
+        }
+
+        void Pose(int limb,float pitch,float yaw,float roll,float lift=0)
+        {
+            limbs[limb].localPosition=limbPivots[limb]+Vector3.up*lift;
+            limbs[limb].localRotation=Quaternion.Euler(pitch,yaw,roll);
         }
     }
 }
