@@ -151,13 +151,13 @@ namespace DeadlyJenga.CastlePrototype
                     "The new host keeps the room code, identity and control");
                 Require(lobby.SelectedModeId=="ctf"&&lobby.SelectedMapId=="mode-ctf",
                     "The selected mode and map survive the handoff");
-                Require(lobby.SelectMode("hill")&&lobby.SelectMap("mode-hill"),"New host can change mode and map");
+                Require(lobby.SelectMode("hill")&&lobby.SelectMap("mode-koth"),"New host can change mode and map");
                 lobby.StartOrCancel();
                 CastlePlaySession session=null;
                 yield return Until(()=>(session=FindFirstObjectByType<CastlePlaySession>())&&session.Network&&
                     !session.Network.IsClient&&NetworkActors.Alive(session.Player)&&Services.World?.Blocks.Count>0,
                     "New host starts and plays the next match",95);
-                Require(MatchSetup.ModeId=="hill"&&MatchSetup.MapId=="mode-hill","Game uses the new host's selection");
+                Require(MatchSetup.ModeId=="hill"&&MatchSetup.MapId=="mode-koth","Game uses the new host's selection");
                 var leave=room.Leave();
                 yield return Until(()=>leave.IsCompleted&&!room.Connected,"Promoted host disconnects cleanly",30);
             }
