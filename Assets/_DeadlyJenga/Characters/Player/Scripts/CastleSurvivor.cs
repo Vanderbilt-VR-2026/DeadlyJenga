@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastlePrototype
             get=>inputSuspended;
             set{inputSuspended=value;if(value)ClearSprint();}
         }
-        const float SprintMultiplier=1.4f;
+        const float SprintMultiplier=2.1f;
         XRController sprintController;
         public bool Sprinting {get;private set;}
         void ClearSprint(){SprintRequested=false;Sprinting=false;sprintToggleArmed=false;sprintFeedbackUntil=0;}

@@ -11,6 +11,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         Canvas canvas;CanvasGroup group;RectTransform panel,fill;Image juice;Text label;
         bool vr;Camera attachedCamera;float displayed=1;
+        Material overlayMaterial;
         static Sprite rounded;
         public float Opacity=>group?group.alpha:0;
         public static float TargetOpacity(bool climbing,float grip,bool hidden)=>hidden?0:climbing?1:grip<.9999f?.46f:0;
@@ -45,6 +46,14 @@ namespace DeadlyJenga.CastlePrototype
             var text=new GameObject("Stamina label",typeof(RectTransform),typeof(Text));text.transform.SetParent(panel,false);label=text.GetComponent<Text>();
             label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=16;label.fontStyle=FontStyle.Bold;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(310,40);label.rectTransform.anchoredPosition=new Vector2(0,4);
+
+            var shader=Resources.Load<Shader>("CandyScenery/CandyStaminaOverlay");
+            if(shader&&shader.isSupported)
+            {
+                overlayMaterial=new Material(shader);
+                foreach(var graphic in root.GetComponentsInChildren<Graphic>())
+                    graphic.material=overlayMaterial;
+            }
         }
         // Reads the character only through Core (IMovementState + IPlayerView).
         IMovementState owner;
@@ -68,7 +77,8 @@ namespace DeadlyJenga.CastlePrototype
             bool hidden=!body.isActiveAndEnabled||motor.InputPaused||!viewCamera||!viewCamera.isActiveAndEnabled;
             string action=(motor as IPlayableCharacter)?.StatusText;
             bool sprintFeedback=action!=null&&action.StartsWith("SPRINT",System.StringComparison.Ordinal);
-            group.alpha=Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing||sprintFeedback,motor.Stamina,hidden),Mathf.Max(0,dt)*4);
+            group.alpha=motor.Climbing&&!hidden?1:
+                Mathf.MoveTowards(group.alpha,TargetOpacity(motor.Climbing||sprintFeedback,motor.Stamina,hidden),Mathf.Max(0,dt)*4);
             displayed=Mathf.MoveTowards(displayed,motor.Stamina,Mathf.Max(0,dt)*3);
             fill.SetSizeWithCurrentAnchors(RectTransform.Axis.Horizontal,308*displayed);
             juice.color=Color.Lerp(new Color(1,.26f,.32f),new Color(.22f,1,.76f),Mathf.SmoothStep(0,1,displayed));
@@ -82,6 +92,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Hide(){if(canvas)canvas.enabled=false;if(group)group.alpha=0;}
         void OnDisable()=>Hide();
-        void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
+        void OnDestroy()
+        {
+            if(canvas)Destroy(canvas.gameObject);
+            if(overlayMaterial)Destroy(overlayMaterial);
+        }
     }
 }
