@@ -12,7 +12,7 @@ namespace DeadlyJenga.CastleSocial
     [Serializable] public sealed class SocialNotice
     {public string kind,id,actor,name,text,topic;public SocialIdentity identity;public bool speaking;public double at;}
     [DefaultExecutionOrder(300)]
-    public sealed class SocialWorld : MonoBehaviour, IVoiceMix
+    public sealed partial class SocialWorld : MonoBehaviour, IVoiceMix
     {
         public CastlePlaySession Session {get;private set;}
         public IslandLobby Lobby {get;private set;}
@@ -46,6 +46,7 @@ namespace DeadlyJenga.CastleSocial
             if(session.Network){session.Network.SocialReceived+=Receive;session.Network.ParticipantLeft+=Left;}
             if(!ApplyConfiguration()){Settings.ResetDefaults();ApplyConfiguration();}
             OnDevice=gameObject.AddComponent<OnDeviceConversation>();OnDevice.Initialize(this);
+            SubscribeToObservations();
             gameObject.AddComponent<SocialDemonstrationRecorder>().Initialize(this);
         }
         public void Initialize(IslandLobby lobby)
@@ -116,13 +117,32 @@ namespace DeadlyJenga.CastleSocial
             {
                 nextTick=Time.unscaledTime+Config.tickSeconds;
                 Director.UseBundledVoiceLines=Speech.UsesBundledVoices;
+                Director.ReplayScriptedBotLines=!ContextualSpeech;
                 if(Config.enableBots)Director.Tick(Time.unscaledTime);
             }
             if(Session&&Time.unscaledTime>=nextThreat)
             {
                 nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
-                foreach(var body in Services.World?.Blocks??System.Array.Empty<Rigidbody>())if(body&&body.gameObject.activeInHierarchy){float speed=body.linearVelocity.magnitude;if(speed>3)moving++;strongest=Mathf.Max(strongest,speed);}
-                if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
+                Vector3 anchor=default;Rigidbody anchorBody=null;int nearby=0;
+                foreach(var body in Services.World?.Blocks??System.Array.Empty<Rigidbody>())
+                {
+                    if(!body||!body.gameObject.activeInHierarchy)continue;
+                    float speed=body.linearVelocity.magnitude;
+                    if(speed>3)
+                    {
+                        if(moving++==0){anchor=body.position;anchorBody=body;}
+                        if((body.position-anchor).sqrMagnitude<=36)nearby++;
+                    }
+                    strongest=Mathf.Max(strongest,speed);
+                }
+                if(ContextualSpeech)
+                {
+                    ObserveMatchFrame();
+                    if(nearby>=3)ObserveNearby(nearby>=8?SocialEventKind.Collapse:SocialEventKind.Wobble,anchor,
+                        "several tower blocks moving together",nearby>=8?"blocks crashing":null,anchorBody.gameObject,3);
+                }
+                else if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));
+                else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
             }
             if(Time.unscaledTime>=nextMetadata&&Agents.Count>0)
             {
@@ -152,7 +172,18 @@ namespace DeadlyJenga.CastleSocial
             if(Session.Network&&Session.Network.TryParticipantPosition(Participants.TryGetValue(id??"",out var n)?n.actor:id,out point))return true;point=default;return false;
         }
         public void Publish(SocialEventKind kind,string speaker,double salience=1,string text=null,string recipient=null)
-        {if(!IsAuthority||Director==null)return;if(kind==SocialEventKind.Collapse||kind==SocialEventKind.Wobble||kind==SocialEventKind.NearMiss)salience*=.5+Config.chaos;Director.Publish(new SocialEvent{id="game:"+(++eventSerial),kind=kind,speaker=speaker,recipient=recipient,salience=salience,text=text,time=Time.unscaledTime,human=kind==SocialEventKind.HumanSpeech,topic=recipient??"castle"});}
+        {
+            if(!IsAuthority||Director==null)return;
+            if(ContextualSpeech && TryPosition(speaker,out var at))
+            {
+                if(kind==SocialEventKind.NearMiss) {ObserveNearby(kind,at,"someone suddenly dropped below a ledge",null,null,2);return;}
+                if(kind==SocialEventKind.Success) {ObserveNearby(kind,at,"someone vaulted onto a ledge",null,null,2);return;}
+                // The authoritative elimination event includes the actual actor and location.
+                if(kind==SocialEventKind.Elimination)return;
+            }
+            if(kind==SocialEventKind.Collapse||kind==SocialEventKind.Wobble||kind==SocialEventKind.NearMiss)salience*=.5+Config.chaos;
+            Director.Publish(new SocialEvent{id="game:"+(++eventSerial),kind=kind,speaker=speaker,recipient=recipient,salience=salience,text=text,time=Time.unscaledTime,human=kind==SocialEventKind.HumanSpeech,topic=recipient??"castle"});
+        }
         public void HumanTranscript(string speaker,string text,string utterance,bool final)
         {
             if(!IsAuthority)return;
@@ -240,7 +271,7 @@ namespace DeadlyJenga.CastleSocial
         }
         public void Mute(string id,bool muted){if(Director.bots.TryGetValue(id,out var b)){b.muted=muted;if(muted){Director.Cancel(id);Speech.Cancel(id);}}Playback.Mute(id,muted);}
         void OnDestroy()
-        {if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(lobbyRoom){lobbyRoom.SocialReceived-=Receive;lobbyRoom.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
+        {UnsubscribeFromObservations();if(Session&&Session.Network){Session.Network.SocialReceived-=Receive;Session.Network.ParticipantLeft-=Left;}if(lobbyRoom){lobbyRoom.SocialReceived-=Receive;lobbyRoom.ParticipantLeft-=Left;}if(Settings)Destroy(Settings);}
         // IVoiceMix: how loud and where each voice plays.
         public float Gain(string speaker)
         {if(!Settings)return 0;bool bot=speaker!=null&&speaker.StartsWith("social:",StringComparison.Ordinal);return bot?(Config.enableVoice?Settings.botVolume:0):Settings.humanVolume;}

@@ -58,24 +58,51 @@ namespace DeadlyJenga.CastleSocial
             worker=null;busy=false;activeId=null;string pack=null,error=null;
             yield return OnDeviceModelPack.Prepare(Options,s=>Status=s,(p,e)=>{pack=p;error=e;},()=>!Requested||lifecycle!=version);
             if(!Requested||version!=lifecycle)yield break;
-            if(error!=null){Status=error;loading=null;yield break;}
+            if(error!=null){FailLoad(error);yield break;}
             string libraries=OnDeviceModelPack.Libraries();
-            if(string.IsNullOrEmpty(libraries)){Status="Native conversation libraries are missing from this build";loading=null;yield break;}
+            if(string.IsNullOrEmpty(libraries)){FailLoad("Native conversation libraries are missing from this build");yield break;}
             Status="Loading shared speech and language models";
             worker=new OnDeviceNative(pack,libraries,Options,failure=>
             {
                 if(!Requested||version!=lifecycle)return;
-                if(failure!=null){Ready=false;busy=false;Status="On-device conversation unavailable: "+SocialText.Clean(failure,180);return;}
+                if(failure!=null){busy=false;FailLoad("On-device conversation unavailable: "+SocialText.Clean(failure,180));return;}
                 Ready=true;Status="Ready · talk to the existing AI players";if(microphone)world.MicrophoneInput.EnableCapture(true);
             });
             loading=null;
         }
+        void FailLoad(string failure)
+        {
+            SetEnabled(false);
+            Status=failure;
+        }
+
         public void Speak(SocialSpeech intent,SocialIdentity identity)
         {
             if(!Requested||!Ready||!world.IsAuthority||!world.Config.enableVoice){world.Director.AudioFinished(identity.id);return;}
             if(pending!=null||Busy){world.Director.AudioFinished(identity.id);return;}
             pending=new Reply{intent=intent,identity=identity,at=Time.unscaledTime};
         }
+        internal void QueueObserved(SocialIdentity identity, ObservedSpeech observation)
+        {
+            if (!Ready || !Requested || !world.IsAuthority || !world.Config.enableVoice || Busy) return;
+            if (pending != null)
+            {
+                if (IsHumanTurn(pending.intent)) return;
+                if (pending.intent.observation is ObservedSpeech queued &&
+                    (observation.Kind != SocialEventKind.Collapse || queued.Kind == SocialEventKind.Collapse || queued.HeardText != null))
+                    return;
+                world.Director.AudioFinished(pending.identity.id);
+            }
+            pending = new Reply {
+                identity = identity,
+                at = Time.unscaledTime,
+                intent = new SocialSpeech { botId = identity.id, observation = observation }
+            };
+        }
+
+        static bool IsHumanTurn(SocialSpeech intent) =>
+            intent.context != null && intent.context.StartsWith("HumanSpeech:", StringComparison.Ordinal);
+
         public void Cancel(string id)
         {
             if(pending?.identity.id==id)pending=null;
@@ -138,22 +165,52 @@ namespace DeadlyJenga.CastleSocial
                 busy=true;input.samples.Clear();input.final=false;input.next=Time.unscaledTime+.25f;if(final)input.turn++;return;
             }
             if(pending==null)return;
-            if(Time.unscaledTime-pending.at>8){world.Director.AudioFinished(pending.identity.id);pending=null;return;}
+            if(Time.unscaledTime-pending.at>8&&pending.intent.observation==null){world.Director.AudioFinished(pending.identity.id);pending=null;return;}
             if(playing!=null||Time.unscaledTime-lastHuman<Options.quietBeforeReply||Time.unscaledTime-lastReply<Options.minimumReplyGap)return;
-            bool generate=pending.intent.context!=null&&pending.intent.context.StartsWith("HumanSpeech:",StringComparison.Ordinal);
+            if(pending.intent.observation is ObservedSpeech observation &&
+                (Time.unscaledTime>observation.Expires||!world.CanDeliverObserved(pending.identity.id)))
+            {
+                world.Director.AudioFinished(pending.identity.id);
+                pending=null;
+                return;
+            }
+            bool generate=IsHumanTurn(pending.intent)||pending.intent.observation!=null;
             if(BudgetPaused){Status="Conversation waiting for frame-time budget · "+frameMs.ToString("F0")+" ms";return;}
             StartReply(pending,generate);pending=null;
         }
         void StartReply(Reply reply,bool generate)
         {
             int version=epoch;var identity=reply.identity;string id=identity.id;activeId=id;
+            var observation=reply.intent.observation;
+            int round=world.RoundSpeechEpoch;
             string candidate=SocialText.Safe(reply.intent.text,world.Config.allowProfanity);
             string system="You are "+identity.name+", a player in Deadly Jenga, climbing candy blocks over an ocean with flying hands and disasters. Speak naturally to another player in one short sentence, under 24 words. No narration, role labels, reasoning, or invented abilities. Answer their actual question. You cannot control the game by speaking. Your traits: "+string.Join(", ",identity.traitIds.Zip(identity.traits,(name,value)=>name+"="+(int)value));
             string memories=world.Director.bots.TryGetValue(id,out var bot)?string.Join("; ",bot.Recall(reply.intent.recipient,Time.unscaledTime,2).Select(m=>m.summary)):"";
             string message="Recent game events: "+SocialText.Clean(memories,160)+"\nRecent conversation: "+(history.TryGetValue(id,out var recent)?recent:"")+"\nPlayer now says: "+SocialText.Clean((reply.intent.context??"").Replace("HumanSpeech:",""),220);
-            string cacheKey=identity.vocal.speaker+":"+candidate;cache.TryGetValue(cacheKey,out var cached);float speed=(float)identity.vocal.rate;
-            int voice=(identity.id.GetHashCode()&int.MaxValue)%8;int tokens=Mathf.Clamp(Options.replyTokens,12,64),timeout=Mathf.Clamp(Options.generationTimeoutMs,1000,15000);
+            if (observation != null)
+            {
+                system = "You are a player in a tower survival game. Output one short spoken line, up to 16 words. "
+                    + "Use the exact event and location in your observation. Never invent a cause, player or action. "
+                    + "If you only heard it, say so. If another player spoke, answer their actual words without repeating them.";
+                message = "Your observation: " + observation.Fact;
+                if (observation.HeardText != null)
+                    message += "\n" + observation.HeardFrom + " said: \"" + observation.HeardText + "\"";
+                if (!string.IsNullOrEmpty(world.PublicModeName)) message += "\nMatch mode: " + world.PublicModeName;
+                message += observation.HeardOnly && observation.HeardText != null
+                    ? "\nAsk them a question about what they just said. You did not see the event."
+                    : "\nSay one short natural line now.";
+            }
+            else if(IsHumanTurn(reply.intent))
+            {
+                string fact=world.RecentObservation(id);
+                if(!string.IsNullOrEmpty(fact))message="Your recent observation: "+fact+"\n"+message;
+            }
+            string cacheKey=identity.vocal.speaker+":"+candidate;cache.TryGetValue(cacheKey,out var cached);
+            float speed=observation!=null?1:(float)identity.vocal.rate;
+            int voice=BundledBotVoiceBank.VoiceFor(id);
+            int tokens=Mathf.Clamp(Options.replyTokens,12,64),timeout=Mathf.Clamp(Options.generationTimeoutMs,1000,15000);
             float began=Time.realtimeSinceStartup;Status=generate?"Thinking · "+identity.name:"Speaking · "+identity.name;
+            if(observation!=null)Status+=" · "+observation.Kind;
             if(!worker.Submit(native=>
             {
                 if(version!=epoch){native.Complete(()=>busy=false);return;}
@@ -162,28 +219,50 @@ namespace DeadlyJenga.CastleSocial
                 bool fallback=generate&&string.IsNullOrWhiteSpace(text);
                 if(string.IsNullOrWhiteSpace(text))text="Give me a second. I'm watching these blocks.";
                 text=SocialText.Safe(text).Trim('"',' ','\n');text=string.Join(" ",text.Split(new[]{' ','\n','\r'},StringSplitOptions.RemoveEmptyEntries).Take(28));
+                if (observation != null && (fallback || !GroundedDialogue.Accepts(observation, text)))
+                {
+                    fallback = true;
+                    text = GroundedDialogue.Compose(observation);
+                }
                 float[] audio=!generate&&cached!=null?cached:native.Synthesize(text,voice,speed);
                 native.Complete(()=>
                 {
-                    busy=false;if(!Requested||version!=epoch||audio==null||!world.Director.bots.TryGetValue(id,out var state)||state.muted)return;
-                    LastReplySeconds=Time.realtimeSinceStartup-began;LastReplyKind=generate?(fallback?"Fallback - model timed out or returned no text":"Generated response"):"Scripted game reaction";if(generate){if(fallback)FallbackReplies++;else GeneratedReplies++;history[id]=SocialText.Clean(message.Substring(message.LastIndexOf("Player now says:",StringComparison.Ordinal))+" Reply: "+text,350);}
-                    else if(!cache.ContainsKey(cacheKey)){cache[cacheKey]=audio;cacheOrder.Enqueue(cacheKey);while(cacheOrder.Count>Mathf.Clamp(Options.cachedVoiceClips,4,32))cache.Remove(cacheOrder.Dequeue());}
-                    world.SpokenText(id,text);playing=StartCoroutine(Play(id,audio,version));
+                    busy=false;
+                    if(!Requested||version!=epoch)return;
+                    if(audio==null||audio.Length==0||!world.Director.bots.TryGetValue(id,out var state)||state.muted
+                        ||observation!=null&&(round!=world.RoundSpeechEpoch||Time.unscaledTime>observation.Expires||!world.CanDeliverObserved(id)))
+                    {activeId=null;world.Director.AudioFinished(id);return;}
+                    LastReplySeconds=Time.realtimeSinceStartup-began;
+                    LastReplyKind=observation!=null
+                        ? (fallback?"Contextual fallback":"Generated observation") + " · " + observation.Kind
+                        : generate?(fallback?"Fallback - model timed out or returned no text":"Generated response"):"Scripted game reaction";
+                    if(generate)
+                    {
+                        if(fallback)FallbackReplies++;else GeneratedReplies++;
+                        if(IsHumanTurn(reply.intent))history[id]=SocialText.Clean(reply.intent.context+" Reply: "+text,350);
+                    }
+                    if(observation!=null)state.nextSpeech=Time.unscaledTime+Mathf.Max(4,world.Config.minCooldown);
+                    if(!generate&&!cache.ContainsKey(cacheKey)){cache[cacheKey]=audio;cacheOrder.Enqueue(cacheKey);while(cacheOrder.Count>Mathf.Clamp(Options.cachedVoiceClips,4,32))cache.Remove(cacheOrder.Dequeue());}
+                    world.SpokenText(id,text);playing=StartCoroutine(Play(id,audio,version,text,observation));
                 });
             })){activeId=null;return;}
             busy=true;
         }
-        IEnumerator Play(string id,float[] audio,int version)
+        IEnumerator Play(string id,float[] audio,int version,string text,ObservedSpeech observation)
         {
             lastReply=Time.unscaledTime;Status="Speaking · "+world.Director.bots[id].identity.name;
+            bool delivered=true;
             for(int at=0;at<audio.Length;at+=800)
             {
-                if(!Requested||version!=epoch||!world.Config.enableVoice||!world.Director.bots.TryGetValue(id,out var state)||state.muted)break;
+                if(!Requested||version!=epoch||!world.Config.enableVoice||!world.Director.bots.TryGetValue(id,out var state)||state.muted
+                    ||observation!=null&&!world.CanDeliverObserved(id))
+                {delivered=false;break;}
                 int count=Math.Min(800,audio.Length-at);var frame=new float[count];Array.Copy(audio,at,frame,0,count);
                 world.SendAudio(new SocialAudioPacket{speaker=id,sequence=++sequence,samples=frame},false);yield return new WaitForSecondsRealtime(.05f);
             }
             world.SendAudio(new SocialAudioPacket{speaker=id,sequence=++sequence,samples=Array.Empty<float>(),end=true},false);
             world.Director.AudioFinished(id);activeId=null;playing=null;Status="Ready · listening for players";
+            if(delivered&&observation!=null)world.ReplyToObserved(id,text,observation);
         }
         void OnDestroy(){if(world&&Requested)SetEnabled(false);worker?.Dispose();}
     }

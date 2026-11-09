@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace DeadlyJenga.CastleSocial
 {
-    public enum SocialEventKind { Greeting,HumanSpeech,BotSpeech,Wobble,Collapse,NearMiss,Elimination,Success,Collision,Joke,Victory,Silence,Betrayal }
+    public enum SocialEventKind { Greeting,HumanSpeech,BotSpeech,Wobble,Collapse,NearMiss,Elimination,Success,Collision,Joke,Victory,Silence,Betrayal,Damage,Hazard,Round,Combat,Equipment,Objective }
     [Serializable] public sealed class SocialEvent
     {public string id,speaker,recipient,topic="castle",text;public SocialEventKind kind;public double time,salience=1;public int depth;public bool human;}
     [Serializable] public sealed class SocialEmotion
@@ -40,7 +40,7 @@ namespace DeadlyJenga.CastleSocial
         public IEnumerable<SocialMemory> Recall(string subject,double now,int count=3)=>memories.OrderByDescending(m=>m.salience*Math.Exp(-(now-m.time)/90)+(m.subject==subject?.5:0)).Take(count);
     }
     public sealed class SocialSpeech
-    {public long token;public string botId,eventId,recipient,topic,text,context;public double due,expires,duration;public bool interjection;public int depth;}
+    {public long token;public string botId,eventId,recipient,topic,text,context;public double due,expires,duration;public bool interjection;public int depth;internal ObservedSpeech observation;}
     public sealed class SocialDirector
     {
         public readonly SocialConfiguration config;
@@ -56,6 +56,7 @@ namespace DeadlyJenga.CastleSocial
         public void AudioFinished(string id){active.Remove(id);}
         public Func<string,SocialEvent,double> Perception;
         internal bool UseBundledVoiceLines { get; set; }
+        internal bool ReplayScriptedBotLines { get; set; } = true;
         public SocialDirector(SocialConfiguration c,IEnumerable<SocialIdentity> population)
         {
             c.Validate();config=c;random=new Random(c.seed^0x18217);
@@ -101,7 +102,7 @@ namespace DeadlyJenga.CastleSocial
                 if(pending.Take(i).Any(q=>q.topic==p.topic&&q.due<=now)||active.Count>0&&!p.interjection&&random.NextDouble()>config.overlap){i++;continue;}
                 pending.RemoveAt(i);b.lastSpoke=now;b.nextSpeech=now+config.minCooldown+random.NextDouble()*(config.maxCooldown-config.minCooldown);b.utterances++;b.cluster=p.topic;
                 active[p.botId]=now+p.duration;Log(b.identity.name+": "+p.text);Speak?.Invoke(p);
-                if(p.depth<1&&random.NextDouble()<config.respondBot)Publish(new SocialEvent{id="reply:"+p.token,kind=SocialEventKind.BotSpeech,speaker=p.botId,topic=p.topic,text=p.text,time=now+Math.Min(1,p.duration),salience=.5,depth=p.depth+1});
+                if(ReplayScriptedBotLines&&p.depth<1&&random.NextDouble()<config.respondBot)Publish(new SocialEvent{id="reply:"+p.token,kind=SocialEventKind.BotSpeech,speaker=p.botId,topic=p.topic,text=p.text,time=now+Math.Min(1,p.duration),salience=.5,depth=p.depth+1});
             }
         }
         void Process(SocialEvent e,double now)
