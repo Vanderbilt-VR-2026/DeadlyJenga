@@ -4,9 +4,6 @@ namespace DeadlyJenga.Presentation
 {
     public static class CandyNameplate
     {
-        public static string ActorLabel(string name,bool bot)
-            => bot ? (string.IsNullOrWhiteSpace(name) ? "BOT" : name+" · BOT") : name;
-
         public static TextMesh Create(Transform parent,string name)
         {
             var root=new GameObject(name);root.transform.SetParent(parent,false);
