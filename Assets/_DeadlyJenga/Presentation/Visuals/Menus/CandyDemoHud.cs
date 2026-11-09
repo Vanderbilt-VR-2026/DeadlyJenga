@@ -474,12 +474,12 @@ namespace DeadlyJenga.CastlePrototype
         {
             var inspection=CandyThirdPersonInspection.For(session);
             ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection.Begin(),inspection?.CanInspect==true);
-            if(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0)
-                Note(550,DeadlyJenga.Presentation.CandyEquipmentView.SwapInputHint(session));
+            Note(550,session.IsVR?"PICKUP: Look at the weapon, reach and squeeze grip or pinch. Swapping drops the item in your slot.":
+                "PICKUP: Aim at the weapon and press E. Swapping drops the item in your slot. Delete drops it directly.");
             var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}
-            if(!(session.Player?.gameObject.GetComponent<IEquipmentControls>()?.PendingPickup>0))Note(555,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles. F8 opens Sound Studio.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
-            Note(661,"SURVIVOR: jump, then press jump again by a ledge to vault. Hold jump by a wall to catch it; move to climb or shimmy; release to drop. Rest on secure ground to recover grip. AIM: dominant grip (VR) / RMB (desktop) raises gun / sight; release lowers it.");
-            Note(787,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
+            Note(609,!session.IsVR?"MENU: Esc opens / closes. Click a card, or use arrow keys + Enter. Mouse wheel scrolls. Use Character to switch roles. F8 opens Sound Studio.":"MENU: bare left Y or native menu opens / closes. Right-only: Grip + B opens; B closes. Left thumb + middle also toggles. Aim at a button and press its controller trigger, or use the selecting pinch.");
+            Note(704,"SURVIVOR: jump, then press jump again by a ledge to vault. Hold jump by a wall to catch it; move to climb or shimmy; release to drop. Rest on secure ground to recover grip. AIM: dominant grip (VR) / RMB (desktop) raises gun / sight; release lowers it.");
+            Note(807,"GIANT HAND: desktop WASD flies, Q lowers, E rises, mouse steers. In VR, LEFT stick flies; LEFT trigger rises, LEFT grip lowers. Hold X and flick LEFT stick sideways to turn. With bare hands, pinch the spare hand and move it from its starting position to steer; release to stop.");
             Note(919,"SURVIVOR SPRINT: click the movement stick or tap Left Shift to toggle while grounded. Jumping or climbing ends sprint. Single-controller weapon mode: Grip + X / A; two controllers: support trigger. Grip + stick click opens emotes. Delete or Drop drops equipment. STANDINGS: with two controllers, hold bare look-stick click, or pin via menu. VR pages cycle every 5s.");
             Note(1051,"SUIT: V takes off / lands; WASD flies; Q lowers / E rises; left click fires. In VR the flight controller stick flies, trigger rises and grip lowers. Grip + Y toggles left; B toggles right. The tracked other hand trigger or pinch fires. Release input after menu or tracking changes.");
         }
@@ -563,9 +563,6 @@ namespace DeadlyJenga.CastlePrototype
                 release.key="Release "+release.key;release.text="Let go";
                 return new[]{move,jump,release};
             }
-
-            if(controls?.PendingPickup>0)
-                return new[]{move,jump,new Hint(CandyHudIcon.Help,"READ PICKUP PROMPT","Swap / keep controls")};
 
             if(armed&&equipment.kind==EquipmentKind.PoweredArmor)
             {

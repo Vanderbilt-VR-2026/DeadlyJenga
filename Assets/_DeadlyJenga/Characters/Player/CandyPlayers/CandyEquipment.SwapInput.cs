@@ -1,53 +1,108 @@
+using DeadlyJenga.Core;
+using UnityEngine;
 using UnityEngine.InputSystem;
-using UnityEngine.InputSystem.Controls;
 
 namespace DeadlyJenga.CandyPlayers
 {
     public sealed partial class CandyEquipment
     {
-        int cancelPickup,cancelDevice;
-        bool cancelGripArmed,cancelGripUsed;
+        const float PickupRange = 1.65f;
+        const float GripReach = .34f;
+        const int PickupOccluders = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
+        int pendingPickup;
+        float nextPickupRequest;
 
-        void ResetPickupCancel()
+        public int PendingPickup => pendingPickup;
+
+        void ClearPickupFocus() => pendingPickup = 0;
+
+        public void ConfirmSwap(bool accept)
         {
-            cancelPickup=cancelDevice=0;
-            cancelGripArmed=cancelGripUsed=false;
+            if (!accept) { ClearPickupFocus(); return; }
+            if (Local && motor.Alive && motor.HasInputFocus && !motor.InputSuspended &&
+                !motor.Climbing && !motor.Vaulting && Services.Session?.MenuOpen != true)
+                TakeFocusedPickup();
         }
 
-        bool PickupDeclinePressed()
+        bool TakeFocusedPickup()
         {
-            if(!motor.IsVR)
+            if (pendingPickup == 0 || Time.unscaledTime < nextPickupRequest) return false;
+            nextPickupRequest = Time.unscaledTime + .28f;
+            // An explicit pickup also authorizes replacing the item in the single slot.
+            if (Runtime?.RequestPickup(pendingPickup, true) != true) return false;
+            ClearPickupFocus();
+            return true;
+        }
+
+        bool UpdatePickupFocus(EquipmentState current)
+        {
+            int previousFocus = pendingPickup;
+            ClearPickupFocus();
+            var frame = MatchRuntime.Current?.Frame;
+            if (frame == null || frame.phase != RoundPhase.Playing || !avatar.viewCamera) return false;
+
+            var eye = avatar.viewCamera.transform;
+            bool vr = motor.IsVR;
+            bool leftController = vr && HybridXRInput.ControllerTracked(true);
+            bool rightController = vr && HybridXRInput.ControllerTracked(false);
+            var tracking = avatar.tracking;
+            var leftHand = vr && tracking ? tracking.WorldHand(true) : default;
+            var rightHand = vr && tracking ? tracking.WorldHand(false) : default;
+            bool leftGrab = leftHand.tracked && (leftController ? HybridXRInput.GripPressed(true) :
+                leftHand.skeletonTracked && tracking.LeftPinching && tracking.MenuSelectPressed);
+            bool rightGrab = rightHand.tracked && (rightController ? HybridXRInput.GripPressed(false) :
+                rightHand.skeletonTracked && tracking.RightPinchPressed);
+            bool slotFree = current.kind == EquipmentKind.None || current.builtIn && current.activePower == EquipmentKind.None;
+            EquipmentPickup focused = null, touchingPower = null;
+            float best = float.NegativeInfinity;
+            float powerDistance = .70f * .70f;
+            bool gripOnFocus = false;
+            foreach (var pickup in frame.pickups)
             {
-                ResetPickupCancel();
-                return Keyboard.current?.nKey.wasPressedThisFrame==true;
+                if (pickup == null || pickup.availableIn > 0) continue;
+                float feetDistance = (transform.position - pickup.position).sqrMagnitude;
+                if (feetDistance > PickupRange * PickupRange) continue;
+                var delta = pickup.position - eye.position;
+                float depth = delta.magnitude;
+                float alignment = depth > .01f ? Vector3.Dot(eye.forward, delta / depth) : 1;
+                bool autoPower = slotFree && feetDistance < powerDistance &&
+                    (pickup.kind == EquipmentKind.Speed || pickup.kind == EquipmentKind.Jump);
+                float leftDistance = leftHand.tracked && (leftController || leftHand.skeletonTracked) ? (leftHand.position - pickup.position).sqrMagnitude : float.PositiveInfinity;
+                float rightDistance = rightHand.tracked && (rightController || rightHand.skeletonTracked) ? (rightHand.position - pickup.position).sqrMagnitude : float.PositiveInfinity;
+                float handDistance = Mathf.Min(leftDistance, rightDistance);
+                bool reachable = vr && handDistance < GripReach * GripReach;
+                if (!autoPower && alignment < (reachable ? .83f : .95f)) continue;
+                if (depth > .01f && Physics.Raycast(eye.position, delta / depth, depth * .92f,
+                    PickupOccluders, QueryTriggerInteraction.Ignore)) continue;
+                if (autoPower)
+                {
+                    touchingPower = pickup;
+                    powerDistance = feetDistance;
+                    continue;
+                }
+
+                float score = alignment * 5 - depth * .10f + (pickup.id == previousFocus ? .055f : 0);
+                if (reachable) score += 1.1f - handDistance * 4;
+                if (score <= best) continue;
+                focused = pickup;
+                best = score;
+                gripOnFocus = leftGrab && leftDistance < GripReach * GripReach ||
+                    rightGrab && rightDistance < GripReach * GripReach;
             }
-            if(!HybridXRInput.SingleController)
+
+            if (focused != null)
             {
-                ResetPickupCancel();
-                return HybridXRInput.GripPressed(left);
+                pendingPickup = focused.id;
+                bool fireHeld = trigger?.IsPressed() == true || offTrigger?.IsPressed() == true;
+                bool activate = vr ? gripOnFocus && !fireHeld : Keyboard.current?.eKey.wasPressedThisFrame == true;
+                if (activate) return TakeFocusedPickup();
             }
-            var device=HybridXRInput.Controller(left);
-            if(device==null){ResetPickupCancel();return false;}
-            var button=device.TryGetChildControl<ButtonControl>("gripPressed");
-            bool held=button?.isPressed==true;
-            if(cancelPickup!=pendingPickup||cancelDevice!=device.deviceId)
+            else if (touchingPower != null && Time.unscaledTime >= nextPickupRequest)
             {
-                ResetPickupCancel();
-                cancelPickup=pendingPickup;cancelDevice=device.deviceId;
-                cancelGripUsed=held;
-                return false;
+                nextPickupRequest = Time.unscaledTime + .45f;
+                Runtime?.RequestPickup(touchingPower.id, false);
             }
-            if(button?.wasPressedThisFrame==true)cancelGripArmed=!cancelGripUsed;
-            var stickClick=device.TryGetChildControl<ButtonControl>("primary2DAxisClick");
-            bool chord=device.TryGetChildControl<ButtonControl>("secondaryButton")?.isPressed==true||
-                device.TryGetChildControl<ButtonControl>("primaryButton")?.isPressed==true||
-                stickClick?.isPressed==true||stickClick?.wasPressedThisFrame==true||
-                device.TryGetChildControl<AxisControl>("trigger")?.ReadValue()>.12f;
-            if(chord){cancelGripArmed=false;cancelGripUsed=held;}
-            if(held)return false;
-            bool decline=cancelGripArmed;
-            cancelGripArmed=cancelGripUsed=false;
-            return decline;
+            return false;
         }
     }
 }

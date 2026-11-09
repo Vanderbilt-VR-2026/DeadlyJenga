@@ -6,6 +6,9 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyWeaponVisual
     {
         bool wasEmbedded;
+        IMatchRuntime pickupRuntime;
+        string pickupEpoch;
+        int pickupSequence = -1;
         readonly EquipmentState slungFeedState = new EquipmentState();
         readonly Transform parent;readonly Material material;Transform root,barrel;EquipmentKind kind;float barrelAngle,barrelTarget,barrelSpeed=600;bool barrelMode,barrelInitialized;
         public CandyWeaponVisual(Transform parent,Material material){this.parent=parent;this.material=material;PreparePickupModels();}
@@ -113,6 +116,7 @@ namespace DeadlyJenga.CandyPlayers
                 motionReady = true;
             }
 
+            if (state.drawn && !slungForEmote && HasNewPickupDraw(state)) drawAmount = 0;
             var feedState = slungForEmote ? slungFeedState : state;
             float target = state.drawn && !slungForEmote ? 1 : 0;
             float duration = CarryDuration(target > 0);
@@ -180,6 +184,29 @@ namespace DeadlyJenga.CandyPlayers
                 barrel.localRotation=Quaternion.Euler(0,0,barrelAngle);
             }
         }
+        bool HasNewPickupDraw(EquipmentState state)
+        {
+            if (string.IsNullOrEmpty(state.actor)) return false;
+            var runtime = MatchRuntime.Current;
+            var frame = runtime?.Frame;
+            if (frame == null) return false;
+            if (!ReferenceEquals(pickupRuntime, runtime) || pickupEpoch != frame.equipmentEpoch)
+            {
+                pickupRuntime = runtime;
+                pickupEpoch = frame.equipmentEpoch;
+                pickupSequence = -1;
+            }
+            if (pickupSequence >= frame.equipmentSequence) return false;
+            int after = pickupSequence;
+            pickupSequence = frame.equipmentSequence;
+            foreach (var action in frame.equipmentActions)
+                if (action != null && action.id > after && action.remaining >= .40f &&
+                    action.actor == state.actor && action.kind == state.kind &&
+                    (action.action == EquipmentAction.Pickup || action.action == EquipmentAction.Swap))
+                    return true;
+            return false;
+        }
+
         Transform Create(EquipmentKind value)
         {
             barrel=null;barrelInitialized=false;

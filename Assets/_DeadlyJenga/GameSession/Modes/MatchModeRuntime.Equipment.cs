@@ -102,12 +102,29 @@ namespace DeadlyJenga.Modes
             {
                 // Keep the old pickup id for a station and create exactly one dropped item.
                 if(pickups.Count>=128)return false;
-                var dropped=AddPickup(previous.kind,pickup.position,previous.remaining);dropped.availableIn=1;dropped.rounds=previous.magazineInitialized?previous.rounds:-1;
+                var dropPoint=pickup.position;
+                if(pickup.station&&TryDropPosition(actor,out var beside,.70f)&&
+                    (beside-pickup.position).sqrMagnitude>.09f)dropPoint=beside;
+                var dropped=AddPickup(previous.kind,dropPoint,previous.remaining);
+                if(dropped==null)return false;
+                dropped.availableIn=1;
+                dropped.rounds=previous.magazineInitialized?previous.rounds:-1;
+                AnnounceEquipment(id,previous,EquipmentAction.Drop,dropPoint);
             }
             StopArsenalTrigger(id);thrustSeen.Remove(id);
             sheriffDrops.Remove(id);
             if(FindActor(id)?.IsBot==true)botPickupReceipts[(id,pickup.id)]=Time.time;
-            equipment[id]=new EquipmentState{actor=id,kind=pickup.kind,remaining=pickup.remaining,rounds=Mathf.Max(0,pickup.rounds),magazineInitialized=pickup.rounds>=0,leftHanded=previous.leftHanded};
+            var mover=actor.gameObject.GetComponent<IMovementState>();
+            bool drawOnPickup=swap&&!actor.IsBot&&pickup.kind>=EquipmentKind.Blaster&&
+                pickup.kind<=EquipmentKind.Dagger&&pickup.kind!=EquipmentKind.PoweredArmor&&
+                !(MysteryActive&&pickup.kind==EquipmentKind.SheriffHammer)&&!simulation.CarriesFlag(id)&&
+                (mover==null||!mover.Climbing&&!mover.Vaulting);
+            equipment[id]=new EquipmentState{
+                actor=id,kind=pickup.kind,remaining=pickup.remaining,rounds=Mathf.Max(0,pickup.rounds),
+                magazineInitialized=pickup.rounds>=0,leftHanded=previous.leftHanded,drawn=drawOnPickup
+            };
+            if(drawOnPickup)
+                weaponCooldown[id]=Mathf.Max(Time.time+.48f,weaponCooldown.TryGetValue(id,out float ready)?ready:0);
             if(MysteryActive&&pickup.kind==EquipmentKind.SheriffHammer){mystery.RecoverDroppedSheriff(id);equipment[id].roleIssued=true;}
             AnnounceEquipment(id,equipment[id],previous.kind==EquipmentKind.None?EquipmentAction.Pickup:EquipmentAction.Swap,pickup.position);
             if(pickup.station)pickup.availableIn=15;else pickups.Remove(pickup);
@@ -127,8 +144,17 @@ namespace DeadlyJenga.Modes
             }
             if(state.kind==EquipmentKind.SheriffHammer)sheriffDrops.Add(id);
             if(pickups.Count>=128){var oldest=pickups.Find(x=>!x.station);if(oldest!=null)pickups.Remove(oldest);}
-            if(state.kind!=EquipmentKind.None){var drop=AddPickup(state.kind,point+Vector3.up*.2f,state.remaining);if(drop!=null){drop.availableIn=1;drop.rounds=state.magazineInitialized?state.rounds:-1;}}
-            if(state.kind!=EquipmentKind.None)AnnounceEquipment(id,state,EquipmentAction.Drop,point);
+            if(state.kind!=EquipmentKind.None)
+            {
+                var dropPoint=FallenEquipmentPosition(id,point);
+                var drop=AddPickup(state.kind,dropPoint,state.remaining);
+                if(drop!=null)
+                {
+                    drop.availableIn=1;
+                    drop.rounds=state.magazineInitialized?state.rounds:-1;
+                    AnnounceEquipment(id,state,EquipmentAction.Drop,dropPoint);
+                }
+            }
             equipment.Remove(id);weaponCooldown.Remove(id);thrustSeen.Remove(id);PublishEquipment();
         }
         public bool SpawnEquipment(EquipmentKind kind)
