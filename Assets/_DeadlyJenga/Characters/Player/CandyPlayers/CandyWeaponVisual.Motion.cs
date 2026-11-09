@@ -162,10 +162,30 @@ namespace DeadlyJenga.CandyPlayers
             var starting = hand.skeletonTracked ? hand.skeleton : CandyHandSkeleton.Rest(left);
             hand.position = Vector3.Lerp(hand.position, contact.position, reach);
             hand.rotation = Quaternion.Slerp(hand.rotation, contact.rotation, reach);
-            for (int joint = 0; joint < 20; joint++)
-                hand.skeleton.SetJoint(joint, Vector3.Lerp(starting.Joint(joint), contact.skeleton.Joint(joint), reach));
+            hand.skeleton = BlendGrip(starting, contact.skeleton, reach);
             hand.skeletonTracked = true;
             if (left) frame.left = hand; else frame.right = hand;
+        }
+
+        static CandyHandSkeleton BlendGrip(CandyHandSkeleton start, CandyHandSkeleton target, float weight)
+        {
+            if (weight <= 0) return start;
+            if (weight >= 1) return target;
+            var result = start;
+            for (int finger = 0; finger < 5; finger++)
+            {
+                int root = finger * 4;
+                Vector3 point = Vector3.Lerp(start.Joint(root), target.Joint(root), weight);
+                result.SetJoint(root, point);
+                for (int joint = root; joint < root + 3; joint++)
+                {
+                    var from = start.Joint(joint + 1) - start.Joint(joint);
+                    var to = target.Joint(joint + 1) - target.Joint(joint);
+                    point += Vector3.Slerp(from, to, weight);
+                    result.SetJoint(joint + 1, point);
+                }
+            }
+            return result;
         }
 
         void PoseDesktopReloadHand(ref CandyAvatarFrame frame, EquipmentState state)
