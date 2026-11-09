@@ -11,12 +11,15 @@ namespace DeadlyJenga.CastlePrototype
         struct BlockMotion
         {
             public int Tick;
+            public bool Queued;
             public Protocol.Pose From, To;
             public Vector3 Velocity;
             public float Arrived, Duration, Delay;
         }
 
         readonly Dictionary<string, int> nativeActorTicks = new Dictionary<string, int>();
+        readonly List<int> nativeRenderingBlocks = new List<int>();
+        readonly List<int> reliableRenderingBlocks = new List<int>();
         BlockMotion[] nativeBlocks = Array.Empty<BlockMotion>();
         bool nativeWorld;
         int nativeWorldTick;
@@ -29,6 +32,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             nativeWorld = false;
             nativeActorTicks.Clear();
+            nativeRenderingBlocks.Clear();
+            reliableRenderingBlocks.Clear();
             nativeBlocks = Array.Empty<BlockMotion>();
         }
 
@@ -60,9 +65,11 @@ namespace DeadlyJenga.CastlePrototype
             bool discontinuity = delta.sqrMagnitude > Mathf.Pow(Mathf.Max(3, Mathf.Min(dt, .2f) * 40), 2);
             float jitter = hadSample ? Mathf.Abs(arrival - sample.Arrived - dt) : 0;
             float delay = Mathf.Clamp(.04f + jitter, .04f, .10f);
+            if (!sample.Queued) nativeRenderingBlocks.Add(index);
             sample = new BlockMotion
             {
                 Tick = tick,
+                Queued = true,
                 Arrived = arrival,
                 Duration = discontinuity ? .001f : Mathf.Clamp(dt, .025f, .12f),
                 Delay = discontinuity ? 0 : delay,
@@ -73,12 +80,26 @@ namespace DeadlyJenga.CastlePrototype
             };
         }
 
+        bool HasNewerNativeBlock(int index) => index < nativeBlocks.Length && nativeBlocks[index].Duration > 0 &&
+            (!nativeWorld || IsLaterTick(nativeBlocks[index].Tick, nativeWorldTick));
+
+        void RenderNativeBlocks(float now)
+        {
+            for (int i = nativeRenderingBlocks.Count - 1; i >= 0; i--)
+            {
+                int index = nativeRenderingBlocks[i];
+                if (RenderNativeBlock(index, World.Blocks[index], now)) continue;
+                nativeBlocks[index].Queued = false;
+                int last = nativeRenderingBlocks.Count - 1;
+                nativeRenderingBlocks[i] = nativeRenderingBlocks[last];
+                nativeRenderingBlocks.RemoveAt(last);
+            }
+        }
+
         bool RenderNativeBlock(int index, Rigidbody body, float now)
         {
-            if (index >= nativeBlocks.Length) return false;
+            if (!HasNewerNativeBlock(index) || !body || !body.gameObject.activeSelf) return false;
             ref var sample = ref nativeBlocks[index];
-            if (sample.Duration <= 0 || nativeWorld && !IsLaterTick(sample.Tick, nativeWorldTick)) return false;
-            if (!body || !body.gameObject.activeSelf) return true;
 
             float elapsed = now - sample.Arrived - sample.Delay;
             float ratio = Mathf.Clamp01(elapsed / sample.Duration);
@@ -90,7 +111,7 @@ namespace DeadlyJenga.CastlePrototype
             var rotation = Quaternion.Slerp(sample.From.rotation, sample.To.rotation, ratio);
             if ((body.position - position).sqrMagnitude > .0000001f) body.position = position;
             if (Quaternion.Dot(body.rotation, rotation) < .9999999f) body.rotation = rotation;
-            return true;
+            return elapsed < sample.Duration + .12f;
         }
 
         internal Protocol.Actor CaptureMotionHuman() => LocalActor();

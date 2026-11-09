@@ -81,6 +81,7 @@ namespace DeadlyJenga.CastlePrototype
                 case ActorPage:
                     int actorCount = reader.ReadByte();
                     for (int i = 0; i < actorCount; i++) castle.ApplyNativeActor(Protocol.ReadActor(reader), tick);
+                    FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied, 32, tick, length);
                     break;
                 case BlockPage:
                     int blockCount = reader.ReadByte();
@@ -90,6 +91,7 @@ namespace DeadlyJenga.CastlePrototype
                         int index = reader.ReadUInt16();
                         castle.ApplyNativeBlock(index, Protocol.ReadPose(reader), tick, tickSeconds, arrival);
                     }
+                    FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied, 33, tick, length);
                     break;
             }
         }
@@ -217,7 +219,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             var buffer = motionStream.GetBuffer();
             buffer[1] = (byte)count;
-            motionPages[lane].Publish(sceneTag, motionRevision, tick, buffer, (int)motionStream.Position);
+            int bytes = (int)motionStream.Position;
+            motionPages[lane].Publish(sceneTag, motionRevision, tick, buffer, bytes);
+            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Submitted, buffer[0] == ActorPage ? 32 : 33, tick, bytes);
         }
 
         bool IsNearPlayer(Vector3 point)

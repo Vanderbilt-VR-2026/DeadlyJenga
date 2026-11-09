@@ -677,15 +677,17 @@ namespace DeadlyJenga.CastlePrototype
                 if (nativeBlocks.Length != blocks.Count) nativeBlocks = new BlockMotion[blocks.Count];
             }
             if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
+            reliableRenderingBlocks.Clear();
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
+                if (!b) continue;
                 previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
-                if (!nativeWorld || nativeBlocks[i].Duration <= 0 || !IsLaterTick(nativeBlocks[i].Tick, nativeWorldTick))
-                {
-                    if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
-                    if (nativeWorld && !s.active[i]) nativeBlocks[i] = default;
-                }
+                if (HasNewerNativeBlock(i)) continue;
+                if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
+                if (s.active[i] && ((b.position - s.blocks[i].position).sqrMagnitude > .0000001f ||
+                    Mathf.Abs(Quaternion.Dot(b.rotation, s.blocks[i].rotation)) < .9999999f))
+                    reliableRenderingBlocks.Add(i);
             }
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
             var present = new HashSet<string>();
@@ -718,18 +720,24 @@ namespace DeadlyJenga.CastlePrototype
             if (targetWorld == null) return;
             float now = Time.unscaledTime;
             float t = Mathf.Clamp01((now - worldAt) * 15);
-            for (int i = 0; i < targetWorld.blocks.Length; i++)
+            RenderNativeBlocks(now);
+            foreach (int i in reliableRenderingBlocks)
             {
                 var b = World.Blocks[i]; var p = targetWorld.blocks[i];
 #if UNITY_EDITOR || DEVELOPMENT_BUILD
                 if (InterpolateProbeBlock(i, b)) continue;
 #endif
-                if (RenderNativeBlock(i, b, now) || !b || !b.gameObject.activeSelf) continue;
+                if (HasNewerNativeBlock(i) || !b || !b.gameObject.activeSelf) continue;
                 var position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
                 var rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
                 if ((b.position - position).sqrMagnitude > .0000001f) b.position = position;
-                if (Quaternion.Dot(b.rotation, rotation) < .9999999f) b.rotation = rotation;
+                if (Mathf.Abs(Quaternion.Dot(b.rotation, rotation)) < .9999999f) b.rotation = rotation;
             }
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
+            if (probeBlock >= 0 && probeBlock < World.Blocks.Count && World.Blocks[probeBlock])
+                InterpolateProbeBlock(probeBlock, World.Blocks[probeBlock]);
+#endif
+            if (t >= 1) reliableRenderingBlocks.Clear();
         }
         void ApplyOwnHandFeedback(P.Actor actor)
         {
