@@ -22,6 +22,39 @@ namespace DeadlyJenga.Presentation
         readonly Image card, bezel, pin, pinCore, pinCross;
         readonly Text arrow, title, direction, state, range, edge;
         readonly Image[] bars = new Image[3];
+        MarkerGate marker;
+        readonly string turnAroundGlyph;
+        Camera headingCamera;
+        float heading;
+
+        internal struct MarkerGate
+        {
+            string target;
+            Kind kind;
+            bool wasVisible;
+            float visibleSince;
+
+            public bool Show(string id, Kind nextKind, bool clear, float now)
+            {
+                if (id != target || kind != nextKind)
+                {
+                    target = id;
+                    kind = nextKind;
+                    wasVisible = false;
+                }
+
+                if (!clear)
+                {
+                    wasVisible = false;
+                    return false;
+                }
+
+                if (!wasVisible) visibleSince = now;
+                wasVisible = true;
+                // Hide immediately on cover and wait for a brief clear view before restoring the pin.
+                return now - visibleSince >= .10f;
+            }
+        }
 
         public CandyMysteryBodyGuide(RectTransform root)
         {
@@ -32,11 +65,15 @@ namespace DeadlyJenga.Presentation
             var dial = Panel(card.rectTransform, "Bearing dial", new Vector2(46, 46), new Vector2(-139, 0), new Color32(54, 44, 76, 255));
             arrow = Label(dial.rectTransform, "Direction", new Vector2(40, 40), Vector2.zero, 31, TextAnchor.MiddleCenter);
             arrow.text = "▲";
+            turnAroundGlyph = arrow.font.HasCharacter('\u21b6') ? "\u21b6" : "U";
             title = Label(card.rectTransform, "Target", new Vector2(206, 24), new Vector2(-4, 24), 18);
             title.resizeTextForBestFit = true;
             title.resizeTextMinSize = 15;
             title.resizeTextMaxSize = 18;
             direction = Label(card.rectTransform, "Bearing and elevation", new Vector2(208, 21), new Vector2(-3, 1), 16);
+            direction.resizeTextForBestFit = true;
+            direction.resizeTextMinSize = 13;
+            direction.resizeTextMaxSize = 16;
             state = Label(card.rectTransform, "Target state", new Vector2(208, 21), new Vector2(-3, -21), 16);
             range = Label(card.rectTransform, "Distance", new Vector2(72, 27), new Vector2(134, 8), 23, TextAnchor.MiddleRight);
             for (int i = 0; i < bars.Length; i++)
@@ -54,28 +91,42 @@ namespace DeadlyJenga.Presentation
             Hide();
         }
 
-        public void Show(Camera eye, Vector3 target, string label, Kind kind, float interactDistance, bool reachable, bool visible, bool choices)
+        public void Show(Camera eye, Vector3 target, string id, string label, Kind kind, float interactDistance,
+            bool reachable, bool visible, bool choices, float reportDelay = 0)
         {
+            if (eye != headingCamera)
+            {
+                headingCamera = eye;
+                heading = eye.transform.eulerAngles.y;
+                marker = default;
+            }
+            heading = ResolveHeading(heading, eye.transform.forward);
             var delta = target - eye.transform.position;
-            var reading = Read(eye.transform.eulerAngles.y, delta, interactDistance, reachable, visible);
+            var reading = Read(heading, delta, interactDistance, reachable, visible);
+            bool turnAround = reading.Direction.StartsWith("TURN AROUND", System.StringComparison.Ordinal);
             Color accent = kind == Kind.Revive ? Revive : kind == Kind.Sheriff ? Sheriff : Evidence;
             card.gameObject.SetActive(true);
             bezel.color = arrow.color = pin.color = pinCore.color = pinCross.color = edge.color = accent;
-            arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, -reading.Bearing);
+            SetText(arrow, turnAround ? turnAroundGlyph : "\u25b2");
+            arrow.rectTransform.localRotation = Quaternion.Euler(0, 0, turnAround ? 0 : -reading.Bearing);
             SetText(title, label);
             SetText(direction, reading.Direction);
-            SetText(state, reading.State);
+            bool ready = reachable && visible && reportDelay <= 0;
+            state.color = !visible || reportDelay > 0 ? new Color32(255, 209, 146, 255) :
+                ready ? new Color32(152, 255, 216, 255) : Ivory;
+            SetText(state, reachable && visible && reportDelay > 0 ? ReportCountdown(reportDelay) : reading.State);
             SetText(range, reading.Distance < 1 ? "<1 m" : Mathf.RoundToInt(reading.Distance) + " m");
             for (int i = 0; i < bars.Length; i++)
                 bars[i].color = i < reading.Bars ? accent : new Color32(78, 67, 96, 255);
 
             bool canPin = false, showEdge = false;
-            if (visible && eye.WorldToViewportPoint(target).z > 0 &&
+            bool inFront = eye.WorldToViewportPoint(target).z > eye.nearClipPlane;
+            if (marker.Show(id, kind, visible && inFront, Time.unscaledTime) &&
                 RectTransformUtility.ScreenPointToLocalPointInRectangle(root, eye.WorldToScreenPoint(target),
                     canvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : eye, out var local))
             {
                 var safe = new Rect(-275, -112, 550, choices ? 147 : 254);
-                canPin = safe.Contains(local);
+                canPin = ShouldPin(safe, local, pin.gameObject.activeSelf);
                 if (canPin)
                 {
                     pin.rectTransform.anchoredPosition = local;
@@ -96,6 +147,21 @@ namespace DeadlyJenga.Presentation
             edge.gameObject.SetActive(showEdge);
         }
 
+        internal static float ResolveHeading(float previous, Vector3 forward)
+        {
+            float horizontalSquared = forward.x * forward.x + forward.z * forward.z;
+            return horizontalSquared < .04f ? previous : Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg;
+        }
+
+        internal static bool ShouldPin(Rect safe, Vector2 projected, bool alreadyPinned)
+        {
+            if (!alreadyPinned)
+                safe = Rect.MinMaxRect(safe.xMin + 8, safe.yMin + 8, safe.xMax - 8, safe.yMax - 8);
+            return safe.Contains(projected);
+        }
+
+        internal static string ReportCountdown(float seconds) => "REPORT IN " + Mathf.CeilToInt(seconds) + " s";
+
         internal static Vector2 ClampRayToEdge(Rect bounds, Vector2 point)
         {
             var offset = point - bounds.center;
@@ -109,7 +175,9 @@ namespace DeadlyJenga.Presentation
             float distance = delta.magnitude;
             float horizontalSquared = delta.x * delta.x + delta.z * delta.z;
             float bearing = horizontalSquared < .04f ? 0 : Mathf.DeltaAngle(yaw, Mathf.Atan2(delta.x, delta.z) * Mathf.Rad2Deg);
-            string turn = Mathf.Abs(bearing) > 145 ? "BEHIND" : bearing > 22 ? "RIGHT" : bearing < -22 ? "LEFT" : "AHEAD";
+            string turn = Mathf.Abs(bearing) >= 165 ? "TURN AROUND" :
+                bearing > 110 ? "BACK RIGHT" : bearing < -110 ? "BACK LEFT" :
+                bearing > 22 ? "RIGHT" : bearing < -22 ? "LEFT" : "AHEAD";
             string level = delta.y > 1.8f ? "ABOVE" : delta.y < -2.5f ? "BELOW" : "";
             if (level.Length > 0)
             {
@@ -133,6 +201,7 @@ namespace DeadlyJenga.Presentation
             card.gameObject.SetActive(false);
             pin.gameObject.SetActive(false);
             edge.gameObject.SetActive(false);
+            marker = default;
         }
 
         static void SetText(Text field, string text)
