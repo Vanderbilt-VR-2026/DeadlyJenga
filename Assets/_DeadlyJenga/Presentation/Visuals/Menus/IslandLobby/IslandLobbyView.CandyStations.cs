@@ -117,6 +117,8 @@ namespace DeadlyJenga.CastlePrototype
                 c.selected=()=>PickerOption(slot)?.id==Details?.SelectedMapId&&PickerOption(slot)!=null;
                 c.title=()=>PickerTitle(slot).Replace("[current]","").Trim();
                 CandyText(c,0,0,440,44,22,TextAnchor.MiddleLeft);
+                mapCardPictures[i] = Picture((RectTransform)c.button.transform, "Map card thumbnail", -176, 0, 100, 38);
+                mapCardPictures[i].enabled = false;
             }
             browserMapPreview=Picture(candySetupContent,"Large map browser preview",0,160,940,250);
             browserMapName=CandyReadout(candySetupContent,"Previewed map name","",0,15,960,30,25);

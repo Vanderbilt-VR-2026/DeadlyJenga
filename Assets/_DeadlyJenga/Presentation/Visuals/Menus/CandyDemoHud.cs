@@ -517,7 +517,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var background=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
             GUILayout.BeginArea(new Rect(12,115,816,1250));
-            SocialPanel.Draw(session.Social);
+            SocialPanel.Draw(session.Social, DemoMode && CanCommand);
             GUILayout.EndArea();
             GUI.backgroundColor=background;
         }

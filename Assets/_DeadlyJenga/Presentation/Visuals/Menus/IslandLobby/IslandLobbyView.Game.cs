@@ -19,6 +19,8 @@ namespace DeadlyJenga.CastlePrototype
         string optionsMode;float nextOptionsRefresh;
         readonly System.Collections.Generic.Dictionary<string,Texture2D> modeTextures=new System.Collections.Generic.Dictionary<string,Texture2D>();
         readonly RawImage[] modePictures=new RawImage[8];
+        readonly RawImage[] mapCardPictures = new RawImage[PickerPageSize];
+        readonly string[] mapCardIds = new string[PickerPageSize];
         RawImage browserMapPreview;Text browserMapName,browserMapMissing,browserMapDescription;string browserMapId;
         readonly Text[] modeDescriptions=new Text[8],modePictureMissing=new Text[8];
         Choice GameChoice(string id,Func<string> title,float y,Action action,float x=0,float width=730,float height=64)

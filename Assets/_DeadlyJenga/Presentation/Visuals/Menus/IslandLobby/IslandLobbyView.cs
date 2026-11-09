@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
+using DeadlyJenga.Presentation;
 using UnityEngine.UI;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyArt;
@@ -99,7 +100,7 @@ namespace DeadlyJenga.CastlePrototype
             controlsMenuWasOpen=session?.MenuOpen==true;
             if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
                 DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
-            if(LocalModalBlocked){terminalRequireRelease=true;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(LocalModalBlocked){terminalRequireRelease=true;wardrobeDragDevice=0;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
@@ -107,8 +108,30 @@ namespace DeadlyJenga.CastlePrototype
             bool held=select.IsPressed()||Player.SelectHeld||!lobby.CodeFocused&&keyboard?.eKey.isPressed==true||mouse?.leftButton.isPressed==true;
             if(terminalRequireRelease){if(!held)terminalRequireRelease=false;return;}
             bool pressed=select.WasPressedThisFrame()||Player.SelectPressed||!lobby.CodeFocused&&keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
-            Ray ray=Player.IsVR?DeadlyJenga.Presentation.MenuAim.Resolve(eye,eye.transform.parent,Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,false,false,out _,out _):session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
-            Point(ray,pressed,select.IsPressed()||Player.SelectHeld||mouse!=null&&mouse.leftButton.isPressed);
+            bool pointerHeld=select.IsPressed()||Player.SelectHeld||mouse?.leftButton.isPressed==true;
+            int pointerDevice=0;
+            Ray ray;
+            if (Player.IsVR)
+            {
+                bool preferredLeft=Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                ray=MenuAim.Resolve(eye,eye.transform.parent,preferredLeft,false,false,out _,out _);
+                if (select.IsPressed())
+                {
+                    if (MenuAim.TryActionPointer(eye,select,out var controllerRay,out pointerDevice))
+                    {
+                        ray=controllerRay;
+                        pressed=select.WasPressedThisFrame();
+                    }
+                    else
+                    {
+                        pressed=false;
+                        pointerHeld=false;
+                    }
+                }
+            }
+            else
+                ray=session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+            Point(ray,pressed,pointerHeld,pointerDevice);
             UpdateStations();
         }
         readonly RoomLeaveConfirmation terminalLeave=new RoomLeaveConfirmation();
@@ -132,7 +155,7 @@ namespace DeadlyJenga.CastlePrototype
             choice.pressedUntil=Time.unscaledTime+.14f;
             DeadlyJenga.Presentation.MenuAim.Consume();choice.action();return true;
         }
-        public void Point(Ray ray,bool pressed,bool held=false)
+        public void Point(Ray ray,bool pressed,bool held=false,int pointerDevice=0)
         {
             Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
             if (marina && Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
@@ -164,6 +187,11 @@ namespace DeadlyJenga.CastlePrototype
                 if(choice.button&&choice.button.gameObject.activeInHierarchy)PaintCandyChoice(choice,choice==nearest,choice.button.interactable);
             PreviewMapChoice(nearest?.id);
             UpdateWardrobeChoiceNotice(nearest?.id);
+            if (DragWardrobePreview(ray,pressed,held,pointerDevice,distance,out float dragDepth))
+            {
+                DrawLobbyAim(ray,dragDepth,true);
+                return;
+            }
             if(nearest!=null)
             {
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);

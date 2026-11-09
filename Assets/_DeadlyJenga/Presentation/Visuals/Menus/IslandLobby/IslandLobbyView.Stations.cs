@@ -54,6 +54,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(codeKeyboard.enterKey.wasPressedThisFrame&&lobby.CodeValid)lobby.Join();
                 if(codeKeyboard.escapeKey.wasPressedThisFrame)lobby.UnfocusCode();
             }
+            keyboardCode.gameObject.SetActive(lobby.CodeFocused);
+            keyboardCode.text = string.IsNullOrEmpty(lobby.EnteredCode) ? "ROOM CODE" : lobby.EnteredCode;
             UpdateKeyboardTouches();
             UpdateCandyDesign();
             RefreshLobbyPortrait();

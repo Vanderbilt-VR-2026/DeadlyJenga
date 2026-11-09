@@ -173,8 +173,11 @@ namespace DeadlyJenga.DevTools.Editor
             lobby.Player.Place(lobby.transform.TransformPoint(new Vector3(-3.8f,1.87f,5.4f)),Quaternion.identity);
             yield return Wait(3);
             lobby.SurvivorBots?.Clear();
-            Capture(new Vector3(0,3.51f,3.40f),new Vector3(0,3.95f,10.7f),52,"Marina-Candy-Arcade.png");
-            Capture(new Vector3(0,3.76f,6.12f),new Vector3(0,3.94f,10.97f),43,"Marina-Candy-Arcade-Screen.png");
+            if(!Environment.GetCommandLineArgs().Contains("-skipMarinaCapture"))
+            {
+                Capture(new Vector3(0,3.51f,3.40f),new Vector3(0,3.95f,10.7f),52,"Marina-Candy-Arcade.png");
+                Capture(new Vector3(0,3.76f,6.12f),new Vector3(0,3.94f,10.97f),43,"Marina-Candy-Arcade-Screen.png");
+            }
             // The hidden batch has no OS focus. Exercise the command routes with simulated focus.
             screen.SendMessage("OnApplicationFocus",true);
             foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
@@ -183,7 +186,55 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return null;
                 Check(screen.Invoke(id),id+" opens the existing control flow");
                 yield return null;
+                if(id=="marina-join")
+                {
+                    Check(lobby.CodeFocused&&view.GiantKeyboard.gameObject.activeSelf,"Room code focuses the cabinet keyboard");
+                    var originalCode=lobby.EnteredCode;
+                    try
+                    {
+                        lobby.EnteredCode="ABC234";
+                        var close=view.GiantKeyboard.Find("keyboard-close");
+                        Check(close&&close.gameObject.activeInHierarchy,"The keyboard shows a close control");
+                        view.Point(new Ray(close.position-close.forward*.25f,close.forward),true);
+                        Check(!lobby.CodeFocused&&!view.GiantKeyboard.gameObject.activeSelf&&
+                            lobby.EnteredCode=="ABC234"&&!screen.Visible,
+                            "Closing the keyboard preserves the typed code and leaves Join open");
+                    }
+                    finally { lobby.EnteredCode=originalCode; }
+                    yield return null;
+                }
+                if(id=="marina-maps")
+                {
+                    yield return null;
+                    Check(view.GetComponentsInChildren<UnityEngine.UI.RawImage>().Any(image=>
+                        image.name=="Map card thumbnail"&&image.enabled&&image.texture),
+                        "The categorized map list shows thumbnails on the map cards");
+                }
                 Check(view.InvokeChoice("marina-close"),id+" returns to the arcade");
+            }
+            yield return null;
+            Check(screen.Invoke("marina-style")&&view.WardrobeOpen,"Style opens the wardrobe");
+            var appearance=lobby.Player.gameObject.GetComponent<IAvatarAppearance>();
+            var original=appearance.Appearance;
+            try
+            {
+                appearance.ApplyAppearance(new AvatarAppearance
+                {
+                    accessories=AvatarAccessory.TopHat|AvatarAccessory.DevilHorns,
+                    hair=AvatarHair.Bob
+                });
+                var toggle=typeof(IslandLobbyView).GetMethod("ToggleWardrobeAccessory",
+                    System.Reflection.BindingFlags.NonPublic|System.Reflection.BindingFlags.Static);
+                var changed=(AvatarAppearance)toggle.Invoke(null,new object[]{appearance.Appearance,AvatarAccessory.CowboyHat});
+                Check((changed.accessories&AvatarAccessory.TopHat)==0&&(changed.accessories&AvatarAccessory.CowboyHat)!=0&&
+                    (changed.accessories&AvatarAccessory.DevilHorns)!=0&&changed.hair==AvatarHair.Bob,
+                    "A new hat replaces the old hat and keeps compatible horns and hair");
+            }
+            finally { appearance.ApplyAppearance(original);view.SetWardrobeOpen(false); }
+            if (Environment.GetCommandLineArgs().Contains("-marinaGameSmoke"))
+            {
+                UnityEngine.SceneManagement.SceneManager.LoadScene("Game");
+                yield return RunSoloScene();
             }
         }
         static IEnumerator RunLayoutScene()

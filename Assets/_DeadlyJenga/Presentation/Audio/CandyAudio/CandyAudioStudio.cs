@@ -30,9 +30,16 @@ namespace DeadlyJenga.CandyAudio
         [Serializable] sealed class Preset {public int version=1;public float master,world,characters,ambience,music,ui;public TakeSettings[] sounds;}
         string PresetPath=>Path.Combine(Application.persistentDataPath,"CandyAudio","studio-preset.json");
         void Awake(){engine=GetComponent<CandyAudioEngine>();var speaker=new GameObject("Studio audition (one voice)");speaker.transform.SetParent(transform,false);preview=speaker.AddComponent<AudioSource>();preview.playOnAwake=false;preview.priority=24;preview.dopplerLevel=0;preview.rolloffMode=AudioRolloffMode.Linear;}
+        static bool CanAuthor()
+        {
+            var active = Services.Session;
+            return active == null || !active.IsVR && active.Multiplayer?.IsClient != true &&
+                DeadlyJenga.Presentation.GameExperiencePanel.Resolve(active)?.Experience != GameExperience.Game;
+        }
+
         public void Open()
         {
-            if(!engine||!engine.bank)return;
+            if(!CanAuthor()||!engine||!engine.bank)return;
             if(!working){original=engine.bank;working=Instantiate(original);working.name=original.name+" (studio session)";IncludeFallbacks(working);engine.Configure(working);}
             session=Services.Session;previousMenu=session!=null&&session.MenuOpen;if(session!=null)session.SetMenu(true);
             GatherClips();IsOpen=true;status="Session copy • preview freely, then save a preset if you like it.";
@@ -61,6 +68,7 @@ namespace DeadlyJenga.CandyAudio
         }
         void Update()
         {
+            if(!CanAuthor()){if(IsOpen)Close();return;}
             var keyboard=Keyboard.current;
             if(keyboard!=null&&keyboard.f8Key.wasPressedThisFrame){if(IsOpen)Close();else Open();}
             if(!IsOpen)return;
@@ -174,7 +182,7 @@ namespace DeadlyJenga.CandyAudio
         };
         void OnGUI()
         {
-            if(!engine||!engine.bank||!IsOpen&&!ShowLauncher)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
+            if(!CanAuthor()||!engine||!engine.bank||!IsOpen&&!ShowLauncher)return;Styles();var matrix=GUI.matrix;int depth=GUI.depth;Color old=GUI.color,bg=GUI.backgroundColor;
             float scale=Mathf.Min(Screen.width/W,Screen.height/H);GUI.matrix=Matrix4x4.TRS(new Vector3((Screen.width-W*scale)/2,(Screen.height-H*scale)/2),Quaternion.identity,Vector3.one*scale);GUI.depth=-1000;
             if(!IsOpen){if(Btn(new Rect(W-204,15,188,39),"Sound studio  •  F8",Mint))Open();}
             else GUI.ModalWindow(GetInstanceID(),new Rect(20,18,W-40,H-36),DrawWindow,GUIContent.none,GUIStyle.none);

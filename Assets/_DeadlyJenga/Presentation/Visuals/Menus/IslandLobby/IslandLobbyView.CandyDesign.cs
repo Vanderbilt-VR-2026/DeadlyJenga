@@ -173,7 +173,15 @@ namespace DeadlyJenga.CastlePrototype
             if(setupPage=="maps")for(int i=0;i<PickerPageSize;i++)
             {
                 var row=PickerRow(i);var choice=CandyChoice("picker-"+i);if(row==null)continue;
-                bool header=row.map==null;float indent=header?(row.collection?0:12):24;
+                bool header=row.map==null;
+                string id=row.map?.id;
+                var thumbnail=mapCardPictures[i];
+                if(mapCardIds[i]!=id)
+                {
+                    mapCardIds[i]=id;
+                    SetPicture(thumbnail, id==null ? null : MapPreviewImages.Get(id), 100, 38);
+                }
+                float indent=thumbnail.enabled?62:header?(row.collection?0:12):24;
                 choice.faceColor=header?row.collection?new Color(.37f,.26f,.53f):CandyFace:new Color(.19f,.14f,.29f);
                 choice.label.fontStyle=header?FontStyle.Bold:FontStyle.Normal;
                 CandyText(choice,indent,0,440-indent*2,44,22,TextAnchor.MiddleLeft);

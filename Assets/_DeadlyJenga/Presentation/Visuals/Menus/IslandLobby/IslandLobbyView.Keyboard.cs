@@ -10,6 +10,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandLobbyView
     {
         RectTransform piano;
+        Text keyboardCode;
         Material keyboardMaterial;
         Mesh keyboardMesh;
         readonly Choice[] touching=new Choice[2];
@@ -25,6 +26,13 @@ namespace DeadlyJenga.CastlePrototype
             var body=Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
             lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));   // the lobby makes the piano solid
             BuildArcadeCabinet();
+            keyboardCode = Label(piano, "", 322, 42, 1160, 76);
+            keyboardCode.fontStyle = FontStyle.Bold;
+            var close = Add(piano, "keyboard-close", () => "×", 322, CloseRoomCodeKeyboard,
+                () => lobby.CodeFocused, 722, 134, 74, () => lobby.CodeFocused);
+            close.label.fontSize = close.label.resizeTextMaxSize = 50;
+            keyboardCode.rectTransform.localPosition += Vector3.back * 68;
+            close.button.transform.localPosition += Vector3.back * 68;
             string[] rows={"1234567890","QWERTYUIOP","ASDFGHJKL","ZXCVBNM-"};
             for(int row=0;row<rows.Length;row++)
             for(int col=0;col<rows[row].Length;col++)
@@ -38,6 +46,12 @@ namespace DeadlyJenga.CastlePrototype
             PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
             PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
         }
+        void CloseRoomCodeKeyboard()
+        {
+            lobby.UnfocusCode();
+            UpdateMarinaKeyboard();
+        }
+
         Choice PhysicalKey(string id,string title,float x,float y,float width,Action action,Func<bool> enabled,Color color)
         {
             var key=Add(piano,id,()=>title,y,action,enabled,x,width,100);key.physical=true;key.keyColor=color;key.button.image.color=Color.clear;

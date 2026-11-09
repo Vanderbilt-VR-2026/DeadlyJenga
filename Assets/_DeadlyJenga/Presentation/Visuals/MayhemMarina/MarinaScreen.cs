@@ -176,7 +176,25 @@ namespace DeadlyJenga.CandyArt.Marina
             if(requireRelease){if(!held)requireRelease=false;return;}
             bool pressed=select!=null&&select.WasPressedThisFrame()||leftSelect?.WasPressedThisFrame()==true||player.SelectPressed||keyboard!=null&&keyboard.eKey.wasPressedThisFrame||mouse!=null&&mouse.leftButton.wasPressedThisFrame;
             var camera=player.ViewCamera;
-            Ray ray=player.IsVR?MenuAim.Resolve(camera,camera.transform.parent,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,leftSelect.WasPressedThisFrame(),select.WasPressedThisFrame(),out _,out _):session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+            Ray ray;
+            if (player.IsVR)
+            {
+                bool preferredLeft=player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                ray=MenuAim.Resolve(camera,camera.transform.parent,preferredLeft,false,false,out _,out _);
+                var controllerAction=leftSelect.WasPressedThisFrame()?leftSelect:select.WasPressedThisFrame()?select:
+                    leftSelect.IsPressed()&&(!select.IsPressed()||preferredLeft)?leftSelect:select;
+                if (controllerAction.IsPressed())
+                {
+                    if (MenuAim.TryActionPointer(camera,controllerAction,out var controllerRay,out _))
+                    {
+                        ray=controllerRay;
+                        pressed=controllerAction.WasPressedThisFrame();
+                    }
+                    else pressed=false;
+                }
+            }
+            else
+                ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             Target nearest=null;float distance=11;
             if (Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
                 distance = obstruction.distance;

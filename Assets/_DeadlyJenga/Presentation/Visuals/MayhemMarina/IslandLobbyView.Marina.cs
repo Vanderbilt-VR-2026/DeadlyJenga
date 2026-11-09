@@ -122,7 +122,11 @@ namespace DeadlyJenga.CastlePrototype
         partial void UpdateMayhemMarina()
         {
             if(!marina)return;
-            if(marinaDetail!=""&&Keyboard.current!=null&&Keyboard.current.escapeKey.wasPressedThisFrame)CloseMarinaDetail();
+            if (marinaDetail != "" && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            {
+                if (lobby.CodeFocused) CloseRoomCodeKeyboard();
+                else CloseMarinaDetail();
+            }
             if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
             if(marinaDetail!="")UpdateMarinaKeyboard();
             if(marinaStylePrompt)marinaStylePrompt.gameObject.SetActive(marinaDetail==""&&!wardrobeOpen);

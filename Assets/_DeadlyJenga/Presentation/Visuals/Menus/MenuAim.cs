@@ -61,6 +61,19 @@ namespace DeadlyJenga.Presentation
             }
             return false;
         }
+        internal static bool TryActionPointer(Camera eye, InputAction action, out Ray ray, out int deviceId)
+        {
+            ray = default;
+            deviceId = 0;
+            if (!(action.activeControl?.device is XRController controller)) return false;
+            bool left = false;
+            foreach (var usage in controller.usages) left |= usage == CommonUsages.LeftHand;
+            if (!PhysicalPose(eye, left, out var pose, out var selected) || selected != controller) return false;
+            ray = new Ray(pose.position, pose.rotation * Vector3.forward);
+            deviceId = selected.deviceId;
+            return true;
+        }
+
         public static int PointerIdentity(Camera eye,bool preferredLeft)
         {
             if(PhysicalPose(eye,preferredLeft,out _,out var device)||PhysicalPose(eye,!preferredLeft,out _,out device))return device.deviceId;

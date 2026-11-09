@@ -2,6 +2,7 @@ using System.Linq;
 using System;
 
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 
 using UnityEngine;
 
@@ -99,16 +100,79 @@ namespace DeadlyJenga.CastlePrototype
                 wardrobeWorldReason.text=ChoiceNotice(ProposedWardrobeEntry(wardrobePage*12+index));
             else wardrobeWorldReason.text="POINT TO A CHOICE FOR LAYER DETAILS. SELECT TO SAVE YOUR REQUEST.";
         }
+        // Only replace items that occupy the same space. Keep intentional layered looks.
+        const AvatarAccessory WardrobeHats = AvatarAccessory.TopHat | AvatarAccessory.Crown |
+            AvatarAccessory.CowboyHat | AvatarAccessory.PirateHat | AvatarAccessory.Beanie |
+            AvatarAccessory.ChefHat | AvatarAccessory.VikingHelmet | AvatarAccessory.PartyHat |
+            AvatarAccessory.PropellerCap | AvatarAccessory.FlowerCrown | AvatarAccessory.PumpkinHelmet;
+        const AvatarAccessory WardrobeBackwear = AvatarAccessory.Cape | AvatarAccessory.ButterflyWings |
+            AvatarAccessory.AngelWings | AvatarAccessory.DragonWings;
+        const AvatarClothing WardrobeHelmets = AvatarClothing.HockeyHelmet | AvatarClothing.FootballHelmet;
+        const AvatarClothing WardrobeOutfits = AvatarClothing.MonkRobe | AvatarClothing.Tuxedo |
+            AvatarClothing.Hoodie | AvatarClothing.BomberJacket | AvatarClothing.SailorShirt |
+            AvatarClothing.Overalls | AvatarClothing.PufferVest;
+
+        static AvatarAppearance ToggleWardrobeAccessory(AvatarAppearance appearance, AvatarAccessory item)
+        {
+            if ((appearance.accessories & item) != 0)
+            {
+                appearance.accessories &= ~item;
+                return appearance;
+            }
+            if ((item & WardrobeHats) != 0)
+            {
+                appearance.accessories &= ~WardrobeHats;
+                appearance.clothing &= ~WardrobeHelmets;
+            }
+            if ((item & WardrobeBackwear) != 0)
+            {
+                appearance.accessories &= ~WardrobeBackwear;
+                appearance.clothing &= ~AvatarClothing.RoyalMantle;
+            }
+            if (item == AvatarAccessory.Mohawk) appearance.hair = AvatarHair.None;
+            if (item == AvatarAccessory.Glasses) appearance.eyewear = AvatarEyewear.None;
+            appearance.accessories |= item;
+            return appearance;
+        }
+
+        static AvatarAppearance ToggleWardrobeClothing(AvatarAppearance appearance, AvatarClothing item)
+        {
+            if ((appearance.clothing & item) != 0)
+            {
+                appearance.clothing &= ~item;
+                return appearance;
+            }
+            if ((item & WardrobeHelmets) != 0)
+            {
+                appearance.clothing &= ~WardrobeHelmets;
+                appearance.accessories &= ~WardrobeHats;
+            }
+            if ((item & WardrobeOutfits) != 0) appearance.clothing &= ~WardrobeOutfits;
+            if (item == AvatarClothing.RoyalMantle) appearance.accessories &= ~WardrobeBackwear;
+            appearance.clothing |= item;
+            return appearance;
+        }
+
         AvatarAppearance ProposedWardrobeEntry(int index)
         {
             var v=wardrobeAvatar.Appearance;
             switch(wardrobeCategory)
             {
                 case 1:if(index==System.Enum.GetValues(typeof(AvatarSkin)).Length)v.poweredArmor=!v.poweredArmor;else v.skin=(AvatarSkin)index;break;
-                case 2:v.hair=(int)v.hair==index+1?AvatarHair.None:(AvatarHair)(index+1);break;
-                case 3:v.eyewear=(int)v.eyewear==index+1?AvatarEyewear.None:(AvatarEyewear)(index+1);break;
-                case 4:if(index==14)v.accessories^=AvatarAccessory.PumpkinHelmet;else v.clothing^=(AvatarClothing)(1u<<index);break;
-                default:int bit=index<12?index:index+3;v.accessories^=(AvatarAccessory)(1u<<bit);break;
+                case 2:
+                    v.hair=(int)v.hair==index+1?AvatarHair.None:(AvatarHair)(index+1);
+                    if(v.hair!=AvatarHair.None)v.accessories&=~AvatarAccessory.Mohawk;
+                    break;
+                case 3:
+                    v.eyewear=(int)v.eyewear==index+1?AvatarEyewear.None:(AvatarEyewear)(index+1);
+                    if(v.eyewear!=AvatarEyewear.None)v.accessories&=~AvatarAccessory.Glasses;
+                    break;
+                case 4:
+                    return index==14 ? ToggleWardrobeAccessory(v, AvatarAccessory.PumpkinHelmet) :
+                        ToggleWardrobeClothing(v, (AvatarClothing)(1u<<index));
+                default:
+                    int bit=index<12?index:index+3;
+                    return ToggleWardrobeAccessory(v, (AvatarAccessory)(1u<<bit));
             }
             return v;
         }
@@ -133,6 +197,42 @@ namespace DeadlyJenga.CastlePrototype
         bool wardrobeCursorVisible;
 
         readonly CandyOrbitView wardrobeOrbit = new CandyOrbitView();
+        RectTransform wardrobeWorldPreview;
+        int wardrobeDragDevice;
+        Vector2 wardrobeDragPoint;
+
+        bool DragWardrobePreview(Ray ray, bool pressed, bool held, int device, float range, out float depth)
+        {
+            depth = 1.5f;
+            if (!wardrobeOpen || !wardrobeWorldPreview || !wardrobeWorldPreview.gameObject.activeInHierarchy || !held || device == 0)
+            {
+                wardrobeDragDevice = 0;
+                return false;
+            }
+            if (wardrobeDragDevice != device)
+            {
+                wardrobeDragDevice = 0;
+                if (!pressed || !MenuAim.TryPoint(ray, wardrobeWorldPreview, range, out var point, out var hit))
+                    return false;
+                wardrobeDragDevice = device;
+                wardrobeDragPoint = point;
+                depth = Vector3.Distance(ray.origin, hit);
+                return true;
+            }
+            if (new Plane(wardrobeWorldPreview.forward, wardrobeWorldPreview.position).Raycast(ray, out float hitDepth)
+                && hitDepth <= range)
+            {
+                depth = hitDepth;
+                Vector2 point = wardrobeWorldPreview.InverseTransformPoint(ray.GetPoint(depth));
+                var rect = wardrobeWorldPreview.rect;
+                point = new Vector2(Mathf.Clamp(point.x, rect.xMin, rect.xMax), Mathf.Clamp(point.y, rect.yMin, rect.yMax));
+                var delta = point - wardrobeDragPoint;
+                wardrobeDragPoint = point;
+                wardrobeOrbit.Yaw += delta.x / rect.width * 210;
+                wardrobeOrbit.Pitch -= delta.y / rect.height * 100;
+            }
+            return true;
+        }
 
         RectTransform wardrobePreview;
 
@@ -198,6 +298,8 @@ namespace DeadlyJenga.CastlePrototype
             var image=new GameObject("Third person mirror",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(wardrobePanel,false);
 
             var raw=image.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.raycastTarget=false;raw.rectTransform.sizeDelta=new Vector2(430,430);raw.rectTransform.anchoredPosition=new Vector2(0,180);
+            wardrobeWorldPreview=raw.rectTransform;
+            Label(wardrobePanel,"HOLD TRIGGER AND DRAG TO ORBIT",378,20,430,24).color=CandyHudVisuals.Mint;
 
             var cameraObject=new GameObject("Visual - wardrobe camera");cameraObject.transform.SetParent(transform,false);wardrobeCamera=cameraObject.AddComponent<Camera>();wardrobeCamera.enabled=false;wardrobeCamera.targetTexture=wardrobeTexture;wardrobeCamera.fieldOfView=44;wardrobeCamera.nearClipPlane=.05f;wardrobeCamera.farClipPlane=60;wardrobeCamera.cullingMask=1<<31;wardrobeCamera.clearFlags=CameraClearFlags.SolidColor;wardrobeCamera.backgroundColor=new Color(.07f,.045f,.12f);wardrobeCamera.GetUniversalAdditionalCameraData().allowXRRendering=false;
 
@@ -245,7 +347,8 @@ namespace DeadlyJenga.CastlePrototype
 
             if(!wardrobeOpen||wardrobeAvatar==null||index<0||index>=12)return false;
 
-            var value=wardrobeAvatar.Appearance;value.accessories^=(AvatarAccessory)(1u<<index);wardrobeAvatar.ApplyAppearance(value);RefreshWardrobeLabels();return true;
+            wardrobeAvatar.ApplyAppearance(ToggleWardrobeAccessory(wardrobeAvatar.Appearance, (AvatarAccessory)(1u<<index)));
+            ResetWardrobeNotice();RefreshWardrobeLabels();return true;
 
         }
 
@@ -266,6 +369,7 @@ namespace DeadlyJenga.CastlePrototype
         {
 
             if(open==wardrobeOpen)return;
+            wardrobeDragDevice=0;
 
             if(open)
 
