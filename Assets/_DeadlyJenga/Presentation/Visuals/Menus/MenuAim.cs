@@ -16,6 +16,18 @@ namespace DeadlyJenga.Presentation
         static int consumedFrame=-1;
         public static bool InputConsumed=>consumedFrame==Time.frameCount;
         public static void Consume()=>consumedFrame=Time.frameCount;
+
+        internal static void PulsePress(int deviceId)
+        {
+            if (deviceId <= 0 || !(InputSystem.GetDeviceById(deviceId) is XRController controller) ||
+                !controller.isTracked.isPressed) return;
+            foreach (var usage in controller.usages)
+            {
+                if (usage != CommonUsages.LeftHand && usage != CommonUsages.RightHand) continue;
+                DeadlyJenga.CandyAudio.CandyFeedback.MenuPress(usage == CommonUsages.LeftHand);
+                return;
+            }
+        }
         public static Ray Resolve(Camera eye,Transform fallbackSpace,bool preferredLeft,bool leftPressed,bool rightPressed,out bool controller,out bool left)
         {
             controller=false;left=preferredLeft;

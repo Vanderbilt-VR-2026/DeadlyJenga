@@ -172,6 +172,16 @@ namespace DeadlyJenga.DevTools.Editor
                 Vector3.Distance(host.position,hostDetail.position)<.01f,
                 "Full room flows are mounted on their own cabinet glass");
             Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
+            var start = faces.Single(face => face.name == "marina-play");
+            var round = faces.Single(face => face.name == "marina-experience");
+            Check(start.anchoredPosition.y + start.rect.yMin > round.anchoredPosition.y + round.rect.yMax,
+                "Start Match and Round Info hit areas do not overlap");
+            var pickTarget = typeof(MarinaScreen).GetMethod("PickTarget",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic);
+            var roundUpperEdge = round.TransformPoint(new Vector3(0, round.rect.yMax - 1, 0));
+            var target = pickTarget.Invoke(screen, new object[] { new Ray(roundUpperEdge - round.forward, round.forward), 2f });
+            Check((string)target?.GetType().GetField("id").GetValue(target) == "marina-experience" && !lobby.StartPending,
+                "A ray at the top of Round Info selects its own control and cannot start a match");
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
             var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
                 .Single(blocker=>blocker.name=="Island blocker · "+television.name);
@@ -193,11 +203,14 @@ namespace DeadlyJenga.DevTools.Editor
             }
             // The hidden batch has no OS focus. Exercise the command routes with simulated focus.
             screen.SendMessage("OnApplicationFocus",true);
+            view.SendMessage("OnApplicationFocus",true);
             foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
             {
                 yield return null;
                 yield return null;
                 Check(screen.Invoke(id),id+" opens the existing control flow");
+                Check(!screen.Invoke("marina-play")&&!lobby.StartPending,
+                    id+" cannot pass the same input through to Start Match");
                 yield return null;
                 if(id=="marina-join")
                 {
