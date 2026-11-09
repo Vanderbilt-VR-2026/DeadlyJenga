@@ -125,7 +125,9 @@ namespace DeadlyJenga.DevTools.Editor
             var art=Object.FindFirstObjectByType<CandyDisasterVisuals>();
             if (!session || !art || session.Network || !session.ActiveCamera) throw new InvalidOperationException("Game or active player camera is unavailable.");
             session.SurvivorBots.AutoFill=false;session.SurvivorBots.Clear();session.HandBots?.Clear();
-            session.SetMenu(false);session.Player.InputSuspended=true;
+            var upperTowerEye=session.Player.ViewCamera.transform.position;
+            session.SetRole(true);session.SetMenu(false);
+            session.Player.InputSuspended=true;session.Hand.InputSuspended=true;
             var camera=session.ActiveCamera;
             var cameraData=camera.GetUniversalAdditionalCameraData();
             var previousDepth=cameraData.requiresDepthOption;
@@ -149,7 +151,6 @@ namespace DeadlyJenga.DevTools.Editor
                 var source=DisasterStates.Active.FirstOrDefault(s=>s.Capture()?.kind=="Tornado");
                 var warning=source?.Capture();
                 if (warning==null || warning.warning<=0) throw new InvalidOperationException("The production request did not start the warning.");
-                var topEye=camera.transform.position;
                 // Keep the real Game camera settings while framing the live storm outside the walls.
                 var outward=Vector3.ProjectOnPlane(warning.center-Services.World.Center,Vector3.up).normalized;
                 var side=Vector3.Cross(Vector3.up,outward);
@@ -185,7 +186,7 @@ namespace DeadlyJenga.DevTools.Editor
                 visualType.GetMethod("LateUpdate",member).Invoke(art,null);
                 ReadTornadoCamera(camera,"Tornado-Player-Approach.png");
                 File.AppendAllText(GameplayReport,$"Exterior approach at event age {live.age:F2}s, center {live.center}, eye {eye}.\n");
-                camera.transform.SetPositionAndRotation(topEye,TornadoView(topEye,live));
+                camera.transform.SetPositionAndRotation(upperTowerEye,TornadoView(upperTowerEye,live));
                 visualType.GetMethod("LateUpdate",member).Invoke(art,null);
                 ReadTornadoCamera(camera,"Tornado-Player-Upper-Tower.png");
                 DemoDisasters.StopAll(session);
