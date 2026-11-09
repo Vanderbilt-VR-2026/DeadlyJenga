@@ -156,8 +156,7 @@ namespace DeadlyJenga.CastlePrototype
                 SetVRPlayStyle(SurvivorVRPlayStyle.Standing,false);
                 hybridProfileActive=true;
             }
-            else if(hybridProfileActive&&DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
-                DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false))
+            else if(hybridProfileActive&&DeadlyJenga.CandyPlayers.HybridXRInput.DualControllers)
             {
                 hybridProfileActive=false;
                 RestoreComfort(hybridComfort);

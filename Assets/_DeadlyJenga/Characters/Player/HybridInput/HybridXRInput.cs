@@ -7,22 +7,56 @@ namespace DeadlyJenga.CandyPlayers
 {
     public static class HybridXRInput
     {
-        public static XRController Controller(bool left)=>FindController(left,false);
+        const float TrackingGraceSeconds = .65f;
+        static ControllerPresence leftPresence, rightPresence;
+
+        struct ControllerPresence
+        {
+            public XRController device;
+            public float seenAt;
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetPresence() => leftPresence = rightPresence = default;
+
+        public static XRController Controller(bool left)
+        {
+            var controller = FindController(left,false);
+            if (controller != null)
+            {
+                ref var presence = ref (left ? ref leftPresence : ref rightPresence);
+                presence.device = controller;
+                presence.seenAt = Time.unscaledTime;
+            }
+            return controller;
+        }
+
+        // Keep the control layout during a short occlusion, without reading stale inputs.
+        internal static XRController ControllerOwner(bool left)
+        {
+            var tracked = Controller(left);
+            if (tracked != null) return tracked;
+            var presence = left ? leftPresence : rightPresence;
+            return presence.device != null && presence.device.added && presence.device.enabled &&
+                Time.unscaledTime - presence.seenAt < TrackingGraceSeconds ? presence.device : null;
+        }
         public static XRController ControllerWithStick(bool left)=>FindController(left,true);
         static XRController FindController(bool left,bool needsStick)
         {
             foreach(var device in InputSystem.devices)
-                if(device is XRController controller && !(controller is UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile.HandInteraction) && controller.isTracked.isPressed && (!needsStick||controller.TryGetChildControl<Vector2Control>("primary2DAxis")!=null))
+                if(device is XRController controller && !(controller is UnityEngine.XR.OpenXR.Features.Interactions.HandInteractionProfile.HandInteraction) && controller.enabled && controller.isTracked.isPressed && (!needsStick||controller.TryGetChildControl<Vector2Control>("primary2DAxis")!=null))
                     foreach(var usage in controller.usages)
                         if(usage==(left?CommonUsages.LeftHand:CommonUsages.RightHand))return controller;
             return null;
         }
         public static bool ControllerTracked(bool left)=>Controller(left)!=null;
-        public static bool SingleController=>ControllerTracked(true)!=ControllerTracked(false);
-        public static bool SingleControllerLeft=>ControllerTracked(true)&&!ControllerTracked(false);
-        public static XRController MovementController(bool dominantLeft)=>ControllerWithStick(!dominantLeft)??ControllerWithStick(dominantLeft);
+        internal static bool DualControllers => ControllerOwner(true) != null && ControllerOwner(false) != null;
+        public static bool SingleController => (ControllerOwner(true) != null) != (ControllerOwner(false) != null);
+        public static bool SingleControllerLeft => ControllerOwner(true) != null && ControllerOwner(false) == null;
+        public static XRController MovementController(bool dominantLeft) =>
+            ControllerOwner(!dominantLeft) != null ? ControllerWithStick(!dominantLeft) : ControllerWithStick(dominantLeft);
         public static Vector2 Stick(XRController controller)=>controller?.TryGetChildControl<Vector2Control>("primary2DAxis")?.ReadValue()??Vector2.zero;
-        public static Vector2 Stick(bool left)=>Stick(Controller(left));
+        public static Vector2 Stick(bool left)=>Stick(ControllerWithStick(left));
         static ButtonControl MoveClick(XRController controller)=>
             controller?.TryGetChildControl<ButtonControl>("thumbstickClicked")??
             controller?.TryGetChildControl<ButtonControl>("primary2DAxisClick")??

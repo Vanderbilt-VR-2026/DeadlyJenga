@@ -65,10 +65,10 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(subsystem==null||!subsystem.running)
             {SubsystemManager.GetSubsystems(subsystems);subsystem=subsystems.Find(s=>s.running);}
-            left=LeftPoseSource!=null?(LeftPoseSource.TryGetPose(out var l)?l:default):Read(true);
-            right=RightPoseSource!=null?(RightPoseSource.TryGetPose(out var r)?r:default):Read(false);
+            left=Read(true,LeftPoseSource,left);
+            right=Read(false,RightPoseSource,right);
         }
-        CandyHandPose Read(bool isLeft)
+        CandyHandPose Read(bool isLeft,ICandyHandPoseSource poseSource,CandyHandPose previous)
         {
             var result=new CandyHandPose{rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(isLeft)};
             var controller=HybridXRInput.Controller(isLeft);
@@ -81,6 +81,10 @@ namespace DeadlyJenga.CandyPlayers
                 result.skeleton=CandyHandSkeleton.ControllerGrip(isLeft,Analog("grip"),Analog("trigger"));
                 return result;
             }
+            if(HybridXRInput.ControllerOwner(isLeft)!=null)
+                return previous.tracked&&!previous.skeletonTracked ? previous : result;
+            if(poseSource!=null)
+                return poseSource.TryGetPose(out var pose) ? pose : default;
             if(subsystem!=null&&subsystem.running)
             {
                 var hand=isLeft?subsystem.leftHand:subsystem.rightHand;

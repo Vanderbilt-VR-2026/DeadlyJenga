@@ -180,16 +180,31 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(fixedSkin!=testSkin&&Mathf.Abs(fixedSkin.boneWeights[0].weight0-1)<.001f,"Legacy skin vertex no longer follows a neighboring finger");
                 Object.Destroy(testSkin);Object.Destroy(fixedSkin);
                 player.vrSmoothDegreesPerSecond=90;player.CycleSmoothTurnSpeed();Check(player.vrSmoothDegreesPerSecond==180,"Existing settings menu reaches speeds beyond its previous 90-degree cap");
-                Input(left,"isTracked",0);right=InputSystem.AddDevice("HybridFixController");InputSystem.SetDeviceUsage(right,CommonUsages.RightHand);Input(right,"isTracked",1);
+                InputSystem.DisableDevice(left);right=InputSystem.AddDevice("HybridFixController");InputSystem.SetDeviceUsage(right,CommonUsages.RightHand);Input(right,"isTracked",1);
                 InputSystem.QueueDeltaStateEvent(right.GetChildControl<Vector2Control>("primary2DAxis"),new Vector2(-.2f,.7f));InputSystem.Update();
                 source.LeftPoseSource=bare;source.RightPoseSource=controller;Refresh(source);
                 Check(source.IsHybrid&&!HybridXRInput.SingleControllerLeft,"Recognizes mirrored right-controller + left tracked-hand combination");
                 Check(Vector2.Distance(HybridXRInput.MoveStick(),new Vector2(-.2f,.7f))<.001f,"Single right controller also supplies walking input");
+                InputSystem.EnableDevice(left);
                 Input(left,"isTracked",1);InputSystem.Update();source.LeftPoseSource=source.RightPoseSource=null;Refresh(source);
                 Check(!source.IsHybrid&&source.WorldHand(true).tracked&&source.WorldHand(false).tracked&&
                     !source.WorldHand(true).skeletonTracked&&!source.WorldHand(false).skeletonTracked,"Two controllers own only their matching sides");
-                Input(left,"isTracked",0);
-                Input(right,"isTracked",0);InputSystem.Update();Check(!HybridXRInput.SingleController&&HybridXRInput.MoveStick()==Vector2.zero,"Controller tracking loss clears stale joystick movement");
+                source.LeftPoseSource=bare;
+                Input(left,"isTracked",0);InputSystem.Update();Refresh(source);
+                Check(!HybridXRInput.SingleController&&!source.IsHybrid&&!source.WorldHand(true).skeletonTracked,
+                    "A brief loss of the movement controller does not enable optical gestures or single-controller mode");
+                Check(HybridXRInput.MovementController(false)==null&&HybridXRInput.Stick(false).sqrMagnitude>.01f,
+                    "A brief loss does not route the dominant look stick to movement");
+                Input(left,"isTracked",1);InputSystem.Update();Refresh(source);
+                Check(HybridXRInput.MovementController(false)==left&&!source.IsHybrid,
+                    "Movement resumes on the original controller when its tracking returns");
+                source.RightPoseSource=bare;
+                Input(right,"isTracked",0);InputSystem.Update();Refresh(source);
+                Check(!HybridXRInput.SingleController&&!source.IsHybrid&&HybridXRInput.Stick(false)==Vector2.zero,
+                    "Losing the dominant controller briefly keeps the dual layout without stale look input");
+                InputSystem.DisableDevice(left);InputSystem.DisableDevice(right);
+                Check(!HybridXRInput.SingleController&&HybridXRInput.MoveStick()==Vector2.zero,
+                    "Disabling controllers releases ownership and clears joystick movement");
                 source.LeftPoseSource=new PoseSource{pose=new CandyHandPose{tracked=true,skeletonTracked=true,rotation=Quaternion.identity,skeleton=CandyHandSkeleton.Rest(true)}};
                 source.RightPoseSource=bare;Refresh(source);
                 Check(!source.IsHybrid&&source.WorldHand(true).skeletonTracked&&source.WorldHand(false).skeletonTracked,"Hand-only inputs retain both independent skeletons after controller loss");

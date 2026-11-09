@@ -182,14 +182,14 @@ namespace DeadlyJenga.CastlePrototype
                     if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
                     DetectHybridControls();
                     bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-                    bool bothControllers=DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(true)&&
-                        DeadlyJenga.CandyPlayers.HybridXRInput.ControllerTracked(false);
+                    bool bothControllers=HybridXRInput.DualControllers;
                     var moveController=HybridXRInput.MovementController(dominantLeft);
                     var runController=HybridXRInput.ControllerWithStick(!dominantLeft);
-                    if(sprintController!=runController){ClearSprint();sprintController=runController;}
-                    sprintInput=runController!=null;
+                    var sprintOwner=HybridXRInput.ControllerOwner(!dominantLeft);
+                    if(sprintController!=sprintOwner){ClearSprint();sprintController=sprintOwner;}
+                    sprintInput=sprintOwner!=null;
                     sprintClick=HybridXRInput.MoveClickPressed(runController);
-                    sprintHeld=HybridXRInput.MoveClickHeld(runController);
+                    sprintHeld=runController==null&&sprintInput||HybridXRInput.MoveClickHeld(runController);
                     walking=FilterVRMove(HybridXRInput.Stick(moveController));
                     var looking=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.Stick(dominantLeft):Vector2.zero;
                     if(DeadlyJenga.CandyPlayers.HybridXRInput.SingleController)
@@ -203,7 +203,8 @@ namespace DeadlyJenga.CastlePrototype
                     bool jumpButton=bothControllers?DeadlyJenga.CandyPlayers.HybridXRInput.PrimaryHeld(dominantLeft):HybridXRInput.SinglePrimaryHeld;
                     bool jumpLeft=bothControllers?dominantLeft:HybridXRInput.SingleControllerLeft;
                     if(equipmentControls?.ReservesPrimaryJump(jumpLeft)==true)jumpButton=false;
-                    ReadVRJump(gestureHand,jumpButton,out pressed,out held);
+                    if(bothControllers&&!HybridXRInput.ControllerTracked(dominantLeft))ResetVRJump();
+                    else ReadVRJump(gestureHand,jumpButton,out pressed,out held);
                     if (!RouteEmoteLook(looking, walking.sqrMagnitude > .001f || pressed))
                         ApplyVRLook(looking,Time.deltaTime);
                 }

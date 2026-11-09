@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastlePrototype
                 var equipment=GetComponent<CandyEquipment>();
                 if(equipment&&equipment.SuitMovementHeld)return true;
                 bool dominantLeft=PlayerPrefs.GetInt("CandyBlaster.LeftHanded",0)!=0;
-                bool both=HybridXRInput.ControllerTracked(true)&&HybridXRInput.ControllerTracked(false);
+                bool both=HybridXRInput.DualControllers;
                 var movementController=HybridXRInput.MovementController(dominantLeft);
                 if(HybridXRInput.MoveClickHeld(movementController))return true;
                 var walking=FilterVRMove(HybridXRInput.Stick(movementController));
