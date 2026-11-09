@@ -31,14 +31,24 @@ namespace DeadlyJenga.CastlePrototype
             label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.text=value;label.fontSize=size;label.color=color;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(560,55);label.rectTransform.anchoredPosition=new Vector2(0,y);
         }
+        public void MountSingleSided()
+        {
+            if (!rearRect) return;
+            rearRect.gameObject.SetActive(false);
+            Destroy(rearRect.gameObject);
+            rearRect = null;
+            rearCanvas = null;
+            rear = null;
+        }
         void OnEnable(){if(rearCanvas)rearCanvas.enabled=true;}
         void OnDisable(){if(rearCanvas)rearCanvas.enabled=false;}
         void LateUpdate()=>Refresh();
         public void Refresh()
         {
-            if(!front||!rear||!eye)return;
+            if(!front||!eye)return;
             ShowingFront=Vector3.Dot(eye.transform.position-transform.position,transform.forward)<=0;
             front.alpha=ShowingFront?Opacity:0;front.blocksRaycasts=front.interactable=ShowingFront&&Opacity>.5f;
+            if (!rear) return;
             rear.alpha=ShowingFront?0:1;rear.blocksRaycasts=false;
             rearRect.SetPositionAndRotation(transform.position+transform.forward*RearOffset,transform.rotation*Quaternion.Euler(0,180,0));
             rearRect.localScale=transform.localScale;rearRect.sizeDelta=((RectTransform)transform).sizeDelta;

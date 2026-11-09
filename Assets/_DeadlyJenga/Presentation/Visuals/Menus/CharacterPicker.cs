@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<Action> actions=new List<Action>();
         ISessionInfo owner;
         Camera openingCamera;
-        bool open,openingHand,openingVr,returnToMenu,selectReady;
+        bool open,openingHand,openingVr,returnToMenu,selectReady,lobbyPoseSet;
         InputAction leftSelect,rightSelect;
         int openingInput;
 
@@ -57,7 +57,7 @@ namespace DeadlyJenga.CastlePrototype
             owner=session;openingCamera=session.ActiveCamera;
             openingHand=session.PlayingHand;openingVr=session.IsVR;
             returnToMenu=session.MenuOpen;open=true;selectReady=false;
-            openingInput=InputSignature(session);
+            lobbyPoseSet=false;openingInput=InputSignature(session);
             owner.SetMenu(true);
             panel.gameObject.SetActive(true);
             panel.worldCamera=openingVr?openingCamera:null;
@@ -134,7 +134,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!open)return;
             bool valid=ReferenceEquals(Services.Session,owner)&&owner.MenuOpen&&owner.ActiveCamera==openingCamera&&
-                owner.PlayingHand==openingHand&&owner.IsVR==openingVr&&HandLooks.Names.Length>0&&InputSignature(owner)==openingInput;
+                owner.PlayingHand==openingHand&&owner.IsVR==openingVr&&HandLooks.Names.Length>0;
             if(valid)
             {
                 var active=owner.PlayingHand?owner.Hand:owner.Player;
@@ -146,9 +146,16 @@ namespace DeadlyJenga.CastlePrototype
                     if(actor.id==match.LocalActorId&&(!actor.alive||actor.dying)){valid=false;break;}
             if(match?.Frame.phase==RoundPhase.Results)valid=false;
             if(!valid){Close(false);return;}
+            int input = InputSignature(owner);
+            if (input != openingInput)
+            {
+                if (owner is not ILobbyControls) { Close(false); return; }
+                openingInput = input;
+                selectReady = false;
+            }
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(true);return;}
             if(openingVr)DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)panel.transform,openingCamera,owner,
-                owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true);
+                owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,ref lobbyPoseSet);
             if(DeadlyJenga.Presentation.MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
             nameLabel.text=HandLooks.ChosenName;
             foreach(var rect in buttons){rect.GetComponent<Image>().color=CandyHudVisuals.Card;rect.GetComponentInChildren<Text>().color=Color.white;}

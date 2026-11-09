@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
         public CandyEnvironment Environment {get;private set;}
         CandyArtProfile localArt;
         InputAction select,wardrobeCancel;
-        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public Vector3 focusBaseScale;public bool focusInitialized;public Outline focusOutline;public Shadow focusGlow;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
+        sealed class Choice {public string id;public Button button;public BoxCollider collider;public Text label;public Action action;public Func<bool> enabled;public Func<string> title;public Func<bool> visible;public bool physical;public bool candy,selectionGlyph;public bool focusInitialized;public Outline focusOutline;public Shadow focusGlow;public Color faceColor,edgeColor;public Image rim;public Func<bool> selected;public Text description;public LobbyTerminalGlyph glyph;public Transform keyVisual;public Renderer keyRenderer;public MaterialPropertyBlock keyProperties;public float pressedUntil;public Color keyColor;public Image keyGlow,keyGlowSoft;public Graphic keyIcon;public Action<float> slide;public Func<bool> slideEnabled;}
         readonly List<Choice> choices=new List<Choice>();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -135,6 +135,8 @@ namespace DeadlyJenga.CastlePrototype
         public void Point(Ray ray,bool pressed,bool held=false)
         {
             Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
+            if (marina && Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
+                distance = obstruction.distance;
             foreach(var choice in choices)
             {
                 if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
@@ -169,7 +171,6 @@ namespace DeadlyJenga.CastlePrototype
                 else if(pressed)InvokeChoice(nearest.id);
             }
             DrawLobbyAim(ray,nearest!=null?distance:1.5f,nearest!=null);
-            UpdateModeCardFocus(nearest?.id);
         }
         void OnGUI()
         {

@@ -113,6 +113,9 @@ namespace DeadlyJenga.CandyArt.Marina
             var camera=player.ViewCamera;
             Ray ray=player.IsVR?MenuAim.Resolve(camera,camera.transform.parent,player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,leftSelect.WasPressedThisFrame(),select.WasPressedThisFrame(),out _,out _):session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             Target nearest=null;float distance=11;
+            if (Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
+                distance = obstruction.distance;
+            float screenRange = distance;
             foreach(var target in targets)
             {
                 target.collider.enabled=target.allowed();
@@ -126,7 +129,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 foreach(var text in target.labels)text.color=hover?CandyHudVisuals.Ink:allowed?Color.white:CandyHudVisuals.Muted;
             }
             PreviewDestination(nearest?.id);
-            if(MenuAim.TryPoint(ray,canvas,11,out _,out var point))MenuAim.Present(aimDot,point,true,nearest!=null);else aimDot.gameObject.SetActive(false);
+            if(MenuAim.TryPoint(ray,canvas,screenRange,out _,out var point))MenuAim.Present(aimDot,point,true,nearest!=null);else aimDot.gameObject.SetActive(false);
             if(pressed&&nearest!=null){Invoke(nearest.id);requireRelease=true;}
         }
         void PreviewDestination(string id)

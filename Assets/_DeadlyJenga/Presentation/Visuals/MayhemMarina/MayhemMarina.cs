@@ -12,6 +12,10 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
         public static readonly Vector3 Wardrobe=new(-13,1.55f,8.2f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
+        public static readonly Vector3 CodeKeyboard = new(-2.6f, 2.78f, 8.15f);
+        public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(48, 0, 0);
+        public static readonly Vector3 StyleScreen = new(-10.7f, 3.05f, 9.22f);
+        public static readonly Quaternion StyleScreenFacing = Quaternion.Euler(0, 65, 0);
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;
@@ -84,13 +88,14 @@ namespace DeadlyJenga.CandyArt.Marina
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
             ShoreAndCourts();Pavilion();StyleShop();Lounge();UpperTerraces();Landmark();Planting();DistantIslands();
-            LightingFixtures();SignMounts();
+            BeaconWalk();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
             Environment(environment);Water(environment);Signs();
             Mark("Arrival",Arrival);Mark("Wardrobe",Wardrobe);Mark("Play screen",PlayScreen);
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
+            Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f) + Vector3.up * .14f);
             Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
@@ -222,6 +227,10 @@ namespace DeadlyJenga.CandyArt.Marina
         void Signs()
         {
             var cream = new Color(.95f, .88f, .69f);
+            Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
+                BeaconWalkFacing.eulerAngles);
+            Sign("PLAY  /  AHEAD", new Vector3(-9.2f, 2.68f, -5.082f), .034f, cream, new Vector3(0, 12, 0));
+            Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
             Sign("PLAY PAVILION", new Vector3(0, 5.58f, 3.58f), .066f, cream);
             Sign("STYLE", new Vector3(-13, 5.18f, 4.85f), .095f, cream);
             Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);

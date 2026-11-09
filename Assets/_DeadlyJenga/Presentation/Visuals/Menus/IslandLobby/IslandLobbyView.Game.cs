@@ -144,25 +144,6 @@ namespace DeadlyJenga.CastlePrototype
             UpdateMapBrowserPreview();
             gameHint.text=setupPage=="maps"||setupPage=="modes"?(setupPage=="maps"?"2 - CHOOSE MAP":"1 - CHOOSE GAME MODE")+"  -  "+(pickerOffset/PageSize+1)+" / "+PickerPages:setupPage=="settings"?"DEMO / MODE SETTINGS":"";gameHint.gameObject.SetActive(!main);
         }
-        void UpdateModeCardFocus(string choiceId)
-        {
-            int focused=-1;
-            if(setupPage=="modes")
-            {
-                if(choiceId!=null&&choiceId.StartsWith("mode-card-",StringComparison.Ordinal)&&int.TryParse(choiceId.Substring(10),out int slot)&&ModeCardOption(slot)!=null)focused=slot;
-                if(focused<0)for(int i=0;i<8;i++)if(ModeCardOption(i)?.id==Details?.SelectedModeId&&ModeCardOption(i)!=null){focused=i;break;}
-            }
-            for(int i=0;i<8;i++)
-            {
-                var choice=CandyChoice("mode-card-"+i);if(choice==null)continue;
-                var rect=(RectTransform)choice.button.transform;bool focus=i==focused;
-                float scale=focus?1.45f:1;
-                rect.localScale=Vector3.MoveTowards(rect.localScale,Vector3.one*scale,Time.unscaledDeltaTime*10);
-                float x=i<4?-255:255,y=190-i%4*144;
-                rect.anchoredPosition3D=focus?new Vector3(i<4?-180:180,Mathf.Clamp(y,-219,161),-12):new Vector3(x,y,0);
-                if(focus&&rect.GetSiblingIndex()!=rect.parent.childCount-1)rect.SetAsLastSibling();
-            }
-        }
         void PreviewMapChoice(string choiceId)
         {
             if(setupPage!="maps"||string.IsNullOrEmpty(choiceId)||!choiceId.StartsWith("picker-",StringComparison.Ordinal))return;

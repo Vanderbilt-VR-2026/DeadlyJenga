@@ -14,10 +14,13 @@ namespace DeadlyJenga.CastlePrototype
             var caption=CandyReadout(candyJoinContent,"Room code caption","ROOM CODE",-320,260,350,30,23);caption.fontStyle=FontStyle.Bold;caption.alignment=TextAnchor.MiddleLeft;
             candyJoinStatus=CandyReadout(candyJoinContent,"Join connection status","READY TO JOIN",0,294,500,38,23);candyJoinStatus.color=CandyMint;
             var code=CandyPlace("code",-145,185,690,96);code.faceColor=CandyInk;code.label.enabled=false;code.selected=()=>lobby.CodeFocused;
-            for(int i=0;i<12;i++)
+            for (int i = 0; i < 12; i++)
             {
-                var slot=CandyPanel((RectTransform)code.button.transform,"Code character "+i,0,0,88,76,new Color(.12f,.09f,.20f));
-                candyCodeSlots.Add(slot);var letter=CandyReadout(slot,"Character","",0,0,78,66,40);letter.fontStyle=FontStyle.Bold;candyCodeLetters.Add(letter);
+                var slot = CandyPanel((RectTransform)code.button.transform, "Code character " + i,
+                    (i - 5.5f) * 54, 0, 48, 76, new Color(.12f, .09f, .20f));
+                var letter = CandyReadout(slot, "Character", "", 0, 0, 44, 66, 34);
+                letter.fontStyle = FontStyle.Bold;
+                candyCodeLetters.Add(letter);
             }
             var join=CandyPlace("join",380,185,250,96);CandyPrimary(join);join.title=()=>"JOIN ROOM";CandyText(join,0,0,226,80,30);
             CandyReadout(candyJoinContent,"Typing help","Use six room characters, or enter a full region code.",0,112,950,28,21).color=CandyMuted;
@@ -120,7 +123,7 @@ namespace DeadlyJenga.CastlePrototype
             browserMapName.fontStyle=FontStyle.Bold;browserMapName.color=CandyMint;
             browserMapDescription=CandyReadout(candySetupContent,"Previewed map description","",0,-23,960,40,20);browserMapDescription.color=CandyCream;
             browserMapMissing=CandyReadout(candySetupContent,"Map preview unavailable","MAP PREVIEW COMING SOON",0,160,900,60,28);browserMapMissing.color=CandyMuted;
-            CandyPlace("picker-previous",-255,-290,490,58);CandyPlace("picker-next",255,-290,490,58);CandyPlace("setup-back",0,-370,700,58);
+            CandyPlace("picker-previous",-255,-345,490,58);CandyPlace("picker-next",255,-345,490,58);CandyPlace("setup-back",0,-410,700,58);
             CandyChoice("picker-previous").visible=()=> (setupPage=="maps"||setupPage=="modes")&&PickerPages>1;
             CandyChoice("picker-next").visible=()=> (setupPage=="maps"||setupPage=="modes")&&PickerPages>1;
             CandyChoiceIcon(CandyChoice("setup-back"),LobbyTerminalGlyph.Symbol.Back,-280);
