@@ -33,6 +33,8 @@ namespace DeadlyJenga.Modes
                 if(actor==null||!actor.Alive||!state.drawn||Time.time-held.seen>.4f||simulation.Phase!=RoundPhase.Playing){StopArsenalTrigger(id);continue;}
                 var spec=EquipmentSpecifications.Get(state.kind);float charge=state.kind==EquipmentKind.Chainsaw&&state.shotgun?1:spec.charge;
                 state.triggerHeld=true;state.charge=charge>0?Mathf.Clamp01((Time.time-held.start)/charge):1;equipment[id]=state;
+                // Bots submit each shot after a fresh aim and safety decision.
+                if(actor.IsBot)continue;
                 if(state.kind==EquipmentKind.StockPistol&&state.shotgun&&held.burst>=3)continue;
                 if(!spec.automatic&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&held.burst>0)continue;
                 if(AttackEquipment(id,new EquipmentCommand{position=held.pose.position,forward=held.pose.rotation*Vector3.forward})&&heldWeapons.TryGetValue(id,out held))held.burst++;

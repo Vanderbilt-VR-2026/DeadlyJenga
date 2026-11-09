@@ -56,12 +56,15 @@ namespace DeadlyJenga.DevTools.Editor
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Random Powerups and Bot Guns")]
-        public static void Run()
+        public static void Run()=>Start(false);
+        public static void RunWeaponTactics()=>Start(true);
+        static void Start(bool focused)
         {
             if(EditorApplication.isPlayingOrWillChangePlaymode)throw new InvalidOperationException("Exit Play Mode first.");
             var scenes=EditorSceneManager.GetSceneManagerSetup();if(scenes.Any(s=>s.isLoaded&&SceneManager.GetSceneByPath(s.path).isDirty))throw new InvalidOperationException("Save edited scenes first.");
             BotObjectiveContractChecks.Run();if(!BotObjectiveContractChecks.LastPassed)throw new InvalidOperationException("Bot contracts failed.");
             SessionState.SetString(Key+"Scenes",JsonUtility.ToJson(new Setup{scenes=scenes}));SessionState.SetString(Key+"Choices",JsonUtility.ToJson(SpectatorRecordingPlan.Current()));SessionState.SetBool(Key+"Lobby",MatchSetup.FromLobby);SessionState.SetBool(Key+"Local",MatchSetup.StartLocalSession);SessionState.SetBool(Key+"Entered",false);SessionState.SetBool(Key,true);
+            SessionState.SetBool(Key+"Focused",focused);
             File.WriteAllText(Report,"Random spawning, native support/expiry, real bot collection, ordinary weapon skill fixtures and production Mystery witness acceptance.\n");
             MatchSetup.FromLobby=false;MatchSetup.StartLocalSession=false;MatchSetup.ModeId="demo";MatchSetup.MapId="castle";MatchSetup.BotTarget=0;MatchSetup.HandCount=0;EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
@@ -82,7 +85,8 @@ namespace DeadlyJenga.DevTools.Editor
         {float until=Time.realtimeSinceStartup+timeout;while(!condition()&&Time.realtimeSinceStartup<until)yield return null;bool passed=condition();Check(passed,label+(!passed&&diagnostic!=null?" · "+diagnostic():""));}
         static IEnumerator Guard()
         {
-            foreach(var test in new[]{Test(),AimTest(),ModelGallery()})
+            var tests=SessionState.GetBool(Key+"Focused",false)?new[]{Test()}:new[]{Test(),AimTest(),ModelGallery()};
+            foreach(var test in tests)
             {
             var stack=new Stack<IEnumerator>();stack.Push(test);
             while(stack.Count>0){bool more=false;object value=null;Exception error=null;try{more=stack.Peek().MoveNext();if(more)value=stack.Peek().Current;}catch(Exception e){error=e;}if(error!=null){failed=true;File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more){(stack.Pop() as IDisposable)?.Dispose();continue;}if(value is IEnumerator child){stack.Push(child);continue;}yield return value;}
@@ -108,6 +112,26 @@ namespace DeadlyJenga.DevTools.Editor
             bad=runtime.SpawnSettings;bad.types=new[]{new PowerupSpawnWeight{kind=EquipmentKind.Blaster,weight=1},new PowerupSpawnWeight{kind=EquipmentKind.Blaster,weight=2}};Check(!runtime.ConfigurePowerupSpawns(bad),"Duplicate item weights are rejected");
             int interested=Enumerable.Range(0,1000).Count(i=>BotEquipmentValue.Interested("bot-"+i,37,3,5));Check(interested>100&&interested<950,"Notice policy has varied, non-universal interest across actors");Check(BotEquipmentValue.NoticeRoll("bot-a",37)==BotEquipmentValue.NoticeRoll("bot-a",37),"Interest does not reroll every frame");
             Check(!BotGunPolicy.Shotgun(EquipmentKind.DualRifle,false,20)&&BotGunPolicy.Shotgun(EquipmentKind.DualRifle,false,6)&&BotGunPolicy.Shotgun(EquipmentKind.DualRifle,true,11),"Range policy uses long rifle at range and hysteresis near mode boundaries");
+            Check(!BotGunPolicy.Shotgun(EquipmentKind.DualRifle,true,12.5f)&&
+                BotGunPolicy.Shotgun(EquipmentKind.Chainsaw,false,2)&&
+                BotGunPolicy.Shotgun(EquipmentKind.LaserAxe,false,3),
+                "Alternate modes cover the gap beyond melee or shotgun reach");
+            var rocket=new EquipmentState{kind=EquipmentKind.RocketLauncher};
+            var spikers=new EquipmentState{kind=EquipmentKind.DualUzi,magazineInitialized=true,rounds=60};
+            Check(BotEquipmentValue.ContextualDesire(rocket,spikers.kind,2,0,5,true)>BotEquipmentValue.SwapMargin,
+                "Spikers are preferred over an RPG in a cramped close fight");
+            Check(BotEquipmentValue.ContextualDesire(spikers,EquipmentKind.DualRifle,2,0,36,false)>BotEquipmentValue.SwapMargin,
+                "A precision rifle is preferred over spikers across a long lane");
+            float loaded=BotEquipmentValue.ContextualDesire(spikers,EquipmentKind.StockPistol,2,0,16,false);
+            spikers.rounds=0;spikers.reloadRemaining=2;
+            Check(BotEquipmentValue.ContextualDesire(spikers,EquipmentKind.StockPistol,2,0,16,false)>loaded+.8f,
+                "An empty reloading weapon increases the value of an available pickup");
+            var freshAim=BotGunPolicy.AimOffset(7,2,0,.45f,0,0);
+            var settledAim=BotGunPolicy.AimOffset(7,2,1,.45f,0,0);
+            Check(freshAim.magnitude>settledAim.magnitude&&settledAim.magnitude>.36f&&
+                BotGunPolicy.AimOffset(7,3,1,.45f,0,0)!=settledAim&&
+                BotGunPolicy.AimOffset(7,2,1,.45f,6,0).magnitude>settledAim.magnitude,
+                "Aim bias settles, varies by burst and grows against a moving target");
             var originalWorld=Services.World;var root=new GameObject("Powerup surface fixture");var world=root.AddComponent<FakeWorldQuery>();world.waterHeight=-100;world.spawnPoint=new Vector3(150,10.05f,150);world.topHeight=30;world.radius=250;world.playableBounds=new Bounds(new Vector3(220,20,150),new Vector3(250,80,100));
             world.blocks.Add(Block(new Vector3(150,9.5f,150),new Vector3(100,1,80)));world.blocks.Add(Block(new Vector3(220,19.5f,150),new Vector3(20,1,20)));world.blocks.Add(Block(new Vector3(290,29.5f,150),new Vector3(20,1,20)));
             foreach(var body in world.blocks)body.transform.SetParent(root.transform,true);
@@ -142,6 +166,18 @@ namespace DeadlyJenga.DevTools.Editor
                 Grant(runtime,collector,EquipmentKind.Speed);yield return null;Check(collector.PowerupSpeedMultiplier==2,"Collected speed powerup changes the actual bot movement multiplier");
                 Grant(runtime,collector,EquipmentKind.Jump);yield return null;Check(Mathf.Approximately(collector.EffectiveJumpHeight,collector.jumpHeight*3),"Collected jump powerup changes the actual bot jump height");
                 var victim=session.SurvivorBots.SpawnOne().GetComponent<CastleSurvivor>();victim.GetComponent<CastleBotBrain>().enabled=false;victim.InputDriver=null;yield return new WaitForSeconds(.4f);
+                Grant(runtime,collector,EquipmentKind.DualUzi);
+                Check(runtime.SetBotWeapon(collector.gameObject,true,false),"Bot draws spikers for the trigger fixture");
+                var muzzle=new Pose(collector.ViewPose.position+Vector3.forward*.35f,Quaternion.identity);
+                yield return null;
+                int rounds=runtime.EquipmentFor(collector.ActorId).rounds;
+                Check(runtime.FireBotWeapon(collector.gameObject,muzzle),"Bot requests one checked spiker shot");
+                yield return new WaitForSeconds(.22f);
+                var held=runtime.EquipmentFor(collector.ActorId);
+                Check(held.rounds==rounds-1,"Authority does not add extra bot shots between checked requests");
+                Check(runtime.SetBotWeapon(collector.gameObject,true,false)&&
+                    runtime.EquipmentFor(collector.ActorId).drawn&&!runtime.EquipmentFor(collector.ActorId).triggerHeld,
+                    "Bot releases trigger without holstering");
                 var brain=collector.GetComponent<CastleBotBrain>();var goal=new Goal{actor=collector.gameObject,target=victim.gameObject};BotObjectives.Current=goal;
                 foreach(var kind in Enum.GetValues(typeof(EquipmentKind)).Cast<EquipmentKind>().Where(k=>k>=EquipmentKind.Blaster&&!EquipmentSpecifications.Get(k).power))
                 {
@@ -156,10 +192,30 @@ namespace DeadlyJenga.DevTools.Editor
                 goal.kind=BotObjectiveKind.Travel;goal.point=collector.transform.position+Vector3.right*8;collector.InputSuspended=false;
                 yield return Until(()=>!runtime.EquipmentFor(collector.ActorId).drawn,"Travel assignment makes the bot holster its rifle",5);Check(runtime.RulesFor(collector.gameObject).canJump&&runtime.RulesFor(collector.gameObject).canClimb&&runtime.RulesFor(collector.gameObject).canVault,"Holstering restores traversal permissions");collector.InputSuspended=true;
                 goal.kind=BotObjectiveKind.Attack;collector.Place(new Vector3(150,10.05f,150),Quaternion.identity);victim.Place(new Vector3(150,10.05f,170),Quaternion.identity);victim.InputSuspended=true;
-                var wall=Block(new Vector3(150,13,160),new Vector3(35,6,1));wall.transform.SetParent(root.transform,true);int before=brain.WeaponShotsAccepted;collector.InputSuspended=false;yield return new WaitForSeconds(1.5f);Check(brain.WeaponShotsAccepted==before,"Bot withholds gunfire through solid cover");collector.InputSuspended=true;Object.Destroy(wall.gameObject);
+                int before=brain.WeaponShotsAccepted;
+                float movingSince=Time.time,firstShot=-1,healthBefore=victim.Health;
+                collector.InputSuspended=false;
+                while(Time.time-movingSince<3.5f)
+                {
+                    float elapsed=Time.time-movingSince;
+                    victim.Place(new Vector3(150+Mathf.Sin(elapsed*2)*1.7f,10.05f,170),Quaternion.identity);
+                    Physics.SyncTransforms();
+                    if(firstShot<0&&brain.WeaponShotsAccepted>before)firstShot=elapsed;
+                    yield return null;
+                }
+                Check(firstShot>=.18f&&brain.WeaponShotsAccepted>before,"Bot acquires and fires at a strafing target after a reaction delay");
+                File.AppendAllText(Report,$"STRAFE firstShot={firstShot:F2}s shots={brain.WeaponShotsAccepted-before} damage={healthBefore-victim.Health:F1}\n");
+                var wall=Block(new Vector3(150,13,160),new Vector3(35,6,1));
+                wall.transform.SetParent(root.transform,true);Physics.SyncTransforms();
+                yield return new WaitForSeconds(.24f);
+                before=brain.WeaponShotsAccepted;
+                yield return new WaitForSeconds(1);
+                Check(brain.WeaponShotsAccepted==before,"Bot stops firing when a previously tracked target moves behind solid cover");
+                collector.InputSuspended=true;Object.Destroy(wall.gameObject);
                 Check(ModeFrameValidation.Frame(JsonUtility.FromJson<MatchFrame>(runtime.CaptureFrameJson()),world.Blocks.Count),"Configuration, inventory and random pickup metadata survive validated JSON");
                 File.AppendAllText(Report,$"DIRECTOR peak={runtime.ObjectiveDirector?.PeakMilliseconds:F3}ms; this is a fixture sample, not a many-bot FPS benchmark.\n");
-                yield return PowerupBotNetworkChecks.Run(new[]{supportBefore,supportAfter,expired},world.Blocks.Count,Check);
+                if(!SessionState.GetBool(Key+"Focused",false))
+                    yield return PowerupBotNetworkChecks.Run(new[]{supportBefore,supportAfter,expired},world.Blocks.Count,Check);
                 yield return PowerupBotMysteryChecks.Run(session,Check);
             }
             finally{Climbables.Unregister(proxyShape);BotObjectives.Current=originalProvider;Services.World=originalWorld;Object.Destroy(root);}
