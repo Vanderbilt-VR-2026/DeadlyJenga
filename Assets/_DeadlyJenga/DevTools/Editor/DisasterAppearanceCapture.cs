@@ -149,8 +149,13 @@ namespace DeadlyJenga.DevTools.Editor
                 var source=DisasterStates.Active.FirstOrDefault(s=>s.Capture()?.kind=="Tornado");
                 var warning=source?.Capture();
                 if (warning==null || warning.warning<=0) throw new InvalidOperationException("The production request did not start the warning.");
+                var topEye=camera.transform.position;
+                var ground=FindTornadoFooting(Services.World,warning.center);
+                session.Player.Place(ground+Vector3.up*.06f,Quaternion.identity);
+                yield return null;
                 var eye=camera.transform.position;
-                var forward=Quaternion.LookRotation(warning.center+Vector3.up*warning.values[0]*.32f-eye);
+                if(eye.y-ground.y>4)throw new InvalidOperationException("Survivor camera did not reach the ground viewpoint.");
+                var forward=TornadoView(eye,warning);
                 camera.transform.SetPositionAndRotation(eye,forward);
                 var baseline=ReadTornadoCamera(camera,null);
                 until=Time.realtimeSinceStartup+14;
@@ -174,10 +179,13 @@ namespace DeadlyJenga.DevTools.Editor
                 while ((source.Capture()?.age??0)<8.7f && Time.realtimeSinceStartup<until) yield return null;
                 live=source.Capture();
                 if(live==null) throw new InvalidOperationException("The tornado ended before the approach capture.");
-                camera.transform.SetPositionAndRotation(eye,Quaternion.LookRotation(live.center+Vector3.up*live.values[0]*.36f-eye));
+                camera.transform.SetPositionAndRotation(eye,TornadoView(eye,live));
                 visualType.GetMethod("LateUpdate",member).Invoke(art,null);
                 ReadTornadoCamera(camera,"Tornado-Player-Approach.png");
-                File.AppendAllText(GameplayReport,$"Approach capture at event age {live.age:F2}s and center {live.center}.\n");
+                File.AppendAllText(GameplayReport,$"Ground approach at event age {live.age:F2}s, center {live.center}, eye {eye}.\n");
+                camera.transform.SetPositionAndRotation(topEye,TornadoView(topEye,live));
+                visualType.GetMethod("LateUpdate",member).Invoke(art,null);
+                ReadTornadoCamera(camera,"Tornado-Player-Upper-Tower.png");
                 DemoDisasters.StopAll(session);
                 yield return new WaitForSecondsRealtime(1.9f);
                 if(cameraData.requiresDepthOption!=CameraOverrideOption.Off)
@@ -189,6 +197,29 @@ namespace DeadlyJenga.DevTools.Editor
                 cameraData.requiresDepthOption=previousDepth;
                 QualitySettings.renderPipeline=previousPipeline;
             }
+        }
+
+        static Vector3 FindTornadoFooting(IWorldQuery world,Vector3 storm)
+        {
+            var outward=Vector3.ProjectOnPlane(storm-world.Center,Vector3.up).normalized;
+            foreach(float angle in new[]{55f,-55f,80f,-80f,30f,-30f})
+            foreach(float radius in new[]{.80f,.63f,.45f})
+            {
+                var point=world.Center+Quaternion.Euler(0,angle,0)*outward*(world.Radius*radius);
+                float water=world.WaterHeight(point);
+                point.y=water+10;
+                if(Physics.Raycast(point,Vector3.down,out var hit,9.9f,(1<<Layers.Surface)|(1<<Layers.Block)|1,
+                    QueryTriggerInteraction.Ignore)&&hit.normal.y>.8f)
+                    return hit.point;
+            }
+            throw new InvalidOperationException("No supported ground-level view was found on the island.");
+        }
+
+        static Quaternion TornadoView(Vector3 eye,DisasterFrame storm)
+        {
+            var foot=(storm.center-eye).normalized;
+            var crown=(storm.center+Vector3.up*(storm.values[0]+storm.values[1]*.65f)-eye).normalized;
+            return Quaternion.LookRotation(foot+crown);
         }
 
         static Color32[] ReadTornadoCamera(Camera camera,string filename)
