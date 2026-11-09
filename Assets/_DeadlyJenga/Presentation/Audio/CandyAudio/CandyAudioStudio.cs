@@ -64,7 +64,8 @@ namespace DeadlyJenga.CandyAudio
         public void Close()
         {
             preview.Stop();selected=null;library=false;IsOpen=false;if(engine)engine.auditionDucking=1;
-            if(session!=null)session.SetMenu(previousMenu);
+            if(session!=null&&ReferenceEquals(session,Services.Session))session.SetMenu(previousMenu);
+            session=null;
         }
         void Update()
         {

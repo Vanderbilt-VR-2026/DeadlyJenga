@@ -51,8 +51,8 @@ namespace DeadlyJenga.CastlePrototype
             BuildCandyDesign();
             BuildComfortControls();
             BuildWardrobe();
-            BuildTVWall();
             BuildMayhemMarina();
+            BuildTVWall();
         }
         void BuildIsland()
         {
