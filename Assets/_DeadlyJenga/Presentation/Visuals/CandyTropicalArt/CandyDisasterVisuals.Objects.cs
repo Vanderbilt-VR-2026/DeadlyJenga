@@ -68,7 +68,7 @@ namespace DeadlyJenga.CandyArt
             stormMist=ObjectMaterial("CandyStormMist",new Color(.30f,.38f,.50f,.62f));
             var stormCloud=Resources.Load<Texture2D>("CandyScenery/StormCloudPuff");
             if(stormCloud){stormMist.SetTexture("_CloudTexture",stormCloud);stormMist.SetFloat("_UseCloudTexture",1);}
-            stormRibbon=new Material(stormMist){name="Streaming vortex wisps"};stormRibbon.SetFloat("_Streamed",1);
+            stormRibbon=new Material(stormMist){name="Streaming vortex wisps",renderQueue=storm.renderQueue-1};stormRibbon.SetFloat("_Streamed",1);
             stormRibbon.SetColor("_BaseColor",new Color(.52f,.64f,.78f,.3f));
             tornadoSpray = new Material(stormMist) { name = "Tornado sea spray" };
             tornadoFoam = new Material(stormMist) { name = "Tornado surface foam" };
@@ -354,7 +354,7 @@ namespace DeadlyJenga.CandyArt
             flash *= visibility;
             storm.SetVector("_StormInfo",new Vector4(size,height,speed,flash));
             stormMist.SetColor("_BaseColor",Color.Lerp(new Color(.18f,.22f,.31f,.64f*visibility),new Color(.40f,.49f,.86f,.70f*visibility),flash));
-            float ribbonOpacity = !supportsTornadoVolume ? .88f : compactStorm ? .30f : .19f;
+            float ribbonOpacity = !supportsTornadoVolume ? .88f : compactStorm ? .12f : .19f;
             stormRibbon.SetColor("_BaseColor", Color.Lerp(new Color(.27f, .34f, .46f, ribbonOpacity * visibility),
                 new Color(.59f, .71f, 1.1f, .28f * visibility), flash));
             if(flash>.02f)
