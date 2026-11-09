@@ -179,8 +179,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role=="host")
             {
                 var task=room.Host();yield return Until(()=>task.IsCompleted&&room.IsHost,"Host connects to real Fusion");
-                File.WriteAllText(Mark("code-pending"),room.Code);
-                File.Move(Mark("code-pending"),Mark("code"));
+                File.WriteAllText(Mark("code"),room.Code);
                 yield return Until(()=>room.HumanCount==2&&IslandLobby.Current.PeerCount==1,"Independent guest avatar joins host island");
                 room.SetSharedControls(true);room.Launch();
                 yield return Until(()=>FindFirstObjectByType<CastlePlaySession>(),"Host transitions lobby to Castle Demo");
