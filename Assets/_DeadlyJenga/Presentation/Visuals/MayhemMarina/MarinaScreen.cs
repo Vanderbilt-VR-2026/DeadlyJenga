@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
             if(canvas)return;lobby=controls;session=Services.Session;detail=openDetail;
-            var go=new GameObject("Marina · live play screen",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);canvas=go.GetComponent<RectTransform>();canvas.sizeDelta=new Vector2(720,320);canvas.position=MayhemMarina.PlayScreen+Vector3.back*.11f;canvas.localScale=Vector3.one*.0098f;
+            var go=new GameObject("Marina · live play screen",typeof(RectTransform),typeof(Canvas));go.transform.SetParent(transform,false);canvas=go.GetComponent<RectTransform>();canvas.sizeDelta=new Vector2(720,320);canvas.localPosition=MayhemMarina.PlayScreen+Vector3.back*.11f;canvas.localScale=Vector3.one*.0098f;
             var c=go.GetComponent<Canvas>();c.renderMode=RenderMode.WorldSpace;c.overrideSorting=true;c.sortingOrder=70;
             Text("MODE",new Vector2(-236,135),new Vector2(225,40),30,canvas);Text("MAP",new Vector2(236,135),new Vector2(220,40),30,canvas);
             modePicture=Card("marina-modes",new Vector2(-236,30),()=>detail?.Invoke("modes"));
@@ -121,7 +121,6 @@ namespace DeadlyJenga.CandyArt.Marina
             foreach(var target in targets)
             {
                 bool hover=target==nearest,allowed=target.allowed();target.face.color=hover?CandyHudVisuals.Mint:allowed?target.color:CandyHudVisuals.Card;
-                target.face.rectTransform.localScale=Vector3.Lerp(target.face.rectTransform.localScale,Vector3.one*(hover?1.10f:1),1-Mathf.Exp(-22*Time.unscaledDeltaTime));
                 target.outline.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?1:0);
                 target.glow.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,hover?.5f:0);
                 foreach(var text in target.labels)text.color=hover?CandyHudVisuals.Ink:allowed?Color.white:CandyHudVisuals.Muted;

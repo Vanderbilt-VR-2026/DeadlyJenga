@@ -54,6 +54,32 @@ namespace DeadlyJenga.CandyArt.Marina
                 Rock(new Vector3(17+Mathf.Cos(a)*5.6f,-.2f,-8+Mathf.Sin(a)*5.6f),new Vector3(1.2f,.8f,1.5f),i+9);
             }
         }
+        void SignMounts()
+        {
+            mesh.Box(new Vector3(13.7f, 4.42f, 2.60f), new Vector3(6.5f, .53f, .2f), F.DarkWood, .065f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                float x = 13.7f + side * 2.55f;
+                mesh.Beam(new Vector3(x, 4.57f, 2.63f), new Vector3(x, 4.98f, 2.83f), .047f, F.Brass);
+            }
+            mesh.Box(new Vector3(19, 1.45f, -3.34f), new Vector3(.14f, .64f, .14f), F.DarkWood, .024f);
+            mesh.Box(new Vector3(19, 1.76f, -3.34f), new Vector3(2.28f, .42f, .18f), F.DarkWood, .05f);
+            mesh.Box(new Vector3(-10, 1.340f, -10.1f), new Vector3(5.1f, .018f, .8f), F.Ivory, .008f);
+        }
+        void LightingFixtures()
+        {
+            Lantern(new Vector3(-13.8f, 6.65f, 17.9f), .24f);
+            DeckLight(new Vector3(-12.5f, 1.33f, -10.25f));
+            DeckLight(new Vector3(-7.5f, 1.33f, -10.25f));
+            DeckLight(new Vector3(15, 1.14f, -3.3f));
+            DeckLight(new Vector3(16.5f, 4.03f, 17.75f));
+        }
+        void DeckLight(Vector3 foot)
+        {
+            mesh.Box(foot + Vector3.up * .25f, new Vector3(.17f, .5f, .17f), F.DarkWood, .025f);
+            mesh.Box(foot + Vector3.up * .54f, new Vector3(.20f, .12f, .20f), F.Glow, .018f);
+            mesh.Box(foot + Vector3.up * .625f, new Vector3(.24f, .05f, .24f), F.Brass, .015f);
+        }
         void TileLines(Vector3 center,Vector2 area)
         {
             for(float x=-area.x*.5f+.8f;x<area.x*.5f;x+=1.55f)mesh.Box(center+Vector3.right*x,new Vector3(.013f,.006f,area.y),F.Ivory,.001f);
@@ -81,7 +107,12 @@ namespace DeadlyJenga.CandyArt.Marina
                 for(int i=0;i<=posts;i++)
                 {
                     float t=i/(float)posts;var p=P(t)+side*(sign*(width*.5f+.08f));Post(p);
-                    if(i%2==0)mesh.Beam(p-Vector3.up*.15f,p-Vector3.up*2.1f,.14f,F.DarkWood);
+                    if(i%2==0)
+                    {
+                        mesh.Beam(p-Vector3.up*.15f,p-Vector3.up*2.1f,.14f,F.DarkWood);
+                        mesh.Box(p+Vector3.up*1.19f,new Vector3(.16f,.07f,.16f),F.Glow,.015f);
+                        mesh.Box(p+Vector3.up*1.24f,new Vector3(.21f,.035f,.21f),F.Brass,.014f);
+                    }
                     for(int s=0;s<10;s++)
                     {
                         float u=s/10f;if(i==posts&&s>0)break;

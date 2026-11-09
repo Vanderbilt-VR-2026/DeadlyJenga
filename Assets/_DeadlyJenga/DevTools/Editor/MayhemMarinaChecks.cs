@@ -157,6 +157,19 @@ namespace DeadlyJenga.DevTools.Editor
                     }
                 else File.AppendAllText(Report,"SKIP Terminal input requires a focused Game View. Facade presence verified.\n");
                 var marina=lobby.GetComponent<MayhemMarina>();
+                var ocean = marina.GetComponentsInChildren<MeshRenderer>().Single(renderer => renderer.name == "Marina ocean");
+                Check(ocean.sharedMaterial == view.Environment.profile.water && ocean.sharedMaterial.shader.name == "Candy Tropical/Ocean",
+                    "Marina uses the gameplay ocean material and shader");
+                Check(!view.Environment.waterRenderer.gameObject.activeInHierarchy, "Only the Marina ocean renders in the lobby");
+                var properties = new MaterialPropertyBlock();
+                ocean.GetPropertyBlock(properties);
+                Check(Mathf.Approximately(properties.GetFloat("_WaterHeight"), ocean.transform.position.y) &&
+                    Mathf.Approximately(properties.GetFloat("_WaveHeight"), view.Environment.profile.waveHeight),
+                    "Ocean waves use gameplay tuning at the Marina waterline");
+                var zoneLights = marina.GetComponentsInChildren<Light>().Where(light => light.type == LightType.Point).ToArray();
+                Check(zoneLights.Length == 7 && zoneLights.All(light => light.shadows == LightShadows.None),
+                    "Seven local lighting accents use no additional shadow maps");
+                yield return CheckJoinLayout(lobby, view);
                 captureOrigin=lobby.transform.position;
                 Check(marina.RenderTriangles>0&&marina.CollisionTriangles>1000,"Actual rendered Marina and walkable geometry present");
                 Check(!Physics.Raycast(lobby.transform.TransformPoint(new Vector3(2,2,-8)),Vector3.down,3,
@@ -164,9 +177,9 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return Wait(3);
                 Check(!lobby.GetComponentsInChildren<Canvas>().Any(canvas=>canvas.enabled&&canvas.name.EndsWith(" / readable back",StringComparison.Ordinal)),
                     "Hidden legacy terminals leave no visible rear canvases over the marina");
-                Capture(new Vector3(-26,19,-30),new Vector3(0,2,5),66,"Marina-Makeover-Overview.png");
-                Capture(new Vector3(-8.1f,2.43f,-6.85f),new Vector3(0,3.85f,11.1f),65,"Marina-Makeover-Arrival.png");
-                Capture(new Vector3(15.6f,2.35f,-.4f),new Vector3(17,1.1f,-8),68,"Marina-Makeover-Practice.png");
+                Capture(new Vector3(-26,19,-30),new Vector3(0,2,5),66,"Marina-Ocean-Lighting-Overview.png");
+                Capture(new Vector3(-8.1f,2.43f,-6.85f),new Vector3(0,3.85f,11.1f),65,"Marina-Ocean-Lighting-Arrival.png");
+                Capture(new Vector3(15.6f,2.35f,-.4f),new Vector3(17,1.1f,-8),68,"Marina-Ocean-Lighting-Practice.png");
                 lobby.enabled=false; // Stop population refill during the isolated motor routes.
                 if(Services.Session?.SurvivorBots!=null)
                 {
@@ -186,6 +199,35 @@ namespace DeadlyJenga.DevTools.Editor
                     new Vector3(-17.8f,4.18f,17.9f)},"west ramp and lookout");
                 lobby.enabled=true;
             }
+        }
+        static IEnumerator CheckJoinLayout(IslandLobby lobby, IslandLobbyView view)
+        {
+            // Exercise the page action directly so a hidden editor can verify layout without pretending to test input.
+            const System.Reflection.BindingFlags methods = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var join = view.transform.Find("JOIN");
+            var back = view.transform.Find("Marina detail back control");
+            var keyboard = view.GiantKeyboard;
+            Check(join && back && keyboard, "Join monitor, Back button and code keyboard exist");
+            var home = join.localPosition;
+            typeof(IslandLobbyView).GetMethod("OpenMarinaDetail", methods).Invoke(view, new object[] { "join" });
+            try
+            {
+                var monitorPose = join.localPosition;
+                var backPose = back.localPosition;
+                var keyboardPose = keyboard.localPosition;
+                Check(join.gameObject.activeInHierarchy && !keyboard.gameObject.activeSelf, "Join opens with the keyboard space reserved");
+                lobby.FocusCode();
+                yield return Wait(.15f);
+                Check(lobby.CodeFocused && keyboard.gameObject.activeInHierarchy, "Code focus reveals the existing keyboard");
+                Check(join.localPosition == monitorPose && back.localPosition == backPose && keyboard.localPosition == keyboardPose,
+                    "Join, Back and keyboard retain their opening positions while typing");
+                lobby.UnfocusCode();
+                yield return Wait(.15f);
+                Check(!keyboard.gameObject.activeSelf && join.localPosition == monitorPose && back.localPosition == backPose,
+                    "Closing the code keyboard keeps the monitor and Back button still");
+            }
+            finally { typeof(IslandLobbyView).GetMethod("CloseMarinaDetail", methods).Invoke(view, null); }
+            Check(!join.gameObject.activeSelf && join.localPosition == home, "Closing Join restores the parked terminal position");
         }
         static IEnumerator RunNetworkScene()
         {
