@@ -6,6 +6,7 @@ using System.Reflection;
 using DeadlyJenga.Core;
 using DeadlyJenga.Modes;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.CandyArt;
 using DeadlyJenga.Presentation;
 using DeadlyJenga.World.Hazards;
 using UnityEditor;
@@ -129,6 +130,20 @@ namespace DeadlyJenga.DevTools.Editor
                 File.AppendAllText(Report,$"WAVE {pushed.Count} block receivers at first contact on {Services.World.GetType().Name}\n");
             }
             finally {GameEvents.Pushed-=Record;wave.End();Object.Destroy(wave.gameObject);}
+            yield return new WaitForSeconds(.4f);
+            var pools=Object.FindFirstObjectByType<CandySoakingPuddle>();
+            Check(pools,"Ending the actual wave creates residual pools");
+            var ocean=pools.GetComponentInParent<CandyEnvironment>().waterRenderer;
+            var patches=pools.GetComponentsInChildren<MeshRenderer>();
+            Check(patches.Length==9&&patches.All(patch=>patch.sharedMaterial==ocean.sharedMaterial),
+                "Residual pools use the live ocean material");
+            var waterProperties=new MaterialPropertyBlock();
+            int poolMode=Shader.PropertyToID("_SoakingPool");
+            ocean.GetPropertyBlock(waterProperties);
+            Check(waterProperties.GetVector(poolMode).x==0,"The ocean remains in ocean mode");
+            patches[0].GetPropertyBlock(waterProperties);
+            Check(waterProperties.GetVector(poolMode).x==1&&waterProperties.GetVector(poolMode).z>0,
+                "The pool applies its shallow edge and fade mode through per-renderer properties");
             session.ResetMap();
             session.SurvivorBots.AutoFill=false;
             session.SurvivorBots.Clear();
