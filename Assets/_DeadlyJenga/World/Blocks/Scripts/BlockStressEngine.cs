@@ -38,16 +38,6 @@ namespace DeadlyJenga.CastlePrototype
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetStatic() => Instance = null;
 
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
-        static void Boot()
-        {
-            if (Instance) return;
-            var go = new GameObject("Block Physics");
-            DontDestroyOnLoad(go);
-            go.AddComponent<BlockStressEngine>();
-            go.AddComponent<BlockTimeline>();
-        }
-
         void Awake() => Instance = this;
         void OnEnable() { Physics.ContactEvent += OnContacts; GameEvents.RewindEnded += AfterRewind; }
         void OnDisable() { Physics.ContactEvent -= OnContacts; GameEvents.RewindEnded -= AfterRewind; }

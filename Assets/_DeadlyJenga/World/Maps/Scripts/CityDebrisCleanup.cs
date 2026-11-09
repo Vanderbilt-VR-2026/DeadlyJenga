@@ -18,6 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         bool replica; float born,nextScan; int cursor;
         public int ConvertedCount {get;private set;} public int ShatteredCount {get;private set;} public int SunkCount {get;private set;} public int RestoredCount {get;private set;}
         bool Authority=>!replica&&!(Services.Session is IWorldAuthority a&&!a.HasWorldAuthority);
+        static bool HazardActive=>DisasterStates.Active.Count>0||Tracked.Waves.Count>0;
         public void Initialize(IReadOnlyList<Rigidbody> bodies)
         {
             born=Time.time;
@@ -66,13 +67,19 @@ namespace DeadlyJenga.CastlePrototype
         public bool TryPush(Rigidbody body,Vector3 force)
         {
             if(!Authority||!lookup.TryGetValue(body,out var e))return false;
-            if(e.sinking)return true;if(e.visual){e.velocity+=force;return true;}
+            if(e.sinking)
+            {
+                if(!HazardActive)return true;
+                RestoreSinking(e);
+                return false;
+            }
+            if(e.visual){e.velocity+=force;return true;}
             var v=body.linearVelocity+force;float threshold=force.magnitude/Mathf.Max(.001f,Time.fixedDeltaTime)>=180?18:20;
             return v.magnitude>=threshold&&Convert(e,v);
         }
         bool Convert(Entry e,Vector3 velocity)
         {
-            if(Time.time-born<2||e.body.isKinematic||DisasterStates.Active.Count>0)return false;
+            if(Time.time-born<2||e.body.isKinematic||HazardActive)return false;
             if((e.body.position-e.origin).sqrMagnitude<.5625f&&Quaternion.Angle(e.rotation,e.body.rotation)<30)return false;
             var bounds=BoundsOf(e);var path=bounds;path.Encapsulate(new Bounds(bounds.center+velocity*Mathf.Max(.02f,Time.deltaTime),bounds.size));
             if(NearPeople(path)||!Clear(e,bounds))return false;
@@ -87,12 +94,11 @@ namespace DeadlyJenga.CastlePrototype
             if(!keepKinematic){e.body.linearVelocity=e.velocity;e.body.angularVelocity=e.spin;}RestoredCount++;
         }
         public void SetReplica(bool value){replica=value;foreach(var e in entries){Restore(e,value);if(e.sinking&&e.body){e.sinking=false;if(!value)e.body.isKinematic=false;}}}
-        public void Impact(Rigidbody body,Collision collision)
+        static void RestoreSinking(Entry e)
         {
-            if(!Authority||!body.gameObject.activeSelf||Time.time-born<2||collision.contactCount==0||!lookup.TryGetValue(body,out var e)||e.sinking)return;
-            float speed=Mathf.Abs(Vector3.Dot(collision.relativeVelocity,collision.GetContact(0).normal));
-            if(speed<18||collision.impulse.magnitude/Mathf.Max(1,body.mass)<6||NearPeople(BoundsOf(e)))return;
-            GameEvents.RaiseBlockHit(collision.GetContact(0).point,speed);body.gameObject.SetActive(false);ShatteredCount++;
+            e.sinking=false;
+            e.body.isKinematic=false;
+            e.body.collisionDetectionMode=e.detection;
         }
         void FixedUpdate()
         {
@@ -100,11 +106,11 @@ namespace DeadlyJenga.CastlePrototype
             if(!Authority)return;
             foreach(var e in entries)if(e.sinking&&e.body&&e.body.gameObject.activeSelf)
             {
-                if(NearPeople(BoundsOf(e))||!Clear(e,BoundsOf(e))){e.sinking=false;e.body.isKinematic=false;e.body.collisionDetectionMode=e.detection;continue;}
+                if(HazardActive||NearPeople(BoundsOf(e))||!Clear(e,BoundsOf(e))){RestoreSinking(e);continue;}
                 e.body.MovePosition(e.body.position+Vector3.down*2*Time.fixedDeltaTime);
                 if(BoundsOf(e).max.y<e.ground-.2f||Time.time-e.began>12){e.body.gameObject.SetActive(false);e.sinking=false;SunkCount++;}
             }
-            if(Time.time-born<2||Time.time<nextScan||entries.Count==0)return;nextScan=Time.time+.1f;
+            if(HazardActive||Time.time-born<2||Time.time<nextScan||entries.Count==0)return;nextScan=Time.time+.1f;
             int budget=Mathf.Min(entries.Count,Mathf.Max(32,Mathf.CeilToInt(entries.Count/8f)));
             for(int i=0;i<budget;i++)
             {
@@ -126,17 +132,11 @@ namespace DeadlyJenga.CastlePrototype
                 var b=e.body;var bounds=BoundsOf(e);var movement=e.velocity*dt+Physics.gravity*(dt*dt*.5f);
                 var half=bounds.extents+Vector3.one*(e.localBounds.extents.magnitude*e.spin.magnitude*dt+Physics.gravity.magnitude*dt*dt*.125f+.02f);
                 var path=new Bounds(bounds.center,half*2);path.Encapsulate(new Bounds(bounds.center+movement,half*2));
-                if(DisasterStates.Active.Count>0||NearPeople(path)){Restore(e);continue;}
+                if(HazardActive||NearPeople(path)){Restore(e);continue;}
                 float distance=movement.magnitude;int count=distance>.0001f?Physics.BoxCastNonAlloc(bounds.center,half,movement/distance,casts,Quaternion.identity,distance,(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore):0;
                 int nearest=-1;float best=float.PositiveInfinity;
                 for(int n=0;n<count;n++)if(casts[n].collider.attachedRigidbody!=b&&casts[n].distance<best){nearest=n;best=casts[n].distance;}
-                if(count==casts.Length){Restore(e);continue;}
-                if(nearest>=0)
-                {
-                    var hit=casts[nearest];float closing=Mathf.Max(0,Vector3.Dot(e.velocity,-hit.normal));if(closing<18){Restore(e);continue;}
-                    if(Climbables.TryGet(hit.collider,out var target)&&target.Body)target.Body.GetComponent<IPushable>()?.Push(-hit.normal*Mathf.Min(20,closing*b.mass/(b.mass+target.Body.mass)),b.gameObject);
-                    GameEvents.RaiseBlockHit(hit.point,closing);b.gameObject.SetActive(false);e.visual=false;ShatteredCount++;continue;
-                }
+                if(count==casts.Length||nearest>=0){Restore(e);continue;}
                 b.position+=movement;b.rotation=Quaternion.Euler(e.spin*Mathf.Rad2Deg*dt)*b.rotation;b.transform.SetPositionAndRotation(b.position,b.rotation);e.velocity+=Physics.gravity*dt;
                 if(BoundsOf(e).max.y<(Services.World?.WaterHeight(b.position)??0)-.2f){b.gameObject.SetActive(false);e.visual=false;SunkCount++;}
             }

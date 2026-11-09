@@ -47,6 +47,7 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         bool Authoritative => !replica && !(Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority);
+        static bool HazardActive => DisasterStates.Active.Count>0 || Tracked.Waves.Count>0;
         public void SetReplica(bool value)
         {
             for(int i=visual.Count-1;i>=0;i--)Restore(visual[i],value);
@@ -70,7 +71,19 @@ namespace DeadlyJenga.CastlePrototype
         void FixedUpdate()
         {
             if(!Authoritative)return;
-            if(DisasterStates.Active.Count>0)RestoreVisuals();
+            if(HazardActive)
+            {
+                RestoreVisuals();
+                foreach(var block in sinking)
+                {
+                    block.sinking=false;
+                    if(!block.body || !block.body.gameObject.activeSelf)continue;
+                    block.body.isKinematic=false;
+                    block.body.collisionDetectionMode=block.detection;
+                }
+                sinking.Clear();
+                return;
+            }
             for(int i=sinking.Count-1;i>=0;i--)
             {
                 var block=sinking[i];

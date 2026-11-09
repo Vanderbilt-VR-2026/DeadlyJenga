@@ -37,7 +37,7 @@ namespace DeadlyJenga.World.Hazards
         [Range(0, 1)] public float heightIntensity = .5f;
         [Range(0, 1)] public float forceIntensity = 1;
 
-        readonly HashSet<object> touched = new HashSet<object>();
+        readonly Dictionary<object, (Target target, float submerged)> wetTargets = new();
         sealed class Target
         {
             public IPushable push;
@@ -148,7 +148,8 @@ namespace DeadlyJenga.World.Hazards
                 if (count < hits.Length || hits.Length >= 32768) break;
                 System.Array.Resize(ref hits, hits.Length * 2);
             } while (true);
-            touched.Clear(); LastTargetCount = 0;
+            wetTargets.Clear(); LastTargetCount = 0;
+            var across = Vector3.Cross(Vector3.up, direction);
             for (int i = 0; i < count; i++)
             {
                 var collider = hits[i];
@@ -159,17 +160,31 @@ namespace DeadlyJenga.World.Hazards
                         motion = HitAbilities.Get<IHazardMotion>(collider), resistance = HitAbilities.Get<IWaterResistance>(collider), body = HitAbilities.Get<Rigidbody>(collider) };
                     targets.Add(collider, target);
                 }
-                var pushable = target.push;
-                object receiver = (object)pushable ?? target.damage;
-                if (receiver == null || touched.Contains(receiver)) continue;
+                object receiver = (object)target.push ?? target.damage;
+                if (receiver == null || target.body && target.body.isKinematic && target.motion == null) continue;
                 var bounds = collider.bounds;
                 Vector3 point = bounds.center;
                 float surface = SurfaceHeight(Wave, point);
+                if (surface < bounds.max.y && collider.gameObject.layer == Layers.Block && collider is BoxCollider box)
+                {
+                    Vector3 relative = point - Wave.center;
+                    float crest = depth * .22f;
+                    float lateral = Vector3.Dot(relative, across);
+                    var sample = point + direction * (crest - Vector3.Dot(relative, direction))
+                        + across * (Mathf.Clamp(lateral, -width * .425f, width * .425f) - lateral);
+                    var nearest = box.ClosestPoint(sample);
+                    float edgeSurface = SurfaceHeight(Wave, nearest);
+                    if (edgeSurface > surface) { point = nearest; surface = edgeSurface; }
+                }
                 float submerged = Mathf.Clamp01((surface - bounds.min.y) / Mathf.Max(.1f, bounds.size.y));
                 if (submerged <= 0 || respectShelter && world.IsSheltered(point)) continue;
-                touched.Add(receiver); LastTargetCount++;
+                if (!wetTargets.TryGetValue(receiver, out var previous) || submerged > previous.submerged)
+                    wetTargets[receiver] = (target, submerged);
+            }
+            LastTargetCount = wetTargets.Count;
+            foreach (var (target, submerged) in wetTargets.Values)
+            {
                 var body = target.body;
-                if (body && body.isKinematic && target.motion == null) continue;
                 float resistance = target.resistance?.WaterResistance ??
                     (body ? body.mass / blockReferenceMass : 1);
                 resistance = Mathf.Max(.1f, resistance);
@@ -178,7 +193,7 @@ namespace DeadlyJenga.World.Hazards
                 float carried = new Vector2(Mathf.Max(0, Vector3.Dot(velocity, direction)), Mathf.Max(0, velocity.y)).magnitude;
                 var push = Vector3.ClampMagnitude((direction * pushAcceleration + Vector3.up * liftAcceleration) * force,
                     Mathf.Max(0, maximumCarriedSpeed - carried));
-                if (push.sqrMagnitude > .000001f) pushable?.Push(push, gameObject);
+                if (push.sqrMagnitude > .000001f) target.push?.Push(push, gameObject);
                 if (damagePerSecond > 0) target.damage?.Damage(damagePerSecond * forceScale * submerged * Time.fixedDeltaTime, gameObject);
             }
         }
@@ -196,7 +211,7 @@ namespace DeadlyJenga.World.Hazards
 
         protected override void EndHazard()
         {
-            Tracked.Waves.Remove(this); Wave = default; touched.Clear(); targets.Clear();
+            Tracked.Waves.Remove(this); Wave = default; wetTargets.Clear(); targets.Clear();
         }
     }
 }

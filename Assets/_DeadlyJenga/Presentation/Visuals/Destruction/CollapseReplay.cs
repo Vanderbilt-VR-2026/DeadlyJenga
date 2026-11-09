@@ -57,6 +57,15 @@ namespace DeadlyJenga.Destruction
 
         public bool Playing => playing;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
+        static void Boot()
+        {
+            if (Instance) return;
+            var go = new GameObject("Round collapse replay");
+            DontDestroyOnLoad(go);
+            go.AddComponent<CollapseReplay>();
+        }
+
         void Awake()
         {
             Instance = this;

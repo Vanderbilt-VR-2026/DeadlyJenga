@@ -295,10 +295,10 @@ namespace DeadlyJenga.CastlePrototype
                 PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();
                 PhysicsGroups.Initialize(Bodies);
             }
-            if(Application.isPlaying && Bodies.Count>0 && (sinkDisplacedDebris || shatterHeavyImpacts))
+            if(Application.isPlaying && Bodies.Count>0 && sinkDisplacedDebris)
             {
                 Debris=generatedRoot.gameObject.AddComponent<CastleDebris>();
-                Debris.SinkDebris=sinkDisplacedDebris;Debris.ShatterOnImpact=shatterHeavyImpacts;
+                Debris.SinkDebris=sinkDisplacedDebris;Debris.ShatterOnImpact=false;
                 Debris.SinkSpeed=debrisSinkSpeed;Debris.ImpactSpeed=shatterImpactSpeed;
                 Debris.VisualFastDebris=visualFastDebris;Debris.VisualSpeed=visualDebrisSpeed;Debris.AccelerationThreshold=visualDebrisAcceleration;
                 Debris.Initialize(Bodies,PhysicsGroups);

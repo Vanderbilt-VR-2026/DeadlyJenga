@@ -7,6 +7,7 @@ using DeadlyJenga.Core;
 using DeadlyJenga.Modes;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Presentation;
+using DeadlyJenga.World.Hazards;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -47,6 +48,11 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     Time.timeScale=1;Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
                     var original=SessionState.GetString(Key+"Scene","");if(File.Exists(original))EditorSceneManager.OpenScene(original);
+                    if(SessionState.GetBool(Key+"Board",false))
+                    {
+                        SessionState.SetBool(Key+"Board",false);
+                        if(Application.isBatchMode)EditorApplication.Exit(failures==0&&errors==0?0:2);
+                    }
                 }
             };
         }
@@ -72,9 +78,16 @@ namespace DeadlyJenga.DevTools.Editor
         static object Field(object target,string name)=>target.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).GetValue(target);
         static void Set(object target,string name,object value)=>target.GetType().GetField(name,BindingFlags.Instance|BindingFlags.NonPublic).SetValue(target,value);
         static object Call(object target,string name,params object[] args)=>target.GetType().GetMethod(name,BindingFlags.Instance|BindingFlags.NonPublic).Invoke(target,args);
+        public static void RunLobbyBoard()
+        {
+            if(!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Test Tsunami Forces"))
+                throw new InvalidOperationException("Tsunami force fixture is unavailable.");
+            SessionState.SetBool(Key+"Board",true);
+            Run();
+        }
         static IEnumerator Guard()
         {
-            var test=CheckScene();
+            var test=SessionState.GetBool(Key+"Board",false)?CheckLobbyBoard():CheckScene();
             while(true)
             {
                 bool next=false;object value=null;Exception caught=null;
@@ -87,6 +100,90 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static IEnumerator Until(Func<bool> predicate,string label,float timeout=40)
         {float end=Time.realtimeSinceStartup+timeout;while(!predicate()&&Time.realtimeSinceStartup<end)yield return null;Check(predicate(),label);}
+        static IEnumerator CheckLobbyBoard()
+        {
+            yield return new WaitForSecondsRealtime(1);
+            var session=Object.FindFirstObjectByType<CastlePlaySession>();
+            Check(session&&session.Modes,"Actual Game starts");
+            Check(!Object.FindFirstObjectByType<BlockStressEngine>()&&!Object.FindFirstObjectByType<DeadlyJenga.Destruction.DestructionPresentation>()
+                &&Services.World.Blocks.All(body=>!body||body.GetComponent<IBreakable>()==null),
+                "Game has no active stress engine, crack art, or breakable castle block ability");
+            Check(Services.Rewind!=null,"Time Slip still has its block timeline");
+            var wavePrefab=Resources.Load<GameObject>("DemoDisasters/Tsunami");
+            Check(wavePrefab,"Real tsunami prefab resolves");
+            var wave=Object.Instantiate(wavePrefab).GetComponent<TsunamiHazard>();
+            wave.randomDirection=false;wave.approachHeading=0;wave.warningTime=0;wave.affectPlayers=false;
+            wave.offshoreDistance=0;wave.riseTime=.4f;
+            var pushed=new HashSet<GameObject>();
+            void Record(GameObject body,Vector3 force)
+            {
+                if(body&&body.layer==Layers.Block&&Vector3.Dot(force,Vector3.back)>0)pushed.Add(body);
+            }
+            GameEvents.Pushed+=Record;
+            try
+            {
+                wave.Begin();
+                float waveDeadline=Time.realtimeSinceStartup+15;
+                while(pushed.Count==0&&wave.Active&&Time.realtimeSinceStartup<waveDeadline)yield return null;
+                Check(pushed.Count>0,"Actual wave pushes physical blocks in Game");
+                File.AppendAllText(Report,$"WAVE {pushed.Count} block receivers at first contact on {Services.World.GetType().Name}\n");
+            }
+            finally {GameEvents.Pushed-=Record;wave.End();Object.Destroy(wave.gameObject);}
+            session.ResetMap();
+            session.SurvivorBots.AutoFill=false;
+            session.SurvivorBots.Clear();
+            for(int i=0;i<3;i++)Check(session.SurvivorBots.SpawnOne(),"Spawn actual participant "+i);
+            var runtime=session.Modes;
+            var rules=ModeSimulation.Defaults(GameModeKind.Survival);
+            rules.automaticDisasters=false;rules.countdownSeconds=0;rules.victorySeconds=.2f;
+            runtime.Configure(rules);runtime.StartRound();
+            float deadline=Time.realtimeSinceStartup+15;
+            while(runtime.Frame.phase!=RoundPhase.Playing&&Time.realtimeSinceStartup<deadline)yield return null;
+            Check(runtime.Frame.phase==RoundPhase.Playing,"Real match enters Playing");
+            session.developmentReviewTools=true;
+            ((IMatchReviewControls)runtime).EndGame();
+            deadline=Time.realtimeSinceStartup+15;
+            while(runtime.Frame.phase!=RoundPhase.Results&&Time.realtimeSinceStartup<deadline)yield return null;
+            Check(runtime.Frame.phase==RoundPhase.Results,"Real round reaches its results");
+            yield return null;
+            var frame=runtime.Frame;
+            var expected=frame.players.Where(player=>player!=null&&!string.IsNullOrEmpty(player.name))
+                .OrderByDescending(player=>player.metric).ThenBy(player=>player.id,StringComparer.Ordinal).First().name;
+            runtime.ReturnToLobby();
+            deadline=Time.realtimeSinceStartup+45;
+            while((!IslandLobby.Current||!IslandLobby.Current.GetComponent<LobbyLastRoundBoard>())&&Time.realtimeSinceStartup<deadline)yield return null;
+            Check(IslandLobby.Current,"Returned to the actual lobby");
+            var board=IslandLobby.Current.GetComponent<LobbyLastRoundBoard>();
+            Check(board,"Mayhem Marina built the last-match billboard");
+            var first=board.GetComponentsInChildren<Text>().FirstOrDefault(text=>text.name=="Standing 1");
+            Check(first&&first.text.StartsWith("1.  "+expected+"   ·",StringComparison.Ordinal),"Billboard retains the actual first-place results row after travel");
+            File.AppendAllText(Report,"BOARD "+first.text+"\n");
+            var screen=board.transform.Find("Last match billboard");
+            var capture=new GameObject("Billboard capture camera").AddComponent<Camera>();
+            var texture=new RenderTexture(1200,800,24);
+            var pixels=new Texture2D(texture.width,texture.height,TextureFormat.RGB24,false);
+            var previous=RenderTexture.active;
+            try
+            {
+                capture.enabled=false;
+                capture.transform.position=screen.position-screen.forward*5-Vector3.up*.6f;
+                capture.transform.LookAt(screen);
+                capture.fieldOfView=42;
+                capture.targetTexture=texture;
+                capture.Render();
+                RenderTexture.active=texture;
+                pixels.ReadPixels(new Rect(0,0,texture.width,texture.height),0,0);
+                pixels.Apply();
+                File.WriteAllBytes(ProjectPath.Report("Marina-Last-Match-Billboard.png"),pixels.EncodeToPNG());
+            }
+            finally
+            {
+                RenderTexture.active=previous;
+                Object.Destroy(pixels);
+                Object.Destroy(texture);
+                Object.Destroy(capture.gameObject);
+            }
+        }
         static IEnumerator CheckScene()
         {
             yield return new WaitForSeconds(1);

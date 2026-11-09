@@ -6,7 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     [DefaultExecutionOrder(-100)]
     [RequireComponent(typeof(Rigidbody), typeof(BoxCollider))]
-    public sealed partial class CastleBlock : MonoBehaviour, IClimbable, IPushable, IBreakable, IBlockOwnership, IHazardMotion
+    public sealed partial class CastleBlock : MonoBehaviour, IClimbable, IPushable, IBlockOwnership, IHazardMotion
     {
         public const int SurvivorLayer = Layers.Survivor, BlockLayer = Layers.Block, SurfaceLayer = Layers.Surface;
         public CastleBlockAppearance appearance;
@@ -127,7 +127,6 @@ namespace DeadlyJenga.CastlePrototype
         void Update() { if (!physicsGroups || !physicsGroups.IsDormant(body) || transform.hasChanged) SyncSurface(); RefreshAppearance(); }
         void OnCollisionEnter(Collision collision)
         {
-            cityDebris?.Impact(Body,collision);
             if (debris) { debris.Impact(Body,collision); if (!gameObject.activeSelf) return; }
             if (!physicsGroups || !physicsGroups.IsDormant(body) || !collision.rigidbody || collision.rigidbody.isKinematic || collision.relativeVelocity.sqrMagnitude<.01f) return;
             physicsGroups.Disturb(body);
