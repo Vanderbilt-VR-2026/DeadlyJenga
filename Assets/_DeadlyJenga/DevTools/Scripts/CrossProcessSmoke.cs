@@ -38,8 +38,13 @@ namespace DeadlyJenga.CastlePrototype
         void Finish(bool ok,string message)
         {if(done)return;done=true;File.AppendAllText(Report,(ok?"COMPLETE ":"FAILED ")+message+"\n");Application.logMessageReceived-=Log;Application.Quit(ok?0:1);}
         void Require(bool ok,string message){File.AppendAllText(Report,(ok?"PASS ":"FAIL ")+message+"\n");if(!ok)throw new Exception(message);}
-        IEnumerator Until(Func<bool> condition,string message,float seconds=45)
-        {float until=Time.realtimeSinceStartup+seconds;while(!condition()&&Time.realtimeSinceStartup<until)yield return null;Require(condition(),message);}
+        IEnumerator Until(Func<bool> condition,string message,float seconds=45,Func<string> failureDetail=null)
+        {
+            float until=Time.realtimeSinceStartup+seconds;
+            while(!condition()&&Time.realtimeSinceStartup<until)yield return null;
+            bool passed=condition();
+            Require(passed,passed||failureDetail==null?message:message+" | "+failureDetail());
+        }
         IEnumerator Guard(IEnumerator root)
         {
             var work=new Stack<IEnumerator>();work.Push(root);
@@ -129,7 +134,8 @@ namespace DeadlyJenga.CastlePrototype
                     "Second process receives the configured room",150);
                 Require(lobby.CanLeave,"Production leave action is available to the host");
                 lobby.Leave();
-                yield return Until(()=>!room.Connected&&!room.Busy,"Original host leaves the room",30);
+                yield return Until(()=>!room.Connected&&!room.Busy,
+                    "Original host leaves the room",30,()=>room.Status);
                 Require(IslandLobby.Current&&NetworkActors.Alive(lobby.Player),"Departing host stays in the usable local lobby");
             }
             else
@@ -149,7 +155,7 @@ namespace DeadlyJenga.CastlePrototype
                 Require(!lobby.CanConfigure,"Guest cannot configure the match before promotion");
                 File.WriteAllText(Mark("guest-ready"),"ready");
                 yield return Until(()=>room.IsHost&&room.Runner!=previousRunner&&!room.Busy&&lobby.CanStart,
-                    "Guest becomes the Fusion host and can start a match",75);
+                    "Guest becomes the Fusion host and can start a match",75,()=>room.Status);
                 Require(room.Code==code&&room.LocalLobbyId==identity&&room.HumanCount==1&&lobby.IsHost,
                     "The new host keeps the room code, identity and control");
                 Require(lobby.SelectedModeId=="ctf"&&lobby.SelectedMapId=="mode-ctf",

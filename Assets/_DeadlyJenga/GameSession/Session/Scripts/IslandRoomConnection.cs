@@ -576,7 +576,7 @@ namespace DeadlyJenga.CastlePrototype
 
         async Task<bool> PrepareLobbyHandoff(NetworkRunner runner)
         {
-            transferringLobbyHost=Busy=true;
+            transferringLobbyHost=true;
             Status="Transferring host...";
             int operation=generation;
             bool prepared=false;
@@ -589,16 +589,26 @@ namespace DeadlyJenga.CastlePrototype
                 var experience=GetComponent<RoomGameExperience>();
                 if(experience&&experience.Experience==GameExperience.Game)
                 {
-                    double deadline=Time.realtimeSinceStartupAsDouble+5;
+                    double deadline=Time.realtimeSinceStartupAsDouble+8;
                     while(CurrentOperation(operation,runner)&&IsHost&&HumanCount>1&&
                         !experience.TransportCheckpointReady(experience.CaptureSnapshot())&&
                         Time.realtimeSinceStartupAsDouble<deadline)
+                    {
+                        experience.TransportPublish();
                         await Task.Delay(100);
+                    }
                     if(!CurrentOperation(operation,runner)||!IsHost)return false;
                     if(HumanCount<=1){prepared=true;return true;}
-                    if(!experience.TransportCheckpointReady(experience.CaptureSnapshot()))return false;
+                    if(!experience.TransportCheckpointReady(experience.CaptureSnapshot()))
+                    {
+                        Debug.LogWarning("Lobby host transfer could not confirm the guest room checkpoint. "+experience.TransportStatus);
+                        return false;
+                    }
                 }
 
+                Busy=true;
+                if(migrationSnapshot?.IsCompleted==false)await migrationSnapshot;
+                if(!CurrentOperation(operation,runner)||!IsHost)return false;
                 string successor=runner.ActivePlayers.Any(player=>player!=runner.LocalPlayer&&player.ToString()==leaderId)
                     ? leaderId : string.Empty;
                 runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,successor}});
@@ -609,6 +619,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(saved||HumanCount<=1){prepared=true;return true;}
                     if(attempt<2)await Task.Delay(750);
                 }
+                Debug.LogWarning("Lobby host transfer could not upload a Fusion migration snapshot.");
                 return false;
             }
             catch(Exception error)
@@ -682,11 +693,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Disconnected(string reason)
         {
+            if(!this)return;
             Migrating=false;ClearMarinaSpawnReservations();ResetMarinaCallbacks();
             GetComponent<RoomGameExperience>()?.TransportDisconnected();
             CancelDeparture();
             ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;mapAcks.Clear();
-            if(!this)return;string scene=SceneManager.GetActiveScene().name;bool inGame=!IslandLobby.Current&&scene!="Home";Status="Disconnected: "+reason;
+            string scene=SceneManager.GetActiveScene().name;bool inGame=!IslandLobby.Current&&scene!="Home";Status="Disconnected: "+reason;
             connecting?.Dispose();connecting=null;
             if(IslandLobby.Current&&IslandLobby.Current.Voice)IslandLobby.Current.Voice.ResetLobbyAudio();
             if(Runner){Runner.RemoveCallbacks(callbacks);Destroy(Runner.gameObject);}Runner=null;peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;HostSelected=false;SharedDemoControls=false;LaunchPending=false;Busy=false;leaving=false;transitioning=false;
