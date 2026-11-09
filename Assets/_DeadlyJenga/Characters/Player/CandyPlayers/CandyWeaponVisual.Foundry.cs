@@ -140,7 +140,7 @@ namespace DeadlyJenga.CandyPlayers
             {
                 var key=kind==EquipmentKind.ChainGun?"Foundry six-barrel rotor":"Serrated saw wheel - forged carbide";
                 rotor=new GameObject(key).transform;rotor.SetParent(root,false);
-                rotor.localPosition=kind==EquipmentKind.ChainGun?new Vector3(0,.19f,.39f):new Vector3(0,0,kind==EquipmentKind.Chainsaw?.79f:.88f);
+                rotor.localPosition=kind==EquipmentKind.ChainGun?new Vector3(0,ChainGunBarrelHeight,ChainGunRotorStart):new Vector3(0,0,kind==EquipmentKind.Chainsaw?.79f:.88f);
                 if(!arsenalMeshes.TryGetValue(key,out var mesh))
                 {
                     var b=new CandyAccessoryMeshes.Builder();
@@ -283,18 +283,31 @@ namespace DeadlyJenga.CandyPlayers
         }
         static void ForgeChainGun(FoundryBuilder b,FoundryBuilder feed)
         {
-            b.Plate(Finish.Charcoal,new Vector3(0,.17f,.16f),new Vector3(.33f,.31f,.46f));
-            b.Plate(Finish.Steel,new Vector3(0,.26f,.14f),new Vector3(.35f,.22f,.42f));
-            b.Tube(Finish.Steel,.19f,.36f,.50f,.151f,.118f);b.Tube(Finish.Charcoal,.19f,.82f,.89f,.134f,.114f);
-            feed.Plate(Finish.Charcoal,new Vector3(.23f,.14f,.13f),new Vector3(.20f,.27f,.35f));
-            for(int i=0;i<6;i++)feed.Tube(Finish.Brass,.22f,.07f,.28f,.019f,0,.176f+i*.024f);
-            b.Plate(Finish.Charcoal,new Vector3(0,.057f,.43f),new Vector3(.139f,.088f,.25f));
-            Grip(b);
+            const float axis = ChainGunBarrelHeight;
+            b.Plate(Finish.Charcoal,new Vector3(0,axis,.14f),new Vector3(.33f,.25f,.49f));
+            b.Tube(Finish.Steel,axis,-.19f,.24f,.14f);
+            b.Tube(Finish.Charcoal,axis,-.215f,-.16f,.12f);
+            b.Tube(Finish.Steel,axis,.32f,.49f,.151f,.118f);
+            b.Tube(Finish.Charcoal,axis,.82f,.89f,.134f,.114f);
+            feed.Plate(Finish.Charcoal,new Vector3(.225f,axis-.025f,.12f),new Vector3(.19f,.24f,.35f));
+            for(int i=0;i<6;i++)feed.Tube(Finish.Brass,axis+.096f,.07f,.28f,.014f,0,.165f+i*.023f);
+
+            ForgeChainGunHandle(b,.075f,.09f,axis+.10f);
+            float frontHandle=SupportGripOffset(EquipmentKind.ChainGun,false).z+.075f;
+            b.Plate(Finish.Steel,new Vector3(0,axis+.143f,frontHandle),new Vector3(.35f,.026f,.075f));
+            ForgeChainGunHandle(b,frontHandle,.154f,axis+.11f);
+        }
+        static void ForgeChainGunHandle(FoundryBuilder b,float z,float halfWidth,float baseHeight)
+        {
+            const float handleHeight = -.031f;
             foreach(float side in new[]{-1f,1f})
             {
-                b.Plate(Finish.Steel,new Vector3(side*.145f,.064f,.45f),new Vector3(.27f,.045f,.085f),.007f);
-                Grip(b,.45f,side*.245f,.10f);
+                float x=side*halfWidth;
+                b.Plate(Finish.Steel,new Vector3(x,(baseHeight+handleHeight)*.5f,z),
+                    new Vector3(.04f,handleHeight-baseHeight+.035f,.048f),.007f);
             }
+            b.Shape(Finish.Charcoal,handle=>handle.Cone(new Vector3(-halfWidth,handleHeight,z),
+                new Vector3(halfWidth,handleHeight,z),.027f,.027f,16));
         }
         static void ForgeChainsaw(FoundryBuilder b,FoundryBuilder feed)
         {

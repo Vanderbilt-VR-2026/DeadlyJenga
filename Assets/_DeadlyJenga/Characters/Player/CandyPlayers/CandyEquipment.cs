@@ -138,7 +138,7 @@ namespace DeadlyJenga.CandyPlayers
                 EquipmentKind.Blaster=>new Vector3(0,-.24f,vr?.03f:.12f),
                 EquipmentKind.SheriffHammer=>new Vector3(0,-.23f,vr?-.02f:.12f),
                 EquipmentKind.RocketLauncher=>new Vector3(.20f,-.35f,0),
-                EquipmentKind.ChainGun=>new Vector3(.18f,-.26f,.13f),
+                EquipmentKind.ChainGun=>new Vector3(.26f,-.48f,.36f),
                 EquipmentKind.GrenadeLauncher=>new Vector3(0,-.43f,.12f),
                 EquipmentKind.NeedleDrill=>new Vector3(0,-.31f,.12f),
                 EquipmentKind.StockPistol=>new Vector3(0,-.218f,.12f),
@@ -197,7 +197,10 @@ namespace DeadlyJenga.CandyPlayers
                 else
                 {
                     if(motor&&motor.IsVR){aimBlend=0;aimBlendFrame=-1;}
-                    var position=head.position+head.rotation*new Vector3(left?-.25f:.25f,-.22f,.36f)*Scale;
+                    var carryOffset=new Vector3(left?-.25f:.25f,-.22f,.36f);
+                    if(Equipment.drawn&&Equipment.kind==EquipmentKind.ChainGun)
+                        TryAimGripOffset(Equipment,left,false,out carryOffset);
+                    var position=head.position+head.rotation*carryOffset*Scale;
                     if(Local&&Equipment.drawn&&Mouse.current?.rightButton.isPressed==true&&
                         TryAimGripOffset(Equipment,left,false,out var offset))
                         position=head.position+head.rotation*offset*Scale;
@@ -225,8 +228,8 @@ namespace DeadlyJenga.CandyPlayers
                 var pose=GripPose;
                 if(state.kind>EquipmentKind.PoweredArmor)
                 {
-                    float offset=state.kind==EquipmentKind.LaserAxe&&state.shotgun?1.0f:state.kind==EquipmentKind.Chainsaw&&state.shotgun?.78f:state.kind==EquipmentKind.RocketLauncher?1.05f:state.kind==EquipmentKind.ChainGun?.98f:state.kind==EquipmentKind.GrenadeLauncher?.80f:state.kind==EquipmentKind.NeedleDrill?.72f:state.kind==EquipmentKind.StockPistol||state.kind==EquipmentKind.DualUzi?.51f:state.kind==EquipmentKind.WristLaser?.17f:.1f;
-                    pose.position+=pose.rotation*new Vector3(0,EquipmentSpecifications.Get(state.kind).melee?0:state.kind==EquipmentKind.RocketLauncher?.20f:state.kind==EquipmentKind.ChainGun?.20f:.12f,offset)*Scale;
+                    float offset=state.kind==EquipmentKind.LaserAxe&&state.shotgun?1.0f:state.kind==EquipmentKind.Chainsaw&&state.shotgun?.78f:state.kind==EquipmentKind.RocketLauncher?1.05f:state.kind==EquipmentKind.ChainGun?CandyWeaponVisual.ChainGunMuzzleDepth:state.kind==EquipmentKind.GrenadeLauncher?.80f:state.kind==EquipmentKind.NeedleDrill?.72f:state.kind==EquipmentKind.StockPistol||state.kind==EquipmentKind.DualUzi?.51f:state.kind==EquipmentKind.WristLaser?.17f:.1f;
+                    pose.position+=pose.rotation*new Vector3(0,EquipmentSpecifications.Get(state.kind).melee?0:state.kind==EquipmentKind.RocketLauncher?.20f:state.kind==EquipmentKind.ChainGun?CandyWeaponVisual.ChainGunBarrelHeight:.12f,offset)*Scale;
                     if(!motor.externallyDriven&&!motor.IsVR&&(desktopAimTarget-pose.position).sqrMagnitude>.001f)pose.rotation=Quaternion.LookRotation(desktopAimTarget-pose.position);
                     return pose;
                 }
@@ -258,6 +261,8 @@ namespace DeadlyJenga.CandyPlayers
                 hand.rotation=pose.rotation*Quaternion.Inverse(mount);
                 hand.skeleton=CandyHandSkeleton.MeleeGrip(state.leftHanded,state.kind);
             }
+            else if(state.kind==EquipmentKind.ChainGun)
+                hand.skeleton=CandyHandSkeleton.MeleeGrip(state.leftHanded,state.kind);
             else if(state.kind==EquipmentKind.BoxingGlove||state.kind==EquipmentKind.LaserClaws)
                 hand.skeleton=CandyHandSkeleton.Rest(state.leftHanded,.96f);
             if(state.leftHanded)frame.left=hand;else frame.right=hand;
@@ -288,7 +293,12 @@ namespace DeadlyJenga.CandyPlayers
             }
             if(EquipmentSpecifications.Get(state.kind).twoHanded&&(!motor.IsVR||grip.IsPressed()||avatar.tracking&&avatar.tracking.IsHybrid&&(state.leftHanded?avatar.tracking.RightPinching:avatar.tracking.LeftPinching)))
             {
-                var support=state.leftHanded?frame.right:frame.left;support.position=pose.position+pose.rotation*CandyWeaponVisual.SupportGripOffset(state.kind,state.leftHanded)*Scale;support.rotation=pose.rotation*Quaternion.Euler(0,0,state.leftHanded?-30:30);support.skeleton=CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,1);support.skeletonTracked=true;
+                var support=state.leftHanded?frame.right:frame.left;
+                support.position=pose.position+pose.rotation*CandyWeaponVisual.SupportGripOffset(state.kind,state.leftHanded)*Scale;
+                bool topGrip=state.kind==EquipmentKind.ChainGun;
+                support.rotation=topGrip?pose.rotation:pose.rotation*Quaternion.Euler(0,0,state.leftHanded?-30:30);
+                support.skeleton=topGrip?CandyHandSkeleton.MeleeGrip(!state.leftHanded,state.kind):CandyHandSkeleton.ControllerGrip(!state.leftHanded,1,1);
+                support.skeletonTracked=true;
                 if(state.leftHanded)frame.right=support;else frame.left=support;
             }
         }

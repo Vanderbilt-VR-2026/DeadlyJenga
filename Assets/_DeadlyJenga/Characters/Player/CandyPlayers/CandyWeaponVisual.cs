@@ -41,10 +41,14 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
 
+        internal const float ChainGunBarrelHeight = -.235f;
+        internal const float ChainGunRotorStart = .39f;
+        internal const float ChainGunMuzzleDepth = ChainGunRotorStart + .61f;
+
         public static Vector3 SupportGripOffset(EquipmentKind kind,bool leftHanded)
         {
             if(kind==EquipmentKind.RocketLauncher)return new Vector3(0,-.015f,.69f);
-            if(kind==EquipmentKind.ChainGun)return new Vector3(leftHanded?.245f:-.245f,.10f,.45f);
+            if(kind==EquipmentKind.ChainGun)return new Vector3(0,0,.40f);
             return new Vector3(0,-.015f,.43f);
         }
 
