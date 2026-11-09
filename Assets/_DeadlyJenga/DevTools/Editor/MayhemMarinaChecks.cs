@@ -160,7 +160,10 @@ namespace DeadlyJenga.DevTools.Editor
                 "Join and Host physically flank the central screen");
             Check(faces.Count(face=>face.name=="Live destination image")==2,"The center has exactly two illustrated selections");
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
-            var televisionBlocker=lobby.transform.Find("Island blocker · "+television.name).GetComponent<BoxCollider>();
+            var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
+                .Single(blocker=>blocker.name=="Island blocker · "+television.name);
+            Check(Vector3.Distance(televisionBlocker.transform.position,television.transform.position)<.001f,
+                "The television has one solid blocker at its visible location");
             Physics.SyncTransforms();
             var approach=lobby.transform.TransformPoint(new Vector3(0,3.51f,3.40f));
             var toHost=host.position-approach;

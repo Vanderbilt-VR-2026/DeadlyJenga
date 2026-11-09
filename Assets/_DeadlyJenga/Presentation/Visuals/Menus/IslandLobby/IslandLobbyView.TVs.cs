@@ -10,7 +10,14 @@ namespace DeadlyJenga.CastlePrototype
         {
             EnsureKeyboardArt();
             var wall=new GameObject("Retro spectator television stack · 3 x 3").transform;
-            wall.SetParent(transform,false);wall.localPosition=new Vector3(-4.8f,.12f,-4.7f);wall.localRotation=Quaternion.Euler(0,-135,0);
+            wall.SetParent(transform,false);
+            if(lobby is IWorldQuery world&&world.Radius>=30)
+            {
+                wall.SetLocalPositionAndRotation(new Vector3(5.48f,1.86f,7.35f),Quaternion.Euler(0,90,0));
+                wall.localScale=Vector3.one*.88f;
+            }
+            else
+                wall.SetLocalPositionAndRotation(new Vector3(-4.8f,.12f,-4.7f),Quaternion.Euler(0,-135,0));
             Box(wall,"Television plinth",new Vector3(0,.10f,.10f),new Vector3(3.8f,.22f,.65f),new Color(.08f,.12f,.18f));
             var displays=new GameObject("Television displays",typeof(RectTransform),typeof(Canvas)).GetComponent<RectTransform>();
             displays.SetParent(wall,false);displays.localPosition=new Vector3(0,0,-.245f);displays.localScale=Vector3.one*.001f;
