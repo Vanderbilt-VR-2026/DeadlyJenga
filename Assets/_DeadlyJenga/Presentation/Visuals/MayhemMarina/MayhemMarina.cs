@@ -30,7 +30,7 @@ namespace DeadlyJenga.CandyArt.Marina
         const float SeabedDepth = 1.55f;
         Renderer ocean;
         MaterialPropertyBlock oceanProperties;
-        Material poolWater;
+        Material poolWater, signMaterial;
         Vector3 waterOrigin = new(float.PositiveInfinity, 0, 0);
         ReflectionProbe reflection;
         void LateUpdate()
@@ -240,7 +240,18 @@ namespace DeadlyJenga.CandyArt.Marina
         void Sign(string text,Vector3 position,float size,Color color,Vector3? rotation=null)
         {
             var go=new GameObject("Marina lettering · "+text);go.transform.SetParent(visual,false);go.transform.localPosition=position;go.transform.localEulerAngles=rotation??Vector3.zero;
-            var t=go.AddComponent<TextMesh>();t.text=text;t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=100;t.characterSize=size;t.anchor=TextAnchor.MiddleCenter;t.alignment=TextAlignment.Center;t.color=color;t.fontStyle=FontStyle.Bold;go.GetComponent<MeshRenderer>().sharedMaterial=t.font.material;
+            var t=go.AddComponent<TextMesh>();t.text=text;t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=100;t.characterSize=size;t.anchor=TextAnchor.MiddleCenter;t.alignment=TextAlignment.Center;t.color=color;t.fontStyle=FontStyle.Bold;var renderer = go.GetComponent<MeshRenderer>();
+            if (!signMaterial)
+            {
+                var shader = Resources.Load<Shader>("VillageLettering");
+                if (shader)
+                {
+                    signMaterial = new Material(shader) { name = "Marina depth-tested lettering" };
+                    extraMaterials.Add(signMaterial);
+                }
+            }
+            renderer.sharedMaterial = signMaterial ? signMaterial : t.font.material;
+            if (signMaterial) go.AddComponent<ChristmasTownText>();
         }
         void OnDestroy()
         {mesh?.Dispose();foreach(var m in extraMeshes)if(m)Destroy(m);foreach(var m in extraMaterials)if(m)Destroy(m);if(volumeProfile)Destroy(volumeProfile);RestoreLighting();if(visual)Destroy(visual.gameObject);}

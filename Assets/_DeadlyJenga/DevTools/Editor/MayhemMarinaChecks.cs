@@ -169,6 +169,9 @@ namespace DeadlyJenga.DevTools.Editor
                 var zoneLights = marina.GetComponentsInChildren<Light>().Where(light => light.type == LightType.Point).ToArray();
                 Check(zoneLights.Length == 7 && zoneLights.All(light => light.shadows == LightShadows.None),
                     "Seven local lighting accents use no additional shadow maps");
+                var signage = marina.GetComponentsInChildren<TextMesh>().Where(label => label.name.StartsWith("Marina lettering", StringComparison.Ordinal)).ToArray();
+                Check(signage.Length >= 8 && signage.All(label => label.GetComponent<MeshRenderer>().sharedMaterial.shader.name == "DeadlyJenga/Village Lettering"),
+                    "Every wayfinding sign uses depth-tested text");
                 yield return CheckTerminalLayout(lobby, view);
                 captureOrigin=lobby.transform.position;
                 Check(marina.RenderTriangles>0&&marina.CollisionTriangles>1000,"Actual rendered Marina and walkable geometry present");
@@ -178,7 +181,7 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(!lobby.GetComponentsInChildren<Canvas>().Any(canvas=>canvas.enabled&&canvas.name.EndsWith(" / readable back",StringComparison.Ordinal)),
                     "Hidden legacy terminals leave no visible rear canvases over the marina");
                 Capture(new Vector3(-26,19,-30),new Vector3(0,2,5),66,"Marina-Ocean-Lighting-Overview.png");
-                Capture(new Vector3(-8.1f,2.43f,-6.85f),new Vector3(0,3.85f,11.1f),65,"Marina-Ocean-Lighting-Arrival.png");
+                Capture(new Vector3(-10.0f,2.56f,-8.35f),new Vector3(0,3.85f,11.1f),65,"Marina-Ocean-Lighting-Arrival.png");
                 Capture(new Vector3(15.6f,2.35f,-.4f),new Vector3(17,1.1f,-8),68,"Marina-Ocean-Lighting-Practice.png");
                 lobby.enabled=false; // Stop population refill during the isolated motor routes.
                 if(Services.Session?.SurvivorBots!=null)

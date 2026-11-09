@@ -38,8 +38,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 float a=i*Mathf.PI/12;var p=new Vector3(17+Mathf.Sin(a)*5.12f,1.08f,-8+Mathf.Cos(a)*5.12f);
                 mesh.Box(p,new Vector3(1.22f,.15f,.68f),F.Stone,.05f,false,Quaternion.Euler(0,a*Mathf.Rad2Deg+90,0));
             }
-            Bridge(new Vector3(15,1.285f,2.6f),new Vector3(17,1.08f,-2.86f),2.8f,.10f);
-            Ramp(new Vector3(17,1.08f,-3.18f),new Vector3(17,.38f,-6.05f),2.1f,false);
+            Bridge(new Vector3(15,1.285f,2.6f),new Vector3(17,1.155f,-2.86f),2.8f,0);
+            Ramp(new Vector3(17,1.155f,-3.18f),new Vector3(17,.38f,-6.05f),2.1f,false);
             // A few blocks already in the basin make its purpose legible before anyone interacts.
             for(int i=0;i<6;i++)
             {
