@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update(){if(!done&&Time.realtimeSinceStartup>deadline)Finish(false,"Timed out");}
         void Finish(bool ok,string message)
-        {if(done)return;done=true;File.AppendAllText(Report,(ok?"COMPLETE ":"FAILED ")+message+"\n");Application.logMessageReceived-=Log;Application.Quit(ok?0:1);}
+        {if(done)return;done=true;if(ProbeMotion)FusionMotionWireTrace.Save(Mark(role + "-wire.csv"));File.AppendAllText(Report,(ok?"COMPLETE ":"FAILED ")+message+"\n");Application.logMessageReceived-=Log;Application.Quit(ok?0:1);}
         void Require(bool ok,string message){File.AppendAllText(Report,(ok?"PASS ":"FAIL ")+message+"\n");if(!ok)throw new Exception(message);}
         IEnumerator Until(Func<bool> condition,string message,float seconds=45,Func<string> failureDetail=null)
         {
@@ -228,7 +228,11 @@ namespace DeadlyJenga.CastlePrototype
             CastlePlaySession session = null;
             yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && session.Network &&
                 probeRunner && probeRunner.ActivePlayers.Count() == 2 && (!host || session.Network.HumanCount == 2) && !session.Network.WaitingForWorld && Services.World?.Blocks.Count > 0 &&
-                NetworkActors.Alive(session.Player), "Both humans and world are ready for movement", 125);
+                NetworkActors.Alive(session.Player), "Both humans and world are ready for movement", 125, () =>
+                $"runner={probeRunner && probeRunner.IsRunning} players={(probeRunner ? probeRunner.ActivePlayers.Count() : 0)} " +
+                $"scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name} " +
+                $"worldWaiting={session && session.Network && session.Network.WaitingForWorld} hostHumans={(session && session.Network ? session.Network.HumanCount : 0)} " +
+                $"blocks={Services.World?.Blocks.Count}");
             var sync = session.GetComponent<CastleFusionSession>();
             var lan = session.Network;
             var player = ((Component)session.Player).GetComponent<CastleSurvivor>();
