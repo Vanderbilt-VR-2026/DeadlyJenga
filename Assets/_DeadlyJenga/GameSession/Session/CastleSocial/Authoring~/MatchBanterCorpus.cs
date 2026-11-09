@@ -62,9 +62,14 @@ static class Program
             var turn=new ObservedSpeech{Kind=row.kind,Fact=row.fact};
             string dry=MatchBanter.Compose(turn,0,false);
             var options=Enumerable.Range(0,3).Select(i=>MatchBanter.Compose(turn,i,true)).ToArray();
-            Check(options.All(line=>line.StartsWith(dry,StringComparison.Ordinal)&&line.Contains(row.topic,StringComparison.OrdinalIgnoreCase)),row.kind+" preserves fact");
+            bool selfContact=row.fact.StartsWith("This happened to me:",StringComparison.Ordinal)&&
+                (row.kind==Damage||row.kind==Collision);
+            Check((selfContact?dry.Contains(row.topic,StringComparison.OrdinalIgnoreCase):
+                options.All(line=>line.StartsWith(dry,StringComparison.Ordinal)&&line.Contains(row.topic,StringComparison.OrdinalIgnoreCase))),
+                row.kind+" preserves fact");
             Check(options.All(line=>line.Split(' ').Length<=18),row.kind+" line length");
-            if(row.sober) Check(options.All(line=>line==dry),row.kind+" no joke during danger");
+            if(row.sober) Check(options.All(line=>line.Count(c=>c=='.')==1),row.kind+" no added punchline during danger");
+            if(selfContact)Check(options.Distinct().Count()==3,row.kind+" varies personal contact wording");
             if(!row.sober&&row.kind!=Greeting&&row.kind!=Silence&&row.kind!=Victory&&row.kind!=Betrayal)
                 Check(options.Distinct().Count()==3,row.kind+" rotates three options");
             Console.WriteLine($"{row.kind,-12} {options[0]}");
@@ -107,6 +112,17 @@ static class Program
             string reply=MatchBanter.Compose(new ObservedSpeech{Kind=pair.Item1,HeardText=pair.Item2},0,false);
             Check(reply.Contains(pair.Item3,StringComparison.OrdinalIgnoreCase),pair.Item1+" heard-line response");
         }
+        var memory=new DialogueRecency();
+        memory.Remember("Pebble","The block just fell on my right!",5,true);
+        memory.Remember("Pebble","Hold on. I heard your question.",6,false);
+        Check(DialogueRecency.Repeats("THE block just fell on my right.",memory.Snapshot("Jelly",7,true),false),"Shared exact repeat ignores punctuation and case");
+        Check(DialogueRecency.Repeats("Well, the block just fell on my right.",memory.Snapshot("Jelly",7,true),true),"Model near-copy is recognized");
+        Check(!DialogueRecency.Repeats("The block just fell on my left.",memory.Snapshot("Jelly",7,true),true),"Changed direction remains novel");
+        Check(!DialogueRecency.Repeats("Hold on. I heard your question.",memory.Snapshot("Jelly",7,true),false),"Private reply is outside match history");
+        Check(DialogueRecency.Repeats("Hold on. I heard your question.",memory.Snapshot("Pebble",7,false),false),"Own prior model reply is remembered");
+        Check(!DialogueRecency.Repeats("The block just fell on my right.",memory.Snapshot("Jelly",71,true),false),"Old match dialogue expires");
+        memory.Clear();
+        Check(memory.Snapshot("Pebble",7,true).Length==0,"Reset clears voice memory");
         var measured=new ObservedSpeech{Kind=Collapse,Fact=samples[0].fact};
         for(int i=0;i<2000;i++)MatchBanter.Compose(measured,i,true);
         const int count=20000;

@@ -267,7 +267,7 @@ namespace DeadlyJenga.CastleSocial
         void Left(string id){Director?.RemoveHuman(id);Speech.ForgetHuman(id);Playback.Remove(id);sequences.Remove(id);lastVoice.Remove(id);rates.Remove(id);}
         public void Detach(SocialBotAgent agent)
         {
-            Agents.Remove(agent);if(agent.State==null)return;var id=agent.State.identity.id;Director?.Remove(id);Speech?.Cancel(id);Playback?.Remove(id);Participants.Remove(id);if(IsAuthority)SendNotice(new SocialNotice{kind="removed",id=id});
+            Agents.Remove(agent);if(agent.State==null)return;var id=agent.State.identity.id;Director?.Remove(id);Speech?.Cancel(id);OnDevice?.ForgetBot(id);Playback?.Remove(id);Participants.Remove(id);if(IsAuthority)SendNotice(new SocialNotice{kind="removed",id=id});
         }
         public void Mute(string id,bool muted){if(Director.bots.TryGetValue(id,out var b)){b.muted=muted;if(muted){Director.Cancel(id);Speech.Cancel(id);}}Playback.Mute(id,muted);}
         void OnDestroy()

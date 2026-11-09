@@ -47,6 +47,7 @@ namespace DeadlyJenga.CastleSocial
         public readonly Dictionary<string,SocialState> bots=new Dictionary<string,SocialState>();
         readonly Random random;readonly Queue<SocialEvent> events=new Queue<SocialEvent>();readonly HashSet<string> seen=new HashSet<string>();readonly Queue<string> seenOrder=new Queue<string>();
         readonly List<SocialSpeech> pending=new List<SocialSpeech>();readonly Dictionary<string,double> active=new Dictionary<string,double>();readonly Dictionary<string,double> humanActivity=new Dictionary<string,double>();
+        readonly DialogueRecency bundledRecency=new DialogueRecency();
         readonly Dictionary<string,HashSet<string>> signatures=new Dictionary<string,HashSet<string>>();
         long serial;double nextAmbient,lastTick;public int Dropped {get;private set;}public int Scheduled=>pending.Count;public int Speaking=>active.Count;public int Events=>events.Count;
         public readonly Queue<string> diagnostics=new Queue<string>();
@@ -81,7 +82,7 @@ namespace DeadlyJenga.CastleSocial
         public void RemoveHuman(string id){humanActivity.Remove(id);foreach(var b in bots.Values)b.relationships.Remove(id);}
         public void Cancel(string botId)
         {pending.RemoveAll(p=>p.botId==botId);active.Remove(botId);}
-        public void Remove(string botId){Cancel(botId);bots.Remove(botId);foreach(var b in bots.Values)b.relationships.Remove(botId);}
+        public void Remove(string botId){Cancel(botId);bots.Remove(botId);bundledRecency.Remove(botId);foreach(var b in bots.Values)b.relationships.Remove(botId);}
         public void Tick(double now)
         {
             double dt=Math.Max(0,Math.Min(1,now-lastTick));lastTick=now;
@@ -101,7 +102,9 @@ namespace DeadlyJenga.CastleSocial
                 // At most one full statement per topic; independent groups may overlap.
                 if(pending.Take(i).Any(q=>q.topic==p.topic&&q.due<=now)||active.Count>0&&!p.interjection&&random.NextDouble()>config.overlap){i++;continue;}
                 pending.RemoveAt(i);b.lastSpoke=now;b.nextSpeech=now+config.minCooldown+random.NextDouble()*(config.maxCooldown-config.minCooldown);b.utterances++;b.cluster=p.topic;
-                active[p.botId]=now+p.duration;Log(b.identity.name+": "+p.text);Speak?.Invoke(p);
+                active[p.botId]=now+p.duration;
+                if(UseBundledVoiceLines)bundledRecency.Remember(p.botId,p.text,(float)now,true);
+                Log(b.identity.name+": "+p.text);Speak?.Invoke(p);
                 if(ReplayScriptedBotLines&&p.depth<1&&random.NextDouble()<config.respondBot)Publish(new SocialEvent{id="reply:"+p.token,kind=SocialEventKind.BotSpeech,speaker=p.botId,topic=p.topic,text=p.text,time=now+Math.Min(1,p.duration),salience=.5,depth=p.depth+1});
             }
         }
@@ -130,17 +133,43 @@ namespace DeadlyJenga.CastleSocial
             foreach(var bid in bids.OrderByDescending(x=>x.Value).Take(slots))
             {
                 if(pending.Count>=config.maxSpeechQueue){Dropped++;break;}
-                var b=bid.Key;string text=SocialText.Reaction(e,b,config,random,!UseBundledVoiceLines);
-                if(!used.Add(text))continue;
-                if(!signatures.TryGetValue(b.identity.id,out var recent))signatures[b.identity.id]=recent=new HashSet<string>();
-                if(recent.Contains(text))continue;if(recent.Count>16)recent.Clear();recent.Add(text);
-                bool backchannel=e.human&&humanActivity.Count>0&&random.NextDouble()<config.interjections;
-                if(backchannel)text=new[]{"Yeah.","Wait.","Oh no.","Right."}[random.Next(4)];
+                var b=bid.Key;
+                string text;
+                bool backchannel;
+                if(UseBundledVoiceLines)
+                {
+                    backchannel=e.human&&humanActivity.Count>0&&random.NextDouble()<config.interjections;
+                    var recent=bundledRecency.Snapshot(b.identity.id,(float)now,true);
+                    text=null;
+                    for(int attempt=0;attempt<6;attempt++)
+                    {
+                        string option=backchannel?Backchannels[random.Next(Backchannels.Length)]:
+                            SocialText.Reaction(e,b,config,random,false);
+                        if(used.Contains(option)||pending.Any(p=>p.text==option)||DialogueRecency.Repeats(option,recent,false))
+                            continue;
+                        text=option;
+                        used.Add(text);
+                        break;
+                    }
+                    if(text==null)continue;
+                }
+                else
+                {
+                    text=SocialText.Reaction(e,b,config,random,true);
+                    if(!used.Add(text))continue;
+                    if(!signatures.TryGetValue(b.identity.id,out var recent))signatures[b.identity.id]=recent=new HashSet<string>();
+                    if(recent.Contains(text))continue;
+                    if(recent.Count>16)recent.Clear();
+                    recent.Add(text);
+                    backchannel=e.human&&humanActivity.Count>0&&random.NextDouble()<config.interjections;
+                    if(backchannel)text=Backchannels[random.Next(Backchannels.Length)];
+                }
                 double delay=.18+.8*b.identity.Behavior(config,"delay",1-b.identity.Trait("impulsiveness"))+.15*random.NextDouble();
                 string topic=!e.human&&b.identity.group>=0&&(e.kind==SocialEventKind.Greeting||e.kind==SocialEventKind.Silence)?"friends:"+b.identity.group:string.IsNullOrEmpty(e.topic)?"castle":e.topic;
                 pending.Add(new SocialSpeech{token=++serial,botId=b.identity.id,eventId=e.id,recipient=e.speaker,topic=topic,text=text,context=SocialText.Clean(e.kind+": "+e.text,350),due=now+delay,expires=now+config.eventLifetime,duration=backchannel?.5:Math.Max(.8,Math.Min(4,text.Length/16.0)),interjection=backchannel,depth=e.depth});
             }
         }
+        static readonly string[] Backchannels={"Yeah.","Wait.","Oh no.","Right."};
         void Log(string line){diagnostics.Enqueue(line);while(diagnostics.Count>40)diagnostics.Dequeue();}
     }
     public static class SocialText

@@ -27,7 +27,7 @@ $framework = Get-ChildItem $frameworks -Directory | Sort-Object {[version]$_.Nam
 $target = Get-ChildItem "$($framework.FullName)/ref" -Directory | Select-Object -First 1
 $references = @('System.Runtime.dll','System.Console.dll','System.Linq.dll','System.Collections.dll') |
     ForEach-Object { '-r:'+(Join-Path $target.FullName $_) }
-dotnet $compiler -nologo -target:exe "-out:$Output/Checks.dll" $references "$PSScriptRoot/MatchBanterCorpus.cs" "$Output/EventShim.cs" "$lane/Runtime/MatchBanter.cs"
+dotnet $compiler -nologo -target:exe "-out:$Output/Checks.dll" $references "$PSScriptRoot/MatchBanterCorpus.cs" "$Output/EventShim.cs" "$lane/Runtime/MatchBanter.cs" "$lane/Runtime/DialogueRecency.cs"
 if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 $runtime = (dotnet --list-runtimes | Select-String '^Microsoft.NETCore.App ' | Select-Object -Last 1).Line.Split(' ')[1]
 @{ runtimeOptions = @{ tfm = $target.Name; framework = @{name='Microsoft.NETCore.App';version=$runtime} } } |

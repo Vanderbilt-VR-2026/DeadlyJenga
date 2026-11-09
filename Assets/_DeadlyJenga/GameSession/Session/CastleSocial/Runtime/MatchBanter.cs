@@ -32,10 +32,12 @@ namespace DeadlyJenga.CastleSocial
             if (fact.StartsWith("This happened to me: someone ", StringComparison.Ordinal))
             {
                 string action = fact.Substring("This happened to me: someone ".Length);
-                if (turn.Kind == SocialEventKind.Damage) fact = "I took a hit.";
-                else if (turn.Kind == SocialEventKind.Collision) fact = "I got knocked back.";
+                if (turn.Kind == SocialEventKind.Damage) fact = Pick(SelfHits, variant);
+                else if (turn.Kind == SocialEventKind.Collision) fact = Pick(SelfShoves, variant);
                 else if (turn.Kind == SocialEventKind.Effect) fact = "I " + action;
             }
+            if (turn.HeardOnly && turn.Kind == SocialEventKind.Collapse)
+                return Pick(HeardCrashes, variant);
             if (!playful || turn.HeardOnly || turn.Kind == SocialEventKind.Damage ||
                 turn.Kind == SocialEventKind.Elimination || turn.Kind == SocialEventKind.Combat ||
                 turn.Kind == SocialEventKind.NearMiss || turn.Kind == SocialEventKind.Collision)
@@ -58,8 +60,13 @@ namespace DeadlyJenga.CastleSocial
                 {
                     string where = direction.StartsWith("your", StringComparison.Ordinal) ? "on " + direction : direction;
                     if (!playful) return "How close was it " + where + "?";
-                    return variant % 3 == 0 ? "Was it close " + where + " or just loud?" :
-                        "How close " + where + "? Asking for my knees.";
+                    switch ((uint)variant % 4)
+                    {
+                        case 0: return "Was it close " + where + " or just loud?";
+                        case 1: return "How close " + where + "? Asking for my knees.";
+                        case 2: return "Which block " + where + "? I liked most of them.";
+                        default: return "Did it fall far " + where + "?";
+                    }
                 }
                 return turn.HeardOnly ? "I heard that. Which block went?" : "Which part did you see move?";
             }
@@ -69,9 +76,9 @@ namespace DeadlyJenga.CastleSocial
                 case SocialEventKind.Damage:
                 case SocialEventKind.Collision:
                 case SocialEventKind.NearMiss: return Pick(Checks, variant);
-                case SocialEventKind.Elimination: return "Rough. Anyone still up there?";
-                case SocialEventKind.Hazard: return "How close is it?";
-                case SocialEventKind.Combat: return "Which way did that come from?";
+                case SocialEventKind.Elimination: return Pick(EliminationReplies, variant);
+                case SocialEventKind.Hazard: return Pick(HazardReplies, variant);
+                case SocialEventKind.Combat: return Pick(CombatReplies, variant);
                 case SocialEventKind.Equipment: return words.Contains("dropped")
                     ? (playful ? "Loot delivery. No contact, please." : "Where did they drop it?")
                     : (playful ? "New toy? Please read the manual." : "What did they pick up?");
@@ -87,6 +94,12 @@ namespace DeadlyJenga.CastleSocial
             }
         }
 
+        static readonly string[] SelfHits = { "I took a hit.", "That hit me.", "Yep, felt that.", "I just got tagged." };
+        static readonly string[] SelfShoves = { "I got knocked back.", "That sent me backwards.", "So much for standing still.", "I just got shoved." };
+        static readonly string[] HeardCrashes = { "I heard a crash nearby.", "Something just crashed. I heard it.", "That was loud. What was it?", "Did anyone else hear that crash?" };
+        static readonly string[] EliminationReplies = { "Rough. Anyone still up there?", "Anyone left on that side?", "That was rough. You still up there?" };
+        static readonly string[] HazardReplies = { "How close is it?", "Is it moving this way?", "Which side is it on?" };
+        static readonly string[] CombatReplies = { "Which way did that come from?", "Was that close to you?", "Where was the shot?" };
         static readonly string[] Checks = { "You okay?", "Still with us?", "Did you keep your footing?" };
         static string Pick(string[] values, int variant) => values[(int)((uint)variant % values.Length)];
 

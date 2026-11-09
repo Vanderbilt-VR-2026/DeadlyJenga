@@ -18,7 +18,7 @@ def authored_lines(source):
     # Prefix/suffix decoration is skipped by the bundled provider.
     text = source.read_text(encoding="utf-8")
     reactions = text.split("string line;", 1)[1].split("if(c.verbosity<", 1)[0]
-    backchannels = text.split("if(backchannel)text=", 1)[1].split(";", 1)[0]
+    backchannels = text.split("Backchannels=", 1)[1].split(";", 1)[0]
     lines = set()
     for literal in re.findall(r'"(?:[^"\\]|\\.)*"', reactions + backchannels):
         line = json.loads(literal)
@@ -46,17 +46,19 @@ def pcm(audio):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--model-dir", type=Path, required=True)
+    parser.add_argument("--model-file", default="model.fp16.onnx")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--staging", type=Path, required=True,
                         help="Temporary file outside Unity's Assets directory")
     parser.add_argument("--line-list", type=Path, help="Optional UTF-8 inventory with one exact line per row")
+    parser.add_argument("--threads", type=int, choices=(1, 2), default=1)
     args = parser.parse_args()
     model = args.model_dir
     kitten = sherpa_onnx.OfflineTtsKittenModelConfig(
-        model=str(model / "model.fp16.onnx"), voices=str(model / "voices.bin"),
+        model=str(model / args.model_file), voices=str(model / "voices.bin"),
         tokens=str(model / "tokens.txt"), data_dir=str(model / "espeak-ng-data"))
     config = sherpa_onnx.OfflineTtsConfig(
-        model=sherpa_onnx.OfflineTtsModelConfig(kitten=kitten, num_threads=1, provider="cpu"),
+        model=sherpa_onnx.OfflineTtsModelConfig(kitten=kitten, num_threads=args.threads, provider="cpu"),
         max_num_sentences=1, silence_scale=.15)
     tts = sherpa_onnx.OfflineTts(config)
     if tts.num_speakers < VOICE_COUNT:
