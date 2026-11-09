@@ -531,7 +531,13 @@ namespace DeadlyJenga.CastlePrototype
                     IslandLobby.Current.ReceivePeers(actors,Runner.LocalPlayer.ToString());welcomed=true;lastServer=Time.unscaledTime;Send(default,Ack,Array.Empty<byte>(),id);
                 }
             }
-            catch(Exception e){Status="Rejected lobby message: "+e.Message;if(IsHost)runner.Disconnect(source);else _=Leave();}
+            catch(Exception e)
+            {
+                Status = "Rejected lobby message: " + e.Message;
+                Debug.LogWarning(Status);
+                if (IsHost) runner.Disconnect(source);
+                else _ = Leave();
+            }
         }
         void Update()
         {
@@ -567,7 +573,12 @@ namespace DeadlyJenga.CastlePrototype
                 nextSend=now+.05f;
                 if(!welcomed&&now>=nextHello){nextHello=now+.5f;Send(default,Ready,P.Encode(P.Player,w=>w.Write(JsonUtility.ToJson(LocalIdentity))));}
                 if(welcomed&&waitingPose==0){waitingPose=++serial;Send(default,Pose,P.Encode(P.Player,w=>P.Write(w,IslandLobby.Current.Capture(Runner.LocalPlayer.ToString()))),waitingPose);}
-                if(now-lastServer>20){Status="Lobby connection lost.";_=Leave();}
+                if (now - lastServer > 20)
+                {
+                    Status = "Lobby connection lost.";
+                    Debug.LogWarning(Status);
+                    _ = Leave();
+                }
             }
         }
         async Task<bool> PushMigration(NetworkRunner runner)

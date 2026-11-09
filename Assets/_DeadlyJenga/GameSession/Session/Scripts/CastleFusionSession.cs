@@ -175,7 +175,7 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence,lastNativeSequence;public bool hasPoseSequence,hasNativeSequence;public float lastNativePose; public bool ready,hasInitialMotionWorld; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence,lastNativeSequence,motionLane;public bool hasPoseSequence,hasNativeSequence;public float lastNativePose; public bool ready,hasInitialMotionWorld; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -484,7 +484,7 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         if (!peers.ContainsKey(player))
                         {
-                            var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString())};
+                            var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString()),motionLane=AssignMotionLane()};
                             added.posesInFlight.Traffic.PeerId=player.ToString();peers.Add(player,added);
                         }
                         if (!peers[player].ready) Send(player, Welcome, peers[player].welcome);
@@ -614,12 +614,11 @@ namespace DeadlyJenga.CastlePrototype
                 bool worldDue = !UsesNativeMotion || now >= nextMotionWorld;
                 foreach (var pair in peers)
                 {
-                    if (!pair.Value.ready) continue;
+                    if (!pair.Value.ready || pair.Value.waiting != 0 || (!worldDue && pair.Value.hasInitialMotionWorld)) continue;
                     if(matchPacket!=null&&!ReferenceEquals(pair.Value.match,matchPacket)){var packet=matchPacket;Send(pair.Key,MatchState,packet,0,()=>pair.Value.match=packet);}
                     if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>pair.Value.disasters=packet);}
                     if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin),0,()=>pair.Value.admin=admin);}
                     string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>pair.Value.rules=rules);}
-                    if(pair.Value.waiting != 0 || (!worldDue && pair.Value.hasInitialMotionWorld)) continue;
                     if(world==null){long captureStarted=FusionMotionWireTrace.Now;
                         var snapshot = castle.FusionCaptureWorldSnapshot(UsesNativeMotion ? runner.Tick.Raw : (int?)null);
                         world = CastleLanProtocol.EncodeWorld(snapshot);

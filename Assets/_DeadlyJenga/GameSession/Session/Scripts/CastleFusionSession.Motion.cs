@@ -14,30 +14,34 @@ namespace DeadlyJenga.CastlePrototype
         const int BotLanes = 2;
         const int BlockLanes = 2;
         const int BlockSamples = 36;
-        const int BlockScanBudget = 240;
+        const int BlockScanBudget = 120;
         const byte ActorPage = 1, BlockPage = 2;
         internal const string MotionProtocol = "/native-motion-1";
         readonly CastleMotionPage[] motionPages = new CastleMotionPage[HumanLanes + BotLanes + BlockLanes];
         readonly List<INetworkActor> motionBots = new List<INetworkActor>(64);
         readonly HashSet<INetworkActor> motionBotSet = new HashSet<INetworkActor>();
         readonly List<Vector3> motionAnchors = new List<Vector3>(10);
-        readonly MotionBlockCandidate[] nearBlocks = new MotionBlockCandidate[BlockSamples];
-        readonly MotionBlockCandidate[] otherBlocks = new MotionBlockCandidate[BlockSamples];
         readonly MemoryStream motionStream = new MemoryStream(CastleMotionPage.ByteCapacity);
         BinaryWriter motionWriter;
         CastleMotionProvider motionProvider;
         CastlePoseInputProbe latestInput;
-        int motionStep, inputSequence, blockCursor, botCursor, fastBotCursor, motionRevision = -1;
+        int motionStep, inputSequence, nearBlockCursor, blockCursor, botCursor, fastBotCursor, motionRevision = -1;
         float nextInputCapture, nextMotionFrame, nextHumanFrame, nextBotRoster, nextMotionWorld;
         bool[] movingBlocks = Array.Empty<bool>();
+        int[] blockPublishedTicks = Array.Empty<int>();
         bool inputFallback;
         bool UsesNativeMotion => motionProvider;
 
-        struct MotionBlockCandidate
+        int AssignMotionLane()
         {
-            public int Index;
-            public Rigidbody Body;
-            public bool Moving;
+            Span<int> population = stackalloc int[HumanLanes];
+            population.Clear();
+            population[0] = 1;
+            foreach (var peer in peers.Values) population[peer.motionLane]++;
+            int lane = 0;
+            for (int i = 1; i < population.Length; i++)
+                if (population[i] < population[lane]) lane = i;
+            return lane;
         }
 
         void BindMotion()
@@ -48,7 +52,7 @@ namespace DeadlyJenga.CastlePrototype
             runner.ProvideInput = !runner.IsServer;
             motionWriter ??= new BinaryWriter(motionStream);
             nextMotionFrame = nextHumanFrame = nextInputCapture = nextBotRoster = nextMotionWorld = 0;
-            motionStep = inputSequence = blockCursor = botCursor = fastBotCursor = 0;
+            motionStep = inputSequence = nearBlockCursor = blockCursor = botCursor = fastBotCursor = 0;
             latestInput = default;
             inputFallback = false;
             motionRevision = -1;
@@ -160,7 +164,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 motionRevision = synced.Revision;
                 movingBlocks = new bool[Services.World.Blocks.Count];
-                blockCursor = 0;
+                blockPublishedTicks = new int[movingBlocks.Length];
+                nearBlockCursor = blockCursor = 0;
             }
             int phase = motionStep++;
             if (now >= nextHumanFrame)
@@ -185,9 +190,9 @@ namespace DeadlyJenga.CastlePrototype
             {
                 StartPage(ActorPage);
                 int count = lane == 0 && TryWriteActor(castle.CaptureMotionHuman()) ? 1 : 0;
-                foreach (var player in runner.ActivePlayers)
-                    if (player != runner.LocalPlayer && player.PlayerId % HumanLanes == lane &&
-                        castle.TryCaptureMotionHuman(player.ToString(), out var actor) && TryWriteActor(actor)) count++;
+                foreach (var pair in peers)
+                    if (pair.Value.ready && pair.Value.motionLane == lane &&
+                        castle.TryCaptureMotionHuman(pair.Key.ToString(), out var actor) && TryWriteActor(actor)) count++;
                 PublishPage(lane, tick, count);
             }
         }
@@ -222,8 +227,8 @@ namespace DeadlyJenga.CastlePrototype
             var buffer = motionStream.GetBuffer();
             buffer[1] = (byte)count;
             int bytes = (int)motionStream.Position;
-            motionPages[lane].Publish(sceneTag, motionRevision, tick, buffer, bytes);
-            FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Submitted, buffer[0] == ActorPage ? 32 : 33, tick, bytes);
+            if (motionPages[lane].Publish(sceneTag, motionRevision, tick, buffer, bytes))
+                FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Submitted, buffer[0] == ActorPage ? 32 : 33, tick, bytes);
         }
 
         bool IsNearPlayer(Vector3 point)
@@ -252,36 +257,35 @@ namespace DeadlyJenga.CastlePrototype
 
         void PublishBlockPage(int phase, int tick)
         {
+            StartPage(BlockPage);
+            int count = WriteBlocks(ref nearBlockCursor, BlockSamples * 2 / 3, tick, true);
+            count += WriteBlocks(ref blockCursor, BlockSamples - count, tick, false);
+            PublishPage(HumanLanes + BotLanes + phase % BlockLanes, tick, count);
+        }
+
+        int WriteBlocks(ref int cursor, int capacity, int tick, bool near)
+        {
             var blocks = Services.World.Blocks;
             int scan = Mathf.Min(BlockScanBudget, blocks.Count);
-            int near = 0, other = 0;
-            for (int n = 0; n < scan && (near < BlockSamples || other < BlockSamples); n++)
+            int written = 0;
+            for (int n = 0; n < scan && written < capacity; n++)
             {
-                int index = blockCursor;
-                if (++blockCursor >= blocks.Count) blockCursor = 0;
+                int index = cursor;
+                if (++cursor >= blocks.Count) cursor = 0;
                 var block = blocks[index];
-                if (!block || !block.gameObject.activeSelf) continue;
+                if (!block || !block.gameObject.activeSelf || blockPublishedTicks[index] == tick) continue;
                 bool moving = !block.isKinematic && !block.IsSleeping() &&
                     (block.linearVelocity.sqrMagnitude > .0004f || block.angularVelocity.sqrMagnitude > .0025f);
                 if (!moving && !movingBlocks[index]) continue;
-                var candidate = new MotionBlockCandidate { Index = index, Body = block, Moving = moving };
-                if (IsNearPlayer(block.position) && near < nearBlocks.Length) nearBlocks[near++] = candidate;
-                else if (other < otherBlocks.Length) otherBlocks[other++] = candidate;
+                var position = block.position;
+                if (near && !IsNearPlayer(position)) continue;
+                movingBlocks[index] = moving;
+                blockPublishedTicks[index] = tick;
+                motionWriter.Write((ushort)index);
+                Protocol.Write(motionWriter, new Protocol.Pose(position, block.rotation));
+                written++;
             }
-            if (near + other == 0) return;
-            StartPage(BlockPage);
-            int fastCount = Mathf.Min(near, BlockSamples - Mathf.Min(other, BlockSamples / 3));
-            int slowCount = Mathf.Min(other, BlockSamples - fastCount);
-            for (int i = 0; i < fastCount; i++) WriteBlock(nearBlocks[i]);
-            for (int i = 0; i < slowCount; i++) WriteBlock(otherBlocks[i]);
-            PublishPage(HumanLanes + BotLanes + phase % BlockLanes, tick, fastCount + slowCount);
-        }
-
-        void WriteBlock(MotionBlockCandidate sample)
-        {
-            movingBlocks[sample.Index] = sample.Moving;
-            motionWriter.Write((ushort)sample.Index);
-            Protocol.Write(motionWriter, new Protocol.Pose(sample.Body.position, sample.Body.rotation));
+            return written;
         }
     }
 }

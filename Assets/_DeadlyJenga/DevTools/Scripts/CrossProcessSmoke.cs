@@ -4,6 +4,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Fusion.Statistics;
 using UnityEngine;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastleSocial;
@@ -265,6 +266,7 @@ namespace DeadlyJenga.CastlePrototype
             var poseTraffic = host ? sync.PeerPoseTraffic.Single() : sync.LocalPoseTraffic;
             string remoteId = probeRunner.ActivePlayers.Single(p => p != probeRunner.LocalPlayer).ToString();
             GameObject bot = null;
+            string trackedBot = null;
             if (host)
             {
                 session.SurvivorBots.AutoFill = false;
@@ -275,6 +277,15 @@ namespace DeadlyJenga.CastlePrototype
                 Require(session.SurvivorBots.Count == bots, $"Host spawned exactly {bots} bots");
                 yield return Until(() => session.SurvivorBots.Members.Any(), "Host has an authoritative bot", 40);
                 bot = session.SurvivorBots.Members.First();
+                var actorId = typeof(CastleLanSession).GetMethod("LocalActorId",
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                trackedBot = (string)actorId.Invoke(null, new object[] { bot.transform });
+                File.WriteAllText(Mark("tracked-bot"), trackedBot);
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("tracked-bot")), "Host identifies the tracked bot", 40);
+                trackedBot = File.ReadAllText(Mark("tracked-bot"));
             }
             if (CastleMotionStateProbe.Enabled)
             {
@@ -324,6 +335,7 @@ namespace DeadlyJenga.CastlePrototype
                 data.AppendLine("elapsed,clock,frameMs,gc0,rttSeconds,worldSerial,worldWaitSeconds,poseSerial,posePending,poseSuppressed,poseSent,poseSentBytes,poseApplied,localX,localY,localZ,remoteTargetX,remoteTargetY,remoteTargetZ,remoteRenderX,remoteRenderY,remoteRenderZ,botX,botY,botZ,blockX,blockY,blockZ,stateSequence,stateTick,stateHumanX,stateHumanY,stateHumanZ,stateBotX,stateBotY,stateBotZ,stateBlockX,stateBlockY,stateBlockZ");
                 bool pushed = false, sawWave = false;
                 double nextRtt = 0, rtt = 0;
+                var wireStats = new System.Text.StringBuilder("elapsed,inBandwidth,outBandwidth,reliableQueueDepth,fragmentGroupsLost\n");
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
                 while (Time.realtimeSinceStartupAsDouble - start < (StressMotion ? 24 : 12))
                 {
@@ -340,6 +352,15 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         rtt = probeRunner.GetPlayerRtt(probeRunner.ActivePlayers.Single(p => p != probeRunner.LocalPlayer));
                         nextRtt = elapsed + 1;
+                        if (probeRunner.TryGetFusionStatistics(out var statistics))
+                        {
+                            var stats = statistics.SimulationSnapshot.Stats;
+                            wireStats.AppendFormat(ci, "{0:F3},{1},{2},{3},{4}\n", elapsed,
+                                stats.GetValueOrDefault(FusionStatType.InBandwidth, 0),
+                                stats.GetValueOrDefault(FusionStatType.OutBandwidth, 0),
+                                stats.GetValueOrDefault(FusionStatType.ReliableQueueDepth, 0),
+                                stats.GetValueOrDefault(FusionStatType.StateFragmentGroupsLost, 0));
+                        }
                     }
                     if (player.Capsule && player.Capsule.enabled)
                     {
@@ -347,8 +368,7 @@ namespace DeadlyJenga.CastlePrototype
                         player.Capsule.Move(command.move * Mathf.Min(Time.deltaTime, .04f) * 2.4f);
                     }
                     views.TryGetValue(remoteId, out var remote);
-                    var botView = host ? null : views.FirstOrDefault(pair => pair.Key != remoteId &&
-                        pair.Key != probeRunner.LocalPlayer.ToString() && pair.Value.NetworkKind == NetworkKinds.Survivor).Value;
+                    views.TryGetValue(trackedBot, out var botView);
                     int serial = host ? (int)waiting.GetValue(peer) : (int)worldSerial.GetValue(receiver);
                     float wait = host && serial != 0 ? Time.unscaledTime - (float)sentAt.GetValue(peer) : 0;
                     data.AppendFormat(ci, "{0:F5},{1},{2:F3},{3},{4:F4},{5},{6:F5},{7},{8},{9},{10},{11},{12}",
@@ -375,6 +395,7 @@ namespace DeadlyJenga.CastlePrototype
                     yield return null;
                 }
                 File.WriteAllText(Mark(role + "-motion.csv"), data.ToString());
+                File.WriteAllText(Mark(role + "-fusion-stats.csv"), wireStats.ToString());
                 if (StressMotion) Require(sawWave, "Tsunami was active during the sample");
                 FusionMotionWireTrace.Save(Mark(role + "-wire.csv"));
             }

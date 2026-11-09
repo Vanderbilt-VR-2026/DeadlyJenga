@@ -24,21 +24,26 @@ namespace DeadlyJenga.CastlePrototype
 
         public override void Spawned() => provider = Runner.GetComponent<CastleMotionProvider>();
 
-        internal void Publish(int scene, int revision, int tick, byte[] source, int length)
+        internal bool Publish(int scene, int revision, int tick, byte[] source, int length)
         {
+            bool changed = SceneEpoch != scene || WorldRevision != revision || Length != length;
             var words = Words;
             for (int start = 0; start < length; start += 4)
             {
                 int value = 0;
                 for (int i = 0; i < 4 && start + i < length; i++)
                     value |= source[start + i] << (8 * i);
-                if (words[start / 4] != value) words.Set(start / 4, value);
+                if (words[start / 4] == value) continue;
+                words.Set(start / 4, value);
+                changed = true;
             }
+            if (!changed && unchecked(tick - SampleTick) < 15) return false;
             SceneEpoch = scene;
             WorldRevision = revision;
             SampleTick = tick;
             Length = length;
             Sequence++;
+            return true;
         }
 
         public override void FixedUpdateNetwork()
