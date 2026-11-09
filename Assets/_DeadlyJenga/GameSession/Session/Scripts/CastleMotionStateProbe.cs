@@ -28,7 +28,9 @@ namespace DeadlyJenga.CastlePrototype
         [Networked] public int ActorBytes { get; private set; }
         [Networked, Capacity(1024)] NetworkArray<int> ActorWords => default;
         readonly byte[] incoming = new byte[4096];
-        int lastApplied;
+        int lastApplied, lastInputSequence;
+        public static bool InputProbeEnabled { get; } =
+            Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-uplink") >= 0;
         public static int SelectedBlock { get; set; } = -1;
         public static bool ApplyEnabled => Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-state-apply") >= 0;
 
@@ -69,6 +71,36 @@ namespace DeadlyJenga.CastlePrototype
             var app = Fusion.Photon.Realtime.PhotonAppSettings.Global.AppSettings.GetCopy();
             app.FixedRegion = "us";
             app.AppVersion += "/motion-probe";
+            var config = IslandRoomConnection.MigrationConfig();
+            if (Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-jitter") >= 0)
+            {
+                config.NetworkConditions.Enabled = true;
+                config.NetworkConditions.DelayMin = config.NetworkConditions.DelayMax = .06f;
+                config.NetworkConditions.AdditionalJitter = .035f;
+                config.NetworkConditions.LossChanceMin = config.NetworkConditions.LossChanceMax = .02f;
+            }
+            if (!host && Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-uplink") >= 0)
+            {
+                runner.ProvideInput = true;
+                var callbacks = new NetworkDelegates();
+                CastlePoseInputProbe pending = default;
+                int serial = 0;
+                float next = 0;
+                callbacks.OnInput = (source, input) =>
+                {
+                    if (Time.unscaledTime >= next && Services.Session is CastlePlaySession active &&
+                        active.Network && !active.Network.WaitingForWorld)
+                    {
+                        next = Time.unscaledTime + 1f / 30f;
+                        var data = active.Network.FusionCapturePlayer();
+                        var packet = CastleFusionSession.LivePoseCodec.Pack(data, 4096, Array.Empty<int>(), out _);
+                        if (CastlePoseInputProbe.TryPack(packet, ++serial, out var sample))
+                            pending = sample;
+                    }
+                    if (pending.Length > 0) input.Set(pending);
+                };
+                runner.AddCallbacks(callbacks);
+            }
             return runner.StartGame(new StartGameArgs
             {
                 GameMode = host ? GameMode.Host : GameMode.Client,
@@ -77,7 +109,7 @@ namespace DeadlyJenga.CastlePrototype
                 IsVisible = false,
                 EnableClientSessionCreation = false,
                 CustomPhotonAppSettings = app,
-                Config = IslandRoomConnection.MigrationConfig(),
+                Config = config,
                 SceneManager = holder.AddComponent<NetworkSceneManagerDefault>()
             });
         }
@@ -101,6 +133,22 @@ namespace DeadlyJenga.CastlePrototype
             if (!HasStateAuthority || Services.Session is not CastlePlaySession session ||
                 Services.World is not { } world || world.Blocks.Count == 0 ||
                 session.Player is not Component player) return;
+            if (InputProbeEnabled)
+            {
+                foreach (var playerRef in Runner.ActivePlayers)
+                {
+                    if (playerRef == Runner.LocalPlayer ||
+                        !Runner.TryGetInputForPlayer<CastlePoseInputProbe>(playerRef, out var input) ||
+                        unchecked(input.Sequence - lastInputSequence) <= 0) continue;
+                    var payload = CastlePoseInputProbe.Unpack(ref input);
+                    if (payload == null) continue;
+                    var raw = CastleFusionSession.LivePoseCodec.Unpack(payload, 4096, out _);
+                    using var reader = CastleLanProtocol.Reader(raw, CastleLanProtocol.Player);
+                    CastleLanProtocol.ReadActor(reader);
+                    lastInputSequence = input.Sequence;
+                    FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Applied, 31, input.Sequence, payload.Length);
+                }
+            }
             var bot = session.SurvivorBots?.Members.FirstOrDefault();
             int index = SelectedBlock >= 0 && SelectedBlock < world.Blocks.Count ? SelectedBlock : world.Blocks.Count / 2;
             var block = world.Blocks[index];

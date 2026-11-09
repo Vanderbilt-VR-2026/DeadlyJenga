@@ -1,4 +1,3 @@
-#if UNITY_EDITOR || DEVELOPMENT_BUILD
 using System;
 using System.Diagnostics;
 using System.Globalization;
@@ -10,7 +9,11 @@ namespace DeadlyJenga.CastlePrototype
     public static class FusionMotionWireTrace
     {
         const int Capacity = 16384;
+#if UNITY_EDITOR || DEVELOPMENT_BUILD
         static readonly bool enabled = Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-motion-wire") >= 0;
+#else
+        static readonly bool enabled = false;
+#endif
         static readonly Event[] events = enabled ? new Event[Capacity] : null;
         static int count;
         static int dropped;
@@ -25,6 +28,7 @@ namespace DeadlyJenga.CastlePrototype
             public Phase phase;
         }
 
+        [Conditional("UNITY_EDITOR"), Conditional("DEVELOPMENT_BUILD")]
         public static void Record(Phase phase, int kind, int serial, int bytes = 0, long started = 0)
         {
             if (!enabled) return;
@@ -51,4 +55,3 @@ namespace DeadlyJenga.CastlePrototype
         }
     }
 }
-#endif
