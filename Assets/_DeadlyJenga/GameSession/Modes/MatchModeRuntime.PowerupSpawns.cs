@@ -103,12 +103,24 @@ namespace DeadlyJenga.Modes
         public bool SetBotWeapon(GameObject bot,bool drawn,bool shotgun)
         {
             if(!ValidEquipmentBot(bot,out string id))return false;
-            return EquipmentCommandFor(id,new EquipmentCommand{action="state",drawn=drawn,shotgun=shotgun,left=EquipmentFor(id).leftHanded});
+            var state=EquipmentFor(id);
+            if(drawn&&state.drawn&&state.shotgun==shotgun)
+            {
+                if(heldWeapons.ContainsKey(id)){StopArsenalTrigger(id);PublishEquipment();}
+                return true;
+            }
+            return EquipmentCommandFor(id,new EquipmentCommand{action="state",drawn=drawn,shotgun=shotgun,left=state.leftHanded});
         }
         public bool FireBotWeapon(GameObject bot,Pose muzzle)
-        {if(!ValidEquipmentBot(bot,out string id))return false;var state=EquipmentFor(id);
-            if(state.kind>EquipmentKind.PoweredArmor&&(EquipmentSpecifications.Get(state.kind).automatic||EquipmentSpecifications.Get(state.kind).charge>0))
-                HoldArsenalTrigger(id,state,new EquipmentCommand{held=true,position=muzzle.position,forward=muzzle.rotation*Vector3.forward});
-            return EquipmentCommandFor(id,new EquipmentCommand{action="attack",position=muzzle.position,forward=muzzle.rotation*Vector3.forward});}
+        {
+            if(!ValidEquipmentBot(bot,out string id))return false;
+            var state=EquipmentFor(id);
+            var spec=EquipmentSpecifications.Get(state.kind);
+            var forward=muzzle.rotation*Vector3.forward;
+            if(state.kind>EquipmentKind.PoweredArmor&&(spec.automatic||spec.charge>0)&&
+                !EquipmentCommandFor(id,new EquipmentCommand{action="trigger",held=true,position=muzzle.position,forward=forward}))
+                return false;
+            return EquipmentCommandFor(id,new EquipmentCommand{action="attack",position=muzzle.position,forward=forward});
+        }
     }
 }
