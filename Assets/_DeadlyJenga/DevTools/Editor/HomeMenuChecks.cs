@@ -65,6 +65,13 @@ namespace DeadlyJenga.DevTools.Editor
                 EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
             Start();
         }
+        public static void RunHostedPlayBatch()
+        {
+            SessionState.SetBool(Key+"HostedPlayOnly",true);
+            if(string.IsNullOrEmpty(SceneManager.GetActiveScene().path))
+                EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            Start();
+        }
         public static void RunQuestFlowBatch()
         {
             SessionState.SetBool(Key+"QuestOffline",true);
@@ -95,9 +102,11 @@ namespace DeadlyJenga.DevTools.Editor
                 var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
                 MatchSetup.MapId=saved.map;MatchSetup.ModeId=saved.mode;MatchSetup.BotTarget=saved.population;
                 EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
-                if(SessionState.GetBool(Key+"QuestOffline",false)||SessionState.GetBool(Key+"PlayEntryOnly",false))
+                if(SessionState.GetBool(Key+"QuestOffline",false)||SessionState.GetBool(Key+"PlayEntryOnly",false)||
+                    SessionState.GetBool(Key+"HostedPlayOnly",false))
                 {
                     SessionState.SetBool(Key+"PlayEntryOnly",false);
+                    SessionState.SetBool(Key+"HostedPlayOnly",false);
                     SessionState.SetBool(Key+"QuestOffline",false);
                     EditorApplication.Exit(errors==0?0:2);
                 }
@@ -125,6 +134,18 @@ namespace DeadlyJenga.DevTools.Editor
             Require(EditorBuildSettings.scenes.First(s=>s.enabled).path.EndsWith("/Home.unity"),"Home is first enabled build scene");
             Require(Services.Session==null&&Tracked.Movers.Count==0,"Home creates no game simulation or bots");
             Require(Resources.LoadAll<Texture2D>("HomeSlides").Length==4,"All four supplied slides load");
+            if(SessionState.GetBool(Key+"HostedPlayOnly",false))
+            {
+                oldPeer=NetworkProjectConfig.Global.PeerMode;
+                peerChanged=true;
+                NetworkProjectConfig.Global.PeerMode=NetworkProjectConfig.PeerModes.Multiple;
+                home.Host();
+                yield return Until(()=>IslandLobby.Current&&IslandRoomConnection.Instance.Connected&&
+                    !IslandRoomConnection.Instance.Busy&&IslandLobby.Current.CanStart,
+                    "Home Host opens a Play lobby that can choose its first game",65);
+                yield return ModeSelectionNetworkChecks.Run(Require,alreadyHostedPlay:true);
+                yield break;
+            }
             home.Code="invalid";Require(!home.CodeValid,"Invalid join code rejected");home.JoinCode();Require(!home.Busy,"Invalid join does not connect");
             home.Code="US-ABC234";Require(home.CodeValid,"Existing region-prefixed code format supported");
             yield return new WaitForSecondsRealtime(1.2f);

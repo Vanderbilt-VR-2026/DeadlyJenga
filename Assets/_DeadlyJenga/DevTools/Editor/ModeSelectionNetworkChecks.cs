@@ -15,7 +15,7 @@ namespace DeadlyJenga.DevTools.Editor
 {
     public static class ModeSelectionNetworkChecks
     {
-        public static IEnumerator Run(Action<bool,string> check)
+        public static IEnumerator Run(Action<bool,string> check,bool alreadyHostedPlay=false)
         {
             var lobby=IslandLobby.Current;var primary=lobby.Room;var catalog=primary.Catalog;
             var config=NetworkProjectConfig.Global;var oldMode=config.PeerMode;var oldPhysics=Physics.simulationMode;
@@ -23,7 +23,13 @@ namespace DeadlyJenga.DevTools.Editor
             try
             {
                 config.PeerMode=NetworkProjectConfig.PeerModes.Multiple;
-                var host=primary.Host();yield return Until(()=>host.IsCompleted,"Production lobby Photon host finishes connecting",45,check);
+                if(!alreadyHostedPlay)
+                {
+                    var host=primary.Host();
+                    yield return Until(()=>host.IsCompleted,"Production lobby Photon host finishes connecting",45,check);
+                }
+                else check(RoomGameExperience.Current.Experience==GameExperience.Game&&lobby.CanStart&&lobby.SurvivorBots.Count==0,
+                    "Hosted Play begins in the first-pick lobby with no bots");
                 check(primary.IsHost,"Production lobby owns a real host room");
                 guest=new GameObject("Mode selector Photon guest").AddComponent<NetworkRunner>();var probe=guest;
                 int snapshots=0,lastMap=-1,lastMode=-1;string failure=null;
@@ -40,7 +46,7 @@ namespace DeadlyJenga.DevTools.Editor
                     }
                     catch(Exception e){failure=e.ToString();}
                 };
-                guest.AddCallbacks(callbacks);var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=primary.Region;app.AppVersion=(app.AppVersion??"")+"/"+catalog.NetworkVersion;
+                guest.AddCallbacks(callbacks);var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=primary.Region;app.AppVersion=(app.AppVersion??"")+"/"+catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1";
                 var guestScenes=new NetworkSceneInfo();guestScenes.AddSceneRef(SceneRef.FromIndex(SceneUtility.GetBuildIndexByScenePath(ProjectPath.Find("Lobby.unity"))),LoadSceneMode.Additive);
                 var join=guest.StartGame(new StartGameArgs{GameMode=GameMode.Client,SessionName=primary.Code,EnableClientSessionCreation=false,CustomPhotonAppSettings=app,Scene=guestScenes,SceneManager=guest.gameObject.AddComponent<NetworkSceneManagerDefault>()});
                 yield return Until(()=>join.IsCompleted,"Independent selector client finishes connecting",45,check);check(join.Result.Ok,"Second real Photon peer joins the production lobby");Physics.simulationMode=oldPhysics;
@@ -50,7 +56,9 @@ namespace DeadlyJenga.DevTools.Editor
                 int capture=Array.FindIndex(catalog.modes,m=>m.id=="ctf"),hill=Array.FindIndex(catalog.modes,m=>m.id=="hill");
                 check(lobby.SelectMode("ctf"),"Host selects Capture the Flag through the real lobby service");
                 yield return Until(()=>lastMode==capture,"Host mode-first selection replicates to the second peer",15,check);
-                var other=catalog.maps.FirstOrDefault(m=>m.recommendedMode=="survival")??catalog.maps[0];check(lobby.SelectMap(other.id),"Host selects a map whose recommendation differs from the chosen mode");int otherIndex=Array.IndexOf(catalog.maps,other);
+                var other=alreadyHostedPlay?catalog.maps.First(m=>m.id=="mode-ctf"):
+                    catalog.maps.FirstOrDefault(m=>m.recommendedMode=="survival")??catalog.maps[0];
+                check(lobby.SelectMap(other.id),"Host selects a compatible map for the chosen mode");int otherIndex=Array.IndexOf(catalog.maps,other);
                 yield return Until(()=>lastMap==otherIndex,"Host map selection replicates after mode selection",15,check);check(lastMode==capture&&primary.ModeIndex==capture,"Map selection never overwrites the selected mode on either peer");
                 guest.SendReliableDataToServer(ReliableKey.FromInts(0x49534C44,6,1,0),P.Encode(P.Player,w=>w.Write(JsonUtility.ToJson(new IslandRoomConnection.LobbyAction{verb="mode",index=hill}))));
                 yield return new WaitForSeconds(.35f);check(primary.ModeIndex==capture,"Authenticated non-host peer cannot forge a mode selection");
