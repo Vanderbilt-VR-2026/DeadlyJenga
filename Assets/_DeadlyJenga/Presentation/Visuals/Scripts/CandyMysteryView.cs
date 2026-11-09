@@ -27,6 +27,7 @@ namespace DeadlyJenga.Presentation
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetReports()=>ReportPage=0;
         Camera eye;bool vr;
+        IMatchRuntime lastMatch;
         float nextCommand;string currentRevive;
         readonly Dictionary<int,List<MysteryTrailFrame>> trailsByBlock=new Dictionary<int,List<MysteryTrailFrame>>();
         int cachedTrails;MysteryTrailFrame firstTrail;
@@ -52,29 +53,39 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             var match=MatchRuntime.Current;var mystery=match as IMysteryControls;var session=Services.Session;
-            if(mystery==null||session==null){if(canvas)canvas.enabled=false;return;}
+            if(mystery==null||session==null)
+            {
+                if(canvas)canvas.enabled=false;
+                if(lastMatch!=null){ResetClues();lastMatch=null;lastElapsed=-1;}
+                return;
+            }
             if(!canvas)Build();canvas.enabled=mystery.Active&&!session.MenuOpen&&!CandyMatchHud.Expanded;
             if(eye!=session.ActiveCamera||vr!=session.IsVR)
             {
                 eye=session.ActiveCamera;vr=session.IsVR;
                 CandyHudLayout.Configure(canvas,transform,eye,vr);
             }
-            if(!mystery.Active){bodyGuide.Hide();ResetClues();lastElapsed=-1;return;}
+            if(!mystery.Active){ResetClues();lastElapsed=-1;return;}
             if(!eye){bodyGuide.Hide();return;}
-            if(match.Frame.elapsed<lastElapsed)ResetClues();
+            if(match!=lastMatch||match.Frame.elapsed<lastElapsed)ResetClues();
+            lastMatch=match;
             lastElapsed=match.Frame.elapsed;
-            if(mystery.Clues.bodies.Length==0){announcedSheriffs.Clear();sheriffNoticeUntil=0;}
+            var clues=mystery.Clues;
+            if(clues.bodies.Length==0){announcedSheriffs.Clear();sheriffNoticeUntil=0;}
             var own=mystery.Personal;
-            bool blocked=session.MenuOpen||CandyMatchHud.Expanded;
+            bool localDowned=clues.downed.Contains(match.LocalActorId);
+            bool menuBlocked=session.MenuOpen||CandyMatchHud.Expanded||DeadlyJenga.CastlePrototype.EmoteWheel.IsOpen;
+            bool blocked=menuBlocked||localDowned||match.Frame.phase!=RoundPhase.Playing||
+                (session.Demo as ISpectatorControls)?.Spectating==true;
             allReports.Clear();
-            foreach(var body in mystery.Clues.bodies)if(body.reported)allReports.Add(body);
+            foreach(var body in clues.bodies)if(body.reported)allReports.Add(body);
             allReports.Sort((a,b)=>a.reportedAge!=b.reportedAge?a.reportedAge.CompareTo(b.reportedAge):string.CompareOrdinal(a.id,b.id));
             for(int i=allReports.Count-1;i>=0;i--)BodyNumber(allReports[i].id);
             var newest=allReports.FirstOrDefault(b=>!b.lost&&!reportedBodies.Contains(b.id)&&b.reportedAge<3);
             if(newest!=null){noticeBody=newest.id;noticeUntil=Time.unscaledTime+9;if(!blocked)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.2f);}
 
             if(reportFocus.RemoveUnavailable(allReports))trackingLostUntil=Time.unscaledTime+4;
-            if(!blocked&&match.Frame.phase==RoundPhase.Playing&&!DeadlyJenga.CastlePrototype.EmoteWheel.IsOpen)
+            if(!blocked)
             {
                 if(!vr&&Keyboard.current?.bKey.wasPressedThisFrame==true)ReportPage++;
                 if(ReportPage>0)
@@ -90,13 +101,13 @@ namespace DeadlyJenga.Presentation
             if(own.role==MysteryRole.Sheriff)role.text+="\nWrong special hits: "+own.mistakes+" / "+match.Rules.mystery.sheriffMistakes;
             bool pressed=vr?CandyHudContent.SelectPressed(hudSelect):Keyboard.current?.eKey.wasPressedThisFrame==true;
             bool held=vr?CandyHudContent.SelectHeld(hudSelect):Keyboard.current?.eKey.isPressed==true;
-            if(!blocked&&Keyboard.current?.qKey.wasPressedThisFrame==true)mystery.SetSpecialAttack(!own.specialAttack);
+            if(!menuBlocked&&Keyboard.current?.qKey.wasPressedThisFrame==true)mystery.SetSpecialAttack(!own.specialAttack);
             float interaction=match.Rules.mystery.interactDistance;
             prompt.text="";currentRevive=null;float nearest=interaction;MysteryBodyFrame nearbyBody=null;
             MysteryBodyFrame trackedBody=null,previousAutoBody=null,visibleDiscovery=null;
             float trackedDistance=float.PositiveInfinity,previousDistance=float.PositiveInfinity;
             float discoveryDistance=interaction*CandyMysteryBodyGuide.NearbyMultiplier;
-            foreach(var body in mystery.Clues.bodies)
+            foreach(var body in clues.bodies)
             {
                 if(body.lost)continue;
                 if(body.sheriff&&announcedSheriffs.Add(body.id))sheriffNoticeUntil=Time.unscaledTime+5;
@@ -122,7 +133,7 @@ namespace DeadlyJenga.Presentation
             autoBodyId=trackedBody?.id;
             MatchPlayerFrame trackedRevive=null,reachableRevive=null;
             float reviveDistance=float.PositiveInfinity,reachableReviveDistance=interaction;
-            foreach(string id in mystery.Clues.downed)
+            foreach(string id in clues.downed)
             {
                 if(id==match.LocalActorId)continue;
                 var p=match.Frame.players.FirstOrDefault(x=>x.id==id);if(p==null)continue;
@@ -132,15 +143,19 @@ namespace DeadlyJenga.Presentation
                 if(distance<reachableReviveDistance&&Visible(point)){reachableReviveDistance=distance;reachableRevive=p;}
             }
             currentRevive=reachableRevive?.id;
+            float reportDelay=0;
+            if(nearbyBody!=null&&!nearbyBody.reported&&own.reportLocks!=null)
+                foreach(var reportLock in own.reportLocks)
+                    if(reportLock.body==nearbyBody.id){reportDelay=reportLock.remaining;break;}
             if(!blocked)
             {
                 if(currentRevive!=null){prompt.text=vr?"Hold trigger / pinch to revive":"HOLD E TO REVIVE";if(Time.unscaledTime>=nextCommand){nextCommand=Time.unscaledTime+.15f;mystery.Revive(currentRevive,held);}}
                 else if(nearbyBody!=null&&(!nearbyBody.reported||nearbyBody.sheriff&&own.role==MysteryRole.Innocent))
                 {
                     string action=nearbyBody.sheriff?"REPORT SHERIFF":"REPORT NEARBY BODY";
-                    prompt.text=(vr?"TRIGGER / PINCH":"E")+" · "+action;
+                    prompt.text=reportDelay>0?CandyMysteryBodyGuide.ReportCountdown(reportDelay):(vr?"TRIGGER / PINCH":"E")+" · "+action;
                     if(nearbyBody.sheriff&&own.role==MysteryRole.Innocent)prompt.text+="\nCollect the nearby revolver";
-                    if(pressed)mystery.ReportBody(nearbyBody.id);
+                    if(pressed&&reportDelay<=0)mystery.ReportBody(nearbyBody.id);
                 }
                 else if(nearbyBody?.reported==true&&nearbyBody.reportedAge<=match.Rules.mystery.suspicionSeconds)
                 {
@@ -148,19 +163,15 @@ namespace DeadlyJenga.Presentation
                     if(trail!=null){prompt.text=(vr?"TRIGGER / PINCH":"E")+" · SUSPECT "+CandyHudContent.ColorName(trail.color).ToUpperInvariant()+" TRAIL\nA suspicion is not proof of guilt.";if(pressed)mystery.Suspect(nearbyBody.id,trail.sequence);}
                 }
             }
-            if(nearbyBody!=null){var reportLock=own.reportLocks?.FirstOrDefault(l=>l.body==nearbyBody.id);if(reportLock!=null&&reportLock.remaining>0)prompt.text="REPORT READY IN "+Mathf.CeilToInt(reportLock.remaining)+"s";}
             if(string.IsNullOrEmpty(prompt.text))prompt.text=nearbyBody?.reported==true?"REPORTED BODY #"+BodyNumber(nearbyBody.id)+"\n"+CandyHudContent.Suspects(nearbyBody)+"\nLook at a nearby trail to mark suspicion.":"";
             if(!string.IsNullOrEmpty(own.notice)&&own.notice!=privateNotice){privateNotice=own.notice;privateNoticeUntil=Time.unscaledTime+7;}
             if(Time.unscaledTime<privateNoticeUntil)prompt.text=CandyHudContent.Safe(privateNotice,120);
-            bool localDowned=mystery.Clues.downed.Contains(match.LocalActorId);
             if(localDowned)prompt.text="YOU ARE DOWNED\nAnother player must hold "+(vr?"trigger / pinch":"E")+" near you to revive you.";
             CandyHudCards.Visible(prompt,!string.IsNullOrEmpty(prompt.text));
             UpdateReports(match,reportPage,trackedBody);
-            DrawChoices(mystery,blocked);
-            bool hideGuide=blocked||localDowned||match.Frame.phase!=RoundPhase.Playing||
-                (session.Demo as ISpectatorControls)?.Spectating==true||DeadlyJenga.CastlePrototype.EmoteWheel.IsOpen;
-            if(hideGuide)bodyGuide.Hide();
-            else ShowBodyGuide(interaction,own.disasterChoices.Length>0,selectedReport,nearbyBody,visibleDiscovery??trackedBody,reachableRevive,trackedRevive);
+            DrawChoices(mystery,menuBlocked);
+            if(blocked)bodyGuide.Hide();
+            else ShowBodyGuide(interaction,own.disasterChoices.Length>0,selectedReport,nearbyBody,visibleDiscovery??trackedBody,reachableRevive,trackedRevive,reportDelay);
         }
         bool InView(Vector3 point)
         {
@@ -204,14 +215,14 @@ namespace DeadlyJenga.Presentation
             }
         }
         void ShowBodyGuide(float interaction,bool choices,MysteryBodyFrame selected,MysteryBodyFrame nearby,
-            MysteryBodyFrame known,MatchPlayerFrame reachableRevive,MatchPlayerFrame knownRevive)
+            MysteryBodyFrame known,MatchPlayerFrame reachableRevive,MatchPlayerFrame knownRevive,float reportDelay)
         {
             var body=selected??nearby??known;
             var revive=selected==null?(reachableRevive??(body==null?knownRevive:null)):null;
             if(revive!=null)
             {
                 var point=revive.position+Vector3.up*.4f;
-                bodyGuide.Show(eye,point,"REVIVE "+CandyHudContent.Safe(revive.name,14),CandyMysteryBodyGuide.Kind.Revive,
+                bodyGuide.Show(eye,point,revive.id,"REVIVE "+CandyHudContent.Safe(revive.name,14),CandyMysteryBodyGuide.Kind.Revive,
                     interaction,reachableRevive!=null,Visible(point,.12f),choices);
             }
             else if(body!=null)
@@ -220,14 +231,15 @@ namespace DeadlyJenga.Presentation
                 string label=body.reported?(body.sheriff?"SHERIFF · BODY #":"REPORTED BODY #")+BodyNumber(body.id):
                     body.sheriff?"FALLEN SHERIFF":"UNREPORTED BODY";
                 bool reachable=nearby?.id==body.id&&reachableRevive==null;
-                bodyGuide.Show(eye,point,label,body.sheriff?CandyMysteryBodyGuide.Kind.Sheriff:CandyMysteryBodyGuide.Kind.Evidence,
-                    interaction,reachable,Visible(point,.12f),choices);
+                bodyGuide.Show(eye,point,body.id,label,body.sheriff?CandyMysteryBodyGuide.Kind.Sheriff:CandyMysteryBodyGuide.Kind.Evidence,
+                    interaction,reachable,Visible(point,.12f),choices,reachable?reportDelay:0);
             }
             else bodyGuide.Hide();
         }
 
         void ResetClues()
         {
+            bodyGuide?.Hide();
             reportedBodies.Clear();
             bodyNumbers.Clear();
             announcedSheriffs.Clear();
@@ -235,7 +247,8 @@ namespace DeadlyJenga.Presentation
             autoBodyId=null;
             nextBodyNumber=ReportPage=0;
             noticeBody=null;
-            trackingLostUntil=noticeUntil=sheriffNoticeUntil=0;
+            privateNotice=null;
+            trackingLostUntil=noticeUntil=sheriffNoticeUntil=privateNoticeUntil=0;
         }
 
         int BodyNumber(string id)
