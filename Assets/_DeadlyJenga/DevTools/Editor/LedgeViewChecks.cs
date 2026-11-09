@@ -22,6 +22,7 @@ namespace DeadlyJenga.DevTools.Editor
         public static void Validate(Action<bool,string> check)
         {
             var fixture=new GameObject("Ledge view fixture");var oldWorld=Services.World;
+            Collider climbFixture = null;
             try
             {
                 var world=fixture.AddComponent<FakeWorldQuery>();world.stepHeight=2;
@@ -44,9 +45,32 @@ namespace DeadlyJenga.DevTools.Editor
                 var ceiling=Box("Ceiling",new Vector3(0,2+motor.Capsule.height*.5f,1.4f),new Vector3(4,.2f,2));Physics.SyncTransforms();
                 check(!motor.TryStartVault(),"Sinking escape still rejects an occupied landing");ceiling.SetActive(false);Physics.SyncTransforms();
                 motor.InputSuspended=true;check(!motor.TryStartVault(),"Paused player cannot start an escape vault");motor.InputSuspended=false;
-                check(motor.TryStartVault(),"Sinking escape uses the normal vault motor used by bots");
+                motor.Simulate(Vector2.zero,true,.02f,true);
+                check(!motor.Vaulting,"An initial held input leaves time to grab a wall");
+                motor.Simulate(Vector2.zero,false,.02f,false);
+                check(motor.Vaulting,"Releasing a tap starts the normal sinking escape vault");
                 for(int i=0;i<100;i++)motor.Simulate(Vector2.zero,false,.02f);
                 check(!motor.Vaulting&&motor.FootPosition.y>origin.y+2,"Sinking escape completes using collision-swept traversal");
+                ledge.layer = Layers.Surface;
+                climbFixture = ledge.GetComponent<Collider>();
+                Climbables.Register(climbFixture, ledge.AddComponent<ModeShelterFloor>());
+                motor.Teleport(origin+new Vector3(0,.04f,.20f),Quaternion.identity);
+                motor.viewCamera.transform.rotation=Quaternion.identity;
+                Physics.SyncTransforms();
+                for (int i = 0; i < 15; i++)
+                {
+                    motor.SetSinking(true,.30f+i*.01f);
+                    motor.Simulate(Vector2.zero,i==0,.02f,true);
+                }
+                check(motor.Climbing&&!motor.Vaulting,"Holding against a real climbable wall catches a grip while sinking");
+                float grabbedAt = motor.FootPosition.y;
+                for (int i = 0; i < 10; i++)
+                {
+                    motor.SetSinking(true,.50f);
+                    motor.Simulate(Vector2.up,false,.02f,true);
+                }
+                check(motor.Vaulting||motor.Climbing&&motor.FootPosition.y>grabbedAt+.08f,
+                    "Repeated sinking updates preserve the climb and allow upward escape");
                 Place();motor.SetSinking(true);world.stepHeight=20;
                 ledge.GetComponent<BoxCollider>().size=new Vector3(4,6,2);ledge.transform.position=origin+new Vector3(0,3,1.4f);Physics.SyncTransforms();
                 check(!motor.TryStartVault(),"An oversized map step cannot grant unlimited escape height");
@@ -68,7 +92,7 @@ namespace DeadlyJenga.DevTools.Editor
                 rig.enabled=false;check(rig.bodyRenderer.sharedMesh==original,"Disabling the rig restores the complete body");
                 check(rig.GetComponentsInChildren<Renderer>().All(r=>r.shadowCastingMode!=ShadowCastingMode.ShadowsOnly),"Interrupted first-person rendering restores cosmetic attachments on disable");
             }
-            finally {Object.DestroyImmediate(fixture);Services.World=oldWorld;}
+            finally {if(climbFixture)Climbables.Unregister(climbFixture);Object.DestroyImmediate(fixture);Services.World=oldWorld;}
         }
     }
 }
