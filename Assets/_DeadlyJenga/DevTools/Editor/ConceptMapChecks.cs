@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
         static string Project=>Path.GetFullPath(Path.Combine(Application.dataPath,".."));
         static bool GameRun=>SessionState.GetBool(Key+"Game",false);
         static readonly string[] MapIds={"moving-shelter","peel-away-screen","collapse-created-route","pivoting-causeway","refuge-exchange","break-contact-borough","skyline-island"};
-        enum GamePhase {Load,Ready,Settle,Observe,RoofReady,RoofJump,Late,Reset}
+        enum GamePhase {Load,Ready,Settle,Observe,RoofReady,RoofJump,SkylineCollapse,Late,Reset}
         static GamePhase gamePhase;
         static int gameIndex,gameLast,gameFrame,resetRevision;
         static float gameFixed,phaseUntil;
@@ -47,6 +47,8 @@ namespace DeadlyJenga.DevTools.Editor
         static Pose[] gameStart;
         static SkylineJumpDriver roofDriver;
         static Pose roofReturn;
+        static Rigidbody impactedSection;
+        static Vector3 impactStart;
         static ConceptMapChecks(){EditorApplication.playModeStateChanged-=State;EditorApplication.playModeStateChanged+=State;Rearm();}
 
         [MenuItem("Tools/Deadly Jenga/Validation/Check Six Concept Maps")]
@@ -330,7 +332,11 @@ namespace DeadlyJenga.DevTools.Editor
                     string stability=CheckSettledGame();
                     Fallback(gameMap,physics,(ConceptMapKind)gameIndex);
                     CaptureGameCamera("intact");
-                    if(gameMap.kind==ConceptMapKind.SkylineIsland)CheckSkylineRoutes(physics);
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland)
+                    {
+                        CheckSkylineRoutes(physics);
+                        CheckSkylineBeach(physics);
+                    }
                     if(stability!=null)throw new InvalidOperationException(stability);
                     var probeKind=gameMap.kind==ConceptMapKind.SkylineIsland?ConceptMapKind.PivotingCauseway:gameMap.kind;
                     gameProbe=BeginProbe(gameMap,physics,probeKind);
@@ -344,7 +350,15 @@ namespace DeadlyJenga.DevTools.Editor
                     ValidateProbe(gameMap,physics,gameProbe);
                     if(gameMap.kind==ConceptMapKind.SkylineIsland)CheckSkylineRoutes(physics);
                     CaptureGameCamera("after-probe");
-                    if(gameMap.kind==ConceptMapKind.SkylineIsland){BeginRoofJumps();return;}
+                    if(gameMap.kind==ConceptMapKind.SkylineIsland)
+                    {
+                        impactedSection=Find(gameMap,"West Crown tower section 11");
+                        Check(impactedSection.isKinematic,"Upper tower holds its pose before the hit");
+                        impactStart=impactedSection.position;
+                        impactedSection.GetComponent<IPushable>().Push(Vector3.left*14,gameMap.gameObject);
+                        gameFixed=Time.fixedTime;gamePhase=GamePhase.SkylineCollapse;phaseUntil=Time.realtimeSinceStartup;Deadline(25);
+                        return;
+                    }
                     gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+4;return;
                 }
                 if(gamePhase==GamePhase.RoofReady)
@@ -362,15 +376,27 @@ namespace DeadlyJenga.DevTools.Editor
                 if(gamePhase==GamePhase.RoofJump)
                 {
                     if(roofDriver.Failure!=null)throw new InvalidOperationException(roofDriver.Failure);
-                    if(!roofDriver.Finished)return;
                     var player=gameSession.Survivor();
+                    // This fixture drives the motor explicitly even when the batch window is unfocused.
+                    player.InputSuspended=false;
+                    if(!roofDriver.Finished)return;
                     CheckActorSupport();
                     Check(roofDriver.Jumps==2&&roofDriver.Landings==2,"Actual survivor jumps and lands across both rooftop gaps in sequence");
                     Note("SKYLINE motor chained two roof jumps with 2.5m/s target input and no climbing or mid-run placement.");
                     player.InputDriver=null;
                     player.externallyDriven=false;
                     player.Place(roofReturn.position,roofReturn.rotation);
-                    gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup+1;Deadline(25);
+                    CompleteGameCase(null);
+                    return;
+                }
+                if(gamePhase==GamePhase.SkylineCollapse)
+                {
+                    if(Time.fixedTime<gameFixed+1.1f)return;
+                    var displacement=impactedSection.position-impactStart;
+                    Check(!impactedSection.isKinematic&&impactedSection.useGravity&&displacement.y<-1,
+                        $"Controlled hit broke the tower section's support and gravity pulled it down: {displacement}");
+                    CaptureGameCamera("after-tower-impact");
+                    gamePhase=GamePhase.Late;phaseUntil=Time.realtimeSinceStartup;Deadline(25);
                     return;
                 }
                 if(gamePhase==GamePhase.Late)
@@ -379,7 +405,9 @@ namespace DeadlyJenga.DevTools.Editor
                     resetRevision=gameMap.Revision;gameSession.ResetMap();gamePhase=GamePhase.Reset;phaseUntil=Time.realtimeSinceStartup+1;return;
                 }
                 Check(gameMap.Revision>resetRevision&&gameMap.Blocks.Count==ConceptMapLayout.Build((ConceptMapKind)gameIndex).Count&&gameMap.Blocks.All(body=>body&&body.gameObject.activeInHierarchy),"Normal session reset rebuilds all authored bodies");
-                CheckActorSupport();CompleteGameCase(null);
+                CheckActorSupport();
+                if(gameMap.kind==ConceptMapKind.SkylineIsland){BeginRoofJumps();return;}
+                CompleteGameCase(null);
             }
             catch(Exception error){CompleteGameCase(error);}
         }
@@ -389,6 +417,7 @@ namespace DeadlyJenga.DevTools.Editor
             string id="sparse-prototype-"+MapIds[gameIndex];Note("CASE BEGIN "+id);
             MatchChoices.MapId=id;MatchChoices.ModeId="demo";MatchChoices.BotTarget=1;MatchChoices.HandCount=0;
             MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;
+            IslandRoomConnection.Ensure();
             var entry=MatchSetup.SelectedMap;
             Check(entry!=null&&entry.mapPrefab,"Selected catalog entry and imported prefab resolve for "+id);
             var authored=entry.mapPrefab.GetComponent<ConceptMechanismMap>();
@@ -501,6 +530,17 @@ namespace DeadlyJenga.DevTools.Editor
                 var direction=root.right;
                 return new CastleBotCommand{look=direction,move=Finished?Vector3.zero:direction*Mathf.Clamp01(2.5f/motor.EffectiveWalkSpeed),jump=jump};
             }
+        }
+
+        static void CheckSkylineBeach(PhysicsScene physics)
+        {
+            var shore=gameMap.Root.TransformPoint(new Vector3(132,2,0));
+            Check(physics.Raycast(shore,Vector3.down,out var beach,3,1,QueryTriggerInteraction.Ignore)
+                &&beach.collider is MeshCollider&&beach.normal.y>.9f&&beach.point.y<shore.y-1.6f,
+                "Walkable island terrain extends beyond the former rectangular floor and slopes to the sea");
+            var deep=gameMap.Root.TransformPoint(new Vector3(155,2,0));
+            Check(!physics.Raycast(deep,Vector3.down,out _,3,1,QueryTriggerInteraction.Ignore),
+                "There is no invisible rectangular floor past the beach");
         }
 
         static void CheckSkylineRoutes(PhysicsScene physics)

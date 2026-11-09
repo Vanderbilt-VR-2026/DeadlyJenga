@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // Six small experimental layouts. All moving pieces use real rigidbody physics.
+    // Concept districts and the connected Skyline Exchange island.
     public sealed class ConceptMechanismMap : MonoBehaviour, IWorldQuery, IMapFootprint, ISyncedWorld, IRebuildable, ITraversalCollisionWorld
     {
         public ConceptMapKind kind=ConceptMapKind.PeelAwayScreen;
@@ -15,16 +15,20 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<Rigidbody> bodies=new();
         readonly List<MayhemModule> modules=new();
         readonly List<bool> fixedBodies=new();
+        readonly Dictionary<Rigidbody,SkylinePiece> skylinePieces=new();
         readonly Collider[] clearance=new Collider[32];
         readonly Dictionary<int,float> submerged=new();
         Transform generated;
         Material[] ownedPalette;
+        Material islandMaterial;
+        Texture2D islandTexture;
         PhysicsMaterial connectorSlide;
         readonly List<Mesh> finishes=new();
         Bounds authored;
         bool replica,collisionOwned,oldIgnored;
         int spawnCursor;
         float nextCleanup;
+        const float SkylineShoreExtent=48;
         const string Prefix="concept-mechanisms-v2:";
         public int Revision {get;private set;}
         public Transform Root=>transform;
@@ -35,13 +39,14 @@ namespace DeadlyJenga.CastlePrototype
         public float TopHeight=>PlayableBounds.max.y;
         public float Radius=>new Vector2(PlayableBounds.extents.x,PlayableBounds.extents.z).magnitude;
         public float StepHeight=>.75f;
-        public int FootprintVersion=>9200+(int)kind;
+        public int FootprintVersion=>kind==ConceptMapKind.SkylineIsland?9306:9200+(int)kind;
         public float FootprintHalfSize {get{var size=ConceptMapLayout.FoundationSize(kind);return Mathf.Max(size.x,size.y)*.5f;}}
         public Bounds PlayableBounds
         {
             get
             {
                 var size=ConceptMapLayout.FoundationSize(kind);
+                if(kind==ConceptMapKind.SkylineIsland)size+=Vector2.one*(SkylineShoreExtent*2);
                 var local=authored.size.sqrMagnitude>0?authored:ConceptMapLayout.Bounds(ConceptMapLayout.Build(kind));
                 local.Encapsulate(new Vector3(-size.x*.5f,-.1f,-size.y*.5f));
                 local.Encapsulate(new Vector3(size.x*.5f,1,size.y*.5f));
@@ -69,13 +74,15 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Rebuild()
         {
-            var layout=ConceptMapLayout.Build(kind);
+            var supports=new List<ConceptMapLayout.SkylineSupport>();
+            var layout=ConceptMapLayout.Build(kind,supports);
             if(generated){generated.gameObject.SetActive(false);Dispose(generated.gameObject);}
             ReleaseFinishes();
-            bodies.Clear();modules.Clear();fixedBodies.Clear();submerged.Clear();spawnCursor=0;
+            bodies.Clear();modules.Clear();fixedBodies.Clear();skylinePieces.Clear();submerged.Clear();spawnCursor=0;
             modules.AddRange(layout);authored=ConceptMapLayout.Bounds(layout);
             generated=new GameObject("Concept island geometry").transform;generated.SetParent(transform,false);
-            EnsurePalette();BuildFoundation();
+            EnsurePalette();
+            if(kind==ConceptMapKind.SkylineIsland)BuildSkylineIsland();else BuildFoundation();
             var lookup=new Dictionary<MayhemModule,Rigidbody>();
             foreach(var m in layout)
             {
@@ -87,7 +94,10 @@ namespace DeadlyJenga.CastlePrototype
                 body.useGravity=!anchored;body.isKinematic=replica||anchored;
                 body.interpolation=replica||anchored?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;
                 var member=go.AddComponent<MayhemStructuralMember>();
-                member.Build(m,palette!=null&&palette.Length>=4&&Array.TrueForAll(palette,material=>material)?palette:ownedPalette,friction);
+                bool skylineStructure=m.district==(int)ConceptMapKind.SkylineIsland;
+                member.Build(m,palette!=null&&palette.Length>=4&&Array.TrueForAll(palette,material=>material)?palette:ownedPalette,friction,skylineStructure);
+                if(skylineStructure)
+                    go.AddComponent<TowerSectionWaterLoad>().Initialize(m,body.mass,Mathf.Abs(transform.lossyScale.x),12.25f,.65f);
                 if(m.district==(int)ConceptMapKind.BreakContactBorough&&m.purpose.StartsWith("Connector ",StringComparison.Ordinal))
                     member.Shapes[0].sharedMaterial=ConnectorSlide();
                 BuildBodyFinish(member.Visual,m);
@@ -126,6 +136,7 @@ namespace DeadlyJenga.CastlePrototype
                 joint.angularXMotion=joint.angularYMotion=joint.angularZMotion=ConfigurableJointMotion.Locked;
                 joint.linearLimit=new SoftJointLimit{limit=2.5f*DistrictScale*transform.lossyScale.x,contactDistance=.02f};joint.enableCollision=false;
             }
+            BuildSkylineSupports(supports,lookup);
             EnableCollision();Physics.SyncTransforms();Revision++;
         }
         float DistrictScale=>kind==ConceptMapKind.SkylineIsland?ConceptMapLayout.SkylineDistrictScale:1;
@@ -134,6 +145,155 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var ca in a.GetComponentsInChildren<Collider>())foreach(var cb in b.GetComponentsInChildren<Collider>())
                 Physics.IgnoreCollision(ca,cb,true);
         }
+        sealed class SkylinePiece
+        {
+            public Rigidbody body;
+            public Pose rest;
+            public readonly List<SkylinePiece> supported=new();
+            public int bearings;
+            public bool grounded,released;
+            public float load,lastLoad;
+        }
+
+        void BuildSkylineSupports(List<ConceptMapLayout.SkylineSupport> supports,Dictionary<MayhemModule,Rigidbody> lookup)
+        {
+            SkylinePiece GetPiece(MayhemModule module)
+            {
+                var body=lookup[module];
+                if(skylinePieces.TryGetValue(body,out var existing))return existing;
+                var piece=new SkylinePiece{body=body,rest=new Pose(body.position,body.rotation)};
+                skylinePieces.Add(body,piece);
+                SetBodyMotion(body,true);
+                var member=body.GetComponent<MayhemStructuralMember>();
+                member.StructuralLoad=force=>LoadSkylinePiece(piece,force);
+                body.gameObject.AddComponent<SkylineImpactReceiver>().Member=member;
+                return piece;
+            }
+            foreach(var support in supports)
+            {
+                var piece=GetPiece(support.piece);
+                piece.bearings++;
+                if(support.parent==null)piece.grounded=true;
+                else GetPiece(support.parent).supported.Add(piece);
+            }
+        }
+
+        void LoadSkylinePiece(SkylinePiece piece,Vector3 force)
+        {
+            if(replica||piece.released||(Services.Session is IWorldAuthority a&&!a.HasWorldAuthority))return;
+            float now=Time.fixedTime;
+            // Repeated loading weakens a bearing. A pause between hits gives it time to settle.
+            piece.load=Mathf.Max(0,piece.load-(now-piece.lastLoad)*3)+force.magnitude;
+            piece.lastLoad=now;
+            float capacity=piece.grounded?8:piece.bearings>1?7:5;
+            if(piece.load>=capacity)ReleaseSkylinePiece(piece);
+        }
+
+        void ReleaseSkylinePiece(SkylinePiece piece)
+        {
+            if(piece.released)return;
+            piece.released=true;
+            if(!replica&&piece.body)SetBodyMotion(piece.body,false);
+            foreach(var dependent in piece.supported)
+                if(--dependent.bearings==0)ReleaseSkylinePiece(dependent);
+        }
+
+        static void SetBodyMotion(Rigidbody body,bool held)
+        {
+            body.collisionDetectionMode=CollisionDetectionMode.Discrete;
+            body.isKinematic=held;
+            body.useGravity=!held;
+            body.interpolation=held?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;
+        }
+
+        void BuildSkylineIsland()
+        {
+            const int sides=192;
+            var half=ConceptMapLayout.FoundationSize(kind)*.5f;
+            var textureHalf=half+Vector2.one*SkylineShoreExtent;
+            var vertices=new List<Vector3>{new(0,.4f,0)};
+            var uv=new List<Vector2>{new(.5f,.5f)};
+            var triangles=new List<int>();
+            // The city sits on a level inland shelf. The same mesh continues down to the water.
+            float[] depths={0,.38f,.75f,1,1.18f};
+            float[] heights={.4f,.39f,.22f,.06f,-.65f};
+            for(int ring=0;ring<depths.Length;ring++)
+                for(int side=0;side<sides;side++)
+                {
+                    float angle=side*Mathf.PI*2/sides;
+                    var direction=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle));
+                    var point=direction*(SkylinePlateauRadius(direction,angle,half)+SkylineBeachWidth(angle)*depths[ring]);
+                    float height=heights[ring];
+                    if(ring==1)
+                    {
+                        float dune=Mathf.Sin(3*angle-.65f)*.58f+Mathf.Sin(5*angle-1.1f)*.32f;
+                        height+=Mathf.Max(0,dune)*1.6f;
+                    }
+                    vertices.Add(new Vector3(point.x,height,point.y));
+                    uv.Add(new Vector2(.5f+.5f*point.x/textureHalf.x,.5f+.5f*point.y/textureHalf.y));
+                }
+            for(int side=0;side<sides;side++)
+            {
+                int next=(side+1)%sides;
+                triangles.Add(0);triangles.Add(1+next);triangles.Add(1+side);
+                for(int ring=1;ring<depths.Length;ring++)
+                {
+                    int inner=1+(ring-1)*sides,outer=1+ring*sides;
+                    triangles.Add(inner+side);triangles.Add(inner+next);triangles.Add(outer+next);
+                    triangles.Add(inner+side);triangles.Add(outer+next);triangles.Add(outer+side);
+                }
+            }
+            var mesh=new Mesh{name="Skyline island terrain"};
+            mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);
+            mesh.RecalculateNormals();mesh.RecalculateBounds();
+            finishes.Add(mesh);
+            var ground=new GameObject("Skyline island terrain",typeof(MeshFilter),typeof(MeshRenderer),typeof(MeshCollider));
+            ground.transform.SetParent(generated,false);
+            ground.GetComponent<MeshFilter>().sharedMesh=mesh;
+            ground.GetComponent<MeshCollider>().sharedMesh=mesh;
+            ground.GetComponent<MeshCollider>().sharedMaterial=friction;
+            ground.GetComponent<MeshRenderer>().sharedMaterial=SkylineTerrainMaterial(half,textureHalf);
+            BuildConnectorBearings(ground.transform,null);
+        }
+
+        static float SkylinePlateauRadius(Vector2 direction,float angle,Vector2 half)
+        {
+            float x=Mathf.Abs(direction.x)/(half.x+25),z=Mathf.Abs(direction.y)/(half.y+25);
+            float rounded=Mathf.Pow(Mathf.Max(1e-9f,x*x*x+z*z*z),-1f/3);
+            return rounded+2*Mathf.Sin(3*angle+.35f)+1.2f*Mathf.Sin(7*angle-1);
+        }
+
+        static float SkylineBeachWidth(float angle)
+            =>10+3*Mathf.Sin(3*angle+.6f)+2*Mathf.Sin(5*angle+1.7f)+Mathf.Sin(9*angle);
+
+        Material SkylineTerrainMaterial(Vector2 half,Vector2 textureHalf)
+        {
+            if(islandMaterial)return islandMaterial;
+            const int size=512;
+            var colors=new Color32[size*size];
+            var grass=new Color(.27f,.46f,.21f);
+            var brightGrass=new Color(.55f,.63f,.30f);
+            var sand=new Color(.81f,.70f,.48f);
+            var wetSand=new Color(.60f,.47f,.33f);
+            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            {
+                var point=new Vector2((2f*x/(size-1)-1)*textureHalf.x,(2f*y/(size-1)-1)*textureHalf.y);
+                float broad=Mathf.PerlinNoise(point.x*.057f+29,point.y*.057f+14);
+                float detail=Mathf.PerlinNoise(point.x*.79f+9,point.y*.79f+63);
+                float angle=Mathf.Atan2(point.y,point.x);
+                float coast=(point.magnitude-SkylinePlateauRadius(point.normalized,angle,half))/SkylineBeachWidth(angle);
+                float beach=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.28f,.38f,coast+(broad-.5f)*.24f));
+                var turf=Color.Lerp(grass,brightGrass,broad);
+                var shore=Color.Lerp(sand,wetSand,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.72f,1.05f,coast)));
+                colors[y*size+x]=Color.Lerp(turf,shore,beach)*Mathf.Lerp(.84f,1.12f,detail);
+            }
+            islandTexture=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Skyline grass and beach",wrapMode=TextureWrapMode.Clamp};
+            islandTexture.SetPixels32(colors);islandTexture.Apply(true,true);
+            islandMaterial=new Material(ownedPalette[0]){name="Skyline terrain material",color=Color.white,mainTexture=islandTexture};
+            islandMaterial.SetFloat("_Smoothness",.12f);
+            return islandMaterial;
+        }
+
         void BuildFoundation()
         {
             var size=ConceptMapLayout.FoundationSize(kind);
@@ -184,24 +344,13 @@ namespace DeadlyJenga.CastlePrototype
             finishes.Add(mesh);
             floor.AddComponent<MeshCollider>().sharedMesh=mesh;
             floor.GetComponent<MeshCollider>().sharedMaterial=friction;
-            foreach(var module in modules)
-                if(module.district==(int)ConceptMapKind.BreakContactBorough&&module.purpose.StartsWith("Connector ",StringComparison.Ordinal))
-                {
-                    var bearing=new GameObject("Independent connector bearing");
-                    bearing.transform.SetParent(floor.transform,false);
-                    float scale=DistrictScale;
-                    bearing.transform.localPosition=new Vector3(module.position.x,.4f+.265f*scale,module.position.z);
-                    var support=bearing.AddComponent<BoxCollider>();
-                    support.size=new Vector3(1.5f,.53f,2.2f)*scale;
-                    support.sharedMaterial=ConnectorSlide();
-                    top.Box(bearing.transform.localPosition,support.size,Quaternion.identity,4);
-                }
+            BuildConnectorBearings(floor.transform,top);
             AddFinish(floor.transform,top,"Island ground");
             AddFinish(floor.transform,cliff,"Molded candy shoreline");
 
             // A single mesh supplies the paved route and the color changes at its edge.
             var paving=new FinishMesh();
-            float pitch=kind==ConceptMapKind.SkylineIsland?2.35f:1.6f;
+            const float pitch=1.6f;
             int columns=Mathf.CeilToInt(size.x/pitch),rows=Mathf.CeilToInt(size.y/pitch);
             float dx=size.x/columns,dz=size.y/rows;
             for(int row=0;row<rows;row++)for(int column=0;column<columns;column++)
@@ -218,20 +367,33 @@ namespace DeadlyJenga.CastlePrototype
                     ConceptMapKind.CollapseCreatedRoute=>Mathf.Abs(x+6.5f)<1.35f&&z<0,
                     ConceptMapKind.PivotingCauseway=>Mathf.Abs(z-6.5f)<1.6f,
                     ConceptMapKind.RefugeExchange=>Mathf.Abs(x-6)<1.8f,
-                    ConceptMapKind.SkylineIsland=>Mathf.Abs(z)<5.8f||Mathf.Abs(x)<3.25f||Mathf.Abs(Mathf.Abs(x)-94)<3.1f||Mathf.Abs(Mathf.Abs(x)-61)<3f,
                     _=>Mathf.Abs(z+5.2f)<1.1f
                 };
-                int districtFinish=kind==ConceptMapKind.SkylineIsland?(column<columns/3?4:column>2*columns/3?0:2):2;
-                int finish=bypass||featureLane?((row+column)%5==0?3:5):((row+column*3)%9==0?1:(row+column)%3==0?4:districtFinish);
-                if(kind==ConceptMapKind.SkylineIsland)
-                {
-                    float u=(dx-.035f)*.5f,v=(dz-.035f)*.5f;
-                    paving.Quad(new Vector3(x-u,.411f,z-v),new Vector3(x-u,.411f,z+v),
-                        new Vector3(x+u,.411f,z+v),new Vector3(x+u,.411f,z-v),finish);
-                }
-                else paving.Box(new Vector3(x,.405f,z),new Vector3(dx-.035f,.012f,dz-.035f),Quaternion.identity,finish);
+                int finish=bypass||featureLane?((row+column)%5==0?3:5):((row+column*3)%9==0?1:(row+column)%3==0?4:2);
+                paving.Box(new Vector3(x,.405f,z),new Vector3(dx-.035f,.012f,dz-.035f),Quaternion.identity,finish);
             }
             AddFinish(floor.transform,paving,"Tiled bypass and courtyard");
+        }
+        void BuildConnectorBearings(Transform parent,FinishMesh visual)
+        {
+            foreach(var module in modules)
+                if(module.district==(int)ConceptMapKind.BreakContactBorough&&module.purpose.StartsWith("Connector ",StringComparison.Ordinal))
+                {
+                    var bearing=new GameObject("Independent connector bearing");
+                    bearing.transform.SetParent(parent,false);
+                    float scale=DistrictScale;
+                    bearing.transform.localPosition=new Vector3(module.position.x,.4f+.265f*scale,module.position.z);
+                    var support=bearing.AddComponent<BoxCollider>();
+                    support.size=new Vector3(1.5f,.53f,2.2f)*scale;
+                    support.sharedMaterial=ConnectorSlide();
+                    if(visual!=null)visual.Box(bearing.transform.localPosition,support.size,Quaternion.identity,4);
+                    else
+                    {
+                        var finish=new FinishMesh();
+                        finish.Box(Vector3.zero,support.size,Quaternion.identity,4);
+                        AddFinish(bearing.transform,finish,"Connector bearing finish");
+                    }
+                }
         }
         void BuildBodyFinish(Transform visual,MayhemModule module)
         {
@@ -397,9 +559,24 @@ namespace DeadlyJenga.CastlePrototype
         static bool Finite(Vector3 p)=>Finite(p.x)&&Finite(p.y)&&Finite(p.z);
         public void SetReplica(bool value)
         {
+            if(replica&&!value)RestoreReleasedSkylinePieces();
             replica=value;
-            for(int i=0;i<bodies.Count;i++)if(bodies[i])
-            {var body=bodies[i];body.collisionDetectionMode=CollisionDetectionMode.Discrete;body.isKinematic=value||fixedBodies[i];body.useGravity=!fixedBodies[i];body.interpolation=value||fixedBodies[i]?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;}
+            for(int i=0;i<bodies.Count;i++)
+            {
+                var body=bodies[i];
+                if(body)SetBodyMotion(body,value||fixedBodies[i]||skylinePieces.TryGetValue(body,out var piece)&&!piece.released);
+            }
+        }
+
+        void RestoreReleasedSkylinePieces()
+        {
+            // Replicas receive body poses. Preserve visible collapse when a replica becomes the host.
+            foreach(var piece in skylinePieces.Values)
+            {
+                var body=piece.body;
+                if(!body||!body.gameObject.activeInHierarchy||(body.position-piece.rest.position).sqrMagnitude>.25f||
+                    Quaternion.Angle(body.rotation,piece.rest.rotation)>12)ReleaseSkylinePiece(piece);
+            }
         }
         void FixedUpdate()
         {
@@ -407,7 +584,7 @@ namespace DeadlyJenga.CastlePrototype
             nextCleanup=Time.time+.25f;
             for(int i=0;i<bodies.Count;i++)
             {
-                var body=bodies[i];if(fixedBodies[i]||!body||!body.gameObject.activeSelf)continue;
+                var body=bodies[i];if(!body||body.isKinematic||!body.gameObject.activeSelf)continue;
                 var shapes=body.GetComponent<MayhemStructuralMember>().Shapes;var bounds=shapes[0].bounds;
                 foreach(var shape in shapes)bounds.Encapsulate(shape.bounds);
                 if(bounds.max.y>WaterHeight(bounds.center)-.2f){submerged.Remove(i);continue;}
@@ -416,6 +593,25 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         static void Dispose(UnityEngine.Object obj){if(Application.isPlaying)Destroy(obj);else DestroyImmediate(obj);}
-        void OnDestroy(){ReleaseFinishes();if(connectorSlide)Dispose(connectorSlide);if(ownedPalette!=null)foreach(var material in ownedPalette)if(material)Dispose(material);}
+        void OnDestroy()
+        {
+            ReleaseFinishes();
+            if(connectorSlide)Dispose(connectorSlide);
+            if(islandMaterial)Dispose(islandMaterial);
+            if(islandTexture)Dispose(islandTexture);
+            if(ownedPalette!=null)foreach(var material in ownedPalette)if(material)Dispose(material);
+        }
+    }
+
+    // Only supported Skyline pieces receive this callback. Ordinary map contacts are unchanged.
+    internal sealed class SkylineImpactReceiver : MonoBehaviour
+    {
+        internal MayhemStructuralMember Member;
+        void OnCollisionEnter(Collision collision)
+        {
+            if(!Member||!Member.Body.isKinematic||!collision.rigidbody||collision.rigidbody.isKinematic)return;
+            var impulse=collision.impulse;
+            if(impulse.sqrMagnitude>.0001f)Member.Push(impulse/Member.Body.mass,collision.gameObject);
+        }
     }
 }
