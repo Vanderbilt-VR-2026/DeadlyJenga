@@ -296,11 +296,6 @@ namespace DeadlyJenga.CastlePrototype
             bool footage = Environment.GetCommandLineArgs().Contains("--dj-motion-footage");
             if (footage)
             {
-                var cue = Mark("footage-start");
-                if (host) File.WriteAllText(cue, DateTime.UtcNow.AddSeconds(2).Ticks.ToString());
-                else yield return Until(() => File.Exists(cue), "Host publishes the shared footage clock", 12);
-                captureStart = long.Parse(File.ReadAllText(cue));
-                while (DateTime.UtcNow.Ticks < captureStart) yield return null;
                 var pivot = world.Blocks[block].position;
                 var cameraObject = new GameObject("Motion probe fixed capture view");
                 motionCamera = cameraObject.AddComponent<Camera>();
@@ -310,6 +305,15 @@ namespace DeadlyJenga.CastlePrototype
                     Quaternion.LookRotation(new Vector3(-6, -4.4f, 8)));
                 motionTexture = new RenderTexture(640, 360, 24);
                 motionPixels = new Texture2D(640, 360, TextureFormat.RGB24, false);
+                SaveMotionFrame(motionCamera, motionTexture, motionPixels, Mark(role + "-warm.jpg"));
+                File.WriteAllText(Mark(role + "-footage-warm"), "ready");
+                var otherRole = host ? "guest" : "host";
+                yield return Until(() => File.Exists(Mark(otherRole + "-footage-warm")), "Peer camera warm", 60);
+                var cue = Mark("footage-start");
+                if (host) File.WriteAllText(cue, DateTime.UtcNow.AddSeconds(4).Ticks.ToString());
+                else yield return Until(() => File.Exists(cue), "Host publishes the shared footage clock", 12);
+                captureStart = long.Parse(File.ReadAllText(cue));
+                while (DateTime.UtcNow.Ticks < captureStart) yield return null;
             }
             try
             {
@@ -360,9 +364,10 @@ namespace DeadlyJenga.CastlePrototype
                     AppendPosition(data, shadow ? shadow.Bot : Vector3.zero);
                     AppendPosition(data, shadow ? shadow.Block : Vector3.zero);
                     data.AppendLine();
-                    if (motionCamera && elapsed >= motionFrame / 12d && motionFrame < 72)
+                    if (motionCamera && elapsed >= motionFrame / 8d && motionFrame < 48)
                     {
                         SaveMotionFrame(motionCamera, motionTexture, motionPixels, Mark($"{role}-frame-{motionFrame:D4}.jpg"));
+                        File.AppendAllText(Mark(role + "-frame-times.csv"), FormattableString.Invariant($"{motionFrame},{elapsed:F4}") + Environment.NewLine);
                         motionFrame++;
                     }
                     yield return null;
