@@ -14,8 +14,9 @@ namespace DeadlyJenga.CandyAudio
         public static void PlayWeapon(EquipmentActionFrame action,bool global=false)
         {
             string key=action.kind+"/"+action.action+(action.action==EquipmentAction.Shot? (action.shotgun?"/wide":"/precision"):"");bool shot=action.action==EquipmentAction.Shot,impact=action.action==EquipmentAction.Impact,reload=action.action==EquipmentAction.Reload;
-            float seconds=impact?1.2f:reload?.8f:shot?(action.kind==EquipmentKind.ChainGun?.16f:.4f):.25f;
-            var cue=Get(key,(int)action.kind*41+(int)action.action,seconds,false,shot,impact,reload,action.kind);
+            bool thunder=shot&&action.kind==EquipmentKind.LaserAxe&&action.shotgun;
+            float seconds=thunder?.96f:impact?1.2f:reload?.8f:shot?(action.kind==EquipmentKind.ChainGun?.16f:.4f):.25f;
+            var cue=Get(key,(int)action.kind*41+(int)action.action,seconds,false,shot,impact,reload,action.kind,thunder);
             cue.maxDistance=global?10000:action.kind==EquipmentKind.ChainGun?120:impact?100:75;cue.minDistance=global?1000:action.kind==EquipmentKind.ChainGun?6:2;
             CandyAudioEngine.Instance?.PlayCue(cue,action.position,1,action.actor?.GetHashCode()??0);
         }
@@ -25,7 +26,7 @@ namespace DeadlyJenga.CandyAudio
             CandyAudioEngine.Instance?.PlayCue(Get("emote/"+name,seed,.45f,true,false,false,false,EquipmentKind.None),who.transform.position+Vector3.up*1.3f,.7f,who.GetInstanceID());
         }
         static int StableHash(string text){unchecked{int h=17;foreach(char c in text)h=h*31+c;return h&int.MaxValue;}}
-        static CandyAudioCue Get(string key,int seed,float duration,bool emote,bool shot,bool impact,bool reload,EquipmentKind kind)
+        static CandyAudioCue Get(string key,int seed,float duration,bool emote,bool shot,bool impact,bool reload,EquipmentKind kind,bool thunder=false)
         {
             if(cues.TryGetValue(key,out var cue))return cue;
             cue=new CandyAudioCue{sound=(CandySound)(1000+StableHash(key)%1000000),bus=CandyBus.Character,volume=emote?.45f:.7f,priority=emote?150:65,cooldown=emote?.5f:.035f,maxVoices=emote?3:5,maxDistance=emote?22:75,variants=new AudioClip[5]};
@@ -41,6 +42,14 @@ namespace DeadlyJenga.CandyAudio
                     float attack=Mathf.Clamp01(t/.006f),tail=Mathf.Pow(1-u,impact?1.4f:3),value;
                     if(emote){float f=(150+seed%160)*pitch*(1+.20f*Mathf.Sin(t*12+seed%5));phase+=f*2*Mathf.PI/rate;float syllable=.35f+.65f*Mathf.Pow(Mathf.Max(0,Mathf.Sin(t*(18+seed%14))),2);value=(Mathf.Sin(phase)+.30f*Mathf.Sin(phase*2.1f)+low*.3f)*syllable*.35f;}
                     else if(kind==EquipmentKind.ChainGun&&shot){float pulse=Mathf.Pow(.5f+.5f*Mathf.Sin(t*2*Mathf.PI*66.7f),3);value=(noise*.65f+Mathf.Sin(t*2*Mathf.PI*88)*.25f)*(.22f+pulse*.78f);}
+                    else if(thunder)
+                    {
+                        float crack=Mathf.Exp(-t*32)+.42f*Mathf.Exp(-Mathf.Abs(t-.065f)*55);
+                        float roll=Mathf.Exp(-t*2.8f)*Mathf.Clamp01(t/.027f);
+                        phase+=(70-38*u)*2*Mathf.PI/rate;
+                        value=noise*crack*.85f+(low*1.25f+Mathf.Sin(phase)*.43f)*roll;
+                        tail=Mathf.Pow(1-u,.75f);
+                    }
                     else if(kind==EquipmentKind.WristLaser&&shot){phase+=(310+160*u)*2*Mathf.PI/rate;value=(Mathf.Sin(phase)*.35f+Mathf.Sin(phase*1.013f)*.25f+low*.3f);}
                     else if(kind==EquipmentKind.GrenadeLauncher&&impact){value=low*1.4f+noise*(Mathf.Sin(t*113)>0.85f?.8f:.12f)+Mathf.Sin(t*2*Mathf.PI*(90-55*u))*.4f;}
                     else if(kind==EquipmentKind.RocketLauncher&&impact){value=low*2.2f+noise*.38f*Mathf.Exp(-t*8)+Mathf.Sin(t*2*Mathf.PI*(48-23*u))*.7f;}

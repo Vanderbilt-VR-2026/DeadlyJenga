@@ -71,7 +71,7 @@ namespace DeadlyJenga.CandyPlayers
             return true;
         }
 
-        static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
+        internal static Pose DrawnPose(EquipmentKind kind,CandyHandPose hand,bool left,float scale)
         {
             if(!MeleeMount(kind,left,out var palm,out var mount))return new Pose(hand.position,hand.rotation);
             return new Pose(hand.position+hand.rotation*palm*scale,hand.rotation*mount);
@@ -115,13 +115,17 @@ namespace DeadlyJenga.CandyPlayers
 
             var feedState = slungForEmote ? slungFeedState : state;
             float target = state.drawn && !slungForEmote ? 1 : 0;
-            bool back = EquipmentSpecifications.Get(kind).backHolster || kind == EquipmentKind.FlamingMarshmallow;
-            float duration = kind == EquipmentKind.LaserClaws || kind == EquipmentKind.WristLaser || kind == EquipmentKind.PoweredArmor ? .17f : back ? .34f : .23f;
+            float duration = CarryDuration(target > 0);
             drawAmount = Mathf.MoveTowards(drawAmount, target, Time.deltaTime / duration);
             if (state.roleIssued && !state.drawn && drawAmount <= 0) { Hide(); return; }
 
+            if (target > 0)
+            {
+                lastCarriedFrame = frame;
+                hasCarriedFrame = true;
+            }
             var hand = state.leftHanded ? frame.left : frame.right;
-            var pose = CarryPose(frame, hand, state.leftHanded, drawAmount);
+            var pose = CarryPose(frame, hand, state.leftHanded, drawAmount, target > 0);
             if (slungForEmote)
             {
                 wasEmbedded = false;
@@ -159,7 +163,7 @@ namespace DeadlyJenga.CandyPlayers
 
                 bool otherLeft = !state.leftHanded;
                 var other = otherLeft ? frame.left : frame.right;
-                var otherPose = CarryPose(frame, other, otherLeft, drawAmount);
+                var otherPose = CarryPose(frame, other, otherLeft, drawAmount, target > 0);
                 paired.SetPositionAndRotation(otherPose.position, otherPose.rotation);
                 paired.localScale = Vector3.one * frame.scale;
                 paired.gameObject.SetActive(true);
