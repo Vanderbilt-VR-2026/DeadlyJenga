@@ -146,8 +146,45 @@ namespace DeadlyJenga.DevTools.Editor
             else
             {
                 var screen=lobby.GetComponent<MarinaScreen>();Check(screen&&screen.Visible,"Marina facade active by default");
-                foreach(string id in new[]{"marina-modes","marina-maps","marina-host","marina-join","marina-settings"})
-                {Check(screen.Invoke(id),id+" opens");Check(view.InvokeChoice("marina-close"),id+" closes");}
+                if(Application.isFocused)
+                    foreach(string id in new[]{"marina-modes","marina-maps","marina-host","marina-join","marina-settings"})
+                    {
+                        yield return null;
+                        Check(screen.Invoke(id),id+" opens");
+                        yield return null;
+                        Check(view.InvokeChoice("marina-close"),id+" closes");
+                        yield return null;
+                    }
+                else File.AppendAllText(Report,"SKIP Terminal input requires a focused Game View. Facade presence verified.\n");
+                var marina=lobby.GetComponent<MayhemMarina>();
+                captureOrigin=lobby.transform.position;
+                Check(marina.RenderTriangles>0&&marina.CollisionTriangles>1000,"Actual rendered Marina and walkable geometry present");
+                Check(!Physics.Raycast(lobby.transform.TransformPoint(new Vector3(2,2,-8)),Vector3.down,3,
+                    (1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore),"The central inlet has no hidden walking surface");
+                yield return Wait(3);
+                Check(!lobby.GetComponentsInChildren<Canvas>().Any(canvas=>canvas.enabled&&canvas.name.EndsWith(" / readable back",StringComparison.Ordinal)),
+                    "Hidden legacy terminals leave no visible rear canvases over the marina");
+                Capture(new Vector3(-26,19,-30),new Vector3(0,2,5),66,"Marina-Makeover-Overview.png");
+                Capture(new Vector3(-8.1f,2.43f,-6.85f),new Vector3(0,3.85f,11.1f),65,"Marina-Makeover-Arrival.png");
+                Capture(new Vector3(15.6f,2.35f,-.4f),new Vector3(17,1.1f,-8),68,"Marina-Makeover-Practice.png");
+                lobby.enabled=false; // Stop population refill during the isolated motor routes.
+                if(Services.Session?.SurvivorBots!=null)
+                {
+                    Services.Session.SurvivorBots.AutoFill=false;
+                    Services.Session.SurvivorBots.Running=false;
+                    Services.Session.SurvivorBots.Clear();
+                }
+                yield return Walk(lobby,new[]{new Vector3(-10,1.35f,-8),new Vector3(-6.9f,1.34f,-5.1f),
+                    new Vector3(-3,1.31f,3.15f),new Vector3(0,1.31f,3.5f),new Vector3(0,1.9f,6.3f)},"arrival to Play");
+                yield return Walk(lobby,new[]{new Vector3(-6.9f,1.31f,3.15f),new Vector3(-13,1.31f,3.15f),
+                    new Vector3(-13,1.31f,6.6f)},"promenade to Style");
+                yield return Walk(lobby,new[]{new Vector3(6.9f,1.31f,3.15f),new Vector3(15,1.31f,3.15f),
+                    new Vector3(15,1.31f,2.6f),new Vector3(17,1.12f,-2.86f),new Vector3(17,.4f,-6.55f)},"promenade to practice basin",.29f);
+                yield return Walk(lobby,new[]{new Vector3(8.2f,1.31f,9.25f),new Vector3(8.2f,4.07f,17.95f),
+                    new Vector3(3.3f,4.18f,17.95f),new Vector3(-8.7f,4.18f,17.95f)},"east ramp and upper terrace link");
+                yield return Walk(lobby,new[]{new Vector3(-21,1.31f,2.6f),new Vector3(-21,4.18f,17.9f),
+                    new Vector3(-17.8f,4.18f,17.9f)},"west ramp and lookout");
+                lobby.enabled=true;
             }
         }
         static IEnumerator RunNetworkScene()
@@ -293,7 +330,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(lobby.Player.gameObject.activeInHierarchy&&marina.Built,"Returned Marina remains usable");
             Check(Vector3.Distance(lobby.Player.transform.position,lobby.SafeSpawnPoint())<2,"Returned player is at the supported Marina spawn");
         }
-        static IEnumerator Walk(IslandLobby lobby,Vector3[] points,string label)
+        static IEnumerator Walk(IslandLobby lobby,Vector3[] points,string label,float minHeight=.8f)
         {
             var motor=lobby.Survivor();var driver=new MarinaWalkDriver();motor.externallyDriven=true;motor.InputDriver=driver;motor.InputSuspended=false;
             motor.Place(lobby.transform.TransformPoint(points[0]),Quaternion.identity);
@@ -303,7 +340,7 @@ namespace DeadlyJenga.DevTools.Editor
                 while(Vector3.ProjectOnPlane(driver.target-motor.transform.position,Vector3.up).magnitude>.45f&&Time.realtimeSinceStartup<until)yield return null;
                 File.AppendAllText(Report,$"WALK {label} at={motor.transform.position} target={driver.target} status={motor.ActionStatus}\n");
                 Check(Vector3.ProjectOnPlane(driver.target-motor.transform.position,Vector3.up).magnitude<.6f,label+" waypoint "+i+" reached by actual survivor motor");
-                Check(motor.transform.position.y>lobby.transform.position.y+.8f,label+" remains supported");
+                Check(motor.transform.position.y>lobby.transform.position.y+minHeight,label+" remains above the waterline or basin floor");
             }
             motor.InputDriver=null;motor.externallyDriven=false;motor.InputSuspended=true;
         }

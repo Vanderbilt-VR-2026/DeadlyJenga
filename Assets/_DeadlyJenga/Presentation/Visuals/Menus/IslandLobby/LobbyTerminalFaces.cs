@@ -8,6 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         Camera eye;
         CanvasGroup front,rear;
+        Canvas rearCanvas;
         RectTransform rearRect;
         public bool ShowingFront {get;private set;}
         public float Opacity {get;set;}=1;
@@ -17,7 +18,8 @@ namespace DeadlyJenga.CastlePrototype
             eye=camera;front=gameObject.AddComponent<CanvasGroup>();
             var back=new GameObject(title+" / readable back",typeof(RectTransform),typeof(Canvas),typeof(Image),typeof(CanvasGroup));
             back.transform.SetParent(transform.parent,false);rearRect=back.GetComponent<RectTransform>();rearRect.sizeDelta=size;
-            var canvas=back.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=100;
+            rearCanvas=back.GetComponent<Canvas>();rearCanvas.renderMode=RenderMode.WorldSpace;rearCanvas.overrideSorting=true;rearCanvas.sortingOrder=100;
+            rearCanvas.enabled=isActiveAndEnabled;
             var image=back.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
             rear=back.GetComponent<CanvasGroup>();
             Label("DEADLY JENGA",90,34,accent);Label(title,20,23,Color.white);Label("CONTROLS ON THE OTHER SIDE",-70,18,CandyHudVisuals.Muted);
@@ -29,6 +31,8 @@ namespace DeadlyJenga.CastlePrototype
             label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.text=value;label.fontSize=size;label.color=color;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(560,55);label.rectTransform.anchoredPosition=new Vector2(0,y);
         }
+        void OnEnable(){if(rearCanvas)rearCanvas.enabled=true;}
+        void OnDisable(){if(rearCanvas)rearCanvas.enabled=false;}
         void LateUpdate()=>Refresh();
         public void Refresh()
         {

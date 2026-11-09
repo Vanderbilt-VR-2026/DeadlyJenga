@@ -26,9 +26,10 @@ namespace DeadlyJenga.CandyArt.Marina
                 var p=new Vector3(Mathf.Sin(a)*8.85f,1.23f,4+Mathf.Cos(a)*10.85f);
                 mesh.Box(p,new Vector3(1.05f,.24f,.48f),F.Ivory,.07f,false,Quaternion.Euler(0,a*Mathf.Rad2Deg+90,0));
             }
-            Bridge(new Vector3(-18,1.17f,-25),new Vector3(-10,1.34f,-12.3f),3.6f,0);
-            Bridge(new Vector3(-9.5f,1.34f,-2.8f),new Vector3(-7.5f,1.35f,3.3f),2.7f,.13f);
-            Bridge(new Vector3(-5.45f,1.34f,-5.1f),new Vector3(9.0f,1.3f,2),2.45f,.48f);
+            Bridge(new Vector3(-18,1.24f,-25),new Vector3(-10,1.33f,-12.3f),3.6f,0);
+            Bridge(new Vector3(-6.9f,1.33f,-5.1f),new Vector3(-3,1.285f,3.15f),4.4f,.17f);
+            mesh.Box(new Vector3(-8.27f,1.225f,3.15f),new Vector3(1.12f,.12f,2.65f),F.Stone,0,true);
+            mesh.Box(new Vector3(0,1.294f,3.1f),new Vector3(15.4f,.007f,1.1f),F.Ivory,.002f);
             mesh.Disk(new Vector3(17,-.7f,-8),5.5f,1,F.Rock,true);
             mesh.Disk(new Vector3(17,.27f,-8),4.82f,.11f,F.Stone,true);
             mesh.ArcSlab(new Vector3(17,.3f,-8),Vector2.one*4.8f,Vector2.one*5.45f,.78f,0,360,F.Ivory,true,64);
@@ -37,7 +38,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 float a=i*Mathf.PI/12;var p=new Vector3(17+Mathf.Sin(a)*5.12f,1.08f,-8+Mathf.Cos(a)*5.12f);
                 mesh.Box(p,new Vector3(1.22f,.15f,.68f),F.Stone,.05f,false,Quaternion.Euler(0,a*Mathf.Rad2Deg+90,0));
             }
-            Bridge(new Vector3(14.5f,1.3f,1.4f),new Vector3(17,1.13f,-2.7f),2.3f,.12f);
+            Bridge(new Vector3(15,1.285f,2.6f),new Vector3(17,1.08f,-2.86f),2.8f,.10f);
+            Ramp(new Vector3(17,1.08f,-3.18f),new Vector3(17,.38f,-6.05f),2.1f,false);
             // A few blocks already in the basin make its purpose legible before anyone interacts.
             for(int i=0;i<6;i++)
             {
@@ -65,9 +67,13 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<planks;i++)
             {
                 float t=(i+.5f)/planks;var slope=(P(Mathf.Min(1,t+.01f))-P(Mathf.Max(0,t-.01f))).normalized;
-                mesh.Box(P(t)-Vector3.up*.07f,new Vector3(width,.14f,length/planks+.009f),F.Wood,.025f,true,Quaternion.LookRotation(slope));
+                var pose=Quaternion.LookRotation(slope);
+                mesh.Box(P(t)-pose*Vector3.up*.07f,new Vector3(width,.14f,length/planks+.009f),F.Wood,.018f,false,pose);
                 foreach(int sign in new[]{-1,1})mesh.Ellipsoid(P(t)+side*(sign*(width*.5f-.12f))+Vector3.up*.007f,new Vector3(.025f,.008f,.025f),F.Brass,rings:4,sides:8);
             }
+            int spans=arch>0?12:1;
+            for(int i=0;i<spans;i++)
+                mesh.WalkStrip(P(i/(float)spans),P((i+1f)/spans),side*(width*.5f));
             int posts=Mathf.CeilToInt(length/2.1f);
             for(int sign=-1;sign<=1;sign+=2)
             {
@@ -94,7 +100,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Pavilion()
         {
-            for(int step=0;step<3;step++)mesh.Box(new Vector3(0,1.35f+step*.14f,4+step*.44f),new Vector3(13-step*.4f,.24f,1.15f),F.Stone,.09f,true);
+            Ramp(new Vector3(0,1.285f,3.85f),new Vector3(0,1.86f,5.05f),9.2f,false);
             // Keep the raised platform outside the west passage, where the ramp meets it flush.
             mesh.Box(new Vector3(.6f,1.56f,8.45f),new Vector3(11.8f,.6f,6.9f),F.Stone,0,true);
             mesh.Box(new Vector3(-5.9f,1.56f,5.5f),new Vector3(1.2f,.6f,1.0f),F.Stone,0,true);
@@ -111,7 +117,18 @@ namespace DeadlyJenga.CandyArt.Marina
                 Pot(new Vector3(side*5.15f,1.86f,side<0?10.05f:9.65f),.43f,.74f,side+3);
                 Lantern(new Vector3(side*4.2f,4.75f,5.1f),.2f);
             }
-            mesh.CurvedRoof(new Vector3(0,4.8f,8.3f),15.1f,8.6f,2.15f,F.Coral);
+            mesh.CurvedRoof(new Vector3(0,4.8f,8.3f),15.6f,9.1f,2.15f,F.Teal);
+            mesh.Box(new Vector3(0,5.58f,3.71f),new Vector3(5.5f,.95f,.24f),F.DarkWood,.085f);
+            for(int side=-1;side<=1;side+=2)
+                mesh.Beam(new Vector3(side*2,5.98f,3.77f),new Vector3(side*2,6.73f,3.77f),.055f,F.Brass);
+            for(int side=-1;side<=1;side+=2)
+            {
+                float x=side*6.75f;
+                mesh.Box(new Vector3(x,1.46f,4.65f),new Vector3(.94f,.34f,.94f),F.Stone,.08f,true);
+                mesh.Beam(new Vector3(x,1.55f,4.65f),new Vector3(x,5.55f,4.65f),.18f,F.DarkWood,true);
+                mesh.Beam(new Vector3(x,4.72f,4.65f),new Vector3(side*5.92f,5.65f,4.65f),.13f,F.DarkWood);
+                Lantern(new Vector3(x,3.42f,4.23f),.16f);
+            }
             // The screen frame is real architecture; the live controls are supplied by the lobby view.
             mesh.Box(new Vector3(0,3.9f,11.32f),new Vector3(7.75f,3.9f,.23f),F.Wood,.17f);
             mesh.Box(new Vector3(0,3.9f,11.17f),new Vector3(7.38f,3.57f,.10f),F.Ivory,.18f);
@@ -187,7 +204,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Beam(c+new Vector3(x,1.02f,2.94f),c+new Vector3(x,3.2f,2.94f),.025f,F.Brass);
             }
             mesh.Box(c+new Vector3(5,1.65f,1),new Vector3(.65f,3.3f,4.3f),F.Ivory,.2f,true);
-            mesh.CurvedRoof(c+new Vector3(0,3.5f,.2f),12.2f,7.5f,.68f,F.Coral);
+            mesh.CurvedRoof(c+new Vector3(0,3.5f,.2f),12.2f,7.5f,.68f,F.DarkWood);
             for(int side=-1;side<=1;side+=2)
             {
                 mesh.Beam(c+new Vector3(side*4.8f,0,-2),c+new Vector3(side*4.8f,3.7f,-2),.15f,F.Wood,true);
@@ -202,7 +219,7 @@ namespace DeadlyJenga.CandyArt.Marina
             // The front social island has another curved bank of seating.
             for(int i=0;i<4;i++)
             {
-                float angle=Mathf.Lerp(15,105,i/3f)*Mathf.Deg2Rad;var p=new Vector3(-10+Mathf.Cos(angle)*4.0f,1.35f,-8+Mathf.Sin(angle)*4.0f);
+                float angle=Mathf.Lerp(130,205,i/3f)*Mathf.Deg2Rad;var p=new Vector3(-10+Mathf.Cos(angle)*4.0f,1.33f,-8+Mathf.Sin(angle)*4.0f);
                 Sofa(p,1.35f,Quaternion.Euler(0,90-angle*Mathf.Rad2Deg,0));
             }
         }
@@ -210,7 +227,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             void B(Vector3 d,Vector3 s,F color,float bevel=.10f,bool solid=false)=>mesh.Box(p+q*d,s,color,bevel,solid,q);
             B(new Vector3(0,.25f,0),new Vector3(width,.5f,1.25f),F.Wood,.15f,true);
-            B(new Vector3(0,.60f,0),new Vector3(width-.24f,.27f,1.0f),F.CreamFabric);
+            B(new Vector3(0,.60f,0),new Vector3(width-.24f,.27f,1.0f),F.CreamFabric,.10f,true);
             B(new Vector3(0,1.05f,.48f),new Vector3(width-.12f,.78f,.27f),F.CreamFabric,.11f,true);
             for(int side=-1;side<=1;side+=2)B(new Vector3(side*(width*.5f-.10f),.65f,0),new Vector3(.22f,.58f,1.25f),F.Wood,.08f,true);
             int cushions=Mathf.Max(1,Mathf.RoundToInt(width/1.4f));
@@ -222,7 +239,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Table(Vector3 p,float radius)
         {
-            mesh.Disk(p+Vector3.up*.08f,radius*.63f,.45f,F.Wood,true,28);mesh.Disk(p+Vector3.up*.53f,radius,.15f,F.Wood,false,40);
+            mesh.Disk(p+Vector3.up*.08f,radius*.63f,.45f,F.Wood,true,28);mesh.Disk(p+Vector3.up*.53f,radius,.15f,F.Wood,true,40);
             for(int i=0;i<3;i++)
             {
                 float a=i*Mathf.PI*2/3;var c=p+new Vector3(Mathf.Cos(a)*radius*.5f,.73f,Mathf.Sin(a)*radius*.5f);
@@ -236,10 +253,11 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(-1,3.4f,18),new Vector3(10,1.1f,6),F.Ivory,.4f,true);
             mesh.Box(new Vector3(-1,4.05f,18),new Vector3(10,.18f,6),F.Stone,.06f,true);
             Stairs(new Vector3(-8.0f,1.3f,9.5f),new Vector3(-8.0f,4.14f,16.5f),2.3f);
-            Stairs(new Vector3(8.2f,1.3f,10),new Vector3(8.2f,4.12f,16.8f),2.25f);
+            Ramp(new Vector3(8.2f,1.285f,9.55f),new Vector3(8.2f,4.03f,16.85f),2.4f,false);
+            mesh.Box(new Vector3(8.3f,3.94f,17.75f),new Vector3(2.85f,.18f,1.85f),F.Wood,.025f,true);
             // A broad side ramp gives the upper gathering terrace a route without jumps.
             Ramp(new Vector3(-21.0f,1.28f,2.4f),new Vector3(-21.0f,4.14f,17.4f),2.5f);
-            mesh.Box(new Vector3(-19.7f,4.05f,19.1f),new Vector3(5,.18f,4.0f),F.Stone,.06f,true);
+            mesh.Box(new Vector3(-19.7f,4.05f,19.24f),new Vector3(5,.18f,3.72f),F.Stone,0,true);
             for(int i=0;i<4;i++)
             {
                 float x=-17+i*3.2f;mesh.Beam(new Vector3(x,4.15f,17.9f),new Vector3(x,7.2f,17.9f),.15f,F.Wood,true);
@@ -250,9 +268,11 @@ namespace DeadlyJenga.CandyArt.Marina
             Sofa(new Vector3(-14,4.15f,18.4f),4.3f,Quaternion.identity);Table(new Vector3(-14,4.15f,16.6f),1.1f);
             Rail(new Vector3(-18,4.15f,13.1f),new Vector3(-9.5f,4.15f,13.1f));
             Rail(new Vector3(-6.4f,4.15f,14),new Vector3(4.0f,4.15f,14));
-            Rail(new Vector3(4.0f,4.15f,14),new Vector3(4.0f,4.15f,21));
+            Rail(new Vector3(4.0f,4.15f,14),new Vector3(4.0f,4.15f,16.25f));
+            Rail(new Vector3(4.0f,4.15f,19.65f),new Vector3(4.0f,4.15f,20.85f));
             mesh.Box(new Vector3(14,2.6f,15.8f),new Vector3(10,2.5f,6),F.Ivory,.3f,true);
             mesh.Box(new Vector3(14,3.94f,15.8f),new Vector3(10,.18f,6),F.Wood,.04f,true);
+            Bridge(new Vector3(3.72f,4.14f,17.95f),new Vector3(9.4f,4.03f,17.95f),2.65f,.04f);
             Rail(new Vector3(10.1f,4.04f,13.2f),new Vector3(18.8f,4.04f,13.2f));
             for(int i=0;i<6;i++)
             {
@@ -267,9 +287,11 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<count;i++){float top=Mathf.Lerp(from.y,to.y,(i+1f)/count);var p=Vector3.Lerp(from,to,(i+.5f)/count);p.y=(top+from.y-.15f)*.5f;mesh.Box(p,new Vector3(width,top-from.y+.15f,run/count+.02f),F.Stone,.026f,true,q);}
             for(int side=-1;side<=1;side+=2){var offset=q*Vector3.right*(side*(width*.5f+.14f));Rail(from+offset,to+offset);}
         }
-        void Ramp(Vector3 from,Vector3 to,float width)
+        void Ramp(Vector3 from,Vector3 to,float width,bool guarded=true)
         {
-            var slope=(to-from).normalized;mesh.Box((from+to)*.5f-Vector3.up*.11f,new Vector3(width,.22f,Vector3.Distance(from,to)),F.Stone,.025f,true,Quaternion.LookRotation(slope));
+            var slope=(to-from).normalized;var rotation=Quaternion.LookRotation(slope);
+            mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(width,.22f,Vector3.Distance(from,to)),F.Stone,0,true,rotation);
+            if(!guarded)return;
             Vector3 side=Vector3.Cross(Vector3.up,slope).normalized*(width*.5f+.12f);Rail(from-side,to-side);Rail(from+side,to+side);
         }
         void Rail(Vector3 from,Vector3 to)
@@ -285,7 +307,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Landmark()
         {
-            for(int i=0;i<9;i++)mesh.Box(new Vector3(3.1f,4.5f+i*.78f,17.7f),new Vector3(2.5f,.76f,1.25f),(F)((int)F.Red+i%3),.11f,true,Quaternion.Euler(0,i%2*90+i%3*3,0));
+            for(int i=0;i<9;i++)mesh.Box(new Vector3(1.8f,4.5f+i*.78f,19.9f),new Vector3(2.5f,.76f,1.25f),(F)((int)F.Red+i%3),.11f,true,Quaternion.Euler(0,i%2*90+i%3*3,0));
         }
     }
 }

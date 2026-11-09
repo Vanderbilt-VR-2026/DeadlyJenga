@@ -75,7 +75,7 @@ namespace DeadlyJenga.CandyArt.Marina
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
             Environment(environment);Water(environment);Signs();
             Mark("Arrival",Arrival);Mark("Wardrobe",Wardrobe);Mark("Play screen",PlayScreen);
-            Mark("Play interaction",new Vector3(0,1.70f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
+            Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
@@ -89,7 +89,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var go=new GameObject("Marina warm coastal grading");go.transform.SetParent(visual,false);volume=go.AddComponent<Volume>();volume.isGlobal=true;volume.priority=3;
             volumeProfile=ScriptableObject.CreateInstance<VolumeProfile>();volume.profile=volumeProfile;
             var tone=volumeProfile.Add<Tonemapping>();tone.mode.Override(TonemappingMode.ACES);
-            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(.1f);color.contrast.Override(5);color.saturation.Override(4);
+            var color=volumeProfile.Add<ColorAdjustments>();color.postExposure.Override(-.14f);color.contrast.Override(9);color.saturation.Override(-5);
             var bloom=volumeProfile.Add<Bloom>();bloom.intensity.Override(.14f);bloom.threshold.Override(1.15f);bloom.scatter.Override(.55f);
             var probeObject=new GameObject("Marina reflection capture");probeObject.transform.SetParent(visual,false);probeObject.transform.localPosition=new Vector3(0,4,3);
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
@@ -112,7 +112,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 if(environment.waterRenderer)environment.waterRenderer.gameObject.SetActive(false);
                 environment.enabled=false;
                 var sun=environment.sun;
-                if(sun){sun.transform.rotation=Quaternion.Euler(43,-38,0);sun.color=new Color(1,.89f,.75f);sun.intensity=2.1f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
+                if(sun){sun.transform.rotation=Quaternion.Euler(40,-46,0);sun.color=new Color(1,.92f,.80f);sun.intensity=1.85f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
             }
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.69f,.78f,.88f);RenderSettings.ambientEquatorColor=new Color(.74f,.70f,.60f);RenderSettings.ambientGroundColor=new Color(.47f,.43f,.35f);RenderSettings.ambientIntensity=1;
             var ambient=new SphericalHarmonicsL2();ambient.AddAmbientLight(new Color(.43f,.38f,.30f));ambient.AddDirectionalLight(Vector3.up,new Color(.65f,.78f,.91f),.48f);ambient.AddDirectionalLight(Vector3.forward,new Color(1,.71f,.4f),.22f);RenderSettings.ambientProbe=ambient;
@@ -138,9 +138,12 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Signs()
         {
-            
+            var cream=new Color(.95f,.88f,.69f);
+            Sign("PLAY PAVILION",new Vector3(0,5.6f,3.57f),.066f,cream);
             Sign("STYLE",new Vector3(-13,5.35f,4.25f),.12f,new Color(.26f,.12f,.055f));
-            Sign("MAYHEM MARINA",new Vector3(-12.6f,1.5f,-12.8f),.055f,new Color(.85f,.92f,.84f),new Vector3(60,24,0));
+            Sign("WATERFRONT LOUNGE",new Vector3(13.7f,4.22f,2.36f),.048f,cream);
+            Sign("PRACTICE POOL",new Vector3(17,1.13f,-12.75f),.039f,cream,new Vector3(90,180,0));
+            Sign("MAYHEM MARINA",new Vector3(-10.0f,1.36f,-10.1f),.06f,cream,new Vector3(90,0,0));
         }
         void Sign(string text,Vector3 position,float size,Color color,Vector3? rotation=null)
         {

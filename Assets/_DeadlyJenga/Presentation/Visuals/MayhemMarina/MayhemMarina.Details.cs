@@ -31,7 +31,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 var p=new Vector3(8.1f+i*1.7f,-.03f,-7.7f-i*.9f);
                 Buoy(p,i%2==0?F.Coral:F.Teal);
             }
-            LifeRing(new Vector3(-16.2f,1.7f,-20.5f),Quaternion.Euler(0,25,0));
+            mesh.Beam(new Vector3(-16.5f,1.24f,-20.1f),new Vector3(-16.5f,2.48f,-20.1f),.10f,F.DarkWood);
+            LifeRing(new Vector3(-16.5f,1.98f,-20.28f),Quaternion.Euler(0,25,0));
         }
         void Palm(Vector3 p,float height,float lean,int seed)
         {
@@ -63,7 +64,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void Pot(Vector3 p,float radius,float height,int seed)
         {
             mesh.Disk(p,radius*.82f,height*.12f,F.Ivory,false,24);
-            mesh.Ellipsoid(p+Vector3.up*height*.49f,new Vector3(radius,height*.51f,radius),F.Ivory,rings:10,sides:20);
+            mesh.Ellipsoid(p+Vector3.up*height*.49f,new Vector3(radius,height*.51f,radius),F.Ivory,rings:7,sides:14,solid:true);
             mesh.Disk(p+Vector3.up*(height-.04f),radius*.89f,.06f,F.DarkWood,false,24);
             var rim=new List<Vector3>();for(int i=0;i<=32;i++){float a=i*Mathf.PI/16;rim.Add(p+new Vector3(Mathf.Cos(a)*radius*.89f,height,Mathf.Sin(a)*radius*.89f));}mesh.Tube(rim,.045f,F.Ivory,8);
             Shrub(p+Vector3.up*height,radius*1.5f,seed);
@@ -114,15 +115,16 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<7;i++)
             {
                 float a=Mathf.Lerp(-76,86,i/6f)*Mathf.Deg2Rad;float distance=145+(i%3)*37;var p=new Vector3(Mathf.Sin(a)*distance,-1.4f,Mathf.Cos(a)*distance+22);
+                mesh.Ellipsoid(p,new Vector3(11,5.3f,8),F.Rock,rings:8,sides:16);
                 for(int cluster=0;cluster<5;cluster++)
                 {
                     float r=cluster*1.7f;var center=p+new Vector3(Mathf.Cos(r)*6,cluster%2*1.3f,Mathf.Sin(r)*4);
                     Rock(center,new Vector3(4.5f+cluster%2,4+cluster%3*1.4f,3.8f),i*11+cluster);
                 }
-                if(i%2==0)Palm(p+Vector3.up*(6+(i%3)*2),4.5f,.4f,i+30);
+                if(i%2==0)Palm(p+Vector3.up*4.9f,4.5f,.4f,i+30);
                 if(i==5)
                 {
-                    mesh.Disk(p+Vector3.up*8,.85f,6,F.Ivory,false,16);mesh.Disk(p+Vector3.up*13.7f,1.08f,.22f,F.Wood,false,16);mesh.Disk(p+Vector3.up*13.9f,.75f,.9f,F.Teal,false,16);mesh.Disk(p+Vector3.up*14.8f,1.05f,.18f,F.Coral,false,16);
+                    mesh.Disk(p+Vector3.up*4.9f,.85f,6,F.Ivory,false,16);mesh.Disk(p+Vector3.up*10.6f,1.08f,.22f,F.Wood,false,16);mesh.Disk(p+Vector3.up*10.8f,.75f,.9f,F.Teal,false,16);mesh.Disk(p+Vector3.up*11.7f,1.05f,.18f,F.Coral,false,16);
                 }
             }
         }
