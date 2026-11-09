@@ -117,7 +117,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!JoinEnabled)codeFocused=false;
             var inviteStatus=Room.Discovery?.InviteStatus;
-            HostHint=Room.Busy?Room.Status:!string.IsNullOrEmpty(inviteStatus)?inviteStatus:
+            HostHint=Room.Busy||Room.Status.StartsWith("Could not transfer host",StringComparison.Ordinal)?Room.Status:!string.IsNullOrEmpty(inviteStatus)?inviteStatus:
                 Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
                 Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):
                 "Start solo now, or create a code / invite nearby.";

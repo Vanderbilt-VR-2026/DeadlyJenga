@@ -189,7 +189,21 @@ namespace DeadlyJenga.CastlePrototype
             identities.Remove(id);hostRequests.Remove(id);requestAfter.Remove(id);
             if(IsHost&&leaderId==id){var candidates=Runner.ActivePlayers.Where(p=>p.ToString()!=id).ToArray();leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)].ToString():LocalLobbyId;LaunchPending=false;RefreshHostFlags();}
         }
-        float nextRosterCheck;
+        const string LobbyHandoffProperty="lobbyHandoff";
+        string pendingLobbyHost;
+        float nextRosterCheck,lobbyHandoffDeadline;
+        void ReadLobbyHandoff()
+        {
+            if(!Runner.SessionInfo.Properties.TryGetValue(LobbyHandoffProperty,out var value))return;
+            pendingLobbyHost=(string)value;
+            if(string.IsNullOrEmpty(pendingLobbyHost)){pendingLobbyHost=null;return;}
+            lobbyHandoffDeadline=Time.unscaledTime+12;
+        }
+        void ClearLobbyHandoff()
+        {
+            pendingLobbyHost=null;
+            Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{LobbyHandoffProperty,""}});
+        }
         void ReconcileLobbyRoster()
         {
             if(Time.unscaledTime<nextRosterCheck)return;nextRosterCheck=Time.unscaledTime+.5f;
@@ -201,6 +215,14 @@ namespace DeadlyJenga.CastlePrototype
                 leaderId=candidates.Length>0?candidates[UnityEngine.Random.Range(0,candidates.Length)]:LocalLobbyId;
                 LaunchPending=false;RefreshHostFlags();
             }
+            if(pendingLobbyHost==null)return;
+            if(active.Contains(pendingLobbyHost))
+            {
+                leaderId=pendingLobbyHost;
+                RefreshHostFlags();
+                ClearLobbyHandoff();
+            }
+            else if(Time.unscaledTime>=lobbyHandoffDeadline)ClearLobbyHandoff();
         }
         string LobbyStateJson()=>JsonUtility.ToJson(new LobbyState{leader=leaderId,roster=identities.Values.ToArray(),requests=hostRequests.ToArray(),notice=lobbyNotice,setup=Setup});
         void ReadLobbyState(string json)

@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+180;
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff?300:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -52,6 +52,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(!done)Finish(!File.ReadAllText(Report).Contains("ERROR "),"Separate-process multiplayer run");
         }
+        static bool LobbyHandoff => Environment.GetCommandLineArgs().Contains("--dj-lobby-handoff");
         bool ProbePoses => Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
         const System.Reflection.BindingFlags PrivateField =
             System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
@@ -109,9 +110,67 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        IEnumerator CheckLobbyHandoff()
+        {
+            HomeSession home=null;
+            yield return Until(()=>(home=FindFirstObjectByType<HomeSession>()),"Playable Home opens");
+            if(role=="host")
+            {
+                home.Host();
+                yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.Room.IsHost&&IslandLobby.Current.CanStart,
+                    "Home Host opens a normal Play lobby",65);
+                var lobby=IslandLobby.Current;
+                var room=lobby.Room;
+                Require(lobby.SelectMode("ctf")&&lobby.SelectMap("mode-ctf"),"Host chooses Capture the Flag and its map");
+                File.WriteAllText(Mark("code"),room.Code);
+                yield return Until(()=>room.HumanCount==2&&File.Exists(Mark("guest-ready")),
+                    "Second process receives the configured room",150);
+                Require(lobby.CanLeave,"Production leave action is available to the host");
+                lobby.Leave();
+                yield return Until(()=>!room.Connected&&!room.Busy,"Original host leaves the room",30);
+                Require(IslandLobby.Current&&NetworkActors.Alive(lobby.Player),"Departing host stays in the usable local lobby");
+            }
+            else
+            {
+                yield return Until(()=>File.Exists(Mark("code")),"Original host publishes the room code",150);
+                string code=File.ReadAllText(Mark("code"));
+                home.Code=code;
+                home.JoinCode();
+                yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.Room.Connected&&
+                    !IslandLobby.Current.Room.IsHost&&IslandLobby.Current.SelectedMapId=="mode-ctf",
+                    "Guest joins the same room and receives the chosen map",75);
+                var lobby=IslandLobby.Current;
+                var room=lobby.Room;
+                var previousRunner=room.Runner;
+                string identity=room.LocalLobbyId;
+                Require(!lobby.CanConfigure,"Guest cannot configure the match before promotion");
+                File.WriteAllText(Mark("guest-ready"),"ready");
+                yield return Until(()=>room.IsHost&&room.Runner!=previousRunner&&!room.Busy&&lobby.CanStart,
+                    "Guest becomes the Fusion host and can start a match",75);
+                Require(room.Code==code&&room.LocalLobbyId==identity&&room.HumanCount==1&&lobby.IsHost,
+                    "The new host keeps the room code, identity and control");
+                Require(lobby.SelectedModeId=="ctf"&&lobby.SelectedMapId=="mode-ctf",
+                    "The selected mode and map survive the handoff");
+                Require(lobby.SelectMode("hill")&&lobby.SelectMap("mode-hill"),"New host can change mode and map");
+                lobby.StartOrCancel();
+                CastlePlaySession session=null;
+                yield return Until(()=>(session=FindFirstObjectByType<CastlePlaySession>())&&session.Network&&
+                    !session.Network.IsClient&&NetworkActors.Alive(session.Player)&&Services.World?.Blocks.Count>0,
+                    "New host starts and plays the next match",95);
+                Require(MatchSetup.ModeId=="hill"&&MatchSetup.MapId=="mode-hill","Game uses the new host's selection");
+                var leave=room.Leave();
+                yield return Until(()=>leave.IsCompleted&&!room.Connected,"Promoted host disconnects cleanly",30);
+            }
+        }
+
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(LobbyHandoff)
+            {
+                yield return CheckLobbyHandoff();
+                yield break;
+            }
             yield return Until(()=>IslandLobby.Current&&NetworkActors.Alive(IslandLobby.Current.Player),"Independent process opens playable lobby");
             var room=IslandRoomConnection.Instance;
             if(role=="host")

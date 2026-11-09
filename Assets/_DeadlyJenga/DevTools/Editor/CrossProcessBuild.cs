@@ -2,10 +2,42 @@ using System;
 using System.Linq;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
+using UnityEditor.SceneManagement;
+using System.IO;
 namespace DeadlyJenga.CastlePrototype.Editor
 {
+    [InitializeOnLoad]
     public static class CrossProcessBuild
     {
+        const string LobbyHandoffKey = "DeadlyJenga.LobbyHandoffFixture";
+        static CrossProcessBuild()
+        {
+            if (SessionState.GetBool(LobbyHandoffKey, false)) EditorApplication.update += PollLobbyHandoff;
+        }
+        public static void RunLobbyHandoffBatch()
+        {
+            string scene = AssetDatabase.FindAssets("Home t:Scene").Select(AssetDatabase.GUIDToAssetPath)
+                .Single(path => Path.GetFileNameWithoutExtension(path) == "Home");
+            SessionState.SetBool(LobbyHandoffKey, true);
+            EditorApplication.update += PollLobbyHandoff;
+            EditorSceneManager.OpenScene(scene);
+            EditorApplication.EnterPlaymode();
+        }
+        static void PollLobbyHandoff()
+        {
+            if (!EditorApplication.isPlaying) return;
+            var args = Environment.GetCommandLineArgs();
+            var folder = args.Single(a => a.StartsWith("--dj-smoke-dir=")).Substring(15);
+            var role = args.Single(a => a.StartsWith("--dj-smoke=")).Substring(11);
+            string file = Path.Combine(folder, role + ".txt");
+            if (!File.Exists(file)) return;
+            var report = File.ReadAllLines(file);
+            if (!report.Any(line => line.StartsWith("COMPLETE ") || line.StartsWith("FAILED "))) return;
+            SessionState.SetBool(LobbyHandoffKey, false);
+            EditorApplication.update -= PollLobbyHandoff;
+            EditorApplication.Exit(report.Any(line => line.StartsWith("COMPLETE ")) ? 0 : 2);
+        }
+
         public static void RunBatch()
         {
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
