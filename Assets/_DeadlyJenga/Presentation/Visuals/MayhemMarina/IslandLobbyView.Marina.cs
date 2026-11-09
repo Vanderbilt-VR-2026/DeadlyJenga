@@ -14,7 +14,6 @@ namespace DeadlyJenga.CastlePrototype
         RectTransform marinaBack,marinaMirror,marinaStylePrompt;
         Texture2D marinaMaskTexture;
         Sprite marinaMaskSprite;
-        string marinaDetail="";
         float nextMarinaMirror;
         partial void BuildMayhemMarina()
         {
@@ -35,8 +34,10 @@ namespace DeadlyJenga.CastlePrototype
             wardrobeCenter=MayhemMarina.Wardrobe;
             var pod=transform.Find("Visual - wardrobe pod");if(pod)pod.gameObject.SetActive(false);
             var detailCenter = new Vector3(0, 3.67f, 10.85f);
-            MountMarinaScreen(joinStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
-            MountMarinaScreen(hostStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
+            MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
+            MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
+            AddCabinetBack(candyJoinContent, joinStation, "marina-close-join");
+            AddCabinetBack(candyHostContent, hostStation, "marina-close-host");
             MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
             piano.SetLocalPositionAndRotation(MayhemMarina.CodeKeyboard, MayhemMarina.CodeKeyboardFacing);
@@ -51,7 +52,9 @@ namespace DeadlyJenga.CastlePrototype
             go.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
             go.GetComponent<Canvas>().overrideSorting = true;
             go.GetComponent<Canvas>().sortingOrder = 100;
-            var back = Add(marinaBack, "marina-close", () => "BACK TO MARINA", 0, CloseMarinaDetail, () => true, 0, 1000, 125);
+            var back = Add(marinaBack, "marina-close", () => "BACK TO MARINA", 0,
+                () => SetMarinaDetail(setupStation, false), () => true, 0, 1000, 125,
+                () => setupStation.gameObject.activeSelf);
             back.button.image.color = CandyInk;
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
             var style = new GameObject("Marina wardrobe entry", typeof(RectTransform), typeof(Canvas));
@@ -71,10 +74,16 @@ namespace DeadlyJenga.CastlePrototype
             screen.localScale = Vector3.one * Mathf.Min(maxWidth / screen.rect.width, maxHeight / screen.rect.height);
             screen.GetComponent<LobbyTerminalFaces>().MountSingleSided();
         }
+        void AddCabinetBack(RectTransform content, RectTransform station, string id)
+        {
+            CandyAdd(content, id, () => "BACK", 405, 365, 160, 55,
+                () => SetMarinaDetail(station, false), () => true, () => station.gameObject.activeSelf);
+        }
+
         void UpdateMarinaKeyboard()
         {
             if (!piano) return;
-            bool visible = marinaDetail == "join" && lobby.CodeFocused;
+            bool visible = joinStation.gameObject.activeSelf && lobby.CodeFocused && !wardrobeOpen;
             if (piano.gameObject.activeSelf != visible) piano.gameObject.SetActive(visible);
         }
         void OpenMarinaDetail(string page)
@@ -87,49 +96,76 @@ namespace DeadlyJenga.CastlePrototype
                 SetWardrobeOpen(true);
                 return;
             }
-            bool code=page=="join-code",nearby=page=="join-nearby",invite=page=="host-invite";
-            if(code||nearby)page="join";
-            if(invite)page="host";
-            if(code&&lobby.JoinEnabled){lobby.ShowCodeEntry();lobby.FocusCode();}
-            if(nearby&&lobby.JoinEnabled)lobby.DetectNearby();
-            if(invite&&lobby.CanInvite)lobby.InviteNearby();
-            marinaDetail = page;
-            joinStation.gameObject.SetActive(page == "join");
-            hostStation.gameObject.SetActive(page == "host");
-            setupStation.gameObject.SetActive(page == "maps" || page == "modes" || page == "settings");
-            if (page == "maps" || page == "modes") OpenPicker(page);
-            if (page == "settings") { setupPage = "settings"; settingsPage = 0; }
-            UpdateMarinaKeyboard();
-            marinaScreen.Visible = false;
-            marinaBack.gameObject.SetActive(true);
+            switch (page)
+            {
+                case "join-code":
+                    if (lobby.JoinEnabled) lobby.ShowCodeEntry();
+                    SetMarinaDetail(joinStation, true);
+                    break;
+                case "join-nearby":
+                    if (lobby.JoinEnabled) lobby.DetectNearby();
+                    SetMarinaDetail(joinStation, true);
+                    break;
+                case "host":
+                case "host-invite":
+                    if (page == "host-invite" && lobby.CanInvite) lobby.InviteNearby();
+                    SetMarinaDetail(hostStation, true);
+                    break;
+                case "maps":
+                case "modes":
+                case "settings":
+                    if (page == "settings") { setupPage = "settings"; settingsPage = 0; }
+                    else OpenPicker(page);
+                    SetMarinaDetail(setupStation, true);
+                    break;
+            }
         }
+
+        void SetMarinaDetail(RectTransform station, bool open)
+        {
+            if (station == joinStation && !open) lobby.UnfocusCode();
+            station.gameObject.SetActive(open);
+            terminalRequireRelease = true;
+            DeadlyJenga.Presentation.MenuAim.Consume();
+            RefreshMarinaDisplays();
+        }
+
+        void RefreshMarinaDisplays()
+        {
+            bool mainDetail = setupStation.gameObject.activeSelf;
+            marinaScreen.Visible = !mainDetail && !wardrobeOpen;
+            marinaScreen.SetCabinetVisibility(!joinStation.gameObject.activeSelf && !wardrobeOpen,
+                !hostStation.gameObject.activeSelf && !wardrobeOpen);
+            marinaBack.gameObject.SetActive(mainDetail && !wardrobeOpen);
+            if (marinaStylePrompt) marinaStylePrompt.gameObject.SetActive(!mainDetail && !wardrobeOpen);
+            UpdateMarinaKeyboard();
+        }
+
         void CloseMarinaDetail()
         {
             lobby?.UnfocusCode();
             terminalRequireRelease = true;
             DeadlyJenga.Presentation.MenuAim.Consume();
-            marinaDetail = "";
             joinStation.gameObject.SetActive(false);
             hostStation.gameObject.SetActive(false);
             setupStation.gameObject.SetActive(false);
-            piano.gameObject.SetActive(false);
             wardrobePanel.gameObject.SetActive(false);
             if (wardrobeOpen) SetWardrobeOpen(false);
-            if (marinaBack) marinaBack.gameObject.SetActive(false);
-            if (marinaScreen) marinaScreen.Visible = true;
+            RefreshMarinaDisplays();
         }
+
         partial void MarinaInteractionRange(ref float distance){if(marina)distance=11;}
         partial void UpdateMayhemMarina()
         {
             if(!marina)return;
-            if (marinaDetail != "" && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            if (!wardrobeOpen && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
             {
                 if (lobby.CodeFocused) CloseRoomCodeKeyboard();
-                else CloseMarinaDetail();
+                else if (setupStation.gameObject.activeSelf) SetMarinaDetail(setupStation, false);
+                else if (joinStation.gameObject.activeSelf) SetMarinaDetail(joinStation, false);
+                else if (hostStation.gameObject.activeSelf) SetMarinaDetail(hostStation, false);
             }
-            if(marinaScreen)marinaScreen.Visible=marinaDetail==""&&!wardrobeOpen;
-            if(marinaDetail!="")UpdateMarinaKeyboard();
-            if(marinaStylePrompt)marinaStylePrompt.gameObject.SetActive(marinaDetail==""&&!wardrobeOpen);
+            RefreshMarinaDisplays();
             if(wardrobePanel)wardrobePanel.gameObject.SetActive(wardrobeOpen&&Player.IsVR);
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)
             {
