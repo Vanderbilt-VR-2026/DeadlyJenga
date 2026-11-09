@@ -12,7 +12,50 @@ namespace DeadlyJenga.CandyPlayers
         Transform punchTarget;
         readonly Collider[] punchCandidates=new Collider[32];
 
-        void ResetPunch(){punchBegan=float.NegativeInfinity;punchTarget=null;}
+        IMatchRuntime punchRuntime;
+        string punchEpoch;
+        int punchSequence;
+        float vrContactAt=float.NegativeInfinity;
+        Vector3 vrContactPoint;
+
+        void ResetPunch(){punchBegan=float.NegativeInfinity;punchTarget=null;vrContactAt=float.NegativeInfinity;}
+
+        void ApplyVrPunchContact(ref CandyAvatarFrame frame)
+        {
+            var runtime=MatchRuntime.Current;
+            var match=runtime?.Frame;
+            if(match==null){ResetPunch();return;}
+            if(!ReferenceEquals(punchRuntime,runtime)||punchEpoch!=match.enemyActionEpoch)
+            {
+                punchRuntime=runtime;punchEpoch=match.enemyActionEpoch;punchSequence=match.expressionSequence;
+                vrContactAt=float.NegativeInfinity;
+            }
+            if(match.expressionSequence>punchSequence)
+            {
+                foreach(var contact in match.expressions??System.Array.Empty<ExpressionFrame>())
+                {
+                    if(contact.id<=punchSequence||contact.name!="PunchContact"||contact.actor!=survivor.ActorId||contact.remaining<.25f)continue;
+                    vrContactPoint=contact.position;vrContactAt=Time.time;
+                }
+                punchSequence=match.expressionSequence;
+            }
+            var hand=frame.right;
+            float age=Time.time-vrContactAt;
+            if(age<0||age>=.16f||!hand.tracked||survivor.InputSuspended||!survivor.Alive||
+                GetComponent<IEquipmentControls>()?.Equipment?.drawn==true)
+            {vrContactAt=float.NegativeInfinity;return;}
+            float scale=Mathf.Max(.1f,frame.scale);
+            var knuckles=hand.position+hand.rotation*(Vector3.forward*.074f*scale);
+            var correction=vrContactPoint-knuckles;
+            if(correction.sqrMagnitude>.28f*.28f*scale*scale){vrContactAt=float.NegativeInfinity;return;}
+            float blend=Mathf.SmoothStep(0,1,age/.035f)*(1-Mathf.SmoothStep(0,1,(age-.065f)/.095f));
+            hand.position+=Vector3.ClampMagnitude(correction,.19f*scale)*blend;
+            var fist=CandyHandSkeleton.Rest(false,1);
+            if(!hand.skeletonTracked)hand.skeleton=fist;
+            else for(int i=0;i<20;i++)hand.skeleton.SetJoint(i,Vector3.Lerp(hand.skeleton.Joint(i),fist.Joint(i),blend));
+            hand.skeletonTracked=true;frame.right=hand;
+        }
+
         void BeginPunch(CastleSurvivor actor,Vector3 origin,Vector3 direction,float speed)
         {
             // VR keeps the real tracked hand. Bots use the same animation as desktop players.
@@ -33,8 +76,9 @@ namespace DeadlyJenga.CandyPlayers
         }
         void ApplyPunch(ref CandyAvatarFrame frame)
         {
-            if(!survivor||survivor.IsVR&&!survivor.externallyDriven||!survivor.PunchEnabled||survivor.CarryingFlag||survivor.Climbing||survivor.Vaulting)
+            if(!survivor||!survivor.PunchEnabled||survivor.CarryingFlag||survivor.Climbing||survivor.Vaulting)
             {ResetPunch();return;}
+            if(survivor.IsVR&&!survivor.externallyDriven){ApplyVrPunchContact(ref frame);return;}
             float age=Time.time-punchBegan;if(age<0||age>=PunchDuration)return;
             float scale=Mathf.Max(.1f,frame.scale);
             var hand=frame.right;

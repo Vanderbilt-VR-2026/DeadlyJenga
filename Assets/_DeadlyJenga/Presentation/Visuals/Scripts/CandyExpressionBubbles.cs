@@ -17,6 +17,7 @@ namespace DeadlyJenga.Presentation
             foreach(var expression in frame.expressions)
             {
                 if(expression.id<=sequence)continue;sequence=expression.id;
+                if(expression.name=="PunchContact")continue;
                 if((expression.position-camera.transform.position).sqrMagnitude>400)continue;
                 if(bubbles.Count>=16){Destroy(bubbles[0].text.gameObject);bubbles.RemoveAt(0);}
                 var text=CandyNameplate.Create(transform,"Expression");text.characterSize=.017f;text.color=new Color(1,.93f,.65f);text.text=System.Text.RegularExpressions.Regex.Replace(expression.name,"([a-z])([A-Z])","$1 $2");CandyNameplate.RefreshShadow(text);bubbles.Add(new Bubble{text=text,actor=expression.actor,point=expression.position,until=Time.time+expression.remaining});

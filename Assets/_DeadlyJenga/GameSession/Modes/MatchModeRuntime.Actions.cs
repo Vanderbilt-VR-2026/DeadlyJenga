@@ -67,6 +67,7 @@ namespace DeadlyJenga.Modes
             if(source.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(id,targetId,ref damage,bash))return true;
             var targetState=simulation.Find(targetId);
             if(!rules.friendlyFire && (p.frame.team>=0&&p.frame.team==targetState?.frame.team || p.frame.role=="infected"&&targetState?.frame.role=="infected"))damage=0;
+            if(!held.drawn&&!source.IsBot)PublishPunchContact(id,source,target,origin,direction);
             if(target.IsLocal||target.IsBot)
             {
                 target.gameObject.GetComponent<IPushable>()?.Push(push,source.gameObject);
@@ -74,6 +75,27 @@ namespace DeadlyJenga.Modes
             }
             else {if(damage>0)RecordRemoteDamage(targetId,damage,id);RemoteImpact?.Invoke(targetId,push,damage);}
             return true;
+        }
+        void PublishPunchContact(string attacker,IModeActor source,IModeActor target,Vector3 origin,Vector3 direction)
+        {
+            Collider body=target.gameObject.GetComponent<CharacterController>();
+            if(!body)body=target.gameObject.GetComponentInChildren<CapsuleCollider>();
+            if(!body||!body.enabled)return;
+            float scale=Mathf.Max(.1f,source.gameObject.GetComponent<IMovementState>()?.Scale??1);
+            var bounds=body.bounds;
+            float radius=Mathf.Min(bounds.extents.x,bounds.extents.z,bounds.extents.y);
+            if(radius<=0)return;
+            var approach=origin-direction*.16f*scale;
+            var axis=bounds.center;
+            axis.y=Mathf.Clamp(approach.y,bounds.min.y+radius,bounds.max.y-radius);
+            var outward=approach-axis;
+            outward=outward.sqrMagnitude>.0001f?outward.normalized:-direction;
+            var surface=axis+outward*radius;
+            if((surface-origin).sqrMagnitude>.24f*.24f*scale*scale)return;
+            if(expressions.Count>=32)expressions.RemoveAt(0);
+            expressions.Add(new ExpressionFrame{id=++expressionSequence,actor=attacker,name="PunchContact",
+                position=surface-outward*Mathf.Min(.085f*scale,radius*.55f),remaining=.55f});
+            PublishEnemyActions();
         }
         public void ReceiveCommand(string sender,string command)
         {
