@@ -46,6 +46,7 @@ namespace DeadlyJenga.CastleSocial.Editor
                         SessionState.SetString(Key+"Pack",arguments.FirstOrDefault()?.Trim()??"");
                         SessionState.SetBool(Key+"KeepEditor",arguments.Skip(1).Any(line=>line.Trim()=="keep-open"));
                         SessionState.SetBool(Key+"TimingFixture",arguments.Skip(1).Any(line=>line.Trim()=="timing-fixture"));
+                        SessionState.SetBool(Key+"MiniCast",arguments.Skip(1).Any(line=>line.Trim()=="mini-cast"));
                         SessionState.SetBool(Key+"EventFixture",arguments.Skip(1).Any(line=>line.Trim()=="event-fixture"));
                     }
                     File.Delete(request);
@@ -181,6 +182,8 @@ namespace DeadlyJenga.CastleSocial.Editor
                 yield return null;
             }
             Assert(world.OnDevice.Ready,"Local model and speech synth ready ("+world.OnDevice.Status+")");
+            if(SessionState.GetBool(Key+"MiniCast",false))
+                Assert(world.OnDevice.VoiceCast=="kitten-mini-0.8","The live synth and baked bank select the Mini 0.8 cast");
 
             session.SurvivorBots.AutoFill=false;
             session.SurvivorBots.Clear();
@@ -321,7 +324,7 @@ namespace DeadlyJenga.CastleSocial.Editor
             Assert(seen!=reply,"The second turn uses distinct wording");
             Assert(bots.All(bot=>!bot.Bot.Respawning)&&Vector3.Distance(bots[0].transform.position,seenFrom)<.3f&&
                 Vector3.Distance(bots[1].transform.position,heardFrom)<.3f,"Both observer positions stayed fixed through playback");
-            yield return CheckDamageCache(world,bots[0]);
+            yield return CheckDamageVariation(world,bots[0]);
             EditorApplication.ExitPlaymode();
         }
 
@@ -341,7 +344,7 @@ namespace DeadlyJenga.CastleSocial.Editor
                 new[]{(object)bots[0].State.identity,turn});
         }
 
-        static IEnumerator CheckDamageCache(SocialWorld world, SocialBotAgent bot)
+        static IEnumerator CheckDamageVariation(SocialWorld world, SocialBotAgent bot)
         {
             world.Config.respondBot=0;
             string id=bot.State.identity.id;
@@ -365,12 +368,11 @@ namespace DeadlyJenga.CastleSocial.Editor
                     if(!source||!source.isPlaying)return false;
                     source.GetOutputData(samples,0);
                     return samples.Any(sample=>Mathf.Abs(sample)>.001f);
-                },9,"Damage reaction reaches non-silent AudioSource");
+                },15,"Damage reaction reaches non-silent AudioSource");
                 string route=world.OnDevice.LastReplyKind;
-                Assert(route==(attempt==0?"Contextual banter · Damage":"Cached banter · Damage"),
-                    "Damage uses the expected audio path ("+route+")");
-                Assert(world.Caption.EndsWith("I took a hit.",StringComparison.Ordinal),
-                    "The affected bot reports the hit without a joke or an attacker claim");
+                Assert(route=="Contextual banter · Damage","Damage uses live synthesized banter ("+route+")");
+                Assert(world.Caption.EndsWith(attempt==0?"I took a hit.":"That hit me.",StringComparison.Ordinal),
+                    "The affected bot reports each hit with different wording");
                 lines.Add($"AUDIO {Time.realtimeSinceStartup-started:F2}s {world.Caption} ({world.OnDevice.LastReplySeconds:F2}s preparation, {route})");
                 File.WriteAllLines(Report,lines);
             }

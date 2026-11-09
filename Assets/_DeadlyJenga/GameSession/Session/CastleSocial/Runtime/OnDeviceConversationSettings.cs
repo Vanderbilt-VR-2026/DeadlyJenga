@@ -18,6 +18,7 @@ namespace DeadlyJenga.CastleSocial
         [Tooltip("Use the language model for observed game events as well as direct player conversation.")]
         public bool improviseGameReactions;
         [Tooltip("Developer pack location; builds use their embedded StreamingAssets pack.")]
-        public string editorPackFolder="Tools/OnDeviceConversation/.models/pack";
+        internal const string DefaultEditorPack="Tools/OnDeviceConversation/.models/pack";
+        public string editorPackFolder=DefaultEditorPack;
     }
 }
