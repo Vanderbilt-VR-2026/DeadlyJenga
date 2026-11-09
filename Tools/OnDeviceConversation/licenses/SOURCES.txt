@@ -2,7 +2,7 @@ Embedded prototype dependencies and corresponding sources
 
 llama.cpp b11714, commit c0fd78626405c6d9b934efef0ec7291fcc20e3d6
 https://github.com/ggml-org/llama.cpp/tree/c0fd78626405c6d9b934efef0ec7291fcc20e3d6
-Adapter compiler: Zig 0.15.2, shipped adapter statically links its C++ runtime.
+Windows adapter build recipe uses Zig 0.15.2.
 https://ziglang.org/download/0.15.2/release-notes.html
 Android libc++: Unity bundled NDK r27c (LLVM Apache-2.0 with LLVM exceptions).
 
@@ -24,9 +24,11 @@ Training/export recipe:
 https://github.com/k2-fsa/icefall/tree/master/egs/librispeech/ASR
 Weight and training-data rights still need release review.
 
-Kitten nano English v0.2 FP16 converted model:
+Pocket TTS English INT8 converted model:
 https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models
-https://github.com/KittenML/KittenTTS
+https://github.com/kyutai-labs/pocket-tts
+https://k2-fsa.github.io/sherpa/onnx/tts/pocket.html
+Pocket-Cast.txt records the reference voice sources and licenses.
 
 Every downloaded archive and official weight SHA256 is recorded in downloads.lock.json.
 These source links/notice texts do not by themselves settle all distribution obligations.

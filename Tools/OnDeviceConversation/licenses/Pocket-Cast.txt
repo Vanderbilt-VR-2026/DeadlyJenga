@@ -1,0 +1,16 @@
+Pocket TTS cast, slot order for bundled and live game audio
+
+0 Alba MacKenna, casual. CC BY 4.0.
+1 Marius, Selfie, Unmute Voice Donation Project. CC0.
+2 Caro Davy, Voice-Zero / LibriVox. CC0.
+3 Javert, Butter, Unmute Voice Donation Project. CC0.
+4 Anna, VCTK p228, enhanced recording. CC BY 4.0.
+5 Paul, VCTK p259, enhanced recording. CC BY 4.0.
+6 Vera, VCTK p229, enhanced recording. CC BY 4.0.
+7 Stuart Bell, Voice-Zero / LibriVox. CC0.
+
+References curated by Kyutai. Game dialogue is synthesized from the reference audio.
+https://huggingface.co/kyutai/tts-voices/tree/323332d33f997de8394f24a193e1a76df720e01a
+https://huggingface.co/kyutai/tts-voices/blob/323332d33f997de8394f24a193e1a76df720e01a/README.md
+https://creativecommons.org/licenses/by/4.0/
+https://creativecommons.org/publicdomain/zero/1.0/

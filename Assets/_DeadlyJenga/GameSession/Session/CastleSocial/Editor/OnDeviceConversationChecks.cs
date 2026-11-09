@@ -46,7 +46,6 @@ namespace DeadlyJenga.CastleSocial.Editor
                         SessionState.SetString(Key+"Pack",arguments.FirstOrDefault()?.Trim()??"");
                         SessionState.SetBool(Key+"KeepEditor",arguments.Skip(1).Any(line=>line.Trim()=="keep-open"));
                         SessionState.SetBool(Key+"TimingFixture",arguments.Skip(1).Any(line=>line.Trim()=="timing-fixture"));
-                        SessionState.SetBool(Key+"MiniCast",arguments.Skip(1).Any(line=>line.Trim()=="mini-cast"));
                         SessionState.SetBool(Key+"EventFixture",arguments.Skip(1).Any(line=>line.Trim()=="event-fixture"));
                     }
                     File.Delete(request);
@@ -182,8 +181,7 @@ namespace DeadlyJenga.CastleSocial.Editor
                 yield return null;
             }
             Assert(world.OnDevice.Ready,"Local model and speech synth ready ("+world.OnDevice.Status+")");
-            if(SessionState.GetBool(Key+"MiniCast",false))
-                Assert(world.OnDevice.VoiceCast=="kitten-mini-0.8","The live synth and baked bank select the Mini 0.8 cast");
+            Assert(world.OnDevice.VoiceCast=="pocket-tts-int8","The live synth and baked bank select the Pocket cast");
 
             session.SurvivorBots.AutoFill=false;
             session.SurvivorBots.Clear();

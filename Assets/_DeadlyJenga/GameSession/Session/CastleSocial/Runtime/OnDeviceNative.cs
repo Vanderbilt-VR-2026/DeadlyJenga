@@ -13,7 +13,7 @@ namespace DeadlyJenga.CastleSocial
         const string Library="deadlyjenga_conversation";
         [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern int dj_api_version();
         [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern IntPtr dj_error();
-        [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern IntPtr dj_create([MarshalAs(UnmanagedType.LPUTF8Str)]string backend,[MarshalAs(UnmanagedType.LPUTF8Str)]string model,[MarshalAs(UnmanagedType.LPUTF8Str)]string encoder,[MarshalAs(UnmanagedType.LPUTF8Str)]string decoder,[MarshalAs(UnmanagedType.LPUTF8Str)]string joiner,[MarshalAs(UnmanagedType.LPUTF8Str)]string tokens,[MarshalAs(UnmanagedType.LPUTF8Str)]string voice,[MarshalAs(UnmanagedType.LPUTF8Str)]string voices,[MarshalAs(UnmanagedType.LPUTF8Str)]string voiceTokens,[MarshalAs(UnmanagedType.LPUTF8Str)]string espeak,int threads,int context);
+        [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern IntPtr dj_create([MarshalAs(UnmanagedType.LPUTF8Str)]string backend,[MarshalAs(UnmanagedType.LPUTF8Str)]string model,[MarshalAs(UnmanagedType.LPUTF8Str)]string encoder,[MarshalAs(UnmanagedType.LPUTF8Str)]string decoder,[MarshalAs(UnmanagedType.LPUTF8Str)]string joiner,[MarshalAs(UnmanagedType.LPUTF8Str)]string tokens,[MarshalAs(UnmanagedType.LPUTF8Str)]string voiceDirectory,int threads,int context);
         [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern void dj_destroy(IntPtr context);
         [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern void dj_cancel(IntPtr context);
         [DllImport(Library,CallingConvention=CallingConvention.Cdecl)] static extern int dj_generate(IntPtr context,[MarshalAs(UnmanagedType.LPUTF8Str)]string system,[MarshalAs(UnmanagedType.LPUTF8Str)]string message,int tokens,int timeout,[Out]byte[] output,int capacity);
@@ -39,9 +39,9 @@ namespace DeadlyJenga.CastleSocial
                             if(LoadLibraryEx(Path.Combine(libraries,dll),IntPtr.Zero,0x100|0x1000)==IntPtr.Zero)throw new InvalidOperationException("Cannot load "+dll+" (Windows error "+Marshal.GetLastWin32Error()+")");
                         loadedFolders.Add(libraries);
                     }
-                    if(dj_api_version()!=1)throw new InvalidOperationException("Native conversation ABI mismatch");
+                    if(dj_api_version()!=2)throw new InvalidOperationException("Native conversation ABI mismatch");
                     string FileAt(string name)=>Path.Combine(pack,name);
-                    var created=dj_create(libraries,FileAt("language.gguf"),FileAt("recognition/encoder-epoch-99-avg-1.int8.onnx"),FileAt("recognition/decoder-epoch-99-avg-1.int8.onnx"),FileAt("recognition/joiner-epoch-99-avg-1.int8.onnx"),FileAt("recognition/tokens.txt"),FileAt("voice/model.fp16.onnx"),FileAt("voice/voices.bin"),FileAt("voice/tokens.txt"),FileAt("voice/espeak-ng-data"),settings.cpuThreads,settings.contextTokens);
+                    var created=dj_create(libraries,FileAt("language.gguf"),FileAt("recognition/encoder-epoch-99-avg-1.int8.onnx"),FileAt("recognition/decoder-epoch-99-avg-1.int8.onnx"),FileAt("recognition/joiner-epoch-99-avg-1.int8.onnx"),FileAt("recognition/tokens.txt"),FileAt("voice"),settings.cpuThreads,settings.contextTokens);
                     lock(lifetime){handle=created;if(disposed&&handle!=IntPtr.Zero)dj_cancel(handle);}
                     if(created==IntPtr.Zero)throw new InvalidOperationException(Error());
                     completed.Enqueue(()=>ready(null));

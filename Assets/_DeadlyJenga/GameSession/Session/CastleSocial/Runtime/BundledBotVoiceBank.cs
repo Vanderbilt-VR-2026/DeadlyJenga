@@ -49,14 +49,6 @@ namespace DeadlyJenga.CastleSocial
             finally { Resources.UnloadAsset(asset); }
         }
 
-        internal static BundledBotVoiceBank LoadFile(string path)
-        {
-            var file = new FileInfo(path);
-            if (!file.Exists || file.Length > 32L * 1024 * 1024)
-                throw new InvalidDataException("The selected voice pack has no valid phrase bank.");
-            return new BundledBotVoiceBank(File.ReadAllBytes(path));
-        }
-
         BundledBotVoiceBank(byte[] pcm)
         {
             using var input = new BinaryReader(new MemoryStream(pcm, false), Encoding.UTF8);

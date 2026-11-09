@@ -1,59 +1,46 @@
-# Optional Mini voice cast and dialogue novelty
+# Pocket TTS cast and dialogue novelty
 
-The prepared desktop checkout looks for a local realistic conversation pack
-next to the existing pack. The selected cast uses the eight speaker slots of
-[Kitten Mini 0.8](https://huggingface.co/KittenML/kitten-tts-mini-0.8).
-[Sherpa's model page](https://k2-fsa.github.io/sherpa/onnx/tts/all/English/kitten-mini-en-v0_8.html)
-documents the slot order and the model archive. The same bot ordinal selects
-the same speaker for the matching pre-rendered audio and live synthesis.
-A new cast cannot load a legacy phrase bank by accident. Regular bundled
-matches continue to use the original Nano 0.2 bank.
+Pocket TTS supplies both the recorded cast and the live voice provider.
+The same bot ordinal selects the same reference voice in both modes. Common
+contextual reactions use the recorded fast bank when both phrases are
+available. New lines use live CPU synthesis with the same voice. Bundled
+reactions remain available when the live pack is absent.
 
-The decision to try Mini on-device was based on the larger model, its
-compatible voice slots and a matched render with two speaker slots. On the
-same collapse line, the two Mini takes were 3.83 and 5.60 seconds long.
-The legacy takes were 5.83 and 7.23 seconds. Mini took longer to render in
-this desktop trial. The timings measure pacing and computation. Perceived
-naturalness still needs listening. We also considered
-[Kokoro](https://huggingface.co/hexgrad/Kokoro-82M) and
-[Pocket TTS](https://github.com/kyutai-labs/pocket-tts). Those would use a
-different voice backend and are outside this cast.
+Run `python Tools/OnDeviceConversation/prepare.py` to build native adapters and
+prepare the pack in `Tools/OnDeviceConversation/.models/pocket`. To retain
+an existing language model and recognizer, run `prepare_realistic_cast.py`
+with `--base-pack`, `--pocket-model` and `--out`. The Pocket directory must
+contain the model graphs, LICENSE and eight numbered reference WAVs in the
+same slot order as the bundled banks. The migration verifies reused files
+and leaves the base intact. Live conversation requires model format 2 and
+the matching adapters.
 
-For an already prepared conversation pack, render an inventory of exact
-phrases with generate_bundled_voices.py using --model-file model.onnx
-and --line-list pointing to your inventory. The starter bank may be a
-subset of fast-banter-lines.txt, with all eight speakers for each phrase.
-Then run prepare_realistic_cast.py with --base-pack, --mini-model,
---phrase-bank and --out. The script creates a new verified pack and
-preserves the base. Use a folder named realistic beside the default
-Tools/OnDeviceConversation/.models/pack for the automatic editor selection.
-A build can instead take a prepared cast through the existing default
-pack staging path. Standalone headset performance is a separate test.
-
-On-device dialogue keeps a recent history for the individual bot and for
+On-device dialogue checks a recent history for the individual bot and for
 shared match speech. Case and punctuation changes do not count as a new
-line. Model near-copies also get filtered, with safeguards for changed
-direction and negation. Authored contextual lines try alternative wording.
-If every eligible line is recent, the bot stays quiet. Private human replies
-remain outside the shared history. Default bundled speech also checks what
-other bots have recently said and what is queued.
+line. Near-copies are filtered while preserving changes in direction and
+negation. Contextual lines try alternative wording. If every eligible line
+is recent, the bot stays quiet. Private replies stay outside shared history.
+Bundled speech checks recent and queued public speech across bots.
 
-The history is bounded to 65 seconds and a small number of lines. It does
-not prevent a line from ever being heard again. The standalone corpus
-includes match-wide repeats, private reply isolation, near-copies,
-direction changes and history expiry.
+The history is bounded to 65 seconds and a small number of lines. A useful
+line can return later. The fixture stages a collapse exchange grounded in
+what each bot could see or hear and tests two distinct live replies to
+repeated damage.
 
-In the desktop Unity 6000.3.23f1 check, the default editor selection
-loaded the Mini cast. Both staged collapse lines used the matching
-starter bank. The first line played 1.02 seconds after the event and
-the reply at 4.77 seconds. Two real hits against the same bot used
-live Mini synthesis and distinct wording. They played after 3.12 and
-4.41 seconds. The text corpus passed 149 assertions. The regular bank's
-78 authored reactions still match its original audio inventory.
+## Desktop verification
 
-The prepared starter bank contains five phrases and 40 takes across
-eight voices. Its SHA-256 is
-bb822a9e112ab711a80cfaec189666578363b177785046bbf6b8c01689dac3cd.
-The wider legacy bank still has all 18 pre-rendered phrases. Mini uses
-live synthesis when a phrase is absent. These are controlled desktop
-results and do not measure headset performance or subjective realism.
+Unity 6000.3.23f1 opened Game and played four non-silent lines through the
+actual voice AudioSources. The staged block event gave one bot a visual
+fact and the other a sound-only fact. The witness spoke at 0.98 seconds.
+The listener responded to the witness's direction at 3.44 seconds. Both
+lines used the Pocket fast bank. Two actual damage calls gave the same
+bot two different live Pocket replies at 1.79 and 1.13 seconds. Preparation
+took 1.56 and 0.96 seconds respectively.
+
+In a one-thread desktop dry run, Pocket produced the first measurable
+signal on the same collapse line after about 1.0 second and the complete
+clip after 1.8 seconds. Kokoro INT8 took 11 to 15 seconds for complete
+clips in a separate busy-desktop run. These timings measure the tested
+exports and workloads. Auditioning is the way to compare their sound.
+Windows and Android ARM64 adapters compiled. Quest runtime and a rebuilt
+APK are pending.

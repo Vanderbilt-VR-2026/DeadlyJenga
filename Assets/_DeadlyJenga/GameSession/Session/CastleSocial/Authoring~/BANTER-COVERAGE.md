@@ -29,7 +29,7 @@ Latency is measured from the block-break event to a non-silent Unity
 AudioSource. Text-only check timings measure the composer separately and do not
 include synthesis, audio buffering or frame time. One local worker still owns
 the models. Common directional break callouts, selected replies and short match lines
-start from exact pre-rendered phrases in the same eight Kitten voices.
+start from exact pre-rendered phrases in the same eight Pocket voices.
 A fact and a separate joke can be joined at a sentence boundary. Other
 lines are synthesized locally. Completed authored audio is cached by
 voice, delivery rate and exact line. Direct human and improvised outputs
