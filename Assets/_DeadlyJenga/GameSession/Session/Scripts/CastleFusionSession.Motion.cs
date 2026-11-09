@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
         CastleMotionProvider motionProvider;
         CastlePoseInputProbe latestInput;
         int motionStep, humanCursor, inputSequence, nearBlockCursor, blockCursor, botCursor, fastBotCursor, motionRevision = -1;
-        float nextInputCapture, nextMotionFrame, nextBotRoster, nextMotionWorld;
+        float nextInputCapture, nextMotionFrame, nextBotRoster;
         readonly float[] nextHumanLane = new float[HumanLanes];
         bool[] movingBlocks = Array.Empty<bool>();
         bool inputFallback;
@@ -51,7 +51,7 @@ namespace DeadlyJenga.CastlePrototype
             motionProvider.Session = this;
             runner.ProvideInput = !runner.IsServer;
             motionWriter ??= new BinaryWriter(motionStream);
-            nextMotionFrame = nextInputCapture = nextBotRoster = nextMotionWorld = 0;
+            nextMotionFrame = nextInputCapture = nextBotRoster = 0;
             Array.Clear(nextHumanLane, 0, nextHumanLane.Length);
             motionStep = humanCursor = inputSequence = nearBlockCursor = blockCursor = botCursor = fastBotCursor = 0;
             latestInput = default;

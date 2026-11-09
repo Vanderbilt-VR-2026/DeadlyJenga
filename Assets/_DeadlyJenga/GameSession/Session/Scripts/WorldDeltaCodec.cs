@@ -36,6 +36,31 @@ namespace DeadlyJenga.CastlePrototype
         {using var output=new MemoryStream();using var w=new BinaryWriter(output);w.Write(TokenMagic);w.Write(generation.ToByteArray());w.Write(serial);w.Write(length);w.Write(hash);return output.ToArray();}
         static bool Match(byte[] token,Guid generation,int serial,int length,byte[] hash)
         {return token!=null&&token.Length==TokenBytes&&Equal(token,Token(generation,serial,length,hash));}
+        // Every peer in one send pass uses the same immutable capture.
+        internal sealed class Prepared
+        {
+            internal readonly byte[] Raw, Full, HashBytes;
+            byte[] lastAnchor, lastDelta;
+
+            internal Prepared(byte[] raw)
+            {
+                Require(raw != null && raw.Length > 0 && raw.Length <= MaxBytes, "World target invalid");
+                Raw = raw;
+                Full = Zip(raw);
+                HashBytes = Hash(raw);
+            }
+
+            internal byte[] Delta(byte[] anchor)
+            {
+                if (ReferenceEquals(anchor, lastAnchor)) return lastDelta;
+                var xor = new byte[Raw.Length];
+                for (int i = 0; i < Raw.Length; i++)
+                    xor[i] = (byte)(Raw[i] ^ (i < anchor.Length ? anchor[i] : 0));
+                lastAnchor = anchor;
+                return lastDelta = Zip(xor);
+            }
+        }
+
         internal sealed class Sender
         {
             Guid generation=Guid.NewGuid();string context;
@@ -47,19 +72,22 @@ namespace DeadlyJenga.CastlePrototype
             internal void Reset(){generation=Guid.NewGuid();context=null;anchor=pending=anchorHash=pendingHash=null;anchorSerial=pendingSerial=pendingLength=0;invalidated=false;}
             internal void Invalidate()
             {if(pendingSerial==0){Reset();return;}anchor=pending=anchorHash=null;anchorSerial=0;context=null;invalidated=true;}
-            internal byte[] Prepare(byte[] raw,string nextContext,int serial)
+            internal byte[] Prepare(byte[] raw,string nextContext,int serial) =>
+                Prepare(new Prepared(raw == null ? null : (byte[])raw.Clone()), nextContext, serial);
+
+            internal byte[] Prepare(Prepared target,string nextContext,int serial)
             {
+                var raw = target.Raw;
                 Require(pendingSerial==0,"Only one world frame may be in flight");
                 Require(raw!=null&&raw.Length>0&&raw.Length<=MaxBytes&&serial!=0&&nextContext!=null,"World target invalid");
                 if(nextContext!=context){Reset();context=nextContext;}
-                var full=Zip(raw);LastFullPacketBytes=full.Length+HeaderBytes;byte[] body=full;bool delta=false;
+                var full=target.Full;LastFullPacketBytes=full.Length+HeaderBytes;byte[] body=full;bool delta=false;
                 if(anchor!=null&&raw.Length<=CacheBytes)
                 {
-                    var xor=new byte[raw.Length];for(int i=0;i<xor.Length;i++)xor[i]=(byte)(raw[i]^(i<anchor.Length?anchor[i]:0));
-                    var compressed=Zip(xor);if(compressed.Length<full.Length){body=compressed;delta=true;}
+                    var compressed=target.Delta(anchor);if(compressed.Length<full.Length){body=compressed;delta=true;}
                 }
                 Require(body.Length<=MaxBytes-HeaderBytes,"World envelope exceeds transfer limit");
-                var targetHash=Hash(raw);using var output=new MemoryStream();
+                var targetHash=target.HashBytes;using var output=new MemoryStream(HeaderBytes + body.Length);
                 using(var w=new BinaryWriter(output,System.Text.Encoding.UTF8,true))
                 {
                     w.Write(Magic);w.Write((byte)1);w.Write((byte)(delta?1:0));w.Write((ushort)0);w.Write(generation.ToByteArray());
@@ -67,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
                     w.Write(delta?anchorHash:new byte[32]);w.Write(targetHash);w.Write(new byte[32]);w.Write(body);
                 }
                 pendingSerial=serial;pendingLength=raw.Length;pendingHash=targetHash;
-                pending=raw.Length<=CacheBytes?(byte[])raw.Clone():null;
+                pending=raw.Length<=CacheBytes?raw:null;
                 var packet=output.ToArray();Array.Copy(EnvelopeHash(packet),0,packet,104,32);
                 if(delta)DeltaFrames++;else FullFrames++;return packet;
             }

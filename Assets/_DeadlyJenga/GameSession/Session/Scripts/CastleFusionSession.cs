@@ -175,8 +175,10 @@ namespace DeadlyJenga.CastlePrototype
             internal static int NextSequence(ref int sequence){sequence=unchecked(sequence+1);if(sequence==0)sequence=1;return sequence;}
         }
 
-        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence,lastNativeSequence,motionLane;public bool hasPoseSequence,hasNativeSequence;public float lastNativePose; public bool ready,hasInitialMotionWorld; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly WorldDeltaCodec.Sender world=new WorldDeltaCodec.Sender();public int worldResyncs;public float nextWorldResync;public byte[] pendingWorldResync; public readonly LivePoseWindow posesInFlight = new LivePoseWindow(PoseWindow,384*1024,MaxLiveBatchSize+LivePoseCodec.HeaderBytes);public readonly LivePoseReceipts receipts=new LivePoseReceipts(); public int lastPoseSequence,lastNativeSequence,motionLane;public bool hasPoseSequence,hasNativeSequence;public float lastNativePose,nextWorldSend; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
+        readonly List<KeyValuePair<PlayerRef, Peer>> worldSendPeers = new List<KeyValuePair<PlayerRef, Peer>>(10);
+        int worldSendCursor;
         NetworkRunner runner;
         NetworkDelegates callbacks;
         CastleLanSession castle;
@@ -204,7 +206,7 @@ namespace DeadlyJenga.CastlePrototype
             worldRoom&&ReferenceEquals(worldRoom,IslandRoomConnection.Instance)&&worldRoom.Owns(runner)&&worldRoom.ConnectionGeneration==worldConnection:
             !IslandRoomConnection.Instance||!IslandRoomConnection.Instance.Owns(runner);
         void ResetWorldTransfers()
-        {worldReceiver.Reset();worldScope=null;nextWorldResync=0;pendingWorldResync=null;pendingWorldResyncSerial=0;foreach(var peer in peers.Values){peer.world.Reset();peer.waiting=0;peer.worldResyncs=0;peer.nextWorldResync=0;peer.pendingWorldResync=null;}}
+        {worldReceiver.Reset();worldScope=null;nextWorldResync=0;pendingWorldResync=null;pendingWorldResyncSerial=0;foreach(var peer in peers.Values){peer.world.Reset();peer.waiting=0;peer.nextWorldSend=0;peer.worldResyncs=0;peer.nextWorldResync=0;peer.pendingWorldResync=null;}}
         void PumpWorldResync(float now)
         {
             if(runner.IsServer)
@@ -241,9 +243,9 @@ namespace DeadlyJenga.CastlePrototype
                     .Select(a=>new CastleLanProtocol.Actor{id=a.id,kind=a.kind,active=a.active,state=Array.Empty<byte>()}).ToArray()};
             using var hash=System.Security.Cryptography.SHA256.Create();return Convert.ToBase64String(hash.ComputeHash(CastleLanProtocol.EncodeWorld(identity)));
         }
-        void SendWorld(PlayerRef player,Peer peer,byte[] raw,string context,float now)
+        void SendWorld(PlayerRef player,Peer peer,WorldDeltaCodec.Prepared capture,string context)
         {
-            int serial=LivePoseWindow.NextSequence(ref sequence);long encodeStarted=FusionMotionWireTrace.Now;var packet=peer.world.Prepare(raw,context,serial);
+            int serial=LivePoseWindow.NextSequence(ref sequence);long encodeStarted=FusionMotionWireTrace.Now;var packet=peer.world.Prepare(capture,context,serial);
             FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Encode,World,serial,packet.Length,encodeStarted);
             int fullAlternativeBytes=peer.world.LastFullPacketBytes;
             peer.waiting=serial; // Admission reserves the one world slot; timeout starts after SDK return.
@@ -251,7 +253,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 Send(player,World,packet,serial,()=>
                 {
-                    peer.sentAt=Time.unscaledTime;WorldRawBytesSubmitted+=raw.Length;WorldFullAlternativeBytesSubmitted+=fullAlternativeBytes;
+                    peer.sentAt=Time.unscaledTime;WorldRawBytesSubmitted+=capture.Raw.Length;WorldFullAlternativeBytesSubmitted+=fullAlternativeBytes;
                     if(packet[5]==1)WorldDeltaTransfersSubmitted++;else WorldFullTransfersSubmitted++;
                 },()=>{peer.world.Cancel();if(peer.waiting==serial)peer.waiting=0;});
             }
@@ -611,23 +613,41 @@ namespace DeadlyJenga.CastlePrototype
                 Demo.roomNotice=room&&room.Owns(runner)?room.MatchNotice:"";
                 castle.FusionRoomNotice(Demo.roomNotice);
                 string admin=JsonUtility.ToJson(Demo);
-                byte[] world = null;string worldContext=null;
-                bool worldDue = !UsesNativeMotion || now >= nextMotionWorld;
-                foreach (var pair in peers)
+                WorldDeltaCodec.Prepared world = null;
+                string worldContext = null, rules = null;
+                byte[] adminBytes = null;
+                worldSendPeers.Clear();
+                worldSendPeers.AddRange(peers);
+                int count = worldSendPeers.Count;
+                int budget = UsesNativeMotion ? 2 : count;
+                for (int inspected = 0; inspected < count && budget > 0; inspected++)
                 {
-                    if (!pair.Value.ready || pair.Value.waiting != 0 || (!worldDue && pair.Value.hasInitialMotionWorld)) continue;
-                    if(matchPacket!=null&&!ReferenceEquals(pair.Value.match,matchPacket)){var packet=matchPacket;Send(pair.Key,MatchState,packet,0,()=>pair.Value.match=packet);}
-                    if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>pair.Value.disasters=packet);}
-                    if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin),0,()=>pair.Value.admin=admin);}
-                    string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>pair.Value.rules=rules);}
-                    if(world==null){long captureStarted=FusionMotionWireTrace.Now;
+                    int index = worldSendCursor % count;
+                    worldSendCursor = (index + 1) % count;
+                    var pair = worldSendPeers[index];
+                    var peer = pair.Value;
+                    if (!peer.ready || peer.waiting != 0 || (UsesNativeMotion && now < peer.nextWorldSend)) continue;
+                    if(matchPacket!=null&&!ReferenceEquals(peer.match,matchPacket)){var packet=matchPacket;Send(pair.Key,MatchState,packet,0,()=>peer.match=packet);}
+                    if(disasterVisualPacket!=null&&!ReferenceEquals(peer.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>peer.disasters=packet);}
+                    if(peer.admin!=admin){adminBytes??=System.Text.Encoding.UTF8.GetBytes(admin);Send(pair.Key,Admin,adminBytes,0,()=>peer.admin=admin);}
+                    rules??=MatchSetup.CaptureRules(session.Player);
+                    if(peer.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>peer.rules=rules);}
+                    if (world == null)
+                    {
+                        long captureStarted = FusionMotionWireTrace.Now;
                         var snapshot = castle.FusionCaptureWorldSnapshot(UsesNativeMotion ? runner.Tick.Raw : (int?)null);
-                        world = CastleLanProtocol.EncodeWorld(snapshot);
-                        nextMotionWorld = now + .25f;
-                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Capture,World,0,world.Length,captureStarted);
-                        long contextStarted=FusionMotionWireTrace.Now;worldContext=WorldContext(snapshot);
-                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Context,World,0,world.Length,contextStarted);}
-                    try{SendWorld(pair.Key,pair.Value,world,worldContext,now);pair.Value.hasInitialMotionWorld=true;}
+                        world = new WorldDeltaCodec.Prepared(CastleLanProtocol.EncodeWorld(snapshot));
+                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Capture,World,0,world.Raw.Length,captureStarted);
+                        long contextStarted = FusionMotionWireTrace.Now;
+                        worldContext = WorldContext(snapshot);
+                        FusionMotionWireTrace.Record(FusionMotionWireTrace.Phase.Context,World,0,0,contextStarted);
+                    }
+                    try
+                    {
+                        SendWorld(pair.Key, peer, world, worldContext);
+                        peer.nextWorldSend = now + .25f;
+                        budget--;
+                    }
                     catch(Exception){Fail("World transfer encoding or send failed. Rejoin with the same game build.");return;}
                 }
             }

@@ -42,7 +42,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
         {
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path);
-            var composition = poseProbe ? UnityEngine.XR.OpenXR.OpenXRSettings
+            bool fullRoom = Environment.GetCommandLineArgs().Contains("--dj-full-room");
+            var composition = poseProbe || fullRoom ? UnityEngine.XR.OpenXR.OpenXRSettings
                 .GetSettingsForBuildTargetGroup(BuildTargetGroup.Standalone)
                 ?.GetFeatures<UnityEngine.XR.OpenXR.Features.OpenXRFeature>()
                 .FirstOrDefault(feature => feature.GetType().Name == "OpenXRCompositionLayersFeature") : null;
