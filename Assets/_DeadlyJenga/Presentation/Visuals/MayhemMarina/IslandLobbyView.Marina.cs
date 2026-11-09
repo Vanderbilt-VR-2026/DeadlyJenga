@@ -32,7 +32,8 @@ namespace DeadlyJenga.CastlePrototype
             marina=gameObject.AddComponent<MayhemMarina>();marina.Build(lobby,Environment);
             foreach(var television in GetComponentsInChildren<LobbySpectatorTVWall>(true))
             {
-                television.transform.SetLocalPositionAndRotation(new Vector3(5.45f,1.86f,9.84f),Quaternion.Euler(0,30,0));
+                television.transform.SetLocalPositionAndRotation(new Vector3(5.0f,1.86f,9.62f),Quaternion.Euler(0,30,0));
+                television.transform.localScale=Vector3.one*.88f;
                 lobby.AddBlocker(television.transform,new Vector3(0,1.48f,.03f),new Vector3(3.76f,2.95f,.55f));
             }
             wardrobeCenter=MayhemMarina.Wardrobe;
