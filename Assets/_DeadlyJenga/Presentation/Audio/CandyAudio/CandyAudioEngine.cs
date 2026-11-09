@@ -14,6 +14,9 @@ namespace DeadlyJenga.CandyAudio
         public int Culled {get;private set;}
         public int ActiveVoices {get;private set;}
         public Transform Listener {get;private set;}
+        const float FeedbackReserve = 5;
+        const float FeedbackReserveRefill = 12;
+        float feedbackTokens, duckUntil, backgroundGain=1;
         sealed class Voice
         {
             public AudioSource source;public AudioLowPassFilter filter;public CandyAudioCue cue;
@@ -50,6 +53,8 @@ namespace DeadlyJenga.CandyAudio
                 voices.Add(new Voice{source=source,filter=filter,looping=i>=bank.oneShotVoices,reserved=i>=bank.oneShotVoices&&i<bank.oneShotVoices+4});
             }
             tokens=bank.eventsPerSecond;tokenAt=Time.unscaledTime;
+            feedbackTokens=FeedbackReserve;
+            duckUntil=0;backgroundGain=1;
         }
         bool FindCue(CandySound sound,out CandyAudioCue cue)=>cues.TryGetValue(sound,out cue)&&cue.enabled&&cue.variants!=null&&cue.variants.Length>0;
         AudioClip Pick(CandyAudioCue cue)
@@ -69,8 +74,13 @@ namespace DeadlyJenga.CandyAudio
             if(!bank||cue==null||!cue.enabled||!Audible(cue,position,local)){Culled++;return false;}
             long key=((long)owner<<32)^(uint)cue.sound;float now=Time.unscaledTime;
             if(cooldowns.TryGetValue(key,out float until)&&now<until){Culled++;return false;}
-            tokens=Mathf.Min(bank.eventsPerSecond,tokens+(now-tokenAt)*bank.eventsPerSecond);tokenAt=now;
-            if(tokens<1||cue.bus==CandyBus.World&&tokens<4){Culled++;return false;}
+            float elapsed=now-tokenAt;
+            tokens=Mathf.Min(bank.eventsPerSecond,tokens+elapsed*bank.eventsPerSecond);
+            feedbackTokens=Mathf.Min(FeedbackReserve,feedbackTokens+elapsed*FeedbackReserveRefill);
+            tokenAt=now;
+            bool feedback=CandySoundSuite.Contains(cue.sound);
+            bool useReserve=tokens<1&&feedback&&feedbackTokens>=(local?1:2);
+            if(!useReserve&&(tokens<1||cue.bus==CandyBus.World&&tokens<4)){Culled++;return false;}
             int same=0;Voice free=null,steal=null;float weakest=float.PositiveInfinity;
             foreach(var voice in voices)
             {
@@ -89,7 +99,11 @@ namespace DeadlyJenga.CandyAudio
             }
             if(!Prepare(free,cue,position,local,pitch))return false;
             free.gain=gain;free.follow=null;free.source.loop=false;free.source.volume=Volume(free);free.source.Play();
-            cooldowns[key]=now+cue.cooldown;tokens--;Played++;return true;
+            cooldowns[key]=now+cue.cooldown;
+            if(useReserve)feedbackTokens--;else tokens--;
+            if(feedback&&local&&free.source.volume>0)MakeRoomForFeedback();
+            Played++;
+            return true;
         }
         bool Prepare(Voice voice,CandyAudioCue cue,Vector3 position,bool local,float pitch)
         {
@@ -130,8 +144,19 @@ namespace DeadlyJenga.CandyAudio
             selected.target=Mathf.Clamp01(intensity);selected.requestedAt=Time.unscaledTime;
             selected.source.pitch=Mathf.Clamp(pitch,.65f,1.5f);selected.muffling=Mathf.Clamp01(muffling);
         }
-        float Importance(float gain,CandyAudioCue cue,int priority)=>gain*cue.volume*bank.Gain(cue.bus)*(257-Mathf.Clamp(priority,0,256));
-        float Volume(Voice v)=>v.gain*v.cue.volume*bank.master*bank.Gain(v.cue.bus)*focusGain*auditionDucking;
+        internal void MakeRoomForFeedback()=>duckUntil=Time.unscaledTime+.22f;
+
+        float Importance(float gain,CandyAudioCue cue,int priority)
+            => gain*cue.volume*bank.Gain(cue.bus)*CandySoundSuite.MixGain(cue.sound)*(257-Mathf.Clamp(priority,0,256));
+
+        float Volume(Voice voice)
+        {
+            var cue=voice.cue;
+            bool background=cue.bus==CandyBus.Ambience||cue.bus==CandyBus.Music||voice.looping&&cue.bus==CandyBus.World;
+            float mix=background?backgroundGain:1;
+            return Mathf.Clamp01(voice.gain*cue.volume*bank.master*bank.Gain(cue.bus)*
+                CandySoundSuite.MixGain(cue.sound)*focusGain*auditionDucking*mix);
+        }
         void Update()
         {
             if(bank!=current)Rebuild();if(!bank)return;
@@ -142,6 +167,9 @@ namespace DeadlyJenga.CandyAudio
                 if(!activeView){Listener=null;foreach(var listener in FindObjectsByType<AudioListener>(FindObjectsSortMode.None))if(listener.isActiveAndEnabled){Listener=listener.transform;break;}}
                 if(cooldowns.Count>4096)cooldowns.Clear();
             }
+            bool ducking=Time.unscaledTime<duckUntil;
+            backgroundGain=Mathf.MoveTowards(backgroundGain,ducking?.58f:1,
+                Time.unscaledDeltaTime*(ducking?24:1.4f));
             focusGain=Mathf.MoveTowards(focusGain,focus?1:0,Time.unscaledDeltaTime*4);ActiveVoices=0;
             float waveCutoff=WaveImmersion>0?18000*Mathf.Pow(.045f,WaveImmersion):18000;
             foreach(var voice in voices)

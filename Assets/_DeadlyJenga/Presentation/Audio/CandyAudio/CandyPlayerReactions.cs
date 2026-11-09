@@ -42,7 +42,13 @@ namespace DeadlyJenga.CandyAudio
             if(cue==MatchSoundCue.HitConfirm||cue==MatchSoundCue.KillConfirm)
             {
                 var clip=cue==MatchSoundCue.HitConfirm?hitClip:killClip;
-                if(clip)confirmSpeaker.PlayOneShot(clip,engine.bank.master*engine.bank.ui);
+                var sound=cue==MatchSoundCue.HitConfirm?CandySound.HitConfirm:CandySound.KillConfirm;
+                float gain=Mathf.Clamp01(engine.bank.master*engine.bank.ui*CandySoundSuite.MixGain(sound));
+                if(clip&&gain>0)
+                {
+                    confirmSpeaker.PlayOneShot(clip,gain);
+                    engine.MakeRoomForFeedback();
+                }
                 return;
             }
             bool nearby=cue==MatchSoundCue.NearbyHit||cue==MatchSoundCue.NearbyShot||cue==MatchSoundCue.NearbyDeath;

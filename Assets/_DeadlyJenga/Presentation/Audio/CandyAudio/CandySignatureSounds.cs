@@ -15,9 +15,10 @@ namespace DeadlyJenga.CandyAudio
         {
             string key=action.kind+"/"+action.action+(action.action==EquipmentAction.Shot? (action.shotgun?"/wide":"/precision"):"");bool shot=action.action==EquipmentAction.Shot,impact=action.action==EquipmentAction.Impact,reload=action.action==EquipmentAction.Reload;
             bool thunder=shot&&action.kind==EquipmentKind.LaserAxe&&action.shotgun;
-            float seconds=thunder?.96f:impact?1.2f:reload?.8f:shot?(action.kind==EquipmentKind.ChainGun?.16f:.4f):.25f;
+            bool blade=action.kind==EquipmentKind.Dagger&&(shot||impact);
+            float seconds=blade?(impact?.12f:.16f):thunder?.96f:impact?1.2f:reload?.8f:shot?(action.kind==EquipmentKind.ChainGun?.16f:.4f):.25f;
             var cue=Get(key,(int)action.kind*41+(int)action.action,seconds,false,shot,impact,reload,action.kind,thunder);
-            cue.maxDistance=global?10000:action.kind==EquipmentKind.ChainGun?120:impact?100:75;cue.minDistance=global?1000:action.kind==EquipmentKind.ChainGun?6:2;
+            cue.maxDistance=blade?25:global?10000:action.kind==EquipmentKind.ChainGun?120:impact?100:75;cue.minDistance=global?1000:action.kind==EquipmentKind.ChainGun?6:2;
             CandyAudioEngine.Instance?.PlayCue(cue,action.position,1,action.actor?.GetHashCode()??0);
         }
         public static void PlayEmote(GameObject who,string name)
@@ -53,9 +54,25 @@ namespace DeadlyJenga.CandyAudio
                     else if(kind==EquipmentKind.WristLaser&&shot){phase+=(310+160*u)*2*Mathf.PI/rate;value=(Mathf.Sin(phase)*.35f+Mathf.Sin(phase*1.013f)*.25f+low*.3f);}
                     else if(kind==EquipmentKind.GrenadeLauncher&&impact){value=low*1.4f+noise*(Mathf.Sin(t*113)>0.85f?.8f:.12f)+Mathf.Sin(t*2*Mathf.PI*(90-55*u))*.4f;}
                     else if(kind==EquipmentKind.RocketLauncher&&impact){value=low*2.2f+noise*.38f*Mathf.Exp(-t*8)+Mathf.Sin(t*2*Mathf.PI*(48-23*u))*.7f;}
+                    else if(kind==EquipmentKind.Dagger&&(shot||impact))
+                    {
+                        float edge=noise-low;
+                        if(impact)
+                        {
+                            float scrape=Mathf.Exp(-t*42);
+                            phase+=(1750-1050*u)*pitch*2*Mathf.PI/rate;
+                            value=(edge*.36f+Mathf.Sin(phase)*.16f)*scrape+low*.07f;
+                        }
+                        else
+                        {
+                            float swipe=Mathf.Sin(Mathf.PI*u);
+                            phase+=(1300-830*u)*pitch*2*Mathf.PI/rate;
+                            value=(edge*.39f+Mathf.Sin(phase)*.12f)*swipe;
+                        }
+                    }
                     else if(impact&&EquipmentSpecifications.Get(kind).melee)
                     {
-                        float weight=kind==EquipmentKind.Dagger?.45f:kind==EquipmentKind.FlamingMarshmallow?.3f:1;
+                        float weight=kind==EquipmentKind.FlamingMarshmallow?.3f:1;
                         value=low*(.8f+weight)+Mathf.Sin(t*2*Mathf.PI*(90-48*u))*.38f*weight+noise*.14f;
                         if(kind==EquipmentKind.BarbedBat)value+=Mathf.Sin(t*2*Mathf.PI*790)*.14f*Mathf.Exp(-t*10);
                         if(kind==EquipmentKind.LaserClaws||kind==EquipmentKind.LaserAxe)value+=Mathf.Sin(t*2*Mathf.PI*(1100-600*u))*.23f;
@@ -69,7 +86,7 @@ namespace DeadlyJenga.CandyAudio
                             kind==EquipmentKind.NeedleDrill?1850:kind==EquipmentKind.StockPistol?280:
                             kind==EquipmentKind.SawStaff?165:kind==EquipmentKind.Chainsaw?98:
                             kind==EquipmentKind.BarbedBat?116:kind==EquipmentKind.LaserClaws?720:
-                            kind==EquipmentKind.LaserAxe?175:kind==EquipmentKind.Dagger?1300:
+                            kind==EquipmentKind.LaserAxe?175:
                             kind==EquipmentKind.FlamingMarshmallow?340:120+seed%190;
                         phase+=frequency*(1-.48f*u)*pitch*2*Mathf.PI/rate;
                         value=(Mathf.Sin(phase)*.35f+low*.5f+noise*.16f);
