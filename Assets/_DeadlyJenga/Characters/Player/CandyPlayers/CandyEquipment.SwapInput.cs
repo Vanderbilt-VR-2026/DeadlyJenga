@@ -7,14 +7,21 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyEquipment
     {
         const float PickupRange = 1.65f;
-        const float GripReach = .34f;
+        const float GripReach = .45f;
+        const float AimFocus = .92f;
+        const float GrabBuffer = .18f;
         const int PickupOccluders = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
         int pendingPickup;
         float nextPickupRequest;
+        float leftGrabUntil, rightGrabUntil;
 
         public int PendingPickup => pendingPickup;
 
-        void ClearPickupFocus() => pendingPickup = 0;
+        void ClearPickupFocus()
+        {
+            pendingPickup = 0;
+            leftGrabUntil = rightGrabUntil = 0;
+        }
 
         public void ConfirmSwap(bool accept)
         {
@@ -37,26 +44,27 @@ namespace DeadlyJenga.CandyPlayers
         bool UpdatePickupFocus(EquipmentState current)
         {
             int previousFocus = pendingPickup;
-            ClearPickupFocus();
+            pendingPickup = 0;
             var frame = MatchRuntime.Current?.Frame;
-            if (frame == null || frame.phase != RoundPhase.Playing || !avatar.viewCamera) return false;
+            if (frame == null || frame.phase != RoundPhase.Playing || !avatar.viewCamera)
+            {
+                ClearPickupFocus();
+                return false;
+            }
 
             var eye = avatar.viewCamera.transform;
             bool vr = motor.IsVR;
-            bool leftController = vr && HybridXRInput.ControllerTracked(true);
-            bool rightController = vr && HybridXRInput.ControllerTracked(false);
-            var tracking = avatar.tracking;
-            var leftHand = vr && tracking ? tracking.WorldHand(true) : default;
-            var rightHand = vr && tracking ? tracking.WorldHand(false) : default;
-            bool leftGrab = leftHand.tracked && (leftController ? HybridXRInput.GripPressed(true) :
-                leftHand.skeletonTracked && tracking.LeftPinching && tracking.MenuSelectPressed);
-            bool rightGrab = rightHand.tracked && (rightController ? HybridXRInput.GripPressed(false) :
-                rightHand.skeletonTracked && tracking.RightPinchPressed);
+            bool fireHeld = vr && (trigger?.IsPressed() == true || offTrigger?.IsPressed() == true);
+            var leftPoint = PickupHand(true, vr, fireHeld, ref leftGrabUntil);
+            var rightPoint = PickupHand(false, vr, fireHeld, ref rightGrabUntil);
+            float now = Time.unscaledTime;
+            bool leftGrab = leftGrabUntil > now;
+            bool rightGrab = rightGrabUntil > now;
             bool slotFree = current.kind == EquipmentKind.None || current.builtIn && current.activePower == EquipmentKind.None;
             EquipmentPickup focused = null, touchingPower = null;
             float best = float.NegativeInfinity;
             float powerDistance = .70f * .70f;
-            bool gripOnFocus = false;
+            int bestPriority = -1;
             foreach (var pickup in frame.pickups)
             {
                 if (pickup == null || pickup.availableIn > 0) continue;
@@ -67,11 +75,14 @@ namespace DeadlyJenga.CandyPlayers
                 float alignment = depth > .01f ? Vector3.Dot(eye.forward, delta / depth) : 1;
                 bool autoPower = slotFree && feetDistance < powerDistance &&
                     (pickup.kind == EquipmentKind.Speed || pickup.kind == EquipmentKind.Jump);
-                float leftDistance = leftHand.tracked && (leftController || leftHand.skeletonTracked) ? (leftHand.position - pickup.position).sqrMagnitude : float.PositiveInfinity;
-                float rightDistance = rightHand.tracked && (rightController || rightHand.skeletonTracked) ? (rightHand.position - pickup.position).sqrMagnitude : float.PositiveInfinity;
+                float leftDistance = leftPoint.HasValue ? (leftPoint.Value - pickup.position).sqrMagnitude : float.PositiveInfinity;
+                float rightDistance = rightPoint.HasValue ? (rightPoint.Value - pickup.position).sqrMagnitude : float.PositiveInfinity;
                 float handDistance = Mathf.Min(leftDistance, rightDistance);
-                bool reachable = vr && handDistance < GripReach * GripReach;
-                if (!autoPower && alignment < (reachable ? .83f : .95f)) continue;
+                float grabDistance = Mathf.Min(leftGrab ? leftDistance : float.PositiveInfinity,
+                    rightGrab ? rightDistance : float.PositiveInfinity);
+                bool reachable = handDistance <= GripReach * GripReach;
+                bool grabbing = grabDistance <= GripReach * GripReach;
+                if (!autoPower && !reachable && alignment < AimFocus) continue;
                 if (depth > .01f && Physics.Raycast(eye.position, delta / depth, depth * .92f,
                     PickupOccluders, QueryTriggerInteraction.Ignore)) continue;
                 if (autoPower)
@@ -81,20 +92,20 @@ namespace DeadlyJenga.CandyPlayers
                     continue;
                 }
 
-                float score = alignment * 5 - depth * .10f + (pickup.id == previousFocus ? .055f : 0);
-                if (reachable) score += 1.1f - handDistance * 4;
-                if (score <= best) continue;
+                // A squeeze chooses the closest item to that hand, even when looking elsewhere.
+                int priority = grabbing ? 2 : reachable ? 1 : 0;
+                float score = grabbing ? -grabDistance : reachable ? -handDistance :
+                    alignment - depth * .02f + (pickup.id == previousFocus ? .011f : 0);
+                if (priority < bestPriority || priority == bestPriority && score <= best) continue;
                 focused = pickup;
                 best = score;
-                gripOnFocus = leftGrab && leftDistance < GripReach * GripReach ||
-                    rightGrab && rightDistance < GripReach * GripReach;
+                bestPriority = priority;
             }
 
             if (focused != null)
             {
                 pendingPickup = focused.id;
-                bool fireHeld = trigger?.IsPressed() == true || offTrigger?.IsPressed() == true;
-                bool activate = vr ? gripOnFocus && !fireHeld : Keyboard.current?.eKey.wasPressedThisFrame == true;
+                bool activate = vr ? bestPriority == 2 : Keyboard.current?.eKey.wasPressedThisFrame == true;
                 if (activate) return TakeFocusedPickup();
             }
             else if (touchingPower != null && Time.unscaledTime >= nextPickupRequest)
@@ -103,6 +114,27 @@ namespace DeadlyJenga.CandyPlayers
                 Runtime?.RequestPickup(touchingPower.id, false);
             }
             return false;
+        }
+
+        Vector3? PickupHand(bool left, bool vr, bool fireHeld, ref float grabUntil)
+        {
+            var tracking = avatar.tracking;
+            var hand = vr && tracking ? tracking.WorldHand(left) : default;
+            bool controller = vr && HybridXRInput.ControllerTracked(left);
+            if (!hand.tracked || !controller && !hand.skeletonTracked)
+            {
+                grabUntil = 0;
+                return null;
+            }
+
+            bool held = controller ? HybridXRInput.GripHeld(left) :
+                left ? tracking.LeftPinching : tracking.RightPinching;
+            bool pressed = controller ? HybridXRInput.GripPressed(left) :
+                left ? tracking.LeftPinchPressed : tracking.RightPinchPressed;
+            if (!held || fireHeld) grabUntil = 0;
+            else if (pressed) grabUntil = Time.unscaledTime + GrabBuffer;
+
+            return !controller && tracking.TryIndexTip(left, out var tip) ? tip : hand.position;
         }
     }
 }
