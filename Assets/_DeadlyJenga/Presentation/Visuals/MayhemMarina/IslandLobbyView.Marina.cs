@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
             marina=gameObject.AddComponent<MayhemMarina>();marina.Build(lobby,Environment);
             foreach(var television in GetComponentsInChildren<LobbySpectatorTVWall>(true))
             {
-                television.transform.localPosition=new Vector3(-10,4.16f,20.2f);television.transform.localRotation=Quaternion.identity;
+                television.transform.SetLocalPositionAndRotation(new Vector3(5.45f,1.86f,9.84f),Quaternion.Euler(0,30,0));
                 lobby.AddBlocker(television.transform,new Vector3(0,1.48f,.03f),new Vector3(3.76f,2.95f,.55f));
             }
             wardrobeCenter=MayhemMarina.Wardrobe;
@@ -65,6 +65,7 @@ namespace DeadlyJenga.CastlePrototype
             marinaStylePrompt.sizeDelta = new Vector2(780, 140);
             style.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
             Add(marinaStylePrompt, "marina-open-style", () => "OPEN WARDROBE", 0, () => OpenMarinaDetail("style"), () => true, 0, 780, 140);
+            GameEvents.Emoted += MarinaActivityArt;
             BuildMarinaMirror();CloseMarinaDetail();
         }
         static void MountMarinaScreen(RectTransform screen, Vector3 position, Quaternion rotation, float maxWidth, float maxHeight)
@@ -137,7 +138,47 @@ namespace DeadlyJenga.CastlePrototype
             marinaMaskTexture.SetPixels(pixels);marinaMaskTexture.Apply();marinaMaskSprite=Sprite.Create(marinaMaskTexture,new Rect(0,0,64,64),Vector2.one*.5f);go.GetComponent<Image>().sprite=marinaMaskSprite;go.GetComponent<Image>().color=new Color(.42f,.68f,.75f);go.GetComponent<Mask>().showMaskGraphic=true;
             var image=new GameObject("Mirror image",typeof(RectTransform),typeof(RawImage));image.transform.SetParent(go.transform,false);var raw=image.GetComponent<RawImage>();raw.texture=wardrobeTexture;raw.color=Color.white;raw.raycastTarget=false;raw.rectTransform.sizeDelta=new Vector2(348,348);
         }
+        void MarinaActivityArt(GameObject body, string cue)
+        {
+            if (!body || !body.transform.IsChildOf(transform)) return;
+            var root = body.transform;
+            switch (cue)
+            {
+                case "MarinaJetSki":
+                    var color = root.localPosition.x < -22 ? new Color(.11f, .74f, .69f) : new Color(1, .36f, .19f);
+                    Ellipsoid(root, "Jet ski hull", new Vector3(0, .06f, .05f), new Vector3(1.07f, .43f, 2.62f), new Color(.09f, .13f, .20f));
+                    Ellipsoid(root, "Jet ski deck", new Vector3(0, .24f, .19f), new Vector3(1.03f, .38f, 2.28f), color);
+                    Ellipsoid(root, "Seat", new Vector3(0, .47f, -.27f), new Vector3(.46f, .19f, .88f), new Color(.12f, .14f, .20f));
+                    Ellipsoid(root, "Bow cowling", new Vector3(0, .42f, .62f), new Vector3(.69f, .45f, 1.06f), color);
+                    Box(root, "Steering post", new Vector3(0, .64f, .38f), new Vector3(.08f, .30f, .09f), CandyInk);
+                    Box(root, "Handlebar", new Vector3(0, .78f, .39f), new Vector3(.62f, .07f, .09f), CandyInk);
+                    break;
+                case "MarinaKnifeRack":
+                    Box(root, "Practice knife rack", Vector3.down * .12f, new Vector3(1.16f, .24f, .62f), CandyInk);
+                    for (int i = -1; i <= 1; i += 2)
+                        Box(root, "Knife rack leg", new Vector3(i * .47f, -.54f, 0), new Vector3(.11f, .77f, .43f), CandyInk);
+                    for (int i = 0; i < 3; i++) BuildMarinaKnife(root, new Vector3((i - 1) * .29f, .04f, 0));
+                    var canvas = new GameObject("Knife range directions", typeof(RectTransform), typeof(Canvas));
+                    canvas.transform.SetParent(root, false);
+                    canvas.transform.localPosition = new Vector3(0, .19f, -.35f);
+                    canvas.transform.localScale = Vector3.one * .0018f;
+                    canvas.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
+                    Label(canvas.GetComponent<RectTransform>(), "PRACTICE KNIVES", 65, 38, 680, 58);
+                    Label(canvas.GetComponent<RectTransform>(), "E / TRIGGER TO EQUIP", 8, 29, 680, 48);
+                    Label(canvas.GetComponent<RectTransform>(), "CLICK / TRIGGER TO THROW", -38, 27, 680, 42);
+                    break;
+                case "MarinaThrownKnife":
+                    BuildMarinaKnife(root, Vector3.zero);
+                    break;
+            }
+        }
+        void BuildMarinaKnife(Transform root, Vector3 offset)
+        {
+            Box(root, "Knife grip", offset + Vector3.back * .10f, new Vector3(.055f, .05f, .19f), CandyInk);
+            Box(root, "Knife guard", offset, new Vector3(.12f, .035f, .032f), new Color(.80f, .57f, .22f));
+            Ellipsoid(root, "Knife blade", offset + Vector3.forward * .12f, new Vector3(.075f, .025f, .27f), new Color(.79f, .88f, .95f));
+        }
         partial void DisposeMayhemMarina()
-        {if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaStylePrompt)Destroy(marinaStylePrompt.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
+        {GameEvents.Emoted -= MarinaActivityArt;if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaStylePrompt)Destroy(marinaStylePrompt.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
     }
 }
