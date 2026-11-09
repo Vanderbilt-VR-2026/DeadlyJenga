@@ -36,7 +36,7 @@ namespace DeadlyJenga.DevTools.Editor
         static string Project=>Path.GetFullPath(Path.Combine(Application.dataPath,".."));
         static bool GameRun=>SessionState.GetBool(Key+"Game",false);
         static readonly string[] MapIds={"moving-shelter","peel-away-screen","collapse-created-route","pivoting-causeway","refuge-exchange","break-contact-borough","skyline-island"};
-        enum GamePhase {Load,Ready,Settle,Observe,RoofReady,RoofJump,SkylineCollapse,Late,Reset}
+        enum GamePhase {Load,Ready,Settle,Observe,RoofReady,RoofJump,SkylineCollapse,Late,Reset,HazardPrepare,HazardLive}
         static GamePhase gamePhase;
         static int gameIndex,gameLast,gameFrame,resetRevision;
         static float gameFixed,phaseUntil;
@@ -49,6 +49,11 @@ namespace DeadlyJenga.DevTools.Editor
         static Pose roofReturn;
         static Rigidbody impactedSection;
         static Vector3 impactStart;
+        static GameObject[] skylineHazards;
+        static int hazardIndex,hazardsPassed;
+        static IHazard liveHazard;
+        static float hazardBegan,hazardBudget,hazardHealth;
+        static Pose rewindPose;
         static ConceptMapChecks(){EditorApplication.playModeStateChanged-=State;EditorApplication.playModeStateChanged+=State;Rearm();}
 
         [MenuItem("Tools/Deadly Jenga/Validation/Check Six Concept Maps")]
@@ -335,7 +340,7 @@ namespace DeadlyJenga.DevTools.Editor
                     if(gameMap.kind==ConceptMapKind.SkylineIsland)
                     {
                         CheckSkylineRoutes(physics);
-                        CheckSkylineBeach(physics);
+                        CheckSkylineWater(physics);
                     }
                     if(stability!=null)throw new InvalidOperationException(stability);
                     var probeKind=gameMap.kind==ConceptMapKind.SkylineIsland?ConceptMapKind.PivotingCauseway:gameMap.kind;
@@ -386,9 +391,11 @@ namespace DeadlyJenga.DevTools.Editor
                     player.InputDriver=null;
                     player.externallyDriven=false;
                     player.Place(roofReturn.position,roofReturn.rotation);
-                    CompleteGameCase(null);
+                    BeginSkylineHazards();
                     return;
                 }
+                if(gamePhase==GamePhase.HazardPrepare){StartSkylineHazard();return;}
+                if(gamePhase==GamePhase.HazardLive){ObserveSkylineHazard();return;}
                 if(gamePhase==GamePhase.SkylineCollapse)
                 {
                     if(Time.fixedTime<gameFixed+1.1f)return;
@@ -532,21 +539,124 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
-        static void CheckSkylineBeach(PhysicsScene physics)
+        static void CheckSkylineWater(PhysicsScene physics)
         {
-            var shore=gameMap.Root.TransformPoint(new Vector3(109,2,0));
-            Check(physics.Raycast(shore,Vector3.down,out var beach,3,1,QueryTriggerInteraction.Ignore)
-                &&beach.collider is MeshCollider&&beach.normal.y>.9f&&beach.point.y<shore.y-1.6f,
-                "Walkable island terrain extends beyond the former rectangular floor and slopes to the sea");
+            var deck=gameMap.Root.TransformPoint(new Vector3(0,2,7));
+            Check(physics.Raycast(deck,Vector3.down,out var pier,3,1,QueryTriggerInteraction.Ignore)
+                &&pier.collider is MeshCollider&&pier.point.y>gameMap.WaterHeight(pier.point),
+                "The central pier supports players above water");
+            foreach(var gap in new[]{new Vector3(20,2,9),new Vector3(-20,2,-9),new Vector3(108,2,0)})
+            {
+                var point=gameMap.Root.TransformPoint(gap);
+                Check(!physics.Raycast(point,Vector3.down,out _,3,1,QueryTriggerInteraction.Ignore),
+                    "Open water has no hidden floor at "+point);
+            }
             var environment=Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyEnvironment>();
             var properties=new MaterialPropertyBlock();
-            Check(environment&&environment.waterRenderer&&environment.waterRenderer.enabled,"Skyline uses the active Candy Ocean renderer");
+            Check(environment&&environment.waterRenderer&&environment.waterRenderer.enabled&&!environment.sandRenderer.enabled,
+                "Open-water Skyline uses the active ocean with its sand renderer hidden");
             environment.waterRenderer.GetPropertyBlock(properties);
-            Check(properties.GetFloat("_CoastalDetail")>0&&properties.GetTexture("_TerrainHeight")!=null
-                &&properties.GetFloat("_WaveExtent")>109,"Ocean samples the physical shoreline and resolves waves beyond the beach");
-            var deep=gameMap.Root.TransformPoint(new Vector3(122,2,0));
-            Check(!physics.Raycast(deep,Vector3.down,out _,3,1,QueryTriggerInteraction.Ignore),
-                "There is no invisible rectangular floor past the beach");
+            Check(properties.GetFloat("_CoastalDetail")>0&&properties.GetFloat("_HasTerrain")==0,
+                "The ocean uses wide-area waves with no sandbar height field");
+        }
+
+        static void BeginSkylineHazards()
+        {
+            skylineHazards=DemoDisasters.Prefabs.OrderBy(p=>p.name=="AntiGravity"?0:p.name=="TimeSlip"?1:2).ToArray();
+            hazardIndex=hazardsPassed=0;
+            gamePhase=GamePhase.HazardPrepare;
+            phaseUntil=Time.realtimeSinceStartup+1;
+            Deadline(20);
+        }
+
+        static void StartSkylineHazard()
+        {
+            var prefab=skylineHazards[hazardIndex];
+            var id=prefab.name;
+            var options=prefab.GetComponent<IDemoHazard>();
+            var values=options?.Parameters.Select(p=>p.id=="warning"?0:p.id=="grab"&&id=="Kraken"?2:
+                p.id=="speed"&&id=="Tsunami"?25:p.initial).ToArray();
+            if(id=="AntiGravity")
+            {
+                impactedSection=Find(gameMap,"West Crown tower section 11");
+                rewindPose=new Pose(impactedSection.position,impactedSection.rotation);
+                impactedSection.GetComponent<IPushable>().Push(Vector3.up*12,gameMap.gameObject);
+                impactedSection.position+=Vector3.up*10;
+                impactedSection.linearVelocity=Vector3.down*8;
+            }
+            var survivor=gameSession.Survivor();
+            if(id=="Vampire")
+            {
+                // The north pier is open toward the morning sun.
+                survivor.Place(gameMap.Root.TransformPoint(new Vector3(-90,.46f,62)),gameMap.Root.rotation);
+            }
+            hazardHealth=survivor.GetComponent<IDamageable>().Health;
+            Check(DemoDisasters.Execute(gameSession,id,values:values),id+" accepted by actual Game");
+            var type=prefab.GetComponent<IHazard>().Type;
+            liveHazard=gameSession.GetComponentsInChildren<MonoBehaviour>().OfType<IHazard>().FirstOrDefault(h=>h.Type==type&&h.Active);
+            if(liveHazard==null)
+            {
+                failed.Add(id+" did not start");
+                Note("FAIL "+id+" did not start");
+                AdvanceSkylineHazard();return;
+            }
+            Note("PASS "+id+" starts an active hazard");
+            hazardBegan=Time.fixedTime;
+            hazardBudget=id switch{"Tsunami"=>27,"Tornado"=>24,"Kraken"=>19,"MeteorShower"=>20,"PlanetKillerMeteor"=>24,_=>12};
+            gamePhase=GamePhase.HazardLive;
+            Deadline(65);
+        }
+
+        static void ObserveSkylineHazard()
+        {
+            var id=skylineHazards[hazardIndex].name;
+            var frame=(liveHazard as IDisasterState)?.Capture();
+            float age=Time.fixedTime-hazardBegan;
+            var player=gameSession.Survivor().GetComponent<IDamageable>();
+            bool released=gameMap.Blocks.Any(b=>b&&b.name.Contains(" tower section ")&&!b.isKinematic);
+            bool Contact(string land,string water)=>DisasterStates.Active.Any(source=>
+            {
+                var contact=source.Capture();
+                return contact!=null&&(contact.kind==land||contact.kind==water);
+            });
+            bool effect=id switch
+            {
+                "AntiGravity"=>age>.35f&&impactedSection.linearVelocity.y>=-4.2f&&impactedSection.position.y>rewindPose.position.y+4,
+                "TimeSlip"=>!liveHazard.Active&&impactedSection.isKinematic&&Vector3.Distance(impactedSection.position,rewindPose.position)<.2f,
+                "AcidRain" or "Vampire"=>player.Health<hazardHealth,
+                "Earthquake" or "Tornado"=>released,
+                "Fire" or "PowerOutage"=>frame?.blocks?.Length>0,
+                "Icey"=>DisasterStates.Slipperiness>0,
+                "Kraken"=>frame?.points?.Any(p=>p.size==(int)DeadlyJenga.World.Hazards.KrakenHazard.Arm.Dragging)==true,
+                "MeteorShower"=>Contact("MeteorLandContact","MeteorWaterContact"),
+                "PlanetKillerMeteor"=>Contact("PlanetLandContact","PlanetWaterContact"),
+                "Tsunami"=>liveHazard is DeadlyJenga.World.Hazards.TsunamiHazard wave&&wave.LastTargetCount>0&&
+                    gameMap.Blocks.Any(b=>b&&b.gameObject.activeInHierarchy&&!b.isKinematic&&b.linearVelocity.sqrMagnitude>.09f),
+                _=>frame!=null&&age>.2f
+            };
+            if(!effect&&age<hazardBudget&&liveHazard.Active)return;
+            if(!effect)
+            {
+                Note($"FAIL {id} effect within {age:F1}s; active={liveHazard.Active}, health={player.Health:F1}, released={released}");
+                failed.Add(id+" effect missing");
+            }
+            else{hazardsPassed++;Note($"PASS {id} gameplay effect after {age:F2}s");}
+            AdvanceSkylineHazard();
+        }
+
+        static void AdvanceSkylineHazard()
+        {
+            DemoDisasters.StopAll(gameSession);
+            if(++hazardIndex==skylineHazards.Length)
+            {
+                gameSession.ResetMap();
+                Note($"DISASTERS {hazardsPassed}/{skylineHazards.Length} gameplay effects on the water map.");
+                CompleteGameCase(null);return;
+            }
+            if(skylineHazards[hazardIndex].name!="TimeSlip")gameSession.ResetMap();
+            gamePhase=GamePhase.HazardPrepare;
+            phaseUntil=Time.realtimeSinceStartup+.45f;
+            Deadline(20);
         }
 
         static void CheckSkylineRoutes(PhysicsScene physics)
@@ -658,9 +768,9 @@ namespace DeadlyJenga.DevTools.Editor
                     SaveCamera(overview,name+"-overview");
                     if(gameMap.kind==ConceptMapKind.SkylineIsland&&phase=="intact")
                     {
-                        view.transform.position=gameMap.Root.TransformPoint(new Vector3(104,4,-22));
+                        view.transform.position=gameMap.Root.TransformPoint(new Vector3(102,4,-22));
                         view.transform.LookAt(gameMap.Root.TransformPoint(new Vector3(83,6,52)));
-                        SaveCamera(overview,name+"-coast");
+                        SaveCamera(overview,name+"-water-level");
                     }
                 }
                 finally{Object.DestroyImmediate(view);}
@@ -746,7 +856,7 @@ namespace DeadlyJenga.DevTools.Editor
         static void Fallback(ConceptMechanismMap map,PhysicsScene physics,ConceptMapKind kind)
         {
             var size=ConceptMapLayout.FoundationSize(kind);
-            if(kind==ConceptMapKind.SkylineIsland)size=new Vector2(188,130);
+            if(kind==ConceptMapKind.SkylineIsland)size=new Vector2(188,125.3f);
             float z=size.y*.5f-.65f;
             var hits=new Collider[16];
             for(float x=-size.x*.5f+1;x<=size.x*.5f-1;x+=2)

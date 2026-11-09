@@ -13,10 +13,7 @@ namespace DeadlyJenga.CandyArt
         public bool applyLighting;
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
-        bool usePhysicalShore;
-        Collider sampledShore;
-        Texture2D shoreHeights;
-        Vector4 shoreBounds;
+        bool openWater;
         void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyWaveContactVisual>())gameObject.AddComponent<CandyWaveContactVisual>();if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();if(!GetComponent<CandySceneSkins>())gameObject.AddComponent<CandySceneSkins>();} Refresh(); }
         void Update() { if(Application.isPlaying){if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
         public void Refresh()
@@ -24,10 +21,10 @@ namespace DeadlyJenga.CandyArt
             if(!profile || !waterRenderer || !sandRenderer) return;
             var world=DeadlyJenga.Core.Services.World;
             if(Application.isPlaying && world!=null && (!ReferenceEquals(activeWorld,world) ||
-                (usePhysicalShore && (!foundation || !foundation.gameObject.activeInHierarchy))))
+                (openWater && (!foundation || !foundation.gameObject.activeInHierarchy))))
             {
                 activeWorld=world;
-                usePhysicalShore=false;
+                openWater=false;
                 if(world is MonoBehaviour map)
                 {
                     float area=0;Transform floor=null;
@@ -35,7 +32,7 @@ namespace DeadlyJenga.CandyArt
                         if(!col.isTrigger && !col.attachedRigidbody && (col.gameObject.layer==DeadlyJenga.Core.Layers.Surface||col.gameObject.layer==0))
                         {float candidate=col.bounds.size.x*col.bounds.size.z;if(candidate>area){area=candidate;floor=col.transform;}}
                     var scenery=map.GetComponent<DeadlyJenga.Presentation.VillageFlatScenery>();
-                    usePhysicalShore=scenery&&scenery.usePhysicalShore;
+                    openWater=scenery&&scenery.openWater;
                     if(floor)foundation=floor;
                     var baseline=GetComponent<CandyArtBaseline>();if(baseline)baseline.map=map;
                     transform.position=world.Center;
@@ -47,13 +44,11 @@ namespace DeadlyJenga.CandyArt
             float waterLevel=DeadlyJenga.Core.Services.World!=null?DeadlyJenga.Core.Services.World.WaterHeight(origin):origin.y+profile.waterHeight;
             waterRenderer.transform.localPosition=new Vector3(0,waterLevel-origin.y,0);
             waterRenderer.transform.localScale=new Vector3(profile.oceanSize,1,profile.oceanSize);
-            var shore=Application.isPlaying&&usePhysicalShore&&foundation?foundation.GetComponent<MeshCollider>():null;
-            if(shore!=sampledShore||!shore&&shoreHeights)UpdateShore(shore,origin);
             var ocean=waterRenderer.GetComponent<CandyOceanSurface>();
             if(ocean)
             {
                 ocean.profile=profile;
-                ocean.ShoreExtent=shoreHeights?Mathf.Max(shoreBounds.z,shoreBounds.w)*.7f+20:0;
+                ocean.DetailedExtent=openWater&&world!=null?world.Radius*1.45f+20:0;
                 ocean.Refresh();
             }
             float sandTop=origin.y+profile.sandHeight;
@@ -64,7 +59,7 @@ namespace DeadlyJenga.CandyArt
             }
             sandRenderer.transform.position=new Vector3(origin.x,sandTop,origin.z);
             var terrain=sandRenderer.GetComponent<CandySandbar>();
-            if(terrain&&!shoreHeights)
+            if(terrain&&!openWater)
             {
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
                 if(baseline)terrain.map=baseline.map;
@@ -81,13 +76,11 @@ namespace DeadlyJenga.CandyArt
             properties.SetFloat("_SandDepth",profile.sandDepth);
             properties.SetFloat("_Plateau",profile.sandPlateau);
             properties.SetFloat("_WaterHeight",waterLevel);
-            properties.SetFloat("_CoastalDetail",shoreHeights?1:0);
-            if(shoreHeights)
+            properties.SetFloat("_CoastalDetail",openWater?1:0);
+            if(openWater)
             {
-                properties.SetTexture("_TerrainHeight",shoreHeights);
-                properties.SetVector("_TerrainBounds",shoreBounds);
-                properties.SetFloat("_SandTop",origin.y);
-                properties.SetFloat("_HasTerrain",1);
+                properties.SetFloat("_SandTop",waterLevel-profile.sandDepth);
+                properties.SetFloat("_HasTerrain",0);
             }
             else if(terrain&&terrain.HeightMap)
             {
@@ -112,36 +105,5 @@ namespace DeadlyJenga.CandyArt
             RenderSettings.ambientIntensity=1;
             if(sun){sun.transform.rotation=Quaternion.Euler(profile.sunEuler);sun.color=profile.sunColor;sun.intensity=profile.sunIntensity;}
         }
-
-        void UpdateShore(Collider shore,Vector3 origin)
-        {
-            ClearShore();
-            if(!shore)return;
-            sampledShore=shore;
-            var bounds=shore.bounds;
-            const int resolution=160;
-            var size=bounds.size+new Vector3(6,0,6);
-            shoreBounds=new Vector4(bounds.center.x,bounds.center.z,size.x,size.z);
-            var samples=new float[resolution*resolution];
-            for(int z=0;z<resolution;z++)for(int x=0;x<resolution;x++)
-            {
-                var point=new Vector3(bounds.center.x+((x+.5f)/resolution-.5f)*size.x,bounds.max.y+1,
-                    bounds.center.z+((z+.5f)/resolution-.5f)*size.z);
-                samples[z*resolution+x]=shore.Raycast(new Ray(point,Vector3.down),out var hit,bounds.size.y+2)
-                    ?hit.point.y-origin.y:-profile.sandDepth;
-            }
-            shoreHeights=new Texture2D(resolution,resolution,TextureFormat.RFloat,false,true)
-                {name="Physical island shoreline heights",hideFlags=HideFlags.HideAndDontSave,filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
-            shoreHeights.SetPixelData(samples,0);shoreHeights.Apply(false,true);
-        }
-
-        void ClearShore()
-        {
-            sampledShore=null;
-            if(!shoreHeights)return;
-            if(Application.isPlaying)Destroy(shoreHeights);else DestroyImmediate(shoreHeights);
-            shoreHeights=null;
-        }
-        void OnDisable(){ClearShore();}
     }
 }

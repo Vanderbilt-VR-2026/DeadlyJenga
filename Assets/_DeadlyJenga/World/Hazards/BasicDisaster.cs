@@ -331,7 +331,18 @@ namespace DeadlyJenga.World.Hazards
         {
             float phase=(age-V("warning"))*V("frequency")*Mathf.PI*2;
             var impulse=new Vector3(Mathf.Sin(phase),Mathf.Sin(phase*1.31f)*V("vertical"),Mathf.Cos(phase*.83f))*V("force")*dt;
-            foreach(var b in world.Blocks)if(b&&!b.isKinematic){b.AddForce(impulse*strength,ForceMode.VelocityChange);b.AddTorque(new Vector3(impulse.z,0,-impulse.x)*.08f,ForceMode.VelocityChange);}
+            foreach(var b in world.Blocks)
+            {
+                if(!b||!b.gameObject.activeInHierarchy)continue;
+                if(b.isKinematic)
+                {
+                    if(b.TryGetComponent<IHazardMotion>(out _)&&b.TryGetComponent<IPushable>(out var held))
+                        held.Push(impulse*strength,gameObject);
+                    continue;
+                }
+                b.AddForce(impulse*strength,ForceMode.VelocityChange);
+                b.AddTorque(new Vector3(impulse.z,0,-impulse.x)*.08f,ForceMode.VelocityChange);
+            }
             AffectPlayers(impulse*.45f,0,false);
         }
         void TickRain(float dt)=>AffectPlayers(Vector3.zero,V("damage")*dt,true);

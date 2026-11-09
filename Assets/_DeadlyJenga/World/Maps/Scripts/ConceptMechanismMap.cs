@@ -20,15 +20,12 @@ namespace DeadlyJenga.CastlePrototype
         readonly Dictionary<int,float> submerged=new();
         Transform generated;
         Material[] ownedPalette;
-        Material islandMaterial;
-        Texture2D islandTexture,islandDetail;
         PhysicsMaterial connectorSlide;
         readonly List<Mesh> finishes=new();
         Bounds authored;
         bool replica,collisionOwned,oldIgnored;
         int spawnCursor;
         float nextCleanup;
-        const float SkylineShoreExtent=20;
         const string Prefix="concept-mechanisms-v2:";
         public int Revision {get;private set;}
         public Transform Root=>transform;
@@ -39,14 +36,13 @@ namespace DeadlyJenga.CastlePrototype
         public float TopHeight=>PlayableBounds.max.y;
         public float Radius=>new Vector2(PlayableBounds.extents.x,PlayableBounds.extents.z).magnitude;
         public float StepHeight=>.75f;
-        public int FootprintVersion=>kind==ConceptMapKind.SkylineIsland?9307:9200+(int)kind;
+        public int FootprintVersion=>kind==ConceptMapKind.SkylineIsland?9308:9200+(int)kind;
         public float FootprintHalfSize {get{var size=ConceptMapLayout.FoundationSize(kind);return Mathf.Max(size.x,size.y)*.5f;}}
         public Bounds PlayableBounds
         {
             get
             {
                 var size=ConceptMapLayout.FoundationSize(kind);
-                if(kind==ConceptMapKind.SkylineIsland)size+=Vector2.one*(SkylineShoreExtent*2);
                 var local=authored.size.sqrMagnitude>0?authored:ConceptMapLayout.Bounds(ConceptMapLayout.Build(kind));
                 local.Encapsulate(new Vector3(-size.x*.5f,-.1f,-size.y*.5f));
                 local.Encapsulate(new Vector3(size.x*.5f,1,size.y*.5f));
@@ -56,10 +52,11 @@ namespace DeadlyJenga.CastlePrototype
                 return world;
             }
         }
-        void OnEnable(){Services.World=this;if(generated)EnableCollision();}
+        void OnEnable(){Services.World=this;GameEvents.RewindEnded+=RestoreSkylineBearings;if(generated)EnableCollision();}
         void Start(){if(generateOnStart&&!generated)Rebuild();}
         void OnDisable()
         {
+            GameEvents.RewindEnded-=RestoreSkylineBearings;
             if(collisionOwned){Physics.IgnoreLayerCollision(Layers.Survivor,Layers.Block,oldIgnored);collisionOwned=false;}
             if(ReferenceEquals(Services.World,this))Services.World=null;
         }
@@ -82,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
             modules.AddRange(layout);authored=ConceptMapLayout.Bounds(layout);
             generated=new GameObject("Concept island geometry").transform;generated.SetParent(transform,false);
             EnsurePalette();
-            if(kind==ConceptMapKind.SkylineIsland)BuildSkylineIsland();else BuildFoundation();
+            if(kind==ConceptMapKind.SkylineIsland)BuildSkylinePiers();else BuildFoundation();
             var lookup=new Dictionary<MayhemModule,Rigidbody>();
             foreach(var m in layout)
             {
@@ -150,7 +147,7 @@ namespace DeadlyJenga.CastlePrototype
             public Rigidbody body;
             public Pose rest;
             public readonly List<SkylinePiece> supported=new();
-            public int bearings;
+            public int bearings,originalBearings;
             public bool grounded,released;
             public float load,lastLoad;
         }
@@ -172,7 +169,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var support in supports)
             {
                 var piece=GetPiece(support.piece);
-                piece.bearings++;
+                piece.bearings++;piece.originalBearings++;
                 if(support.parent==null)piece.grounded=true;
                 else GetPiece(support.parent).supported.Add(piece);
             }
@@ -206,110 +203,81 @@ namespace DeadlyJenga.CastlePrototype
             body.interpolation=held?RigidbodyInterpolation.None:RigidbodyInterpolation.Interpolate;
         }
 
-        void BuildSkylineIsland()
+        void RestoreSkylineBearings()
         {
-            const int sides=192;
-            var half=ConceptMapLayout.FoundationSize(kind)*.5f;
-            var textureHalf=half+Vector2.one*SkylineShoreExtent;
-            var vertices=new List<Vector3>{new(0,.4f,0)};
-            var uv=new List<Vector2>{new(.5f,.5f)};
-            var triangles=new List<int>();
-            // The city sits on a level inland shelf. The same mesh continues down to the water.
-            float[] depths={0,.38f,.75f,1,1.18f};
-            float[] heights={.4f,.39f,.22f,.06f,-2f};
-            for(int ring=0;ring<depths.Length;ring++)
-                for(int side=0;side<sides;side++)
-                {
-                    float angle=side*Mathf.PI*2/sides;
-                    var direction=new Vector2(Mathf.Cos(angle),Mathf.Sin(angle));
-                    var point=direction*(SkylinePlateauRadius(direction,angle,half)+SkylineBeachWidth(angle)*depths[ring]);
-                    float height=heights[ring];
-                    if(ring==1)
-                    {
-                        float dune=Mathf.Sin(3*angle-.65f)*.58f+Mathf.Sin(5*angle-1.1f)*.32f;
-                        height+=Mathf.Max(0,dune)*.65f;
-                    }
-                    vertices.Add(new Vector3(point.x,height,point.y));
-                    uv.Add(new Vector2(.5f+.5f*point.x/textureHalf.x,.5f+.5f*point.y/textureHalf.y));
-                }
-            for(int side=0;side<sides;side++)
+            if(!ReferenceEquals(Services.World,this)||replica)return;
+            foreach(var piece in skylinePieces.Values)
             {
-                int next=(side+1)%sides;
-                triangles.Add(0);triangles.Add(1+next);triangles.Add(1+side);
-                for(int ring=1;ring<depths.Length;ring++)
-                {
-                    int inner=1+(ring-1)*sides,outer=1+ring*sides;
-                    triangles.Add(inner+side);triangles.Add(inner+next);triangles.Add(outer+next);
-                    triangles.Add(inner+side);triangles.Add(outer+next);triangles.Add(outer+side);
-                }
+                piece.released=!piece.body||!piece.body.isKinematic;
+                piece.bearings=piece.originalBearings;
+                piece.load=0;
             }
-            var mesh=new Mesh{name="Skyline island terrain"};
-            mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);
-            mesh.RecalculateNormals();mesh.RecalculateBounds();
-            finishes.Add(mesh);
-            var ground=new GameObject("Skyline island terrain",typeof(MeshFilter),typeof(MeshRenderer),typeof(MeshCollider));
-            ground.transform.SetParent(generated,false);
-            ground.GetComponent<MeshFilter>().sharedMesh=mesh;
-            ground.GetComponent<MeshCollider>().sharedMesh=mesh;
-            ground.GetComponent<MeshCollider>().sharedMaterial=friction;
-            ground.GetComponent<MeshRenderer>().sharedMaterial=SkylineTerrainMaterial(half,textureHalf);
-            BuildConnectorBearings(ground.transform,null);
+            foreach(var piece in skylinePieces.Values)
+                if(piece.released)foreach(var dependent in piece.supported)dependent.bearings--;
+            submerged.Clear();
         }
 
-        static float SkylinePlateauRadius(Vector2 direction,float angle,Vector2 half)
+        void BuildSkylinePiers()
         {
-            float x=Mathf.Abs(direction.x)/(half.x+6),z=Mathf.Abs(direction.y)/(half.y+1);
-            float x3=x*x*x,z3=z*z*z;
-            float rounded=Mathf.Pow(Mathf.Max(1e-15f,x3*x3+z3*z3),-1f/6);
-            return rounded+1.25f*Mathf.Sin(3*angle+.35f)+.7f*Mathf.Sin(7*angle-1);
-        }
-
-        static float SkylineBeachWidth(float angle)
-            =>6+1.5f*Mathf.Sin(3*angle+.6f)+Mathf.Sin(5*angle+1.7f)+.65f*Mathf.Sin(9*angle);
-
-        Material SkylineTerrainMaterial(Vector2 half,Vector2 textureHalf)
-        {
-            if(islandMaterial)return islandMaterial;
-            const int size=1024;
-            var colors=new Color32[size*size];
-            var grass=new Color(.27f,.46f,.21f);
-            var brightGrass=new Color(.55f,.63f,.30f);
-            var sand=new Color(.81f,.70f,.48f);
-            var wetSand=new Color(.60f,.47f,.33f);
-            for(int y=0;y<size;y++)for(int x=0;x<size;x++)
+            var docks=new List<Rect>();
+            void Pad(float x,float z,float width,float length)=>docks.Add(new Rect(x-width*.5f,z-length*.5f,width,length));
+            foreach(float z in new[]{-62f,0,62f})Pad(0,z,193,4.4f);
+            foreach(float x in new[]{-94f,0,94f})Pad(x,0,4.4f,128);
+            foreach(var tower in ConceptMapLayout.SkylineTowers)
             {
-                var point=new Vector2((2f*x/(size-1)-1)*textureHalf.x,(2f*y/(size-1)-1)*textureHalf.y);
-                float broad=Mathf.PerlinNoise(point.x*.057f+29,point.y*.057f+14);
-                float detail=Mathf.PerlinNoise(point.x*2.1f+9,point.y*2.1f+63);
-                float angle=Mathf.Atan2(point.y,point.x);
-                float coast=(point.magnitude-SkylinePlateauRadius(point.normalized,angle,half))/SkylineBeachWidth(angle);
-                float beach=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.28f,.38f,coast+(broad-.5f)*.24f));
-                var turf=Color.Lerp(grass,brightGrass,broad);
-                var shore=Color.Lerp(sand,wetSand,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.72f,1.05f,coast)));
-                colors[y*size+x]=Color.Lerp(turf,shore,beach)*Mathf.Lerp(.84f,1.12f,detail);
+                Pad(tower.x,tower.z,11.5f,36);
+                float z=tower.z+ConceptMapLayout.TowerEntrySide(tower.z)*17.1f;
+                if(Mathf.Abs(tower.x)>80)Pad((tower.x+Mathf.Sign(tower.x)*94)*.5f,z,19,4.4f);
             }
-            islandTexture=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Skyline grass and beach",wrapMode=TextureWrapMode.Clamp,filterMode=FilterMode.Trilinear,anisoLevel=8};
-            islandTexture.SetPixels32(colors);islandTexture.Apply(true,true);
-            islandMaterial=new Material(ownedPalette[0]){name="Skyline terrain material",color=Color.white,mainTexture=islandTexture};
-            islandMaterial.SetFloat("_Smoothness",.12f);
-            if(islandMaterial.HasProperty("_DetailAlbedoMap"))
+            for(int i=0;i<ConceptMapLayout.SkylineDistricts.Length;i++)
             {
-                const int tile=128;
-                var grain=new Color32[tile*tile];
-                var random=new System.Random(713);
-                for(int i=0;i<grain.Length;i++)
+                var district=ConceptMapLayout.SkylineDistricts[i];
+                var size=ConceptMapLayout.FoundationSize((ConceptMapKind)i)*DistrictScale;
+                Pad(district.x,district.z,size.x,size.y);
+                Pad(district.x,Mathf.Sign(district.z)*15.5f,29,31);
+            }
+
+            var xs=new SortedSet<float>();var zs=new SortedSet<float>();
+            foreach(var dock in docks){xs.Add(dock.xMin);xs.Add(dock.xMax);zs.Add(dock.yMin);zs.Add(dock.yMax);}
+            var xEdges=new List<float>(xs);var zEdges=new List<float>(zs);
+            bool Supported(float x,float z)
+            {
+                foreach(var dock in docks)if(dock.Contains(new Vector2(x,z)))return true;
+                return false;
+            }
+            var decks=new FinishMesh();
+            var pilings=new FinishMesh();
+            void Fascia(float ax,float az,float bx,float bz)
+            {
+                pilings.Quad(new Vector3(ax,.4f,az),new Vector3(bx,.4f,bz),
+                    new Vector3(bx,.11f,bz),new Vector3(ax,.11f,az),6);
+            }
+            for(int z=0;z<zEdges.Count-1;z++)for(int x=0;x<xEdges.Count-1;x++)
+            {
+                float a=xEdges[x],b=xEdges[x+1],c=zEdges[z],d=zEdges[z+1];
+                float midX=(a+b)*.5f,midZ=(c+d)*.5f;
+                if(!Supported(midX,midZ))continue;
+                decks.Quad(new Vector3(a,.4f,c),new Vector3(a,.4f,d),new Vector3(b,.4f,d),new Vector3(b,.4f,c),3);
+                if(!Supported(a-.001f,midZ))Fascia(a,d,a,c);
+                if(!Supported(b+.001f,midZ))Fascia(b,c,b,d);
+                if(!Supported(midX,c-.001f))Fascia(a,c,b,c);
+                if(!Supported(midX,d+.001f))Fascia(b,d,a,d);
+            }
+            var root=new GameObject("Pile-supported district decks").transform;
+            root.SetParent(generated,false);
+            var collision=decks.Create("Pier deck collision");
+            finishes.Add(collision);
+            root.gameObject.AddComponent<MeshCollider>().sharedMesh=collision;
+            root.GetComponent<MeshCollider>().sharedMaterial=friction;
+            AddFinish(root,decks,"Pier deck surfaces");
+            for(float z=-64;z<=64;z+=4)for(float x=-96;x<=96;x+=4)
+                if(Supported(x,z))
                 {
-                    byte tone=(byte)random.Next(87,170);
-                    grain[i]=new Color32(tone,tone,tone,255);
+                    pilings.Box(new Vector3(x,-2.5f,z),new Vector3(.66f,5.25f,.66f),Quaternion.identity,6);
+                    pilings.Box(new Vector3(x,.01f,z),new Vector3(.86f,.24f,.86f),Quaternion.identity,5);
                 }
-                islandDetail=new Texture2D(tile,tile,TextureFormat.RGBA32,true)
-                    {name="Skyline turf and sand grain",wrapMode=TextureWrapMode.Repeat,filterMode=FilterMode.Trilinear,anisoLevel=8};
-                islandDetail.SetPixels32(grain);islandDetail.Apply(true,true);
-                islandMaterial.SetTexture("_DetailAlbedoMap",islandDetail);
-                islandMaterial.SetTextureScale("_DetailAlbedoMap",textureHalf*.75f);
-                islandMaterial.EnableKeyword("_DETAIL_MULX2");
-            }
-            return islandMaterial;
+            AddFinish(root,pilings,"Water pilings");
+            BuildConnectorBearings(root,null);
         }
 
         void BuildFoundation()
@@ -598,7 +566,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void FixedUpdate()
         {
-            if(replica||Time.time<nextCleanup||(Services.Session is IWorldAuthority a&&!a.HasWorldAuthority))return;
+            if(replica||Services.Rewind?.Rewinding==true||Time.time<nextCleanup||(Services.Session is IWorldAuthority a&&!a.HasWorldAuthority))return;
             nextCleanup=Time.time+.25f;
             for(int i=0;i<bodies.Count;i++)
             {
@@ -615,9 +583,6 @@ namespace DeadlyJenga.CastlePrototype
         {
             ReleaseFinishes();
             if(connectorSlide)Dispose(connectorSlide);
-            if(islandMaterial)Dispose(islandMaterial);
-            if(islandTexture)Dispose(islandTexture);
-            if(islandDetail)Dispose(islandDetail);
             if(ownedPalette!=null)foreach(var material in ownedPalette)if(material)Dispose(material);
         }
     }
