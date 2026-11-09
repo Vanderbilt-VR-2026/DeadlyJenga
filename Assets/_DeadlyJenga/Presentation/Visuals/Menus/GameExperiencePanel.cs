@@ -27,7 +27,7 @@ namespace DeadlyJenga.Presentation
         readonly List<Action> actions=new();
         InputAction leftSelect,rightSelect;
         Camera eye;
-        bool open,returnToMenu,openingVr,openingHand,selectReady;
+        bool open,returnToMenu,openingVr,openingHand,selectReady,lobbyPoseSet;
         int openingInput,closedFrame=-1;
         float refreshAt;
         string mapId;
@@ -71,7 +71,7 @@ namespace DeadlyJenga.Presentation
             if(!canvas)Build();
             leftSelect.Enable();rightSelect.Enable();
             eye=session.ActiveCamera;openingVr=session.IsVR;openingHand=session.PlayingHand;
-            openingInput=InputSignature();returnToMenu=session.MenuOpen;selectReady=false;open=true;
+            lobbyPoseSet=false;openingInput=InputSignature();returnToMenu=session.MenuOpen;selectReady=false;open=true;
             session.SetMenu(true);
             canvas.gameObject.SetActive(true);
             canvas.renderMode=openingVr?RenderMode.WorldSpace:RenderMode.ScreenSpaceOverlay;
@@ -173,9 +173,16 @@ namespace DeadlyJenga.Presentation
         {
             if(!open)return;
             if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
-                owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls)||InputSignature()!=openingInput)
+                owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
-            if(openingVr)MenuAim.PlaceTablet(panel,eye,owner,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true);
+            int input = InputSignature();
+            if (input != openingInput)
+            {
+                if (lobby == null) { Close(false); return; }
+                openingInput = input;
+                selectReady = false;
+            }
+            if(openingVr)MenuAim.PlaceTablet(panel,eye,owner,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,ref lobbyPoseSet);
             if(Time.unscaledTime>=refreshAt)Refresh();
             bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             for(int i=0;i<buttons.Count;i++){buttons[i].GetComponent<Image>().color=available[i]()?CandyHudVisuals.Card:CandyHudVisuals.Ink;captions[i].color=available[i]()?Color.white:CandyHudVisuals.Muted;}

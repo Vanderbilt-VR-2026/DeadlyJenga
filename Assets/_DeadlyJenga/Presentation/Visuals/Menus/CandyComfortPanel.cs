@@ -23,7 +23,7 @@ namespace DeadlyJenga.Presentation
         readonly List<Button> buttons=new List<Button>();
         readonly List<Action> actions=new List<Action>();
         InputAction rightSelect,leftSelect;
-        bool open,returnToMenu,readyToSelect,wasVr;
+        bool open,returnToMenu,readyToSelect,wasVr,lobbyPoseSet;
         Camera eye;
         float nextSample,feedbackUntil;
         int controllerCount;
@@ -130,6 +130,7 @@ namespace DeadlyJenga.Presentation
         void Configure(bool anchor)
         {
             if(!canvas||!home&&session==null)return;
+            lobbyPoseSet = false;
             eye=home?homeCamera:session.ActiveCamera;wasVr=home?homeVr:session.IsVR;
             canvas.renderMode=wasVr?RenderMode.WorldSpace:RenderMode.ScreenSpaceOverlay;
             canvas.worldCamera=wasVr?eye:null;
@@ -162,7 +163,7 @@ namespace DeadlyJenga.Presentation
             int identity=wasVr&&eye?MenuAim.PointerIdentity(eye,PreferredLeft):-1;
             if(lastPointerLeft!=PreferredLeft||tabletPointerIdentity!=identity)
             {lastPointerLeft=PreferredLeft;tabletPointerIdentity=identity;readyToSelect=false;}
-            if(wasVr&&eye)MenuAim.PlaceTablet(panel,eye,session,PreferredLeft);
+            if(wasVr&&eye)MenuAim.PlaceTablet(panel,eye,session,PreferredLeft,ref lobbyPoseSet);
             if(Time.unscaledTime>=nextSample)
             {
                 nextSample=Time.unscaledTime+.2f;

@@ -273,6 +273,10 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobeAvatar=AppearanceTarget();if(wardrobeAvatar==null||!NetworkActors.Alive(Player))return;
 
+                if (marina && Player.IsVR && wardrobeFromPortrait &&
+                    Vector3.Distance(Player.transform.position, WardrobePosition) > 1)
+                    Player.Place(WardrobePosition + Vector3.up * .04f, transform.rotation * DeadlyJenga.CandyArt.Marina.MayhemMarina.StyleScreenFacing);
+
                 wardrobePlayer=Player;wardrobePaused=Player.InputSuspended;wardrobeCursor=Cursor.lockState;wardrobeCursorVisible=Cursor.visible;ResetWardrobeView();
 
                 wardrobeOpen=true;ResetWardrobeNotice();wardrobeArmed=false;Player.InputSuspended=true;
@@ -285,7 +289,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 if(!Player.IsVR){Cursor.lockState=CursorLockMode.None;Cursor.visible=true;BuildDesktopWardrobe();}
 
-                if(Player.IsVR&&Player.ViewCamera)
+                if(!marina&&Player.IsVR&&Player.ViewCamera)
                 {
                     wardrobePanelPosition=wardrobePanel.position;wardrobePanelRotation=wardrobePanel.rotation;
                     PlaceWardrobeForEye();
@@ -300,7 +304,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 wardrobeOpen=false;wardrobeFromPortrait=false;portraitReady=false;
                 wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Invalidate();
-                if(NetworkActors.Alive(wardrobePlayer)&&wardrobePlayer.IsVR&&wardrobePanel)
+                if(!marina&&NetworkActors.Alive(wardrobePlayer)&&wardrobePlayer.IsVR&&wardrobePanel)
                     wardrobePanel.SetPositionAndRotation(wardrobePanelPosition,wardrobePanelRotation);
 
                 if(wardrobeShowcase!=null&&NetworkActors.Alive(wardrobePlayer))wardrobeShowcase.Showcasing=wardrobeWasShowcasing;
@@ -439,7 +443,7 @@ namespace DeadlyJenga.CastlePrototype
 
             if(distance>1.3f)wardrobeArmed=true;
 
-            if(!wardrobeOpen&&wardrobeArmed&&distance<.75f)SetWardrobeOpen(true);
+            if(!marina&&!wardrobeOpen&&wardrobeArmed&&distance<.75f)SetWardrobeOpen(true);
 
             if(!wardrobeOpen)return false;
             if(Player.IsVR&&(Player.MenuPressed||wardrobeCancel?.WasPressedThisFrame()==true)){SetWardrobeOpen(false);return true;}
@@ -625,7 +629,7 @@ namespace DeadlyJenga.CastlePrototype
 
         }
 
-        void OnDisable(){RestoreMarinaDetailMaterials();SetWardrobeOpen(false);wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Dispose();mirrorGeometry=null;}
+        void OnDisable(){SetWardrobeOpen(false);wardrobeGeometry?.Dispose();wardrobeGeometry=null;mirrorGeometry?.Dispose();mirrorGeometry=null;}
 
         void DisposeWardrobe()
 

@@ -54,6 +54,34 @@ namespace DeadlyJenga.CandyArt.Marina
                 Rock(new Vector3(17+Mathf.Cos(a)*5.6f,-.2f,-8+Mathf.Sin(a)*5.6f),new Vector3(1.2f,.8f,1.5f),i+9);
             }
         }
+        static readonly Vector3 BeaconWalkStart = new(-5.65f, 1.33f, -8.45f);
+        static readonly Vector3 BeaconWalkEnd = new(11.5f, 1.285f, 1.95f);
+        static readonly Quaternion BeaconWalkFacing = Quaternion.LookRotation(
+            Vector3.ProjectOnPlane(BeaconWalkEnd - BeaconWalkStart, Vector3.up));
+        Vector3 BeaconWalkGate => BeaconWalkStart + BeaconWalkFacing * new Vector3(0, 3.16f, .65f);
+
+        void BeaconWalk()
+        {
+            Bridge(BeaconWalkStart, BeaconWalkEnd, 3.65f, .14f);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var edge = BeaconWalkFacing * Vector3.right * (side * 1.93f);
+                mesh.Box(BeaconWalkGate + edge - Vector3.up * 1.50f,
+                    new Vector3(.24f, 3.45f, .24f), F.DarkWood, .04f, true, BeaconWalkFacing);
+                mesh.Box(BeaconWalkGate + edge - Vector3.up * .44f,
+                    new Vector3(.36f, .32f, .36f), F.Coral, .05f, false, BeaconWalkFacing);
+            }
+            mesh.Box(BeaconWalkGate, new Vector3(4.12f, .62f, .23f), F.DarkWood, .07f, false, BeaconWalkFacing);
+            mesh.Box(BeaconWalkGate + Vector3.up * .34f, new Vector3(4.28f, .08f, .33f), F.Brass, .025f, false, BeaconWalkFacing);
+        }
+
+        void DirectionBoard(Vector3 basePosition, Quaternion facing, float width)
+        {
+            for (int side = -1; side <= 1; side += 2)
+                mesh.Box(basePosition + facing * Vector3.right * (side * (width * .5f - .25f)) + Vector3.up * .64f,
+                    new Vector3(.14f, 1.28f, .19f), F.DarkWood, .035f, false, facing);
+            mesh.Box(basePosition + Vector3.up * 1.35f, new Vector3(width, .64f, .14f), F.Teal, .065f, false, facing);
+        }
         void SignMounts()
         {
             mesh.Box(new Vector3(13.7f, 4.42f, 2.60f), new Vector3(6.5f, .53f, .2f), F.DarkWood, .065f);
@@ -65,6 +93,8 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(19, 1.45f, -3.34f), new Vector3(.14f, .64f, .14f), F.DarkWood, .024f);
             mesh.Box(new Vector3(19, 1.76f, -3.34f), new Vector3(2.28f, .42f, .18f), F.DarkWood, .05f);
             mesh.Box(new Vector3(-10, 1.340f, -10.1f), new Vector3(5.1f, .018f, .8f), F.Ivory, .008f);
+            DirectionBoard(new Vector3(-9.2f, 1.33f, -5.0f), Quaternion.Euler(0, 12, 0), 2.5f);
+            DirectionBoard(new Vector3(6.65f, 1.285f, 3.64f), Quaternion.identity, 2.55f);
         }
         void LightingFixtures()
         {
@@ -245,6 +275,14 @@ namespace DeadlyJenga.CandyArt.Marina
             Portal(c,9.2f,5.6f,5.2f,true);
             mesh.Box(c+new Vector3(0,2.0f,2.8f),new Vector3(8.6f,4.1f,.3f),F.Wood,.18f,true);
             mesh.Box(c+new Vector3(0,3.88f,-2.7f),new Vector3(3.7f,.75f,.27f),F.Wood,.12f);
+            var styleFrame = StyleScreen + StyleScreenFacing * Vector3.forward * .12f;
+            mesh.Box(styleFrame, new Vector3(2.48f, 2.91f, .16f), F.DarkWood, .09f, true, StyleScreenFacing);
+            for (int side = -1; side <= 1; side += 2)
+            {
+                var foot = styleFrame + StyleScreenFacing * Vector3.right * (side * .95f);
+                foot.y = 1.58f;
+                mesh.Box(foot, new Vector3(.16f, .59f, .20f), F.Brass, .035f, true, StyleScreenFacing);
+            }
             // The illuminated oval mirror is centered in the open wardrobe, as in the approved render.
             var ring=new List<Vector3>();for(int i=0;i<=64;i++){float a=i*Mathf.PI/32;ring.Add(c+new Vector3(Mathf.Cos(a)*1.38f,2.1f+Mathf.Sin(a)*1.9f,2.42f));}
             mesh.Tube(ring,.14f,F.Wood,10);mesh.Tube(ring,.065f,F.Glow,10);
@@ -307,8 +345,9 @@ namespace DeadlyJenga.CandyArt.Marina
                 Lantern(c+new Vector3(side*3.7f,2.8f,-1.8f),.22f);
             }
             Sofa(c+new Vector3(0,0,1.7f),5.7f,Quaternion.identity);
-            Sofa(c+new Vector3(3.9f,0,.6f),2.3f,Quaternion.Euler(0,-90,0));
-            Table(c+new Vector3(.2f,0,-.6f),1.35f);
+            Sofa(c + new Vector3(3.6f, 0, .05f), 2.5f, Quaternion.Euler(0, 90, 0));
+            Sofa(c + new Vector3(-3.45f, 0, .65f), 2.5f, Quaternion.Euler(0, -90, 0));
+            Table(c + new Vector3(.45f, 0, .05f), 1.18f);
             for(int i=0;i<3;i++)mesh.Box(c+new Vector3(-3.8f,1.1f+i*.55f,2.7f),new Vector3(2,.09f,.55f),F.Wood,.03f);
             Pot(c+new Vector3(-4.6f,0,1.65f),.42f,.7f,10);
             Pot(c+new Vector3(4.5f,0,-2.25f),.5f,.78f,11);
@@ -403,7 +442,23 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void Landmark()
         {
-            for(int i=0;i<9;i++)mesh.Box(new Vector3(1.8f,4.5f+i*.78f,19.9f),new Vector3(2.5f,.76f,1.25f),(F)((int)F.Red+i%3),.11f,true,Quaternion.Euler(0,i%2*90+i%3*3,0));
+            var plinth = new Vector3(1.8f, 4.14f, 19.9f);
+            mesh.Box(plinth + Vector3.up * .27f, new Vector3(2.65f, .54f, 1.85f), F.DarkWood, .13f, true);
+            for (int i = 0; i < 10; i++)
+                mesh.Box(plinth + Vector3.up * (.90f + i * .78f), new Vector3(2.5f, .76f, 1.25f),
+                    (F)((int)F.Red + i % 3), .11f, true, Quaternion.Euler(0, i % 2 * 90 + i % 3 * 3, 0));
+            var lanternBase = plinth + Vector3.up * 8.42f;
+            mesh.Disk(lanternBase, 1.32f, .24f, F.Brass, false, 32);
+            mesh.Ellipsoid(lanternBase + Vector3.up * .87f, new Vector3(.62f, .74f, .62f), F.Glow, rings: 10, sides: 20);
+            for (int i = 0; i < 6; i++)
+            {
+                float angle = i * Mathf.PI / 3;
+                var edge = new Vector3(Mathf.Sin(angle), 0, Mathf.Cos(angle)) * .89f;
+                mesh.Beam(lanternBase + edge + Vector3.up * .20f, lanternBase + edge + Vector3.up * 1.56f, .07f, F.DarkWood);
+            }
+            mesh.Disk(lanternBase + Vector3.up * 1.55f, 1.16f, .22f, F.Brass, false, 32);
+            mesh.Ellipsoid(lanternBase + Vector3.up * 1.78f, new Vector3(1.13f, .64f, 1.13f), F.Teal, rings: 10, sides: 24);
+            mesh.Beam(lanternBase + Vector3.up * 2.30f, lanternBase + Vector3.up * 2.76f, .065f, F.Brass);
         }
     }
 }

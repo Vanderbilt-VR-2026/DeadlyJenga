@@ -8,7 +8,7 @@ namespace DeadlyJenga.Presentation
     public sealed class CandyWildlifePanel : MonoBehaviour
     {
         ISessionInfo session;
-        bool open,tame,selectReady;
+        bool open,tame,selectReady,lobbyPoseSet;
         Image aimDot;
         bool previousHeld;
         int pointerIdentity=int.MinValue;
@@ -33,7 +33,7 @@ namespace DeadlyJenga.Presentation
             var view=(owner as Component)?.GetComponent<CandyWildlifePanel>();
             if(view)
             {
-                view.open=true;view.selectReady=false;var camera=owner.ActiveCamera;
+                view.open=true;view.selectReady=false;view.lobbyPoseSet=false;var camera=owner.ActiveCamera;
                 view.openingForward=camera?camera.transform.forward:Vector3.forward;view.openingForward.y=0;
                 if(view.openingForward.sqrMagnitude<.01f)view.openingForward=Vector3.forward;
                 view.openingForward.Normalize();owner.SetMenu(true);
@@ -58,7 +58,7 @@ namespace DeadlyJenga.Presentation
                 canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=session.ActiveCamera;
                 var camera=session.ActiveCamera;if(!camera)return;
                 bool left=session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
-                MenuAim.PlaceTablet(panel,camera,session,left);
+                MenuAim.PlaceTablet(panel,camera,session,left,ref lobbyPoseSet);
                 var ray=MenuAim.Resolve(camera,camera.transform.parent,left,false,false,out bool physical,out bool chosenLeft);
                 bool held=session.MenuSelectHeld,pressed=session.MenuSelectPressed;
                 if(physical&&MenuAim.PhysicalPose(camera,chosenLeft,out _,out var controller))

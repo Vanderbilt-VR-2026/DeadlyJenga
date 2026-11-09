@@ -214,7 +214,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var zoneLights = marina.GetComponentsInChildren<Light>().Where(light => light.type == LightType.Point).ToArray();
                 Check(zoneLights.Length == 7 && zoneLights.All(light => light.shadows == LightShadows.None),
                     "Seven local lighting accents use no additional shadow maps");
-                yield return CheckJoinLayout(lobby, view);
+                yield return CheckTerminalLayout(lobby, view);
                 captureOrigin=lobby.transform.position;
                 Check(marina.RenderTriangles>0&&marina.CollisionTriangles>1000,"Actual rendered Marina and walkable geometry present");
                 Check(!Physics.Raycast(lobby.transform.TransformPoint(new Vector3(2,2,-8)),Vector3.down,3,
@@ -236,6 +236,9 @@ namespace DeadlyJenga.DevTools.Editor
                     new Vector3(-3,1.31f,3.15f),new Vector3(0,1.31f,3.5f),new Vector3(0,1.9f,6.3f)},"arrival to Play");
                 yield return Walk(lobby,new[]{new Vector3(-6.9f,1.31f,3.15f),new Vector3(-13,1.31f,3.15f),
                     new Vector3(-13,1.31f,6.6f)},"promenade to Style");
+                yield return Walk(lobby, new[] { new Vector3(-10, 1.35f, -8), new Vector3(-5.65f, 1.35f, -8.45f),
+                    marina.Anchor("Beacon Walk").localPosition + Vector3.up * .025f,
+                    new Vector3(11.5f, 1.32f, 1.95f), new Vector3(12.9f, 1.31f, 3.15f) }, "Beacon Walk from arrival to the waterfront lounge");
                 yield return Walk(lobby,new[]{new Vector3(6.9f,1.31f,3.15f),new Vector3(15,1.31f,3.15f),
                     new Vector3(15,1.31f,2.6f),new Vector3(17,1.12f,-2.86f),new Vector3(17,.4f,-6.55f)},"promenade to practice basin",.29f);
                 yield return Walk(lobby,new[]{new Vector3(8.2f,1.31f,9.25f),new Vector3(8.2f,4.07f,17.95f),
@@ -245,34 +248,76 @@ namespace DeadlyJenga.DevTools.Editor
                 lobby.enabled=true;
             }
         }
-        static IEnumerator CheckJoinLayout(IslandLobby lobby, IslandLobbyView view)
+        static IEnumerator CheckTerminalLayout(IslandLobby lobby, IslandLobbyView view)
         {
-            // Exercise the page action directly so a hidden editor can verify layout without pretending to test input.
+            // Call the page actions directly in a hidden editor. Pointer input is checked separately when focused.
             const System.Reflection.BindingFlags methods = System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic;
+            var open = typeof(IslandLobbyView).GetMethod("OpenMarinaDetail", methods);
+            var close = typeof(IslandLobbyView).GetMethod("CloseMarinaDetail", methods);
             var join = view.transform.Find("JOIN");
+            var host = view.transform.Find("HOST");
+            var setup = view.transform.Find("MAP + MODE");
             var back = view.transform.Find("Marina detail back control");
+            var wardrobe = view.transform.Find("WARDROBE");
+            var styleEntry = view.transform.Find("Marina wardrobe entry");
             var keyboard = view.GiantKeyboard;
-            Check(join && back && keyboard, "Join monitor, Back button and code keyboard exist");
-            var home = join.localPosition;
-            typeof(IslandLobbyView).GetMethod("OpenMarinaDetail", methods).Invoke(view, new object[] { "join" });
+            Check(join && host && setup && back && wardrobe && styleEntry && keyboard, "All Marina terminals have mounts");
+            var mounts = new[] { join, host, setup, back, wardrobe, styleEntry, keyboard };
+            var positions = mounts.Select(mount => mount.localPosition).ToArray();
+            var rotations = mounts.Select(mount => mount.localRotation).ToArray();
+            var scales = mounts.Select(mount => mount.localScale).ToArray();
+            bool Anchored() => mounts.Select((mount, i) => mount.localPosition == positions[i] &&
+                mount.localRotation == rotations[i] && mount.localScale == scales[i]).All(stable => stable);
+            var player = lobby.Player;
+            var start = player.transform.position;
+            var facing = player.transform.rotation;
+            bool originalMenu = lobby.MenuOpen;
             try
             {
-                var monitorPose = join.localPosition;
-                var backPose = back.localPosition;
-                var keyboardPose = keyboard.localPosition;
-                Check(join.gameObject.activeInHierarchy && !keyboard.gameObject.activeSelf, "Join opens with the keyboard space reserved");
+                for (int side = -1; side <= 1; side += 2)
+                {
+                    player.Place(lobby.transform.TransformPoint(new Vector3(side * 2, 1.9f, 6.5f)),
+                        lobby.transform.rotation * Quaternion.Euler(0, side * 35, 0));
+                    foreach (var page in new[] { "join", "host", "modes", "maps", "settings" })
+                    {
+                        open.Invoke(view, new object[] { page });
+                        yield return null;
+                        Check(Anchored(), page + " retains its mount when opened from side " + side);
+                        close.Invoke(view, null);
+                        yield return null;
+                    }
+                }
+                open.Invoke(view, new object[] { "join" });
+                yield return null;
+                Check(join.gameObject.activeInHierarchy && !keyboard.gameObject.activeSelf, "Join opens at the pavilion mount with its keyboard hidden");
                 lobby.FocusCode();
                 yield return Wait(.15f);
-                Check(lobby.CodeFocused && keyboard.gameObject.activeInHierarchy, "Code focus reveals the existing keyboard");
-                Check(join.localPosition == monitorPose && back.localPosition == backPose && keyboard.localPosition == keyboardPose,
-                    "Join, Back and keyboard retain their opening positions while typing");
+                Check(lobby.CodeFocused && keyboard.gameObject.activeInHierarchy, "Code focus reveals the keyboard on the fixed lectern");
+                var slots = join.GetComponentsInChildren<RectTransform>(true).Where(rect => rect.name.StartsWith("Code character ", StringComparison.Ordinal)).ToArray();
+                var codeLayout = slots.Select(slot => (slot.anchoredPosition, slot.sizeDelta)).ToArray();
+                string originalCode = lobby.EnteredCode;
+                try
+                {
+                    lobby.EnteredCode = "ABCDEFGHIJKL";
+                    yield return Wait(.15f);
+                    Check(Anchored() && slots.Length == 12 && slots.Select((slot, i) =>
+                        (slot.anchoredPosition, slot.sizeDelta) == codeLayout[i]).All(stable => stable),
+                        "Typing a full room code leaves every code slot and terminal fixed");
+                }
+                finally { lobby.EnteredCode = originalCode; }
                 lobby.UnfocusCode();
                 yield return Wait(.15f);
-                Check(!keyboard.gameObject.activeSelf && join.localPosition == monitorPose && back.localPosition == backPose,
-                    "Closing the code keyboard keeps the monitor and Back button still");
+                Check(!keyboard.gameObject.activeSelf && Anchored(), "Closing the keyboard keeps the terminal mounts still");
+                close.Invoke(view, null);
+                player.Place(view.WardrobePosition + Vector3.up * .04f, lobby.transform.rotation * MayhemMarina.StyleScreenFacing);
+                yield return Wait(.15f);
+                Check(!view.WardrobeOpen && styleEntry.gameObject.activeInHierarchy, "Entering the boutique leaves the wardrobe closed until selected");
+                var eye = player.ViewCamera.transform.position;
+                view.Point(new Ray(eye, (styleEntry.position - eye).normalized), true);
+                Check(view.WardrobeOpen && Anchored(), "The fixed boutique entry opens the wardrobe without moving any mount");
             }
-            finally { typeof(IslandLobbyView).GetMethod("CloseMarinaDetail", methods).Invoke(view, null); }
-            Check(!join.gameObject.activeSelf && join.localPosition == home, "Closing Join restores the parked terminal position");
+            finally { close.Invoke(view, null); player.Place(start, facing); lobby.SetMenu(originalMenu); }
+            Check(Anchored() && !join.gameObject.activeSelf, "Closing the detail changes visibility with every mount intact");
         }
         static IEnumerator RunNetworkScene()
         {

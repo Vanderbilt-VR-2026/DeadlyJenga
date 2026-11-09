@@ -66,18 +66,26 @@ namespace DeadlyJenga.Presentation
             if(PhysicalPose(eye,preferredLeft,out _,out var device)||PhysicalPose(eye,!preferredLeft,out _,out device))return device.deviceId;
             return -1;
         }
-        public static void PlaceTablet(RectTransform panel,Camera eye,ISessionInfo session,bool dominantLeft)
+        public static void PlaceTablet(RectTransform panel, Camera eye, ISessionInfo session, bool dominantLeft, ref bool lobbyPoseSet)
+        {
+            bool fixedPose = session is ILobbyControls;
+            if (fixedPose && lobbyPoseSet) return;
+            PlaceTablet(panel, eye, session, dominantLeft, fixedPose);
+            lobbyPoseSet = fixedPose;
+        }
+        public static void PlaceTablet(RectTransform panel,Camera eye,ISessionInfo session,bool dominantLeft, bool fixedPose = false)
         {
             bool holderLeft=!dominantLeft;
-            bool held=PhysicalPose(eye,holderLeft,out var anchor,out _);
+            Pose anchor = default;
+            bool held = !fixedPose && PhysicalPose(eye, holderLeft, out anchor, out _);
             var tips=session?.Player?.gameObject.GetComponent<IFingerTips>();
-            if(!held&&session?.Player?.HasHandTracking==true&&tips!=null&&tips.TryIndexTip(holderLeft,out _)&&session.Player is IModeActor actor)
+            if(!fixedPose&&!held&&session?.Player?.HasHandTracking==true&&tips!=null&&tips.TryIndexTip(holderLeft,out _)&&session.Player is IModeActor actor)
             {
                 anchor=actor.HandPose(holderLeft);
                 float distance=(anchor.position-eye.transform.position).sqrMagnitude;
                 held=distance>.01f&&distance<3;
             }
-            bool dual=PhysicalPose(eye,dominantLeft,out _,out _)&&held;
+            bool dual=held&&PhysicalPose(eye,dominantLeft,out _,out _);
             float depth=1.05f,lateral=0,height=-.06f;
             if(dual)
             {
@@ -104,7 +112,7 @@ namespace DeadlyJenga.Presentation
             Vector3 forward=position-eye.transform.position;
             if(forward.sqrMagnitude<.01f)return;
             float scale=2*forward.magnitude*Mathf.Tan(halfWidth)/width;
-            bool initialized=panel.localScale.x>.0001f&&panel.localScale.x<.0018f;
+            bool initialized=!fixedPose&&panel.localScale.x>.0001f&&panel.localScale.x<.0018f;
             float blend=initialized?1-Mathf.Exp(-20*Time.unscaledDeltaTime):1;
             panel.SetPositionAndRotation(Vector3.Lerp(panel.position,position,blend),Quaternion.Slerp(panel.rotation,Quaternion.LookRotation(forward.normalized,eye.transform.up),blend));
             panel.localScale=Vector3.Lerp(panel.localScale,Vector3.one*scale,blend);

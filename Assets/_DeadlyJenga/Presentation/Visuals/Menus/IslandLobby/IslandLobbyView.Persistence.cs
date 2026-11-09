@@ -11,7 +11,8 @@ namespace DeadlyJenga.CastlePrototype
             if(owner!=gameObject||!Environment)return;
             if(state=="LobbyParked")
             {
-                SetWardrobeOpen(false);
+                if (marina) CloseMarinaDetail();
+                else SetWardrobeOpen(false);
                 var position=Environment.transform.position;
                 Environment.applyLighting=false;
                 foreach(var component in Environment.GetComponents<MonoBehaviour>())component.enabled=false;

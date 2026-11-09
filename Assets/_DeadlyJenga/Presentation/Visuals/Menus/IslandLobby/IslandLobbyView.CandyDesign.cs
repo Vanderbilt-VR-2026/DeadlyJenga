@@ -23,7 +23,6 @@ namespace DeadlyJenga.CastlePrototype
         GameObject candyHostHelp,candyJoinCodeFrame,candyHostCodeFrame;
         readonly List<GameObject> candyMainDecor=new List<GameObject>();
         readonly List<Text> candyCodeLetters=new List<Text>();
-        readonly List<RectTransform> candyCodeSlots=new List<RectTransform>();
         string candyLastCode;
         readonly Dictionary<string,string> candySummaries=new Dictionary<string,string>();
         readonly Dictionary<string,string> candyShortSummaries=new Dictionary<string,string>();
@@ -126,18 +125,16 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!choice.physical)
             {
-                var rect=(RectTransform)choice.button.transform;
                 if(!choice.focusInitialized)
                 {
-                    choice.focusInitialized=true;choice.focusBaseScale=rect.localScale;
+                    choice.focusInitialized=true;
                     choice.focusOutline=choice.button.gameObject.AddComponent<Outline>();choice.focusOutline.effectDistance=new Vector2(4,-4);
                     choice.focusGlow=choice.button.gameObject.AddComponent<Shadow>();choice.focusGlow.effectDistance=new Vector2(0,-8);
                 }
                 bool focused=hover&&usable;
                 choice.focusOutline.effectColor=new Color(CandyMint.r,CandyMint.g,CandyMint.b,focused?.95f:0);
                 choice.focusGlow.effectColor=new Color(CandyMint.r,CandyMint.g,CandyMint.b,focused?.45f:0);
-                if(choice.slide==null&&!choice.id.StartsWith("mode-card-",System.StringComparison.Ordinal))
-                    rect.localScale=Vector3.Lerp(rect.localScale,choice.focusBaseScale*(focused?1.12f:1),1-Mathf.Exp(-22*Time.unscaledDeltaTime));
+
             }
             if(choice.physical)
             {choice.label.color=usable?(choice.keyColor.grayscale>.6f?CandyInk:CandyCream):CandyMuted;return;}
@@ -173,8 +170,6 @@ namespace DeadlyJenga.CastlePrototype
             candyPlayerValue.text=(Details?.Setup.population??MatchChoices.BotTarget).ToString();
             var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"Choose your arena.":CandyBrief(map.description);
             candyRoomStatus.text="ROOM\n"+Mathf.Max(1,Details?.ConnectedCount??1)+" / "+(Details?.Setup.population??MatchChoices.BotTarget);
-            var back=CandyChoice("setup-back");((RectTransform)back.button.transform).anchoredPosition=new Vector2(0,setupPage=="modes"?-410:setupPage=="maps"?-407:-370);
-            foreach(string id in new[]{"picker-previous","picker-next"}){var r=(RectTransform)CandyChoice(id).button.transform;r.anchoredPosition=new Vector2(r.anchoredPosition.x,setupPage=="modes"?-260:setupPage=="maps"?-344:-290);}
             if(setupPage=="maps")for(int i=0;i<PickerPageSize;i++)
             {
                 var row=PickerRow(i);var choice=CandyChoice("picker-"+i);if(row==null)continue;
@@ -185,13 +180,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(candyLastCode!=(lobby.EnteredCode??""))
             {
-                candyLastCode=lobby.EnteredCode??"";int count=Mathf.Clamp(Mathf.Max(6,candyLastCode.Length),6,12);float cell=Mathf.Min(98,650f/count);
-                for(int i=0;i<candyCodeSlots.Count;i++)
-                {
-                    candyCodeSlots[i].gameObject.SetActive(i<count);candyCodeSlots[i].anchoredPosition=new Vector2((i-(count-1)*.5f)*cell,0);
-                    candyCodeSlots[i].sizeDelta=new Vector2(cell-8,76);candyCodeLetters[i].rectTransform.sizeDelta=new Vector2(cell-14,66);
-                    candyCodeLetters[i].text=i<candyLastCode.Length?candyLastCode[i].ToString():"";
-                }
+                candyLastCode = lobby.EnteredCode ?? "";
+                for (int i = 0; i < candyCodeLetters.Count; i++)
+                    candyCodeLetters[i].text = i < candyLastCode.Length ? candyLastCode[i].ToString() : "";
             }
         }
         void CoatCandyCabinets()
