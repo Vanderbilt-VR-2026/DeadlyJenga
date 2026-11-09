@@ -117,7 +117,12 @@ namespace DeadlyJenga.Modes
             if(CuratedActorDeferred(id))return;
             var deadActor=FindActor(id);if(deadActor!=null)DropEquipment(id,deadActor.transform.position);
             if(corpseDeaths.Contains(id)){ApplyOutcome(id,outcome);return;}
-            if(outcome==EliminationOutcome.FlyingHand){ApplyOutcome(id,outcome);return;}
+            if(outcome==EliminationOutcome.FlyingHand)
+            {
+                pendingSpawns.Remove(id);
+                ApplyOutcome(id,outcome);
+                return;
+            }
             if(transitionUntil.ContainsKey(id))return;
             var p=simulation.Find(id);if(p!=null){p.frame.dying=true;p.frame.deathProgress=0;p.frame.deathRemaining=.9f;p.frame.pendingOutcome=outcome.ToString();}
             transitionUntil[id]=Time.time+.9f;delayedOutcomes[id]=outcome;sinkStarted.Remove(id);
@@ -135,12 +140,16 @@ namespace DeadlyJenga.Modes
             var enemy=FindActor(id)?.gameObject.GetComponent<IEnemyActor>();if(enemy?.IsEnemy==true){enemy.Despawn();return;}
             CaptureStats();
             if(id!=LocalActorId&&connectedHumans.Contains(id)){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,outcome);return;}
+            if(id==LocalActorId&&outcome==EliminationOutcome.FlyingHand)
+            {
+                StartLocalTimedHand();
+                return;
+            }
             var actor=FindActor(id);if(actor==null)return;
             if(id!=LocalActorId&&!actor.IsBot){RemoteEliminated?.Invoke(id,outcome);return;}
             if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
             if(id==LocalActorId)
             {
-                if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,session.Player.transform.rotation);return;}
                 if(outcome==EliminationOutcome.Spectator){actor.ApplyModeRules(RulesFor(actor.gameObject));return;}
                 if(session.PlayingHand)session.SetRoleForMode(false);
             }
@@ -171,13 +180,87 @@ namespace DeadlyJenga.Modes
         {
             int n=0;foreach(var p in simulation.Participants){if(p==target)break;if(!ModeSimulation.TeamMode(Rules.mode)||p.frame.team==target?.frame.team)n++;}return n;
         }
+        bool localTimedHand;
+        Pose? remoteHandReturn;
+
+        bool StartLocalTimedHand()
+        {
+            if(!session||!NetworkActors.Alive(session.Player)||session.VisitingLobby||
+                CuratedActorDeferred(LocalActorId))return false;
+            var survivor=session.Player.transform;
+            var spawn=FindHandPowerSpawn(survivor.position);
+            if(!session.TryEnterTimedHand(new Pose(spawn,survivor.rotation)))return false;
+            localTimedHand=true;
+            remoteHandReturn=null;
+            return true;
+        }
+
+        static Vector3 FindHandPowerSpawn(Vector3 feet)
+        {
+            const int solids=(1<<Layers.Block)|(1<<Layers.Surface)|1;
+            var world=Services.World;
+            var center=feet+Vector3.up*2;
+            if(world!=null)center.y=Mathf.Max(center.y,world.WaterHeight(center)+1.5f);
+            if(!Physics.CheckSphere(center,.76f,solids,QueryTriggerInteraction.Ignore))return center;
+            for(int i=0;i<8;i++)
+            {
+                float angle=i*Mathf.PI*.25f;
+                var at=center+new Vector3(Mathf.Cos(angle)*2.1f,.35f,Mathf.Sin(angle)*2.1f);
+                if(!Physics.CheckSphere(at,.76f,solids,QueryTriggerInteraction.Ignore))return at;
+            }
+            center.y=Mathf.Max(center.y+2,(world?.TopHeight??center.y)+2.5f);
+            return center;
+        }
+
+        static bool IsTimedHand(MatchPlayerFrame row)=>row!=null&&row.alive&&
+            row.role=="hand"&&row.handPowerRemaining>0;
+
+        MatchPlayerFrame LocalPowerFrame()
+        {
+            if(frame.players==null)return null;
+            foreach(var row in frame.players)if(row.id==LocalActorId)return row;
+            return null;
+        }
+
+        void SyncLocalTimedHand()
+        {
+            if(!session||session.VisitingLobby||CuratedActorDeferred(LocalActorId)||
+                session.Network&&session.Network.WaitingForWorld)return;
+            var self=LocalPowerFrame();
+            if(IsTimedHand(self))
+            {
+                if(!localTimedHand||!session.PlayingHand)StartLocalTimedHand();
+                return;
+            }
+            if(!localTimedHand||self==null)return;
+            var at=remoteHandReturn??new Pose(HandReturnPoint(FindParticipantRoot(LocalActorId)),Quaternion.identity);
+            localTimedHand=false;
+            remoteHandReturn=null;
+            if(session.PlayingHand)session.SetRoleForMode(false);
+            if(self.alive&&self.role!="spectator"&&NetworkActors.Alive(session.Player))
+                session.Player.Place(at.position,at.rotation);
+        }
+
+        Vector3 HandReturnPoint(Transform root)
+        {
+            var flyer=root?root.GetComponent<IFlyingState>():null;
+            var near=flyer?.ContactBodies!=null&&flyer.ContactBodies.Count>0&&flyer.ContactBodies[0]
+                ?flyer.ContactBodies[0].position:flyer?.Anchor?flyer.Anchor.position:root?root.position:
+                Services.World?.SafeSpawnPoint()??Vector3.zero;
+            return SafeHandReturn(near);
+        }
+
         void OnPowerFinished(string id)
         {
-            var root=FindParticipantRoot(id);
-            var flyer=root?root.GetComponent<IFlyingState>():null;
-            var near=flyer?.ContactBodies!=null&&flyer.ContactBodies.Count>0&&flyer.ContactBodies[0]?flyer.ContactBodies[0].position:flyer?.Anchor?flyer.Anchor.position:root?root.position:Services.World.SafeSpawnPoint();
-            var point=SafeHandReturn(near);if(id!=LocalActorId)powerReturnOverrides[id]=new Pose(point,Quaternion.identity);ApplyOutcome(id,EliminationOutcome.Respawn);
-            if(id==LocalActorId)session.Player.Place(point,Quaternion.identity);
+            var point=HandReturnPoint(FindParticipantRoot(id));
+            if(id!=LocalActorId)powerReturnOverrides[id]=new Pose(point,Quaternion.identity);
+            ApplyOutcome(id,EliminationOutcome.Respawn);
+            if(id==LocalActorId)
+            {
+                localTimedHand=false;
+                if(session.PlayingHand)session.SetRoleForMode(false);
+                session.Player.Place(point,Quaternion.identity);
+            }
         }
         Vector3 SafeHandReturn(Vector3 near)
         {
@@ -186,18 +269,29 @@ namespace DeadlyJenga.Modes
                 float angle=i*2.399963f,radius=i==0?0:2+i/12*3;
                 var origin=near+new Vector3(Mathf.Sin(angle)*radius,3,Mathf.Cos(angle)*radius);
                 if(!Physics.Raycast(origin,Vector3.down,out var hit,160,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore)||hit.normal.y<.65f)continue;
+                if(Services.World is IWorldQuery world&&hit.point.y<=world.WaterHeight(hit.point)+.20f)continue;
                 if(Rules.island!=IslandRule.Walkable&&!Climbables.TryGet(hit.collider,out _))continue;
                 var point=hit.point+Vector3.up*.06f;
                 if(!Physics.CheckCapsule(point+Vector3.up*.28f,point+Vector3.up*1.5f,.25f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return point;
             }
-            return Services.World.SafeSpawnPoint();
+            return Services.World?.SafeSpawnPoint()??near;
         }
         public void ApplyRemoteOutcome(EliminationOutcome outcome,Vector3 spawn,Quaternion rotation,string role)
         {
             if(CuratedActorDeferred(LocalActorId))return;
             if(Authority||session==null)return;
-            if(outcome==EliminationOutcome.FlyingHand){var at=session.Player.transform.position;var facing=session.Player.transform.rotation;session.SetRoleForMode(true);session.Hand.Place(at+Vector3.up*2,facing);return;}
+            if(outcome==EliminationOutcome.FlyingHand)
+            {
+                // The current authoritative frame also recovers this transition after a rejoin.
+                SyncLocalTimedHand();
+                return;
+            }
             if(outcome==EliminationOutcome.Spectator)return;
+            if(localTimedHand&&IsTimedHand(LocalPowerFrame()))
+            {
+                remoteHandReturn=new Pose(spawn,rotation);
+                return;
+            }
             if(session.PlayingHand)session.SetRoleForMode(false);
             session.Player.Place(spawn,rotation);
         }
@@ -205,7 +299,7 @@ namespace DeadlyJenga.Modes
         {
             if(phase==RoundPhase.Countdown){ResetObjectiveDirector("New round");ResetBotPerception();mystery=null;ClearMysteryBodies();}
             if(phase==RoundPhase.Waiting||phase==RoundPhase.Victory||phase==RoundPhase.Results)ResetObjectiveDirector("Round phase changed");
-            if(phase==RoundPhase.Playing){ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
+            if(phase==RoundPhase.Playing){StartOpeningWeapons();ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
             if(phase==RoundPhase.Victory)
             {
                 FinishMysteryReplay();

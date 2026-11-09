@@ -332,6 +332,7 @@ namespace DeadlyJenga.Modes
         }
         void ApplyFrames()
         {
+            SyncLocalTimedHand();
             ApplyMysteryBodies();
             ruleCache.Clear();
             if(Authority)foreach(var enemy in simulation.Enemies){var body=FindActor(enemy.frame.id);if(body!=null)body.ApplyModeRules(RulesFor(body.gameObject));}
