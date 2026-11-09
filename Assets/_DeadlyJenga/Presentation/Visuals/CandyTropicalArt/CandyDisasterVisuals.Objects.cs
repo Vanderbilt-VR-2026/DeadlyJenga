@@ -395,13 +395,18 @@ namespace DeadlyJenga.CandyArt
         void StormBolt(Vector3 from,Vector3 to,int seed,float width,int segments)
         {
             Vector3 previous=from;
+            var camera=Services.Session?.ActiveCamera;
             for(int i=1;i<=segments;i++)
             {
                 float t=i/(float)segments;
                 Vector3 point=Vector3.Lerp(from,to,t)+new Vector3(Hash(seed+i)-.5f,0,Hash(seed+i+83)-.5f)*(width*6*Mathf.Sin(t*Mathf.PI));
                 Vector3 direction=Quaternion.Inverse(billboard)*(point-previous);
                 float roll=-Mathf.Atan2(direction.x,direction.y)*Mathf.Rad2Deg;
-                Puff(stormBolts,(point+previous)*.5f,width,Vector3.Distance(point,previous)*1.08f,roll);previous=point;
+                var midpoint=(point+previous)*.5f;
+                float clearance=camera?Mathf.InverseLerp(9,24,Vector3.Distance(midpoint,camera.transform.position)):1;
+                if(clearance>.02f)
+                    Puff(stormBolts,midpoint,width*clearance,Vector3.Distance(point,previous)*1.08f,roll);
+                previous=point;
             }
         }
         void BuildStormStreams(float size,float height,float speed)

@@ -150,6 +150,8 @@ Shader "Candy Tropical/Storm Funnel"
     }
     float firstStep=first/max(1,firstSteps),secondStep=second/max(1,steps-firstSteps);
     float jitter=.5+(frac(dot(floor(i.positionCS.xy),float2(.75487767,.56984029)))-.5)*.18;
+    float crownDistance=length(float3(ro.x/(size*3.32),((ro.y-height)/size-.25)/.99,ro.z/(size*3.32)));
+    float insideCrown=1-smoothstep(.78,1.12,crownDistance);
     float3 sum=0;float trans=1;
     [loop]for(int k=0;k<limit;k++)
     {
@@ -161,8 +163,9 @@ Shader "Candy Tropical/Storm Funnel"
      float grain,cloud,edge;
      float density=Density(p,_Time.y,grain,cloud,edge);
      if(density<.005)continue;
-     // Fade only the cloud immediately against the eyes, even inside the funnel.
-     float nearFade=smoothstep(.15,1.10,rayDistance);
+     // The crown keeps its exterior silhouette but leaves nearby geometry readable from inside.
+     density*=lerp(1,.11,insideCrown*saturate(cloud*1.4));
+     float nearFade=smoothstep(.15,1.10,rayDistance)*lerp(1,smoothstep(2,12,rayDistance),insideCrown);
      float alpha=1-exp(-density*stepSize*.95*nearFade);
      float lightSide=saturate(.52+dot(p.xz,float2(-.39,-.26))/max(size,length(p.xz)));
      float heightLight=saturate((p.y-height*.43)/max(1,height*.57));
