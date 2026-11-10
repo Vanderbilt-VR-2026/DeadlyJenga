@@ -243,7 +243,7 @@ namespace DeadlyJenga.CandyArt.Marina
 
         void BuildBeachCinema()
         {
-            mesh.Box(new Vector3(0,3.85f,11.16f),new Vector3(7.48f,3.50f,.26f),F.DarkWood,.08f);
+            mesh.Box(new Vector3(0,3.85f,11.16f),new Vector3(7.48f,3.50f,.26f),F.CandyGrape,.13f);
             mesh.Box(new Vector3(0,3.85f,10.99f),new Vector3(7.25f,3.28f,.09f),F.CreamFabric,.026f);
             mesh.Beam(new Vector3(-3.80f,5.55f,10.99f),new Vector3(3.80f,5.55f,10.99f),.13f,F.Metal);
             mesh.Beam(new Vector3(-3.69f,2.18f,10.99f),new Vector3(3.69f,2.18f,10.99f),.075f,F.DarkWood);
@@ -269,6 +269,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(housing+offset,new Vector3(.018f,.022f,.25f),F.DarkWood,.006f,false,facing);
             }
 
+            CandyRainbow(new Vector3(0,5.46f,10.82f),.41f);
             BuildCandyCabinet(false);
             BuildCandyCabinet(true);
         }
@@ -292,7 +293,10 @@ namespace DeadlyJenga.CandyArt.Marina
             var color=host?F.CandyMint:F.CandyLilac;
             mesh.Box(new Vector3(x,3.41f,11.19f),new Vector3(2.12f,3.12f,.94f),F.CandyCream,.31f);
             mesh.Ellipsoid(new Vector3(x,4.89f,11.07f),new Vector3(.89f,.51f,.27f),color);
-            CandyRainbow(new Vector3(x,4.98f,10.80f),.59f);
+            CandyRainbow(new Vector3(x,5.12f,10.80f),.51f);
+            mesh.Box(new Vector3(x,4.93f,10.74f),new Vector3(.95f,.28f,.14f),F.CandyCream,.13f);
+            for(int hole=0;hole<9;hole++)
+                mesh.Box(new Vector3(x+(hole-4)*.078f,4.93f,10.657f),new Vector3(.026f,.10f,.018f),F.CandyGrape,.009f);
             mesh.Box(new Vector3(x,3.93f,10.96f),new Vector3(2.07f,1.97f,.63f),color,.25f);
             mesh.Box(new Vector3(x,3.93f,10.66f),new Vector3(1.86f,1.73f,.20f),F.CandyCream,.075f);
             mesh.Box(new Vector3(x,3.93f,10.62f),new Vector3(1.75f,1.63f,.17f),F.CandyGrape,.065f);

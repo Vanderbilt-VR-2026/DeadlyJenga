@@ -16,18 +16,19 @@ namespace DeadlyJenga.CandyArt.Marina
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
-        bool ModalBlocked=>MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
+        bool ModalBlocked=>session?.IsVR==true&&session.MenuOpen||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
         static readonly Color Plum=new(.12f,.055f,.19f);
         static readonly Color Cream=new(1,.96f,.83f);
-        static readonly Color ProjectionInk=new(.15f,.19f,.26f);
-        static readonly Color ProjectionGold=new(.94f,.78f,.49f);
+        static readonly Color ProjectionInk=new(.29f,.12f,.30f);
+        static readonly Color Coral=new(1f,.37f,.40f);
         static readonly Color Lilac=new(.67f,.36f,.87f);
         static readonly Color Mint=new(.26f,.84f,.64f);
         InputAction select,leftSelect;
         Image aimDot;
         RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,hostTitle,focusDescription,mainHeading;
-        Text modeMissing,mapMissing,joinStatus,hostStatus;
+        Text modeMissing,mapMissing,joinStatus,hostStatus,marquee;
+        RectTransform modeCard,mapCard;
         RawImage modePicture,mapPicture;
         Texture2D projectionBackdrop;
         string modeId,mapId,focusTarget,focusMode,focusMap;
@@ -68,21 +69,23 @@ namespace DeadlyJenga.CandyArt.Marina
             mainFace.SetParent(canvas,false);
             mainFace.sizeDelta=canvas.sizeDelta;
             BuildProjectedBackdrop();
-            var marquee=Text("N O W   S H O W I N G",new Vector2(0,140),new Vector2(500,22),15,mainFace);
-            marquee.color=ProjectionGold;
+            marquee=Text("D E V E L O P E R",new Vector2(0,140),new Vector2(500,22),15,mainFace);
+            marquee.color=Cream;
             mainHeading=Text("PICK YOUR MATCH",new Vector2(0,113),new Vector2(635,54),40,mainFace);
-            var ruleColor=new Color(.94f,.78f,.49f,.62f);
+            var ruleColor=new Color(1f,.49f,.52f,.85f);
             for(int side=-1;side<=1;side+=2)
             {
-                Panel("Cinema title rule",canvas,new Vector2(side*260,113),new Vector2(103,2),ruleColor);
-                Panel("Cinema title diamond",canvas,new Vector2(side*321,113),new Vector2(7,7),ProjectionGold)
+                Panel("Cinema title rule",mainFace,new Vector2(side*260,113),new Vector2(103,2),ruleColor);
+                Panel("Cinema title diamond",mainFace,new Vector2(side*321,113),new Vector2(7,7),Coral)
                     .rectTransform.localRotation=Quaternion.Euler(0,0,45);
             }
 
             modePicture=Card("marina-modes","GAME MODE",new Vector2(-169,12),()=>detail?.Invoke("modes"),out modeTitle,out modeMissing);
             mapPicture=Card("marina-maps","MAP",new Vector2(169,12),()=>detail?.Invoke("maps"),out mapTitle,out mapMissing);
-            var play=Button("marina-play",new Vector2(0,-111),new Vector2(378,36),ProjectionGold,lobby.StartOrCancel,()=>lobby.CanStart);
-            playTitle=ActionText("Start match",new Vector2(355,36),26,play);
+            var play=Button("marina-play",new Vector2(0,-111),new Vector2(378,36),Coral,lobby.StartOrCancel,()=>lobby.CanStart);
+            playTitle=ActionText("Start match",new Vector2(355,36),28,play);
+            modeCard = targets.Find(target => target.id == "marina-modes").face.rectTransform;
+            mapCard = targets.Find(target => target.id == "marina-maps").face.rectTransform;
             SmallButton("marina-settings","Settings",new Vector2(-263,-111),()=>detail?.Invoke("settings"));
             SmallButton("marina-style","Style",new Vector2(263,-111),()=>detail?.Invoke("style"));
             var round=Button("marina-experience",new Vector2(0,-146),new Vector2(190,24),ProjectionInk,
@@ -91,8 +94,8 @@ namespace DeadlyJenga.CandyArt.Marina
 
             joinFace=CabinetFace("Lavender Join display",false);
             hostFace=CabinetFace("Mint Host display",true);
-            CabinetHeading(joinFace,"JOIN FRIENDS",Lilac);
-            CabinetHeading(hostFace,"HOST ROOM",Mint);
+            CabinetHeading(joinFace,"JOIN");
+            CabinetHeading(hostFace,"HOST");
             CabinetAction(joinFace,"marina-join","Room code",17,Lilac,()=>detail?.Invoke("join-code"));
             CabinetAction(joinFace,"marina-nearby","Find nearby",-27,new Color(.34f,.17f,.45f),()=>detail?.Invoke("join-nearby"),()=>lobby.JoinEnabled);
             hostTitle=CabinetAction(hostFace,"marina-host","Create room",17,Mint,()=>detail?.Invoke("host"));
@@ -119,8 +122,8 @@ namespace DeadlyJenga.CandyArt.Marina
             };
             var pixels=new Color[width*height];
             var grain=new System.Random(1917);
-            var edge=new Color(.085f,.10f,.15f,1);
-            var center=new Color(.28f,.31f,.37f,1);
+            var edge=new Color(.09f,.025f,.12f,1);
+            var center=new Color(.22f,.07f,.23f,1);
             for(int y=0;y<height;y++)
             for(int x=0;x<width;x++)
             {
@@ -138,6 +141,10 @@ namespace DeadlyJenga.CandyArt.Marina
             backdrop.rectTransform.sizeDelta=new Vector2(720,320);
             backdrop.texture=projectionBackdrop;
             backdrop.raycastTarget=false;
+            var rim=Panel("Saltwater Taffy coral trim",mainFace,Vector2.zero,new Vector2(722,322),Coral);
+            rim.fillCenter=false;
+            var inner=Panel("Saltwater Taffy cream pinstripe",mainFace,Vector2.zero,new Vector2(704,307),Cream);
+            inner.fillCenter=false;
         }
         static Image Panel(string name,RectTransform parent,Vector2 position,Vector2 size,Color color)
         {
@@ -159,11 +166,11 @@ namespace DeadlyJenga.CandyArt.Marina
             face.localPosition=(CabinetScreen(host)-canvas.localPosition)/canvas.localScale.x;
             return face;
         }
-        static void CabinetHeading(RectTransform parent,string title,Color trim)
+        static void CabinetHeading(RectTransform parent,string title)
         {
-            Panel("Marina · cabinet marquee",parent,new Vector2(0,59),new Vector2(167,34),trim);
+            Panel("Candy cabinet marquee",parent,new Vector2(0,59),new Vector2(167,32),Plum);
             var label=Text(title,new Vector2(0,59),new Vector2(165,34),21,parent);
-            label.color=Plum;
+            label.color=Cream;
         }
         Text CabinetAction(RectTransform parent,string id,string title,float y,Color color,Action action,Func<bool> allowed=null)
         {
@@ -172,7 +179,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         RawImage Card(string id,string section,Vector2 position,Action action,out Text title,out Text missing)
         {
-            var button=Button(id,position,new Vector2(321,152),new Color(.57f,.47f,.34f),action,()=>GameExperiencePanel.CanEditRawChoices(session));
+            var button=Button(id,position,new Vector2(321,152),(id=="marina-modes"?Lilac:Mint),action,()=>GameExperiencePanel.CanEditRawChoices(session));
             Panel("Marina · illustration panel",button,Vector2.zero,new Vector2(313,144),ProjectionInk);
             var crop=Panel("Marina · illustration crop",button,new Vector2(0,12),new Vector2(309,116),Color.white);
             crop.gameObject.AddComponent<Mask>().showMaskGraphic=false;
@@ -208,6 +215,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Bold;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
         }
         Text playlistStatus;
+        Image playlistStatusBacking;
         void Refresh()
         {
             if(!canvas||lobby==null)return;
@@ -215,23 +223,36 @@ namespace DeadlyJenga.CandyArt.Marina
             var experience=GameExperiencePanel.Resolve(session);
             bool visiting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
             bool playlist=experience?.Experience==GameExperience.Game&&!experience.CanConfigureExperience;
-            if (!playlistStatus) playlistStatus=Text("",new Vector2(0,8),new Vector2(585,116),27,mainFace);
+            if (!playlistStatus)
+            {
+                playlistStatusBacking=Panel("Play status backing",mainFace,new Vector2(0,-78),new Vector2(350,25),ProjectionInk);
+                playlistStatus=Text("",new Vector2(0,-78),new Vector2(340,25),17,mainFace);
+            }
             bool countdown=playlist&&experience.AutomaticRounds&&!lobby.CanStart&&
                 experience.GamePhase==RoomGamePhase.Selected;
-            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"NEXT ROUND":playlist?"READY TO PLAY?":"PICK YOUR MATCH";
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"NEXT ROUND":playlist?"PLAY READY":"PICK YOUR MATCH";
+            marquee.gameObject.SetActive(!playlist&&!visiting);
+            playlistStatusBacking.gameObject.SetActive(playlist||visiting);
+            playlistStatusBacking.color=countdown?Coral:ProjectionInk;
+            playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?68:-78);
+            playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?236:350,countdown?41:25);
+            playlistStatus.rectTransform.anchoredPosition=playlistStatusBacking.rectTransform.anchoredPosition;
+            playlistStatus.rectTransform.sizeDelta=playlistStatusBacking.rectTransform.sizeDelta;
+            playlistStatus.fontSize=countdown?30:17;
             playlistStatus.gameObject.SetActive(playlist||visiting);
-            string status=visiting?"Live match on the spectator TVs":experience?.GameStatus??"";
-            if(countdown&&status.StartsWith("NEXT  ",System.StringComparison.Ordinal))
-            {
-                int suffix=status.LastIndexOf("  |  ",System.StringComparison.Ordinal);
-                if(suffix>6)status=status.Substring(6,suffix-6);
-                int seconds=Mathf.Max(0,Mathf.CeilToInt(experience.CountdownSeconds));
-                status+="\n"+(seconds/60).ToString("00")+":"+(seconds%60).ToString("00");
-            }
-            playlistStatus.text=status;
+            int seconds=Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
+            int humans=Mathf.Max(1,session?.Multiplayer?.HumanCount??1);
+            playlistStatus.text=visiting?"Live match on the spectator TVs":countdown?
+                $"{seconds/60:00}:{seconds%60:00}":
+                lobby.Connected?$"ROOM {lobby.HostCode}    |    {humans} / {Mathf.Max(10,humans)}":
+                "LOCAL PLAY";
+            modeCard.gameObject.SetActive(!visiting&&(!playlist||countdown));
+            mapCard.gameObject.SetActive(!visiting);
+            modeCard.anchoredPosition=new Vector2(-169,countdown?-41:12);
+            mapCard.anchoredPosition=new Vector2(playlist&&!countdown?0:169,countdown?-41:12);
             foreach(var target in targets)
             {
-                if(target.id is "marina-modes" or "marina-maps" or "marina-settings" or "marina-experience")
+                if(target.id is "marina-settings" or "marina-experience" or "marina-style")
                     target.face.gameObject.SetActive(!playlist&&!visiting);
                 if(target.id=="marina-play")target.face.gameObject.SetActive(!countdown);
             }
@@ -278,6 +299,9 @@ namespace DeadlyJenga.CandyArt.Marina
         static void PaintTarget(Target target, bool hover, bool allowed)
         {
             bool pressed = allowed && Time.unscaledTime < target.pressedUntil;
+            target.face.rectTransform.localScale=Vector3.one*(pressed?.97f:hover&&allowed?1.035f:1f);
+            bool readOnlyPreview=target.id is "marina-maps" or "marina-modes";
+            allowed|=readOnlyPreview;
             target.face.color = !allowed ? Color.Lerp(target.color, Plum, .70f) :
                 pressed ? Color.Lerp(target.color, Mint, .70f) :
                 hover ? Color.Lerp(target.color, Cream, .35f) : target.color;

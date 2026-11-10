@@ -31,9 +31,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(960, 1120); transform.localScale = Vector3.one * .002f;
+            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(1120, 760); transform.localScale = Vector3.one * .002f;
             sectionGlyphs=new RawImage[buttons.Length];
-            var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.color = CandyHudVisuals.Ink;
+            var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.pixelsPerUnitMultiplier=.30f;bg.color = TabletPlum;
             heading=Text("DEADLY JENGA / DEMO\nAim at a button  /  RIGHT trigger to select", new Vector2(0, 355), new Vector2(570, 95), 24);
             help=Text("Y / native: Menu  |  Right-only: Grip+B (B closes)\nLeft thumb + middle: Menu",new Vector2(0,-480),new Vector2(550,65),19);help.color=CandyHudVisuals.Muted;
             string[] titles = { "Resume", "Switch survivor / flying hand", "Respawn on top", "Rebuild castle", "Spawn AI survivor", "Fill to 10 players", "NPC personality: Balanced", "Clear survivors / stop auto-fill", "Spawn AI giant hand", "Hand personality: Playful", "Clear AI hands", "Local multiplayer / invites", "VR movement / turning", "Host stamina / audio", "Natural disasters" };
@@ -51,6 +51,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildScaffoldButton();
             BuildMapControls();
             BuildNavigation();
+            BuildPlayerTablet();
             gameObject.SetActive(false);
         }
         Slider CreateDisasterSlider(string name,out Text caption,out BoxCollider hit)

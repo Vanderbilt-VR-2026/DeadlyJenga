@@ -90,6 +90,13 @@ namespace DeadlyJenga.CastlePrototype
             if (visible) PlaceFloatingKeyboard(eye);
             piano.gameObject.SetActive(visible);
         }
+        internal void OpenRoomCodeFromTablet()
+        {
+            if (!lobby.JoinEnabled) return;
+            if (marinaScreen) OpenMarinaDetail("join-code");
+            else lobby.ShowCodeEntry();
+        }
+
         void OpenMarinaDetail(string page)
         {
             if (page == "style")

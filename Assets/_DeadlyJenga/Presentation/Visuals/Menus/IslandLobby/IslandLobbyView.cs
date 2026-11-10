@@ -53,6 +53,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildWardrobe();
             BuildMayhemMarina();
             BuildTVWall();
+            SessionPresentation.AttachLobbyTablet(this,info);
         }
         void BuildIsland()
         {
@@ -96,22 +97,18 @@ namespace DeadlyJenga.CastlePrototype
             lobbyAimDot.characterSize=.009f*distance;
             lobbyAimDot.transform.SetPositionAndRotation(ray.GetPoint(distance-.015f),Quaternion.LookRotation(ray.direction));
         }
-        bool controlsMenuWasOpen,terminalRequireRelease=true,inputFocused=true;
+        bool terminalRequireRelease=true,inputFocused=true;
         void OnApplicationFocus(bool focused)
         {
             inputFocused = focused;
             terminalRequireRelease = true;
             wardrobeDragDevice = 0;
         }
-        bool LocalModalBlocked=>DeadlyJenga.Presentation.MenuAim.InputConsumed||DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session)||CharacterPicker.Showing(session);
+        bool LocalModalBlocked=>session?.IsVR==true&&session.MenuOpen&&!wardrobeOpen||DeadlyJenga.Presentation.MenuAim.InputConsumed||DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session)||CharacterPicker.Showing(session);
         void Update()
         {
             if (lobbyAimBeam) lobbyAimBeam.enabled = false;
             trackedLobbyPointer = false;
-            bool menuOpened=session?.MenuOpen==true&&!controlsMenuWasOpen;
-            controlsMenuWasOpen=session?.MenuOpen==true;
-            if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
-                DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             if(!inputFocused||LocalModalBlocked){terminalRequireRelease=true;wardrobeDragDevice=0;draggingKeyboard=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
             var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;

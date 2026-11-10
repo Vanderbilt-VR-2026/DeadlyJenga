@@ -28,6 +28,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
             if(!show||!camera)return;
+            PlayerPrefs.SetInt(TabletOpenedPreference,1);
             DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
             var eye=camera.transform;
             var flat=Vector3.ProjectOnPlane(eye.forward,Vector3.up);
@@ -46,7 +47,6 @@ namespace DeadlyJenga.CastlePrototype
             if(!giveEquipmentPage&&!(disasterPage&&disasterSelection<0)&&!(modePage&&modeWheel))RestoreEquipmentWheelLayout();
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
-            ((RectTransform)transform).sizeDelta=new Vector2(960,1120);
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
             bool controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
             PlaceTablet(camera);
@@ -58,10 +58,11 @@ namespace DeadlyJenga.CastlePrototype
                 if(!pressed&&!held)requireRelease=false;
                 pressed=held=false;
             }
-            PointPage(camera,pressed,held);
+            PointPlayerTablet(camera,pressed,held);
             if(!isActiveAndEnabled)return;
             if(pressed&&focus){pressedTarget=focus;pressedUntil=Time.unscaledTime+.13f;}
-            ApplyLabelContrast();PresentPointer();
+            if(tabletDeveloperDetails)ApplyLabelContrast();
+            PresentPointer();
             if (pressed || !pointerForegroundReady)
             {
                 DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
@@ -109,8 +110,8 @@ namespace DeadlyJenga.CastlePrototype
             DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft);
             if(!tabletFrame)
             {
-                tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(1000,1160));
-                tabletFrame.type=Image.Type.Sliced;tabletFrame.fillCenter=false;tabletFrame.color=CandyHudVisuals.Lavender;
+                tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(1160,800));
+                tabletFrame.type=Image.Type.Sliced;tabletFrame.pixelsPerUnitMultiplier=.30f;tabletFrame.fillCenter=false;tabletFrame.color=CandyHudVisuals.Lavender;
                 tabletFrame.transform.SetAsFirstSibling();
                 BuildTabletCase();
             }
@@ -127,8 +128,8 @@ namespace DeadlyJenga.CastlePrototype
             for(int ring=0;ring<2;ring++)for(int i=0;i<count;i++)
             {
                 int corner=i/8;float angle=(corner*90+i%8*90f/7)*Mathf.Deg2Rad;
-                float x=(corner==0||corner==3?465:-465)+Mathf.Cos(angle)*35;
-                float y=(corner<2?545:-545)+Mathf.Sin(angle)*35;
+                float x=(corner==0||corner==3?545:-545)+Mathf.Cos(angle)*35;
+                float y=(corner<2?365:-365)+Mathf.Sin(angle)*35;
                 vertices[ring*count+i]=new Vector3(x,y,ring==0?10:36);
             }
             vertices[count*2]=new Vector3(0,0,10);vertices[count*2+1]=new Vector3(0,0,36);

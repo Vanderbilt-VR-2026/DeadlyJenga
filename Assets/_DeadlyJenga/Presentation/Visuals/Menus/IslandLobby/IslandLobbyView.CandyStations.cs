@@ -40,6 +40,7 @@ namespace DeadlyJenga.CastlePrototype
             joinHint.fontSize=20;joinHint.resizeTextMaxSize=20;joinHint.resizeTextMinSize=18;joinHint.color=CandyMuted;
             candyJoinEmpty=CandyReadout(candyJoinContent,"Discovery empty state","",0,-245,960,100,24);candyJoinEmpty.color=CandyMuted;
         }
+        float copiedHostCodeUntil;
         void BuildCandyHost()
         {
             var status=CandyPanel(candyHostContent,"Room status",0,294,420,44,CandyFace);status.SetAsFirstSibling();
@@ -51,9 +52,13 @@ namespace DeadlyJenga.CastlePrototype
             var code=CandyPanel(candyHostContent,"Connected room code",0,190,1000,140,CandyFace);code.SetAsFirstSibling();candyHostCodeFrame=code.gameObject;
             CandyReadout(code,"Code label","JOIN CODE",0,44,900,30,22).color=CandyMuted;
             hostCode.rectTransform.anchoredPosition=new Vector2(0,170);hostCode.rectTransform.sizeDelta=new Vector2(940,66);hostCode.fontSize=49;hostCode.resizeTextMaxSize=49;hostCode.resizeTextMinSize=32;hostCode.fontStyle=FontStyle.Bold;hostCode.color=CandyCream;
-            var region=CandyPlace("region",0,81,1000,62);region.title=()=>"REGION:  "+lobby.Region.ToUpperInvariant()+(lobby.CanHost?"     CHANGE":"");
+            var copy=CandyAdd(candyHostContent,"copy-code",()=>Time.unscaledTime<copiedHostCodeUntil?"COPIED":"COPY CODE",
+                -260,49,480,62,()=>{GUIUtility.systemCopyBuffer=lobby.HostCode;copiedHostCodeUntil=Time.unscaledTime+1.5f;},
+                ()=>lobby.Connected&&!string.IsNullOrEmpty(lobby.HostCode),()=>lobby.Connected&&!string.IsNullOrEmpty(lobby.HostCode));
+            CandyPrimary(copy);
+            var region=CandyPlace("region",0,98,1000,45);region.title=()=>"REGION:  "+lobby.Region.ToUpperInvariant()+(lobby.CanHost?"     CHANGE":"");
             region.visible=()=>true;CandyChoiceIcon(region,LobbyTerminalGlyph.Symbol.Globe,-440,0,34);CandyText(region,25,0,850,54,26);
-            var invite=CandyPlace("invite-all",0,-12,1000,80);CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.People,-440,0,40);CandyText(invite,25,0,850,68,30);
+            var invite=CandyPlace("invite-all",260,49,480,62);CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.People,-190,0,31);CandyText(invite,23,0,390,54,25);
             CandyPlace("request-host",0,-110,1000,60);CandyPlace("shared-controls",0,-110,1000,60);
             CandyPlace("abandon-host",0,-190,1000,60);
             requestLabel.rectTransform.anchoredPosition=new Vector2(-100,-270);requestLabel.rectTransform.sizeDelta=new Vector2(760,58);

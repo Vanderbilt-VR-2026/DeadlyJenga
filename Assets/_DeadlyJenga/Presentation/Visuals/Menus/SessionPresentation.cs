@@ -10,6 +10,7 @@ namespace DeadlyJenga.CastlePrototype
         ISessionInfo session;
         CastleWorldMenu worldMenu;
         bool shown, lastHand;
+        IslandLobbyView lobbyView;
         Camera lastCamera;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -28,17 +29,31 @@ namespace DeadlyJenga.CastlePrototype
             driver.Init(info);
         }
 
+        internal static void AttachLobbyTablet(IslandLobbyView lobby, ISessionInfo info)
+        {
+            var driver=lobby.GetComponent<SessionPresentation>();
+            if(!driver) driver=lobby.gameObject.AddComponent<SessionPresentation>();
+            driver.lobbyView=lobby;
+            driver.Init(info);
+        }
+
         void Init(ISessionInfo info)
         {
             session = info;
-            if (!worldMenu) { worldMenu = new GameObject("Headset demo menu").AddComponent<CastleWorldMenu>(); worldMenu.Build(session); }
+            if (!worldMenu) { worldMenu = new GameObject("Headset player tablet").AddComponent<CastleWorldMenu>(); worldMenu.Build(session); }
         }
 
         // The VR menu appears in front of the active camera while the menu is open in VR.
         void LateUpdate()
         {
             if (session == null || !worldMenu) return;
-            bool show = !DeadlyJenga.Presentation.MenuAim.InputConsumed && !DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session) && !DeadlyJenga.Presentation.GameExperiencePanel.Showing(session) && !CharacterPicker.Showing(session) && !DeadlyJenga.Presentation.CandyComfortPanel.Showing(session) && (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && session.MenuOpen && session.IsVR && MatchRuntime.Current?.Frame.phase != RoundPhase.Results;
+            bool lobbyAllows=lobbyView ? !lobbyView.WardrobeOpen :
+                (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && MatchRuntime.Current?.Frame?.phase!=RoundPhase.Results;
+            bool show = lobbyAllows && session.MenuOpen && session.IsVR &&
+                !DeadlyJenga.Presentation.MenuAim.InputConsumed &&
+                !DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session) &&
+                !DeadlyJenga.Presentation.GameExperiencePanel.Showing(session) && !CharacterPicker.Showing(session) &&
+                !DeadlyJenga.Presentation.CandyComfortPanel.Showing(session);
             var view = session.ActiveCamera;
             if (show != shown || show && (view != lastCamera || session.PlayingHand != lastHand))
             {
