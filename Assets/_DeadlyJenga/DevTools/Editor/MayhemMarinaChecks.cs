@@ -204,6 +204,19 @@ namespace DeadlyJenga.DevTools.Editor
             var note=panel.GetComponentInChildren<UnityEngine.UI.Image>(true).rectTransform;
             var noteBottom=note.parent.localPosition.y+note.localPosition.y+note.rect.yMin;
             Check(noteBottom>start.localPosition.y+start.rect.yMax,"Hover text has its own space above Start Match");
+            var beam=lobby.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Visual - beachside projector beam");
+            Check(beam.enabled&&beam.sharedMaterial.shader.isSupported&&!beam.GetComponent<Collider>(),
+                "Beachside projector uses supported art and does not block players or pointers");
+            var cinema=lobby.GetComponentsInChildren<UnityEngine.UI.RawImage>(true)
+                .Single(image=>image.texture&&image.texture.name=="Marina projection vignette");
+            Check(cinema.gameObject.activeInHierarchy,"Projected backdrop is visible on the default match screen");
+            var floor=lobby.GetComponentsInChildren<MeshCollider>().Single(c=>c.sharedMesh==lobby.GetComponent<MayhemMarina>().WalkableMesh);
+            foreach(float x in new[]{-5.15f,5.15f})
+                Check(!floor.Raycast(new Ray(lobby.transform.TransformPoint(new Vector3(x,2.20f,9.05f)),lobby.transform.forward),out _,1.35f),
+                    "Side kiosk approach is clear at x="+x);
+            for(int x=-10;x<=-5;x++)
+                Check(floor.Raycast(new Ray(lobby.transform.TransformPoint(new Vector3(x,4.5f,8f)),Vector3.down),out _,5),
+                    "Wardrobe route has floor support at x="+x);
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
             var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
                 .Single(blocker=>blocker.name=="Island blocker · "+television.name);

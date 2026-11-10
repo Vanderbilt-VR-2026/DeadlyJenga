@@ -210,14 +210,12 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(-5.9f,1.56f,10.55f),new Vector3(1.2f,.6f,2.7f),F.Stone,0,true);
             WardrobeConnector();
             mesh.Box(new Vector3(0,3.7f,11.65f),new Vector3(13.3f,4.0f,.5f),F.Teal,.2f,true);
+            mesh.Box(new Vector3(6.55f,3.1f,9.0f),new Vector3(1.5f,3.9f,5.1f),F.Ivory,.4f,true);
             for(int side=-1;side<=1;side+=2)
             {
-                if(side>0)mesh.Box(new Vector3(side*6.55f,3.1f,9.0f),new Vector3(1.5f,3.9f,5.1f),F.Ivory,.4f,true);
-                else mesh.Box(new Vector3(-6.55f,3.1f,10.375f),new Vector3(1.5f,3.9f,2.35f),F.Ivory,.4f,true);
                 for(int n=0;n<4;n++)mesh.Box(new Vector3(side*5.7f,1.64f+n*.61f,5.05f),new Vector3(1.0f,.58f,1),n==0?F.Red:n==1?F.Green:F.Purple,.11f,true,Quaternion.Euler(0,n%2*90,0));
                 mesh.Beam(new Vector3(side*5.7f,3.95f,5.1f),new Vector3(side*5.7f,5.0f,5.1f),.14f,F.Wood,true);
                 mesh.Beam(new Vector3(side*5.7f,4.65f,5.1f),new Vector3(side*4.4f,5.7f,5.1f),.12f,F.Wood);
-                Pot(new Vector3(side*5.15f,1.86f,side<0?10.05f:9.65f),.43f,.74f,side+3);
                 Lantern(new Vector3(side*4.2f,4.75f,5.1f),.2f);
             }
             mesh.CurvedRoof(new Vector3(0,4.8f,8.3f),15.6f,9.1f,2.15f,F.Teal);
@@ -232,25 +230,41 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Beam(new Vector3(x,4.72f,4.65f),new Vector3(side*5.92f,5.65f,4.65f),.13f,F.DarkWood);
                 Lantern(new Vector3(x,3.42f,4.23f),.16f);
             }
-            BuildCandyArcade();
+            BuildBeachCinema();
             Lantern(new Vector3(-3.8f,5.35f,8.3f),.22f);
             Lantern(new Vector3(3.8f,5.35f,8.3f),.22f);
         }
-        void BuildCandyArcade()
+        static readonly Vector3 ProjectorLens = new(-1.35f,5.49f,5.75f);
+        static readonly Vector3 ProjectionSurface = new(0,3.85f,10.91f);
+
+        void BuildBeachCinema()
         {
-            mesh.Box(new Vector3(0,3.78f,11.35f),new Vector3(7.68f,3.84f,.54f),F.CandyCream,.23f);
-            mesh.Box(new Vector3(0,3.85f,11.24f),new Vector3(7.55f,3.56f,.48f),F.CandyCoral,.18f);
-            mesh.Box(new Vector3(0,3.85f,11.04f),new Vector3(7.18f,3.24f,.16f),F.CandyLilac,.06f);
-            mesh.Box(new Vector3(0,3.85f,10.98f),new Vector3(7.04f,3.13f,.12f),F.CandyGrape,.04f);
-            mesh.Box(new Vector3(0,1.94f,11.28f),new Vector3(7.72f,.19f,.60f),F.CandyLilac,.08f);
-            mesh.Ellipsoid(new Vector3(0,5.51f,11.25f),new Vector3(1.37f,.70f,.27f),F.CandyCream);
-            CandyRainbow(new Vector3(0,5.53f,10.98f),1.05f);
-            for(int i=0;i<3;i++)
+            mesh.Box(new Vector3(0,3.85f,11.16f),new Vector3(7.48f,3.50f,.26f),F.DarkWood,.08f);
+            mesh.Box(new Vector3(0,3.85f,10.99f),new Vector3(7.25f,3.28f,.09f),F.CreamFabric,.026f);
+            mesh.Beam(new Vector3(-3.80f,5.55f,10.99f),new Vector3(3.80f,5.55f,10.99f),.13f,F.Metal);
+            mesh.Beam(new Vector3(-3.69f,2.18f,10.99f),new Vector3(3.69f,2.18f,10.99f),.075f,F.DarkWood);
+            for (int side=-1;side<=1;side+=2)
             {
-                mesh.Box(new Vector3(-1.86f,5.57f+i*.10f,11.13f),new Vector3(.40f,.05f,.19f),F.CandyGrape,.02f);
-                mesh.Ellipsoid(new Vector3(1.61f+i*.19f,5.67f,11.06f),Vector3.one*.068f,
-                    i==0?F.CandyMint:i==1?F.Glow:F.CandyLilac,rings:5,sides:10);
+                float x=side*3.61f;
+                mesh.Beam(new Vector3(x,5.57f,11.00f),new Vector3(x,6.12f,11.00f),.024f,F.Brass);
+                mesh.Ellipsoid(new Vector3(side*3.82f,5.55f,10.99f),new Vector3(.13f,.145f,.145f),F.Brass);
             }
+
+            var direction=(ProjectionSurface-ProjectorLens).normalized;
+            var facing=Quaternion.LookRotation(direction);
+            var housing=ProjectorLens-direction*.31f;
+            mesh.Beam(housing+Vector3.up*.14f,new Vector3(housing.x,6.25f,housing.z),.049f,F.DarkWood);
+            mesh.Box(housing,new Vector3(.68f,.35f,.59f),F.CandyCream,.082f,false,facing);
+            mesh.Box(housing+facing*new Vector3(0,-.125f,0),new Vector3(.67f,.11f,.58f),F.Teal,.045f,false,facing);
+            mesh.Box(housing+direction*.28f,new Vector3(.47f,.28f,.09f),F.DarkWood,.045f,false,facing);
+            mesh.Ellipsoid(ProjectorLens-direction*.047f,new Vector3(.17f,.135f,.094f),F.Brass,facing);
+            mesh.Ellipsoid(ProjectorLens,new Vector3(.112f,.088f,.028f),F.Glow,facing);
+            for (int vent=0;vent<3;vent++)
+            {
+                var offset=facing*new Vector3(.34f,.06f-vent*.057f,-.05f);
+                mesh.Box(housing+offset,new Vector3(.018f,.022f,.25f),F.DarkWood,.006f,false,facing);
+            }
+
             BuildCandyCabinet(false);
             BuildCandyCabinet(true);
         }
@@ -355,12 +369,6 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 if(side<0||!wardrobePassage)
                     mesh.Box(center+new Vector3(side*(half-.5f),height*.42f,0),new Vector3(1.05f,height*.85f,depth),F.Ivory,.4f,true);
-                else
-                {
-                    float near=center.z-depth*.5f,far=center.z+depth*.5f;
-                    mesh.Box(new Vector3(center.x+half-.5f,center.y+height*.42f,(near+6f)*.5f),new Vector3(1.05f,height*.85f,6f-near),F.Ivory,.4f,true);
-                    mesh.Box(new Vector3(center.x+half-.5f,center.y+height*.42f,(9.2f+far)*.5f),new Vector3(1.05f,height*.85f,far-9.2f),F.Ivory,.4f,true);
-                }
             }
             var arch=new List<Vector3>();
             for(int i=0;i<=40;i++){float a=Mathf.PI-i*Mathf.PI/40;arch.Add(center+new Vector3(Mathf.Cos(a)*(half-.45f),height*.59f+Mathf.Sin(a)*height*.35f,-depth*.5f));}
