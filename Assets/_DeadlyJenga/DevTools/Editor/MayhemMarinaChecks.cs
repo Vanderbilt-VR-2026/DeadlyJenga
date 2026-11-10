@@ -778,7 +778,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             Application.runInBackground=true;AudioListener.volume=0;float until=Time.realtimeSinceStartup+45;HomeSession home;
             while(!(home=Object.FindFirstObjectByType<HomeSession>())&&Time.realtimeSinceStartup<until)yield return null;
-            Check(home,"Actual Home scene loaded for peer validation");home.RandomLobby();until=Time.realtimeSinceStartup+45;IslandLobby lobby;
+            Check(home,"Actual Home scene loaded for peer validation");home.Demo();until=Time.realtimeSinceStartup+45;IslandLobby lobby;
             while(!(lobby=Object.FindFirstObjectByType<IslandLobby>())&&Time.realtimeSinceStartup<until)yield return null;
             Check(lobby&&lobby.GetComponent<MayhemMarina>(),"Actual integrated Marina loaded for two-peer test");yield return Wait(.3f);
             yield return ModeSelectionNetworkChecks.Run((passed,label)=>
@@ -806,7 +806,7 @@ namespace DeadlyJenga.DevTools.Editor
             Application.runInBackground=true;Application.targetFrameRate=60;AudioListener.volume=0;
             float limit=Time.realtimeSinceStartup+45;HomeSession home;
             while(!(home=Object.FindFirstObjectByType<HomeSession>())&&Time.realtimeSinceStartup<limit)yield return null;
-            Check(home,"Actual Home scene loaded");home.RandomLobby();
+            Check(home,"Actual Home scene loaded");home.Demo();
             limit=Time.realtimeSinceStartup+45;IslandLobby lobby;
             while(!(lobby=Object.FindFirstObjectByType<IslandLobby>())&&Time.realtimeSinceStartup<limit)yield return null;
             Check(lobby&&lobby.View(),"Actual Lobby scene and Presentation loaded");var view=lobby.View();
