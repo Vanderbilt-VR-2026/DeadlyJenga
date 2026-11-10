@@ -271,8 +271,10 @@ namespace DeadlyJenga.CandyArt.Marina
                 target.actionLabel.color=allowed?(luminance>.22f?Plum:Cream):CandyHudVisuals.Muted;
             }
         }
+        LineRenderer aimBeam;
         void Update()
         {
+            if (aimBeam) aimBeam.enabled = false;
             if(!AnyFaceVisible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera){aimDot.gameObject.SetActive(false);return;}
             var mouse=Mouse.current;var keyboard=Keyboard.current;
@@ -284,10 +286,12 @@ namespace DeadlyJenga.CandyArt.Marina
             int pointerDevice = 0;
             var camera=player.ViewCamera;
             Ray ray;
+            bool trackedPointer = false;
             if (player.IsVR)
             {
                 bool preferredLeft=player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
-                ray=MenuAim.Resolve(camera,camera.transform.parent,preferredLeft,false,false,out _,out _);
+                ray=MenuAim.Resolve(camera,camera.transform.parent,preferredLeft,false,false,out trackedPointer,out _);
+                trackedPointer |= MenuAim.IsTrackedPointer(camera, ray);
                 var controllerAction=leftSelect.WasPressedThisFrame()?leftSelect:select.WasPressedThisFrame()?select:
                     leftSelect.IsPressed()&&(!select.IsPressed()||preferredLeft)?leftSelect:select;
                 if (controllerAction.IsPressed() || controllerAction.WasPressedThisFrame())
@@ -295,6 +299,7 @@ namespace DeadlyJenga.CandyArt.Marina
                     if (MenuAim.TryActionPointer(camera,controllerAction,out var controllerRay,out pointerDevice))
                     {
                         ray=controllerRay;
+                        trackedPointer=true;
                         pressed=controllerAction.WasPressedThisFrame();
                     }
                     else pressed=false;
@@ -309,12 +314,15 @@ namespace DeadlyJenga.CandyArt.Marina
             foreach (var target in targets)
                 if (target.face.gameObject.activeInHierarchy) PaintTarget(target, target == nearest, target.collider.enabled);
             PreviewDestination(nearest?.id);
-            if (nearest != null && MenuAim.TryPoint(ray, nearest.face.rectTransform, screenRange, out _, out var point) ||
+            bool hitFace = nearest != null && MenuAim.TryPoint(ray, nearest.face.rectTransform, screenRange, out _, out var point) ||
                 VisibleFacePoint(ray, mainFace, screenRange, out point) ||
                 VisibleFacePoint(ray, joinFace, screenRange, out point) ||
-                VisibleFacePoint(ray, hostFace, screenRange, out point))
-                MenuAim.Present(aimDot, point, true, nearest != null && nearest.collider.enabled);
+                VisibleFacePoint(ray, hostFace, screenRange, out point);
+            bool actionable = nearest != null && nearest.collider.enabled;
+            if (hitFace) MenuAim.Present(aimDot, point, true, actionable);
             else aimDot.gameObject.SetActive(false);
+            MenuAim.PresentBeam(ref aimBeam, transform, ray, hitFace ? point - ray.direction * .012f :
+                ray.GetPoint(Mathf.Min(screenRange, 1.8f)), trackedPointer, actionable);
             if (pressed && nearest != null) Activate(nearest, pointerDevice);
         }
         Target PickTarget(Ray ray, float range)
@@ -367,7 +375,7 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void OnEnable(){requireRelease=true;select?.Enable();leftSelect?.Enable();}
         void OnApplicationFocus(bool focused){inputFocused=focused;requireRelease=true;}
-        void OnDisable(){select?.Disable();leftSelect?.Disable();if(aimDot)aimDot.gameObject.SetActive(false);}
+        void OnDisable(){if(aimBeam)aimBeam.enabled=false;select?.Disable();leftSelect?.Disable();if(aimDot)aimDot.gameObject.SetActive(false);}
         void OnDestroy(){select?.Dispose();leftSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);if(projectionBackdrop)Destroy(projectionBackdrop);}
     }
 }

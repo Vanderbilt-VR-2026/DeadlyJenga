@@ -7,7 +7,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyEquipment
     {
         const float PickupRange = 1.65f;
-        const float GripReach = .45f;
+        const float GripReach = .55f;
         const float AimFocus = .92f;
         const float GrabBuffer = .18f;
         const int PickupOccluders = (1 << Layers.Block) | (1 << Layers.Surface) | 1;
@@ -46,7 +46,7 @@ namespace DeadlyJenga.CandyPlayers
             int previousFocus = pendingPickup;
             pendingPickup = 0;
             var frame = MatchRuntime.Current?.Frame;
-            if (frame == null || frame.phase != RoundPhase.Playing || !avatar.viewCamera)
+            if (frame?.pickups == null || frame.phase != RoundPhase.Playing || !avatar.viewCamera)
             {
                 ClearPickupFocus();
                 return false;
@@ -81,14 +81,18 @@ namespace DeadlyJenga.CandyPlayers
                     (pickup.kind == EquipmentKind.Speed || pickup.kind == EquipmentKind.Jump);
                 float leftDistance = leftPoint.HasValue ? (leftPoint.Value - pickup.position).sqrMagnitude : float.PositiveInfinity;
                 float rightDistance = rightPoint.HasValue ? (rightPoint.Value - pickup.position).sqrMagnitude : float.PositiveInfinity;
+                if (leftDistance <= GripReach * GripReach && !ClearPickupPath(leftPoint.Value, pickup.position))
+                    leftDistance = float.PositiveInfinity;
+                if (rightDistance <= GripReach * GripReach && !ClearPickupPath(rightPoint.Value, pickup.position))
+                    rightDistance = float.PositiveInfinity;
                 float handDistance = Mathf.Min(leftDistance, rightDistance);
                 float grabDistance = Mathf.Min(leftGrab ? leftDistance : float.PositiveInfinity,
                     rightGrab ? rightDistance : float.PositiveInfinity);
                 bool reachable = handDistance <= GripReach * GripReach;
                 bool grabbing = grabDistance <= GripReach * GripReach;
-                if (!autoPower && !reachable && alignment < AimFocus) continue;
-                if (depth > .01f && Physics.Raycast(eye.position, delta / depth, depth * .92f,
-                    PickupOccluders, QueryTriggerInteraction.Ignore)) continue;
+                bool closeDesktop = !vr && feetDistance < .9f * .9f;
+                if (!autoPower && !reachable && !closeDesktop && alignment < AimFocus) continue;
+                if (!reachable && !ClearPickupPath(eye.position, pickup.position)) continue;
                 if (autoPower)
                 {
                     touchingPower = pickup;
@@ -120,8 +124,16 @@ namespace DeadlyJenga.CandyPlayers
             return false;
         }
 
+        static bool ClearPickupPath(Vector3 origin, Vector3 pickup)
+        {
+            var delta = pickup - origin;
+            float distance = delta.magnitude;
+            return distance < .01f || !Physics.Raycast(origin, delta / distance, distance * .92f,
+                PickupOccluders, QueryTriggerInteraction.Ignore);
+        }
+
         bool PickupFireHeld() => motor.IsVR
-            ? trigger?.IsPressed() == true || offTrigger?.IsPressed() == true
+            ? trigger?.IsPressed() == true || Equipment.kind == EquipmentKind.DualUzi && offTrigger?.IsPressed() == true
             : Mouse.current?.leftButton.isPressed == true;
 
         Vector3? PickupHand(bool left, bool vr, bool canGrab, ref float grabUntil)
@@ -129,7 +141,9 @@ namespace DeadlyJenga.CandyPlayers
             var tracking = avatar.tracking;
             var hand = vr && tracking ? tracking.WorldHand(left) : default;
             bool controller = vr && HybridXRInput.ControllerTracked(left);
-            if (!hand.tracked || !controller && !hand.skeletonTracked)
+            Pose controllerAim = default;
+            bool hasControllerAim = controller && tracking && tracking.TryControllerAim(left, out controllerAim);
+            if (!hasControllerAim && (!hand.tracked || !controller && !hand.skeletonTracked))
             {
                 grabUntil = 0;
                 return null;
@@ -142,6 +156,7 @@ namespace DeadlyJenga.CandyPlayers
             if (!held || !canGrab) grabUntil = 0;
             else if (pressed) grabUntil = Time.unscaledTime + GrabBuffer;
 
+            if (hasControllerAim) return controllerAim.position;
             return !controller && tracking.TryIndexTip(left, out var tip) ? tip : hand.position;
         }
     }

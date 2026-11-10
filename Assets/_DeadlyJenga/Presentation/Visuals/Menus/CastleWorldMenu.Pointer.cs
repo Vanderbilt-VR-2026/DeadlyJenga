@@ -73,7 +73,9 @@ namespace DeadlyJenga.CastlePrototype
             bool left=DominantLeft;
             bool physical=ControllerPose(camera,left,out var pose,out var device);
             if(!physical)physical=ControllerPose(camera,!left,out pose,out device);
-            int identity=physical?device.deviceId:-1;
+            Ray handRay = default;
+            bool optical = !physical && DeadlyJenga.Presentation.MenuAim.TryHandPointer(camera, session.Player, left, out handRay);
+            int identity=physical?device.deviceId:optical?-2:-1;
             if(tabletDominantLeft!=left||tabletPointerDevice!=identity)
             {
                 tabletDominantLeft=left;tabletPointerDevice=identity;tabletWasHeld=false;
@@ -89,6 +91,11 @@ namespace DeadlyJenga.CastlePrototype
                 ray=new Ray(pose.position,pose.rotation*Vector3.forward);return true;
             }
             tabletWasHeld=held;
+            if (optical)
+            {
+                ray = handRay;
+                return true;
+            }
             ray=new Ray(camera.transform.position,camera.transform.forward);return false;
         }
         void PlaceTablet(Camera camera)

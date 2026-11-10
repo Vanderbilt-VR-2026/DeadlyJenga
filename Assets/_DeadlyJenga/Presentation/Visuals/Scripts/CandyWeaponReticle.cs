@@ -14,7 +14,7 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if((Services.Session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(canvas)canvas.enabled=false;return;}
-            var session=Services.Session;var player=session?.Player;if(player==null)return;var equipment=player.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
+            var session=Services.Session;var player=session?.Player;if(player==null){if(canvas)canvas.enabled=false;return;}var equipment=player.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
             if(!sights)sights=GetComponent<CandyGunSights>();
             bool active=equipment?.drawn==true&&CandyGunSights.SupportsAim(equipment)&&
                 !session.MenuOpen&&!session.PlayingHand&&!player.InputSuspended&&!(sights&&sights.DrawsScopeOverlay);
@@ -23,7 +23,24 @@ namespace DeadlyJenga.Presentation
             bool spread=equipment.kind==EquipmentKind.RocketLauncher||equipment.kind==EquipmentKind.GrenadeLauncher||equipment.kind==EquipmentKind.Blaster||equipment.kind==EquipmentKind.PoweredArmor||equipment.kind==EquipmentKind.ChainGun||equipment.kind==EquipmentKind.DualUzi||equipment.kind==EquipmentKind.DualRifle&&equipment.shotgun||equipment.kind==EquipmentKind.StockPistol&&!equipment.shotgun;
             glyph.text=spread?"○":"+";glyph.fontSize=sights&&sights.Aiming?(spread?28:23):(spread?36:27);
             var aim=player.gameObject.GetComponent<IWeaponAim>()?.WeaponAim??new Pose(camera.transform.position,camera.transform.rotation);
-            if(vr){var point=aim.position+aim.rotation*Vector3.forward*3;glyph.transform.position=point;glyph.transform.rotation=Quaternion.LookRotation(point-camera.transform.position);glyph.rectTransform.localScale=Vector3.one;}
+            if (vr)
+            {
+                // Keep the glyph on the stereo HUD plane even when the aim point is behind cover.
+                var eye = camera.transform;
+                var target = aim.position + aim.rotation * Vector3.forward * 12;
+                var line = new Ray(eye.position, target - eye.position);
+                var plane = new Plane(eye.forward, canvas.transform.position);
+                bool onHud = plane.Raycast(line, out float depth);
+                var rect = (RectTransform)canvas.transform;
+                var local = onHud ? rect.InverseTransformPoint(line.GetPoint(depth)) : Vector3.zero;
+                glyph.enabled = onHud && rect.rect.Contains(local);
+                glyph.rectTransform.anchoredPosition = local;
+            }
+            else
+            {
+                glyph.enabled = true;
+                glyph.rectTransform.anchoredPosition = Vector2.zero;
+            }
             if(Time.unscaledTime>=nextQuery)
             {
                 nextQuery=Time.unscaledTime+.08f;color=Color.white;int count=Physics.RaycastNonAlloc(aim.position,aim.rotation*Vector3.forward,hits,90,(1<<Layers.Block)|(1<<Layers.Surface)|(1<<Layers.Survivor)|1,QueryTriggerInteraction.Collide);float nearest=90;IModeActor target=null;var self=player.gameObject.GetComponent<IModeActor>();

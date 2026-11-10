@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandLobby : ILobbyControls
     {
         string enteredCode="";
-        bool showingNearby,codeFocused;
+        bool showingNearby,codeFocused,codeOwnsMenu;
         int nearbyPage;
         float scanningUntil;
 
@@ -47,13 +47,26 @@ namespace DeadlyJenga.CastlePrototype
         public bool CodeFocused=>codeFocused&&JoinEnabled;
         public string EnteredCode{get=>enteredCode;set=>enteredCode=value??"";}
         public bool CodeValid=>IslandRoomAddress.TryParse(enteredCode,Room.Region,out _,out _);
-        public void FocusCode(){if(!JoinEnabled)return;showingNearby=false;codeFocused=true;if(!Player.IsVR)SetMenu(true);}
-        public void UnfocusCode()=>codeFocused=false;
+        public void FocusCode()
+        {
+            if (!JoinEnabled || codeFocused) return;
+            showingNearby = false;
+            codeFocused = true;
+            codeOwnsMenu = !Player.IsVR && !MenuOpen;
+            if (codeOwnsMenu) SetMenu(true);
+        }
+        public void UnfocusCode()
+        {
+            codeFocused = false;
+            bool closeMenu = codeOwnsMenu;
+            codeOwnsMenu = false;
+            if (closeMenu && MenuOpen) SetMenu(false);
+        }
         public void TypeCode(char value)
         {if(!JoinEnabled)return;value=char.ToUpperInvariant(value);if((value>='A'&&value<='Z'||value>='0'&&value<='9'||value=='-')&&enteredCode.Length<12)enteredCode+=value;}
         public void EraseCode(){if(enteredCode.Length>0)enteredCode=enteredCode.Substring(0,enteredCode.Length-1);}
         public void Join(){if(JoinEnabled&&CodeValid)_=Room.Join(enteredCode);}
-        public void DetectNearby(){if(VisitingLobby)return;Room.ScanNearby();showingNearby=true;codeFocused=false;nearbyPage=0;scanningUntil=Time.unscaledTime+2;}
+        public void DetectNearby(){if(VisitingLobby)return;Room.ScanNearby();showingNearby=true;UnfocusCode();nearbyPage=0;scanningUntil=Time.unscaledTime+2;}
         public void ShowCodeEntry(){showingNearby=false;FocusCode();}
         IslandDiscovery.Entry NearbyEntry(int slot)=>Room.Discovery?.JoinableAt(nearbyPage,3,slot);
         public bool HasNearby(int slot)=>NearbyEntry(slot)!=null;
@@ -115,7 +128,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void UpdateControls()
         {
-            if(!JoinEnabled)codeFocused=false;
+            if(!JoinEnabled)UnfocusCode();
             var inviteStatus=Room.Discovery?.InviteStatus;
             HostHint=Room.Busy||Room.Status.StartsWith("Could not transfer host",StringComparison.Ordinal)?Room.Status:!string.IsNullOrEmpty(inviteStatus)?inviteStatus:
                 Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:

@@ -56,7 +56,8 @@ Shader "Candy Tropical/Player Summoning Column"
                 float3 color=lerp(float3(.17,1,.58),float3(.67,.26,1),mixColor);
                 float core=pow(edge,5);color=lerp(color,float3(.96,1,1),core*.5);
                 float alpha=edge*streak*reach*alive*_Strength*(ring>.5?.24:.38);
-                return half4(color*1.8,alpha);
+                alpha=max(alpha,edge*riderReach*alive*_Strength*.22);
+                return half4(color*(riderReach>.05?1.10:1.8),alpha);
             }
             ENDHLSL
         }

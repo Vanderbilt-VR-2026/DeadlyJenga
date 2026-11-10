@@ -33,7 +33,7 @@ namespace DeadlyJenga.Presentation
             {
                 var offset=riderCamera.transform.position-target.position;
                 float sideways=new Vector2(offset.x,offset.z).magnitude;
-                float scale=Mathf.Clamp((sideways+.65f)/.46f,1.6f,3.5f);
+                float scale=Mathf.Clamp((sideways+.88f)/.46f,2f,5f);
                 transform.localScale=new Vector3(scale,1,scale);
                 properties.SetFloat("_RiderEyeHeight",riderCamera.transform.position.y-transform.position.y);
             }

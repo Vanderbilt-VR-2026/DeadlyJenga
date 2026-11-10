@@ -89,12 +89,26 @@ namespace DeadlyJenga.Modes
             if(pickups.Count>=128||!Finite(point))return null;
             var pickup=new EquipmentPickup{id=++nextPickup,kind=kind,position=point,remaining=remaining,station=station};pickups.Add(pickup);return pickup;
         }
+        static bool PickupPathClear(Vector3 origin, Vector3 point)
+        {
+            var delta = point - origin;
+            float distance = delta.magnitude;
+            return distance < .01f || !Physics.Raycast(origin, delta / distance, distance * .92f,
+                (1 << Layers.Block) | (1 << Layers.Surface) | 1, QueryTriggerInteraction.Ignore);
+        }
+
+        static bool PickupWithinReach(Vector3 hand, Vector3 eye, Vector3 point) =>
+            (hand - eye).sqrMagnitude < 1.4f * 1.4f && (hand - point).sqrMagnitude <= .62f * .62f &&
+            PickupPathClear(hand, point);
+
         bool TakeEquipment(string id,int pickupId,bool swap)
         {
             var actor=FindActor(id);var pickup=pickups.Find(x=>x.id==pickupId);
             if(actor==null||pickup==null||pickup.kind==EquipmentKind.FlyingHand&&actor.IsBot||pickup.availableIn>0||Vector3.Distance(actor.transform.position,pickup.position)>1.65f)return false;
-            var delta=pickup.position-actor.ViewPose.position;
-            if(Physics.Raycast(actor.ViewPose.position,delta.normalized,delta.magnitude*.92f,(1<<Layers.Block)|(1<<Layers.Surface)|1,QueryTriggerInteraction.Ignore))return false;
+            var eye = actor.ViewPose.position;
+            if (!PickupPathClear(eye, pickup.position) && (actor.IsBot ||
+                !PickupWithinReach(actor.HandPose(true).position, eye, pickup.position) &&
+                !PickupWithinReach(actor.HandPose(false).position, eye, pickup.position))) return false;
             var previous=equipment.TryGetValue(id,out var heldItem)?heldItem.Copy():EquipmentFor(id);
             if(previous.kind!=EquipmentKind.None&&!previous.builtIn&&!swap)return false;
             if(MysteryActive&&pickup.kind==EquipmentKind.SheriffHammer&&mystery.Role(id)!=MysteryRole.Sheriff&&!mystery.CanRecoverDroppedSheriff(id))return false;
@@ -113,7 +127,6 @@ namespace DeadlyJenga.Modes
             }
             StopArsenalTrigger(id);thrustSeen.Remove(id);
             sheriffDrops.Remove(id);
-            if(FindActor(id)?.IsBot==true)botPickupReceipts[(id,pickup.id)]=Time.time;
             var mover=actor.gameObject.GetComponent<IMovementState>();
             bool drawOnPickup=swap&&!actor.IsBot&&pickup.kind>=EquipmentKind.Blaster&&
                 pickup.kind<=EquipmentKind.Dagger&&pickup.kind!=EquipmentKind.PoweredArmor&&
@@ -131,6 +144,13 @@ namespace DeadlyJenga.Modes
             randomPickups.Remove(pickup.id);
             if(pickup.kind==EquipmentKind.FlyingHand){equipment.Remove(id);simulation.HandPower(id,30);}
             if(MysteryActive)mystery.SetSpecial(id,false);
+            if (actor.IsBot)
+            {
+                botPickupReceipts[(id, pickup.id)] = Time.time;
+                botDirector?.CompleteInteraction(new BotDirectorActor {
+                    id = id, team = actor.Team, body = actor.gameObject, position = actor.transform.position
+                });
+            }
             PublishEquipment();return true;
         }
         void DropEquipment(string id,Vector3 point)

@@ -17,6 +17,7 @@ namespace DeadlyJenga.Presentation
         IBlasterControls weaponHand;
         Canvas canvas;
         Image aimDot;
+        LineRenderer aimBeam;
         RectTransform panel;
         Text mode,bindings,feedback,leftRoles,rightRoles;
         bool home; Camera homeCamera; bool homeVr,inputFocused=true;
@@ -92,7 +93,7 @@ namespace DeadlyJenga.Presentation
             Add(new Vector2(250,-40),()=>"Play style / "+(Settings?.StandingPlay==true?"Standing":"Seated"),()=>{if(Settings?.StandingPlay==true)Settings.UseStationaryPreset();else Settings?.UseStandingPreset();});
             Add(new Vector2(-250,-125),()=>"Snap angle / "+(Settings?.SnapAngle.ToString("0")??"--")+" degrees",()=>Settings?.CycleSnapAngle());
             Add(new Vector2(250,-125),()=>"Recalibrate seated height",()=>Settings?.RecalibrateSeatedHeight());
-            Add(new Vector2(-250,-210),()=>"Recenter this panel",()=>Configure(true));
+            Add(new Vector2(-250,-210), LookDirectionLabel, CycleLookDirection);
             Add(new Vector2(250,-210),()=>"Joystick look / enable",()=>EnableJoystickLook());
             bindings=Label("",new Vector2(0,-287),new Vector2(980,74),19);
             feedback=Label("",new Vector2(0,-340),new Vector2(980,30),20);
@@ -109,6 +110,19 @@ namespace DeadlyJenga.Presentation
         {
             weaponHand?.SetLeftHanded(left);
             nextSample=0;feedbackUntil=Time.unscaledTime+2;
+        }
+        static string LookDirectionLabel()
+        {
+            bool x = PlayerPrefs.GetInt("SurvivorVR.InvertLookX") != 0;
+            bool y = PlayerPrefs.GetInt("SurvivorVR.InvertLookY") != 0;
+            return "Stick inversion / " + (x && y ? "Both" : x ? "Horizontal" : y ? "Vertical" : "Off");
+        }
+        static void CycleLookDirection()
+        {
+            const string x = "SurvivorVR.InvertLookX", y = "SurvivorVR.InvertLookY";
+            int next = (PlayerPrefs.GetInt(x) + 2 * PlayerPrefs.GetInt(y) + 1) % 4;
+            PlayerPrefs.SetInt(x, next & 1);
+            PlayerPrefs.SetInt(y, next >> 1);
         }
         void EnableJoystickLook()
         {
@@ -155,6 +169,7 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(!open)return;
+            if (aimBeam) aimBeam.enabled = false;
             if(!inputFocused||MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
             if(!home&&(session==null||Services.Session!=session||!session.MenuOpen)||home&&!homeCamera){open=false;canvas.gameObject.SetActive(false);return;}
@@ -194,7 +209,7 @@ namespace DeadlyJenga.Presentation
             }
             if(!readyToSelect)
             {
-                if(session?.MenuSelectHeld!=true&&!rightSelect.IsPressed()&&!leftSelect.IsPressed()&&Mouse.current?.leftButton.isPressed!=true)readyToSelect=true;
+                if(session?.MenuSelectHeld!=true&&session?.Player?.SelectHeld!=true&&!rightSelect.IsPressed()&&!leftSelect.IsPressed()&&Mouse.current?.leftButton.isPressed!=true)readyToSelect=true;
                 return;
             }
             bool pressed=false;Vector2 point;
@@ -205,7 +220,11 @@ namespace DeadlyJenga.Presentation
                     leftSelect.WasPressedThisFrame(),rightSelect.WasPressedThisFrame(),out bool controller,out bool useLeft);
                 if(!MenuAim.TryPoint(ray,panel,4,out point,out var hit)){aimDot.gameObject.SetActive(false);return;}
                 MenuAim.Present(aimDot,hit,true,false);
-                pressed=controller?(useLeft?leftSelect:rightSelect).WasPressedThisFrame():session?.MenuSelectPressed==true||rightSelect.WasPressedThisFrame()||leftSelect.WasPressedThisFrame();
+                MenuAim.PresentBeam(ref aimBeam, panel, ray, hit-ray.direction*.015f,
+                    controller || MenuAim.IsTrackedPointer(eye, ray), true);
+                pressed=controller?(useLeft?leftSelect:rightSelect).WasPressedThisFrame():
+                    session?.MenuSelectPressed==true||session?.Player?.SelectPressed==true||
+                    rightSelect.WasPressedThisFrame()||leftSelect.WasPressedThisFrame();
             }
             else
             {

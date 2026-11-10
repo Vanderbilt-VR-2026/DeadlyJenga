@@ -160,7 +160,7 @@ namespace DeadlyJenga.CastlePrototype
             nameLabel.text=HandLooks.ChosenName;
             foreach(var rect in buttons){rect.GetComponent<Image>().color=CandyHudVisuals.Card;rect.GetComponentInChildren<Text>().color=Color.white;}
             if(aimDot)aimDot.gameObject.SetActive(false);
-            bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
+            bool held=owner.MenuSelectHeld||owner.Player?.SelectHeld==true||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             if(!selectReady){if(!held)selectReady=true;return;}
             Vector2 point;bool pressed;
             if(openingVr)
@@ -170,7 +170,7 @@ namespace DeadlyJenga.CastlePrototype
                     leftSelect.WasPressedThisFrame(),rightSelect.WasPressedThisFrame(),out bool controller,out bool left);
                 if(!DeadlyJenga.Presentation.MenuAim.TryPoint(ray,(RectTransform)panel.transform,4,out point,out var hit))return;
                 DeadlyJenga.Presentation.MenuAim.Present(aimDot,hit,true,false);
-                pressed=controller?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
+                pressed=controller?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed||owner.Player?.SelectPressed==true;
             }
             else
             {

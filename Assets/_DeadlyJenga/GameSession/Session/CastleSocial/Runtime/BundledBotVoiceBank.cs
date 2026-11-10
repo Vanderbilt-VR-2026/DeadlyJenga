@@ -41,11 +41,14 @@ namespace DeadlyJenga.CastleSocial
 
         readonly Dictionary<string, Clip[]> lines = new Dictionary<string, Clip[]>(StringComparer.Ordinal);
 
+        static readonly Dictionary<string, BundledBotVoiceBank> loaded = new(StringComparer.Ordinal);
+
         internal static BundledBotVoiceBank Load(string bankName = "BundledBotVoices")
         {
+            if (loaded.TryGetValue(bankName, out var bank)) return bank;
             var asset = Resources.Load<TextAsset>("CastleSocial/" + bankName);
             if (!asset) throw new InvalidDataException("Bundled bot voice bank is missing.");
-            try { return new BundledBotVoiceBank(asset.bytes); }
+            try { return loaded[bankName] = new BundledBotVoiceBank(asset.bytes); }
             finally { Resources.UnloadAsset(asset); }
         }
 

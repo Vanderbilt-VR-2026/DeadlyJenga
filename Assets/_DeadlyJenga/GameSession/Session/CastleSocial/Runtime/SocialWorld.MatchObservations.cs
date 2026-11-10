@@ -19,7 +19,7 @@ namespace DeadlyJenga.CastleSocial
         // Never serialize the match frame, roles, equipment inventory or opponent positions.
         void ObserveMatchFrame()
         {
-            if (!OnDevice.Ready || !Config.enableBots || !Config.enableVoice || !Session || !Session.Modes) return;
+            if (!ContextualSpeechReady || !Config.enableBots || !Config.enableVoice || !Session || !Session.Modes) return;
             var frame = Session.Modes.Frame;
             if (frame?.rules == null) return;
             var mode = frame.rules.mode;
@@ -104,8 +104,9 @@ namespace DeadlyJenga.CastleSocial
             foreach (var agent in Agents)
             {
                 if (!CanTalk(agent)) continue;
+                if (agent.State.nextSpeech > Time.unscaledTime) continue;
                 SpeakOwnEvent(agent, kind, fact);
-                if (agent.State.nextSpeech <= Time.unscaledTime) return;
+                return;
             }
         }
 
@@ -116,7 +117,7 @@ namespace DeadlyJenga.CastleSocial
             if (agent.State.nextSpeech > now) return;
             var turn = new ObservedSpeech { Kind = kind, Fact = fact, Expires = now + 12 };
             PickPartner(agent, turn);
-            OnDevice.QueueObserved(agent.State.identity, turn);
+            SpeakObservation(agent.State.identity, turn);
         }
     }
 }

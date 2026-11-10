@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
 using Unity.XR.CoreUtils;
@@ -14,6 +15,8 @@ namespace DeadlyJenga.Presentation
     internal static class MenuAim
     {
         static int consumedFrame=-1;
+        static MaterialPropertyBlock beamColor;
+        static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         public static bool InputConsumed=>consumedFrame==Time.frameCount;
         public static void Consume()=>consumedFrame=Time.frameCount;
 
@@ -42,15 +45,88 @@ namespace DeadlyJenga.Presentation
                 if(isLeft==preferredLeft)preferred=candidate;
                 if(leftPressed!=rightPressed&&(isLeft&&leftPressed||isRight&&rightPressed))pressed=candidate;
             }
-            var selected=preferred??pressed??fallback;
+            var selected=pressed??preferred??fallback;
             var rig=eye.GetComponentInParent<XROrigin>();
             var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:fallbackSpace;
-            if(selected==null||!space)return new Ray(eye.transform.position,eye.transform.forward);
+            if (selected == null || !space)
+            {
+                if (TryHandPointer(eye, Services.Session?.Player, preferredLeft, out var hand)) return hand;
+                left = !preferredLeft;
+                return TryHandPointer(eye, Services.Session?.Player, left, out hand)
+                    ? hand : new Ray(eye.transform.position, eye.transform.forward);
+            }
             left=false;foreach(var usage in selected.usages)left|=usage==CommonUsages.LeftHand;
             var position=selected.TryGetChildControl<Vector3Control>("pointerPosition")??selected.devicePosition;
             var rotation=selected.TryGetChildControl<QuaternionControl>("pointerRotation")??selected.deviceRotation;
             controller=true;return new Ray(space.TransformPoint(position.ReadValue()),space.TransformDirection(rotation.ReadValue()*Vector3.forward));
         }
+        internal static bool IsTrackedPointer(Camera eye, Ray ray) =>
+            (eye.transform.position - ray.origin).sqrMagnitude > .01f;
+
+        internal static bool TryHandPointer(Camera eye, IPlayableCharacter player, bool left, out Ray ray)
+        {
+            ray = default;
+            var rig = eye.GetComponentInParent<XROrigin>();
+            var space = rig && rig.CameraFloorOffsetObject ? rig.CameraFloorOffsetObject.transform : eye.transform.parent;
+            if (space)
+            {
+                foreach (var device in InputSystem.devices)
+                {
+                    if (device is not XRController hand || !hand.isTracked.isPressed ||
+                        hand.layout.IndexOf("HandInteraction", StringComparison.OrdinalIgnoreCase) < 0 ||
+                        !hand.usages.Contains(left ? CommonUsages.LeftHand : CommonUsages.RightHand)) continue;
+                    var position = hand.TryGetChildControl<Vector3Control>("pointerPosition");
+                    var rotation = hand.TryGetChildControl<QuaternionControl>("pointerRotation");
+                    if (position == null || rotation == null) continue;
+                    var origin = space.TransformPoint(position.ReadValue());
+                    var orientation = rotation.ReadValue();
+                    float norm = Quaternion.Dot(orientation, orientation);
+                    if (!(norm > .5f && norm < 1.5f) ||
+                        !((origin - eye.transform.position).sqrMagnitude < 2.25f)) continue;
+                    ray = new Ray(origin, space.TransformDirection(orientation.normalized * Vector3.forward));
+                    return true;
+                }
+            }
+            if (player?.HasHandTracking != true || !(player is IModeActor actor)) return false;
+            var fingers = player.gameObject.GetComponent<IFingerTips>();
+            if (fingers == null || !fingers.TryIndexTip(left, out var tip)) return false;
+            var palm = actor.HandPose(left).position;
+            var direction = tip - palm;
+            if (!(direction.sqrMagnitude > .0025f && direction.sqrMagnitude < .16f) ||
+                !((tip - eye.transform.position).sqrMagnitude < 2.25f)) return false;
+            ray = new Ray(tip, direction.normalized);
+            return true;
+        }
+
+        internal static void PresentBeam(ref LineRenderer beam, Transform owner, Ray ray, Vector3 end, bool shown, bool actionable)
+        {
+            if (!shown)
+            {
+                if (beam) beam.enabled = false;
+                return;
+            }
+            if (!beam)
+            {
+                var material = Resources.Load<Material>("CandyUtilityGlow");
+                if (!material) return;
+                beam = new GameObject("Tracked UI ray").AddComponent<LineRenderer>();
+                beam.transform.SetParent(owner, false);
+                beam.sharedMaterial = material;
+                beam.useWorldSpace = true;
+                beam.positionCount = 2;
+                beam.startWidth = .006f;
+                beam.endWidth = .003f;
+                beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                beam.receiveShadows = false;
+            }
+            beam.enabled = true;
+            beamColor ??= new MaterialPropertyBlock();
+            beamColor.SetColor(BaseColor, actionable ? CandyHudVisuals.Mint : Color.white);
+            beam.SetPropertyBlock(beamColor);
+            beam.SetPosition(0, ray.GetPoint(.025f));
+            beam.SetPosition(1, end);
+        }
+
         public static bool PhysicalPose(Camera eye,bool left,out Pose pose,out XRController selected)
         {
             pose=default;selected=null;
@@ -80,6 +156,8 @@ namespace DeadlyJenga.Presentation
             if (!(action.activeControl?.device is XRController controller)) return false;
             bool left = false;
             foreach (var usage in controller.usages) left |= usage == CommonUsages.LeftHand;
+            if (controller.layout.IndexOf("HandInteraction", StringComparison.OrdinalIgnoreCase) >= 0)
+                return TryHandPointer(eye, Services.Session?.Player, left, out ray);
             if (!PhysicalPose(eye, left, out var pose, out var selected) || selected != controller) return false;
             ray = new Ray(pose.position, pose.rotation * Vector3.forward);
             deviceId = selected.deviceId;

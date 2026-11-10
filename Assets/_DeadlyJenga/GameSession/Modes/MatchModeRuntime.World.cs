@@ -11,6 +11,10 @@ namespace DeadlyJenga.Modes
         {
             var world=Services.World;if(world==null)return Vector3.zero;
             var layout=AuthoredLayout();if(layout)return LayoutPosition(layout.hill);
+            return HighestBlockSupport(world);
+        }
+        Vector3 HighestBlockSupport(IWorldQuery world)
+        {
             Vector3 best=world.SafeSpawnPoint();float height=float.NegativeInfinity;
             if(Physics.Raycast(new Vector3(world.Center.x,world.PlayableBounds.max.y+20,world.Center.z),Vector3.down,out var floor,world.PlayableBounds.size.y+100,1,QueryTriggerInteraction.Ignore))best=floor.point+Vector3.up*.05f;
             foreach(var block in world.Blocks)
@@ -19,7 +23,7 @@ namespace DeadlyJenga.Modes
                 var collider=block.GetComponent<Collider>();if(!collider)continue;
                 var bounds=collider.bounds;
                 Vector3 top=new Vector3(bounds.center.x,bounds.max.y+1,bounds.center.z);
-                if(collider.Raycast(new Ray(top,Vector3.down),out var hit,bounds.size.y+2)&&hit.normal.y>=.65f&&hit.point.y>height&&hit.point.y>world.WaterHeight(hit.point)+.2f)
+                if(collider.Raycast(new Ray(top,Vector3.down),out var hit,bounds.size.y+2)&&hit.normal.y>=.65f&&hit.point.y>height&&hit.point.y>world.WaterHeight(hit.point)+.2f&&ClearSpawn(hit.point+Vector3.up*.05f))
                 {best=hit.point+Vector3.up*.04f;height=hit.point.y;}
             }
             return best;
@@ -29,7 +33,14 @@ namespace DeadlyJenga.Modes
             var world=Services.World;if(world==null)return Vector3.up;
             if(TryLayoutSpawn(team,ordinal,role,out var authored))return authored;
             if(role=="infected")return RimPoint(team<0?ordinal:team,12);
-            if(Rules.spawn==SpawnRule.Top)return world.SafeSpawnPoint();
+            if (Rules.spawn == SpawnRule.Top)
+            {
+                var safe = world.SafeSpawnPoint();
+                if (Rules.island != IslandRule.Walkable &&
+                    !Physics.Raycast(safe + Vector3.up * .25f, Vector3.down, .8f, 1 << Layers.Block, QueryTriggerInteraction.Ignore))
+                    return HighestBlockSupport(world);
+                return safe;
+            }
             int participants=0;foreach(var p in simulation.Participants)if(p.present)participants++;
             int count=Rules.spawn==SpawnRule.TeamPoles?Rules.teamCount:Mathf.Max(8,participants);
             return RimPoint(Rules.spawn==SpawnRule.TeamPoles?Mathf.Max(0,team):ordinal,count,Rules.spawn==SpawnRule.TeamPoles?ordinal:0);

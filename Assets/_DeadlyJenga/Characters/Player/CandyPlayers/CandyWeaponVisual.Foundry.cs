@@ -226,8 +226,8 @@ namespace DeadlyJenga.CandyPlayers
             };
             var color=finish switch
             {
-                Finish.LauncherOlive => new Color(.40f,.53f,.24f),
-                Finish.LauncherWarning => new Color(.94f,.55f,.10f),
+                Finish.LauncherOlive => new Color(.36f,.65f,.17f),
+                Finish.LauncherWarning => new Color(1f,.37f,.045f),
                 Finish.LauncherGraphite => new Color(.34f,.36f,.38f),
                 Finish.LauncherGunmetal => new Color(.31f,.34f,.37f),
                 Finish.LauncherSteel => new Color(.63f,.65f,.65f),
@@ -349,12 +349,12 @@ namespace DeadlyJenga.CandyPlayers
                 new Vector2(.940f,.083f),new Vector2(RocketMuzzle.z,.083f),new Vector2(RocketMuzzle.z,.058f),
                 new Vector2(.93f,.055f),new Vector2(-.21f,.052f),new Vector2(-.365f,.100f));
             b.Tube(Finish.LauncherOlive,y,-.18f,.48f,.086f,.065f);
-            b.Tube(Finish.LauncherSteel,y,.96f,.997f,.088f,.068f);
+            b.Tube(Finish.LauncherWarning,y,.950f,1.005f,.094f,.068f);
             b.Tube(Finish.LauncherGunmetal,y,1.012f,RocketMuzzle.z,.093f,.058f);
-            b.Tube(Finish.LauncherSteel,y,-.358f,-.333f,.128f,.113f);
+            b.Tube(Finish.LauncherWarning,y,-.358f,-.320f,.129f,.113f);
             b.Tube(Finish.LauncherOlive,y,.515f,.815f,.081f,.067f);
-            b.Tube(Finish.LauncherWarning,y,.826f,.846f,.074f,.067f);
-            b.Tube(Finish.LauncherWarning,y,.856f,.876f,.074f,.067f);
+            b.Tube(Finish.LauncherWarning,y,.826f,.846f,.087f,.067f);
+            b.Tube(Finish.LauncherWarning,y,.856f,.876f,.087f,.067f);
             for(int i=0;i<7;i++)b.Tube(Finish.LauncherGunmetal,y,.53f+i*.040f,.545f+i*.040f,.087f,.077f);
             b.Plate(Finish.LauncherOlive,new Vector3(0,.091f,.18f),new Vector3(.196f,.096f,.40f));
             b.Plate(Finish.LauncherGunmetal,new Vector3(0,.110f,.67f),new Vector3(.110f,.075f,.20f),.008f);

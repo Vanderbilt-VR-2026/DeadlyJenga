@@ -249,6 +249,8 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(new Vector3(0,3.76f,6.12f),new Vector3(0,3.94f,10.97f),43,"Marina-Candy-Arcade-Screen.png");
             }
             // The hidden batch has no OS focus. Exercise the command routes with simulated focus.
+            lobby.SendMessage("OnApplicationFocus",true);
+            lobby.SetMenu(false);
             screen.SendMessage("OnApplicationFocus",true);
             view.SendMessage("OnApplicationFocus",true);
             foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
@@ -282,6 +284,8 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(!lobby.CodeFocused&&!view.GiantKeyboard.gameObject.activeSelf&&
                             lobby.EnteredCode=="ABC234"&&joinDetail.gameObject.activeSelf&&screen.Visible,
                             "Closing the keyboard preserves the code, Join and the map/mode screen");
+                        Check(!lobby.MenuOpen && !lobby.Player.InputSuspended,
+                            "Closing the room-code keyboard releases the movement lock it opened");
                     }
                     finally { lobby.EnteredCode=originalCode; }
                     yield return null;
