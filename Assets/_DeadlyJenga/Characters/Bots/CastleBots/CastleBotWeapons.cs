@@ -131,8 +131,14 @@ namespace DeadlyJenga.CastleBots
             {
                 var feet=target.transform.position;
                 float torsoHeight=Mathf.Clamp((target.ViewPose.position.y-feet.y)*.58f,.25f,1.15f);
-                var sample = target is CastleSurvivor survivor && survivor.Capsule
-                    ? survivor.Capsule.bounds.center : feet + Vector3.up * torsoHeight;
+                var sample = feet + Vector3.up * torsoHeight;
+                if (target is CastleSurvivor survivor && survivor.Capsule)
+                {
+                    var body = survivor.Capsule.bounds;
+                    sample = body.center;
+                    // The wide axe beam otherwise clips the floor before reaching a short target.
+                    if (state.kind == EquipmentKind.LaserAxe) sample.y += body.extents.y * .55f;
+                }
                 var delta=sample-eye.position;
                 bool inView=delta.sqrMagnitude<16||Vector3.Dot(eye.rotation*Vector3.forward,delta.normalized)>-.15f;
                 bool visible=inView&&!Physics.Raycast(eye.position,delta.normalized,delta.magnitude,CombatMask|1,QueryTriggerInteraction.Ignore);
