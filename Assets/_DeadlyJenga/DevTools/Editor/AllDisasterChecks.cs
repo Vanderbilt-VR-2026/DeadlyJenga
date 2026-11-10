@@ -90,7 +90,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     if(hazard is BasicDisaster waiting)
                     {
                         var warning=settings.ToArray();Set(tuning,warning,"warning",2);tuning.Configure(warning);hazard.Begin();Vector3 previous=exposed.impulse;float previousHealth=exposed.Health;Step(hazard,10);
-                        Require(waiting.Capture().warning>1&&waiting.Capture().points.Length==0&&waiting.Capture().blocks.Length==0&&previous==exposed.impulse&&previousHealth==exposed.Health,prefab.name+" warning gives players time before effects begin");hazard.End();
+                        var preview=waiting.Capture();
+                        bool previewsOffshore=preview.kind=="Tornado"&&preview.points.Length==1&&
+                            !map.PlayableBounds.Contains(new Vector3(preview.center.x,map.PlayableBounds.center.y,preview.center.z));
+                        Require(preview.warning>1&&(preview.points.Length==0||previewsOffshore)&&
+                            preview.blocks.Length==0&&previous==exposed.impulse&&previousHealth==exposed.Health,
+                            prefab.name+" warning gives players time before effects begin");
+                        if(preview.kind=="Tornado")Require(previewsOffshore,"Tornado previews offshore before it applies forces");
+                        hazard.End();
                     }
                     tuning.Configure(settings);hazard.Begin();
                     Require(hazard.Active&&hazard.TryValidate(map,out _),prefab.name+" starts on translated sandbox bounds");
@@ -100,6 +107,38 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         Step(hazard,5);var f=basic.Capture();
                         Require(f!=null&&DisasterStates.Active.Contains(basic),prefab.name+" publishes its visual state");
                         if(f.kind=="Fire"){Step(hazard,200);Require(basic.Capture().blocks.Length>1,"Fire spreads beyond its single seed through block contact");}
+                        else if(f.kind=="Tornado")
+                        {
+                            Step(hazard,Mathf.CeilToInt(6.5f/Time.fixedDeltaTime));
+                            f=basic.Capture();
+                            var bounds=map.PlayableBounds;
+                            Require(bounds.Contains(new Vector3(f.center.x,bounds.center.y,f.center.z)),
+                                "Tornado moves from offshore onto the island");
+                            var oldPosition=exposed.transform.position;
+                            try
+                            {
+                                exposed.transform.position=f.center+new Vector3(1,2,1);
+                                Physics.SyncTransforms();
+                                Step(hazard,Mathf.CeilToInt(.2f/Time.fixedDeltaTime));
+                                Require((exposed.impulse-before).sqrMagnitude>0,"Tornado pushes an exposed player after landfall");
+                            }
+                            finally{exposed.transform.position=oldPosition;Physics.SyncTransforms();}
+                        }
+                        else if(f.kind=="AntiGravity")
+                        {
+                            var falling=map.blocks[0];
+                            var velocity=falling.linearVelocity;
+                            try
+                            {
+                                falling.useGravity=true;
+                                falling.linearVelocity=Vector3.down*12;
+                                falling.WakeUp();
+                                Step(hazard,1);
+                                Require(falling.linearVelocity.y>=-4.01f&&falling.linearVelocity.y<0&&
+                                    exposed.impulse==before,"Low gravity slows a falling block without pushing players upward");
+                            }
+                            finally{falling.useGravity=false;falling.linearVelocity=velocity;}
+                        }
                         else if(f.kind=="Icey")
                         {Require(map.blocks[0].GetComponent<Collider>().sharedMaterial&&DisasterStates.Slipperiness>0,"Ice changes collision friction and player traction state");}
                         else if(f.kind=="MeteorShower"||f.kind=="PlanetKillerMeteor")
