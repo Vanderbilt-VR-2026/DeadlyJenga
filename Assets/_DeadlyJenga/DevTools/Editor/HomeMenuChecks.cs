@@ -186,7 +186,9 @@ namespace DeadlyJenga.DevTools.Editor
             if(SessionState.GetBool(Key+"QuestOffline",false))
             {
                 var lobbyView=Object.FindFirstObjectByType<IslandLobbyView>();
-                Require(lobbyView&&lobbyView.InvokeChoice("mode-current"),"Lobby world terminal opens mode picker");
+                var marina=lobbyView?lobbyView.GetComponent<DeadlyJenga.CandyArt.Marina.MarinaScreen>():null;
+                Require(marina?marina.Invoke("marina-modes"):lobbyView&&lobbyView.InvokeChoice("mode-current"),
+                    "Lobby world terminal opens the current mode picker");
                 var survivor=IslandLobby.Current.Player.gameObject.GetComponent<CastleSurvivor>();
                 survivor.controlMode=FlyingHand.ControlMode.VR;survivor.RefreshMode();
                 survivor.Place(lobbyView.WardrobePosition+Vector3.up*.04f,Quaternion.Euler(0,80,0));
@@ -216,7 +218,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var player=session.Player.gameObject.GetComponent<CastleSurvivor>();
                 var equipment=player.GetComponent<IEquipmentControls>();
                 equipment.SetEquipped(true);yield return new WaitForSecondsRealtime(.35f);
-                Require(equipment.Equipment.drawn&&equipment.BlocksTraversal,"Drawn duplex blocks traversal");
+                Require(equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Drawn duplex preserves traversal");
                 player.controlMode=FlyingHand.ControlMode.VR;player.RefreshMode();session.SetMenu(false);
                 yield return new WaitForSecondsRealtime(.35f);
                 var rifle=player.GetComponentsInChildren<Transform>().FirstOrDefault(t=>t.name=="Rifle optic");
@@ -237,7 +239,7 @@ namespace DeadlyJenga.DevTools.Editor
                     tick.Invoke(sight,null);
                     var lens=(GameObject)lensField.GetValue(sight);
                     string diagnostic=$"VR={session.IsVR} sameCamera={session.ActiveCamera==player.ViewCamera} suspended={player.InputSuspended} menu={session.MenuOpen} mode={equipment.Equipment.shotgun} stereo={player.ViewCamera.stereoEnabled} scale={scopeScale} optic={typeof(CandyGunSights).GetField("optic",flags).GetValue(sight)}";
-                    Require(lens&&lens.activeSelf&&lens.transform.parent==rifle,"Raising the production rifle to the synthetic eye enables the magnifying lens without grip ("+diagnostic+")");
+                    Require(lens&&lens.activeSelf&&lens.transform.parent==rifle.Find("Optic lens"),"Raising the production rifle to the synthetic eye enables the magnifying lens without grip ("+diagnostic+")");
                     camera.position+=rifle.right*(.10f*scopeScale);tick.Invoke(sight,null);
                     Require(!lens.activeSelf,"Lateral eye offset hides the magnifying lens");
                 }
@@ -247,7 +249,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var carriage=shotgun.parent;var root=carriage.parent;
                 Require(root.InverseTransformPoint(shotgun.position).y>root.InverseTransformPoint(rifle.position).y,"Shotgun red dot rotates into the upper active position");
                 equipment.SetEquipped(false);yield return null;
-                Require(!equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Holstering the duplex releases the traversal restriction");
+                Require(!equipment.Equipment.drawn&&!equipment.BlocksTraversal,"Holstering the duplex leaves traversal available");
                 player.controlMode=FlyingHand.ControlMode.Desktop;player.RefreshMode();
                 session.SetRole(true);yield return null;
                 Require(session.PlayingHand&&session.Hand?.ViewCamera,"Flying hand takes camera ownership");
