@@ -154,7 +154,11 @@ namespace DeadlyJenga.DevTools.Editor
             CheckThat(runtime.Authority&&runtime.Frame.phase==RoundPhase.Playing&&Services.World.Blocks.Count>100,"Actual Game creates playable demo and physical world");
             var avatar=player.GetComponent<CandyPlayerAvatar>();avatar.RefreshNow();
             CheckThat(avatar.Rig.calibration==null,"Keyboard avatar does not receive tracked-controller calibration");
-            CheckThat(Vector3.Dot(avatar.Rig.LeftPalm.forward,avatar.LastFrame.headRotation*Vector3.forward)>.8f&&Vector3.Dot(avatar.Rig.RightPalm.forward,avatar.LastFrame.headRotation*Vector3.forward)>.8f,"Both keyboard palms face forward rather than down");
+            var left=player.ViewCamera.WorldToViewportPoint(avatar.Rig.LeftPalm.position);
+            var right=player.ViewCamera.WorldToViewportPoint(avatar.Rig.RightPalm.position);
+            CheckThat(left.z>0&&right.z>0&&left.x>0&&left.x<right.x&&right.x<1&&
+                left.y>0&&right.y>0&&left.y<.5f&&right.y<.5f,
+                "Relaxed desktop hands sit inside the lower field of view");
             var torsoMesh=new Mesh();var headMesh=new Mesh();avatar.Rig.bodyRenderer.BakeMesh(torsoMesh);avatar.Rig.headRenderer.BakeMesh(headMesh);
             float torsoTop=float.NegativeInfinity;var weights=avatar.Rig.bodyRenderer.sharedMesh.boneWeights;var vertices=torsoMesh.vertices;
             for(int i=0;i<vertices.Length;i++)if(weights[i].boneIndex0==0&&weights[i].weight0>.99f)torsoTop=Mathf.Max(torsoTop,avatar.Rig.bodyRenderer.transform.TransformPoint(vertices[i]).y);
@@ -171,15 +175,19 @@ namespace DeadlyJenga.DevTools.Editor
             CaptureAvatar(avatar.Rig,avatar.LastFrame);
             CheckHealthShader();
             Object.Destroy(torsoMesh);Object.Destroy(headMesh);
-            var hud=session.GetComponent<CandyDemoHud>();
-            var pageField=typeof(CandyDemoHud).GetField("page",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
-            var pageName=typeof(CandyDemoHud).GetMethod("PageName",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
-            for(int i=0;i<8;i++)if((string)pageName.Invoke(hud,new object[]{i})=="Modes"){pageField.SetValue(hud,i);break;}
-            session.SetMenu(true);yield return new WaitForSeconds(.3f);yield return new WaitForEndOfFrame();
-            var menuImage=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(ProjectPath.Report("Repair-Modes.png"),menuImage.EncodeToPNG());Object.Destroy(menuImage);session.SetMenu(false);
-            for(int i=0;i<8;i++)if((string)pageName.Invoke(hud,new object[]{i})=="Voice"){pageField.SetValue(hud,i);break;}
-            session.SetMenu(true);yield return new WaitForSeconds(.3f);yield return new WaitForEndOfFrame();
-            menuImage=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(ProjectPath.Report("Repair-Voice.png"),menuImage.EncodeToPNG());Object.Destroy(menuImage);session.SetMenu(false);
+            // The batch editor does not signal WaitForEndOfFrame.
+            if(!Application.isBatchMode)
+            {
+                var hud=session.GetComponent<CandyDemoHud>();
+                var pageField=typeof(CandyDemoHud).GetField("page",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                var pageName=typeof(CandyDemoHud).GetMethod("PageName",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                for(int i=0;i<8;i++)if((string)pageName.Invoke(hud,new object[]{i})=="Modes"){pageField.SetValue(hud,i);break;}
+                session.SetMenu(true);yield return new WaitForSeconds(.3f);yield return new WaitForEndOfFrame();
+                var menuImage=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(ProjectPath.Report("Repair-Modes.png"),menuImage.EncodeToPNG());Object.Destroy(menuImage);session.SetMenu(false);
+                for(int i=0;i<8;i++)if((string)pageName.Invoke(hud,new object[]{i})=="Voice"){pageField.SetValue(hud,i);break;}
+                session.SetMenu(true);yield return new WaitForSeconds(.3f);yield return new WaitForEndOfFrame();
+                menuImage=ScreenCapture.CaptureScreenshotAsTexture();File.WriteAllBytes(ProjectPath.Report("Repair-Voice.png"),menuImage.EncodeToPNG());Object.Destroy(menuImage);session.SetMenu(false);
+            }
             var bot=session.SurvivorBots.SpawnOne();yield return new WaitForSeconds(.5f);
             CheckThat(bot&&runtime.Frame.players.Count(p=>p.bot)==1&&runtime.FindActor(bot.GetComponent<IModeActor>().ActorId)!=null,"Spawned population bot enters authoritative mode roster and objective actor registry");
             bot.GetComponent<IDamageable>().Damage(35,null);yield return new WaitForSeconds(.3f);
@@ -248,7 +256,8 @@ namespace DeadlyJenga.DevTools.Editor
             session.Hand.ViewCamera.enabled=false;session.SetRole(true);yield return new WaitForSeconds(.3f);
             CheckThat(session.ActiveCamera==session.Hand.ViewCamera&&session.ActiveCamera.isActiveAndEnabled&&session.ActiveCamera.targetDisplay==0,"Demo flying-hand switch restores a live Display 1 camera after death-camera use");
             CaptureCamera(session.Hand.ViewCamera,"Repair-FlyingHand.png");
-            yield return DesktopPoseKeys(session);
+            if(Application.isFocused)yield return DesktopPoseKeys(session);
+            else File.AppendAllText(Report,"SKIP Flying-hand keyboard and mouse input requires a focused Game view.\n");
             session.SetRole(false);yield return null;
             CheckThat(session.ActiveCamera==player.viewCamera&&player.viewCamera.isActiveAndEnabled,"Returning from flying hand restores survivor camera");
             player.Place(new Vector3(world.Center.x+world.Radius*2,world.WaterHeight(world.Center)-player.StandingHeight+.15f,world.Center.z),Quaternion.identity);
@@ -317,7 +326,10 @@ namespace DeadlyJenga.DevTools.Editor
             CheckThat(Math.Abs(report.DurationSeconds-runtime.Frame.elapsed)<.01&&survivalColumn>=0&&Math.Abs(row.Values[survivalColumn].Value-Self(runtime).survivalSeconds)<.01&&report.Description.Contains("Host changed"),"Migrated results preserve full authoritative duration and survival totals with sampled-history disclosure");
             CheckClientBotBinding(session,runtime);
             MatchSetup.MapId="mode-ctf";MatchSetup.ApplyMap();yield return new WaitForSeconds(.2f);
-            CheckThat(Services.World!=world&&Services.World.Blocks.Count>400&&Services.World.PlayableBounds.size.x>60,"Selected mode map prefab actually replaces world through MatchSetup");
+            var ctf=Services.World as CastleGenerator;
+            CheckThat(ctf&&ctf!=world&&ctf.settings.layoutPreset=="ctf"&&
+                ctf.Blocks.Count==ModeMapLayout.Build(ctf.settings).Count&&ctf.PlayableBounds.size.x>60,
+                "Selected CTF prefab replaces the old world with the authored CTF layout");
             MatchSetup.MapId=originalMap;
 
             Object.Destroy(peerA.gameObject);Object.Destroy(peerB.gameObject);
