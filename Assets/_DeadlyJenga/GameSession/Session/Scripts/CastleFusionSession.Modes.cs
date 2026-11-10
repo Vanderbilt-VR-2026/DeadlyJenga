@@ -58,9 +58,12 @@ namespace DeadlyJenga.CastlePrototype
         void SendModeOutcome(string id,EliminationOutcome outcome)
         {
             if(!IsHost||!modeRuntime)return;
-            var spawn=modeRuntime.OutcomeSpawn(id);
             foreach(var pair in peers)if(pair.Value.ready&&pair.Key.ToString()==id)
-            {Send(pair.Key,ModeOutcome,Encoding.UTF8.GetBytes(JsonUtility.ToJson(new OutcomePacket{outcome=outcome,position=spawn.position,rotation=spawn.rotation})));break;}
+            {
+                var spawn=modeRuntime.OutcomeSpawn(id,outcome==EliminationOutcome.Respawn);
+                Send(pair.Key,ModeOutcome,Encoding.UTF8.GetBytes(JsonUtility.ToJson(new OutcomePacket{outcome=outcome,position=spawn.position,rotation=spawn.rotation})));
+                break;
+            }
         }
         void CaptureMatch()
         {

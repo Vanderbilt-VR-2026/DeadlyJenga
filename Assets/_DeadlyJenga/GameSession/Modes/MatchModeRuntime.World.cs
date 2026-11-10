@@ -28,10 +28,96 @@ namespace DeadlyJenga.Modes
             }
             return best;
         }
-        public Vector3 SpawnPoint(int team,int ordinal,string role)
+        const int SpawnSupportMask=(1<<Layers.Surface)|(1<<Layers.Block)|1;
+        readonly Collider[] spawnContacts=new Collider[32];
+        readonly Dictionary<string,(Vector3 point,float expires)> spawnReservations=new();
+        readonly List<string> expiredSpawnReservations=new();
+        internal void ReserveSpawn(string id,Vector3 point)
         {
-            var world=Services.World;if(world==null)return Vector3.up;
-            if(TryLayoutSpawn(team,ordinal,role,out var authored))return authored;
+            if(!string.IsNullOrEmpty(id))spawnReservations[id]=(point,Time.unscaledTime+4);
+        }
+
+        public Vector3 SpawnPoint(int team,int ordinal,string role,string actorId=null)
+        {
+            var world=Services.World;
+            if(world==null)return Vector3.up;
+            Physics.SyncTransforms();
+            expiredSpawnReservations.Clear();
+            foreach(var reservation in spawnReservations)
+                if(reservation.Value.expires<=Time.unscaledTime)expiredSpawnReservations.Add(reservation.Key);
+            foreach(var id in expiredSpawnReservations)spawnReservations.Remove(id);
+            if(TryLayoutSpawn(team,ordinal,role,actorId,out var authored))return authored;
+
+            var preferred=PreferredSpawn(world,team,ordinal,role);
+            if(SpawnClear(preferred,actorId))return preferred;
+            bool requireBlock=Rules.spawn==SpawnRule.Top&&Rules.island!=IslandRule.Walkable&&role!="infected";
+            int supportMask=requireBlock?1<<Layers.Block:SpawnSupportMask;
+            // Sample nearby supports closest to the intended height first. This preserves
+            // room interiors and team territory when their original slot is occupied.
+            float seed=ordinal*2.399963f;
+            for(int ring=1;ring<=12;ring++)
+            for(int step=0;step<8;step++)
+            {
+                float angle=seed+step*Mathf.PI*.25f;
+                var probe=preferred+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*(ring*.65f);
+                if(TrySpawnSupport(probe,supportMask,actorId,out var point))return point;
+            }
+            var safe=world.SafeSpawnPoint();
+            if(TrySpawnSupport(safe,supportMask,actorId,out var fallback))return fallback;
+            for(int i=0;i<24;i++)
+            {
+                float angle=seed+i*2.399963f;
+                var probe=safe+new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle))*((1+i/8)*1.35f);
+                if(TrySpawnSupport(probe,supportMask,actorId,out fallback))return fallback;
+            }
+
+            // A heavily destroyed map may have no standable surface. Use separated
+            // air spawns above the safe point instead of placing bodies inside one another.
+            var above=new Vector3(safe.x,Mathf.Max(safe.y,world.PlayableBounds.max.y)+2f,safe.z);
+            for(int i=0;i<=actors.Count+spawnReservations.Count;i++,above.y+=2.5f)
+                if(SpawnClear(above,actorId))return above;
+            return above;
+        }
+        bool TrySpawnSupport(Vector3 probe,int mask,string actorId,out Vector3 point)
+        {
+            int count=Physics.RaycastNonAlloc(probe+Vector3.up*2.5f,Vector3.down,supportHits,8,mask,QueryTriggerInteraction.Ignore);
+            point=default;
+            float closest=float.PositiveInfinity;
+            for(int i=0;i<count;i++)
+            {
+                var hit=supportHits[i];
+                var candidate=hit.point+Vector3.up*.045f;
+                float distance=Mathf.Abs(probe.y-candidate.y);
+                if(hit.normal.y<.65f||distance>=closest||candidate.y<=Services.World.WaterHeight(candidate)+.02f||
+                    !SpawnClear(candidate,actorId))continue;
+                point=candidate;closest=distance;
+            }
+            return closest<float.PositiveInfinity;
+        }
+        bool SpawnClear(Vector3 point,string actorId)
+        {
+            var actor=actorId!=null?FindActor(actorId):null;
+            var own=actor?.transform;
+            if(!own&&actorId==LocalActorId)own=session?.Player?.transform;
+            var movement=own?own.GetComponent<IMovementState>():null;
+            float radius=Mathf.Max(.16f,.24f*(movement?.Scale??1)+.10f);
+            float height=Mathf.Max(radius*2,movement?.Height??1.7f);
+            int count=Physics.OverlapCapsuleNonAlloc(point+Vector3.up*(radius+.02f),
+                point+Vector3.up*(height-radius+.02f),radius,spawnContacts,SpawnSupportMask|(1<<Layers.Survivor),QueryTriggerInteraction.Ignore);
+            if(count==spawnContacts.Length)return false;
+            for(int i=0;i<count;i++)
+                if(!own||!spawnContacts[i].transform.IsChildOf(own))return false;
+            foreach(var reservation in spawnReservations)
+            {
+                if(reservation.Key==actorId)continue;
+                Vector3 offset=point-reservation.Value.point;
+                if(Mathf.Abs(offset.y)<Mathf.Max(1.7f,height)&&offset.x*offset.x+offset.z*offset.z<.85f*.85f)return false;
+            }
+            return true;
+        }
+
+        Vector3 PreferredSpawn(IWorldQuery world,int team,int ordinal,string role)
+        {
             if(role=="infected")return RimPoint(team<0?ordinal:team,12);
             if (Rules.spawn == SpawnRule.Top)
             {

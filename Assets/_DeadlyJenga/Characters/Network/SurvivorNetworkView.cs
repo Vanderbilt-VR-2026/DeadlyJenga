@@ -24,7 +24,7 @@ namespace DeadlyJenga.CharacterNetwork
         bool active, hasTarget, initialized, suspended;
         string emote; float emoteStart, emoteLength; int lastEmoteBits;
         Quaternion emoteFacing;
-        CapsuleCollider hazardTarget;
+        CapsuleCollider collisionBody;
         Vector3 previousFeet, velocity;
         float previousPoseTime;
         string assignedId, displayName;
@@ -97,6 +97,8 @@ namespace DeadlyJenga.CharacterNetwork
                 GameEvents.RaiseEmoted(rig ? rig.gameObject : gameObject, emote);
             }
             lastEmoteBits = active && !suspended ? bits : 0;
+            if (!initialized) { frame = target; initialized = true; }
+            UpdateCollisionBody();
             if (!rig)
             {
                 var avatar = context.localSurvivor ? context.localSurvivor.GetComponent<CandyPlayerAvatar>() : null;
@@ -105,27 +107,38 @@ namespace DeadlyJenga.CharacterNetwork
             }
             rig.gameObject.SetActive(active); rig.SetColor(color & 0xFF);rig.SetAppearance(appearance);
             if(IsEnemy&&(ArchetypeId=="longhand"||ArchetypeId=="gum-brute")&&!GetComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>())gameObject.AddComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>();
-            if (!initialized) { frame = target; initialized = true; }
-            UpdateHazardTarget();
+            UpdateCollisionPose();
         }
 
-        // Host: a trigger capsule where the remote survivor stands, so hazards can find and hit it.
-        void UpdateHazardTarget()
+        // A remote body blocks the local character on both host and guest.
+        // Keep its hit target on the same capsule to avoid duplicate contacts.
+        void UpdateCollisionBody()
         {
-            if (!context.host) { if (hazardTarget) hazardTarget.enabled = false; return; }
-            if (!hazardTarget)
+            if (!collisionBody && active)
             {
-                var hit = new GameObject("Remote survivor hazard target"); hit.layer = Layers.Survivor;
-                hit.transform.SetParent(transform, false); hazardTarget = hit.AddComponent<CapsuleCollider>(); hazardTarget.isTrigger = true;
+                var hit = new GameObject("Remote survivor solid capsule");
+                hit.layer = Layers.Survivor;
+                hit.transform.SetParent(transform, false);
+                collisionBody = hit.AddComponent<CapsuleCollider>();
+                collisionBody.excludeLayers = ~(1 << Layers.Survivor);
             }
             float dt = Time.time - previousPoseTime;
             velocity = previousPoseTime > 0 && dt > .001f ? Vector3.ClampMagnitude((target.feet - previousFeet) / dt, 60) : Vector3.zero;
             previousFeet = target.feet; previousPoseTime = Time.time;
-            hazardTarget.transform.position = target.feet;
-            hazardTarget.height = Mathf.Max(.2f, 1.7f * target.scale);
-            hazardTarget.radius = Mathf.Max(.05f, .24f * target.scale);
-            hazardTarget.center = Vector3.up * hazardTarget.height * .5f;
-            hazardTarget.enabled = active && !suspended;
+            if(collisionBody)collisionBody.enabled=active&&!suspended;
+            UpdateCollisionPose();
+        }
+
+        void UpdateCollisionPose()
+        {
+            if(!collisionBody||!collisionBody.enabled)return;
+            float height=Mathf.Max(.2f,1.7f*frame.scale);
+            float radius=Mathf.Max(.05f,.24f*frame.scale);
+            collisionBody.transform.position=frame.feet;
+            if(!Mathf.Approximately(collisionBody.height,height))collisionBody.height=height;
+            if(!Mathf.Approximately(collisionBody.radius,radius))collisionBody.radius=radius;
+            Vector3 center=Vector3.up*height*.5f;
+            if(collisionBody.center!=center)collisionBody.center=center;
         }
 
         public void Render(float dt)
@@ -135,6 +148,7 @@ namespace DeadlyJenga.CharacterNetwork
             frame.feet = Vector3.Lerp(frame.feet, target.feet, t); frame.head = Vector3.Lerp(frame.head, target.head, t);
             frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale; frame.seated = target.seated; frame.sprinting = target.sprinting;
             frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
+            UpdateCollisionPose();
             bool generatedActor = IsBot || context.actorId?.StartsWith("lobby-bot:", System.StringComparison.Ordinal) == true;
             var rendered = generatedActor ? frame : CandyPlayerRig.UprightTrackingPose(frame);
             rig.ApplyFrame(rendered, true, dt);
@@ -163,7 +177,7 @@ namespace DeadlyJenga.CharacterNetwork
             weaponVisual.Present(equipment,rendered,active&&!suspended,emote!=null&&twoHanded);
         }
 
-        public void Suspend() { emote = null; lastEmoteBits = 0; weaponVisual?.Hide();suspended = true; if (hazardTarget) hazardTarget.enabled = false; }
+        public void Suspend() { emote = null; lastEmoteBits = 0; weaponVisual?.Hide();suspended = true; if (collisionBody) collisionBody.enabled = false; }
 
         // Someone else's survivor just disappeared (eliminated): let the effects burst it.
         void Burst()

@@ -86,7 +86,11 @@ namespace DeadlyJenga.Presentation
             var rect=curtain.rectTransform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
             AddBots();Render();
         }
-        float ArrivalHeight()=>150;
+        float ArrivalHeight()
+        {
+            var motion=Services.Session?.Player?.gameObject.GetComponent<IMovementState>();
+            return Mathf.Max(.6f,motion?.Height??1.7f)+.75f;
+        }
         void StartArrival()
         {
             foreach(var column in columns)if(column){column.SetVisible(false);column.gameObject.SetActive(false);Destroy(column.gameObject);}columns.Clear();

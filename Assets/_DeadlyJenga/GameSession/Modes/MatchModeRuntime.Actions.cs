@@ -164,20 +164,22 @@ namespace DeadlyJenga.Modes
         {
             if(CuratedActorDeferred(id))return;
             var actor=FindActor(id);var p=simulation.Find(id);if(actor==null||p==null)return;
-            if(id!=LocalActorId&&!actor.IsBot){ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);return;}
+            if(id!=LocalActorId&&!actor.IsBot){pendingSpawns.Remove(id);ResetRemoteHealth(id);RemoteEliminated?.Invoke(id,EliminationOutcome.Respawn);return;}
             int ordinal=ParticipantOrdinal(p);
-            Vector3 point=SpawnPoint(p.frame.team,ordinal,role);
+            Vector3 point=SpawnPoint(p.frame.team,ordinal,role,id);
+            if(id==LocalActorId)ReserveSpawn(id,point);
             var rotation=Quaternion.LookRotation(Vector3.ProjectOnPlane((Services.World?.Center??Vector3.zero)-point,Vector3.up).normalized+Vector3.forward*.001f);
             if(actor.gameObject.GetComponent<IPlayableCharacter>() is IPlayableCharacter playable)playable.Place(point,rotation);
             else actor.gameObject.GetComponent<ITeleportable>()?.Teleport(point,rotation);
             actor.ApplyModeRules(RulesFor(actor.gameObject));
         }
         readonly Dictionary<string,Pose> powerReturnOverrides=new Dictionary<string,Pose>();
-        public Pose OutcomeSpawn(string id)
+        public Pose OutcomeSpawn(string id,bool reserve=false)
         {
             if(powerReturnOverrides.TryGetValue(id,out var powerReturn)){powerReturnOverrides.Remove(id);return powerReturn;}
             if(MysteryActive&&mystery.IsDowned(id)){var actor=FindActor(id);if(actor!=null)return new Pose(actor.transform.position,actor.transform.rotation);}
-            var p=simulation.Find(id);var point=SpawnPoint(p?.frame.team??-1,ParticipantOrdinal(p),p?.frame.role??"survivor");
+            var p=simulation.Find(id);var point=SpawnPoint(p?.frame.team??-1,ParticipantOrdinal(p),p?.frame.role??"survivor",id);
+            if(reserve)ReserveSpawn(id,point);
             var direction=Vector3.ProjectOnPlane((Services.World?.Center??Vector3.zero)-point,Vector3.up);
             return new Pose(point,direction.sqrMagnitude>.01f?Quaternion.LookRotation(direction):Quaternion.identity);
         }
@@ -299,6 +301,7 @@ namespace DeadlyJenga.Modes
             }
             if(session.PlayingHand)session.SetRoleForMode(false);
             session.Player.Place(spawn,rotation);
+            if(outcome==EliminationOutcome.Respawn)session.ConfirmMatchSpawn();
         }
         void OnPhase(RoundPhase phase)
         {

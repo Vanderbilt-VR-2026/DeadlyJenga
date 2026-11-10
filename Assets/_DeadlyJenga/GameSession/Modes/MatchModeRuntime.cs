@@ -122,7 +122,7 @@ namespace DeadlyJenga.Modes
             if(!deferred&&!enemy&&p!=null&&p.frame.alive&&MysteryActive&&mystery.Role(id)==MysteryRole.Random)mystery.RegisterLate(id);
             if(fresh&&identity!=null)simulation.PreserveIdentity(id,identity.noun);
             if(p!=null)actor.SetIdentity(id,p.frame.name,p.frame.team,p.frame.color);
-            if(!deferred&&fresh&&!local&&!actor.IsBot&&p!=null&&!p.frame.dying&&p.frame.role=="survivor"&&Rules.mode!=GameModeKind.Demo)pendingSpawns[id]=Time.time+.3f;
+            if(!deferred&&fresh&&!local&&!actor.IsBot&&p!=null&&!p.frame.dying&&p.frame.role=="survivor")pendingSpawns[id]=Time.time+.3f;
         }
         void Update()
         {

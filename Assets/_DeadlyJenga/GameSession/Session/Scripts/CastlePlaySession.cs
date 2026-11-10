@@ -85,7 +85,14 @@ namespace DeadlyJenga.CastlePrototype
         public bool CanEditWorld => SessionDevelopmentPolicy.CanRequestLocal(this);
         InputAction select;
         bool wasVR, focused = true;
-        bool arrivalPending,travelInputHeld;float travelReleaseAt=-1;
+        bool arrivalPending,travelInputHeld,matchSpawnConfirmed;
+        float travelReleaseAt=-1,arrivalWorldReadyAt=-1;
+        internal void ConfirmMatchSpawn()=>matchSpawnConfirmed=true;
+        internal void ReleaseArrivalInput()
+        {
+            travelInputHeld=false;
+            SetMenu(MenuOpen);
+        }
 
         void Start()
         {
@@ -199,8 +206,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public void RespawnPlayer()
         {
-            Vector3 feet = Modes ? Modes.SpawnPoint((Player.gameObject.GetComponent<IModeActor>()?.Team)??-1,0,"survivor") : Services.World.SafeSpawnPoint();
+            Vector3 feet = Modes ? Modes.SpawnPoint((Player.gameObject.GetComponent<IModeActor>()?.Team)??-1,0,"survivor",Modes.LocalActorId) : Services.World.SafeSpawnPoint();
             Vector3 heading = Vector3.ProjectOnPlane(Services.World.Center - feet, Vector3.up);
+            if(Modes&&Modes.Authority)Modes.ReserveSpawn(Modes.LocalActorId,feet);
             LastSpawnFeet = feet;
             Player.Place(feet, heading.sqrMagnitude > .01f ? Quaternion.LookRotation(heading) : Quaternion.identity);
         }
@@ -238,10 +246,17 @@ namespace DeadlyJenga.CastlePrototype
             if (VisitingLobby) return;
             if(arrivalPending&&(!Network||!Network.WaitingForWorld))
             {
-                arrivalPending=false;if(travelInputHeld)travelReleaseAt=Time.unscaledTime+.8f;
-                GameEvents.RaiseEmoted(gameObject,"TravelArrived");
+                if(arrivalWorldReadyAt<0)arrivalWorldReadyAt=Time.unscaledTime;
+                bool waitingForSpawn=Network&&Network.IsClient&&!matchSpawnConfirmed&&Time.unscaledTime-arrivalWorldReadyAt<4;
+                bool waitingForRound=RoomGameExperience.Manages(this)&&Modes&&Modes.Frame.phase==RoundPhase.Waiting;
+                if(!waitingForSpawn&&!waitingForRound)
+                {
+                    arrivalPending=false;
+                    if(travelInputHeld)travelReleaseAt=Time.unscaledTime+2;
+                    GameEvents.RaiseEmoted(gameObject,"TravelArrived");
+                }
             }
-            if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt){travelInputHeld=false;SetMenu(MenuOpen);}
+            if(travelInputHeld&&travelReleaseAt>=0&&Time.unscaledTime>=travelReleaseAt)ReleaseArrivalInput();
             if (IsVR != wasVR) { wasVR = IsVR; SetMenu(MenuOpen); }
             if (!IsVR && Cursor.lockState != CursorLockMode.Locked && !MenuOpen) SetMenu(true);
             if (!PlayingHand && NetworkActors.Alive(Player) && Player.transform.position.y < -6)

@@ -20,7 +20,7 @@ namespace DeadlyJenga.Modes
             return authoredLayout;
         }
         Vector3 LayoutPosition(Vector3 local)=>((ISyncedWorld)Services.World).Root.TransformPoint(local);
-        bool TryLayoutSpawn(int team,int ordinal,string role,out Vector3 point)
+        bool TryLayoutSpawn(int team,int ordinal,string role,string actorId,out Vector3 point)
         {
             point=default;var layout=AuthoredLayout();if(!layout)return false;
             var spawns=layout.freeSpawns;
@@ -32,22 +32,16 @@ namespace DeadlyJenga.Modes
                 spawns=layout.teams[group].spawns;
             }
             if(spawns==null||spawns.Length==0)return false;
-            float bestClearance=-1;bool found=false;
             for(int attempt=0;attempt<spawns.Length;attempt++)
             {
                 int index=(Mathf.Max(0,ordinal)+attempt)%spawns.Length;
                 var candidate=LayoutPosition(spawns[index]);
-                if(!ClearSpawn(candidate))continue;
-                float clearance=float.PositiveInfinity;
-                foreach(var pair in actors)
-                {
-                    var actor=pair.Value;if(!NetworkActors.Alive(actor)||!actor.gameObject.activeInHierarchy||!actor.Alive)continue;
-                    clearance=Mathf.Min(clearance,(actor.transform.position-candidate).sqrMagnitude);
-                }
-                if(clearance>bestClearance){point=candidate;bestClearance=clearance;found=true;}
-                if(clearance>=1.44f)return true;
+                if(!Physics.Raycast(candidate+Vector3.up*.25f,Vector3.down,.5f,SpawnSupportMask,QueryTriggerInteraction.Ignore)||
+                    !SpawnClear(candidate,actorId))continue;
+                point=candidate;
+                return true;
             }
-            return found;
+            return false;
         }
         static bool ClearSpawn(Vector3 point)
         {
