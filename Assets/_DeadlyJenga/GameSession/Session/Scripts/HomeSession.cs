@@ -223,9 +223,12 @@ namespace DeadlyJenga.CastlePrototype
             int index=mapIndex==-1?UnityEngine.Random.Range(0,pairs.Length):mapIndex;
             if(index>=0&&index<pairs.Length)_=OpenLocal(pairs[index].id);
         }
-        public void RandomLobby()=>StartQuickPlay(-1);
+        public void RandomLobby()
+        {
+            if (!Busy && room) _ = OpenLocal(null, playLobby:true);
+        }
         public void Demo() { if (!Busy&&room) _ = OpenLocal(null); }
-        async Task OpenLocal(string profileId)
+        async Task OpenLocal(string profileId, bool playLobby = false)
         {
             loading = true;
             int request = ++entryGeneration; pendingEntry = null;
@@ -234,8 +237,16 @@ namespace DeadlyJenga.CastlePrototype
                 if (room.Connected) await room.Leave();
                 if (!this || request != entryGeneration) return;
                 var experience=RoomGameExperience.Ensure(room);
-                AutofillLobby=profileId==null;
-                if(profileId==null)
+                AutofillLobby=profileId==null&&!playLobby;
+                if (playLobby)
+                {
+                    if (!experience.PrepareHomeLobbyEntry(false))
+                    {message="The previous room is still closing. Try Play again in a moment.";return;}
+                    MatchSetup.BotTarget=10;
+                    MatchSetup.HandCount=0;
+                    SceneManager.LoadScene(lobbyScene);
+                }
+                else if(profileId==null)
                 {
                     if(!experience.PrepareStandaloneDemo(openDevelopment:true))
                     {message="The previous room is still closing. Try Developer again in a moment.";return;}

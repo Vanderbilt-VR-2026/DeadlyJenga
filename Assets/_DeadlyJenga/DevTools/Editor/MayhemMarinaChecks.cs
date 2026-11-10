@@ -88,6 +88,14 @@ namespace DeadlyJenga.DevTools.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
             EditorApplication.EnterPlaymode();
         }
+        public static void RunPlayRotation()
+        {
+            File.WriteAllText(Report,"Play startup, actual match, spectator visit and return.");
+            SessionState.SetBool(Key+"PlayRotation",true);
+            SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            EditorApplication.EnterPlaymode();
+        }
         public static void RunSolo()
         {
             File.WriteAllText(Report,"Actual Game.unity solo smoke test with Marina sources installed; shared lobby hooks remain pending.\n");
@@ -131,14 +139,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
             }
         }
         static void Log(string value,string stack,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"PlayRotation",false)?RunPlayRotationScene():SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;
@@ -161,6 +169,64 @@ namespace DeadlyJenga.DevTools.Editor
             _ => "marina-close"
         };
 
+        static IEnumerator RunPlayRotationScene()
+        {
+            var home=Object.FindFirstObjectByType<HomeSession>();
+            Check(home,"Home scene provides Play");
+            yield return null;
+            home.RandomLobby();
+            float deadline=Time.realtimeSinceStartup+15;
+            while(!IslandLobby.Current&&Time.realtimeSinceStartup<deadline)yield return null;
+            var lobby=IslandLobby.Current;
+            Check(lobby&&lobby.Experience==GameExperience.Game&&!lobby.CanConfigure,"Play enters the locked Marina lobby");
+            while(!lobby.CanStart&&Time.realtimeSinceStartup<deadline)yield return null;
+            Check(lobby.CanStart&&lobby.GamePhase==RoomGamePhase.Idle,"Play waits for GO");
+            var provider=RoomGameExperience.Current;
+            var flowField=typeof(RoomGameExperience).GetField("flow",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            bool survival=System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival");
+            if(survival)
+            {
+                // Change only the test room seed so the normal random selector exercises Survival.
+                var profileIndex=typeof(RoomGameExperience).GetMethod("ProfileIndex",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+                var snapshot=((RoomGameFlow)flowField.GetValue(provider)).State;
+                for(int i=0;i<64;i++)
+                {
+                    snapshot.roomId="survival-fixture-"+i;
+                    if((int)profileIndex.Invoke(null,new object[]{snapshot.roomId,0,2})==0)break;
+                }
+                flowField.SetValue(provider,new RoomGameFlow(snapshot));
+            }
+            lobby.StartOrCancel();
+            Check(lobby.GamePhase==RoomGamePhase.Selected&&lobby.CountdownSeconds>29&&lobby.CountdownSeconds<=30,
+                "GO starts a thirty-second countdown before loading");
+            Check(lobby.ProfileId is "play:survival/castle" or "play:teamtickets/castle","The first selection uses the two Candy Castle profiles");
+            if(survival)
+            {
+                Check(lobby.ProfileId=="play:survival/castle","The controlled room seed exercises Disaster Survival");
+                var flow=(RoomGameFlow)flowField.GetValue(provider);
+                for(int i=0;i<7;i++)flow.Tick(flow.State.authorityTerm,5,true,true);
+            }
+            int size=lobby.MaximumPopulation;
+            Check(size==(lobby.ProfileId=="play:survival/castle"?25:30),"The selected profile fills the intended population");
+            deadline=Time.realtimeSinceStartup+110;
+            CastlePlaySession game=null;
+            while(Time.realtimeSinceStartup<deadline)
+            {
+                game=Object.FindFirstObjectByType<CastlePlaySession>();
+                if(game&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing)break;
+                yield return null;
+            }
+            Check(game&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing,"The Play lobby launches an actual match");
+            Check(game.Modes.Frame.players.Count(player=>player.alive)==size,"The match waits for its full real actor cohort");
+            if(size==30) Check(game.Modes.Frame.teams.Length==3,"Team PvP uses three teams");
+            if(size==25)
+            {
+                game.Player.gameObject.GetComponent<IDamageable>().Eliminate(null);
+                deadline=Time.realtimeSinceStartup+18;
+                while(!game.VisitingLobby&&Time.realtimeSinceStartup<deadline)yield return null;
+                Check(game.VisitingLobby&&lobby.ActiveCamera.enabled&&!lobby.CanStart,"An eliminated player watches from the retained lobby");
+            }
+        }
         static IEnumerator RunArcadeScene()
         {
             Application.runInBackground=true;

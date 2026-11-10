@@ -16,6 +16,21 @@ namespace DeadlyJenga.Presentation
     {
         static int consumedFrame=-1;
         static MaterialPropertyBlock beamColor;
+        static Material foreground;
+        static readonly List<Graphic> graphics=new();
+        internal static void PresentInForeground(Transform root)
+        {
+            if (!foreground)
+            {
+                var shader=Resources.Load<Shader>("CandyScenery/CandyMenuForeground");
+                if (!shader) return;
+                foreground=new Material(shader) { name="Foreground headset menu",hideFlags=HideFlags.DontSave };
+            }
+            root.GetComponentsInChildren(true,graphics);
+            foreach(var graphic in graphics)
+                if(graphic.material==graphic.defaultMaterial) graphic.material=foreground;
+            graphics.Clear();
+        }
         static readonly int BaseColor = Shader.PropertyToID("_BaseColor");
         public static bool InputConsumed=>consumedFrame==Time.frameCount;
         public static void Consume()=>consumedFrame=Time.frameCount;

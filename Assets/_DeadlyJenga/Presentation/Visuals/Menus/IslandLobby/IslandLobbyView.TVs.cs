@@ -39,7 +39,10 @@ namespace DeadlyJenga.CastlePrototype
             var heading=Label(displays,"LIVE MAYHEM  /  SPECTATOR TV",2920,51,3700,85);heading.fontStyle=FontStyle.Bold;heading.color=new Color(.76f,1,.9f);
             lobby.AddBlocker(wall, new Vector3(0,1.48f,.03f),new Vector3(3.76f,2.95f,.55f));
             foreach(var item in wall.GetComponentsInChildren<Transform>(true))item.gameObject.layer=2;
+            var timer=Label(displays,"",3120,55,3700,90);
+            timer.color=new Color(1,.87f,.46f);
             feeds.Initialize(session);
+            feeds.SetMatchTimer(timer);
         }
     }
 }

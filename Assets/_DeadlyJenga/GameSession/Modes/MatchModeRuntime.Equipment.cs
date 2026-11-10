@@ -30,7 +30,9 @@ namespace DeadlyJenga.Modes
             if((state==null||state.kind==EquipmentKind.Speed||state.kind==EquipmentKind.Jump)&&Rules.defaultDagger&&Rules.punchEnabled&&simulation?.Phase==RoundPhase.Playing)
             {
                 var p=simulation.Find(id);if(p!=null&&p.frame.alive&&!p.frame.dying&&p.frame.role!="hand"&&p.frame.role!="spectator"&&FindActor(id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true)
-                    return new EquipmentState{actor=id,kind=EquipmentKind.Dagger,activePower=state?.kind??EquipmentKind.None,remaining=state?.remaining??20,drawn=true,builtIn=true,leftHanded=equipmentHands.TryGetValue(id,out bool left)?left:FindActor(id)?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded??state?.leftHanded??false};
+                    return new EquipmentState{actor=id,kind=EquipmentKind.Dagger,activePower=state?.kind??EquipmentKind.None,remaining=state?.remaining??20,drawn=true,builtIn=true,
+                        embeddedVictim=state?.embeddedVictim,embeddedPoint=state?.embeddedPoint??Vector3.zero,embedRemaining=state?.embedRemaining??0,
+                        leftHanded=equipmentHands.TryGetValue(id,out bool left)?left:FindActor(id)?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded??state?.leftHanded??false};
             }
             return state?.Copy()??new EquipmentState{actor=id};
         }
@@ -329,6 +331,8 @@ namespace DeadlyJenga.Modes
                 var target=hit.Key;var p=simulation.Find(target.ActorId);if(p==null||!p.frame.alive||p.frame.dying||target.Team>=0&&target.Team==source.Team&&!Rules.friendlyFire)continue;
                 float damage=hit.Value.damage;
                 if(MysteryActive&&target.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true&&MysteryPunch(id,target.ActorId,ref damage))continue;
+                if (melee && state.kind==EquipmentKind.MurderSword)
+                    RecordMeleeContact(id,state,target,hit.Value.point,.22f);
                 var push=direction*(state.kind==EquipmentKind.BoxingGlove?22:4)+Vector3.up*(state.kind==EquipmentKind.BoxingGlove?6:.6f);
                 ApplyCombatImpact(source,target,damage,push,hit.Value.point,!melee);
             }

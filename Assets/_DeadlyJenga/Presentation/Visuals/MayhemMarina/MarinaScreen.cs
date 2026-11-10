@@ -26,7 +26,7 @@ namespace DeadlyJenga.CandyArt.Marina
         InputAction select,leftSelect;
         Image aimDot;
         RectTransform canvas,mainFace,joinFace,hostFace;
-        Text modeTitle,mapTitle,playTitle,hostTitle,focusDescription;
+        Text modeTitle,mapTitle,playTitle,hostTitle,focusDescription,mainHeading;
         Text modeMissing,mapMissing,joinStatus,hostStatus;
         RawImage modePicture,mapPicture;
         Texture2D projectionBackdrop;
@@ -70,7 +70,7 @@ namespace DeadlyJenga.CandyArt.Marina
             BuildProjectedBackdrop();
             var marquee=Text("N O W   S H O W I N G",new Vector2(0,140),new Vector2(500,22),15,mainFace);
             marquee.color=ProjectionGold;
-            Text("PICK YOUR MATCH",new Vector2(0,113),new Vector2(635,54),40,mainFace);
+            mainHeading=Text("PICK YOUR MATCH",new Vector2(0,113),new Vector2(635,54),40,mainFace);
             var ruleColor=new Color(.94f,.78f,.49f,.62f);
             for(int side=-1;side<=1;side+=2)
             {
@@ -207,15 +207,26 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Bold;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
         }
+        Text playlistStatus;
         void Refresh()
         {
             if(!canvas||lobby==null)return;
             modeTitle.text=lobby.ModeTitle;mapTitle.text=lobby.MapTitle;
             var experience=GameExperiencePanel.Resolve(session);
-            bool rotating=experience?.Experience==GameExperience.Game&&experience.AutomaticRounds&&!lobby.CanStart;
-            playTitle.text=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true?"Return to match":
-                rotating&&experience.GamePhase==RoomGamePhase.Selected?
-                "Next match in "+Mathf.CeilToInt(experience.CountdownSeconds)+" s":lobby.StartPending?"Cancel start":"Start match";
+            bool visiting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
+            bool playlist=experience?.Experience==GameExperience.Game&&!experience.CanConfigureExperience;
+            if (!playlistStatus) playlistStatus=Text("",new Vector2(0,8),new Vector2(585,116),27,mainFace);
+            mainHeading.text=visiting?"SPECTATOR LOBBY":playlist?"READY TO PLAY?":"PICK YOUR MATCH";
+            playlistStatus.gameObject.SetActive(playlist||visiting);
+            playlistStatus.text=visiting?"Live match on the spectator TVs":experience?.GameStatus??"";
+            foreach(var target in targets)
+                if(target.id is "marina-modes" or "marina-maps" or "marina-settings" or "marina-experience")
+                    target.face.gameObject.SetActive(!playlist&&!visiting);
+            bool rotating=playlist&&experience.AutomaticRounds&&!lobby.CanStart;
+            playTitle.text=visiting?(lobby.CanStart?"Return to match":"WATCH LIVE"):
+                rotating&&experience.GamePhase==RoomGamePhase.Selected
+                    ?"Next match in "+Mathf.CeilToInt(experience.CountdownSeconds)+" s":
+                playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
             hostTitle.text=lobby.Connected?(lobby.IsHost?"Manage room":"Room options"):"Create room";
             joinStatus.text=lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
             hostStatus.text=lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";

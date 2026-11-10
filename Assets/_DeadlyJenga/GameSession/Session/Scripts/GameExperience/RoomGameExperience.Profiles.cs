@@ -27,16 +27,17 @@ namespace DeadlyJenga.CastlePrototype
             try{list=JsonUtility.FromJson<ProfileList>(asset.text);}catch(ArgumentException){return;}
             var catalog = room.Catalog;
             var playable = from mode in catalog.modes
-                           where mode!=null&&mode.available&&mode.id!="demo"
+                           where mode!=null&&mode.available&&(mode.id=="survival"||mode.id=="teamtickets")
                            from map in catalog.maps
                            where map!=null&&map.SupportsMode(mode.id)&&
-                               (map.id=="castle"||map.mapPrefab&&map.recommendedMode==mode.id)&&
+                               map.id=="castle"&&
                                SceneUtility.GetBuildIndexByScenePath(map.scenePath)>=0
                            select new CuratedGameProfile
                            {
                                id="play:"+mode.id+"/"+map.id, modeId=mode.id, mapId=map.id,
                                enabled=true, evidence="Catalog-compatible Play pair",
-                               minimumPopulation=mode.id=="mystery"?3:2, maximumPopulation=10, targetPopulation=10
+                               minimumPopulation=1, maximumPopulation=mode.id=="survival"?25:30,
+                               targetPopulation=mode.id=="survival"?25:30
                            };
             profiles=(list?.profiles??Array.Empty<CuratedGameProfile>()).Concat(playable).ToArray();
             // These trial profiles pin the first observed authored prefab structure in this room.
@@ -98,7 +99,11 @@ namespace DeadlyJenga.CastlePrototype
         internal ModeRules ProfileRules(CuratedGameProfile p)
         {
             var rules=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(p.modeId),MapFor(p.mapId));
-            if(IsPlayProfile(p))return rules;
+            if(IsPlayProfile(p))
+            {
+                if (p.modeId=="teamtickets") { rules.teamCount=3; rules.sameHumanTeam=false; }
+                return rules;
+            }
             rules.teamCount=2;rules.sameHumanTeam=false;rules.automaticDisasters=false;
             rules.roundSeconds=120;rules.countdownSeconds=3;rules.victorySeconds=5;
             rules.starterInfected=p.modeId=="infection";

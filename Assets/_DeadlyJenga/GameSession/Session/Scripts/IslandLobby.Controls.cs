@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastlePrototype
         // Join terminal
         public bool JoinEnabled=>!VisitingLobby&&Room&&!Room.Busy&&!Room.LaunchPending;
         public bool JoinStationEnabled=>JoinEnabled;
-        public bool SetupStationEnabled=>VisitingLobby||Room&&Room.CanConfigure;
+        public bool SetupStationEnabled=>!VisitingLobby&&CanConfigure;
         public bool ShowingNearby=>showingNearby;
         public bool CodeFocused=>codeFocused&&JoinEnabled;
         public string EnteredCode{get=>enteredCode;set=>enteredCode=value??"";}
@@ -104,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
         // Map + mode terminal
         public bool IsHost=>Room.LocalIsLobbyHost;
         public bool Connected=>Room.Connected;
-        public bool CanConfigure=>!VisitingLobby&&Room.CanConfigure&&(!ExperienceProvider.PlayerPlaylist||ExperienceProvider.CanChooseFirstRound);
+        public bool CanConfigure=>!VisitingLobby&&Room.CanConfigure&&!ExperienceProvider.PlayerPlaylist;
         bool AllowsMode(string id)=>!ExperienceProvider.PlayerPlaylist||ExperienceProvider.CanChoosePlayMode(id);
         bool AllowsMap(IslandLobbyCatalog.Map map,string mode)=>map.SupportsMode(mode)&&
             (!ExperienceProvider.PlayerPlaylist||ExperienceProvider.CanChoosePlayPair(map.id,mode));
@@ -120,10 +120,16 @@ namespace DeadlyJenga.CastlePrototype
         }
         public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!CanConfigure||!AllowsMap(catalog.maps[i],SelectedModeId))return false;Room.SelectMap(i);return true;}
         public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!CanConfigure||!catalog.modes[i].available||!AllowsMode(id)||!Array.Exists(catalog.maps,m=>AllowsMap(m,id)))return false;Room.SelectMode(i);return true;}
-        public bool CanStart=>VisitingLobby||(ExperienceProvider.PlayerPlaylist?
-            ExperienceProvider.CanChooseFirstRound&&Room.CanLaunch:Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost);
+        public bool CanStart=>VisitingLobby?VisitOwner.CanLeaveEliminationVisit:ExperienceProvider.PlayerPlaylist?
+            ExperienceProvider.CanGo:Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost;
         public bool StartPending=>!VisitingLobby&&Room.LaunchPending;
-        public void StartOrCancel(){if(VisitingLobby){ReturnToMatch();return;}if(!CanStart)return;if(Room.LaunchPending)Room.CancelLaunch();else Room.Launch();}
+        public void StartOrCancel()
+        {
+            if (!CanStart) return;
+            if (VisitingLobby) { ReturnToMatch(); return; }
+            if (ExperienceProvider.PlayerPlaylist) { ExperienceProvider.Go(); return; }
+            if (Room.LaunchPending) Room.CancelLaunch(); else Room.Launch();
+        }
         public string SetupHint{get;private set;}="";
 
         void UpdateControls()

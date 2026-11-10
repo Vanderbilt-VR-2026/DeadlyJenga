@@ -55,6 +55,8 @@ namespace DeadlyJenga.CastlePrototype
         readonly Channel[] channels=new Channel[9];
 
         ISessionInfo viewer;Camera feedCamera;Texture2D standby;
+        Text matchTimer;
+        public void SetMatchTimer(Text label)=>matchTimer=label;
 
         float nextRoster,nextFrame;int nextChannel;
 
@@ -96,7 +98,18 @@ namespace DeadlyJenga.CastlePrototype
 
             if(viewer==null||!feedCamera)return;
 
-            if(Time.unscaledTime>=nextRoster){nextRoster=Time.unscaledTime+1;RefreshRoster();}
+            if(Time.unscaledTime>=nextRoster)
+            {
+                nextRoster=Time.unscaledTime+1;
+                RefreshRoster();
+                if (matchTimer)
+                {
+                    var frame=(viewer as ILobbyMatchVisitControls)?.VisitingLobby==true?MatchRuntime.Current?.Frame:null;
+                    int seconds=Mathf.CeilToInt(frame?.remaining??0);
+                    matchTimer.text=frame==null?"":frame.phase is RoundPhase.Victory or RoundPhase.Results
+                        ?"ROUND COMPLETE":$"LIVE MATCH    {seconds/60:00}:{seconds%60:00}";
+                }
+            }
 
             var eye=viewer.ActiveCamera;
 

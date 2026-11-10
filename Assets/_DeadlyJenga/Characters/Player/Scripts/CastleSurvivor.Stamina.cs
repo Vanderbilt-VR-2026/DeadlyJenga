@@ -47,7 +47,7 @@ namespace DeadlyJenga.CastlePrototype
         bool sprintToggleArmed;
         float sprintFeedbackUntil;
         string sprintFeedback;
-        string SprintStatusText=>Sprinting?"SPRINTING":
+        string SprintStatusText=>Sprinting?(Climbing?"CLIMB SPRINT":"SPRINTING"):
             SprintRequested?"SPRINT READY · move to run":sprintFeedback;
 
         void UpdateSprintToggle(bool available,bool pressed,bool held)

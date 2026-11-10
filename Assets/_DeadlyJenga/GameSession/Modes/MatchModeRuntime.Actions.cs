@@ -61,6 +61,11 @@ namespace DeadlyJenga.Modes
             if(target==null)return true;
             string targetId=actorIds[target.gameObject];
             if(simulation.Shielded(targetId,direction))return true;
+            if(held.roleIssued&&held.drawn&&held.kind==EquipmentKind.MurderSword&&nearest>.05f)
+                {
+                var torso=target.transform.position+Vector3.up*.6f;
+                RecordMeleeContact(id,held,target,torso-(torso-origin).normalized*.20f,.24f);
+            }
             float distanceScale=rules.punchDistance*(bash?profile.push:1);
             var push=Vector3.ProjectOnPlane(direction,Vector3.up).normalized*Mathf.Sqrt(2*9.81f*Mathf.Max(0,distanceScale))*.65f+Vector3.up*.8f;
             float damage=rules.healthEnabled?rules.punchDamage*(bash?profile.damage/18f:1):0;

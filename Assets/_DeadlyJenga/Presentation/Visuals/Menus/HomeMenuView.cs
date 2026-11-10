@@ -96,12 +96,8 @@ namespace DeadlyJenga.Presentation
             mainPage=Node("Home actions",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
             quick=source as IHomeQuickPlayControls;
             entryPage=Node("Choose startup experience",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
-            ActionButton(entryPage.transform,"PLAY","Start a match, join friends or host a lobby",120,()=>ShowPage(mainPage));
+            ActionButton(entryPage.transform,"PLAY","Join or host at the lobby, then press GO",120,controls.RandomLobby);
             ActionButton(entryPage.transform,"DEVELOPER","Open the sandbox lobby with shared developer controls",-10,controls.Demo);
-            ActionButton(mainPage.transform,"QUICK PLAY","Choose a mode and arena, or start a random match",160,()=>ShowQuickPlay());
-            ActionButton(mainPage.transform,"JOIN FRIENDS","Room code or nearby friends",40,()=>ShowJoin(true));
-            ActionButton(mainPage.transform,"HOST LOBBY","Invite friends and choose your first match",-80,controls.Host);
-            ButtonAt(mainPage.transform,"BACK",new Vector2(0,-190),new Vector2(220,52),()=>ShowPage(entryPage));
             quickPage=Node("Quick Play",content,new Vector2(0,-70),new Vector2(620,520)).gameObject;
             BuildQuickPlay();
             joinPage=Node("Join a session",content,new Vector2(0,-65),new Vector2(620,520)).gameObject;
@@ -188,7 +184,7 @@ namespace DeadlyJenga.Presentation
         }
         public void ShowJoin(bool value)
         {
-            ShowPage(value?joinPage:mainPage);
+            ShowPage(value?joinPage:entryPage);
             if(value){code.SetTextWithoutNotify(controls.Code);controls.DetectNearby();nextNearby=0;}
         }
         void Update()

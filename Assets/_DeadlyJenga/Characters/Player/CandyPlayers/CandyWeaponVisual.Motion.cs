@@ -10,10 +10,8 @@ namespace DeadlyJenga.CandyPlayers
         Transform feed, pairedFeed, embeddedTarget;
         Transform primaryRoundFeed, secondaryRoundFeed;
         Transform[] primaryRounds, secondaryRounds;
-        string actionEpoch;
-        int actionSequence;
-        IMatchRuntime actionRuntime;
-        float drawAmount, daggerUntil;
+        float drawAmount, contactUntil, lastContactRemaining;
+        string lastContactVictim;
         CandyAvatarWardrobe suitWardrobe;
         bool motionReady, lastRoleIssued, lastLeft, hasCarriedFrame;
         CandyAvatarFrame lastCarriedFrame;
@@ -42,42 +40,8 @@ namespace DeadlyJenga.CandyPlayers
             hasCarriedFrame = false;
             lastRoleIssued = false;
             wasEmbedded = false;
-            daggerUntil = 0;
-        }
-
-        void ReadMeleeActions(EquipmentState state, Pose pose)
-        {
-            var runtime = MatchRuntime.Current;
-            var match = runtime?.Frame;
-            if (match == null || string.IsNullOrEmpty(state.actor)) return;
-            if (!ReferenceEquals(runtime, actionRuntime) || actionEpoch != match.equipmentEpoch)
-            {
-                actionRuntime = runtime;
-                actionEpoch = match.equipmentEpoch;
-                actionSequence = match.equipmentSequence;
-                return;
-            }
-
-            if (match.equipmentSequence <= actionSequence) return;
-            if (state.drawn && EquipmentSpecifications.Get(kind).melee)
-            {
-                foreach (var shot in match.equipmentActions ?? Array.Empty<EquipmentActionFrame>())
-                {
-                    if (shot == null || shot.id <= actionSequence || shot.actor != state.actor ||
-                        shot.kind != kind || shot.action != EquipmentAction.Shot || shot.shotgun ||
-                        shot.remaining <= 0 || shot.endpoints == null || shot.endpoints.Length == 0) continue;
-
-                    var travel = shot.endpoints[0] - shot.position;
-                    var strikeDirection = travel.sqrMagnitude > .0001f ? travel.normalized : pose.rotation * Vector3.forward;
-                    if (kind != EquipmentKind.Dagger || travel.magnitude >= EquipmentSpecifications.Get(kind).range - .015f) continue;
-
-                    // Play the brief hold on receipt so snapshot latency cannot erase it.
-                    if (shot.remaining < .40f) continue;
-                    daggerUntil = Time.time + .19f;
-                    CaptureEmbed(shot.endpoints[0], strikeDirection, null);
-                }
-            }
-            actionSequence = match.equipmentSequence;
+            contactUntil = lastContactRemaining = 0;
+            lastContactVictim = null;
         }
 
         void CaptureEmbed(Vector3 point, Vector3 direction, string victim)
@@ -92,22 +56,30 @@ namespace DeadlyJenga.CandyPlayers
 
         Pose EmbedPose(EquipmentState state, Pose handPose, float scale)
         {
-            bool heavy = state.drawn && !state.shotgun && state.embedRemaining > 0;
-            if (heavy && !wasEmbedded)
+            bool contacting = state.drawn && !state.shotgun && state.embedRemaining > 0 &&
+                !string.IsNullOrEmpty(state.embeddedVictim);
+            if (contacting && (!wasEmbedded || state.embeddedVictim != lastContactVictim ||
+                state.embedRemaining > lastContactRemaining + .04f))
             {
                 var delta = state.embeddedPoint - handPose.position;
                 var direction = delta.sqrMagnitude > .01f ? delta.normalized : handPose.rotation * Vector3.forward;
                 CaptureEmbed(state.embeddedPoint, direction, state.embeddedVictim);
+                contactUntil = Time.time + Mathf.Max(.12f, state.embedRemaining);
             }
-            wasEmbedded = heavy;
-            float remaining = heavy ? state.embedRemaining : kind == EquipmentKind.Dagger ? daggerUntil - Time.time : 0;
-            if (remaining <= 0 || !state.drawn) return handPose;
+            wasEmbedded = contacting;
+            lastContactRemaining = state.embedRemaining;
+            lastContactVictim = state.embeddedVictim;
+            float remaining = contactUntil - Time.time;
+            if (remaining <= 0 || !state.drawn || state.shotgun) return handPose;
 
             float tip = kind switch
             {
                 EquipmentKind.Dagger => .34f,
+                EquipmentKind.MurderSword => .91f,
                 EquipmentKind.SawStaff => .96f,
                 EquipmentKind.Chainsaw => .89f,
+                EquipmentKind.LaserClaws => .28f,
+                EquipmentKind.FlamingMarshmallow => .49f,
                 _ => .93f
             };
             var rotation = embeddedTarget ? embeddedTarget.rotation * embeddedRotation : embeddedWorldRotation;
@@ -115,7 +87,7 @@ namespace DeadlyJenga.CandyPlayers
             embeddedWorldPoint = point;
             embeddedWorldRotation = rotation;
             float release = Mathf.SmoothStep(0, 1, remaining / .07f);
-            var position = point - rotation * Vector3.forward * (tip * scale);
+            var position = point - rotation * Vector3.forward * ((tip - .11f) * scale);
             return new Pose(Vector3.Lerp(handPose.position, position, release),
                 Quaternion.Slerp(handPose.rotation, rotation, release));
         }

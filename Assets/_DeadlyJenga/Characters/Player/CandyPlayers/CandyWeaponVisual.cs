@@ -399,11 +399,10 @@ namespace DeadlyJenga.CandyPlayers
             if (slungForEmote)
             {
                 wasEmbedded = false;
-                daggerUntil = 0;
+                contactUntil = 0;
             }
             else
             {
-                ReadMeleeActions(state, pose);
                 pose = EmbedPose(state, pose, frame.scale);
             }
             root.gameObject.SetActive(true);
