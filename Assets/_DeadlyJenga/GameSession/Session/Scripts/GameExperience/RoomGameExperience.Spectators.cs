@@ -31,6 +31,16 @@ namespace DeadlyJenga.CastlePrototype
             var row=rows==null?null:Array.Find(rows,value=>value!=null&&value.id==actorId);
             return row!=null&&!row.bot&&(TransportRecovering||row.role=="spectator");
         }
+        internal bool ShouldSuspendVisualActor(string actorId)
+        {
+            if(IsAuthority||!TransportRecovering||!match||!match.Modes||
+                actorId==match.Modes.LocalActorId)return ShouldSuspendActor(actorId);
+            // Fusion already authenticated the new host's pose. A room checkpoint
+            // can hold input and gameplay without stopping presentation of that pose.
+            var rows=match.Modes.Frame?.players;
+            var row=rows==null?null:Array.Find(rows,value=>value!=null&&value.id==actorId);
+            return row!=null&&!row.bot&&row.role=="spectator";
+        }
         void TickDeferredParticipants()
         {
             if(Experience==GameExperience.Demo)

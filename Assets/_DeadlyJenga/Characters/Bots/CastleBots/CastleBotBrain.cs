@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using Unity.Profiling;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.Core;
@@ -27,6 +28,11 @@ namespace DeadlyJenga.CastleBots
         CastleBotLanding goal;
         CandyPlayerAvatar avatar;
         CastleBotEmotes poseEmotes;
+        static readonly ProfilerMarker BotPoseMarker=new ProfilerMarker("DJ.BotPose");
+        IEquipmentControls poseEquipment;
+        float poseElapsed,nextPose;
+        Vector3 travelFeet;
+        bool haveTravelFeet;
         bool hasGoal;
         float nextPlan,nextSense,waitUntil,nextJump,respawnAt,progressAt,goalSince;
         Vector3 progressPosition;
@@ -77,6 +83,7 @@ namespace DeadlyJenga.CastleBots
             Seed=number*7.193f;variation=Mathf.Lerp(.9f,1.1f,Mathf.PerlinNoise(Seed,0));
             WanderDirection=Quaternion.Euler(0,number*137.508f,0)*Vector3.forward;
             avatar=GetComponent<CandyPlayerAvatar>();
+            poseEquipment=GetComponent<IEquipmentControls>();
             Abilities=GetComponents<MonoBehaviour>().OfType<ICastleBotTraversalAbility>().ToArray();
             nextPlan=Time.time+number*.035f;progressAt=Time.time;progressPosition=transform.position;
         }
@@ -114,12 +121,36 @@ namespace DeadlyJenga.CastleBots
         }
         void LateUpdate()
         {
-            if(!avatar||!avatar.Rig||Respawning)return;
+            if(!avatar||!avatar.Rig||Respawning){haveTravelFeet=false;poseElapsed=0;nextPose=0;return;}
+            float deltaTime=Time.deltaTime;
+            Vector3 feet=transform.position;
+            if(haveTravelFeet)
+            {
+                float distance=Vector3.ProjectOnPlane(feet-travelFeet,Vector3.up).magnitude;
+                if(distance<=Mathf.Max(.15f,Motor.EffectiveWalkSpeed*deltaTime*2))TravelDistance+=distance;
+            }
+            travelFeet=feet;haveTravelFeet=true;
+            poseElapsed=Mathf.Min(.15f,poseElapsed+deltaTime);
+            float interval=0;
+            var camera=Services.Session?.ActiveCamera;
+            if(camera&&Population&&Population.Count>=12&&!Motor.Climbing&&!Motor.Vaulting&&!Motor.CarryingFlag&&
+                (feet-camera.transform.position).sqrMagnitude>100&&poseEquipment?.Equipment?.drawn!=true)
+            {
+                var screen=camera.WorldToViewportPoint(feet+Vector3.up);
+                bool visible=screen.z>0&&screen.x>-.1f&&screen.x<1.1f&&screen.y>-.15f&&screen.y<1.15f;
+                // Spread distant visual solves when the host is under load.
+                float baseInterval=visible?.05f:.10f;
+                interval=baseInterval*(1+Mathf.Repeat(Seed,.31f));
+            }
+            float now=Time.unscaledTime;
+            if(interval>0&&now<nextPose)return;
+            nextPose=interval>0?Mathf.Max(now+.001f,nextPose+interval):now;
+            using var measurement=BotPoseMarker.Auto();
+            float elapsed=poseElapsed;poseElapsed=0;
             var frame=avatar.ReadFrame();
             float travelled=Vector3.ProjectOnPlane(frame.feet-previousVisualFeet,Vector3.up).magnitude;
-            if(travelled<=Mathf.Max(.15f,Motor.EffectiveWalkSpeed*Time.deltaTime*2))TravelDistance+=travelled;
-            float speed=travelled/Mathf.Max(.001f,Time.deltaTime);previousVisualFeet=frame.feet;
-            armPhase+=Mathf.Min(speed,6)*Time.deltaTime*5;
+            float speed=travelled/Mathf.Max(.001f,elapsed);previousVisualFeet=frame.feet;
+            armPhase+=Mathf.Min(speed,6)*elapsed*5;
             for(int side=0;side<2;side++)
             {
                 float sign=side==0?-1:1;var hand=side==0?frame.left:frame.right;
@@ -135,7 +166,7 @@ namespace DeadlyJenga.CastleBots
             try
             {
                 avatar.OverridePose(frame);
-                try{avatar.RefreshExternal(Time.deltaTime);}finally{avatar.ClearPoseOverride();}
+                try{avatar.RefreshExternal(elapsed);}finally{avatar.ClearPoseOverride();}
                 if(poseEmotes&&poseEmotes.isActiveAndEnabled)poseEmotes.ComposePose();
             }
             finally{avatar.Rig.EndPoseComposition();}

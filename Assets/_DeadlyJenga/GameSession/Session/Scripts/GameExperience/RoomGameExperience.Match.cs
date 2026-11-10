@@ -43,14 +43,28 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                if(TransportRecovering)return false;
-                var s=flow.State;
+                if(TransportRecovering||WaitingForRoster)return false;
+                var s=State;
                 foreach(var stable in s.launchIds)
                     if(Array.IndexOf(s.humanIds,stable)>=0&&string.IsNullOrEmpty(room.GameExperienceActorId(stable)))return false;
                 return true;
             }
         }
 
+        internal bool MigratedLaunchRosterPresent
+        {
+            get
+            {
+                // The original host is gone. Give the rest of the launched cohort
+                // time to reattach before reconciling the restored participant rows.
+                var ids=State.launchIds;
+                if(ids.Length<=1)return true;
+                int present=0;
+                var roster=room.GameExperienceRosterIds;
+                foreach(var stable in ids)if(Array.IndexOf(roster,stable)>=0)present++;
+                return present>=ids.Length-1;
+            }
+        }
         void BindMatchEvents()
         {
             if(matchEventsBound)return;

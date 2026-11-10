@@ -8,6 +8,15 @@ namespace DeadlyJenga.Modes
 {
     public sealed partial class MatchModeRuntime
     {
+        bool migrationAuthorityHeld;
+        internal void HoldForMigration()=>migrationAuthorityHeld=true;
+        internal void ExpectMigratedFrame()
+        {
+            // Revisions order frames from one authority. Keep the last visible
+            // score and roles until the new runner supplies its first valid frame.
+            if(frame!=null)frame.revision=-1;
+            migrationAuthorityHeld=false;
+        }
         bool restoredHistory;
         public void ReconcileHumanRoster(IEnumerable<string> activeIds)
         {
@@ -22,6 +31,7 @@ namespace DeadlyJenga.Modes
         public void ResumeAuthorityFromFrame()
         {
             if(!Authority)return;
+            migrationAuthorityHeld=false;
             var saved=frame;actors.Clear();actorIds.Clear();
             RestoreAuthorityState(saved);SampleActors();wasAuthority=true;
             if(Rules.mode==GameModeKind.MurderMystery)foreach(var p in simulation.Participants)if(p.present)Respawn(p.frame.id,"survivor");

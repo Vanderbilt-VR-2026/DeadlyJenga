@@ -59,6 +59,7 @@ namespace DeadlyJenga.CastleBots
             remainingSenses--; a.senses--; SensingUsed++; return true;
         }
         public static void BeginWork() { BeginFrame();if(workDepth++==0)watch.Start(); }
+        internal static bool CanExpand => remainingEdges>=1&&watch.Elapsed.TotalMilliseconds<MaximumMillisecondsPerFrame;
         public static void EndWork() { if(workDepth>0&&--workDepth==0)watch.Stop(); }
     }
 }

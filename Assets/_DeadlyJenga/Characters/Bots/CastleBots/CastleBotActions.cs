@@ -90,8 +90,10 @@ namespace DeadlyJenga.CastleBots
             (selectedObjective.kind == BotObjectiveKind.Travel || selectedObjective.kind == BotObjectiveKind.Guard || selectedObjective.kind == BotObjectiveKind.Contest || selectedObjective.kind == BotObjectiveKind.Escort) &&
             Vector3.Distance(transform.position, selectedObjective.position) <= Mathf.Max(.35f, selectedObjective.radius * .75f);
 
+        static readonly Unity.Profiling.ProfilerMarker BotDecisionMarker=new Unity.Profiling.ProfilerMarker("DJ.BotDecision");
         public CastleBotCommand ReadCommand(CastleSurvivor motor, float dt)
         {
+            using var measurement=BotDecisionMarker.Auto();
             ValidateExecutionLease();
             if(observedFeet)ActualSpeed=Vector3.Distance(transform.position,lastFeet)/Mathf.Max(.001f,dt);
             if(observedFeet&&Vector3.Distance(transform.position,lastFeet)>Mathf.Max(3,motor.EffectiveWalkSpeed*dt*4))
@@ -172,11 +174,22 @@ namespace DeadlyJenga.CastleBots
             else LocalFallback();
         }
 
+        float steeringCheckAt;
+        Vector3 steeringCheckOrigin,steeringCheckInput,steeringChecked;
         Vector3 Steer(Vector3 desired,float dt)
         {
-            if(desired.sqrMagnitude<.001f){steeringVelocity=Vector3.zero;return desired;}
+            if(desired.sqrMagnitude<.001f){steeringVelocity=Vector3.zero;steeringCheckAt=0;return desired;}
             Vector3 separation=Vector3.zero;int considered=0;
             var origin=transform.position;var direction=desired.normalized;
+            bool crowded=Population.Count>=12;
+            if(crowded&&Time.time<steeringCheckAt&&(origin-steeringCheckOrigin).sqrMagnitude<.09f&&
+                (desired-steeringCheckInput).sqrMagnitude<.04f)
+            {
+                steeringVelocity=Vector3.MoveTowards(steeringVelocity,steeringChecked,dt*8);
+                return steeringVelocity;
+            }
+            steeringCheckOrigin=origin;steeringCheckInput=desired;
+            steeringCheckAt=Time.time+.085f+Mathf.Repeat(Seed,.035f);
             foreach(var other in Population.Bots)
             {
                 if(!other||other==this||other.Respawning||Mathf.Abs(other.transform.position.y-origin.y)>.45f)continue;
@@ -197,16 +210,29 @@ namespace DeadlyJenga.CastleBots
             var testedEnd=end;bool walkable=CastleBotNavigation.Walkable(Motor,transform.position,end);
             if(walkable)desired=candidate;
             steeringVelocity=Vector3.MoveTowards(steeringVelocity,desired,dt*8);
+            if(crowded)
+            {
+                // The motor still applies collision every frame; share the short
+                // steering query while the intended step and footing stay nearby.
+                steeringChecked=desired;
+                return steeringVelocity;
+            }
             end=transform.position+steeringVelocity.normalized*step;
             if(!(end.Equals(testedEnd)?walkable:CastleBotNavigation.Walkable(Motor,transform.position,end)))steeringVelocity=desired;
             return steeringVelocity;
         }
+        float nextSmoothCheck;
+        Vector3 checkedWalkFeet,checkedWalkTarget;
         void SmoothWalkingRoute()
         {
             if(journey.Count==0)return;
             var next=journey.Peek();
-            if(next.route!=CastleBotRoute.Walk||!next.surface||Vector3.Distance(transform.position,next.Point)>4)return;
-            if(CastleBotNavigation.Landing(Motor,next.Point,out _) && CastleBotNavigation.Walkable(Motor,transform.position,next.Point))
+            if(next.route!=CastleBotRoute.Walk||!next.surface)return;
+            var feet=transform.position;var point=next.Point;
+            if((feet-point).sqrMagnitude>16)return;
+            if(Time.time<nextSmoothCheck&&(feet-checkedWalkFeet).sqrMagnitude<.04f&&(point-checkedWalkTarget).sqrMagnitude<.0225f)return;
+            nextSmoothCheck=Time.time+.12f;checkedWalkFeet=feet;checkedWalkTarget=point;
+            if(CastleBotNavigation.Landing(Motor,point,out _) && CastleBotNavigation.Walkable(Motor,feet,point))
             {goal=journey.Dequeue();goalSince=Time.time;}
         }
     }

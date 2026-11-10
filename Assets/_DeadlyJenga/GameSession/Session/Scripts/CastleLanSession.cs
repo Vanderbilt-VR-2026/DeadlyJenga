@@ -762,7 +762,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool SuspendManagedView(string actorId,INetworkActorView view)
         {
-            if(RoomGameExperience.ForManagedMatch(session)?.ShouldSuspendActor(actorId)!=true)return false;
+            if(RoomGameExperience.ForManagedMatch(session)?.ShouldSuspendVisualActor(actorId)!=true)return false;
             view.Suspend();return true;
         }
         void RemoveView(string key) { if (views.TryGetValue(key, out var view) && view is Component c && c) { c.gameObject.SetActive(false); Destroy(c.gameObject); } views.Remove(key); }

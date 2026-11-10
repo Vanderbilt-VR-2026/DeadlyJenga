@@ -126,7 +126,7 @@ namespace DeadlyJenga.Modes
         }
         void Update()
         {
-            if(session==null||simulation==null)return;
+            if(session==null||simulation==null||migrationAuthorityHeld)return;
             var pendingExperience=RoomGameExperience.ForManagedMatch(session);
             if(Authority&&pendingExperience&&!pendingExperience.ParticipationMappingReady)return;
             if(!Authority&&wasAuthority){ResetObjectiveDirector("Authority lost");ResetBlaster();}
@@ -266,7 +266,7 @@ namespace DeadlyJenga.Modes
         void ConstrainManagedParticipation()
         {
             var experience=RoomGameExperience.ForManagedMatch(session);if(!experience||simulation==null)return;
-            foreach(var p in simulation.Participants)if(!p.frame.bot)
+            foreach(var p in simulation.Participants)if(p.present&&!p.frame.bot)
             {
                 bool deferred=!experience.IsLaunchedActor(p.frame.id);
                 simulation.SetDeferredParticipation(p.frame.id,deferred);

@@ -578,6 +578,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             const int Seats = 10;
             bool host = role == "host";
+            string map = StressMotion ? "sparse-prototype-skyline-island" : "mode-ctf";
+            string mode = StressMotion ? "demo" : "ctf";
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = role == "host" || role == "guest-01" ? 90 : 30;
             if (Environment.GetCommandLineArgs().Contains("--dj-full-room-direct"))
@@ -590,11 +592,17 @@ namespace DeadlyJenga.CastlePrototype
                 "Home is ready", 95);
             if (host)
             {
-                home.Host();
+                if(StressMotion)
+                {
+                    home.Demo();
+                    yield return Until(() => IslandLobby.Current && IslandLobby.Current.CanHost,"Developer lobby is ready to host",75);
+                    IslandLobby.Current.Host();
+                }
+                else home.Host();
                 yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.IsHost &&
                     IslandLobby.Current.CanStart, "Normal room is open", 70);
-                Require(IslandLobby.Current.SelectMode("ctf") && IslandLobby.Current.SelectMap("mode-ctf"),
-                    "Host selects CTF");
+                Require(IslandLobby.Current.SelectMode(mode) && IslandLobby.Current.SelectMap(map),
+                    "Host selects the requested match");
                 File.WriteAllText(Mark("pending-code"), IslandLobby.Current.Room.Code);
                 File.Move(Mark("pending-code"), Mark("code"));
                 yield return Until(() => IslandLobby.Current.Room.HumanCount == Seats &&
@@ -608,7 +616,7 @@ namespace DeadlyJenga.CastlePrototype
                 home.Code = File.ReadAllText(Mark("code"));
                 home.JoinCode();
                 yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.Connected &&
-                    IslandLobby.Current.SelectedMapId == "mode-ctf", "Guest joined the configured room", 100,
+                    IslandLobby.Current.SelectedMapId == map, "Guest joined the configured room", 100,
                     () => IslandRoomConnection.Instance?.Status);
                 File.WriteAllText(Mark(role + "-ready"), "ready");
             }
@@ -617,7 +625,7 @@ namespace DeadlyJenga.CastlePrototype
             CastlePlaySession game = null;
             yield return Until(() => (game = FindFirstObjectByType<CastlePlaySession>()) && game.Network &&
                 !game.Network.WaitingForWorld && room.Runner.ActivePlayers.Count() == Seats &&
-                (!host || game.Network.HumanCount == Seats) && game.Modes && game.Modes.Frame?.phase==RoundPhase.Playing,
+                (!host || game.Network.HumanCount == Seats) && (StressMotion || game.Modes && game.Modes.Frame?.phase==RoundPhase.Playing),
                 "All ten processes are in the active match", 125,
                 () => $"{room.Status} | {room.GetComponent<RoomGameExperience>()?.GameStatus} | phase={game?.Modes?.Frame?.phase}");
             string code = room.Code;
@@ -625,7 +633,26 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role + "-playing"), "ready");
             yield return Until(() => Directory.GetFiles(folder, "*-playing").Length == Seats,
                 "All peers received their initial match state", 60);
-            yield return DriveFullRoom(game, role + "-before");
+            if(StressMotion)
+            {
+                if(host)
+                {
+                    game.SurvivorBots.AutoFill=false;
+                    game.SurvivorBots.Clear();
+                    UnityEngine.Random.InitState(1109);
+                    for(int i=0;i<24;i++)game.SurvivorBots.SpawnOne();
+                    Require(game.SurvivorBots.Count==24,"Host spawned 24 authoritative bots");
+                    Require(DemoDisasters.Execute(game,"Tsunami"),"Host starts a live tsunami");
+                }
+                yield return Until(() => Tracked.Waves.Any(wave=>wave.Wave.active),"Live wave reached this client",35);
+                File.WriteAllText(Mark(role+"-wave"),"ready");
+                yield return Until(() => Directory.GetFiles(folder,"*-wave").Length==Seats,"All ten clients observed the wave",35);
+                yield return DriveFullRoom(game,role+"-stress",Seats-1,24,host);
+                File.WriteAllText(Mark(role+"-finished"),"ready");
+                yield return Until(() => Directory.GetFiles(folder,"*-finished").Length==Seats,"All clients finished the stress sample",35);
+                yield break;
+            }
+            yield return DriveFullRoom(game, role + "-before", Seats-1);
             File.WriteAllText(Mark(role + "-moving"), "ready");
             if (host)
             {
@@ -641,12 +668,15 @@ namespace DeadlyJenga.CastlePrototype
                 "Match recovered on the new runner with nine peers", 90, () => room.Status);
             Require(room.Code == code && MatchSetup.ModeId == "ctf", "Room and mode survive the host departure");
             Require(room.IsHost == !game.Network.IsClient, "Simulation authority matches the new runner");
+            var experience=room.GetComponent<RoomGameExperience>();
+            var recovering=experience.GetType().GetProperty("TransportRecovering",PrivateField);
+            yield return Until(() => !(bool)recovering.GetValue(experience),"Signed room checkpoint recovered",25,()=>experience.GameStatus);
             File.WriteAllText(Mark(role + "-authority"), room.IsHost ? "host" : "guest");
             yield return Until(() => Directory.GetFiles(folder, "guest-*-authority").Length == Seats - 1,
                 "All surviving peers reported authority", 50);
             Require(Directory.GetFiles(folder, "guest-*-authority").Count(path => File.ReadAllText(path) == "host") == 1,
                 "Exactly one survivor became host");
-            yield return DriveFullRoom(game, role + "-after");
+            yield return DriveFullRoom(game, role + "-after", Seats-2,12);
             File.WriteAllText(Mark(role + "-finished"), "ready");
             yield return Until(() => Directory.GetFiles(folder, "guest-*-finished").Length == Seats - 1,
                 "All surviving peers measured post-migration movement", 50);
@@ -688,18 +718,38 @@ namespace DeadlyJenga.CastlePrototype
                 "All ten clients measured motion", 60);
         }
 
-        IEnumerator DriveFullRoom(CastlePlaySession game, string phase)
+        IEnumerator DriveFullRoom(CastlePlaySession game,string phase,int required=1,float seconds=7,bool profile=false)
         {
             var survivor = ((Component)game.Player).GetComponent<CastleSurvivor>();
             var views = (Dictionary<string, INetworkActorView>)ProbeField(game.Network, "views").GetValue(game.Network);
             var driver = new MotionProbeDriver(survivor.transform.position);
             var moved = new HashSet<string>();
+            var targetMoves = new HashSet<string>();
+            var targets = new Dictionary<string, Vector3>();
             var previous = new Dictionary<string, Vector3>();
             var lastMove = new Dictionary<string, float>();
             var data = new System.Text.StringBuilder("elapsed,frameMs,visibleActors,movedActors,worstObservedMoveGapMs\n");
             float worst = 0;
+            var counters=new List<(string name,ProfilerRecorder recorder)>();
+            if(profile)
+            {
+                var handles=new List<ProfilerRecorderHandle>();
+                ProfilerRecorderHandle.GetAvailable(handles);
+                foreach(var handle in handles)
+                {
+                    var marker=ProfilerRecorderHandle.GetDescription(handle);
+                    if(marker.Name.StartsWith("DJ.")||marker.Name.Contains("Behaviour")||
+                        marker.Name.Contains("Physics.")||marker.Name.Contains("Gfx.Wait")||
+                        marker.Name.Contains("RenderLoop")||marker.Name=="Main Thread"||marker.Name=="GC Allocated In Frame")
+                        counters.Add((marker.Name,ProfilerRecorder.StartNew(marker.Category,marker.Name,2048)));
+                }
+            }
+            var bots=profile?game.SurvivorBots.Members.Where(b=>b).Select(b=>b.GetComponent<CastleBotBrain>())
+                .Where(b=>b).ToDictionary(b=>b,b=>b.TravelDistance):null;
             float start = Time.realtimeSinceStartup;
-            while (Time.realtimeSinceStartup - start < 7)
+            try
+            {
+            while (Time.realtimeSinceStartup - start < seconds)
             {
                 float elapsed = Time.realtimeSinceStartup - start;
                 if (survivor.Capsule && survivor.Capsule.enabled)
@@ -712,6 +762,10 @@ namespace DeadlyJenga.CastlePrototype
                     if (!pair.Key.StartsWith("[Player:", StringComparison.Ordinal) ||
                         pair.Value == null || !pair.Value.NetworkActive) continue;
                     var point = RenderedFeet(pair.Value);
+                    var target=pair.Value.NetworkPosition;
+                    if(targets.TryGetValue(pair.Key,out var formerTarget)&&(target-formerTarget).sqrMagnitude>.000009f)
+                        targetMoves.Add(pair.Key);
+                    targets[pair.Key]=target;
                     if (previous.TryGetValue(pair.Key, out var earlier) && (point - earlier).sqrMagnitude > .000009f)
                     {
                         moved.Add(pair.Key);
@@ -723,8 +777,32 @@ namespace DeadlyJenga.CastlePrototype
                 data.AppendLine(FormattableString.Invariant($"{elapsed:F4},{Time.unscaledDeltaTime * 1000:F3},{previous.Count},{moved.Count},{worst * 1000:F1}"));
                 yield return null;
             }
+            }
+            finally
+            {
+                foreach(var (name,recorder) in counters)
+                {
+                    try { File.AppendAllText(Mark(phase+"-profiler.txt"),name+": "+string.Join(",",recorder.ToArray().Select(v=>v.Value))+"\n"); }
+                    finally {recorder.Dispose();}
+                }
+            }
             File.WriteAllText(Mark(phase + ".csv"), data.ToString());
-            Require(moved.Count > 0, "Observed real remote movement during " + phase);
+            if(phase.EndsWith("-after",StringComparison.Ordinal))
+            {
+                var state=game.Modes?.Frame;
+                File.AppendAllText(Report,$"MIGRATED frame={state?.revision} targetMotion={targetMoves.Count} renderedMotion={moved.Count}\n");
+                foreach(var actor in previous.Keys)
+                {
+                    var row=state?.players?.FirstOrDefault(player=>player!=null&&player.id==actor);
+                    File.AppendAllText(Report,$"MIGRATED {actor} role={row?.role} alive={row?.alive} target={targetMoves.Contains(actor)} rendered={moved.Contains(actor)}\n");
+                }
+            }
+            if(bots!=null)
+            {
+                int travelled=bots.Count(pair=>pair.Key&&pair.Key.TravelDistance-pair.Value>=.5f);
+                Require(bots.Count==24&&travelled>=12,$"Bots moving during stress: {travelled}/{bots.Count}");
+            }
+            Require(moved.Count>=required,$"Observed {moved.Count}/{required} remote players move during {phase}");
         }
 
         IEnumerator Check()

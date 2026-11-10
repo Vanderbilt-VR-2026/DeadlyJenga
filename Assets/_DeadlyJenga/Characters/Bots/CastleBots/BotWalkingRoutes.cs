@@ -39,6 +39,13 @@ namespace DeadlyJenga.CastleBots
             if (!ReferenceEquals(world, current)) { Dispose(); world = current; signature = 0; }
             if (building != null && !building.isDone) return;
             if (building != null) { building = null; Revision++; Status = "Walking corridors ready"; }
+            if(liveWave&&bot.Population.Count>=12&&data&&Revision>0)
+            {
+                // Keep the previous mesh as a hint while the world is moving.
+                // Waypoint adoption still validates against current physics.
+                nextScan=Time.time+.5f;
+                return;
+            }
             if (NavMesh.GetSettingsCount() == 0) { Status = "No navigation agent settings"; return; }
             settings = NavMesh.GetSettingsByIndex(0);
             settings.agentRadius = bot.Motor.Capsule.radius + .025f;

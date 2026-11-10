@@ -249,7 +249,7 @@ namespace DeadlyJenga.CastleBots
             return false;
         }
         struct SearchNode {public float cost;public int parent;public CastleBotRoute route;}
-        struct Candidate {public int id;public float priority;}
+        struct Candidate {public int id;public float priority,distanceSquared;}
         readonly CastleBotBrain bot;
         readonly Snapshot graph;
         readonly Vector3 start,destination;
@@ -287,15 +287,19 @@ namespace DeadlyJenga.CastleBots
             float v=Mathf.Sqrt(2*bot.Motor.gravity*bot.Motor.jumpHeight);
             float range=Mathf.Clamp(bot.Motor.EffectiveWalkSpeed*v*2/bot.Motor.gravity+bot.Motor.vaultReach,2,7);
             int cells=Mathf.CeilToInt(range/3);
-            for(int x=-cells;x<=cells;x++)for(int y=-Mathf.CeilToInt(CastleBotNavigation.MaximumDrop(bot.Motor)/3);y<=2;y++)for(int z=-cells;z<=cells;z++)
+            float drop=CastleBotNavigation.MaximumDrop(bot.Motor);
+            float rise=Mathf.Max(.1f+bot.Motor.jumpHeight+bot.Motor.vaultMaxRise,bot.Motor.climbSpeed*bot.Motor.climbGripSeconds*.65f);
+            int lowest=-Mathf.CeilToInt(drop/3);
+            for(int x=-cells;x<=cells;x++)for(int y=lowest;y<=2;y++)for(int z=-cells;z<=cells;z++)
             {
                 if(!graph.cells.TryGetValue(cell+new Vector3Int(x,y,z),out var list))continue;
                 foreach(int next in list)
                 {
                     if(next==id||closed.Contains(next))continue;var point=graph.nodes[next].Point;var delta=point-p;
-                    if(delta.y>Mathf.Max(.1f+bot.Motor.jumpHeight+bot.Motor.vaultMaxRise,bot.Motor.climbSpeed*bot.Motor.climbGripSeconds*.65f)||delta.y< -CastleBotNavigation.MaximumDrop(bot.Motor)||Vector3.ProjectOnPlane(delta,Vector3.up).sqrMagnitude>range*range||delta.sqrMagnitude<.08f)continue;
-                    float priority=Heuristic(point)+delta.magnitude*.1f+bot.RevisitCost(graph.nodes[next].body)*.2f;
-                    neighbors.Add(new Candidate{id=next,priority=priority});
+                    float distance=delta.sqrMagnitude;
+                    if(delta.y>rise||delta.y< -drop||delta.x*delta.x+delta.z*delta.z>range*range||distance<.08f)continue;
+                    float priority=Heuristic(point)+Mathf.Sqrt(distance)*.1f+bot.RevisitCost(graph.nodes[next].body)*.2f;
+                    neighbors.Add(new Candidate{id=next,priority=priority,distanceSquared=distance});
                 }
             }
             neighbors.Sort((a,b)=>a.priority.CompareTo(b.priority));
@@ -303,7 +307,7 @@ namespace DeadlyJenga.CastleBots
             // Otherwise a required sideways/backwards step would be pruned at every corner.
             if(neighbors.Count>48)
             {
-                var local=new List<Candidate>(neighbors);local.Sort((a,b)=>(Point(a.id)-p).sqrMagnitude.CompareTo((Point(b.id)-p).sqrMagnitude));
+                var local=new List<Candidate>(neighbors);local.Sort((a,b)=>a.distanceSquared.CompareTo(b.distanceSquared));
                 neighbors.RemoveRange(36,neighbors.Count-36);
                 for(int i=0;i<12;i++)if(!neighbors.Exists(n=>n.id==local[i].id))neighbors.Add(local[i]);
             }
@@ -324,6 +328,7 @@ namespace DeadlyJenga.CastleBots
                 if(!haveExpansion)
                 {
                     if(open.Count==0||expanded>=48||checkedEdges>=256){Finish();return;}
+                    if(!BotPlanningBudget.CanExpand)return;
                     int selected=0;float score=float.PositiveInfinity;
                     for(int i=0;i<open.Count;i++){int key=open[i];float s=discovered[key].cost+Heuristic(Point(key));if(s<score){score=s;selected=i;}}
                     expanding=open[selected];open.RemoveAt(selected);if(closed.Contains(expanding))continue;closed.Add(expanding);expanded++;

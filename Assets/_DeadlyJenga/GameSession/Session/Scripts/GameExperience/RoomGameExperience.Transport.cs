@@ -48,6 +48,10 @@ namespace DeadlyJenga.CastlePrototype
         bool checkpointRequested;
         bool checkpointNativeRequested;
         int checkpointPageSequence;
+        double nextCheckpointReceiptCheck;
+        double nextCheckpointTrace;
+        CachedCheckpoint packedCheckpoint;
+        byte[] packedCheckpointBytes;
         double nextSnapshotSend,nextReceiptPrune;
         string transportEpoch="",transportPinnedKey="",transportPriorKey="",transportChallenge="",transportSemantic="";
         CachedCheckpoint transportCache,recoveryBest;
@@ -107,6 +111,7 @@ namespace DeadlyJenga.CastlePrototype
             transportSigner=null;signingWork=null;checkpointRequested=checkpointNativeRequested=false;
             checkpointPages.Retire(transportRunner);checkpointPages.Reset();
             pendingSnapshots.Clear();nextSnapshotSend=nextReceiptPrune=0;
+            nextCheckpointReceiptCheck=0;packedCheckpoint=null;packedCheckpointBytes=null;
             if(signer==null)return;
             if(work==null){signer.Dispose();return;}
             _=work.result.ContinueWith(task=>
@@ -158,6 +163,16 @@ namespace DeadlyJenga.CastlePrototype
             if(transportFailed)return;
             if(room.IsHost)
             {
+                if(!transportMigration&&TransportNow>=nextCheckpointReceiptCheck&&transportCache!=null)
+                {
+                    nextCheckpointReceiptCheck=TransportNow+.5;
+                    foreach(var peer in RemotePlayers())
+                    {
+                        if(!room.GameExperienceMemberId(transportRunner,peer,out var id)||
+                            !transportPeers.TryGetValue(id,out var receipt)||receipt.digest!=transportCache.digest)
+                        {checkpointNativeRequested=true;break;}
+                    }
+                }
                 PumpCheckpoint();
                 if(TransportNow>=nextReceiptPrune)
                 {
@@ -168,8 +183,10 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(var id in departedReceiptIds)transportPeers.Remove(id);
                 }
             }
-            if(transportRecovering&&TransportNow-transportBoundAt>8)
-            {TransportFailure("Room checkpoint recovery timed out; leave and rejoin the room.");return;}
+            // A slow scene load or a missed state page is recoverable. Keep requesting
+            // the checkpoint; permanent failures are reserved for invalid authority.
+            if(transportRecovering&&TransportNow-transportBoundAt>8&&string.IsNullOrEmpty(TransportStatus))
+                TransportStatus="Still synchronizing the room with the host…";
             if(room.IsHost&&transportMigration)
             {
                 var peers=RemotePlayers().ToArray();
@@ -177,11 +194,16 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if(recoveryBest==null||!ValidateAndApplySnapshot(recoveryBest.state))
                     {TransportFailure("Recovered profile or checkpoint is unavailable.");return;}
-                    transportRecovering=false;transportMigration=false;transportCache=recoveryBest;
+                    transportRecovering=false;transportMigration=false;TransportStatus="";transportCache=recoveryBest;
                     OnTransportRecoveryComplete();return;
                 }
                 if(TransportNow-transportLastSend>=1)
-                {transportLastSend=TransportNow;foreach(var peer in peers)Send(peer,new ExperiencePacket{kind="recover",epoch=transportEpoch,challenge=transportChallenge});}
+                {
+                    transportLastSend=TransportNow;
+                    var challenge=new ExperiencePacket{kind="recover",epoch=transportEpoch,challenge=transportChallenge};
+                    if(!PublishCheckpointPages(PackCheckpointPacket(challenge)))
+                        foreach(var peer in peers)Send(peer,challenge);
+                }
             }
             else if(!room.IsHost&&TransportNow-transportLastSend>=1)
             {
@@ -267,11 +289,13 @@ namespace DeadlyJenga.CastlePrototype
                 if(checkpointNativeRequested&&transportCache!=null)
                 {
                     checkpointNativeRequested=false;
-                    var bytes=WireEncoding.GetBytes(JsonUtility.ToJson(new ExperiencePacket
-                        {kind="state",epoch=transportEpoch,checkpoint=transportCache.wire}));
-                    if(bytes.Length>PacketLimit)throw new InvalidOperationException("Checkpoint exceeds the packet limit.");
-                    if(checkpointPages.Publish(transportRunner,CastleMotionPage.CheckpointLane,++checkpointPageSequence,
-                        CastleFusionSession.LivePoseCodec.Pack(bytes,PacketLimit)))
+                    if(!ReferenceEquals(packedCheckpoint,transportCache))
+                    {
+                        packedCheckpointBytes=PackCheckpointPacket(new ExperiencePacket
+                            {kind="state",epoch=transportEpoch,checkpoint=transportCache.wire});
+                        packedCheckpoint=transportCache;
+                    }
+                    if(PublishCheckpointPages(packedCheckpointBytes))
                     {
                         pendingSnapshots.Clear();nextSnapshotSend=TransportNow+.10;return;
                     }
@@ -302,6 +326,14 @@ namespace DeadlyJenga.CastlePrototype
             return new ExperienceCheckpoint{body=body,modulus=Convert.ToBase64String(key.Modulus),
                 exponent=Convert.ToBase64String(key.Exponent),signature=Convert.ToBase64String(signature)};
         }
+        static byte[] PackCheckpointPacket(ExperiencePacket packet)
+        {
+            var bytes=WireEncoding.GetBytes(JsonUtility.ToJson(packet));
+            if(bytes.Length>PacketLimit)throw new InvalidOperationException("Checkpoint exceeds the packet limit.");
+            return CastleFusionSession.LivePoseCodec.Pack(bytes,PacketLimit);
+        }
+        bool PublishCheckpointPages(byte[] bytes) =>
+            checkpointPages.Publish(transportRunner,CastleMotionPage.CheckpointLane,++checkpointPageSequence,bytes);
         void SendSnapshot(PlayerRef peer)
         {if(transportCache!=null)checkpointNativeRequested=true;}
 
@@ -317,23 +349,39 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     var raw=CastleFusionSession.LivePoseCodec.Unpack(packet,PacketLimit);
                     var state=JsonUtility.FromJson<ExperiencePacket>(WireEncoding.GetString(raw));
-                    if(state!=null&&state.version==1&&state.kind=="state"&&state.epoch?.Length==32)ReceiveServer(state);
+                    if(state!=null&&state.version==1&&state.epoch?.Length==32&&
+                        (state.kind=="state"||state.kind=="recover"&&state.challenge?.Length==32))
+                        ReceiveServer(state);
                 }
             }
-            catch(Exception){/* Signed checkpoint validation remains authoritative. */}
+            catch(Exception error)
+            {
+                if(FusionMotionWireTrace.Now!=0)Debug.Log($"Room checkpoint page {id} rejected: {error.GetType().Name}");
+            }
             return true;
         }
         internal bool TransportCheckpointReady(GameFlowState state)
         {
             if(TransportRecovering||transportFailed)return false;
             if(!room.Connected)return IsAuthority;
-            if(!room.IsHost||transportCache==null||Semantic(state)!=Semantic(transportCache.state))return false;
+            if(!room.IsHost)return false;
+            string expected=Semantic(state);
+            if(transportCache==null||expected!=Semantic(transportCache.state))
+            {TraceCheckpoint("waiting for the current signed state",state);return false;}
             foreach(var peer in RemotePlayers())
             {
                 if(!room.GameExperienceMemberId(transportRunner,peer,out var id)||!transportPeers.TryGetValue(id,out var receipt)||
-                    !transportSent.TryGetValue(receipt.digest,out var cached)||Semantic(cached.state)!=Semantic(state))return false;
+                    !transportSent.TryGetValue(receipt.digest,out var cached)||Semantic(cached.state)!=expected)
+                {TraceCheckpoint("waiting for "+peer,state);return false;}
             }
             return true;
+        }
+        [System.Diagnostics.Conditional("UNITY_EDITOR"),System.Diagnostics.Conditional("DEVELOPMENT_BUILD")]
+        void TraceCheckpoint(string reason,GameFlowState state)
+        {
+            if(FusionMotionWireTrace.Now==0||TransportNow<nextCheckpointTrace)return;
+            nextCheckpointTrace=TransportNow+.75;
+            Debug.Log($"Room checkpoint {state.phase} term={state.authorityTerm} revision={state.revision}: {reason}");
         }
         internal void TransportSubmit(GameExperienceCommand command)
         {
@@ -427,6 +475,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(!ValidateAndApplySnapshot(accepted.state))return;
             transportEpoch=packet.epoch;transportPinnedKey=CheckpointKey(accepted.wire);transportCache=accepted;
+            if(transportRecovering)TraceCheckpoint("signed state accepted",accepted.state);
             transportRecovering=false;transportMigration=false;TransportStatus="";
             Send(default,new ExperiencePacket{kind="cached",epoch=transportEpoch,digest=accepted.digest});
         }

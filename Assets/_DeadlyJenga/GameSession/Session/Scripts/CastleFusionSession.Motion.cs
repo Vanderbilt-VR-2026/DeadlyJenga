@@ -16,7 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         const int NearBlockSamples = 24, FarBlockSamples = 16;
         const int BlockScanBudget = 120;
         const byte ActorPage = 1, BlockPage = 2;
-        internal const string MotionProtocol = "/native-motion-3";
+        internal const string MotionProtocol = "/native-motion-4";
         readonly CastleMotionPage[] motionPages = new CastleMotionPage[HumanLanes + BotLanes + BlockLanes];
         readonly List<INetworkActor> motionBots = new List<INetworkActor>(64);
         readonly HashSet<INetworkActor> motionBotSet = new HashSet<INetworkActor>();
