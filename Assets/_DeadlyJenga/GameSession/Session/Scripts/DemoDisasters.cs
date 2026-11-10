@@ -116,8 +116,13 @@ namespace DeadlyJenga.CastlePrototype
                 instance.GetComponent<IWaveTuning>()?.Configure(speed.Value, force.Value);
             if(values!=null)instance.GetComponent<IDemoHazard>()?.Configure(values);
             hazard.Begin();
-            if (!hazard.Active) UnityEngine.Object.Destroy(instance);
-            else{started=hazard;instance.AddComponent<DemoDisasterLifetime>();}
+            if (!hazard.Active)
+            {
+                UnityEngine.Object.Destroy(instance);
+                return false;
+            }
+            started=hazard;
+            instance.AddComponent<DemoDisasterLifetime>();
             return true;
         }
 

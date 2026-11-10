@@ -24,13 +24,14 @@ namespace DeadlyJenga.CastlePrototype
         Frame[] frames = new Frame[0];
         int head, count;
         float nextSample;
+        IWorldQuery sourceWorld;
         IReadOnlyList<Rigidbody> source;
         Rigidbody first;
         int sourceCount;
         bool rewinding;
 
         public bool Rewinding => rewinding;
-        public float Recorded => count * sampleEvery;
+        public float Recorded => IsCurrentSource() ? count * sampleEvery : 0;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -47,10 +48,10 @@ namespace DeadlyJenga.CastlePrototype
         void FixedUpdate()
         {
             if (rewinding) return;
-            var list = Services.World?.Blocks;
-            if (list == null || list.Count == 0) { count = 0; return; }
-            if (list != source || list.Count != sourceCount || list[0] != first) Reset(list);
-            if (!Owner(list)) { count = 0; return; }
+            var world = Services.World;
+            var list = world?.Blocks;
+            if (list == null || list.Count == 0 || !Owner(list)) { count = 0; return; }
+            if (!MatchesSource(world, list)) Reset(world, list);
             if (Time.time < nextSample) return;
             nextSample = Time.time + sampleEvery;
             var f = frames[head];
@@ -67,8 +68,19 @@ namespace DeadlyJenga.CastlePrototype
             count = Mathf.Min(count + 1, frames.Length);
         }
 
-        void Reset(IReadOnlyList<Rigidbody> list)
+        bool IsCurrentSource()
         {
+            var world = Services.World;
+            return MatchesSource(world, world?.Blocks);
+        }
+
+        bool MatchesSource(IWorldQuery world, IReadOnlyList<Rigidbody> list) =>
+            ReferenceEquals(world, sourceWorld) && ReferenceEquals(list, source) &&
+            list != null && list.Count > 0 && list.Count == sourceCount && list[0] == first;
+
+        void Reset(IWorldQuery world, IReadOnlyList<Rigidbody> list)
+        {
+            sourceWorld = world;
             source = list; sourceCount = list.Count; first = list[0];
             frames = new Frame[Mathf.Max(2, Mathf.CeilToInt(historySeconds / sampleEvery))];
             for (int i = 0; i < frames.Length; i++) frames[i] = new Frame(sourceCount);
@@ -84,7 +96,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public bool Rewind(float seconds)
         {
-            if (rewinding || count < 2 || source == null || !Owner(source)) return false;
+            if (rewinding || count < 2 || !IsCurrentSource() || !Owner(source)) return false;
             StartCoroutine(Play(Mathf.Clamp(seconds, sampleEvery, Recorded)));
             return true;
         }
@@ -101,6 +113,7 @@ namespace DeadlyJenga.CastlePrototype
             float duration = seconds / playbackSpeed, t = 0;
             while (t < duration)
             {
+                if (!CanContinue()) yield break;
                 t += Time.fixedDeltaTime;
                 float k = Mathf.Clamp01(t / duration) * steps;
                 int k0 = Mathf.Min(Mathf.FloorToInt(k), steps), k1 = Mathf.Min(k0 + 1, steps);
@@ -121,6 +134,7 @@ namespace DeadlyJenga.CastlePrototype
                 yield return new WaitForFixedUpdate();
             }
 
+            if (!CanContinue()) yield break;
             var target = frames[(newest - steps + len * 4) % len];
             for (int i = 0; i < bodies.Count; i++)
             {
@@ -135,6 +149,18 @@ namespace DeadlyJenga.CastlePrototype
             head = (newest - steps + 1 + len * 4) % len;
             rewinding = false;
             GameEvents.RaiseRewindEnded();
+        }
+
+        bool CanContinue()
+        {
+            // Playback makes the bodies kinematic, so the fallback Owner check cannot run here.
+            if (IsCurrentSource() && (!(Services.Session is IWorldAuthority authority) || authority.HasWorldAuthority))
+                return true;
+
+            count = 0;
+            rewinding = false;
+            GameEvents.RaiseRewindEnded();
+            return false;
         }
     }
 }
