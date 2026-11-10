@@ -25,9 +25,9 @@ namespace DeadlyJenga.CastlePrototype
         bool Climbing=>Move!=null&&Move.Climbing;
         string DemoStatus=>Demo!=null?Demo.Status:"";
         int page,selection;Vector2 scroll;bool lastMenu;float nextHintSample;string lastContext="";
-        const float IntroSeconds=4.5f;
+        const float IntroSeconds=7f;const int IntroRuns=3;   // each situation teaches itself the first few times
         float introRemaining=IntroSeconds;bool introReplay;string introKey;
-        float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,compactButton,box;GUISkin themed;bool ready;
+        float uiSize=1;GUIStyle title,heading,cardHeading,body,titleCenter,bodyCenter,small,button,compactButton,box;GUISkin themed;bool ready;
         Canvas hintCanvas;CanvasGroup hintGroup;Text roleText,statusText,menuText;
         readonly Text[] hintKeys=new Text[3],hintNames=new Text[3];readonly RawImage[] hintIcons=new RawImage[3];
         readonly System.Collections.Generic.List<Action> navActions=new System.Collections.Generic.List<Action>();int navCount,drawIndex;bool activate;
@@ -89,9 +89,10 @@ namespace DeadlyJenga.CastlePrototype
         void FollowSelection(){float top=selection<navTops.Count?navTops[selection]:116+selection*104;if(top<scroll.y)scroll.y=top;if(top+100>scroll.y+404)scroll.y=top+100-404;}
         void Styles()
         {
-            if(ready)return;ready=true;var font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            if(ready)return;ready=true;var font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             title=new GUIStyle(GUI.skin.label){font=font,fontSize=30,fontStyle=FontStyle.Bold,normal={textColor=Color.white}};
             heading=new GUIStyle(title){fontSize=22};body=new GUIStyle(GUI.skin.label){font=font,fontSize=19,wordWrap=true,normal={textColor=Color.white}};
+            titleCenter=new GUIStyle(title){fontSize=40,alignment=TextAnchor.MiddleCenter};bodyCenter=new GUIStyle(body){alignment=TextAnchor.MiddleCenter,normal={textColor=CandyHudVisuals.Muted}};
             cardHeading=new GUIStyle(heading){fontSize=19,wordWrap=true};
             small=new GUIStyle(body){fontSize=18,normal={textColor=new Color(.90f,.87f,.96f)}};
             button=new GUIStyle(GUI.skin.button){font=font,fontSize=19,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(14,12,8,8),border=new RectOffset(10,10,10,10),normal={background=CandyHudVisuals.Rounded,textColor=Color.white},hover={background=CandyHudVisuals.Rounded,textColor=Color.white},active={background=CandyHudVisuals.Rounded,textColor=Color.white}};
@@ -159,43 +160,39 @@ namespace DeadlyJenga.CastlePrototype
             guestLeave.Clear();
             page=Mathf.Clamp(page,0,PageCount-1);
             Panel(new Rect(0,0,1200,736),CandyHudVisuals.Ink);Panel(new Rect(0,0,1200,8),CandyHudVisuals.Lavender);
-            Icon(new Rect(26,27,48,48),session.PlayingHand?CandyHudIcon.Hand:CandyHudIcon.Home,CandyHudVisuals.Mint);
             bool canOpenTools=MenuAccess.HostTools(session);
             if(!canOpenTools)hostTools=false;
-            GUI.Label(new Rect(93,23,470,45),hostTools?"Host Tools":"Pause",title);
-            if(Button(new Rect(963,28,207,51),hostTools?"Back":"Resume",CandyHudVisuals.Mint))
-            {
-                if(hostTools){hostTools=false;activate=false;}
-                else session.SetMenu(false);
-                return;
-            }
             if(!hostTools)
             {
+                // One centred column, the same order as the headset pause menu.
                 activate=false;navCount=0;
-                if(Button(new Rect(35,119,235,54),"Controls & Comfort",CandyHudVisuals.Card))CandyComfortPanel.Open(session);
-                if(session.Social!=null&&Button(new Rect(475,119,210,54),"Audio & voice",showVoice?CandyHudVisuals.Mint:CandyHudVisuals.Card))showVoice=!showVoice;
-                if(canOpenTools&&Button(new Rect(700,119,190,54),"Host Tools",CandyHudVisuals.Card)){hostTools=true;return;}
-                if(session.PlayingHand&&HandLooks.Names.Length>0&&
-                    Button(new Rect(35,192,500,54),"Hand appearance  ·  "+HandLooks.ChosenName,CandyHudVisuals.Card))HandLooks.Chosen++;
-                if(session.Multiplayer!=null)
-                {
-                    GUI.Label(new Rect(35,263,500,36),"Room",heading);
-                    GUILayout.BeginArea(new Rect(35,305,500,304));
-                    MultiplayerPanel.Draw(session.Multiplayer,false);
-                    GUILayout.EndArea();
-                }
+                const float x=330,w=540;float y=34;
+                GUI.Label(new Rect(x,y,w,52),"Paused",titleCenter);y+=56;
+                string code=MultiplayerPanel.JoinCode(session.Multiplayer);
+                if(code.Length>0){int people=session.Multiplayer?.HumanCount??1;GUI.Label(new Rect(x,y,w,30),"Party code  "+code+"  ·  "+people+(people==1?" player":" players"),bodyCenter);}
+                y+=44;
+                if(Button(new Rect(x,y,w,70),"Resume",CandyHudVisuals.Mint)){session.SetMenu(false);return;}y+=90;
+                if(Button(new Rect(x,y,w,56),"How to play",CandyHudVisuals.Card)){TutorialCoach.Restart();DeadlyJenga.Presentation.CandyRoundCard.Replay();session.SetMenu(false);return;}y+=66;
+                if(Button(new Rect(x,y,w,56),"Controls & Comfort",CandyHudVisuals.Card)){CandyComfortPanel.Open(session);return;}y+=66;
+                if(session.Social!=null){if(Button(new Rect(x,y,w,56),showVoice?"Audio & voice  ·  hide":"Audio & voice",showVoice?CandyHudVisuals.Mint:CandyHudVisuals.Card))showVoice=!showVoice;y+=66;}
+                if(session.PlayingHand&&HandLooks.Names.Length>0){if(Button(new Rect(x,y,w,56),"Hand appearance  ·  "+HandLooks.ChosenName,CandyHudVisuals.Card))HandLooks.Chosen++;y+=66;}
+                if(canOpenTools){if(Button(new Rect(x,y,w,56),"Host tools",CandyHudVisuals.Card)){hostTools=true;return;}y+=66;}
+                if(MatchRuntime.Current!=null&&Button(new Rect(x,Mathf.Max(y+14,600),w,56),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))
+                    MatchRuntime.Current.ReturnToLobby();
                 if(showVoice)
                 {
-                    GUILayout.BeginArea(new Rect(570,263,570,346));
+                    GUILayout.BeginArea(new Rect(900,120,280,560));
                     personalScroll=GUILayout.BeginScrollView(personalScroll);
                     SocialPanel.Draw(session.Social,false);
                     GUILayout.EndScrollView();
                     GUILayout.EndArea();
                 }
-                if(MatchRuntime.Current!=null&&Button(new Rect(835,642,330,54),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))
-                    MatchRuntime.Current.ReturnToLobby();
+                GUI.Label(new Rect(x,690,w,30),"Esc closes this menu",bodyCenter);
                 return;
             }
+            Icon(new Rect(26,27,48,48),CandyHudIcon.Settings,CandyHudVisuals.Mint);
+            GUI.Label(new Rect(93,23,470,45),"Host Tools",title);
+            if(Button(new Rect(963,28,207,51),"Back",CandyHudVisuals.Mint)){hostTools=false;activate=false;return;}
             for(int i=0;i<PageCount;i++)
             {
                 bool pending=i==3&&session.Multiplayer!=null&&session.Multiplayer.HasPending;
@@ -341,7 +338,7 @@ namespace DeadlyJenga.CastlePrototype
         void DrawSpectatorLabels()
         {
             if(!Ready||session.IsVR||session.MenuOpen||!(Demo is ISpectatorControls controls)||!controls.Spectating)return;
-            spectatorLabel??=new GUIStyle(GUI.skin.box){font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"),fontSize=16,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(12,12,4,4),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
+            spectatorLabel??=new GUIStyle(GUI.skin.box){font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont,fontSize=16,fontStyle=FontStyle.Bold,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(12,12,4,4),normal={background=CandyHudVisuals.Rounded,textColor=Color.white}};
             var old=GUI.backgroundColor;GUI.backgroundColor=new Color(.08f,.03f,.15f,.9f);
             for(int i=0;i<(controls.FourViews?4:1);i++)
             {
@@ -511,6 +508,9 @@ namespace DeadlyJenga.CastlePrototype
                 return new[]{move,jump,release};
             }
 
+            var ninja=MatchRuntime.Current;
+            if(ninja?.Rules?.mode==GameModeKind.Ninja&&ninja.Frame?.lantern!=null&&ninja.Frame.lantern.carrier==ninja.LocalActorId)
+                return new[]{move,jump,new Hint(CandyHudIcon.Help,"LANTERN IN HAND","Keep moving · hits drop it")};
             if(controls?.PendingPickup>0)
                 return new[]{move,jump,new Hint(CandyHudIcon.Help,"READ PICKUP PROMPT","Swap / keep controls")};
 
@@ -562,6 +562,14 @@ namespace DeadlyJenga.CastlePrototype
             return new[]{move,jump,climb};
         }
 
+        // Which controls matter right now: walking around, flying as a hand, or holding equipment.
+        string HintSituation()
+        {
+            if(session.PlayingHand)return "hand";
+            var equipment=session.Player?.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
+            if(equipment!=null&&equipment.kind>=EquipmentKind.Blaster&&equipment.kind!=EquipmentKind.FlyingHand)return "armed";
+            return "move";
+        }
         internal void ReplayIntro()
         {
             hintMode=HintMode.Adaptive;introReplay=true;introRemaining=IntroSeconds;
@@ -612,7 +620,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         Text Text(Transform parent,string value,Vector2 size,Vector2 position,int fontSize)
         {
-            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=new Color(.99f,.96f,1);
+            var go=new GameObject("Hint label",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(parent,false);var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleLeft;text.color=new Color(.99f,.96f,1);
             var edge=go.GetComponent<Outline>();edge.effectColor=new Color(.10f,.045f,.20f,.9f);edge.effectDistance=new Vector2(1,-1);text.raycastTarget=false;text.rectTransform.sizeDelta=size;text.rectTransform.anchoredPosition=position;return text;
         }
         bool viewVR;Camera hintCamera;
@@ -627,22 +635,23 @@ namespace DeadlyJenga.CastlePrototype
                 DeadlyJenga.Presentation.CandyHudLayout.Configure(hintCanvas,transform,camera,viewVR);
             }
             bool adaptive=hintMode==HintMode.Adaptive;
-            string key=session.IsVR?"CandyJenga.BasicControlsSeen.v1.VR":"CandyJenga.BasicControlsSeen.v1.Desktop";
+            string situation=HintSituation();
+            string key=(session.IsVR?"CandyJenga.ControlsSeen.v2.VR.":"CandyJenga.ControlsSeen.v2.Desktop.")+situation;
             if(introKey!=key){introKey=key;introRemaining=IntroSeconds;}
-            bool onboarding=adaptive&&introRemaining>0&&(introReplay||PlayerPrefs.GetInt(key,PlayerPrefs.GetInt("DeadlyJenga.TutorialDone",0))==0);
+            bool onboarding=adaptive&&introRemaining>0&&(introReplay||PlayerPrefs.GetInt(key,0)<IntroRuns);
             bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
-                adaptive&&(!onboarding||session.PlayingHand);
+                adaptive&&!onboarding;
             if(onboarding&&!hidden)
             {
                 introRemaining-=Time.unscaledDeltaTime;
-                if(introRemaining<=0){PlayerPrefs.SetInt(key,1);introReplay=false;}
+                if(introRemaining<=0){PlayerPrefs.SetInt(key,PlayerPrefs.GetInt(key,0)+1);introReplay=false;}
             }
             if(adaptive){roleText.transform.parent.gameObject.SetActive(false);menuText.transform.parent.gameObject.SetActive(false);}
             else menuText.transform.parent.gameObject.SetActive(true);
             if(!hidden&&Time.unscaledTime>=nextHintSample)
             {
                 nextHintSample=Time.unscaledTime+.12f;
-                var hints=adaptive?IntroHints():Hints();
+                var hints=adaptive&&situation=="move"?IntroHints():Hints();
                 string context=(adaptive?"intro|":"full|")+InputLabel;
                 foreach(var hint in hints)context+="|"+hint.key+"|"+hint.text;
                 if(context!=lastContext)

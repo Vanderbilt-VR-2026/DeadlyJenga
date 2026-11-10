@@ -63,6 +63,7 @@ namespace DeadlyJenga.CastlePrototype
             rect.localScale=openingVr?Vector3.one*.0018f:Vector3.one;
             if(openingVr)Anchor();
             else{rect.anchoredPosition=Vector2.zero;rect.localRotation=Quaternion.identity;}
+            DeadlyJenga.Presentation.MenuAppear.Attach(rect.gameObject);
         }
         void Build()
         {
@@ -91,7 +92,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var rect=new GameObject("Appearance label",typeof(RectTransform),typeof(Text)).GetComponent<RectTransform>();
             rect.SetParent(panel.transform,false);rect.anchoredPosition=position;rect.sizeDelta=size;
-            var text=rect.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text=rect.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             text.text=value;text.fontSize=fontSize;text.alignment=TextAnchor.MiddleCenter;text.color=Color.white;text.raycastTarget=false;
             return text;
         }

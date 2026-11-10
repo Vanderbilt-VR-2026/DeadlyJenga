@@ -22,7 +22,7 @@ namespace DeadlyJenga.CastlePrototype
         Text candySetupHeading,candyMapDescription,candyRoomStatus,candyJoinEmpty;
         readonly List<GameObject> candyMainDecor=new List<GameObject>();
         readonly List<Text> candyCodeLetters=new List<Text>();
-        string candyLastCode;
+        string candyLastCode,candyShownPage;
         readonly Dictionary<string,string> candySummaries=new Dictionary<string,string>();
         readonly Dictionary<string,string> candyShortSummaries=new Dictionary<string,string>();
 
@@ -35,6 +35,8 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var choice in choices)
                 if(!choice.physical&&(choice.button.transform.IsChildOf(joinStation)||choice.button.transform.IsChildOf(hostStation)||choice.button.transform.IsChildOf(setupStation)))
                     CandyStyle(choice);
+            // Room and join pages sit on the room terminal's own plate; a second inset plate read as a stray box.
+            foreach(var page in new[]{joinStation,hostStation})if(page.TryGetComponent<Image>(out var plate))plate.color=Color.clear;
             BuildCandyJoin();BuildCandyHost();BuildCandySetup();CandyStyle(CandyChoice("marina-close"));CoatCandyCabinets();
             foreach(var key in choices.Where(c=>c.physical))
             {
@@ -111,7 +113,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         LobbyTerminalGlyph CandyIcon(RectTransform parent,LobbyTerminalGlyph.Symbol symbol,float x,float y,float size,Color color)
         {
-            var go=new GameObject(symbol+" icon",typeof(RectTransform),typeof(LobbyTerminalGlyph));go.transform.SetParent(parent,false);
+            var go=new GameObject(symbol+" icon",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyTerminalGlyph));go.transform.SetParent(parent,false);
             var glyph=go.GetComponent<LobbyTerminalGlyph>();glyph.symbol=symbol;glyph.color=color;glyph.raycastTarget=false;
             glyph.rectTransform.anchoredPosition=new Vector2(x,y);glyph.rectTransform.sizeDelta=new Vector2(size,size);return glyph;
         }
@@ -140,6 +142,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!candyAtlas)return;
             setupFace.Opacity=1;
+            if(candyShownPage!=setupPage){if(candyShownPage!=null&&setupStation.TryGetComponent<DeadlyJenga.Presentation.MenuAppear>(out var pop)&&setupStation.gameObject.activeInHierarchy)pop.Replay();candyShownPage=setupPage;}
             bool main=setupPage=="main";
             candySetupHeading.text=setupPage=="modes"?"Game mode":setupPage=="experimental-maps"?"Experimental maps":setupPage=="maps"?"Maps":SettingsOpen?SettingsHeading:"Match";
             foreach(var item in candyMainDecor)item.SetActive(main);
@@ -156,17 +159,28 @@ namespace DeadlyJenga.CastlePrototype
             ready.faceColor=readiness?.LocalReady==true?CandyFace:CandyMint;
             ready.edgeColor=ready.faceColor;
             candyRoomStatus.text=$"{readiness?.ReadyCount??0} of {readiness?.RequiredReadyCount??0}\nREADY";
-            foreach(string id in new[]{"picker-previous","picker-next"})
-            {
-                var rect=(RectTransform)CandyChoice(id).button.transform;
-                rect.anchoredPosition=new Vector2(rect.anchoredPosition.x,setupPage=="modes"?-260:-290);
-            }
+            // Mode cards fill the page, so its page arrows share the bottom row with "Choose map" instead of covering the last card.
+            bool modesPage=setupPage=="modes",paged=PickerPages>1;
+            CandyResize("picker-previous",modesPage?-400:-255,modesPage?-350:-290,modesPage?180:270,50);
+            CandyResize("picker-next",modesPage?400:255,modesPage?-350:-290,modesPage?180:270,50);
+            var confirmChoice=CandyChoice("mode-confirm");float confirmWidth=modesPage&&paged?580:1000;
+            CandyResize("mode-confirm",0,-350,confirmWidth,50);
+            if(confirmChoice?.glyph)confirmChoice.glyph.rectTransform.anchoredPosition=new Vector2(-confirmWidth*.5f+60,0);
             if(candyLastCode!=(lobby.EnteredCode??""))
             {
                 candyLastCode=lobby.EnteredCode??"";
                 for(int i=0;i<candyCodeLetters.Count;i++)
                     candyCodeLetters[i].text=i<candyLastCode.Length?candyLastCode[i].ToString():"";
             }
+        }
+        void CandyResize(string id,float x,float y,float width,float height)
+        {
+            var choice=CandyChoice(id);if(choice==null)return;
+            var rect=(RectTransform)choice.button.transform;
+            if(rect.anchoredPosition==new Vector2(x,y)&&rect.sizeDelta==new Vector2(width,height))return;
+            rect.anchoredPosition=new Vector2(x,y);rect.sizeDelta=new Vector2(width,height);
+            choice.collider.size=new Vector3(width,height,choice.collider.size.z);
+            if(choice.label)choice.label.rectTransform.sizeDelta=new Vector2(Mathf.Max(40,width-44),height-12);
         }
         void CoatCandyCabinets()
         {

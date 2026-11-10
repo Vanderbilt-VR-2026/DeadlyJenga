@@ -19,6 +19,7 @@ namespace DeadlyJenga.CastlePrototype
             else if(mode=="survival"){Line(new Vector2(-25,28),new Vector2(25,28));Line(new Vector2(-25,-28),new Vector2(25,-28));Line(new Vector2(-20,28),new Vector2(20,-28));Line(new Vector2(20,28),new Vector2(-20,-28));}
             else if(mode=="teamtickets"){Line(new Vector2(-25,25),new Vector2(25,25));Line(new Vector2(-25,25),new Vector2(-20,-5));Line(new Vector2(-20,-5),new Vector2(0,-30));Line(new Vector2(0,-30),new Vector2(20,-5));Line(new Vector2(20,-5),new Vector2(25,25));}
             else if(mode=="infection"){Rect(-6,-29,12,58);Rect(-29,-6,58,12);}
+            else if(mode=="ninja"){Rect(-14,-20,28,40);Rect(-18,20,36,6);Rect(-18,-26,36,6);Rect(-2,26,4,8);Line(new Vector2(-14,-6),new Vector2(14,-6));Line(new Vector2(-14,8),new Vector2(14,8));}
             else if(mode=="demo"){for(int i=0;i<4;i++){float a=i*Mathf.PI/4;Line(new Vector2(Mathf.Cos(a),Mathf.Sin(a))*-30,new Vector2(Mathf.Cos(a),Mathf.Sin(a))*30);}}
             else{Rect(-4,-8,8,37);Rect(-4,-28,8,8);}
         }

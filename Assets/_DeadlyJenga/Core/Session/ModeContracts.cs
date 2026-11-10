@@ -4,11 +4,11 @@ using UnityEngine;
 
 namespace DeadlyJenga.Core
 {
-    public enum GameModeKind { Demo, Survival, KingOfHill, BlockControl, CaptureFlag, Infection, TeamTickets, MurderMystery }
+    public enum GameModeKind { Demo, Survival, KingOfHill, BlockControl, CaptureFlag, Infection, TeamTickets, MurderMystery, Ninja }
     public enum IslandRule { Sink, Lethal, Walkable }
     public enum SpawnRule { Top, Rim, TeamPoles }
     public enum RoundPhase { Waiting, Countdown, Playing, Victory, Results }
-    public enum ScoreMetric { SurvivalTime, AverageHeight, CurrentHeight, HillTime, BlocksOwned, TeamPoints, InfectedKills, Eliminations, FlagCaptures, BlocksClaimed, AliveStatus }
+    public enum ScoreMetric { SurvivalTime, AverageHeight, CurrentHeight, HillTime, BlocksOwned, TeamPoints, InfectedKills, Eliminations, FlagCaptures, BlocksClaimed, AliveStatus, LanternPoints }
 
     [Serializable]
     public sealed class ModeRules
@@ -37,6 +37,7 @@ namespace DeadlyJenga.Core
         public bool automaticDisasters = true;
         public float disasterMinInterval = 90, disasterMaxInterval = 120, disasterLateInterval = 60, disasterWarningSeconds = 8;
         public int maxConcurrentDisasters = 2;
+        public float lanternTarget = 45, lanternHoldSeconds = 12, lanternIdleSeconds = 25, gongInterval = 30, gongSeconds = 6;
         public MysterySettings mystery = new MysterySettings();
         public bool downed;
         public ModeRules Copy() => (ModeRules)MemberwiseClone();
@@ -71,7 +72,8 @@ namespace DeadlyJenga.Core
         public string id, name, role = "survivor", spectating;
         public int team = -1, rank, kills, watching;
         public int deaths, captures, flagReturns, blocksClaimed, infections, bodyReports, revives;
-        public float hillSeconds;
+        public float hillSeconds, lanternPoints;
+        public int steals;
         public Color color = Color.white;
         public Color survivorColor;
         public bool alive, bot, local, dying;
@@ -157,6 +159,19 @@ namespace DeadlyJenga.Core
         public BlockClaimFrame[] claims = Array.Empty<BlockClaimFrame>();
         public FlagFrame[] flags = Array.Empty<FlagFrame>();
         public MysteryPublicFrame mystery = new MysteryPublicFrame();
+        public LanternFrame lantern = new LanternFrame();
+    }
+    [Serializable]
+    public sealed class LanternFrame
+    {
+        public bool active;
+        public Vector3 position;
+        public string carrier;
+        public float gongRemaining, gongNextIn, holdRemaining;
+        public int eventSequence;
+        public string eventKind, eventActor, eventVictim;
+        public Vector3 eventPosition;
+        public LanternFrame Copy() => (LanternFrame)MemberwiseClone();
     }
 
     public interface IMatchRuntime

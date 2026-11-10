@@ -22,7 +22,7 @@ namespace DeadlyJenga.Presentation
         }
         void UpdatePickupModel(PickupVisual view)
         {
-            if(!view.model&&EquipmentModelData.Parts.TryGetValue(view.kind,out var parts))
+            if(!view.model&&EquipmentModelData.TryGet(view.kind,out var parts))
             {
                 view.model=new GameObject("Live equipment model").transform;view.model.SetParent(view.root,false);
                 Bounds bounds=default;bool first=true;

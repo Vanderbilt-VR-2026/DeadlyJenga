@@ -13,6 +13,7 @@ namespace DeadlyJenga.Presentation
     {
         public const float LobbyRange = 10f;
         public const float PanelRange = 4f;
+        static readonly Vector3 PalmOffset = new Vector3(0, 0, .025f);   // matches CandyPlayerStyle.controllerPalmOffset
 
         public struct Sample
         {
@@ -54,10 +55,13 @@ namespace DeadlyJenga.Presentation
                     isRight |= usage == CommonUsages.RightHand;
                 }
                 if (!isLeft && !isRight) continue;
-                var position = controller.TryGetChildControl<Vector3Control>("pointerPosition") ?? controller.devicePosition;
+                // Aim direction comes from the pointer pose, but the ray starts at the visible hand (grip + palm),
+                // the same origin weapons fire from. Close menus (pause, item pages) then line up with where the hand points.
                 var rotation = controller.TryGetChildControl<QuaternionControl>("pointerRotation") ?? controller.deviceRotation;
                 var direction = space.TransformDirection(rotation.ReadValue() * Vector3.forward);
-                var start = space.TransformPoint(position.ReadValue());
+                var grip = controller.deviceRotation.ReadValue();
+                if (grip == default) grip = Quaternion.identity;
+                var start = space.TransformPoint(controller.devicePosition.ReadValue() + grip * PalmOffset);
                 if (!((start - camera.transform.position).sqrMagnitude < 9) ||
                     !(direction.sqrMagnitude > .5f && direction.sqrMagnitude < 2)) continue;
                 bool held = trigger.ReadValue() >= .65f;
@@ -195,11 +199,93 @@ namespace DeadlyJenga.Presentation
         }
     }
 
+    // Laser beam plus an exact hit cursor for every VR menu. The cursor sits on the ray's hit point,
+    // faces the eye and keeps the same angular size at any distance.
     sealed class MenuLaser : MonoBehaviour
     {
         readonly LineRenderer[] beams = new LineRenderer[2];
+        readonly Transform[] cores = new Transform[2], rims = new Transform[2];
         readonly int[] shownFrames = { -1, -1 };
-        Material material, ownedMaterial;
+        Material material, ownedMaterial, coreMaterial, rimMaterial;
+        static Mesh disc;
+        static int hoverFrame = -1, pressFrame = -1;
+        int lastHand;
+
+        // Called by menus that know the ray is over a clickable control this frame.
+        internal static void MarkHover(bool pressed)
+        {
+            hoverFrame = Time.frameCount;
+            if (pressed) pressFrame = Time.frameCount;
+        }
+
+        static Mesh Disc()
+        {
+            if (disc) return disc;
+            const int n = 28;
+            var v = new Vector3[n + 1];
+            var tris = new int[n * 3];
+            for (int i = 0; i < n; i++)
+            {
+                float a = i * Mathf.PI * 2 / n;
+                v[i + 1] = new Vector3(Mathf.Cos(a), Mathf.Sin(a)) * .5f;
+                tris[i * 3] = 0; tris[i * 3 + 1] = i + 1; tris[i * 3 + 2] = i == n - 1 ? 1 : i + 2;
+            }
+            disc = new Mesh { name = "Menu cursor disc", vertices = v, triangles = tris };
+            disc.RecalculateBounds();
+            return disc;
+        }
+
+        Transform Dot(string name, Material mat)
+        {
+            var go = new GameObject(name);
+            go.transform.SetParent(transform, false);
+            go.AddComponent<MeshFilter>().sharedMesh = Disc();
+            var r = go.AddComponent<MeshRenderer>();
+            r.sharedMaterial = mat;
+            r.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+            r.receiveShadows = false;
+            return go.transform;
+        }
+
+        Material DotMaterial(Color color)
+        {
+            var shader = Shader.Find("Universal Render Pipeline/Unlit");
+            if (!shader) return null;
+            var m = new Material(shader) { renderQueue = 3150, color = color };
+            m.SetFloat("_Cull", 0);
+            return m;
+        }
+
+        void ShowDot(int hand, Ray ray, float distance)
+        {
+            if (!coreMaterial)
+            {
+                coreMaterial = DotMaterial(Color.white);
+                rimMaterial = DotMaterial(new Color(.05f, .06f, .12f));
+            }
+            if (!cores[hand])
+            {
+                rims[hand] = Dot(hand == 0 ? "Left menu cursor rim" : "Right menu cursor rim", rimMaterial);
+                cores[hand] = Dot(hand == 0 ? "Left menu cursor" : "Right menu cursor", coreMaterial);
+            }
+            var eye = transform.position;
+            var point = ray.GetPoint(distance);
+            var toPoint = point - eye;
+            float range = toPoint.magnitude;
+            if (range < .05f) return;
+            var dir = toPoint / range;
+            bool hover = hoverFrame >= Time.frameCount - 1 && hand == lastHand;
+            bool press = pressFrame >= Time.frameCount - 6 && hand == lastHand;
+            float size = range * (hover ? .017f : .011f) * (press ? .8f : 1);
+            var facing = Quaternion.LookRotation(dir);
+            cores[hand].SetPositionAndRotation(point - dir * Mathf.Min(.012f, distance * .5f), facing);
+            cores[hand].localScale = Vector3.one * size;
+            rims[hand].SetPositionAndRotation(point - dir * Mathf.Min(.008f, distance * .4f), facing);
+            rims[hand].localScale = Vector3.one * size * 1.5f;
+            coreMaterial.color = press ? new Color(1f, .72f, .55f) : hover ? new Color(.45f, 1f, .8f) : Color.white;
+            cores[hand].gameObject.SetActive(true);
+            rims[hand].gameObject.SetActive(true);
+        }
 
         public void Show(int hand, Ray ray, float distance)
         {
@@ -221,14 +307,16 @@ namespace DeadlyJenga.Presentation
                 beam.sharedMaterial = material;
                 beam.useWorldSpace = true;
                 beam.positionCount = 2;
-                beam.startWidth = .004f;
-                beam.endWidth = .002f;
+                beam.startWidth = .005f;
+                beam.endWidth = .0025f;
                 beam.startColor = beam.endColor = new Color(.45f, 1f, .8f);
                 beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 beam.receiveShadows = false;
             }
             shownFrames[hand] = Time.frameCount;
+            lastHand = hand;
             beam.enabled = true;
+            ShowDot(hand, ray, distance);
             beam.SetPosition(0, ray.origin);
             beam.SetPosition(1, ray.GetPoint(distance));
         }
@@ -236,15 +324,26 @@ namespace DeadlyJenga.Presentation
         void LateUpdate()
         {
             for (int hand = 0; hand < beams.Length; hand++)
-                if (beams[hand]) beams[hand].enabled = shownFrames[hand] == Time.frameCount;
+            {
+                bool on = shownFrames[hand] == Time.frameCount;
+                if (beams[hand]) beams[hand].enabled = on;
+                if (cores[hand] && cores[hand].gameObject.activeSelf != on) { cores[hand].gameObject.SetActive(on); rims[hand].gameObject.SetActive(on); }
+            }
         }
 
         void OnDisable()
         {
             foreach (var beam in beams)
                 if (beam) beam.enabled = false;
+            for (int hand = 0; hand < 2; hand++)
+                if (cores[hand]) { cores[hand].gameObject.SetActive(false); rims[hand].gameObject.SetActive(false); }
         }
 
-        void OnDestroy() { if (ownedMaterial) Destroy(ownedMaterial); }
+        void OnDestroy()
+        {
+            if (ownedMaterial) Destroy(ownedMaterial);
+            if (coreMaterial) Destroy(coreMaterial);
+            if (rimMaterial) Destroy(rimMaterial);
+        }
     }
 }

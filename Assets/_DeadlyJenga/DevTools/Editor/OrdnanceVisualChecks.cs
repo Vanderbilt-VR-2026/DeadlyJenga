@@ -109,7 +109,7 @@ namespace DeadlyJenga.DevTools.Editor
                     EquipmentKind.WristLaser,EquipmentKind.Chainsaw,EquipmentKind.SawStaff,EquipmentKind.LaserAxe,EquipmentKind.Dagger};
                 for(int i=0;i<kinds.Length;i++)
                 {
-                    var kind=kinds[i];Check(EquipmentModelData.Parts.TryGetValue(kind,out var parts)&&parts.Any(x=>x.mesh.name.StartsWith("Foundry")),kind+" uses new authored mesh in production pickup cache");
+                    var kind=kinds[i];Check(EquipmentModelData.TryGet(kind,out var parts)&&parts.Any(x=>x.mesh.name.StartsWith("Foundry")),kind+" uses new authored mesh in production pickup cache");
                     Check(parts.Length<=9&&parts.All(x=>x.mesh&&x.material&&x.mesh.vertexCount>0),kind+" shares bounded textured material groups");
                     var root=new GameObject(kind.ToString()).transform;root.SetParent(stage.transform,false);
                     root.position=new Vector3(350+(i%3-1)*1.85f,25+(1-i/3)*1.2f,350);

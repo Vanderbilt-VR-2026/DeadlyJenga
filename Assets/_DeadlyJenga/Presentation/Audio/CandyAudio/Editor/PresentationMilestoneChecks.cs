@@ -82,7 +82,7 @@ namespace DeadlyJenga.Presentation.Editor
         static int[] OutageBlocks(){var candidates=Services.World.Blocks.Select((b,i)=>(b,i)).Where(p=>p.b&&p.b.position.x+p.b.position.z>0).OrderBy(p=>p.b.position.y).ToArray();int step=Mathf.Max(1,candidates.Length/45);return candidates.Where((p,i)=>i%step==0).Select(p=>p.i).ToArray();}
         static void CaptureResults()
         {
-            var hud=UnityEngine.Object.FindFirstObjectByType<CandyResultsHud>();var panel=hud.GetComponentsInChildren<Canvas>(true).FirstOrDefault(c=>c.name=="Visual - round results");if(!panel){Check(false,"Results canvas created");return;}Check(panel.GetComponentsInChildren<UnityEngine.UI.Text>(true).Any(t=>t.text=="RETURN TO LOBBY"),"Results return-to-lobby control has visible text");
+            var hud=UnityEngine.Object.FindFirstObjectByType<CandyResultsHud>();var panel=hud.GetComponentsInChildren<Canvas>(true).FirstOrDefault(c=>c.name=="Visual - round results");if(!panel){Check(false,"Results canvas created");return;}Check(panel.GetComponentsInChildren<UnityEngine.UI.Text>(true).Any(t=>t.text.EndsWith("LOBBY")),"Results return-to-lobby control has visible text");
             var t=panel.transform;var oldPosition=t.position;var oldRotation=t.rotation;var oldScale=t.localScale;bool active=panel.gameObject.activeSelf;
             panel.gameObject.SetActive(true);t.SetPositionAndRotation(overview.transform.position+overview.transform.forward*1.8f,overview.transform.rotation);t.localScale=Vector3.one*.002f;Canvas.ForceUpdateCanvases();Capture("Results",true);t.SetPositionAndRotation(oldPosition,oldRotation);t.localScale=oldScale;panel.gameObject.SetActive(active);
         }

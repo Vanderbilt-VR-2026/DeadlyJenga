@@ -50,7 +50,7 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         var notice=new GameObject("Visual - room notice");notice.transform.SetParent(transform,false);
                         notice.layer=5;
-                        label=notice.AddComponent<TextMesh>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+                        label=notice.AddComponent<TextMesh>();label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
                         var renderer=label.GetComponent<Renderer>();renderer.sharedMaterial=label.font.material;
                         renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;
                         label.anchor=TextAnchor.MiddleCenter;
@@ -79,7 +79,7 @@ namespace DeadlyJenga.CastlePrototype
             return end<0?info.Substring(6):info.Substring(6,end-6);
         }
         public static string LobbyAction(IMultiplayerControls net)
-            => string.IsNullOrEmpty(JoinCode(net))?"Exit to Lobby":net.CanToggleSharedControls?"Return Room to Lobby":"Visit Lobby";
+            => string.IsNullOrEmpty(JoinCode(net))?"Back to lobby":net.CanToggleSharedControls?"End match · everyone to lobby":"Visit lobby";
         static readonly RoomLeaveConfirmation desktopLeave=new RoomLeaveConfirmation();
         public static void ClearLeaveConfirmation()=>desktopLeave.Clear();
         public static string EndAction(IMultiplayerControls net)

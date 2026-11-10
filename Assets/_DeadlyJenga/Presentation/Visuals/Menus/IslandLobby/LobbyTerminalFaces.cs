@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
         void Label(string value,float y,int size,Color color)
         {
             var go=new GameObject(value,typeof(RectTransform),typeof(Text));go.transform.SetParent(rearRect,false);var label=go.GetComponent<Text>();
-            label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.text=value;label.fontSize=size;label.color=color;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;
+            label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;label.text=value;label.fontSize=size;label.color=color;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(560,55);label.rectTransform.anchoredPosition=new Vector2(0,y);
         }
         void LateUpdate()=>Refresh();

@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1080); transform.localScale = Vector3.one * .002f;
+            var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(600, 1080); transform.localScale = Vector3.one * .002f; DeadlyJenga.Presentation.MenuAppear.Attach(gameObject, scale: false);
             sectionGlyphs=new RawImage[buttons.Length];
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.color = CandyHudVisuals.Ink;
             heading=Text("DEADLY JENGA / DEMO\nPoint a controller laser / press its trigger", new Vector2(0, 355), new Vector2(570, 95), 24);
@@ -72,7 +72,7 @@ namespace DeadlyJenga.CastlePrototype
         Text Text(string value, Vector2 position, Vector2 size, int fontSize)
         {
             var go = new GameObject(value, typeof(RectTransform), typeof(Text)); go.transform.SetParent(transform, false);
-            var text = go.GetComponent<Text>(); text.text = value; text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.GetComponent<Text>(); text.text = value; text.font = DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             text.fontSize = fontSize; text.alignment = TextAnchor.MiddleCenter; text.color = Color.white;
             text.resizeTextForBestFit=true;text.resizeTextMinSize=Mathf.Min(18,fontSize);text.resizeTextMaxSize=fontSize;
             text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Truncate;

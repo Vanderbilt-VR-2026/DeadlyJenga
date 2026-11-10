@@ -73,6 +73,7 @@ namespace DeadlyJenga.Modes
                 case "infection":return GameModeKind.Infection;
                 case "teamtickets":case "last-team-standing":return GameModeKind.TeamTickets;
                 case "mystery":case "murder-mystery":return GameModeKind.MurderMystery;
+                case "ninja":case "shadow-lantern":return GameModeKind.Ninja;
                 default:return GameModeKind.Demo;
             }
         }
@@ -147,7 +148,7 @@ namespace DeadlyJenga.Modes
             if(Authority)
             {
                 ruleCache.Clear();
-                TickIsland();TickFlagGravity();
+                TickIsland();TickFlagGravity();TickLanternWorld();
                 TickDisasters();
                 if(Rules.mode!=GameModeKind.Demo&&Time.time>=nextHill){simulation.Hill=HighestSupport();nextHill=Time.time+Rules.hillInterval;}
                 frame=simulation.Snapshot();PublishEnemyActions();
@@ -362,7 +363,9 @@ namespace DeadlyJenga.Modes
             bool carrying=Authority&&simulation.CarriesFlag(id);
             if(!Authority)foreach(var flag in frame.flags)if(flag.carrier==id){carrying=true;break;}
             rules.carryingFlag=carrying;
-            if(carrying){rules.punchEnabled=false;rules.canClimb=false;rules.moveScale=.65f;rules.vaultScale=.55f;}
+            if(carrying&&Rules.mode==GameModeKind.Ninja){rules.punchEnabled=false;rules.moveScale*=.85f;}
+            else if(carrying){rules.punchEnabled=false;rules.canClimb=false;rules.moveScale=.65f;rules.vaultScale=.55f;}
+            if(Rules.mode==GameModeKind.Ninja&&!carrying&&GongSurge&&f.role=="survivor"){rules.moveScale*=1.3f;rules.vaultScale*=1.15f;}
             if(MysteryActive&&(Authority?mystery?.Role(id)==MysteryRole.Murderer:id==LocalActorId&&Personal.role==MysteryRole.Murderer))rules.moveScale*=1.06f;
             if(f.role=="infected"){rules.island=IslandRule.Walkable;rules.punchEnabled=true;rules.punchDamage=enemy?.IsEnemy==true?enemy.HitDamage:100;if(enemy?.ArchetypeId!="gum-brute")rules.punchDistance=2;}
             if(Rules.mode==GameModeKind.MurderMystery&&(Authority?mystery?.IsDowned(id)==true:Array.IndexOf(frame.mystery.downed,id)>=0)){rules.downed=true;rules.punchEnabled=false;rules.canJump=rules.canClimb=rules.canVault=false;rules.moveScale=.18f;if(rules.island!=IslandRule.Walkable)rules.island=IslandRule.Lethal;}
@@ -383,6 +386,6 @@ namespace DeadlyJenga.Modes
             return true;
         }
         static string ModeId(GameModeKind mode)
-        {switch(mode){case GameModeKind.Survival:return "survival";case GameModeKind.KingOfHill:return "hill";case GameModeKind.BlockControl:return "blockcontrol";case GameModeKind.CaptureFlag:return "ctf";case GameModeKind.Infection:return "infection";case GameModeKind.TeamTickets:return "teamtickets";case GameModeKind.MurderMystery:return "mystery";default:return "demo";}}
+        {switch(mode){case GameModeKind.Survival:return "survival";case GameModeKind.KingOfHill:return "hill";case GameModeKind.BlockControl:return "blockcontrol";case GameModeKind.CaptureFlag:return "ctf";case GameModeKind.Infection:return "infection";case GameModeKind.TeamTickets:return "teamtickets";case GameModeKind.MurderMystery:return "mystery";case GameModeKind.Ninja:return "ninja";default:return "demo";}}
     }
 }

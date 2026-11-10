@@ -18,7 +18,7 @@ namespace DeadlyJenga.Presentation
         {
             details=GetComponent<ILobbyDetails>();lobby=GetComponent<ILobbyControls>();session=GetComponent<ISessionInfo>();
             var root=new GameObject("Lobby host notification",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));root.transform.SetParent(transform,false);noticeCanvas=root.GetComponent<Canvas>();noticeCanvas.sortingOrder=50;
-            var go=new GameObject("Host requests",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(root.transform,false);notice=go.GetComponent<Text>();notice.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");notice.fontSize=22;notice.fontStyle=FontStyle.Bold;notice.color=Color.white;notice.alignment=TextAnchor.MiddleCenter;notice.raycastTarget=false;notice.rectTransform.sizeDelta=new Vector2(850,90);notice.rectTransform.anchoredPosition=new Vector2(0,255);go.GetComponent<Outline>().effectColor=new Color(.06f,.02f,.1f,.9f);
+            var go=new GameObject("Host requests",typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(root.transform,false);notice=go.GetComponent<Text>();notice.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;notice.fontSize=22;notice.fontStyle=FontStyle.Bold;notice.color=Color.white;notice.alignment=TextAnchor.MiddleCenter;notice.raycastTarget=false;notice.rectTransform.sizeDelta=new Vector2(850,90);notice.rectTransform.anchoredPosition=new Vector2(0,255);go.GetComponent<Outline>().effectColor=new Color(.06f,.02f,.1f,.9f);
         }
         void Update()
         {

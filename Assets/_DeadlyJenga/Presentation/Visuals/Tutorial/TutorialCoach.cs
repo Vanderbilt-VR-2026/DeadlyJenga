@@ -371,7 +371,7 @@ bool WalkedToRing()
         {
             var go = new GameObject("Text", typeof(RectTransform), typeof(Text));
             go.transform.SetParent(parent, false);
-            var t = go.GetComponent<Text>(); t.text = value; t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var t = go.GetComponent<Text>(); t.text = value; t.font = DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             t.fontSize = fontSize; t.color = color; t.alignment = align; t.raycastTarget = false;
             if (bold) t.fontStyle = FontStyle.Bold;
             t.horizontalOverflow = HorizontalWrapMode.Wrap; t.verticalOverflow = VerticalWrapMode.Overflow;

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "id": "shadow-lantern",
+  "description": "Free-for-all lantern chase. Carriers flee to safe high ground; everyone else hunts the glowing carrier or races to a free lantern. Authoritative proximity owns pickup; arrival never fabricates a grab.",
+  "objectives": [
+    { "id": "survive", "query": "hazard-refuge", "skill": "Guard", "tier": 3, "personal": true, "maximum": 1, "radius": 0.7, "timeout": 30 },
+    { "id": "flee", "query": "escape-routes", "skill": "Travel", "tier": 3, "personal": true, "maximum": 1, "require": [ "carrying-lantern", "threat-near" ], "utility": 3, "radius": 0.5, "timeout": 4 },
+    { "id": "hide", "query": "lantern-escape", "skill": "Travel", "tier": 2, "personal": true, "maximum": 1, "require": [ "carrying-lantern" ], "utility": 2, "radius": 0.8, "timeout": 14, "completeWhen": "visited" },
+    { "id": "repel", "query": "close-threats", "skill": "Attack", "tier": 2, "personal": true, "maximum": 1, "utility": 3.5, "radius": 1.1, "timeout": 10, "retry": 2, "commitment": 1, "exclude": [ "carrying" ] },
+    { "id": "hunt", "query": "lantern-carrier", "skill": "Attack", "tier": 2, "exclude": [ "carrying" ], "minimum": 1, "maximum": 100, "fraction": 0.7, "utility": 4.2, "radius": 1, "timeout": 40 },
+    { "id": "grab", "query": "lantern", "skill": "Travel", "tier": 2, "exclude": [ "carrying" ], "completeWhen": "carrying-lantern", "minimum": 1, "maximum": 100, "utility": 4.5, "radius": 0.6, "timeout": 60 },
+    { "id": "prowl", "query": "patrol", "skill": "Travel", "completeWhen": "visited", "exclude": [ "carrying" ], "maximum": 3, "fraction": 0.2, "utility": 0.3, "radius": 0.8, "timeout": 30 },
+    { "id": "collect-equipment", "query": "pickups", "skill": "Travel", "interaction": "collect-pickup", "completeWhen": "pickup-collected", "tier": 0, "maximum": 1, "utility": 0.45, "radius": 1, "timeout": 25, "retry": 8, "commitment": 2, "exclude": [ "carrying", "threat-near" ] }
+  ]
+}

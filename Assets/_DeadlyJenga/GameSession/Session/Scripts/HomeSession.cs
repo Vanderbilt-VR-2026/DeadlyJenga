@@ -61,7 +61,7 @@ namespace DeadlyJenga.CastlePrototype
             room = IslandRoomConnection.Ensure();
             bool first = !room.Catalog;
             room.Catalog = IslandLobbyCatalog.Runtime(catalog);
-            if (first) room.Region = catalog.defaultRegion;
+            if (first) { room.Region = catalog.defaultRegion; room.DefaultToMode("survival"); }
             if (!showLegacyHomeMenu)
             {
                 AutofillLobby = false;

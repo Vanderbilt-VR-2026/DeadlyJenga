@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
         const int LivePose = 20, LivePoses = 21, PoseReceipt = 22;
         const int PoseWindow = 6, MaxPoseSize = 4096;
-        sealed class Peer { public readonly HashSet<int> posesInFlight = new HashSet<int>(); public int lastPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; public readonly CastleLanProtocol.WorldBaseline baseline=new CastleLanProtocol.WorldBaseline(); }
+        sealed class Peer { public readonly HashSet<int> posesInFlight = new HashSet<int>(); public int lastPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; public string secret; public readonly CastleLanProtocol.WorldBaseline baseline=new CastleLanProtocol.WorldBaseline(); }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -36,7 +36,8 @@ namespace DeadlyJenga.CastlePrototype
         float nextPoseSend;
         readonly HashSet<int> posesInFlight = new HashSet<int>();
 
-        const float FastPoseInterval = 1f / 30, ReliablePoseInterval = .2f;
+        // The reliable copy is only a fallback for lost fast packets; at 5 Hz it crowded the stream that carries world and match updates.
+        const float FastPoseInterval = 1f / 30, ReliablePoseInterval = 1f;
         float nextReliablePose;
         readonly List<byte[]> poseParts = new List<byte[]>();
         static CastleFusionSession fastLane;

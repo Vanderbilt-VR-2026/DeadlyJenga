@@ -22,7 +22,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool PointNavigation(bool pressed)
         {
-            ((RectTransform)backButton.transform).anchoredPosition=new Vector2(-206,510);
+            if(!homeLayout)((RectTransform)backButton.transform).anchoredPosition=new Vector2(-206,510);
             bool available=!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session);
             backButton.gameObject.SetActive(available);
             if(!available)return false;
@@ -125,7 +125,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PointOrganizedMenu(Camera camera,bool pressed)
         {
-            HideDisasterSliders();
+            HideDisasterSliders();homeRows=-1;
             for(int i=0;i<buttons.Length;i++){var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,48);}
             var actions=new System.Collections.Generic.List<Action>();var names=new System.Collections.Generic.List<string>();var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
             void Add(string name,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Key,string caption="",Texture picture=null)
@@ -175,6 +175,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 else
                 {
+                    Add("How to play",()=>{TutorialCoach.Restart();DeadlyJenga.Presentation.CandyRoundCard.Replay();session.SetMenu(false);},icon:CandyHudIcon.Help);
                     Add("Controls & Comfort",()=>DeadlyJenga.Presentation.CandyComfortPanel.Open(session),icon:CandyHudIcon.Settings);
                     if(session.PlayingHand&&HandLooks.Names.Length>0)
                         Add("Hand appearance  ·  "+HandLooks.ChosenName,()=>HandLooks.Chosen++,icon:CandyHudIcon.Hand);
@@ -184,6 +185,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(drop!=null&&!session.PlayingHand&&carried?.Equipment.kind>=EquipmentKind.Blaster)
                         Add("Drop weapon",()=>drop.RequestDropEquipment(),icon:CandyHudIcon.Hand);
                     if(DeadlyJenga.Presentation.MenuAccess.HostTools(session))Add("Host tools",()=>hostTools=true,icon:CandyHudIcon.Settings,caption:"Bots, equipment, map changes and development settings.");
+                    homeRows=names.Count;
                 }
             }
             else if(menuSection<0)
@@ -264,6 +266,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(hover&&!string.IsNullOrEmpty(captions[i]))help.text=captions[i];
                 if(hover&&pressed){actions[i]();break;}
             }
+            if(homeRows>=0)LayoutHome();
         }
         void OpenMenuSection(int index)
         {

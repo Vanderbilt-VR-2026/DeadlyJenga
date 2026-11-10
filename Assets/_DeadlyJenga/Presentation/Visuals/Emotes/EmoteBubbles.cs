@@ -45,7 +45,7 @@ namespace DeadlyJenga.CastlePrototype
             var group = root.AddComponent<CanvasGroup>();
             var label = new GameObject("Text", typeof(RectTransform), typeof(Text));
             label.transform.SetParent(root.transform, false);
-            var t = label.GetComponent<Text>(); t.text = text; t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var t = label.GetComponent<Text>(); t.text = text; t.font = DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             t.fontSize = 36; t.fontStyle = FontStyle.Bold; t.alignment = TextAnchor.MiddleCenter; t.raycastTarget = false;
             t.color = hand != null ? Color.white : CandyHudVisuals.Ink;
             t.rectTransform.sizeDelta = new Vector2(400, 90);

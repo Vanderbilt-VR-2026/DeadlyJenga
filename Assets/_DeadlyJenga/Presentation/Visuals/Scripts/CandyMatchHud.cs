@@ -36,7 +36,7 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<int,int> previousOwners=new Dictionary<int,int>();float flagPulseAt;
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen()=>GameEvents.SessionStarted+=Attach;
-        static void Attach(GameObject go){if(!go.GetComponent<CandyMatchHud>())go.AddComponent<CandyMatchHud>();if(!go.GetComponent<CandyMatchVisuals>())go.AddComponent<CandyMatchVisuals>();if(!go.GetComponent<CandyObjectives>())go.AddComponent<CandyObjectives>();if(!go.GetComponent<CandySeaSpirit>())go.AddComponent<CandySeaSpirit>();}
+        static void Attach(GameObject go){if(!go.GetComponent<CandyMatchHud>())go.AddComponent<CandyMatchHud>();if(!go.GetComponent<CandyMatchVisuals>())go.AddComponent<CandyMatchVisuals>();if(!go.GetComponent<CandyObjectives>())go.AddComponent<CandyObjectives>();if(!go.GetComponent<CandySeaSpirit>())go.AddComponent<CandySeaSpirit>();if(!go.GetComponent<CandyRoundCard>())go.AddComponent<CandyRoundCard>();}
         void Build()
         {
             var go=new GameObject("Visual - match telemetry",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));go.transform.SetParent(transform,false);
@@ -65,7 +65,7 @@ namespace DeadlyJenga.Presentation
         }
         Text Label(string name,Vector2 size,Vector2 position,TextAnchor alignment,int fontSize)
         {
-            var go=new GameObject(name,typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(root,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=fontSize;t.fontStyle=FontStyle.Bold;t.alignment=alignment;t.color=Color.white;t.supportRichText=true;t.raycastTarget=false;t.rectTransform.sizeDelta=size;t.rectTransform.anchoredPosition=position;go.GetComponent<Outline>().effectColor=new Color(.08f,.025f,.14f,.85f);return t;
+            var go=new GameObject(name,typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(root,false);var t=go.GetComponent<Text>();t.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;t.fontSize=fontSize;t.fontStyle=FontStyle.Bold;t.alignment=alignment;t.color=Color.white;t.supportRichText=true;t.raycastTarget=false;t.rectTransform.sizeDelta=size;t.rectTransform.anchoredPosition=position;go.GetComponent<Outline>().effectColor=new Color(.08f,.025f,.14f,.85f);return t;
         }
         // All sources are replicated presentation views or host snapshots; no local scheduling.
         internal static string IncomingDisaster(MatchFrame frame,out float seconds)
@@ -149,6 +149,7 @@ namespace DeadlyJenga.Presentation
             teams.text=text.ToString();
             status.text=f.phase==RoundPhase.Victory?CandyHudContent.Safe(f.winner)+" WINS!":f.phase==RoundPhase.Results?"ROUND RESULTS":CandyHudContent.Mode(f.rules.mode)+"  ·  "+(f.phase==RoundPhase.Countdown?"STARTING · ":"")+CandyHudContent.Clock(f.remaining);
             if(f.phase==RoundPhase.Playing&&(f.rules.mode==GameModeKind.Survival||f.rules.mode==GameModeKind.Infection))status.text+="\n"+f.survivorsLeft+" SURVIVORS REMAIN";
+            if(f.phase==RoundPhase.Playing&&f.rules.mode==GameModeKind.Ninja&&own!=null)status.text+="\nYOU "+Mathf.FloorToInt(own.lanternPoints)+" / "+Mathf.RoundToInt(f.rules.lanternTarget)+(f.lantern.gongRemaining>0?"  ·  BLOOD MOON 2×":"");
             if(!Expanded&&canvas.enabled&&f.phase==RoundPhase.Playing)
             {
                 var next=IncomingDisaster(f,out float seconds);
@@ -157,8 +158,8 @@ namespace DeadlyJenga.Presentation
             }
             else warning.text="";
             CandyHudCards.Visible(board,Expanded);CandyHudCards.Visible(teams,!Expanded&&f.teams.Length>0);CandyHudCards.Visible(status,!Expanded);CandyHudCards.Visible(warning,!Expanded&&!string.IsNullOrEmpty(warning.text));
-            bool showObjective=!Expanded&&own!=null&&f.rules.mode!=GameModeKind.MurderMystery&&
-                (f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode!=GameModeKind.Demo&&Time.unscaledTime<objectiveUntil);
+            bool showObjective=!Expanded&&!CandyRoundCard.Showing&&own!=null&&f.rules.mode!=GameModeKind.MurderMystery&&
+                (f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode==GameModeKind.Ninja&&f.phase==RoundPhase.Playing||f.rules.mode!=GameModeKind.Demo&&Time.unscaledTime<objectiveUntil);
             if(showObjective)UpdateObjective(f,own);
             CandyHudCards.Visible(objective,showObjective);
             if(own!=null)
@@ -244,7 +245,7 @@ namespace DeadlyJenga.Presentation
         }
 
         internal static string StandingsCount(int count, bool curated)
-            => count + (curated ? " COMPETITORS" : " PLAYERS");
+            => count + (curated ? count == 1 ? " COMPETITOR" : " COMPETITORS" : count == 1 ? " PLAYER" : " PLAYERS");
 
         internal static string StandingsPlace(MatchPlayerFrame player, int index, bool curated)
         {
@@ -324,10 +325,19 @@ namespace DeadlyJenga.Presentation
             else if(f.rules.mode==GameModeKind.TeamTickets)text.Append("Each team shares its respawns.\nEliminate rivals; protect your remaining lives.");
             else if(f.rules.mode==GameModeKind.Infection)text.Append(own.role=="infected"?"Tag survivors with a punch.\nInfect everyone before time runs out.":"Avoid infected players.\nEliminated survivors join the infected.");
             else if(f.rules.mode==GameModeKind.Survival)text.Append("Stay above the ocean.\nOutlast the other survivors.");
+            else if(f.rules.mode==GameModeKind.Ninja)text.Append(NinjaObjective(f,own));
             else text.Append("Explore, build and try the sandbox tools.");
             objective.text=text.ToString();
             float height=Mathf.Clamp(objective.preferredHeight+18,flags?92:64,192);
             CandyHudCards.Place(objective,new Vector2(-462,top-height/2),new Vector2(width,height));
+        }
+        static string NinjaObjective(MatchFrame f,MatchPlayerFrame own)
+        {
+            var l=f.lantern;string carrier=null;foreach(var p in f.players)if(p.id==l.carrier){carrier=p.name;break;}
+            string line=l.carrier==own.id?"You hold the lantern. Everyone can see you.\nIt escapes in "+Mathf.CeilToInt(l.holdRemaining)+"s · keep moving!":string.IsNullOrEmpty(l.carrier)?"The lantern is free. Grab it!\nTouch it to take it.":"Hunt "+CandyHudContent.Safe(carrier,18)+".\nAny hit knocks the lantern loose.";
+            if(l.gongRemaining>0)line+="\nBLOOD MOON · "+(l.carrier==own.id?"double points":"you run faster");
+            else line+="\nFirst to "+Mathf.RoundToInt(f.rules.lanternTarget)+" · Blood Moon in "+Mathf.CeilToInt(l.gongNextIn)+"s";
+            return line;
         }
         void Configure()
         {
@@ -348,13 +358,14 @@ namespace DeadlyJenga.Presentation
                 var screen=camera.WorldToViewportPoint(point);
                 if(screen.z<=0||screen.x<0||screen.x>1||screen.y<0||screen.y>1)continue;
                 float distance=Vector3.Distance(camera.transform.position,focus);
-                if(competitive&&distance>15||teamMode&&distance>65)continue;
+                bool lanternBearer=f.rules.mode==GameModeKind.Ninja&&p.id==f.lantern.carrier;
+                if(competitive&&distance>(lanternBearer?80:f.rules.mode==GameModeKind.Ninja?7:15)||teamMode&&distance>65)continue;
                 bool visible=NameVisible(focus,root);
                 if(visible)plateSeen[p.id]=Time.unscaledTime;
-                if(!teamMode&&!visible&&(competitive||!plateSeen.TryGetValue(p.id,out float seen)||Time.unscaledTime-seen>2))continue;
+                if(!teamMode&&!visible&&!lanternBearer&&(competitive||!plateSeen.TryGetValue(p.id,out float seen)||Time.unscaledTime-seen>2))continue;
                 shown++;active.Add(p.id);
                 if(!plates.TryGetValue(p.id,out var label)||!label){label=CandyNameplate.Create(transform,"Visual - nameplate");plates[p.id]=label;}
-                label.text=p.name;label.color=teamMode?p.color:Color.white;label.transform.position=point;label.transform.rotation=Quaternion.LookRotation(label.transform.position-camera.transform.position);label.gameObject.SetActive(true);
+                label.text=lanternBearer?"◆ "+p.name+" ◆":p.name;label.color=teamMode?p.color:lanternBearer?new Color(1,.78f,.45f):Color.white;label.transform.position=point;label.transform.rotation=Quaternion.LookRotation(label.transform.position-camera.transform.position);label.gameObject.SetActive(true);
                 CandyNameplate.RefreshShadow(label);
             }
             remove.Clear();foreach(var pair in plates)if(!active.Contains(pair.Key)){if(pair.Value)pair.Value.gameObject.SetActive(false);if(!Contains(f.players,pair.Key))remove.Add(pair.Key);}
@@ -375,6 +386,7 @@ namespace DeadlyJenga.Presentation
             {
                 var focus=CandyHudContent.FocusedFlag(f,own,FlagFocusIndex);
                 if(f.rules.mode==GameModeKind.KingOfHill)Marker(f.hill,new Color(1,.78f,.15f),"HILL");
+                if(f.rules.mode==GameModeKind.Ninja&&f.lantern.active&&f.lantern.carrier!=own.id)Marker(f.lantern.position+Vector3.up*.6f,new Color(1,.62f,.3f),string.IsNullOrEmpty(f.lantern.carrier)?"SPIRIT LANTERN":"STEAL IT");
                 foreach(var flag in f.flags)
                 {
                     if(f.rules.mode==GameModeKind.CaptureFlag&&flag.team!=own.team&&flag!=focus)continue;

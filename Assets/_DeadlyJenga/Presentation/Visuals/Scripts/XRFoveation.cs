@@ -8,7 +8,7 @@ namespace DeadlyJenga.Presentation
     // Needs the OpenXR "Foveated Rendering" feature with the SRP foveation method (set in project settings).
     public sealed class XRFoveation : MonoBehaviour
     {
-        [Range(0, 1)] public float level = 1;   // Quest: 0.25 low, 0.5 medium, 0.75 high, 1 high-top
+        [Range(0, 1)] public float level = .5f;   // Quest: 0.25 low, 0.5 medium, 0.75 high, 1 high-top (top band visibly soft)
         readonly List<XRDisplaySubsystem> displays = new List<XRDisplaySubsystem>();
         float nextCheck;
 

@@ -140,7 +140,7 @@ namespace DeadlyJenga.CastlePrototype
                 var area = button.GetComponent<RectTransform>(); area.sizeDelta = new Vector2(138, 66); area.anchoredPosition = new Vector2(-444 + i * 148, -375); controls[i] = area;
                 button.GetComponent<Image>().color = CandyHudVisuals.Ink;
                 var label = new GameObject("Label", typeof(RectTransform), typeof(Text)); label.layer = 5; label.transform.SetParent(button.transform, false);
-                var text = label.GetComponent<Text>(); text.text = names[i]; text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf"); text.fontSize = 26; text.alignment = TextAnchor.MiddleCenter; text.color = Color.white;
+                var text = label.GetComponent<Text>(); text.text = names[i]; text.font = DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont; text.fontSize = 26; text.alignment = TextAnchor.MiddleCenter; text.color = Color.white;
                 text.rectTransform.sizeDelta = area.sizeDelta;
             }
         }

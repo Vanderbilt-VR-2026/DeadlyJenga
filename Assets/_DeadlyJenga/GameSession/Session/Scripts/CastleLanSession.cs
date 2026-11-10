@@ -58,7 +58,6 @@ namespace DeadlyJenga.CastlePrototype
         bool worldSettled;
         readonly List<int> moving = new List<int>();
         float worldInterval = .1f;   // smoothed time between world updates; blocks glide across it
-        P.Pose[] previousBlocks;
         INetworkPreview localPreview;
         string displayName;
         bool oldRunInBackground;
@@ -228,7 +227,7 @@ namespace DeadlyJenga.CastlePrototype
         public void FusionApplyWorld(byte[] data)
         {
             var snapshot=P.IsWorldDelta(data)?P.DecodeWorldDelta(data,targetWorld):P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
-            if(receivedWorld&&dt>.01f&&dt<1)worldInterval=Mathf.Lerp(worldInterval,dt,.3f);
+            if(receivedWorld&&dt>.01f&&dt<1){worldJitter=Mathf.Lerp(worldJitter,Mathf.Abs(dt-worldInterval),.2f);worldInterval=Mathf.Lerp(worldInterval,dt,.2f);}
             if(targetWorld!=null&&targetWorld.revision==snapshot.revision&&targetWorld.blocks.Length==snapshot.blocks.Length&&dt>.01f&&dt<1)
             {migrationVelocity=new Vector3[snapshot.blocks.Length];migrationAngular=new Vector3[snapshot.blocks.Length];for(int i=0;i<snapshot.blocks.Length;i++)
                 {migrationVelocity[i]=Vector3.ClampMagnitude((snapshot.blocks[i].position-targetWorld.blocks[i].position)/dt,60);
@@ -589,19 +588,17 @@ namespace DeadlyJenga.CastlePrototype
                     throw new InvalidDataException("Demo layouts do not match");
                 hostRevision = s.revision;
                 w.SetReplica(true);
-                previousBlocks = new P.Pose[World.Blocks.Count];
             }
             var blocks = World.Blocks;
             if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
-            moving.Clear();
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
-                previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
                 if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
-                // Only blocks that actually moved get touched each frame; resting ones stay untouched.
-                if (rebuild || previousBlocks[i].position != s.blocks[i].position || previousBlocks[i].rotation != s.blocks[i].rotation) moving.Add(i);
+                if (rebuild) { b.position = s.blocks[i].position; b.rotation = s.blocks[i].rotation; }
             }
+            if (rebuild) { worldSamples.Clear(); moving.Clear(); segmentFrom = segmentTo = null; }
+            PushWorldSample(s.blocks);
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime; worldSettled = false;
             var present = new HashSet<string>();
             foreach(var actor in s.actors)
@@ -623,16 +620,48 @@ namespace DeadlyJenga.CastlePrototype
                 requested = null; session.SetMenu(false);
             }
         }
+        // World updates reach clients unevenly (each one waits for the previous to be acknowledged).
+        // Blocks are drawn a short, adaptive delay in the past and interpolated between buffered updates,
+        // so motion stays continuous instead of gliding to each update and stopping until the next.
+        sealed class WorldSample { public float time; public P.Pose[] blocks; }
+        readonly List<WorldSample> worldSamples = new List<WorldSample>();
+        WorldSample segmentFrom, segmentTo;
+        float worldJitter;
+        void PushWorldSample(P.Pose[] blocks)
+        {
+            float now = Time.unscaledTime;
+            var last = worldSamples.Count > 0 ? worldSamples[worldSamples.Count - 1] : null;
+            if (last != null && now - last.time < .001f) { last.blocks = blocks; return; }
+            if (last != null && now - last.time > 1.5f) { worldSamples.Clear(); worldSamples.Add(new WorldSample { time = now - .001f, blocks = last.blocks }); }
+            worldSamples.Add(new WorldSample { time = now, blocks = blocks });
+            if (worldSamples.Count > 8) worldSamples.RemoveAt(0);
+        }
+        float WorldDelay => Mathf.Clamp(worldInterval * 1.15f + worldJitter * 2f, .06f, .45f);
         void InterpolateWorld()
         {
-            if (targetWorld == null || worldSettled) return;
-            float t = Mathf.Clamp01((Time.unscaledTime - worldAt) / Mathf.Clamp(worldInterval, .05f, .5f));
-            worldSettled = t >= 1;
+            if (worldSamples.Count == 0) return;
+            float at = Time.unscaledTime - WorldDelay;
+            while (worldSamples.Count > 2 && worldSamples[1].time <= at) worldSamples.RemoveAt(0);
+            var from = worldSamples[0];
+            var to = worldSamples.Count > 1 && at > from.time ? worldSamples[1] : from;
+            var blocks = World.Blocks;
+            if (!ReferenceEquals(from, segmentFrom) || !ReferenceEquals(to, segmentTo))
+            {
+                // Blocks that were gliding land exactly on the new segment's start before it begins.
+                foreach (int i in moving) if (i < blocks.Count && blocks[i]) { blocks[i].position = from.blocks[i].position; blocks[i].rotation = from.blocks[i].rotation; }
+                moving.Clear();
+                if (!ReferenceEquals(from, to))
+                    for (int i = 0; i < blocks.Count && i < from.blocks.Length && i < to.blocks.Length; i++)
+                        if (from.blocks[i].position != to.blocks[i].position || from.blocks[i].rotation != to.blocks[i].rotation) moving.Add(i);
+                segmentFrom = from; segmentTo = to;
+            }
+            if (moving.Count == 0) return;
+            float u = ReferenceEquals(from, to) ? 1 : Mathf.Clamp01(Mathf.InverseLerp(from.time, to.time, at));
             foreach (int i in moving)
             {
-                var b = World.Blocks[i]; var p = targetWorld.blocks[i];
-                b.position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
-                b.rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
+                var b = blocks[i]; if (!b) continue;
+                b.position = Vector3.Lerp(from.blocks[i].position, to.blocks[i].position, u);
+                b.rotation = Quaternion.Slerp(from.blocks[i].rotation, to.blocks[i].rotation, u);
             }
         }
         void ApplyOwnHandFeedback(P.Actor actor)

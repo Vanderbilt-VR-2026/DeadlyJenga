@@ -112,7 +112,7 @@ namespace DeadlyJenga.Presentation
             var image=card.GetComponent<Image>();image.color=Background;image.sprite=Wash(alignment==TextAnchor.MiddleCenter);image.type=Image.Type.Sliced;image.raycastTarget=false;
             var rect=card.GetComponent<RectTransform>();rect.sizeDelta=size;rect.anchoredPosition=position;
             var go=new GameObject("Text",typeof(RectTransform),typeof(Text));go.transform.SetParent(card.transform,false);
-            var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.fontSize=font;text.lineSpacing=1.08f;text.fontStyle=FontStyle.Bold;
+            var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;text.fontSize=font;text.lineSpacing=1.08f;text.fontStyle=FontStyle.Bold;
             text.color=Ink;text.alignment=alignment;text.supportRichText=true;text.raycastTarget=false;text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Truncate;
             text.rectTransform.anchorMin=Vector2.zero;text.rectTransform.anchorMax=Vector2.one;text.rectTransform.offsetMin=new Vector2(12,8);text.rectTransform.offsetMax=new Vector2(-12,-8);
             return text;

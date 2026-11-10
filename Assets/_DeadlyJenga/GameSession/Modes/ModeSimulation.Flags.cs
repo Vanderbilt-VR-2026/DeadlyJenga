@@ -15,7 +15,7 @@ namespace DeadlyJenga.Modes
             if(Rules.mode!=GameModeKind.CaptureFlag||homes==null)return;
             for(int t=0;t<Mathf.Min(teams.Count,homes.Length);t++)flags.Add(new FlagFrame{team=t,home=homes[t],position=homes[t],atHome=true});
         }
-        public bool CarriesFlag(string id) {foreach(var f in flags)if(f.carrier==id)return true;return false;}
+        public bool CarriesFlag(string id) {if(CarriesLantern(id))return true;foreach(var f in flags)if(f.carrier==id)return true;return false;}
         public void PlaceDroppedFlag(int team,Vector3 position)
         {
             if(team<0||team>=flags.Count)return;
@@ -23,6 +23,7 @@ namespace DeadlyJenga.Modes
         }
         void DropFlags(string id)
         {
+            DropLantern(id,"knock");
             var p=Find(id);
             foreach(var f in flags)if(f.carrier==id){f.position=p?.frame.position??f.position;f.carrier=null;f.atHome=false;}
         }
@@ -68,7 +69,7 @@ namespace DeadlyJenga.Modes
         }
         public bool Shielded(string id,Vector3 attackDirection)
         {
-            var p=Find(id);if(p==null||!CarriesFlag(id))return false;
+            var p=Find(id);if(p==null||NinjaRound||!CarriesFlag(id))return false;
             var forward=p.frame.viewRotation*Vector3.forward;
             return Vector3.Dot(Vector3.ProjectOnPlane(-attackDirection,Vector3.up).normalized,Vector3.ProjectOnPlane(forward,Vector3.up).normalized)>=.5f;
         }

@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         const int MatchState=12, ModeCommand=13, ModeOutcome=14, MysterySecret=15, MysteryTrails=16;
         MatchModeRuntime modeRuntime;
-        byte[] matchPacket;
+        byte[] matchPacket;string matchJson;
         float nextMatch;
         [Serializable] sealed class OutcomePacket
         { public EliminationOutcome outcome; public Vector3 position; public Quaternion rotation; public string role; }
@@ -38,11 +38,14 @@ namespace DeadlyJenga.CastlePrototype
             ConnectModes();
             if(!IsHost||!modeRuntime||Time.unscaledTime<nextMatch)return;
             nextMatch=Time.unscaledTime+.2f;
-            matchPacket=CastleFusionWire.Compress(Encoding.UTF8.GetBytes(modeRuntime.CaptureFrameJson()));
+            // Unchanged frames keep the same packet, so peers are not sent a duplicate over the reliable stream.
+            string frame=modeRuntime.CaptureFrameJson();
+            if(frame!=matchJson){matchJson=frame;matchPacket=CastleFusionWire.Compress(Encoding.UTF8.GetBytes(frame));}
             if(modeRuntime.Active)foreach(var pair in peers)if(pair.Value.ready)
             {
-                Send(pair.Key,MysterySecret,Encoding.UTF8.GetBytes(modeRuntime.CaptureSecret(pair.Key.ToString())));
-                var peer=pair.Value;if(peer.mysteryRound!=modeRuntime.TrailRound){peer.mysteryRound=modeRuntime.TrailRound;peer.trailCount=0;}
+                var peer=pair.Value;
+                string secret=modeRuntime.CaptureSecret(pair.Key.ToString());
+                if(secret!=peer.secret){peer.secret=secret;Send(pair.Key,MysterySecret,Encoding.UTF8.GetBytes(secret));}if(peer.mysteryRound!=modeRuntime.TrailRound){peer.mysteryRound=modeRuntime.TrailRound;peer.trailCount=0;}
                 for(int i=0;i<2&&(peer.trailCount<modeRuntime.Trails.Count||i==0&&peer.trailCount==0);i++)
                 {int count=Mathf.Min(64,modeRuntime.Trails.Count-peer.trailCount);Send(pair.Key,MysteryTrails,Encoding.UTF8.GetBytes(modeRuntime.CaptureTrails(peer.trailCount)));peer.trailCount+=count;}
             }

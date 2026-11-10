@@ -98,7 +98,7 @@ namespace DeadlyJenga.CastlePrototype
             var go = new GameObject("Label", typeof(RectTransform), typeof(Text));
             go.layer = 5;
             go.transform.SetParent(parent, false);
-            var t = go.GetComponent<Text>(); t.text = value; t.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var t = go.GetComponent<Text>(); t.text = value; t.font = DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             t.fontSize = size; t.alignment = TextAnchor.MiddleCenter; t.color = Color.white; t.raycastTarget = false;
             t.rectTransform.sizeDelta = new Vector2(170, 70);
             return t;

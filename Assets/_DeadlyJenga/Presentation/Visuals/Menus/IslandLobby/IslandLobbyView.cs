@@ -51,6 +51,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildWardrobe();
             BuildTVWall();
             BuildMayhemMarina();
+            LobbyArrivalFade.Begin(Player.ViewCamera,()=>lobby==null||lobby.Connected);
         }
         void BuildIsland()
         {
@@ -72,23 +73,9 @@ namespace DeadlyJenga.CastlePrototype
             lobby.SetFloor(sand.GetComponent<MeshFilter>().sharedMesh,sand.transform);   // the lobby makes the floor collider
         }
         TextMesh lobbyAimDot;
-        void DrawLobbyAim(Ray ray,float distance,bool hit)
+        void DrawLobbyAim(Ray ray,float distance,bool pressed)
         {
-            if(!Player.IsVR){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
-            if(!lobbyAimDot)
-            {
-                lobbyAimDot=new GameObject("Lobby controller cursor").AddComponent<TextMesh>();
-                lobbyAimDot.transform.SetParent(transform,false);
-                lobbyAimDot.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                lobbyAimDot.GetComponent<Renderer>().sharedMaterial=lobbyAimDot.font.material;
-                lobbyAimDot.anchor=TextAnchor.MiddleCenter;
-                lobbyAimDot.fontSize=48;
-            }
-            lobbyAimDot.gameObject.SetActive(true);
-            lobbyAimDot.text=hit?"●":"·";
-            lobbyAimDot.color=hit?CandyHudVisuals.Mint:Color.white;
-            lobbyAimDot.characterSize=.009f*distance;
-            lobbyAimDot.transform.SetPositionAndRotation(ray.GetPoint(distance-.015f),Quaternion.LookRotation(ray.direction));
+            if(Player.IsVR)MenuLaser.MarkHover(pressed);   // the menu laser draws the exact hit cursor
         }
         bool controlsMenuWasOpen;
         void Update()
@@ -179,10 +166,25 @@ namespace DeadlyJenga.CastlePrototype
                 if(nearest.physical)UpdatePhysicalKey(nearest,true);
                 PaintCandyChoice(nearest,true,true);
                 if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
-                else if(pressed)InvokeChoice(nearest.id);
+                else if(pressed&&InvokeChoice(nearest.id)){DeadlyJenga.CandyAudio.CandyAudioControls.PlayUiClick(nearest.button.transform.position);if(Player.IsVR)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.35f,.05f);}
             }
-            if(nearest!=null)DrawLobbyAim(ray,distance,true);
+            AnimateChoices(nearest,pressed||held);
+            if(nearest!=null)DrawLobbyAim(ray,distance,pressed);
             else if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
+        }
+        // Hovered candy buttons lift slightly and dip when pressed; a light tick on the controller when hover moves.
+        Choice hoveredChoice;
+        void AnimateChoices(Choice nearest,bool down)
+        {
+            if(nearest!=hoveredChoice){hoveredChoice=nearest;if(nearest!=null&&Player.IsVR)DeadlyJenga.CandyAudio.CandyFeedback.Pulse(.12f,.03f);}
+            float k=1-Mathf.Exp(-18*Time.unscaledDeltaTime);
+            foreach(var choice in choices)
+            {
+                if(!choice.candy||!choice.button||!choice.button.gameObject.activeInHierarchy)continue;
+                float target=choice==nearest?(down||Time.unscaledTime<choice.pressedUntil?.97f:1.035f):1;
+                var item=choice.button.transform;float scale=item.localScale.x;if(Mathf.Approximately(scale,target))continue;
+                scale=Mathf.Abs(scale-target)<.002f?target:Mathf.Lerp(scale,target,k);item.localScale=new Vector3(scale,scale,1);
+            }
         }
         void OnGUI()
         {
