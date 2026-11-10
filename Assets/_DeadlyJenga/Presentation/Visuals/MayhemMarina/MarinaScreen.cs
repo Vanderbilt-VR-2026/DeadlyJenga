@@ -122,8 +122,8 @@ namespace DeadlyJenga.CandyArt.Marina
             };
             var pixels=new Color[width*height];
             var grain=new System.Random(1917);
-            var edge=new Color(.09f,.025f,.12f,1);
-            var center=new Color(.22f,.07f,.23f,1);
+            var edge=new Color(.16f,.045f,.18f,1);
+            var center=new Color(.28f,.09f,.28f,1);
             for(int y=0;y<height;y++)
             for(int x=0;x<width;x++)
             {

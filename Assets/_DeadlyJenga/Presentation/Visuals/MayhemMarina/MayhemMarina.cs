@@ -129,7 +129,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var probe=probeObject.AddComponent<ReflectionProbe>();probe.mode=ReflectionProbeMode.Realtime;probe.refreshMode=ReflectionProbeRefreshMode.ViaScripting;probe.timeSlicingMode=ReflectionProbeTimeSlicingMode.IndividualFaces;probe.resolution=256;probe.size=new Vector3(56,24,65);probe.boxProjection=true;probe.intensity=.8f;probe.nearClipPlane=.3f;probe.farClipPlane=250;probe.clearFlags=ReflectionProbeClearFlags.Skybox;reflection=probe;StartCoroutine(CaptureReflection());
             var amber = new Color(1, .68f, .34f);
             var cool = new Color(.35f, .78f, 1);
-            Accent("Play Pavilion", new Vector3(0, 4.7f, 7), amber, 3.5f, 8);
+            Accent("Play Pavilion", new Vector3(0, 4.7f, 7), new Color(1,.96f,.91f), 2.4f, 8);
             Accent("Style", new Vector3(-13, 3.5f, 8.6f), new Color(1, .79f, .61f), 3, 6);
             Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
             Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
