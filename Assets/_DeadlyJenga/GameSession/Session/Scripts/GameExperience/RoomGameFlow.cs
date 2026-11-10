@@ -233,7 +233,8 @@ namespace DeadlyJenga.CastlePrototype
                 Begin(GameFlowEffect.ChooseProfile, GameFlowPhase.Choosing, data.timings.profileTimeout);
             else if (data.phase == GameFlowPhase.Selected && data.remaining == 0)
                 data.phase = GameFlowPhase.WaitingReady;
-            else if (data.phase == GameFlowPhase.WaitingReady && (everyoneReady || data.playerPlaylist) && eligible && humans > 0 && (data.automatic || data.startRequested))
+            else if (data.phase == GameFlowPhase.WaitingReady && (everyoneReady || data.playerPlaylist && (data.round>0 ||
+                Array.TrueForAll(data.humanIds,id=>Array.IndexOf(data.playlistIds,id)>=0))) && eligible && humans > 0 && (data.automatic || data.startRequested))
             { checked { data.round++; } data.launchIds=(string[])data.humanIds.Clone(); ClearReady(); Begin(GameFlowEffect.LoadGame, GameFlowPhase.LoadingGame, data.timings.sceneTimeout); }
             else if (data.phase == GameFlowPhase.Results && data.automatic && data.remaining == 0)
                 Begin(GameFlowEffect.ReturnLobby, GameFlowPhase.LoadingLobby, data.timings.sceneTimeout);

@@ -221,7 +221,12 @@ namespace DeadlyJenga.Modes
                 foreach (var p in Sim.CombatParticipants)
                 {
                     if (p == self || !p.present || !p.frame.alive || p.frame.dying || p.frame.role == "hand" || p.frame.role == "spectator" || p.frame.role == "downed") continue;
-                    if(owner.Rules.mode==GameModeKind.Demo&&owner.FindActor(p.frame.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true)continue;
+                    if (owner.Rules.mode == GameModeKind.Demo)
+                    {
+                        bool close = (p.frame.position - actor.position).sqrMagnitude <= 18 * 18;
+                        if ((!owner.Rules.punchEnabled || !close) &&
+                            owner.FindActor(p.frame.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy != true) continue;
+                    }
                     bool infection = owner.Rules.mode == GameModeKind.Infection||owner.FindActor(actor.id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy==true;
                     if (infection ? (p.frame.role == "infected") == (self.frame.role == "infected") : ModeSimulation.TeamMode(owner.Rules.mode)&&p.frame.team == actor.team) continue;
                     bool publicBlip = infection && (self.frame.role != "infected" || survivors <= 2);

@@ -232,7 +232,7 @@ namespace DeadlyJenga.CastlePrototype
             var equipped=equipmentControls?.Equipment;
             bool flyingSuit=!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn;
             if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}
-            UpdateSprintToggle(sprintInput&&!flyingSuit&&Alive&&!Climbing&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
+            UpdateSprintToggle(sprintInput&&!flyingSuit&&Alive&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
                 sprintClick,sprintHeld);
             UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
@@ -277,7 +277,6 @@ namespace DeadlyJenga.CastlePrototype
             if (UpdateClimb(Vector2.ClampMagnitude(input,1),canClimbNow,dt))
             {
                 sinkVaultPending = false;
-                ClearSprint();
                 return;
             }
             if (Vaulting) { ClearSprint();AdvanceVault(dt); return; }

@@ -32,7 +32,14 @@ namespace DeadlyJenga.CastleSocial
         int roundSpeechEpoch;
         System.Random dialogueChance;
 
-        bool ContextualSpeech => OnDevice && OnDevice.Requested;
+        bool ContextualSpeech => OnDevice && OnDevice.Requested || Speech && Speech.ContextualBundled;
+        bool ContextualSpeechReady => OnDevice && OnDevice.Requested ? OnDevice.Ready : Speech && Speech.ContextualBundled;
+
+        void SpeakObservation(SocialIdentity speaker, ObservedSpeech observation)
+        {
+            if (OnDevice && OnDevice.Requested) OnDevice.QueueObserved(speaker, observation);
+            else Speech.SpeakObserved(speaker, observation);
+        }
         internal int RoundSpeechEpoch => roundSpeechEpoch;
 
         void SubscribeToObservations()
@@ -75,7 +82,7 @@ namespace DeadlyJenga.CastleSocial
             recentObservations.Clear();
             nextObservation.Clear();
             objectiveTotals.Clear();
-            if (ContextualSpeech) OnDevice.CancelAll();
+            if (OnDevice && OnDevice.Requested) OnDevice.CancelAll();
         }
 
         void RewindObservations(float seconds) => ResetObservations();
@@ -105,7 +112,7 @@ namespace DeadlyJenga.CastleSocial
 
         void ObserveRewindEnd()
         {
-            if (ContextualSpeech && OnDevice.Ready && IsAuthority && Config.enableBots && Config.enableVoice)
+            if (ContextualSpeechReady && IsAuthority && Config.enableBots && Config.enableVoice)
                 ObservePublic(SocialEventKind.Rewind, "The rewind ended.");
         }
 
@@ -142,7 +149,7 @@ namespace DeadlyJenga.CastleSocial
 
         void ObserveNearby(SocialEventKind kind, Vector3 at, string seen, string sound, GameObject subject, float cooldown)
         {
-            if (!isActiveAndEnabled || !ContextualSpeech || !OnDevice.Ready || !IsAuthority || !Config.enableBots || !Config.enableVoice) return;
+            if (!isActiveAndEnabled || !ContextualSpeechReady || !IsAuthority || !Config.enableBots || !Config.enableVoice) return;
             float now = Time.unscaledTime;
             if (nextObservation.TryGetValue(kind, out float next) && now < next) return;
             nextObservation[kind] = now + cooldown;
@@ -173,7 +180,7 @@ namespace DeadlyJenga.CastleSocial
                 observation.PartnerFact = Observation(partner, at, seen, sound, subject, out bool partnerSaw, out _);
                 observation.PartnerHeardOnly = !partnerSaw;
             }
-            OnDevice.QueueObserved(speaker.State.identity, observation);
+            SpeakObservation(speaker.State.identity, observation);
         }
 
         SocialBotAgent PickPartner(SocialBotAgent speaker, ObservedSpeech turn)
@@ -270,7 +277,7 @@ namespace DeadlyJenga.CastleSocial
             var speaker = Agents.Find(a => CanTalk(a) && a.State.identity.id == speakerId);
             if (!partner || !speaker || (partner.transform.position - speaker.transform.position).sqrMagnitude >
                 VoiceHearingRange * VoiceHearingRange || partner.State.nextSpeech > Time.unscaledTime) return;
-            OnDevice.QueueObserved(partner.State.identity, new ObservedSpeech {
+            SpeakObservation(partner.State.identity, new ObservedSpeech {
                 Kind = turn.Kind,
                 Fact = turn.PartnerFact ?? "I did not witness the event.",
                 HeardFrom = speaker.State.identity.name,

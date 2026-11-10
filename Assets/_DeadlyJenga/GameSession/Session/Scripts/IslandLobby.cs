@@ -139,7 +139,11 @@ namespace DeadlyJenga.CastlePrototype
             }
             else if (outside||feet.y<-.9f) PlaceLocalLobbyArrival();
             var keyboard=Keyboard.current;
-            if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
+            if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)
+            {
+                if (codeFocused) UnfocusCode();
+                else SetMenu(!MenuOpen);
+            }
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
             if(VisitOwner)return;
             HomeSession.ConsumeLobbyEntry(this);
@@ -190,7 +194,7 @@ namespace DeadlyJenga.CastlePrototype
         void OnApplicationFocus(bool value)
         {
             focused=value;
-            if (!MatchResident||VisitOwner) SetMenu(!value||MenuOpen);
+            if (!MatchResident||VisitOwner) SetMenu(MenuOpen);
         }
         public P.Actor Capture(string id)=>P.Capture(id,Player.gameObject.GetComponent<INetworkActor>());
         internal void CaptureLobbyBots(List<P.Actor> actors)

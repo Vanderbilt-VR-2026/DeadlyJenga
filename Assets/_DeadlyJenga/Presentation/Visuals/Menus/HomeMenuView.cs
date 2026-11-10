@@ -96,12 +96,8 @@ namespace DeadlyJenga.Presentation
             mainPage=Node("Home actions",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
             quick=source as IHomeQuickPlayControls;
             entryPage=Node("Choose startup experience",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
-            ActionButton(entryPage.transform,"PLAY","Start a match, join friends or host a lobby",120,()=>ShowPage(mainPage));
+            ActionButton(entryPage.transform,"PLAY","Join or host at the lobby, then press GO",120,controls.RandomLobby);
             ActionButton(entryPage.transform,"DEVELOPER","Open the sandbox lobby with shared developer controls",-10,controls.Demo);
-            ActionButton(mainPage.transform,"QUICK PLAY","Choose a mode and arena, or start a random match",160,()=>ShowQuickPlay());
-            ActionButton(mainPage.transform,"JOIN FRIENDS","Room code or nearby friends",40,()=>ShowJoin(true));
-            ActionButton(mainPage.transform,"HOST LOBBY","Invite friends and choose your first match",-80,controls.Host);
-            ButtonAt(mainPage.transform,"BACK",new Vector2(0,-190),new Vector2(220,52),()=>ShowPage(entryPage));
             quickPage=Node("Quick Play",content,new Vector2(0,-70),new Vector2(620,520)).gameObject;
             BuildQuickPlay();
             joinPage=Node("Join a session",content,new Vector2(0,-65),new Vector2(620,520)).gameObject;
@@ -188,11 +184,12 @@ namespace DeadlyJenga.Presentation
         }
         public void ShowJoin(bool value)
         {
-            ShowPage(value?joinPage:mainPage);
+            ShowPage(value?joinPage:entryPage);
             if(value){code.SetTextWithoutNotify(controls.Code);controls.DetectNearby();nextNearby=0;}
         }
         void Update()
         {
+            if (homeAimBeam) homeAimBeam.enabled = false;
             if(controls==null)return;
             if(!inputFocused){foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
             bool comfortOpen=CandyComfortPanel.HomeShowing(gameObject);
@@ -288,11 +285,15 @@ namespace DeadlyJenga.Presentation
             backdrop.SetVector("_Forward",frame.forward);
             backdrop.SetVector("_Right",frame.right);
         }
+        LineRenderer homeAimBeam;
         void Point()
         {
             if(!eye||MenuAim.InputConsumed)return;
             bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
-            var ray=MenuAim.Resolve(eye,transform,preferred,leftPointSelect.WasPressedThisFrame(),rightPointSelect.WasPressedThisFrame(),out _,out _);
+            var ray=MenuAim.Resolve(eye,transform,preferred,leftPointSelect.WasPressedThisFrame(),rightPointSelect.WasPressedThisFrame(),out bool tracked,out _);
+            if (trigger.WasPressedThisFrame() && MenuAim.TryActionPointer(eye, trigger, out var selectedRay, out _))
+                ray = selectedRay;
+            tracked |= MenuAim.IsTrackedPointer(eye, ray);
             var plane=new Plane(frame.forward,frame.position);
             if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){pointer.gameObject.SetActive(false);return;}
             pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
@@ -304,6 +305,7 @@ namespace DeadlyJenga.Presentation
                 if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
             }
             pointer.GetComponent<Image>().color=target?Color.white:new Color(.45f,1,.8f);
+            MenuAim.PresentBeam(ref homeAimBeam, transform, ray, pointer.position-ray.direction*.015f, tracked, target);
             if(target!=gazeFocus)
             {
                 if(target)target.Select();

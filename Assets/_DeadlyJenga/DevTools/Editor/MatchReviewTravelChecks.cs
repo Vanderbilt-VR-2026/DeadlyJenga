@@ -49,9 +49,10 @@ namespace DeadlyJenga.DevTools.Editor
                 {
                     Time.timeScale=1;Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();
                     var original=SessionState.GetString(Key+"Scene","");if(File.Exists(original))EditorSceneManager.OpenScene(original);
-                    if(SessionState.GetBool(Key+"Board",false))
+                    if(SessionState.GetBool(Key+"Board",false)||SessionState.GetBool(Key+"TimeSlip",false))
                     {
                         SessionState.SetBool(Key+"Board",false);
+                        SessionState.SetBool(Key+"TimeSlip",false);
                         if(Application.isBatchMode)EditorApplication.Exit(failures==0&&errors==0?0:2);
                     }
                 }
@@ -86,9 +87,15 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetBool(Key+"Board",true);
             Run();
         }
+        public static void RunTimeSlipBatch()
+        {
+            SessionState.SetBool(Key+"TimeSlip",true);
+            Run();
+        }
         static IEnumerator Guard()
         {
-            var test=SessionState.GetBool(Key+"Board",false)?CheckLobbyBoard():CheckScene();
+            var test=SessionState.GetBool(Key+"TimeSlip",false)?CheckTimeSlip():
+                SessionState.GetBool(Key+"Board",false)?CheckLobbyBoard():CheckScene();
             while(true)
             {
                 bool next=false;object value=null;Exception caught=null;
@@ -101,6 +108,37 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static IEnumerator Until(Func<bool> predicate,string label,float timeout=40)
         {float end=Time.realtimeSinceStartup+timeout;while(!predicate()&&Time.realtimeSinceStartup<end)yield return null;Check(predicate(),label);}
+        static IEnumerator CheckTimeSlip()
+        {
+            var deadline=Time.realtimeSinceStartup+25;
+            var session=Object.FindFirstObjectByType<CastlePlaySession>();
+            while((!session||Services.World?.Blocks.Count<1||Services.Rewind?.Recorded<.4f||Services.Rewind==null)
+                &&Time.realtimeSinceStartup<deadline)yield return null;
+            var rewind=Services.Rewind;
+            Check(session&&Services.World?.Blocks.Count>0&&rewind?.Recorded>=.4f,"Real solo Game has blocks and usable rewind history");
+            session.ResetMap();
+            Check(rewind.Recorded==0&&!rewind.Rewind(4),"Rebuild immediately invalidates the old blocks' history");
+            Check(!DemoDisasters.Execute(session,"TimeSlip"),"Demo rejects Time Slip until the new castle has history");
+
+            var block=Services.World.Blocks[0];
+            block.isKinematic=true;
+            var original=block.position;
+            yield return new WaitForSeconds(.6f);
+            block.position=original+Vector3.up*12;
+            yield return new WaitForSeconds(.25f);
+            Check(block.position.y>original.y+10&&DemoDisasters.Execute(session,"TimeSlip")&&rewind.Rewinding,
+                "The actual Time Slip disaster starts after new history exists");
+            deadline=Time.realtimeSinceStartup+15;
+            while(rewind.Rewinding&&Time.realtimeSinceStartup<deadline)yield return null;
+            Check(!rewind.Rewinding&&Vector3.Distance(block.position,original)<.3f,"Time Slip restores the recorded pose");
+
+            yield return new WaitForSeconds(.5f);
+            Check(DemoDisasters.Execute(session,"TimeSlip")&&rewind.Rewinding,"Time Slip can run again after finishing");
+            session.ResetMap();
+            yield return new WaitForFixedUpdate();
+            yield return new WaitForFixedUpdate();
+            Check(!rewind.Rewinding&&Services.World.Blocks[0]!=block,"Rebuilding during playback releases the rewind without touching the replacement castle");
+        }
         static IEnumerator CheckLobbyBoard()
         {
             yield return new WaitForSecondsRealtime(1);

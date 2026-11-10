@@ -74,9 +74,13 @@ namespace DeadlyJenga.CastlePrototype
             lobby.SetFloor(sand.GetComponent<MeshFilter>().sharedMesh,sand.transform);   // the lobby makes the floor collider
         }
         TextMesh lobbyAimDot;
+        LineRenderer lobbyAimBeam;
+        bool trackedLobbyPointer;
         void DrawLobbyAim(Ray ray,float distance,bool hit)
         {
             if(!Player.IsVR){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
+                trackedLobbyPointer && distance > .03f && hit, hit);
             if(!lobbyAimDot)
             {
                 lobbyAimDot=new GameObject("Lobby gaze cursor").AddComponent<TextMesh>();
@@ -102,6 +106,8 @@ namespace DeadlyJenga.CastlePrototype
         bool LocalModalBlocked=>DeadlyJenga.Presentation.MenuAim.InputConsumed||DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session)||CharacterPicker.Showing(session);
         void Update()
         {
+            if (lobbyAimBeam) lobbyAimBeam.enabled = false;
+            trackedLobbyPointer = false;
             bool menuOpened=session?.MenuOpen==true&&!controlsMenuWasOpen;
             controlsMenuWasOpen=session?.MenuOpen==true;
             if(menuOpened&&Player?.IsVR==true&&!wardrobeOpen&&!DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)&&!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))
@@ -122,12 +128,14 @@ namespace DeadlyJenga.CastlePrototype
             if (Player.IsVR)
             {
                 bool preferredLeft=Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
-                ray=MenuAim.Resolve(eye,eye.transform.parent,preferredLeft,false,false,out _,out _);
+                ray=MenuAim.Resolve(eye,eye.transform.parent,preferredLeft,false,false,out trackedLobbyPointer,out _);
+                trackedLobbyPointer |= MenuAim.IsTrackedPointer(eye, ray);
                 if (select.IsPressed() || select.WasPressedThisFrame())
                 {
                     if (MenuAim.TryActionPointer(eye,select,out var controllerRay,out pointerDevice))
                     {
                         ray=controllerRay;
+                        trackedLobbyPointer=true;
                         pressed=select.WasPressedThisFrame();
                     }
                     else

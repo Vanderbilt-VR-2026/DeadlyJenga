@@ -32,7 +32,9 @@ namespace DeadlyJenga.CastleSocial
         readonly Dictionary<string,int> utterances=new Dictionary<string,int>();int jobs,transcriptions,sequence;long serial;
         readonly Dictionary<string,PendingTranscript> pendingTranscripts=new Dictionary<string,PendingTranscript>();
         readonly Dictionary<string,string> lastTranscripts=new Dictionary<string,string>();
-        BundledBotVoiceBank bundledVoices;
+        BundledBotVoiceBank bundledVoices, contextualVoices;
+        readonly DialogueRecency contextualRecency = new();
+        int nextVariant;
         bool triedBundledVoices;
         internal bool UsesBundledVoices=>world.Settings.mode==SocialOperatingMode.BundledVoices&&(!world.OnDevice||!world.OnDevice.Requested);
         public string Status {get;private set;}="Offline captions; optional speech bridge not enabled";
@@ -63,11 +65,43 @@ namespace DeadlyJenga.CastleSocial
             {
                 bundledVoices=BundledBotVoiceBank.Load();
                 Status="Bundled bot voices ready";
+                contextualVoices = BundledBotVoiceBank.Load("FastBanterVoices");
             }
             catch(Exception error) when(error is IOException||error is InvalidDataException)
             {
                 Status=error.Message;
                 Debug.LogWarning(Status,this);
+            }
+        }
+
+        internal bool ContextualBundled => UsesBundledVoices && contextualVoices != null;
+
+        internal void SpeakObserved(SocialIdentity identity, ObservedSpeech observation)
+        {
+            if (!ContextualBundled || world.Director.Speaking > 0 || world.Director.HumanHasFloor(Time.unscaledTime) ||
+                !world.Director.bots.TryGetValue(identity.id, out var state) || state.muted) return;
+
+            float now = Time.unscaledTime;
+            var recent = contextualRecency.Snapshot(identity.id, now, true);
+            int variant = nextVariant++;
+            for (int i = 0; i < 8; i++)
+            {
+                string line = MatchBanter.Compose(observation, variant + i, false);
+                if (i == 7 && !string.IsNullOrEmpty(observation.HeardText) &&
+                    observation.Kind is SocialEventKind.Collapse or SocialEventKind.Wobble)
+                    line = "Wait, what happened?";
+                if (DialogueRecency.Repeats(line, recent, true) ||
+                    !contextualVoices.TryGet(identity.id, line, out var clip) &&
+                    !bundledVoices.TryGet(identity.id, line, out clip)) continue;
+                var intent = new SocialSpeech { botId = identity.id, text = line, observation = observation };
+                Cancel(identity.id);
+                long token = ++serial;
+                tokens[identity.id] = token;
+                state.nextSpeech = now + Mathf.Max(4, world.Config.minCooldown);
+                contextualRecency.Remember(identity.id, line, now, true);
+                world.SpokenText(identity.id, line);
+                StartCoroutine(StreamBundled(intent, identity.id, token, clip));
+                return;
             }
         }
 
@@ -94,14 +128,16 @@ namespace DeadlyJenga.CastleSocial
             float ends=began+clip.Count/(float)rate+.1f;
             world.Director.AudioPlaying(id,ends);
             int offset=0;
-            bool ended=false;
+            int round=world.RoundSpeechEpoch;
+            bool ended=false, delivered=false;
             try
             {
-                while(Current(id,token)&&UsesBundledVoices&&world.isActiveAndEnabled&&world.IsAuthority)
+                while(Current(id,token)&&UsesBundledVoices&&world.isActiveAndEnabled&&world.IsAuthority&&
+                    (intent.observation==null||round==world.RoundSpeechEpoch&&world.CanDeliverObserved(id)))
                 {
                     float now=Time.unscaledTime;
                     int target=Mathf.Min(clip.Count,(int)((now-began+.1f)*rate));
-                    for(int packet=0;offset<target&&packet<3;packet++)
+                    for(int packet=0;offset<target&&packet<1;packet++)
                     {
                         int count=Math.Min(packetSamples,clip.Count-offset);
                         var frame=clip.Read(offset,count);
@@ -112,7 +148,7 @@ namespace DeadlyJenga.CastleSocial
                         ended=offset==clip.Count;
                         world.SendAudio(new SocialAudioPacket{speaker=id,samples=frame,end=ended},false);
                     }
-                    if(ended&&now>=ends)yield break;
+                    if(ended&&now>=ends){delivered=true;break;}
                     yield return null;
                 }
             }
@@ -124,6 +160,8 @@ namespace DeadlyJenga.CastleSocial
                     if(world&&world.Director!=null)world.Director.AudioFinished(id);
                 }
             }
+            if (delivered && intent.observation != null)
+                world.ReplyToObserved(id, intent.text, intent.observation);
         }
         IEnumerator Stream(SocialSpeech intent,SocialIdentity identity,long token)
         {

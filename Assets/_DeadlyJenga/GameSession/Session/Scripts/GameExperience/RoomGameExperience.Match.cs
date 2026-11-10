@@ -191,7 +191,7 @@ namespace DeadlyJenga.CastlePrototype
             {preparingAttempt=s.attempts;matchFailed=false;deadlineArmed=false;}
             if(preparingTerm!=s.authorityTerm){preparingTerm=s.authorityTerm;deadlineArmed=false;}
             if(matchFailed)return;
-            if(!deadlineArmed){deadlineArmed=true;preparationDeadline=now+20;}
+            if(!deadlineArmed){deadlineArmed=true;preparationDeadline=now+(s.playerPlaylist?45:20);}
             if(now>preparationDeadline){FailMatch("Match preparation timed out before the actual cohort was ready. Retry or return to the lobby.");return;}
             var profile=CurrentProfile;
             if(profile==null||profile.hands!=0||profile.hazards==null||profile.hazards.Length!=0)

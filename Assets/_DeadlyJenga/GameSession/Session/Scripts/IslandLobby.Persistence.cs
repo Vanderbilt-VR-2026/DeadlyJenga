@@ -67,7 +67,16 @@ namespace DeadlyJenga.CastlePrototype
             }
             var identity=owner.Player.gameObject.GetComponent<IModeActor>();
             if(identity!=null)Player.gameObject.GetComponent<IModeActor>()?.SetIdentity("lobby-visitor",identity.DisplayName,-1,identity.Color);
-            if(Player.transform.position.y<-.9f||(Player.transform.position-Center).sqrMagnitude>900)PlaceLocalLobbyArrival();
+            if (owner.EliminatedLobbySpectator)
+            {
+                int slot=UsesMarinaSpawns?3:2;
+                if (TryMarinaSpawnPose(slot,out var pose,out _,Player.gameObject)!=MarinaSpawnResult.Accepted)
+                    pose=new CastleLanProtocol.Pose(SafeSpawnPoint(),Quaternion.identity);
+                var tv=transform.TransformPoint(UsesMarinaSpawns?new Vector3(5.48f,1.86f,7.35f):new Vector3(-4.8f,.12f,-4.7f));
+                var towards=Vector3.ProjectOnPlane(tv-pose.position,Vector3.up);
+                Player.Place(pose.position,towards.sqrMagnitude>.01f?Quaternion.LookRotation(towards):pose.rotation);
+            }
+            else if(Player.transform.position.y<-.9f||(Player.transform.position-Center).sqrMagnitude>900)PlaceLocalLobbyArrival();
             SetupHint="The match is still running. Return whenever you are ready.";
             HostHint=JoinHint="Match in progress - room changes are locked during this visit.";
             SetMenu(false);return true;

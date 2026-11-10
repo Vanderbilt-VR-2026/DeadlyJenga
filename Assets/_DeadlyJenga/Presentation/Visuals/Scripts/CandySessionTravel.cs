@@ -145,7 +145,15 @@ namespace DeadlyJenga.Presentation
             float end=finishing?Mathf.Clamp01((Time.unscaledTime-finishedAt)/.6f):0;
             fade=0;
             float strength=finishing?1-Mathf.SmoothStep(0,1,Mathf.Clamp01((Time.unscaledTime-finishedAt)/.35f)):arrival?1:Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.12f,p));
-            foreach(var column in columns)if(column)column.Render(arrival?-elapsed:elapsed,arrival?1:p,strength);
+            var session = Services.Session;
+            var rider = session?.Player;
+            foreach (var column in columns)
+            {
+                if (!column) continue;
+                if (NetworkActors.Alive(rider) && column.Target == rider.transform)
+                    column.SetRiderCamera(session.ActiveCamera ? session.ActiveCamera : rider.ViewCamera);
+                column.Render(arrival ? -elapsed : elapsed, arrival ? 1 : p, strength);
+            }
             if(curtain)curtain.enabled=false;
         }
         void OnGUI()

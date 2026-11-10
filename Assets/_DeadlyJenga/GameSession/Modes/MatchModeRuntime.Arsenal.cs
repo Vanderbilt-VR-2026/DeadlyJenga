@@ -117,11 +117,28 @@ namespace DeadlyJenga.Modes
                 }
                 bool alive=target.Alive;bool accepted=ArsenalDamage(source,target,damage,direction*spec.push+Vector3.up*.4f,contactPoint,!spec.melee||state.kind==EquipmentKind.LaserAxe&&state.shotgun);
                 if(accepted)AnnounceEquipment(id,state,EquipmentAction.Impact,contactPoint);
-                if(alive&&!target.Alive&&(state.kind==EquipmentKind.SawStaff||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe)&&!state.shotgun)
-                {state.embeddedVictim=target.ActorId;state.embeddedPoint=endpoint;state.embedRemaining=.65f;equipment[id]=state;}
+                if(accepted && spec.melee && !state.shotgun)
+                {
+                    bool heavyKill=alive&&!target.Alive&&state.kind is EquipmentKind.SawStaff or EquipmentKind.Chainsaw or EquipmentKind.LaserAxe;
+                    RecordMeleeContact(id,state,target,contactPoint,heavyKill?.65f:.22f);
+                }
             }
             else if(contact&&source!=null)AnnounceEquipment(id,state,EquipmentAction.Impact,contactPoint);
             return true;
+        }
+        void RecordMeleeContact(string id, EquipmentState state, IModeActor target, Vector3 point, float duration)
+        {
+            if (!Finite(point) || string.IsNullOrEmpty(target.ActorId)) return;
+            if (state.builtIn)
+            {
+                if (!equipment.TryGetValue(id,out var underlying))
+                    underlying=new EquipmentState { actor=id };
+                state=underlying;
+            }
+            state.embeddedVictim = target.ActorId;
+            state.embeddedPoint = point;
+            state.embedRemaining = duration;
+            equipment[id] = state;
         }
         void BeginMagazineReload(string id,EquipmentState state)
         {

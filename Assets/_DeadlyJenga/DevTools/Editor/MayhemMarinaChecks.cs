@@ -88,6 +88,14 @@ namespace DeadlyJenga.DevTools.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
             EditorApplication.EnterPlaymode();
         }
+        public static void RunPlayRotation()
+        {
+            File.WriteAllText(Report,"Play startup, actual match, spectator visit and return.");
+            SessionState.SetBool(Key+"PlayRotation",true);
+            SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
+            EditorApplication.EnterPlaymode();
+        }
         public static void RunSolo()
         {
             File.WriteAllText(Report,"Actual Game.unity solo smoke test with Marina sources installed; shared lobby hooks remain pending.\n");
@@ -131,14 +139,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
             }
         }
         static void Log(string value,string stack,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"PlayRotation",false)?RunPlayRotationScene():SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;
@@ -161,6 +169,64 @@ namespace DeadlyJenga.DevTools.Editor
             _ => "marina-close"
         };
 
+        static IEnumerator RunPlayRotationScene()
+        {
+            var home=Object.FindFirstObjectByType<HomeSession>();
+            Check(home,"Home scene provides Play");
+            yield return null;
+            home.RandomLobby();
+            float deadline=Time.realtimeSinceStartup+15;
+            while(!IslandLobby.Current&&Time.realtimeSinceStartup<deadline)yield return null;
+            var lobby=IslandLobby.Current;
+            Check(lobby&&lobby.Experience==GameExperience.Game&&!lobby.CanConfigure,"Play enters the locked Marina lobby");
+            while(!lobby.CanStart&&Time.realtimeSinceStartup<deadline)yield return null;
+            Check(lobby.CanStart&&lobby.GamePhase==RoomGamePhase.Idle,"Play waits for GO");
+            var provider=RoomGameExperience.Current;
+            var flowField=typeof(RoomGameExperience).GetField("flow",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+            bool survival=System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival");
+            if(survival)
+            {
+                // Change only the test room seed so the normal random selector exercises Survival.
+                var profileIndex=typeof(RoomGameExperience).GetMethod("ProfileIndex",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+                var snapshot=((RoomGameFlow)flowField.GetValue(provider)).State;
+                for(int i=0;i<64;i++)
+                {
+                    snapshot.roomId="survival-fixture-"+i;
+                    if((int)profileIndex.Invoke(null,new object[]{snapshot.roomId,0,2})==0)break;
+                }
+                flowField.SetValue(provider,new RoomGameFlow(snapshot));
+            }
+            lobby.StartOrCancel();
+            Check(lobby.GamePhase==RoomGamePhase.Selected&&lobby.CountdownSeconds>29&&lobby.CountdownSeconds<=30,
+                "GO starts a thirty-second countdown before loading");
+            Check(lobby.ProfileId is "play:survival/castle" or "play:teamtickets/castle","The first selection uses the two Candy Castle profiles");
+            if(survival)
+            {
+                Check(lobby.ProfileId=="play:survival/castle","The controlled room seed exercises Disaster Survival");
+                var flow=(RoomGameFlow)flowField.GetValue(provider);
+                for(int i=0;i<7;i++)flow.Tick(flow.State.authorityTerm,5,true,true);
+            }
+            int size=lobby.MaximumPopulation;
+            Check(size==(lobby.ProfileId=="play:survival/castle"?25:30),"The selected profile fills the intended population");
+            deadline=Time.realtimeSinceStartup+110;
+            CastlePlaySession game=null;
+            while(Time.realtimeSinceStartup<deadline)
+            {
+                game=Object.FindFirstObjectByType<CastlePlaySession>();
+                if(game&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing)break;
+                yield return null;
+            }
+            Check(game&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing,"The Play lobby launches an actual match");
+            Check(game.Modes.Frame.players.Count(player=>player.alive)==size,"The match waits for its full real actor cohort");
+            if(size==30) Check(game.Modes.Frame.teams.Length==3,"Team PvP uses three teams");
+            if(size==25)
+            {
+                game.Player.gameObject.GetComponent<IDamageable>().Eliminate(null);
+                deadline=Time.realtimeSinceStartup+18;
+                while(!game.VisitingLobby&&Time.realtimeSinceStartup<deadline)yield return null;
+                Check(game.VisitingLobby&&lobby.ActiveCamera.enabled&&!lobby.CanStart,"An eliminated player watches from the retained lobby");
+            }
+        }
         static IEnumerator RunArcadeScene()
         {
             Application.runInBackground=true;
@@ -194,6 +260,41 @@ namespace DeadlyJenga.DevTools.Editor
             var target = pickTarget.Invoke(screen, new object[] { new Ray(roundUpperEdge - round.forward, round.forward), 2f });
             Check((string)target?.GetType().GetField("id").GetValue(target) == "marina-experience" && !lobby.StartPending,
                 "A ray at the top of Round Info selects its own control and cannot start a match");
+            var focus=faces.Single(face=>face.name=="marina-maps");
+            var caption=focus.GetComponentsInChildren<UnityEngine.UI.Text>(true).Single(label=>label.text=="MAP");
+            Color captionColor=caption.color;
+            var hitCenter=focus.TransformPoint(Vector3.zero);
+            var cardTarget=pickTarget.Invoke(screen,new object[]{new Ray(hitCenter-focus.forward,focus.forward),2f});
+            typeof(MarinaScreen).GetMethod("PaintTarget",System.Reflection.BindingFlags.Static|
+                System.Reflection.BindingFlags.NonPublic).Invoke(null,new[]{cardTarget,(object)true,(object)true});
+            Check(caption.color==captionColor,"Hover preserves the caption ink on its own dark panel");
+            var preview=focus.GetComponentsInChildren<UnityEngine.UI.RawImage>(true).Single();
+            var missing=focus.GetComponentsInChildren<UnityEngine.UI.Text>(true).Single(label=>label.text=="Preview unavailable");
+            var fit=typeof(MarinaScreen).GetMethod("FitPreview",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+            var art=preview.texture;
+            preview.texture=null;
+            fit.Invoke(null,new object[]{preview,missing});
+            Check(!preview.enabled&&missing.gameObject.activeSelf,"Missing card art shows a readable fallback, not a white image");
+            preview.texture=art;
+            fit.Invoke(null,new object[]{preview,missing});
+            var panel=(RectTransform)typeof(MarinaScreen).GetField("focusPanel",
+                System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(screen);
+            var note=panel.GetComponentInChildren<UnityEngine.UI.Image>(true).rectTransform;
+            var noteBottom=note.parent.localPosition.y+note.localPosition.y+note.rect.yMin;
+            Check(noteBottom>start.localPosition.y+start.rect.yMax,"Hover text has its own space above Start Match");
+            var beam=lobby.GetComponentsInChildren<MeshRenderer>().Single(r=>r.name=="Visual - beachside projector beam");
+            Check(beam.enabled&&beam.sharedMaterial.shader.isSupported&&!beam.GetComponent<Collider>(),
+                "Beachside projector uses supported art and does not block players or pointers");
+            var cinema=lobby.GetComponentsInChildren<UnityEngine.UI.RawImage>(true)
+                .Single(image=>image.texture&&image.texture.name=="Marina projection vignette");
+            Check(cinema.gameObject.activeInHierarchy,"Projected backdrop is visible on the default match screen");
+            var floor=lobby.GetComponentsInChildren<MeshCollider>().Single(c=>c.sharedMesh==lobby.GetComponent<MayhemMarina>().WalkableMesh);
+            foreach(float x in new[]{-5.15f,5.15f})
+                Check(!floor.Raycast(new Ray(lobby.transform.TransformPoint(new Vector3(x,2.20f,9.05f)),lobby.transform.forward),out _,1.35f),
+                    "Side kiosk approach is clear at x="+x);
+            for(int x=-10;x<=-5;x++)
+                Check(floor.Raycast(new Ray(lobby.transform.TransformPoint(new Vector3(x,4.5f,8f)),Vector3.down),out _,5),
+                    "Wardrobe route has floor support at x="+x);
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
             var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
                 .Single(blocker=>blocker.name=="Island blocker · "+television.name);
@@ -214,6 +315,8 @@ namespace DeadlyJenga.DevTools.Editor
                 Capture(new Vector3(0,3.76f,6.12f),new Vector3(0,3.94f,10.97f),43,"Marina-Candy-Arcade-Screen.png");
             }
             // The hidden batch has no OS focus. Exercise the command routes with simulated focus.
+            lobby.SendMessage("OnApplicationFocus",true);
+            lobby.SetMenu(false);
             screen.SendMessage("OnApplicationFocus",true);
             view.SendMessage("OnApplicationFocus",true);
             foreach(var id in new[]{"marina-modes","marina-maps","marina-join","marina-host","marina-nearby","marina-settings"})
@@ -247,6 +350,8 @@ namespace DeadlyJenga.DevTools.Editor
                         Check(!lobby.CodeFocused&&!view.GiantKeyboard.gameObject.activeSelf&&
                             lobby.EnteredCode=="ABC234"&&joinDetail.gameObject.activeSelf&&screen.Visible,
                             "Closing the keyboard preserves the code, Join and the map/mode screen");
+                        Check(!lobby.MenuOpen && !lobby.Player.InputSuspended,
+                            "Closing the room-code keyboard releases the movement lock it opened");
                     }
                     finally { lobby.EnteredCode=originalCode; }
                     yield return null;
@@ -269,6 +374,21 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(view.GetComponentsInChildren<UnityEngine.UI.RawImage>().Any(image=>
                         image.name=="Map card thumbnail"&&image.enabled&&image.texture),
                         "The categorized map list shows thumbnails on the map cards");
+                    var previewChoice=typeof(IslandLobbyView).GetMethod("PreviewMapChoice",
+                        System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                    var pickerOption=typeof(IslandLobbyView).GetMethod("PickerOption",
+                        System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                    var different=Enumerable.Range(0,10).Select(slot=>(slot,option:(LobbyOption)pickerOption.Invoke(view,new object[]{slot})))
+                        .FirstOrDefault(row=>row.option!=null&&row.option.id!=lobby.SelectedMapId);
+                    if(different.option!=null)
+                    {
+                        string selected=lobby.SelectedMapId;
+                        var shown=view.GetComponentsInChildren<UnityEngine.UI.Text>(true).Single(label=>label.name=="Previewed map name");
+                        previewChoice.Invoke(view,new object[]{"picker-"+different.slot});
+                        Check(shown.text==different.option.title&&lobby.SelectedMapId==selected,"Map hover previews without selecting");
+                        previewChoice.Invoke(view,new object[]{null});
+                        Check(shown.text!=different.option.title&&lobby.SelectedMapId==selected,"Moving off the map restores the selected preview");
+                    }
                 }
                 Check(view.InvokeChoice(ArcadeBack(id)),id+" returns to its arcade face");
             }
@@ -658,7 +778,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             Application.runInBackground=true;AudioListener.volume=0;float until=Time.realtimeSinceStartup+45;HomeSession home;
             while(!(home=Object.FindFirstObjectByType<HomeSession>())&&Time.realtimeSinceStartup<until)yield return null;
-            Check(home,"Actual Home scene loaded for peer validation");home.RandomLobby();until=Time.realtimeSinceStartup+45;IslandLobby lobby;
+            Check(home,"Actual Home scene loaded for peer validation");home.Demo();until=Time.realtimeSinceStartup+45;IslandLobby lobby;
             while(!(lobby=Object.FindFirstObjectByType<IslandLobby>())&&Time.realtimeSinceStartup<until)yield return null;
             Check(lobby&&lobby.GetComponent<MayhemMarina>(),"Actual integrated Marina loaded for two-peer test");yield return Wait(.3f);
             yield return ModeSelectionNetworkChecks.Run((passed,label)=>
@@ -686,7 +806,7 @@ namespace DeadlyJenga.DevTools.Editor
             Application.runInBackground=true;Application.targetFrameRate=60;AudioListener.volume=0;
             float limit=Time.realtimeSinceStartup+45;HomeSession home;
             while(!(home=Object.FindFirstObjectByType<HomeSession>())&&Time.realtimeSinceStartup<limit)yield return null;
-            Check(home,"Actual Home scene loaded");home.RandomLobby();
+            Check(home,"Actual Home scene loaded");home.Demo();
             limit=Time.realtimeSinceStartup+45;IslandLobby lobby;
             while(!(lobby=Object.FindFirstObjectByType<IslandLobby>())&&Time.realtimeSinceStartup<limit)yield return null;
             Check(lobby&&lobby.View(),"Actual Lobby scene and Presentation loaded");var view=lobby.View();

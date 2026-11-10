@@ -1,5 +1,6 @@
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CastlePrototype;
 using UnityEngine;
 
 namespace DeadlyJenga.CastleBots
@@ -12,7 +13,8 @@ namespace DeadlyJenga.CastleBots
             if(kind>EquipmentKind.PoweredArmor)return !EquipmentSpecifications.Get(kind).melee||kind==EquipmentKind.Chainsaw||kind==EquipmentKind.LaserAxe;
             return kind==EquipmentKind.Blaster||kind==EquipmentKind.DualRifle||kind==EquipmentKind.SheriffHammer||kind==EquipmentKind.PoweredArmor;
         }
-        public static float Range(EquipmentKind kind,bool shotgun)=>kind==EquipmentKind.Chainsaw?(shotgun?28:1.6f):kind==EquipmentKind.LaserAxe?(shotgun?32:2.2f):kind==EquipmentKind.GrenadeLauncher?28:kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(kind).range:kind==EquipmentKind.DualRifle?(shotgun?12:60):kind==EquipmentKind.SheriffHammer?(shotgun?15:80):kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?28:1.8f;
+        public static float Range(EquipmentKind kind,bool shotgun)=>kind==EquipmentKind.ChainGun?11:
+            kind==EquipmentKind.Chainsaw?(shotgun?28:1.6f):kind==EquipmentKind.LaserAxe?(shotgun?32:2.2f):kind==EquipmentKind.GrenadeLauncher?28:kind>EquipmentKind.PoweredArmor?EquipmentSpecifications.Get(kind).range:kind==EquipmentKind.DualRifle?(shotgun?12:60):kind==EquipmentKind.SheriffHammer?(shotgun?15:80):kind==EquipmentKind.Blaster||kind==EquipmentKind.PoweredArmor?28:1.8f;
         public static bool Shotgun(EquipmentKind kind,bool current,float distance)
         {
             if(kind is EquipmentKind.Chainsaw or EquipmentKind.LaserAxe)
@@ -54,7 +56,7 @@ namespace DeadlyJenga.CastleBots
         GameObject gunTarget;long gunToken;float gunReady,nextGunSample,nextGunRequest,gunSeenAt,burstPause;int burstShots;
         Vector3 gunSeen,gunVelocity;
         Quaternion gunAim;
-        float gunAimAt,gunAcquiredAt;
+        float gunAimAt,gunAcquiredAt,lastWeaponGrounded = float.NegativeInfinity;
         int gunAimCycle;
         EquipmentKind gunKind;
         bool gunVisible,botTriggerActive;
@@ -68,14 +70,16 @@ namespace DeadlyJenga.CastleBots
         {
             botEquipment??=GetComponent<CandyEquipment>();if(!botEquipment)return;
             var state=botEquipment.Equipment;
+            if (Motor.Grounded) lastWeaponGrounded = Time.time;
+            bool airborne = Time.time - lastWeaponGrounded > .25f;
             bool firingOpportunity=hasObjective&&selectedObjective.kind==BotObjectiveKind.Attack&&selectedObjective.subject==gunTarget&&gunVisible&&BotGunPolicy.IsGun(state.kind)&&BotGunPolicy.CanUseAt(state.kind,state.shotgun,Vector3.Distance(transform.position,gunSeen));
             firingOpportunity|=state.roleIssued&&state.kind==EquipmentKind.MurderSword&&hasObjective&&selectedObjective.kind==BotObjectiveKind.Attack&&selectedObjective.subject&&Vector3.Distance(transform.position,selectedObjective.position)<2.05f;
-            bool travel=!hasObjective||selectedObjective.kind!=BotObjectiveKind.Attack||!selectedObjective.subject||Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||!Motor.Grounded||PrecisionTraversal&&!firingOpportunity;
+            bool travel=!hasObjective||selectedObjective.kind!=BotObjectiveKind.Attack||!selectedObjective.subject||Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||airborne||PrecisionTraversal&&!firingOpportunity;
             if(hasObjective&&Mathf.Abs(selectedObjective.position.y-transform.position.y)>1&&Vector3.Distance(transform.position,selectedObjective.position)>BotGunPolicy.Range(state.kind,false))travel=true;
             if(travel)
             {
                 if(!hasObjective||selectedObjective.kind!=BotObjectiveKind.Attack||!selectedObjective.subject||
-                    Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||!Motor.Grounded)
+                    Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||airborne)
                 {gunVisible=false;nextGunSample=0;}
                 ReleaseBotTrigger(state);
                 if(state.drawn)HolsterBotWeapon(state,"Holster for travel, traversal or safety");
@@ -110,7 +114,7 @@ namespace DeadlyJenga.CastleBots
                 else if(!striking)HolsterBotWeapon(state,"Conceal sword until striking distance");
                 return false;
             }
-            if(Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||!Motor.Grounded)
+            if(Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||Time.time-lastWeaponGrounded>.25f)
             {gunVisible=false;ReleaseBotTrigger(state);HolsterBotWeapon(state,"Traversal takes priority");return true;}
 
             float now=Time.time;
@@ -127,7 +131,14 @@ namespace DeadlyJenga.CastleBots
             {
                 var feet=target.transform.position;
                 float torsoHeight=Mathf.Clamp((target.ViewPose.position.y-feet.y)*.58f,.25f,1.15f);
-                var sample=feet+Vector3.up*torsoHeight;
+                var sample = feet + Vector3.up * torsoHeight;
+                if (target is CastleSurvivor survivor && survivor.Capsule)
+                {
+                    var body = survivor.Capsule.bounds;
+                    sample = body.center;
+                    // The wide axe beam otherwise clips the floor before reaching a short target.
+                    if (state.kind == EquipmentKind.LaserAxe) sample.y += body.extents.y * .55f;
+                }
                 var delta=sample-eye.position;
                 bool inView=delta.sqrMagnitude<16||Vector3.Dot(eye.rotation*Vector3.forward,delta.normalized)>-.15f;
                 bool visible=inView&&!Physics.Raycast(eye.position,delta.normalized,delta.magnitude,CombatMask|1,QueryTriggerInteraction.Ignore);
@@ -146,7 +157,7 @@ namespace DeadlyJenga.CastleBots
                 gunVisible=visible;
                 nextGunSample=now+Mathf.Lerp(.13f,.19f,skill);
             }
-            if(!gunVisible||now-gunSeenAt>.22f)
+            if(!gunVisible||now-gunSeenAt>.30f)
             {WeaponReason="Lost sight; seek a route";ReleaseBotTrigger(state);return true;}
 
             float distance=Vector3.Distance(eye.position,gunSeen);
@@ -155,6 +166,7 @@ namespace DeadlyJenga.CastleBots
             {
                 ReleaseBotTrigger(state);
                 bool tooClose=distance<BotGunPolicy.Range(state.kind,alternate);
+                if (tooClose && state.drawn) HolsterBotWeapon(state, "Unsafe splash distance; switch to melee");
                 WeaponReason=tooClose?"Unsafe splash distance; use melee":"Outside effective range; close distance";
                 return !tooClose;
             }
@@ -184,6 +196,17 @@ namespace DeadlyJenga.CastleBots
             float settled=Mathf.Clamp01((now-gunAcquiredAt)/.85f);
             float lateral=Vector3.ProjectOnPlane(gunVelocity,aim.normalized).magnitude;
             var error=BotGunPolicy.AimOffset(Seed,gunAimCycle,settled,skill,lateral,burstShots);
+            bool precision = !alternate && (state.kind == EquipmentKind.SheriffHammer || state.kind == EquipmentKind.DualRifle);
+            bool directFire = BotGunPolicy.IsGun(state.kind) && spec.gravity <= 0 && spec.blastRadius <= 0 &&
+                state.kind != EquipmentKind.Blaster && state.kind != EquipmentKind.PoweredArmor;
+            if (directFire)
+            {
+                float radius = target is CastleSurvivor survivor && survivor.Capsule
+                    ? survivor.Capsule.bounds.extents.x : .2f;
+                float angularRadius = Mathf.Atan2(radius, distance) * Mathf.Rad2Deg;
+                float maxError = angularRadius * Mathf.Lerp(.65f, 1.45f, Mathf.Clamp01(lateral / 4));
+                error = Vector2.ClampMagnitude(error, maxError);
+            }
             var gripPosition=eye.position+gunAim*new Vector3(state.leftHanded?-.22f:.22f,-.18f,.35f)*Motor.playerScale;
             botEquipment.SetBotAim(new Pose(gripPosition,gunAim));
             var desired=Quaternion.LookRotation(BotGunPolicy.AimDirection(state.kind,botEquipment.MuzzlePose.position,predicted))*
@@ -193,7 +216,7 @@ namespace DeadlyJenga.CastleBots
             gunAimAt=now;
             botEquipment.SetBotAim(new Pose(gripPosition,gunAim));
 
-            if(now<burstPause||Quaternion.Angle(gunAim,desired)>5||!BotCombatPolicy.Facing(eye.rotation*Vector3.forward,aim))
+            if(now<burstPause||Quaternion.Angle(gunAim,desired)>(precision?.45f:directFire?.8f:5f)||!BotCombatPolicy.Facing(eye.rotation*Vector3.forward,aim))
             {WeaponReason="Reacting and settling aim";ReleaseBotTrigger(state);return true;}
             if(now<gunReady){WeaponReason="Reaction or weapon recovery";return true;}
             var muzzle=botEquipment.MuzzlePose;

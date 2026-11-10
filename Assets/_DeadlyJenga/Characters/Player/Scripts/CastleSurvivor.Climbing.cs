@@ -128,7 +128,9 @@ namespace DeadlyJenga.CastlePrototype
             if(!Climbing)return false;
             var up=Vector3.ProjectOnPlane(Vector3.up,climbNormal).normalized;
             var right=Vector3.Cross(climbNormal,up).normalized;
-            Vector3 along=(up*input.y+right*input.x)*climbSpeed;
+            Sprinting = SprintRequested && input.y > .05f;
+            float upwardSpeed = climbSpeed * (Sprinting ? SprintMultiplier : 1);
+            Vector3 along = up * (input.y * upwardSpeed) + right * (input.x * climbSpeed);
             if(IsVR&&!externallyDriven)
             {vrClimbVelocity=Vector3.MoveTowards(vrClimbVelocity,along,vrClimbAcceleration*dt);along=vrClimbVelocity;}
             // Try the prospective position first, then the existing patch and nearby face angles.

@@ -269,17 +269,17 @@ namespace DeadlyJenga.CastleSocial
                 Complete(candidate,cached,false);
                 return;
             }
-            if(!generate&&fastBanterVoices!=null&&fastBanterVoices.TryRenderLine(id,candidate,out var prepared))
-            {
-                baked=true;
-                Complete(candidate,prepared,false);
-                return;
-            }
+            var bakedVoices = fastBanterVoices;
             bool allowProfanity=world.Config.allowProfanity;
             string playerSpeech=IsHumanTurn(reply.intent)?reply.intent.context.Substring("HumanSpeech:".Length).Trim():null;
             if(!worker.Submit(native=>
             {
                 if(version!=epoch){native.Complete(()=>busy=false);return;}
+                if (!generate && bakedVoices != null && bakedVoices.TryRenderLine(id, candidate, out var prepared))
+                {
+                    native.Complete(() => { baked = true; Complete(candidate, prepared, false); });
+                    return;
+                }
                 string text=generate?native.Generate(system,message,tokens,timeout):candidate;
                 if(version!=epoch){native.Complete(()=>busy=false);return;}
                 bool fallback=generate&&string.IsNullOrWhiteSpace(text);

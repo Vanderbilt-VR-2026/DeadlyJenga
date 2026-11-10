@@ -60,7 +60,8 @@ namespace DeadlyJenga.Presentation
                 bool left=session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
                 MenuAim.PlaceTablet(panel,camera,session,left,ref lobbyPoseSet);
                 var ray=MenuAim.Resolve(camera,camera.transform.parent,left,false,false,out bool physical,out bool chosenLeft);
-                bool held=session.MenuSelectHeld,pressed=session.MenuSelectPressed;
+                bool held=session.MenuSelectHeld||session.Player?.SelectHeld==true;
+                bool pressed=session.MenuSelectPressed||session.Player?.SelectPressed==true;
                 if(physical&&MenuAim.PhysicalPose(camera,chosenLeft,out _,out var controller))
                 {
                     var trigger=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerPressed");

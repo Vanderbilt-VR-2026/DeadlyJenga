@@ -233,7 +233,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            if (!Ready || VisitingLobby) return;
+            if (!Ready) return;
+            if (!VisitingLobby) TickEliminationVisit();
+            if (VisitingLobby) return;
             if(arrivalPending&&(!Network||!Network.WaitingForWorld))
             {
                 arrivalPending=false;if(travelInputHeld)travelReleaseAt=Time.unscaledTime+.8f;

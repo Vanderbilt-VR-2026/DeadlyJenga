@@ -73,20 +73,31 @@ namespace DeadlyJenga.CastlePrototype
                 angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,360)*Mathf.Max(0,dt);
             if(angle!=0)transform.RotateAround(viewCamera.transform.position,Vector3.up,angle);
         }
+        Vector3 vrPitchAxis;
         public void ApplyVRLook(Vector2 stick,float dt)
         {
+            if (PlayerPrefs.GetInt("SurvivorVR.InvertLookX") != 0) stick.x = -stick.x;
+            if (PlayerPrefs.GetInt("SurvivorVR.InvertLookY") != 0) stick.y = -stick.y;
             ApplyVRTurn(stick.x,dt);
             if(!IsVR||externallyDriven||InputSuspended||!cameraOffset||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
             float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
             float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*Mathf.Clamp(vrSmoothDegreesPerSecond*.65f,65,220)*dt,-65,80);
-            if(next!=vrLookPitch)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,next-vrLookPitch);
+            if (next != vrLookPitch)
+            {
+                var flatRight = Vector3.ProjectOnPlane(viewCamera.transform.right, Vector3.up);
+                if (flatRight.sqrMagnitude < .01f) flatRight = transform.right;
+                if (vrLookPitch != 0)
+                    cameraOffset.RotateAround(viewCamera.transform.position, transform.TransformDirection(vrPitchAxis), -vrLookPitch);
+                vrPitchAxis = transform.InverseTransformDirection(flatRight.normalized);
+                cameraOffset.RotateAround(viewCamera.transform.position, flatRight.normalized, next);
+            }
             vrLookPitch=next;
         }
         public void UseStationaryVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Seated);
         public void UseStandingVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Standing);
         void ResetVRLook()
         {
-            if(cameraOffset&&viewCamera&&vrLookPitch!=0)cameraOffset.RotateAround(viewCamera.transform.position,transform.right,-vrLookPitch);
+            if(cameraOffset&&viewCamera&&vrLookPitch!=0)cameraOffset.RotateAround(viewCamera.transform.position,transform.TransformDirection(vrPitchAxis),-vrLookPitch);
             vrLookPitch=0;
         }
         public void SetVRPlayStyle(SurvivorVRPlayStyle style,bool remember=true)

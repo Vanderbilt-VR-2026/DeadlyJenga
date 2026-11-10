@@ -117,7 +117,7 @@ namespace DeadlyJenga.CastleSocial
             {
                 nextTick=Time.unscaledTime+Config.tickSeconds;
                 Director.UseBundledVoiceLines=Speech.UsesBundledVoices;
-                Director.ReplayScriptedBotLines=!ContextualSpeech;
+                Director.ReplayScriptedBotLines=!OnDevice||!OnDevice.Requested;
                 if(Config.enableBots)Director.Tick(Time.unscaledTime);
             }
             if(Session&&Time.unscaledTime>=nextThreat)

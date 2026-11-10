@@ -177,6 +177,17 @@ namespace DeadlyJenga.Modes
             return string.IsNullOrEmpty(t.completeWhen) || !facts.Test(t.completeWhen, actor, target);
         }
 
+        internal void CompleteInteraction(BotDirectorActor actor)
+        {
+            if (!assignments.TryGetValue(actor.id, out var assignment) ||
+                string.IsNullOrEmpty(assignment.candidate.template.interaction) ||
+                string.IsNullOrEmpty(assignment.candidate.template.completeWhen) ||
+                !facts.Test(assignment.candidate.template.completeWhen, actor, assignment.initialTarget)) return;
+
+            Record(assignment, BotAssignmentOutcome.Succeeded, "Authoritative interaction completed");
+            assignments.Remove(actor.id);
+        }
+
         public bool TryGet(string actor, out BotObjective objective, out BotExecutionPolicy policy)
         {
             objective = default; policy = default;
