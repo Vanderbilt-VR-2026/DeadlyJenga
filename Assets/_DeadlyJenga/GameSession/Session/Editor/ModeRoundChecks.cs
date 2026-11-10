@@ -255,6 +255,19 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             Check(string.Join(",",starts)=="20,50,80,110,140","Survival activates at 20 seconds and then every 30 seconds with two overlapping hazards");
             Check(string.Join(",",warnings)=="12,42,72,102,132","Survival warnings lead activation even when two hazards are currently active");
+
+            var teams=ModeSimulation.Defaults(GameModeKind.TeamTickets);
+            teams.automaticDisasters=true;teams.maxConcurrentDisasters=1;
+            teams.disasterMinInterval=teams.disasterMaxInterval=teams.disasterLateInterval=60;
+            starts.Clear();warnings.Clear();clock.Reset(teams,0);
+            for(int t=0;t<=180;t++)
+            {
+                bool hadWarning=clock.Pending.Length>0;
+                clock.Tick(teams,t,0,()=>"hazard",id=>{starts.Add(t);return true;});
+                if(!hadWarning&&clock.Pending.Length>0)warnings.Add(t);
+            }
+            Check(string.Join(",",starts)=="60,120,180","Team hazards launch every 60 seconds, including the first");
+            Check(string.Join(",",warnings)=="52,112,172","Team warnings start eight seconds before each activation");
         }
         static void Performance()
         {

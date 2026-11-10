@@ -17,12 +17,19 @@ namespace DeadlyJenga.Modes
         public void Reset(ModeRules rules,float now)
         {
             Pending="";planned=false;
-            next=now+(rules.mode==GameModeKind.Survival?SurvivalFirstDisaster-WarningLead(rules):Interval(rules,0));
+            float first=rules.mode==GameModeKind.Survival?SurvivalFirstDisaster:Interval(rules,0);
+            next=now+first-(UsesLaunchCadence(rules)?WarningLead(rules):0);
         }
+
+        static bool UsesLaunchCadence(ModeRules rules)=>rules.mode==GameModeKind.Survival||
+            (rules.mode==GameModeKind.TeamTickets&&rules.disasterMinInterval==rules.disasterMaxInterval&&
+             rules.disasterMaxInterval==rules.disasterLateInterval);
 
         static float WarningLead(ModeRules rules)
         {
-            if(rules.mode!=GameModeKind.Survival)return Mathf.Clamp(rules.disasterWarningSeconds,2,30);
+            if(!UsesLaunchCadence(rules))return Mathf.Clamp(rules.disasterWarningSeconds,2,30);
+            if(rules.mode==GameModeKind.TeamTickets)
+                return Mathf.Clamp(rules.disasterWarningSeconds,2,Mathf.Min(30,Mathf.Max(10,rules.disasterMinInterval)));
             float shortest=Mathf.Max(10,Mathf.Min(rules.disasterMinInterval,rules.disasterLateInterval));
             return Mathf.Clamp(rules.disasterWarningSeconds,2,Mathf.Min(SurvivalFirstDisaster,shortest));
         }
@@ -39,22 +46,22 @@ namespace DeadlyJenga.Modes
         public bool Tick(ModeRules rules,float elapsed,int active,Func<string> choose,Func<string,bool> launch)
         {
             if(!rules.automaticDisasters||rules.mode==GameModeKind.Demo)return false;
-            bool survival=rules.mode==GameModeKind.Survival;
+            bool launchCadence=UsesLaunchCadence(rules);
             int cap=Mathf.Clamp(rules.maxConcurrentDisasters,1,4);
             if(planned)
             {
                 if(elapsed<readyAt)return false;
-                if(active>=cap){if(!survival)readyAt=elapsed+2;return false;}
+                if(active>=cap){if(!launchCadence)readyAt=elapsed+2;return false;}
                 string id=Pending;planned=false;Pending="";
                 bool started=launch(id);
-                next=elapsed+(started?Interval(rules,elapsed)-(survival?WarningLead(rules):0):10);
+                next=elapsed+(started?Interval(rules,elapsed)-(launchCadence?WarningLead(rules):0):10);
                 return started;
             }
-            if(elapsed<next||(!survival&&active>=cap))return false;
+            if(elapsed<next||(!launchCadence&&active>=cap))return false;
             Pending=choose()??"";
             if(Pending.Length==0){next=elapsed+10;return false;}
-            // Survival counts from activation to activation. It can warn while the previous pair is still active.
-            readyAt=(survival?next:elapsed)+WarningLead(rules);planned=true;return false;
+            // Activation cadence includes the warning and can warn before the previous hazard ends.
+            readyAt=(launchCadence?next:elapsed)+WarningLead(rules);planned=true;return false;
         }
     }
 }

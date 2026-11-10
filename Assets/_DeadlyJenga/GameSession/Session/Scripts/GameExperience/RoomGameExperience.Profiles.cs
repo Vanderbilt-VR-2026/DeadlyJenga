@@ -101,7 +101,14 @@ namespace DeadlyJenga.CastlePrototype
             var rules=MatchSetup.DefaultModeRules(MatchModeRuntime.ParseMode(p.modeId),MapFor(p.mapId));
             if(IsPlayProfile(p))
             {
-                if (p.modeId=="teamtickets") { rules.teamCount=3; rules.sameHumanTeam=false; }
+                if (p.modeId=="teamtickets")
+                {
+                    rules.teamCount=3;
+                    rules.sameHumanTeam=false;
+                    rules.automaticDisasters=true;
+                    rules.disasterMinInterval=rules.disasterMaxInterval=rules.disasterLateInterval=60;
+                    rules.maxConcurrentDisasters=1;
+                }
                 return rules;
             }
             rules.teamCount=2;rules.sameHumanTeam=false;rules.automaticDisasters=false;
