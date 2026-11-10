@@ -171,6 +171,8 @@ namespace DeadlyJenga.CastlePrototype
                 allowed:()=>Settings!=null&&Settings.TurnLabel!="PhysicalOnly",accent:TabletCoral);
             TabletControl(tabletActions,page,()=>"Recenter height",new(246,-242),new(466,76),
                 ()=>Settings?.RecalibrateSeatedHeight(),allowed:()=>Settings!=null,accent:TabletCoral);
+            TabletControl(tabletActions,page,()=>"More comfort settings",new(0,-328),new(400,48),
+                ()=>CandyComfortPanel.Open(session),accent:TabletPlum,font:24);
         }
 
         void SetTabletTurn(string turn)
