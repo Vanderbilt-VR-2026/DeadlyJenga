@@ -142,14 +142,14 @@ namespace FlyingHand
             if(controller)ApplyViewMode(controller.ActiveControlMode);
             bool vr=!desktopView;
             if(vr&&!baselineReady)CaptureHeadBaseline();
-            bool dual=vr&&controller&&controller.DualControllerFlight;
-            if(dual)vrPitch=Mathf.Clamp(vrPitch-controller.CameraPitchInput*72f*dt,-45f,58f);
+            bool controllerFlight=vr&&controller&&(controller.DualControllerFlight||controller.SingleControllerFlight);
+            if(controllerFlight)vrPitch=Mathf.Clamp(vrPitch-controller.CameraPitchInput*72f*dt,-45f,58f);
             else vrPitch=Mathf.MoveTowards(vrPitch,0,90f*dt);
             if(followYaw)
             {
                 float delta=Mathf.DeltaAngle(yaw,target.eulerAngles.y);
-                // The motor already interpolates dual-stick turns. Keep the observer with its actual heading.
-                if(dual)yaw=target.eulerAngles.y;
+                // Follow the motor heading directly when the controller turns it.
+                if(controllerFlight)yaw=target.eulerAngles.y;
                 else if(vr&&vrSnapYaw){float step=Mathf.Max(15,vrYawStep);if(Mathf.Abs(delta)>=step-.01f)yaw+=Mathf.Round(delta/step)*step;}
                 else yaw=Mathf.LerpAngle(yaw,target.eulerAngles.y,1-Mathf.Exp(-yawResponse*dt));
             }

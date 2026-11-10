@@ -23,6 +23,7 @@ namespace FlyingHand
         [Min(0)] public float mouseYawSensitivity = .15f;
         public bool captureDesktopCursor = true;
         public bool DualControllerFlight { get; private set; }
+        public bool SingleControllerFlight { get; private set; }
         public float CameraPitchInput { get; private set; }
         public Vector2 DesktopLookDelta { get; private set; }
         // The host demo owns menus and possession; the reusable motor keeps its own input bindings.
@@ -163,6 +164,8 @@ namespace FlyingHand
             TrackedInputDriver?.ResetFlightInput();
             MoveInput = Vector2.zero; YawInput = VerticalInput = 0; DesktopLookDelta = Vector2.zero;
             smoothedInput = Vector3.zero; smoothedYaw = 0;
+            DualControllerFlight = SingleControllerFlight = false;
+            CameraPitchInput = 0;
             snapArmed=false;
         }
         void OnDisable()
@@ -184,7 +187,7 @@ namespace FlyingHand
             // handles delayed XR startup and a display stopping during Play Mode.
             RefreshControlMode();
             DesktopLookDelta = Vector2.zero;
-            DualControllerFlight=false;CameraPitchInput=0;
+            DualControllerFlight=SingleControllerFlight=false;CameraPitchInput=0;
             if(externallyDriven)
             {
                 if(InputSuspended||InputDriver==null){ClearInput();return;}
@@ -260,11 +263,22 @@ namespace FlyingHand
                 else {MoveInput=Vector2.zero;VerticalInput=YawInput=0;}
                 return;
             }
+            SingleControllerFlight=true;
+            var stick=Stick(flightController);
+            if(StickClickHeld(flightController))
+            {
+                TrackedInputDriver?.ResetFlightInput();
+                snapArmed=false;
+                MoveInput=Vector2.zero;
+                VerticalInput=FilterControllerLift(Axis("trigger"),Axis("grip"));
+                YawInput=Deadzone(stick.x);
+                CameraPitchInput=Deadzone(stick.y);
+                return;
+            }
             Vector2 raw=move.ReadValue<Vector2>();
             if(leftControllerFlight)
             {
                 TrackedInputDriver?.ResetFlightInput();
-                var stick=Stick(flightController);
                 ReadLeftController(stick,Axis("trigger"),Axis("grip"),flightController?.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton")?.isPressed==true);
                 return;
             }
@@ -283,6 +297,13 @@ namespace FlyingHand
                     if(usage==(left?UnityEngine.InputSystem.CommonUsages.LeftHand:UnityEngine.InputSystem.CommonUsages.RightHand))return controller;
             }
             return null;
+        }
+        static bool StickClickHeld(XRController controller)
+        {
+            var click=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("thumbstickClicked")??
+                controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primary2DAxisClick")??
+                controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("joystickClicked");
+            return click?.isPressed==true;
         }
         public static float FilterControllerLift(float up,float down)
         {

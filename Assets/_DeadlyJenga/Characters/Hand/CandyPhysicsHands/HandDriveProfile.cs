@@ -7,8 +7,8 @@ namespace DeadlyJenga.CandyPhysicsHands
     [DisallowMultipleComponent]
     public sealed class HandDriveProfile : MonoBehaviour
     {
-        public const float DefaultForceNewtons = 3000;
-        public const float DefaultFriction = 1.8f;
+        public const float DefaultForceNewtons = 1200;
+        public const float DefaultFriction = 2f;
         public const float MaximumForceNewtons = 10000;
         public const float MaximumFriction = 2;
         public float ForceNewtons { get; private set; } = DefaultForceNewtons;

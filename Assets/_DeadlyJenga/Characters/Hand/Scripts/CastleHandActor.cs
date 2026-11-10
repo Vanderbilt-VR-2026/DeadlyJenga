@@ -56,14 +56,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 if(controller!=null)
                 {
+                    if(HybridXRInput.MoveClickHeld(controller))return true;
                     if(motor.leftControllerFlight)
-                    {
-                        var stick=HybridXRInput.Stick(controller);
-                        bool turning=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("primaryButton")?.isPressed==true;
-                        bool stickHeld=turning?Mathf.Abs(stick.x)>motor.stickDeadzone||Mathf.Abs(stick.y)>motor.stickDeadzone:
-                            stick.magnitude>motor.stickDeadzone;
-                        return stickHeld||FlyingHandController.FilterControllerLift(Axis("trigger"),Axis("grip"))!=0;
-                    }
+                        return HybridXRInput.Stick(controller).magnitude>motor.stickDeadzone||
+                            FlyingHandController.FilterControllerLift(Axis("trigger"),Axis("grip"))!=0;
                     return motor.move.ReadValue<Vector2>().magnitude>motor.stickDeadzone||
                         Mathf.Abs(motor.turn.ReadValue<Vector2>().x)>motor.stickDeadzone||
                         FlyingHandController.FilterControllerLift(motor.ascend.ReadValue<float>(),motor.descend.ReadValue<float>())!=0;

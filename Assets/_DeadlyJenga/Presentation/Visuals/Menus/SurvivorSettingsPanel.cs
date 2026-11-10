@@ -55,7 +55,7 @@ namespace DeadlyJenga.CastlePrototype
             handPhysicsOpen=GUILayout.Toggle(handPhysicsOpen,"Flying hand drive / contact"+(editable?"":" (host only)"));
             if(!handPhysicsOpen)return;
             var physics=survivor.CurrentRules.handPhysics;
-            float force=physics?.forceNewtons??3000,friction=physics?.friction??1.8f;
+            float force=physics?.forceNewtons??1200,friction=physics?.friction??2f;
             bool previous=GUI.enabled;GUI.enabled=previous&&editable;
             GUILayout.Label("Hand drive force (N): "+force.ToString("0"));
             float position=Mathf.Sqrt(Mathf.Clamp(force,0,10000)/10000);
@@ -66,10 +66,10 @@ namespace DeadlyJenga.CastlePrototype
                 if(GUILayout.Button(preset.ToString("0")+" N"))force=preset;
             GUILayout.EndHorizontal();
             Slider("Contact friction: "+friction.ToString("0.00"),ref friction,0,2);
-            if(GUILayout.Button("Reset hand drive / friction")){force=3000;friction=1.8f;}
+            if(GUILayout.Button("Reset hand drive / friction")){force=1200;friction=2f;}
             GUI.enabled=previous;
             GUILayout.Label("Drive budget only. Momentum can produce larger contact impulses. Zero disables drive; it does not freeze the hand.");
-            if(editable&&(!Mathf.Approximately(force,physics?.forceNewtons??3000)||!Mathf.Approximately(friction,physics?.friction??1.8f)))
+            if(editable&&(!Mathf.Approximately(force,physics?.forceNewtons??1200)||!Mathf.Approximately(friction,physics?.friction??2f)))
                 SetHandPhysics(survivor,force,friction,true,share);
         }
         public static void SetHandPhysics(ISurvivorSettings survivor,float force,float friction,bool editable,System.Action<string> share)

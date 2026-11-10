@@ -126,7 +126,7 @@ namespace DeadlyJenga.CastlePrototype
                 var rules=Settings.CurrentRules;var audio=CandyAudioEngine.Instance;
                 if(handPhysicsPage)
                 {
-                    float force=rules.handPhysics?.forceNewtons??3000,friction=rules.handPhysics?.friction??1.8f;
+                    float force=rules.handPhysics?.forceNewtons??1200,friction=rules.handPhysics?.friction??2f;
                     string[] handTitles={"Resume","Hand drive force: "+force.ToString("0")+" N","Drive -100 N","Drive +100 N","Drive -1000 N","Drive +1000 N","Drive 0 N","Drive 100 N","Drive 300 N","Drive 1000 N","Drive 3000 N","Contact friction: "+friction.ToString("0.00"),"Back to tuning","Friction +0.1 / cycle","Reset: 3000 N / friction 1.8"};
                     for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);labels[i].text=handTitles[i];targets[i].enabled=i==0||i==12||(CanCommand&&i!=1&&i!=11);}
                     help.text="Drive budget, not total impact force. Zero disables drive, not existing momentum.";
@@ -192,11 +192,11 @@ namespace DeadlyJenga.CastlePrototype
                     if(i==12){handPhysicsPage=false;break;}
                     if(!CanCommand||Settings==null)break;
                     var physics=Settings.CurrentRules.handPhysics;
-                    float force=physics?.forceNewtons??3000,friction=physics?.friction??1.8f;
+                    float force=physics?.forceNewtons??1200,friction=physics?.friction??2f;
                     if(i==2)force-=100;if(i==3)force+=100;if(i==4)force-=1000;if(i==5)force+=1000;
                     if(i==6)force=0;if(i==7)force=100;if(i==8)force=300;if(i==9)force=1000;if(i==10)force=3000;
                     if(i==13)friction=friction>=1.99f?0:Mathf.Min(2,Mathf.Round((friction+.1f)*10)/10);
-                    if(i==14){force=3000;friction=1.8f;}
+                    if(i==14){force=1200;friction=2f;}
                     SurvivorSettingsPanel.SetHandPhysics(Settings,force,friction,CanCommand,Demo.ApplyStaminaRules);
                     break;
                 }

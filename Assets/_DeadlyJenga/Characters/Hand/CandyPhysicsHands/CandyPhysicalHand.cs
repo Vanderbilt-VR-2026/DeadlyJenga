@@ -235,7 +235,9 @@ namespace DeadlyJenga.CandyPhysicsHands
                 return;
             }
             float forceBudget=RequiresProfile?(Profile&&Profile.Confirmed?Profile.ForceNewtons:0):float.PositiveInfinity;
-            float grip=RequiresProfile&&Profile?Profile.Friction:settings.staticFriction;
+            // The profiled material multiplies with the block's coefficient. Add grip at
+            // the hand surface so the drive can use less squeeze force.
+            float grip=RequiresProfile&&Profile?Profile.Friction*2:settings.staticFriction;
             float sliding=RequiresProfile?grip*.85f:settings.dynamicFriction;
             if(friction.staticFriction!=grip)friction.staticFriction=grip;
             if(friction.dynamicFriction!=sliding)friction.dynamicFriction=sliding;
