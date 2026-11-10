@@ -290,7 +290,8 @@ namespace DeadlyJenga.Presentation
             var f=match.Frame;MatchPlayerFrame own=null;foreach(var p in f.players)if(p.id==match.LocalActorId){own=p;break;}
             if(lastPhase!=f.phase||lastMode!=f.rules.mode)
             {
-                lastPhase=f.phase;lastMode=f.rules.mode;objectiveUntil=Time.unscaledTime+7;
+                lastPhase=f.phase;lastMode=f.rules.mode;
+                if(f.phase==RoundPhase.Playing)objectiveUntil=Time.unscaledTime+5;
             }
             if(Expanded)UpdateBoard(f,own);else if(board.text.Length>0)board.text="";
             text.Clear();
@@ -307,7 +308,8 @@ namespace DeadlyJenga.Presentation
             else warning.Hide();
             CandyHudCards.Visible(board,Expanded);CandyHudCards.Visible(teams,!Expanded&&f.teams.Length>0);CandyHudCards.Visible(status,!Expanded);
             bool showObjective=!Expanded&&own!=null&&f.rules.mode!=GameModeKind.MurderMystery&&
-                (f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode!=GameModeKind.Demo&&Time.unscaledTime<objectiveUntil);
+                (f.rules.mode==GameModeKind.CaptureFlag||f.phase==RoundPhase.Playing&&
+                    f.rules.mode!=GameModeKind.Demo&&Time.unscaledTime<objectiveUntil);
             if(showObjective)UpdateObjective(f,own);
             CandyHudCards.Visible(objective,showObjective);
             if(own!=null)

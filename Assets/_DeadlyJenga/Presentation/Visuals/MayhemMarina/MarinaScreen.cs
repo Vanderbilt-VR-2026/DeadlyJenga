@@ -216,16 +216,26 @@ namespace DeadlyJenga.CandyArt.Marina
             bool visiting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
             bool playlist=experience?.Experience==GameExperience.Game&&!experience.CanConfigureExperience;
             if (!playlistStatus) playlistStatus=Text("",new Vector2(0,8),new Vector2(585,116),27,mainFace);
-            mainHeading.text=visiting?"SPECTATOR LOBBY":playlist?"READY TO PLAY?":"PICK YOUR MATCH";
+            bool countdown=playlist&&experience.AutomaticRounds&&!lobby.CanStart&&
+                experience.GamePhase==RoomGamePhase.Selected;
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"NEXT ROUND":playlist?"READY TO PLAY?":"PICK YOUR MATCH";
             playlistStatus.gameObject.SetActive(playlist||visiting);
-            playlistStatus.text=visiting?"Live match on the spectator TVs":experience?.GameStatus??"";
+            string status=visiting?"Live match on the spectator TVs":experience?.GameStatus??"";
+            if(countdown&&status.StartsWith("NEXT  ",System.StringComparison.Ordinal))
+            {
+                int suffix=status.LastIndexOf("  |  ",System.StringComparison.Ordinal);
+                if(suffix>6)status=status.Substring(6,suffix-6);
+                int seconds=Mathf.Max(0,Mathf.CeilToInt(experience.CountdownSeconds));
+                status+="\n"+(seconds/60).ToString("00")+":"+(seconds%60).ToString("00");
+            }
+            playlistStatus.text=status;
             foreach(var target in targets)
+            {
                 if(target.id is "marina-modes" or "marina-maps" or "marina-settings" or "marina-experience")
                     target.face.gameObject.SetActive(!playlist&&!visiting);
-            bool rotating=playlist&&experience.AutomaticRounds&&!lobby.CanStart;
+                if(target.id=="marina-play")target.face.gameObject.SetActive(!countdown);
+            }
             playTitle.text=visiting?(lobby.CanStart?"Return to match":"WATCH LIVE"):
-                rotating&&experience.GamePhase==RoomGamePhase.Selected
-                    ?"Next match in "+Mathf.CeilToInt(experience.CountdownSeconds)+" s":
                 playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
             hostTitle.text=lobby.Connected?(lobby.IsHost?"Manage room":"Room options"):"Create room";
             joinStatus.text=lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";

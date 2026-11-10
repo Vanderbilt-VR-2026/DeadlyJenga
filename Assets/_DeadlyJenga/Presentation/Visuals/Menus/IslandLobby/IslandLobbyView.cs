@@ -186,6 +186,19 @@ namespace DeadlyJenga.CastlePrototype
             choice.action();
             return true;
         }
+        bool RefreshChoice(Choice choice)
+        {
+            bool shown=choice.visible?.Invoke()!=false;
+            choice.button.gameObject.SetActive(shown);
+            if(!shown)return false;
+            bool raw=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
+            bool usable=choice.enabled?.Invoke()!=false&&(!raw||GameExperiencePanel.CanEditRawChoices(session));
+            choice.button.interactable=usable;
+            choice.collider.enabled=usable;
+            if(choice.title!=null)choice.label.text=choice.title();
+            return true;
+        }
+
         public void Point(Ray ray,bool pressed,bool held=false,int pointerDevice=0)
         {
             Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
@@ -195,10 +208,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
                 if(!choice.button||!choice.button.transform.parent.gameObject.activeInHierarchy)continue;
-                bool shown=choice.visible==null||choice.visible();choice.button.gameObject.SetActive(shown);if(!shown)continue;
-                bool rawChoice=choice.id.StartsWith("map-",StringComparison.Ordinal)||choice.id.StartsWith("mode-",StringComparison.Ordinal);
-                bool usable=(choice.enabled==null||choice.enabled())&&(!rawChoice||DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session));choice.button.interactable=usable;choice.collider.enabled=usable;
-                if(choice.title!=null)choice.label.text=choice.title();
+                if(!RefreshChoice(choice))continue;
+                bool usable=choice.button.interactable;
                 if(choice.physical && usable)
                 {
                     if(Vector3.Dot(ray.direction,choice.collider.transform.forward)>0&&choice.collider.Raycast(ray,out var hit,distance)&&hit.distance<distance){nearest=choice;distance=hit.distance;selectionPoint=hit.point;}

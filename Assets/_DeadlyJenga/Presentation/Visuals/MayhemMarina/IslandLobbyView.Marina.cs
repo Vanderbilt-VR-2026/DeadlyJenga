@@ -128,6 +128,12 @@ namespace DeadlyJenga.CastlePrototype
         void SetMarinaDetail(RectTransform station, bool open)
         {
             if (station == joinStation && !open) lobby.UnfocusCode();
+            if(open)
+            {
+                if(station==setupStation)UpdateGameStation();
+                foreach(var choice in choices)
+                    if(choice.button&&choice.button.transform.IsChildOf(station))RefreshChoice(choice);
+            }
             station.gameObject.SetActive(open);
             terminalRequireRelease = true;
             DeadlyJenga.Presentation.MenuAim.Consume();

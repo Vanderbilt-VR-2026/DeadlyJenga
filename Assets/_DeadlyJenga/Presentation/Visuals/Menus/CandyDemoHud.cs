@@ -32,8 +32,18 @@ namespace DeadlyJenga.CastlePrototype
             else GameExperiencePanel.Open(session);
         }
         int page,selection;Vector2 scroll;bool lastMenu;float nextHintSample;string lastContext="";
-        const float IntroSeconds=4.5f;
-        float introRemaining=IntroSeconds;bool introReplay;string introKey;
+        [Flags]
+        enum BasicAction { None = 0, Look = 1, Move = 2, Jump = 4, All = Look | Move | Jump }
+        BasicAction completedActions;
+        string introKey;
+        Transform introPlayer;
+        Camera introCamera;
+        Quaternion lookStart;
+        Vector3 lastMovePosition;
+        float walkedDistance;
+        bool introWasGrounded;
+        RectTransform hintStrip;
+        readonly RectTransform[] hintRows = new RectTransform[3];
         float uiSize=1;GUIStyle title,heading,cardHeading,body,small,button,compactButton,box;GUISkin themed;bool ready;
         Canvas hintCanvas;CanvasGroup hintGroup;Text roleText,statusText,menuText;
         readonly Text[] hintKeys=new Text[3],hintNames=new Text[3];readonly RawImage[] hintIcons=new RawImage[3];
@@ -62,10 +72,14 @@ namespace DeadlyJenga.CastlePrototype
         void Awake(){session=GetComponent<ISessionInfo>();}
         void Update()
         {
-            if((session as ILobbyMatchVisitControls)?.VisitingLobby==true){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(MatchRuntime.Current?.Frame.phase==RoundPhase.Results){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(!Ready)return;
+            if(!Ready || (session as ILobbyMatchVisitControls)?.VisitingLobby==true ||
+                MatchRuntime.Current?.Frame.phase==RoundPhase.Results ||
+                GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session))
+            {
+                if(hintCanvas)hintCanvas.enabled=false;
+                introPlayer=null;
+                return;
+            }
             if(!studio)studio=FindFirstObjectByType<CandyAudioStudio>();
             if(studio)studio.ShowLauncher=false;
             if(!session.MenuOpen&&lastMenu)MultiplayerPanel.ClearLeaveConfirmation();
@@ -171,7 +185,7 @@ namespace DeadlyJenga.CastlePrototype
             if(picture)GUI.DrawTexture(new Rect(650,2,177,106),picture,ScaleMode.ScaleToFit);
             DrawSection();
             GUI.EndScrollView();navCount=drawIndex;if(navCount>0)selection=Mathf.Clamp(selection,0,navCount-1);
-            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Click: act  ·  Tab: subsections  ·  ←/→: tabs  ·  ↑/↓: actions  ·  Enter: confirm  ·  Esc: resume",small);
+            GUI.Label(new Rect(26,692,1150,30),Time.unscaledTime<feedbackUntil?commandFeedback:"Tab: section   ·   ←/→: tab   ·   ↑/↓: action   ·   Enter: select   ·   Esc: resume",small);
             if(activate&&Event.current.type==EventType.Repaint){activate=false;if(selection<navCount)navActions[selection]?.Invoke();}
         }
         string PageTitle()=>SectionName=="Spectate"?"Watch the match":SectionName=="Maps"?"Change map":SectionName=="Disasters"?"Natural disasters":SectionName=="Modes"?"Game modes and world rules":SectionName=="Play"?"Make a little mayhem":SectionName=="Voice"?"AI players and voice":SectionName=="Survivors"?"Bring the island to life":SectionName=="Giant hands"?"A few extra hands":SectionName=="Settings"?"Your local controls":SectionName=="Friends"?"Multiplayer session":"A little guide to surviving the chaos";
@@ -506,7 +520,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void SettingsPage()
         {
-            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive shows a short first-run intro. Always shows detailed controls. Hidden turns hints off.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);});
+            ActionCard(119,CandyHudIcon.Help,"Gameplay hints: "+hintMode,"Adaptive clears each first-run hint when you do the action. Always shows more controls.",()=>{hintMode=(HintMode)(((int)hintMode+1)%3);});
             GUI.Label(new Rect(12,230,820,29),"Hint opacity  ·  "+Mathf.RoundToInt(hintOpacity*100)+"%",body);hintOpacity=GUI.HorizontalSlider(new Rect(12,270,815,24),hintOpacity,.5f,1);
             Note(310,"Tip: F1 toggles gameplay hints. Use a larger Game view for a larger menu. Settings here apply to this running session.");
             var color=GUI.backgroundColor;GUI.backgroundColor=CandyHudVisuals.Card;
@@ -667,7 +681,48 @@ namespace DeadlyJenga.CastlePrototype
 
         internal void ReplayIntro()
         {
-            hintMode=HintMode.Adaptive;introReplay=true;introRemaining=IntroSeconds;
+            hintMode=HintMode.Adaptive;
+            completedActions=BasicAction.None;
+            PlayerPrefs.DeleteKey(session.IsVR ? "CandyJenga.BasicActions.VR" : "CandyJenga.BasicActions.Desktop");
+            introKey=null;
+            introPlayer=null;
+            lastContext="";
+            nextHintSample=0;
+        }
+
+        void ObserveBasicActions(Camera camera)
+        {
+            var player=session.Player;
+            var motion=Move;
+            if(motion==null || motion.InputPaused) { introPlayer=null; return; }
+            Vector3 position=player.transform.position;
+            var rotation=camera.transform.rotation;
+            if(introPlayer!=player.transform || introCamera!=camera)
+            {
+                introPlayer=player.transform;
+                introCamera=camera;
+                lookStart=rotation;
+                lastMovePosition=position;
+                walkedDistance=0;
+                introWasGrounded=motion.Grounded;
+                return;
+            }
+
+            var previous=completedActions;
+            if(Quaternion.Angle(lookStart,rotation)>=12) completedActions|=BasicAction.Look;
+            var step=position-lastMovePosition;
+            step.y=0;
+            // Require both movement input and displacement. A moving platform alone is not walking.
+            if(motion.Grounded && step.sqrMagnitude<1 && player is IMenuInputState input && input.MovementHeld)
+                walkedDistance+=step.magnitude;
+            if(walkedDistance>=.4f) completedActions|=BasicAction.Move;
+            if(introWasGrounded && !motion.Grounded && !motion.Climbing && !motion.Vaulting && motion.VerticalSpeed>.8f)
+                completedActions|=BasicAction.Jump;
+            lastMovePosition=position;
+            introWasGrounded=motion.Grounded;
+            if(previous==completedActions)return;
+            PlayerPrefs.SetInt(introKey,(int)completedActions);
+            nextHintSample=0;
         }
 
         Hint[] IntroHints()
@@ -676,10 +731,13 @@ namespace DeadlyJenga.CastlePrototype
                 new Hint(CandyHudIcon.Look,"MOUSE","Look"),new Hint(CandyHudIcon.Move,"W A S D","Move"),new Hint(CandyHudIcon.Key,"SPACE","Jump")};
             Controllers(out bool left,out bool right);
             bool dominantLeft=left!=right?left:session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+            bool handsOnly=!left&&!right;
             var jump=Settings?.StandingPlay==true&&TrackedHands&&!right?
                 new Hint(CandyHudIcon.Pinch,Settings.JumpGestureLabel=="Fist"?"RIGHT FIST":"RIGHT PINCH","Jump"):
                 Controller(dominantLeft,ControllerPart.Primary,"Jump");
-            return new[]{new Hint(CandyHudIcon.Look,left!=right?"GRIP + STICK":dominantLeft?"LEFT STICK":"RIGHT STICK","Look / or turn head"),Controller(left!=right?left:!dominantLeft,ControllerPart.Stick,"Move"),jump};
+            var move=handsOnly?new Hint(CandyHudIcon.Move,"CONNECT CONTROLLER","Move"):
+                Controller(left!=right?left:!dominantLeft,ControllerPart.Stick,"Move");
+            return new[]{new Hint(CandyHudIcon.Look,"TURN YOUR HEAD","Look around"),move,jump};
         }
 
         void BuildHints()
@@ -692,11 +750,12 @@ namespace DeadlyJenga.CastlePrototype
             var role=Pill(go.transform,new Vector2(252,45),new Vector2(22,-20),new Vector2(0,1),CandyHudCards.Background);
             roleText=Text(role,"",new Vector2(226,21),new Vector2(0,9),16);roleText.fontStyle=FontStyle.Bold;roleText.color=CandyHudCards.Ink;roleText.GetComponent<Outline>().enabled=false;
             statusText=Text(role,"",new Vector2(226,18),new Vector2(0,-9),14);statusText.color=CandyHudCards.Accent;statusText.GetComponent<Outline>().enabled=false;
-            var strip=Pill(go.transform,new Vector2(225,151),new Vector2(18,18),Vector2.zero,new Color(.94f,.87f,1,.96f));
+            hintStrip=Pill(go.transform,new Vector2(225,151),new Vector2(18,18),Vector2.zero,new Color(.94f,.87f,1,.96f));
             for(int i=0;i<3;i++)
             {
                 var card=new GameObject("Control row",typeof(RectTransform)).GetComponent<RectTransform>();
-                card.SetParent(strip,false);card.sizeDelta=new Vector2(222,48);
+                hintRows[i]=card;
+                card.SetParent(hintStrip,false);card.sizeDelta=new Vector2(222,48);
                 card.anchoredPosition=new Vector2(3,(1-i)*46);
                 var raw=new GameObject("Control diagram",typeof(RectTransform),typeof(RawImage));
                 raw.transform.SetParent(card,false);
@@ -721,8 +780,13 @@ namespace DeadlyJenga.CastlePrototype
         bool viewVR;Camera hintCamera;
         void PresentHints()
         {
-            if(DeadlyJenga.Presentation.CandyMatchHud.Expanded){if(hintCanvas)hintCanvas.enabled=false;return;}
-            if(session.Demo is ISpectatorControls observer&&observer.Spectating){if(hintCanvas)hintCanvas.enabled=false;return;}
+            if(DeadlyJenga.Presentation.CandyMatchHud.Expanded ||
+                session.Demo is ISpectatorControls observer&&observer.Spectating)
+            {
+                if(hintCanvas)hintCanvas.enabled=false;
+                introPlayer=null;
+                return;
+            }
             if(!hintCanvas)BuildHints();var camera=session.ActiveCamera;
             if(viewVR!=session.IsVR||hintCamera!=camera||hintCanvas.renderMode==RenderMode.ScreenSpaceOverlay&&session.IsVR)
             {
@@ -730,29 +794,48 @@ namespace DeadlyJenga.CastlePrototype
                 DeadlyJenga.Presentation.CandyHudLayout.Configure(hintCanvas,transform,camera,viewVR);
             }
             bool adaptive=hintMode==HintMode.Adaptive;
-            string key=session.IsVR?"CandyJenga.BasicControlsSeen.v1.VR":"CandyJenga.BasicControlsSeen.v1.Desktop";
-            if(introKey!=key){introKey=key;introRemaining=IntroSeconds;}
-            bool onboarding=adaptive&&introRemaining>0&&(introReplay||PlayerPrefs.GetInt(key,PlayerPrefs.GetInt("DeadlyJenga.TutorialDone",0))==0);
-            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
-                adaptive&&(!onboarding||session.PlayingHand);
-            if(onboarding&&!hidden)
+            string key=session.IsVR?"CandyJenga.BasicActions.VR":"CandyJenga.BasicActions.Desktop";
+            if(introKey!=key)
             {
-                introRemaining-=Time.unscaledDeltaTime;
-                if(introRemaining<=0){PlayerPrefs.SetInt(key,1);introReplay=false;}
+                introKey=key;
+                completedActions=(BasicAction)PlayerPrefs.GetInt(key,0)&BasicAction.All;
+                introPlayer=null;
+                nextHintSample=0;
             }
+            var phase=MatchRuntime.Current?.Frame.phase;
+            bool playable=phase==null||phase==RoundPhase.Playing;
+            bool hidden=!camera||session.MenuOpen||studio&&studio.IsOpen||hintMode==HintMode.Hidden||
+                adaptive&&(!playable||session.PlayingHand||session.Player.InputSuspended||completedActions==BasicAction.All);
+            if(adaptive&&!hidden)
+            {
+                ObserveBasicActions(camera);
+                hidden=completedActions==BasicAction.All;
+            }
+            else introPlayer=null;
             if(adaptive){roleText.transform.parent.gameObject.SetActive(false);menuText.transform.parent.gameObject.SetActive(false);}
             else menuText.transform.parent.gameObject.SetActive(true);
             if(!hidden&&Time.unscaledTime>=nextHintSample)
             {
                 nextHintSample=Time.unscaledTime+.12f;
                 var hints=adaptive?IntroHints():Hints();
-                string context=(adaptive?"intro|":"full|")+InputLabel;
+                string context=(adaptive?"intro|"+(int)completedActions+"|":"full|")+InputLabel;
                 foreach(var hint in hints)context+="|"+hint.key+"|"+hint.text;
                 if(context!=lastContext)
                 {
                     lastContext=context;
+                    int visibleCount=0;
                     for(int i=0;i<hints.Length;i++)
                     {
+                        bool shown=!adaptive||(completedActions&(BasicAction)(1<<i))==0;
+                        hintRows[i].gameObject.SetActive(shown);
+                        if(shown)visibleCount++;
+                    }
+                    hintStrip.sizeDelta=new Vector2(225,13+visibleCount*46);
+                    int row=0;
+                    for(int i=0;i<hints.Length;i++)
+                    {
+                        if(!hintRows[i].gameObject.activeSelf)continue;
+                        hintRows[i].anchoredPosition=new Vector2(3,(visibleCount-1)*23-row++*46);
                         var hint=hints[i];
                         hintKeys[i].text=hint.key;hintNames[i].text=hint.text;
                         hintIcons[i].texture=hint.part==ControllerPart.None?CandyHudVisuals.Icon(hint.icon):
