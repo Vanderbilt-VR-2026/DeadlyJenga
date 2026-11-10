@@ -15,7 +15,7 @@ namespace DeadlyJenga.Destruction
     public sealed class DestructionPresentation : MonoBehaviour
     {
         public static DestructionPresentation Instance { get; private set; }
-        public int maxChunks = 180;
+        public int maxChunks = 72;
         public float chunkLife = 5;
 
         // Stress at which each crack stage appears (stage art comes from CrackArt.StageReveal).
@@ -77,6 +77,8 @@ namespace DeadlyJenga.Destruction
             sift = Particles("Sifting dust", soft, 600, false);
             fallbackChunk = MakeMaterial(new Color(.8f, .55f, .35f), false, true);
             copied = new MaterialPropertyBlock();
+            // Built up front so the first big collapse doesn't also create objects mid-frame.
+            for (int i = 0; i < maxChunks; i++) Create();
         }
 
         void OnEnable()
@@ -241,14 +243,14 @@ namespace DeadlyJenga.Destruction
             float scale = (size.x + size.y + size.z) / 3;
 
             // Big irregular shards, then thin splinters, all flying apart from the middle.
-            for (int k = 0; k < 7; k++)
+            for (int k = 0; k < 4; k++)
             {
                 var offset = rotation * Vector3.Scale(new Vector3(Random.Range(-.35f, .35f), Random.Range(-.35f, .35f), Random.Range(-.35f, .35f)), size);
                 var piece = Vector3.Scale(size, new Vector3(Random.Range(.25f, .45f), Random.Range(.25f, .45f), Random.Range(.25f, .45f)));
                 Spawn(shards[Random.Range(0, shards.Length)], art, position + offset, rotation * Random.rotation, piece,
                     velocity * .7f + offset.normalized * Random.Range(1f, 3.2f) + Vector3.up * Random.Range(.3f, 1.2f));
             }
-            for (int k = 0; k < 6; k++)
+            for (int k = 0; k < 3; k++)
             {
                 var offset = rotation * Vector3.Scale(Random.insideUnitSphere * .35f, size);
                 float len = Mathf.Max(size.x, Mathf.Max(size.y, size.z)) * Random.Range(.25f, .5f);
@@ -258,7 +260,7 @@ namespace DeadlyJenga.Destruction
             }
 
             // A dust cloud that billows out and settles.
-            for (int k = 0; k < 28; k++)
+            for (int k = 0; k < 18; k++)
             {
                 var p = new ParticleSystem.EmitParams
                 {
@@ -313,9 +315,17 @@ namespace DeadlyJenga.Destruction
         Chunk Take()
         {
             foreach (var c in pool) if (!c.go.activeSelf) return c;
-            if (pool.Count < maxChunks)
+            if (pool.Count < maxChunks) return Create();
+            Chunk oldest = pool[0];
+            foreach (var c in pool) if (c.until < oldest.until) oldest = c;
+            return oldest;
+        }
+
+        Chunk Create()
+        {
             {
                 var go = new GameObject("Debris");
+                go.SetActive(false);
                 go.transform.SetParent(transform, false);
                 var filter = go.AddComponent<MeshFilter>();
                 var renderer = go.AddComponent<MeshRenderer>();
@@ -328,9 +338,6 @@ namespace DeadlyJenga.Destruction
                 pool.Add(chunk);
                 return chunk;
             }
-            Chunk oldest = pool[0];
-            foreach (var c in pool) if (c.until < oldest.until) oldest = c;
-            return oldest;
         }
 
         void Play(CandySound sound, Vector3 at, float intensity, ref float nextAt, float gap)

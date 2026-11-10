@@ -247,9 +247,10 @@ namespace DeadlyJenga.CastlePrototype
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
                 body.mass = Mathf.Max(1, mass*volumeRatio);
                 // Ninety loose courses need more contact iterations than the standard castle.
+                // Touching blocks are solved together at the highest count, so keep these low for Quest.
                 bool tallKeep=settings.structureVariant==CastleStructure.FourKeeps&&p.Section==CastleSection.Keep;
-                body.solverIterations = settings.cathedral ? 80 : tallKeep ? 60 : 20;
-                body.solverVelocityIterations = settings.cathedral ? 20 : tallKeep ? 16 : 8;
+                body.solverIterations = settings.cathedral ? 24 : tallKeep ? 18 : 10;
+                body.solverVelocityIterations = settings.cathedral ? 4 : tallKeep ? 4 : 2;
                 body.sleepThreshold = .005f;
                 Bodies.Add(body);
             }

@@ -104,7 +104,7 @@ namespace DeadlyJenga.CandyPhysicsHands
             for(int i=0;i<16;i++)
             {
                 var go=new GameObject(i==0?"Physical palm":"Physical finger "+(i-1)/3+" joint "+(i-1)%3);go.transform.SetParent(transform,false);go.layer=0;
-                var rb=go.AddComponent<Rigidbody>();rb.mass=Mathf.Max(.001f,i==0?settings.palmMass:settings.fingerMass);rb.useGravity=false;rb.interpolation=RigidbodyInterpolation.Interpolate;rb.collisionDetectionMode=CollisionDetectionMode.ContinuousDynamic;rb.solverIterations=settings.solverIterations;rb.solverVelocityIterations=settings.solverVelocityIterations;rb.maxAngularVelocity=settings.maxAngularSpeed;rb.maxLinearVelocity=settings.maxSpeed;rb.maxDepenetrationVelocity=1;
+                var rb=go.AddComponent<Rigidbody>();rb.mass=Mathf.Max(.001f,i==0?settings.palmMass:settings.fingerMass);rb.useGravity=false;rb.interpolation=RigidbodyInterpolation.Interpolate;rb.collisionDetectionMode=i==0?CollisionDetectionMode.ContinuousDynamic:CollisionDetectionMode.ContinuousSpeculative;rb.solverIterations=settings.solverIterations;rb.solverVelocityIterations=settings.solverVelocityIterations;rb.maxAngularVelocity=settings.maxAngularSpeed;rb.maxLinearVelocity=settings.maxSpeed;rb.maxDepenetrationVelocity=1;
                 bodies[i]=rb;
                 if(i==0){var col=go.AddComponent<BoxCollider>();col.center=new Vector3(0,0,.020f)*builtSize;col.size=new Vector3(.078f,.04f,.078f)*builtSize;contacts[i]=col;}
                 else

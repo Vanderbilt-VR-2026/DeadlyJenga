@@ -110,7 +110,7 @@ namespace DeadlyJenga.CastlePrototype
 
             if(Time.unscaledTime<nextFrame)return;
 
-            nextFrame=Time.unscaledTime+1f/(9*Mathf.Max(1,updatesPerScreen)*(viewer.IsVR?.5f:1));
+            nextFrame=Time.unscaledTime+1f/(9*Mathf.Max(1,updatesPerScreen)*(viewer.IsVR?.1f:1));
 
             for(int attempt=0;attempt<9;attempt++)
 

@@ -15,6 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<RemoteDisaster> remoteDisasters=new List<RemoteDisaster>();
         float nextDisasterVisuals;
         byte[] disasterVisualPacket;
+        float disasterRefreshAt;
         void CaptureDisasters()
         {
             if(Time.unscaledTime<nextDisasterVisuals)return;
@@ -29,7 +30,10 @@ namespace DeadlyJenga.CastlePrototype
                 frames.Insert(0,rewindFrame);
             }
             if(frames.Count>32)frames.RemoveRange(32,frames.Count-32);
-            disasterVisualPacket=CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(new DisasterPacket{frames=frames.ToArray()})));
+            var packet=CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(new DisasterPacket{frames=frames.ToArray()})));
+            // Unchanged visuals are only refreshed now and then (receivers keep them for three seconds).
+            if(disasterVisualPacket!=null&&Time.unscaledTime<disasterRefreshAt&&((ReadOnlySpan<byte>)packet).SequenceEqual(disasterVisualPacket))return;
+            disasterVisualPacket=packet;disasterRefreshAt=Time.unscaledTime+1.5f;
         }
         void ReceiveDisasters(byte[] data)
         {

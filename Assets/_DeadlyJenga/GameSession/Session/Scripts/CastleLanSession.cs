@@ -55,6 +55,9 @@ namespace DeadlyJenga.CastlePrototype
         int connectAttempt, selectedIndex, hostRevision = -1;
         float nextBeacon, nextState, nextPose, requestedAt, lastRequest, worldAt, lastWorldAt;
         P.Snapshot targetWorld;
+        bool worldSettled;
+        readonly List<int> moving = new List<int>();
+        float worldInterval = .1f;   // smoothed time between world updates; blocks glide across it
         P.Pose[] previousBlocks;
         INetworkPreview localPreview;
         string displayName;
@@ -201,6 +204,16 @@ namespace DeadlyJenga.CastlePrototype
             ReceiveWelcome(data);
         }
         public byte[] FusionCaptureWorld() => P.EncodeWorld(CaptureWorld());
+        public P.Snapshot FusionCaptureSnapshot() => CaptureWorld();
+        public byte[] FusionEncodeWorldFor(P.Snapshot snapshot, P.WorldBaseline baseline) => P.EncodeWorldFor(snapshot, baseline);
+        // One small packet per character, so live movement fits in a single unreliable message.
+        public void FusionCaptureLivePoseParts(List<byte[]> parts)
+        {
+            parts.Clear();
+            parts.Add(EncodePosePart(LocalActor()));
+            foreach (var pair in fusionActors) parts.Add(EncodePosePart(Rebroadcast(pair.Key, pair.Value)));
+        }
+        static byte[] EncodePosePart(P.Actor actor) => P.Encode(P.Player, writer => { writer.Write(1); P.Write(writer, actor); });
         public byte[] FusionCapturePlayer() => P.Encode(P.Player, w => P.Write(w, LocalActor()));
         public byte[] FusionCaptureLivePoses()
         {
@@ -214,7 +227,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void FusionApplyWorld(byte[] data)
         {
-            var snapshot=P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
+            var snapshot=P.IsWorldDelta(data)?P.DecodeWorldDelta(data,targetWorld):P.DecodeWorld(data);float dt=Time.unscaledTime-lastWorldAt;
+            if(receivedWorld&&dt>.01f&&dt<1)worldInterval=Mathf.Lerp(worldInterval,dt,.3f);
             if(targetWorld!=null&&targetWorld.revision==snapshot.revision&&targetWorld.blocks.Length==snapshot.blocks.Length&&dt>.01f&&dt<1)
             {migrationVelocity=new Vector3[snapshot.blocks.Length];migrationAngular=new Vector3[snapshot.blocks.Length];for(int i=0;i<snapshot.blocks.Length;i++)
                 {migrationVelocity[i]=Vector3.ClampMagnitude((snapshot.blocks[i].position-targetWorld.blocks[i].position)/dt,60);
@@ -579,13 +593,16 @@ namespace DeadlyJenga.CastlePrototype
             }
             var blocks = World.Blocks;
             if (blocks.Count != s.blocks.Length) throw new InvalidDataException("Demo block count changed unexpectedly");
+            moving.Clear();
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
                 previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
-                b.gameObject.SetActive(s.active[i]);
+                if (b.gameObject.activeSelf != s.active[i]) b.gameObject.SetActive(s.active[i]);
+                // Only blocks that actually moved get touched each frame; resting ones stay untouched.
+                if (rebuild || previousBlocks[i].position != s.blocks[i].position || previousBlocks[i].rotation != s.blocks[i].rotation) moving.Add(i);
             }
-            targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
+            targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime; worldSettled = false;
             var present = new HashSet<string>();
             foreach(var actor in s.actors)
             {
@@ -608,9 +625,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         void InterpolateWorld()
         {
-            if (targetWorld == null) return;
-            float t = Mathf.Clamp01((Time.unscaledTime - worldAt) * 15);
-            for (int i = 0; i < targetWorld.blocks.Length; i++)
+            if (targetWorld == null || worldSettled) return;
+            float t = Mathf.Clamp01((Time.unscaledTime - worldAt) / Mathf.Clamp(worldInterval, .05f, .5f));
+            worldSettled = t >= 1;
+            foreach (int i in moving)
             {
                 var b = World.Blocks[i]; var p = targetWorld.blocks[i];
                 b.position = Vector3.Lerp(previousBlocks[i].position, p.position, t);

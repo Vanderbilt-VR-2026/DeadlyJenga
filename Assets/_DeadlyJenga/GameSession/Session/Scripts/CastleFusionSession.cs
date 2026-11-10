@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         const int Ready = 1, Welcome = 2, World = 3, Ack = 5, WelcomeAck = 6, Rules=7, Command=8, Admin=9;
         const int LivePose = 20, LivePoses = 21, PoseReceipt = 22;
         const int PoseWindow = 6, MaxPoseSize = 4096;
-        sealed class Peer { public readonly HashSet<int> posesInFlight = new HashSet<int>(); public int lastPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; }
+        sealed class Peer { public readonly HashSet<int> posesInFlight = new HashSet<int>(); public int lastPoseSequence; public bool ready; public string rules; public byte[] welcome; public int waiting; public float lastPose, sentAt, lastCommand; public string admin; public byte[] disasters; public byte[] match; public float lastModeCommand; public int mysteryRound=-1,trailCount; public readonly CastleLanProtocol.WorldBaseline baseline=new CastleLanProtocol.WorldBaseline(); }
         readonly Dictionary<PlayerRef, Peer> peers = new Dictionary<PlayerRef, Peer>();
         NetworkRunner runner;
         NetworkDelegates callbacks;
@@ -36,25 +36,41 @@ namespace DeadlyJenga.CastlePrototype
         float nextPoseSend;
         readonly HashSet<int> posesInFlight = new HashSet<int>();
 
+        const float FastPoseInterval = 1f / 30, ReliablePoseInterval = .2f;
+        float nextReliablePose;
+        readonly List<byte[]> poseParts = new List<byte[]>();
+        static CastleFusionSession fastLane;
         void PumpPoses(float now)
         {
             if (now < nextPoseSend) return;
-            nextPoseSend = now + 1f / 30;
+            nextPoseSend = now + FastPoseInterval;
+            bool reliableDue = now >= nextReliablePose;
+            if (reliableDue) nextReliablePose = now + ReliablePoseInterval;
             if (!runner.IsServer)
             {
-                if (welcomed && !castle.WaitingForWorld && posesInFlight.Count < PoseWindow)
+                if (!welcomed || castle.WaitingForWorld) return;
+                byte[] packet = castle.FusionCapturePlayer();
+                if (packet.Length > MaxPoseSize) return;
+                int serial = ++poseSequence;
+                SendFast(PlayerRef.None, serial, packet);
+                if (reliableDue && posesInFlight.Count < PoseWindow)
                 {
-                    byte[] packet = castle.FusionCapturePlayer();
-                    if (packet.Length <= MaxPoseSize)
-                    {
-                        int serial = ++poseSequence;
-                        posesInFlight.Add(serial);
-                        Send(default, LivePose, packet, serial);
-                    }
+                    posesInFlight.Add(serial);
+                    Send(default, LivePose, packet, serial);
                 }
                 return;
             }
 
+            bool anyReady = false;
+            foreach (var pair in peers) if (pair.Value.ready) { anyReady = true; break; }
+            if (!anyReady) return;
+            castle.FusionCaptureLivePoseParts(poseParts);
+            foreach (var pair in peers)
+            {
+                if (!pair.Value.ready) continue;
+                foreach (var part in poseParts) SendFast(pair.Key, ++poseSequence, part);
+            }
+            if (!reliableDue) return;
             byte[] batch = null;
             foreach (var pair in peers)
             {
@@ -64,6 +80,77 @@ namespace DeadlyJenga.CastlePrototype
                 pair.Value.posesInFlight.Add(serial);
                 Send(pair.Key, LivePoses, batch, serial);
             }
+        }
+        // [serial][scene tag][chunk index][chunk count][bytes]. Characters larger than one unreliable
+        // message go out in a few chunks; a pose missing any chunk is dropped and the next one replaces it.
+        const int FastHeader = 10, FastChunk = CastleFusionFastLane.MaxPayload - FastHeader, MaxFastChunks = 8;
+        void SendFast(PlayerRef target, int serial, byte[] pose)
+        {
+            if (!IsCurrentScene) return;
+            int chunks = (pose.Length + FastChunk - 1) / FastChunk;
+            if (chunks < 1 || chunks > MaxFastChunks) return;
+            try
+            {
+                for (int c = 0; c < chunks; c++)
+                {
+                    int offset = c * FastChunk, length = Mathf.Min(FastChunk, pose.Length - offset);
+                    var data = new byte[FastHeader + length];
+                    BitConverter.TryWriteBytes(new Span<byte>(data, 0, 4), serial);
+                    BitConverter.TryWriteBytes(new Span<byte>(data, 4, 4), sceneTag);
+                    data[8] = (byte)c; data[9] = (byte)chunks;
+                    Buffer.BlockCopy(pose, offset, data, FastHeader, length);
+                    CastleFusionFastLane.RpcLivePose(runner, target, data);
+                }
+            }
+            catch (Exception error) { Debug.LogWarning("Fast pose lane unavailable: " + error.Message); }
+        }
+        sealed class FastAssembly { public int serial; public byte[][] parts; public int received; }
+        readonly Dictionary<int, FastAssembly> fastAssemblies = new Dictionary<int, FastAssembly>();
+        byte[] AssembleFast(PlayerRef player, byte[] data, out int serial)
+        {
+            serial = BitConverter.ToInt32(data, 0);
+            int index = data[8], count = data[9];
+            if (count < 1 || count > MaxFastChunks || index >= count) return null;
+            var chunk = new byte[data.Length - FastHeader];
+            Buffer.BlockCopy(data, FastHeader, chunk, 0, chunk.Length);
+            if (count == 1) return chunk;
+            int sender = player.PlayerId;
+            if (!fastAssemblies.TryGetValue(sender, out var a)) fastAssemblies[sender] = a = new FastAssembly { serial = int.MinValue };
+            if (serial < a.serial) return null;
+            if (serial != a.serial || a.parts == null || a.parts.Length != count) { a.serial = serial; a.parts = new byte[count][]; a.received = 0; }
+            if (a.parts[index] != null) return null;
+            a.parts[index] = chunk; a.received++;
+            if (a.received < count) return null;
+            int total = 0; foreach (var part in a.parts) total += part.Length;
+            var pose = new byte[total]; int at = 0;
+            foreach (var part in a.parts) { Buffer.BlockCopy(part, 0, pose, at, part.Length); at += part.Length; }
+            a.parts = null; a.received = 0;
+            return pose;
+        }
+        internal static void ReceiveFastPose(NetworkRunner source, PlayerRef player, byte[] data)
+        {
+            var self = fastLane;
+            if (!self || self.closing || source != self.runner || data == null || data.Length <= FastHeader || data.Length > CastleFusionFastLane.MaxPayload || !self.IsCurrentScene) return;
+            int tag = BitConverter.ToInt32(data, 4);
+            if (tag != 0 && tag != self.sceneTag) return;
+            var pose = self.AssembleFast(player, data, out int serial);
+            if (pose == null) return;
+            try
+            {
+                if (self.runner.IsServer)
+                {
+                    if (player == PlayerRef.None || !self.peers.TryGetValue(player, out var peer) || !peer.ready || serial <= peer.lastPoseSequence) return;
+                    self.castle.FusionReceivePlayer(player.ToString(), pose);
+                    peer.lastPoseSequence = serial; peer.lastPose = Time.unscaledTime;
+                }
+                else
+                {
+                    if (!self.welcomed || self.castle.WaitingForWorld || serial <= self.lastPoseBatch) return;
+                    self.castle.FusionApplyLivePoses(pose, self.runner.ActivePlayers.Select(p => p.ToString()));
+                    self.lastPoseBatch = serial;
+                }
+            }
+            catch (Exception error) { Debug.LogWarning("Dropped a live pose: " + error.Message); }
         }
         bool welcomed, closing, leavingIntentionally;
         float nextSend, lastWorld;
@@ -85,10 +172,20 @@ namespace DeadlyJenga.CastlePrototype
         public void PauseForMigration(){ResetDisasters();closing=true;pendingStamina=null;if(runner&&callbacks!=null)runner.RemoveCallbacks(callbacks);castle.FusionFreeze();}
         public void ResumeAfterMigration(NetworkRunner next)
         {
-            peers.Clear();socialPeers.Clear();socialServer.Clear();posesInFlight.Clear();lastPoseBatch=0;nextPoseSend=0;welcomed=false;closing=false;nextSend=0;
-            runner=next;sceneTag=SceneTag(next);if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
+            peers.Clear();socialPeers.Clear();socialServer.Clear();posesInFlight.Clear();fastAssemblies.Clear();lastPoseBatch=0;nextPoseSend=0;welcomed=false;closing=false;nextSend=0;
+            runner=next;sceneTag=SceneTag(next);fastLane=this;ConfigureTransport(next);if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
             AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
+        }
+        // Reliable data defaults to a low send rate; world and match updates queue up behind it.
+        static void ConfigureTransport(NetworkRunner target)
+        {
+            if (!target) return;
+            for (int hz = 64; hz >= 8; hz /= 2)
+            {
+                try { target.ReliableDataSendRate = hz; return; }
+                catch (Exception) { }
+            }
         }
         void AttachCallbacks()
         {
@@ -99,7 +196,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Initialize(NetworkRunner networkRunner, CastlePlaySession owner, CastleLanSession state)
         {
-            runner = networkRunner; session = owner; castle = state;
+            runner = networkRunner; session = owner; castle = state; fastLane = this;
+            ConfigureTransport(runner);
             sceneTag = SceneTag(runner);
             // Fusion disables Unity's automatic physics when this component starts.
             // The castle's flight motor and contact hands still require 3D simulation.
@@ -163,7 +261,7 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         if (!peers.ContainsKey(player))
                             peers.Add(player, new Peer { lastPose = Time.unscaledTime, welcome = castle.FusionWelcome(player.ToString()) });
-                        if (!peers[player].ready) Send(player, Welcome, peers[player].welcome);
+                        if (!peers[player].ready) { peers[player].baseline.Reset(); Send(player, Welcome, peers[player].welcome); }
                     }
                     else if (peers.TryGetValue(player, out var peer))
                     {
@@ -262,7 +360,7 @@ namespace DeadlyJenga.CastlePrototype
                 Demo.roomNotice=room&&room.Owns(runner)?room.MatchNotice:"";
                 castle.FusionRoomNotice(Demo.roomNotice);
                 string admin=JsonUtility.ToJson(Demo);
-                byte[] world = null;
+                CastleLanProtocol.Snapshot worldState = null;
                 foreach (var pair in peers)
                 {
                     if (!pair.Value.ready || pair.Value.waiting != 0) continue;
@@ -270,7 +368,8 @@ namespace DeadlyJenga.CastlePrototype
                     if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){Send(pair.Key,DisasterVisuals,disasterVisualPacket);pair.Value.disasters=disasterVisualPacket;}
                     if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin));pair.Value.admin=admin;}
                     string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules));pair.Value.rules=rules;}
-                    world ??= CastleFusionWire.Compress(castle.FusionCaptureWorld());
+                    worldState ??= castle.FusionCaptureSnapshot();
+                    var world = CastleFusionWire.Compress(castle.FusionEncodeWorldFor(worldState, pair.Value.baseline));
                     pair.Value.waiting = ++sequence; pair.Value.sentAt = now;
                     Send(pair.Key, World, world, pair.Value.waiting);
                 }
@@ -324,6 +423,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void OnDestroy()
         {
+            if (fastLane == this) fastLane = null;
             DisconnectModes();
             ResetDisasters();
             if (runner != null && callbacks != null) runner.RemoveCallbacks(callbacks);

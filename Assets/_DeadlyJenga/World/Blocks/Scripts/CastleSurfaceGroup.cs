@@ -37,6 +37,8 @@ namespace DeadlyJenga.CastlePrototype
             root.layer = DeadlyJenga.Core.Layers.Surface;
             var body = root.AddComponent<Rigidbody>();
             body.isKinematic = true; body.useGravity = false;
+            // Moving a member collider would otherwise recompute this body's mass every frame.
+            body.automaticCenterOfMass = false; body.automaticInertiaTensor = false;
             var created = root.AddComponent<CastleSurfaceGroup>();
             created.sceneId = scene.handle; created.cell = key; created.members = 1;
             groups.Add(created);
