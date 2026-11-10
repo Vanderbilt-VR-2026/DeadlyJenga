@@ -92,29 +92,21 @@ namespace DeadlyJenga.Presentation
             aiming=EyeBoxContains(eye.transform.position,eye.transform.forward,optic.position,optic.forward,scale);
             if(state.kind==EquipmentKind.DualRifle&&state.shotgun){if(lens)lens.SetActive(false);return;}
             if(!aiming){if(lens)lens.SetActive(false);return;}
+            // These mounts mark the center of the existing model opening, not its size.
+            float radius=state.kind==EquipmentKind.DualRifle?.027f:state.kind==EquipmentKind.Blaster?.021f:.018f;
+            float halfWidth=radius*Mathf.Abs(aperture.lossyScale.x),halfHeight=radius*Mathf.Abs(aperture.lossyScale.y);
+            var eyeOffset=eye.transform.position-aperture.position;
+            float relief=-Vector3.Dot(eyeOffset,aperture.forward);
+            if(halfWidth<.001f||halfHeight<.001f||relief<=eye.nearClipPlane||
+                Mathf.Abs(Vector3.Dot(eyeOffset,aperture.right))>Mathf.Max(.025f,halfWidth)||
+                Mathf.Abs(Vector3.Dot(eyeOffset,aperture.up))>Mathf.Max(.025f,halfHeight))
+            {aiming=false;if(lens)lens.SetActive(false);return;}
             EnsureLens();
             if(!lens)return;
             lens.transform.SetParent(aperture,false);
             lens.transform.localPosition=Vector3.zero;
             lens.transform.localRotation=Quaternion.identity;
-            lens.transform.localScale=Vector3.one;
-            float halfWidth=Mathf.Abs(aperture.lossyScale.x),halfHeight=Mathf.Abs(aperture.lossyScale.y);
-            float relief=Vector3.Dot(aperture.position-eye.transform.position,aperture.forward);
-            var eyeHalfSpan=eye.transform.right*.040f;
-            if(eye.stereoEnabled)
-            {
-                var leftEye=eye.GetStereoViewMatrix(Camera.StereoscopicEye.Left).inverse.GetColumn(3);
-                var rightEye=eye.GetStereoViewMatrix(Camera.StereoscopicEye.Right).inverse.GetColumn(3);
-                Vector3 span=rightEye-leftEye;
-                if(span.sqrMagnitude>.000001f)eyeHalfSpan=span.normalized*Mathf.Max(.040f,span.magnitude*.5f);
-            }
-            var eyeOffset=eye.transform.position-aperture.position;
-            float sideOffset=Mathf.Abs(Vector3.Dot(eyeOffset,aperture.right))+Mathf.Abs(Vector3.Dot(eyeHalfSpan,aperture.right));
-            float heightOffset=Mathf.Abs(Vector3.Dot(eyeOffset,aperture.up))+Mathf.Abs(Vector3.Dot(eyeHalfSpan,aperture.up));
-            if(halfWidth>.10f||halfHeight>.06f||relief<=eye.nearClipPlane||CommonApertureRadius(halfWidth,halfHeight,sideOffset)<=heightOffset+.002f)
-            {aiming=false;lens.SetActive(false);return;}
-            lensMaterial.SetVector("_OpticRight",aperture.right);lensMaterial.SetVector("_OpticUp",aperture.up);lensMaterial.SetVector("_OpticForward",aperture.forward);
-            lensMaterial.SetVector("_ContentTanHalfFov",new Vector4(halfWidth/relief,halfHeight/relief,0,0));
+            lens.transform.localScale=new Vector3(radius,radius,1);
             lens.SetActive(true);
             if(Time.unscaledTime>=nextRender)
             {
