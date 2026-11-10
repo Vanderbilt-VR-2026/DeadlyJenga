@@ -106,7 +106,7 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
-            Environment(environment);Water(environment);Signs();
+            Environment(environment);Water(environment);Signs();BuildProjectorBeam();
             Mark("Arrival",Arrival);Mark("Wardrobe",Wardrobe);Mark("Play screen",PlayScreen);
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f));
@@ -237,6 +237,60 @@ namespace DeadlyJenga.CandyArt.Marina
             extraMaterials.Add(material);
             return material;
         }
+        void BuildProjectorBeam()
+        {
+            var shader=Shader.Find("Universal Render Pipeline/Particles/Unlit");
+            if (!shader) return;
+
+            var material=new Material(shader){name="Marina soft projector light"};
+            material.SetOverrideTag("RenderType","Transparent");
+            material.SetFloat("_Surface",1);
+            material.SetFloat("_SrcBlend",(float)BlendMode.SrcAlpha);
+            material.SetFloat("_DstBlend",(float)BlendMode.One);
+            material.SetFloat("_ZWrite",0);
+            material.SetFloat("_Cull",0);
+            material.EnableKeyword("_SURFACE_TYPE_TRANSPARENT");
+            material.renderQueue=(int)RenderQueue.Transparent;
+            material.SetColor("_BaseColor",new Color(1,.87f,.68f,.10f));
+            extraMaterials.Add(material);
+
+            var corners=new[]{
+                new Vector2(-1,-1),new Vector2(1,-1),new Vector2(1,1),new Vector2(-1,1)
+            };
+            var vertices=new Vector3[12];
+            var colors=new Color[12];
+            var indices=new List<int>();
+            var screen=ProjectionSurface+Vector3.back*.045f;
+            for (int ring=0;ring<3;ring++)
+            {
+                float fraction=ring==0?0:ring==1?.20f:1;
+                float opacity=ring==0?.92f:ring==1?.70f:.08f;
+                for (int side=0;side<4;side++)
+                {
+                    var corner=corners[side];
+                    var start=ProjectorLens+new Vector3(corner.x*.095f,corner.y*.075f,0);
+                    var end=screen+new Vector3(corner.x*3.37f,corner.y*1.50f,0);
+                    int index=ring*4+side;
+                    vertices[index]=Vector3.Lerp(start,end,fraction);
+                    colors[index]=new Color(1,1,1,opacity);
+                    if (ring==2) continue;
+                    int next=ring*4+(side+1)%4;
+                    indices.AddRange(new[]{index,next,index+4,next,next+4,index+4});
+                }
+            }
+
+            var beamMesh=new Mesh{name="Marina projector light frustum",vertices=vertices,colors=colors,triangles=indices.ToArray()};
+            beamMesh.RecalculateBounds();
+            extraMeshes.Add(beamMesh);
+            var beam=new GameObject("Visual - beachside projector beam",typeof(MeshFilter),typeof(MeshRenderer));
+            beam.transform.SetParent(visual,false);
+            beam.GetComponent<MeshFilter>().sharedMesh=beamMesh;
+            var renderer=beam.GetComponent<MeshRenderer>();
+            renderer.sharedMaterial=material;
+            renderer.shadowCastingMode=ShadowCastingMode.Off;
+            renderer.receiveShadows=false;
+        }
+
         void Signs()
         {
             var cream = new Color(.95f, .88f, .69f);
@@ -246,7 +300,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 BeaconWalkFacing.eulerAngles);
             Sign("PLAY  /  AHEAD", new Vector3(-9.2f, 2.68f, -5.082f), .034f, cream, new Vector3(0, 12, 0));
             Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
-            Sign("PLAY PAVILION", new Vector3(0, 5.58f, 3.58f), .066f, cream);
+            Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .062f, cream);
             Sign("STYLE", new Vector3(-13, 5.18f, 4.85f), .095f, cream);
             Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
             Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));
