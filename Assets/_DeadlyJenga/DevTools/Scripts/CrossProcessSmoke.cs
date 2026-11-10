@@ -27,7 +27,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||test.ProbeMotion||FullRoom?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||test.ProbeMotion||FullRoom||NearbyFlow?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -66,6 +66,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(!done)Finish(!File.ReadAllText(Report).Contains("ERROR "),"Separate-process multiplayer run");
         }
+        static bool NearbyFlow => Environment.GetCommandLineArgs().Contains("--dj-nearby-lobby");
         static bool FullRoom => Environment.GetCommandLineArgs().Contains("--dj-full-room");
         static bool LobbyHandoff => Environment.GetCommandLineArgs().Contains("--dj-lobby-handoff");
         bool ProbePoses => Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
@@ -682,6 +683,76 @@ namespace DeadlyJenga.CastlePrototype
                 "All surviving peers measured post-migration movement", 50);
         }
 
+        IEnumerator CheckNearbyLobby()
+        {
+            bool host=role=="host";
+            bool invite=Environment.GetCommandLineArgs().Contains("--dj-nearby-invite");
+            HomeSession home=null;
+            yield return Until(()=>(home=FindFirstObjectByType<HomeSession>())&&!string.IsNullOrEmpty(home.Region),
+                "Home is ready",95);
+            var room=IslandRoomConnection.Instance;
+            string address=null;
+            if(host)
+            {
+                home.Host();
+                yield return Until(()=>IslandLobby.Current&&room.IsHost&&!room.Busy&&IslandLobby.Current.CanStart,
+                    "Home Host creates a playable Marina room",95,()=>room.Status);
+                address=room.Code;
+                File.WriteAllText(Mark("pending-code"),address);
+                File.Move(Mark("pending-code"),Mark("code"));
+                yield return Until(()=>File.Exists(Mark("guest-scanning")),"Guest started nearby search",35);
+                if(invite)IslandLobby.Current.InviteNearby();
+            }
+            else
+            {
+                yield return Until(()=>File.Exists(Mark("code")),"Host test rendezvous is ready",110);
+                address=File.ReadAllText(Mark("code"));
+                home.DetectNearby();
+                File.WriteAllText(Mark("guest-scanning"),"ready");
+                int row=-1;
+                yield return Until(()=>
+                {
+                    for(int i=0;i<home.NearbyCount;i++)
+                    {
+                        string title=home.NearbyTitle(i);
+                        if(title.EndsWith("  "+address,StringComparison.Ordinal)&&
+                            (!invite||title.StartsWith("Invite: ",StringComparison.Ordinal))){row=i;return true;}
+                    }
+                    return false;
+                },invite?"Home receives a nearby invite over UDP":"Home lists the real nearby room over UDP",
+                    25,()=>home.Status);
+                Require(string.IsNullOrEmpty(home.Code),"No code entered in the join form");
+                home.JoinNearby(row);
+            }
+            yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
+                room.HumanCount==2&&IslandLobby.Current.PeerCount==1,
+                "Both real Fusion clients share the same Marina room and see one another",85,()=>room.Status);
+            File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
+            yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
+                "Other client confirmed joining",25);
+            if(host)
+            {
+                Require(IslandLobby.Current.SelectMode("ctf")&&IslandLobby.Current.SelectMap("mode-ctf"),
+                    "Host selects Capture the Flag and its authored map");
+                IslandLobby.Current.StartOrCancel();
+            }
+            CastlePlaySession game=null;
+            yield return Until(()=>(game=FindFirstObjectByType<CastlePlaySession>())&&game.Network&&
+                !game.Network.WaitingForWorld&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing&&
+                MatchSetup.MapId=="mode-ctf"&&room.Connected&&room.Code==address,
+                "Guest follows host from Marina to active CTF in the same room",110,()=>room.Status);
+            File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
+            yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
+                "Both clients confirmed the match before returning",25);
+            if(host)game.Modes.ReturnToLobby();
+            yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
+                room.HumanCount==2&&IslandLobby.Current.PeerCount==1,
+                "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
+            File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
+            yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-returned")),
+                "Both clients confirm the return",25);
+        }
+
         IEnumerator CheckDirectFullRoom(bool host, int seats)
         {
             string codePath = Mark("direct-full-code");
@@ -808,6 +879,11 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(NearbyFlow)
+            {
+                yield return CheckNearbyLobby();
+                yield break;
+            }
             if(FullRoom)
             {
                 yield return CheckFullRoom();

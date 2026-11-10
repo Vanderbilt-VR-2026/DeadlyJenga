@@ -122,12 +122,15 @@ namespace DeadlyJenga.CastlePrototype
         IslandDiscovery.Entry SelectedRoom(){var list=Discovery?.Nearby;return list!=null&&list.Count>0?list[nearbySelection%list.Count]:null;}
         public void NextNearby()=>nearbySelection++;
         public void JoinNearby(){var entry=SelectedRoom();if(entry!=null&&!Busy)_=Join(entry.message.code);}
+        bool NearbyRoomOpen=>Connected&&!Busy&&!Migrating&&!Departing&&!SwitchingMap&&!LaunchPending&&
+            !RoomSceneBusy&&IslandLobby.Current&&HumanCount<10;
         public async void InviteNearby()
         {
-            if (Busy) return;
+            if(Busy||Migrating||Departing||SwitchingMap||LaunchPending||!IslandLobby.Current)return;
             ScanNearby();
-            if (!Connected) await Host();
-            if (Connected && !Busy) Discovery?.InviteAll(Code, HumanCount);
+            int expectedGeneration=Connected?generation:unchecked(generation+1);
+            if(!Connected)await Host();
+            if(this&&generation==expectedGeneration&&NearbyRoomOpen)Discovery?.InviteAll(Code,HumanCount);
         }
         public void AcceptInvite()
         {
@@ -158,11 +161,13 @@ namespace DeadlyJenga.CastlePrototype
             try { AcquireWifi(); DiscoveryStatus = ""; }
             catch (Exception error) { DiscoveryStatus = "Wi-Fi receive permission: " + error.Message + ". Room codes still work."; }
         }
+        string RoomProtocol(string appVersion)=>(appVersion??"")+"/"+Catalog.NetworkVersion+
+            "/pose-reliable-recovery-1/server-data-c2s-1"+CastleFusionSession.MotionProtocol;
         public void StartDiscovery()
         {
             if(Discovery!=null||!Catalog)return;
             DiscoveryStatus="";
-            try{var app=PhotonAppSettings.Global.AppSettings;Discovery=new IslandDiscovery(app.AppIdFusion,(app.AppVersion??"")+"/"+Catalog.NetworkVersion);}
+            try{var app=PhotonAppSettings.Global.AppSettings;Discovery=new IslandDiscovery(app.AppIdFusion,RoomProtocol(app.AppVersion));}
             catch(Exception e){DiscoveryStatus="Wi-Fi discovery unavailable: "+e.Message+". Enter a code instead.";return;}
             CheckDiscoveryPermission();
             Discovery.Scan();
@@ -352,7 +357,7 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 connecting=new CancellationTokenSource(TimeSpan.FromSeconds(30));var cancellation=connecting;
-                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1"+CastleFusionSession.MotionProtocol;
+                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=RoomProtocol(app.AppVersion);
                 var config=MigrationConfig(true);
                 var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
                     EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
@@ -452,7 +457,7 @@ namespace DeadlyJenga.CastlePrototype
                 peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;nextHello=0;welcomed=false;transitioning=false;
                 ResetLobbyArrivalReceive();
                 var go=CreateRunner();operationRunner=Runner;marinaRecoveryRunner=operationRunner;AttachCallbacks();
-                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion+"/pose-reliable-recovery-1/server-data-c2s-1"+CastleFusionSession.MotionProtocol;
+                var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=RoomProtocol(app.AppVersion);
                 NetworkSceneInfo scenes=default;
                 if(game){int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);scenes.AddSceneRef(SceneRef.FromIndex(index),LoadSceneMode.Single);}
                 var result=await operationRunner.StartGame(new StartGameArgs{GameMode=token.GameMode,HostMigrationToken=token,HostMigrationResume=_=>{},PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
@@ -695,7 +700,7 @@ namespace DeadlyJenga.CastlePrototype
             if(IsHost&&CanConfigure&&lastPublishedPopulation!=MatchSetup.BotTarget)PublishSelection();
             if(Connected&&!IsHost&&Runner.SessionInfo.Properties.TryGetValue("population",out var population))MatchSetup.BotTarget=Mathf.Clamp((int)population,10,100);
             if(Catalog&&Discovery==null&&DiscoveryStatus.Length==0)StartDiscovery();
-            try{Discovery?.Tick(Time.unscaledTime,Connected?Code:"",HumanCount,IsHost&&!Busy);}catch(Exception e){DiscoveryStatus="Wi-Fi discovery: "+e.Message;Discovery?.Dispose();Discovery=null;}
+            try{Discovery?.Tick(Time.unscaledTime,Connected?Code:"",HumanCount,IsHost&&NearbyRoomOpen);}catch(Exception e){DiscoveryStatus="Wi-Fi discovery: "+e.Message;Discovery?.Dispose();Discovery=null;}
             if(Connected&&Discovery?.Invitation!=null&&Discovery.Invitation.message.code==Code)Discovery.Dismiss();
             if(IsHost&&!Busy&&migrationSnapshot?.IsCompleted!=false&&Time.unscaledTime>=nextMigrationSnapshot)
             {

@@ -95,12 +95,14 @@ namespace DeadlyJenga.CastlePrototype
         public string Code { get => code; set => code = (value ?? "").Trim().ToUpperInvariant(); }
         public bool CodeValid => room && IslandRoomAddress.TryParse(Code, room.Region, out _, out _);
         System.Collections.Generic.IReadOnlyList<IslandDiscovery.Entry> NearbyRooms=>room?.Discovery?.Joinable??Array.Empty<IslandDiscovery.Entry>();
+        readonly System.Collections.Generic.Dictionary<int,string> displayedNearby=new();
         public int NearbyCount=>NearbyRooms.Count;
         public string NearbyTitle(int index)
         {
             var list=NearbyRooms;
-            if(index<0||index>=list.Count)return "";
+            if(index<0||index>=list.Count){displayedNearby.Remove(index);return "";}
             var entry=list[index];
+            displayedNearby[index]=entry.message.code;
             return (entry==room.Discovery.Invitation?"Invite: ":"")+entry.message.name+"  "+entry.message.code;
         }
         void Start()
@@ -133,8 +135,14 @@ namespace DeadlyJenga.CastlePrototype
         public void JoinCode() { if (!Busy && CodeValid) _ = Connect(false, Code); }
         public void JoinNearby(int index)
         {
-            var list=NearbyRooms;
-            if (!Busy && index >= 0 && index < list.Count) _ = Connect(false, list[index].message.code);
+            if(Busy||!displayedNearby.TryGetValue(index,out string address))return;
+            if(!NearbyRooms.Any(entry=>entry.message.code==address))
+            {
+                searchingNearby=false;
+                message="That nearby room is no longer available. Search again or enter its code.";
+                return;
+            }
+            _=Connect(false,address);
         }
         async Task Connect(bool host, string address)
         {
