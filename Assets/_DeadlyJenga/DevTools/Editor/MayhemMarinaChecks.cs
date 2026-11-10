@@ -199,7 +199,9 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!preview.enabled&&missing.gameObject.activeSelf,"Missing card art shows a readable fallback, not a white image");
             preview.texture=art;
             fit.Invoke(null,new object[]{preview,missing});
-            var note=lobby.GetComponentsInChildren<RectTransform>(true).Single(face=>face.name=="Marina · preview backing");
+            var panel=(RectTransform)typeof(MarinaScreen).GetField("focusPanel",
+                System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(screen);
+            var note=panel.GetComponentInChildren<UnityEngine.UI.Image>(true).rectTransform;
             var noteBottom=note.parent.localPosition.y+note.localPosition.y+note.rect.yMin;
             Check(noteBottom>start.localPosition.y+start.rect.yMax,"Hover text has its own space above Start Match");
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
