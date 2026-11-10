@@ -182,6 +182,26 @@ namespace DeadlyJenga.DevTools.Editor
             var target = pickTarget.Invoke(screen, new object[] { new Ray(roundUpperEdge - round.forward, round.forward), 2f });
             Check((string)target?.GetType().GetField("id").GetValue(target) == "marina-experience" && !lobby.StartPending,
                 "A ray at the top of Round Info selects its own control and cannot start a match");
+            var focus=faces.Single(face=>face.name=="marina-maps");
+            var caption=focus.GetComponentsInChildren<UnityEngine.UI.Text>(true).Single(label=>label.text=="MAP");
+            Color captionColor=caption.color;
+            var hitCenter=focus.TransformPoint(Vector3.zero);
+            var cardTarget=pickTarget.Invoke(screen,new object[]{new Ray(hitCenter-focus.forward,focus.forward),2f});
+            typeof(MarinaScreen).GetMethod("PaintTarget",System.Reflection.BindingFlags.Static|
+                System.Reflection.BindingFlags.NonPublic).Invoke(null,new[]{cardTarget,(object)true,(object)true});
+            Check(caption.color==captionColor,"Hover preserves the caption ink on its own dark panel");
+            var preview=focus.GetComponentsInChildren<UnityEngine.UI.RawImage>(true).Single();
+            var missing=focus.GetComponentsInChildren<UnityEngine.UI.Text>(true).Single(label=>label.text=="Preview unavailable");
+            var fit=typeof(MarinaScreen).GetMethod("FitPreview",System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic);
+            var art=preview.texture;
+            preview.texture=null;
+            fit.Invoke(null,new object[]{preview,missing});
+            Check(!preview.enabled&&missing.gameObject.activeSelf,"Missing card art shows a readable fallback, not a white image");
+            preview.texture=art;
+            fit.Invoke(null,new object[]{preview,missing});
+            var note=lobby.GetComponentsInChildren<RectTransform>(true).Single(face=>face.name=="Marina · preview backing");
+            var noteBottom=note.parent.localPosition.y+note.localPosition.y+note.rect.yMin;
+            Check(noteBottom>start.localPosition.y+start.rect.yMax,"Hover text has its own space above Start Match");
             var television=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
             var televisionBlocker=lobby.GetComponentsInChildren<BoxCollider>()
                 .Single(blocker=>blocker.name=="Island blocker · "+television.name);
@@ -247,6 +267,21 @@ namespace DeadlyJenga.DevTools.Editor
                     Check(view.GetComponentsInChildren<UnityEngine.UI.RawImage>().Any(image=>
                         image.name=="Map card thumbnail"&&image.enabled&&image.texture),
                         "The categorized map list shows thumbnails on the map cards");
+                    var previewChoice=typeof(IslandLobbyView).GetMethod("PreviewMapChoice",
+                        System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                    var pickerOption=typeof(IslandLobbyView).GetMethod("PickerOption",
+                        System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic);
+                    var different=Enumerable.Range(0,10).Select(slot=>(slot,option:(LobbyOption)pickerOption.Invoke(view,new object[]{slot})))
+                        .FirstOrDefault(row=>row.option!=null&&row.option.id!=lobby.SelectedMapId);
+                    if(different.option!=null)
+                    {
+                        string selected=lobby.SelectedMapId;
+                        var shown=view.GetComponentsInChildren<UnityEngine.UI.Text>(true).Single(label=>label.name=="Previewed map name");
+                        previewChoice.Invoke(view,new object[]{"picker-"+different.slot});
+                        Check(shown.text==different.option.title&&lobby.SelectedMapId==selected,"Map hover previews without selecting");
+                        previewChoice.Invoke(view,new object[]{null});
+                        Check(shown.text!=different.option.title&&lobby.SelectedMapId==selected,"Moving off the map restores the selected preview");
+                    }
                 }
                 Check(view.InvokeChoice(ArcadeBack(id)),id+" returns to its arcade face");
             }

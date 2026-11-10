@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly RawImage[] modePictures=new RawImage[8];
         readonly RawImage[] mapCardPictures = new RawImage[PickerPageSize];
         readonly string[] mapCardIds = new string[PickerPageSize];
-        RawImage browserMapPreview;Text browserMapName,browserMapMissing,browserMapDescription;string browserMapId;
+        RawImage browserMapPreview;Text browserMapName,browserMapMissing,browserMapDescription;string browserMapId,hoveredMapId;bool browserMapLoaded;
         readonly Text[] modeDescriptions=new Text[8],modePictureMissing=new Text[8];
         Choice GameChoice(string id,Func<string> title,float y,Action action,float x=0,float width=730,float height=64)
             =>Add(setupStation,id,title,y,action,()=>lobby.CanConfigure,x,width,height,()=>setupPage=="main"&&
@@ -77,7 +77,7 @@ namespace DeadlyJenga.CastlePrototype
             int at=0;for(int i=0;i<options.Length;i++)if(options[i].id==selected){at=i;break;}
             for(int i=0;i<options.Length;i++){at=(at+step+options.Length)%options.Length;if(!options[at].available)continue;if(map)lobby.SelectMap(options[at].id);else lobby.SelectMode(options[at].id);return;}
         }
-        void OpenPicker(string page){RefreshModeOptions(true);setupPage=page;if(page=="maps")browserMapId=null;pickerOffset=page=="maps"?lobbyMapPicker.HeaderIndex/PickerPageSize*PickerPageSize:0;}
+        void OpenPicker(string page){RefreshModeOptions(true);setupPage=page;if(page=="maps")hoveredMapId=null;pickerOffset=page=="maps"?lobbyMapPicker.HeaderIndex/PickerPageSize*PickerPageSize:0;}
         int PageSize=>setupPage=="modes"?4:PickerPageSize;
         int PickerPages=>Mathf.Max(1,Mathf.CeilToInt((setupPage=="modes"?Mathf.Max(ModeColumn(false).Length,ModeColumn(true).Length):lobbyMapPicker.Rows.Count)/(float)PageSize));
         MapCategoryPicker.Row PickerRow(int slot){int index=pickerOffset+slot;return index>=0&&index<lobbyMapPicker.Rows.Count?lobbyMapPicker.Rows[index]:null;}
@@ -152,7 +152,6 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var option=ModeCardOption(i);var texture=option!=null?ModePicture(option.id):null;
                 SetPicture(modePictures[i],texture,118,118);
-                modePictures[i].uvRect=new Rect(0,0,1,1);
                 modePictureMissing[i].gameObject.SetActive(!texture);modeDescriptions[i].text=CandyBrief(option?.description??"",true);
             }
             UpdateMapBrowserPreview();
@@ -162,22 +161,24 @@ namespace DeadlyJenga.CastlePrototype
         }
         void PreviewMapChoice(string choiceId)
         {
-            if(setupPage!="maps"||string.IsNullOrEmpty(choiceId)||!choiceId.StartsWith("picker-",StringComparison.Ordinal))return;
-            if(int.TryParse(choiceId.Substring(7),out int slot))
-            {
-                var option=PickerOption(slot);if(option!=null)UpdateMapBrowserPreview(option.id);
-            }
+            if(setupPage!="maps")return;
+            string preview=null;
+            if(choiceId!=null&&choiceId.StartsWith("picker-",StringComparison.Ordinal)&&
+                int.TryParse(choiceId.Substring(7),out int slot))preview=PickerOption(slot)?.id;
+            if(hoveredMapId==preview)return;
+            hoveredMapId=preview;
+            UpdateMapBrowserPreview();
         }
-        void UpdateMapBrowserPreview(string id=null)
+        void UpdateMapBrowserPreview()
         {
             if(!browserMapPreview)return;
             bool visible=setupPage=="maps";
             browserMapPreview.gameObject.SetActive(visible);browserMapName.gameObject.SetActive(visible);if(browserMapDescription)browserMapDescription.gameObject.SetActive(visible);
             if(!visible){browserMapMissing.gameObject.SetActive(false);return;}
-            id=id??browserMapId??Details?.SelectedMapId;
-            if(browserMapId!=id||!browserMapPreview.texture)
+            string id=hoveredMapId??Details?.SelectedMapId;
+            if(!browserMapLoaded||browserMapId!=id)
             {
-                browserMapId=id;var texture=MapPreviewImages.Get(id);
+                browserMapLoaded=true;browserMapId=id;var texture=MapPreviewImages.Get(id);
                 SetPicture(browserMapPreview,texture,940,250);
                 if(texture)
                 {

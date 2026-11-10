@@ -151,7 +151,7 @@ namespace DeadlyJenga.CastlePrototype
             choice.button.image.color=face;
             var foreground=!usable?CandyMuted:CandyForeground(face);
             choice.label.color=foreground;
-            if(choice.description)choice.description.color=CandyForeground(face)==CandyInk?new Color(.10f,.07f,.19f):CandyCream;
+            if(choice.description)choice.description.color=usable?foreground:CandyMuted;
             if(choice.rim)choice.rim.color=pressed?CandyCream:usable&&(selected||hover)?CandyMint:usable?choice.edgeColor:new Color(CandyLavender.r,CandyLavender.g,CandyLavender.b,.4f);
             if(choice.glyph){choice.glyph.color=selected&&!hover?CandyMint:foreground;choice.glyph.gameObject.SetActive(!choice.selectionGlyph||selected);}
         }
@@ -162,7 +162,7 @@ namespace DeadlyJenga.CastlePrototype
             bool main=setupPage=="main";
             candySetupHeading.text=setupPage=="modes"?"CHOOSE YOUR MODE":setupPage=="maps"?"CHOOSE YOUR MAP":setupPage=="settings"?"MODE SETTINGS":"MODE + MAP";
             foreach(var item in candyMainDecor)item.SetActive(main);
-            candyJoinStatus.text=lobby.Busy?"CONNECTING":lobby.Connected?"IN ROOM":lobby.JoinEnabled?"READY TO JOIN":"HOSTING";
+            candyJoinStatus.text=lobby.Busy?"CONNECTING":lobby.Connected?"IN ROOM":lobby.JoinEnabled?"READY TO JOIN":"JOIN UNAVAILABLE";
             var launch=CandyChoice("launch");launch.faceColor=lobby.StartPending?CandyPeach:CandyMint;launch.edgeColor=launch.faceColor;
             var symbol=lobby.StartPending?LobbyTerminalGlyph.Symbol.Back:LobbyTerminalGlyph.Symbol.Play;
             if(launch.glyph&&launch.glyph.symbol!=symbol){launch.glyph.symbol=symbol;launch.glyph.SetVerticesDirty();}
