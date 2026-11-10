@@ -781,7 +781,8 @@ namespace DeadlyJenga.CastlePrototype
                     bool joining = pass == 0;
                     if(!joining&&(sentBroadcast||update==null))continue;
                     if (!joining && now < peer.nextState) continue;
-                    if (peer.waiting != 0 && (!joining || now - peer.sent < 1.5f || peer.initialStateAttempts >= 5)) continue;
+                    float retryInterval=peer.initialStateAttempts<4?1.5f:3f;
+                    if(peer.waiting!=0&&(!joining||now-peer.sent<retryInterval))continue;
                     roster ??= LobbyStateJson();
                     local ??= IslandLobby.Current.Capture(Runner.LocalPlayer.ToString());
                     byte[] packet;
@@ -808,7 +809,11 @@ namespace DeadlyJenga.CastlePrototype
                         peer.initialStateAttempts++;
                         TraceArrival(pair.Key,peer,"Bootstrap state attempt "+peer.initialStateAttempts);
                     }
-                    if(!joining||!PublishLobbyArrival(pair.Key,peer,peer.waiting,local,roster))
+                    bool nativeArrival=joining&&PublishLobbyArrival(pair.Key,peer,peer.waiting,local,roster);
+                    // Keep the replaceable native pages current for late scene loads.
+                    // A bounded alternate send covers peers that missed page attachment.
+                    bool fallback=joining&&(peer.initialStateAttempts==4||peer.initialStateAttempts==7);
+                    if(!joining||!nativeArrival||fallback)
                     {
                         if(joining&&!SendReservedMarinaSpawn(Runner,generation,pair.Key,peer.spawn))continue;
                         Send(pair.Key,State,packet,peer.waiting);
