@@ -16,7 +16,7 @@ namespace DeadlyJenga.CastlePrototype
         const int NearBlockSamples = 24, FarBlockSamples = 16;
         const int BlockScanBudget = 120;
         const byte ActorPage = 1, BlockPage = 2;
-        internal const string MotionProtocol = "/native-motion-2";
+        internal const string MotionProtocol = "/native-motion-3";
         readonly CastleMotionPage[] motionPages = new CastleMotionPage[HumanLanes + BotLanes + BlockLanes];
         readonly List<INetworkActor> motionBots = new List<INetworkActor>(64);
         readonly HashSet<INetworkActor> motionBotSet = new HashSet<INetworkActor>();
@@ -108,7 +108,7 @@ namespace DeadlyJenga.CastlePrototype
             float now = Time.unscaledTime;
             if (now >= nextInputCapture)
             {
-                nextInputCapture = now + 1f / 30;
+                nextInputCapture = AdvanceMotionClock(nextInputCapture, now, 1f / 30);
                 byte[] raw = castle.FusionCapturePlayer();
                 ++inputSequence;
                 if (CastlePoseInputProbe.TryPack(raw, inputSequence, out var sample) ||
@@ -154,12 +154,16 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        // Keep the cadence across variable render times without replaying missed sends.
+        static float AdvanceMotionClock(float deadline, float now, float interval) =>
+            Mathf.Max(now + .001f, deadline + interval);
+
         void PumpNativeMotion(float now)
         {
             if (!UsesNativeMotion || !runner.IsServer || now < nextMotionFrame ||
                 peers.Count == 0 || DeadlyJenga.Core.Services.World is not ISyncedWorld synced) return;
 
-            nextMotionFrame = now + .03f;
+            nextMotionFrame = AdvanceMotionClock(nextMotionFrame, now, .03f);
             int tick = runner.Tick.Raw;
             if (motionRevision != synced.Revision)
             {
@@ -185,7 +189,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void PublishHumanPages(int tick, float now)
         {
-            int budget = Mathf.Clamp((peers.Count + 2) / 2, 1, 4);
+            int budget = Mathf.Clamp((peers.Count + 2) / 2, 1, 5);
             for (int inspected = 0; inspected < HumanLanes && budget > 0; inspected++)
             {
                 int lane = humanCursor;
@@ -197,7 +201,7 @@ namespace DeadlyJenga.CastlePrototype
                     if (pair.Value.ready && pair.Value.motionLane == lane &&
                         castle.TryCaptureMotionHuman(pair.Key.ToString(), out var actor) && TryWriteActor(actor)) count++;
                 if (count == 0) continue;
-                nextHumanLane[lane] = now + .045f;
+                nextHumanLane[lane] = AdvanceMotionClock(nextHumanLane[lane], now, .045f);
                 PublishPage(lane, tick, count);
                 budget--;
             }

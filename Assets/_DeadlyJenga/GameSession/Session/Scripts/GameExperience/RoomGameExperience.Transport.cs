@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using Fusion;
 using Fusion.Sockets;
 using UnityEngine;
@@ -24,6 +25,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         sealed class CachedCheckpoint
         {public ExperienceCheckpoint wire;public GameFlowState state;public string digest;}
+        sealed class SigningWork
+        {
+            public GameFlowState state;
+            public string semantic;
+            public Task<ExperienceCheckpoint> result;
+        }
         sealed class PeerReceipt
         {public int sequence;public double lastCommand=-100;public string digest="";}
         readonly Dictionary<string,PeerReceipt> transportPeers=new Dictionary<string,PeerReceipt>(StringComparer.Ordinal);
@@ -31,12 +38,21 @@ namespace DeadlyJenga.CastlePrototype
         readonly Queue<GameExperienceCommand> transportCommands=new Queue<GameExperienceCommand>();
         readonly Dictionary<int,string> recoveryDigests=new Dictionary<int,string>();
         readonly HashSet<string> recoveryResponses=new HashSet<string>(StringComparer.Ordinal);
+        readonly HashSet<PlayerRef> pendingSnapshots=new HashSet<PlayerRef>();
+        readonly RoomControlPages checkpointPages=new RoomControlPages();
+        readonly HashSet<string> activeReceiptIds=new HashSet<string>(StringComparer.Ordinal);
+        readonly List<string> departedReceiptIds=new List<string>(10);
         NetworkRunner transportRunner,transportFencedRunner;
         RSA transportSigner;
+        SigningWork signingWork;
+        bool checkpointRequested;
+        bool checkpointNativeRequested;
+        int checkpointPageSequence;
+        double nextSnapshotSend,nextReceiptPrune;
         string transportEpoch="",transportPinnedKey="",transportPriorKey="",transportChallenge="",transportSemantic="";
         CachedCheckpoint transportCache,recoveryBest;
         bool transportRecovering,transportMigration,transportFailed;
-        int transportSequence,transportGeneration;
+        int transportSequence,transportGeneration,transportWireSequence;
         double transportLastPublish=-100,transportLastSend=-100,transportBoundAt;
         internal bool TransportRecovering=>transportRecovering||room&&room.Migrating;
         internal string TransportStatus{get;private set;}="";
@@ -80,15 +96,31 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool CreateSigner()
         {
-            try{transportSigner?.Dispose();transportSigner=null;transportSigner=CreateCheckpointSigner();return true;}
-            catch(Exception error){transportSigner?.Dispose();transportSigner=null;TransportFailureStage="create-signer";TransportFailureType=error.GetType().FullName;TransportFailure("Room checkpoint signing unavailable; Game is disabled on this platform.");return false;}
+            RetireSigner();
+            try{transportSigner=CreateCheckpointSigner();return true;}
+            catch(Exception error){TransportFailureStage="create-signer";TransportFailureType=error.GetType().FullName;TransportFailure("Room checkpoint signing unavailable; Game is disabled on this platform.");return false;}
+        }
+        void RetireSigner()
+        {
+            var signer=transportSigner;
+            var work=signingWork;
+            transportSigner=null;signingWork=null;checkpointRequested=checkpointNativeRequested=false;
+            checkpointPages.Retire(transportRunner);checkpointPages.Reset();
+            pendingSnapshots.Clear();nextSnapshotSend=nextReceiptPrune=0;
+            if(signer==null)return;
+            if(work==null){signer.Dispose();return;}
+            _=work.result.ContinueWith(task=>
+            {
+                if(task.IsFaulted)_=task.Exception;
+                signer.Dispose();
+            },TaskScheduler.Default);
         }
         internal void TransportBeforeMigration(NetworkRunner oldRunner)
         {
             if(!ReferenceEquals(oldRunner,transportRunner))return;
             transportFencedRunner=oldRunner;transportMigration=true;transportRecovering=true;transportPriorKey=transportPinnedKey;
             transportCommands.Clear();transportPeers.Clear();transportSent.Clear();transportRunner=null;
-            transportSigner?.Dispose();transportSigner=null;
+            RetireSigner();
         }
         internal void TransportAfterMigration(NetworkRunner next)
         {
@@ -113,7 +145,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         internal void TransportDisconnected()
         {
-            transportSigner?.Dispose();transportSigner=null;transportRunner=null;
+            RetireSigner();transportRunner=null;
             transportCommands.Clear();transportPeers.Clear();transportSent.Clear();
             if(room&&room.Migrating){transportMigration=true;transportRecovering=true;return;}
             transportFencedRunner=null;transportCache=null;transportPinnedKey="";transportPriorKey="";transportMigration=false;
@@ -126,9 +158,15 @@ namespace DeadlyJenga.CastlePrototype
             if(transportFailed)return;
             if(room.IsHost)
             {
-                var active=new HashSet<string>(StringComparer.Ordinal);
-                foreach(var peer in RemotePlayers())if(room.GameExperienceMemberId(transportRunner,peer,out var id))active.Add(id);
-                foreach(var id in transportPeers.Keys.Where(id=>!active.Contains(id)).ToArray())transportPeers.Remove(id);
+                PumpCheckpoint();
+                if(TransportNow>=nextReceiptPrune)
+                {
+                    nextReceiptPrune=TransportNow+.25;
+                    activeReceiptIds.Clear();departedReceiptIds.Clear();
+                    foreach(var peer in RemotePlayers())if(room.GameExperienceMemberId(transportRunner,peer,out var id))activeReceiptIds.Add(id);
+                    foreach(var id in transportPeers.Keys)if(!activeReceiptIds.Contains(id))departedReceiptIds.Add(id);
+                    foreach(var id in departedReceiptIds)transportPeers.Remove(id);
+                }
             }
             if(transportRecovering&&TransportNow-transportBoundAt>8)
             {TransportFailure("Room checkpoint recovery timed out; leave and rejoin the room.");return;}
@@ -159,7 +197,7 @@ namespace DeadlyJenga.CastlePrototype
             try
             {
                 var bytes=WireEncoding.GetBytes(JsonUtility.ToJson(packet));if(bytes.Length>PacketLimit){TransportFailure("Room checkpoint exceeds the packet limit.");return;}
-                var key=ReliableKey.FromInts(ExperienceChannel,1,0,0);
+                var key=ReliableKey.FromInts(ExperienceChannel,1,++transportWireSequence,0);
                 if(transportRunner.IsServer)transportRunner.SendReliableDataToPlayer(target,key,bytes);
                 else transportRunner.SendReliableDataToServer(key,bytes);
             }
@@ -194,24 +232,97 @@ namespace DeadlyJenga.CastlePrototype
             if(!room||!IsAuthority||TransportRecovering||transportFailed)return;
             if(!room.Connected)return;
             if(transportRunner==null||transportSigner==null)return;
-            var state=CaptureSnapshot();var semantic=Semantic(state);
-            if(semantic==transportSemantic&&TransportNow-transportLastPublish<1)return;
-            string stage="serialize";
+            checkpointRequested=true;
+        }
+        void PumpCheckpoint()
+        {
+            string stage="sign";
             try
             {
-                string body=JsonUtility.ToJson(state);stage="export-public-key";var key=transportSigner.ExportParameters(false);
-                stage="sign";var signature=transportSigner.SignData(WireEncoding.GetBytes(body),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
-                var checkpoint=new ExperienceCheckpoint{body=body,modulus=Convert.ToBase64String(key.Modulus),exponent=Convert.ToBase64String(key.Exponent),signature=Convert.ToBase64String(signature)};
-                stage="verify-checkpoint";var cached=Verify(checkpoint);if(cached==null)throw new InvalidOperationException();
-                TransportFailureStage=TransportFailureType="";
-                transportCache=cached;transportPinnedKey=CheckpointKey(checkpoint);transportSemantic=semantic;transportLastPublish=TransportNow;
-                if(transportSent.Count>=32)transportSent.Remove(transportSent.Keys.First());transportSent[cached.digest]=cached;
-                foreach(var peer in RemotePlayers())SendSnapshot(peer);
+                var work=signingWork;
+                if(work!=null&&work.result.IsCompleted)
+                {
+                    signingWork=null;
+                    var checkpoint=work.result.GetAwaiter().GetResult();
+                    var cached=new CachedCheckpoint{wire=checkpoint,state=work.state,digest=Digest(checkpoint.body)};
+                    TransportFailureStage=TransportFailureType="";
+                    transportCache=cached;transportPinnedKey=CheckpointKey(checkpoint);transportSemantic=work.semantic;transportLastPublish=TransportNow;
+                    if(transportSent.Count>=32)transportSent.Remove(transportSent.Keys.First());
+                    transportSent[cached.digest]=cached;
+                    checkpointNativeRequested=true;
+                }
+                if(checkpointRequested&&signingWork==null&&transportSigner!=null&&!TransportRecovering)
+                {
+                    checkpointRequested=false;
+                    stage="serialize";
+                    var state=CaptureSnapshot();var semantic=Semantic(state);
+                    if(semantic!=transportSemantic||TransportNow-transportLastPublish>=1)
+                    {
+                        var body=JsonUtility.ToJson(state);
+                        var signer=transportSigner;
+                        signingWork=new SigningWork{state=state,semantic=semantic,result=Task.Run(()=>SignCheckpoint(signer,body))};
+                    }
+                }
+                if(TransportNow<nextSnapshotSend)return;
+                if(checkpointNativeRequested&&transportCache!=null)
+                {
+                    checkpointNativeRequested=false;
+                    var bytes=WireEncoding.GetBytes(JsonUtility.ToJson(new ExperiencePacket
+                        {kind="state",epoch=transportEpoch,checkpoint=transportCache.wire}));
+                    if(bytes.Length>PacketLimit)throw new InvalidOperationException("Checkpoint exceeds the packet limit.");
+                    if(checkpointPages.Publish(transportRunner,CastleMotionPage.CheckpointLane,++checkpointPageSequence,
+                        CastleFusionSession.LivePoseCodec.Pack(bytes,PacketLimit)))
+                    {
+                        pendingSnapshots.Clear();nextSnapshotSend=TransportNow+.10;return;
+                    }
+                    foreach(var peer in RemotePlayers())pendingSnapshots.Add(peer);
+                }
+                if(pendingSnapshots.Count==0)return;
+                nextSnapshotSend=TransportNow+.05;
+                int sent=0;
+                foreach(var peer in pendingSnapshots.ToArray())
+                {
+                    pendingSnapshots.Remove(peer);
+                    if(!transportRunner.ActivePlayers.Contains(peer))continue;
+                    if(transportCache!=null)
+                        Send(peer,new ExperiencePacket{kind="state",epoch=transportEpoch,checkpoint=transportCache.wire});
+                    if(++sent==2)break;
+                }
             }
             catch(Exception error){TransportFailureStage=stage;TransportFailureType=error.GetType().FullName;TransportFailure("Room checkpoint signing failed; Game is disabled.");}
         }
+        static ExperienceCheckpoint SignCheckpoint(RSA signer,string body)
+        {
+            var key=signer.ExportParameters(false);
+            var signature=signer.SignData(WireEncoding.GetBytes(body),HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1);
+            using var verifier=RSA.Create();
+            verifier.ImportParameters(key);
+            if(!verifier.VerifyData(WireEncoding.GetBytes(body),signature,HashAlgorithmName.SHA256,RSASignaturePadding.Pkcs1))
+                throw new CryptographicException("Checkpoint did not pass the signer self-check.");
+            return new ExperienceCheckpoint{body=body,modulus=Convert.ToBase64String(key.Modulus),
+                exponent=Convert.ToBase64String(key.Exponent),signature=Convert.ToBase64String(signature)};
+        }
         void SendSnapshot(PlayerRef peer)
-        {if(transportCache!=null)Send(peer,new ExperiencePacket{kind="state",epoch=transportEpoch,checkpoint=transportCache.wire});}
+        {if(transportCache!=null)checkpointNativeRequested=true;}
+
+        internal bool ReadCheckpointPage(NetworkRunner source,int id,int index,ReadOnlySpan<byte> data)
+        {
+            if(!room||!room.Connected||source.IsServer||!ReferenceEquals(room.Runner,source))return false;
+            if(!ReferenceEquals(transportRunner,source))TransportAfterMigration(source);
+            if(transportFailed||!ReferenceEquals(transportRunner,source))return false;
+            try
+            {
+                var packet=checkpointPages.Accept(id,index,data,PacketLimit+CastleFusionSession.LivePoseCodec.HeaderBytes);
+                if(packet!=null)
+                {
+                    var raw=CastleFusionSession.LivePoseCodec.Unpack(packet,PacketLimit);
+                    var state=JsonUtility.FromJson<ExperiencePacket>(WireEncoding.GetString(raw));
+                    if(state!=null&&state.version==1&&state.kind=="state"&&state.epoch?.Length==32)ReceiveServer(state);
+                }
+            }
+            catch(Exception){/* Signed checkpoint validation remains authoritative. */}
+            return true;
+        }
         internal bool TransportCheckpointReady(GameFlowState state)
         {
             if(TransportRecovering||transportFailed)return false;
@@ -295,7 +406,15 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(packet.kind!="state"||packet.epoch.Length!=32)return;
             if(transportEpoch.Length!=0&&packet.epoch!=transportEpoch)return;
-            var accepted=Verify(packet.checkpoint,string.IsNullOrEmpty(transportPinnedKey)?null:transportPinnedKey);if(accepted==null)return;
+            var previous=transportCache?.wire;
+            var incoming=packet.checkpoint;
+            if(!transportRecovering&&!transportMigration&&previous!=null&&incoming!=null&&incoming.body==previous.body&&
+                incoming.signature==previous.signature&&incoming.modulus==previous.modulus&&incoming.exponent==previous.exponent)
+            {
+                Send(default,new ExperiencePacket{kind="cached",epoch=transportEpoch,digest=transportCache.digest});
+                return;
+            }
+            var accepted=Verify(incoming,string.IsNullOrEmpty(transportPinnedKey)?null:transportPinnedKey);if(accepted==null)return;
             if(transportCache!=null)
             {
                 if(accepted.state.roomId!=transportCache.state.roomId||transportMigration&&accepted.state.authorityTerm<=transportCache.state.authorityTerm)return;

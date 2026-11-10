@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using Fusion;
 using UnityEngine;
@@ -10,6 +11,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         internal const uint PrefabNumber = 100001;
         internal const int ByteCapacity = 1792;
+        internal const int LobbyBroadcastLane = -1000000, CheckpointLane = -2000000;
         [Networked, Capacity(ByteCapacity / 4)] NetworkArray<int> Words => default;
         [Networked] public int Lane { get; set; }
         [Networked] int SceneEpoch { get; set; }
@@ -37,7 +39,7 @@ namespace DeadlyJenga.CastlePrototype
                 words.Set(start / 4, value);
                 changed = true;
             }
-            if (!changed && unchecked(tick - SampleTick) < 15) return false;
+            if (!changed && Lane >= 0 && unchecked(tick - SampleTick) < 15) return false;
             SceneEpoch = scene;
             WorldRevision = revision;
             SampleTick = tick;
@@ -54,9 +56,20 @@ namespace DeadlyJenga.CastlePrototype
 
         public override void Render()
         {
-            if (HasStateAuthority || !provider || !provider.Session || Sequence == lastSequence ||
+            if (HasStateAuthority || !provider || Sequence == lastSequence ||
                 Length <= 0 || Length > receiveBytes.Length) return;
-            if (!provider.Session.CanReadMotion(Runner, SceneEpoch, WorldRevision)) return;
+            var lobby = Lane < 0 ? IslandRoomConnection.Instance : null;
+            bool roomBroadcast = Lane <= LobbyBroadcastLane;
+            if (Lane < 0)
+            {
+                if (!lobby) return;
+                if (roomBroadcast)
+                {
+                    if (!lobby.CanReadRoomPage(Runner, Lane)) return;
+                }
+                else if ((~Lane >> 5) != Runner.LocalPlayer.RawEncoded || !lobby.CanReadLobbyArrival(Runner)) return;
+            }
+            else if (!provider.Session || !provider.Session.CanReadMotion(Runner, SceneEpoch, WorldRevision)) return;
 
             int length = Length;
             var words = Words;
@@ -66,8 +79,78 @@ namespace DeadlyJenga.CastlePrototype
                 for (int i = 0; i < 4 && start + i < length; i++)
                     receiveBytes[start + i] = (byte)(value >> (8 * i));
             }
-            provider.Session.ReadMotionPage(SampleTick, Runner.DeltaTime, receiveBytes, length);
+            if (lobby)
+            {
+                var bytes=receiveBytes.AsSpan(0,length);
+                if (roomBroadcast)
+                {
+                    if (!lobby.ReadRoomPage(Runner,Lane,SampleTick,bytes)) return;
+                }
+                else if (!lobby.ReadLobbyArrival(Runner, SampleTick, ~Lane & 31, bytes)) return;
+            }
+            else provider.Session.ReadMotionPage(SampleTick, Runner.DeltaTime, receiveBytes, length);
             lastSequence = Sequence;
+        }
+    }
+
+    // Shared room records can span several independently delivered Fusion pages.
+    internal sealed class RoomControlPages
+    {
+        const int ChunkBytes=CastleMotionPage.ByteCapacity-1, MaxChunks=19;
+        readonly List<CastleMotionPage> pages=new List<CastleMotionPage>(2);
+        int serial,received;
+        byte[][] pieces;
+        internal void Reset(){pieces=null;serial=received=0;}
+        internal void Retire(NetworkRunner runner)
+        {
+            if(runner&&runner.IsRunning&&runner.IsServer)
+                foreach(var page in pages)
+                    if(page&&page.Object&&page.Object.IsValid)runner.Despawn(page.Object);
+            pages.Clear();
+        }
+        internal bool Publish(NetworkRunner runner,int lane,int id,byte[] payload)
+        {
+            int count=(payload.Length+ChunkBytes-1)/ChunkBytes;
+            if(count<1||count>MaxChunks)return false;
+            for(int i=0;i<count;i++)
+            {
+                if(i==pages.Count)pages.Add(null);
+                var page=pages[i];
+                if(!page||!page.Object||!page.Object.IsValid)
+                {
+                    int slot=lane-i;
+                    var obj=runner.Spawn(NetworkPrefabId.FromRaw(CastleMotionPage.PrefabNumber),
+                        onBeforeSpawned:(_,instance)=>instance.GetComponent<CastleMotionPage>().Lane=slot);
+                    if(!obj){Retire(runner);return false;}
+                    pages[i]=page=obj.GetComponent<CastleMotionPage>();
+                }
+                int offset=i*ChunkBytes,length=Math.Min(payload.Length-offset,ChunkBytes);
+                var piece=new byte[length+1];piece[0]=(byte)count;
+                Buffer.BlockCopy(payload,offset,piece,1,length);
+                page.Publish(0,0,id,piece,piece.Length);
+            }
+            return true;
+        }
+        internal byte[] Accept(int id,int index,ReadOnlySpan<byte> data,int maximum)
+        {
+            if(data.Length<2||data[0]<1||data[0]>MaxChunks||index<0||index>=data[0]||
+                index<data[0]-1&&data.Length!=CastleMotionPage.ByteCapacity)
+                throw new InvalidDataException("Invalid room control page.");
+            if(serial!=id)
+            {
+                if(serial!=0&&unchecked(id-serial)<=0)return null;
+                serial=id;pieces=new byte[data[0]][];received=0;
+            }
+            if(pieces==null)return null;
+            if(pieces.Length!=data[0])throw new InvalidDataException("Room page count changed.");
+            if(pieces[index]==null){pieces[index]=data.Slice(1).ToArray();received++;}
+            if(received!=pieces.Length)return null;
+            int length=(pieces.Length-1)*ChunkBytes+pieces[pieces.Length-1].Length;
+            if(length>maximum)throw new InvalidDataException("Room control packet exceeds its limit.");
+            var packet=new byte[length];
+            for(int i=0;i<pieces.Length;i++)pieces[i].CopyTo(packet,i*ChunkBytes);
+            pieces=null;
+            return packet;
         }
     }
 

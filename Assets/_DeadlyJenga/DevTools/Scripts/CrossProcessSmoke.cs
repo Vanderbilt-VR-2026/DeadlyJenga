@@ -6,7 +6,10 @@ using System.IO;
 using System.Linq;
 using Fusion.Statistics;
 using UnityEngine;
+using Unity.Profiling;
+using Unity.Profiling.LowLevel.Unsafe;
 using DeadlyJenga.Core;
+using DeadlyJenga.CastleBots;
 using DeadlyJenga.CastleSocial;
 using DeadlyJenga.World.Hazards;
 
@@ -209,11 +212,19 @@ namespace DeadlyJenga.CastlePrototype
             if (host)
             {
                 yield return Until(() => File.Exists(Mark("guest-home")), "Independent guest is ready", 360);
-                home.Host();
+                if (StressMotion)
+                {
+                    home.Demo();
+                    yield return Until(() => IslandLobby.Current && IslandLobby.Current.CanHost,
+                        "Developer lobby is ready to host", 75);
+                    IslandLobby.Current.Host();
+                }
+                else home.Host();
                 yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.IsHost && IslandLobby.Current.CanStart,
                     "Host opens live Fusion room", 75);
                 var lobby = IslandLobby.Current;
-                Require(lobby.SelectMode("ctf") && lobby.SelectMap("mode-ctf"), "Both peers use the same CTF fixture");
+                Require(lobby.SelectMode(StressMotion ? "demo" : "ctf") && lobby.SelectMap(StressMotion ? "sparse-prototype-skyline-island" : "mode-ctf"),
+                    "Host selects the requested fixture through the lobby");
                 File.WriteAllText(Mark("pending-code"), lobby.Room.Code);
                 File.Move(Mark("pending-code"), Mark("code"));
                 yield return Until(() => lobby.Room.HumanCount == 2 && File.Exists(Mark("guest-joined")), "Guest joined the room", 120, () => lobby.Room.Status);
@@ -226,8 +237,8 @@ namespace DeadlyJenga.CastlePrototype
                 home.Code = File.ReadAllText(Mark("code"));
                 home.JoinCode();
                 yield return Until(() => IslandLobby.Current && IslandLobby.Current.Room.Connected &&
-                    !IslandLobby.Current.Room.IsHost && IslandLobby.Current.SelectedMapId == "mode-ctf",
-                    "Guest joined the same CTF room", 90, () =>
+                    !IslandLobby.Current.Room.IsHost && IslandLobby.Current.SelectedMapId == (StressMotion ? "sparse-prototype-skyline-island" : "mode-ctf"),
+                    "Guest joined the same configured room", 90, () =>
                     $"{IslandRoomConnection.Instance?.Status} lobby={IslandLobby.Current != null} " +
                     $"selected={IslandLobby.Current?.SelectedMapId} peers={IslandRoomConnection.Instance?.HumanCount}");
                 File.WriteAllText(Mark("guest-joined"), "joined");
@@ -273,6 +284,7 @@ namespace DeadlyJenga.CastlePrototype
             string remoteId = probeRunner.ActivePlayers.Single(p => p != probeRunner.LocalPlayer).ToString();
             GameObject bot = null;
             string trackedBot = null;
+            var startingTravel = new Dictionary<CastleBotBrain, float>();
             if (host)
             {
                 session.SurvivorBots.AutoFill = false;
@@ -283,6 +295,10 @@ namespace DeadlyJenga.CastlePrototype
                 Require(session.SurvivorBots.Count == bots, $"Host spawned exactly {bots} bots");
                 yield return Until(() => session.SurvivorBots.Members.Any(), "Host has an authoritative bot", 40);
                 bot = session.SurvivorBots.Members.First();
+                if(StressMotion)
+                    foreach(var member in session.SurvivorBots.Members)
+                        if(member&&member.TryGetComponent<CastleBotBrain>(out var brain))
+                            startingTravel[brain]=brain.TravelDistance;
                 var actorId = typeof(CastleLanSession).GetMethod("LocalActorId",
                     System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
                 trackedBot = (string)actorId.Invoke(null, new object[] { bot.transform });
@@ -333,6 +349,22 @@ namespace DeadlyJenga.CastlePrototype
                 else yield return Until(() => File.Exists(cue), "Host publishes the shared footage clock", 12);
                 captureStart = long.Parse(File.ReadAllText(cue));
                 while (DateTime.UtcNow.Ticks < captureStart) yield return null;
+            }
+            var profileHandles = new List<ProfilerRecorderHandle>();
+            var profiles = new List<(string name, ProfilerRecorder recorder)>();
+            if (host && StressMotion && Environment.GetCommandLineArgs().Contains("--dj-motion-profile"))
+            {
+                ProfilerRecorderHandle.GetAvailable(profileHandles);
+                foreach (var handle in profileHandles)
+                {
+                    var description = ProfilerRecorderHandle.GetDescription(handle);
+                    if (description.Name.StartsWith("DJ.", StringComparison.Ordinal) ||
+                        description.Name == "Physics.Simulate" || description.Name == "Physics.SyncTransforms" ||
+                        description.Name == "BehaviourUpdate" || description.Name == "BehaviourFixedUpdate" ||
+                        description.Name == "Main Thread" || description.Name == "Render Thread" ||
+                        description.Name == "GC Allocated In Frame")
+                        profiles.Add((description.Name, ProfilerRecorder.StartNew(description.Category, description.Name, 2048)));
+                }
             }
             try
             {
@@ -407,12 +439,29 @@ namespace DeadlyJenga.CastlePrototype
             }
             finally
             {
+                foreach (var (name, recorder) in profiles)
+                {
+                    try
+                    {
+                        var samples = recorder.ToArray();
+                        File.AppendAllLines(Mark("host-profiler.txt"), samples.Length == 0
+                            ? new[] { name + ": no samples" }
+                            : new[] { name + ": " + string.Join(",", samples.Select(sample => sample.Value)) });
+                    }
+                    finally { recorder.Dispose(); }
+                }
                 CastleMotionStateProbe.SelectedBlock = -1;
                 if (motionCamera) Destroy(motionCamera.gameObject);
                 if (motionTexture) Destroy(motionTexture);
                 if (motionPixels) Destroy(motionPixels);
             }
             File.WriteAllText(Mark(role + "-trace-done"), "done");
+            if(host&&StressMotion)
+            {
+                int travelled=startingTravel.Count(pair=>pair.Key&&pair.Key.TravelDistance-pair.Value>=.5f);
+                File.AppendAllText(Report,$"BOTS movement={travelled}/{startingTravel.Count} at least 0.5 m\n");
+                Require(startingTravel.Count==24&&travelled>=12,"At least half of the authoritative bots travelled during the wave");
+            }
             yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-trace-done")), "Both independent peer traces completed", 40);
             if (!Environment.GetCommandLineArgs().Contains("--dj-motion-lifecycle")) yield break;
 
@@ -568,8 +617,9 @@ namespace DeadlyJenga.CastlePrototype
             CastlePlaySession game = null;
             yield return Until(() => (game = FindFirstObjectByType<CastlePlaySession>()) && game.Network &&
                 !game.Network.WaitingForWorld && room.Runner.ActivePlayers.Count() == Seats &&
-                (!host || game.Network.HumanCount == Seats), "All ten processes are in the active match", 125,
-                () => room.Status);
+                (!host || game.Network.HumanCount == Seats) && game.Modes && game.Modes.Frame?.phase==RoundPhase.Playing,
+                "All ten processes are in the active match", 125,
+                () => $"{room.Status} | {room.GetComponent<RoomGameExperience>()?.GameStatus} | phase={game?.Modes?.Frame?.phase}");
             string code = room.Code;
             var originalRunner = room.Runner;
             File.WriteAllText(Mark(role + "-playing"), "ready");

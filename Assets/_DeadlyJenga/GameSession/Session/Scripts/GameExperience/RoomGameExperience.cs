@@ -201,7 +201,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         void UpdateRoster()
         {
-            if(IsAuthority&&flow.SetRoster(State.authorityTerm,room.GameExperienceRosterIds))CommitFlow();
+            if(!IsAuthority)return;
+            var roster=room.GameExperienceRosterIds;
+            var state=State;
+            if(!state.humanIds.SequenceEqual(roster)&&flow.SetRoster(state.authorityTerm,roster))CommitFlow();
         }
         internal void HandleAuthoritativeCommand(string sender,GameExperienceCommand command)
         {

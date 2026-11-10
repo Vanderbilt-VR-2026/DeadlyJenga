@@ -25,10 +25,18 @@ namespace DeadlyJenga.CastleBots
 
         public void Refresh(CastleBotBrain bot)
         {
+            var current=Services.World;
+            if(bot==null||current==null)return;
+            // Keep the shared geometry refresh progressing even with a single bot.
+            CastleBotJourneyPlanner.RefreshGeometry(current);
             using var measurement = DJWalkingSourcesMarker.Auto();
-            if (bot == null || Services.World == null || Time.time < nextScan) return;
-            nextScan = Time.time + 1;
-            if (!ReferenceEquals(world, Services.World)) { Dispose(); world = Services.World; signature = 0; }
+            if (Time.time < nextScan) return;
+            bool liveWave=false;
+            foreach(var wave in Tracked.Waves)if(wave.Wave.active){liveWave=true;break;}
+            // Do not keep rebaking a moving shoreline. Every adopted waypoint is still
+            // checked against current collision, including while a bake is pending.
+            nextScan = Time.time + (liveWave ? 2.5f : 1);
+            if (!ReferenceEquals(world, current)) { Dispose(); world = current; signature = 0; }
             if (building != null && !building.isDone) return;
             if (building != null) { building = null; Revision++; Status = "Walking corridors ready"; }
             if (NavMesh.GetSettingsCount() == 0) { Status = "No navigation agent settings"; return; }

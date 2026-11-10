@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 using System.Text;
 using System.Linq;
@@ -16,26 +17,86 @@ namespace DeadlyJenga.CastlePrototype
         string experienceDispatchedOperation="";
         int experienceDispatchedAttempt;
         NetworkRunner experienceDispatchRunner;
+        readonly Dictionary<PlayerRef,string> frameMemberIds = new Dictionary<PlayerRef,string>(10);
+        readonly Dictionary<string,PlayerRef> frameUsers = new Dictionary<string,PlayerRef>(10,StringComparer.Ordinal);
+        readonly Dictionary<string,string> memberHashes = new Dictionary<string,string>(10,StringComparer.Ordinal);
+        NetworkRunner memberRunner;
+        int memberFrame = -1;
+        string[] memberRoster = Array.Empty<string>();
+        static readonly string[] LocalMemberRoster = {"local"};
 
-        internal bool GameExperienceMemberId(NetworkRunner expected,PlayerRef player,out string id)
+        void InvalidateMemberFrame() => memberFrame = -1;
+
+        void RefreshMemberFrame(NetworkRunner expected)
         {
-            id=null;
-            if(!Connected||!ReferenceEquals(Runner,expected)||!expected.ActivePlayers.Contains(player))return false;
-            if(!expected.IsServer&&player!=expected.LocalPlayer)return false;
+            if (!ReferenceEquals(memberRunner, expected))
+            {
+                memberRunner = expected;
+                memberHashes.Clear();
+                memberRoster = Array.Empty<string>();
+                InvalidateMemberFrame();
+            }
+            if (memberFrame == Time.frameCount) return;
+            memberFrame = Time.frameCount;
+            frameMemberIds.Clear();
+            frameUsers.Clear();
+            int players = 0;
+            bool isHost = expected.IsServer;
+            foreach (var player in expected.ActivePlayers)
+            {
+                players++;
+                if (!isHost && player != expected.LocalPlayer) continue;
+                string user = ReadMemberUser(expected, player, isHost);
+                if (string.IsNullOrEmpty(user) || user.Length > 256) continue;
+                if (frameUsers.TryGetValue(user, out var other))
+                {
+                    frameMemberIds.Remove(other);
+                    continue;
+                }
+                frameUsers.Add(user, player);
+                if (!memberHashes.TryGetValue(user, out var id))
+                {
+                    if (memberHashes.Count >= 32) memberHashes.Clear();
+                    try
+                    {
+                        using var sha = SHA256.Create();
+                        id = "p:" + BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(user))).Replace("-", "").ToLowerInvariant();
+                    }
+                    catch (CryptographicException) { continue; }
+                    memberHashes.Add(user, id);
+                }
+                frameMemberIds.Add(player, id);
+            }
+            if (players == 0 || frameMemberIds.Count != players)
+            {
+                memberRoster = Array.Empty<string>();
+                return;
+            }
+            bool changed = memberRoster.Length != players;
+            if (!changed)
+                foreach (var id in frameMemberIds.Values)
+                    if (Array.IndexOf(memberRoster, id) < 0) { changed = true; break; }
+            if (!changed) return;
+            memberRoster = frameMemberIds.Values.ToArray();
+            Array.Sort(memberRoster, StringComparer.Ordinal);
+        }
+
+        static string ReadMemberUser(NetworkRunner expected, PlayerRef player, bool isHost)
+        {
             try
             {
-                string user=expected.IsServer?expected.GetPlayerUserId(player):expected.GetPlayerUserId();
-                if(string.IsNullOrEmpty(user)||user.Length>256)return false;
-                if(expected.IsServer)
-                    foreach(var other in expected.ActivePlayers)
-                        if(other!=player&&expected.GetPlayerUserId(other)==user)return false;
-                using(var sha=SHA256.Create())
-                    id="p:"+BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(user))).Replace("-","").ToLowerInvariant();
-                return true;
+                return isHost ? expected.GetPlayerUserId(player) : expected.GetPlayerUserId();
             }
-            catch(InvalidOperationException){return false;}
-            catch(ArgumentException){return false;}
-            catch(CryptographicException){return false;}
+            catch (InvalidOperationException) { return null; }
+            catch (ArgumentException) { return null; }
+        }
+
+        internal bool GameExperienceMemberId(NetworkRunner expected, PlayerRef player, out string id)
+        {
+            id = null;
+            if (!Connected || !ReferenceEquals(Runner, expected)) return false;
+            RefreshMemberFrame(expected);
+            return frameMemberIds.TryGetValue(player, out id);
         }
 
         internal string GameExperienceLocalId
@@ -50,12 +111,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                if(!Connected)return Busy||Migrating?Array.Empty<string>():new[]{"local"};
-                var result=new System.Collections.Generic.List<string>();
-                foreach(var player in Runner.ActivePlayers)
-                    if(GameExperienceMemberId(Runner,player,out var id))result.Add(id);
-                    else return Array.Empty<string>();
-                result.Sort(StringComparer.Ordinal);return result.ToArray();
+                if(!Connected)return Busy||Migrating?Array.Empty<string>():LocalMemberRoster;
+                RefreshMemberFrame(Runner);
+                return memberRoster;
             }
         }
         internal string GameExperienceActorId(string stableId)

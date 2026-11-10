@@ -17,6 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         internal void ResumeLobbyConnection()
         {
             CompleteDeparture();peers.Clear();socialPeers.Clear();socialServer.Clear();waitingPose=0;welcomed=false;
+            ResetLobbyArrivalReceive();
             nextHello=nextSend=0;lastServer=Time.unscaledTime;
         }
         static bool IsLobbyScene(SceneRef scene)=>scene.IsIndex&&

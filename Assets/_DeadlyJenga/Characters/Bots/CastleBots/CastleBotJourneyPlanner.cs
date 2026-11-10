@@ -21,29 +21,48 @@ namespace DeadlyJenga.CastleBots
             public readonly List<CastleBotLanding> nodes=new List<CastleBotLanding>();
             public readonly Dictionary<Vector3Int,List<int>> cells=new Dictionary<Vector3Int,List<int>>();
         }
-        static Snapshot shared;
+        const int GeometryBodiesPerFrame = 32, DestinationSamples = 512;
+        static Snapshot shared, building;
+        static int probeCursor, buildCursor, geometryFrame = -1;
         static Vector3Int Cell(Vector3 p)=>new Vector3Int(Mathf.FloorToInt(p.x/3),Mathf.FloorToInt(p.y/3),Mathf.FloorToInt(p.z/3));
         static Snapshot Geometry(IWorldQuery generator)
         {
             using var measurement = DJBotGeometryMarker.Auto();
-            var first=generator.Blocks.Count>0?generator.Blocks[0]:null;
-            if(shared!=null&&shared.generator==generator&&shared.first==first&&Time.time-shared.at<1)return shared;
-            bool same=shared!=null&&shared.generator==generator&&shared.first==first&&shared.bodies.Count==generator.Blocks.Count;
-            var samples=geometryScratch;
-            for(int i=0;i<generator.Blocks.Count;i++)
+            var blocks=generator.Blocks;
+            var first=blocks.Count>0?blocks[0]:null;
+            if(shared==null||!ReferenceEquals(shared.generator,generator)||shared.first!=first)
             {
-                var rb=generator.Blocks[i];bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
-                if(included)BotGeometrySamples.Fill(rb,samples);
-                if(same){var old=shared.bodies[i];if(old.body!=rb||old.included!=included||included&&old.version!=BotGeometrySamples.Version(rb))same=false;}
+                shared=new Snapshot{generator=generator,first=first,at=float.NegativeInfinity};
+                building=null;probeCursor=buildCursor=0;geometryFrame=-1;
             }
-            if(same){shared.at=Time.time;return shared;}
-            var graph=new Snapshot{generator=generator,first=first,at=Time.time};
-            foreach(var rb in generator.Blocks)
+            if(geometryFrame==Time.frameCount)return shared;
+            if(building==null&&Time.time-shared.at<1&&shared.bodies.Count==blocks.Count)return shared;
+            geometryFrame=Time.frameCount;
+            var samples=geometryScratch;
+            if(building==null&&shared.bodies.Count==blocks.Count)
             {
-                bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
-                graph.bodies.Add((rb,rb?BotGeometrySamples.Version(rb):0,included));
+                int end=Mathf.Min(blocks.Count,probeCursor+GeometryBodiesPerFrame);
+                for(;probeCursor<end;probeCursor++)
+                {
+                    var body=blocks[probeCursor];bool included=Includes(body);
+                    var old=shared.bodies[probeCursor];
+                    if(included)BotGeometrySamples.Fill(body,samples);
+                    if(old.body==body&&old.included==included&&(!included||old.version==BotGeometrySamples.Version(body)))continue;
+                    BeginGeometry(generator,first);
+                    return shared;
+                }
+                if(probeCursor==blocks.Count){probeCursor=0;shared.at=Time.time;}
+                return shared;
+            }
+            if(building==null||buildCursor>blocks.Count)BeginGeometry(generator,first);
+            var graph=building;
+            int limit=Mathf.Min(blocks.Count,buildCursor+GeometryBodiesPerFrame);
+            for(;buildCursor<limit;buildCursor++)
+            {
+                var rb=blocks[buildCursor];bool included=Includes(rb);
+                if(included)BotGeometrySamples.Fill(rb,samples);
+                graph.bodies.Add((rb,included?BotGeometrySamples.Version(rb):0,included));
                 if(!included)continue;
-                BotGeometrySamples.Fill(rb,samples);
                 var anchor=rb.transform;var inverse=anchor.worldToLocalMatrix;
                 foreach(var p in samples)
                 {
@@ -53,8 +72,17 @@ namespace DeadlyJenga.CastleBots
                     graph.minY=Mathf.Min(graph.minY,p.y);graph.maxY=Mathf.Max(graph.maxY,p.y);
                 }
             }
-            shared=graph;return graph;
+            if(buildCursor==blocks.Count)
+            {
+                graph.at=Time.time;shared=graph;building=null;probeCursor=0;
+            }
+            return shared;
         }
+        static bool Includes(Rigidbody body)=>body&&body.gameObject.activeInHierarchy&&
+            (body.isKinematic||body.linearVelocity.sqrMagnitude<=1.44f);
+        static void BeginGeometry(IWorldQuery generator,Rigidbody first)
+        {building=new Snapshot{generator=generator,first=first};buildCursor=probeCursor=0;}
+        internal static void RefreshGeometry(IWorldQuery generator) => Geometry(generator);
         static readonly List<Vector3> geometryScratch=new(64);
         static readonly Dictionary<Rigidbody,Matrix4x4> destinationMatrices=new();
         static readonly List<CastleBotLanding> destinationRanks=new(25);
@@ -62,12 +90,17 @@ namespace DeadlyJenga.CastleBots
         {
             using var measurement = DJBotDestinationMarker.Auto();
             var graph=Geometry(bot.Population.Session.world);var p=bot.Personality;var feet=bot.transform.position;
+            Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
+            if(graph.nodes.Count==0)return feet+bearing*5;
             float fraction=Mathf.Repeat(bot.Seed*.173f+trip*.618034f,1);
             float targetY=Mathf.Lerp(feet.y,Mathf.Lerp(graph.minY,graph.maxY,fraction),p.verticalVariety);
-            Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
             var ranked=destinationRanks;ranked.Clear();destinationMatrices.Clear();
-            foreach(var node in graph.nodes)
+            // Sample every part of a dense map, rotating the selection across bots and trips.
+            int count=graph.nodes.Count,samples=Mathf.Min(count,DestinationSamples);
+            int offset=(int)((unchecked((uint)(bot.Seed*1009)+((uint)trip*2654435761u)))%(uint)count);
+            for(int i=0;i<samples;i++)
             {
+                var node=graph.nodes[((int)((long)i*count/samples)+offset)%count];
                 if(!node.body||!node.surface)continue;
                 if(!destinationMatrices.TryGetValue(node.body,out var matrix))destinationMatrices[node.body]=matrix=node.surface.localToWorldMatrix;
                 var point=matrix.MultiplyPoint3x4(node.local);float distance=Vector3.Distance(point,feet);if(distance<3)continue;
