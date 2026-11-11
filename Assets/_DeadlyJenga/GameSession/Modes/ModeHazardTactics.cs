@@ -37,10 +37,15 @@ namespace DeadlyJenga.Modes
         }
         public static void Select(Vector3 feet,float height,IList<Vector3> candidates,IList<DisasterFrame> hazards,IList<WaveFrame> waves,Func<Vector3,bool> sheltered,List<Vector3> result)
         {
-            result.Clear();bool rain=false;foreach(var f in hazards)if(f.kind=="AcidRain"&&f.warning<=4)rain=true;
-            bool cover=sheltered(feet+Vector3.up*height);
+            result.Clear();bool rain=false;foreach(var f in hazards)if(f.kind=="AcidRain")rain=true;
+            float coverHeight=height*.55f;
+            bool cover=sheltered(feet+Vector3.up*coverHeight);
             float current=Risk(feet,height,cover,hazards,waves);
-            if(current<.2f&&!rain)return;
+            if(current<.2f)
+            {
+                if(rain&&cover)result.Add(feet);
+                if(!rain||cover)return;
+            }
             var nearest=new List<Vector3>(48);
             var descent=new List<Vector3>(20);
             foreach(var p in candidates)
@@ -57,7 +62,7 @@ namespace DeadlyJenga.Modes
             float best=float.PositiveInfinity;
             foreach(var point in nearest)
             {
-                bool covered=sheltered(point+Vector3.up*height);if(rain&&!covered)continue;
+                bool covered=sheltered(point+Vector3.up*coverHeight);if(rain&&!covered)continue;
                 float danger=Risk(point,height,covered,hazards,waves);if(!rain&&danger>=current-.15f)continue;
                 float score=danger*10+Vector3.Distance(feet,point)*.04f;
                 if(score<best){best=score;result.Insert(0,point);}
@@ -68,7 +73,13 @@ namespace DeadlyJenga.Modes
             {
                 // A lower deck gives the journey planner a reachable intermediate landing.
                 foreach(var point in descent)
-                    if(feet.y-point.y<=10 && Vector3.Distance(feet,point)<18){result.Add(point);break;}
+                {
+                    var delta=point-feet;
+                    if(-delta.y>11||delta.sqrMagnitude>18*18||delta.x*delta.x+delta.z*delta.z<1)continue;
+                    if(result.Exists(prior=>(prior-point).sqrMagnitude<9))continue;
+                    result.Add(point);
+                    if(result.Count==3)break;
+                }
             }
         }
     }

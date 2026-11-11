@@ -57,7 +57,7 @@ namespace DeadlyJenga.Modes
         {
             var r = new ModeRules { mode = mode, automaticDisasters = mode == GameModeKind.Demo || mode == GameModeKind.Survival };
             if (mode == GameModeKind.Demo) { r.roundSeconds=0; r.metric=ScoreMetric.AliveStatus; }
-            if (mode == GameModeKind.Survival) r.disasterMinInterval=r.disasterMaxInterval=r.disasterLateInterval=20;
+            if (mode == GameModeKind.Survival) { r.healthEnabled=true; r.disasterMinInterval=r.disasterMaxInterval=r.disasterLateInterval=20; }
             if (mode == GameModeKind.KingOfHill) { r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.HillTime; r.hillInterval=30; }
             if (mode == GameModeKind.BlockControl) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.TeamPoints; }
             if (mode == GameModeKind.CaptureFlag) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.punchDistance=1.8f; r.metric=ScoreMetric.FlagCaptures; r.roundSeconds=600; r.flagWinByTwo=false; }
@@ -70,6 +70,7 @@ namespace DeadlyJenga.Modes
         public void Configure(ModeRules input)
         {
             Rules = input?.Copy() ?? new ModeRules();
+            if(Rules.mode==GameModeKind.Survival)Rules.healthEnabled=true;
             Rules.teamCount = Mathf.Clamp(Rules.teamCount,2,8);
             Rules.claimSeconds = Mathf.Clamp(Rules.claimSeconds,.1f,120);
             Rules.reclaimSeconds = Mathf.Clamp(Rules.reclaimSeconds,.1f,120);

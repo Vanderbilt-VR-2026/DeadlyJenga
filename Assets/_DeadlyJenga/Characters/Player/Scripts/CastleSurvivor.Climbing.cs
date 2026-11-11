@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
         Collider climbCollider;
         Vector3 climbNormal,climbLocalFeet,climbWorldFeet,climbPointVelocity,climbLastVelocity;
         Quaternion climbLastRotation;
-        float climbHold,climbCooldown,climbElapsed,climbGroundRest,climbGait,climbStun;
+        float climbHold,climbCooldown,climbElapsed,climbGroundRest,climbGait,climbStun,climbFaceMissing;
         bool climbMustRelease;
         readonly Vector3[] climbHandLocal=new Vector3[2];
         readonly Vector3[] climbHandFrom=new Vector3[2];
@@ -78,8 +78,9 @@ namespace DeadlyJenga.CastlePrototype
             float fallSpeed=climbBreakFallSpeed;
             if(velocity.y < -fallSpeed && DisasterGravity(out float limit)<1)
                 fallSpeed=Mathf.Min(climbBreakSpeed,Mathf.Max(fallSpeed,limit+.35f));
-            return velocity.magnitude>climbBreakSpeed||velocity.y < -fallSpeed||spin>climbBreakSpin||
-                (!initial&&(velocity-climbLastVelocity).magnitude/Mathf.Max(.001f,dt)>climbBreakAcceleration);
+            bool violentAcceleration=!initial&&velocity.magnitude>climbBreakSpeed*.55f&&
+                (velocity-climbLastVelocity).magnitude/dt>climbBreakAcceleration;
+            return velocity.magnitude>climbBreakSpeed||velocity.y < -fallSpeed||spin>climbBreakSpin||violentAcceleration;
         }
         void BindClimb(RaycastHit hit)
         {
@@ -118,7 +119,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(!FindClimbFace(Feet,facing,out var initial))return false;
                 BindClimb(initial);climbPointVelocity=PointVelocity();
                 if(UnsafeClimb(climbPointVelocity,dt,true)){climbBlock=null;climbBody=null;climbCollider=null;return false;}
-                Climbing=true;Grounded=false;support=null;verticalSpeed=0;slopeVelocity=Vector3.zero;vrClimbVelocity=Vector3.zero;climbElapsed=climbGait=0;climbMovingHand=-1;
+                Climbing=true;Grounded=false;support=null;verticalSpeed=0;slopeVelocity=Vector3.zero;vrClimbVelocity=Vector3.zero;climbElapsed=climbGait=climbFaceMissing=0;climbMovingHand=-1;
                 PlantClimbHand(0);PlantClimbHand(1);climbHandFrom[0]=climbHandLocal[0];climbHandFrom[1]=climbHandLocal[1];climbHandReach[0]=climbHandReach[1]=1;ActionStatus="Scramble";
             }
             if(!held||InputSuspended){ReleaseClimb("Released grip",false);return false;}
@@ -158,8 +159,11 @@ namespace DeadlyJenga.CastlePrototype
             if(!found)
             {
                 if(input.y>.1f&&ClimbMantle())return true;
+                climbFaceMissing+=dt;
+                if(climbFaceMissing<=.10f)return true;
                 ReleaseClimb("No grip — falling",false);return false;
             }
+            climbFaceMissing=0;
             if(face.collider!=climbCollider)
             {
                 BindClimb(face);climbPointVelocity=PointVelocity();

@@ -232,6 +232,7 @@ namespace DeadlyJenga.DevTools.Editor
             if(size==30) Check(game.Modes.Frame.teams.Length==3,"Team PvP uses three teams");
             if(size==25)
             {
+                Check(game.Modes.Frame.rules.healthEnabled,"Disaster Survival always enables health");
                 Check(!game.Modes.Frame.pickups.Any(p=>p.kind>=EquipmentKind.Blaster&&p.kind<=EquipmentKind.Dagger),
                     "Disaster Survival has no opening weapon pickups");
                 if(!game.IsVR)
@@ -272,7 +273,11 @@ namespace DeadlyJenga.DevTools.Editor
                 var matchArt=Object.FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None)
                     .Single(art=>art.gameObject.scene==game.gameObject.scene);
                 float waterY=matchArt.waterRenderer.transform.position.y;
-                game.Player.gameObject.GetComponent<IDamageable>().Eliminate(null);
+                var health=game.Player.gameObject.GetComponent<IDamageable>();
+                float before=health.Health;
+                health.Damage(5,null);
+                Check(health.Health<before,"Survival applies damage to the live player");
+                health.Eliminate(null);
                 deadline=Time.realtimeSinceStartup+18;
                 while(!game.VisitingLobby&&Time.realtimeSinceStartup<deadline)yield return null;
                 Check(game.VisitingLobby&&lobby.ActiveCamera.enabled&&!lobby.CanStart,"An eliminated player watches from the retained lobby");
@@ -283,6 +288,14 @@ namespace DeadlyJenga.DevTools.Editor
                 var wall=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
                 deadline=Time.realtimeSinceStartup+6;
                 while(wall.AssignedChannels==0&&Time.realtimeSinceStartup<deadline)yield return null;
+                var marina=lobby.GetComponent<MarinaScreen>();
+                deadline=Time.realtimeSinceStartup+3;
+                while(Time.realtimeSinceStartup<deadline&&!marina.GetComponentsInChildren<RawImage>()
+                    .Any(image=>image.name=="Live match art"&&image.texture&&image.texture.name=="Head portrait"))
+                    yield return null;
+                Check(marina.GetComponentsInChildren<RawImage>()
+                    .Any(image=>image.name=="Live match art"&&image.texture&&image.texture.name=="Head portrait"),
+                    "The live terminal displays a rendered player headshot");
                 var first=wall.GetComponentsInChildren<RawImage>().First(image=>image.name=="Channel 1");
                 var screen=first.rectTransform;
                 Check(wall.TryPoint(new Ray(screen.position-screen.forward,screen.forward),2,out int channel,out _)&&channel==0,

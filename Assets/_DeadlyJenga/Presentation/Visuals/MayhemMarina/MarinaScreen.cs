@@ -29,6 +29,8 @@ namespace DeadlyJenga.CandyArt.Marina
         RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,hostTitle,focusDescription,mainHeading;
         Text liveStandings,liveActivity,liveHazards;
+        readonly Text[] standingRows=new Text[5],activityRows=new Text[5],hazardRows=new Text[4];
+        readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
         Text modeMissing,mapMissing,joinStatus,hostStatus,marquee;
         RectTransform modeCard,mapCard;
         RawImage modePicture,mapPicture;
@@ -96,7 +98,8 @@ namespace DeadlyJenga.CandyArt.Marina
 
             liveStandings=LiveColumn(new Vector2(-170,20),new Vector2(313,126));
             liveActivity=LiveColumn(new Vector2(169,20),new Vector2(313,126));
-            liveHazards=LiveColumn(new Vector2(0,-72),new Vector2(648,40));
+            liveHazards=LiveColumn(new Vector2(0,-76),new Vector2(648,46));
+            BuildLiveRows();
 
             joinFace=CabinetFace("Lavender Join display",false);
             hostFace=CabinetFace("Mint Host display",true);
@@ -285,23 +288,97 @@ namespace DeadlyJenga.CandyArt.Marina
             return label;
         }
 
+        void BuildLiveRows()
+        {
+            liveStandings.text="STANDINGS";
+            liveActivity.text="RECENT ELIMINATIONS";
+            for(int i=0;i<standingRows.Length;i++)
+            {
+                float y=32-i*19;
+                standingHeads[i]=LiveImage(liveStandings.transform,new Vector2(-145,y),new Vector2(18,18));
+                standingRows[i]=Text("",new Vector2(13,y),new Vector2(285,19),15,liveStandings.transform);
+                standingRows[i].alignment=TextAnchor.MiddleLeft;
+                killerHeads[i]=LiveImage(liveActivity.transform,new Vector2(-145,y),new Vector2(18,18));
+                victimHeads[i]=LiveImage(liveActivity.transform,new Vector2(-124,y),new Vector2(18,18));
+                activityRows[i]=Text("",new Vector2(25,y),new Vector2(259,19),15,liveActivity.transform);
+                activityRows[i].alignment=TextAnchor.MiddleLeft;
+            }
+            for(int i=0;i<hazardRows.Length;i++)
+            {
+                float x=-318+i*162;
+                hazardArt[i]=LiveImage(liveHazards.transform,new Vector2(x+25,-4),new Vector2(48,30));
+                hazardRows[i]=Text("",new Vector2(x+105,-4),new Vector2(105,32),14,liveHazards.transform);
+                hazardRows[i].alignment=TextAnchor.MiddleLeft;
+            }
+        }
+        static RawImage LiveImage(Transform parent,Vector2 position,Vector2 size)
+        {
+            var image=new GameObject("Live match art",typeof(RectTransform),typeof(RawImage)).GetComponent<RawImage>();
+            image.transform.SetParent(parent,false);
+            image.rectTransform.anchoredPosition=position;
+            image.rectTransform.sizeDelta=size;
+            image.raycastTarget=false;
+            return image;
+        }
+        static void SetLiveImage(RawImage image,Texture texture)
+        {
+            image.texture=texture;
+            image.enabled=texture;
+        }
         void RefreshLiveMatch(bool visible)
         {
-            foreach(var column in new[]{liveStandings,liveActivity,liveHazards})column.gameObject.SetActive(visible);
-            var frame=visible?MatchRuntime.Current?.Frame:null;
+            liveStandings.gameObject.SetActive(visible);
+            liveActivity.gameObject.SetActive(visible);
+            liveHazards.gameObject.SetActive(visible);
+            var match=MatchRuntime.Current;
+            var frame=visible?match?.Frame:null;
             if(frame==null)return;
             int seconds=Mathf.Max(0,Mathf.CeilToInt(frame.remaining));
             mainHeading.text=$"LIVE MATCH    {seconds/60:00}:{seconds%60:00}";
-            var standings=CandyResultsHud.Rank(frame.players.Where(player=>player.role!="enemy"),false,false).Take(5);
-            liveStandings.text="STANDINGS\n"+string.Join("\n",standings.Select((player,index)=>
-                $"{index+1}. {CandyHudContent.Safe(player.name,22)}   {CandyResultsHud.RankStats(player,frame.rules.mode,false)}"));
-            string Name(string id)=>CandyHudContent.Safe(System.Array.Find(frame.players,row=>row.id==id)?.name??"Player",21);
-            liveActivity.text="RECENT ELIMINATIONS\n"+string.Join("\n",frame.eliminations.Reverse().Take(5).Select(item=>
-                string.IsNullOrEmpty(item.killer)?Name(item.victim)+" fell":Name(item.killer)+" > "+Name(item.victim)));
-            var hazards=DisasterStates.Active.Select(state=>state.Capture()).Where(state=>state!=null).Select(state=>
-                CandyHudContent.Safe(state.label??state.kind,22)+(state.warning>0?$" in {Mathf.CeilToInt(state.warning)}s":" active")).Take(4).ToList();
-            if(Tracked.Waves.Any(source=>source.Wave.active))hazards.Add("Tsunami");
-            liveHazards.text=hazards.Count==0?"DISASTERS   None active or incoming":"DISASTERS   "+string.Join("  /  ",hazards);
+            var owner=match as Component;
+            var portraits=owner?CandyScorePortraits.For(owner.gameObject):null;
+            Texture Portrait(MatchPlayerFrame player)=>player==null?null:portraits?.Get(match,player);
+            MatchPlayerFrame Player(string id)=>string.IsNullOrEmpty(id)?null:Array.Find(frame.players,row=>row.id==id);
+            string Name(MatchPlayerFrame player)=>CandyHudContent.Safe(player?.name??"Player",18);
+            var standings=CandyResultsHud.Rank(frame.players.Where(player=>player.role!="enemy"),false,false).Take(5).ToArray();
+            var eliminations=frame.eliminations.Reverse().Take(5).ToArray();
+            for(int i=0;i<standingRows.Length;i++)
+            {
+                var standing=i<standings.Length?standings[i]:null;
+                SetLiveImage(standingHeads[i],Portrait(standing));
+                standingRows[i].text=standing==null?"":$"{i+1}. {Name(standing)}  {CandyResultsHud.RankStats(standing,frame.rules.mode,false)}";
+                var killer=i<eliminations.Length?Player(eliminations[i].killer):null;
+                var victim=i<eliminations.Length?Player(eliminations[i].victim):null;
+                SetLiveImage(killerHeads[i],Portrait(killer));
+                SetLiveImage(victimHeads[i],Portrait(victim));
+                activityRows[i].text=i>=eliminations.Length?"":killer==null?Name(victim)+" fell":Name(killer)+" > "+Name(victim);
+            }
+            int slot=0;
+            foreach(var source in Tracked.Waves)
+            {
+                var wave=source.Wave;
+                if(wave.active){SetHazard(slot++,"Tsunami","Tsunami",wave.warningRemaining);break;}
+            }
+            foreach(var source in DisasterStates.Active)
+            {
+                if(slot>=hazardRows.Length)break;
+                var hazard=source.Capture();
+                if(hazard==null||hazard.residualOnly)continue;
+                SetHazard(slot++,hazard.kind,hazard.label??hazard.kind,hazard.warning);
+            }
+            if(slot<hazardRows.Length&&frame.disasterWarningRemaining>0&&!string.IsNullOrEmpty(frame.disasterWarning))
+                SetHazard(slot++,frame.disasterWarning,CandyDisasterWarningCard.DisplayName(frame.disasterWarning),frame.disasterWarningRemaining);
+            liveHazards.text=slot==0?"DISASTERS   None active or incoming":"DISASTERS";
+            for(;slot<hazardRows.Length;slot++)
+            {
+                SetLiveImage(hazardArt[slot],null);
+                hazardRows[slot].text="";
+            }
+        }
+        void SetHazard(int slot,string kind,string title,float warning)
+        {
+            SetLiveImage(hazardArt[slot],CandyDisasterWarningCard.GetImage(kind)??CandyDisasterWarningCard.GetImage(title));
+            hazardRows[slot].text=CandyHudContent.Safe(title,24)+(warning>0?$" in {Mathf.CeilToInt(warning)}s":" active");
         }
 
         static void FitPreview(RawImage image,Text missing)

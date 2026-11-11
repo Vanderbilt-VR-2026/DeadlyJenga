@@ -171,7 +171,11 @@ namespace DeadlyJenga.CastleBots
             }
             if(Population.WalkingRoutes.TryWaypoint(this,tripDestination,out goal))
             {hasGoal=true;goalSince=Time.time;Intent="Following a walking corridor";return;}
-            if(hasObjective&&Motor.HasWalkableIsland&&!CastleBotNavigation.ShouldStageAscent(transform.position,tripDestination,false)&&Time.time>=ascentCommittedUntil&&Time.time>=nextDeparture&&Vector3.ProjectOnPlane(tripDestination-transform.position,Vector3.up).magnitude>20)
+            var remaining=tripDestination-transform.position;
+            bool needsDeparture=remaining.y< -3||
+                Motor.HasWalkableIsland&&Vector3.ProjectOnPlane(remaining,Vector3.up).sqrMagnitude>400;
+            if(hasObjective&&needsDeparture&&!CastleBotNavigation.ShouldStageAscent(transform.position,tripDestination,false)&&
+                Time.time>=ascentCommittedUntil&&Time.time>=nextDeparture)
             {
                 nextDeparture=Time.time+3;
                 if(CastleBotJourneyPlanner.DepartureStage(this,tripDestination,out var departure,out var approach,out _))

@@ -8,10 +8,35 @@ namespace DeadlyJenga.Presentation
 {
     internal sealed class CandyDisasterWarningCard
     {
+        static readonly System.Collections.Generic.Dictionary<string, Texture2D> Images = new();
+        internal static Texture2D GetImage(string label)
+        {
+            var key=ImageKey(label);
+            if(!Images.TryGetValue(key,out var image))
+                Images[key]=image=Resources.Load<Texture2D>("DisasterWarnings/"+key);
+            return image;
+        }
+        static string ImageKey(string label)
+        {
+            var key=new string((label??"").Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
+            return key switch { "antigravity"=>"lowgravity", "planetkillermeteor"=>"meteorplanetkiller", _=>key };
+        }
+
         static readonly Color32 Peach = new(255, 208, 136, 255);
         static readonly Color32 Ivory = new(255, 248, 237, 255);
         readonly Image border;
         readonly RawImage art;
+        internal static string DisplayName(string label) => ImageKey(label) switch
+        {
+            "acidrain" => "Acid Rain",
+            "lowgravity" => "Low Gravity",
+            "meteorshower" => "Meteor Shower",
+            "meteorplanetkiller" => "Planet Killer Meteor",
+            "poweroutage" => "Power Outage",
+            "timeslip" => "Time Slip",
+            _ => CandyHudContent.Safe(label, 39)
+        };
+
         readonly Text eyebrow, title, countdown;
         string currentLabel;
         int displayedSeconds;
@@ -48,29 +73,13 @@ namespace DeadlyJenga.Presentation
             if (!string.Equals(currentLabel, label, StringComparison.Ordinal))
             {
                 currentLabel = label;
-                var key = new string(label.Where(char.IsLetterOrDigit).ToArray()).ToLowerInvariant();
-                key = key switch
-                {
-                    "antigravity" => "lowgravity",
-                    "planetkillermeteor" => "meteorplanetkiller",
-                    _ => key
-                };
-                art.texture = Resources.Load<Texture2D>("DisasterWarnings/" + key);
+                art.texture = GetImage(label);
                 bool illustrated = art.texture != null;
                 art.transform.parent.gameObject.SetActive(illustrated);
                 PlaceCopy(eyebrow, illustrated);
                 PlaceCopy(title, illustrated);
 
-                title.text = key switch
-                {
-                    "acidrain" => "Acid Rain",
-                    "lowgravity" => "Low Gravity",
-                    "meteorshower" => "Meteor Shower",
-                    "meteorplanetkiller" => "Planet Killer Meteor",
-                    "poweroutage" => "Power Outage",
-                    "timeslip" => "Time Slip",
-                    _ => CandyHudContent.Safe(label, 39)
-                };
+                title.text = DisplayName(label);
             }
 
             int remaining = Mathf.CeilToInt(seconds);

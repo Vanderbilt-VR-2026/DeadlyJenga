@@ -17,6 +17,8 @@ namespace DeadlyJenga.Modes
             {
                 nextTacticalSample=Time.time+.5f;tacticalHazards.Clear();tacticalWaves.Clear();
                 foreach(var source in DisasterStates.Active){var f=source.Capture();if(f!=null&&!f.residualOnly)tacticalHazards.Add(f);}
+                if(disasters.Pending=="AcidRain")
+                    tacticalHazards.Add(new DisasterFrame{kind="AcidRain",warning=disasters.WarningRemaining(simulation.Elapsed)});
                 foreach(var source in Tracked.Waves)tacticalWaves.Add(source.Wave);
             }
             if(tacticalHazards.Count==0&&tacticalWaves.Count==0)return false;

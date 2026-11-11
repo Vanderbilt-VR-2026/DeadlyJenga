@@ -12,7 +12,7 @@ Shader "Candy Tropical/Storm Funnel"
  SubShader
  {
   Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent+100" "RenderType"="Transparent"}
-  Blend One OneMinusSrcAlpha ZWrite Off ZTest Always Cull Front
+  Blend One OneMinusSrcAlpha ZWrite Off ZTest LEqual Cull Front
   Pass
   {
    HLSLPROGRAM
@@ -100,7 +100,7 @@ Shader "Candy Tropical/Storm Funnel"
     return body+cloud*(.96+grain*1.50);
    }
 
-   half4 frag(V i):SV_Target
+   half4 frag(V i, out float surfaceDepth:SV_Depth):SV_Target
    {
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
     float3 ro=TransformWorldToObject(_WorldSpaceCameraPos),rd=normalize(i.local-ro);
@@ -152,7 +152,7 @@ Shader "Candy Tropical/Storm Funnel"
     float jitter=.5+(frac(dot(floor(i.positionCS.xy),float2(.75487767,.56984029)))-.5)*.18;
     float crownDistance=length(float3(ro.x/(size*3.32),((ro.y-height)/size-.25)/.99,ro.z/(size*3.32)));
     float insideCrown=1-smoothstep(.78,1.12,crownDistance);
-    float3 sum=0;float trans=1;
+    float3 sum=0;float trans=1;float firstVisible=-1;
     [loop]for(int k=0;k<limit;k++)
     {
      if(k>=steps)break;
@@ -167,6 +167,7 @@ Shader "Candy Tropical/Storm Funnel"
      density*=lerp(1,.11,insideCrown*saturate(cloud*1.4));
      float nearFade=smoothstep(.15,1.10,rayDistance)*lerp(1,smoothstep(2,12,rayDistance),insideCrown);
      float alpha=1-exp(-density*stepSize*.95*nearFade);
+     if(firstVisible<0 && alpha>.001)firstVisible=rayDistance;
      float lightSide=saturate(.52+dot(p.xz,float2(-.39,-.26))/max(size,length(p.xz)));
      float heightLight=saturate((p.y-height*.43)/max(1,height*.57));
      float light=saturate(.045+lightSide*.35+grain*.74+edge*.19+heightLight*.13-density*.25);
@@ -178,6 +179,13 @@ Shader "Candy Tropical/Storm Funnel"
      sum+=trans*alpha*color;trans*=1-alpha;
      if(trans<.018)break;
     }
+    clip(firstVisible);
+    // Depth-test the first visible cloud sample against opaque geometry.
+    float4 cloudClip=TransformObjectToHClip(ro+rd*firstVisible);
+    surfaceDepth=cloudClip.z/cloudClip.w;
+    #if defined(SHADER_API_GLCORE) || defined(SHADER_API_GLES3)
+    surfaceDepth=surfaceDepth*.5+.5;
+    #endif
     return half4(sum,1-trans);
    }
    ENDHLSL

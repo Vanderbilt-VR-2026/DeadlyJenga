@@ -25,7 +25,15 @@ namespace DeadlyJenga.CastlePrototype
         public void Push(Vector3 force, GameObject source)
         {
             if(ParticipationBlocked)return;
-            ApplyTraversalImpulse(force);
+            if(force.sqrMagnitude<=1.21f&&source&&source.TryGetComponent<IDisasterState>(out _))
+            {
+                if(!Climbing&&!Vaulting)
+                {
+                    slopeVelocity+=Vector3.ProjectOnPlane(force,Vector3.up);
+                    verticalSpeed+=force.y;
+                }
+            }
+            else ApplyTraversalImpulse(force);
             GameEvents.RaisePushed(gameObject, force);
         }
 

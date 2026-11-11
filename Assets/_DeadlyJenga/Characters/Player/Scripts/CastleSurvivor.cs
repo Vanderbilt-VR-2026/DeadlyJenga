@@ -428,7 +428,8 @@ namespace DeadlyJenga.CastlePrototype
                     || top.collider != face.collider || top.normal.y < .85f) continue;
                 float rise = top.point.y - feet.y;
                 if (rise < .08f || rise > maxRise) continue;
-                Vector3 destinationFeet = top.point + Vector3.up * .04f;
+                float clearance=.04f+Mathf.Clamp01(1-top.normal.y)*Capsule.radius;
+                Vector3 destinationFeet = top.point + Vector3.up * clearance;
                 if (!ClearCapsule(destinationFeet)) continue;
                 // Check both lift and traverse segments, including low ceilings.
                 Vector3 lifted = new Vector3(feet.x, destinationFeet.y, feet.z);
@@ -484,7 +485,7 @@ namespace DeadlyJenga.CastlePrototype
             vaultSurface = hit.transform; vaultLocal = vaultSurface.InverseTransformPoint(destination);
             vaultGripLocal=vaultSurface.InverseTransformPoint(candidateGrip);
             vaultNormalLocal=vaultSurface.InverseTransformDirection(candidateNormal);vaultForwardLocal=vaultSurface.InverseTransformDirection(candidateForward);
-            vaultStart = transform.position; vaultLastDestination=destination; vaultTime = 0; Vaulting = true; verticalSpeed = 0;
+            vaultStart = transform.position; vaultLastDestination=destination; vaultObstructed=0; vaultTime = 0; Vaulting = true; verticalSpeed = 0;
             peakFallSpeed=0;
             support = null; ActionStatus = "Vault"; VaultCount++;
         }
@@ -497,6 +498,7 @@ namespace DeadlyJenga.CastlePrototype
             grip=new Pose(point,Quaternion.LookRotation(forward,normal));return true;
         }
         Vector3 vaultLastDestination;
+        float vaultObstructed;
         void AdvanceVault(float dt)
         {
             if(UpdateSpectatorParticipation()||!Capsule.enabled)return;
@@ -507,8 +509,14 @@ namespace DeadlyJenga.CastlePrototype
             vaultLastDestination=end;
             if(surfaceMotion.sqrMagnitude>.45f*.45f){Vaulting=false;return;}
             vaultStart+=surfaceMotion;
-            if (Vector3.Distance(end, vaultStart) > 3 || !ClearCapsule(end + (Feet - transform.position)))
-            { Vaulting = false; return; }
+            if(Vector3.Distance(end,vaultStart)>3){Vaulting=false;return;}
+            if(!ClearCapsule(end+(Feet-transform.position)))
+            {
+                vaultObstructed+=dt;
+                if(vaultObstructed>.10f){Vaulting=false;ActionStatus="Landing blocked";}
+                return;
+            }
+            vaultObstructed=0;
             vaultTime += dt;
             float t = Mathf.Clamp01(vaultTime / ActiveVaultDuration);
             // Lift above the lip first, then move across it. CharacterController sweeps every step.

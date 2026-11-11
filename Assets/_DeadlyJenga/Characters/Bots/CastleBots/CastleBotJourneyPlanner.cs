@@ -162,15 +162,17 @@ namespace DeadlyJenga.CastleBots
         {
             stage=default;approach=default;traversal=CastleBotRoute.Walk;
             var graph=Geometry(bot.Population.Session.world);var feet=bot.transform.position;
-            if(bot.Motor.HasWalkableIsland)
+            var toward=Vector3.ProjectOnPlane(destination-feet,Vector3.up).normalized;
+            if(toward.sqrMagnitude>.01f)
             {
-                var toward=Vector3.ProjectOnPlane(destination-feet,Vector3.up).normalized;
                 for(int bearing=0;bearing<5;bearing++)for(int length=0;length<4;length++)
                 {
                     float angle=bearing==0?0:(bearing%2==0?1:-1)*((bearing+1)/2)*40;
                     var direction=Quaternion.Euler(0,angle,0)*toward;
                     var probe=feet+direction*(3+length*2);
                     if(!CastleBotNavigation.Ground(probe+Vector3.up*.4f,CastleBotNavigation.MaximumDrop(bot.Motor)+.5f,out var floor))continue;
+                    if(!bot.Motor.HasWalkableIsland&&floor.collider.gameObject.layer!=Layers.Block&&
+                        !Climbables.TryGet(floor.collider,out _))continue;
                     float drop=feet.y-floor.point.y;
                     if(drop<.5f||drop>CastleBotNavigation.MaximumDrop(bot.Motor)||!CastleBotNavigation.Room(bot.Motor,floor.point+Vector3.up*.04f))continue;
                     for(int launch=0;launch<4;launch++)

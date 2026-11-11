@@ -158,6 +158,18 @@ namespace DeadlyJenga.DevTools.Editor
                 var forward=TornadoView(eye,warning);
                 camera.transform.SetPositionAndRotation(eye,forward);
                 var baseline=ReadTornadoCamera(camera,null);
+                var outage=DemoDisasters.Prefabs.First(prefab=>prefab.name=="PowerOutage");
+                DemoDisasters.Request(session,outage);
+                var wall=GameObject.CreatePrimitive(PrimitiveType.Cube);
+                wall.name="Opaque outage occlusion fixture";
+                wall.layer=30;
+                wall.transform.SetPositionAndRotation(eye+forward*Vector3.forward*6,forward);
+                wall.transform.localScale=new Vector3(40,40,.4f);
+                var neon=new Material(Resources.Load<Shader>("CandyScenery/CandyNeon"));
+                neon.SetColor("_BaseColor",new Color(.25f,.55f,1));
+                neon.SetFloat("_Filled",1);
+                wall.GetComponent<MeshRenderer>().sharedMaterial=neon;
+                wall.SetActive(false);
                 until=Time.realtimeSinceStartup+45;
                 var live=source.Capture();
                 while (Time.realtimeSinceStartup<until && (live==null || live.warning>0 || !cameraData.requiresDepthTexture))
@@ -178,6 +190,29 @@ namespace DeadlyJenga.DevTools.Editor
                 }
                 File.AppendAllText(GameplayReport,$"Exterior review camera at {eye}; center {live.center}; far clip {camera.farClipPlane}; changed upper-screen pixels {changed}.\n");
                 if(changed<450)throw new InvalidOperationException("No substantial tornado silhouette appeared in the player view.");
+                if(Shader.GetGlobalFloat("_CandyOutage")<.5f)
+                    throw new InvalidOperationException("Power Outage lighting did not activate.");
+                wall.SetActive(true);
+                cameraData.requiresDepthOption=CameraOverrideOption.Off;
+                int normalMask=camera.cullingMask;
+                camera.cullingMask=1<<wall.layer;
+                var blockedBaseline=ReadTornadoCamera(camera,null);
+                camera.cullingMask=normalMask|1<<wall.layer;
+                var blockedStorm=ReadTornadoCamera(camera,"Tornado-Behind-Neon-Wall.png");
+                camera.cullingMask=normalMask;
+                cameraData.requiresDepthOption=CameraOverrideOption.On;
+                int leaked=0;
+                for(int i=0;i<blockedStorm.Length;i++)
+                {
+                    int delta=Math.Abs(blockedBaseline[i].r-blockedStorm[i].r)+
+                        Math.Abs(blockedBaseline[i].g-blockedStorm[i].g)+Math.Abs(blockedBaseline[i].b-blockedStorm[i].b);
+                    if(delta>55)leaked++;
+                }
+                Object.Destroy(wall);
+                Object.Destroy(neon);
+                if(leaked>blockedStorm.Length/100)
+                    throw new InvalidOperationException($"Tornado rendered over the neon wall in {leaked} pixels.");
+                File.AppendAllText(GameplayReport,$"PASS Neon wall occludes tornado with depth texture disabled ({leaked} changed pixels).\n");
                 until=Time.realtimeSinceStartup+13;
                 while ((source.Capture()?.age??0)<8.7f && Time.realtimeSinceStartup<until) yield return null;
                 live=source.Capture();
@@ -193,6 +228,12 @@ namespace DeadlyJenga.DevTools.Editor
                 yield return new WaitForSecondsRealtime(1.9f);
                 if(cameraData.requiresDepthOption!=CameraOverrideOption.Off)
                     throw new InvalidOperationException("Tornado did not release its camera depth override.");
+                if(Environment.GetCommandLineArgs().Contains("-traversalCheck"))
+                {
+                    session.SetRole(false);
+                    yield return DeadlyJenga.CastlePrototype.Editor.CastleClimbChecks.Check(false);
+                    BotObjectiveContractChecks.Run();
+                }
             }
             finally
             {
