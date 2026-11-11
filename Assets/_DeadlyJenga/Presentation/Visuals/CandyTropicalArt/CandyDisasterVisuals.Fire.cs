@@ -8,11 +8,12 @@ namespace DeadlyJenga.CandyArt
     {
         Mesh fireCube,fireTongueMesh,fireLowTongueMesh;Material fireShell,fireTongue,charredMaterial,smoulderMaterial;
         Shader wetOverlayShader;
+        Light fireGlow;
         const int FlameTriangleBudget=1536,MaxFlameSubjects=192,MaxNearFireBodies=4;
         const int DetailedTongueTriangles=60,CheapTongueTriangles=4,MaxDetailedTonguesPerBody=4;
         struct FlameSubject
         {
-            public Rigidbody body;public int id;public Bounds bounds;public float distanceSquared;public bool preferNear,highDetail;
+            public Rigidbody body;public int id;public Bounds bounds;public Quaternion rotation;public float distanceSquared;public bool preferNear,highDetail;
         }
         readonly List<FlameSubject> flameSubjects=new List<FlameSubject>(MaxFlameSubjects);
         readonly List<Matrix4x4> fireLowTips=new List<Matrix4x4>(384);
@@ -45,57 +46,56 @@ namespace DeadlyJenga.CandyArt
             fireLowTongueMesh=CreateCheapBlockFlameMesh();
             wetOverlayShader=Resources.Load<Shader>("CandyScenery/CandyWetSurface");
             fireShell=ObjectMaterial("CandyBlockFire",Color.white);
-            fireTongue=new Material(fireShell){name="Candy flame tongues",enableInstancing=true};fireTongue.SetFloat("_Tongue",1);fireTongue.SetFloat("_Cull",2);
+            fireTongue=new Material(fireShell){name="Candy flame tongues",enableInstancing=true};fireTongue.SetFloat("_Tongue",1);fireTongue.SetFloat("_Cull",0);
             charredMaterial=ObjectMaterial("CandyCharredBlock",Color.white);
-            smoulderMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.24f,.23f,.22f,.19f));burnProps=new MaterialPropertyBlock();
+            smoulderMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.31f,.29f,.27f,.30f));burnProps=new MaterialPropertyBlock();
         }
         static Mesh CreateBlockFlameMesh()
         {
-            const int sides=6,bands=4;
-            var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();
-            var radii=new[]{.30f,.43f,.33f,.17f,.015f};
-            var offsets=new[]{Vector2.zero,new Vector2(-.04f,.02f),new Vector2(.04f,-.03f),new Vector2(.10f,.015f),new Vector2(.17f,.03f)};
-            for(int row=0;row<=bands;row++)for(int side=0;side<=sides;side++)
+            const int sheets=3,segments=10;
+            var vertices=new List<Vector3>(sheets*(segments+1)*2);
+            var uv=new List<Vector2>(vertices.Capacity);
+            var triangles=new List<int>(DetailedTongueTriangles*3);
+            for(int sheet=0;sheet<sheets;sheet++)
             {
-                float angle=side*Mathf.PI*2/sides;
-                vertices.Add(new Vector3(offsets[row].x+Mathf.Cos(angle)*radii[row],row/(float)bands-.5f,offsets[row].y+Mathf.Sin(angle)*radii[row]));
-                uv.Add(new Vector2(side/(float)sides,row/(float)bands));
-            }
-            for(int row=0;row<bands;row++)for(int side=0;side<sides;side++)
-            {
-                int a=row*(sides+1)+side,b=a+sides+1;
-                triangles.AddRange(new[]{a,b,b+1,a,b+1,a+1});
-            }
-            for(int end=0;end<2;end++)
-            {
-                int row=end*bands,center=vertices.Count;
-                vertices.Add(new Vector3(offsets[row].x,end-.5f,offsets[row].y));uv.Add(new Vector2(.5f,end));
-                for(int side=0;side<sides;side++)
-                {vertices.Add(vertices[row*(sides+1)+side]);uv.Add(new Vector2(side/(float)sides,end));}
-                for(int side=0;side<sides;side++)
+                float angle=sheet*Mathf.PI/sheets;
+                Vector3 right=new Vector3(Mathf.Cos(angle),0,Mathf.Sin(angle));
+                Vector3 forward=Vector3.Cross(right,Vector3.up);
+                int first=vertices.Count;
+                for(int row=0;row<=segments;row++)
                 {
-                    int a=center+1+side,b=center+1+(side+1)%sides;
-                    if(end==0)triangles.AddRange(new[]{center,a,b});else triangles.AddRange(new[]{center,b,a});
+                    float height=row/(float)segments;
+                    float taper=Mathf.Pow(1-height,.64f);
+                    float width=(.29f+Mathf.Sin(height*Mathf.PI)*.19f)*taper+.008f;
+                    float curl=(Mathf.Sin(height*5.3f+sheet*.5f)-Mathf.Sin(sheet*.5f))*.47f*height;
+                    Vector3 center=Vector3.up*(height-.5f)+right*curl+forward*(height*height*.19f);
+                    vertices.Add(center-right*width);
+                    vertices.Add(center+right*width);
+                    uv.Add(new Vector2(0,height));
+                    uv.Add(new Vector2(1,height));
+                    if(row==0) continue;
+                    int bottom=first+(row-1)*2,top=bottom+2;
+                    triangles.AddRange(new[]{bottom,top,bottom+1,bottom+1,top,top+1});
                 }
             }
-            var mesh=new Mesh{name="Shared tapered candy flame"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();
-            var normals=mesh.normals;
-            for(int row=0;row<=bands;row++)
-            {
-                int first=row*(sides+1),last=first+sides;var normal=(normals[first]+normals[last]).normalized;
-                normals[first]=normals[last]=normal;
-            }
-            mesh.normals=normals;mesh.RecalculateBounds();var bounds=mesh.bounds;bounds.Expand(.5f);mesh.bounds=bounds;
+            var mesh=new Mesh{name="Shared curling candy flame"};
+            mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);
+            mesh.RecalculateNormals();mesh.RecalculateBounds();
+            var bounds=mesh.bounds;bounds.Expand(.7f);mesh.bounds=bounds;
             return mesh;
         }
         static Mesh CreateCheapBlockFlameMesh()
         {
-            var points=new[]{new Vector3(.4f,-.5f,0),new Vector3(-.2f,-.5f,.34641016f),new Vector3(-.2f,-.5f,-.34641016f),new Vector3(.14f,.5f,.015f)};
-            var order=new[]{0,3,1,1,3,2,2,3,0,0,1,2};
-            var vertices=new Vector3[order.Length];var uv=new Vector2[order.Length];var triangles=new int[order.Length];
-            for(int i=0;i<order.Length;i++)
-            {vertices[i]=points[order[i]];uv[i]=new Vector2(i%3*.5f,vertices[i].y+.5f);triangles[i]=i;}
-            var mesh=new Mesh{name="Shared cheap tapered candy flame",vertices=vertices,uv=uv,triangles=triangles};
+            var vertices=new[]{
+                new Vector3(-.33f,-.5f,0),new Vector3(.33f,-.5f,0),new Vector3(.03f,.5f,0),new Vector3(.19f,.5f,0),
+                new Vector3(0,-.5f,-.33f),new Vector3(0,-.5f,.33f),new Vector3(0,.5f,.03f),new Vector3(0,.5f,.19f)
+            };
+            var corners=new[]{Vector2.zero,Vector2.right,Vector2.up,Vector2.one};
+            var mesh=new Mesh{
+                name="Shared distant candy flame ribbons",vertices=vertices,
+                uv=new[]{corners[0],corners[1],corners[2],corners[3],corners[0],corners[1],corners[2],corners[3]},
+                triangles=new[]{0,2,1,1,2,3,4,6,5,5,6,7}
+            };
             mesh.RecalculateNormals();mesh.RecalculateBounds();var bounds=mesh.bounds;bounds.Expand(.5f);mesh.bounds=bounds;
             return mesh;
         }
@@ -116,7 +116,7 @@ namespace DeadlyJenga.CandyArt
                 var body=world.Blocks[burn.block];if(!body||!body.gameObject.activeInHierarchy)continue;
                 float remaining=Mathf.Max(0,burn.flameRemaining-lag),smokeRemaining=Mathf.Max(0,burn.smokeRemaining-lag);
                 if(remaining>0&&!frame.residualOnly)Engulf(body,burn.block);
-                float amount=remaining>0?Mathf.Clamp01((1-remaining/lifetime)*1.5f):1;
+                float amount=remaining>0?Mathf.Clamp01(.19f+(1-remaining/lifetime)*.93f):1;
                 if(!burnRenderers.TryGetValue(body,out var renderers))
                 {
                     var visual=body.GetComponent<IClimbable>()?.Visual;
@@ -128,7 +128,8 @@ namespace DeadlyJenga.CandyArt
                     if(IsWetOverlay(renderer))continue;
                     seenCharred.Add(renderer);
                     if(!charred.TryGetValue(renderer,out var look))charred[renderer]=look=new CharredLook{renderer=renderer};
-                    look.burn=amount;look.heat=remaining>0?1:smokeRemaining>0?.08f:0;
+                    look.burn=amount;
+                    look.heat=remaining>0?1:.28f*Mathf.Clamp01(smokeRemaining/10);
                 }
                 var view=Services.Session?.ActiveCamera;
                 if(smokeRemaining>0&&smoulders.Count<192&&(!view||(view.transform.position-body.position).sqrMagnitude<3025))
@@ -152,21 +153,24 @@ namespace DeadlyJenga.CandyArt
         {
             var collider=body.GetComponent<Collider>();if(!collider)return;
             var bounds=collider.bounds;
+            var rotation=Quaternion.identity;
             if(collider is BoxCollider box)
             {
-                var scale=box.transform.lossyScale;scale=new Vector3(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z));
-                fireShells.Add(Matrix4x4.TRS(box.transform.TransformPoint(box.center),box.transform.rotation,Vector3.Scale(box.size,scale)+Vector3.one*.14f));
+                var scale=box.transform.lossyScale;
+                scale=new Vector3(Mathf.Abs(scale.x),Mathf.Abs(scale.y),Mathf.Abs(scale.z));
+                bounds=new Bounds(box.transform.TransformPoint(box.center),Vector3.Scale(box.size,scale));
+                rotation=box.transform.rotation;
             }
-            else fireShells.Add(Matrix4x4.TRS(bounds.center,Quaternion.identity,bounds.size+Vector3.one*.14f));
+            fireShells.Add(Matrix4x4.TRS(bounds.center,rotation,bounds.size+Vector3.one*.08f));
             var view=Services.Session?.ActiveCamera;
             float distanceSquared=view?(view.transform.position-bounds.center).sqrMagnitude:float.PositiveInfinity;
             if(view&&distanceSquared>3025)return;
-            QueueFlameSubject(new FlameSubject{body=body,id=id,bounds=bounds,distanceSquared=distanceSquared,preferNear=nearFireBodies.Contains(body)&&distanceSquared<256});
-            float width=Mathf.Clamp(Mathf.Max(bounds.size.x,bounds.size.z)*.24f,.35f,1.8f);
-            if(smokePuffs.Count<512)
+            QueueFlameSubject(new FlameSubject{body=body,id=id,bounds=bounds,rotation=rotation,distanceSquared=distanceSquared,preferNear=nearFireBodies.Contains(body)&&distanceSquared<256});
+            float width=Mathf.Clamp(Mathf.Max(bounds.size.x,bounds.size.z)*.16f,.28f,1.25f);
+            if(smoulders.Count<192)
             {
                 float phase=Mathf.Repeat(Time.time*.28f+Hash(id+81),1);
-                Puff(smokePuffs,bounds.center+Vector3.up*(bounds.extents.y+phase*3),width*(1+phase),width*(1.4f+phase),id*31);
+                Puff(smoulders,bounds.center+Vector3.up*(bounds.extents.y+.45f+phase*2.6f),width*(.6f+phase),width*(1.6f+phase),id*31);
             }
         }
         static int CompareFlameDistance(FlameSubject a,FlameSubject b)
@@ -237,11 +241,11 @@ namespace DeadlyJenga.CandyArt
                 var bounds=subject.bounds;int id=subject.id;
                 float width=Mathf.Clamp(Mathf.Max(bounds.size.x,bounds.size.z)*.24f,.35f,1.8f);
                 float perimeter=2*(bounds.size.x+bounds.size.z);
-                const int tips=6;
+                int tips=subject.highDetail?8:6;
                 for(int j=0;j<tips&&fireTips.Count+fireLowTips.Count<512;j++)
                 {
                     detailedFireCounts.TryGetValue(subject.body,out int used);
-                    bool highAnchor=j==0||j==2||j==3||j==5;
+                    bool highAnchor=j%2==0;
                     bool detailed=subject.highDetail&&highAnchor&&used<MaxDetailedTonguesPerBody&&FireTongueTriangleCount+DetailedTongueTriangles<=FlameTriangleBudget;
                     int triangles=detailed?DetailedTongueTriangles:CheapTongueTriangles;
                     if(FireTongueTriangleCount+triangles>FlameTriangleBudget)break;
@@ -252,8 +256,9 @@ namespace DeadlyJenga.CandyArt
                     else if((distance-=bounds.size.z)<bounds.size.x)edge=new Vector3(bounds.extents.x-distance,0,bounds.extents.z);
                     else edge=new Vector3(-bounds.extents.x,0,bounds.extents.z-(distance-bounds.size.x));
                     float phase=Mathf.Repeat(Time.time*(1.1f+Hash(j+id)*.7f)+Hash(id*13+j),1);
-                    float height=Mathf.Max(.8f,bounds.size.y*.9f+width*1.7f)*(.75f+Hash(id*31+j)*.5f);
-                    var position=bounds.center+edge*1.01f+Vector3.up*(-bounds.extents.y+height*.48f+phase*.10f);
+                    float height=Mathf.Max(.8f,bounds.size.y*1.10f+width*1.25f)*(.76f+Hash(id*31+j)*.50f);
+                    var foot=subject.rotation*(edge*1.01f-Vector3.up*bounds.extents.y);
+                    var position=bounds.center+foot+Vector3.up*(height*.48f+phase*.10f);
                     var matrix=Matrix4x4.TRS(position,Quaternion.Euler(0,Hash(id*53+j)*360,0),new Vector3(width*(.8f+.2f*Mathf.Sin(Time.time*7+j)),height,width));
                     if(detailed){fireTips.Add(matrix);detailedFireCounts[subject.body]=used+1;}else fireLowTips.Add(matrix);
                     FireTongueTriangleCount+=triangles;
@@ -263,6 +268,7 @@ namespace DeadlyJenga.CandyArt
         void RenderFire()
         {
             BuildBudgetedFlames();
+            UpdateFireGlow();
             var lighting=GetComponent<CandyHazardLighting>();
             oldCharred.Clear();
             foreach(var pair in charred)
@@ -282,20 +288,51 @@ namespace DeadlyJenga.CandyArt
                 }
                 if(replaced||Mathf.Abs(look.appliedBurn-look.burn)>.004f||Mathf.Abs(look.appliedHeat-look.heat)>.004f)
                 {
-                    renderer.GetPropertyBlock(burnProps);burnProps.SetColor("_BaseColor",look.color);burnProps.SetFloat("_BurnAmount",look.burn);burnProps.SetFloat("_Heat",look.heat);renderer.SetPropertyBlock(burnProps);
+                    renderer.GetPropertyBlock(burnProps);burnProps.SetColor("_BaseColor",look.color);burnProps.SetFloat("_BurnAmount",look.burn);burnProps.SetFloat("_Heat",look.heat);
+                    var meshBounds=renderer.localBounds;
+                    burnProps.SetVector("_BurnHeight",new Vector4(meshBounds.min.y,1/Mathf.Max(meshBounds.size.y,.001f),0,0));
+                    renderer.SetPropertyBlock(burnProps);
                     look.appliedBurn=look.burn;look.appliedHeat=look.heat;
                 }
             }
             foreach(var renderer in oldCharred)charred.Remove(renderer);
             DrawObjects(fireShells,fireCube,fireShell);DrawObjects(fireTips,fireTongueMesh,fireTongue);DrawObjects(fireLowTips,fireLowTongueMesh,fireTongue);DrawObjects(smoulders,quad,smoulderMaterial);
         }
+        void UpdateFireGlow()
+        {
+            if(nearFlameSubjects.Count==0)
+            {
+                if(fireGlow) fireGlow.enabled=false;
+                return;
+            }
+            var closest=nearFlameSubjects[0];
+            foreach(var subject in nearFlameSubjects)
+                if(subject.distanceSquared<closest.distanceSquared) closest=subject;
+            if(!fireGlow)
+            {
+                var source=new GameObject("Nearby fire glow");
+                source.transform.SetParent(transform,false);
+                fireGlow=source.AddComponent<Light>();
+                fireGlow.type=LightType.Point;
+                fireGlow.shadows=LightShadows.None;
+                fireGlow.color=new Color(1f,.38f,.09f);
+            }
+            var bounds=closest.bounds;
+            var camera=Services.Session?.ActiveCamera;
+            var towardEye=camera?(camera.transform.position-bounds.center).normalized:Vector3.up;
+            float size=Mathf.Max(bounds.size.x,bounds.size.z);
+            fireGlow.transform.position=bounds.center+towardEye*(size*.26f)+Vector3.up*(bounds.extents.y*.4f);
+            fireGlow.range=Mathf.Clamp(size*.80f,2.4f,6f);
+            fireGlow.intensity=1.55f+.25f*Mathf.Sin(Time.time*10+closest.id);
+            fireGlow.enabled=true;
+        }
         void RestoreCharred(CharredLook look)
         {
             if(look.renderer&&look.renderer.sharedMaterial==charredMaterial&&look.originals!=null)
             {look.renderer.sharedMaterials=look.originals;look.renderer.SetPropertyBlock(look.originalsProps);}
         }
-        void ClearCharred(){fireShells.Clear();smoulders.Clear();nearFlameSubjects.Clear();nearFireBodies.Clear();detailedFireCounts.Clear();oldNearFireBodies.Clear();flameSubjects.Clear();fireTips.Clear();fireLowTips.Clear();FireTongueTriangleCount=0;foreach(var look in charred.Values)RestoreCharred(look);charred.Clear();burnRenderers.Clear();seenCharred.Clear();}
+        void ClearCharred(){if(fireGlow)fireGlow.enabled=false;fireShells.Clear();smoulders.Clear();nearFlameSubjects.Clear();nearFireBodies.Clear();detailedFireCounts.Clear();oldNearFireBodies.Clear();flameSubjects.Clear();fireTips.Clear();fireLowTips.Clear();FireTongueTriangleCount=0;foreach(var look in charred.Values)RestoreCharred(look);charred.Clear();burnRenderers.Clear();seenCharred.Clear();}
         public void ReleaseFireSurfaces()=>ClearCharred();
-        void DestroyFire(){ClearCharred();if(fireTongueMesh)Destroy(fireTongueMesh);if(fireLowTongueMesh)Destroy(fireLowTongueMesh);foreach(var material in new[]{fireShell,fireTongue,charredMaterial,smoulderMaterial})if(material)Destroy(material);}
+        void DestroyFire(){ClearCharred();if(fireGlow)Destroy(fireGlow.gameObject);if(fireTongueMesh)Destroy(fireTongueMesh);if(fireLowTongueMesh)Destroy(fireLowTongueMesh);foreach(var material in new[]{fireShell,fireTongue,charredMaterial,smoulderMaterial})if(material)Destroy(material);}
     }
 }
