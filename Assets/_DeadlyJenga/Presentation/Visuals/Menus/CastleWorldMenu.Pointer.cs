@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.Controls;
 using UnityEngine.InputSystem.XR;
@@ -7,7 +9,7 @@ using Unity.XR.CoreUtils;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed partial class CastleWorldMenu
+    public sealed partial class CastleWorldMenu : IPointerDownHandler, IPointerUpHandler
     {
         const float MenuDistance=1.68f;
         Ray pointerRay;
@@ -18,7 +20,10 @@ namespace DeadlyJenga.CastlePrototype
         bool requireRelease,startedAim,usingController,desktopOpened;
         int tabletPointerDevice=-1;
         bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
-        Image tabletFrame;
+        Image tabletFrame, desktopClickSurface;
+        GraphicRaycaster desktopRaycaster;
+        Vector2 desktopClickPosition;
+        bool desktopClick, desktopHeld;
         Mesh tabletCaseMesh;
         Material tabletCaseMaterial;
 
@@ -27,7 +32,9 @@ namespace DeadlyJenga.CastlePrototype
             roomLeave.Clear();
             if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
+            desktopClick=desktopHeld=false;
             if(!show||!camera)return;
+            ConfigureDesktopClicks(camera);
             if (session.IsVR) PlayerPrefs.SetInt(TabletOpenedPreference,1);
             else if (!desktopOpened)
             {
@@ -63,10 +70,12 @@ namespace DeadlyJenga.CastlePrototype
             {
                 PlaceDesktopTablet(camera);
                 var mouse=Mouse.current;
-                pointerRay=mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
+                pressed=desktopClick;
+                held=desktopHeld;
+                desktopClick=false;
+                pointerRay=pressed?camera.ScreenPointToRay(desktopClickPosition):
+                    mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
                     new Ray(camera.transform.position,camera.transform.forward);
-                pressed=mouse?.leftButton.wasPressedThisFrame==true;
-                held=mouse?.leftButton.isPressed==true;
             }
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
@@ -80,11 +89,52 @@ namespace DeadlyJenga.CastlePrototype
             if(pressed&&focus){pressedTarget=focus;pressedUntil=Time.unscaledTime+.13f;}
             if(tabletDeveloperDetails)ApplyLabelContrast();
             PresentPointer();
+            if (desktopClickSurface) desktopClickSurface.transform.SetAsLastSibling();
             if (pressed || !pointerForegroundReady)
             {
                 DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
                 pointerForegroundReady=true;
             }
+        }
+
+        void ConfigureDesktopClicks(Camera camera)
+        {
+            if (session.IsVR)
+            {
+                if (desktopRaycaster) desktopRaycaster.enabled=false;
+                if (desktopClickSurface) desktopClickSurface.gameObject.SetActive(false);
+                return;
+            }
+
+            GetComponent<Canvas>().worldCamera=camera;
+            if (!desktopRaycaster) desktopRaycaster=gameObject.AddComponent<GraphicRaycaster>();
+            desktopRaycaster.enabled=true;
+            if (!desktopClickSurface)
+            {
+                desktopClickSurface=PointerImage("Desktop tablet click surface",new Vector2(1120,760));
+                desktopClickSurface.sprite=null;
+                desktopClickSurface.color=Color.clear;
+                desktopClickSurface.canvasRenderer.cullTransparentMesh=false;
+                desktopClickSurface.raycastTarget=true;
+            }
+            desktopClickSurface.gameObject.SetActive(true);
+            desktopClickSurface.transform.SetAsLastSibling();
+            if (FindFirstObjectByType<EventSystem>()) return;
+            var input=new GameObject("Desktop tablet UI input",typeof(EventSystem),typeof(InputSystemUIInputModule));
+            input.transform.SetParent(transform,false);
+            input.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+        }
+
+        public void OnPointerDown(PointerEventData e)
+        {
+            if (session.IsVR||e.button!=PointerEventData.InputButton.Left) return;
+            desktopClickPosition=e.position;
+            desktopClick=desktopHeld=true;
+        }
+
+        public void OnPointerUp(PointerEventData e)
+        {
+            if (e.button==PointerEventData.InputButton.Left) desktopHeld=false;
         }
 
         bool DominantLeft=>session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded
