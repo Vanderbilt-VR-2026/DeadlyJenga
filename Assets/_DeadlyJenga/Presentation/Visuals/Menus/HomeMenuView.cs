@@ -96,8 +96,8 @@ namespace DeadlyJenga.Presentation
             mainPage=Node("Home actions",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
             quick=source as IHomeQuickPlayControls;
             entryPage=Node("Choose startup experience",content,new Vector2(0,-70),new Vector2(620,470)).gameObject;
-            ActionButton(entryPage.transform,"PLAY MODE","Join or host at the lobby, then press GO",120,controls.RandomLobby);
-            ActionButton(entryPage.transform,"DEVELOPER MODE","Open the sandbox lobby with shared developer controls",-33,controls.Demo);
+            ActionButton(entryPage.transform,"PLAY MODE","Simulate actual player experience for finished game (limited controls)",120,controls.RandomLobby);
+            ActionButton(entryPage.transform,"DEVELOPER MODE","Run the game with full controls for testing and debugging.",-33,controls.Demo);
             quickPage=Node("Quick Play",content,new Vector2(0,-70),new Vector2(620,520)).gameObject;
             BuildQuickPlay();
             joinPage=Node("Join a session",content,new Vector2(0,-65),new Vector2(620,520)).gameObject;
@@ -350,7 +350,7 @@ namespace DeadlyJenga.Presentation
         {
             var button=ButtonAt(parent,title,new Vector2(0,y),new Vector2(620,120),action);
             var text=button.GetComponentInChildren<Text>();text.alignment=TextAnchor.UpperLeft;text.fontSize=35;text.rectTransform.anchoredPosition=new Vector2(9,-12);
-            Label(button.transform,subtitle,new Vector2(10,-30),new Vector2(580,38),21,new Color(.82f,.8f,.92f));
+            Label(button.transform,subtitle,new Vector2(10,-30),new Vector2(580,48),21,new Color(.82f,.8f,.92f));
         }
         void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;if(pointer)pointer.gameObject.SetActive(false);}}
         void OnDestroy()

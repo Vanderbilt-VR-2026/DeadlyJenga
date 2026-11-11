@@ -38,7 +38,6 @@ namespace DeadlyJenga.Modes
                 if(!prefab||!(prefab.GetComponent<IHazard>() is IMapHazard definition)||
                     !definition.TryValidate(Services.World,out _))continue;
                 string key=prefab.name.ToLowerInvariant();
-                if(play&&(key.Contains("planet")||key.Contains("vampire")||prefab.GetComponent<IDemoHazard>()?.Toggle==true))continue;
                 if(opening&&!StructuralDisaster(key))continue;
                 if(play&&ModeSimulation.TeamMode(Rules.mode)&&simulation.Elapsed<180&&
                     (key.Contains("fire")||key.Contains("meteor")||key.Contains("acid")||key.Contains("antigravity")))continue;
