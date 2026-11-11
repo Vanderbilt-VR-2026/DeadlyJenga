@@ -17,7 +17,7 @@ namespace DeadlyJenga.Presentation
         public static string Clock(float seconds)=>seconds<0?"NO TIME LIMIT":TimeSpan.FromSeconds(Mathf.CeilToInt(seconds)).ToString(@"mm\:ss");
         public static string Mode(GameModeKind mode)
         {
-            switch(mode){case GameModeKind.CaptureFlag:return "CAPTURE THE FLAG";case GameModeKind.MurderMystery:return "MURDER MYSTERY";case GameModeKind.TeamTickets:return "LAST TEAM STANDING";case GameModeKind.BlockControl:return "COLOR CONTROL";case GameModeKind.KingOfHill:return "KING OF THE HILL";case GameModeKind.Infection:return "INFECTION";case GameModeKind.Survival:return "LAST SURVIVOR";default:return "SANDBOX";}
+            switch(mode){case GameModeKind.Ninja:return "SHADOW LANTERN";case GameModeKind.CaptureFlag:return "CAPTURE THE FLAG";case GameModeKind.MurderMystery:return "MURDER MYSTERY";case GameModeKind.TeamTickets:return "LAST TEAM STANDING";case GameModeKind.BlockControl:return "COLOR CONTROL";case GameModeKind.KingOfHill:return "KING OF THE HILL";case GameModeKind.Infection:return "INFECTION";case GameModeKind.Survival:return "LAST SURVIVOR";default:return "SANDBOX";}
         }
         public static InputAction CreateSelectInput()
         {
@@ -38,6 +38,7 @@ namespace DeadlyJenga.Presentation
         {
             switch(mode)
             {
+                case GameModeKind.Ninja:return p.lanternPoints.ToString("0.0")+" lantern points / "+p.steals+" steals";
                 case GameModeKind.CaptureFlag:return p.captures+" captures / "+p.flagReturns+" returns / "+p.kills+" kills / "+p.deaths+" deaths";
                 case GameModeKind.TeamTickets:return p.kills+" kills / "+p.deaths+" deaths";
                 case GameModeKind.KingOfHill:return p.hillSeconds.ToString("0.0")+"s hill / "+p.kills+" kills";

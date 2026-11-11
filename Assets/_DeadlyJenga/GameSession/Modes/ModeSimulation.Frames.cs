@@ -23,6 +23,7 @@ namespace DeadlyJenga.Modes
                 case ScoreMetric.FlagCaptures:return f.captures;
                 case ScoreMetric.BlocksClaimed:return f.blocksClaimed;
                 case ScoreMetric.AliveStatus:return f.alive&&!f.dying&&f.role!="spectator"?1:0;
+                case ScoreMetric.LanternPoints:return f.lanternPoints;
                 default:return f.survivalSeconds;
             }
         }
@@ -56,7 +57,7 @@ namespace DeadlyJenga.Modes
         {
             get
             {
-                switch(Rules.metric){case ScoreMetric.AverageHeight:return "Average height";case ScoreMetric.CurrentHeight:return "Height";case ScoreMetric.HillTime:return "Hill time";case ScoreMetric.BlocksOwned:return "Blocks owned";case ScoreMetric.TeamPoints:return Rules.mode==GameModeKind.CaptureFlag?"Team captures":Rules.mode==GameModeKind.TeamTickets?"Team lives remaining":"Team points";case ScoreMetric.InfectedKills:return "Infections";case ScoreMetric.Eliminations:return "Eliminations";case ScoreMetric.FlagCaptures:return "Captures";case ScoreMetric.BlocksClaimed:return "Blocks claimed";case ScoreMetric.AliveStatus:return "Status";default:return "Time alive";}
+                switch(Rules.metric){case ScoreMetric.AverageHeight:return "Average height";case ScoreMetric.CurrentHeight:return "Height";case ScoreMetric.HillTime:return "Hill time";case ScoreMetric.BlocksOwned:return "Blocks owned";case ScoreMetric.TeamPoints:return Rules.mode==GameModeKind.CaptureFlag?"Team captures":Rules.mode==GameModeKind.TeamTickets?"Team lives remaining":"Team points";case ScoreMetric.InfectedKills:return "Infections";case ScoreMetric.Eliminations:return "Eliminations";case ScoreMetric.FlagCaptures:return "Captures";case ScoreMetric.BlocksClaimed:return "Blocks claimed";case ScoreMetric.AliveStatus:return "Status";case ScoreMetric.LanternPoints:return "Lantern points";default:return "Time alive";}
             }
         }
         public MatchFrame Snapshot()
@@ -73,7 +74,7 @@ namespace DeadlyJenga.Modes
             var flagFrames=new FlagFrame[flags.Count];for(int i=0;i<flags.Count;i++){var f=flags[i];flagFrames[i]=new FlagFrame{team=f.team,home=f.home,position=f.position,carrier=f.carrier,atHome=f.atHome};}
             return new MatchFrame{revision=++sequence,phase=Phase,rules=Rules.Copy(),metricLabel=MetricLabel,winner=Winner,winnerTeam=WinnerTeam,
                 elapsed=Elapsed,remaining=Phase==RoundPhase.Countdown?Mathf.Max(0,Rules.countdownSeconds-phaseTime):Rules.roundSeconds<=0?-1:Mathf.Max(0,Rules.roundSeconds-Elapsed),hill=Hill,survivorsLeft=alive,
-                eliminationEpoch=Rules.mode==GameModeKind.MurderMystery?"":eliminationEpoch, eliminations=eliminations.ToArray(), players=rows.ToArray(),topTen=top,secondaryLeaders=InfectedLeaders(),secondaryMetricLabel=Rules.mode==GameModeKind.Infection?"Infections":"",teams=teamFrames,claims=claimFrames.ToArray(),flags=flagFrames};
+                eliminationEpoch=Rules.mode==GameModeKind.MurderMystery?"":eliminationEpoch, eliminations=eliminations.ToArray(), players=rows.ToArray(),topTen=top,secondaryLeaders=InfectedLeaders(),secondaryMetricLabel=Rules.mode==GameModeKind.Infection?"Infections":"",teams=teamFrames,claims=claimFrames.ToArray(),flags=flagFrames,lantern=NinjaRound?lantern.Copy():new LanternFrame()};
         }
         void TickSpectators()
         {

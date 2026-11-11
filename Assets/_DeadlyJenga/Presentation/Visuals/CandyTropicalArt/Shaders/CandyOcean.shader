@@ -138,7 +138,13 @@ Shader "Candy Tropical/Ocean"
                 float crest=0;
                 float2 swell=0;
                 if(!pool)swell=SwellSlope(i.world.xz-_Island.xy,_Time.y*_WaveSpeed,distanceToEye,crest);
-                float2 slope=float2(rippleA,rippleB)*(.055*detailFade)+swell*lerp(.22,1,deep);
+                float windPhase=dot(p,float2(.54,-.74))+sin(p.x*.13+t)*.9-t;
+                float chopPhase=dot(p,float2(.97,.46))+sin(p.y*.19-t)*1.3+t*.73;
+                float2 windChop=float2(cos(windPhase)*(1-smoothstep(.45,2,fwidth(windPhase))),
+                    cos(chopPhase)*(1-smoothstep(.45,2,fwidth(chopPhase))));
+                float windFade=1-smoothstep(130,420,distanceToEye);
+                float2 slope=float2(rippleA,rippleB)*(.055*detailFade)+
+                    (swell*.43+windChop*(.038*windFade))*lerp(.15,1,deep)*(pool?0:1);
                 float3 n=normalize(i.normal+float3(slope.x,0,slope.y));
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);Light light=GetMainLight();
                 if(r<1.4)light.shadowAttenuation=MainLightRealtimeShadow(TransformWorldToShadowCoord(i.world));
@@ -154,11 +160,11 @@ Shader "Candy Tropical/Ocean"
                 if(!pool)
                 {
                     float face=dot(slope,normalize(view.xz+float2(.0001,0)));
-                    float sheen=smoothstep(.035,.23,face)*(1-smoothstep(.37,.75,abs(view.y)));
-                    float brightCrest=smoothstep(.62,1.25,crest);
-                    color*=1+crest*.14*deep;
-                    color+=sky*(sheen*(.14+.13*fresnel)+brightCrest*.065)*_Shine*deep;
-                    spec+=pow(nh,11)*_Glints*.38;
+                    float sheen=smoothstep(.035,.14,face)*(1-smoothstep(.32,.66,abs(view.y)));
+                    float brightCrest=smoothstep(.78,1.3,crest);
+                    color*=1+crest*.058*deep;
+                    color+=sky*(sheen*(.055+.05*fresnel)+brightCrest*.025)*_Shine*deep;
+                    spec+=pow(nh,20)*_Glints*.13;
                 }
                 color+=light.color*spec*_Shine*light.shadowAttenuation;
                 // No thresholded white speckles or repeating crossed sparkle pattern.

@@ -50,9 +50,9 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"tiki-resort","Waterfront Tiki Resort","demo",1,scene,true);
             var tiki=list.Find(m=>m.id=="mode-tiki-resort");
             if(tiki!=null)tiki.supportedModes=new[]{"demo"};
-            AddMap(list,"ninja-temple","Moonlit Shinobi Temple","demo",8,scene,true);
+            AddMap(list,"ninja-temple","Moonlit Shinobi Temple","ninja",8,scene,true);
             var ninja=list.Find(m=>m.id=="mode-ninja-temple");
-            if(ninja!=null)ninja.supportedModes=new[]{"hill","survival","infection","demo"};
+            if(ninja!=null){ninja.recommendedMode="ninja";ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};}
             maps=list.ToArray();
         }
         static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)
@@ -74,6 +74,7 @@ namespace DeadlyJenga.CastlePrototype
             AddMode(list,"infection","Infection","Survive the infected; eliminated survivors join the hunt.");
             AddMode(list,"teamtickets","Last Team Standing","Spend team respawns wisely. Be the last team left.");
             AddMode(list,"mystery","Murder Mystery","Find the hidden murderer, protect survivors and trust the sheriff.");
+            AddMode(list,"ninja","Shadow Lantern","Grab the spirit lantern and keep moving. Hits knock it loose. The gong doubles carrier points.");
             modes=list.ToArray();
         }
         static void AddMode(System.Collections.Generic.List<Mode> list,string id,string title,string description)

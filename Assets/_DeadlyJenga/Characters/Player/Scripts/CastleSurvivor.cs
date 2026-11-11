@@ -174,6 +174,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(facing.sqrMagnitude>.001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(facing),360*Time.deltaTime);
                 Vector3 f=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 walking=new Vector2(Vector3.Dot(command.move,Vector3.Cross(Vector3.up,f)),Vector3.Dot(command.move,f));pressed=command.jump;held=command.climbHeld;
+                if(command.suitFlight){ApplyBotHoverFlight(command.suitVelocity,Time.deltaTime);walking=Vector2.zero;pressed=held=false;}
+                else if(hoverEngaged)ClearHoverFlight();
             }
             else if (!InputSuspended&&vrInputFocused)
             {

@@ -331,7 +331,7 @@ namespace DeadlyJenga.Presentation
             else warning.Hide();
             CandyHudCards.Visible(board,Expanded);CandyHudCards.Visible(teams,!Expanded&&f.teams.Length>0);CandyHudCards.Visible(status,!Expanded);
             bool showObjective=!Expanded&&own!=null&&f.rules.mode!=GameModeKind.MurderMystery&&
-                f.rules.mode==GameModeKind.CaptureFlag&&!introCard.enabled;
+                (f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode==GameModeKind.Ninja&&f.lantern?.active==true)&&!introCard.enabled;
             if(showObjective)UpdateObjective(f,own);
             CandyHudCards.Visible(objective,showObjective);
             if(own!=null)
@@ -517,7 +517,18 @@ namespace DeadlyJenga.Presentation
             objective.fontSize=17;
             CandyHudCards.Place(objective,new Vector2(-462,245),new Vector2(width,110));
             text.Clear();text.Append(f.rules.mode==GameModeKind.CaptureFlag&&f.flags.Length>2?(vr?"FLAG FOCUS · Modes menu\n":"FLAG FOCUS · G: NEXT ENEMY\n"):"<color=#61369B>Objective</color>\n");
-            if(f.rules.mode==GameModeKind.CaptureFlag)
+            if(f.rules.mode==GameModeKind.Ninja)
+            {
+                var lantern=f.lantern;
+                var carrier=System.Array.Find(f.players,p=>p.id==lantern.carrier);
+                text.AppendLine(lantern.carrier==own.id?"KEEP THE LANTERN":
+                    carrier==null?"TAKE THE LANTERN":"CHASE "+CandyHudContent.Safe(carrier.name,19));
+                text.AppendLine(lantern.carrier==own.id?Mathf.CeilToInt(lantern.holdRemaining)+"s until it moves":
+                    CandyHudContent.Direction(camera,lantern.position));
+                text.Append(own.lanternPoints.ToString("0.0")).Append(" / ").Append(f.rules.lanternTarget.ToString("0")).Append(" POINTS");
+                if(lantern.gongRemaining>0)text.Append("  •  2× GONG");
+            }
+            else if(f.rules.mode==GameModeKind.CaptureFlag)
             {
                 var focus=CandyHudContent.FocusedFlag(f,own,FlagFocusIndex);
                 foreach(var flag in f.flags.Where(flag=>flag.team==own.team||flag==focus))

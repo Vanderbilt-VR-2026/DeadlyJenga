@@ -108,7 +108,15 @@ namespace DeadlyJenga.CastleBots
             traversalProgress.Observe(transform.position,motor.Grounded,Time.time,Mathf.Clamp(motor.EffectiveWalkSpeed*.04f,.03f,.12f));
             PrepareBotWeapon();
             var command=ReadMovementCommand(motor,dt);
+            bool flying=TryBotSuitFlight(ref command);
             bool fighting=ReadCombatCommand(ref command);
+            if(flying)
+            {
+                MovementState=BotMovementState.Traversing;StationaryReason="Powered flight";
+                idleFor=0;DesiredSpeed=command.suitVelocity.magnitude;
+                Transition(BotActionKind.Travel,"Powered flight");
+                PublishExecution();return command;
+            }
             var action=BotActionKind.Explore;
             // The Core enum order is not a behavior contract.
             if(hasObjective)action=selectedObjective.kind switch

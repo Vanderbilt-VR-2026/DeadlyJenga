@@ -10,7 +10,18 @@ namespace DeadlyJenga.CastlePrototype
         float hoverUntil,hoverVertical;Vector3 hoverVelocity;bool hoverEngaged;
         public void ApplyHoverFlight(Vector3 velocity,float seconds,bool takeoff)
         {
-            if(!Alive||InputSuspended||!vrInputFocused||externallyDriven||!Capsule||!Capsule.enabled||!float.IsFinite(seconds)||seconds<=0||!float.IsFinite(velocity.x)||!float.IsFinite(velocity.y)||!float.IsFinite(velocity.z))return;
+            if(externallyDriven||!vrInputFocused)return;
+            ApplyHoverMotion(velocity,seconds,takeoff);
+        }
+        internal void ApplyBotHoverFlight(Vector3 velocity,float seconds)
+        {
+            if(externallyDriven&&GetComponent<CandyEquipment>()?.Equipment is { kind: EquipmentKind.PoweredArmor, drawn: true })
+                ApplyHoverMotion(velocity,seconds,!hoverEngaged);
+        }
+        void ApplyHoverMotion(Vector3 velocity,float seconds,bool takeoff)
+        {
+            if(!Alive||InputSuspended||ParticipationBlocked||!Capsule||!Capsule.enabled||!float.IsFinite(seconds)||seconds<=0||
+                !float.IsFinite(velocity.x)||!float.IsFinite(velocity.y)||!float.IsFinite(velocity.z))return;
             hoverEngaged=true;
             if(Climbing)ReleaseClimb("Released for flight",false);
             bool nearGround=Grounded;

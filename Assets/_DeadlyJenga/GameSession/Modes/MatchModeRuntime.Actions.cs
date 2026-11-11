@@ -307,7 +307,7 @@ namespace DeadlyJenga.Modes
         {
             if(phase==RoundPhase.Countdown){ResetObjectiveDirector("New round");ResetBotPerception();mystery=null;ClearMysteryBodies();}
             if(phase==RoundPhase.Waiting||phase==RoundPhase.Victory||phase==RoundPhase.Results)ResetObjectiveDirector("Round phase changed");
-            if(phase==RoundPhase.Playing){StartOpeningWeapons();ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
+            if(phase==RoundPhase.Playing){StartOpeningWeapons();ConfigureStatCollectors();BeginMystery();analyzer=new RoundStatAnalyzer(Time.timeAsDouble);sinkStarted.Clear();ResetDisasterRotation();disasters.Reset(Rules,simulation.Elapsed);CaptureStats();GameEvents.RaiseRoundStarted();}
             if(phase==RoundPhase.Victory)
             {
                 FinishMysteryReplay();

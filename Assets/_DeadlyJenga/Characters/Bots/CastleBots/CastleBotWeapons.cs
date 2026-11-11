@@ -71,6 +71,7 @@ namespace DeadlyJenga.CastleBots
             botEquipment??=GetComponent<CandyEquipment>();if(!botEquipment)return;
             var state=botEquipment.Equipment;
             if (Motor.Grounded) lastWeaponGrounded = Time.time;
+            if(state.kind==EquipmentKind.PoweredArmor)return;
             bool airborne = Time.time - lastWeaponGrounded > .25f;
             bool firingOpportunity=hasObjective&&selectedObjective.kind==BotObjectiveKind.Attack&&selectedObjective.subject==gunTarget&&gunVisible&&BotGunPolicy.IsGun(state.kind)&&BotGunPolicy.CanUseAt(state.kind,state.shotgun,Vector3.Distance(transform.position,gunSeen));
             firingOpportunity|=state.roleIssued&&state.kind==EquipmentKind.MurderSword&&hasObjective&&selectedObjective.kind==BotObjectiveKind.Attack&&selectedObjective.subject&&Vector3.Distance(transform.position,selectedObjective.position)<2.05f;
@@ -85,6 +86,79 @@ namespace DeadlyJenga.CastleBots
                 if(state.drawn)HolsterBotWeapon(state,"Holster for travel, traversal or safety");
             }
         }
+        float suitStarted,suitRetry,suitProbeAt;
+        bool suitFlying,suitLanding;
+        Vector3 suitVelocity;
+
+        bool TryBotSuitFlight(ref CastleBotCommand command)
+        {
+            var state=botEquipment?botEquipment.Equipment:null;
+            var runtime=MatchRuntime.Current as IBotEquipmentRuntime;
+            if(state?.kind!=EquipmentKind.PoweredArmor||runtime==null)
+            {suitFlying=suitLanding=false;return false;}
+            if(Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting)
+            {suitFlying=suitLanding=false;HolsterBotWeapon(state,"Keep hands available for traversal");return false;}
+
+            float now=Time.time;
+            Vector3 feet=Motor.transform.position;
+            Vector3 target=hasObjective?selectedObjective.position:tripDestination;
+            if(hasObjective&&selectedObjective.subject&&selectedObjective.kind==BotObjectiveKind.Attack)
+                target=selectedObjective.subject.transform.position;
+            Vector3 flat=Vector3.ProjectOnPlane(target-feet,Vector3.up);
+            bool attacking=hasObjective&&selectedObjective.kind==BotObjectiveKind.Attack&&selectedObjective.subject;
+            bool trip=hasObjective||tripUntil>now&&hasGoal;
+            if(!suitFlying)
+            {
+                if(now<suitRetry||!trip||(flat.sqrMagnitude<25&&target.y-feet.y<2))return false;
+                if(!state.drawn&&!runtime.SetBotWeapon(gameObject,true,false)){suitRetry=now+.5f;return false;}
+                suitStarted=now;suitProbeAt=0;suitFlying=true;suitLanding=false;
+            }
+            if(!state.drawn&&!runtime.SetBotWeapon(gameObject,true,false))
+            {suitFlying=suitLanding=false;suitRetry=now+2;return false;}
+
+            if(now>=suitProbeAt)
+            {
+                suitProbeAt=now+.2f;
+                const int solids=(1<<Layers.Block)|(1<<Layers.Surface)|1;
+                var center=feet+Vector3.up*Motor.Height*.5f;
+                bool aboveClear=!Physics.SphereCast(center,Motor.Capsule.radius*.82f,Vector3.up,out _,1.35f,solids,QueryTriggerInteraction.Ignore);
+                bool floor=Physics.Raycast(feet+Vector3.up*.2f,Vector3.down,out var landing,9,solids,QueryTriggerInteraction.Ignore)&&
+                    landing.normal.y>.65f&&landing.point.y>(Services.World?.WaterHeight(landing.point)??float.NegativeInfinity)+.05f;
+                if(!trip||now-suitStarted>12||!attacking&&flat.sqrMagnitude<2.25f&&Mathf.Abs(target.y-feet.y)<4)
+                    suitLanding=true;
+                if(suitLanding&&floor&&feet.y-landing.point.y<.8f)
+                {
+                    suitFlying=suitLanding=false;suitRetry=now+2;
+                    HolsterBotWeapon(state,"Landing on supported ground");return false;
+                }
+                if(suitLanding&&now-suitStarted>17)
+                {
+                    suitFlying=suitLanding=false;suitRetry=now+3;
+                    HolsterBotWeapon(state,"Return to the ground route");return false;
+                }
+                float range=flat.magnitude;
+                Vector3 direction=flat.normalized;
+                if(attacking&&!suitLanding&&range<5)direction=-direction;
+                float horizontal=attacking&&range>=5&&range<13?1.15f:Mathf.Min(5.5f,range*1.7f);
+                if(suitLanding&&floor)horizontal=0;
+                bool blocked=horizontal>.1f&&Physics.SphereCast(center,Motor.Capsule.radius*.82f,direction,out _,1.9f,solids,QueryTriggerInteraction.Ignore);
+                if(blocked)
+                {
+                    Vector3 side=Vector3.Cross(Vector3.up,direction);
+                    if(Physics.SphereCast(center,Motor.Capsule.radius*.82f,side,out _,2,solids,QueryTriggerInteraction.Ignore))side=-side;
+                    direction=Physics.SphereCast(center,Motor.Capsule.radius*.82f,side,out _,2,solids,QueryTriggerInteraction.Ignore)?Vector3.zero:side;
+                    horizontal=2.7f;
+                }
+                float height=Mathf.Clamp((target.y+(attacking?3:2.2f)-feet.y)*1.7f,-2.25f,3);
+                if(blocked&&aboveClear&&!suitLanding)height=Mathf.Max(height,2);
+                if(suitLanding&&floor)height=-2.2f;
+                if(height>0&&!aboveClear)height=0;
+                suitVelocity=direction*horizontal+Vector3.up*height;
+            }
+            command.suitFlight=true;command.suitVelocity=suitVelocity;command.jump=command.climbHeld=false;
+            return true;
+        }
+
         void HolsterBotWeapon(EquipmentState state,string reason)
         {
             WeaponReason=reason;if(state.kind==EquipmentKind.Dagger)return;
@@ -114,7 +188,7 @@ namespace DeadlyJenga.CastleBots
                 else if(!striking)HolsterBotWeapon(state,"Conceal sword until striking distance");
                 return false;
             }
-            if(Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||Time.time-lastWeaponGrounded>.25f)
+            if(Motor.CarryingFlag||Motor.Climbing||Motor.Vaulting||!command.suitFlight&&Time.time-lastWeaponGrounded>.25f)
             {gunVisible=false;ReleaseBotTrigger(state);HolsterBotWeapon(state,"Traversal takes priority");return true;}
 
             float now=Time.time;
@@ -166,7 +240,7 @@ namespace DeadlyJenga.CastleBots
             {
                 ReleaseBotTrigger(state);
                 bool tooClose=distance<BotGunPolicy.Range(state.kind,alternate);
-                if (tooClose && state.drawn) HolsterBotWeapon(state, "Unsafe splash distance; switch to melee");
+                if (tooClose && state.drawn && !command.suitFlight) HolsterBotWeapon(state, "Unsafe splash distance; switch to melee");
                 WeaponReason=tooClose?"Unsafe splash distance; use melee":"Outside effective range; close distance";
                 return !tooClose;
             }

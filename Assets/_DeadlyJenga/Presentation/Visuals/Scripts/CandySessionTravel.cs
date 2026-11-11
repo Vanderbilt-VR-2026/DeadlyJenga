@@ -13,7 +13,10 @@ namespace DeadlyJenga.Presentation
         readonly HashSet<int> targets=new HashSet<int>();
         float nextBotRefresh;
         Canvas canvas; Image curtain; Mesh columnMesh; Material columnMaterial;
-        float started,duration,finishedAt,finishFrom,fade;
+        float started,duration,finishedAt,finishFrom,fade,arrivalFade;
+        Camera curtainCamera;
+        bool curtainStereo;
+        float curtainNear,curtainAspect,curtainFov;
         bool finishing,arrival,visualArrival,replayQueuedArrival;float columnHeight=150,arrivalTime,arrivalTick;
         GameObject queuedVisualArrival;
         public float FadeAmount=>fade;
@@ -53,14 +56,44 @@ namespace DeadlyJenga.Presentation
         void OnEnable()
         {GameEvents.Emoted+=Emoted;GameEvents.LobbyStarted+=Lobby;GameEvents.HomeStarted+=Lobby;RenderPipelineManager.beginCameraRendering+=ForCamera;}
         void ForCamera(ScriptableRenderContext context,Camera camera)
-        {if(curtain)curtain.enabled=false;}
+        {
+            if(!curtain)return;
+            var session=Services.Session;
+            curtain.enabled=fade>.001f&&session?.IsVR==true&&session.ActiveCamera==camera;
+            if(!curtain.enabled)return;
+
+            var plane=(RectTransform)canvas.transform;
+            plane.SetPositionAndRotation(camera.transform.position,camera.transform.rotation);
+            float depth=camera.nearClipPlane+.08f;
+            plane.position+=camera.transform.forward*depth;
+            if(curtainCamera!=camera||curtainStereo!=camera.stereoEnabled||curtainNear!=camera.nearClipPlane||
+                curtainAspect!=camera.aspect||curtainFov!=camera.fieldOfView)
+            {
+                curtainCamera=camera;curtainStereo=camera.stereoEnabled;curtainNear=camera.nearClipPlane;
+                curtainAspect=camera.aspect;curtainFov=camera.fieldOfView;
+                Vector2 extent=Vector2.zero;
+                for(int eye=0;eye<(curtainStereo?2:1);eye++)
+                {
+                    var projection=!curtainStereo?Camera.MonoOrStereoscopicEye.Mono:
+                        eye==0?Camera.MonoOrStereoscopicEye.Left:Camera.MonoOrStereoscopicEye.Right;
+                    for(int corner=0;corner<4;corner++)
+                    {
+                        var point=camera.ViewportToWorldPoint(new Vector3(corner&1,corner>>1,depth),projection);
+                        var local=camera.transform.InverseTransformPoint(point);
+                        extent=Vector2.Max(extent,new Vector2(Mathf.Abs(local.x),Mathf.Abs(local.y)));
+                    }
+                }
+                plane.sizeDelta=extent*2.16f+Vector2.one*.01f;
+                canvas.worldCamera=camera;
+            }
+        }
         void Emoted(GameObject who,string emote)
         {if(emote=="TravelArrived"&&!arrival)Finish(true);else if(emote=="DepartureCancelled"&&!arrival||emote=="SpawnArrivalSettled"&&arrival&&!visualArrival&&who==Services.Session?.Player?.gameObject)Finish(false);}
         void Lobby(GameObject who)=>Finish(false);
         void Finish(bool arrived)
         {
             if(finishing)return;
-            finishing=true;finishedAt=Time.unscaledTime;finishFrom=arrived?1:fade;
+            finishing=true;finishedAt=Time.unscaledTime;finishFrom=fade;
             if(arrived)foreach(var column in columns)if(column)column.SetVisible(false);
         }
         void Build()
@@ -80,7 +113,8 @@ namespace DeadlyJenga.Presentation
                 }
             }
             var go=new GameObject("Soft white arrival fade",typeof(RectTransform),typeof(Canvas));
-            go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();canvas.sortingOrder=2000;
+            go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();
+            canvas.renderMode=RenderMode.WorldSpace;canvas.sortingOrder=2000;
             var image=new GameObject("White fade",typeof(RectTransform),typeof(Image));image.transform.SetParent(go.transform,false);
             curtain=image.GetComponent<Image>();curtain.raycastTarget=false;
             var rect=curtain.rectTransform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
@@ -96,6 +130,7 @@ namespace DeadlyJenga.Presentation
             foreach(var column in columns)if(column){column.SetVisible(false);column.gameObject.SetActive(false);Destroy(column.gameObject);}columns.Clear();
             if(columnMesh)Destroy(columnMesh);
             queuedVisualArrival=null;replayQueuedArrival=false;
+            arrivalFade=visualArrival?0:fade;
             arrival=true;finishing=false;started=arrivalTick=Time.unscaledTime;arrivalTime=0;duration=visualArrival?1.2f:3;columnHeight=ArrivalHeight();
             columnMesh=CandySummoningColumn.CreateMesh(columnHeight);
             if(columnMaterial)
@@ -147,7 +182,9 @@ namespace DeadlyJenga.Presentation
         {
             float elapsed=arrival?arrivalTime:Time.unscaledTime-started,p=Mathf.Clamp01(elapsed/Mathf.Max(.3f,duration));
             float end=finishing?Mathf.Clamp01((Time.unscaledTime-finishedAt)/.6f):0;
-            fade=0;
+            if(finishing)fade=finishFrom*(1-Mathf.SmoothStep(0,1,end));
+            else if(arrival)fade=arrivalFade*(1-Mathf.SmoothStep(0,1,elapsed/.48f));
+            else fade=Mathf.SmoothStep(0,1,Mathf.InverseLerp(Mathf.Max(0,duration-.36f),duration-.055f,elapsed));
             float strength=finishing?1-Mathf.SmoothStep(0,1,Mathf.Clamp01((Time.unscaledTime-finishedAt)/.35f)):arrival?1:Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.12f,p));
             var session = Services.Session;
             var rider = session?.Player;
@@ -158,7 +195,11 @@ namespace DeadlyJenga.Presentation
                     column.SetRiderCamera(session.ActiveCamera ? session.ActiveCamera : rider.ViewCamera);
                 column.Render(arrival ? -elapsed : elapsed, arrival ? 1 : p, strength);
             }
-            if(curtain)curtain.enabled=false;
+            if(curtain)
+            {
+                curtain.color=new Color(.985f,.99f,1,fade);
+                curtain.enabled=false;
+            }
         }
         void OnGUI()
         {

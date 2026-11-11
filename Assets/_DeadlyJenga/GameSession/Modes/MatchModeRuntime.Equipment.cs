@@ -236,7 +236,13 @@ namespace DeadlyJenga.Modes
                 if(actor==null){equipment.Remove(pair.Key);thrustSeen.Remove(pair.Key);continue;}
                 if(p==null||!p.frame.alive||p.frame.dying||!actor.Alive){DropEquipment(pair.Key,actor.transform.position);continue;}
                 var state=pair.Value;
-                if(state.thrust&&(simulation.Phase!=RoundPhase.Playing||!state.drawn||!thrustSeen.TryGetValue(pair.Key,out float seen)||Time.time-seen>1.2f))state.thrust=false;
+                if(actor.IsBot&&state.kind==EquipmentKind.PoweredArmor)
+                {
+                    var movement=actor.gameObject.GetComponent<IMovementState>();
+                    state.thrust=simulation.Phase==RoundPhase.Playing&&state.drawn&&movement!=null&&
+                        !movement.Grounded&&!movement.Climbing&&!movement.Vaulting;
+                }
+                else if(state.thrust&&(simulation.Phase!=RoundPhase.Playing||!state.drawn||!thrustSeen.TryGetValue(pair.Key,out float seen)||Time.time-seen>1.2f))state.thrust=false;
                 if(state.kind==EquipmentKind.Speed||state.kind==EquipmentKind.Jump){state.remaining-=dt;if(state.remaining<=0)equipment.Remove(pair.Key);}
                 if(simulation.CarriesFlag(pair.Key)&&state.drawn){state.drawn=false;state.thrust=false;AnnounceEquipment(pair.Key,state,EquipmentAction.Holster,actor.ViewPose.position);}
             }

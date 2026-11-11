@@ -45,7 +45,7 @@ namespace DeadlyJenga.Modes
         // choose returns a currently valid, inactive catalog ID. launch returns whether Begin succeeded.
         public bool Tick(ModeRules rules,float elapsed,int active,Func<string> choose,Func<string,bool> launch)
         {
-            if(!rules.automaticDisasters||rules.mode==GameModeKind.Demo)return false;
+            if(!rules.automaticDisasters)return false;
             bool launchCadence=UsesLaunchCadence(rules);
             int cap=Mathf.Clamp(rules.maxConcurrentDisasters,1,4);
             if(planned)
