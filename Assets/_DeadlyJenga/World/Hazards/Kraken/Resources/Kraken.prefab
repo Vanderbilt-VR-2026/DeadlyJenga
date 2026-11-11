@@ -45,5 +45,5 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: DeadlyJenga.World::DeadlyJenga.World.Hazards.KrakenHazard
   type: {fileID: 11400000, guid: 7943bc818960cc047b0d35b12f6c75bd, type: 2}
-  intensity: 0.65
+  intensity: 0.75
   duration: 45

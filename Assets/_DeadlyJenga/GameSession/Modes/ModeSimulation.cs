@@ -57,11 +57,11 @@ namespace DeadlyJenga.Modes
         {
             var r = new ModeRules { mode = mode, automaticDisasters = mode == GameModeKind.Demo || mode == GameModeKind.Survival };
             if (mode == GameModeKind.Demo) { r.roundSeconds=0; r.metric=ScoreMetric.AliveStatus; }
-            if (mode == GameModeKind.Survival) r.disasterMinInterval=r.disasterMaxInterval=r.disasterLateInterval=30;
+            if (mode == GameModeKind.Survival) r.disasterMinInterval=r.disasterMaxInterval=r.disasterLateInterval=20;
             if (mode == GameModeKind.KingOfHill) { r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.HillTime; r.hillInterval=30; }
             if (mode == GameModeKind.BlockControl) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.TeamPoints; }
             if (mode == GameModeKind.CaptureFlag) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.punchDistance=1.8f; r.metric=ScoreMetric.FlagCaptures; r.roundSeconds=600; r.flagWinByTwo=false; }
-            if (mode == GameModeKind.TeamTickets) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.Eliminations; r.roundSeconds=600; r.tickets=30; }
+            if (mode == GameModeKind.TeamTickets) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Sink; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.Eliminations; r.roundSeconds=600; r.tickets=30; }
             if (mode == GameModeKind.Infection) { r.healthEnabled=true; r.punchEnabled=true; r.starterInfected=true; r.roundSeconds=300; r.metric=ScoreMetric.SurvivalTime; }
             if (mode == GameModeKind.MurderMystery) { r.healthEnabled=true; r.punchEnabled=true; r.punchDamage=8; r.punchDistance=.7f; r.roundSeconds=480; r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.metric=ScoreMetric.AliveStatus; }
             r.defaultDagger=mode==GameModeKind.KingOfHill||mode==GameModeKind.BlockControl||mode==GameModeKind.CaptureFlag||mode==GameModeKind.TeamTickets;

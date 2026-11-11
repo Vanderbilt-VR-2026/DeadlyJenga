@@ -26,8 +26,8 @@ namespace DeadlyJenga.World.Hazards
         static readonly DisasterParameter[] Schema =
         {
             new DisasterParameter("arms", "Tentacles", 2, 8, 3, "", true),
-            new DisasterParameter("grab", "Grab every (per tentacle)", 2, 20, 11, "s"),
-            new DisasterParameter("slam", "Slam force", 0, 40, 6, "m/s"),
+            new DisasterParameter("grab", "Grab every (per tentacle)", 2, 20, 9, "s"),
+            new DisasterParameter("slam", "Slam force", 0, 40, 8, "m/s"),
             new DisasterParameter("warning", "Warning time", 0, 15, 4, "s"),
             new DisasterParameter("duration", "Duration", 10, 180, 45, "s"),
         };

@@ -55,8 +55,8 @@ namespace DeadlyJenga.World.Hazards
                 case "Tornado":
                     p.Add(new DisasterParameter("height","Height",10,160,65,"m"));
                     p.Add(new DisasterParameter("size","Funnel diameter",3,50,16,"m"));
-                    p.Add(new DisasterParameter("force","Ferocity",0,40,5,"m/s²"));
-                    p.Add(new DisasterParameter("reach","Pull-in distance",5,120,24,"m"));break;
+                    p.Add(new DisasterParameter("force","Ferocity",0,40,7,"m/s²"));
+                    p.Add(new DisasterParameter("reach","Pull-in distance",5,120,28,"m"));break;
                 case "Fire":
                     p.Add(new DisasterParameter("damage","Contact damage",0,50,8,"HP/s"));
                     p.Add(new DisasterParameter("contact","Contact time to spread",.2f,15,2,"s"));

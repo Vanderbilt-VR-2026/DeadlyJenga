@@ -145,7 +145,7 @@ namespace DeadlyJenga.CastlePrototype
                 else SetMenu(!MenuOpen);
             }
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);
-            if(VisitOwner)return;
+            if(VisitOwner){RefreshVisitingBots();return;}
             HomeSession.ConsumeLobbyEntry(this);
             TickMarinaLocalArrival();
             foreach(var peer in peers.Values)peer.Render(Time.unscaledDeltaTime);

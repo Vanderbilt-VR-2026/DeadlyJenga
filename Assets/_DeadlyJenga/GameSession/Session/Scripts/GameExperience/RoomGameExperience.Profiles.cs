@@ -30,7 +30,7 @@ namespace DeadlyJenga.CastlePrototype
                            where mode!=null&&mode.available&&(mode.id=="survival"||mode.id=="teamtickets")
                            from map in catalog.maps
                            where map!=null&&map.SupportsMode(mode.id)&&
-                               map.id=="castle"&&
+                               map.id=="mode-castle-catwalks"&&
                                SceneUtility.GetBuildIndexByScenePath(map.scenePath)>=0
                            select new CuratedGameProfile
                            {
@@ -107,6 +107,7 @@ namespace DeadlyJenga.CastlePrototype
                     rules.sameHumanTeam=false;
                     rules.automaticDisasters=true;
                     rules.disasterMinInterval=rules.disasterMaxInterval=rules.disasterLateInterval=60;
+                    rules.island=IslandRule.Sink;
                     rules.maxConcurrentDisasters=1;
                 }
                 return rules;

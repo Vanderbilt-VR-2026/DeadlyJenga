@@ -99,6 +99,14 @@ namespace DeadlyJenga.DevTools.Editor
             EditorSceneManager.OpenScene(ProjectPath.Find("Home.unity"));
             EditorApplication.EnterPlaymode();
         }
+        public static void RunNinjaOverview()
+        {
+            File.WriteAllText(Report,"Ninja Temple in Game.unity\n");
+            SessionState.SetBool(Key+"NinjaOverview",true);
+            SessionState.SetBool(Key,true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+            EditorApplication.EnterPlaymode();
+        }
         public static void RunSolo()
         {
             File.WriteAllText(Report,"Actual Game.unity solo smoke test with Marina sources installed; shared lobby hooks remain pending.\n");
@@ -142,14 +150,14 @@ namespace DeadlyJenga.DevTools.Editor
                     if(preference<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,preference);
                     PlayerPrefs.Save();SessionState.SetBool(Key+"Layout",false);
                 }
-                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
+                SessionState.SetBool(Key,false);SessionState.SetBool(Key+"Arcade",false);SessionState.SetBool(Key+"Recovery",false);SessionState.SetBool(Key+"PlayRotation",false);SessionState.SetBool(Key+"NinjaOverview",false);Application.logMessageReceived-=Log;AssetDatabase.AllowAutoRefresh();EditorApplication.UnlockReloadAssemblies();EditorApplication.Exit(errors==0&&!failed?0:2);
             }
         }
         static void Log(string value,string stack,LogType type)
         {if(type==LogType.Error||type==LogType.Exception||type==LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+value+"\n"+stack+"\n");}}
         static IEnumerator Guard()
         {
-            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"PlayRotation",false)?RunPlayRotationScene():SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
+            var stack=new Stack<IEnumerator>();stack.Push(SessionState.GetBool(Key+"NinjaOverview",false)?RunNinjaOverviewScene():SessionState.GetBool(Key+"PlayRotation",false)?RunPlayRotationScene():SessionState.GetBool(Key+"Recovery",false)?RunRecoveryScene():SessionState.GetBool(Key+"Arcade",false)?RunArcadeScene():SessionState.GetBool(Key+"Layout",false)?RunLayoutScene():SessionState.GetBool(Key+"Network",false)?RunNetworkScene():SessionState.GetBool(Key+"Solo",false)?RunSoloScene():Run());
             while(stack.Count>0)
             {
                 bool next=false;object value=null;
@@ -202,15 +210,15 @@ namespace DeadlyJenga.DevTools.Editor
             lobby.StartOrCancel();
             Check(lobby.GamePhase==RoomGamePhase.Selected&&lobby.CountdownSeconds>29&&lobby.CountdownSeconds<=30,
                 "GO starts a thirty-second countdown before loading");
-            Check(lobby.ProfileId is "play:survival/castle" or "play:teamtickets/castle","The first selection uses the two Candy Castle profiles");
+            Check(lobby.ProfileId is "play:survival/mode-castle-catwalks" or "play:teamtickets/mode-castle-catwalks","The first selection uses the two Candy Castle profiles");
             if(survival)
             {
-                Check(lobby.ProfileId=="play:survival/castle","The controlled room seed exercises Disaster Survival");
+                Check(lobby.ProfileId=="play:survival/mode-castle-catwalks","The controlled room seed exercises Disaster Survival");
                 var flow=(RoomGameFlow)flowField.GetValue(provider);
                 for(int i=0;i<7;i++)flow.Tick(flow.State.authorityTerm,5,true,true);
             }
             int size=lobby.MaximumPopulation;
-            Check(size==(lobby.ProfileId=="play:survival/castle"?25:30),"The selected profile fills the intended population");
+            Check(size==(lobby.ProfileId=="play:survival/mode-castle-catwalks"?25:30),"The selected profile fills the intended population");
             deadline=Time.realtimeSinceStartup+110;
             CastlePlaySession game=null;
             while(Time.realtimeSinceStartup<deadline)
@@ -847,6 +855,33 @@ namespace DeadlyJenga.DevTools.Editor
                 }
             });
             Check(lobby&&lobby.Player.gameObject.activeInHierarchy,"Original Marina remains usable after both peers leave");
+        }
+        static IEnumerator RunNinjaOverviewScene()
+        {
+            yield return RunSoloScene();
+            MatchSetup.MapId="mode-ninja-temple";
+            MatchSetup.ModeId="demo";
+            MatchSetup.ApplyMap();
+            yield return Wait(2);
+            var world=Services.World;
+            Check(world!=null&&world.Blocks.Count>150&&world.Blocks.Count<=400,"Ninja map built within its authored block budget");
+            var art=Object.FindFirstObjectByType<DeadlyJenga.NinjaArt.NinjaTempleArt>();
+            Check(art,"Ninja Temple lighting and scenery are loaded");
+            captureOrigin=world.Center;
+            var fog=Shader.GetGlobalVector("_NinjaFogParams");
+            bool sceneFog=RenderSettings.fog;
+            try
+            {
+                Shader.SetGlobalVector("_NinjaFogParams",new Vector4(120,420,.07f,fog.w));
+                RenderSettings.fog=false;
+                Capture(new Vector3(-92,101,-118),new Vector3(0,9,0),34,"NinjaTemple-Overview.png");
+            }
+            finally {Shader.SetGlobalVector("_NinjaFogParams",fog);RenderSettings.fog=sceneFog;}
+            if(System.Environment.GetCommandLineArgs().Contains("-playRotationSurvival"))
+            {
+                yield return UnityEngine.SceneManagement.SceneManager.LoadSceneAsync("Home");
+                yield return RunPlayRotationScene();
+            }
         }
         static IEnumerator RunSoloScene()
         {

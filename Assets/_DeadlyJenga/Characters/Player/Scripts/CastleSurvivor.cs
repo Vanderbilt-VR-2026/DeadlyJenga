@@ -484,7 +484,7 @@ namespace DeadlyJenga.CastlePrototype
             vaultSurface = hit.transform; vaultLocal = vaultSurface.InverseTransformPoint(destination);
             vaultGripLocal=vaultSurface.InverseTransformPoint(candidateGrip);
             vaultNormalLocal=vaultSurface.InverseTransformDirection(candidateNormal);vaultForwardLocal=vaultSurface.InverseTransformDirection(candidateForward);
-            vaultStart = transform.position; vaultTime = 0; Vaulting = true; verticalSpeed = 0;
+            vaultStart = transform.position; vaultLastDestination=destination; vaultTime = 0; Vaulting = true; verticalSpeed = 0;
             peakFallSpeed=0;
             support = null; ActionStatus = "Vault"; VaultCount++;
         }
@@ -496,12 +496,17 @@ namespace DeadlyJenga.CastlePrototype
             Vector3 point=vaultSurface.TransformPoint(vaultGripLocal)+right*(left?-.14f:.14f)*playerScale+forward*Mathf.Max(.14f,Capsule.radius+.04f)+normal*(.025f*playerScale);
             grip=new Pose(point,Quaternion.LookRotation(forward,normal));return true;
         }
+        Vector3 vaultLastDestination;
         void AdvanceVault(float dt)
         {
             if(UpdateSpectatorParticipation()||!Capsule.enabled)return;
             if (!vaultSurface || Vector3.Angle(vaultSurface.TransformDirection(vaultNormalLocal), Vector3.up) > 32)
             { Vaulting = false; ActionStatus = "Ledge moved — vault cancelled"; return; }
             Vector3 end = vaultSurface.TransformPoint(vaultLocal);
+            Vector3 surfaceMotion=end-vaultLastDestination;
+            vaultLastDestination=end;
+            if(surfaceMotion.sqrMagnitude>.45f*.45f){Vaulting=false;return;}
+            vaultStart+=surfaceMotion;
             if (Vector3.Distance(end, vaultStart) > 3 || !ClearCapsule(end + (Feet - transform.position)))
             { Vaulting = false; return; }
             vaultTime += dt;

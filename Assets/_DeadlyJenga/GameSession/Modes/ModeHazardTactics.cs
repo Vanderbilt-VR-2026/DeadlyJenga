@@ -41,20 +41,34 @@ namespace DeadlyJenga.Modes
             bool cover=sheltered(feet+Vector3.up*height);
             float current=Risk(feet,height,cover,hazards,waves);
             if(current<.2f&&!rain)return;
-            var nearest=new List<Vector3>(25);
+            var nearest=new List<Vector3>(48);
+            var descent=new List<Vector3>(20);
             foreach(var p in candidates)
             {
-                var d=p-feet;if(d.y>10.5f||d.y< -10||Vector3.ProjectOnPlane(d,Vector3.up).sqrMagnitude>24*24)continue;
-                int at=0;while(at<nearest.Count&&(nearest[at]-feet).sqrMagnitude<d.sqrMagnitude)at++;
-                if(at<24){nearest.Insert(at,p);if(nearest.Count>24)nearest.RemoveAt(24);}
+                var d=p-feet;
+                float lateral=d.x*d.x+d.z*d.z;
+                if(d.y>12||d.y< (rain?-42:-12)||lateral>(rain?40*40:24*24))continue;
+                var list=rain&&d.y< -4?descent:nearest;
+                int cap=list==descent?20:28;
+                int at=0;while(at<list.Count&&(list[at]-feet).sqrMagnitude<d.sqrMagnitude)at++;
+                if(at<cap){list.Insert(at,p);if(list.Count>cap)list.RemoveAt(cap);}
             }
+            nearest.AddRange(descent);
             float best=float.PositiveInfinity;
             foreach(var point in nearest)
             {
                 bool covered=sheltered(point+Vector3.up*height);if(rain&&!covered)continue;
                 float danger=Risk(point,height,covered,hazards,waves);if(!rain&&danger>=current-.15f)continue;
                 float score=danger*10+Vector3.Distance(feet,point)*.04f;
-                if(score>=best)continue;best=score;result.Clear();result.Add(point);
+                if(score<best){best=score;result.Insert(0,point);}
+                else if(result.Count<3)result.Add(point);
+                if(result.Count>3)result.RemoveAt(3);
+            }
+            if(rain && !cover && result.Count==0)
+            {
+                // A lower deck gives the journey planner a reachable intermediate landing.
+                foreach(var point in descent)
+                    if(feet.y-point.y<=10 && Vector3.Distance(feet,point)<18){result.Add(point);break;}
             }
         }
     }

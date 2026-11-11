@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastleSocial
         public void Initialize(SocialWorld owner,ISocialBot bot,SocialState state)
         {
             World=owner;Bot=bot;State=state;
-            var b=state.identity;gameObject.name=b.name+" [AI]";
+            var b=state.identity;gameObject.name=b.name;
             bot.Tune(new SocialBotTuning{
                 bravery=(float)b.Behavior(owner.Config,"risk",b.Trait("boldness")),goofiness=(float)b.Trait("playfulness")*owner.Config.silliness,
                 sociability=(float)b.Trait("sociability"),exploration=(float)(.3+.7*b.Trait("boldness")),

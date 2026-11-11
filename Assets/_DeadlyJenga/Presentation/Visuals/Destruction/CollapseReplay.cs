@@ -4,9 +4,8 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.Destruction
 {
-    // Records the tower and everyone on it. After a big collapse (or when a round ends)
-    // it plays the last few seconds back in slow motion as a small hologram in front of the player.
-    // By default it only plays when a round ends or on demand (F7), never mid-play.
+    // Records the tower for an on-demand slow motion replay (F7).
+    // Automatic collapse playback is disabled by default.
     public sealed class CollapseReplay : MonoBehaviour
     {
         public static CollapseReplay Instance { get; private set; }
@@ -20,7 +19,7 @@ namespace DeadlyJenga.Destruction
         public float distance = 1.3f;
         public float spinSpeed = 12;       // degrees per second
         [Header("What counts as a collapse")]
-        public bool autoOnCollapse = false;   // off: the replay only plays at round end or on F7
+        public bool autoOnCollapse = false;   // off: the replay only plays on demand
         public int collapseBreaks = 8;
         public float collapseWindow = 3;
         public float movingFraction = .15f;
@@ -79,8 +78,8 @@ namespace DeadlyJenga.Destruction
             baseMaterial = DestructionPresentation.MakeMaterial(new Color(.3f, .9f, 1, .2f), true);
         }
 
-        void OnEnable() { GameEvents.BlockBroken += OnBroken; GameEvents.RoundEnded += OnRoundEnded; }
-        void OnDisable() { GameEvents.BlockBroken -= OnBroken; GameEvents.RoundEnded -= OnRoundEnded; }
+        void OnEnable() { GameEvents.BlockBroken += OnBroken; }
+        void OnDisable() { GameEvents.BlockBroken -= OnBroken; }
 
         void OnBroken(GameObject block, Vector3 position, Vector3 velocity)
         {
@@ -88,8 +87,6 @@ namespace DeadlyJenga.Destruction
             while (breaks.Count > 0 && Time.time - breaks.Peek() > collapseWindow) breaks.Dequeue();
             if (autoOnCollapse && breaks.Count >= collapseBreaks) Pending(settleDelay);
         }
-
-        void OnRoundEnded() { readyAt = 0; Pending(1.5f); }
 
         void Pending(float delay) => pendingAt = Time.time + delay;
 

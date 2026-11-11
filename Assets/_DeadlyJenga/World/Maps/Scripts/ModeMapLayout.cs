@@ -10,10 +10,11 @@ namespace DeadlyJenga.CastlePrototype
         public const int CuratedCtfRevision=2;
         public const float CuratedCtfGroundY=.4f,CuratedCtfTop=4.4f;
         public static readonly string[] Presets={"ctf","infection","survival","territory","koth","tickets"};
-        public static bool Known(string preset)=>Array.IndexOf(Presets,preset)>=0;
-        public static int Height(string preset)=>preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
+        public static bool Known(string preset)=>Array.IndexOf(Presets,preset)>=0||preset==NinjaTempleLayout.Preset;
+        public static int Height(string preset)=>preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?3:12;
         public static Vector2 Size(CastleSettings s)
         {
+            if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Size;
             float pitch=Pitch(s),length=s.blockSize.x;
             return s.layoutPreset=="ctf"?new Vector2(88,64):s.layoutPreset=="tickets"?new Vector2(pitch*8+length,pitch*2+length):s.layoutPreset=="infection"?Vector2.one*(pitch*2+length):s.layoutPreset=="survival"?Vector2.one*(pitch*3+length):Vector2.one*(pitch*4+length);
         }
@@ -23,6 +24,7 @@ namespace DeadlyJenga.CastlePrototype
         public static List<CastlePlacement> Build(CastleSettings s)
         {
             if(!Known(s.layoutPreset))throw new ArgumentException("Unknown mode layout.");
+            if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Build(s);
             if(s.layoutPreset=="ctf")return CrownCourtyards();
             var result=new List<CastlePlacement>(720);var towers=new List<Tower>();string preset=s.layoutPreset;
             int width=preset=="ctf"||preset=="tickets"?9:preset=="infection"?3:preset=="survival"?4:5;

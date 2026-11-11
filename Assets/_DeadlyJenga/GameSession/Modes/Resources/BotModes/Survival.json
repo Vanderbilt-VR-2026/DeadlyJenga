@@ -40,6 +40,18 @@
       "timeout": 120
     },
     {
+      "id": "explore-crossings",
+      "query": "midfield",
+      "skill": "Travel",
+      "tier": 0,
+      "maximum": 1,
+      "utility": 0.7,
+      "radius": 0.8,
+      "timeout": 22,
+      "retry": 4,
+      "commitment": 2
+    },
+    {
       "id": "collect-equipment",
       "query": "pickups",
       "skill": "Travel",

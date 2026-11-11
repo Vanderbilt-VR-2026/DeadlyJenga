@@ -50,6 +50,9 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"tiki-resort","Waterfront Tiki Resort","demo",1,scene,true);
             var tiki=list.Find(m=>m.id=="mode-tiki-resort");
             if(tiki!=null)tiki.supportedModes=new[]{"demo"};
+            AddMap(list,"ninja-temple","Moonlit Shinobi Temple","demo",8,scene,true);
+            var ninja=list.Find(m=>m.id=="mode-ninja-temple");
+            if(ninja!=null)ninja.supportedModes=new[]{"hill","survival","infection","demo"};
             maps=list.ToArray();
         }
         static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)

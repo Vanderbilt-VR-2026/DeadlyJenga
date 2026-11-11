@@ -20,6 +20,8 @@ namespace DeadlyJenga.Presentation
         static IMatchRuntime observed;
         static RoundPhase observedPhase;
         Result displayed;
+        CandyScorePodium podium;
+        float nextPodiumDraw;
         Text title, details, heading, infectionHeading, footer;
         readonly Text[] left = new Text[PageSize], right = new Text[PageSize];
         int page;
@@ -61,6 +63,9 @@ namespace DeadlyJenga.Presentation
                 standings = Rows(false),
                 infections = split ? Rows(true) : null
             };
+            var board=FindFirstObjectByType<LobbyLastRoundBoard>();
+            if(board?.podium!=null)
+                board.podium.SetPlayers(match,CandyResultsHud.Rank(players,split,false),true);
             observed = match;
             observedPhase = frame.phase;
         }
@@ -89,12 +94,26 @@ namespace DeadlyJenga.Presentation
                 left[i] = Label("Standing " + (i + 1), 19 - i * 37, 23);
                 right[i] = Label("Infection standing " + (i + 1), 19 - i * 37, 23);
             }
+            var podiumMount=new GameObject("Recent match podium mount",typeof(RectTransform)).GetComponent<RectTransform>();
+            podiumMount.SetParent(root.transform,false);
+            podiumMount.anchoredPosition=new Vector2(658,0);
+            podiumMount.localScale=Vector3.one*.78f;
+            podium=new CandyScorePodium(transform,podiumMount,Vector2.zero);
             Draw();
         }
+
+        void OnDestroy()=>podium?.Dispose();
 
         void Update()
         {
             if (!title) return;
+            var eye=GetComponent<ISessionInfo>()?.ActiveCamera;
+            if(eye&&eye.enabled&&Time.unscaledTime>=nextPodiumDraw&&
+                (eye.transform.position-title.transform.position).sqrMagnitude<18*18)
+            {
+                nextPodiumDraw=Time.unscaledTime+.12f;
+                podium?.Draw();
+            }
             if (displayed != latest) { page = 0; Draw(); }
             else if (latest != null && Time.unscaledTime >= nextPage)
             { page = (page + 1) % Pages; Draw(); }

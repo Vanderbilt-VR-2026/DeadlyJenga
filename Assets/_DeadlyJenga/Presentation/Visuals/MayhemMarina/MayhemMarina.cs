@@ -63,11 +63,55 @@ namespace DeadlyJenga.CandyArt.Marina
         FogMode previousFogMode;
         bool previousFog,ownsLighting;
         SphericalHarmonicsL2 previousProbe;
-        void OnEnable()=>GameEvents.Emoted+=Residence;
-        void OnDisable(){GameEvents.Emoted-=Residence;RestoreLighting();}
+        bool visiting,visitCameraRendering,matchFog;
+        float matchOutage;
+        Material matchSky;
+        bool visitSunEnabled;
+        void OnEnable()
+        {
+            GameEvents.Emoted+=Residence;
+            RenderPipelineManager.beginCameraRendering+=BeginVisitCamera;
+            RenderPipelineManager.endCameraRendering+=EndVisitCamera;
+        }
+        void OnDisable()
+        {
+            GameEvents.Emoted-=Residence;
+            RenderPipelineManager.beginCameraRendering-=BeginVisitCamera;
+            RenderPipelineManager.endCameraRendering-=EndVisitCamera;
+            RestoreVisitCamera();
+            RestoreLighting();
+        }
+        void BeginVisitCamera(ScriptableRenderContext context,Camera camera)
+        {
+            if(!visiting||visitCameraRendering||camera!=(controls as ISessionInfo)?.ActiveCamera)return;
+            visitCameraRendering=true;
+            matchFog=RenderSettings.fog;matchSky=RenderSettings.skybox;
+            matchOutage=Shader.GetGlobalFloat("_CandyOutage");
+            RenderSettings.fog=false;
+            if(marinaSky)RenderSettings.skybox=marinaSky;
+            Shader.SetGlobalFloat("_CandyOutage",0);
+            if(coastalEnvironment&&coastalEnvironment.sun)
+            {
+                visitSunEnabled=coastalEnvironment.sun.enabled;
+                coastalEnvironment.sun.enabled=true;
+            }
+        }
+        void EndVisitCamera(ScriptableRenderContext context,Camera camera)
+        {
+            if(camera==(controls as ISessionInfo)?.ActiveCamera)RestoreVisitCamera();
+        }
+        void RestoreVisitCamera()
+        {
+            if(!visitCameraRendering)return;
+            visitCameraRendering=false;
+            RenderSettings.fog=matchFog;RenderSettings.skybox=matchSky;
+            Shader.SetGlobalFloat("_CandyOutage",matchOutage);
+            if(coastalEnvironment&&coastalEnvironment.sun)coastalEnvironment.sun.enabled=visitSunEnabled;
+        }
         void Residence(GameObject owner,string state)
         {
             if(owner!=gameObject)return;
+            if(state is "LobbyParked" or "LobbyResumed" or "LobbyVisitOpened")visiting=state=="LobbyVisitOpened";
             if (state=="LobbyParked")
             {
                 RestoreLighting();

@@ -75,7 +75,10 @@ namespace DeadlyJenga.CastlePrototype
             dt=Mathf.Max(dt,Time.fixedDeltaTime); // Rigidbody samples advance at the physics rate.
             float spin=climbBody?climbBody.angularVelocity.magnitude:0;
             if(!initial)spin=Mathf.Max(spin,Quaternion.Angle(climbLastRotation,climbBlock.Anchor.rotation)*Mathf.Deg2Rad/Mathf.Max(.001f,dt));
-            return velocity.magnitude>climbBreakSpeed||velocity.y < -climbBreakFallSpeed||spin>climbBreakSpin||
+            float fallSpeed=climbBreakFallSpeed;
+            if(velocity.y < -fallSpeed && DisasterGravity(out float limit)<1)
+                fallSpeed=Mathf.Min(climbBreakSpeed,Mathf.Max(fallSpeed,limit+.35f));
+            return velocity.magnitude>climbBreakSpeed||velocity.y < -fallSpeed||spin>climbBreakSpin||
                 (!initial&&(velocity-climbLastVelocity).magnitude/Mathf.Max(.001f,dt)>climbBreakAcceleration);
         }
         void BindClimb(RaycastHit hit)

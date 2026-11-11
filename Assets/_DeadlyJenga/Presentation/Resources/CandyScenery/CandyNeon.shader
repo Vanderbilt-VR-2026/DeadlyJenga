@@ -80,5 +80,6 @@ Shader "Candy Tropical/Neon Outage"
    }
    ENDHLSL
   }
+  UsePass "Universal Render Pipeline/Lit/DepthOnly"
  }
 }
