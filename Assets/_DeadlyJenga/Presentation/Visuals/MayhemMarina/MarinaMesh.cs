@@ -167,13 +167,17 @@ namespace DeadlyJenga.CandyArt.Marina
                 Tube(line,.018f,MarinaFinish.Ivory,6);
             }
         }
-        public void Flush(Transform root)
+        public void Flush(Transform root,float waterHeight)
         {
             foreach(var entry in batches)
             {
                 var mesh=Make(entry.Value,"Marina ÃƒÆ’Ã¢â‚¬Å¡· "+entry.Key);meshes.Add(mesh);RenderTriangles+=mesh.triangles.Length/3;
                 var go=new GameObject(mesh.name,typeof(MeshFilter),typeof(MeshRenderer));go.transform.SetParent(root,false);go.GetComponent<MeshFilter>().sharedMesh=mesh;
-                var material=MaterialFor(entry.Key);materials.Add(material);go.GetComponent<MeshRenderer>().sharedMaterial=material;
+                var material=MaterialFor(entry.Key);materials.Add(material);
+                var renderer=go.GetComponent<MeshRenderer>();
+                renderer.sharedMaterial=material;
+                if(entry.Key==MarinaFinish.Sand&&material.HasProperty("_WaterHeight"))
+                    material.SetFloat("_WaterHeight",waterHeight);
             }
             CollisionMesh=Make(collision,"Marina walkable architecture");meshes.Add(CollisionMesh);batches.Clear();
         }
@@ -182,7 +186,11 @@ namespace DeadlyJenga.CandyArt.Marina
         public static Material MaterialFor(MarinaFinish finish)
         {
             Color[] colors={new(1,.91f,.77f),new(1,.91f,.81f),Color.white,new(.32f,.13f,.047f),new(1,.25f,.32f),new(.10f,.47f,.44f),new(.95f,.045f,.06f),new(.075f,.79f,.29f),new(.57f,.12f,.85f),new(.075f,.28f,.09f),new(.22f,.52f,.095f),new(.80f,.63f,.40f),new(.53f,.49f,.42f),new(.10f,.16f,.19f),new(.69f,.40f,.12f),new(1,.74f,.34f),new(.93f,.77f,.56f),new(.35f,.66f,.58f),new(.95f,.37f,.32f),new(.15f,.56f,.64f,.19f),new(1,.95f,.84f),new(1,.33f,.38f),new(.68f,.48f,.92f),new(.29f,.85f,.69f),new(.12f,.055f,.19f)};
-            var m=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Marina "+finish,enableInstancing=true};m.SetColor("_BaseColor",colors[(int)finish]);
+            var sandShader=finish==MarinaFinish.Sand?Shader.Find("Candy Tropical/Sand"):null;
+            var m=new Material(sandShader?sandShader:Shader.Find("Universal Render Pipeline/Lit"))
+                {name="Marina "+finish,enableInstancing=true};
+            m.SetColor("_BaseColor",colors[(int)finish]);
+            if(sandShader)return m;
             float gloss=finish>=MarinaFinish.CandyCream ? .81f:finish==MarinaFinish.Red||finish==MarinaFinish.Green||finish==MarinaFinish.Purple ? .69f:finish==MarinaFinish.Wood ? .36f:finish==MarinaFinish.Stone ? .29f:finish>=MarinaFinish.CreamFabric ? .19f:.38f;
             m.SetFloat("_Smoothness",gloss);m.SetFloat("_Metallic",finish==MarinaFinish.Metal||finish==MarinaFinish.Brass ? .72f:.02f);
             if(finish==MarinaFinish.Wood||finish==MarinaFinish.DarkWood)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaWood"));

@@ -150,7 +150,7 @@ namespace DeadlyJenga.CandyArt.Marina
             ShoreAndCourts();Pavilion();StyleShop();Lounge();UpperTerraces();Landmark();Planting();DistantIslands();
             BeaconWalk();MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
-            mesh.Flush(visual);
+            mesh.Flush(visual,transform.TransformPoint(Vector3.up*OceanLevel).y);
             if(controls!=null)controls.SetFloor(mesh.CollisionMesh,visual);
             Environment(environment);Water(environment);Signs();BuildProjectorBeam();
             Mark("Arrival",Arrival);Mark("Wardrobe",Wardrobe);Mark("Play screen",PlayScreen);

@@ -104,8 +104,26 @@ Shader "Candy Tropical/Ocean"
                 o.world=world+offset+float3(0,wake.x,0);o.normal=normalize(cross(dz,dx)+float3(wake.y,0,wake.z));
                 o.positionCS=TransformWorldToHClip(o.world);o.fog=ComputeFogFactor(o.positionCS.z);return o;
             }
-            float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
-            float noise(float2 p){float2 a=floor(p),b=frac(p);b=b*b*(3-2*b);return lerp(lerp(hash(a),hash(a+float2(1,0)),b.x),lerp(hash(a+float2(0,1)),hash(a+1),b.x),b.y);}
+            float2 SwellSlope(float2 p,float time,float distanceToEye,out float crest)
+            {
+                // The coarse outer mesh stays flat. These slopes keep its lighting moving.
+                float2 direction=float2(.25,.14),crossDirection=float2(-.21,.27);
+                float wind=sin(dot(p,float2(-.064,.087))+time*.18);
+                float group=sin(dot(p,float2(.071,.036))-time*.22+wind);
+                float phase=dot(p,direction)-time*1.27+wind*1.8+group*.6;
+                float crossPhase=dot(p,crossDirection)-time*.94+group*1.25;
+                float filterA=1-smoothstep(.35,2.2,fwidth(phase));
+                float filterB=1-smoothstep(.35,2.2,fwidth(crossPhase));
+                float s,c,cs,cc;
+                sincos(phase,s,c);
+                sincos(crossPhase,cs,cc);
+                float visibility=1-smoothstep(300,730,distanceToEye);
+                float height=lerp(.45,1,saturate(_WaveHeight*3.5))*visibility;
+                float mainPacket=lerp(.2,.82,smoothstep(-.9,.65,group))*filterA;
+                float crossPacket=lerp(.27,.74,smoothstep(-.65,.8,wind))*filterB;
+                crest=(s*mainPacket+cs*crossPacket)*height;
+                return -(direction*c*mainPacket+crossDirection*cc*crossPacket)*height;
+            }
             half4 frag(Varyings i):SV_Target
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
@@ -117,7 +135,11 @@ Shader "Candy Tropical/Ocean"
                 float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;
                 float detailFade=(1-smoothstep(25,140,distanceToEye))*(1-smoothstep(.15,.8,max(length(ddx(p)),length(ddy(p)))));
                 float rippleA=sin(p.x*2.1+p.y*1.3+t),rippleB=sin(p.y*2.4-p.x*1.1-t*.85);
-                float3 n=normalize(i.normal+float3(rippleA*.055,0,rippleB*.055)*detailFade);
+                float crest=0;
+                float2 swell=0;
+                if(!pool)swell=SwellSlope(i.world.xz-_Island.xy,_Time.y*_WaveSpeed,distanceToEye,crest);
+                float2 slope=float2(rippleA,rippleB)*(.055*detailFade)+swell*lerp(.22,1,deep);
+                float3 n=normalize(i.normal+float3(slope.x,0,slope.y));
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);Light light=GetMainLight();
                 if(r<1.4)light.shadowAttenuation=MainLightRealtimeShadow(TransformWorldToShadowCoord(i.world));
                 float fresnel=.025+.975*pow(1-saturate(dot(n,view)),5);
@@ -125,9 +147,19 @@ Shader "Candy Tropical/Ocean"
                 float3 sky=lerp(_Horizon.rgb,_Reflection.rgb,pow(saturate(reflected.y),.45));
                 float3 color=lerp(_Shallow.rgb,_Deep.rgb,deep);
                 color*=lerp(.84,1,light.shadowAttenuation);
-                color=lerp(color,sky,saturate((.035+fresnel*.72)*_Shine));
+                float reflectionWeight=pool?.72:.47;
+                color=lerp(color,sky,saturate((.035+fresnel*reflectionWeight)*_Shine));
                 float nh=saturate(dot(n,normalize(view+light.direction)));
                 float spec=pow(nh,55)*.3+pow(nh,18)*.025;
+                if(!pool)
+                {
+                    float face=dot(slope,normalize(view.xz+float2(.0001,0)));
+                    float sheen=smoothstep(.035,.23,face)*(1-smoothstep(.37,.75,abs(view.y)));
+                    float brightCrest=smoothstep(.62,1.25,crest);
+                    color*=1+crest*.14*deep;
+                    color+=sky*(sheen*(.14+.13*fresnel)+brightCrest*.065)*_Shine*deep;
+                    spec+=pow(nh,11)*_Glints*.38;
+                }
                 color+=light.color*spec*_Shine*light.shadowAttenuation;
                 // No thresholded white speckles or repeating crossed sparkle pattern.
                 float foam=pool?0:CandySurgeWhitecaps(i.world.xz);
@@ -135,16 +167,19 @@ Shader "Candy Tropical/Ocean"
                 {
                     float2 water=i.world.xz-_Island.xy;
                     float band=sin(dot(water,float2(.53,.31))-_Time.y*1.5+sin(water.y*.12)*.65);
-                    float swell=sin(dot(water,float2(-.36,.47))-_Time.y*1.15);
-                    float visibility=1-smoothstep(160,540,distanceToEye);
-                    color*=1+(.09*band+.06*swell)*visibility;
+                    float visibility=1-smoothstep(.3,1.4,fwidth(band));
                     float surf=smoothstep(.03,.22,depth)*(1-smoothstep(.35,1.35,depth));
-                    foam=max(foam,surf*smoothstep(.47,.95,band)*.52*visibility);
+                    foam=max(foam,surf*smoothstep(.47,.95,band)*visibility*lerp(.52,.78,_FoamStrength));
                 }
                 color=lerp(color,_Foam.rgb,foam);
+                if(!pool)
+                {
+                    float farDepth=-TransformWorldToView(i.world).z;
+                    float clipFade=smoothstep(.88,1,farDepth/_ProjectionParams.z);
+                    float haze=smoothstep(340,780,distanceToEye);
+                    color=lerp(color,_Horizon.rgb,max(haze,clipFade)*.68);
+                }
                 color=MixFog(color,i.fog);
-                float haze=_CoastalDetail>.5&&!pool?smoothstep(320,950,distanceToEye):smoothstep(240,700,distanceToEye);
-                color=lerp(color,_Horizon.rgb,haze);
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,saturate(fresnel*.82+foam));
                 if(pool)alpha*=poolEdge*_SoakingPool.z;
                 return half4(color,alpha);
