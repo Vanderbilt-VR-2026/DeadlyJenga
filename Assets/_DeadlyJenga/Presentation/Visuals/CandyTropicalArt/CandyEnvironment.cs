@@ -49,10 +49,13 @@ namespace DeadlyJenga.CandyArt
             waterRenderer.SetPropertyBlock(properties);
         }
 
+        bool UsesCastleCoast => Application.isPlaying && WorldOverride==null &&
+            MatchChoices.MapId is "castle" or "mode-castle-gaps" or "mode-castle-catwalks" or "mode-castle-four-keeps";
+
         void RefreshCoast(IWorldQuery world,CandySandbar terrain,Vector3 origin,float waterLevel)
         {
-            bool enabled=Application.isPlaying && coastReady && isActiveAndEnabled && WorldOverride==null && !openWater && terrain && terrain.HeightMap &&
-                world!=null && MatchChoices.MapId=="mode-castle-catwalks";
+            bool enabled=UsesCastleCoast && coastReady && isActiveAndEnabled && !openWater &&
+                terrain && terrain.HeightMap && world!=null;
             if(!enabled || !ReferenceEquals(coastWorld,world))
             {
                 if(catwalksCoast!=null) ReleaseCoast();
@@ -116,7 +119,7 @@ namespace DeadlyJenga.CandyArt
             var terrain=sandRenderer.GetComponent<CandySandbar>();
             if(terrain&&!openWater)
             {
-                terrain.CatwalksBeach=Application.isPlaying && WorldOverride==null && MatchChoices.MapId=="mode-castle-catwalks";
+                terrain.CatwalksBeach=UsesCastleCoast;
                 terrain.BeachWaterOffset=waterLevel-sandTop;
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
                 if(baseline)terrain.map=baseline.map;
