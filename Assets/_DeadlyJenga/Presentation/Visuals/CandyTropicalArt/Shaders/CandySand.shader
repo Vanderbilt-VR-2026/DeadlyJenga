@@ -47,8 +47,10 @@ Shader "Candy Tropical/Sand"
                 float first=sin(warped.x+t)+sin(warped.y-t*.76);
                 float second=sin(dot(warped,float2(.47,.88))+t*.61);
                 float stripe=abs(first+second*.54);
-                float focus=1-smoothstep(.026,.18,stripe);
-                return focus*(.55+.45*saturate(second));
+                float width=max(.11,fwidth(stripe));
+                float core=1-smoothstep(.032,width+.085,stripe);
+                float glow=1-smoothstep(.10,.52+width,stripe);
+                return (core*.77+glow*.23)*(.68+.32*saturate(second));
             }
             half4 frag(Varyings i):SV_Target
             {
@@ -94,9 +96,9 @@ Shader "Candy Tropical/Sand"
                 if(_CatwalksCoast>.5)
                 {
                     float fade=(1-smoothstep(1.1,4.8,submerged))*(1-smoothstep(17,73,distanceToEye));
-                    float glimmer=ShoreCaustics(p)*fade*smoothstep(-.04,.21,submerged);
-                    color=lerp(color*float3(1.16,1.05,.83),color*float3(.40,.82,.80),saturate(submerged*.20));
-                    color+=float3(1,.84,.48)*glimmer*.36*light.shadowAttenuation*saturate(light.color.r);
+                    float glimmer=ShoreCaustics(p)*fade*smoothstep(.01,.17,submerged);
+                    color=lerp(color*float3(1.15,1.055,.90),color*float3(.49,.86,.77),saturate(submerged*.19));
+                    color+=float3(1,.79,.34)*glimmer*.56*light.shadowAttenuation*saturate(light.color.r);
                 }
                 return half4(MixFog(color,i.fog),1);
             }

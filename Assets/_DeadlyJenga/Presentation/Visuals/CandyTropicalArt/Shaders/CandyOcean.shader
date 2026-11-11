@@ -159,9 +159,11 @@ Shader "Candy Tropical/Ocean"
 
                 float crest=(broad.b-.5)*.88+(medium.b-.5)*.45;
                 float3 blue=lerp(float3(.003,.050,.21),float3(.008,.182,.44),smoothstep(-.29,.32,crest));
-                float3 turquoise=lerp(float3(.006,.30,.25),float3(.010,.46,.39),saturate(.52+crest*.9));
+                float reefTint=smoothstep(.05,1.4,depth);
+                float3 turquoise=lerp(float3(.009,.55,.39),float3(.002,.43,.51),reefTint);
+                turquoise*=.94+crest*.38;
                 float3 color=lerp(turquoise,blue,deep);
-                color=lerp(color,reflectedSky,fresnel*lerp(.44,.46,deep));
+                color=lerp(color,reflectedSky,fresnel*lerp(.20,.46,deep));
                 float3 sun=normalize(float3(.65,.28,.71));
                 float alignment=saturate(dot(surfaceNormal,normalize(sun+view)));
                 float glintMask=smoothstep(.51,.77,medium.a*.46+fine.a*.54);
@@ -170,13 +172,18 @@ Shader "Candy Tropical/Ocean"
                 color+=float3(1,.80,.55)*glint*(1-horizon*.75)*lerp(.33,1,deep);
                 color=lerp(color,_Horizon.rgb,horizon*.52);
 
-                float shore=smoothstep(.012,.06,depth)*(1-smoothstep(.10,.28,depth));
-                float lace=smoothstep(.36,.70,medium.a*.28+fine.a*.72);
+                float shoreDepth=depth+(fine.b-.5)*.042;
+                float lip=smoothstep(.009,.026,shoreDepth)*(1-smoothstep(.049,.082,shoreDepth));
+                float wash=smoothstep(.018,.048,shoreDepth)*(1-smoothstep(.08,.16,shoreDepth));
+                float2 frothPosition=position*14+(fine.rg-.5)*3.5;
+                float mesh=abs(sin(frothPosition.x)+sin(frothPosition.y));
+                float foamDetail=1-smoothstep(.26,1.3,fwidth(frothPosition.x)+fwidth(frothPosition.y));
+                float lace=(1-smoothstep(.11,.48,mesh))*foamDetail;
                 float islet=1-smoothstep(.009,.06,abs(isletRadius-1.02));
-                float foam=max(max(shore,islet)*lace*.87,CandySurgeWhitecaps(i.world.xz));
-                color=lerp(color,float3(.91,.98,.93),foam);
-                float clarity=max(reefClear*.78,1-smoothstep(.46,3.7,depth));
-                float alpha=lerp(.99,.19+fresnel*.55,clarity);
+                float foam=max(max(lip*.72+wash*lace*.33,islet*.65),CandySurgeWhitecaps(i.world.xz));
+                color=lerp(color,float3(1,.96,.80),saturate(foam));
+                float clarity=max(reefClear*.81,1-smoothstep(.36,3.9,depth));
+                float alpha=lerp(.99,.12+reefTint*.18+fresnel*.34,clarity);
                 if(_WorldSpaceCameraPos.y<_WaterHeight-.12) alpha=lerp(alpha,.23,clarity*.85);
                 return half4(MixFog(color,i.fog),max(alpha,foam));
             }
