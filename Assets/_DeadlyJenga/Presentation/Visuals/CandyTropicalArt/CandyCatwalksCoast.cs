@@ -15,6 +15,7 @@ namespace DeadlyJenga.CandyArt
         static readonly Color Grass = new(.28f,.61f,.29f);
         readonly GameObject root;
         readonly Material material;
+        readonly Texture2D waterSpectrum;
         Material daySky, daySkySource;
         readonly List<Mesh> meshes = new();
         readonly Vector4[] reefs = new Vector4[2];
@@ -33,6 +34,7 @@ namespace DeadlyJenga.CandyArt
             root.transform.SetParent(owner,false);
             root.transform.position = new Vector3(origin.x,water,origin.z);
             material = new Material(shader) { name="Catwalks coast shared art" };
+            waterSpectrum=Resources.Load<Texture2D>("CandyScenery/CatwalksWaterSpectrum");
             var random = new System.Random(61011);
             for (int i=0;i<reefs.Length;i++)
             {
@@ -56,6 +58,7 @@ namespace DeadlyJenga.CandyArt
         internal void SetWaterProperties(MaterialPropertyBlock properties)
         {
             properties.SetFloat("_CatwalksCoast",Alive?1:0);
+            if(waterSpectrum) properties.SetTexture("_CoastSpectrum",waterSpectrum);
             properties.SetVector("_ReefA",reefs[0]);
             properties.SetVector("_ReefB",reefs[1]);
             Vector3 islet=root.transform.position+new Vector3(93,0,48);
