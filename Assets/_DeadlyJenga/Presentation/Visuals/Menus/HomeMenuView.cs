@@ -36,7 +36,7 @@ namespace DeadlyJenga.Presentation
         int slide, nearbyPage;
         readonly List<Button> buttons = new List<Button>();
         readonly List<Button> nearbyButtons = new List<Button>();
-        InputAction trigger,leftPointSelect,rightPointSelect;
+        InputAction leftPointSelect,rightPointSelect;
         bool selectReady,comfortWasOpen,inputFocused=true;
         Button gazeFocus;
         Font font;
@@ -112,8 +112,10 @@ namespace DeadlyJenga.Presentation
                 var events=new GameObject("Home input",typeof(EventSystem),typeof(InputSystemUIInputModule));events.transform.SetParent(transform);
                 events.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
             }
-            leftPointSelect=new InputAction("Home left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");rightPointSelect=new InputAction("Home right select",InputActionType.Button,"<XRController>{RightHand}/trigger");leftPointSelect.Enable();rightPointSelect.Enable();
-            trigger=new InputAction("Home select",InputActionType.Button,"<XRController>{RightHand}/trigger");trigger.AddBinding("<XRController>{LeftHand}/trigger");trigger.AddBinding("<HandInteraction>{LeftHand}/pinchValue");trigger.AddBinding("<HandInteraction>{RightHand}/pinchValue");trigger.Enable();
+            leftPointSelect=MenuAim.SelectAction("Home left select",true);
+            rightPointSelect=MenuAim.SelectAction("Home right select",false);
+            leftPointSelect.Enable();
+            rightPointSelect.Enable();
             pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(vr);
             SetSlide();
         }
@@ -290,10 +292,7 @@ namespace DeadlyJenga.Presentation
         {
             if(!eye||MenuAim.InputConsumed)return;
             bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
-            var ray=MenuAim.Resolve(eye,transform,preferred,leftPointSelect.WasPressedThisFrame(),rightPointSelect.WasPressedThisFrame(),out bool tracked,out _);
-            if (trigger.WasPressedThisFrame() && MenuAim.TryActionPointer(eye, trigger, out var selectedRay, out _))
-                ray = selectedRay;
-            tracked |= MenuAim.IsTrackedPointer(eye, ray);
+            var ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out bool pressed,out bool tracked);
             var plane=new Plane(frame.forward,frame.position);
             if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){pointer.gameObject.SetActive(false);return;}
             pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
@@ -312,8 +311,8 @@ namespace DeadlyJenga.Presentation
                 else if(EventSystem.current&&gazeFocus&&EventSystem.current.currentSelectedGameObject==gazeFocus.gameObject)EventSystem.current.SetSelectedGameObject(null);
                 gazeFocus=target;
             }
-            if(!selectReady){if(!trigger.IsPressed())selectReady=true;return;}
-            if(target&&trigger.WasPressedThisFrame()){selectReady=false;MenuAim.Consume();target.onClick.Invoke();}
+            if(!selectReady){if(!leftPointSelect.IsPressed()&&!rightPointSelect.IsPressed())selectReady=true;return;}
+            if(target&&pressed){selectReady=false;MenuAim.Consume();target.onClick.Invoke();}
         }
         void SetSlide()
         {
@@ -355,7 +354,7 @@ namespace DeadlyJenga.Presentation
         void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;if(pointer)pointer.gameObject.SetActive(false);}}
         void OnDestroy()
         {
-            trigger?.Dispose();leftPointSelect?.Dispose();rightPointSelect?.Dispose();
+            leftPointSelect?.Dispose();rightPointSelect?.Dispose();
             foreach(var origin in trackingOrigins) origin.trackingOriginUpdated -= TrackingOriginUpdated;
             if(backdrop)Destroy(backdrop);
             if(blurredSlide)

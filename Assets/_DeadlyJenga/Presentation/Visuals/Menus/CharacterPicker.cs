@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 using DeadlyJenga.CandyAudio;
 using Unity.XR.CoreUtils;
 using UnityEngine;
@@ -16,6 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         static CharacterPicker instance;
         Canvas panel;
         Image aimDot;
+        LineRenderer aimBeam;
         Text nameLabel;
         readonly List<RectTransform> buttons=new List<RectTransform>();
         readonly List<Action> actions=new List<Action>();
@@ -87,8 +89,8 @@ namespace DeadlyJenga.CastlePrototype
             Add("Recenter",new Vector2(-123,-103),new Vector2(226,62),"Recenter",Anchor);
             Add("Close",new Vector2(123,-103),new Vector2(226,62),"Done",()=>Close(true));
             aimDot=DeadlyJenga.Presentation.MenuAim.CreateReticle(panel.transform);
-            leftSelect=new InputAction("Hand appearance left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
-            rightSelect=new InputAction("Hand appearance right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
+            leftSelect=MenuAim.SelectAction("Hand appearance left select",true);
+            rightSelect=MenuAim.SelectAction("Hand appearance right select",false);
             leftSelect.Enable();rightSelect.Enable();
             panel.gameObject.SetActive(false);
         }
@@ -133,6 +135,7 @@ namespace DeadlyJenga.CastlePrototype
         void LateUpdate()
         {
             if(!open)return;
+            if(aimBeam)aimBeam.enabled=false;
             bool valid=ReferenceEquals(Services.Session,owner)&&owner.MenuOpen&&owner.ActiveCamera==openingCamera&&
                 owner.PlayingHand==openingHand&&owner.IsVR==openingVr&&HandLooks.Names.Length>0;
             if(valid)
@@ -165,12 +168,12 @@ namespace DeadlyJenga.CastlePrototype
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                var ray=DeadlyJenga.Presentation.MenuAim.Resolve(openingCamera,openingCamera.transform.parent,
-                    owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,
-                    leftSelect.WasPressedThisFrame(),rightSelect.WasPressedThisFrame(),out bool controller,out bool left);
-                if(!DeadlyJenga.Presentation.MenuAim.TryPoint(ray,(RectTransform)panel.transform,4,out point,out var hit))return;
-                DeadlyJenga.Presentation.MenuAim.Present(aimDot,hit,true,false);
-                pressed=controller?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed||owner.Player?.SelectPressed==true;
+                var ray=MenuAim.ResolveSelect(openingCamera,openingCamera.transform.parent,
+                    owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,leftSelect,rightSelect,
+                    owner.MenuSelectPressed||owner.Player?.SelectPressed==true,out pressed,out bool tracked);
+                if(!MenuAim.TryPoint(ray,(RectTransform)panel.transform,4,out point,out var hit))return;
+                MenuAim.Present(aimDot,hit,true,false);
+                MenuAim.PresentBeam(ref aimBeam,panel.transform,ray,hit-ray.direction*.015f,tracked,false);
             }
             else
             {
@@ -199,20 +202,6 @@ namespace DeadlyJenga.CastlePrototype
             return signature;
         }
         void OnApplicationFocus(bool focused){if(!focused)Close(false);}
-        XRController Controller()
-        {
-            bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
-            XRController fallback=null;
-            foreach(var device in InputSystem.devices)
-            {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||
-                    device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0)continue;
-                fallback??=controller;
-                foreach(var usage in controller.usages)
-                    if(usage==(left?CommonUsages.LeftHand:CommonUsages.RightHand))return controller;
-            }
-            return fallback;
-        }
         void OnDisable()
         {
             Close(false);

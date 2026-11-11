@@ -10,9 +10,8 @@ namespace DeadlyJenga.Presentation
         ISessionInfo session;
         bool open,tame,selectReady,lobbyPoseSet;
         Image aimDot;
-        bool previousHeld;
-        int pointerIdentity=int.MinValue;
-        Vector3 openingForward=Vector3.forward;
+        LineRenderer aimBeam;
+        InputAction leftSelect,rightSelect;
         Canvas canvas;
         RectTransform panel;
         Text status;
@@ -31,24 +30,24 @@ namespace DeadlyJenga.Presentation
         public static void Open(ISessionInfo owner)
         {
             var view=(owner as Component)?.GetComponent<CandyWildlifePanel>();
-            if(view)
-            {
-                view.open=true;view.selectReady=false;view.lobbyPoseSet=false;var camera=owner.ActiveCamera;
-                view.openingForward=camera?camera.transform.forward:Vector3.forward;view.openingForward.y=0;
-                if(view.openingForward.sqrMagnitude<.01f)view.openingForward=Vector3.forward;
-                view.openingForward.Normalize();owner.SetMenu(true);
-            }
+            if(!view||!ReferenceEquals(Services.Session,owner)||!NetworkActors.Alive(owner.Player)||!owner.ActiveCamera||
+                CandyComfortPanel.Showing(owner)||GameExperiencePanel.Showing(owner)||DeadlyJenga.CastlePrototype.CharacterPicker.Showing(owner))return;
+            view.open=true;view.selectReady=false;view.lobbyPoseSet=false;
+            owner.SetMenu(true);
+            MenuAim.Consume();
         }
         void Update()
         {
+            if(aimBeam)aimBeam.enabled=false;
+            if(aimDot)aimDot.gameObject.SetActive(false);
             if(session==null)return;
             if(Services.Session!=session){open=false;if(canvas)canvas.gameObject.SetActive(false);return;}
             if(Keyboard.current?.f6Key.wasPressedThisFrame==true&&Services.Session==session){if(open)open=false;else Open(session);}
-            if(open&&!session.MenuOpen)open=false;
+            if(open&&(!session.MenuOpen||!NetworkActors.Alive(session.Player)||!session.Player.gameObject.activeInHierarchy))open=false;
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&open){open=false;MenuAim.Consume();}
             if(!canvas&&open)Build();
             if(!canvas)return;
-            canvas.gameObject.SetActive(open&&session.MenuOpen&&session.Player.gameObject.activeInHierarchy);
+            canvas.gameObject.SetActive(open);
             if(!open)return;
             var controls=Controls;status.text=controls==null?"Wildlife is loading":controls.Status+"\n"+controls.Count+" / 24 animals · "+(tame?"COMPANION: follows you":"WILD: roams nearby");
             for(int i=0;i<buttons.Count;i++)buttons[i].interactable=i<3||controls?.Available==true;
@@ -59,31 +58,21 @@ namespace DeadlyJenga.Presentation
                 var camera=session.ActiveCamera;if(!camera)return;
                 bool left=session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
                 MenuAim.PlaceTablet(panel,camera,session,left,ref lobbyPoseSet);
-                var ray=MenuAim.Resolve(camera,camera.transform.parent,left,false,false,out bool physical,out bool chosenLeft);
-                bool held=session.MenuSelectHeld||session.Player?.SelectHeld==true;
-                bool pressed=session.MenuSelectPressed||session.Player?.SelectPressed==true;
-                if(physical&&MenuAim.PhysicalPose(camera,chosenLeft,out _,out var controller))
-                {
-                    var trigger=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.ButtonControl>("triggerPressed");
-                    var axis=controller.TryGetChildControl<UnityEngine.InputSystem.Controls.AxisControl>("trigger");
-                    held=trigger!=null?trigger.isPressed:axis!=null&&axis.ReadValue()>.65f;
-                    pressed=trigger!=null?trigger.wasPressedThisFrame:axis!=null&&axis.ReadValue()>.65f&&!previousHeld;
-                }
-                int identity=(left?1:0)^MenuAim.PointerIdentity(camera,left)*397;
-                if(pointerIdentity!=identity){pointerIdentity=identity;selectReady=false;}
-                previousHeld=held;
+                var ray=MenuAim.ResolveSelect(camera,camera.transform.parent,left,leftSelect,rightSelect,
+                    session.MenuSelectPressed||session.Player.SelectPressed,out bool pressed,out bool tracked);
+                bool held=leftSelect.IsPressed()||rightSelect.IsPressed()||session.MenuSelectHeld||session.Player.SelectHeld;
                 if(!selectReady){if(!held)selectReady=true;pressed=false;}
                 if(MenuAim.InputConsumed)pressed=false;
-                if(aimDot)aimDot.gameObject.SetActive(false);
-                if(new Plane(panel.forward,panel.position).Raycast(ray,out float distance))
+                if(MenuAim.TryPoint(ray,panel,4,out var point,out var hit))
                 {
-                    Vector2 point=panel.InverseTransformPoint(ray.GetPoint(distance));
-                    MenuAim.Present(aimDot,ray.GetPoint(distance),panel.rect.Contains(point),false);
+                    MenuAim.Present(aimDot,hit,true,false);
+                    MenuAim.PresentBeam(ref aimBeam,panel,ray,hit-ray.direction*.015f,
+                        tracked,false);
                     for(int i=0;i<buttons.Count;i++)
                     {
                         var rect=(RectTransform)buttons[i].transform;bool hover=rect.rect.Contains(point-(Vector2)rect.localPosition);
                         buttons[i].image.color=hover?new Color(.15f,.85f,.65f):new Color(.25f,.14f,.39f);
-                        if(hover&&buttons[i].interactable)MenuAim.Present(aimDot,ray.GetPoint(distance),true,true);
+                        if(hover&&buttons[i].interactable)MenuAim.Present(aimDot,hit,true,true);
                         if(hover&&pressed&&buttons[i].interactable){MenuAim.Consume();selectReady=false;actions[i]();break;}
                     }
                 }
@@ -104,6 +93,9 @@ namespace DeadlyJenga.Presentation
         }
         void Build()
         {
+            leftSelect=MenuAim.SelectAction("Wildlife left select",true);
+            rightSelect=MenuAim.SelectAction("Wildlife right select",false);
+            leftSelect.Enable();rightSelect.Enable();
             var root=new GameObject("Wildlife testing menu",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));root.transform.SetParent(transform,false);
             canvas=root.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;
             var scaler=root.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1200,900);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;scaler.matchWidthOrHeight=1;
@@ -135,6 +127,6 @@ namespace DeadlyJenga.Presentation
             var label=Label(text,Vector2.zero,size,26);label.transform.SetParent(go.transform,false);
             button.onClick.AddListener(()=>action());buttons.Add(button);actions.Add(action);
         }
-        void OnDestroy(){if(canvas)Destroy(canvas.gameObject);}
+        void OnDestroy(){leftSelect?.Dispose();rightSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
     }
 }

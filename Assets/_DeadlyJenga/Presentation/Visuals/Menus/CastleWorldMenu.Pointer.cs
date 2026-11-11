@@ -174,7 +174,13 @@ namespace DeadlyJenga.CastlePrototype
             if(!physical)physical=ControllerPose(camera,!left,out pose,out device);
             Ray handRay = default;
             bool optical = !physical && DeadlyJenga.Presentation.MenuAim.TryHandPointer(camera, session.Player, left, out handRay);
-            int identity=physical?device.deviceId:optical?-2:-1;
+            bool opticalLeft=left;
+            if(!physical&&!optical)
+            {
+                opticalLeft=!left;
+                optical=DeadlyJenga.Presentation.MenuAim.TryHandPointer(camera,session.Player,opticalLeft,out handRay);
+            }
+            int identity=physical?device.deviceId:optical?(opticalLeft?-2:-3):-1;
             if(tabletDominantLeft!=left||tabletPointerDevice!=identity)
             {
                 tabletDominantLeft=left;tabletPointerDevice=identity;tabletWasHeld=false;
@@ -183,9 +189,7 @@ namespace DeadlyJenga.CastlePrototype
             if(physical)
             {
                 // Aim and click come from the same chosen controller. The holding hand cannot steal them.
-                var trigger=device.TryGetChildControl<ButtonControl>("triggerPressed");
-                var axis=device.TryGetChildControl<AxisControl>("trigger");
-                bool down=trigger?.isPressed==true || axis!=null&&axis.ReadValue()>.65f;
+                bool down=DeadlyJenga.Presentation.MenuAim.TriggerHeld(device);
                 held=down;pressed=down&&!tabletWasHeld;tabletWasHeld=down;
                 ray=new Ray(pose.position,pose.rotation*Vector3.forward);return true;
             }

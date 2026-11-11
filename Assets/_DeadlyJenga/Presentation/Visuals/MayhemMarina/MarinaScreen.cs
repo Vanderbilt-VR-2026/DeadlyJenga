@@ -118,8 +118,8 @@ namespace DeadlyJenga.CandyArt.Marina
             focusDescription=Text("",Vector2.zero,new Vector2(660,22),14,focusPanel);
             focusDescription.resizeTextForBestFit=true;focusDescription.resizeTextMinSize=12;focusDescription.resizeTextMaxSize=14;
             focusPanel.gameObject.SetActive(false);
-            select=new InputAction("Marina select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.Enable();
-            leftSelect=new InputAction("Marina left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");leftSelect.Enable();
+            select=MenuAim.SelectAction("Marina right select",false);select.Enable();
+            leftSelect=MenuAim.SelectAction("Marina left select",true);leftSelect.Enable();
             aimDot=MenuAim.CreateReticle(canvas);Refresh();
         }
         void BuildProjectedBackdrop()

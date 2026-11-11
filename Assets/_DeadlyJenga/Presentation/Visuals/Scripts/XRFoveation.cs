@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
+using UnityEngine.Rendering;
 
 namespace DeadlyJenga.Presentation
 {
@@ -8,14 +9,14 @@ namespace DeadlyJenga.Presentation
     // Needs the OpenXR "Foveated Rendering" feature with the SRP foveation method (set in project settings).
     public sealed class XRFoveation : MonoBehaviour
     {
-        [Range(0, 1)] public float level = 1;   // Quest: 0.25 low, 0.5 medium, 0.75 high, 1 high-top
+        [Range(0, 1)] public float level = .5f; // Medium fixed foveation on Quest.
         readonly List<XRDisplaySubsystem> displays = new List<XRDisplaySubsystem>();
         float nextCheck;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
         {
-            if (Application.isEditor || FindFirstObjectByType<XRFoveation>()) return;
+            if (Application.platform!=RuntimePlatform.Android || FindFirstObjectByType<XRFoveation>()) return;
             var go = new GameObject("XR foveation");
             DontDestroyOnLoad(go);
             go.AddComponent<XRFoveation>();
@@ -29,9 +30,10 @@ namespace DeadlyJenga.Presentation
             SubsystemManager.GetSubsystems(displays);
             foreach (var d in displays)
             {
-                if (!d.running) continue;
+                if (!d.running || SystemInfo.foveatedRenderingCaps==FoveatedRenderingCaps.None) continue;
                 if (!Mathf.Approximately(d.foveatedRenderingLevel, level)) d.foveatedRenderingLevel = level;
-                d.foveatedRenderingFlags = XRDisplaySubsystem.FoveatedRenderingFlags.GazeAllowed;
+                if(d.foveatedRenderingFlags!=XRDisplaySubsystem.FoveatedRenderingFlags.None)
+                    d.foveatedRenderingFlags=XRDisplaySubsystem.FoveatedRenderingFlags.None;
             }
         }
     }

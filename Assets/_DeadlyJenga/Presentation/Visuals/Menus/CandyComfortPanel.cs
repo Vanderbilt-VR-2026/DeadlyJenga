@@ -100,8 +100,8 @@ namespace DeadlyJenga.Presentation
             Add(new Vector2(-250,-390),()=>home?"Back to Home":"Back",Close);
             Add(new Vector2(250,-390),()=>home?"Done":"Resume",()=>{Close();session?.SetMenu(false);});
             aimDot=MenuAim.CreateReticle(panel);
-            rightSelect=new InputAction("Comfort right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
-            leftSelect=new InputAction("Comfort left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
+            rightSelect=MenuAim.SelectAction("Comfort right select",false);
+            leftSelect=MenuAim.SelectAction("Comfort left select",true);
             rightSelect.AddBinding("<HandInteraction>{RightHand}/pinchValue");leftSelect.AddBinding("<HandInteraction>{LeftHand}/pinchValue");
             rightSelect.Enable();leftSelect.Enable();
         }
@@ -216,15 +216,11 @@ namespace DeadlyJenga.Presentation
             if(wasVr)
             {
                 if(!eye)return;
-                var ray=MenuAim.Resolve(eye,home?transform:eye.transform.parent,PreferredLeft,
-                    leftSelect.WasPressedThisFrame(),rightSelect.WasPressedThisFrame(),out bool controller,out bool useLeft);
+                var ray=MenuAim.ResolveSelect(eye,home?transform:eye.transform.parent,PreferredLeft,leftSelect,rightSelect,
+                    session?.MenuSelectPressed==true||session?.Player?.SelectPressed==true,out pressed,out bool tracked);
                 if(!MenuAim.TryPoint(ray,panel,4,out point,out var hit)){aimDot.gameObject.SetActive(false);return;}
                 MenuAim.Present(aimDot,hit,true,false);
-                MenuAim.PresentBeam(ref aimBeam, panel, ray, hit-ray.direction*.015f,
-                    controller || MenuAim.IsTrackedPointer(eye, ray), true);
-                pressed=controller?(useLeft?leftSelect:rightSelect).WasPressedThisFrame():
-                    session?.MenuSelectPressed==true||session?.Player?.SelectPressed==true||
-                    rightSelect.WasPressedThisFrame()||leftSelect.WasPressedThisFrame();
+                MenuAim.PresentBeam(ref aimBeam,panel,ray,hit-ray.direction*.015f,tracked,false);
             }
             else
             {

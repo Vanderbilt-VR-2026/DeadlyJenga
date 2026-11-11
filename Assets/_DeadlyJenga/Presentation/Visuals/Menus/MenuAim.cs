@@ -48,33 +48,61 @@ namespace DeadlyJenga.Presentation
         }
         public static Ray Resolve(Camera eye,Transform fallbackSpace,bool preferredLeft,bool leftPressed,bool rightPressed,out bool controller,out bool left)
         {
-            controller=false;left=preferredLeft;
-            XRController preferred=null,fallback=null,pressed=null;
-            foreach(var device in InputSystem.devices)
+            left=leftPressed!=rightPressed?leftPressed:preferredLeft;
+            controller=PhysicalPose(eye,left,out var pose,out _,fallbackSpace);
+            if(!controller)
             {
-                if(!(device is XRController candidate)||!candidate.isTracked.isPressed||candidate.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0)continue;
-                bool isLeft=false,isRight=false;
-                foreach(var usage in candidate.usages){isLeft|=usage==CommonUsages.LeftHand;isRight|=usage==CommonUsages.RightHand;}
-                if(!isLeft&&!isRight)continue;
-                fallback??=candidate;
-                if(isLeft==preferredLeft)preferred=candidate;
-                if(leftPressed!=rightPressed&&(isLeft&&leftPressed||isRight&&rightPressed))pressed=candidate;
+                left=!left;
+                controller=PhysicalPose(eye,left,out pose,out _,fallbackSpace);
             }
-            var selected=pressed??preferred??fallback;
-            var rig=eye.GetComponentInParent<XROrigin>();
-            var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:fallbackSpace;
-            if (selected == null || !space)
-            {
-                if (TryHandPointer(eye, Services.Session?.Player, preferredLeft, out var hand)) return hand;
-                left = !preferredLeft;
-                return TryHandPointer(eye, Services.Session?.Player, left, out hand)
-                    ? hand : new Ray(eye.transform.position, eye.transform.forward);
-            }
-            left=false;foreach(var usage in selected.usages)left|=usage==CommonUsages.LeftHand;
-            var position=selected.TryGetChildControl<Vector3Control>("pointerPosition")??selected.devicePosition;
-            var rotation=selected.TryGetChildControl<QuaternionControl>("pointerRotation")??selected.deviceRotation;
-            controller=true;return new Ray(space.TransformPoint(position.ReadValue()),space.TransformDirection(rotation.ReadValue()*Vector3.forward));
+            if(controller)return new Ray(pose.position,pose.rotation*Vector3.forward);
+
+            left=leftPressed!=rightPressed?leftPressed:preferredLeft;
+            if(TryHandPointer(eye,Services.Session?.Player,left,out var hand))return hand;
+            left=!left;
+            return TryHandPointer(eye,Services.Session?.Player,left,out hand)
+                ?hand:new Ray(eye.transform.position,eye.transform.forward);
         }
+
+        internal static bool TriggerHeld(XRController device)
+        {
+            var button=device.TryGetChildControl<ButtonControl>("triggerPressed");
+            var axis=device.TryGetChildControl<AxisControl>("trigger");
+            return button?.isPressed==true||axis!=null&&axis.ReadValue()>.65f;
+        }
+
+        internal static InputAction SelectAction(string name,bool left)
+        {
+            string hand=left?"LeftHand":"RightHand";
+            var action=new InputAction(name,InputActionType.Button,$"<XRController>{{{hand}}}/trigger");
+            AddSelectBindings(action,left);
+            return action;
+        }
+
+        internal static void AddSelectBindings(InputAction action,bool left)
+        {
+            string hand=left?"LeftHand":"RightHand";
+            action.AddBinding($"<XRController>{{{hand}}}/triggerPressed");
+            action.AddBinding($"<HandInteraction>{{{hand}}}/pinchValue");
+        }
+        internal static Ray ResolveSelect(Camera eye,Transform space,bool preferredLeft,
+            InputAction left,InputAction right,bool gesturePressed,out bool pressed,out bool tracked)
+        {
+            bool leftPressed=left.WasPressedThisFrame(),rightPressed=right.WasPressedThisFrame();
+            var ray=Resolve(eye,space,preferredLeft,false,false,out bool controller,out _);
+            tracked=controller||IsTrackedPointer(eye,ray);
+            if(!leftPressed&&!rightPressed)
+            {
+                pressed=!controller&&tracked&&gesturePressed;
+                return ray;
+            }
+            var action=(leftPressed&&(!rightPressed||preferredLeft))?left:right;
+            pressed=TryActionPointer(eye,action,out var actionRay,out _,space);
+            if(!pressed)return ray;
+            tracked=true;
+            return actionRay;
+        }
+
         internal static bool IsTrackedPointer(Camera eye, Ray ray) =>
             (eye.transform.position - ray.origin).sqrMagnitude > .01f;
 
@@ -142,11 +170,11 @@ namespace DeadlyJenga.Presentation
             beam.SetPosition(1, end);
         }
 
-        public static bool PhysicalPose(Camera eye,bool left,out Pose pose,out XRController selected)
+        public static bool PhysicalPose(Camera eye,bool left,out Pose pose,out XRController selected,Transform fallbackSpace=null)
         {
             pose=default;selected=null;
             var rig=eye.GetComponentInParent<XROrigin>();
-            var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:eye.transform.parent;
+            var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:fallbackSpace?fallbackSpace:eye.transform.parent;
             if(!space)return false;
             foreach(var device in InputSystem.devices)
             {
@@ -164,16 +192,20 @@ namespace DeadlyJenga.Presentation
             }
             return false;
         }
-        internal static bool TryActionPointer(Camera eye, InputAction action, out Ray ray, out int deviceId)
+        internal static bool TryActionPointer(Camera eye, InputAction action, out Ray ray, out int deviceId, Transform fallbackSpace=null)
         {
             ray = default;
             deviceId = 0;
-            if (!(action.activeControl?.device is XRController controller)) return false;
+            if (action.activeControl?.device is not XRController controller || !controller.isTracked.isPressed) return false;
             bool left = false;
             foreach (var usage in controller.usages) left |= usage == CommonUsages.LeftHand;
             if (controller.layout.IndexOf("HandInteraction", StringComparison.OrdinalIgnoreCase) >= 0)
-                return TryHandPointer(eye, Services.Session?.Player, left, out ray);
-            if (!PhysicalPose(eye, left, out var pose, out var selected) || selected != controller) return false;
+            {
+                if(!TryHandPointer(eye,Services.Session?.Player,left,out ray))return false;
+                deviceId=controller.deviceId;
+                return true;
+            }
+            if (!PhysicalPose(eye, left, out var pose, out var selected, fallbackSpace) || selected != controller) return false;
             ray = new Ray(pose.position, pose.rotation * Vector3.forward);
             deviceId = selected.deviceId;
             return true;

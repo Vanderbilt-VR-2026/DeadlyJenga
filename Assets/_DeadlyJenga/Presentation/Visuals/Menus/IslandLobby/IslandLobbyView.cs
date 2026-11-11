@@ -44,7 +44,10 @@ namespace DeadlyJenga.CastlePrototype
             session=info;lobby=controls;
             GameEvents.Emoted+=LobbyResidenceChanged;
             BuildIsland();
-            select=new InputAction("Lobby select",InputActionType.Button,"<XRController>{RightHand}/trigger");select.AddBinding("<XRController>{LeftHand}/trigger");select.Enable();
+            select=MenuAim.SelectAction("Lobby select",false);
+            select.AddBinding("<XRController>{LeftHand}/trigger");
+            MenuAim.AddSelectBindings(select,true);
+            select.Enable();
             wardrobeCancel=new InputAction("Leave wardrobe",InputActionType.Button,"<XRController>{RightHand}/secondaryButton");
             wardrobeCancel.AddBinding("<XRController>{LeftHand}/secondaryButton");wardrobeCancel.Enable();
             BuildTerminals();

@@ -24,11 +24,50 @@ namespace DeadlyJenga.CastlePrototype
 
     {
 
-        static readonly string[] accessoryNames={"MOHAWK","GLASSES","RABBIT EARS","SKELETON MASK","TOP HAT","CAPE","ANT ANTENNAE","UNICORN HORN","DEVIL HORNS","BROCCOLI CROWN","LONG NOSE","DEFINED JAW"};
-
+        const int WardrobePageSize=12;
+        static readonly string[] wardrobeCategories={"Skin","Hair","Headgear","Eyewear","Outfit","Back","Extras"};
+        enum WardrobeSlot { Skin, Hair, Headgear, Eyewear, Outfit, Back, Extras }
+        readonly struct WardrobeItem
+        {
+            public readonly string name;
+            public readonly AvatarAccessory accessory;
+            public readonly AvatarClothing clothing;
+            public readonly int style;
+            public readonly bool armor;
+            public WardrobeItem(string name,AvatarAccessory accessory=0,AvatarClothing clothing=0,int style=0,bool armor=false)
+            {this.name=name;this.accessory=accessory;this.clothing=clothing;this.style=style;this.armor=armor;}
+        }
+        static readonly WardrobeItem[][] wardrobeItems=BuildWardrobeItems();
         int wardrobeCategory,wardrobePage;
 
-        static readonly string[] wardrobeCategories={"ADD ONS","SKINS","HAIR","EYEWEAR","CLOTHING"};
+
+        static WardrobeItem[][] BuildWardrobeItems()
+        {
+            WardrobeItem Accessory(AvatarAccessory item)=>new WardrobeItem(PrettyName(item.ToString()),accessory:item);
+            WardrobeItem Clothing(AvatarClothing item)=>new WardrobeItem(PrettyName(item.ToString()),clothing:item);
+            return new[]
+            {
+                Enum.GetValues(typeof(AvatarSkin)).Cast<AvatarSkin>().Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).ToArray(),
+                Enum.GetValues(typeof(AvatarHair)).Cast<AvatarHair>().Where(item=>item!=AvatarHair.None)
+                    .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Mohawk)).ToArray(),
+                new[]{AvatarAccessory.TopHat,AvatarAccessory.Crown,AvatarAccessory.Beanie,AvatarAccessory.CowboyHat,AvatarAccessory.PirateHat,
+                    AvatarAccessory.ChefHat,AvatarAccessory.VikingHelmet,AvatarAccessory.PartyHat,AvatarAccessory.PropellerCap,AvatarAccessory.FlowerCrown,
+                    AvatarAccessory.PumpkinHelmet,AvatarAccessory.SkeletonMask,AvatarAccessory.RabbitEars,AvatarAccessory.CatEars,
+                    AvatarAccessory.AntAntennae,AvatarAccessory.UnicornHorn,AvatarAccessory.DevilHorns,AvatarAccessory.Broccoli,AvatarAccessory.Halo,
+                    AvatarAccessory.Headphones,AvatarAccessory.RobotAntenna}.Select(Accessory)
+                    .Concat(new[]{Clothing(AvatarClothing.HockeyHelmet),Clothing(AvatarClothing.FootballHelmet)}).ToArray(),
+                // These are the distinct models. The remaining names reuse Round or Visor geometry.
+                new[]{AvatarEyewear.Round,AvatarEyewear.Square,AvatarEyewear.Aviator,AvatarEyewear.CatEye,AvatarEyewear.Visor,
+                    AvatarEyewear.Monocle,AvatarEyewear.Star,AvatarEyewear.Heart,AvatarEyewear.CyberEye,AvatarEyewear.Shutter}
+                    .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Glasses)).ToArray(),
+                new[]{AvatarClothing.MonkRobe,AvatarClothing.Diaper,AvatarClothing.FootballPads,AvatarClothing.GrassSkirt,AvatarClothing.Tuxedo,
+                    AvatarClothing.Hoodie,AvatarClothing.BomberJacket,AvatarClothing.SailorShirt,AvatarClothing.Overalls,AvatarClothing.PufferVest}
+                    .Select(Clothing).Append(new WardrobeItem("Powered Armor",armor:true)).ToArray(),
+                new[]{AvatarAccessory.Cape,AvatarAccessory.ButterflyWings,AvatarAccessory.AngelWings,AvatarAccessory.DragonWings}
+                    .Select(Accessory).Append(Clothing(AvatarClothing.RoyalMantle)).ToArray(),
+                new[]{Accessory(AvatarAccessory.LongNose),Accessory(AvatarAccessory.StrongJaw),Clothing(AvatarClothing.BowTie)}
+            };
+        }
 
         Vector3 wardrobeCenter=new Vector3(0,.65f,-5.3f);
 
@@ -156,25 +195,39 @@ namespace DeadlyJenga.CastlePrototype
         AvatarAppearance ProposedWardrobeEntry(int index)
         {
             var v=wardrobeAvatar.Appearance;
-            switch(wardrobeCategory)
+            var item=wardrobeItems[wardrobeCategory][index];
+            if(item.armor){v.poweredArmor=!v.poweredArmor;return v;}
+            if(item.accessory!=0)return ToggleWardrobeAccessory(v,item.accessory);
+            if(item.clothing!=0)return ToggleWardrobeClothing(v,item.clothing);
+            switch((WardrobeSlot)wardrobeCategory)
             {
-                case 1:if(index==System.Enum.GetValues(typeof(AvatarSkin)).Length)v.poweredArmor=!v.poweredArmor;else v.skin=(AvatarSkin)index;break;
-                case 2:
-                    v.hair=(int)v.hair==index+1?AvatarHair.None:(AvatarHair)(index+1);
+                case WardrobeSlot.Skin:
+                    v.skin=(AvatarSkin)item.style;
+                    break;
+                case WardrobeSlot.Hair:
+                    v.hair=(int)v.hair==item.style?AvatarHair.None:(AvatarHair)item.style;
                     if(v.hair!=AvatarHair.None)v.accessories&=~AvatarAccessory.Mohawk;
                     break;
-                case 3:
-                    v.eyewear=(int)v.eyewear==index+1?AvatarEyewear.None:(AvatarEyewear)(index+1);
+                case WardrobeSlot.Eyewear:
+                    v.eyewear=(int)v.eyewear==item.style?AvatarEyewear.None:(AvatarEyewear)item.style;
                     if(v.eyewear!=AvatarEyewear.None)v.accessories&=~AvatarAccessory.Glasses;
                     break;
-                case 4:
-                    return index==14 ? ToggleWardrobeAccessory(v, AvatarAccessory.PumpkinHelmet) :
-                        ToggleWardrobeClothing(v, (AvatarClothing)(1u<<index));
-                default:
-                    int bit=index<12?index:index+3;
-                    return ToggleWardrobeAccessory(v, (AvatarAccessory)(1u<<bit));
             }
             return v;
+        }
+
+        bool IsWardrobeItemEquipped(AvatarAppearance value,WardrobeItem item)
+        {
+            if(item.armor)return value.poweredArmor;
+            if(item.accessory!=0)return (value.accessories&item.accessory)!=0;
+            if(item.clothing!=0)return (value.clothing&item.clothing)!=0;
+            return (WardrobeSlot)wardrobeCategory switch
+            {
+                WardrobeSlot.Skin=>(int)value.skin==item.style,
+                WardrobeSlot.Hair=>(int)value.hair==item.style,
+                WardrobeSlot.Eyewear=>(int)value.eyewear==item.style,
+                _=>false
+            };
         }
 
 
@@ -278,19 +331,31 @@ namespace DeadlyJenga.CastlePrototype
 
             {
 
-                int item=i;Add(wardrobePanel,"wardrobe-"+i,()=>AccessoryTitle(item),-100-(i/2)*57,()=>ChooseWardrobeEntry(item),()=>wardrobeOpen,(i%2==0?-1:1)*260,500,48);
+                int item=i;
+                var choice=Add(wardrobePanel,"wardrobe-"+i,()=>AccessoryTitle(item),-100-(i/2)*57,
+                    ()=>ChooseWardrobeEntry(item),()=>wardrobeOpen,(i%2==0?-1:1)*260,500,48,()=>HasWardrobeItem(item));
+                CandyStyle(choice);
+                choice.selected=()=>wardrobeAvatar!=null&&HasWardrobeItem(item)&&
+                    IsWardrobeItemEquipped(wardrobeAvatar.Appearance,wardrobeItems[wardrobeCategory][wardrobePage*WardrobePageSize+item]);
 
             }
 
-            Add(wardrobePanel,"wardrobe-clear",()=>"< PAGE",-435,()=>ChangeWardrobePage(-1),()=>wardrobeOpen,-260,500,48);
+            Add(wardrobePanel,"wardrobe-clear",()=>"< PAGE",-435,()=>ChangeWardrobePage(-1),()=>wardrobeOpen&&wardrobePage>0,-260,500,48);
 
-            Add(wardrobePanel,"wardrobe-reset",()=>"PAGE "+(wardrobePage+1)+" / "+WardrobePages+" >",-435,()=>ChangeWardrobePage(1),()=>wardrobeOpen,260,500,48);
+            Add(wardrobePanel,"wardrobe-reset",()=>"PAGE "+(wardrobePage+1)+" / "+WardrobePages+" >",-435,()=>ChangeWardrobePage(1),()=>wardrobeOpen&&wardrobePage+1<WardrobePages,260,500,48);
 
             string[] viewNames={"LEFT","RIGHT","UP","DOWN","CLOSER","FURTHER"};
 
             for(int i=0;i<6;i++){int control=i;var button=Add(wardrobePanel,"wardrobe-view-"+i,()=>viewNames[control],-40,()=>{},()=>wardrobeOpen,-425+i*170,155,44);button.slide=_=>AdjustWardrobeView(control);}
 
-            for(int category=0;category<wardrobeCategories.Length;category++){int selected=category;Add(wardrobePanel,"wardrobe-category-"+category,()=>wardrobeCategories[selected],-485,()=>SetWardrobeCategory(selected),()=>wardrobeOpen,-400+category*200,190,42);}
+            for(int category=0;category<wardrobeCategories.Length;category++)
+            {
+                int selected=category;
+                var tab=Add(wardrobePanel,"wardrobe-category-"+category,()=>wardrobeCategories[selected],-485,
+                    ()=>SetWardrobeCategory(selected),()=>wardrobeOpen,(category-3)*146,140,42);
+                CandyStyle(tab);
+                tab.selected=()=>wardrobeCategory==selected;
+            }
             Add(wardrobePanel,"wardrobe-clear-look",()=>"CLEAR LOOK",-545,ClearAccessories,()=>wardrobeOpen,-260,500,48);
             Add(wardrobePanel,"wardrobe-reset-view",()=>"RESET VIEW",-545,ResetWardrobeView,()=>wardrobeOpen,260,500,48);
             wardrobeTexture=new RenderTexture(768,768,24){name="Wardrobe third person preview"};
@@ -309,20 +374,18 @@ namespace DeadlyJenga.CastlePrototype
 
         IAvatarAppearance AppearanceTarget()=>Player?.gameObject.GetComponent<IAvatarAppearance>()??Player?.gameObject.GetComponentInChildren<IAvatarAppearance>();
 
-        int WardrobeCount=>wardrobeCategory==1?System.Enum.GetValues(typeof(AvatarSkin)).Length+1:wardrobeCategory==2?15:wardrobeCategory==3?15:wardrobeCategory==4?15:29;
-        int WardrobePages=>(WardrobeCount+11)/12;
+        int WardrobeCount=>wardrobeItems[wardrobeCategory].Length;
+        int WardrobePages=>(WardrobeCount+WardrobePageSize-1)/WardrobePageSize;
+        bool HasWardrobeItem(int slot)=>slot>=0&&slot<WardrobePageSize&&wardrobePage*WardrobePageSize+slot<WardrobeCount;
         string AccessoryTitle(int index)
         {
-            index+=wardrobePage*12;if(index>=WardrobeCount)return "â€”";
-            var avatar=wardrobeAvatar??AppearanceTarget();if(avatar==null)return "â€”";var v=avatar.Appearance;string name;bool chosen;
-            switch(wardrobeCategory)
-            {
-                case 1:bool armor=index==System.Enum.GetValues(typeof(AvatarSkin)).Length;chosen=armor?v.poweredArmor:(int)v.skin==index;name=armor?"POWERED ARMOR":PrettyName(((AvatarSkin)index).ToString());break;
-                case 2:chosen=(int)v.hair==index+1;name=PrettyName(((AvatarHair)(index+1)).ToString());break;
-                case 3:chosen=(int)v.eyewear==index+1;name=PrettyName(((AvatarEyewear)(index+1)).ToString());break;
-                case 4:chosen=index==14?(v.accessories&AvatarAccessory.PumpkinHelmet)!=0:(v.clothing&(AvatarClothing)(1u<<index))!=0;name=index==14?"PUMPKIN HELMET":PrettyName(((AvatarClothing)(1u<<index)).ToString());break;
-                default:int bit=index<12?index:index+3;chosen=(v.accessories&(AvatarAccessory)(1u<<bit))!=0;name=PrettyName(((AvatarAccessory)(1u<<bit)).ToString());break;
-            }
+            if(!HasWardrobeItem(index))return "";
+            index+=wardrobePage*WardrobePageSize;
+            var avatar=wardrobeAvatar??AppearanceTarget();
+            if(avatar==null)return "";
+            var item=wardrobeItems[wardrobeCategory][index];
+            string name=item.name;
+            bool chosen=IsWardrobeItemEquipped(avatar.Appearance,item);
             string notice="";
             if(wardrobeOpen&&wardrobeAvatar is IAvatarWardrobePreview rules)
             {
@@ -334,7 +397,7 @@ namespace DeadlyJenga.CastlePrototype
         static string PrettyName(string name)=>System.Text.RegularExpressions.Regex.Replace(name=="HoneyBear"?"WinnieThePooh":name=="Sailor"?"Popeye":name=="RagDoll"?"RaggedyAnn":name=="Reindeer"?"Rudolph":name,"([a-z])([A-Z])","$1 $2").ToUpperInvariant();
         void SetWardrobeCategory(int category){wardrobeCategory=category;wardrobePage=0;wardrobeLastCategory=-1;ResetWardrobeNotice();RefreshWardrobeLabels();}
         void ChangeWardrobeCategory(int delta)=>SetWardrobeCategory((wardrobeCategory+delta+wardrobeCategories.Length)%wardrobeCategories.Length);
-        void ChangeWardrobePage(int delta){wardrobePage=(wardrobePage+delta+WardrobePages)%WardrobePages;wardrobeLastCategory=-1;ResetWardrobeNotice();RefreshWardrobeLabels();}
+        void ChangeWardrobePage(int delta){wardrobePage=Mathf.Clamp(wardrobePage+delta,0,WardrobePages-1);wardrobeLastCategory=-1;ResetWardrobeNotice();RefreshWardrobeLabels();}
         bool ChooseWardrobeEntry(int index)
         {
             if(!wardrobeOpen||wardrobeAvatar==null||index<0||index>=12)return false;
@@ -452,7 +515,7 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<12;i++){int item=i;DesktopButton(rect,AccessoryTitle(i),198-(i/2)*65,(i%2==0?-1:1)*145,275,56,()=>ChooseWardrobeEntry(item),"Accessory "+i);}
 
             DesktopButton(rect,"< PREVIOUS PAGE",-180,-145,275,40,()=>ChangeWardrobePage(-1),"Previous category");DesktopButton(rect,"NEXT PAGE >",-180,145,275,40,()=>ChangeWardrobePage(1),"Next category");
-            for(int category=0;category<wardrobeCategories.Length;category++){int selected=category;DesktopButton(rect,wardrobeCategories[category],238,-232+category*116,112,38,()=>SetWardrobeCategory(selected),"Category "+category);}
+            for(int category=0;category<wardrobeCategories.Length;category++){int selected=category;DesktopButton(rect,wardrobeCategories[category],238,(category-3)*82,79,42,()=>SetWardrobeCategory(selected),"Category "+category);}
 
             DesktopButton(rect,"CLEAR",-240,-145,275,56,ClearAccessories,"Clear");DesktopButton(rect,"RESET VIEW",-240,145,275,56,ResetWardrobeView,"Reset view");
 
@@ -492,7 +555,20 @@ namespace DeadlyJenga.CastlePrototype
 
             var next=wardrobeDesktop.Find("Options/Next category");if(next)next.GetComponentInChildren<Text>().text="PAGE "+(wardrobePage+1)+" / "+WardrobePages+" >";
 
-            for(int i=0;i<12;i++){var t=wardrobeDesktop.Find("Options/Accessory "+i);if(t)t.GetComponentInChildren<Text>().text=AccessoryTitle(i);}
+            for(int i=0;i<WardrobePageSize;i++)
+            {
+                var row=wardrobeDesktop.Find("Options/Accessory "+i);
+                if(!row)continue;
+                row.gameObject.SetActive(HasWardrobeItem(i));
+                if(HasWardrobeItem(i))row.GetComponentInChildren<Text>().text=AccessoryTitle(i);
+            }
+            for(int i=0;i<wardrobeCategories.Length;i++)
+            {
+                var tab=wardrobeDesktop.Find("Options/Category "+i);
+                if(!tab)continue;
+                tab.GetComponent<Image>().color=i==wardrobeCategory?CandyHudVisuals.Mint:CandyHudVisuals.Card;
+                tab.GetComponentInChildren<Text>().color=i==wardrobeCategory?CandyHudVisuals.Ink:Color.white;
+            }
 
         }
 
@@ -597,7 +673,7 @@ namespace DeadlyJenga.CastlePrototype
 
             {
 
-                var point=Mouse.current.position.ReadValue();foreach(var b in wardrobeButtons)if(RectTransformUtility.RectangleContainsScreenPoint(b.Item1,point,null)){b.Item2();break;}
+                var point=Mouse.current.position.ReadValue();foreach(var b in wardrobeButtons)if(b.Item1.gameObject.activeInHierarchy&&RectTransformUtility.RectangleContainsScreenPoint(b.Item1,point,null)){b.Item2();break;}
 
             }
 

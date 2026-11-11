@@ -17,6 +17,8 @@ namespace DeadlyJenga.Presentation
         IGameExperienceControls controls;
         ILobbyControls lobby;
         Canvas canvas;
+        Image aimDot;
+        LineRenderer aimBeam;
         RectTransform panel;
         Text profile,status,readiness,mapName,actionHint;
         RawImage mapImage;
@@ -114,8 +116,9 @@ namespace DeadlyJenga.Presentation
             actionHint=Label("",new Vector2(0,-353),new Vector2(748,46),19);
             Add(new Vector2(-190,-294),()=>"Recenter panel",()=>openingVr,Anchor);
             Add(new Vector2(190,-294),()=>"Back",()=>true,()=>Close(true));
-            leftSelect=new InputAction("Experience left select",InputActionType.Button,"<XRController>{LeftHand}/trigger");
-            rightSelect=new InputAction("Experience right select",InputActionType.Button,"<XRController>{RightHand}/trigger");
+            aimDot=MenuAim.CreateReticle(panel);
+            leftSelect=MenuAim.SelectAction("Experience left select",true);
+            rightSelect=MenuAim.SelectAction("Experience right select",false);
             root.SetActive(false);
         }
         Text Label(string value,Vector2 position,Vector2 size,int font)
@@ -169,7 +172,7 @@ namespace DeadlyJenga.Presentation
         void Close(bool restore)
         {
             if(!open)return;
-            var session=owner;open=false;closedFrame=Time.frameCount;selectReady=false;owner=null;controls=null;eye=null;
+            var session=owner;MenuAim.Consume();open=false;closedFrame=Time.frameCount;selectReady=false;owner=null;controls=null;eye=null;
             leftSelect?.Disable();rightSelect?.Disable();
             if(canvas)canvas.gameObject.SetActive(false);
             if(restore&&ReferenceEquals(Services.Session,session))session.SetMenu(returnToMenu);
@@ -177,9 +180,13 @@ namespace DeadlyJenga.Presentation
         void Update()
         {
             if(!open)return;
+            if(aimBeam)aimBeam.enabled=false;
+            if(aimDot)aimDot.gameObject.SetActive(false);
             if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
                 owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
+            if(MenuAim.InputConsumed)return;
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(true);return;}
             int input = InputSignature();
             if (input != openingInput)
             {
@@ -195,21 +202,12 @@ namespace DeadlyJenga.Presentation
             Vector2 point;bool pressed;
             if(openingVr)
             {
-                Ray ray=new Ray(eye.transform.position,eye.transform.forward);var controller=Controller();bool left=false;
-                if(controller!=null)
-                {
-                    var rig=eye.GetComponentInParent<XROrigin>();var space=rig&&rig.CameraFloorOffsetObject?rig.CameraFloorOffsetObject.transform:null;
-                    if(space)
-                    {
-                        var position=controller.TryGetChildControl<Vector3Control>("pointerPosition")??controller.devicePosition;
-                        var rotation=controller.TryGetChildControl<QuaternionControl>("pointerRotation")??controller.deviceRotation;
-                        ray=new Ray(space.TransformPoint(position.ReadValue()),space.TransformDirection(rotation.ReadValue()*Vector3.forward));
-                        foreach(var usage in controller.usages)left|=usage==CommonUsages.LeftHand;
-                    }
-                    else controller=null;
-                }
-                if(Vector3.Dot(ray.direction,panel.forward)<=.01f||!new Plane(panel.forward,panel.position).Raycast(ray,out float distance)||distance>4)return;
-                point=panel.InverseTransformPoint(ray.GetPoint(distance));pressed=controller!=null?(left?leftSelect:rightSelect).WasPressedThisFrame():owner.MenuSelectPressed;
+                bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                var ray=MenuAim.ResolveSelect(eye,eye.transform.parent,left,leftSelect,rightSelect,
+                    owner.MenuSelectPressed||owner.Player?.SelectPressed==true,out pressed,out bool tracked);
+                if(!MenuAim.TryPoint(ray,panel,4,out point,out var hit))return;
+                MenuAim.Present(aimDot,hit,true,false);
+                MenuAim.PresentBeam(ref aimBeam,panel,ray,hit-ray.direction*.015f,tracked,false);
             }
             else
             {
@@ -220,18 +218,9 @@ namespace DeadlyJenga.Presentation
             {
                 if(!available[i]()||!buttons[i].rect.Contains(point-buttons[i].anchoredPosition))continue;
                 buttons[i].GetComponent<Image>().color=CandyHudVisuals.Mint;captions[i].color=CandyHudVisuals.Ink;
-                if(pressed){selectReady=false;actions[i]();if(this&&open&&canvas&&ReferenceEquals(Services.Session,owner)&&ReferenceEquals(Resolve(owner),controls))Refresh();}return;
+                if(openingVr&&aimDot.gameObject.activeSelf)aimDot.color=CandyHudVisuals.Mint;
+                if(pressed){MenuAim.Consume();selectReady=false;actions[i]();if(this&&open&&canvas&&ReferenceEquals(Services.Session,owner)&&ReferenceEquals(Resolve(owner),controls))Refresh();}return;
             }
-        }
-        XRController Controller()
-        {
-            bool left=owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;XRController fallback=null;
-            foreach(var device in InputSystem.devices)
-            {
-                if(!(device is XRController controller)||!controller.isTracked.isPressed||device.layout.IndexOf("HandInteraction",StringComparison.OrdinalIgnoreCase)>=0)continue;
-                fallback??=controller;foreach(var usage in controller.usages)if(usage==(left?CommonUsages.LeftHand:CommonUsages.RightHand))return controller;
-            }
-            return fallback;
         }
         int InputSignature()
         {
