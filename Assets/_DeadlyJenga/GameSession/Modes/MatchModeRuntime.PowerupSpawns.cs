@@ -24,9 +24,10 @@ namespace DeadlyJenga.Modes
         public static PowerupSpawnSettings DefaultPowerupSpawns(GameModeKind mode)
         {
             bool mystery=mode is GameModeKind.MurderMystery or GameModeKind.Survival;
+            bool pvp=ModeSimulation.TeamMode(mode)||mode is GameModeKind.KingOfHill or GameModeKind.Infection;
             return new PowerupSpawnSettings
             {
-                enabled=true,interval=mystery?15:4,maximum=mystery?8:24,lifetime=90,jitter=mystery?.25f:.15f,
+                enabled=true,interval=mystery?15:pvp?2.5f:4,maximum=mystery?8:pvp?30:24,lifetime=90,jitter=mystery?.25f:.15f,
                 types=Enumerable.Range(1,EquipmentSpecifications.All.Length-1).Select(i=>new PowerupSpawnWeight
                 {
                     kind=(EquipmentKind)i,

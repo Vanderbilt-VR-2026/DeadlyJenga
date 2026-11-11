@@ -30,6 +30,8 @@ namespace DeadlyJenga.Presentation
             public bool disappointed;
             public Image platform;
             public Joint[] joints;
+            public readonly Dictionary<Material,Material> materials=new();
+            public readonly Dictionary<Mesh,Mesh> meshes=new();
             public Vector3 leftShoulder, rightShoulder, leftHip, rightHip;
         }
 
@@ -50,6 +52,7 @@ namespace DeadlyJenga.Presentation
         }
 
         readonly Transform owner;
+        readonly bool retainAssets;
         readonly RectTransform panel;
         readonly RawImage image;
         readonly Leader[] leaders = { new Leader(), new Leader(), new Leader() };
@@ -59,9 +62,10 @@ namespace DeadlyJenga.Presentation
         RenderTexture texture;
         float nextRender;
 
-        public CandyScorePodium(Transform owner, Transform parent, Vector2 position)
+        public CandyScorePodium(Transform owner, Transform parent, Vector2 position, bool retainAssets=false)
         {
             this.owner = owner;
+            this.retainAssets=retainAssets;
             var card = CandyHudCards.Create((RectTransform)parent, "Scoreboard podium",
                 position, new Vector2(380, 540), 24, TextAnchor.UpperCenter);
             card.text = "TOP THREE";
@@ -242,6 +246,22 @@ namespace DeadlyJenga.Presentation
             }
 
             var properties = new MaterialPropertyBlock();
+            var lighting=retainAssets?Object.FindFirstObjectByType<DeadlyJenga.CandyArt.CandyHazardLighting>():null;
+            Mesh KeepMesh(Mesh mesh)
+            {
+                if(!retainAssets)return mesh;
+                if(!leader.meshes.TryGetValue(mesh,out var owned))
+                    leader.meshes.Add(mesh,owned=Object.Instantiate(mesh));
+                return owned;
+            }
+            Material KeepMaterial(Material material)
+            {
+                if(!retainAssets||!material)return material;
+                if(lighting)material=lighting.ResolveSourceMaterial(material)??material;
+                if(!leader.materials.TryGetValue(material,out var owned))
+                    leader.materials.Add(material,owned=new Material(material));
+                return owned;
+            }
             var renderers = new List<Renderer>();
             foreach (var original in source.GetComponentsInChildren<Renderer>(true))
             {
@@ -255,7 +275,7 @@ namespace DeadlyJenga.Presentation
                     var bones = Array.ConvertAll(skin.bones, CopyTransform);
                     if (Array.Exists(bones, bone => !bone)) continue;
                     var clone = CopyTransform(original.transform).gameObject.AddComponent<SkinnedMeshRenderer>();
-                    clone.sharedMesh = skin.sharedMesh;
+                    clone.sharedMesh = KeepMesh(skin.sharedMesh);
                     clone.bones = bones;
                     clone.rootBone = CopyTransform(skin.rootBone);
                     clone.localBounds = skin.localBounds;
@@ -267,12 +287,12 @@ namespace DeadlyJenga.Presentation
                 else if (original is MeshRenderer && original.TryGetComponent<MeshFilter>(out var filter) && filter.sharedMesh)
                 {
                     var go = CopyTransform(original.transform).gameObject;
-                    go.AddComponent<MeshFilter>().sharedMesh = filter.sharedMesh;
+                    go.AddComponent<MeshFilter>().sharedMesh = KeepMesh(filter.sharedMesh);
                     copy = go.AddComponent<MeshRenderer>();
                 }
                 else continue;
                 copy.gameObject.layer = PreviewLayer;
-                copy.sharedMaterials = original.sharedMaterials;
+                copy.sharedMaterials = Array.ConvertAll(original.sharedMaterials,KeepMaterial);
                 properties.Clear();
                 original.GetPropertyBlock(properties);
                 if (original.sharedMaterial && original.sharedMaterial.HasProperty("_MeltProgress"))
@@ -435,6 +455,10 @@ namespace DeadlyJenga.Presentation
                 leader.model.gameObject.SetActive(false);
                 Object.Destroy(leader.model.gameObject);
             }
+            foreach(var material in leader.materials.Values)if(material)Object.Destroy(material);
+            foreach(var mesh in leader.meshes.Values)if(mesh)Object.Destroy(mesh);
+            leader.materials.Clear();
+            leader.meshes.Clear();
             leader.model = null;
             leader.source = null;
             leader.id = null;

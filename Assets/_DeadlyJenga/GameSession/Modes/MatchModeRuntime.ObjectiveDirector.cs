@@ -103,7 +103,7 @@ namespace DeadlyJenga.Modes
             readonly Dictionary<string, List<BotObjective>> mysteries = new Dictionary<string, List<BotObjective>>();
             readonly Dictionary<string, List<BotObjective>> hostileCache = new Dictionary<string, List<BotObjective>>();
             static readonly HashSet<string> queries = new HashSet<string>(StringComparer.Ordinal)
-            { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge" };
+            { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "outer-crossings", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge" };
             static readonly HashSet<string> conditions = new HashSet<string>(StringComparer.Ordinal)
             { "pickup-collected", "carrying", "infected", "own-flag-missing", "has-hostile", "carrying-enemy", "carrying-own", "scored", "own-flag-home", "block-owned", "target-dead" };
             public MatchBotFacts(MatchModeRuntime owner) { this.owner = owner; }
@@ -183,10 +183,16 @@ namespace DeadlyJenga.Modes
                         return;
                     case "hostiles": if(!owner.RulesFor(actor.body).punchEnabled)return; legacy.Clear(); Hostiles(actor, legacy); AddLegacy(legacy, results); return;
                     case "high-ground": SafeSupports(actor,results,false); return;
-                    case "midfield": case "infection-search":
+                    case "midfield": case "outer-crossings": case "infection-search":
                         owner.RefreshSupportGoals();
                         if (Services.World == null) return;
                         if (name == "midfield") ModeSearchGeometry.Midfield(actor.position, Services.World.Center, owner.supportCandidates, false, owner.searchStages);
+                        else if(name=="outer-crossings")
+                        {
+                            var rules=owner.RulesFor(actor.body);
+                            ModeSearchGeometry.OuterCrossings(actor.position,Services.World.Center,owner.supportCandidates,
+                                rules.fallDamage?Mathf.Max(1,rules.fallDamageStart*.9f):36,owner.searchStages);
+                        }
                         else ModeSearchGeometry.Select(actor.position, owner.supportCandidates, false, owner.searchStages);
                         for (int i = 0; i < owner.searchStages.Count; i++) Add(results, PointId(owner.searchStages[i]), owner.searchStages[i]);
                         if(results.Count==0)SafeSupports(actor,results,true); return;

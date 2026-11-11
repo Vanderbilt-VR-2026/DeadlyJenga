@@ -30,7 +30,7 @@ namespace DeadlyJenga.Modes
             EquipmentState state=null;
             if(Authority)equipment.TryGetValue(id,out state);
             else foreach(var value in frame.equipment)if(value.actor==id){state=value;break;}
-            if((state==null||state.kind==EquipmentKind.Speed||state.kind==EquipmentKind.Jump)&&AllowsSurvivalPickup(EquipmentKind.Dagger)&&Rules.defaultDagger&&Rules.punchEnabled&&simulation?.Phase==RoundPhase.Playing)
+            if((state==null||state.kind is EquipmentKind.None or EquipmentKind.Speed or EquipmentKind.Jump)&&AllowsSurvivalPickup(EquipmentKind.Dagger)&&Rules.defaultDagger&&Rules.punchEnabled&&simulation?.Phase==RoundPhase.Playing)
             {
                 var p=simulation.Find(id);if(p!=null&&p.frame.alive&&!p.frame.dying&&p.frame.role!="hand"&&p.frame.role!="spectator"&&FindActor(id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true)
                     return new EquipmentState{actor=id,kind=EquipmentKind.Dagger,activePower=state?.kind??EquipmentKind.None,remaining=state?.remaining??20,drawn=true,builtIn=true,
@@ -259,7 +259,13 @@ namespace DeadlyJenga.Modes
         void PublishEquipment()
         {
             PublishArsenalState();frame.demoRespawnEquipment=respawnEquipment;
-            var published=new List<EquipmentState>();foreach(var item in equipment.Values)if(!item.roleIssued||item.drawn)published.Add(EquipmentFor(item.actor));
+            var published=new List<EquipmentState>();
+            foreach(var item in equipment.Values)
+            {
+                if(item.roleIssued&&!item.drawn)continue;
+                var visible=EquipmentFor(item.actor);
+                if(visible.kind!=EquipmentKind.None)published.Add(visible);
+            }
             if(Authority&&Rules.defaultDagger)foreach(var p in simulation.Participants)if(!equipment.ContainsKey(p.frame.id)){var fallback=EquipmentFor(p.frame.id);if(fallback.builtIn)published.Add(fallback);}
             frame.equipment=published.ToArray();
             frame.pickups=pickups.Select(x=>new EquipmentPickup{id=x.id,rounds=x.rounds,kind=x.kind,position=x.position,remaining=x.remaining,availableIn=x.availableIn,station=x.station,randomSpawn=x.randomSpawn,supportBlock=x.supportBlock,supportLocal=x.supportLocal,expiresIn=x.expiresIn}).ToArray();

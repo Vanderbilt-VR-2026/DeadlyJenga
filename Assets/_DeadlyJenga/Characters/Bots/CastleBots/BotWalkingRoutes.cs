@@ -26,9 +26,10 @@ namespace DeadlyJenga.CastleBots
         public void Refresh(CastleBotBrain bot)
         {
             using var measurement = DJWalkingSourcesMarker.Auto();
-            if (bot == null || Services.World == null || Time.time < nextScan) return;
-            nextScan = Time.time + 1;
-            if (!ReferenceEquals(world, Services.World)) { Dispose(); world = Services.World; signature = 0; }
+            var activeWorld=bot?.Population.Session.world;
+            if(activeWorld==null||Time.time<nextScan)return;
+            nextScan=Time.time+1;
+            if(!ReferenceEquals(world,activeWorld)){Dispose();world=activeWorld;signature=0;}
             if (building != null && !building.isDone) return;
             if (building != null) { building = null; Revision++; Status = "Walking corridors ready"; }
             if (NavMesh.GetSettingsCount() == 0) { Status = "No navigation agent settings"; return; }

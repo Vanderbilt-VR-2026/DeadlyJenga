@@ -91,7 +91,7 @@ namespace DeadlyJenga.CastleBots
         void Update()
         {
             if(!Motor||!Population)return;
-            bool matchOwnsLife=MatchRuntime.Current!=null;
+            bool matchOwnsLife=Population.Session.lobbyWorld==null&&MatchRuntime.Current!=null;
             if(matchOwnsLife)
             {
                 if(!Motor.Alive){Respawning=true;Motor.InputSuspended=true;Intent="Eliminated — watching survivors";return;}
@@ -174,13 +174,14 @@ namespace DeadlyJenga.CastleBots
             var remaining=tripDestination-transform.position;
             bool needsDeparture=remaining.y< -3||
                 Motor.HasWalkableIsland&&Vector3.ProjectOnPlane(remaining,Vector3.up).sqrMagnitude>400;
-            if(hasObjective&&needsDeparture&&!CastleBotNavigation.ShouldStageAscent(transform.position,tripDestination,false)&&
+            if(needsDeparture&&!CastleBotNavigation.ShouldStageAscent(transform.position,tripDestination,false)&&
                 Time.time>=ascentCommittedUntil&&Time.time>=nextDeparture)
             {
                 nextDeparture=Time.time+3;
                 if(CastleBotJourneyPlanner.DepartureStage(this,tripDestination,out var departure,out var approach,out _))
                 {
-                    PushTransit(departure,25);Activity="Taking a descending exit route";
+                    if(hasObjective)PushTransit(departure,25);
+                    Activity="Taking a descending exit route";
                     if(CastleBotNavigation.Landing(Motor,departure,out var exitTop)&&CastleBotNavigation.Landing(Motor,approach,out var launchTop)&&CastleBotNavigation.Walkable(Motor,transform.position,launchTop.point)&&CastleBotNavigation.TryLink(Motor,launchTop.point,exitTop.point,out var exitRoute,out dropSpeed))
                     {
                         var exit=new CastleBotLanding{surface=exitTop.transform,body=exitTop.rigidbody,local=exitTop.transform.InverseTransformPoint(exitTop.point),route=exitRoute};
@@ -274,12 +275,21 @@ namespace DeadlyJenga.CastleBots
                 if(!objectiveReached){ObjectivesReached++;objectiveReached=true;}
                 command.look=Population.Session.world.Center-transform.position;return command;
             }
+            motor.ClimbLandingGoal=hasGoal&&goal.route==CastleBotRoute.Climb?goal.Point:null;
             if(hasGoal&&goal.route==CastleBotRoute.Climb)
             {
                 var end=goal.Point;
                 if(motor.Grounded&&Mathf.Abs(end.y-transform.position.y)<.3f&&Vector3.Distance(end,transform.position)<.5f){Arrived();return command;}
                 var flat=Vector3.ProjectOnPlane(end-transform.position,Vector3.up);
-                if(CastleBotNavigation.ClimbLink(motor,transform.position,end,out var face))
+                if(motor.Climbing)
+                {
+                    var normal=motor.ClimbNormal;
+                    var right=Vector3.Cross(Vector3.up,-normal).normalized;
+                    command.look=-normal;command.climbHeld=true;
+                    command.move=-normal+right*Mathf.Clamp(Vector3.Dot(flat,right)*2,-.75f,.75f);
+                    Intent="Climbing toward a landing";
+                }
+                else if(CastleBotNavigation.ClimbLink(motor,transform.position,end,out var face))
                 {
                     var normal=face.normal;command.look=-normal;command.climbHeld=true;
                     var stage=face.point+normal*(motor.Capsule.radius+.025f);stage.y=transform.position.y;
@@ -293,7 +303,6 @@ namespace DeadlyJenga.CastleBots
                         Intent="Climbing a real surface";
                     }
                 }
-                else if(motor.Climbing){command.look=-motor.ClimbNormal;command.climbHeld=true;command.move=-motor.ClimbNormal;}
                 else {hasGoal=false;journey.Clear();planner=null;RouteFailures++;nextPlan=Time.time+.2f;}
                 if(Time.time-goalSince>Mathf.Max(4,motor.climbGripSeconds+2)){hasGoal=false;journey.Clear();planner=null;RouteFailures++;}
                 return command;
@@ -389,10 +398,15 @@ namespace DeadlyJenga.CastleBots
                 }
                 if(goal.route==CastleBotRoute.Drop)pace=Mathf.Clamp(dropSpeed/Mathf.Max(.1f,motor.EffectiveWalkSpeed),.08f,1);
                 if(goal.route==CastleBotRoute.Vault)pace=Mathf.Clamp(dropSpeed/Mathf.Max(.1f,motor.EffectiveWalkSpeed),.08f,1);
-                if(goal.route==CastleBotRoute.Jump)
+                if(goal.route is CastleBotRoute.Jump or CastleBotRoute.Drop)
                 {
-                    float remaining=(motor.VerticalSpeed+Mathf.Sqrt(Mathf.Max(0,motor.VerticalSpeed*motor.VerticalSpeed+2*motor.gravity*(transform.position.y-destination.y))))/motor.gravity;
-                    if(remaining>.03f)pace=Mathf.Clamp01(distance/(motor.EffectiveWalkSpeed*remaining));
+                    float remaining=(motor.VerticalSpeed+Mathf.Sqrt(Mathf.Max(0,motor.VerticalSpeed*motor.VerticalSpeed+
+                        2*motor.gravity*(transform.position.y-destination.y))))/motor.gravity;
+                    if(remaining>.03f)
+                    {
+                        float time=destination.y<transform.position.y-1?Mathf.Max(.05f,remaining-.07f):remaining;
+                        pace=Mathf.Clamp01(distance/(motor.EffectiveWalkSpeed*time));
+                    }
                 }
             }
             command.move=direction*pace;

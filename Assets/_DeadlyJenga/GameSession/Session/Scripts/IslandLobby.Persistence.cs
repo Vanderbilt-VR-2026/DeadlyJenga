@@ -21,29 +21,27 @@ namespace DeadlyJenga.CastlePrototype
             nextVisitingBotRefresh=Time.unscaledTime+1;
             var frame=VisitOwner?.Modes?.Frame;
             if(frame==null)return;
+            if(lobbyBots==null)CreateLobbyPopulation();
+            if(lobbyBots==null)return;
+            lobbyBots.Running=true;
             seenVisitingBots.Clear();
             foreach(var row in frame.players)
             {
                 if(!row.bot||row.alive||row.dying||row.role!="spectator"||!seenVisitingBots.Add(row.id))continue;
                 if(!visitingBots.ContainsKey(row.id))
                 {
-                    var bot=Instantiate(catalog.survivorPrefab,transform).GetComponent<IPlayableCharacter>();
-                    if(bot==null)continue;
-                    var root=bot.gameObject;
+                    var root=lobbyBots.SpawnOne();
+                    if(!root)continue;
                     root.name=row.name;
-                    bot.InputSuspended=true;
-                    if(bot.ViewCamera)bot.ViewCamera.enabled=false;
-                    foreach(var listener in root.GetComponentsInChildren<AudioListener>(true))listener.enabled=false;
+                    if(VisitOwner.Modes.FindActor(row.id)?.gameObject.GetComponent<IAvatarAppearance>() is { } source&&
+                        root.GetComponent<IAvatarAppearance>() is { } appearance)
+                        appearance.ApplyAppearance(source.Appearance);
                     foreach(var component in root.GetComponentsInChildren<MonoBehaviour>(true))
                     {
                         if(component is INetworkActor actor)NetworkActors.Local.Remove(actor);
                         if(component is IMovementState mover)Tracked.Movers.Remove(mover);
                     }
                     root.GetComponent<IModeActor>()?.SetIdentity("lobby-bot-"+row.id,row.name,-1,row.color);
-                    int slot=seenVisitingBots.Count+3;
-                    if(TryMarinaSpawnPose(slot,out var pose,out _,root)!=MarinaSpawnResult.Accepted)
-                        pose=new CastleLanProtocol.Pose(SpawnPoint(slot),Quaternion.identity);
-                    bot.Place(pose.position,pose.rotation);
                     visitingBots.Add(row.id,root);
                 }
                 if(seenVisitingBots.Count>=8)break;
@@ -59,7 +57,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ClearVisitingBots()
         {
-            foreach(var bot in visitingBots.Values)if(bot)Destroy(bot);
+            if(visitingBots.Count==0)return;
+            if(lobbyBots!=null){lobbyBots.Running=false;lobbyBots.Clear();}
             visitingBots.Clear();
         }
         void OnEnable()=>GameEvents.HomeStarted+=HomeOpened;

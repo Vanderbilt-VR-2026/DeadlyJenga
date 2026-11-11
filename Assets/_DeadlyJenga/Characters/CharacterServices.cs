@@ -47,7 +47,8 @@ namespace DeadlyJenga.CharacterNetwork
             {
                 Player = setup.player as CastleSurvivor, Hand = setup.hand as CastleHandActor,
                 survivorPrefab = setup.survivorPrefab as CastleSurvivor, handPrefab = setup.handPrefab as CastleHandActor,
-                Bots = bots, HandBots = handBots, isPlayingHand = setup.isPlayingHand
+                Bots = bots, HandBots = handBots, isPlayingHand = setup.isPlayingHand,
+                lobbyWorld=host.GetComponent<IWorldQuery>()
             };
             bots.Initialize(world); handBots.Initialize(world);
             survivors = bots; hands = handBots;

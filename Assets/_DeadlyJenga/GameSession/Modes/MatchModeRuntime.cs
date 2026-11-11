@@ -352,7 +352,8 @@ namespace DeadlyJenga.Modes
         public ModeRules RulesFor(GameObject actor)
         {
             if (session && session.VisitingLobby && actor &&
-                actor.GetComponent<IModeActor>()?.ActorId=="lobby-visitor")
+                actor.GetComponent<IModeActor>()?.ActorId is string lobbyId&&
+                (lobbyId=="lobby-visitor"||lobbyId.StartsWith("lobby-bot-",StringComparison.Ordinal)))
                 return new ModeRules { island=IslandRule.Walkable, deathEnabled=false };
             string id=actor&&actorIds.TryGetValue(actor,out var found)?found:null;
             if(id!=null&&ruleCache.TryGetValue(id,out var cached))return cached;

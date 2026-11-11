@@ -163,7 +163,7 @@ namespace DeadlyJenga.CastleBots
             stage=default;approach=default;traversal=CastleBotRoute.Walk;
             var graph=Geometry(bot.Population.Session.world);var feet=bot.transform.position;
             var toward=Vector3.ProjectOnPlane(destination-feet,Vector3.up).normalized;
-            if(toward.sqrMagnitude>.01f)
+            if(toward.sqrMagnitude>.01f&&feet.y-destination.y<8)
             {
                 for(int bearing=0;bearing<5;bearing++)for(int length=0;length<4;length++)
                 {
@@ -185,36 +185,59 @@ namespace DeadlyJenga.CastleBots
                 }
             }
             var lower=new List<CastleBotLanding>();
+            float maximumDrop=CastleBotNavigation.MaximumDrop(bot.Motor,true);
             foreach(var node in graph.nodes)
             {
                 var p=node.Point;float drop=feet.y-p.y;
-                if(drop<.6f||drop>CastleBotNavigation.MaximumDrop(bot.Motor)||Vector3.ProjectOnPlane(p-feet,Vector3.up).sqrMagnitude>20*20)continue;
-                var candidate=node;candidate.score=Vector3.ProjectOnPlane(p-destination,Vector3.up).magnitude*.3f+Vector3.Distance(feet,p)*.1f+drop*.1f;
+                if(drop<.6f||drop>maximumDrop||p.y<destination.y-8||
+                    Vector3.ProjectOnPlane(p-feet,Vector3.up).sqrMagnitude>20*20)continue;
+                var candidate=node;candidate.score=Vector3.Distance(p,destination)*.7f+Vector3.Distance(feet,p)*.1f;
                 lower.Add(candidate);
             }
             lower.Sort((a,b)=>a.score.CompareTo(b.score));
-            int inspected=0,links=0;
-            foreach(var candidate in lower)
+            var launchPoints=new List<Vector3>{feet};
+            var feetCell=Cell(feet);
+            for(int x=-3;x<=3;x++)for(int y=-1;y<=1;y++)for(int z=-3;z<=3;z++)
             {
-                if(inspected++>1024||links>=32)break;
-                var end=candidate.Point;
-                if(!BotTraversalCache.Landing(bot.Motor,end))continue;
-                var cell=Cell(end);
-                for(int x=-2;x<=2;x++)for(int y=0;y<=4;y++)for(int z=-2;z<=2;z++)
+                if(!graph.cells.TryGetValue(feetCell+new Vector3Int(x,y,z),out var nodes))continue;
+                foreach(int index in nodes)
                 {
-                    if(!graph.cells.TryGetValue(cell+new Vector3Int(x,y,z),out var nodes))continue;
-                    foreach(int index in nodes)
-                    {
-                        var start=graph.nodes[index].Point;
-                        if(Mathf.Abs(start.y-feet.y)>.2f||Vector3.ProjectOnPlane(start-end,Vector3.up).sqrMagnitude>49||!BotTraversalCache.Landing(bot.Motor,start))continue;
-                        if(!CastleBotNavigation.Walkable(bot.Motor,feet,start)&&!bot.Population.WalkingRoutes.TryWaypoint(bot,start,out _))continue;
-                        if(++links>32){bot.RecoveryDiagnostics="departure: link limit; lower="+lower.Count+" inspected="+inspected;return false;}
-                        if(!BotTraversalCache.TryLink(bot.Motor,start,end,out var route,out _))continue;
-                        stage=end;approach=start;traversal=route;bot.RecoveryDiagnostics="departure: "+start+" -> "+end+" inspected="+inspected+" links="+links;return true;
-                    }
+                    var p=graph.nodes[index].Point;
+                    if(Mathf.Abs(p.y-feet.y)>.25f||(p-feet).sqrMagnitude>64||(p-feet).sqrMagnitude<.06f)continue;
+                    launchPoints.Add(p);
                 }
             }
-            bot.RecoveryDiagnostics="departure: no route; lower="+lower.Count+" inspected="+inspected+" links="+links;
+            int links=0;
+            var inspected=new List<Vector3>(12);
+            int candidatesChecked=0;
+            foreach(var candidate in lower)
+            {
+                if(links>=48||inspected.Count>=24||candidatesChecked++>=384)break;
+                var end=candidate.Point;
+                if(inspected.Exists(point=>(point-end).sqrMagnitude<.8f)||
+                    !BotTraversalCache.Landing(bot.Motor,end))continue;
+                inspected.Add(end);
+                float fall=feet.y-end.y;
+                float range=Mathf.Min(14,bot.Motor.EffectiveWalkSpeed*(Mathf.Sqrt(2*fall/bot.Motor.gravity)+.48f));
+                launchPoints.Sort((a,b)=>LaunchScore(a).CompareTo(LaunchScore(b)));
+                float LaunchScore(Vector3 point)=>Vector3.ProjectOnPlane(point-end,Vector3.up).sqrMagnitude+(point-feet).sqrMagnitude*.28f;
+                int forLanding=0;
+                foreach(var start in launchPoints)
+                {
+                    if(Vector3.ProjectOnPlane(start-end,Vector3.up).sqrMagnitude>range*range)continue;
+                    if(start!=feet&&(!BotTraversalCache.Landing(bot.Motor,start)||
+                        !CastleBotNavigation.Walkable(bot.Motor,feet,start)))continue;
+                    links++;
+                    if(BotTraversalCache.TryLink(bot.Motor,start,end,out var route,out _))
+                    {
+                        stage=end;approach=start;traversal=route;
+                        bot.RecoveryDiagnostics="departure: "+start+" -> "+end+" via "+route;
+                        return true;
+                    }
+                    if(++forLanding>=6||links>=48)break;
+                }
+            }
+            bot.RecoveryDiagnostics="departure: no route; lower="+lower.Count+" inspected="+inspected.Count+" links="+links;
             return false;
         }
         struct SearchNode {public float cost;public int parent;public CastleBotRoute route;}

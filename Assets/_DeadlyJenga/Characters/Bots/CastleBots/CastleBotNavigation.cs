@@ -90,10 +90,10 @@ namespace DeadlyJenga.CastleBots
             if(abilities!=null)foreach(var ability in abilities)if(ability.CanReach(motor,end)){route=CastleBotRoute.Ability;return true;}
             return false;
         }
-        public static float MaximumDrop(CastleSurvivor motor)
+        public static float MaximumDrop(CastleSurvivor motor,bool extended=false)
         {
             var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
-            if(rules!=null&&!rules.fallDamage)return 12;
+            if(rules!=null&&!rules.fallDamage)return extended?36:12;
             return rules!=null?Mathf.Max(.5f,rules.fallDamageStart*.9f):motor.jumpHeight+motor.StandingHeight*2;
         }
         // Evaluates hypothetical graph edges as well as the bot's current position.
@@ -104,12 +104,18 @@ namespace DeadlyJenga.CastleBots
             float rise=end.y-start.y,distance=Vector3.ProjectOnPlane(end-start,Vector3.up).magnitude;
             if(distance<.05f||motor.gravity<=0||motor.EffectiveWalkSpeed<=0)return false;
             if(Mathf.Abs(rise)<Mathf.Max(.18f,distance*1.4f)&&Walkable(motor,start,end))return true;
-            if(rise>0&&ClimbLink(motor,start,end,out _)){route=CastleBotRoute.Climb;speed=motor.climbSpeed;return true;}
-            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f||rise< -MaximumDrop(motor))return false;
+            bool TryClimb(out CastleBotRoute climbRoute,out float climbSpeed)
+            {
+                climbRoute=CastleBotRoute.Climb;climbSpeed=motor.climbSpeed;
+                return rise>0&&ClimbLink(motor,start,end,out _);
+            }
+            if(rise>motor.jumpHeight+motor.vaultMaxRise-.15f)
+                return TryClimb(out route,out speed);
+            if(rise< -MaximumDrop(motor,true))return false;
             var rules=MatchRuntime.Current?.RulesFor(motor.gameObject);
             if(rise<-.3f&&DropArc(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
             if(rise<-.3f&&(rules==null||rules.canVault)&&DropCatch(motor,start,end,out speed)){route=CastleBotRoute.Drop;return true;}
-            if(rules!=null&&!rules.canJump)return false;
+            if(rules!=null&&!rules.canJump)return TryClimb(out route,out speed);
             speed=motor.EffectiveWalkSpeed;
             float v=Mathf.Sqrt(2*motor.gravity*motor.jumpHeight),disc=v*v-2*motor.gravity*rise;
             if(disc>=0)
@@ -121,7 +127,7 @@ namespace DeadlyJenga.CastleBots
             // A real face may be out of reach at takeoff but reachable near the apex.
             // Search the actual airborne intercept instead of requiring a ground-level face.
             if((rules==null||rules.canVault)&&VaultIntercept(motor,start,end,v,out float interceptSpeed)){route=CastleBotRoute.Vault;speed=interceptSpeed;return true;}
-            return false;
+            return TryClimb(out route,out speed);
         }
         public static bool ClimbLink(CastleSurvivor motor,Vector3 start,Vector3 end,out RaycastHit face)
         {

@@ -98,7 +98,7 @@ namespace DeadlyJenga.Presentation
             podiumMount.SetParent(root.transform,false);
             podiumMount.anchoredPosition=new Vector2(658,0);
             podiumMount.localScale=Vector3.one*.78f;
-            podium=new CandyScorePodium(transform,podiumMount,Vector2.zero);
+            podium=new CandyScorePodium(transform,podiumMount,Vector2.zero,retainAssets:true);
             Draw();
         }
 

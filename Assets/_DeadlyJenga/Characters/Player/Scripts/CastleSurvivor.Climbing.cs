@@ -201,11 +201,36 @@ namespace DeadlyJenga.CastlePrototype
             return !collider||!Climbables.TryGet(collider,out var block)||!block.Body||
                 (block.Body.linearVelocity.magnitude<.7f&&block.Body.angularVelocity.magnitude<.4f);
         }
+        internal Vector3? ClimbLandingGoal {get;set;}
         bool ClimbMantle()
         {
-            if (modeRules?.canVault == false) return false;
-            // Use wall-facing probes without turning the player's view (especially the HMD).
-            if(!TryFindLedge(out var top,out var destination,-climbNormal))return false;
+            if(modeRules?.canVault==false)return false;
+            if(ClimbLandingGoal is Vector3 goal)
+            {
+                var offset=goal-Feet;
+                if(offset.y<-.1f||offset.y>vaultMaxRise+.15f)return false;
+                var heading=Vector3.ProjectOnPlane(offset,Vector3.up);
+                if(TryFindLedge(out var targetTop,out var targetLanding,heading)&&
+                    Mathf.Abs(targetTop.point.y-goal.y)<.45f)
+                    return FinishClimbMantle(targetTop,targetLanding);
+                if(TryFindLedge(out targetTop,out targetLanding,-climbNormal)&&
+                    Mathf.Abs(targetTop.point.y-goal.y)<.45f)
+                    return FinishClimbMantle(targetTop,targetLanding);
+                if(heading.sqrMagnitude>1.6f*1.6f||!Physics.Raycast(goal+Vector3.up*.3f,Vector3.down,
+                    out targetTop,.7f,TraversalCollision.Mask,QueryTriggerInteraction.Ignore)||
+                    targetTop.normal.y<.85f||Mathf.Abs(targetTop.point.y-goal.y)>.2f)return false;
+                var feet=Feet;
+                var landing=targetTop.point+Vector3.up*.06f;
+                var raised=new Vector3(feet.x,landing.y+.1f,feet.z);
+                if(!ClearCapsule(landing)||!ClearPath(feet+Vector3.up*.04f,raised)||!ClearPath(raised,landing))return false;
+                candidateGrip=climbCollider.ClosestPoint(new Vector3(feet.x,targetTop.point.y,feet.z));
+                candidateNormal=targetTop.normal;candidateForward=heading.normalized;
+                return FinishClimbMantle(targetTop,landing-(feet-transform.position));
+            }
+            return TryFindLedge(out var top,out var destination,-climbNormal)&&FinishClimbMantle(top,destination);
+        }
+        bool FinishClimbMantle(RaycastHit top,Vector3 destination)
+        {
             Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;vrClimbVelocity=Vector3.zero;
             BeginVault(top,destination);return true;
         }
