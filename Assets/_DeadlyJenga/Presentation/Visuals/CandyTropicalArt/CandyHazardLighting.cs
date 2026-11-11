@@ -9,6 +9,8 @@ namespace DeadlyJenga.CandyArt
     public sealed partial class CandyHazardLighting : MonoBehaviour
     {
         const int VariantLimit=128,RendererLimit=8192;
+        const float OutageFogEnd=4.5f;
+        static readonly Color OutageFogColor=new Color(.006f,.004f,.016f);
         sealed class Look { public Material[] before,applied;public int seen; }
         readonly Dictionary<Renderer,Look> looks=new Dictionary<Renderer,Look>();
         readonly Dictionary<(Material,int,Vector3,Vector3),Material> neon=new Dictionary<(Material,int,Vector3,Vector3),Material>();
@@ -62,11 +64,11 @@ namespace DeadlyJenga.CandyArt
             if(Shader.GetGlobalFloat("_CandyOutage")!=1)baselineOutage=Shader.GetGlobalFloat("_CandyOutage");
             if(outageSun!=sun){RestoreOutageSun();outageSun=sun;if(outageSun)baselineIntensity=outageSun.intensity;}
             else if(outageSun&&(!globalsWritten||!Mathf.Approximately(outageSun.intensity,writtenIntensity)))baselineIntensity=outageSun.intensity;
-            if(!darkSky){var skyShader=Resources.Load<Shader>("CandyScenery/CandyScenicSky");if(skyShader){darkSky=new Material(skyShader);darkSky.SetColor("_Zenith",new Color(.012f,.018f,.065f));darkSky.SetColor("_Horizon",new Color(.08f,.12f,.23f));darkSky.SetColor("_Cloud",new Color(.07f,.10f,.18f));darkSky.SetColor("_SunColor",Color.black);darkSky.SetFloat("_CloudCover",.2f);darkSky.SetFloat("_Stars",.3f);}}
+            if(!darkSky){var skyShader=Resources.Load<Shader>("CandyScenery/CandyScenicSky");if(skyShader){darkSky=new Material(skyShader);darkSky.SetColor("_Zenith",new Color(.005f,.004f,.013f));darkSky.SetColor("_Horizon",OutageFogColor);darkSky.SetColor("_Cloud",new Color(.009f,.007f,.022f));darkSky.SetColor("_SunColor",Color.black);darkSky.SetFloat("_CloudCover",.2f);darkSky.SetFloat("_Stars",.04f);}}
             if(darkSky)RenderSettings.skybox=darkSky;
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientIntensity=writtenAmbient=1;
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;
-            RenderSettings.fogColor=new Color(.006f,.004f,.016f);RenderSettings.fogStartDistance=.65f;RenderSettings.fogEndDistance=2.35f;
+            RenderSettings.fogColor=OutageFogColor;RenderSettings.fogStartDistance=.65f;RenderSettings.fogEndDistance=OutageFogEnd;
             RenderSettings.ambientSkyColor=writtenSky=new Color(.014f,.017f,.030f);
             RenderSettings.ambientEquatorColor=writtenEquator=new Color(.009f,.012f,.024f);
             RenderSettings.ambientGroundColor=writtenGround=new Color(.007f,.006f,.014f);
@@ -77,7 +79,7 @@ namespace DeadlyJenga.CandyArt
         void EndOutage()
         {
             if(!lit)return;lit=false;
-            if(RenderSettings.fogMode==FogMode.Linear && Mathf.Approximately(RenderSettings.fogEndDistance,2.35f))
+            if(RenderSettings.fogMode==FogMode.Linear && Mathf.Approximately(RenderSettings.fogEndDistance,OutageFogEnd))
             {
                 RenderSettings.fog=savedFog;RenderSettings.fogMode=savedFogMode;RenderSettings.fogColor=savedFogColor;
                 RenderSettings.fogStartDistance=savedFogStart;RenderSettings.fogEndDistance=savedFogEnd;

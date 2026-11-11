@@ -75,8 +75,10 @@ Shader "Candy Tropical/Neon Outage"
     half pulse=.88+.12*sin(_Time.y*2.2+i.world.x*.12+i.world.z*.09);
     half trim=(broad*.16+core*.84)*nearby*lerp(.43,1.8,_Filled)*pulse;
     half3 result=night+emitter*(trim*(1-_Character)+fresnel*(.12+_Character*.28));
-    float visibility=1-smoothstep(.85,2.35,distance(i.world,_WorldSpaceCameraPos));
-    return half4(lerp(half3(.006,.004,.016),result,visibility),1);
+    // Attenuate the shaded surface and trim together so darkness hides the block without flattening it.
+    float darkness=max(0,distance(i.world,_WorldSpaceCameraPos)-.65);
+    float visibility=exp2(-.9*darkness*darkness);
+    return half4(lerp(unity_FogColor.rgb,result,visibility),1);
    }
    ENDHLSL
   }

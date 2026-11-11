@@ -20,7 +20,8 @@ namespace DeadlyJenga.CandyArt
         Texture3D stormNoise;
         Mesh rock,quad;Material stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble;
         readonly List<Matrix4x4> windPuffs=new List<Matrix4x4>(112);
-        readonly List<Matrix4x4> acidStreaks=new List<Matrix4x4>(420);
+        const int AcidStreakLimit=960,MobileAcidStreakLimit=640;
+        readonly List<Matrix4x4> acidStreaks=new List<Matrix4x4>(AcidStreakLimit);
         IDisasterState drawingSource;
         readonly List<Matrix4x4> candyChips=new List<Matrix4x4>(384);
         Mesh shard; Material shardMaterial;
@@ -57,7 +58,7 @@ namespace DeadlyJenga.CandyArt
             smoke=ObjectMaterial("CandyDisasterSmoke",new Color(.24f,.27f,.3f,.38f));
             dust=ObjectMaterial("CandyDisasterSmoke",new Color(.49f,.40f,.29f,.28f));
             flame=ObjectMaterial("CandyDisasterSmoke",new Color(1,.4f,.05f,.86f));flame.SetFloat("_Flame",1);
-            acid=ObjectMaterial("CandyDisasterSmoke",new Color(.56f,.86f,.12f,.8f));
+            acid=ObjectMaterial("CandyDisasterSmoke",new Color(.64f,.95f,.17f,.88f));
             gravityBubble=ObjectMaterial("CandyGravityBubble",new Color(.35f,.6f,1,.5f));
             storm=ObjectMaterial("CandyStormFunnel",new Color(.22f,.27f,.32f,.88f));
             compactStorm=Application.isMobilePlatform;
@@ -452,8 +453,16 @@ namespace DeadlyJenga.CandyArt
         }
         void Rain(DisasterFrame f)
         {
-            if(f.values==null||f.values.Length<2)return;int count=Mathf.Clamp(Mathf.RoundToInt(f.values[1]*.7f),10,420);
-            for(int i=0;i<count;i++){float h=Mathf.Repeat(Hash(i+300)-Time.time*.45f,1);var p=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(h-.4f)*(f.size.y+30),(Hash(i+800)-.5f)*f.size.z);Puff(acidStreaks,p,.045f,.65f+Hash(i+33)*.65f,-7);}
+            if(f.values==null||f.values.Length<2)return;
+            int limit=Application.isMobilePlatform?MobileAcidStreakLimit:AcidStreakLimit;
+            int count=Mathf.Min(limit-acidStreaks.Count,Mathf.RoundToInt(f.values[1]*3.5f));
+            for(int i=0;i<count;i++)
+            {
+                float h=Mathf.Repeat(Hash(i+300)-Time.time*.45f,1);
+                var position=f.center+new Vector3((Hash(i)-.5f)*f.size.x,(h-.4f)*(f.size.y+30),(Hash(i+800)-.5f)*f.size.z);
+                float size=Hash(i+33);
+                Puff(acidStreaks,position,.14f+size*.075f,1.55f+size*1.15f,-7);
+            }
         }
         void ClearObjects(){meteorLooks.Clear();fragments.Clear();lastTornado=null;ReleaseTornadoDepth();}
         void DestroyObjects(){foreach(var m in new[]{stone,chipMaterial,smoke,flame,dust,storm,stormMist,stormRibbon,stormFlash,acid,gravityBubble,tornadoSpray,tornadoFoam,tornadoRemnants})if(m)Destroy(m);if(rock)Destroy(rock);if(quad)Destroy(quad);if(stormNoise)Destroy(stormNoise);if(stormRibbons)Destroy(stormRibbons);}
