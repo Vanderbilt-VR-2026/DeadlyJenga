@@ -6,6 +6,7 @@ Shader "Candy Tropical/Sand"
         _WaterHeight("Water surface",Float)=.08
         _Grain("Sand grain",Range(0,1))=.55
         _ScenicStyle("Scenic style",Float)=0
+        [HideInInspector] _CatwalksCoast("Catwalks beach",Float)=0
     }
     SubShader
     {
@@ -24,7 +25,7 @@ Shader "Candy Tropical/Sand"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
-            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle;
+            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle,_CatwalksCoast;
             CBUFFER_END
             struct Attributes{float4 positionOS:POSITION;float3 normalOS:NORMAL;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float fog:TEXCOORD2;UNITY_VERTEX_OUTPUT_STEREO};
@@ -38,6 +39,16 @@ Shader "Candy Tropical/Sand"
                 float coverage=1-smoothstep(.45,2,fwidth(phase));
                 slope+=direction*c*strength*coverage;
                 return s*coverage;
+            }
+            float ShoreCaustics(float2 position)
+            {
+                float t=_Time.y*.54;
+                float2 warped=position*3.1+float2(sin(position.y*1.12+t),sin(position.x*1.22-t))*.83;
+                float first=sin(warped.x+t)+sin(warped.y-t*.76);
+                float second=sin(dot(warped,float2(.47,.88))+t*.61);
+                float stripe=abs(first+second*.54);
+                float focus=1-smoothstep(.026,.18,stripe);
+                return focus*(.55+.45*saturate(second));
             }
             half4 frag(Varyings i):SV_Target
             {
@@ -80,6 +91,13 @@ Shader "Candy Tropical/Sand"
                 float nh=saturate(dot(n,normalize(view+light.direction)));
                 float sheen=pow(nh,10)*.035+pow(nh,36)*wet*.18;
                 color=color*illumination+light.color*sheen*light.shadowAttenuation;
+                if(_CatwalksCoast>.5)
+                {
+                    float fade=(1-smoothstep(1.1,4.8,submerged))*(1-smoothstep(17,73,distanceToEye));
+                    float glimmer=ShoreCaustics(p)*fade*smoothstep(-.04,.21,submerged);
+                    color=lerp(color*float3(1.16,1.05,.83),color*float3(.40,.82,.80),saturate(submerged*.20));
+                    color+=float3(1,.84,.48)*glimmer*.36*light.shadowAttenuation*saturate(light.color.r);
+                }
                 return half4(MixFog(color,i.fog),1);
             }
             ENDHLSL

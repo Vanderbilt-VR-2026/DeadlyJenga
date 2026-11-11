@@ -16,6 +16,9 @@ namespace DeadlyJenga.CandyArt
         Mesh owned;Texture2D heights;int signature;
         public Texture2D HeightMap=>heights;
         public Vector2 HalfSize{get;private set;}
+        internal bool CatwalksBeach { get; set; }
+        internal float BeachWaterOffset { get; set; }
+        Vector2 coastHalf;
         public float SampleHeight(Vector2 p)=>SurfaceHeight(p);
         struct Foot {public Vector2 center,half;public Quaternion rotation;}
         readonly List<Foot> feet=new List<Foot>();
@@ -26,14 +29,17 @@ namespace DeadlyJenga.CandyArt
         public void Refresh()
         {
             if(!profile)return;var shape=map?Map:null;
-            int hash=profile.terrainResolution;
+            int hash=profile.terrainResolution*2+(CatwalksBeach?1:0);
             void Hash(float value){hash=hash*31+value.GetHashCode();}
             Hash(profile.sandMargin);Hash(profile.sandRelief);Hash(profile.sandDepth);Hash(profile.sandShoreWidth);Hash(profile.islandRadius);
             if(shape!=null)Hash(shape.FootprintVersion);
+            if(CatwalksBeach) Hash(BeachWaterOffset);
             if(owned&&heights&&hash==signature)return;
             Release();feet.Clear();float half=shape!=null?shape.FootprintHalfSize:profile.islandRadius*.65f;
             // A softly oval natural island has room at its shoulders while covering the castle's corners.
-            HalfSize=new Vector2(half+profile.sandMargin+2.7f,half+profile.sandMargin+2.3f)+Vector2.one*profile.sandShoreWidth;
+            coastHalf=new Vector2(half+profile.sandMargin+2.7f,half+profile.sandMargin+2.3f);
+            if(CatwalksBeach) coastHalf+=Vector2.one*1.25f;
+            HalfSize=coastHalf+Vector2.one*(CatwalksBeach?25f:profile.sandShoreWidth);
             if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
                 foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
             BuildMesh();signature=hash;
@@ -52,7 +58,7 @@ namespace DeadlyJenga.CandyArt
         }
         public float ShapeDistance(Vector2 p)
         {
-            Vector2 half=HalfSize-Vector2.one*profile.sandShoreWidth;
+            Vector2 half=coastHalf;
             Vector2 q=new Vector2(Mathf.Abs(p.x)/half.x,Mathf.Abs(p.y)/half.y);
             float coast=(Mathf.Pow(q.x*q.x*q.x+q.y*q.y*q.y,1f/3)-1)*Mathf.Min(half.x,half.y);
             float a=Mathf.Atan2(p.y,p.x);
@@ -68,11 +74,20 @@ namespace DeadlyJenga.CandyArt
             float n=Mathf.PerlinNoise(p.x*.32f+21.7f,p.y*.32f+9.1f)*.72f+Mathf.PerlinNoise(p.x*.67f+8,p.y*.67f+31)*.28f;
             // Rounded dips leave raised molded ridges at support level; terrain never intrudes into a player or block.
             float relief=-profile.sandRelief*(.12f+.88f*n)*reliefMask;
+            if(CatwalksBeach)
+            {
+                float dryBeach=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(-1.8f,1.7f,edge));
+                float dryLevel=Mathf.Max(.06f,BeachWaterOffset+.16f);
+                float shallows=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.65f,7.6f,edge));
+                float drop=Mathf.SmoothStep(0,1,Mathf.InverseLerp(5.5f,22.5f,edge));
+                float bed=-1.4f*shallows-4.8f*drop;
+                return dryLevel*dryBeach+bed+relief*.21f*dryBeach+(n-.5f)*.24f*shallows;
+            }
             return bank+relief*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,profile.sandShoreWidth,edge)));
         }
         void BuildMesh()
         {
-            int resolution=Mathf.Clamp(profile.terrainResolution,48,160),row=resolution+1;
+            int resolution=CatwalksBeach?160:Mathf.Clamp(profile.terrainResolution,48,160),row=resolution+1;
             var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();var samples=new float[row*row];
             for(int z=0;z<=resolution;z++)for(int x=0;x<=resolution;x++)
             {
@@ -82,7 +97,7 @@ namespace DeadlyJenga.CandyArt
             for(int z=0;z<resolution;z++)for(int x=0;x<resolution;x++)
             {int a=z*row+x,b=a+1,c=a+row,d=c+1;triangles.Add(a);triangles.Add(c);triangles.Add(b);triangles.Add(b);triangles.Add(c);triangles.Add(d);}
             var border=new List<int>();for(int x=0;x<resolution;x++)border.Add(x);for(int z=0;z<resolution;z++)border.Add(z*row+resolution);for(int x=resolution;x>0;x--)border.Add(resolution*row+x);for(int z=resolution;z>0;z--)border.Add(z*row);
-            int bottom=vertices.Count;float floor=-profile.sandDepth-1.2f;
+            int bottom=vertices.Count;float floor=CatwalksBeach?-7.8f:-profile.sandDepth-1.2f;
             foreach(int id in border){var v=vertices[id];v.y=floor;vertices.Add(v);uv.Add(Vector2.zero);}
             int center=vertices.Count;vertices.Add(new Vector3(0,floor,0));uv.Add(Vector2.zero);
             for(int i=0;i<border.Count;i++)

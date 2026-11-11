@@ -1,3 +1,4 @@
+using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -13,7 +14,11 @@ namespace DeadlyJenga.CandyArt
         public bool applyLighting;
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
-        bool openWater;
+        bool openWater,coastReady;
+        CandyCatwalksCoast catwalksCoast;
+        IWorldQuery coastWorld;
+        Shader coastShader;
+        static readonly int CoastEnabled = Shader.PropertyToID("_CatwalksCoast");
         internal DeadlyJenga.Core.IWorldQuery WorldOverride { get; set; }
 
         internal static CandyEnvironment ForMap(Component map)
@@ -25,12 +30,49 @@ namespace DeadlyJenga.CandyArt
             return null;
         }
         void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyWaveContactVisual>())gameObject.AddComponent<CandyWaveContactVisual>();if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();if(!GetComponent<CandySceneSkins>())gameObject.AddComponent<CandySceneSkins>();} Refresh(); }
-        void Update() { if(Application.isPlaying){if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
+        void Update() { if(Application.isPlaying){coastReady=true;if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
+        void OnDisable()
+        {
+            coastReady=false;
+            ReleaseCoast();
+        }
+
+        void ReleaseCoast()
+        {
+            catwalksCoast?.Dispose();
+            catwalksCoast=null;
+            coastWorld=null;
+            if(!waterRenderer) return;
+            properties ??=new MaterialPropertyBlock();
+            waterRenderer.GetPropertyBlock(properties);
+            properties.SetFloat(CoastEnabled,0);
+            waterRenderer.SetPropertyBlock(properties);
+        }
+
+        void RefreshCoast(IWorldQuery world,CandySandbar terrain,Vector3 origin,float waterLevel)
+        {
+            bool enabled=Application.isPlaying && coastReady && isActiveAndEnabled && WorldOverride==null && !openWater && terrain && terrain.HeightMap &&
+                world!=null && MatchChoices.MapId=="mode-castle-catwalks";
+            if(!enabled || !ReferenceEquals(coastWorld,world))
+            {
+                if(catwalksCoast!=null) ReleaseCoast();
+                if(!enabled) return;
+                coastWorld=world;
+                if(!coastShader) coastShader=Resources.Load<Shader>("CandyScenery/CandyCatwalksCoast");
+                if(coastShader) catwalksCoast=new CandyCatwalksCoast(transform,terrain,origin,waterLevel,coastShader);
+            }
+            catwalksCoast?.Animate();
+        }
+
         public void Refresh()
         {
             if(!profile || !waterRenderer || !sandRenderer) return;
             var world=WorldOverride??DeadlyJenga.Core.Services.World;
-            if (WorldOverride==null && world is Component candidate && candidate.gameObject.scene!=gameObject.scene) return;
+            if (WorldOverride==null && world is Component candidate && candidate.gameObject.scene!=gameObject.scene)
+            {
+                if(catwalksCoast!=null) ReleaseCoast();
+                return;
+            }
             if(Application.isPlaying && world!=null && (!ReferenceEquals(activeWorld,world) ||
                 (openWater && (!foundation || !foundation.gameObject.activeInHierarchy))))
             {
@@ -74,19 +116,22 @@ namespace DeadlyJenga.CandyArt
             var terrain=sandRenderer.GetComponent<CandySandbar>();
             if(terrain&&!openWater)
             {
+                terrain.CatwalksBeach=Application.isPlaying && WorldOverride==null && MatchChoices.MapId=="mode-castle-catwalks";
+                terrain.BeachWaterOffset=waterLevel-sandTop;
                 terrain.profile=profile;var baseline=GetComponent<CandyArtBaseline>();
                 if(baseline)terrain.map=baseline.map;
                 else if(foundation)terrain.map=foundation.GetComponentInParent<DeadlyJenga.Core.IMapFootprint>() as MonoBehaviour;
                 terrain.Refresh();sandRenderer.transform.localScale=Vector3.one;
             }
             else sandRenderer.transform.localScale=new Vector3(radius*2*profile.islandAspect.x,1,radius*2*profile.islandAspect.y);
+            RefreshCoast(world,terrain,origin,waterLevel);
             if(waterRenderer.sharedMaterial!=profile.water)waterRenderer.sharedMaterial=profile.water;
             if(sandRenderer.sharedMaterial!=profile.sand)sandRenderer.sharedMaterial=profile.sand;
             properties ??=new MaterialPropertyBlock();
             properties.SetVector("_Island",new Vector4(origin.x,origin.z,radius*profile.islandAspect.x,radius*profile.islandAspect.y));
             properties.SetFloat("_Submersion",waterLevel-sandTop);
             properties.SetFloat("_SandTop",sandTop);
-            properties.SetFloat("_SandDepth",profile.sandDepth);
+            properties.SetFloat("_SandDepth",catwalksCoast!=null?6.2f:profile.sandDepth);
             properties.SetFloat("_Plateau",profile.sandPlateau);
             properties.SetFloat("_WaterHeight",waterLevel);
             properties.SetFloat("_CoastalDetail",openWater?1:0);
@@ -107,10 +152,14 @@ namespace DeadlyJenga.CandyArt
             properties.SetFloat("_WaveSpeed",profile.waveSpeed);
             properties.SetFloat("_WaveChop",profile.waveChop);
             if(profile.sky&&profile.sky.HasProperty("_Horizon"))properties.SetColor("_Horizon",profile.sky.GetColor("_Horizon"));
-            waterRenderer.SetPropertyBlock(properties);
+            if(catwalksCoast!=null) catwalksCoast.SetWaterProperties(properties);
+            else properties.SetFloat(CoastEnabled,0);
             sandRenderer.SetPropertyBlock(properties);
+            waterRenderer.SetPropertyBlock(properties);
             if(!applyLighting) return;
-            if(RenderSettings.skybox!=profile.sky)RenderSettings.skybox=profile.sky;
+            Material sky=catwalksCoast!=null && CandySceneSkins.Selected==CandySceneSkin.TropicalDay?
+                catwalksCoast.DaySky(profile.sky):profile.sky;
+            if(RenderSettings.skybox!=sky)RenderSettings.skybox=sky;
             RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.55f,.72f,.9f);
             RenderSettings.ambientEquatorColor=new Color(.43f,.57f,.64f);

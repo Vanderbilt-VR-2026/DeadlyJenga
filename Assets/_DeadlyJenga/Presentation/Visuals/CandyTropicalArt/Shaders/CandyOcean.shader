@@ -25,6 +25,10 @@ Shader "Candy Tropical/Ocean"
         _TerrainHeight("Static terrain heights",2D)="black"{}
         _TerrainBounds("Terrain center / size",Vector)=(0,0,40,40)
         _HasTerrain("Terrain height map available",Float)=0
+        [HideInInspector] _CatwalksCoast("Catwalks reef coast",Float)=0
+        [HideInInspector] _ReefA("Reef A",Vector)=(0,0,1,1)
+        [HideInInspector] _ReefB("Reef B",Vector)=(0,0,1,1)
+        [HideInInspector] _CoastIslet("Palm islet",Vector)=(0,0,1,1)
         [HideInInspector] _CoastalDetail("Physical coast detail",Float)=0
         [HideInInspector] _SoakingPool("Soaking pool mode, depth and fade",Vector)=(0,0,0,0)
     }
@@ -49,13 +53,15 @@ Shader "Candy Tropical/Ocean"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
-            float4 _TerrainBounds,_SoakingPool;
+            float4 _TerrainBounds,_SoakingPool,_ReefA,_ReefB,_CoastIslet;
+            float _CatwalksCoast;
             float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
             float4 _SurgeOrigin, _SurgeDirection;
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
             float _WaveHeight,_WaveSpeed,_WaveChop,_WaveExtent,_Submersion,_SandTop,_SandDepth,_Plateau,_WaterHeight,_HasTerrain,_CoastalDetail;
             CBUFFER_END
             #include "CandySurgeSurface.hlsl"
+            float _CandyOutage;
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 poolLocal:TEXCOORD2;float fog:TEXCOORD3;UNITY_VERTEX_OUTPUT_STEREO};
@@ -74,6 +80,10 @@ Shader "Candy Tropical/Ocean"
                 float2 uv=(world-_TerrainBounds.xy)/_TerrainBounds.zw+.5;
                 if(any(uv<0)||any(uv>1))return _SandTop-_SandDepth;
                 return _SandTop+SAMPLE_TEXTURE2D_LOD(_TerrainHeight,sampler_TerrainHeight,uv,0).r;
+            }
+            float ReefRadius(float2 world,float4 reef)
+            {
+                return length((world-reef.xy)/max(float2(1,1),reef.zw));
             }
             void Wave(float2 direction,float wavelength,float amplitude,float2 p,float time,inout float3 offset,inout float3 dx,inout float3 dz)
             {
@@ -131,6 +141,16 @@ Shader "Candy Tropical/Ocean"
                 bool pool=_SoakingPool.x>.5;
                 float poolEdge=pool?1-smoothstep(.74,1,length(i.poolLocal)):1;
                 float depth=pool?max(.01,_SoakingPool.y*poolEdge):max(.01,i.world.y-TerrainHeight(i.world.xz));
+                float reefRadius=2;
+                float reefClear=0,isletRadius=3;
+                if(_CatwalksCoast>.5 && !pool)
+                {
+                    reefRadius=min(ReefRadius(i.world.xz,_ReefA),ReefRadius(i.world.xz,_ReefB));
+                    isletRadius=ReefRadius(i.world.xz,_CoastIslet);
+                    float isletShallow=1-smoothstep(.98,1.50,isletRadius);
+                    depth=lerp(depth,min(depth,1.28),isletShallow);
+                    reefClear=1-smoothstep(.48,1.13,reefRadius);
+                }
                 float deep=smoothstep(.15,3.2,depth);
                 float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;
                 float detailFade=(1-smoothstep(25,140,distanceToEye))*(1-smoothstep(.15,.8,max(length(ddx(p)),length(ddy(p)))));
@@ -145,6 +165,15 @@ Shader "Candy Tropical/Ocean"
                 float windFade=1-smoothstep(130,420,distanceToEye);
                 float2 slope=float2(rippleA,rippleB)*(.055*detailFade)+
                     (swell*.43+windChop*(.038*windFade))*lerp(.15,1,deep)*(pool?0:1);
+                if(_CatwalksCoast>.5)
+                {
+                    float2 q=i.world.xz;
+                    float warp=sin(dot(q,float2(.19,.39))-_Time.y*.48);
+                    float waveA=dot(q,float2(1.41,2.18))+.83*warp-_Time.y*1.15;
+                    float waveB=dot(q,float2(-3.3,1.44))+.66*warp-_Time.y*1.73;
+                    float2 shape=float2(cos(waveA)*(1-smoothstep(.26,1.8,fwidth(waveA))),cos(waveB)*(1-smoothstep(.26,1.8,fwidth(waveB))));
+                    slope+=shape*.098*(1-smoothstep(190,490,distanceToEye))*lerp(.27,1,deep);
+                }
                 float3 n=normalize(i.normal+float3(slope.x,0,slope.y));
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);Light light=GetMainLight();
                 if(r<1.4)light.shadowAttenuation=MainLightRealtimeShadow(TransformWorldToShadowCoord(i.world));
@@ -153,7 +182,13 @@ Shader "Candy Tropical/Ocean"
                 float3 sky=lerp(_Horizon.rgb,_Reflection.rgb,pow(saturate(reflected.y),.45));
                 float3 color=lerp(_Shallow.rgb,_Deep.rgb,deep);
                 color*=lerp(.84,1,light.shadowAttenuation);
-                float reflectionWeight=pool?.72:.47;
+                if(_CatwalksCoast>.5 && _CandyOutage<.5)
+                {
+                    float3 coastal=lerp(float3(.003,.43,.40),float3(.003,.084,.33),deep);
+                    coastal=lerp(coastal,float3(.004,.39,.34),reefClear*(1-deep)*.6);
+                    color=lerp(color,coastal,.90);
+                }
+                float reflectionWeight=pool?.72:(_CatwalksCoast>.5?.23:.47);
                 color=lerp(color,sky,saturate((.035+fresnel*reflectionWeight)*_Shine));
                 float nh=saturate(dot(n,normalize(view+light.direction)));
                 float spec=pow(nh,55)*.3+pow(nh,18)*.025;
@@ -165,17 +200,34 @@ Shader "Candy Tropical/Ocean"
                     color*=1+crest*.058*deep;
                     color+=sky*(sheen*(.055+.05*fresnel)+brightCrest*.025)*_Shine*deep;
                     spec+=pow(nh,20)*_Glints*.13;
+                    if(_CatwalksCoast>.5&&_CandyOutage<.5)
+                    {
+                        float phase=dot(i.world.xz,float2(.71,1.96))+.75*sin(i.world.x*.27-_Time.y*.71)+crest*3.1+_Time.y*1.4;
+                        float sparkle=pow(saturate(.48+.52*sin(phase)),9);
+                        float sparkleFilter=1-smoothstep(.24,1.9,fwidth(phase));
+                        float3 lowSun=normalize(float3(.71,.24,.64));
+                        float sunline=pow(saturate(dot(n,normalize(lowSun+view))),21);
+                        float gloss=pow(saturate(dot(n,normalize(lowSun+view))),85);
+                        color+=float3(1,.77,.48)*sparkle*sparkleFilter*(.12*sunline+.85*gloss)*smoothstep(.3,.85,deep);
+                        spec+=pow(nh,75)*(.35+sparkle*.72)+pow(nh,170)*sparkle*.76;
+                    }
                 }
                 color+=light.color*spec*_Shine*light.shadowAttenuation;
                 // No thresholded white speckles or repeating crossed sparkle pattern.
                 float foam=pool?0:CandySurgeWhitecaps(i.world.xz);
-                if(!pool&&_CoastalDetail>.5)
+                if(!pool&&(_CoastalDetail>.5||(_CatwalksCoast>.5&&_CandyOutage<.5)))
                 {
                     float2 water=i.world.xz-_Island.xy;
                     float band=sin(dot(water,float2(.53,.31))-_Time.y*1.5+sin(water.y*.12)*.65);
                     float visibility=1-smoothstep(.3,1.4,fwidth(band));
-                    float surf=smoothstep(.03,.22,depth)*(1-smoothstep(.35,1.35,depth));
+                    float surf=smoothstep(.015,.13,depth)*(1-smoothstep(.18,.74,depth));
                     foam=max(foam,surf*smoothstep(.47,.95,band)*visibility*lerp(.52,.78,_FoamStrength));
+                }
+                if(_CatwalksCoast>.5&&_CandyOutage<.5)
+                {
+                    float breakUp=.45+.55*sin(dot(i.world.xz,float2(2.5,1.9))-_Time.y*1.7);
+                    float isletFoam=(1-smoothstep(.012,.05,abs(isletRadius-1.01)))*saturate(breakUp)*.74;
+                    foam=max(foam,isletFoam);
                 }
                 color=lerp(color,_Foam.rgb,foam);
                 if(!pool)
@@ -187,6 +239,15 @@ Shader "Candy Tropical/Ocean"
                 }
                 color=MixFog(color,i.fog);
                 float alpha=lerp(.19,.99,deep);alpha=max(alpha,saturate(fresnel*.82+foam));
+                if(_CatwalksCoast>.5 && !pool && _CandyOutage<.5)
+                {
+                    float shoreClear=1-smoothstep(.48,3.6,depth);
+                    float clarity=max(reefClear*.82,shoreClear);
+                    float grazing=pow(1-saturate(abs(dot(n,view))),9);
+                    float reefAlpha=max(.24+grazing*.46,foam);
+                    alpha=lerp(alpha,min(alpha,reefAlpha),clarity);
+                    if(_WorldSpaceCameraPos.y<_WaterHeight-.12) alpha=lerp(alpha,.20,reefClear*.8);
+                }
                 if(pool)alpha*=poolEdge*_SoakingPool.z;
                 return half4(color,alpha);
             }
