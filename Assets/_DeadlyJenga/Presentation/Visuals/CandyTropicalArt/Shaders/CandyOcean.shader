@@ -28,6 +28,7 @@ Shader "Candy Tropical/Ocean"
         [HideInInspector] _CatwalksCoast("Catwalks reef coast",Float)=0
         [HideInInspector] _ReefA("Reef A",Vector)=(0,0,1,1)
         [HideInInspector] _ReefB("Reef B",Vector)=(0,0,1,1)
+        [HideInInspector] _ReefC("Reef C",Vector)=(0,0,1,1)
         [HideInInspector] _CoastSpectrum("Wind wave slopes and crest breakup",2D)="gray"{}
         [HideInInspector] _CoastIslet("Palm islet",Vector)=(0,0,1,1)
         [HideInInspector] _CoastalDetail("Physical coast detail",Float)=0
@@ -54,8 +55,9 @@ Shader "Candy Tropical/Ocean"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
-            float4 _TerrainBounds,_SoakingPool,_ReefA,_ReefB,_CoastIslet;
-            float _CatwalksCoast;
+            float4 _TerrainBounds,_SoakingPool,_ReefA,_ReefB,_ReefC,_CoastIslet;
+            float _CatwalksCoast,_CoastDayWater;
+            float3 _CoastSun;
             float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
             float4 _SurgeOrigin, _SurgeDirection;
             float _SurgeWidth, _SurgeDepth, _SurgeHeight;
@@ -140,51 +142,75 @@ Shader "Candy Tropical/Ocean"
             {
                 float2 position=i.world.xz-_Island.xy;
                 float time=_Time.y;
-                float deep=smoothstep(.13,4.4,depth);
-                // Two independent wind directions cross the slow swell. Mips attenuate distant ripples.
-                float4 broad=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,position*.010-float2(.008,.004)*time);
-                float2 crossed=float2(.62*position.x-.78*position.y,.78*position.x+.62*position.y);
-                float4 medium=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,crossed*.024+float2(.22,.47)-float2(.022,.007)*time);
-                float4 fine=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,position*.075+float2(.61,.19)-float2(.041,.024)*time);
-                float rippleFade=1-smoothstep(22,105,distanceToEye);
-                float2 slope=(broad.rg-.5)*.42+(medium.rg-.5)*.16+(fine.rg-.5)*(.07*rippleFade);
-                float3 surfaceNormal=normalize(float3(i.normal.x*.54,1,i.normal.z*.54)+float3(slope.x,0,slope.y)*lerp(.48,1,deep));
+                float deep=smoothstep(.30,4.9,depth);
+                float2 wind=float2(dot(position,float2(.87,.49)),dot(position,float2(-.49,.87)));
+                float2 warp=float2(sin(dot(position,float2(.037,-.051))),sin(dot(position,float2(.054,.033))));
+                float4 broad=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,
+                    wind*float2(.008,.017)+warp*.066-float2(.006,.012)*time);
+                float4 medium=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,
+                    (wind.yx+warp*2.2)*float2(.029,.018)+float2(.22,.47)-float2(.014,.006)*time);
+                float4 fine=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,
+                    position*.088+float2(.61,.19)-float2(.033,.018)*time);
+                float crest;
+                float2 swell=SwellSlope(position,time,distanceToEye,crest);
+                float detail=1-smoothstep(33,118,distanceToEye);
+                float2 slope=swell*.42+(broad.rg-.5)*.36+(medium.rg-.5)*.21+(fine.rg-.5)*(.11*detail);
+                float3 normal=normalize(float3(i.normal.x*.60,1,i.normal.z*.60)+float3(slope.x,0,slope.y)*lerp(.44,1,deep));
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);
-                float angle=saturate(dot(surfaceNormal,view));
-                float fresnel=.025+.975*pow(1-angle,5);
-                float3 reflection=reflect(-view,surfaceNormal);
-                float3 reflectedSky=lerp(float3(.27,.63,.90),float3(.052,.29,.71),smoothstep(0,.63,reflection.y));
-                float cloud=smoothstep(.57,.82,broad.a*.65+medium.a*.35);
-                reflectedSky=lerp(reflectedSky,float3(.64,.80,.94),cloud*.25);
+                float3 sun=normalize(_CoastSun);
+                float eyeDepth=_WaterHeight-_WorldSpaceCameraPos.y;
+                if(eyeDepth>.10 && view.y<0)
+                {
+                    // Looking up from below, most of the surface reflects the water column.
+                    float3 underside=-normal;
+                    float incidence=saturate(dot(underside,view));
+                    float window=smoothstep(.635,.70,incidence);
+                    float ripple=smoothstep(.44,.78,medium.a*.70+fine.a*.30);
+                    float lens=pow(saturate(dot(-view,sun)),22);
+                    float sparkle=lens*(.12+pow(ripple,3)*.88);
+                    float filament=1-smoothstep(.055,.22,abs(medium.b-.56+fine.r*.07));
+                    float3 reflected=lerp(float3(.007,.14,.25),float3(.024,.53,.60),ripple);
+                    float3 transmission=lerp(float3(.08,.54,.68),float3(.34,.81,.89),saturate(incidence));
+                    float3 below=lerp(reflected,transmission,window*.88)+float3(.21,.65,.68)*filament*ripple*.19+float3(1,.79,.45)*sparkle*.88;
+                    return half4(below,.92);
+                }
 
-                float crest=(broad.b-.5)*.88+(medium.b-.5)*.45;
-                float3 blue=lerp(float3(.003,.050,.21),float3(.008,.182,.44),smoothstep(-.29,.32,crest));
-                float reefTint=smoothstep(.05,1.4,depth);
-                float3 turquoise=lerp(float3(.009,.55,.39),float3(.002,.43,.51),reefTint);
-                turquoise*=.94+crest*.38;
+                float fresnel=.018+.982*pow(1-saturate(dot(normal,view)),5);
+                float3 reflection=reflect(-view,normal);
+                float3 reflectedSky=lerp(float3(.29,.65,.95),float3(.032,.23,.64),smoothstep(0,.58,reflection.y));
+                float cloud=smoothstep(.55,.82,broad.a*.65+medium.a*.35);
+                reflectedSky=lerp(reflectedSky,float3(.76,.86,.95),cloud*.29);
+                float wave=crest*.55+(broad.b-.5)*.32+(medium.b-.5)*.24;
+                float3 blue=lerp(float3(.003,.041,.185),float3(.007,.166,.46),smoothstep(-.39,.39,wave));
+                float reefTint=smoothstep(.13,2.5,depth);
+                float3 turquoise=lerp(float3(.002,.51,.32),float3(.001,.37,.64),reefTint);
+                turquoise*=.98+wave*.36;
                 float3 color=lerp(turquoise,blue,deep);
-                color=lerp(color,reflectedSky,fresnel*lerp(.20,.46,deep));
-                float3 sun=normalize(float3(.65,.28,.71));
-                float alignment=saturate(dot(surfaceNormal,normalize(sun+view)));
-                float glintMask=smoothstep(.51,.77,medium.a*.46+fine.a*.54);
-                float glint=pow(alignment,23)*.055+pow(alignment,122)*(.02+glintMask*.95);
-                float horizon=smoothstep(350,730,distanceToEye);
-                color+=float3(1,.80,.55)*glint*(1-horizon*.75)*lerp(.33,1,deep);
-                color=lerp(color,_Horizon.rgb,horizon*.52);
+                color=lerp(color,reflectedSky,fresnel*lerp(.12,.53,deep));
+                float alignment=saturate(dot(normal,normalize(sun+view)));
+                float glintMask=smoothstep(.48,.75,medium.a*.56+fine.a*.44);
+                float glint=pow(alignment,20)*.085+pow(alignment,88)*(.026+glintMask*.93);
+                float horizon=smoothstep(360,780,distanceToEye);
+                float sunPath=pow(saturate(dot(normalize(view.xz+float2(.0001,0)),float2(.20,-.98))),7);
+                float crestFlash=smoothstep(.18,.40,crest)*smoothstep(.52,.74,medium.a)*smoothstep(.37,.62,fine.a);
+                glint+=sunPath*crestFlash*lerp(.34,.14,horizon);
+                color+=float3(1,.82,.55)*glint*(1-horizon*.65)*lerp(.34,1,deep);
+                color=lerp(color,float3(.15,.43,.70),horizon*.30);
 
-                float shoreDepth=depth+(fine.b-.5)*.042;
-                float lip=smoothstep(.009,.026,shoreDepth)*(1-smoothstep(.049,.082,shoreDepth));
-                float wash=smoothstep(.018,.048,shoreDepth)*(1-smoothstep(.08,.16,shoreDepth));
-                float2 frothPosition=position*14+(fine.rg-.5)*3.5;
-                float mesh=abs(sin(frothPosition.x)+sin(frothPosition.y));
-                float foamDetail=1-smoothstep(.26,1.3,fwidth(frothPosition.x)+fwidth(frothPosition.y));
-                float lace=(1-smoothstep(.11,.48,mesh))*foamDetail;
-                float islet=1-smoothstep(.009,.06,abs(isletRadius-1.02));
-                float foam=max(max(lip*.72+wash*lace*.33,islet*.65),CandySurgeWhitecaps(i.world.xz));
-                color=lerp(color,float3(1,.96,.80),saturate(foam));
-                float clarity=max(reefClear*.81,1-smoothstep(.36,3.9,depth));
-                float alpha=lerp(.99,.12+reefTint*.18+fresnel*.34,clarity);
-                if(_WorldSpaceCameraPos.y<_WaterHeight-.12) alpha=lerp(alpha,.23,clarity*.85);
+                float shoreDepth=depth+(fine.b-.5)*.091+wave*.034;
+                float laceWave=abs(sin(wind.x*13+fine.r*5)+sin(wind.y*19+medium.b*5));
+                float foamDetail=1-smoothstep(.22,1.25,fwidth(wind.x*13)+fwidth(wind.y*19));
+                float lace=(1-smoothstep(.08,.46,laceWave))*foamDetail;
+                float broken=smoothstep(.29,.66,medium.a*.51+fine.a*.49);
+                float lip=smoothstep(.010,.032,shoreDepth)*(1-smoothstep(.062,.107,shoreDepth));
+                float wash=smoothstep(.027,.053,shoreDepth)*(1-smoothstep(.14,.25,shoreDepth));
+                float islet=1-smoothstep(.013,.056,abs(isletRadius-1.02+(fine.b-.5)*.018));
+                float foam=max(max(lip*(.27+broken*.71)+wash*lace*.62,islet*.61),CandySurgeWhitecaps(i.world.xz));
+                color=lerp(color,float3(1,.97,.88),saturate(foam));
+                float clarity=max(reefClear*.86,1-smoothstep(.48,4.7,depth));
+                float alpha=lerp(.995,.39+reefTint*.16+fresnel*.13,clarity);
+                float shimmer=smoothstep(.46,.79,broad.a*.35+medium.a*.53+fine.a*.12);
+                color+=float3(.018,.20,.23)*shimmer*clarity;
                 return half4(MixFog(color,i.fog),max(alpha,foam));
             }
             half4 frag(Varyings i):SV_Target
@@ -198,13 +224,13 @@ Shader "Candy Tropical/Ocean"
                 float reefClear=0,isletRadius=3;
                 if(_CatwalksCoast>.5 && !pool)
                 {
-                    reefRadius=min(ReefRadius(i.world.xz,_ReefA),ReefRadius(i.world.xz,_ReefB));
+                    reefRadius=min(ReefRadius(i.world.xz,_ReefC),min(ReefRadius(i.world.xz,_ReefA),ReefRadius(i.world.xz,_ReefB)));
                     isletRadius=ReefRadius(i.world.xz,_CoastIslet);
                     float isletShallow=1-smoothstep(.98,1.50,isletRadius);
                     depth=lerp(depth,min(depth,1.28),isletShallow);
                     reefClear=1-smoothstep(.48,1.13,reefRadius);
                 }
-                if(_CatwalksCoast>.5 && !pool && _CandyOutage<.5)
+                if(_CatwalksCoast>.5 && _CoastDayWater>.5 && !pool && _CandyOutage<.5)
                     return CatwalksWater(i,depth,reefClear,isletRadius,distanceToEye);
                 float deep=smoothstep(.15,3.2,depth);
                 float2 p=i.world.xz*_RippleScale;float t=_Time.y*_Speed;

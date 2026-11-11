@@ -58,7 +58,7 @@ Shader "Candy Tropical/Catwalks Coast"
                 Light sun=GetMainLight();
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos);
                 float diffuse=saturate(dot(normal,sun.direction));
-                half3 light=SampleSH(normal)*.68+sun.color*(.19+.66*diffuse);
+                half3 light=SampleSH(normal)*.56+sun.color*(.19+.83*diffuse);
                 half3 color=i.color*light;
                 float depth=max(0,_CoastWater-i.world.y);
                 if(_CoastStyle>.5&&_CoastStyle<1.5)
@@ -67,14 +67,23 @@ Shader "Candy Tropical/Catwalks Coast"
                     float caustic=Caustic(i.world.xz)*detail*(1-smoothstep(1.55,4.1,depth));
                     float sandRipple=sin(dot(i.world.xz,float2(5.9,7.6))+sin(i.world.z*1.5));
                     color*=1+sandRipple*.047*saturate(normal.y)*detail;
-                    color=lerp(color,color*half3(.43,.89,.91),saturate(depth*.32));
-                    color+=half3(1,.90,.61)*caustic*(.15+.32*saturate(normal.y))*sun.color*.65;
+                    color=lerp(color,color*half3(.65,.92,.94),saturate(depth*.23));
+                    color+=half3(1,.85,.47)*caustic*(.16+.32*saturate(normal.y))*sun.color*.56;
+                    float3 halfAngle=normalize(sun.direction+GetWorldSpaceNormalizeViewDir(i.world));
+                    color+=pow(saturate(dot(normal,halfAngle)),30)*sun.color*.075;
                 }
                 if(_CoastStyle>1.5)
                 {
                     half4 island=SAMPLE_TEXTURE2D(_CoastHorizon,sampler_CoastHorizon,i.uv);
                     clip(island.a-.38);
                     color=lerp(island.rgb,half3(.14,.39,.59),.24);
+                }
+                float eyeDepth=_CoastWater-_WorldSpaceCameraPos.y;
+                if(eyeDepth>.08)
+                {
+                    float transmittance=exp2(-distanceToEye*.071);
+                    half3 filtered=lerp(half3(.007,.18,.29),color*half3(.76,.98,1.03),transmittance);
+                    color=lerp(color,filtered,smoothstep(.08,.19,eyeDepth));
                 }
                 color*=lerp(1,.025,saturate(_CandyOutage));
                 return half4(MixFog(color,i.fog),1);

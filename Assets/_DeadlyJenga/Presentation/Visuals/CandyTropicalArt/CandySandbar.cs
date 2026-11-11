@@ -63,6 +63,8 @@ namespace DeadlyJenga.CandyArt
             float coast=(Mathf.Pow(q.x*q.x*q.x+q.y*q.y*q.y,1f/3)-1)*Mathf.Min(half.x,half.y);
             float a=Mathf.Atan2(p.y,p.x);
             float shoulder=.22f*Mathf.Sin(a*3+.7f)+.15f*Mathf.Sin(a*5-1.2f)+.09f*Mathf.Sin(a*7+.4f);
+            if(CatwalksBeach)
+                shoulder+=1.05f*Mathf.Sin(a*3-.8f)+.56f*Mathf.Sin(a*5+.4f)+.27f*Mathf.Sin(a*9);
             return coast-shoulder;
         }
         float SurfaceHeight(Vector2 p)
@@ -76,12 +78,12 @@ namespace DeadlyJenga.CandyArt
             float relief=-profile.sandRelief*(.12f+.88f*n)*reliefMask;
             if(CatwalksBeach)
             {
-                float dryBeach=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(-1.8f,1.7f,edge));
-                float dryLevel=Mathf.Max(.06f,BeachWaterOffset+.16f);
-                float shallows=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.65f,7.6f,edge));
-                float drop=Mathf.SmoothStep(0,1,Mathf.InverseLerp(5.5f,22.5f,edge));
-                float bed=-1.4f*shallows-4.8f*drop;
-                return dryLevel*dryBeach+bed+relief*.21f*dryBeach+(n-.5f)*.24f*shallows;
+                float dryBeach=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(-2.5f,2.2f,edge));
+                float dryLevel=Mathf.Max(.06f,BeachWaterOffset+.23f);
+                float shallows=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.45f,10.8f,edge));
+                float drop=Mathf.SmoothStep(0,1,Mathf.InverseLerp(7.4f,23.8f,edge));
+                float bed=-1.25f*shallows-4.95f*drop;
+                return dryLevel*dryBeach+bed+relief*.13f*dryBeach+(n-.5f)*.18f*shallows;
             }
             return bank+relief*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,profile.sandShoreWidth,edge)));
         }

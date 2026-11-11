@@ -96,9 +96,20 @@ Shader "Candy Tropical/Sand"
                 if(_CatwalksCoast>.5)
                 {
                     float fade=(1-smoothstep(1.1,4.8,submerged))*(1-smoothstep(17,73,distanceToEye));
-                    float glimmer=ShoreCaustics(p)*fade*smoothstep(.01,.17,submerged);
-                    color=lerp(color*float3(1.15,1.055,.90),color*float3(.49,.86,.77),saturate(submerged*.19));
-                    color+=float3(1,.79,.34)*glimmer*.56*light.shadowAttenuation*saturate(light.color.r);
+                    float movingDepth=submerged+.045*sin(dot(p,float2(.83,.57))-_Time.y*1.38);
+                    float glimmer=(ShoreCaustics(p*1.15)*.82+ShoreCaustics(p*1.83+1.6)*.18)*fade*smoothstep(.015,.21,movingDepth);
+                    float dry=smoothstep(.0,.29,shoreHeight);
+                    color*=lerp(float3(1.02,.91,.75),float3(1.46,1.19,.89),dry);
+                    color=lerp(color,color*float3(.58,.88,.82),saturate(submerged*.15));
+                    color+=float3(1.25,.96,.43)*glimmer*.78*light.shadowAttenuation*saturate(light.color.r);
+                    float eyeDepth=_WaterHeight-_WorldSpaceCameraPos.y;
+                    if(eyeDepth>.08)
+                    {
+                        float visibility=exp2(-distanceToEye*.072);
+                        float3 scatter=lerp(float3(.006,.13,.23),float3(.009,.28,.36),1-saturate(submerged*.19));
+                        float3 filtered=lerp(scatter,color*float3(.95,1.03,1.09),visibility);
+                        color=lerp(color,filtered,smoothstep(.08,.19,eyeDepth));
+                    }
                 }
                 return half4(MixFog(color,i.fog),1);
             }

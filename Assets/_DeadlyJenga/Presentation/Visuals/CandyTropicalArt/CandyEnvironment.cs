@@ -168,7 +168,15 @@ namespace DeadlyJenga.CandyArt
             RenderSettings.ambientEquatorColor=new Color(.43f,.57f,.64f);
             RenderSettings.ambientGroundColor=new Color(.3f,.3f,.36f);
             RenderSettings.ambientIntensity=1;
-            if(sun){sun.transform.rotation=Quaternion.Euler(profile.sunEuler);sun.color=profile.sunColor;sun.intensity=profile.sunIntensity;}
+            if(sun)
+            {
+                bool coastDay=catwalksCoast!=null && CandySceneSkins.Selected==CandySceneSkin.TropicalDay;
+                sun.transform.rotation=coastDay
+                    ? Quaternion.LookRotation(-CandyCatwalksCoast.SunDirection)
+                    : Quaternion.Euler(profile.sunEuler);
+                sun.color=coastDay?new Color(1f,.94f,.83f):profile.sunColor;
+                sun.intensity=profile.sunIntensity*(coastDay?1.12f:1);
+            }
         }
     }
 }

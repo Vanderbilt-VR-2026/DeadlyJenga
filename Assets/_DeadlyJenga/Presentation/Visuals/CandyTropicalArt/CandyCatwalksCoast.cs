@@ -8,17 +8,19 @@ namespace DeadlyJenga.CandyArt
 {
     internal sealed class CandyCatwalksCoast : IDisposable
     {
-        static readonly Vector2[] ReefDirections = { new(.80f,.60f), new(.82f,-.57f) };
+        static readonly Vector2[] ReefDirections = { new(.80f,.60f), new(.82f,-.57f), new(-.84f,-.54f) };
+        static readonly Vector3 SunEuler = new(39,-42,0);
+        internal static readonly Vector3 SunDirection = Quaternion.Euler(SunEuler)*Vector3.back;
         static readonly Color Sand = new(.87f,.66f,.36f);
-        static readonly Color Rock = new(.43f,.37f,.31f);
-        static readonly Color[] Coral = { new(.94f,.25f,.43f), new(1f,.60f,.12f), new(.60f,.38f,.77f) };
+        static readonly Color Rock = new(.51f,.39f,.28f);
+        static readonly Color[] Coral = { new(1f,.12f,.27f), new(1f,.54f,.055f), new(.60f,.25f,.88f) };
         static readonly Color Grass = new(.28f,.61f,.29f);
         readonly GameObject root;
         readonly Material material;
         readonly Texture2D waterSpectrum;
         Material daySky, daySkySource;
         readonly List<Mesh> meshes = new();
-        readonly Vector4[] reefs = new Vector4[2];
+        readonly Vector4[] reefs = new Vector4[ReefDirections.Length];
         readonly Transform[] schools = new Transform[2];
         readonly Vector3[] schoolCenters = new Vector3[2];
         Transform ray;
@@ -48,7 +50,7 @@ namespace DeadlyJenga.CandyArt
                 }
                 Vector2 center=direction*(high+5.5f);
                 reefs[i]=new Vector4(origin.x+center.x,origin.z+center.y,13f,9f);
-                BuildReef(i,center,terrain,random);
+                BuildReef(i,center,terrain,random,i<schools.Length);
             }
             BuildIslet(random);
             BuildHorizon();
@@ -58,9 +60,12 @@ namespace DeadlyJenga.CandyArt
         internal void SetWaterProperties(MaterialPropertyBlock properties)
         {
             properties.SetFloat("_CatwalksCoast",Alive?1:0);
+            properties.SetFloat("_CoastDayWater",CandySceneSkins.Selected==CandySceneSkin.TropicalDay?1:0);
+            properties.SetVector("_CoastSun",SunDirection);
             if(waterSpectrum) properties.SetTexture("_CoastSpectrum",waterSpectrum);
             properties.SetVector("_ReefA",reefs[0]);
             properties.SetVector("_ReefB",reefs[1]);
+            properties.SetVector("_ReefC",reefs[2]);
             Vector3 islet=root.transform.position+new Vector3(93,0,48);
             properties.SetVector("_CoastIslet",new Vector4(islet.x,islet.z,8.7f,5.6f));
         }
@@ -73,8 +78,11 @@ namespace DeadlyJenga.CandyArt
             daySkySource=source;
             daySky=new Material(source) { name="Catwalks warm island sky" };
             daySky.SetFloat("_CoastDay",1);
-            daySky.SetColor("_Zenith",new Color(.018f,.34f,.92f));
-            daySky.SetColor("_Horizon",new Color(.34f,.72f,1));
+            daySky.SetColor("_Zenith",new Color(.018f,.25f,.82f));
+            daySky.SetColor("_Horizon",new Color(.27f,.67f,1));
+            daySky.SetVector("_SunDirection",SunDirection);
+            daySky.SetColor("_SunColor",new Color(1f,.90f,.74f));
+            daySky.SetFloat("_CoastWaterLevel",water);
             return daySky;
         }
 
@@ -93,7 +101,7 @@ namespace DeadlyJenga.CandyArt
             ray.localRotation=Quaternion.LookRotation(new Vector3(Mathf.Cos(course)*2.7f,0,-Mathf.Sin(course)*2.7f));
         }
 
-        void BuildReef(int index, Vector2 center, CandySandbar terrain, System.Random random)
+        void BuildReef(int index, Vector2 center, CandySandbar terrain, System.Random random, bool hasSchool)
         {
             var garden=new ArtMesh();
             for (int patch=0;patch<4;patch++)
@@ -103,8 +111,8 @@ namespace DeadlyJenga.CandyArt
                 Vector2 point=center+new Vector2(Mathf.Cos(angle)*8*radius,Mathf.Sin(angle)*7*radius);
                 float seabed=terrain.transform.position.y-water+terrain.SampleHeight(point);
                 Vector3 position=new(point.x,seabed,point.y);
-                float scale=patch==0?1.23f:Range(random,.66f,.97f);
-                scale=Mathf.Min(scale,Mathf.Max(.35f,-seabed*.70f));
+                float scale=patch==0?1.55f:Range(random,.62f,1.12f);
+                scale=Mathf.Min(scale,Mathf.Max(.30f,-seabed*1.1f));
                 garden.Ellipsoid(position,new Vector3(1.2f,.43f,.92f)*scale,Rock,11,5);
                 garden.Ellipsoid(position+new Vector3(-.62f,.12f,.48f)*scale,new Vector3(.64f,.32f,.55f)*scale,Rock*.83f,9,4);
                 for (int stem=0;stem<5;stem++)
@@ -133,20 +141,31 @@ namespace DeadlyJenga.CandyArt
                         Range(random,.04f,.095f)*scale,Grass*Range(random,.78f,1.14f),false);
                 }
             }
+            for(int i=0;i<21;i++)
+            {
+                float angle=i*2.39996f;
+                float radius=Range(random,2.2f,10.6f);
+                var p=center+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*radius;
+                float y=terrain.transform.position.y-water+terrain.SampleHeight(p);
+                float size=Range(random,.045f,.18f);
+                garden.Ellipsoid(new Vector3(p.x,y+.015f,p.y),
+                    new Vector3(size,.40f*size,.68f*size),Color.Lerp(Rock,Sand,Range(random,.2f,.77f)),7,4);
+            }
             Draw("Coral and seagrass "+index,garden,1);
+            if(!hasSchool) return;
             var school=new ArtMesh();
             for (int i=0;i<11;i++)
             {
                 var point=new Vector3(Range(random,-1.4f,1.4f),Range(random,-.12f,.14f),i*.22f-1.1f);
                 var tint=index==0?new Color(1f,.69f,.12f):new Color(.18f,.82f,.89f);
                 float scale=Range(random,.72f,1.16f);
-                school.Ellipsoid(point,new Vector3(.12f,.15f,.29f)*scale,tint,8,4);
+                school.Ellipsoid(point,new Vector3(.105f,.14f,.32f)*scale,tint,12,6);
                 school.Fin(point+Vector3.back*.22f*scale,scale,tint*.9f);
                 school.Ellipsoid(point+new Vector3(.092f,.043f,.16f)*scale,Vector3.one*.022f*scale,new Color(.06f,.11f,.15f),5,3);
                 school.Ellipsoid(point+new Vector3(-.092f,.043f,.16f)*scale,Vector3.one*.022f*scale,new Color(.06f,.11f,.15f),5,3);
             }
             schools[index]=Draw("Looping reef fish school "+index,school,1,true).transform;
-            schoolCenters[index]=new Vector3(center.x,-.82f,center.y);
+            schoolCenters[index]=new Vector3(center.x,-.62f,center.y);
         }
 
 
@@ -226,10 +245,10 @@ namespace DeadlyJenga.CandyArt
             for(int i=0;i<=spans;i++)
             {
                 float t=i/(float)spans;
-                float bearing=Mathf.Lerp(99,-7,t)*Mathf.Deg2Rad;
+                float bearing=Mathf.Lerp(135,-37,t)*Mathf.Deg2Rad;
                 Vector3 point=new(Mathf.Cos(bearing)*415,-.95f,Mathf.Sin(bearing)*415);
                 strip.Point(point,Color.white,new Vector2(t,.24f));
-                strip.Point(point+Vector3.up*44,Color.white,new Vector2(t,.52f));
+                strip.Point(point+Vector3.up*49,Color.white,new Vector2(t,.52f));
                 if(i==0) continue;
                 int a=(i-1)*2;
                 strip.Triangle(a,a+1,a+2);
