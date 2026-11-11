@@ -6,6 +6,8 @@ Shader "Candy Tropical/Sand"
         _WaterHeight("Water surface",Float)=.08
         _Grain("Sand grain",Range(0,1))=.55
         _ScenicStyle("Scenic style",Float)=0
+        [HideInInspector] _CoastShadow("Castle shore shadow",2D)="black"{}
+        [NoScaleOffset] _CoastCaustics("Refracted sunlight",2D)="black"{}
         [HideInInspector] _CatwalksCoast("Catwalks beach",Float)=0
     }
     SubShader
@@ -24,8 +26,11 @@ Shader "Candy Tropical/Sand"
             #pragma multi_compile_fragment _ _SHADOWS_SOFT
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
+            #include "../../../Resources/CandyScenery/CandyCoastCaustics.hlsl"
+            TEXTURE2D(_CoastShadow);SAMPLER(sampler_CoastShadow);
             CBUFFER_START(UnityPerMaterial)
-            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle,_CatwalksCoast;
+            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle,_CatwalksCoast,_CoastShadowReady;
+            float4x4 _CoastShadowVP;
             CBUFFER_END
             struct Attributes{float4 positionOS:POSITION;float3 normalOS:NORMAL;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float fog:TEXCOORD2;UNITY_VERTEX_OUTPUT_STEREO};
@@ -39,18 +44,6 @@ Shader "Candy Tropical/Sand"
                 float coverage=1-smoothstep(.45,2,fwidth(phase));
                 slope+=direction*c*strength*coverage;
                 return s*coverage;
-            }
-            float ShoreCaustics(float2 position)
-            {
-                float t=_Time.y*.54;
-                float2 warped=position*3.1+float2(sin(position.y*1.12+t),sin(position.x*1.22-t))*.83;
-                float first=sin(warped.x+t)+sin(warped.y-t*.76);
-                float second=sin(dot(warped,float2(.47,.88))+t*.61);
-                float stripe=abs(first+second*.54);
-                float width=max(.11,fwidth(stripe));
-                float core=1-smoothstep(.032,width+.085,stripe);
-                float glow=1-smoothstep(.10,.52+width,stripe);
-                return (core*.77+glow*.23)*(.68+.32*saturate(second));
             }
             half4 frag(Varyings i):SV_Target
             {
@@ -78,6 +71,12 @@ Shader "Candy Tropical/Sand"
                 float grainFade=(1-smoothstep(4,19,distanceToEye))*
                     (1-smoothstep(.26,1.05,max(length(ddx(grains)),length(ddy(grains)))));
                 float grain=(noise(grains)-.5)*grainFade*_Grain;
+                if(_CatwalksCoast>.5 && grainFade>.01)
+                {
+                    float2 grit=float2(noise(grains+float2(.34,0)),noise(grains+float2(0,.34)))-
+                        noise(grains);
+                    n=normalize(n-float3(grit.x,0,grit.y)*(.39*grainFade*facing));
+                }
                 float3 color=_BaseColor.rgb*lerp(float3(.78,.64,.46),float3(1.11,1.06,.94),patch);
                 color*=1+facing*(dune*.09+ridge*.075+fine*.025)+grain*.26;
                 color*=lerp(float3(1,1,1),float3(.76,.71,.64),wet);
@@ -87,6 +86,17 @@ Shader "Candy Tropical/Sand"
                 if(_ScenicStyle>3.5)color=lerp(color,float3(.88,.98,1),pow(saturate(noise(p*.9)),3)*.5);
                 float submerged=max(0,_WaterHeight-i.world.y);
                 color=lerp(color,color*float3(.64,.89,.88),saturate(submerged*.25));
+                if(_CatwalksCoast>.5 && _CoastShadowReady>.5 && distanceToEye>21)
+                {
+                    float2 projected=mul(_CoastShadowVP,float4(i.world,1)).xy;
+                    #if UNITY_UV_STARTS_AT_TOP
+                        projected.y=-projected.y;
+                    #endif
+                    float2 uv=projected*.5+.5;
+                    float inside=1-smoothstep(.44,.50,max(abs(uv.x-.5),abs(uv.y-.5)));
+                    float cast=SAMPLE_TEXTURE2D_LOD(_CoastShadow,sampler_CoastShadow,uv,1.15).a;
+                    light.shadowAttenuation=min(light.shadowAttenuation,1-cast*inside*.78*smoothstep(21,42,distanceToEye));
+                }
                 float3 illumination=SampleSH(n)*.65+
                     light.color*saturate(dot(n,light.direction))*light.shadowAttenuation*.68;
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);
@@ -97,11 +107,15 @@ Shader "Candy Tropical/Sand"
                 {
                     float fade=(1-smoothstep(1.1,4.8,submerged))*(1-smoothstep(17,73,distanceToEye));
                     float movingDepth=submerged+.045*sin(dot(p,float2(.83,.57))-_Time.y*1.38);
-                    float glimmer=(ShoreCaustics(p*1.15)*.82+ShoreCaustics(p*1.83+1.6)*.18)*fade*smoothstep(.015,.21,movingDepth);
+                    float glimmer=CandyRefractedLight(p,submerged)*fade*smoothstep(.015,.21,movingDepth);
                     float dry=smoothstep(.0,.29,shoreHeight);
                     color*=lerp(float3(1.02,.91,.75),float3(1.46,1.19,.89),dry);
-                    color=lerp(color,color*float3(.58,.88,.82),saturate(submerged*.15));
-                    color+=float3(1.25,.96,.43)*glimmer*.78*light.shadowAttenuation*saturate(light.color.r);
+                    color=lerp(color,color*float3(.37,.78,.84),saturate(submerged*.27));
+                    // Scattered light reaches the reef from the surrounding sunlit water.
+                    float indirect=smoothstep(.04,.38,submerged)*(1-smoothstep(1.1,4.9,submerged));
+                    color+=_BaseColor.rgb*float3(.23,.31,.30)*indirect;
+                    float refractedSun=lerp(light.shadowAttenuation,max(.51,light.shadowAttenuation),indirect);
+                    color+=float3(1.37,.98,.42)*glimmer*refractedSun*saturate(light.color.r);
                     float eyeDepth=_WaterHeight-_WorldSpaceCameraPos.y;
                     if(eyeDepth>.08)
                     {

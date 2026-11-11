@@ -62,7 +62,7 @@ namespace DeadlyJenga.CandyArt
                 if(!enabled) return;
                 coastWorld=world;
                 if(!coastShader) coastShader=Resources.Load<Shader>("CandyScenery/CandyCatwalksCoast");
-                if(coastShader) catwalksCoast=new CandyCatwalksCoast(transform,terrain,origin,waterLevel,coastShader);
+                if(coastShader) catwalksCoast=new CandyCatwalksCoast(transform,terrain,origin,waterLevel,coastShader,world,waterRenderer,sandRenderer);
             }
             catwalksCoast?.Animate();
         }

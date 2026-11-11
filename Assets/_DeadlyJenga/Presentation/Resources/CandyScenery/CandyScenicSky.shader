@@ -1,12 +1,15 @@
 Shader "Candy Tropical/Scenic Sky"
 {
- Properties { _Zenith("Zenith",Color)=(.03,.37,.92,1) _Horizon("Horizon",Color)=(.48,.86,1,1) _Cloud("Cloud",Color)=(1,1,1,1) _CloudCover("Cloud cover",Float)=.44 _Stars("Stars",Float)=0 _SunDirection("Sun direction",Vector)=(0,1,0,0) _SunColor("Sun",Color)=(1,.94,.83,1) [HideInInspector] _CoastDay("Warm coastal clouds",Float)=0 [HideInInspector] _CoastWaterLevel("Water elevation",Float)=0 }
+ Properties { _Zenith("Zenith",Color)=(.03,.37,.92,1) _Horizon("Horizon",Color)=(.48,.86,1,1) _Cloud("Cloud",Color)=(1,1,1,1) _CloudCover("Cloud cover",Float)=.44 _Stars("Stars",Float)=0 _SunDirection("Sun direction",Vector)=(0,1,0,0) _SunColor("Sun",Color)=(1,.94,.83,1) [HideInInspector] _CoastDay("Warm coastal clouds",Float)=0 [HideInInspector] _CoastWaterLevel("Water elevation",Float)=0 [NoScaleOffset] _CoastPanorama("Island cloud panorama",2D)="black"{} [HideInInspector] _CoastHasPanorama("Panorama present",Float)=0 }
  SubShader { Tags {"Queue"="Background" "RenderType"="Background"} Cull Off ZWrite Off
  Pass { HLSLPROGRAM
+ #pragma target 3.5
  #pragma vertex vert
  #pragma fragment frag
  #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
- float4 _Zenith,_Horizon,_Cloud,_SunDirection,_SunColor;float _CloudCover,_Stars,_CoastDay,_CoastWaterLevel;
+ float4 _Zenith,_Horizon,_Cloud,_SunDirection,_SunColor;float _CloudCover,_Stars,_CoastDay,_CoastWaterLevel,_CoastHasPanorama;
+ TEXTURE2D(_CoastPanorama); SAMPLER(sampler_CoastPanorama);
+ #include "CandyCoastPanorama.hlsl"
  struct A {float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};struct V{float4 positionCS:SV_POSITION;float3 dir:TEXCOORD0;UNITY_VERTEX_OUTPUT_STEREO};
  V vert(A i){V o;UNITY_SETUP_INSTANCE_ID(i);UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(o);o.positionCS=TransformObjectToHClip(i.positionOS.xyz);o.dir=i.positionOS.xyz;return o;}
  float hash(float2 p){return frac(sin(dot(p,float2(127.1,311.7)))*43758.5453);}
@@ -28,6 +31,7 @@ Shader "Candy Tropical/Scenic Sky"
      float light=saturate(.13+(n-shade)*2.7+n*.90);
      float3 cloud=lerp(float3(.46,.55,.80),float3(1.38,1.16,.93),smoothstep(.38,.86,light));
      sky=lerp(sky,cloud,coverage);
+     UNITY_BRANCH if(_CoastHasPanorama>.5) sky=CandyCoastClouds(d);
      sky+=_SunColor.rgb*(pow(saturate(dot(d,sun)),700)*1.32+pow(saturate(dot(d,sun)),23)*.10);
      float depth=_CoastWaterLevel-_WorldSpaceCameraPos.y;
      if(depth>.08)

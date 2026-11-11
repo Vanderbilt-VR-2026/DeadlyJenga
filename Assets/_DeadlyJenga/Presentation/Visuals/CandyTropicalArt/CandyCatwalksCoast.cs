@@ -9,7 +9,7 @@ namespace DeadlyJenga.CandyArt
     internal sealed class CandyCatwalksCoast : IDisposable
     {
         static readonly Vector2[] ReefDirections = { new(.80f,.60f), new(.82f,-.57f), new(-.84f,-.54f) };
-        static readonly Vector3 SunEuler = new(39,-42,0);
+        static readonly Vector3 SunEuler = new(42,49,0);
         internal static readonly Vector3 SunDirection = Quaternion.Euler(SunEuler)*Vector3.back;
         static readonly Color Sand = new(.87f,.66f,.36f);
         static readonly Color Rock = new(.51f,.39f,.28f);
@@ -18,6 +18,8 @@ namespace DeadlyJenga.CandyArt
         readonly GameObject root;
         readonly Material material;
         readonly Texture2D waterSpectrum;
+        readonly Texture2D panorama, caustics;
+        readonly CandyCoastReflection reflection;
         Material daySky, daySkySource;
         readonly List<Mesh> meshes = new();
         readonly Vector4[] reefs = new Vector4[ReefDirections.Length];
@@ -29,7 +31,7 @@ namespace DeadlyJenga.CandyArt
         bool disposed;
         internal bool Alive => root && !disposed;
 
-        public CandyCatwalksCoast(Transform owner, CandySandbar terrain, Vector3 origin, float waterLevel, Shader shader)
+        public CandyCatwalksCoast(Transform owner, CandySandbar terrain, Vector3 origin, float waterLevel, Shader shader, IWorldQuery world, Renderer waterRenderer, Renderer sandRenderer)
         {
             water = waterLevel;
             root = new GameObject("Catwalks coast · visual only");
@@ -37,6 +39,10 @@ namespace DeadlyJenga.CandyArt
             root.transform.position = new Vector3(origin.x,water,origin.z);
             material = new Material(shader) { name="Catwalks coast shared art" };
             waterSpectrum=Resources.Load<Texture2D>("CandyScenery/CatwalksWaterSpectrum");
+            panorama=Resources.Load<Texture2D>("CandyScenery/CatwalksDayPanorama");
+            caustics=Resources.Load<Texture2D>("CandyScenery/CatwalksRefractedLight");
+            if(caustics) material.SetTexture("_CoastCaustics",caustics);
+            reflection=new CandyCoastReflection(world,waterRenderer,sandRenderer,material,waterLevel);
             var random = new System.Random(61011);
             for (int i=0;i<reefs.Length;i++)
             {
@@ -63,6 +69,11 @@ namespace DeadlyJenga.CandyArt
             properties.SetFloat("_CoastDayWater",CandySceneSkins.Selected==CandySceneSkin.TropicalDay?1:0);
             properties.SetVector("_CoastSun",SunDirection);
             if(waterSpectrum) properties.SetTexture("_CoastSpectrum",waterSpectrum);
+            if(panorama) properties.SetTexture("_CoastPanorama",panorama);
+            if(caustics) properties.SetTexture("_CoastCaustics",caustics);
+            properties.SetFloat("_CoastHasPanorama",panorama?1:0);
+            properties.SetFloat("_CoastReflectionReady",0);
+            properties.SetFloat("_CoastShadowReady",0);
             properties.SetVector("_ReefA",reefs[0]);
             properties.SetVector("_ReefB",reefs[1]);
             properties.SetVector("_ReefC",reefs[2]);
@@ -83,6 +94,8 @@ namespace DeadlyJenga.CandyArt
             daySky.SetVector("_SunDirection",SunDirection);
             daySky.SetColor("_SunColor",new Color(1f,.90f,.74f));
             daySky.SetFloat("_CoastWaterLevel",water);
+            if(panorama) daySky.SetTexture("_CoastPanorama",panorama);
+            daySky.SetFloat("_CoastHasPanorama",panorama?1:0);
             return daySky;
         }
 
@@ -113,25 +126,27 @@ namespace DeadlyJenga.CandyArt
                 Vector3 position=new(point.x,seabed,point.y);
                 float scale=patch==0?1.55f:Range(random,.62f,1.12f);
                 scale=Mathf.Min(scale,Mathf.Max(.30f,-seabed*1.1f));
-                garden.Ellipsoid(position,new Vector3(1.2f,.43f,.92f)*scale,Rock,11,5);
-                garden.Ellipsoid(position+new Vector3(-.62f,.12f,.48f)*scale,new Vector3(.64f,.32f,.55f)*scale,Rock*.83f,9,4);
+                garden.Stone(position,new Vector3(1.2f,.43f,.92f)*scale,Rock,patch*.6f);
+                garden.Stone(position+new Vector3(-.62f,.12f,.48f)*scale,new Vector3(.64f,.32f,.55f)*scale,Rock*.83f,patch*.88f+.6f);
+                garden.Stone(position+new Vector3(.71f,.02f,-.28f)*scale,new Vector3(.66f,.31f,.55f)*scale,Rock*.77f,patch*.55f-.8f);
                 for (int stem=0;stem<5;stem++)
                 {
                     float stemAngle=stem*2.4f;
                     var foot=position+new Vector3(Mathf.Cos(stemAngle)*.37f,.24f,Mathf.Sin(stemAngle)*.37f)*scale;
                     var up=new Vector3(Mathf.Cos(stemAngle)*.16f,1,Mathf.Sin(stemAngle)*.16f);
-                    Branch(garden,foot,up,scale*Range(random,.38f,.62f),.075f*scale,Coral[index%2],3,random);
+                    Branch(garden,foot,up,scale*Range(random,.40f,.68f),.082f*scale,Coral[index%2],3,random);
                 }
                 for (int fan=0;fan<4;fan++)
                 {
                     var foot=position+new Vector3(.3f+fan*.14f,.12f,-.42f+fan*.12f)*scale;
                     garden.Cup(foot,Range(random,.17f,.32f)*scale,Range(random,.22f,.46f)*scale,Coral[(index+1)%2],fan);
                 }
-                for (int pebble=0;pebble<6;pebble++)
+                for (int pebble=0;pebble<18;pebble++)
                 {
-                    float a=pebble*2.37f;
-                    var foot=position+new Vector3(Mathf.Cos(a)*.21f-.72f,.19f,Mathf.Sin(a)*.24f-.32f)*scale;
-                    garden.Ellipsoid(foot,new Vector3(.14f,.19f,.14f)*scale,Coral[2],7,4);
+                    float a=pebble*2.37f, spread=.35f*Mathf.Sqrt(pebble/18f);
+                    var foot=position+new Vector3(Mathf.Cos(a)*spread-.72f,.23f-spread*.35f,Mathf.Sin(a)*spread-.32f)*scale;
+                    float size=Range(random,.077f,.142f)*scale;
+                    garden.Ellipsoid(foot,new Vector3(size,size*1.37f,size),Coral[2]*Range(random,.74f,1.16f),8,4);
                 }
                 for (int blade=0;blade<11;blade++)
                 {
@@ -173,13 +188,17 @@ namespace DeadlyJenga.CandyArt
             Color color, int depth, System.Random random)
         {
             Vector3 end=start+direction.normalized*length;
-            mesh.Tube(start,end,width,width*.58f,color,6);
-            mesh.Ellipsoid(end,Vector3.one*width*.65f,color,6,3);
+            Vector3 bend=Vector3.Cross(direction,Vector3.right)*length*.12f;
+            Vector3 middle=(start+end)*.5f+bend;
+            mesh.Tube(start,middle,width,width*.85f,color*.94f,7);
+            mesh.Tube(middle,end,width*.85f,width*.57f,color,7);
+            mesh.Ellipsoid(end,Vector3.one*width*.62f,color*1.09f,8,4);
             if(depth<=1) return;
             for(int i=0;i<2;i++)
             {
-                var bend=new Vector3(Range(random,-.62f,.62f),Range(random,.3f,.66f),Range(random,-.62f,.62f));
-                Branch(mesh,Vector3.Lerp(start,end,.7f+i*.26f),(direction*.7f+bend).normalized,length*.65f,width*.63f,color,depth-1,random);
+                float azimuth=Range(random,0,Mathf.PI)+i*Mathf.PI;
+                var branch=new Vector3(Mathf.Cos(azimuth)*.94f,Range(random,.18f,.48f),Mathf.Sin(azimuth)*.94f);
+                Branch(mesh,Vector3.Lerp(middle,end,.30f+i*.66f),(direction*.54f+branch).normalized,length*.69f,width*.65f,color,depth-1,random);
             }
         }
 
@@ -301,6 +320,7 @@ namespace DeadlyJenga.CandyArt
         {
             if (disposed) return;
             disposed=true;
+            reflection.Dispose();
             if(root)root.SetActive(false);
             UnityEngine.Object.Destroy(root);
             UnityEngine.Object.Destroy(material);
@@ -338,6 +358,23 @@ namespace DeadlyJenga.CandyArt
                     float latitude=r*Mathf.PI/rings,angle=s*Mathf.PI*2/segments;
                     Vector3 normal=new(Mathf.Sin(latitude)*Mathf.Cos(angle),Mathf.Cos(latitude),Mathf.Sin(latitude)*Mathf.Sin(angle));
                     Point(center+Vector3.Scale(normal,scale),color,Vector2.zero);
+                }
+                Grid(start,segments,rings);
+            }
+            public void Stone(Vector3 center,Vector3 scale,Color color,float seed)
+            {
+                const int segments=16, rings=9;
+                int start=vertices.Count;
+                for(int r=0;r<=rings;r++)
+                for(int s=0;s<segments;s++)
+                {
+                    float lat=r*Mathf.PI/rings, angle=s*Mathf.PI*2/segments;
+                    Vector3 n=new(Mathf.Sin(lat)*Mathf.Cos(angle),Mathf.Cos(lat),Mathf.Sin(lat)*Mathf.Sin(angle));
+                    float profile=Mathf.Sin(n.x*5.4f+n.z*4.2f+seed)*Mathf.Cos(n.y*4.1f-n.z*3.1f);
+                    float radius=1+profile*.17f;
+                    float stripes=Mathf.Sin(n.y*13+profile*1.6f+seed);
+                    Color tint=color*Mathf.Lerp(.66f,1.22f,Mathf.Clamp01(.53f+stripes*.21f+profile*.22f));
+                    Point(center+Vector3.Scale(n,scale)*radius,tint,Vector2.zero);
                 }
                 Grid(start,segments,rings);
             }

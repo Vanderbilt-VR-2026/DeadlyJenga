@@ -29,6 +29,9 @@ Shader "Candy Tropical/Ocean"
         [HideInInspector] _ReefA("Reef A",Vector)=(0,0,1,1)
         [HideInInspector] _ReefB("Reef B",Vector)=(0,0,1,1)
         [HideInInspector] _ReefC("Reef C",Vector)=(0,0,1,1)
+        [NoScaleOffset] _CoastCaustics("Refracted sunlight",2D)="black"{}
+        [NoScaleOffset] _CoastPanorama("Island cloud panorama",2D)="black"{}
+        [HideInInspector] _CoastReflection("Mirrored castle",2D)="black"{}
         [HideInInspector] _CoastSpectrum("Wind wave slopes and crest breakup",2D)="gray"{}
         [HideInInspector] _CoastIslet("Palm islet",Vector)=(0,0,1,1)
         [HideInInspector] _CoastalDetail("Physical coast detail",Float)=0
@@ -56,7 +59,8 @@ Shader "Candy Tropical/Ocean"
             CBUFFER_START(UnityPerMaterial)
             float4 _Shallow,_Deep,_Foam,_Reflection,_Horizon,_Island;
             float4 _TerrainBounds,_SoakingPool,_ReefA,_ReefB,_ReefC,_CoastIslet;
-            float _CatwalksCoast,_CoastDayWater;
+            float _CatwalksCoast,_CoastDayWater,_CoastHasPanorama,_CoastReflectionReady;
+            float4x4 _CoastReflectionVP;
             float3 _CoastSun;
             float _RippleScale,_Speed,_Glints,_Shine,_FoamStrength;
             float4 _SurgeOrigin, _SurgeDirection;
@@ -67,6 +71,10 @@ Shader "Candy Tropical/Ocean"
             float _CandyOutage;
             TEXTURE2D(_TerrainHeight);SAMPLER(sampler_TerrainHeight);
             TEXTURE2D(_CoastSpectrum);SAMPLER(sampler_CoastSpectrum);
+            TEXTURE2D(_CoastPanorama);SAMPLER(sampler_CoastPanorama);
+            TEXTURE2D(_CoastReflection);SAMPLER(sampler_CoastReflection);
+            #include "../../../Resources/CandyScenery/CandyCoastPanorama.hlsl"
+            #include "../../../Resources/CandyScenery/CandyCoastCaustics.hlsl"
             struct Attributes{float4 positionOS:POSITION;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct Varyings{float4 positionCS:SV_POSITION;float3 world:TEXCOORD0;float3 normal:TEXCOORD1;float2 poolLocal:TEXCOORD2;float fog:TEXCOORD3;UNITY_VERTEX_OUTPUT_STEREO};
             float IslandDistance(float2 world)
@@ -171,22 +179,42 @@ Shader "Candy Tropical/Ocean"
                     float filament=1-smoothstep(.055,.22,abs(medium.b-.56+fine.r*.07));
                     float3 reflected=lerp(float3(.007,.14,.25),float3(.024,.53,.60),ripple);
                     float3 transmission=lerp(float3(.08,.54,.68),float3(.34,.81,.89),saturate(incidence));
-                    float3 below=lerp(reflected,transmission,window*.88)+float3(.21,.65,.68)*filament*ripple*.19+float3(1,.79,.45)*sparkle*.88;
+                    float lightBands=CandyRefractedLight(i.world.xz*.56,eyeDepth);
+                    float3 below=lerp(reflected,transmission,window*.88)+
+                        float3(.17,.56,.62)*lightBands*(.19+.81*lens)+
+                        float3(.20,.66,.68)*filament*ripple*.29+float3(1.45,1.02,.55)*sparkle;
                     return half4(below,.92);
                 }
 
                 float fresnel=.018+.982*pow(1-saturate(dot(normal,view)),5);
                 float3 reflection=reflect(-view,normal);
                 float3 reflectedSky=lerp(float3(.29,.65,.95),float3(.032,.23,.64),smoothstep(0,.58,reflection.y));
-                float cloud=smoothstep(.55,.82,broad.a*.65+medium.a*.35);
-                reflectedSky=lerp(reflectedSky,float3(.76,.86,.95),cloud*.29);
+                UNITY_BRANCH if(_CoastHasPanorama>.5)
+                    reflectedSky=lerp(reflectedSky,CandyCoastClouds(reflection),.74);
+                float reflectionCoverage=0;
+                UNITY_BRANCH if(_CoastReflectionReady>.5)
+                {
+                    float4 reflectedPosition=mul(_CoastReflectionVP,float4(i.world.x,_WaterHeight,i.world.z,1));
+                    float2 ndc=reflectedPosition.xy/max(.001,reflectedPosition.w);
+                    #if UNITY_UV_STARTS_AT_TOP
+                        ndc.y=-ndc.y;
+                    #endif
+                    float2 uv=ndc*.5+.5+(slope+normal.xz*.32)*(.026+.043*deep);
+                    float edge=1-smoothstep(.43,.50,max(abs(uv.x-.5),abs(uv.y-.5)));
+                    half4 reflectedCastle=SAMPLE_TEXTURE2D_LOD(_CoastReflection,sampler_CoastReflection,uv,lerp(.65,1.6,deep));
+                    reflectionCoverage=saturate(reflectedCastle.a*edge)*step(.001,reflectedPosition.w);
+                    // The reflection target is premultiplied after its mip chain blends the silhouette.
+                    half3 castle=reflectedCastle.rgb/max(.04,reflectedCastle.a);
+                    reflectedSky=lerp(reflectedSky,castle,reflectionCoverage*.88);
+                }
                 float wave=crest*.55+(broad.b-.5)*.32+(medium.b-.5)*.24;
                 float3 blue=lerp(float3(.003,.041,.185),float3(.007,.166,.46),smoothstep(-.39,.39,wave));
                 float reefTint=smoothstep(.13,2.5,depth);
-                float3 turquoise=lerp(float3(.002,.51,.32),float3(.001,.37,.64),reefTint);
+                float3 turquoise=lerp(float3(.002,.49,.31),float3(.001,.38,.58),reefTint);
                 turquoise*=.98+wave*.36;
                 float3 color=lerp(turquoise,blue,deep);
-                color=lerp(color,reflectedSky,fresnel*lerp(.12,.53,deep));
+                float reflectAmount=fresnel*lerp(.29,.58,deep);
+                color=lerp(color,reflectedSky,max(reflectAmount,reflectionCoverage*.49));
                 float alignment=saturate(dot(normal,normalize(sun+view)));
                 float glintMask=smoothstep(.48,.75,medium.a*.56+fine.a*.44);
                 float glint=pow(alignment,20)*.085+pow(alignment,88)*(.026+glintMask*.93);
@@ -208,10 +236,10 @@ Shader "Candy Tropical/Ocean"
                 float foam=max(max(lip*(.27+broken*.71)+wash*lace*.62,islet*.61),CandySurgeWhitecaps(i.world.xz));
                 color=lerp(color,float3(1,.97,.88),saturate(foam));
                 float clarity=max(reefClear*.86,1-smoothstep(.48,4.7,depth));
-                float alpha=lerp(.995,.39+reefTint*.16+fresnel*.13,clarity);
+                float alpha=lerp(.995,.27+reefTint*.27+fresnel*.11,clarity);
                 float shimmer=smoothstep(.46,.79,broad.a*.35+medium.a*.53+fine.a*.12);
                 color+=float3(.018,.20,.23)*shimmer*clarity;
-                return half4(MixFog(color,i.fog),max(alpha,foam));
+                return half4(MixFog(color,i.fog),max(max(alpha,foam),reflectionCoverage*.67));
             }
             half4 frag(Varyings i):SV_Target
             {
