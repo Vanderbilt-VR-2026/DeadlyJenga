@@ -112,8 +112,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         LobbyTerminalGlyph CandyIcon(RectTransform parent,LobbyTerminalGlyph.Symbol symbol,float x,float y,float size,Color color)
         {
-            var go=new GameObject(symbol+" icon",typeof(RectTransform),typeof(LobbyTerminalGlyph));go.transform.SetParent(parent,false);
+            bool roomSymbol=symbol is LobbyTerminalGlyph.Symbol.Person or LobbyTerminalGlyph.Symbol.Invite or LobbyTerminalGlyph.Symbol.Copy;
+            var go=roomSymbol?new GameObject(symbol+" icon",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyTerminalGlyph)):
+                new GameObject(symbol+" icon",typeof(RectTransform),typeof(LobbyTerminalGlyph));
+            go.transform.SetParent(parent,false);
             var glyph=go.GetComponent<LobbyTerminalGlyph>();glyph.symbol=symbol;glyph.color=color;glyph.raycastTarget=false;
+            if(roomSymbol)glyph.UseVertexMesh();
             glyph.rectTransform.anchoredPosition=new Vector2(x,y);glyph.rectTransform.sizeDelta=new Vector2(size,size);return glyph;
         }
         void CandyChoiceIcon(Choice choice,LobbyTerminalGlyph.Symbol symbol,float x,float y=0,float size=34)
@@ -144,6 +148,16 @@ namespace DeadlyJenga.CastlePrototype
             {
                 choice.label.color=usable&&(hover||pressed)?CandyHudVisuals.Ink:usable?Color.white:CandyHudVisuals.Muted;
                 choice.button.image.color=!usable?new Color(.11f,.14f,.2f):pressed?CandyCream:hover?CandyMint:CandyHudVisuals.Card;
+                return;
+            }
+            if(choice.cabinetCandy)
+            {
+                var bright=hover||pressed;
+                choice.button.image.color=choice.cabinetLink?Color.clear:
+                    Color.Lerp(choice.faceColor,CandyCream,pressed?.36f:bright?.19f:0);
+                if(!usable&&!choice.cabinetLink)choice.button.image.color*=new Color(.78f,.68f,.76f,1);
+                choice.label.color=usable?CandyCream:new Color(.89f,.76f,.82f);
+                if(choice.glyph)choice.glyph.color=choice.label.color;
                 return;
             }
             bool selected=choice.selected!=null&&choice.selected();

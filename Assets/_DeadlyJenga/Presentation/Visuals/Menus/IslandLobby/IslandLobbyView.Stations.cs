@@ -51,7 +51,8 @@ namespace DeadlyJenga.CastlePrototype
             if(lobby.CodeFocused&&codeKeyboard!=null)
             {
                 if(codeKeyboard.backspaceKey.wasPressedThisFrame)lobby.EraseCode();
-                if(codeKeyboard.enterKey.wasPressedThisFrame)InvokeChoice("join");
+                if(codeKeyboard.enterKey.wasPressedThisFrame)
+                    InvokeChoice(marinaJoinScreen&&marinaJoinScreen.gameObject.activeInHierarchy?"marina-submit-code":"join");
                 if(codeKeyboard.escapeKey.wasPressedThisFrame)lobby.UnfocusCode();
             }
             keyboardCode.gameObject.SetActive(lobby.CodeFocused);

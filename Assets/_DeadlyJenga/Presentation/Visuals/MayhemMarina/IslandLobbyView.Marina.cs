@@ -38,8 +38,7 @@ namespace DeadlyJenga.CastlePrototype
             var detailCenter = new Vector3(0, 3.67f, 10.85f);
             MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
             MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
-            AddCabinetBack(candyJoinContent, joinStation, "marina-close-join");
-            AddCabinetBack(candyHostContent, hostStation, "marina-close-host");
+            BuildMarinaRoomScreens();
             MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
             BuildKeyboardGrabBar();
@@ -87,10 +86,233 @@ namespace DeadlyJenga.CastlePrototype
             return distance<range;
         }
 
-        void AddCabinetBack(RectTransform content, RectTransform station, string id)
+        enum CabinetSurface { Glass, Glaze, Rim, Neon, Bezel }
+        readonly System.Collections.Generic.List<Sprite> marinaRoomArt=new();
+        readonly Text[] marinaCodeSlots=new Text[6];
+        static readonly Color RoomPlum=new(.35f,.135f,.24f);
+        static readonly Color RoomPurple=new(.86f,.49f,.87f);
+        static readonly Color RoomMint=new(.34f,.85f,.65f);
+        RectTransform marinaJoinScreen,marinaHostScreen;
+        Text marinaHostCode,marinaHostCount,marinaJoinRegion,marinaHostRegion,marinaJoinMessage;
+        Font marinaRoomFont;
+        bool marinaHostOptions;
+        string marinaDisplayedHostCode;
+
+        void BuildMarinaRoomScreens()
         {
-            CandyAdd(content, id, () => "BACK", 405, 365, 160, 55,
-                () => SetMarinaDetail(station, false), () => true, () => station.gameObject.activeSelf);
+            marinaRoomFont=Resources.Load<Font>("Fonts/Fredoka-Bold");
+            var rim=RoomSprite(1100,880,92,CabinetSurface.Bezel);
+            marinaJoinScreen=RoomScreen(joinStation,candyJoinContent,"Marina Join code screen",rim,new Color(.88f,.53f,.97f));
+            marinaHostScreen=RoomScreen(hostStation,candyHostContent,"Marina Host room screen",rim,new Color(.36f,.93f,.72f));
+            var glaze=RoomSprite(754,136,66,CabinetSurface.Glaze);
+            var token=RoomSprite(132,132,65,CabinetSurface.Glaze);
+            var linkArt=RoomSprite(280,56,25,CabinetSurface.Glaze);
+
+            RoomLabel(marinaJoinScreen,"JOIN",0,325,720,126,120).name="Join room heading";
+            var code=RoomButton(marinaJoinScreen,"marina-code-focus",()=>"",0,99,955,245,
+                RoomSprite(955,245,68,CabinetSurface.Neon),new Color(1,.59f,1),lobby.FocusCode,()=>lobby.JoinEnabled);
+            // Inset buttons are graphics on the code field so they share one input target.
+            for(int i=0;i<marinaCodeSlots.Length;i++)
+            {
+                float x=(i-2.5f)*140;
+                var slot=RoomImage((RectTransform)code.button.transform,"Room code token "+(i+1),token,
+                    new Color(.82f,.50f,.81f),x,-3,132,132);
+                marinaCodeSlots[i]=RoomLabel(slot.rectTransform,"",0,1,113,103,83);
+            }
+            RoomLabel(marinaJoinScreen,"Room code",0,223,330,61,54);
+            marinaJoinRegion=RoomLabel(marinaJoinScreen,"",354,183,130,36,25);
+            RoomButton(marinaJoinScreen,"marina-submit-code",()=>"Join",0,-153,754,136,glaze,RoomPurple,
+                lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,88);
+            var nearby=RoomButton(marinaJoinScreen,"marina-find-nearby",()=>"Find nearby",0,-269,395,67,linkArt,
+                Color.white,lobby.DetectNearby,()=>lobby.JoinEnabled,47,true);
+            RoomLine((RectTransform)nearby.button.transform,0,-25,202,new Color(1,.91f,.73f,.85f));
+            marinaJoinMessage=RoomLabel(marinaJoinScreen,"",0,-352,1000,59,28);
+
+            RoomLabel(marinaHostScreen,"HOST",-110,324,620,118,112).name="Host room heading";
+            var badge=RoomImage(marinaHostScreen,"Connected player badge",RoomSprite(302,88,44,CabinetSurface.Glaze),
+                new Color(.48f,.22f,.34f),352,322,302,88).rectTransform;
+            CandyIcon(badge,LobbyTerminalGlyph.Symbol.Person,-95,0,53,CandyCream);
+            marinaHostCount=RoomLabel(badge,"",29,1,207,67,54);
+            RoomLabel(marinaHostScreen,"Room code",0,215,310,56,51);
+            RoomLine(marinaHostScreen,-286,213,208,new Color(1,.84f,.87f));
+            RoomLine(marinaHostScreen,286,213,208,new Color(1,.84f,.87f));
+            var hostFrame=RoomImage(marinaHostScreen,"Host code outline",RoomSprite(850,146,54,CabinetSurface.Rim),
+                new Color(1,.82f,.89f),0,105,850,146).rectTransform;
+            marinaHostCode=RoomLabel(hostFrame,"",0,1,802,123,96);
+            marinaHostRegion=RoomLabel(hostFrame,"",339,-49,119,28,23);
+            var copy=RoomButton(marinaHostScreen,"marina-copy-code",()=>Time.unscaledTime<copiedHostCodeUntil?"Copied":"Copy Code",
+                0,-65,754,136,glaze,RoomMint,()=>
+                {
+                    GUIUtility.systemCopyBuffer=lobby.HostCode;
+                    copiedHostCodeUntil=Time.unscaledTime+1.5f;
+                },()=>lobby.Connected&&!lobby.Busy,61);
+            var invite=RoomButton(marinaHostScreen,"marina-invite-nearby",()=>"Invite Nearby",0,-211,754,136,glaze,
+                new Color(.57f,.29f,.64f),lobby.InviteNearby,()=>lobby.CanInvite,60);
+            CandyChoiceIcon(copy,LobbyTerminalGlyph.Symbol.Copy,-247,0,67);
+            CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.Invite,-247,0,67);
+            CandyText(copy,37,0,622,120,61);
+            CandyText(invite,40,0,627,120,60);
+            RoomButton(marinaHostScreen,"marina-host-options",()=>RequestId!=null?"Host request pending":"Room options",
+                0,-344,460,59,linkArt,Color.white,()=>{marinaHostOptions=true;UpdateMarinaRoomScreens();},()=>true,33,true);
+            RoomButton(candyHostContent,"marina-host-summary",()=>"Room code",403,365,190,54,linkArt,
+                Color.white,()=>{marinaHostOptions=false;UpdateMarinaRoomScreens();},()=>true,29,true).visible=
+                ()=>marinaHostOptions&&lobby.Connected&&!lobby.Busy;
+
+            foreach(var pair in new[]{(joinStation,candyJoinContent,"marina-close-join"),(hostStation,candyHostContent,"marina-close-host")})
+            {
+                var controls=new GameObject("Marina cabinet navigation",typeof(RectTransform)).GetComponent<RectTransform>();
+                controls.SetParent(pair.Item1,false);
+                controls.sizeDelta=pair.Item2.sizeDelta;
+                controls.localScale=pair.Item2.localScale;
+                RoomButton(controls,pair.Item3,()=>"‹",-461,333,76,71,token,
+                    new Color(.54f,.30f,.49f),()=>SetMarinaDetail(pair.Item1,false),()=>true,52);
+            }
+            UpdateMarinaRoomScreens();
+        }
+
+        RectTransform RoomScreen(RectTransform station,RectTransform existing,string title,Sprite rim,Color accent)
+        {
+            var screen=new GameObject(title,typeof(RectTransform)).GetComponent<RectTransform>();
+            screen.SetParent(station,false);
+            screen.sizeDelta=existing.sizeDelta;
+            screen.localScale=existing.localScale;
+            RoomImage(screen,"Burgundy display glass",RoomSprite(1100,880,92,CabinetSurface.Glass),RoomPlum,0,0,1100,880);
+            RoomImage(screen,"Glossy colored glass trim",rim,accent,0,0,1100,880);
+            return screen;
+        }
+        Text RoomLabel(RectTransform parent,string value,float x,float y,float width,float height,int size)
+        {
+            var label=CandyReadout(parent,string.IsNullOrEmpty(value)?"Room readout":value,value,x,y,width,height,size);
+            label.font=marinaRoomFont?marinaRoomFont:label.font;
+            label.fontStyle=marinaRoomFont?FontStyle.Normal:FontStyle.Bold;
+            label.resizeTextMinSize=Mathf.RoundToInt(size*.75f);
+            var shadow=label.gameObject.AddComponent<Shadow>();
+            shadow.effectColor=new Color(.17f,.035f,.12f,.74f);
+            shadow.effectDistance=new Vector2(0,-2);
+            return label;
+        }
+        Choice RoomButton(RectTransform parent,string id,System.Func<string> title,float x,float y,float width,float height,
+            Sprite art,Color color,System.Action action,System.Func<bool> usable,int fontSize=38,bool link=false)
+        {
+            var choice=Add(parent,id,title,y,action,usable,x,width,height);
+            choice.candy=choice.cabinetCandy=true;
+            choice.cabinetLink=link;
+            choice.faceColor=color;
+            choice.button.transition=Selectable.Transition.None;
+            choice.button.image.type=Image.Type.Simple;
+            choice.button.image.sprite=art;
+            choice.button.image.color=link?Color.clear:color;
+            choice.label.font=marinaRoomFont?marinaRoomFont:choice.label.font;
+            choice.label.fontStyle=marinaRoomFont?FontStyle.Normal:FontStyle.Bold;
+            choice.label.color=CandyCream;
+            CandyText(choice,0,0,width-26,height-9,fontSize);
+            return choice;
+        }
+        static Image RoomImage(RectTransform parent,string title,Sprite art,Color color,float x,float y,float width,float height)
+        {
+            var image=new GameObject(title,typeof(RectTransform),typeof(Image)).GetComponent<Image>();
+            image.rectTransform.SetParent(parent,false);
+            image.rectTransform.anchoredPosition=new Vector2(x,y);
+            image.rectTransform.sizeDelta=new Vector2(width,height);
+            image.sprite=art;image.color=color;image.raycastTarget=false;
+            return image;
+        }
+        static void RoomLine(RectTransform parent,float x,float y,float width,Color color) =>
+            RoomImage(parent,"Room code rule",null,color,x,y,width,4);
+
+        Sprite RoomSprite(float width,float height,float radius,CabinetSurface finish)
+        {
+            int w=Mathf.CeilToInt(width*.4f),h=Mathf.CeilToInt(height*.4f);
+            var texture=new Texture2D(w,h,TextureFormat.RGBA32,false)
+                {name="Marina room "+finish,filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp};
+            var pixels=new Color32[w*h];
+            for(int y=0;y<h;y++)
+            for(int x=0;x<w;x++)
+            {
+                float u=(x+.5f)/w,v=(y+.5f)/h;
+                var point=new Vector2((u-.5f)*width,(v-.5f)*height);
+                float margin=finish==CabinetSurface.Neon?18:finish==CabinetSurface.Glaze?5:2;
+                var q=new Vector2(Mathf.Abs(point.x)-width*.5f+radius+margin,Mathf.Abs(point.y)-height*.5f+radius+margin);
+                float d=new Vector2(Mathf.Max(0,q.x),Mathf.Max(0,q.y)).magnitude+Mathf.Min(0,Mathf.Max(q.x,q.y))-radius;
+                float coverage=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(-1.6f,1.6f,d));
+                float shade;
+                switch(finish)
+                {
+                    case CabinetSurface.Glass:
+                        shade=Mathf.Clamp01(.98f-.47f*(u-.5f)*(u-.5f)-.63f*(v-.63f)*(v-.63f));
+                        break;
+                    case CabinetSurface.Bezel:
+                        coverage*=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-32,-26,d));
+                        shade=Mathf.Clamp01(.58f+.33f*v+.36f*Mathf.Exp(-Mathf.Abs(d+7)*.16f));
+                        break;
+                    case CabinetSurface.Neon:
+                    case CabinetSurface.Rim:
+                        float line=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(2,5,Mathf.Abs(d)));
+                        float glow=finish==CabinetSurface.Neon?.58f*Mathf.Exp(-Mathf.Abs(d)*.12f):0;
+                        bool captionGap=finish==CabinetSurface.Neon&&v>.76f&&Mathf.Abs(point.x)<171;
+                        coverage=captionGap?0:Mathf.Max(line,glow);
+                        shade=.83f+line*.17f;
+                        break;
+                    default:
+                        shade=Mathf.Lerp(.57f,.98f,Mathf.SmoothStep(0,1,v));
+                        shade+=.27f*Mathf.Exp(-Mathf.Abs(d+5)*.2f)*Mathf.SmoothStep(0,1,v);
+                        shade+=.10f*Mathf.Exp(-Mathf.Pow((v-.76f)*7,2));
+                        if(d>0)coverage=Mathf.Max(coverage,.25f*Mathf.Exp(-d*.42f)*(1-v));
+                        break;
+                }
+                pixels[y*w+x]=new Color(shade,shade,shade,coverage);
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(false,true);
+            var sprite=Sprite.Create(texture,new Rect(0,0,w,h),new Vector2(.5f,.5f),100,0,SpriteMeshType.FullRect);
+            marinaRoomArt.Add(sprite);
+            return sprite;
+        }
+
+        void UpdateMarinaRoomScreens()
+        {
+            if(!marinaJoinScreen)return;
+            bool codePage=!lobby.ShowingNearby&&(lobby.CodeFocused||!lobby.Connected&&lobby.InvitationFrom==null);
+            bool roomPage=lobby.Connected&&lobby.IsHost&&!lobby.Busy&&!marinaHostOptions;
+            if(!lobby.Connected)marinaHostOptions=false;
+            marinaJoinScreen.gameObject.SetActive(codePage);
+            candyJoinContent.gameObject.SetActive(!codePage);
+            marinaHostScreen.gameObject.SetActive(roomPage);
+            candyHostContent.gameObject.SetActive(!roomPage);
+
+            if(codePage&&joinStation.gameObject.activeSelf)
+            {
+                string code=lobby.EnteredCode??"";
+                int dash=code.LastIndexOf('-');
+                marinaJoinRegion.text=dash>0?code.Substring(0,dash):"";
+                for(int i=0;i<marinaCodeSlots.Length;i++)
+                {
+                    int index=dash+1+i;
+                    marinaCodeSlots[i].text=index<code.Length?code[index].ToString():"·";
+                }
+                string hint=lobby.JoinHint??"";
+                marinaJoinMessage.text=lobby.Busy||hint.StartsWith("Connection failed",System.StringComparison.Ordinal)||
+                    hint.StartsWith("Check the code",System.StringComparison.Ordinal)?hint:"";
+            }
+            if(roomPage&&hostStation.gameObject.activeSelf)
+            {
+                string code=lobby.HostCode??"";
+                int dash=code.LastIndexOf('-');
+                marinaHostRegion.text=dash>0?code.Substring(0,dash):"";
+                string local=code.Substring(dash+1);
+                if(marinaDisplayedHostCode!=local)
+                {
+                    marinaDisplayedHostCode=local;
+                    marinaHostCode.text=string.Join("  ",System.Array.ConvertAll(local.ToCharArray(),c=>c.ToString()));
+                }
+                marinaHostCount.text=Mathf.Max(1,Details?.ConnectedCount??1)+" / 10";
+            }
+        }
+        void DisposeMarinaRoomScreens()
+        {
+            foreach(var sprite in marinaRoomArt)
+                if(sprite){Destroy(sprite.texture);Destroy(sprite);}
+            marinaRoomArt.Clear();
         }
 
         void UpdateMarinaKeyboard()
@@ -148,6 +370,8 @@ namespace DeadlyJenga.CastlePrototype
         void SetMarinaDetail(RectTransform station, bool open)
         {
             if (station == joinStation && !open) lobby.UnfocusCode();
+            if (station == hostStation && !open) marinaHostOptions = false;
+            UpdateMarinaRoomScreens();
             if(open)
             {
                 if(station==setupStation)UpdateGameStation();
@@ -168,12 +392,14 @@ namespace DeadlyJenga.CastlePrototype
                 !hostStation.gameObject.activeSelf && !wardrobeOpen);
             marinaBack.gameObject.SetActive(mainDetail && !wardrobeOpen);
             if (marinaStylePrompt) marinaStylePrompt.gameObject.SetActive(!mainDetail && !wardrobeOpen);
+            UpdateMarinaRoomScreens();
             UpdateMarinaKeyboard();
         }
 
         void CloseMarinaDetail()
         {
             lobby?.UnfocusCode();
+            marinaHostOptions=false;
             terminalRequireRelease = true;
             DeadlyJenga.Presentation.MenuAim.Consume();
             joinStation.gameObject.SetActive(false);
@@ -252,6 +478,6 @@ namespace DeadlyJenga.CastlePrototype
             Ellipsoid(root, "Knife blade", offset + Vector3.forward * .12f, new Vector3(.075f, .025f, .27f), new Color(.79f, .88f, .95f));
         }
         partial void DisposeMayhemMarina()
-        {GameEvents.Emoted -= MarinaActivityArt;if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaStylePrompt)Destroy(marinaStylePrompt.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
+        {DisposeMarinaRoomScreens();GameEvents.Emoted -= MarinaActivityArt;if(marinaScreen)Destroy(marinaScreen);if(marina)Destroy(marina);if(marinaBack)Destroy(marinaBack.gameObject);if(marinaStylePrompt)Destroy(marinaStylePrompt.gameObject);if(marinaMirror)Destroy(marinaMirror.gameObject);if(marinaMaskSprite)Destroy(marinaMaskSprite);if(marinaMaskTexture)Destroy(marinaMaskTexture);}
     }
 }

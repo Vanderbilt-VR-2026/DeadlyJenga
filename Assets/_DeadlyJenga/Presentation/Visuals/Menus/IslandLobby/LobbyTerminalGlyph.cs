@@ -5,11 +5,17 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed class LobbyTerminalGlyph : MaskableGraphic
     {
-        public enum Symbol { Play, Plus, People, Radar, Gear, Chevron, Back, Check, Globe, Island }
+        public enum Symbol { Play, Plus, People, Radar, Gear, Chevron, Back, Check, Globe, Island, Person, Invite, Copy }
         public Symbol symbol;
         VertexHelper mesh;
         Vector2 origin;
         float unit;
+
+        internal void UseVertexMesh()
+        {
+            useLegacyMeshGeneration=false;
+            SetVerticesDirty();
+        }
 
         protected override void OnPopulateMesh(VertexHelper vertices)
         {
@@ -26,6 +32,29 @@ namespace DeadlyJenga.CastlePrototype
                     Disc(new Vector2(0,.45f),.30f);Bar(new Vector2(0,-.43f),new Vector2(.63f,.72f));
                     Disc(new Vector2(-.68f,.28f),.21f);Bar(new Vector2(-.68f,-.42f),new Vector2(.38f,.60f));
                     Disc(new Vector2(.68f,.28f),.21f);Bar(new Vector2(.68f,-.42f),new Vector2(.38f,.60f));break;
+                case Symbol.Person:
+                case Symbol.Invite:
+                    float x=symbol==Symbol.Invite?-.32f:0;
+                    Disc(new Vector2(x,.43f),.32f);
+                    Disc(new Vector2(x,-.39f),.52f);
+                    Bar(new Vector2(x,-.61f),new Vector2(1.04f,.4f));
+                    if(symbol==Symbol.Invite)
+                    {
+                        Bar(new Vector2(.64f,.03f),new Vector2(.65f,.19f));
+                        Bar(new Vector2(.64f,.03f),new Vector2(.19f,.65f));
+                    }
+                    break;
+                case Symbol.Copy:
+                    Bar(new Vector2(-.77f,-.15f),new Vector2(.15f,1.25f));
+                    Bar(new Vector2(-.35f,-.79f),new Vector2(.98f,.15f));
+                    Bar(new Vector2(.10f,-.64f),new Vector2(.15f,.42f));
+                    Bar(new Vector2(-.51f,.47f),new Vector2(.55f,.15f));
+                    Bar(new Vector2(-.24f,.20f),new Vector2(.15f,1.31f));
+                    Bar(new Vector2(.25f,-.43f),new Vector2(1.11f,.15f));
+                    Bar(new Vector2(.76f,.05f),new Vector2(.15f,1.08f));
+                    Bar(new Vector2(.12f,.83f),new Vector2(.81f,.15f));
+                    Bar(new Vector2(.65f,.73f),new Vector2(.42f,.15f),-42);
+                    break;
                 case Symbol.Radar:
                     Ring(Vector2.zero,.90f,.82f);Ring(Vector2.zero,.55f,.47f);Disc(Vector2.zero,.15f);
                     Bar(new Vector2(.37f,.37f),new Vector2(.13f,1.05f),-45);break;
