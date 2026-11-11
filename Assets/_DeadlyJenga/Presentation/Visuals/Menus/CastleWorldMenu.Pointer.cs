@@ -81,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
-            if(requireRelease)
+            if(session.IsVR&&requireRelease)
             {
                 if(!pressed&&!held)requireRelease=false;
                 pressed=held=false;
