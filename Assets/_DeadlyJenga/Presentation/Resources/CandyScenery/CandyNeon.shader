@@ -75,7 +75,8 @@ Shader "Candy Tropical/Neon Outage"
     half pulse=.88+.12*sin(_Time.y*2.2+i.world.x*.12+i.world.z*.09);
     half trim=(broad*.16+core*.84)*nearby*lerp(.43,1.8,_Filled)*pulse;
     half3 result=night+emitter*(trim*(1-_Character)+fresnel*(.12+_Character*.28));
-    return half4(result,1);
+    float visibility=1-smoothstep(.85,2.35,distance(i.world,_WorldSpaceCameraPos));
+    return half4(lerp(half3(.006,.004,.016),result,visibility),1);
    }
    ENDHLSL
   }

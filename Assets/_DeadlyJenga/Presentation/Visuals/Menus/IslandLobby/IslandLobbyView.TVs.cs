@@ -6,6 +6,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class IslandLobbyView
     {
+        LobbySpectatorTVWall spectatorWall;
         void BuildTVWall()
         {
             EnsureKeyboardArt();
@@ -20,9 +21,9 @@ namespace DeadlyJenga.CastlePrototype
                 wall.SetLocalPositionAndRotation(new Vector3(-4.8f,.12f,-4.7f),Quaternion.Euler(0,-135,0));
             Box(wall,"Television plinth",new Vector3(0,.10f,.10f),new Vector3(3.8f,.22f,.65f),new Color(.08f,.12f,.18f));
             var displays=new GameObject("Television displays",typeof(RectTransform),typeof(Canvas)).GetComponent<RectTransform>();
-            displays.SetParent(wall,false);displays.localPosition=new Vector3(0,0,-.245f);displays.localScale=Vector3.one*.001f;
+            displays.SetParent(wall,false);displays.localPosition=new Vector3(0,0,-.253f);displays.localScale=Vector3.one*.001f;
             displays.GetComponent<Canvas>().renderMode=RenderMode.WorldSpace;
-            var feeds=wall.gameObject.AddComponent<LobbySpectatorTVWall>();
+            var feeds=spectatorWall=wall.gameObject.AddComponent<LobbySpectatorTVWall>();
             Color[] colors={new Color(.98f,.43f,.28f),new Color(.20f,.72f,.64f),new Color(.66f,.43f,.88f)};
             for(int i=0;i<9;i++)
             {

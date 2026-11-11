@@ -11,6 +11,7 @@ namespace DeadlyJenga.CastlePrototype
             if(owner!=gameObject||!Environment)return;
             if(state=="LobbyParked")
             {
+                if(spectatorWall)spectatorWall.CloseFullScreen();
                 if (marina) CloseMarinaDetail();
                 else SetWardrobeOpen(false);
                 var position=Environment.transform.position;
@@ -21,9 +22,16 @@ namespace DeadlyJenga.CastlePrototype
                 var terrain=Environment.sandRenderer.GetComponent<CandySandbar>();if(terrain)terrain.map=null;
                 Environment.transform.position=position;Environment.Refresh();
                 if(lobbySun)lobbySun.enabled=false;
+                Environment.gameObject.SetActive(false);
+            }
+            else if(state=="LobbyVisitOpened"&&!marina)
+            {
+                Environment.gameObject.SetActive(true);
+                Environment.Refresh();
             }
             else if(state=="LobbyResumed")
             {
+                Environment.gameObject.SetActive(true);
                 Environment.profile=localArt;Environment.sun=lobbySun;Environment.applyLighting=true;
                 if(lobbySun)lobbySun.enabled=true;
                 Environment.enabled=true;Environment.Refresh();

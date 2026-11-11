@@ -246,7 +246,8 @@ namespace DeadlyJenga.Presentation
             foreach (var original in source.GetComponentsInChildren<Renderer>(true))
             {
                 bool avatarBody = original is SkinnedMeshRenderer && original.name == "Candy body and shared hands";
-                if ((!avatarBody && (!original.enabled || original.forceRenderingOff)) ||
+                bool avatarHead = original is SkinnedMeshRenderer && original.name == "Candy spherical head" && original.enabled;
+                if ((!avatarBody && !avatarHead && (!original.enabled || original.forceRenderingOff)) ||
                     !CandyScorePortraits.VisibleInAvatar(original.transform, source)) continue;
                 Renderer copy;
                 if (original is SkinnedMeshRenderer skin && skin.sharedMesh)
@@ -272,7 +273,13 @@ namespace DeadlyJenga.Presentation
                 else continue;
                 copy.gameObject.layer = PreviewLayer;
                 copy.sharedMaterials = original.sharedMaterials;
+                properties.Clear();
                 original.GetPropertyBlock(properties);
+                if (original.sharedMaterial && original.sharedMaterial.HasProperty("_MeltProgress"))
+                {
+                    properties.SetFloat("_MeltProgress", 0);
+                    properties.SetFloat("_DryProgress", 0);
+                }
                 if (original.sharedMaterial && original.sharedMaterial.HasProperty("_Health"))
                 {
                     properties.SetFloat("_Health", 1);

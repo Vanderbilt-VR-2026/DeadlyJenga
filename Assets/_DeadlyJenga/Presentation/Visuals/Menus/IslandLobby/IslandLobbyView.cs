@@ -62,8 +62,8 @@ namespace DeadlyJenga.CastlePrototype
             localArt=Instantiate(art?art:prefab.profile);localArt.name="Lobby art (runtime copy)";
             localArt.islandRadius=8;localArt.fitIslandToFoundation=false;localArt.alignSandToFoundation=false;
             localArt.sandHeight=.45f;localArt.sandRelief=.28f;localArt.sandMargin=.65f;localArt.sandShoreWidth=2.1f;localArt.terrainResolution=96;
-            Environment=Instantiate(prefab);Environment.name="Island  /  castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
-            lobbySun=new GameObject("Island sunlight").AddComponent<Light>();lobbySun.type=LightType.Directional;lobbySun.enabled=Environment.applyLighting;Environment.sun=lobbySun;
+            Environment=Instantiate(prefab,transform);Environment.WorldOverride=lobby as IWorldQuery;Environment.name="Island  /  castle ocean, sand and sky";Environment.profile=localArt;Environment.foundation=null;Environment.applyLighting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby!=true;
+            lobbySun=new GameObject("Island sunlight").AddComponent<Light>();lobbySun.transform.SetParent(transform,false);lobbySun.type=LightType.Directional;lobbySun.enabled=Environment.applyLighting;Environment.sun=lobbySun;
             if((lobby as ILobbyMatchVisitControls)?.VisitingLobby==true)
             {
                 foreach(var component in Environment.GetComponents<MonoBehaviour>())component.enabled=false;
@@ -77,11 +77,11 @@ namespace DeadlyJenga.CastlePrototype
         TextMesh lobbyAimDot;
         LineRenderer lobbyAimBeam;
         bool trackedLobbyPointer;
-        void DrawLobbyAim(Ray ray,float distance,bool hit)
+        void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
         {
             if(!Player.IsVR){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
-                trackedLobbyPointer && distance > .03f && hit, hit);
+                trackedLobbyPointer && distance > .03f && hit, actionable);
             if(!lobbyAimDot)
             {
                 lobbyAimDot=new GameObject("Lobby gaze cursor").AddComponent<TextMesh>();
@@ -93,7 +93,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             lobbyAimDot.gameObject.SetActive(true);
             lobbyAimDot.text=hit?"●":"·";
-            lobbyAimDot.color=hit?CandyHudVisuals.Mint:Color.white;
+            lobbyAimDot.color=hit&&actionable?CandyHudVisuals.Mint:Color.white;
             lobbyAimDot.characterSize=.009f*distance;
             lobbyAimDot.transform.SetPositionAndRotation(ray.GetPoint(distance-.015f),Quaternion.LookRotation(ray.direction));
         }
@@ -126,6 +126,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 bool preferredLeft=Player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
                 ray=MenuAim.Resolve(eye,eye.transform.parent,preferredLeft,false,false,out trackedLobbyPointer,out _);
+                if(!trackedLobbyPointer && (lobby as ILobbyMatchVisitControls)?.VisitingLobby==true &&
+                    MenuAim.TryHandPointer(eye,Player,preferredLeft,out var visitorHandRay))ray=visitorHandRay;
                 trackedLobbyPointer |= MenuAim.IsTrackedPointer(eye, ray);
                 if (select.IsPressed() || select.WasPressedThisFrame())
                 {
@@ -144,6 +146,16 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
                 ray=session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+            if (spectatorWall && spectatorWall.FullScreen)
+            {
+                if (pressed || keyboard?.escapeKey.wasPressedThisFrame == true)
+                {
+                    spectatorWall.CloseFullScreen();
+                    terminalRequireRelease=true;
+                }
+                MenuAim.Consume();
+                return;
+            }
             Point(ray,pressed,pointerHeld,pointerDevice);
             UpdateStations();
         }
@@ -233,6 +245,17 @@ namespace DeadlyJenga.CastlePrototype
                 DrawLobbyAim(ray,dragDepth,true);
                 return;
             }
+            if (!wardrobeOpen && spectatorWall && spectatorWall.TryPoint(ray,distance,out int channel,out float tvDepth))
+            {
+                DrawLobbyAim(ray,tvDepth,true);
+                MenuAim.Consume();
+                if (pressed && spectatorWall.OpenFullScreen(channel))
+                {
+                    MenuAim.PulsePress(pointerDevice);
+                    terminalRequireRelease=true;
+                }
+                return;
+            }
             bool actionable = nearest != null && nearest.button.interactable;
             if(actionable)
             {
@@ -240,7 +263,8 @@ namespace DeadlyJenga.CastlePrototype
                 if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
                 else if(pressed)InvokeChoice(nearest.id,pointerDevice);
             }
-            DrawLobbyAim(ray,nearest!=null?distance:1.5f,actionable);
+            bool faceHit=TryCabinetFace(ray,distance,out float faceDepth);
+            DrawLobbyAim(ray,nearest!=null?distance:faceHit?faceDepth:1.5f,nearest!=null||faceHit,actionable);
         }
         void OnGUI()
         {

@@ -74,10 +74,12 @@ namespace DeadlyJenga.CandyArt.Marina
                 if (visual) visual.gameObject.SetActive(false);
                 HideLegacyGround(coastalEnvironment);
             }
-            else if (state=="LobbyResumed")
+            else if (state=="LobbyResumed" || state=="LobbyVisitOpened")
             {
-                ApplyLighting(coastalEnvironment);
+                bool resumed=state=="LobbyResumed";
+                if (resumed) ApplyLighting(coastalEnvironment);
                 if (visual) visual.gameObject.SetActive(true);
+                if (volumeProfile && visual && visual.GetComponentInChildren<Volume>() is Volume grading) grading.enabled=resumed;
             }
         }
         void RestoreLighting()

@@ -21,13 +21,16 @@ namespace DeadlyJenga.Modes
         [Serializable] public sealed class EquipmentCommand
         {public string action;public int pickup;public bool swap,drawn,left,shotgun,thrust,held;public Vector3 position,forward;public int dropRequest;}
 
+        bool AllowsSurvivalPickup(EquipmentKind kind)=>Rules.mode!=GameModeKind.Survival||
+            kind is EquipmentKind.Speed or EquipmentKind.Jump or EquipmentKind.FlyingHand;
+
         public EquipmentState EquipmentFor(string id)
         {
             if(string.IsNullOrEmpty(id))return new EquipmentState();
             EquipmentState state=null;
             if(Authority)equipment.TryGetValue(id,out state);
             else foreach(var value in frame.equipment)if(value.actor==id){state=value;break;}
-            if((state==null||state.kind==EquipmentKind.Speed||state.kind==EquipmentKind.Jump)&&Rules.defaultDagger&&Rules.punchEnabled&&simulation?.Phase==RoundPhase.Playing)
+            if((state==null||state.kind==EquipmentKind.Speed||state.kind==EquipmentKind.Jump)&&AllowsSurvivalPickup(EquipmentKind.Dagger)&&Rules.defaultDagger&&Rules.punchEnabled&&simulation?.Phase==RoundPhase.Playing)
             {
                 var p=simulation.Find(id);if(p!=null&&p.frame.alive&&!p.frame.dying&&p.frame.role!="hand"&&p.frame.role!="spectator"&&FindActor(id)?.gameObject.GetComponent<IEnemyActor>()?.IsEnemy!=true)
                     return new EquipmentState{actor=id,kind=EquipmentKind.Dagger,activePower=state?.kind??EquipmentKind.None,remaining=state?.remaining??20,drawn=true,builtIn=true,
@@ -88,7 +91,7 @@ namespace DeadlyJenga.Modes
         }
         EquipmentPickup AddPickup(EquipmentKind kind,Vector3 point,float remaining=20,bool station=false)
         {
-            if(pickups.Count>=128||!Finite(point))return null;
+            if(pickups.Count>=128||!Finite(point)||!AllowsSurvivalPickup(kind))return null;
             var pickup=new EquipmentPickup{id=++nextPickup,kind=kind,position=point,remaining=remaining,station=station};pickups.Add(pickup);return pickup;
         }
         static bool PickupPathClear(Vector3 origin, Vector3 point)
@@ -106,7 +109,7 @@ namespace DeadlyJenga.Modes
         bool TakeEquipment(string id,int pickupId,bool swap)
         {
             var actor=FindActor(id);var pickup=pickups.Find(x=>x.id==pickupId);
-            if(actor==null||pickup==null||pickup.kind==EquipmentKind.FlyingHand&&actor.IsBot||pickup.availableIn>0||Vector3.Distance(actor.transform.position,pickup.position)>1.65f)return false;
+            if(actor==null||pickup==null||!AllowsSurvivalPickup(pickup.kind)||pickup.kind==EquipmentKind.FlyingHand&&actor.IsBot||pickup.availableIn>0||Vector3.Distance(actor.transform.position,pickup.position)>1.65f)return false;
             var eye = actor.ViewPose.position;
             if (!PickupPathClear(eye, pickup.position) && (actor.IsBot ||
                 !PickupWithinReach(actor.HandPose(true).position, eye, pickup.position) &&
@@ -197,7 +200,7 @@ namespace DeadlyJenga.Modes
         }
         bool GiveEquipmentTo(string id,EquipmentKind kind,bool dropPrevious,bool publish)
         {
-            var actor=FindActor(id);if(actor==null)return false;
+            var actor=FindActor(id);if(actor==null||!AllowsSurvivalPickup(kind))return false;
             if(kind==EquipmentKind.FlyingHand){if(actor.IsBot)return false;DropEquipment(id,actor.transform.position);AnnounceEquipment(id,new EquipmentState{kind=kind},EquipmentAction.Pickup,actor.transform.position);simulation.HandPower(id,30);return true;}
             var previous=equipment.TryGetValue(id,out var heldItem)?heldItem.Copy():EquipmentFor(id);
             if(dropPrevious&&previous.kind!=EquipmentKind.None&&!previous.builtIn&&previous.kind!=kind)
@@ -215,7 +218,7 @@ namespace DeadlyJenga.Modes
         void TickEquipment(float dt)
         {
             if(!Authority)return;
-            if(!stationsSeeded&&Services.World!=null&&(MatchSetup.MapId=="mode-powerup-test"||MatchSetup.MapId=="powerup-test"))
+            if(Rules.mode!=GameModeKind.Survival&&!stationsSeeded&&Services.World!=null&&(MatchSetup.MapId=="mode-powerup-test"||MatchSetup.MapId=="powerup-test"))
             {
                 stationsSeeded=true;
                 for(int i=1;i<EquipmentSpecifications.All.Length;i++)
@@ -224,7 +227,7 @@ namespace DeadlyJenga.Modes
                     if(Physics.Raycast(origin,Vector3.down,out var hit,40,(1<<Layers.Surface)|(1<<Layers.Block)|1,QueryTriggerInteraction.Ignore))AddPickup((EquipmentKind)i,hit.point+Vector3.up*.35f,20,true);
                 }
             }
-            foreach(var enemy in simulation.Enemies){var actor=FindActor(enemy.frame.id);if(actor?.gameObject.GetComponent<IEnemyActor>()?.ArchetypeId=="mushroom"&&!equipment.ContainsKey(enemy.frame.id))GiveEquipmentTo(enemy.frame.id,EquipmentKind.DualUzi,false,false);}
+            if(Rules.mode!=GameModeKind.Survival)foreach(var enemy in simulation.Enemies){var actor=FindActor(enemy.frame.id);if(actor?.gameObject.GetComponent<IEnemyActor>()?.ArchetypeId=="mushroom"&&!equipment.ContainsKey(enemy.frame.id))GiveEquipmentTo(enemy.frame.id,EquipmentKind.DualUzi,false,false);}
             foreach(var pickup in pickups)pickup.availableIn=Mathf.Max(0,pickup.availableIn-dt);
             equipmentTick.Clear();equipmentTick.AddRange(equipment);
             foreach(var pair in equipmentTick)

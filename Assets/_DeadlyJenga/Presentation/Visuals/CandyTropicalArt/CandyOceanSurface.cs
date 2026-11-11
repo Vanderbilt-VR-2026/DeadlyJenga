@@ -15,6 +15,7 @@ namespace DeadlyJenga.CandyArt
         static readonly Dictionary<string,Mesh> Cache=new Dictionary<string,Mesh>();
         static readonly HashSet<CandyOceanSurface> Live=new HashSet<CandyOceanSurface>();
         internal float DetailedExtent {get;set;}
+        internal bool TrackStorms {get;set;}=true;
         public float ActiveExtent{get;private set;}
         void OnEnable(){Live.Add(this);Refresh();}
         void OnDisable(){Live.Remove(this);PruneUnused();}
@@ -28,6 +29,7 @@ namespace DeadlyJenga.CandyArt
             bool storm=false;
             foreach(var source in Tracked.Waves)
             {
+                if(!TrackStorms)break;
                 var wave=source.Wave;if(!wave.active)continue;storm=true;
                 Vector3 delta=wave.center-transform.position;
                 float reach=Mathf.Max(Mathf.Abs(delta.x),Mathf.Abs(delta.z))+wave.width*.65f+wave.depth*2+70;

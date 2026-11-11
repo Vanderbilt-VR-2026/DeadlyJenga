@@ -55,8 +55,8 @@ namespace DeadlyJenga.World.Hazards
                 case "Tornado":
                     p.Add(new DisasterParameter("height","Height",10,160,65,"m"));
                     p.Add(new DisasterParameter("size","Funnel diameter",3,50,16,"m"));
-                    p.Add(new DisasterParameter("force","Ferocity",0,40,12,"m/s²"));
-                    p.Add(new DisasterParameter("reach","Pull-in distance",5,120,38,"m"));break;
+                    p.Add(new DisasterParameter("force","Ferocity",0,40,5,"m/s²"));
+                    p.Add(new DisasterParameter("reach","Pull-in distance",5,120,24,"m"));break;
                 case "Fire":
                     p.Add(new DisasterParameter("damage","Contact damage",0,50,8,"HP/s"));
                     p.Add(new DisasterParameter("contact","Contact time to spread",.2f,15,2,"s"));
@@ -103,6 +103,11 @@ namespace DeadlyJenga.World.Hazards
             if(Kind=="MeteorShower"||Kind=="PlanetKillerMeteor")TickMeteors(dt);
             if(Kind=="AntiGravity")TickGravity(dt);
             if(Kind=="Tornado"){AdvanceTornadoRoute(dt);TickTornadoBlocks(dt);}
+            if(Kind=="Earthquake")
+            {
+                TickEarthquake(dt);
+                return;
+            }
             if(age<nextTick)return;
             nextTick=age+.1f;
             switch(Kind)
@@ -111,7 +116,6 @@ namespace DeadlyJenga.World.Hazards
                 case "Icey":ApplyIce();break;
                 case "Fire":TickFire(.1f);if(started&&burning.Count==0)End();break;
                 case "Tornado":TickTornadoPlayers(.1f);break;
-                case "Earthquake":TickEarthquake(.1f);break;
                 case "AcidRain":TickRain(.1f);break;
             }
         }
@@ -343,7 +347,7 @@ namespace DeadlyJenga.World.Hazards
                 b.AddForce(impulse*strength,ForceMode.VelocityChange);
                 b.AddTorque(new Vector3(impulse.z,0,-impulse.x)*.08f,ForceMode.VelocityChange);
             }
-            AffectPlayers(impulse*.45f,0,false);
+            // Shaking the support already moves riders. A combat impulse here repeatedly broke traversal.
         }
         void TickRain(float dt)=>AffectPlayers(Vector3.zero,V("damage")*dt,true);
         void TickGravity(float dt)

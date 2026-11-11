@@ -14,12 +14,23 @@ namespace DeadlyJenga.CandyArt
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
         bool openWater;
+        internal DeadlyJenga.Core.IWorldQuery WorldOverride { get; set; }
+
+        internal static CandyEnvironment ForMap(Component map)
+        {
+            if (!map) return null;
+            foreach (var environment in FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None))
+                if (environment.WorldOverride == null && environment.gameObject.scene == map.gameObject.scene)
+                    return environment;
+            return null;
+        }
         void OnEnable() { if(Application.isPlaying){if(!GetComponent<CandyWaveContactVisual>())gameObject.AddComponent<CandyWaveContactVisual>();if(!GetComponent<CandyTsunamiVisuals>())gameObject.AddComponent<CandyTsunamiVisuals>();if(!GetComponent<CandyDisasterVisuals>())gameObject.AddComponent<CandyDisasterVisuals>();if(!GetComponent<CandySceneSkins>())gameObject.AddComponent<CandySceneSkins>();} Refresh(); }
         void Update() { if(Application.isPlaying){if(!GetComponent<CandyHazardLighting>())gameObject.AddComponent<CandyHazardLighting>();if(!GetComponent<CandyWaveFeedback>())gameObject.AddComponent<CandyWaveFeedback>();}Refresh(); }
         public void Refresh()
         {
             if(!profile || !waterRenderer || !sandRenderer) return;
-            var world=DeadlyJenga.Core.Services.World;
+            var world=WorldOverride??DeadlyJenga.Core.Services.World;
+            if (WorldOverride==null && world is Component candidate && candidate.gameObject.scene!=gameObject.scene) return;
             if(Application.isPlaying && world!=null && (!ReferenceEquals(activeWorld,world) ||
                 (openWater && (!foundation || !foundation.gameObject.activeInHierarchy))))
             {
@@ -28,12 +39,13 @@ namespace DeadlyJenga.CandyArt
                 if(world is MonoBehaviour map)
                 {
                     float area=0;Transform floor=null;
+                    float ceiling=world.WaterHeight(world.Center)+Mathf.Max(6,world.StepHeight*3);
                     foreach(var col in map.GetComponentsInChildren<Collider>())
                         if(!col.isTrigger && !col.attachedRigidbody && (col.gameObject.layer==DeadlyJenga.Core.Layers.Surface||col.gameObject.layer==0))
-                        {float candidate=col.bounds.size.x*col.bounds.size.z;if(candidate>area){area=candidate;floor=col.transform;}}
+                        {var bounds=col.bounds;float surfaceArea=bounds.size.x*bounds.size.z;if(bounds.max.y<=ceiling&&surfaceArea>area){area=surfaceArea;floor=col.transform;}}
                     var scenery=map.GetComponent<DeadlyJenga.Presentation.VillageFlatScenery>();
                     openWater=scenery&&scenery.openWater;
-                    if(floor)foundation=floor;
+                    foundation=floor;
                     var baseline=GetComponent<CandyArtBaseline>();if(baseline)baseline.map=map;
                     transform.position=world.Center;
                 }
@@ -41,13 +53,14 @@ namespace DeadlyJenga.CandyArt
             float radius=profile.fitIslandToFoundation && foundation ? Mathf.Max(foundation.lossyScale.x,foundation.lossyScale.z)*.5f : profile.islandRadius;
             radius=Mathf.Max(1,radius);
             var origin=transform.position;
-            float waterLevel=DeadlyJenga.Core.Services.World!=null?DeadlyJenga.Core.Services.World.WaterHeight(origin):origin.y+profile.waterHeight;
+            float waterLevel=world!=null?world.WaterHeight(origin):origin.y+profile.waterHeight;
             waterRenderer.transform.localPosition=new Vector3(0,waterLevel-origin.y,0);
             waterRenderer.transform.localScale=new Vector3(profile.oceanSize,1,profile.oceanSize);
             var ocean=waterRenderer.GetComponent<CandyOceanSurface>();
             if(ocean)
             {
                 ocean.profile=profile;
+                ocean.TrackStorms=WorldOverride==null;
                 ocean.DetailedExtent=openWater&&world!=null?world.Radius*1.45f+20:0;
                 ocean.Refresh();
             }

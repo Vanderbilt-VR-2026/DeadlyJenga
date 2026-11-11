@@ -1,6 +1,7 @@
 using DeadlyJenga.CandyArt;
 using DeadlyJenga.CandyArt.Marina;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UI;
@@ -74,6 +75,18 @@ namespace DeadlyJenga.CastlePrototype
             screen.localScale = Vector3.one * Mathf.Min(maxWidth / screen.rect.width, maxHeight / screen.rect.height);
             screen.GetComponent<LobbyTerminalFaces>().MountSingleSided();
         }
+        bool TryCabinetFace(Ray ray,float range,out float distance)
+        {
+            distance=range;
+            if(joinStation && joinStation.gameObject.activeInHierarchy &&
+                MenuAim.TryPoint(ray,joinStation,range,out _,out var joinPoint))
+                distance=Vector3.Distance(ray.origin,joinPoint);
+            if(hostStation && hostStation.gameObject.activeInHierarchy &&
+                MenuAim.TryPoint(ray,hostStation,distance,out _,out var hostPoint))
+                distance=Vector3.Distance(ray.origin,hostPoint);
+            return distance<range;
+        }
+
         void AddCabinetBack(RectTransform content, RectTransform station, string id)
         {
             CandyAdd(content, id, () => "BACK", 405, 365, 160, 55,

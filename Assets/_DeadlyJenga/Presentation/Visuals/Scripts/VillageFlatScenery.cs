@@ -12,7 +12,7 @@ namespace DeadlyJenga.Presentation
         void LateUpdate()
         {
             if(hiddenSand || !(Services.World is ISyncedWorld world) || world.Root!=transform)return;
-            var environment=FindFirstObjectByType<CandyEnvironment>();
+            var environment=CandyEnvironment.ForMap(this);
             if(environment && environment.sandRenderer)
             {hiddenSand=environment.sandRenderer;previous=hiddenSand.enabled;hiddenSand.enabled=false;}
         }

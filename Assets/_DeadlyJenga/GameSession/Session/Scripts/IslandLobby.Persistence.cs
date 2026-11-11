@@ -79,12 +79,14 @@ namespace DeadlyJenga.CastlePrototype
             else if(Player.transform.position.y<-.9f||(Player.transform.position-Center).sqrMagnitude>900)PlaceLocalLobbyArrival();
             SetupHint="The match is still running. Return whenever you are ready.";
             HostHint=JoinHint="Match in progress - room changes are locked during this visit.";
+            GameEvents.RaiseEmoted(gameObject,"LobbyVisitOpened");
             SetMenu(false);return true;
         }
         internal void EndMatchVisit(CastlePlaySession owner)
         {
             if(VisitOwner!=owner)return;
             VisitOwner=null;SetPlayerPresent(false);
+            GameEvents.RaiseEmoted(gameObject,"LobbyParked");
         }
         internal void ResumeAfterMatch()
         {

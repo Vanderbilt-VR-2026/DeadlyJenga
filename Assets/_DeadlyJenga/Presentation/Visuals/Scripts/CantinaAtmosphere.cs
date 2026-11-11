@@ -42,7 +42,7 @@ namespace DeadlyJenga.CandyArt
             RenderSettings.ambientEquatorColor=new Color(.23f,.20f,.16f);
             RenderSettings.ambientGroundColor=new Color(.12f,.115f,.10f);
             var probe=new SphericalHarmonicsL2();probe.AddAmbientLight(new Color(.48f,.42f,.33f));RenderSettings.ambientProbe=probe;
-            foreach(var environment in FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None))
+            if(CandyEnvironment.ForMap(this) is CandyEnvironment environment && environment)
             {
                 if(!environmentStates.ContainsKey(environment))environmentStates.Add(environment,environment.applyLighting);environment.applyLighting=false;
                 foreach(var renderer in environment.GetComponentsInChildren<Renderer>())

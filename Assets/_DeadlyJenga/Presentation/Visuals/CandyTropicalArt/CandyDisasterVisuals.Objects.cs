@@ -246,12 +246,12 @@ namespace DeadlyJenga.CandyArt
                 1 << Layers.Surface, QueryTriggerInteraction.Ignore);
             PrepareTornadoAt(frame, center, water);
             var transform = Matrix4x4.TRS(center, Quaternion.identity, Vector3.one);
-            if (supportsTornadoVolume)
+            var camera = Services.Session?.ActiveCamera;
+            if (supportsTornadoVolume && RequestTornadoDepth(camera))
             {
-                var camera = Services.Session?.ActiveCamera;
                 tornadoVolume.SetFloat("_StormDissolve", tornadoDissolve);
-                tornadoVolume.SetFloat("_StormUseSceneDepth", RequestTornadoDepth(camera) ? 1f : 0f);
-                Graphics.DrawMesh(funnel, transform, storm, 0, null, 0, tornadoVolume, ShadowCastingMode.Off, false);
+                tornadoVolume.SetFloat("_StormUseSceneDepth", 1f);
+                Graphics.DrawMesh(funnel, transform, storm, 0, camera, 0, tornadoVolume, ShadowCastingMode.Off, false);
             }
             if (tornadoDissolve < .96f)
                 Graphics.DrawMesh(stormRibbons, transform, stormRibbon, 0, null, 0, null, ShadowCastingMode.Off, false);

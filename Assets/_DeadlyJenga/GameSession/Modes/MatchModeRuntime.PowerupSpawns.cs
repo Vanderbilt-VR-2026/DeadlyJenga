@@ -23,7 +23,7 @@ namespace DeadlyJenga.Modes
         public float NextSpawnIn=>Authority?Mathf.Max(0,nextRandomPickup-Time.time):frame.nextPowerupIn;
         public static PowerupSpawnSettings DefaultPowerupSpawns(GameModeKind mode)
         {
-            bool mystery=mode==GameModeKind.MurderMystery;
+            bool mystery=mode is GameModeKind.MurderMystery or GameModeKind.Survival;
             return new PowerupSpawnSettings
             {
                 enabled=true,interval=mystery?15:4,maximum=mystery?8:24,lifetime=90,jitter=mystery?.25f:.15f,
@@ -62,7 +62,7 @@ namespace DeadlyJenga.Modes
         void StartOpeningWeapons()
         {
             var settings=EnsureSpawnSettings();
-            if(!defaultSpawnSettings||Rules.mode==GameModeKind.MurderMystery||!settings.enabled)return;
+            if(!defaultSpawnSettings||(Rules.mode is GameModeKind.MurderMystery or GameModeKind.Survival)||!settings.enabled)return;
             openingWeapons=Mathf.Min(8,settings.maximum);
             if(openingWeapons>0)nextRandomPickup=Time.time;
         }
@@ -103,7 +103,8 @@ namespace DeadlyJenga.Modes
 
         EquipmentKind RollLoot(PowerupSpawnSettings settings,bool weaponsOnly)
         {
-            bool Eligible(EquipmentKind kind)=>!weaponsOnly||kind>=EquipmentKind.Blaster&&kind<=EquipmentKind.Dagger;
+            bool Eligible(EquipmentKind kind)=>AllowsSurvivalPickup(kind) &&
+                (!weaponsOnly||kind>=EquipmentKind.Blaster&&kind<=EquipmentKind.Dagger);
             float total=0;
             foreach(var entry in settings.types)if(Eligible(entry.kind))total+=entry.weight;
             if(total<=0)return EquipmentKind.None;

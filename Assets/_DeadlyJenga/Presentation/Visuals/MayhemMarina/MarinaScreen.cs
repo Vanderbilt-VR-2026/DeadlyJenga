@@ -47,7 +47,7 @@ namespace DeadlyJenga.CandyArt.Marina
         bool AnyFaceVisible => Visible || (joinFace && joinFace.gameObject.activeSelf) ||
             (hostFace && hostFace.gameObject.activeSelf);
 
-        internal static Vector3 CabinetScreen(bool host) => new Vector3(host ? 4.87f : -4.87f, 3.28f, 10.48f);
+        internal static Vector3 CabinetScreen(bool host) => new Vector3(host ? 4.87f : -4.87f, 3.28f, 10.521f);
 
         public void SetCabinetVisibility(bool join, bool host)
         {
@@ -317,10 +317,10 @@ namespace DeadlyJenga.CandyArt.Marina
             }
         }
         LineRenderer aimBeam;
-        void Update()
+        void LateUpdate()
         {
             if (aimBeam) aimBeam.enabled = false;
-            if(!AnyFaceVisible||ModalBlocked){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
+            if(!AnyFaceVisible||ModalBlocked||!NetworkActors.Alive(session?.Player)||!session.Player.gameObject.activeInHierarchy){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera){aimDot.gameObject.SetActive(false);return;}
             var mouse=Mouse.current;var keyboard=Keyboard.current;
             bool held=player.IsVR ? select.IsPressed() || leftSelect.IsPressed() || player.SelectHeld :
@@ -336,6 +336,8 @@ namespace DeadlyJenga.CandyArt.Marina
             {
                 bool preferredLeft=player.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
                 ray=MenuAim.Resolve(camera,camera.transform.parent,preferredLeft,false,false,out trackedPointer,out _);
+                if(!trackedPointer && (lobby as ILobbyMatchVisitControls)?.VisitingLobby==true &&
+                    MenuAim.TryHandPointer(camera,player,preferredLeft,out var visitorHandRay))ray=visitorHandRay;
                 trackedPointer |= MenuAim.IsTrackedPointer(camera, ray);
                 var controllerAction=leftSelect.WasPressedThisFrame()?leftSelect:select.WasPressedThisFrame()?select:
                     leftSelect.IsPressed()&&(!select.IsPressed()||preferredLeft)?leftSelect:select;

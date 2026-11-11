@@ -20,6 +20,7 @@ namespace DeadlyJenga.CandyArt
         Color baselineSkyColor,baselineEquator,baselineGround,writtenSky,writtenEquator,writtenGround;
         float baselineAmbient,writtenAmbient,baselineIntensity,writtenIntensity,baselineOutage;
         AmbientMode baselineMode;bool globalsWritten;
+        bool savedFog; FogMode savedFogMode; Color savedFogColor; float savedFogStart,savedFogEnd;
         Renderer darkWater;MaterialPropertyBlock waterTint;
         static readonly string[] WaterNames={"_BaseColor","_Accent","_Shallow","_Deep","_Reflection","_Horizon"};
         static readonly Color[] WaterColors={new Color(.025f,.075f,.12f),new Color(.035f,.28f,.32f),new Color(.035f,.19f,.23f),new Color(.008f,.025f,.065f),new Color(.10f,.17f,.28f),new Color(.08f,.12f,.23f)};
@@ -46,7 +47,12 @@ namespace DeadlyJenga.CandyArt
         }
         void ApplyOutage()
         {
-            if(!lit){lit=true;baselineOutage=Shader.GetGlobalFloat("_CandyOutage");scanAt=0;}
+            if(!lit)
+            {
+                lit=true;baselineOutage=Shader.GetGlobalFloat("_CandyOutage");scanAt=0;
+                savedFog=RenderSettings.fog;savedFogMode=RenderSettings.fogMode;savedFogColor=RenderSettings.fogColor;
+                savedFogStart=RenderSettings.fogStartDistance;savedFogEnd=RenderSettings.fogEndDistance;
+            }
             if(!globalsWritten||RenderSettings.skybox!=darkSky)baselineSky=RenderSettings.skybox;
             if(!globalsWritten||RenderSettings.ambientSkyColor!=writtenSky)baselineSkyColor=RenderSettings.ambientSkyColor;
             if(!globalsWritten||RenderSettings.ambientEquatorColor!=writtenEquator)baselineEquator=RenderSettings.ambientEquatorColor;
@@ -59,16 +65,23 @@ namespace DeadlyJenga.CandyArt
             if(!darkSky){var skyShader=Resources.Load<Shader>("CandyScenery/CandyScenicSky");if(skyShader){darkSky=new Material(skyShader);darkSky.SetColor("_Zenith",new Color(.012f,.018f,.065f));darkSky.SetColor("_Horizon",new Color(.08f,.12f,.23f));darkSky.SetColor("_Cloud",new Color(.07f,.10f,.18f));darkSky.SetColor("_SunColor",Color.black);darkSky.SetFloat("_CloudCover",.2f);darkSky.SetFloat("_Stars",.3f);}}
             if(darkSky)RenderSettings.skybox=darkSky;
             RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientIntensity=writtenAmbient=1;
-            RenderSettings.ambientSkyColor=writtenSky=new Color(.14f,.18f,.28f);
-            RenderSettings.ambientEquatorColor=writtenEquator=new Color(.10f,.14f,.20f);
-            RenderSettings.ambientGroundColor=writtenGround=new Color(.06f,.075f,.12f);
-            if(outageSun)outageSun.intensity=writtenIntensity=Mathf.Max(.12f,baselineIntensity*.08f);
+            RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Linear;
+            RenderSettings.fogColor=new Color(.006f,.004f,.016f);RenderSettings.fogStartDistance=.65f;RenderSettings.fogEndDistance=2.35f;
+            RenderSettings.ambientSkyColor=writtenSky=new Color(.014f,.017f,.030f);
+            RenderSettings.ambientEquatorColor=writtenEquator=new Color(.009f,.012f,.024f);
+            RenderSettings.ambientGroundColor=writtenGround=new Color(.007f,.006f,.014f);
+            if(outageSun)outageSun.intensity=writtenIntensity=Mathf.Max(.025f,baselineIntensity*.018f);
             Shader.SetGlobalFloat("_CandyOutage",1);globalsWritten=true;
         }
         void RestoreOutageSun(){if(outageSun&&Mathf.Approximately(outageSun.intensity,writtenIntensity))outageSun.intensity=baselineIntensity;outageSun=null;}
         void EndOutage()
         {
             if(!lit)return;lit=false;
+            if(RenderSettings.fogMode==FogMode.Linear && Mathf.Approximately(RenderSettings.fogEndDistance,2.35f))
+            {
+                RenderSettings.fog=savedFog;RenderSettings.fogMode=savedFogMode;RenderSettings.fogColor=savedFogColor;
+                RenderSettings.fogStartDistance=savedFogStart;RenderSettings.fogEndDistance=savedFogEnd;
+            }
             if(RenderSettings.skybox==darkSky)RenderSettings.skybox=baselineSky;
             if(RenderSettings.ambientSkyColor==writtenSky)RenderSettings.ambientSkyColor=baselineSkyColor;
             if(RenderSettings.ambientEquatorColor==writtenEquator)RenderSettings.ambientEquatorColor=baselineEquator;
