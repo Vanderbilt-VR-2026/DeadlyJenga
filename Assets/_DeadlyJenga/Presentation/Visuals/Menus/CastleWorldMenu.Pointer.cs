@@ -20,10 +20,11 @@ namespace DeadlyJenga.CastlePrototype
         bool requireRelease,startedAim,usingController,desktopOpened;
         int tabletPointerDevice=-1;
         bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
-        Image tabletFrame, desktopClickSurface;
+        Image tabletFrame;
         GraphicRaycaster desktopRaycaster;
         Vector2 desktopClickPosition;
         bool desktopClick, desktopHeld;
+        int desktopDownFrame=-1;
         Mesh tabletCaseMesh;
         Material tabletCaseMaterial;
 
@@ -89,7 +90,6 @@ namespace DeadlyJenga.CastlePrototype
             if(pressed&&focus){pressedTarget=focus;pressedUntil=Time.unscaledTime+.13f;}
             if(tabletDeveloperDetails)ApplyLabelContrast();
             PresentPointer();
-            if (desktopClickSurface) desktopClickSurface.transform.SetAsLastSibling();
             if (pressed || !pointerForegroundReady)
             {
                 DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
@@ -102,23 +102,15 @@ namespace DeadlyJenga.CastlePrototype
             if (session.IsVR)
             {
                 if (desktopRaycaster) desktopRaycaster.enabled=false;
-                if (desktopClickSurface) desktopClickSurface.gameObject.SetActive(false);
                 return;
             }
 
             GetComponent<Canvas>().worldCamera=camera;
             if (!desktopRaycaster) desktopRaycaster=gameObject.AddComponent<GraphicRaycaster>();
             desktopRaycaster.enabled=true;
-            if (!desktopClickSurface)
-            {
-                desktopClickSurface=PointerImage("Desktop tablet click surface",new Vector2(1120,760));
-                desktopClickSurface.sprite=null;
-                desktopClickSurface.color=Color.clear;
-                desktopClickSurface.canvasRenderer.cullTransparentMesh=false;
-                desktopClickSurface.raycastTarget=true;
-            }
-            desktopClickSurface.gameObject.SetActive(true);
-            desktopClickSurface.transform.SetAsLastSibling();
+            var background=GetComponent<Image>();
+            foreach (var graphic in GetComponentsInChildren<Graphic>(true))
+                graphic.raycastTarget=graphic==background;
             if (FindFirstObjectByType<EventSystem>()) return;
             var input=new GameObject("Desktop tablet UI input",typeof(EventSystem),typeof(InputSystemUIInputModule));
             input.transform.SetParent(transform,false);
@@ -128,13 +120,30 @@ namespace DeadlyJenga.CastlePrototype
         public void OnPointerDown(PointerEventData e)
         {
             if (session.IsVR||e.button!=PointerEventData.InputButton.Left) return;
-            desktopClickPosition=e.position;
-            desktopClick=desktopHeld=true;
+            QueueDesktopClick(e.position);
         }
 
         public void OnPointerUp(PointerEventData e)
         {
             if (e.button==PointerEventData.InputButton.Left) desktopHeld=false;
+        }
+
+        void OnGUI()
+        {
+            if (session==null||session.IsVR||!session.MenuOpen) return;
+            var e=Event.current;
+            if (e.button!=0) return;
+            if (e.rawType==EventType.MouseUp) desktopHeld=false;
+            if (e.rawType!=EventType.MouseDown) return;
+            QueueDesktopClick(new Vector2(e.mousePosition.x,Screen.height-e.mousePosition.y));
+        }
+
+        void QueueDesktopClick(Vector2 position)
+        {
+            if (desktopDownFrame==Time.frameCount) return;
+            desktopDownFrame=Time.frameCount;
+            desktopClickPosition=position;
+            desktopClick=desktopHeld=true;
         }
 
         bool DominantLeft=>session.Player?.gameObject.GetComponent<DeadlyJenga.Core.IBlasterControls>()?.LeftHanded
