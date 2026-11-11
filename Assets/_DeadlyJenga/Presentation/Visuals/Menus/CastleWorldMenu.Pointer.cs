@@ -185,7 +185,7 @@ namespace DeadlyJenga.CastlePrototype
                 // Aim and click come from the same chosen controller. The holding hand cannot steal them.
                 var trigger=device.TryGetChildControl<ButtonControl>("triggerPressed");
                 var axis=device.TryGetChildControl<AxisControl>("trigger");
-                bool down=trigger!=null?trigger.isPressed:axis!=null&&axis.ReadValue()>.65f;
+                bool down=trigger?.isPressed==true || axis!=null&&axis.ReadValue()>.65f;
                 held=down;pressed=down&&!tabletWasHeld;tabletWasHeld=down;
                 ray=new Ray(pose.position,pose.rotation*Vector3.forward);return true;
             }
