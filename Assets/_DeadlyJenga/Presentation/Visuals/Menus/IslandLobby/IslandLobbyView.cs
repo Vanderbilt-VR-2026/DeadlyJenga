@@ -106,15 +106,30 @@ namespace DeadlyJenga.CastlePrototype
             inputFocused = focused;
             terminalRequireRelease = true;
             wardrobeDragDevice = 0;
+            draggingKeyboard=false;
         }
         bool LocalModalBlocked=>session?.IsVR==true&&session.MenuOpen&&!wardrobeOpen||DeadlyJenga.Presentation.MenuAim.InputConsumed||DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session)||CharacterPicker.Showing(session);
         void Update()
         {
             if (lobbyAimBeam) lobbyAimBeam.enabled = false;
             trackedLobbyPointer = false;
-            if(!inputFocused||LocalModalBlocked){terminalRequireRelease=true;wardrobeDragDevice=0;draggingKeyboard=false;if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
-            if(lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy)return;
-            var keyboard=Keyboard.current;var mouse=Mouse.current;var eye=Player.ViewCamera;
+            var keyboard=Keyboard.current;
+            if(inputFocused&&spectatorWall&&spectatorWall.FullScreen&&
+                (keyboard?.escapeKey.wasPressedThisFrame==true||session.MenuOpen))
+            {
+                spectatorWall.CloseFullScreen();
+                terminalRequireRelease=true;
+                if(session.MenuOpen)session.SetMenu(false);
+                MenuAim.Consume();
+                return;
+            }
+            if(!inputFocused||LocalModalBlocked||lobby==null||!NetworkActors.Alive(Player)||!Player.gameObject.activeInHierarchy||!Player.ViewCamera)
+            {
+                terminalRequireRelease=true;wardrobeDragDevice=0;draggingKeyboard=false;
+                if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
+                return;
+            }
+            var mouse=Mouse.current;var eye=Player.ViewCamera;
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             bool vr = Player.IsVR;
@@ -251,9 +266,9 @@ namespace DeadlyJenga.CastlePrototype
             if (!wardrobeOpen && spectatorWall && spectatorWall.TryPoint(ray,distance,out int channel,out float tvDepth))
             {
                 DrawLobbyAim(ray,tvDepth,true);
-                MenuAim.Consume();
                 if (pressed && spectatorWall.OpenFullScreen(channel))
                 {
+                    MenuAim.Consume();
                     MenuAim.PulsePress(pointerDevice);
                     terminalRequireRelease=true;
                 }

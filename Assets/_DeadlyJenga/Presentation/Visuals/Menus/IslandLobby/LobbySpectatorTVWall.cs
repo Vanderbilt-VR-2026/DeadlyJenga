@@ -80,8 +80,9 @@ namespace DeadlyJenga.CastlePrototype
 
         public bool OpenFullScreen(int index)
         {
-            if(index<0||index>=channels.Length||channels[index]?.id==null)return false;
+            if(index<0||index>=channels.Length)return false;
             var channel=channels[index];
+            if(channel?.id==null||!NetworkActors.Alive(channel.actor)||!channel.actor.Alive)return false;
             if(!fullScreenPanel)
             {
                 var canvas=new GameObject("Full screen spectator television",typeof(RectTransform),typeof(Canvas)).GetComponent<Canvas>();
@@ -118,9 +119,17 @@ namespace DeadlyJenga.CastlePrototype
 
         void PresentFullScreen(Camera eye)
         {
+            if(!eye||!eye.isActiveAndEnabled){CloseFullScreen();return;}
             var channel=channels[fullScreenChannel];
-            if(!eye||!eye.enabled||channel.id!=fullScreenActorId||!NetworkActors.Alive(channel.actor)||!channel.actor.Alive)
-            {CloseFullScreen();return;}
+            if(channel?.id!=fullScreenActorId)
+            {
+                int index=0;
+                while(index<channels.Length&&channels[index]?.id!=fullScreenActorId)index++;
+                if(index==channels.Length){CloseFullScreen();return;}
+                fullScreenChannel=index;
+                channel=channels[index];
+            }
+            if(!NetworkActors.Alive(channel.actor)||!channel.actor.Alive){CloseFullScreen();return;}
             float depth=Mathf.Max(.55f,eye.nearClipPlane+.18f);
             float height=2*depth*Mathf.Tan(eye.fieldOfView*Mathf.Deg2Rad*.5f);
             float scale=height*Mathf.Max(1f,eye.aspect/(16f/9))/720f;

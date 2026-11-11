@@ -8,7 +8,8 @@ namespace DeadlyJenga.Presentation
     public sealed class CandyWildlifePanel : MonoBehaviour
     {
         ISessionInfo session;
-        bool open,tame,selectReady,lobbyPoseSet;
+        bool open,tame,selectReady,lobbyPoseSet,lastVr,inputFocused=true;
+        Camera lastCamera;
         Image aimDot;
         LineRenderer aimBeam;
         InputAction leftSelect,rightSelect;
@@ -26,11 +27,11 @@ namespace DeadlyJenga.Presentation
             if(!root||root.GetComponent<CandyWildlifePanel>())return;
             root.AddComponent<CandyWildlifePanel>().session=root.GetComponent<ISessionInfo>();
         }
-        public static bool Showing(ISessionInfo owner)=>(owner as Component)?.GetComponent<CandyWildlifePanel>()?.open==true;
+        public static bool Showing(ISessionInfo owner)=>(owner as Component)?.GetComponent<CandyWildlifePanel>() is { isActiveAndEnabled:true,open:true };
         public static void Open(ISessionInfo owner)
         {
             var view=(owner as Component)?.GetComponent<CandyWildlifePanel>();
-            if(!view||!ReferenceEquals(Services.Session,owner)||!NetworkActors.Alive(owner.Player)||!owner.ActiveCamera||
+            if(!view||!view.isActiveAndEnabled||view.open||!ReferenceEquals(Services.Session,owner)||!NetworkActors.Alive(owner.Player)||!owner.ActiveCamera||
                 CandyComfortPanel.Showing(owner)||GameExperiencePanel.Showing(owner)||DeadlyJenga.CastlePrototype.CharacterPicker.Showing(owner))return;
             view.open=true;view.selectReady=false;view.lobbyPoseSet=false;
             owner.SetMenu(true);
@@ -41,21 +42,29 @@ namespace DeadlyJenga.Presentation
             if(aimBeam)aimBeam.enabled=false;
             if(aimDot)aimDot.gameObject.SetActive(false);
             if(session==null)return;
-            if(Services.Session!=session){open=false;if(canvas)canvas.gameObject.SetActive(false);return;}
-            if(Keyboard.current?.f6Key.wasPressedThisFrame==true&&Services.Session==session){if(open)open=false;else Open(session);}
-            if(open&&(!session.MenuOpen||!NetworkActors.Alive(session.Player)||!session.Player.gameObject.activeInHierarchy))open=false;
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&open){open=false;MenuAim.Consume();}
+            if(Services.Session!=session){Close();return;}
+            if(inputFocused&&Keyboard.current?.f6Key.wasPressedThisFrame==true){if(open)Close();else Open(session);}
+            if(open&&(!session.MenuOpen||!NetworkActors.Alive(session.Player)||!session.Player.gameObject.activeInHierarchy||
+                MatchRuntime.Current?.Frame?.phase==RoundPhase.Results))Close();
+            if(inputFocused&&Keyboard.current?.escapeKey.wasPressedThisFrame==true&&open)Close();
             if(!canvas&&open)Build();
             if(!canvas)return;
             canvas.gameObject.SetActive(open);
-            if(!open)return;
+            if(!open||!inputFocused)return;
+            var camera=session.ActiveCamera;
+            bool vr=session.IsVR;
+            if(camera!=lastCamera||vr!=lastVr)
+            {
+                lastCamera=camera;lastVr=vr;selectReady=false;lobbyPoseSet=false;
+                if(vr)MenuAim.PresentInForeground(panel);
+            }
             var controls=Controls;status.text=controls==null?"Wildlife is loading":controls.Status+"\n"+controls.Count+" / 24 animals · "+(tame?"COMPANION: follows you":"WILD: roams nearby");
             for(int i=0;i<buttons.Count;i++)buttons[i].interactable=i<3||controls?.Available==true;
             buttons[0].GetComponentInChildren<Text>().text=tame?"Companions [ON]":"Wild roaming [ON]";
-            if(session.IsVR)
+            if(vr)
             {
                 canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=session.ActiveCamera;
-                var camera=session.ActiveCamera;if(!camera)return;
+                if(!camera)return;
                 bool left=session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
                 MenuAim.PlaceTablet(panel,camera,session,left,ref lobbyPoseSet);
                 var ray=MenuAim.ResolveSelect(camera,camera.transform.parent,left,leftSelect,rightSelect,
@@ -80,13 +89,17 @@ namespace DeadlyJenga.Presentation
             else
             {
                 canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.sortingOrder=1500;panel.localScale=Vector3.one;panel.anchoredPosition=Vector2.zero;panel.localRotation=Quaternion.identity;
-                if(Mouse.current!=null&&RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out var point))
+                var mouse=Mouse.current;
+                if(mouse==null)return;
+                bool pressed=selectReady&&!MenuAim.InputConsumed&&mouse.leftButton.wasPressedThisFrame;
+                if(!mouse.leftButton.isPressed)selectReady=true;
+                if(RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,mouse.position.ReadValue(),null,out var point))
                 {
                     for(int i=0;i<buttons.Count;i++)
                     {
                         var rect=(RectTransform)buttons[i].transform;bool hover=rect.rect.Contains(point-(Vector2)rect.localPosition);
                         buttons[i].image.color=hover?new Color(.15f,.85f,.65f):new Color(.25f,.14f,.39f);
-                        if(hover&&Mouse.current.leftButton.wasPressedThisFrame&&buttons[i].interactable){actions[i]();break;}
+                        if(hover&&pressed&&buttons[i].interactable){MenuAim.Consume();selectReady=false;actions[i]();break;}
                     }
                 }
             }
@@ -98,11 +111,11 @@ namespace DeadlyJenga.Presentation
             leftSelect.Enable();rightSelect.Enable();
             var root=new GameObject("Wildlife testing menu",typeof(RectTransform),typeof(Canvas),typeof(CanvasScaler));root.transform.SetParent(transform,false);
             canvas=root.GetComponent<Canvas>();canvas.renderMode=RenderMode.ScreenSpaceOverlay;
-            var scaler=root.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1200,900);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.MatchWidthOrHeight;scaler.matchWidthOrHeight=1;
+            var scaler=root.GetComponent<CanvasScaler>();scaler.uiScaleMode=CanvasScaler.ScaleMode.ScaleWithScreenSize;scaler.referenceResolution=new Vector2(1200,900);scaler.screenMatchMode=CanvasScaler.ScreenMatchMode.Expand;
             var plate=new GameObject("Wildlife panel",typeof(RectTransform),typeof(Image));plate.transform.SetParent(root.transform,false);panel=plate.GetComponent<RectTransform>();panel.sizeDelta=new Vector2(1000,800);plate.GetComponent<Image>().color=new Color(.055f,.025f,.11f,.99f);
             Label("ISLAND WILDLIFE",new Vector2(0,350),new Vector2(930,60),34);
             Add("Wild roaming [ON]",new Vector2(-320,275),new Vector2(300,58),()=>tame=!tame);
-            Add("Close",new Vector2(320,275),new Vector2(300,58),()=>open=false);
+            Add("Close",new Vector2(320,275),new Vector2(300,58),Close);
             Add("Clear wildlife",new Vector2(0,275),new Vector2(300,58),()=>Controls?.Clear());
             Add("Spawn all twelve",new Vector2(0,205),new Vector2(940,55),()=>{if(Controls==null)return;foreach(var id in Controls.Species)Controls.Spawn(id,tame);});
             var ids=Controls?.Species;
@@ -127,6 +140,16 @@ namespace DeadlyJenga.Presentation
             var label=Label(text,Vector2.zero,size,26);label.transform.SetParent(go.transform,false);
             button.onClick.AddListener(()=>action());buttons.Add(button);actions.Add(action);
         }
+        void Close()
+        {
+            if(!open)return;
+            open=false;selectReady=false;
+            if(canvas)canvas.gameObject.SetActive(false);
+            MenuAim.Consume();
+        }
+
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused)selectReady=false;}
+        void OnDisable()=>Close();
         void OnDestroy(){leftSelect?.Dispose();rightSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
     }
 }

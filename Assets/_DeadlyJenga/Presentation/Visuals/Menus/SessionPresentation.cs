@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
         ISessionInfo session;
         CastleWorldMenu worldMenu;
         CandyDemoHud demoHud;
-        bool shown, lastHand, lastVr;
+        bool shown, lastHand, lastVr, inputFocused=true;
         IslandLobbyView lobbyView;
         Camera lastCamera;
 
@@ -55,17 +55,29 @@ namespace DeadlyJenga.CastlePrototype
             bool vr = session.IsVR;
             bool show = lobbyAllows && session.MenuOpen && (vr || !lobbyView) &&
                 (vr || !demoHud || !demoHud.StudioOpen) &&
-                !DeadlyJenga.Presentation.MenuAim.InputConsumed &&
                 !DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session) &&
                 !DeadlyJenga.Presentation.GameExperiencePanel.Showing(session) && !CharacterPicker.Showing(session) &&
                 !DeadlyJenga.Presentation.CandyComfortPanel.Showing(session);
             var view = session.ActiveCamera;
+            show &= view && view.isActiveAndEnabled;
             if (show != shown || show && (view != lastCamera || session.PlayingHand != lastHand || vr != lastVr))
             {
-                worldMenu.Show(show && view, view);
-                shown = show && view; lastCamera = view; lastHand = session.PlayingHand; lastVr = vr;
+                worldMenu.Show(show, view);
+                shown = show; lastCamera = view; lastHand = session.PlayingHand; lastVr = vr;
             }
-            if (show && view) worldMenu.Point(view, session.MenuSelectPressed, session.MenuSelectHeld);
+            if (shown && inputFocused) worldMenu.Point(view, session.MenuSelectPressed, session.MenuSelectHeld);
+        }
+
+        void OnApplicationFocus(bool focused)
+        {
+            inputFocused=focused;
+            if (worldMenu) worldMenu.SetInputFocused(focused);
+        }
+
+        void OnDisable()
+        {
+            if (worldMenu) worldMenu.Show(false,null);
+            shown=false;
         }
 
         void OnDestroy() { if (worldMenu) Destroy(worldMenu.gameObject); }

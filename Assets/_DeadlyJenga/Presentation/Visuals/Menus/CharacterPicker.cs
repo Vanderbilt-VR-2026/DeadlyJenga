@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<Action> actions=new List<Action>();
         ISessionInfo owner;
         Camera openingCamera;
-        bool open,openingHand,openingVr,returnToMenu,selectReady,lobbyPoseSet;
+        bool open,openingHand,openingVr,returnToMenu,selectReady,lobbyPoseSet,inputFocused=true;
         InputAction leftSelect,rightSelect;
         int openingInput;
 
@@ -66,7 +66,7 @@ namespace DeadlyJenga.CastlePrototype
             panel.renderMode=openingVr?RenderMode.WorldSpace:RenderMode.ScreenSpaceOverlay;
             var rect=(RectTransform)panel.transform;
             rect.localScale=openingVr?Vector3.one*.0018f:Vector3.one;
-            if(openingVr)Anchor();
+            if(openingVr){MenuAim.PresentInForeground(rect);Anchor();}
             else{rect.anchoredPosition=Vector2.zero;rect.localRotation=Quaternion.identity;}
         }
         void Build()
@@ -130,6 +130,7 @@ namespace DeadlyJenga.CastlePrototype
             var session=owner;
             open=false;DeadlyJenga.Presentation.MenuAim.Consume();selectReady=false;owner=null;openingCamera=null;
             if(panel)panel.gameObject.SetActive(false);
+            leftSelect?.Disable();rightSelect?.Disable();
             if(restoreMenu&&ReferenceEquals(Services.Session,session))session.SetMenu(returnToMenu);
         }
         void LateUpdate()
@@ -147,19 +148,18 @@ namespace DeadlyJenga.CastlePrototype
             if(valid&&match?.Frame!=null&&!openingHand)
                 foreach(var actor in match.Frame.players)
                     if(actor.id==match.LocalActorId&&(!actor.alive||actor.dying)){valid=false;break;}
-            if(match?.Frame.phase==RoundPhase.Results)valid=false;
+            if(match?.Frame?.phase==RoundPhase.Results)valid=false;
             if(!valid){Close(false);return;}
             int input = InputSignature(owner);
             if (input != openingInput)
             {
-                if (owner is not ILobbyControls) { Close(false); return; }
                 openingInput = input;
                 selectReady = false;
             }
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(true);return;}
             if(openingVr)DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)panel.transform,openingCamera,owner,
                 owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,ref lobbyPoseSet);
-            if(DeadlyJenga.Presentation.MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
+            if(!inputFocused||MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
             nameLabel.text=HandLooks.ChosenName;
             foreach(var rect in buttons){rect.GetComponent<Image>().color=CandyHudVisuals.Card;rect.GetComponentInChildren<Text>().color=Color.white;}
             if(aimDot)aimDot.gameObject.SetActive(false);
@@ -201,7 +201,7 @@ namespace DeadlyJenga.CastlePrototype
                     signature=unchecked(signature*397^device.deviceId);
             return signature;
         }
-        void OnApplicationFocus(bool focused){if(!focused)Close(false);}
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused)selectReady=false;}
         void OnDisable()
         {
             Close(false);

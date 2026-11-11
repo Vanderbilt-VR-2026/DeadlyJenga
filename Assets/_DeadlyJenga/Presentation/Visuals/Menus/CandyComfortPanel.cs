@@ -58,7 +58,8 @@ namespace DeadlyJenga.Presentation
         public static void Open(ISessionInfo owner)
         {
             var view=(owner as Component)?.GetComponent<CandyComfortPanel>();
-            if(!view)return;
+            if(!view||view.open||GameExperiencePanel.Showing(owner)||CandyWildlifePanel.Showing(owner)||
+                DeadlyJenga.CastlePrototype.CharacterPicker.Showing(owner))return;
             view.enabled=true;view.home=false;view.weaponHand=owner.Player?.gameObject.GetComponent<IBlasterControls>();
             if(!view.canvas)view.Build();
             view.returnToMenu=owner.MenuOpen;
@@ -102,7 +103,6 @@ namespace DeadlyJenga.Presentation
             aimDot=MenuAim.CreateReticle(panel);
             rightSelect=MenuAim.SelectAction("Comfort right select",false);
             leftSelect=MenuAim.SelectAction("Comfort left select",true);
-            rightSelect.AddBinding("<HandInteraction>{RightHand}/pinchValue");leftSelect.AddBinding("<HandInteraction>{LeftHand}/pinchValue");
             rightSelect.Enable();leftSelect.Enable();
         }
         readonly List<Func<string>> titles=new List<Func<string>>();
@@ -151,6 +151,7 @@ namespace DeadlyJenga.Presentation
             var root=(RectTransform)canvas.transform;
             if(wasVr&&eye)
             {
+                MenuAim.PresentInForeground(panel);
                 root.sizeDelta=new Vector2(1200,900);root.localScale=Vector3.one;
                 panel.localScale=Vector3.one*.00165f;
                 if(anchor)

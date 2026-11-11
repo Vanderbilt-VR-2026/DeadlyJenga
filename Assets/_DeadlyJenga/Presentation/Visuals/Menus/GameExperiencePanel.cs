@@ -29,7 +29,7 @@ namespace DeadlyJenga.Presentation
         readonly List<Action> actions=new();
         InputAction leftSelect,rightSelect;
         Camera eye;
-        bool open,returnToMenu,openingVr,openingHand,selectReady,lobbyPoseSet;
+        bool open,returnToMenu,openingVr,openingHand,selectReady,lobbyPoseSet,inputFocused=true;
         int openingInput,closedFrame=-1;
         float refreshAt;
         string mapId;
@@ -84,7 +84,8 @@ namespace DeadlyJenga.Presentation
             canvas.renderMode=openingVr?RenderMode.WorldSpace:RenderMode.ScreenSpaceOverlay;
             canvas.worldCamera=openingVr?eye:null;
             panel.localScale=openingVr?Vector3.one*.00165f:Vector3.one;
-            if(openingVr)Anchor();else{panel.localRotation=Quaternion.identity;panel.anchoredPosition=Vector2.zero;}
+            if(openingVr){MenuAim.PresentInForeground(panel);Anchor();}
+            else{panel.localRotation=Quaternion.identity;panel.anchoredPosition=Vector2.zero;}
             refreshAt=0;Refresh();
         }
         void Build()
@@ -185,18 +186,17 @@ namespace DeadlyJenga.Presentation
             if(!ReferenceEquals(Services.Session,owner)||!owner.MenuOpen||owner.ActiveCamera!=eye||owner.IsVR!=openingVr||
                 owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
-            if(MenuAim.InputConsumed)return;
+            if(!inputFocused||MenuAim.InputConsumed)return;
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(true);return;}
             int input = InputSignature();
             if (input != openingInput)
             {
-                if (lobby == null) { Close(false); return; }
                 openingInput = input;
                 selectReady = false;
             }
             if(openingVr)MenuAim.PlaceTablet(panel,eye,owner,owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,ref lobbyPoseSet);
             if(Time.unscaledTime>=refreshAt)Refresh();
-            bool held=owner.MenuSelectHeld||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
+            bool held=owner.MenuSelectHeld||owner.Player?.SelectHeld==true||leftSelect.IsPressed()||rightSelect.IsPressed()||Mouse.current?.leftButton.isPressed==true;
             for(int i=0;i<buttons.Count;i++){buttons[i].GetComponent<Image>().color=available[i]()?CandyHudVisuals.Card:CandyHudVisuals.Ink;captions[i].color=available[i]()?Color.white:CandyHudVisuals.Muted;}
             if(!selectReady){if(!held)selectReady=true;return;}
             Vector2 point;bool pressed;
@@ -232,7 +232,7 @@ namespace DeadlyJenga.Presentation
                     signature=unchecked(signature*397^device.deviceId);
             return signature;
         }
-        void OnApplicationFocus(bool focused){if(!focused)Close(false);}
+        void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused)selectReady=false;}
         void OnDisable(){Close(false);leftSelect?.Disable();rightSelect?.Disable();}
         void OnDestroy(){Close(false);leftSelect?.Dispose();rightSelect?.Dispose();if(canvas)Destroy(canvas.gameObject);}
     }

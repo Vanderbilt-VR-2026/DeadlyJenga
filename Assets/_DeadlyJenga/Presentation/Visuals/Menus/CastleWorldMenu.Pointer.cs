@@ -17,7 +17,7 @@ namespace DeadlyJenga.CastlePrototype
         Image pointerDot,focusOutline;
         LineRenderer pointerBeam;
         float pressedUntil;
-        bool requireRelease,startedAim,usingController,desktopOpened;
+        bool requireRelease,startedAim,usingController,desktopOpened,inputFocused=true;
         int tabletPointerDevice=-1;
         bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
         Image tabletFrame;
@@ -34,7 +34,7 @@ namespace DeadlyJenga.CastlePrototype
             roomLeave.Clear();
             if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
-            desktopClick=desktopHeld=false;
+            ResetPointer();
             if(!show||!camera){desktopSelect?.Disable();return;}
             ConfigureDesktopClicks(camera);
             if (session.IsVR) PlayerPrefs.SetInt(TabletOpenedPreference,1);
@@ -49,7 +49,19 @@ namespace DeadlyJenga.CastlePrototype
             if(flat.sqrMagnitude<.015f)flat=Vector3.Cross(eye.right,Vector3.up);
             flat=flat.sqrMagnitude>.001f?flat.normalized:Vector3.forward;
             transform.SetPositionAndRotation(eye.position+flat*MenuDistance,Quaternion.LookRotation(flat,Vector3.up));
-            pointerForegroundReady=false;startedAim=false;requireRelease=true;focus=pressedTarget=null;tabletPointerDevice=-1;tabletWasHeld=false;
+            pointerForegroundReady=false;
+        }
+
+        internal void SetInputFocused(bool focused)
+        {
+            inputFocused=focused;
+            if(!focused)ResetPointer();
+        }
+
+        void ResetPointer()
+        {
+            startedAim=false;requireRelease=true;focus=pressedTarget=null;tabletPointerDevice=-1;tabletWasHeld=false;
+            desktopClick=desktopHeld=false;
             if(pointerDot)pointerDot.gameObject.SetActive(false);
             if(pointerBeam)pointerBeam.enabled=false;
             if(focusOutline)focusOutline.gameObject.SetActive(false);
@@ -57,7 +69,8 @@ namespace DeadlyJenga.CastlePrototype
 
         public void Point(Camera camera,bool pressed,bool held=false)
         {
-            if(!camera||!isActiveAndEnabled||DeadlyJenga.Presentation.MenuAim.InputConsumed)return;
+            if(!camera||!isActiveAndEnabled)return;
+            bool consumed=DeadlyJenga.Presentation.MenuAim.InputConsumed;
             if(!giveEquipmentPage&&!(disasterPage&&disasterSelection<0)&&!(modePage&&modeWheel))RestoreEquipmentWheelLayout();
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
@@ -75,7 +88,8 @@ namespace DeadlyJenga.CastlePrototype
                 bool mousePressed=mouse?.leftButton.wasPressedThisFrame==true||
                     (Keyboard.current?.enterKey.wasPressedThisFrame==true);
                 pressed=mousePressed||desktopClick;
-                held=mouse?.leftButton.isPressed??desktopHeld;
+                if(mouse?.leftButton.wasReleasedThisFrame==true)desktopHeld=false;
+                held=mouse?.leftButton.isPressed==true||desktopHeld;
                 desktopClick=false;
                 pointerRay=pressed&&!mousePressed?camera.ScreenPointToRay(desktopClickPosition):
                     mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
@@ -83,9 +97,10 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
-            if(session.IsVR&&requireRelease)
+            if(consumed)requireRelease=true;
+            if(requireRelease)
             {
-                if(!pressed&&!held)requireRelease=false;
+                if(!consumed&&!pressed&&!held)requireRelease=false;
                 pressed=held=false;
             }
             PointPlayerTablet(camera,pressed,held);
@@ -156,7 +171,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void QueueDesktopClick(Vector2 position)
         {
-            if (desktopDownFrame==Time.frameCount) return;
+            if (!inputFocused||desktopHeld||desktopDownFrame==Time.frameCount) return;
             desktopDownFrame=Time.frameCount;
             desktopClickPosition=position;
             desktopClick=desktopHeld=true;

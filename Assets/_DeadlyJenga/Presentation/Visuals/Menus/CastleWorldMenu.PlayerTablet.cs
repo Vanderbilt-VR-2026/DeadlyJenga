@@ -326,6 +326,7 @@ namespace DeadlyJenga.CastlePrototype
                     control.Button.gameObject.SetActive(control.Allowed?.Invoke()!=false);
                 if(!control.Button.gameObject.activeInHierarchy) continue;
                 bool allowed=control.Allowed?.Invoke()!=false;
+                control.Button.interactable=allowed;
                 control.Target.enabled=allowed;
                 bool hover=Hit(control.Target,pointerRay),selected=control.Selected?.Invoke()==true;
                 bool developerTile=tabletPage==TabletPage.Developer&&ReferenceEquals(controls,tabletActions);
@@ -339,6 +340,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(control.Label.text!=title) control.Label.text=title;
                 if(!hover||!pressed)continue;
                 control.Select();
+                MenuAim.Consume();
                 return true;
             }
             return false;
