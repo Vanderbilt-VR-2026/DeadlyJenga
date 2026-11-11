@@ -291,38 +291,38 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             float x=host?4.87f:-4.87f;
             var color=host?F.CandyMint:F.CandyLilac;
-            mesh.Box(new Vector3(x,3.41f,11.19f),new Vector3(2.12f,3.12f,.94f),F.CandyCream,.31f);
-            mesh.Ellipsoid(new Vector3(x,4.89f,11.07f),new Vector3(.89f,.51f,.27f),color);
-            CandyRainbow(new Vector3(x,5.12f,10.80f),.51f);
-            mesh.Box(new Vector3(x,4.93f,10.74f),new Vector3(.95f,.28f,.14f),F.CandyCream,.13f);
+            mesh.Box(new Vector3(x,3.09f,11.19f),new Vector3(2.12f,2.48f,.94f),F.CandyCream,.31f);
+            mesh.Ellipsoid(new Vector3(x,4.24f,11.07f),new Vector3(.89f,.51f,.27f),color);
+            CandyRainbow(new Vector3(x,4.47f,10.80f),.51f);
+            mesh.Box(new Vector3(x,4.28f,10.74f),new Vector3(.95f,.28f,.14f),F.CandyCream,.13f);
             for(int hole=0;hole<9;hole++)
-                mesh.Box(new Vector3(x+(hole-4)*.078f,4.93f,10.657f),new Vector3(.026f,.10f,.018f),F.CandyGrape,.009f);
-            mesh.Box(new Vector3(x,3.93f,10.96f),new Vector3(2.07f,1.97f,.63f),color,.25f);
-            mesh.Box(new Vector3(x,3.93f,10.66f),new Vector3(1.86f,1.73f,.20f),F.CandyCream,.075f);
-            mesh.Box(new Vector3(x,3.93f,10.62f),new Vector3(1.75f,1.63f,.17f),F.CandyGrape,.065f);
-            mesh.Box(new Vector3(x,1.96f,11.00f),new Vector3(2.19f,.21f,1.27f),color,.082f);
+                mesh.Box(new Vector3(x+(hole-4)*.078f,4.28f,10.657f),new Vector3(.026f,.10f,.018f),F.CandyGrape,.009f);
+            mesh.Box(new Vector3(x,3.28f,10.96f),new Vector3(2.07f,1.97f,.63f),color,.25f);
+            mesh.Box(new Vector3(x,3.28f,10.66f),new Vector3(1.86f,1.73f,.20f),F.CandyCream,.075f);
+            mesh.Box(new Vector3(x,3.28f,10.62f),new Vector3(1.75f,1.63f,.17f),F.CandyGrape,.065f);
+            mesh.Box(new Vector3(x,1.96f,11.00f),new Vector3(2.19f,.21f,.89f),color,.082f);
             for(int stripe=0;stripe<2;stripe++)
-                mesh.Box(new Vector3(x,2.18f+stripe*.10f,10.71f),new Vector3(2.14f,.055f,.08f),stripe==0?F.CandyCoral:F.Glow,.02f);
-            var deck=new Vector3(x,2.60f,10.55f);
-            var slope=Quaternion.Euler(-29,0,0);
-            mesh.Box(deck,new Vector3(2.07f,.24f,.97f),color,.09f,false,slope);
-            mesh.Box(deck+slope*Vector3.up*.13f,new Vector3(1.89f,.095f,.82f),F.CandyCream,.035f,false,slope);
+                mesh.Box(new Vector3(x,2.06f+stripe*.065f,10.71f),new Vector3(2.14f,.055f,.08f),stripe==0?F.CandyCoral:F.Glow,.02f);
+            var deck=new Vector3(x,2.24f,10.70f);
+            var face=Quaternion.Euler(-90,0,0);
+            mesh.Box(deck,new Vector3(2.07f,.17f,.47f),color,.09f,false,face);
+            mesh.Box(deck+face*Vector3.up*.08f,new Vector3(1.89f,.065f,.40f),F.CandyCream,.035f,false,face);
             if(host)
             {
-                var dpad=deck+slope*new Vector3(-.46f,.23f,0);
-                mesh.Box(dpad,new Vector3(.56f,.14f,.19f),F.CandyGrape,.05f,false,slope);
-                mesh.Box(dpad,new Vector3(.19f,.14f,.55f),F.CandyGrape,.05f,false,slope);
-                var wheel=deck+slope*new Vector3(.49f,.24f,0);
-                mesh.Ellipsoid(wheel,new Vector3(.22f,.16f,.31f),F.CandyMint,slope,7,16);
+                var dpad=deck+face*new Vector3(-.46f,.14f,0);
+                mesh.Box(dpad,new Vector3(.51f,.07f,.14f),F.CandyGrape,.05f,false,face);
+                mesh.Box(dpad,new Vector3(.14f,.07f,.35f),F.CandyGrape,.05f,false,face);
+                var wheel=deck+face*new Vector3(.49f,.14f,0);
+                mesh.Ellipsoid(wheel,new Vector3(.22f,.10f,.17f),F.CandyMint,face,7,16);
                 for(int tooth=0;tooth<5;tooth++)
-                    mesh.Box(wheel+slope*new Vector3(0,.11f,(tooth-2)*.083f),new Vector3(.30f,.085f,.06f),F.CandyCream,.022f,false,slope);
+                    mesh.Box(wheel+face*new Vector3(0,.07f,(tooth-2)*.060f),new Vector3(.30f,.04f,.04f),F.CandyCream,.022f,false,face);
             }
             else
             {
                 for(int row=0;row<3;row++)for(int col=0;col<10;col++)
-                    mesh.Box(deck+slope*new Vector3((col-4.5f)*.165f,.21f,(row-1)*.17f),
-                        new Vector3(.145f,.105f,.145f),row==1?F.CandyCream:F.CandyLilac,.033f,false,slope);
-                mesh.Box(deck+slope*new Vector3(0,.21f,-.34f),new Vector3(.76f,.095f,.12f),F.CandyLilac,.033f,false,slope);
+                    mesh.Box(deck+face*new Vector3((col-4.5f)*.165f,.14f,(row-1)*.105f),
+                        new Vector3(.145f,.065f,.092f),row==1?F.CandyCream:F.CandyLilac,.033f,false,face);
+                mesh.Box(deck+face*new Vector3(0,.14f,-.187f),new Vector3(.76f,.065f,.065f),F.CandyLilac,.033f,false,face);
             }
         }
         void WardrobeConnector()

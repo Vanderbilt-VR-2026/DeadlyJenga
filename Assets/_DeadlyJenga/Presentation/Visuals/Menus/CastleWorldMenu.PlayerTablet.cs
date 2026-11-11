@@ -31,6 +31,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly RectTransform[] tabletPages = new RectTransform[4];
         RectTransform legacyDeveloper;
         Text tabletInputLayout, leftControllerHelp, rightControllerHelp, tabletRoomStatus;
+        Text leftInputTitle, rightInputTitle;
         RawImage leftController, rightController;
         TabletPage tabletPage;
         bool tabletDeveloperDetails;
@@ -197,8 +198,8 @@ namespace DeadlyJenga.CastlePrototype
             TabletRule(page,new(0,143),new(685,47),TabletCream);
             tabletInputLayout=TabletText(page,"",new(0,143),new(650,44),25);
             tabletInputLayout.color=TabletPlum;
-            TabletText(page,"LEFT HAND",new(-245,83),new(360,38),30);
-            TabletText(page,"RIGHT HAND",new(245,83),new(360,38),30);
+            leftInputTitle=TabletText(page,"LEFT HAND",new(-245,83),new(360,38),30);
+            rightInputTitle=TabletText(page,"RIGHT HAND",new(245,83),new(360,38),30);
             leftController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,true),new(-245,-28),new(158,175));
             rightController=TabletPicture(page,CandyHudVisuals.ControllerDiagram(0,false),new(245,-28),new(158,175));
             leftControllerHelp=TabletText(page,"",new(-245,-164),new(460,94),29);
@@ -345,12 +346,24 @@ namespace DeadlyJenga.CastlePrototype
 
         void RefreshTabletControls(Camera camera)
         {
+            if (!session.IsVR)
+            {
+                tabletInputLayout.text="Keyboard + mouse";
+                leftInputTitle.text="KEYBOARD"; rightInputTitle.text="MOUSE";
+                leftController.enabled=rightController.enabled=true;
+                leftController.texture=CandyHudVisuals.Icon(CandyHudIcon.Key);
+                rightController.texture=CandyHudVisuals.Icon(CandyHudIcon.Look);
+                leftControllerHelp.text="WASD  ·  Move\nShift  ·  Sprint\nSpace  ·  Jump / hold to climb";
+                rightControllerHelp.text="Mouse  ·  Look\nLeft click  ·  Use weapon\nEsc  ·  Open menu";
+                return;
+            }
             bool left=ControllerPose(camera,true,out _,out _),right=ControllerPose(camera,false,out _,out _);
             bool tracked=session.Player?.HasHandTracking==true;
             tabletInputLayout.text=left&&right
                 ?"Two controllers  ·  "+(DominantLeft?"Left":"Right")+" dominant"
                 :left||right?(left?"Left":"Right")+" controller"+(tracked?" + tracked hand":""):
                 tracked?"Hand tracking":"Waiting for tracking";
+            leftInputTitle.text="LEFT HAND"; rightInputTitle.text="RIGHT HAND";
             leftController.enabled=left;
             rightController.enabled=right;
             leftController.texture=CandyHudVisuals.ControllerDiagram(left==DominantLeft?3:1,true);

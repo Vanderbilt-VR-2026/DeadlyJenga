@@ -47,7 +47,7 @@ namespace DeadlyJenga.CandyArt.Marina
         bool AnyFaceVisible => Visible || (joinFace && joinFace.gameObject.activeSelf) ||
             (hostFace && hostFace.gameObject.activeSelf);
 
-        internal static Vector3 CabinetScreen(bool host) => new Vector3(host ? 4.87f : -4.87f, 3.93f, 10.48f);
+        internal static Vector3 CabinetScreen(bool host) => new Vector3(host ? 4.87f : -4.87f, 3.28f, 10.48f);
 
         public void SetCabinetVisibility(bool join, bool host)
         {

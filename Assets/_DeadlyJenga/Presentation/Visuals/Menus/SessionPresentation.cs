@@ -9,7 +9,8 @@ namespace DeadlyJenga.CastlePrototype
     {
         ISessionInfo session;
         CastleWorldMenu worldMenu;
-        bool shown, lastHand;
+        CandyDemoHud demoHud;
+        bool shown, lastHand, lastVr;
         IslandLobbyView lobbyView;
         Camera lastCamera;
 
@@ -40,25 +41,28 @@ namespace DeadlyJenga.CastlePrototype
         void Init(ISessionInfo info)
         {
             session = info;
+            demoHud=GetComponent<CandyDemoHud>();
             if (!worldMenu) { worldMenu = new GameObject("Headset player tablet").AddComponent<CastleWorldMenu>(); worldMenu.Build(session); }
         }
 
-        // The VR menu appears in front of the active camera while the menu is open in VR.
+        internal bool TabletVisible => shown && worldMenu && worldMenu.isActiveAndEnabled;
         void LateUpdate()
         {
             if (session == null || !worldMenu) return;
             bool lobbyAllows=lobbyView ? !lobbyView.WardrobeOpen :
                 (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && MatchRuntime.Current?.Frame?.phase!=RoundPhase.Results;
-            bool show = lobbyAllows && session.MenuOpen && session.IsVR &&
+            bool vr = session.IsVR;
+            bool show = lobbyAllows && session.MenuOpen && (vr || !lobbyView) &&
+                (vr || !demoHud || !demoHud.StudioOpen) &&
                 !DeadlyJenga.Presentation.MenuAim.InputConsumed &&
                 !DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session) &&
                 !DeadlyJenga.Presentation.GameExperiencePanel.Showing(session) && !CharacterPicker.Showing(session) &&
                 !DeadlyJenga.Presentation.CandyComfortPanel.Showing(session);
             var view = session.ActiveCamera;
-            if (show != shown || show && (view != lastCamera || session.PlayingHand != lastHand))
+            if (show != shown || show && (view != lastCamera || session.PlayingHand != lastHand || vr != lastVr))
             {
                 worldMenu.Show(show && view, view);
-                shown = show; lastCamera = view; lastHand = session.PlayingHand;
+                shown = show && view; lastCamera = view; lastHand = session.PlayingHand; lastVr = vr;
             }
             if (show && view) worldMenu.Point(view, session.MenuSelectPressed, session.MenuSelectHeld);
         }

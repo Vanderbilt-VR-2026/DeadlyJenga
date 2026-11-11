@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         Image pointerDot,focusOutline;
         LineRenderer pointerBeam;
         float pressedUntil;
-        bool requireRelease,startedAim,usingController;
+        bool requireRelease,startedAim,usingController,desktopOpened;
         int tabletPointerDevice=-1;
         bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
         Image tabletFrame;
@@ -28,7 +28,12 @@ namespace DeadlyJenga.CastlePrototype
             if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
             if(!show||!camera)return;
-            PlayerPrefs.SetInt(TabletOpenedPreference,1);
+            if (session.IsVR) PlayerPrefs.SetInt(TabletOpenedPreference,1);
+            else if (!desktopOpened)
+            {
+                desktopOpened=true;
+                if (DeveloperTabAvailable) OpenPlayerTabletPage(TabletPage.Developer);
+            }
             DeadlyJenga.Presentation.MenuAim.PresentInForeground(transform);
             var eye=camera.transform;
             var flat=Vector3.ProjectOnPlane(eye.forward,Vector3.up);
@@ -48,9 +53,21 @@ namespace DeadlyJenga.CastlePrototype
             focus=null;
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
             help.rectTransform.anchoredPosition=new Vector2(0,-480);
-            bool controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
-            PlaceTablet(camera);
-            if(!controller)pointerRay=new Ray(camera.transform.position,camera.transform.forward);
+            bool controller=false;
+            if (session.IsVR)
+            {
+                controller=TabletInput(camera,ref pressed,ref held,out pointerRay);
+                PlaceTablet(camera);
+            }
+            else
+            {
+                PlaceDesktopTablet(camera);
+                var mouse=Mouse.current;
+                pointerRay=mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
+                    new Ray(camera.transform.position,camera.transform.forward);
+                pressed=mouse?.leftButton.wasPressedThisFrame==true;
+                held=mouse?.leftButton.isPressed==true;
+            }
             if(startedAim&&usingController!=controller)requireRelease=true;
             usingController=controller;startedAim=true;
             if(requireRelease)
@@ -108,6 +125,21 @@ namespace DeadlyJenga.CastlePrototype
         void PlaceTablet(Camera camera)
         {
             DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)transform,camera,session,DominantLeft);
+            BuildTabletFrame();
+        }
+
+        void PlaceDesktopTablet(Camera camera)
+        {
+            const float distance=1.25f;
+            var eye=camera.transform;
+            transform.SetPositionAndRotation(eye.position+eye.forward*distance,eye.rotation);
+            float height=2*distance*Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f);
+            transform.localScale=Vector3.one*(.88f*height*Mathf.Min(1,camera.aspect*800f/1160f)/800f);
+            BuildTabletFrame();
+        }
+
+        void BuildTabletFrame()
+        {
             if(!tabletFrame)
             {
                 tabletFrame=PointerImage("Tablet lavender bezel",new Vector2(1160,800));

@@ -18,6 +18,7 @@ namespace DeadlyJenga.CastlePrototype
         public HintMode hintMode=HintMode.Adaptive;
         [Range(.5f,1)] public float hintOpacity=.86f;
         ISessionInfo session;CandyAudioStudio studio;
+        SessionPresentation tablet;
         IPlayableCharacter Active=>session.PlayingHand?session.Hand:session.Player;
         IMovementState Move=>session.Player as IMovementState;
         ISurvivorSettings Settings=>session.Player as ISurvivorSettings;
@@ -122,6 +123,15 @@ namespace DeadlyJenga.CastlePrototype
             themed.textField=new GUIStyle(button){fontStyle=FontStyle.Normal};
             foreach(var state in new[]{themed.button.normal,themed.button.hover,themed.button.active,themed.button.focused,themed.textField.normal,themed.textField.hover,themed.textField.active,themed.textField.focused}){state.textColor=Color.white;state.background=CandyHudVisuals.Rounded;}
         }
+        internal bool StudioOpen => studio && studio.IsOpen;
+        bool TabletVisible
+        {
+            get
+            {
+                if (!tablet) tablet=GetComponent<SessionPresentation>();
+                return tablet && tablet.TabletVisible;
+            }
+        }
         void OnGUI()
         {
             if(MenuAim.InputConsumed||GameExperiencePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return;
@@ -131,7 +141,7 @@ namespace DeadlyJenga.CastlePrototype
             // Screen GUI is invisible in a headset and allocates every frame (garbage collection hitches), so skip it in VR.
             if(Ready&&session.IsVR)return;
             if(Ready&&!session.MenuOpen&&session.Social!=null&&session.Social.ShowCaption)SocialPanel.DrawCaption(session.Social);
-            if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen)return;
+            if(!Ready||session.IsVR||!session.MenuOpen||studio&&studio.IsOpen||TabletVisible)return;
             Styles();var old=GUI.matrix;var skin=GUI.skin;var tint=GUI.color;var contentTint=GUI.contentColor;var backgroundTint=GUI.backgroundColor;bool enabled=GUI.enabled;int depth=GUI.depth;
             GUI.color=GUI.contentColor=GUI.backgroundColor=Color.white;GUI.enabled=true;
             try
