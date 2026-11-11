@@ -71,10 +71,11 @@ namespace DeadlyJenga.CastlePrototype
             {
                 PlaceDesktopTablet(camera);
                 var mouse=Mouse.current;
-                pressed=desktopClick;
-                held=desktopHeld;
+                bool mousePressed=mouse?.leftButton.wasPressedThisFrame==true;
+                pressed=mousePressed||desktopClick;
+                held=mouse?.leftButton.isPressed??desktopHeld;
                 desktopClick=false;
-                pointerRay=pressed?camera.ScreenPointToRay(desktopClickPosition):
+                pointerRay=pressed&&!mousePressed?camera.ScreenPointToRay(desktopClickPosition):
                     mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
                     new Ray(camera.transform.position,camera.transform.forward);
             }
