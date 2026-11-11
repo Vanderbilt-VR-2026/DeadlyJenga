@@ -67,6 +67,10 @@ namespace DeadlyJenga.CandyArt.Marina
         float matchOutage;
         Material matchSky;
         bool visitSunEnabled;
+        AmbientMode matchAmbientMode;
+        Color matchSkyColor,matchEquatorColor,matchGroundColor;
+        float matchAmbientIntensity;
+        SphericalHarmonicsL2 matchAmbientProbe;
         void OnEnable()
         {
             GameEvents.Emoted+=Residence;
@@ -87,6 +91,13 @@ namespace DeadlyJenga.CandyArt.Marina
             visitCameraRendering=true;
             matchFog=RenderSettings.fog;matchSky=RenderSettings.skybox;
             matchOutage=Shader.GetGlobalFloat("_CandyOutage");
+            matchAmbientMode=RenderSettings.ambientMode;
+            matchSkyColor=RenderSettings.ambientSkyColor;
+            matchEquatorColor=RenderSettings.ambientEquatorColor;
+            matchGroundColor=RenderSettings.ambientGroundColor;
+            matchAmbientIntensity=RenderSettings.ambientIntensity;
+            matchAmbientProbe=RenderSettings.ambientProbe;
+            ApplyDaylightAmbient();
             RenderSettings.fog=false;
             if(marinaSky)RenderSettings.skybox=marinaSky;
             Shader.SetGlobalFloat("_CandyOutage",0);
@@ -106,6 +117,12 @@ namespace DeadlyJenga.CandyArt.Marina
             visitCameraRendering=false;
             RenderSettings.fog=matchFog;RenderSettings.skybox=matchSky;
             Shader.SetGlobalFloat("_CandyOutage",matchOutage);
+            RenderSettings.ambientMode=matchAmbientMode;
+            RenderSettings.ambientSkyColor=matchSkyColor;
+            RenderSettings.ambientEquatorColor=matchEquatorColor;
+            RenderSettings.ambientGroundColor=matchGroundColor;
+            RenderSettings.ambientIntensity=matchAmbientIntensity;
+            RenderSettings.ambientProbe=matchAmbientProbe;
             if(coastalEnvironment&&coastalEnvironment.sun)coastalEnvironment.sun.enabled=visitSunEnabled;
         }
         void Residence(GameObject owner,string state)
@@ -134,6 +151,20 @@ namespace DeadlyJenga.CandyArt.Marina
             RenderSettings.ambientSkyColor=previousSkyColor;RenderSettings.ambientEquatorColor=previousEquatorColor;RenderSettings.ambientGroundColor=previousGroundColor;RenderSettings.ambientIntensity=previousAmbientIntensity;RenderSettings.ambientProbe=previousProbe;
             RenderSettings.fog=previousFog;RenderSettings.fogMode=previousFogMode;RenderSettings.fogColor=previousFogColor;RenderSettings.fogDensity=previousFogDensity;
         }
+        static void ApplyDaylightAmbient()
+        {
+            RenderSettings.ambientMode=AmbientMode.Trilight;
+            RenderSettings.ambientSkyColor=new Color(.61f,.75f,.93f);
+            RenderSettings.ambientEquatorColor=new Color(.58f,.66f,.74f);
+            RenderSettings.ambientGroundColor=new Color(.41f,.35f,.30f);
+            RenderSettings.ambientIntensity=1;
+            var ambient=new SphericalHarmonicsL2();
+            ambient.AddAmbientLight(new Color(.33f,.34f,.35f));
+            ambient.AddDirectionalLight(Vector3.up,new Color(.59f,.76f,.97f),.47f);
+            ambient.AddDirectionalLight(Vector3.forward,new Color(1,.68f,.36f),.21f);
+            RenderSettings.ambientProbe=ambient;
+        }
+
         static void HideLegacyGround(CandyEnvironment environment)
         {
             if (!environment) return;
@@ -212,8 +243,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 var sun=environment.sun;
                 if(sun){sun.transform.rotation=Quaternion.Euler(29,-53,0);sun.color=new Color(1,.85f,.69f);sun.intensity=2.05f;sun.shadows=LightShadows.Soft;sun.shadowBias=.035f;sun.shadowNormalBias=.25f;}
             }
-            RenderSettings.ambientMode=AmbientMode.Trilight;RenderSettings.ambientSkyColor=new Color(.61f,.75f,.93f);RenderSettings.ambientEquatorColor=new Color(.58f,.66f,.74f);RenderSettings.ambientGroundColor=new Color(.41f,.35f,.30f);RenderSettings.ambientIntensity=1;
-            var ambient=new SphericalHarmonicsL2();ambient.AddAmbientLight(new Color(.33f,.34f,.35f));ambient.AddDirectionalLight(Vector3.up,new Color(.59f,.76f,.97f),.47f);ambient.AddDirectionalLight(Vector3.forward,new Color(1,.68f,.36f),.21f);RenderSettings.ambientProbe=ambient;
+            ApplyDaylightAmbient();
             RenderSettings.fog=true;RenderSettings.fogMode=FogMode.Exponential;RenderSettings.fogColor=new Color(.68f,.84f,.91f);RenderSettings.fogDensity=.0017f;
             if(marinaSky)RenderSettings.skybox=marinaSky;
             if(Services.Session?.ActiveCamera)Services.Session.ActiveCamera.GetUniversalAdditionalCameraData().requiresDepthTexture=true;

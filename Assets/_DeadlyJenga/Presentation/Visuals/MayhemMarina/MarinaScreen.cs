@@ -27,7 +27,7 @@ namespace DeadlyJenga.CandyArt.Marina
         InputAction select,leftSelect;
         Image aimDot;
         RectTransform canvas,mainFace,joinFace,hostFace;
-        Text modeTitle,mapTitle,playTitle,hostTitle,focusDescription,mainHeading;
+        Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading;
         Text liveStandings,liveActivity,liveHazards;
         readonly Text[] standingRows=new Text[5],activityRows=new Text[5],hazardRows=new Text[4];
         readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
@@ -61,7 +61,7 @@ namespace DeadlyJenga.CandyArt.Marina
         public void Build(ILobbyControls controls,Action<string> openDetail)
         {
             if(canvas)return;
-            lobby=controls;session=Services.Session;detail=openDetail;
+            lobby=controls;session=controls as ISessionInfo??Services.Session;detail=openDetail;
             var go=new GameObject("Marina · live cinema terminal",typeof(RectTransform),typeof(Canvas));
             go.transform.SetParent(transform,false);
             canvas=go.GetComponent<RectTransform>();canvas.sizeDelta=new Vector2(720,320);
@@ -105,7 +105,7 @@ namespace DeadlyJenga.CandyArt.Marina
             hostFace=CabinetFace("Mint Host display",true);
             CabinetHeading(joinFace,"JOIN");
             CabinetHeading(hostFace,"HOST");
-            CabinetAction(joinFace,"marina-join","Room code",17,Lilac,()=>detail?.Invoke("join-code"));
+            joinTitle=CabinetAction(joinFace,"marina-join","Room code",17,Lilac,()=>detail?.Invoke("join-code"));
             CabinetAction(joinFace,"marina-nearby","Find nearby",-27,new Color(.34f,.17f,.45f),()=>detail?.Invoke("join-nearby"),()=>lobby.JoinEnabled);
             hostTitle=CabinetAction(hostFace,"marina-host","Create room",17,Mint,()=>detail?.Invoke("host"));
             CabinetAction(hostFace,"marina-invite","Invite nearby",-27,new Color(.29f,.18f,.41f),()=>detail?.Invoke("host-invite"),()=>lobby.CanInvite);
@@ -268,9 +268,10 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             playTitle.text=visiting?(lobby.CanStart?"Return to match":"WATCH LIVE"):
                 playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
-            hostTitle.text=lobby.Connected?(lobby.IsHost?"Manage room":"Room options"):"Create room";
-            joinStatus.text=lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
-            hostStatus.text=lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
+            joinTitle.text=visiting?"Room info":"Room code";
+            hostTitle.text=visiting?"Room info":lobby.Connected?(lobby.IsHost?"Manage room":"Room options"):"Create room";
+            joinStatus.text=visiting?"Match in progress":lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
+            hostStatus.text=visiting?"Match in progress":lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
             var details=lobby as ILobbyDetails;
             string nextMode=details?.SelectedModeId??"mystery",nextMap=details?.SelectedMapId??"castle";
             if(modeId!=nextMode)

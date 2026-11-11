@@ -96,6 +96,7 @@ namespace DeadlyJenga.CastlePrototype
         Text marinaHostCode,marinaHostCount,marinaJoinRegion,marinaHostRegion,marinaJoinMessage;
         Font marinaRoomFont;
         bool marinaHostOptions;
+        RectTransform marinaJoinVisit,marinaHostVisit;
         string marinaDisplayedHostCode;
 
         void BuildMarinaRoomScreens()
@@ -128,36 +129,39 @@ namespace DeadlyJenga.CastlePrototype
             RoomLine((RectTransform)nearby.button.transform,0,-25,202,new Color(1,.91f,.73f,.85f));
             marinaJoinMessage=RoomLabel(marinaJoinScreen,"",0,-352,1000,59,28);
 
-            RoomLabel(marinaHostScreen,"HOST",-110,324,620,118,112).name="Host room heading";
+            RoomLabel(marinaHostScreen,"HOST",-158,313,530,112,108).name="Host room heading";
             var badge=RoomImage(marinaHostScreen,"Connected player badge",RoomSprite(302,88,44,CabinetSurface.Glaze),
-                new Color(.48f,.22f,.34f),352,322,302,88).rectTransform;
+                new Color(.48f,.22f,.34f),338,318,302,88).rectTransform;
             CandyIcon(badge,LobbyTerminalGlyph.Symbol.Person,-95,0,53,CandyCream);
             marinaHostCount=RoomLabel(badge,"",29,1,207,67,54);
-            RoomLabel(marinaHostScreen,"Room code",0,215,310,56,51);
+            RoomLabel(marinaHostScreen,"Room code",0,212,310,56,48);
             RoomLine(marinaHostScreen,-286,213,208,new Color(1,.84f,.87f));
             RoomLine(marinaHostScreen,286,213,208,new Color(1,.84f,.87f));
             var hostFrame=RoomImage(marinaHostScreen,"Host code outline",RoomSprite(850,146,54,CabinetSurface.Rim),
-                new Color(1,.82f,.89f),0,105,850,146).rectTransform;
+                new Color(1,.82f,.89f),0,103,850,146).rectTransform;
             marinaHostCode=RoomLabel(hostFrame,"",0,1,802,123,96);
             marinaHostRegion=RoomLabel(hostFrame,"",339,-49,119,28,23);
             var copy=RoomButton(marinaHostScreen,"marina-copy-code",()=>Time.unscaledTime<copiedHostCodeUntil?"Copied":"Copy Code",
-                0,-65,754,136,glaze,RoomMint,()=>
+                0,-77,804,137,glaze,RoomMint,()=>
                 {
                     GUIUtility.systemCopyBuffer=lobby.HostCode;
                     copiedHostCodeUntil=Time.unscaledTime+1.5f;
                 },()=>lobby.Connected&&!lobby.Busy,61);
-            var invite=RoomButton(marinaHostScreen,"marina-invite-nearby",()=>"Invite Nearby",0,-211,754,136,glaze,
+            var invite=RoomButton(marinaHostScreen,"marina-invite-nearby",()=>"Invite Nearby",0,-237,804,137,glaze,
                 new Color(.57f,.29f,.64f),lobby.InviteNearby,()=>lobby.CanInvite,60);
             CandyChoiceIcon(copy,LobbyTerminalGlyph.Symbol.Copy,-247,0,67);
             CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.Invite,-247,0,67);
             CandyText(copy,37,0,622,120,61);
             CandyText(invite,40,0,627,120,60);
-            RoomButton(marinaHostScreen,"marina-host-options",()=>RequestId!=null?"Host request pending":"Room options",
-                0,-344,460,59,linkArt,Color.white,()=>{marinaHostOptions=true;UpdateMarinaRoomScreens();},()=>true,33,true);
+            RoomButton(marinaHostScreen,"marina-host-options",()=>RequestId!=null?"!":"…",
+                462,322,66,60,linkArt,Color.white,()=>{marinaHostOptions=true;UpdateMarinaRoomScreens();},
+                ()=>lobby.Connected&&!lobby.Busy,40,true);
             RoomButton(candyHostContent,"marina-host-summary",()=>"Room code",403,365,190,54,linkArt,
                 Color.white,()=>{marinaHostOptions=false;UpdateMarinaRoomScreens();},()=>true,29,true).visible=
                 ()=>marinaHostOptions&&lobby.Connected&&!lobby.Busy;
 
+            marinaJoinVisit=BuildRoomVisitNotice(joinStation,candyJoinContent,"JOIN");
+            marinaHostVisit=BuildRoomVisitNotice(hostStation,candyHostContent,"HOST");
             foreach(var pair in new[]{(joinStation,candyJoinContent,"marina-close-join"),(hostStation,candyHostContent,"marina-close-host")})
             {
                 var controls=new GameObject("Marina cabinet navigation",typeof(RectTransform)).GetComponent<RectTransform>();
@@ -269,16 +273,32 @@ namespace DeadlyJenga.CastlePrototype
             return sprite;
         }
 
+        RectTransform BuildRoomVisitNotice(RectTransform station,RectTransform template,string heading)
+        {
+            var notice=new GameObject(heading+" live match notice",typeof(RectTransform)).GetComponent<RectTransform>();
+            notice.SetParent(station,false);
+            notice.localScale=template.localScale;
+            notice.sizeDelta=template.sizeDelta;
+            RoomLabel(notice,heading,0,292,670,110,100);
+            RoomLabel(notice,"MATCH IN PROGRESS",0,60,970,88,62);
+            RoomLabel(notice,"Room changes are available after the match.",0,-70,970,80,40);
+            RoomLabel(notice,"Watch live on the spectator TVs.",0,-162,970,78,35);
+            return notice;
+        }
+
         void UpdateMarinaRoomScreens()
         {
             if(!marinaJoinScreen)return;
             bool codePage=!lobby.ShowingNearby&&(lobby.CodeFocused||!lobby.Connected&&lobby.InvitationFrom==null);
-            bool roomPage=lobby.Connected&&lobby.IsHost&&!lobby.Busy&&!marinaHostOptions;
+            bool roomPage=(lobby.Busy||lobby.Connected&&lobby.IsHost)&&!marinaHostOptions;
             if(!lobby.Connected)marinaHostOptions=false;
-            marinaJoinScreen.gameObject.SetActive(codePage);
-            candyJoinContent.gameObject.SetActive(!codePage);
-            marinaHostScreen.gameObject.SetActive(roomPage);
-            candyHostContent.gameObject.SetActive(!roomPage);
+            bool visiting=(lobby as ILobbyMatchVisitControls)?.VisitingLobby==true;
+            marinaJoinScreen.gameObject.SetActive(!visiting&&codePage);
+            candyJoinContent.gameObject.SetActive(!visiting&&!codePage);
+            marinaHostScreen.gameObject.SetActive(!visiting&&roomPage);
+            candyHostContent.gameObject.SetActive(!visiting&&!roomPage);
+            marinaJoinVisit.gameObject.SetActive(visiting);
+            marinaHostVisit.gameObject.SetActive(visiting);
 
             if(codePage&&joinStation.gameObject.activeSelf)
             {
@@ -296,6 +316,18 @@ namespace DeadlyJenga.CastlePrototype
             }
             if(roomPage&&hostStation.gameObject.activeSelf)
             {
+                if(lobby.Busy)
+                {
+                    marinaHostCode.text="Creating room…";
+                    marinaHostCode.resizeTextMaxSize=58;
+                    marinaHostCode.resizeTextMinSize=44;
+                    marinaHostRegion.text="";
+                    marinaDisplayedHostCode=null;
+                    marinaHostCount.text="1 / 10";
+                    return;
+                }
+                marinaHostCode.resizeTextMaxSize=96;
+                marinaHostCode.resizeTextMinSize=72;
                 string code=lobby.HostCode??"";
                 int dash=code.LastIndexOf('-');
                 marinaHostRegion.text=dash>0?code.Substring(0,dash):"";
@@ -353,9 +385,12 @@ namespace DeadlyJenga.CastlePrototype
                     SetMarinaDetail(joinStation, true);
                     break;
                 case "host":
-                case "host-invite":
-                    if (page == "host-invite" && lobby.CanInvite) lobby.InviteNearby();
                     SetMarinaDetail(hostStation, true);
+                    if (lobby.CanHost) lobby.Host();
+                    break;
+                case "host-invite":
+                    SetMarinaDetail(hostStation, true);
+                    if (lobby.CanInvite) lobby.InviteNearby();
                     break;
                 case "maps":
                 case "modes":
@@ -369,6 +404,12 @@ namespace DeadlyJenga.CastlePrototype
 
         void SetMarinaDetail(RectTransform station, bool open)
         {
+            if (open && station!=joinStation && joinStation.gameObject.activeSelf)
+                SetMarinaDetail(joinStation,false);
+            if (open && station!=hostStation && hostStation.gameObject.activeSelf)
+                SetMarinaDetail(hostStation,false);
+            if (open && station!=setupStation && setupStation.gameObject.activeSelf)
+                SetMarinaDetail(setupStation,false);
             if (station == joinStation && !open) lobby.UnfocusCode();
             if (station == hostStation && !open) marinaHostOptions = false;
             UpdateMarinaRoomScreens();
