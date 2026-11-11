@@ -103,9 +103,9 @@ namespace DeadlyJenga.Modes
             readonly Dictionary<string, List<BotObjective>> mysteries = new Dictionary<string, List<BotObjective>>();
             readonly Dictionary<string, List<BotObjective>> hostileCache = new Dictionary<string, List<BotObjective>>();
             static readonly HashSet<string> queries = new HashSet<string>(StringComparer.Ordinal)
-            { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge" };
+            { "pickups", "hazard-refuge", "hill", "unowned-blocks", "high-ground", "midfield", "infection-search", "hostiles", "home", "enemy-bases", "enemy-flags", "own-dropped-flag", "return-enemy-flag", "return-own-flag", "friendly-carriers", "hostile-carriers", "stolen-flag-search", "mystery-travel", "mystery-guard", "mystery-attack", "mystery-evade", "mystery-revive", "mystery-bodies", "mystery-badge", "lantern", "lantern-carrier", "lantern-escape" };
             static readonly HashSet<string> conditions = new HashSet<string>(StringComparer.Ordinal)
-            { "pickup-collected", "carrying", "infected", "own-flag-missing", "has-hostile", "carrying-enemy", "carrying-own", "scored", "own-flag-home", "block-owned", "target-dead" };
+            { "pickup-collected", "carrying", "infected", "own-flag-missing", "has-hostile", "carrying-enemy", "carrying-own", "scored", "own-flag-home", "block-owned", "target-dead", "carrying-lantern" };
             public MatchBotFacts(MatchModeRuntime owner) { this.owner = owner; }
             public void BeginSample() { hazards.Clear(); mysteries.Clear(); hostileCache.Clear(); PruneTacticalMemory(); publicMystery=owner!=null&&owner.MysteryActive?owner.mystery.Public():null; }
             public bool SupportsQuery(string name) => name != null && (queries.Contains(name)||Array.IndexOf(tacticQueries,name)>=0);
@@ -120,6 +120,7 @@ namespace DeadlyJenga.Modes
                 {
                     case "pickup-collected": return int.TryParse(target.id,out int pickup)&&owner.botPickupReceipts.ContainsKey((actor.id,pickup));
                     case "carrying": return Sim.CarriesFlag(actor.id);
+                    case "carrying-lantern": return Sim.CarriesLantern(actor.id);
                     case "infected": return self.frame.role == "infected";
                     case "own-flag-missing": return Own(actor.team)?.atHome == false;
                     case "own-flag-home": return Own(actor.team)?.atHome == true;
@@ -136,6 +137,7 @@ namespace DeadlyJenga.Modes
             {
                 var self = Sim.Find(actor.id); if (self == null) return;
                 var home = Own(actor.team);
+                if (LanternQuery(name, actor, results)) return;
                 switch (name)
                 {
                     case "pickups": PickupQuery(actor,results);return;

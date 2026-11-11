@@ -42,12 +42,13 @@ namespace DeadlyJenga.CastlePrototype
             wardrobePanel.SetPositionAndRotation(WardrobePosition+new Vector3(2.4f,1.8f,.65f),Quaternion.Euler(0,75,0));
             var screenPosition=MayhemMarina.PlayScreen+Vector3.back*.12f;
             setupStation.SetPositionAndRotation(screenPosition,Quaternion.identity);
-            setupStation.localScale=Vector3.one*.0036f;
+            setupStation.localScale=Vector3.one*.0040f;
             roomPage.SetPositionAndRotation(screenPosition,Quaternion.identity);
-            roomPage.localScale=Vector3.one*.0036f;
+            roomPage.localScale=Vector3.one*.0037f;
             marinaScreen=gameObject.AddComponent<MarinaScreen>();
             marinaScreen.Build(lobby,OpenMarinaDetail);
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
+            DeadlyJenga.Presentation.MenuAppear.Attach(setupStation.gameObject,fade:false);DeadlyJenga.Presentation.MenuAppear.Attach(roomPage.gameObject,fade:false);
             BuildMarinaMirror();CloseMarinaDetail();SyncMarinaBacks();
         }
         void OpenMarinaDetail(string page)

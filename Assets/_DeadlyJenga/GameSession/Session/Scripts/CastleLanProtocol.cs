@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public static class CastleLanProtocol
     {
         public const string Version = "DeadlyJenga-LAN-2";
-        public const byte Hello = 1, Welcome = 2, World = 3, Player = 4;
+        public const byte Hello = 1, Welcome = 2, World = 3, Player = 4, WorldDelta = 5;
         public struct Pose
         {
             public Vector3 position;
@@ -96,6 +96,68 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < s.blocks.Length; i++) { w.Write(s.active[i]); Write(w, s.blocks[i]); }
             w.Write(s.actors.Length); foreach (var a in s.actors) Write(w, a);
         });
+        // What one receiver last got from the host, so later world updates only carry blocks that moved.
+        public sealed class WorldBaseline
+        {
+            public int revision = int.MinValue;
+            public Pose[] blocks;
+            public bool[] active;
+            public void Reset() { revision = int.MinValue; blocks = null; active = null; }
+        }
+        const float MovedDistanceSqr = 0.0005f * 0.0005f;
+        const float RotatedDot = 0.999999f;
+        static bool Moved(Pose a, Pose b) =>
+            (a.position - b.position).sqrMagnitude > MovedDistanceSqr || Mathf.Abs(Quaternion.Dot(a.rotation, b.rotation)) < RotatedDot;
+        // Full world the first time (or after a rebuild), then only changed blocks plus all actors.
+        public static byte[] EncodeWorldFor(Snapshot s, WorldBaseline baseline)
+        {
+            int count = s.blocks.Length;
+            if (baseline.revision != s.revision || baseline.blocks == null || baseline.blocks.Length != count)
+            {
+                baseline.revision = s.revision;
+                baseline.blocks = (Pose[])s.blocks.Clone();
+                baseline.active = (bool[])s.active.Clone();
+                return EncodeWorld(s);
+            }
+            return Encode(WorldDelta, w =>
+            {
+                w.Write(s.revision); w.Write(count);
+                w.Flush(); long countAt = w.BaseStream.Position; w.Write(0);
+                int changed = 0;
+                for (int i = 0; i < count; i++)
+                {
+                    if (baseline.active[i] == s.active[i] && !Moved(baseline.blocks[i], s.blocks[i])) continue;
+                    baseline.active[i] = s.active[i]; baseline.blocks[i] = s.blocks[i];
+                    w.Write(i); w.Write(s.active[i]); Write(w, s.blocks[i]);
+                    changed++;
+                }
+                w.Flush(); long end = w.BaseStream.Position;
+                w.BaseStream.Position = countAt; w.Write(changed); w.Flush(); w.BaseStream.Position = end;
+                w.Write(s.actors.Length); foreach (var a in s.actors) Write(w, a);
+            });
+        }
+        public static bool IsWorldDelta(byte[] data) => data != null && data.Length > 0 && data[0] == WorldDelta;
+        // Rebuilds a full snapshot from the last one this receiver applied plus a delta.
+        public static Snapshot DecodeWorldDelta(byte[] data, Snapshot previous)
+        {
+            using var r = Reader(data, WorldDelta);
+            int revision = r.ReadInt32(); int count = Count(r, 20000);
+            if (previous == null || previous.revision != revision || previous.blocks.Length != count)
+                throw new InvalidDataException("World update does not match the last received world");
+            var s = new Snapshot { revision = revision, settings = previous.settings, origin = previous.origin, originScale = previous.originScale,
+                blocks = (Pose[])previous.blocks.Clone(), active = (bool[])previous.active.Clone() };
+            int changed = Count(r, count);
+            for (int c = 0; c < changed; c++)
+            {
+                int i = r.ReadInt32();
+                if (i < 0 || i >= count) throw new InvalidDataException("World update block out of range");
+                s.active[i] = r.ReadBoolean(); s.blocks[i] = ReadPose(r);
+            }
+            s.actors = new Actor[Count(r, data.Length / 16)];
+            for (int i = 0; i < s.actors.Length; i++) s.actors[i] = ReadActor(r);
+            if (r.BaseStream.Position != r.BaseStream.Length) throw new InvalidDataException("Trailing LAN state data");
+            return s;
+        }
         public static Snapshot DecodeWorld(byte[] data)
         {
             using var r = Reader(data, World);

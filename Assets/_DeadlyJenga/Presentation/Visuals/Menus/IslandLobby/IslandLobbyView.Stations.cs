@@ -95,7 +95,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         Text Label(RectTransform parent,string text,float y,int size,float width=750,float height=56)
         {
-            var go=new GameObject("Label",typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=text;t.fontSize=size;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.resizeTextForBestFit=true;t.resizeTextMinSize=14;t.resizeTextMaxSize=size;t.rectTransform.sizeDelta=new Vector2(width,height);t.rectTransform.anchoredPosition=new Vector2(0,y);return t;
+            var go=new GameObject("Label",typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();t.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;t.text=text;t.fontSize=size;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.resizeTextForBestFit=true;t.resizeTextMinSize=14;t.resizeTextMaxSize=size;t.rectTransform.sizeDelta=new Vector2(width,height);t.rectTransform.anchoredPosition=new Vector2(0,y);return t;
         }
         Choice Add(RectTransform parent,string id,Func<string> title,float y,Action action,Func<bool> enabled,float x=0,float width=535,float height=55,Func<bool> visible=null)
         {

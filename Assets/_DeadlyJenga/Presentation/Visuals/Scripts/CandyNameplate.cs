@@ -14,7 +14,7 @@ namespace DeadlyJenga.Presentation
         }
         static TextMesh Text(GameObject go)
         {
-            var text=go.AddComponent<TextMesh>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");go.GetComponent<MeshRenderer>().sharedMaterial=text.font.material;
+            var text=go.AddComponent<TextMesh>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;go.GetComponent<MeshRenderer>().sharedMaterial=text.font.material;
             text.fontSize=48;text.characterSize=.035f;text.anchor=TextAnchor.MiddleCenter;text.alignment=TextAlignment.Center;return text;
         }
         public static void RefreshShadow(TextMesh text)

@@ -142,7 +142,7 @@ namespace DeadlyJenga.Presentation
             var bg=Panel("Replay backdrop",root.transform,new Vector2(1190,710),Vector2.zero);bg.color=new Color(.015f,.02f,.04f,.98f);
             left=Panel("Murderer",root.transform,new Vector2(b?560:1120,b?315:630),new Vector2(b?-288:0,-10));left.texture=a;
             if(b){right=Panel("Sheriff",root.transform,new Vector2(560,315),new Vector2(288,-10));right.texture=b;}
-            var go=new GameObject("Replay title",typeof(RectTransform),typeof(Text));go.transform.SetParent(root.transform,false);title=go.GetComponent<Text>();title.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");title.fontSize=23;title.alignment=TextAnchor.MiddleCenter;title.raycastTarget=false;title.rectTransform.sizeDelta=new Vector2(1100,70);title.rectTransform.anchoredPosition=new Vector2(0,300);
+            var go=new GameObject("Replay title",typeof(RectTransform),typeof(Text));go.transform.SetParent(root.transform,false);title=go.GetComponent<Text>();title.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;title.fontSize=23;title.alignment=TextAnchor.MiddleCenter;title.raycastTarget=false;title.rectTransform.sizeDelta=new Vector2(1100,70);title.rectTransform.anchoredPosition=new Vector2(0,300);
             foreach(var child in root.GetComponentsInChildren<Transform>(true))child.gameObject.layer=5;
             eye=Services.Session?.ActiveCamera;vr=Services.Session?.IsVR==true;CandyHudLayout.Configure(canvas,transform,eye,vr);MaskBackground();
         }

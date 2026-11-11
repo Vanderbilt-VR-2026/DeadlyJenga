@@ -64,8 +64,8 @@
         "ConnectionTimeout": 10.0,
         "ConnectionShutdownTime": 1.0,
         "ReliableDataTransferModes": 3,
-        "GameChannelSendCount": 2,
-        "GameReliableChannelSendCount": 1
+        "GameChannelSendCount": 4,
+        "GameReliableChannelSendCount": 4
     },
     "HostMigration": {
         "EnableAutoUpdate": false,

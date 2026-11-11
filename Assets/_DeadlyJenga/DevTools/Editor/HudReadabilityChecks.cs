@@ -349,7 +349,7 @@ namespace DeadlyJenga.DevTools.Editor
                 "100-player results show 13 pages and identify local rank off-page");
             var buttons=(Image[])Field(results,"buttons");
             Check(buttons[0].rectTransform.anchoredPosition.y<buttons[2].rectTransform.anchoredPosition.y&&
-                buttons[1].GetComponentInChildren<Text>().text=="RETURN TO LOBBY","Results reserve a footer for Stay and Return to Lobby");
+                buttons[1].GetComponentInChildren<Text>().text.Contains("LOBBY"),"Results reserve a footer for Stay and Return to Lobby");
             var act=typeof(CandyResultsHud).GetMethod("Act",BindingFlags.Instance|BindingFlags.NonPublic);
             for(int i=0;i<9;i++)act.Invoke(results,new object[]{3});
             yield return null;

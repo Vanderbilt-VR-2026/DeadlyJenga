@@ -192,6 +192,25 @@ namespace DeadlyJenga.CastlePrototype
         void PublishSelection()
         {if(IsHost){ResetLobbyReadiness();selectionVersion++;lastPublishedPopulation=MatchSetup.BotTarget;Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",lastPublishedPopulation}});}}
         public Task Host()=>Connect(true,IslandRoomAddress.Create(Region));
+        // True while in a room anyone can land in through Play Now.
+        public bool PublicRoom {get;private set;}
+        // First launch lands on a real game mode instead of the sandbox.
+        public void DefaultToMode(string id)
+        {
+            if(!Catalog)return;
+            int mode=Array.FindIndex(Catalog.modes,m=>m.id==id&&m.available);
+            if(mode>=0&&MapIndex>=0&&MapIndex<Catalog.maps.Length&&Catalog.maps[MapIndex].SupportsMode(id))ModeIndex=mode;
+        }
+        // Play Now: join a random open public room in this region, or open a new public one.
+        public async Task QuickPlay()
+        {
+            if(Busy||!Catalog||IslandLobby.Current&&HumanCount>1)return;
+            string previous=Connected?Code:null;
+            if(Connected)await Leave();
+            await Connect(false,IslandRoomAddress.Create(Region),random:true);
+            if(!Connected&&!Busy)await Connect(true,IslandRoomAddress.Create(Region),publicRoom:true);
+            if(!Connected&&!Busy&&previous!=null){string failure=Status;await Connect(true,previous);Status=failure+(Connected?" Back on your own island.":"");}
+        }
         public async Task Join(string input)
         {
             if(Busy||!Catalog||IslandLobby.Current&&HumanCount>1)return;
@@ -202,11 +221,11 @@ namespace DeadlyJenga.CastlePrototype
             await Connect(false,code);
             if(!Connected&&!Busy&&previous!=null){string failure=Status;await Connect(wasAlone,previous);Status=failure+(Connected?" Returned to your previous island.":" You are back on your solo island.");}
         }
-        async Task Connect(bool host,string input)
+        async Task Connect(bool host,string input,bool publicRoom=false,bool random=false)
         {
             if(Busy||Connected)return;
             if(!Catalog||!IslandRoomAddress.TryParse(input,Region,out var region,out var code)){Status="Enter a full code, for example US-ABC234.";return;}
-            Busy=true;HostSelected=host;Region=region;Code=code;Status=host?"Creating island room…":"Joining island room…";int attempt=++generation;
+            Busy=true;HostSelected=host;Region=region;Code=code;PublicRoom=false;Status=random?"Finding a public game…":host&&publicRoom?"Opening a public game…":host?"Creating island room…":"Joining island room…";int attempt=++generation;
             var go=CreateRunner();
             AttachCallbacks();
             try
@@ -214,12 +233,13 @@ namespace DeadlyJenga.CastlePrototype
                 connecting=new CancellationTokenSource(TimeSpan.FromSeconds(30));var cancellation=connecting;
                 var app=PhotonAppSettings.Global.AppSettings.GetCopy();app.FixedRegion=Region;app.AppVersion=(app.AppVersion??"")+"/"+Catalog.NetworkVersion;
                 var config=MigrationConfig();
-                var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
-                    EnableClientSessionCreation=false,IsVisible=false,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
-                    Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget},{LobbyHandoffProperty,""}}:null});
+                var result=await Runner.StartGame(new StartGameArgs{GameMode=host?GameMode.Host:GameMode.Client,SessionName=random?null:Code,PlayerCount=10,PlayerUniqueId=playerUniqueId,AuthValues=new Photon.Realtime.AuthenticationValues(playerUniqueId.ToString("X16",System.Globalization.CultureInfo.InvariantCulture)),
+                    EnableClientSessionCreation=false,IsVisible=publicRoom,CustomPhotonAppSettings=app,StartGameCancellationToken=cancellation.Token,
+                    Config=config,Scene=LobbyStartScene(config),SceneManager=go.AddComponent<NetworkSceneManagerDefault>(),SessionProperties=host?new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",MatchSetup.BotTarget},{LobbyHandoffProperty,""},{"public",publicRoom?1:0}}:random?new Dictionary<string,SessionProperty>{{"public",1}}:null});
                 if(attempt!=generation)return;
-                if(!result.Ok){Status="Connection failed: "+result.ShutdownReason+". Check code, region and Internet, then retry.";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
-                else{Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await (migrationSnapshot=PushMigration());}
+                if(!result.Ok&&random){Status="No open public games. Opening one…";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
+                else if(!result.Ok){Status="Connection failed: "+result.ShutdownReason+". Check code, region and Internet, then retry.";HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
+                else{if(random)Code=Runner.SessionInfo.Name;PublicRoom=publicRoom||random||Runner.SessionInfo.Properties.TryGetValue("public",out var open)&&(int)open==1;Status="Room "+Code+" · "+(host?"you are host":"connected");lastServer=Time.unscaledTime;ConnectedIdentity(host);RoomGameExperience.Ensure(this)?.TransportAfterMigration(Runner);PublishSelection();nextMigrationSnapshot=0;if(host)await (migrationSnapshot=PushMigration());}
             }
             catch(Exception e){if(attempt!=generation)return;Status="Connection failed: "+e.Message;HostSelected=false;if(Runner)Destroy(Runner.gameObject);Runner=null;}
             finally{if(attempt==generation){Busy=false;connecting?.Dispose();connecting=null;}}
@@ -470,6 +490,13 @@ namespace DeadlyJenga.CastlePrototype
             MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=Catalog.maps[MapIndex].id;
             Status="Starting "+Catalog.modes[ModeIndex].title+"…";BeginDeparture(index,true);
         }
+        // Alone in a public game: go back to your own private island.
+        public async Task LeavePublic()
+        {
+            if(!IslandLobby.Current||!Connected||Busy||!PublicRoom||HumanCount>1)return;
+            await Leave();
+            if(IslandLobby.Current&&!Connected&&!Busy)await Host();
+        }
         public async Task LeaveLobby()
         {
             if(!IslandLobby.Current||!Connected||Busy||HumanCount<=1)return;
@@ -506,7 +533,7 @@ namespace DeadlyJenga.CastlePrototype
         {if(leaving)return;leaving=true;generation++;connecting?.Cancel();Busy=true;if(Runner){FusionMigrationCleanup.BeforeShutdown(Runner);await Runner.Shutdown();}else Disconnected("Left room");}
         void Disconnected(string reason)
         {
-            Migrating=false;
+            Migrating=false;PublicRoom=false;
             GetComponent<RoomGameExperience>()?.TransportDisconnected();
             CancelDeparture();
             ClearPendingMap();receivedMapOffer=0;SwitchingMap=false;mapAcks.Clear();

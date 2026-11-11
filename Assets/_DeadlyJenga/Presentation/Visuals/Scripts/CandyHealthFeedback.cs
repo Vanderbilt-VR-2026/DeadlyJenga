@@ -29,7 +29,7 @@ namespace DeadlyJenga.Presentation
             rim=Image("Peripheral impact",root.transform,new Vector2(1280,800),Vector2.zero);rim.sprite=sprite;
             var well=Image("Health well",root.transform,new Vector2(256,16),new Vector2(0,-270));well.color=new Color(.03f,.02f,.06f,.6f);
             bar=Image("Health",well.transform,new Vector2(252,12),Vector2.zero);bar.rectTransform.pivot=new Vector2(0,.5f);bar.rectTransform.anchoredPosition=new Vector2(-126,0);
-            var go=new GameObject("Health change",typeof(RectTransform),typeof(Text));go.transform.SetParent(root.transform,false);label=go.GetComponent<Text>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=21;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;label.rectTransform.sizeDelta=new Vector2(300,36);label.rectTransform.anchoredPosition=new Vector2(0,-240);
+            var go=new GameObject("Health change",typeof(RectTransform),typeof(Text));go.transform.SetParent(root.transform,false);label=go.GetComponent<Text>();label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;label.fontSize=21;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;label.rectTransform.sizeDelta=new Vector2(300,36);label.rectTransform.anchoredPosition=new Vector2(0,-240);
         }
         static Image Image(string name,Transform parent,Vector2 size,Vector2 pos)
         {var go=new GameObject(name,typeof(RectTransform),typeof(Image));go.transform.SetParent(parent,false);var i=go.GetComponent<Image>();i.raycastTarget=false;i.rectTransform.sizeDelta=size;i.rectTransform.anchoredPosition=pos;return i;}

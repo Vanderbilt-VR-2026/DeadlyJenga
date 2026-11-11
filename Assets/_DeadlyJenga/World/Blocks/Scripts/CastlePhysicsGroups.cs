@@ -160,15 +160,39 @@ namespace DeadlyJenga.CastlePrototype
                 var frame=disaster?.Capture();
                 if(frame!=null&&frame.kind!="Tornado")return true;
             }
-            foreach(var hand in Tracked.Flyers)if(hand.Interactive)return true;
             return false;
         }
-        void Update(){if(replica || shuttingDown)return;if(RequiresNativePhysics())ReleaseAll();else CheckSupports();}
+        // Hands only wake the part of the tower they can reach; the rest stays one cheap resting body.
+        void ReleaseNearHands()
+        {
+            bool any=false;
+            foreach(var hand in Tracked.Flyers)
+            {
+                if(hand==null || hand is Object gone && !gone || !hand.Interactive)continue;
+                float reach=Mathf.Min(8,3+hand.Velocity.magnitude*.25f);
+                var bodies=hand.ContactBodies;
+                if(bodies!=null && bodies.Count>0){foreach(var body in bodies)if(body)any|=ReleaseNear(body.position,reach);}
+                else if(hand.Anchor)any|=ReleaseNear(hand.Anchor.position,reach);
+            }
+            if(any)Drain();
+        }
+        bool ReleaseNear(Vector3 point,float reach)
+        {
+            bool any=false;float limit=reach*reach;
+            foreach(var group in groups)
+            {
+                if(group.released || group.bounds.SqrDistance(point)>limit)continue;
+                Release(group,false);foreach(var beside in group.beside)Release(beside,false);any=true;
+            }
+            return any;
+        }
+        void Update(){if(replica || shuttingDown)return;if(RequiresNativePhysics())ReleaseAll();else{ReleaseNearHands();CheckSupports();}}
         void FixedUpdate()=>Evaluate(Time.time);
         public void Evaluate(float simulationTime)
         {
             if(replica || shuttingDown || ReleasedBodies>=owners.Count)return;
             if(RequiresNativePhysics()){ReleaseAll();return;}
+            ReleaseNearHands();
             CheckSupports();
             foreach(var source in Tracked.Waves)WakeWave(source.Wave);
             if(simulationTime<nextScan)return;
@@ -240,7 +264,7 @@ namespace DeadlyJenga.CastlePrototype
             aggregate.solverIterations=iterations;aggregate.solverVelocityIterations=velocityIterations;aggregate.sleepThreshold=.005f;
             var observer=root.AddComponent<CastleRestingContacts>();observer.owner=this;
             group.surfaceRoot=Root("Grouped survivor surfaces",center,group.rotation);group.surfaceRoot.layer=Layers.Surface;
-            var surfaceBody=group.surfaceRoot.AddComponent<Rigidbody>();surfaceBody.isKinematic=true;surfaceBody.useGravity=false;
+            var surfaceBody=group.surfaceRoot.AddComponent<Rigidbody>();surfaceBody.isKinematic=true;surfaceBody.useGravity=false;surfaceBody.automaticCenterOfMass=false;surfaceBody.automaticInertiaTensor=false;
             var solidFrames=new Dictionary<Vector3Int,Transform>();var surfaceFrames=new Dictionary<Vector3Int,Transform>();
             foreach(var member in group.members)
             {

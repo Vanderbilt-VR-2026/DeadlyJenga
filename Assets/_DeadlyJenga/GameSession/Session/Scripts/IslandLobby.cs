@@ -16,6 +16,8 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandLobby : MonoBehaviour, ISessionInfo, IWorldQuery
     {
         Vector3 lobbyLayoutCenter=Vector3.zero,lobbyLayoutSpawn=new Vector3(0,.5f,-3.5f);
+        Quaternion lobbyLayoutFacing=Quaternion.identity;   // new arrivals look toward the play screen
+        Quaternion SpawnFacing=>transform.rotation*lobbyLayoutFacing;
         float lobbyLayoutTop=.45f,lobbyLayoutRadius=9,lobbyLayoutReturnDistance=30;
         Bounds lobbyLayoutBounds=new Bounds(Vector3.up*2,new Vector3(18,4,18));
         partial void ConfigureMayhemMarinaLobby();
@@ -48,6 +50,8 @@ namespace DeadlyJenga.CastlePrototype
         public float WaterHeight(Vector3 p)=>-.12f;
         public bool IsSheltered(Vector3 p)=>false;
         public Vector3 SafeSpawnPoint()=>transform.TransformPoint(lobbyLayoutSpawn);
+        // First launch lands on the real game, not the sandbox.
+        void DefaultToSurvival()=>Room.DefaultToMode("survival");
         // Other players on the island, shown by Characters' remote views (Core's INetworkActorView).
         readonly Dictionary<string,INetworkActorView> peers=new Dictionary<string,INetworkActorView>();
         InputAction menu;bool focused=true;
@@ -82,13 +86,13 @@ namespace DeadlyJenga.CastlePrototype
                 VisitOwner=match;Current=match?null:this;Services.Session=this;Services.World=this;
                 catalog=IslandLobbyCatalog.Runtime(catalog);
                 Room=IslandRoomConnection.Ensure();bool firstVisit=!Room.Catalog;Room.Catalog=catalog;
-                if(!match){Room.StartDiscovery();if(firstVisit)Room.Region=catalog.defaultRegion;Room.CompleteDeparture();}
+                if(!match){Room.StartDiscovery();if(firstVisit){Room.Region=catalog.defaultRegion;DefaultToSurvival();}Room.CompleteDeparture();}
                 Player=Instantiate(catalog.survivorPrefab).GetComponent<IPlayableCharacter>();
                 if(Player==null){Debug.LogError("Island lobby survivor prefab needs an IPlayableCharacter.",this);enabled=false;return;}
                 Player.gameObject.name="Persistent lobby survivor";Player.ViewCamera.clearFlags=CameraClearFlags.Skybox;
                 if(!match){Room.PrepareSoloIdentity();ApplyLobbyIdentities();}
                 ConfigureMayhemMarinaLobby();BuildFlatFloor();GameEvents.RaiseLobbyStarted(gameObject);
-                Player.Place(SafeSpawnPoint(),Quaternion.identity);
+                Player.Place(SafeSpawnPoint(),SpawnFacing);
                 if(!match)
                 {
                     PopulateLobbyWildlife();
@@ -121,7 +125,7 @@ namespace DeadlyJenga.CastlePrototype
                 return;
             }
             var feet=Player.transform.position;
-            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)Player.Place(SafeSpawnPoint(),Quaternion.identity);
+            if(feet.y<-.9f||(feet-Center).sqrMagnitude>lobbyLayoutReturnDistance*lobbyLayoutReturnDistance)Player.Place(SafeSpawnPoint(),SpawnFacing);
             var keyboard=Keyboard.current;
             if(menu.WasPressedThisFrame()||keyboard!=null&&keyboard.escapeKey.wasPressedThisFrame||Player.MenuPressed)SetMenu(!MenuOpen);
             if(!Player.IsVR&&!MenuOpen&&Cursor.lockState!=CursorLockMode.Locked&&!Application.isBatchMode)SetMenu(true);

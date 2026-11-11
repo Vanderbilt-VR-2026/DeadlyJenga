@@ -80,6 +80,7 @@ namespace DeadlyJenga.Modes
             {
                 case GameModeKind.CaptureFlag:return new[]{new ModeStat("captures","Captures","",p=>p.captures),new ModeStat("flag_returns","Flag returns","",p=>p.flagReturns),kills,deaths};
                 case GameModeKind.TeamTickets:return new[]{kills,deaths};
+                case GameModeKind.Ninja:return new[]{new ModeStat("lantern_points","Lantern points","",p=>Math.Round(p.lanternPoints,1)),new ModeStat("steals","Lantern steals","",p=>p.steals),kills,deaths};
                 case GameModeKind.KingOfHill:return new[]{new ModeStat("hill_seconds","Hill control","s",p=>p.hillSeconds),kills,deaths};
                 case GameModeKind.BlockControl:return new[]{new ModeStat("claims","Claims completed","",p=>p.blocksClaimed),new ModeStat("team_points","Team points","",p=>simulation.ScoreForTeam(p.team)),kills,deaths};
                 case GameModeKind.Infection:return new[]{survival,new ModeStat("infections","Survivors infected","",p=>p.infections)};

@@ -17,6 +17,14 @@ namespace DeadlyJenga.Core
         static void Reset() { Rules = new MatchRules(); ModeId = "demo"; MapId = "castle"; BotTarget = 10; SameHumanTeam = false; HandCount = 0; SurvivorPreset = 0; HandPreset = 0; }
     }
 
+    // The front door's one-press option: join an open public game, or open one if none exists.
+    public interface IQuickPlay
+    {
+        bool CanQuickPlay { get; }
+        bool PublicRoom { get; }
+        void QuickPlay();
+    }
+
     // The island lobby's three terminals (join, host, map + mode) as Presentation draws them.
     // Game Session provides it and does the work; the terminals only show these and call them.
     public interface ILobbyControls

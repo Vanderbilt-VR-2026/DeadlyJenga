@@ -8,11 +8,12 @@ namespace DeadlyJenga.CastlePrototype
     public static class ModeMapLayout
     {
         public static readonly string[] Presets={"ctf","infection","survival","territory","koth","tickets"};
-        public static bool Known(string preset)=>Array.IndexOf(Presets,preset)>=0;
-        public static int Height(string preset)=>preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?18:12;
+        public static bool Known(string preset)=>Array.IndexOf(Presets,preset)>=0||preset==NinjaTempleLayout.Preset;
+        public static int Height(string preset)=>preset==NinjaTempleLayout.Preset?NinjaTempleLayout.HeightCourses:preset=="infection"?48:preset=="koth"?32:preset=="survival"?20:preset=="territory"?16:preset=="ctf"?18:12;
         public static Vector2 Size(CastleSettings s)
         {
             float pitch=Pitch(s),length=s.blockSize.x;
+            if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Size;
             return s.layoutPreset=="ctf"?new Vector2(pitch*8+length,pitch*2+3*length):s.layoutPreset=="tickets"?new Vector2(pitch*8+length,pitch*2+length):s.layoutPreset=="infection"?Vector2.one*(pitch*2+length):s.layoutPreset=="survival"?Vector2.one*(pitch*3+length):Vector2.one*(pitch*4+length);
         }
         static float Pitch(CastleSettings s)=>2*s.blockSize.x-s.blockSize.z;
@@ -21,6 +22,7 @@ namespace DeadlyJenga.CastlePrototype
         public static List<CastlePlacement> Build(CastleSettings s)
         {
             if(!Known(s.layoutPreset))throw new ArgumentException("Unknown mode layout.");
+            if(s.layoutPreset==NinjaTempleLayout.Preset)return NinjaTempleLayout.Build(s);
             var result=new List<CastlePlacement>(720);var towers=new List<Tower>();string preset=s.layoutPreset;
             int width=preset=="ctf"||preset=="tickets"?9:preset=="infection"?3:preset=="survival"?4:5;
             int depth=preset=="ctf"||preset=="tickets"?3:width;

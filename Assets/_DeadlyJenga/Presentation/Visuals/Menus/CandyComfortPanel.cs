@@ -160,7 +160,7 @@ namespace DeadlyJenga.Presentation
             eye=home?homeCamera:session.ActiveCamera;wasVr=home?homeVr:session.IsVR;
             canvas.renderMode=wasVr?RenderMode.WorldSpace:RenderMode.ScreenSpaceOverlay;
             canvas.worldCamera=wasVr?eye:null;
-            var root=(RectTransform)canvas.transform;
+            var root=(RectTransform)canvas.transform;MenuAppear.Attach(panel.gameObject);
             if(wasVr&&eye)
             {
                 root.sizeDelta=new Vector2(1200,900);root.localScale=Vector3.one;
@@ -236,7 +236,7 @@ namespace DeadlyJenga.Presentation
         {
             var rect=new GameObject("Comfort label",typeof(RectTransform),typeof(Text)).GetComponent<RectTransform>();
             rect.SetParent(panel,false);rect.anchoredPosition=position;rect.sizeDelta=size;
-            var label=rect.GetComponent<Text>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=fontSize;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;label.text=value;
+            var label=rect.GetComponent<Text>();label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;label.fontSize=fontSize;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;label.text=value;
             return label;
         }
         Control Add(Vector2 position,Vector2 size,Func<string> title,Action action,Func<bool> enabled,bool primary=false)

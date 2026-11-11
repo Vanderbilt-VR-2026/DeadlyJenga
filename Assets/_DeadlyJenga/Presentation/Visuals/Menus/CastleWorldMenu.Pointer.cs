@@ -8,7 +8,7 @@ namespace DeadlyJenga.CastlePrototype
     {
         const float MenuDistance=1.68f;
         Ray pointerRay;
-        BoxCollider focus,pressedTarget;
+        BoxCollider focus,pressedTarget,previousFocus;
         Image pointerDot,focusOutline;
         float pressedUntil;
         bool requireRelease,startedAim,usingController;
@@ -31,7 +31,9 @@ namespace DeadlyJenga.CastlePrototype
         public void Point(Camera camera,bool pressed,bool held=false)
         {
             if(!camera||!isActiveAndEnabled)return;
-            focus=null;
+            previousFocus=focus;focus=null;
+            bool homePage=!DeadlyJenga.Presentation.MenuAccess.GuestPause(session)&&AtHome&&!hostTools&&!wildlifePage;
+            if(!homePage)LayoutDefault();
             foreach(var button in buttons)if(button)button.image.color=CandyHudVisuals.Card;
             bool guest=DeadlyJenga.Presentation.MenuAccess.GuestPause(session);
             ((RectTransform)transform).sizeDelta=new Vector2(600,guest?590:1080);
@@ -77,13 +79,20 @@ namespace DeadlyJenga.CastlePrototype
         bool Hit(BoxCollider target,Ray ray,out Vector3 point)
         {
             point=default;
+            if(!Inside(target,ray,target==previousFocus?7:1,out point))return false;
+            // Rows sit 2 units apart: the row hovered last frame keeps a small margin so the highlight does not flicker between neighbours.
+            if(previousFocus&&target!=previousFocus&&Inside(previousFocus,ray,7,out _))return false;
+            focus=target;return true;
+        }
+        bool Inside(BoxCollider target,Ray ray,float padY,out Vector3 point)
+        {
+            point=default;
             if(!target||!target.enabled||!target.gameObject.activeInHierarchy||
                 !(target.transform is RectTransform rect)||!Project(ray,rect,out point))return false;
             var local=rect.InverseTransformPoint(point);
             var bounds=rect.rect;
             float pad=bounds.width<150?1.8f:14;
-            if(local.x<bounds.xMin-pad||local.x>bounds.xMax+pad||local.y<bounds.yMin-1||local.y>bounds.yMax+1)return false;
-            focus=target;return true;
+            return !(local.x<bounds.xMin-pad||local.x>bounds.xMax+pad||local.y<bounds.yMin-padY||local.y>bounds.yMax+padY);
         }
 
         void PresentPointer()
@@ -101,6 +110,7 @@ namespace DeadlyJenga.CastlePrototype
             bool dot=intersects&&(panel.rect.Contains(panel.InverseTransformPoint(at))||actionable);
             bool confirming=actionable&&pressedTarget==focus&&Time.unscaledTime<pressedUntil;
             Color color=confirming?CandyHudVisuals.Peach:actionable?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
+            if(usingController){if(actionable)DeadlyJenga.Presentation.MenuLaser.MarkHover(confirming);dot=false;}   // VR uses the laser's own hit cursor
             pointerDot.gameObject.SetActive(dot);
             if(dot)
             {

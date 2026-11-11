@@ -98,6 +98,7 @@ namespace DeadlyJenga.Modes
             foreach(var p in frame.players)
             {
                 if(p==null||!Text(p.id,128)||!ids.Add(p.id)||!Text(p.name,64)||!Text(p.role,32)||!Text(p.spectating,128,true)||!Position(p.position)||!Position(p.viewPosition)||!Rotation(p.viewRotation)||!Number(p.health)||p.health<0||p.health>1||!Number(p.metric)||!Number(p.survivalSeconds)||!Number(p.averageHeight)||!Number(p.height)||!Number(p.claimProgress)||!Number(p.handPowerRemaining)||p.handPowerRemaining<0||p.handPowerRemaining>120||!Number(p.heightObservedSeconds)||p.heightObservedSeconds<0||!Number(p.deathRemaining)||p.deathRemaining<0||p.deathRemaining>10||!Text(p.pendingOutcome,32,true)||!Text(p.handReturnRole,32,true)||!Number(p.deathProgress)||!Number(p.sinkProgress)||p.sinkProgress<0||p.sinkProgress>1)return false;
+                if(p.steals<0||!Number(p.lanternPoints)||p.lanternPoints<0)return false;
                 if(p.deaths<0||p.captures<0||p.flagReturns<0||p.blocksClaimed<0||p.infections<0||p.bodyReports<0||p.revives<0||!Number(p.hillSeconds)||p.hillSeconds<0)return false;
                 if(p.team<-2||p.team>=frame.teams.Length&&p.team>=0)return false;
             }
@@ -106,6 +107,7 @@ namespace DeadlyJenga.Modes
             var teamIds=new HashSet<int>();foreach(var t in frame.teams)if(t==null||t.id<0||t.id>=frame.teams.Length||!teamIds.Add(t.id)||!Number(t.points)||t.captures<0||t.tickets<0||t.ownedBlocks<0)return false;
             var claimIds=new HashSet<int>();foreach(var c in frame.claims)if(c==null||c.block<0||c.block>=blockCount||!claimIds.Add(c.block)||c.owner<-1||c.owner>=frame.teams.Length||c.claimant<-1||c.claimant>=frame.teams.Length||!Number(c.progress)||c.progress<0||c.progress>1||!Number(c.emptySeconds)||c.emptySeconds<0)return false;
             var flagIds=new HashSet<int>();foreach(var f in frame.flags)if(f==null||f.team<0||f.team>=frame.teams.Length||!flagIds.Add(f.team)||!Position(f.home)||!Position(f.position)||!string.IsNullOrEmpty(f.carrier)&&!ids.Contains(f.carrier))return false;
+            var lantern=frame.lantern;if(lantern==null||!Position(lantern.position)||!Position(lantern.eventPosition)||!Number(lantern.gongRemaining)||lantern.gongRemaining<0||lantern.gongRemaining>60||!Number(lantern.gongNextIn)||!Number(lantern.holdRemaining)||lantern.holdRemaining<0||lantern.holdRemaining>600||lantern.eventSequence<0||!Text(lantern.eventKind,16,true)||!Text(lantern.eventActor,128,true)||!Text(lantern.eventVictim,128,true)||!string.IsNullOrEmpty(lantern.carrier)&&!ids.Contains(lantern.carrier))return false;
             if(frame.mystery==null||frame.mystery.bodies==null||frame.mystery.bodies.Length>256||frame.mystery.downed==null||frame.mystery.downed.Length>256)return false;
             foreach(var b in frame.mystery.bodies)if(b==null||!Text(b.id,128)||!Text(b.name,64)||!Position(b.position)||!Position(b.supportPoint)||!Number(b.reportedAge)||b.suspected==null||b.suspected.Length>3)return false;
             return true;

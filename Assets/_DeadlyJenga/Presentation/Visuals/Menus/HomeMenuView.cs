@@ -47,7 +47,7 @@ namespace DeadlyJenga.Presentation
         }
         void Build(IHomeMenuControls source, bool useVr)
         {
-            controls = source; font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            controls = source; font = DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             slides = Resources.LoadAll<Texture2D>("HomeSlides").OrderBy(t => t.name).ToArray();
             vr = useVr;
             eye = new GameObject("Home camera").AddComponent<Camera>(); eye.transform.SetParent(transform);

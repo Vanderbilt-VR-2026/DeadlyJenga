@@ -111,11 +111,9 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(0,3.9f,11.32f),new Vector3(7.75f,3.9f,.23f),F.Wood,.17f);
             mesh.Box(new Vector3(0,3.9f,11.17f),new Vector3(7.38f,3.57f,.10f),F.Ivory,.18f);
             mesh.Box(new Vector3(0,3.9f,11.10f),new Vector3(7.12f,3.31f,.05f),F.Teal,.13f);
-            mesh.Disk(new Vector3(0,1.82f,6.65f),2.3f,.87f,F.Wood,true,40);
-            mesh.Disk(new Vector3(0,2.69f,6.65f),2.43f,.16f,F.Stone,false,40);
-            mesh.Disk(new Vector3(-.9f,2.84f,6.50f),.3f,.09f,F.Brass,false,24);
-            mesh.Disk(new Vector3(-.9f,2.94f,6.50f),.22f,.11f,F.Glow,false,24);
-            mesh.Disk(new Vector3(.75f,2.85f,6.5f),.31f,.09f,F.Teal,false,24);
+            // Open stage in front of the screen (the old round counter blocked it): arrivals stand on this glowing ring.
+            mesh.Disk(new Vector3(0,1.875f,5.75f),1.9f,.03f,F.Teal,false,48);
+            mesh.Disk(new Vector3(0,1.885f,5.75f),1.55f,.03f,F.Stone,false,48);
             Lantern(new Vector3(0,5.15f,7),.24f);
         }
         void StyleShop()

@@ -102,6 +102,7 @@ namespace DeadlyJenga.CharacterNetwork
             }
             rig.gameObject.SetActive(active); rig.SetColor(color & 0xFF);rig.SetAppearance(appearance);
             if(IsEnemy&&(ArchetypeId=="longhand"||ArchetypeId=="gum-brute")&&!GetComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>())gameObject.AddComponent<DeadlyJenga.CastleBots.CandyMayhemEnemyVisual>();
+            PushSample(target);
             if (!initialized) { frame = target; initialized = true; }
             UpdateHazardTarget();
         }
@@ -128,10 +129,11 @@ namespace DeadlyJenga.CharacterNetwork
         public void Render(float dt)
         {
             if (!hasTarget || !active || !rig) return;
-            float t = 1 - Mathf.Exp(-20 * dt);
-            frame.feet = Vector3.Lerp(frame.feet, target.feet, t); frame.head = Vector3.Lerp(frame.head, target.head, t);
-            frame.headRotation = Quaternion.Slerp(frame.headRotation, target.headRotation, t); frame.scale = target.scale; frame.seated = target.seated;
-            frame.left = Blend(frame.left, target.left, t); frame.right = Blend(frame.right, target.right, t);
+            var wanted = Sampled();
+            float t = 1 - Mathf.Exp(-30 * dt);
+            frame.feet = Vector3.Lerp(frame.feet, wanted.feet, t); frame.head = Vector3.Lerp(frame.head, wanted.head, t);
+            frame.headRotation = Quaternion.Slerp(frame.headRotation, wanted.headRotation, t); frame.scale = wanted.scale; frame.seated = wanted.seated;
+            frame.left = Blend(frame.left, wanted.left, t); frame.right = Blend(frame.right, wanted.right, t);
             rig.ApplyFrame(frame, true, dt);
             var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
             bool held = equipment.drawn && equipment.kind >= EquipmentKind.Blaster && equipment.kind != EquipmentKind.PoweredArmor;
@@ -168,6 +170,51 @@ namespace DeadlyJenga.CharacterNetwork
             var c = colors != null && colors.Length > 0 ? colors[(color & 0xFF) % colors.Length] : Color.white;
             GameEvents.RaiseBodyBurst(rig.gameObject, frame.feet, c, "A player", false);
             emote = null;
+        }
+
+        // Poses arrive unevenly: bots ride the world stream (a few per second), players the 30 Hz pose lane.
+        // The view plays a short adaptive delay behind the newest pose and interpolates between buffered
+        // samples, so movement stays continuous instead of catching up and stopping at each update.
+        const int Samples = 8;
+        readonly CandyAvatarFrame[] sampleFrames = new CandyAvatarFrame[Samples];
+        readonly float[] sampleTimes = new float[Samples];
+        int sampleCount;
+        float sampleInterval = .1f, sampleJitter;
+        void PushSample(CandyAvatarFrame pose)
+        {
+            float now = Time.unscaledTime;
+            if (sampleCount > 0)
+            {
+                int last = sampleCount - 1;
+                float gap = now - sampleTimes[last];
+                if (gap < .001f) { sampleFrames[last] = pose; return; }
+                if (gap > 1.5f || (pose.feet - sampleFrames[last].feet).sqrMagnitude > 9) sampleCount = 0;   // long silence or a teleport/respawn: start fresh
+                else { sampleJitter = Mathf.Lerp(sampleJitter, Mathf.Abs(gap - sampleInterval), .2f); sampleInterval = Mathf.Lerp(sampleInterval, gap, .2f); }
+            }
+            if (sampleCount == Samples)
+            {
+                System.Array.Copy(sampleFrames, 1, sampleFrames, 0, Samples - 1);
+                System.Array.Copy(sampleTimes, 1, sampleTimes, 0, Samples - 1);
+                sampleCount--;
+            }
+            sampleFrames[sampleCount] = pose; sampleTimes[sampleCount] = now; sampleCount++;
+            if (sampleCount == 1) frame = pose;
+        }
+        CandyAvatarFrame Sampled()
+        {
+            if (sampleCount == 0) return target;
+            float delay = Mathf.Clamp(sampleInterval * 1.15f + sampleJitter * 2f, .04f, .4f);
+            float at = Time.unscaledTime - delay;
+            int i = sampleCount - 1;
+            if (at >= sampleTimes[i]) return sampleFrames[i];
+            while (i > 0 && sampleTimes[i - 1] > at) i--;
+            if (i == 0) return sampleFrames[0];
+            var a = sampleFrames[i - 1]; var b = sampleFrames[i];
+            float u = Mathf.InverseLerp(sampleTimes[i - 1], sampleTimes[i], at);
+            b.feet = Vector3.Lerp(a.feet, b.feet, u); b.head = Vector3.Lerp(a.head, b.head, u);
+            b.headRotation = Quaternion.Slerp(a.headRotation, b.headRotation, u);
+            b.left = Blend(a.left, b.left, u); b.right = Blend(a.right, b.right, u);
+            return b;
         }
 
         static CandyHandPose Blend(CandyHandPose from, CandyHandPose to, float t)

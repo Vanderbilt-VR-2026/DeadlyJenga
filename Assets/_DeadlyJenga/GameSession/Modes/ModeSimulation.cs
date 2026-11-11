@@ -63,7 +63,8 @@ namespace DeadlyJenga.Modes
             if (mode == GameModeKind.TeamTickets) { r.spawn=SpawnRule.TeamPoles; r.island=IslandRule.Walkable; r.punchEnabled=true; r.healthEnabled=true; r.metric=ScoreMetric.Eliminations; r.roundSeconds=600; r.tickets=30; }
             if (mode == GameModeKind.Infection) { r.healthEnabled=true; r.punchEnabled=true; r.starterInfected=true; r.roundSeconds=300; r.metric=ScoreMetric.SurvivalTime; }
             if (mode == GameModeKind.MurderMystery) { r.healthEnabled=true; r.punchEnabled=true; r.punchDamage=8; r.punchDistance=.7f; r.roundSeconds=480; r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.metric=ScoreMetric.AliveStatus; }
-            r.defaultDagger=mode==GameModeKind.KingOfHill||mode==GameModeKind.BlockControl||mode==GameModeKind.CaptureFlag||mode==GameModeKind.TeamTickets;
+            if (mode == GameModeKind.Ninja) { r.island=IslandRule.Walkable; r.spawn=SpawnRule.Rim; r.punchEnabled=true; r.healthEnabled=true; r.punchDamage=22; r.punchDistance=2.2f; r.punchCooldown=.6f; r.metric=ScoreMetric.LanternPoints; r.roundSeconds=180; r.environmentSkin="ninja"; }
+            r.defaultDagger=mode==GameModeKind.Ninja||mode==GameModeKind.KingOfHill||mode==GameModeKind.BlockControl||mode==GameModeKind.CaptureFlag||mode==GameModeKind.TeamTickets;
             return r;
         }
         public void Configure(ModeRules input)
@@ -86,7 +87,7 @@ namespace DeadlyJenga.Modes
                 teams.Add(new MatchTeamFrame { id=t,name=ModeNames.ColorNames[t],color=ModeNames.Colors[t],tickets=Rules.tickets });
             foreach(var p in players.Values){p.frame.team=-1;p.frame.color=SurvivorColor(p);}
             foreach (var p in players.Values) { AssignTeam(p); Rename(p); }
-            claims.Clear(); flags.Clear(); Winner=""; WinnerTeam=-1;
+            claims.Clear(); flags.Clear(); Winner=""; WinnerTeam=-1; ResetLantern();
             ClearEliminations();
             ChangePhase(Rules.mode == GameModeKind.Demo ? RoundPhase.Playing : RoundPhase.Waiting);
         }
@@ -207,11 +208,12 @@ namespace DeadlyJenga.Modes
             foreach(var team in teams){team.points=0;team.captures=0;team.ownedBlocks=0;team.tickets=Rules.tickets;}
             foreach(var p in players.Values)
             {
-                var f=p.frame; f.alive=p.present&&!p.deferredParticipation; f.role=p.deferredParticipation?"spectator":"survivor"; f.survivalSeconds=f.averageHeight=f.metric=0;f.kills=f.deaths=f.captures=f.flagReturns=f.blocksClaimed=f.infections=f.bodyReports=f.revives=0;f.hillSeconds=0;f.dying=false;f.deathProgress=0;f.sinking=false;f.sinkProgress=0;f.spectating=null;f.pendingOutcome=null;f.deathRemaining=0;f.handPowerRemaining=0;f.handReturnRole=null;
+                var f=p.frame; f.alive=p.present&&!p.deferredParticipation; f.role=p.deferredParticipation?"spectator":"survivor"; f.survivalSeconds=f.averageHeight=f.metric=0;f.kills=f.deaths=f.captures=f.flagReturns=f.blocksClaimed=f.infections=f.bodyReports=f.revives=f.steals=0;f.hillSeconds=f.lanternPoints=0;f.dying=false;f.deathProgress=0;f.sinking=false;f.sinkProgress=0;f.spectating=null;f.pendingOutcome=null;f.deathRemaining=0;f.handPowerRemaining=0;f.handReturnRole=null;
                 if(!TeamMode(Rules.mode)){f.team=-1;f.color=SurvivorColor(p);}
                 p.heightIntegral=p.observedSeconds=0;p.powerUntil=0;p.nextPunch=0;
             }
             foreach(var flag in flags){flag.carrier=null;flag.position=flag.home;flag.atHome=true;}
+            ResetLantern();
             ChangePhase(Rules.mode==GameModeKind.Demo?RoundPhase.Playing:RoundPhase.Countdown);
         }
         void ChangePhase(RoundPhase value) { Phase=value;phaseTime=0;if(!restoring)PhaseChanged?.Invoke(value); }
@@ -234,6 +236,7 @@ namespace DeadlyJenga.Modes
             }
             if(Rules.mode==GameModeKind.BlockControl)TickClaims(seconds);
             if(Rules.mode==GameModeKind.CaptureFlag)TickFlags();
+            if(Rules.mode==GameModeKind.Ninja)TickLantern(seconds);
             TickSpectators();
             if(Rules.mode!=GameModeKind.Demo)CheckWinner();
         }
@@ -258,7 +261,7 @@ namespace DeadlyJenga.Modes
                 });
             }
             EliminationOutcome outcome;
-            if(Rules.mode==GameModeKind.Demo || Rules.mode==GameModeKind.KingOfHill || Rules.mode==GameModeKind.BlockControl || Rules.mode==GameModeKind.CaptureFlag)outcome=EliminationOutcome.Respawn;
+            if(Rules.mode==GameModeKind.Demo || Rules.mode==GameModeKind.Ninja || Rules.mode==GameModeKind.KingOfHill || Rules.mode==GameModeKind.BlockControl || Rules.mode==GameModeKind.CaptureFlag)outcome=EliminationOutcome.Respawn;
             else if(Rules.mode==GameModeKind.Infection){MakeInfected(p);return EliminationOutcome.Infected;}
             else if(Rules.mode==GameModeKind.TeamTickets && p.frame.team>=0 && teams[p.frame.team].tickets>0){teams[p.frame.team].tickets--;outcome=EliminationOutcome.Respawn;}
             else outcome=EliminationOutcome.Spectator;
@@ -307,6 +310,7 @@ namespace DeadlyJenga.Modes
             if(present<2)return;
             if(Rules.mode==GameModeKind.Survival && alive<=1){Finish(last?.frame.name??"Nobody",-1);return;}
             if(Rules.mode==GameModeKind.Infection && alive==0){Finish("Infected",-2);return;}
+            if(Rules.mode==GameModeKind.Ninja){CheckLanternWinner();if(Phase!=RoundPhase.Playing)return;}
             if(Rules.mode==GameModeKind.TeamTickets)
             {
                 var active=new HashSet<int>();foreach(var p in players.Values)if(p.present&&p.frame.alive&&p.frame.team>=0)active.Add(p.frame.team);

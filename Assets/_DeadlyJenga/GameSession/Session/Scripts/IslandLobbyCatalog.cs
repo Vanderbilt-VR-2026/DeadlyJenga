@@ -10,7 +10,7 @@ namespace DeadlyJenga.CastlePrototype
         { public string id="castle", title="Candy Castle", scenePath; public GameObject mapPrefab; public int recommendedPlayers=10; public string recommendedMode="demo"; public bool walkableIsland; public string[] supportedModes=Array.Empty<string>();
             public bool SupportsMode(string modeId)=>supportedModes==null||supportedModes.Length==0||Array.IndexOf(supportedModes,modeId)>=0; }
         [Serializable] public sealed class Mode
-        { public string id="demo", title="Demo", description="Full sandbox controls, AI survivors and giant hands."; public bool available=true; }
+        { public string id="demo", title="Sandbox", description="Full sandbox controls, AI survivors and giant hands."; public bool available=true; }
         [Tooltip("The survivor prefab (any component on it that implements IPlayableCharacter).")] public MonoBehaviour survivorPrefab;
         [Tooltip("The island's ocean, sand and sky (Presentation's environment prefab).")] public MonoBehaviour environmentPrefab;
         [Tooltip("Art profile for the island; empty uses the environment prefab's.")] public ScriptableObject art;
@@ -33,8 +33,8 @@ namespace DeadlyJenga.CastlePrototype
             var list=new System.Collections.Generic.List<Map>(maps??Array.Empty<Map>());
             string scene=Array.Find(maps??Array.Empty<Map>(),m=>m!=null&&!string.IsNullOrEmpty(m.scenePath))?.scenePath;
             AddMap(list,"castle-gaps","Candy Castle Â· Long Blocks and Gaps","demo",10,scene);
-            AddMap(list,"castle-catwalks","Candy Castle · Catwalks","demo",10,scene);
-            AddMap(list,"castle-four-keeps","Candy Castle · Four Keeps","demo",10,scene);
+            AddMap(list,"castle-catwalks","Candy Castle ï¿½ Catwalks","demo",10,scene);
+            AddMap(list,"castle-four-keeps","Candy Castle ï¿½ Four Keeps","demo",10,scene);
             AddMap(list,"ctf","Lollipop Fortresses","ctf",12,scene);
             AddMap(list,"infection","Infection Spire","infection",12,scene);
             AddMap(list,"survival","Storm Cathedral","survival",12,scene);
@@ -50,6 +50,9 @@ namespace DeadlyJenga.CastlePrototype
             AddMap(list,"tiki-resort","Waterfront Tiki Resort","demo",1,scene,true);
             var tiki=list.Find(m=>m.id=="mode-tiki-resort");
             if(tiki!=null)tiki.supportedModes=new[]{"demo"};
+            AddMap(list,"ninja-temple","Moonlit Shinobi Temple","ninja",8,scene,true);
+            var ninja=list.Find(m=>m.id=="mode-ninja-temple");
+            if(ninja!=null)ninja.supportedModes=new[]{"ninja","hill","survival","infection","demo"};
             maps=list.ToArray();
         }
         static void AddMap(System.Collections.Generic.List<Map> list,string family,string title,string mode,int population,string scene,bool walkableIsland=false)
@@ -71,6 +74,7 @@ namespace DeadlyJenga.CastlePrototype
             AddMode(list,"infection","Infection","Survive the infected; eliminated survivors join the hunt.");
             AddMode(list,"teamtickets","Last Team Standing","Spend team respawns wisely. Be the last team left.");
             AddMode(list,"mystery","Murder Mystery","Find the hidden murderer, protect survivors and trust the sheriff.");
+            AddMode(list,"ninja","Shadow Lantern","Steal the spirit lantern and keep it lit. Any hit knocks it loose.");
             modes=list.ToArray();
         }
         static void AddMode(System.Collections.Generic.List<Mode> list,string id,string title,string description)

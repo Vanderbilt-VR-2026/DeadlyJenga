@@ -10,6 +10,10 @@ namespace DeadlyJenga.CastlePrototype
         public static readonly Color Ink=new Color(.095f,.055f,.18f),Panel=new Color(.18f,.115f,.29f),Card=new Color(.25f,.17f,.38f),
             Mint=new Color(.35f,1,.77f),Lavender=new Color(.78f,.64f,1),Peach=new Color(1,.71f,.53f),Muted=new Color(.80f,.75f,.90f);
         static Texture2D rounded;static Sprite pill;
+        static Font textFont,titleFont;
+        // Fredoka: rounded, high x-height and readable in the headset. Falls back to Unity's font if missing.
+        public static Font TextFont{get{if(!textFont){textFont=Resources.Load<Font>("Fonts/Fredoka-SemiBold");if(!textFont)textFont=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");}return textFont;}}
+        public static Font TitleFont{get{if(!titleFont){titleFont=Resources.Load<Font>("Fonts/Fredoka-Bold");if(!titleFont)titleFont=TextFont;}return titleFont;}}
         static readonly Dictionary<CandyHudIcon,Texture2D> icons=new Dictionary<CandyHudIcon,Texture2D>();
         public static Texture2D Rounded
         {

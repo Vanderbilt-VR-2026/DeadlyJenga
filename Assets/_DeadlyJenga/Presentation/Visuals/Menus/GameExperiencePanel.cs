@@ -72,6 +72,7 @@ namespace DeadlyJenga.Presentation
             canvas.worldCamera=openingVr?eye:null;
             panel.localScale=openingVr?Vector3.one*.00165f:Vector3.one;
             if(openingVr)Anchor();else{panel.localRotation=Quaternion.identity;panel.anchoredPosition=Vector2.zero;}
+            MenuAppear.Attach(panel.gameObject);
             refreshAt=0;Refresh();
         }
         void Build()
@@ -108,7 +109,7 @@ namespace DeadlyJenga.Presentation
         Text Label(string value,Vector2 position,Vector2 size,int font)
         {
             var go=new GameObject("Experience label",typeof(RectTransform),typeof(Text));go.transform.SetParent(panel,false);
-            var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             text.text=value;text.fontSize=font;text.color=Color.white;text.alignment=TextAnchor.MiddleCenter;
             text.supportRichText=false;text.raycastTarget=false;
             text.rectTransform.anchoredPosition=position;text.rectTransform.sizeDelta=size;return text;

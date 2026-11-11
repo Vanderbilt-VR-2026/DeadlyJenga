@@ -195,7 +195,7 @@ namespace DeadlyJenga.CandyArt
             var go=new GameObject(text,typeof(RectTransform),typeof(Canvas));go.transform.SetParent(visual,false);go.transform.localPosition=position;go.transform.localRotation=rotation??Quaternion.identity;go.transform.localScale=Vector3.one*.005f;
             var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;
             var label=new GameObject("Lettering",typeof(RectTransform),typeof(Text));label.transform.SetParent(go.transform,false);var t=label.GetComponent<Text>();
-            t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=text;t.fontSize=fontSize;t.fontStyle=FontStyle.Bold;t.color=palette[color];t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.resizeTextForBestFit=true;t.resizeTextMinSize=12;t.resizeTextMaxSize=fontSize;t.rectTransform.sizeDelta=size/.005f;
+            t.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;t.text=text;t.fontSize=fontSize;t.fontStyle=FontStyle.Bold;t.color=palette[color];t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.resizeTextForBestFit=true;t.resizeTextMinSize=12;t.resizeTextMaxSize=fontSize;t.rectTransform.sizeDelta=size/.005f;
         }
         Batch BatchFor(int color)
         {if(!batches.TryGetValue(color,out var b)){b=new Batch();batches.Add(color,b);}return b;}

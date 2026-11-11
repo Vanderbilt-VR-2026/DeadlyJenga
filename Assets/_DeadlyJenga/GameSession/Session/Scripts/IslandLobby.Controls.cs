@@ -5,7 +5,7 @@ using DeadlyJenga.Core;
 namespace DeadlyJenga.CastlePrototype
 {
     // What the island's terminals show and do (Core's ILobbyControls). Presentation draws them.
-    public sealed partial class IslandLobby : ILobbyControls
+    public sealed partial class IslandLobby : ILobbyControls, IQuickPlay
     {
         const int RoomCodeLength=6;
         string enteredCode="",enteredRegion;
@@ -97,15 +97,18 @@ namespace DeadlyJenga.CastlePrototype
         public void NextNearbyPage()=>nearbyPage++;
         public string InvitationFrom=>Room.Discovery?.Invitation?.message.name;
         public void AcceptInvitation(){if(JoinEnabled)Room.AcceptInvite();}
-        public bool CanLeave=>!VisitingLobby&&Room.Connected&&!Room.Busy&&Room.HumanCount>1;
+        public bool CanLeave=>!VisitingLobby&&Room.Connected&&!Room.Busy&&(Room.HumanCount>1||Room.PublicRoom);
         public bool Busy=>Room.Busy;
-        public void Leave(){if(CanLeave)_=Room.LeaveLobby();}
+        public void Leave(){if(!CanLeave)return;if(Room.HumanCount<=1)_=Room.LeavePublic();else _=Room.LeaveLobby();}
         public string JoinHint{get;private set;}=""; 
 
         // Host terminal
         public bool HostActive=>Room.LocalIsLobbyHost;
         public bool CanHost=>!VisitingLobby&&(!Room.Busy&&!Room.Connected);
         public void Host(){if(CanHost)_=Room.Host();}
+        public bool CanQuickPlay=>!VisitingLobby&&Room&&!Room.Busy&&!Room.LaunchPending&&Room.HumanCount<=1;
+        public bool PublicRoom=>Room&&Room.PublicRoom;
+        public void QuickPlay(){if(CanQuickPlay)_=Room.QuickPlay();}
         public string HostCode=>Room.Busy?"CONNECTING…":Room.Connected?Room.Code:"PRIVATE SOLO ISLAND";
         public string Region=>Room.Region;
         public void NextRegion(){if(CanHost)Room.Region=IslandRoomAddress.Regions[(Array.IndexOf(IslandRoomAddress.Regions,Room.Region)+1)%IslandRoomAddress.Regions.Length];}

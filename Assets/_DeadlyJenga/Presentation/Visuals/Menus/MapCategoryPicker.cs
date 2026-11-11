@@ -104,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
             if(id.StartsWith("sparse-",StringComparison.Ordinal)||id=="mayhem-foundry"||id=="city-tower-exhibition"||id=="tower-lab-island"||id=="megablock-tower")return 4;
             if(id.Contains("castle"))return 0;
             if(id.Contains("test")||id.Contains("drafter")||id=="andy")return 6;
-            if(id.Contains("mystery")||id.Contains("social")||id.Contains("christmas")||id.Contains("cantina")||id.Contains("tiki")||id.Contains("breakwater")||title.Contains("murder")||title.Contains("christmas"))return 2;
+            if(id.Contains("ninja")||id.Contains("mystery")||id.Contains("social")||id.Contains("christmas")||id.Contains("cantina")||id.Contains("tiki")||id.Contains("breakwater")||title.Contains("murder")||title.Contains("christmas"))return 2;
             if(id=="ctf"||id=="infection"||id=="survival"||id=="territory"||id=="koth"||id=="tickets"||id=="buildup")return 1;
             return 7;
         }

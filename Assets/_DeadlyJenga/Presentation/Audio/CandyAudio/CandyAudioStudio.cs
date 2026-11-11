@@ -279,7 +279,7 @@ namespace DeadlyJenga.CandyAudio
         {
             if(stylesReady)return;stylesReady=true;rounded=new Texture2D(32,32,TextureFormat.RGBA32,false);rounded.hideFlags=HideFlags.HideAndDontSave;
             for(int y=0;y<32;y++)for(int x=0;x<32;x++){float dx=Mathf.Max(8-x,x-23),dy=Mathf.Max(8-y,y-23);rounded.SetPixel(x,y,new Color(1,1,1,dx>0&&dy>0?Mathf.Clamp01(8.5f-Mathf.Sqrt(dx*dx+dy*dy)):1));}rounded.Apply();
-            var font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;
             title=new GUIStyle(GUI.skin.label){font=font,fontSize=27,fontStyle=FontStyle.Bold,normal={textColor=Color.white}};
             heading=new GUIStyle(title){fontSize=17};body=new GUIStyle(GUI.skin.label){font=font,fontSize=15,wordWrap=true,alignment=TextAnchor.MiddleLeft,normal={textColor=Color.white}};
             small=new GUIStyle(body){fontSize=12,normal={textColor=Muted}};

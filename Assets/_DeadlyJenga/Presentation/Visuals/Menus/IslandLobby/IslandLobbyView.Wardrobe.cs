@@ -433,14 +433,14 @@ namespace DeadlyJenga.CastlePrototype
         LobbyParticipant LocalPortraitIdentity=>Details?.Participants.FirstOrDefault(p=>p.id==Details.LocalParticipantId);
         void BuildLobbyPortrait()
         {
-            lobbyPortraitName=Label(hostStation,"My avatar",294,18,200,48);
-            lobbyPortraitName.rectTransform.anchoredPosition=new Vector2(-332,294);
+            lobbyPortraitName=Label(hostStation,"My avatar",294,24,190,48);
+            lobbyPortraitName.rectTransform.anchoredPosition=new Vector2(-312,294);lobbyPortraitName.alignment=TextAnchor.MiddleLeft;lobbyPortraitName.resizeTextForBestFit=true;lobbyPortraitName.resizeTextMinSize=16;lobbyPortraitName.resizeTextMaxSize=24;
             var image=new GameObject("Your portrait",typeof(RectTransform),typeof(RawImage));
             image.transform.SetParent(hostStation,false);
             lobbyPortrait=image.GetComponent<RawImage>();
             lobbyPortrait.raycastTarget=false;
-            lobbyPortrait.rectTransform.sizeDelta=new Vector2(48,48);
-            lobbyPortrait.rectTransform.anchoredPosition=new Vector2(-463,294);
+            lobbyPortrait.rectTransform.sizeDelta=new Vector2(60,60);
+            lobbyPortrait.rectTransform.anchoredPosition=new Vector2(-452,294);
         }
         void RefreshLobbyPortrait()
         {

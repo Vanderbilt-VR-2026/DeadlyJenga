@@ -43,7 +43,7 @@ namespace DeadlyJenga.CastlePrototype
             Pill("Sugar shine",fill,new Vector2(1,9),Vector2.zero,new Color(1,1,1,.32f)).rectTransform.anchorMin=new Vector2(.05f,.63f);
             var shine=fill.GetChild(0).GetComponent<RectTransform>();shine.anchorMax=new Vector2(.95f,.63f);shine.sizeDelta=new Vector2(0,8);shine.anchoredPosition=Vector2.zero;
             var text=new GameObject("Stamina label",typeof(RectTransform),typeof(Text));text.transform.SetParent(panel,false);label=text.GetComponent<Text>();
-            label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=16;label.fontStyle=FontStyle.Bold;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;
+            label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;label.fontSize=16;label.fontStyle=FontStyle.Bold;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(310,40);label.rectTransform.anchoredPosition=new Vector2(0,4);
         }
         // Reads the character only through Core (IMovementState + IPlayerView).

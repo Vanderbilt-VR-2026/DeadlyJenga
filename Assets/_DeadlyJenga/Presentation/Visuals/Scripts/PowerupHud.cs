@@ -28,7 +28,7 @@ namespace DeadlyJenga.CastlePrototype
             var image=panel.GetComponent<Image>();image.color=new Color(.07f,.04f,.15f,.9f);image.raycastTarget=false;
             image.rectTransform.sizeDelta=new Vector2(360,48);image.rectTransform.anchoredPosition=position;
             var go=new GameObject("Timer",typeof(RectTransform),typeof(Text));go.transform.SetParent(panel.transform,false);
-            var text=go.GetComponent<Text>();text.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");text.fontSize=20;text.fontStyle=FontStyle.Bold;
+            var text=go.GetComponent<Text>();text.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;text.fontSize=20;text.fontStyle=FontStyle.Bold;
             text.alignment=TextAnchor.MiddleCenter;text.color=color;text.raycastTarget=false;text.rectTransform.sizeDelta=new Vector2(350,46);return text;
         }
         void Update()

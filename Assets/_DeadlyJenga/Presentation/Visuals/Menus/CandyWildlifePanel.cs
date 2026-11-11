@@ -52,7 +52,7 @@ namespace DeadlyJenga.Presentation
             {
                 canvas.renderMode=RenderMode.WorldSpace;canvas.worldCamera=session.ActiveCamera;
                 var camera=session.ActiveCamera;if(!camera)return;
-                panel.localScale=Vector3.one*.0017f;
+                panel.localScale=Vector3.one*.0017f;MenuAppear.Attach(panel.gameObject);
                 var forward=openingForward;
                 panel.position=camera.transform.position+forward.normalized*1.7f;panel.rotation=Quaternion.LookRotation(forward);
                 if(MenuPointer.OnPanel(camera, panel, session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true, out var point, out bool pressed))
@@ -101,7 +101,7 @@ namespace DeadlyJenga.Presentation
         Text Label(string text,Vector2 position,Vector2 size,int font)
         {
             var go=new GameObject("Label",typeof(RectTransform),typeof(Text));go.transform.SetParent(panel,false);
-            var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=font;t.color=Color.white;t.text=text;t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.rectTransform.sizeDelta=size;t.rectTransform.anchoredPosition=position;return t;
+            var t=go.GetComponent<Text>();t.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;t.fontSize=font;t.color=Color.white;t.text=text;t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.rectTransform.sizeDelta=size;t.rectTransform.anchoredPosition=position;return t;
         }
         void Add(string text,Vector2 position,Vector2 size,System.Action action)
         {

@@ -24,7 +24,7 @@ namespace DeadlyJenga.Presentation
         public static Texture2D Outline(EquipmentKind kind)
         {
             if(outlines.TryGetValue(kind,out var cached))return cached;
-            if(!EquipmentModelData.Parts.TryGetValue(kind,out var parts))return null;
+            if(!EquipmentModelData.TryGet(kind,out var parts))return null;
             const int width=100,height=54;
             var vertices=new List<Vector2>();var indices=new List<int>();
             var min=new Vector2(float.PositiveInfinity,float.PositiveInfinity);var max=-min;
@@ -256,7 +256,7 @@ namespace DeadlyJenga.Presentation
             var root=new GameObject("Visual - "+Name(kind)+" pickup").transform;root.SetParent(transform,false);
             var color=kind==EquipmentKind.Speed?new Color(.05f,.5f,1):kind==EquipmentKind.Jump?new Color(.10f,1,.16f):new Color(.5f,.85f,1);
             BuildPickupCloud(root,color);
-            var label=new GameObject("Pickup name",typeof(TextMesh)).GetComponent<TextMesh>();label.transform.SetParent(root,false);label.transform.localPosition=Vector3.up*.42f;label.anchor=TextAnchor.LowerCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.009f;label.color=color;label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.GetComponent<Renderer>().sharedMaterial=label.font.material;
+            var label=new GameObject("Pickup name",typeof(TextMesh)).GetComponent<TextMesh>();label.transform.SetParent(root,false);label.transform.localPosition=Vector3.up*.42f;label.anchor=TextAnchor.LowerCenter;label.alignment=TextAlignment.Center;label.fontSize=48;label.characterSize=.009f;label.color=color;label.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;label.GetComponent<Renderer>().sharedMaterial=label.font.material;
             return new PickupVisual{root=root,label=label,kind=kind};
         }
         void OnDestroy(){if(canvas)Destroy(canvas.gameObject);foreach(var pickup in pickups.Values)if(pickup.root)Destroy(pickup.root.gameObject);}

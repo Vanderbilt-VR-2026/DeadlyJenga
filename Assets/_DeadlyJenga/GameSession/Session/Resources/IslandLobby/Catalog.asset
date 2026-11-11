@@ -424,7 +424,7 @@ MonoBehaviour:
     - demo
   modes:
   - id: demo
-    title: Demo
+    title: Sandbox
     description: Full sandbox controls, AI survivors and giant hands.
     available: 1
   - id: placeholder

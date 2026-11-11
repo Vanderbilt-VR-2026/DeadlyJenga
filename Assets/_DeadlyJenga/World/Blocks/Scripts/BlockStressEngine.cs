@@ -33,6 +33,8 @@ namespace DeadlyJenga.CastlePrototype
         float[] support = new float[0], baseline = new float[0], overload = new float[0], hit = new float[0];
         bool[] cracked = new bool[0];
         Vector3[] lastPosition = new Vector3[0];
+        readonly List<Collider> reporting = new List<Collider>();
+        bool contactsOn;
         float builtAt, quietUntil;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -62,7 +64,7 @@ namespace DeadlyJenga.CastlePrototype
             blocks = new CastleBlock[n]; bodies = new Rigidbody[n];
             support = new float[n]; baseline = new float[n]; overload = new float[n]; hit = new float[n];
             cracked = new bool[n]; lastPosition = new Vector3[n];
-            indexOf.Clear(); BrokenCount = 0;
+            indexOf.Clear(); BrokenCount = 0; reporting.Clear(); contactsOn = false;
             for (int i = 0; i < n; i++)
             {
                 var body = list[i];
@@ -70,7 +72,7 @@ namespace DeadlyJenga.CastlePrototype
                 bodies[i] = body;
                 blocks[i] = body.GetComponent<CastleBlock>();
                 indexOf[body] = i;
-                foreach (var col in body.GetComponents<Collider>()) col.providesContacts = true;
+                foreach (var col in body.GetComponents<Collider>()) reporting.Add(col);
                 lastPosition[i] = body.position;
             }
             builtAt = Time.time;
@@ -109,10 +111,20 @@ namespace DeadlyJenga.CastlePrototype
             if (enter) hit[i] = Mathf.Max(hit[i], impulse.magnitude / Mathf.Max(.01f, body.mass));
         }
 
+        // Copying every block contact into C# is only worth it where this machine simulates the tower.
+        void ReportContacts(bool on)
+        {
+            if (on == contactsOn) return;
+            contactsOn = on;
+            foreach (var col in reporting) if (col) col.providesContacts = on;
+        }
+        static bool Simulating() => !(Services.Session is IWorldAuthority authority) || authority.HasWorldAuthority;
+
         void FixedUpdate()
         {
             Refresh();
             if (blocks.Length == 0) return;
+            ReportContacts(breakingEnabled && Simulating());
             float dt = Time.fixedDeltaTime, gravity = Physics.gravity.magnitude;
             float age = Time.time - builtAt;
             bool calibrating = age < settleTime;

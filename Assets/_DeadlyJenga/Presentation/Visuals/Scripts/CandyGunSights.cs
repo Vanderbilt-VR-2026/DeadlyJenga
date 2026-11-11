@@ -91,7 +91,7 @@ namespace DeadlyJenga.Presentation
             lens.SetActive(true);
             if(Time.unscaledTime>=nextRender)
             {
-                nextRender=Time.unscaledTime+1f/60;
+                nextRender=Time.unscaledTime+1f/30; // a second full scene render, so half rate
                 var weapon=player.gameObject.GetComponent<IWeaponAim>();
                 var muzzle=weapon!=null?weapon.WeaponAim:new Pose(optic.position,optic.rotation);
                 var target=muzzle.position+muzzle.rotation*Vector3.forward*120;
@@ -151,7 +151,7 @@ namespace DeadlyJenga.Presentation
                     return;
                 }
                 var go=new GameObject("Local scope camera");go.transform.SetParent(transform,false);scopeCamera=go.AddComponent<Camera>();scopeCamera.enabled=false;
-                scopeCamera.stereoTargetEye=StereoTargetEyeMask.None;scopeCamera.GetUniversalAdditionalCameraData().allowXRRendering=false;scopeCamera.aspect=1;scopeCamera.nearClipPlane=.06f;scopeCamera.farClipPlane=500;
+                scopeCamera.stereoTargetEye=StereoTargetEyeMask.None;var scopeData=scopeCamera.GetUniversalAdditionalCameraData();scopeData.allowXRRendering=false;scopeData.renderShadows=false;scopeData.renderPostProcessing=false;scopeCamera.aspect=1;scopeCamera.nearClipPlane=.06f;scopeCamera.farClipPlane=500;
                 scopeCamera.allowHDR=false;scopeCamera.allowMSAA=false;
                 texture=new RenderTexture(384,384,16){name="Local scope view"};texture.Create();scopeCamera.targetTexture=texture;
                 lensMaterial=new Material(shader);lensMaterial.SetTexture("_BaseMap",texture);

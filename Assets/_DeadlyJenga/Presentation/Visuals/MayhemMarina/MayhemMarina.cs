@@ -143,7 +143,7 @@ namespace DeadlyJenga.CandyArt.Marina
         void Sign(string text,Vector3 position,float size,Color color)
         {
             var go=new GameObject("Marina lettering · "+text);go.transform.SetParent(visual,false);go.transform.localPosition=position;
-            var t=go.AddComponent<TextMesh>();t.text=text;t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=100;t.characterSize=size;t.anchor=TextAnchor.MiddleCenter;t.alignment=TextAlignment.Center;t.color=color;t.fontStyle=FontStyle.Bold;go.GetComponent<MeshRenderer>().sharedMaterial=t.font.material;
+            var t=go.AddComponent<TextMesh>();t.text=text;t.font=DeadlyJenga.CastlePrototype.CandyHudVisuals.TextFont;t.fontSize=100;t.characterSize=size;t.anchor=TextAnchor.MiddleCenter;t.alignment=TextAlignment.Center;t.color=color;t.fontStyle=FontStyle.Bold;go.GetComponent<MeshRenderer>().sharedMaterial=t.font.material;
         }
         void OnDestroy()
         {mesh?.Dispose();foreach(var m in extraMeshes)if(m)Destroy(m);foreach(var m in extraMaterials)if(m)Destroy(m);if(volumeProfile)Destroy(volumeProfile);RestoreLighting();if(visual)Destroy(visual.gameObject);}

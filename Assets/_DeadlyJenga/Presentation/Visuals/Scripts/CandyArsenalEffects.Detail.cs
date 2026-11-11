@@ -80,7 +80,7 @@ namespace DeadlyJenga.Presentation
             }
             var root=new GameObject("Visual - "+kind+" projectile").transform;root.SetParent(transform,false);root.position=at;modelKind[root]=kind;
             var casing=ModelPiece(root,"Projectile casing",ProjectileMesh(kind),ordnanceMetal,Vector3.zero,Vector3.one);
-            if(kind==EquipmentKind.Chainsaw&&EquipmentModelData.Parts.TryGetValue(kind,out var parts))
+            if(kind==EquipmentKind.Chainsaw&&EquipmentModelData.TryGet(kind,out var parts))
                 foreach(var part in parts)if(part.mesh.name.Contains("Serrated saw wheel"))
                 {casing.GetComponent<MeshFilter>().sharedMesh=part.mesh;casing.localRotation=Quaternion.Euler(0,0,90);break;}
             Color color=Energy(kind);var block=new MaterialPropertyBlock();block.SetColor("_BaseColor",color);block.SetColor("_EmissionColor",color*2.2f);
