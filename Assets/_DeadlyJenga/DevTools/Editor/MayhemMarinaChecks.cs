@@ -13,6 +13,9 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.Rendering.Universal;
+using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.LowLevel;
+using UnityEngine.UI;
 using Object=UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
@@ -221,10 +224,63 @@ namespace DeadlyJenga.DevTools.Editor
             if(size==30) Check(game.Modes.Frame.teams.Length==3,"Team PvP uses three teams");
             if(size==25)
             {
+                Check(!game.Modes.Frame.pickups.Any(p=>p.kind>=EquipmentKind.Blaster&&p.kind<=EquipmentKind.Dagger),
+                    "Disaster Survival has no opening weapon pickups");
+                if(!game.IsVR)
+                {
+                    game.SetMenu(true);
+                    yield return null;
+                    yield return null;
+                    var tablet=Object.FindObjectsByType<CastleWorldMenu>(FindObjectsSortMode.None).Single(menu=>menu.isActiveAndEnabled);
+                    var controls=tablet.GetComponentsInChildren<Text>(true).Single(label=>label.text=="Controls");
+                    var point=game.ActiveCamera.WorldToScreenPoint(controls.transform.position);
+                    var settings=InputSystem.settings;
+                    var previousBackground=settings.backgroundBehavior;
+                    var previousRouting=settings.editorInputBehaviorInPlayMode;
+                    settings.backgroundBehavior=InputSettings.BackgroundBehavior.IgnoreFocus;
+                    settings.editorInputBehaviorInPlayMode=InputSettings.EditorInputBehaviorInPlayMode.AllDeviceInputAlwaysGoesToGameView;
+                    var mouse=InputSystem.AddDevice<Mouse>();
+                    try
+                    {
+                        InputSystem.QueueStateEvent(mouse,new MouseState{position=point});
+                        yield return null;
+                        InputSystem.QueueStateEvent(mouse,new MouseState{position=point,buttons=1});
+                        yield return null;
+                        yield return null;
+                        Check(mouse.leftButton.isPressed,"The focused input fixture received the desktop mouse press");
+                        InputSystem.QueueStateEvent(mouse,new MouseState{position=point});
+                        yield return null;
+                        Check(tablet.transform.Find("Controls page").gameObject.activeInHierarchy,
+                            "Desktop mouse press opens the Controls page");
+                    }
+                    finally
+                    {
+                        InputSystem.RemoveDevice(mouse);
+                        settings.backgroundBehavior=previousBackground;
+                        settings.editorInputBehaviorInPlayMode=previousRouting;
+                        game.SetMenu(false);
+                    }
+                }
+                var matchArt=Object.FindObjectsByType<CandyEnvironment>(FindObjectsSortMode.None)
+                    .Single(art=>art.gameObject.scene==game.gameObject.scene);
+                float waterY=matchArt.waterRenderer.transform.position.y;
                 game.Player.gameObject.GetComponent<IDamageable>().Eliminate(null);
                 deadline=Time.realtimeSinceStartup+18;
                 while(!game.VisitingLobby&&Time.realtimeSinceStartup<deadline)yield return null;
                 Check(game.VisitingLobby&&lobby.ActiveCamera.enabled&&!lobby.CanStart,"An eliminated player watches from the retained lobby");
+                Check(lobby.GetComponentsInChildren<Renderer>().Any(r=>r.enabled&&r.name=="Marina ocean"),
+                    "Retained Marina ocean is visible during the elimination visit");
+                Check(matchArt.waterRenderer.enabled&&Mathf.Abs(matchArt.waterRenderer.transform.position.y-waterY)<.01f,
+                    "Visiting the lobby leaves the match ocean at its own waterline");
+                var wall=lobby.GetComponentInChildren<LobbySpectatorTVWall>();
+                deadline=Time.realtimeSinceStartup+6;
+                while(wall.AssignedChannels==0&&Time.realtimeSinceStartup<deadline)yield return null;
+                var first=wall.GetComponentsInChildren<RawImage>().First(image=>image.name=="Channel 1");
+                var screen=first.rectTransform;
+                Check(wall.TryPoint(new Ray(screen.position-screen.forward,screen.forward),2,out int channel,out _)&&channel==0,
+                    "The television ray selects the first occupied screen");
+                Check(wall.OpenFullScreen(channel)&&wall.FullScreen,"The selected channel opens full screen");
+                wall.CloseFullScreen();
             }
         }
         static IEnumerator RunArcadeScene()

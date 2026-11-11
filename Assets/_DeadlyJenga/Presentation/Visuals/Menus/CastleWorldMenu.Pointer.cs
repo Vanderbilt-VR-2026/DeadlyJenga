@@ -22,6 +22,7 @@ namespace DeadlyJenga.CastlePrototype
         bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
         Image tabletFrame;
         GraphicRaycaster desktopRaycaster;
+        InputAction desktopSelect;
         Vector2 desktopClickPosition;
         bool desktopClick, desktopHeld;
         int desktopDownFrame=-1;
@@ -34,7 +35,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!show)RestoreEquipmentWheelLayout();
             gameObject.SetActive(show&&camera);
             desktopClick=desktopHeld=false;
-            if(!show||!camera)return;
+            if(!show||!camera){desktopSelect?.Disable();return;}
             ConfigureDesktopClicks(camera);
             if (session.IsVR) PlayerPrefs.SetInt(TabletOpenedPreference,1);
             else if (!desktopOpened)
@@ -71,7 +72,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 PlaceDesktopTablet(camera);
                 var mouse=Mouse.current;
-                bool mousePressed=mouse?.leftButton.wasPressedThisFrame==true;
+                bool mousePressed=mouse?.leftButton.wasPressedThisFrame==true||
+                    (Keyboard.current?.enterKey.wasPressedThisFrame==true);
                 pressed=mousePressed||desktopClick;
                 held=mouse?.leftButton.isPressed??desktopHeld;
                 desktopClick=false;
@@ -102,10 +104,17 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (session.IsVR)
             {
+                desktopSelect?.Disable();
                 if (desktopRaycaster) desktopRaycaster.enabled=false;
                 return;
             }
 
+            if (desktopSelect==null)
+            {
+                desktopSelect=new InputAction("Desktop tablet select",InputActionType.Button,"<Mouse>/leftButton");
+                desktopSelect.performed+=DesktopSelectPerformed;
+            }
+            desktopSelect.Enable();
             GetComponent<Canvas>().worldCamera=camera;
             if (!desktopRaycaster) desktopRaycaster=gameObject.AddComponent<GraphicRaycaster>();
             desktopRaycaster.enabled=true;
@@ -116,6 +125,12 @@ namespace DeadlyJenga.CastlePrototype
             var input=new GameObject("Desktop tablet UI input",typeof(EventSystem),typeof(InputSystemUIInputModule));
             input.transform.SetParent(transform,false);
             input.GetComponent<InputSystemUIInputModule>().AssignDefaultActions();
+        }
+
+        void DesktopSelectPerformed(InputAction.CallbackContext context)
+        {
+            if (context.control.device is Mouse mouse && session.MenuOpen)
+                QueueDesktopClick(mouse.position.ReadValue());
         }
 
         public void OnPointerDown(PointerEventData e)
@@ -240,6 +255,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void OnDestroy()
         {
+            desktopSelect?.Dispose();
             if(tabletCaseMesh)Destroy(tabletCaseMesh);
             if(tabletCaseMaterial)Destroy(tabletCaseMaterial);
         }
