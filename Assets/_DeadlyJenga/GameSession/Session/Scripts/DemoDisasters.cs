@@ -8,8 +8,22 @@ namespace DeadlyJenga.CastlePrototype
     public static class DemoDisasters
     {
         static readonly Dictionary<int,Dictionary<string,float[]>> nextValues=new Dictionary<int,Dictionary<string,float[]>>();
+        static HazardCatalog catalog;
+        static ResourceRequest catalogRequest;
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        static void ResetValues()=>nextValues.Clear();
+        static void ResetValues()
+        {
+            nextValues.Clear();
+            catalog=null;
+            catalogRequest=null;
+        }
+
+        internal static void WarmCatalog()
+        {
+            if(!catalog&&catalogRequest==null)
+                catalogRequest=Resources.LoadAsync<HazardCatalog>("DisasterCatalog");
+        }
         public static IReadOnlyList<DisasterParameter> Parameters(GameObject prefab)=>prefab.GetComponent<IDemoHazard>()?.Parameters??Array.Empty<DisasterParameter>();
         public static float[] Values(CastlePlaySession session,GameObject prefab)
             => session&&prefab?(float[])MutableValues(session,prefab).Clone():Array.Empty<float>();
@@ -58,7 +72,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var catalog = Resources.Load<HazardCatalog>("DisasterCatalog");
+                if(!catalog)
+                    catalog=catalogRequest?.isDone==true?catalogRequest.asset as HazardCatalog:
+                        Resources.Load<HazardCatalog>("DisasterCatalog");
                 return catalog && catalog.prefabs != null ? catalog.prefabs : Array.Empty<GameObject>();
             }
         }

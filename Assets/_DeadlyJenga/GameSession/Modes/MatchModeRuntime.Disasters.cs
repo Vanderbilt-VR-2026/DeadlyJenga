@@ -101,8 +101,13 @@ namespace DeadlyJenga.Modes
                     timedDisasters.RemoveAt(i);
                 }
             }
+            if(!Rules.automaticDisasters)return;
+            DemoDisasters.WarmCatalog();
+            float elapsed=simulation.Elapsed;
+            if(disasters.NextIn(elapsed)>0||disasters.WarningRemaining(elapsed)>0)return;
+
             string before=disasters.Pending;
-            disasters.Tick(Rules,simulation.Elapsed,ActiveDisasters(),ChooseDisaster,LaunchScheduled);
+            disasters.Tick(Rules,elapsed,ActiveDisasters(),ChooseDisaster,LaunchScheduled);
             if(before!=disasters.Pending&&disasters.Pending.Length>0)GameEvents.RaiseEmoted(gameObject,"DisasterWarning");
         }
         void WriteDisasterFrame()
