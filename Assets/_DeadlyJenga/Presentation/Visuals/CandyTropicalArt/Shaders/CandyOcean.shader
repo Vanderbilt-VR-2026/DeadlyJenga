@@ -154,15 +154,24 @@ Shader "Candy Tropical/Ocean"
                 float2 wind=float2(dot(position,float2(.87,.49)),dot(position,float2(-.49,.87)));
                 float2 warp=float2(sin(dot(position,float2(.037,-.051))),sin(dot(position,float2(.054,.033))));
                 float4 broad=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,
-                    wind*float2(.008,.017)+warp*.066-float2(.006,.012)*time);
+                    wind*float2(.0055,.020)+warp*.031-float2(.006,.012)*time);
                 float4 medium=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,
-                    (wind.yx+warp*2.2)*float2(.029,.018)+float2(.22,.47)-float2(.014,.006)*time);
+                    (wind+warp*1.9)*float2(.022,.035)+float2(.22,.47)-float2(.014,.006)*time);
                 float4 fine=SAMPLE_TEXTURE2D(_CoastSpectrum,sampler_CoastSpectrum,
                     position*.088+float2(.61,.19)-float2(.033,.018)*time);
                 float crest;
                 float2 swell=SwellSlope(position,time,distanceToEye,crest);
                 float detail=1-smoothstep(33,118,distanceToEye);
-                float2 slope=swell*.42+(broad.rg-.5)*.36+(medium.rg-.5)*.21+(fine.rg-.5)*(.11*detail);
+                float packet=sin(dot(wind,float2(.027,-.034))-time*.11);
+                float windPhase=dot(wind,float2(.095,.32))+warp.x*.95+packet*1.63+
+                    (broad.b-.5)*2.1-time*.91;
+                float windCrest, windSlope;
+                sincos(windPhase,windCrest,windSlope);
+                float clean=1-smoothstep(.26,1.24,fwidth(windPhase));
+                float swellStrength=lerp(.42,1,smoothstep(-.8,.83,packet));
+                float2 dominant=float2(-.25,.97)*windSlope*clean*swellStrength*.092;
+                float2 slope=swell*.16+dominant+(broad.rg-.5)*.16+(medium.rg-.5)*.085+
+                    (fine.rg-.5)*(.078*detail);
                 float3 normal=normalize(float3(i.normal.x*.60,1,i.normal.z*.60)+float3(slope.x,0,slope.y)*lerp(.44,1,deep));
                 float3 view=normalize(_WorldSpaceCameraPos-i.world);
                 float3 sun=normalize(_CoastSun);
@@ -177,11 +186,12 @@ Shader "Candy Tropical/Ocean"
                     float lens=pow(saturate(dot(-view,sun)),22);
                     float sparkle=lens*(.12+pow(ripple,3)*.88);
                     float filament=1-smoothstep(.055,.22,abs(medium.b-.56+fine.r*.07));
-                    float3 reflected=lerp(float3(.007,.14,.25),float3(.024,.53,.60),ripple);
+                    float3 reflected=lerp(float3(.003,.110,.285),float3(.015,.52,.69),ripple);
                     float3 transmission=lerp(float3(.08,.54,.68),float3(.34,.81,.89),saturate(incidence));
                     float lightBands=CandyRefractedLight(i.world.xz*.56,eyeDepth);
+                    float crestLine=smoothstep(.23,.66,lightBands)*smoothstep(.27,.68,ripple);
                     float3 below=lerp(reflected,transmission,window*.88)+
-                        float3(.17,.56,.62)*lightBands*(.19+.81*lens)+
+                        float3(.18,.52,.65)*lightBands*(.30+.70*lens)+float3(.49,.66,.64)*crestLine*.18+
                         float3(.20,.66,.68)*filament*ripple*.29+float3(1.45,1.02,.55)*sparkle;
                     return half4(below,.92);
                 }
@@ -207,8 +217,8 @@ Shader "Candy Tropical/Ocean"
                     half3 castle=reflectedCastle.rgb/max(.04,reflectedCastle.a);
                     reflectedSky=lerp(reflectedSky,castle,reflectionCoverage*.88);
                 }
-                float wave=crest*.55+(broad.b-.5)*.32+(medium.b-.5)*.24;
-                float3 blue=lerp(float3(.003,.041,.185),float3(.007,.166,.46),smoothstep(-.39,.39,wave));
+                float wave=windCrest*clean*swellStrength*.15+crest*.18+(broad.b-.5)*.20+(medium.b-.5)*.10;
+                float3 blue=lerp(float3(.002,.055,.226),float3(.006,.135,.376),smoothstep(-.36,.36,wave));
                 float reefTint=smoothstep(.13,2.5,depth);
                 float3 turquoise=lerp(float3(.002,.49,.31),float3(.001,.38,.58),reefTint);
                 turquoise*=.98+wave*.36;
@@ -220,8 +230,9 @@ Shader "Candy Tropical/Ocean"
                 float glint=pow(alignment,20)*.085+pow(alignment,88)*(.026+glintMask*.93);
                 float horizon=smoothstep(360,780,distanceToEye);
                 float sunPath=pow(saturate(dot(normalize(view.xz+float2(.0001,0)),float2(.20,-.98))),7);
-                float crestFlash=smoothstep(.18,.40,crest)*smoothstep(.52,.74,medium.a)*smoothstep(.37,.62,fine.a);
-                glint+=sunPath*crestFlash*lerp(.34,.14,horizon);
+                float crestFlash=smoothstep(.83,.98,windCrest)*clean*smoothstep(.53,.73,medium.a)*
+                    smoothstep(.36,.66,fine.a);
+                glint+=sunPath*crestFlash*lerp(.48,.13,horizon);
                 color+=float3(1,.82,.55)*glint*(1-horizon*.65)*lerp(.34,1,deep);
                 color=lerp(color,float3(.15,.43,.70),horizon*.30);
 

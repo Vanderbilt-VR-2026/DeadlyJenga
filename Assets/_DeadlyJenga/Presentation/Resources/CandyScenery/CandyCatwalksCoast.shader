@@ -63,12 +63,20 @@ Shader "Candy Tropical/Catwalks Coast"
                     color+=half3(1,.85,.47)*caustic*(.30+.44*saturate(normal.y))*sun.color;
                     float3 halfAngle=normalize(sun.direction+GetWorldSpaceNormalizeViewDir(i.world));
                     color+=pow(saturate(dot(normal,halfAngle)),30)*sun.color*.075;
+                    if(i.uv.y>.5)
+                    {
+                        float3 pores=i.world*28;
+                        float filter=1-smoothstep(.30,1.2,max(length(ddx(pores)),length(ddy(pores))));
+                        float3 cells=abs(frac(pores+sin(pores.yzx*.18)*.32)-.5);
+                        float polyps=1-smoothstep(.12,.31,length(cells));
+                        color*=1+filter*(polyps*.24-.045);
+                    }
                 }
                 if(_CoastStyle>1.5)
                 {
                     half4 island=SAMPLE_TEXTURE2D(_CoastHorizon,sampler_CoastHorizon,i.uv);
                     clip(island.a-.38);
-                    color=lerp(island.rgb,half3(.14,.39,.59),.24);
+                    color=lerp(island.rgb,half3(.14,.39,.59),lerp(.24,.53,smoothstep(235,560,distanceToEye)));
                 }
                 float eyeDepth=_CoastWater-_WorldSpaceCameraPos.y;
                 if(eyeDepth>.08)

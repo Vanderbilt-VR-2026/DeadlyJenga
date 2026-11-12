@@ -18,8 +18,9 @@ namespace DeadlyJenga.CandyArt
         readonly GameObject root;
         readonly Material material;
         readonly Texture2D waterSpectrum;
-        readonly Texture2D panorama, caustics;
+        readonly Texture2D panorama, caustics, sandGrain;
         readonly CandyCoastReflection reflection;
+        readonly CandyReefLight reefLight;
         Material daySky, daySkySource;
         readonly List<Mesh> meshes = new();
         readonly Vector4[] reefs = new Vector4[ReefDirections.Length];
@@ -41,8 +42,10 @@ namespace DeadlyJenga.CandyArt
             waterSpectrum=Resources.Load<Texture2D>("CandyScenery/CatwalksWaterSpectrum");
             panorama=Resources.Load<Texture2D>("CandyScenery/CatwalksDayPanorama");
             caustics=Resources.Load<Texture2D>("CandyScenery/CatwalksRefractedLight");
+            sandGrain=Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain");
             if(caustics) material.SetTexture("_CoastCaustics",caustics);
             reflection=new CandyCoastReflection(world,waterRenderer,sandRenderer,material,waterLevel);
+            reefLight=new CandyReefLight(world,waterRenderer,caustics,waterLevel);
             var random = new System.Random(61011);
             for (int i=0;i<reefs.Length;i++)
             {
@@ -71,6 +74,8 @@ namespace DeadlyJenga.CandyArt
             if(waterSpectrum) properties.SetTexture("_CoastSpectrum",waterSpectrum);
             if(panorama) properties.SetTexture("_CoastPanorama",panorama);
             if(caustics) properties.SetTexture("_CoastCaustics",caustics);
+            if(sandGrain) properties.SetTexture("_CoastSandGrain",sandGrain);
+            properties.SetFloat("_CoastHasGrain",sandGrain?1:0);
             properties.SetFloat("_CoastHasPanorama",panorama?1:0);
             properties.SetFloat("_CoastReflectionReady",0);
             properties.SetFloat("_CoastShadowReady",0);
@@ -132,14 +137,15 @@ namespace DeadlyJenga.CandyArt
                 for (int stem=0;stem<5;stem++)
                 {
                     float stemAngle=stem*2.4f;
-                    var foot=position+new Vector3(Mathf.Cos(stemAngle)*.37f,.24f,Mathf.Sin(stemAngle)*.37f)*scale;
-                    var up=new Vector3(Mathf.Cos(stemAngle)*.16f,1,Mathf.Sin(stemAngle)*.16f);
-                    Branch(garden,foot,up,scale*Range(random,.40f,.68f),.082f*scale,Coral[index%2],3,random);
+                    var foot=position+new Vector3(Mathf.Cos(stemAngle)*.42f,.25f,Mathf.Sin(stemAngle)*.31f)*scale;
+                    var up=new Vector3(Mathf.Cos(stemAngle)*.26f,1,Mathf.Sin(stemAngle)*.22f);
+                    Color tint=Color.Lerp(Coral[0],new Color(1f,.42f,.45f),Range(random,.02f,.67f));
+                    Branch(garden,foot,up,scale*Range(random,.40f,.69f),.087f*scale,tint,3,random);
                 }
                 for (int fan=0;fan<4;fan++)
                 {
                     var foot=position+new Vector3(.3f+fan*.14f,.12f,-.42f+fan*.12f)*scale;
-                    garden.Cup(foot,Range(random,.17f,.32f)*scale,Range(random,.22f,.46f)*scale,Coral[(index+1)%2],fan);
+                    garden.Cup(foot,Range(random,.17f,.32f)*scale,Range(random,.22f,.46f)*scale,Coral[1],fan);
                 }
                 for (int pebble=0;pebble<18;pebble++)
                 {
@@ -163,8 +169,12 @@ namespace DeadlyJenga.CandyArt
                 var p=center+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*radius;
                 float y=terrain.transform.position.y-water+terrain.SampleHeight(p);
                 float size=Range(random,.045f,.18f);
-                garden.Ellipsoid(new Vector3(p.x,y+.015f,p.y),
-                    new Vector3(size,.40f*size,.68f*size),Color.Lerp(Rock,Sand,Range(random,.2f,.77f)),7,4);
+                var foot=new Vector3(p.x,y+.015f,p.y);
+                if(i%4==0)
+                    garden.Shell(foot,size*1.62f,angle,Color.Lerp(new Color(.93f,.53f,.35f),Sand,i/21f));
+                else
+                    garden.Ellipsoid(foot,new Vector3(size,.40f*size,.68f*size),
+                        Color.Lerp(Rock,Sand,Range(random,.2f,.77f)),7,4);
             }
             Draw("Coral and seagrass "+index,garden,1);
             if(!hasSchool) return;
@@ -190,9 +200,7 @@ namespace DeadlyJenga.CandyArt
             Vector3 end=start+direction.normalized*length;
             Vector3 bend=Vector3.Cross(direction,Vector3.right)*length*.12f;
             Vector3 middle=(start+end)*.5f+bend;
-            mesh.Tube(start,middle,width,width*.85f,color*.94f,7);
-            mesh.Tube(middle,end,width*.85f,width*.57f,color,7);
-            mesh.Ellipsoid(end,Vector3.one*width*.62f,color*1.09f,8,4);
+            mesh.CoralTube(start,middle,end,width,color);
             if(depth<=1) return;
             for(int i=0;i<2;i++)
             {
@@ -267,7 +275,7 @@ namespace DeadlyJenga.CandyArt
                 float bearing=Mathf.Lerp(135,-37,t)*Mathf.Deg2Rad;
                 Vector3 point=new(Mathf.Cos(bearing)*415,-.95f,Mathf.Sin(bearing)*415);
                 strip.Point(point,Color.white,new Vector2(t,.24f));
-                strip.Point(point+Vector3.up*49,Color.white,new Vector2(t,.52f));
+                strip.Point(point+Vector3.up*42,Color.white,new Vector2(t,.52f));
                 if(i==0) continue;
                 int a=(i-1)*2;
                 strip.Triangle(a,a+1,a+2);
@@ -321,6 +329,7 @@ namespace DeadlyJenga.CandyArt
             if (disposed) return;
             disposed=true;
             reflection.Dispose();
+            reefLight.Dispose();
             if(root)root.SetActive(false);
             UnityEngine.Object.Destroy(root);
             UnityEngine.Object.Destroy(material);
@@ -402,6 +411,55 @@ namespace DeadlyJenga.CandyArt
                 }
                 Grid(start,segments,1);
             }
+            public void CoralTube(Vector3 start,Vector3 control,Vector3 end,float width,Color color)
+            {
+                const int segments=9, rings=6;
+                Vector3 seed=Vector3.Cross((end-start).normalized,Vector3.forward).normalized;
+                if(seed.sqrMagnitude<.1f) seed=Vector3.right;
+                int first=vertices.Count;
+                for(int r=0;r<=rings;r++)
+                {
+                    float t=r/(float)rings;
+                    Vector3 center=Vector3.Lerp(Vector3.Lerp(start,control,t),Vector3.Lerp(control,end,t),t);
+                    Vector3 tangent=Vector3.Lerp(control-start,end-control,t).normalized;
+                    Vector3 right=Vector3.ProjectOnPlane(seed,tangent).normalized;
+                    Vector3 side=Vector3.Cross(tangent,right);
+                    float radius=width*Mathf.Lerp(1,.54f,t)*(1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.8f,1,t)));
+                    Color tint=Color.Lerp(color*.83f,Color.Lerp(color,new Color(1,.58f,.52f),.28f),t);
+                    for(int s=0;s<segments;s++)
+                    {
+                        float theta=s*Mathf.PI*2/segments;
+                        Vector3 normal=right*Mathf.Cos(theta)+side*Mathf.Sin(theta);
+                        Point(center+normal*radius,tint,new Vector2(0,1));
+                    }
+                }
+                Grid(first,segments,rings);
+            }
+
+            public void Shell(Vector3 foot,float width,float bearing,Color color)
+            {
+                const int ribs=14, rings=5, stride=ribs+1;
+                int first=vertices.Count;
+                Vector3 forward=new(Mathf.Sin(bearing),0,Mathf.Cos(bearing));
+                Vector3 right=Vector3.Cross(Vector3.up,forward);
+                for(int row=0;row<=rings;row++)
+                for(int rib=0;rib<=ribs;rib++)
+                {
+                    float t=row/(float)rings, angle=Mathf.Lerp(-1.12f,1.12f,rib/(float)ribs);
+                    float ridge=rib%2==0?1:.74f;
+                    Vector3 center=foot+(forward*Mathf.Cos(angle)+right*Mathf.Sin(angle))*width*t;
+                    center.y+=width*.31f*Mathf.Sin(t*Mathf.PI*.78f)*ridge;
+                    Point(center,color*Mathf.Lerp(.72f,1.24f,ridge*t),Vector2.zero);
+                }
+                for(int row=0;row<rings;row++)
+                for(int rib=0;rib<ribs;rib++)
+                {
+                    int a=first+row*stride+rib;
+                    Triangle(a,a+stride,a+1);
+                    Triangle(a+1,a+stride,a+stride+1);
+                }
+            }
+
             public void Cup(Vector3 foot,float width,float height,Color color,int offset)
             {
                 int start=vertices.Count;
@@ -411,7 +469,10 @@ namespace DeadlyJenga.CandyArt
                 {
                     float t=r/(float)rings,a=s*Mathf.PI*2/segments;
                     float radius=width*Mathf.Sin(t*Mathf.PI*.83f)*(.86f+.14f*Mathf.Cos(a*4+offset));
-                    Point(foot+new Vector3(Mathf.Cos(a)*radius,height*Mathf.Sin(t*Mathf.PI*.78f),Mathf.Sin(a)*radius),color,Vector2.zero);
+                    float rim=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.62f,1,t));
+                    float lips=Mathf.Sin(a*5+offset)*.085f*rim;
+                    Color tint=Color.Lerp(color*.73f,Color.Lerp(color,new Color(1,.85f,.36f),.42f),rim);
+                    Point(foot+new Vector3(Mathf.Cos(a)*radius,height*(Mathf.Sin(t*Mathf.PI*.78f)+lips),Mathf.Sin(a)*radius),tint,new Vector2(0,1));
                 }
                 Grid(start,segments,rings);
             }

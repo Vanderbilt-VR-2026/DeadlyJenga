@@ -7,6 +7,7 @@ Shader "Candy Tropical/Sand"
         _Grain("Sand grain",Range(0,1))=.55
         _ScenicStyle("Scenic style",Float)=0
         [HideInInspector] _CoastShadow("Castle shore shadow",2D)="black"{}
+        [NoScaleOffset] _CoastSandGrain("Golden sand grains",2D)="white"{}
         [NoScaleOffset] _CoastCaustics("Refracted sunlight",2D)="black"{}
         [HideInInspector] _CatwalksCoast("Catwalks beach",Float)=0
     }
@@ -27,9 +28,10 @@ Shader "Candy Tropical/Sand"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "../../../Resources/CandyScenery/CandyCoastCaustics.hlsl"
+            TEXTURE2D(_CoastSandGrain);SAMPLER(sampler_CoastSandGrain);
             TEXTURE2D(_CoastShadow);SAMPLER(sampler_CoastShadow);
             CBUFFER_START(UnityPerMaterial)
-            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle,_CatwalksCoast,_CoastShadowReady;
+            float4 _BaseColor;float _WaterHeight,_Grain,_ScenicStyle,_CatwalksCoast,_CoastShadowReady,_CoastDayWater,_CoastHasGrain;
             float4x4 _CoastShadowVP;
             CBUFFER_END
             struct Attributes{float4 positionOS:POSITION;float3 normalOS:NORMAL;UNITY_VERTEX_INPUT_INSTANCE_ID};
@@ -75,10 +77,17 @@ Shader "Candy Tropical/Sand"
                 {
                     float2 grit=float2(noise(grains+float2(.34,0)),noise(grains+float2(0,.34)))-
                         noise(grains);
-                    n=normalize(n-float3(grit.x,0,grit.y)*(.39*grainFade*facing));
+                    n=normalize(n-float3(grit.x,0,grit.y)*(.64*grainFade*facing));
                 }
                 float3 color=_BaseColor.rgb*lerp(float3(.78,.64,.46),float3(1.11,1.06,.94),patch);
-                color*=1+facing*(dune*.09+ridge*.075+fine*.025)+grain*.26;
+                color*=1+facing*(dune*.09+ridge*.075+fine*.025)+grain*(_CatwalksCoast>.5?.67:.26);
+                if(_CatwalksCoast>.5 && _CoastDayWater>.5 && _CoastHasGrain>.5 && distanceToEye<27)
+                {
+                    float2 sandUV=float2(dot(p,float2(.94,.34)),dot(p,float2(-.34,.94)))*1.43;
+                    float3 grainsColor=SAMPLE_TEXTURE2D(_CoastSandGrain,sampler_CoastSandGrain,sandUV).rgb;
+                    float3 variation=clamp(grainsColor/float3(.716,.342,.109),.48,1.59);
+                    color*=lerp(float3(1,1,1),variation,.72*(1-smoothstep(8,27,distanceToEye)));
+                }
                 color*=lerp(float3(1,1,1),float3(.76,.71,.64),wet);
                 Light light=GetMainLight(TransformWorldToShadowCoord(i.world));
                 if(_ScenicStyle>2.5&&_ScenicStyle<3.5)color*=lerp(.95,1.12,noise(p*.7));
@@ -110,18 +119,20 @@ Shader "Candy Tropical/Sand"
                     float glimmer=CandyRefractedLight(p,submerged)*fade*smoothstep(.015,.21,movingDepth);
                     float dry=smoothstep(.0,.29,shoreHeight);
                     color*=lerp(float3(1.02,.91,.75),float3(1.46,1.19,.89),dry);
-                    color=lerp(color,color*float3(.37,.78,.84),saturate(submerged*.27));
+                    color=lerp(color,color*float3(.55,.80,.87),saturate(submerged*.24));
                     // Scattered light reaches the reef from the surrounding sunlit water.
                     float indirect=smoothstep(.04,.38,submerged)*(1-smoothstep(1.1,4.9,submerged));
-                    color+=_BaseColor.rgb*float3(.23,.31,.30)*indirect;
-                    float refractedSun=lerp(light.shadowAttenuation,max(.51,light.shadowAttenuation),indirect);
+                    color+=_BaseColor.rgb*float3(.37,.34,.25)*indirect;
+                    float refractedSun=lerp(light.shadowAttenuation,max(.59,light.shadowAttenuation),indirect);
                     color+=float3(1.37,.98,.42)*glimmer*refractedSun*saturate(light.color.r);
                     float eyeDepth=_WaterHeight-_WorldSpaceCameraPos.y;
                     if(eyeDepth>.08)
                     {
                         float visibility=exp2(-distanceToEye*.072);
                         float3 scatter=lerp(float3(.006,.13,.23),float3(.009,.28,.36),1-saturate(submerged*.19));
-                        float3 filtered=lerp(scatter,color*float3(.95,1.03,1.09),visibility);
+                        float warmShelf=1-smoothstep(1.8,5.2,submerged);
+                        float3 sunlitSand=color*lerp(float3(.95,1.03,1.09),float3(2.12,1.41,1.27),warmShelf);
+                        float3 filtered=lerp(scatter,sunlitSand,visibility);
                         color=lerp(color,filtered,smoothstep(.08,.19,eyeDepth));
                     }
                 }
