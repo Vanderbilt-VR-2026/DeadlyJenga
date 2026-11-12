@@ -120,36 +120,65 @@ namespace DeadlyJenga.CastleSocial
                 Director.ReplayScriptedBotLines=!OnDevice||!OnDevice.Requested;
                 if(Config.enableBots)Director.Tick(Time.unscaledTime);
             }
-            if(Session&&Time.unscaledTime>=nextThreat)
-            {
-                nextThreat=Time.unscaledTime+1;int moving=0;float strongest=0;
-                Vector3 anchor=default;Rigidbody anchorBody=null;int nearby=0;
-                foreach(var body in Services.World?.Blocks??System.Array.Empty<Rigidbody>())
-                {
-                    if(!body||!body.gameObject.activeInHierarchy)continue;
-                    float speed=body.linearVelocity.magnitude;
-                    if(speed>3)
-                    {
-                        if(moving++==0){anchor=body.position;anchorBody=body;}
-                        if((body.position-anchor).sqrMagnitude<=36)nearby++;
-                    }
-                    strongest=Mathf.Max(strongest,speed);
-                }
-                if(ContextualSpeech)
-                {
-                    ObserveMatchFrame();
-                    if(nearby>=3)ObserveNearby(nearby>=8?SocialEventKind.Collapse:SocialEventKind.Wobble,anchor,
-                        "several tower blocks shifted together",nearby>=8?"blocks crashing":null,anchorBody.gameObject,3);
-                }
-                else if(moving>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(moving/50f));
-                else if(moving>2&&strongest>3)Publish(SocialEventKind.Wobble,"tower",.55);
-            }
+            if(Session&&Agents.Count>0)ScanTowerThreat();
             if(Time.unscaledTime>=nextMetadata&&Agents.Count>0)
             {
                 nextMetadata=Time.unscaledTime+.15f;metadataIndex%=Agents.Count;var a=Agents[metadataIndex++];
                 if(a){var notice=new SocialNotice{kind="identity",id=a.State.identity.id,actor=a.NetworkId,name=a.State.identity.name,identity=a.State.identity};Participants[notice.id]=notice;SendNotice(notice);}
             }
         }
+        const int ThreatBlocksPerFrame=64;
+        IWorldQuery threatWorld;
+        int threatIndex, movingBlocks, nearbyBlocks;
+        float strongestBlock;
+        Vector3 threatAnchor;
+        Rigidbody threatBody;
+        bool scanningThreat;
+
+        void ScanTowerThreat()
+        {
+            var world=Services.World;
+            if(world==null)return;
+            if(!ReferenceEquals(threatWorld,world))
+            {
+                threatWorld=world;
+                scanningThreat=false;
+                nextThreat=0;
+            }
+            if(!scanningThreat)
+            {
+                if(Time.unscaledTime<nextThreat)return;
+                nextThreat=Time.unscaledTime+1;
+                threatIndex=movingBlocks=nearbyBlocks=0;
+                strongestBlock=0;
+                threatBody=null;
+                scanningThreat=true;
+            }
+
+            var blocks=world.Blocks;
+            int end=Mathf.Min(threatIndex+ThreatBlocksPerFrame,blocks.Count);
+            for(;threatIndex<end;threatIndex++)
+            {
+                var body=blocks[threatIndex];
+                if(!body||!body.gameObject.activeInHierarchy||body.IsSleeping())continue;
+                float speed=body.linearVelocity.magnitude;
+                strongestBlock=Mathf.Max(strongestBlock,speed);
+                if(speed<=3)continue;
+                if(movingBlocks++==0){threatAnchor=body.position;threatBody=body;}
+                if((body.position-threatAnchor).sqrMagnitude<=36)nearbyBlocks++;
+            }
+            if(threatIndex<blocks.Count)return;
+            scanningThreat=false;
+            if(ContextualSpeech)
+            {
+                ObserveMatchFrame();
+                if(nearbyBlocks>=3&&threatBody)ObserveNearby(nearbyBlocks>=8?SocialEventKind.Collapse:SocialEventKind.Wobble,threatAnchor,
+                    "several tower blocks shifted together",nearbyBlocks>=8?"blocks crashing":null,threatBody.gameObject,3);
+            }
+            else if(movingBlocks>12)Publish(SocialEventKind.Collapse,"tower",Mathf.Clamp01(movingBlocks/50f));
+            else if(movingBlocks>2&&strongestBlock>3)Publish(SocialEventKind.Wobble,"tower",.55);
+        }
+
         double Perceive(string bot,SocialEvent e)
         {
             var agent=Agents.FirstOrDefault(a=>a&&a.State.identity.id==bot);if(!agent)return 0;

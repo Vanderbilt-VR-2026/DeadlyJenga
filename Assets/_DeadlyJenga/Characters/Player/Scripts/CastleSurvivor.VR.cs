@@ -47,6 +47,7 @@ namespace DeadlyJenga.CastlePrototype
         void RequestTrackingRebase()
         {
             trackingRebase=true;
+            seatedCalibrated=false;
             rebaseUntil=Time.unscaledTime+.18f;
             ResetVRLook();
         }
@@ -89,7 +90,10 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
-        float seatedHeightOffset,vrLookPitch;
+        float vrLookPitch;
+        Vector3 seatedAnchor, seatedHeading=Vector3.forward;
+        bool seatedCalibrated;
+        Unity.XR.CoreUtils.XROrigin trackingOrigin;
         public float ActiveVaultDuration=>(IsVR&&!externallyDriven?Mathf.Max(.1f,vrVaultDuration):Mathf.Max(.1f,vaultDuration))/vaultMultiplier;
         public string VRControlDescription=>vrPlayStyle==SurvivorVRPlayStyle.Standing
             ? "Standing: move stick; turn physically; "+jumpGesture+" jumps / holds to climb"
@@ -100,10 +104,11 @@ namespace DeadlyJenga.CastlePrototype
             get
             {
                 bool vr=IsVR&&!externallyDriven;
-                Vector3 direction=vr&&(vrMovement==SurvivorVRMovement.BodyRelative||!vrInputFocused||trackingRebase)
-                    ?transform.forward
-                    :vr&&headPitchPivot?headPitchPivot.parent.TransformDirection(viewCamera.transform.localRotation*Vector3.forward)
-                    :viewCamera.transform.forward;
+                Vector3 direction = !vr ? viewCamera.transform.forward :
+                    !vrInputFocused||trackingRebase ? transform.forward :
+                    vrMovement==SurvivorVRMovement.BodyRelative
+                        ? transform.TransformDirection(vrPlayStyle==SurvivorVRPlayStyle.Seated?seatedHeading:Vector3.forward)
+                        : RawHeadForward();
                 Vector3 forward=Vector3.ProjectOnPlane(direction,Vector3.up);
                 return forward.sqrMagnitude>.025f?forward.normalized:Vector3.ProjectOnPlane(transform.forward,Vector3.up).normalized;
             }
@@ -143,15 +148,15 @@ namespace DeadlyJenga.CastlePrototype
             if(!IsVR||externallyDriven||InputSuspended||trackingRebase||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
             float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
             float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*Mathf.Clamp(vrSmoothDegreesPerSecond*.65f,65,220)*dt,-65,80);
-            if(next!=vrLookPitch)
-            {
-                EnsureHeadPitchPivot();
-                ResetVRLook();
-                Vector3 right=Vector3.Cross(Vector3.up,MovementForward);
-                headPitchPivot.RotateAround(viewCamera.transform.position,right,next);
-            }
+            if(next==0&&vrLookPitch==0)return;
             vrLookPitch=next;
+            if(!headPitchPivot)return;
+            headPitchPivot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
+            Vector3 forward=Vector3.ProjectOnPlane(RawHeadForward(),Vector3.up);
+            if(forward.sqrMagnitude<.025f)forward=MovementForward;
+            headPitchPivot.RotateAround(viewCamera.transform.position,Vector3.Cross(Vector3.up,forward.normalized),next);
         }
+        Vector3 RawHeadForward() => cameraOffset.TransformDirection(viewCamera.transform.localRotation*Vector3.forward);
         public void UseStationaryVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Seated);
         public void UseStandingVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Standing);
         void ResetVRLook()
@@ -162,8 +167,8 @@ namespace DeadlyJenga.CastlePrototype
         public void SetVRPlayStyle(SurvivorVRPlayStyle style,bool remember=true)
         {
             if(Climbing||Vaulting){ActionStatus="Finish traversal before switching controls";return;}
-            if(style==SurvivorVRPlayStyle.Standing&&cameraOffset)
-            {cameraOffset.localPosition-=Vector3.up*seatedHeightOffset;seatedHeightOffset=0;}
+            seatedCalibrated=false;
+            if(IsVR)RequestTrackingRebase();
             ClearSprint();ResetVRLook();
             vrPlayStyle=style;vrMovement=style==SurvivorVRPlayStyle.Standing?SurvivorVRMovement.HeadRelative:SurvivorVRMovement.BodyRelative;
             vrTurn=style==SurvivorVRPlayStyle.Standing?SurvivorVRTurn.PhysicalOnly:SurvivorVRTurn.Smooth;
@@ -173,27 +178,68 @@ namespace DeadlyJenga.CastlePrototype
         public void CalibrateSeatedHeight()
         {
             if(!IsVR||vrPlayStyle!=SurvivorVRPlayStyle.Seated||Climbing||Vaulting)return;
-            float adjustment=eyeHeight*playerScale-transform.InverseTransformPoint(viewCamera.transform.position).y;
-            float previous=seatedHeightOffset;
-            seatedHeightOffset=Mathf.Clamp(previous+adjustment,-1.5f*playerScale,1.5f*playerScale);
-            cameraOffset.localPosition+=Vector3.up*(seatedHeightOffset-previous);
+            if(!TryReadHeadPosition(out var raw))return;
+            seatedAnchor=raw;
+            var forward=Vector3.ProjectOnPlane(transform.InverseTransformDirection(RawHeadForward()),Vector3.up);
+            seatedHeading=forward.sqrMagnitude>.025f?forward.normalized:Vector3.forward;
+            seatedCalibrated=true;
             calibrateSeated=false;
+            ApplySeatedOrigin(raw,true);
         }
+
+        bool FloorTracking()
+        {
+            if(!trackingOrigin)trackingOrigin=GetComponent<Unity.XR.CoreUtils.XROrigin>();
+            return trackingOrigin&&trackingOrigin.CurrentTrackingOriginMode==TrackingOriginModeFlags.Floor;
+        }
+
+        bool TryReadHeadPosition(out Vector3 raw)
+        {
+            raw=viewCamera.transform.localPosition;
+            return float.IsFinite(raw.x)&&float.IsFinite(raw.y)&&float.IsFinite(raw.z)&&
+                raw.sqrMagnitude<100&&(!FloorTracking()||raw.y>(vrPlayStyle==SurvivorVRPlayStyle.Seated?.30f:.04f)&&raw.y<2.55f);
+        }
+
+        void ApplySeatedOrigin(Vector3 raw,bool snap)
+        {
+            // Preserve small physical head movement. Only ease out drift beyond the seated range.
+            Vector3 delta=raw-seatedAnchor;
+            var permitted=new Vector3(Mathf.Clamp(delta.x,-.18f,.18f),
+                Mathf.Clamp(delta.y,-.24f,.20f),Mathf.Clamp(delta.z,-.18f,.18f));
+            var target=Vector3.up*(eyeHeight*playerScale)-(raw-permitted)*playerScale;
+            cameraOffset.localPosition=snap?target:Vector3.Lerp(cameraOffset.localPosition,target,1-Mathf.Exp(-12*Time.unscaledDeltaTime));
+        }
+
         void UpdateSeatedHeight()
         {
             ObserveTrackingOrigin();
             if(!vrInputFocused)return;
+            bool valid=TryReadHeadPosition(out var raw);
             if(trackingRebase)
             {
                 if(Time.unscaledTime<rebaseUntil)return;
-                var origin=GetComponent<Unity.XR.CoreUtils.XROrigin>();
-                bool floor=origin&&origin.CurrentTrackingOriginMode==TrackingOriginModeFlags.Floor;
-                cameraOffset.localPosition=Vector3.up*(floor?0:eyeHeight*playerScale);
-                seatedHeightOffset=0;
-                calibrateSeated=vrPlayStyle==SurvivorVRPlayStyle.Seated;
+                if(vrPlayStyle==SurvivorVRPlayStyle.Seated)
+                {
+                    if(!valid)return;
+                    CalibrateSeatedHeight();
+                    if(!seatedCalibrated)return;
+                }
                 trackingRebase=false;
             }
-            if(calibrateSeated&&viewCamera.transform.localPosition.y>.3f)CalibrateSeatedHeight();
+            if(vrPlayStyle==SurvivorVRPlayStyle.Seated)
+            {
+                if(calibrateSeated&&valid)CalibrateSeatedHeight();
+                if(seatedCalibrated&&valid)ApplySeatedOrigin(raw,false);
+            }
+            else if(valid)
+            {
+                cameraOffset.localPosition=Vector3.up*(FloorTracking()?0:eyeHeight*playerScale);
+            }
+            else if(float.IsFinite(raw.y))
+            {
+                // Tracking can briefly return zero or an invalid floor sample after recenter.
+                cameraOffset.localPosition=Vector3.up*((eyeHeight-Mathf.Clamp(raw.y,-3,3))*playerScale);
+            }
         }
         public Vector2 FilterVRMove(Vector2 stick)
         {

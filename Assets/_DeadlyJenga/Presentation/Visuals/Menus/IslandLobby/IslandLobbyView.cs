@@ -77,28 +77,32 @@ namespace DeadlyJenga.CastlePrototype
             Environment.Refresh();var sand=Environment.sandRenderer;
             lobby.SetFloor(sand.GetComponent<MeshFilter>().sharedMesh,sand.transform);   // the lobby makes the floor collider
         }
-        TextMesh lobbyAimDot;
+        Image lobbyAimDot;
+        Canvas lobbyAimCanvas;
         LineRenderer lobbyAimBeam;
         bool trackedLobbyPointer;
         void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
         {
-            if(!Player.IsVR||!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(!Player.IsVR||!trackedLobbyPointer||!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
                 trackedLobbyPointer && distance > .03f && hit, actionable);
-            if(!lobbyAimDot)
+            if(!lobbyAimCanvas)
             {
-                lobbyAimDot=new GameObject("Lobby terminal reticle").AddComponent<TextMesh>();
-                lobbyAimDot.transform.SetParent(transform,false);
-                lobbyAimDot.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-                lobbyAimDot.GetComponent<Renderer>().sharedMaterial=lobbyAimDot.font.material;
-                lobbyAimDot.anchor=TextAnchor.MiddleCenter;
-                lobbyAimDot.fontSize=48;
+                var root=new GameObject("Lobby terminal reticle",typeof(RectTransform),typeof(Canvas));
+                root.transform.SetParent(transform,false);
+                lobbyAimCanvas=root.GetComponent<Canvas>();
+                lobbyAimCanvas.renderMode=RenderMode.WorldSpace;
+                lobbyAimCanvas.overrideSorting=true;
+                lobbyAimCanvas.sortingOrder=600;
+                lobbyAimDot=MenuAim.CreateReticle(root.transform);
+                MenuAim.PresentInForeground(root.transform);
             }
-            lobbyAimDot.gameObject.SetActive(true);
-            lobbyAimDot.text=hit?"●":"·";
-            lobbyAimDot.color=hit&&actionable?CandyHudVisuals.Mint:Color.white;
-            lobbyAimDot.characterSize=.009f*distance;
-            lobbyAimDot.transform.SetPositionAndRotation(ray.GetPoint(distance-.015f),Quaternion.LookRotation(ray.direction));
+            var point=ray.GetPoint(distance-.015f);
+            lobbyAimCanvas.worldCamera=Player.ViewCamera;
+            var reticle=lobbyAimCanvas.transform;
+            reticle.SetPositionAndRotation(point,Player.ViewCamera.transform.rotation);
+            reticle.localScale=Vector3.one*Mathf.Clamp(distance*.0007f,.0007f,.003f);
+            MenuAim.Present(lobbyAimDot,point,true,actionable);
         }
         bool terminalRequireRelease=true,inputFocused=true;
         void OnApplicationFocus(bool focused)
@@ -231,7 +235,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             Choice nearest=null;float distance=4;MarinaInteractionRange(ref distance);Vector3 selectionPoint=default;
             if (marina && Physics.Raycast(ray, out var obstruction, distance, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
-                distance = obstruction.distance;
+                distance = Mathf.Min(distance,obstruction.distance+.05f);
             foreach(var choice in choices)
             {
                 if(wardrobeOpen&&Player.IsVR&&choice.button&&!choice.button.transform.IsChildOf(wardrobePanel))continue;
@@ -282,8 +286,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
                 else if(pressed)InvokeChoice(nearest.id,pointerDevice);
             }
-            bool faceHit=TryCabinetFace(ray,distance,out float faceDepth);
-            DrawLobbyAim(ray,nearest!=null?distance:faceHit?faceDepth:1.5f,nearest!=null||faceHit,actionable);
+            DrawLobbyAim(ray,distance,nearest!=null,actionable);
         }
         void OnGUI()
         {

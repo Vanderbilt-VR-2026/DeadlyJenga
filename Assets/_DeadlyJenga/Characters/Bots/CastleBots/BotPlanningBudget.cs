@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastleBots
     {
         public static int MaximumEdgesPerFrame = 160, MaximumSensingPerFrame = 24;
         public static float EdgesPerSecond = 2400, SensesPerSecond = 300;
-        public static double MaximumMillisecondsPerFrame = 4;
+        public static double MaximumMillisecondsPerFrame = Application.isMobilePlatform?2:4;
         public static int EdgesUsed { get; private set; }
         public static int SensingUsed { get; private set; }
         sealed class Account { public float at, edges = 4, senses = 1; }

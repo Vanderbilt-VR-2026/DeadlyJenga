@@ -467,7 +467,7 @@ namespace DeadlyJenga.CandyArt.Marina
                 ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             float screenRange = 11;
             if (Physics.Raycast(ray, out var obstruction, screenRange, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
-                screenRange = obstruction.distance;
+                screenRange = Mathf.Min(screenRange,obstruction.distance+.05f);
             var nearest = PickTarget(ray, screenRange);
             foreach (var target in targets)
                 if (target.face.gameObject.activeInHierarchy) PaintTarget(target, target == nearest, target.collider.enabled);
@@ -477,10 +477,10 @@ namespace DeadlyJenga.CandyArt.Marina
                 VisibleFacePoint(ray, joinFace, screenRange, out point) ||
                 VisibleFacePoint(ray, hostFace, screenRange, out point);
             bool actionable = nearest != null && nearest.collider.enabled;
-            if (hitFace) MenuAim.Present(aimDot, point, true, actionable);
+            if (hitFace && trackedPointer && nearest != null) MenuAim.Present(aimDot, point, true, actionable);
             else aimDot.gameObject.SetActive(false);
-            MenuAim.PresentBeam(ref aimBeam, transform, ray, hitFace ? point - ray.direction * .012f :
-                ray.GetPoint(Mathf.Min(screenRange, 1.8f)), trackedPointer, actionable);
+            MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
+                trackedPointer && hitFace && nearest != null, actionable);
             if (pressed && !requireRelease && nearest != null) Activate(nearest, pointerDevice);
         }
         Target PickTarget(Ray ray, float range)

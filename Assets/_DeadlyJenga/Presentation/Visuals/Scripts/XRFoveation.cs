@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
 using UnityEngine.Rendering;
+using DeadlyJenga.Core;
 
 namespace DeadlyJenga.Presentation
 {
@@ -12,6 +13,7 @@ namespace DeadlyJenga.Presentation
         [Range(0, 1)] public float level = .5f; // Medium fixed foveation on Quest.
         readonly List<XRDisplaySubsystem> displays = new List<XRDisplaySubsystem>();
         float nextCheck;
+        bool menuWasOpen;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -25,13 +27,16 @@ namespace DeadlyJenga.Presentation
         // Re-applied every couple of seconds: XR can restart (pause, focus loss) and reset it.
         void Update()
         {
-            if (Time.unscaledTime < nextCheck) return;
-            nextCheck = Time.unscaledTime + 2;
+            bool menuOpen=Services.Session?.MenuOpen==true;
+            if(menuOpen==menuWasOpen&&Time.unscaledTime<nextCheck)return;
+            menuWasOpen=menuOpen;
+            nextCheck=Time.unscaledTime+2;
+            float target=menuOpen?Mathf.Min(level,.20f):level;
             SubsystemManager.GetSubsystems(displays);
             foreach (var d in displays)
             {
                 if (!d.running || SystemInfo.foveatedRenderingCaps==FoveatedRenderingCaps.None) continue;
-                if (!Mathf.Approximately(d.foveatedRenderingLevel, level)) d.foveatedRenderingLevel = level;
+                if (!Mathf.Approximately(d.foveatedRenderingLevel,target)) d.foveatedRenderingLevel=target;
                 if(d.foveatedRenderingFlags!=XRDisplaySubsystem.FoveatedRenderingFlags.None)
                     d.foveatedRenderingFlags=XRDisplaySubsystem.FoveatedRenderingFlags.None;
             }

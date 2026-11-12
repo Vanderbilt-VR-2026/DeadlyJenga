@@ -42,7 +42,7 @@ namespace DeadlyJenga.CastleBots
         public string Status {get;private set;}="";
         readonly List<CastleBotBrain> bots=new List<CastleBotBrain>();
         readonly List<CastleBotLanding> spawnSites=new List<CastleBotLanding>();
-        readonly FallingBlockThreats hazards=new FallingBlockThreats();
+        FallingBlockThreats hazards=new FallingBlockThreats();
         readonly Collider[] nearbySurvivors=new Collider[16];
         CastleBotPersonality[] profiles;
         bool ownsProfiles;
@@ -162,11 +162,45 @@ namespace DeadlyJenga.CastleBots
             planningQueue.Sort((a,b)=>b.PlanningPriority.CompareTo(a.PlanningPriority));
             foreach(var bot in planningQueue)bot.AdvancePlanning();
             if(Time.time>=nextPopulation){nextPopulation=Time.time+1;if(autoFill)Reconcile();}
-            if(Time.time>=nextHazards)
+            UpdateFallingBlockThreats();
+        }
+
+        FallingBlockThreats pendingHazards=new FallingBlockThreats();
+        IWorldQuery hazardWorld;
+        int hazardIndex;
+        bool scanningHazards;
+        void UpdateFallingBlockThreats()
+        {
+            var world=Session.world;
+            if(!ReferenceEquals(hazardWorld,world))
             {
-                nextHazards=Time.time+.2f;hazards.Clear();
-                foreach(var rb in Session.world.Blocks)if(rb&&rb.linearVelocity.y<-.8f)hazards.Add(rb.position+rb.linearVelocity*.35f);
+                hazardWorld=world;
+                hazards.Clear();
+                scanningHazards=false;
+                nextHazards=0;
             }
+            if(bots.Count==0)return;
+            if(!scanningHazards)
+            {
+                if(Time.time<nextHazards)return;
+                nextHazards=Time.time+.2f;
+                hazardIndex=0;
+                pendingHazards.Clear();
+                scanningHazards=true;
+            }
+
+            var blocks=world.Blocks;
+            int end=Mathf.Min(hazardIndex+96,blocks.Count);
+            for(;hazardIndex<end;hazardIndex++)
+            {
+                var body=blocks[hazardIndex];
+                if(!body||body.IsSleeping())continue;
+                var velocity=body.linearVelocity;
+                if(velocity.y<-.8f)pendingHazards.Add(body.position+velocity*.35f);
+            }
+            if(hazardIndex<blocks.Count)return;
+            (hazards,pendingHazards)=(pendingHazards,hazards);
+            scanningHazards=false;
         }
         public float ThreatCost(Vector3 point)
         {

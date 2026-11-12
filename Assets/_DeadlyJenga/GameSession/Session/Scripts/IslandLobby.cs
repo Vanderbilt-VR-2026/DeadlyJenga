@@ -187,7 +187,7 @@ namespace DeadlyJenga.CastlePrototype
             MenuOpen=open;
             if (!NetworkActors.Alive(Player)) return;
             var dock=GetComponent<MarinaDockActivities>();
-            Player.InputSuspended=marinaArrivalPending||departing||!focused||open||(dock&&dock.IsRiding);
+            Player.InputSuspended=(marinaArrivalPending&&!marinaArrivalPlaced)||departing||!focused||open||(dock&&dock.IsRiding);
             Cursor.lockState=!Player.IsVR&&focused&&!open?CursorLockMode.Locked:CursorLockMode.None;
             Cursor.visible=!Player.IsVR&&(open||!focused);
         }

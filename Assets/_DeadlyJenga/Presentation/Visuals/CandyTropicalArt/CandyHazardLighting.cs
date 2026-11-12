@@ -30,6 +30,13 @@ namespace DeadlyJenga.CandyArt
         void Awake(){waterTint=new MaterialPropertyBlock();shader=Resources.Load<Shader>("CandyScenery/CandyNeon");}
         void LateUpdate()
         {
+            if(Services.Session is ILobbyControls)
+            {
+                EndOutage();
+                EndVampireLighting();
+                RestoreVampireSun();
+                return;
+            }
             DisasterFrame outage=null,vampire=null;
             foreach(var state in DisasterStates.Active){var f=state.Capture();if(f==null||f.warning>0)continue;if(f.kind=="PowerOutage")outage=f;if(f.kind=="Vampire")vampire=f;}
             if(MatchRuntime.Current?.Frame.phase==RoundPhase.Victory||MatchRuntime.Current?.Frame.phase==RoundPhase.Results){outage=null;vampire=null;}

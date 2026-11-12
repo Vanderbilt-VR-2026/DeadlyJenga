@@ -133,6 +133,7 @@ namespace DeadlyJenga.CastlePrototype
             tracker.enabled = vr;
             float scaledEye = eyeHeight * playerScale;
             cameraOffset.localScale = Vector3.one * (vr ? playerScale : 1f);
+            Vector3 oldCameraOffset=cameraOffset.localPosition;
             cameraOffset.localPosition = vr ? new Vector3(0, scaledEye, 0) : Vector3.zero;
             // XROrigin handles floor/device origin offsets in VR. Desktop owns its eye pose.
             var origin = GetComponent<Unity.XR.CoreUtils.XROrigin>();
@@ -140,11 +141,15 @@ namespace DeadlyJenga.CastlePrototype
             if(vr)
             {
                 bool floor=origin&&origin.CurrentTrackingOriginMode==UnityEngine.XR.TrackingOriginModeFlags.Floor;
-                cameraOffset.localPosition=Vector3.up*((floor?0:scaledEye)+seatedHeightOffset);
-                if(!wasVR)calibrateSeated=vrPlayStyle==SurvivorVRPlayStyle.Seated;
+                cameraOffset.localPosition=wasVR?oldCameraOffset:Vector3.up*(floor?0:scaledEye);
+                RequestTrackingRebase();
             }
             if(!vr){viewCamera.transform.localPosition=Vector3.up*scaledEye;viewCamera.transform.localRotation=Quaternion.identity;pitch=0;}
-            else if(!wasVR){viewCamera.transform.localPosition=Vector3.zero;viewCamera.transform.localRotation=Quaternion.identity;}
+            else if(!wasVR)
+            {
+                viewCamera.transform.localPosition=Vector3.zero;
+                viewCamera.transform.localRotation=Quaternion.identity;
+            }
         }
         void Update()
         {

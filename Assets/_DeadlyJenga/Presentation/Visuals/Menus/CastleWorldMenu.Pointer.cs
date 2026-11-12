@@ -37,6 +37,7 @@ namespace DeadlyJenga.CastlePrototype
             ResetPointer();
             if(!show||!camera){desktopSelect?.Disable();return;}
             ConfigureDesktopClicks(camera);
+            GetComponent<CanvasScaler>().dynamicPixelsPerUnit=session.IsVR?2f:1f;
             if (session.IsVR) PlayerPrefs.SetInt(TabletOpenedPreference,1);
             else if (!desktopOpened)
             {

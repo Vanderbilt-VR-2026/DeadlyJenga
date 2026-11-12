@@ -193,12 +193,13 @@ namespace DeadlyJenga.Presentation
         {
             if (homeAimBeam) homeAimBeam.enabled = false;
             if(controls==null)return;
-            if(!inputFocused){foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
+            if(!inputFocused){ClearHomeAim();foreach(var button in buttons)button.interactable=false;return;}
             bool comfortOpen=CandyComfortPanel.HomeShowing(gameObject);
             content.gameObject.SetActive(!comfortOpen);
-            if(comfortOpen){comfortWasOpen=true;selectReady=false;foreach(var button in buttons)button.interactable=false;pointer.gameObject.SetActive(false);return;}
+            if(comfortOpen){ClearHomeAim();comfortWasOpen=true;selectReady=false;foreach(var button in buttons)button.interactable=false;return;}
             if(comfortWasOpen){comfortWasOpen=false;selectReady=false;return;}
-            pointer.gameObject.SetActive(vr);
+            pointer.gameObject.SetActive(false);
+            if(homeAimBeam)homeAimBeam.enabled=false;
             AnimateSlideshow(Time.unscaledDeltaTime);Crop();
             status.text=controls.Status;
             foreach(var button in buttons)button.interactable=!controls.Busy;
@@ -288,13 +289,25 @@ namespace DeadlyJenga.Presentation
             backdrop.SetVector("_Right",frame.right);
         }
         LineRenderer homeAimBeam;
+        void ClearHomeAim()
+        {
+            if(pointer)pointer.gameObject.SetActive(false);
+            if(homeAimBeam)homeAimBeam.enabled=false;
+            if(gazeFocus)
+            {
+                var outline=gazeFocus.GetComponent<Outline>();
+                if(outline)outline.enabled=false;
+                gazeFocus.transform.localScale=Vector3.one;
+            }
+            gazeFocus=null;
+        }
         void Point()
         {
             if(!eye||MenuAim.InputConsumed)return;
             bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
             var ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out bool pressed,out bool tracked);
             var plane=new Plane(frame.forward,frame.position);
-            if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){pointer.gameObject.SetActive(false);return;}
+            if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){ClearHomeAim();return;}
             pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
             Button target=null;
             foreach(var button in buttons)
@@ -303,12 +316,26 @@ namespace DeadlyJenga.Presentation
                 var rect=(RectTransform)button.transform;var local=rect.InverseTransformPoint(pointer.position);
                 if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
             }
+            pointer.SetAsLastSibling();
             pointer.GetComponent<Image>().color=target?Color.white:new Color(.45f,1,.8f);
+            pointer.sizeDelta=Vector2.one*(target?24:14);
             MenuAim.PresentBeam(ref homeAimBeam, transform, ray, pointer.position-ray.direction*.015f, tracked, target);
             if(target!=gazeFocus)
             {
-                if(target)target.Select();
-                else if(EventSystem.current&&gazeFocus&&EventSystem.current.currentSelectedGameObject==gazeFocus.gameObject)EventSystem.current.SetSelectedGameObject(null);
+                if(gazeFocus)
+                {
+                    var previousOutline=gazeFocus.GetComponent<Outline>();
+                    if(previousOutline)previousOutline.enabled=false;
+                    gazeFocus.transform.localScale=Vector3.one;
+                }
+                if(target)
+                {
+                    var outline=target.GetComponent<Outline>()??target.gameObject.AddComponent<Outline>();
+                    outline.effectColor=new Color(.52f,1,.80f);
+                    outline.effectDistance=new Vector2(5,5);
+                    outline.enabled=true;
+                    target.transform.localScale=Vector3.one*1.035f;
+                }
                 gazeFocus=target;
             }
             if(!selectReady){if(!leftPointSelect.IsPressed()&&!rightPointSelect.IsPressed())selectReady=true;return;}

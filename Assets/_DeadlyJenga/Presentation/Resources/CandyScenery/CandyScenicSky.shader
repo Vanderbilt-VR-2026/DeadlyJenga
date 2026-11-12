@@ -6,6 +6,7 @@ Shader "Candy Tropical/Scenic Sky"
  #pragma target 3.5
  #pragma vertex vert
  #pragma fragment frag
+ #pragma multi_compile_instancing
  #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
  float4 _Zenith,_Horizon,_Cloud,_SunDirection,_SunColor;float _CloudCover,_Stars,_CoastDay,_CoastWaterLevel,_CoastHasPanorama;
  TEXTURE2D(_CoastPanorama); SAMPLER(sampler_CoastPanorama);

@@ -51,7 +51,7 @@ namespace DeadlyJenga.CastleBots
             if(!cache.TryGetValue(body,out var entry))cache[body]=entry=new BodySamples();
             if(entry.shapes==null||Time.time>=entry.discoverAt)
             {
-                entry.discoverAt=Time.time+1;
+                entry.discoverAt=Time.time+1+(uint)body.GetInstanceID()%31/31f;
                 body.GetComponentsInChildren(true,entry.discovered);var found=entry.discovered;
                 bool same=entry.shapes!=null&&entry.shapes.Length==found.Count;
                 if(same)for(int i=0;i<found.Count;i++)if(entry.shapes[i]!=found[i]){same=false;break;}

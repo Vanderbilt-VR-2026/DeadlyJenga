@@ -31,6 +31,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
+            var scaler=gameObject.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=owner.IsVR?2f:1f;
             var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(1120, 760); transform.localScale = Vector3.one * .002f;
             sectionGlyphs=new RawImage[buttons.Length];
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.pixelsPerUnitMultiplier=.30f;bg.color = TabletPlum;

@@ -12,7 +12,16 @@ namespace DeadlyJenga.CastleBots
         static readonly ProfilerMarker DJWalkingSourcesMarker = new ProfilerMarker("DJ.WalkingSources");
         readonly List<NavMeshBuildSource> sources = new List<NavMeshBuildSource>();
         readonly List<NavMeshBuildMarkup> markup = new List<NavMeshBuildMarkup>();
+        readonly bool localRoutesOnly;
         NavMeshPath path;
+
+        public BotWalkingRoutes() : this(Application.isMobilePlatform) { }
+
+        internal BotWalkingRoutes(bool localRoutesOnly)
+        {
+            this.localRoutesOnly=localRoutesOnly;
+            if(localRoutesOnly)Status="Using local traversal";
+        }
         NavMeshData data;
         NavMeshDataInstance instance;
         AsyncOperation building;
@@ -25,6 +34,8 @@ namespace DeadlyJenga.CastleBots
 
         public void Refresh(CastleBotBrain bot)
         {
+            // CollectSources runs synchronously even when the subsequent bake is asynchronous.
+            if(localRoutesOnly)return;
             using var measurement = DJWalkingSourcesMarker.Auto();
             var activeWorld=bot?.Population.Session.world;
             if(activeWorld==null||Time.time<nextScan)return;

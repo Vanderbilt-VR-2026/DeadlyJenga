@@ -167,7 +167,7 @@ namespace DeadlyJenga.CastlePrototype
             if(result==MarinaSpawnResult.Accepted)return ApplyReservedMarinaSpawn(pose);
             if((!connected||returning&&alreadyAdmitted)&&TryMarinaRecoveryPose(out pose))
                 return ApplyReservedMarinaSpawn(pose);
-            marinaArrivalPending=true;SetupHint=reason;Player.InputSuspended=true;nextMarinaArrival=Time.unscaledTime+.25f;
+            marinaArrivalPending=true;SetupHint=reason;SetMenu(MenuOpen);nextMarinaArrival=Time.unscaledTime+.25f;
             return false;
         }
         void TickMarinaLocalArrival()

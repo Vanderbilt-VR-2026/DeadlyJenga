@@ -22,6 +22,7 @@ Shader "Candy Tropical/Catwalks Coast"
             #pragma vertex vert
             #pragma fragment frag
             #pragma multi_compile_fog
+            #pragma multi_compile_instancing
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "CandyCoastCaustics.hlsl"

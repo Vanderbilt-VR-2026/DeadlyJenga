@@ -90,7 +90,20 @@ namespace DeadlyJenga.Presentation
             }
         }
         void Emoted(GameObject who,string emote)
-        {if(emote=="TravelArrived"&&!arrival)Finish(true);else if(emote=="DepartureCancelled"&&!arrival||emote=="SpawnArrivalSettled"&&arrival&&!visualArrival&&who==Services.Session?.Player?.gameObject)Finish(false);}
+        {
+            if(emote=="LobbyResumed"||emote=="LobbyVisitOpened")
+            {
+                if(!visualArrival)
+                {
+                    Finish(true);
+                    finishFrom=fade=0;
+                    if(curtain)curtain.forceRenderingOff=true;
+                }
+                return;
+            }
+            if(emote=="TravelArrived"&&!arrival)Finish(true);
+            else if(emote=="DepartureCancelled"&&!arrival||emote=="SpawnArrivalSettled"&&arrival&&!visualArrival&&who==Services.Session?.Player?.gameObject)Finish(false);
+        }
         void Lobby(GameObject who)=>Finish(false);
         void Finish(bool arrived)
         {
