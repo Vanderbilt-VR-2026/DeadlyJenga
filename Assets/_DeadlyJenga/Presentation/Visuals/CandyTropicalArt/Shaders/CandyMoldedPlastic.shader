@@ -53,33 +53,31 @@ Shader "Candy Tropical/Molded Plastic"
                 UNITY_BRANCH if (_CastlePlasticSkyWeight <= 0)
                     return UniversalFragmentPBR(input, surface);
 
-                half3 dye = surface.albedo;
-                half dyeLuminance = dot(dye, half3(0.2126h, 0.7152h, 0.0722h));
-                surface.albedo = saturate(lerp(dyeLuminance.xxx, dye, 1.19h)) * 0.78h;
+                half3 dye = saturate(surface.albedo);
+                half luminance = dot(dye, half3(0.2126h, 0.7152h, 0.0722h));
+                // Keep the dye bright through the broad faces. Reserve the brightest highlights for the coat.
+                surface.albedo = saturate(lerp(luminance.xxx, dye, 1.10h) + dye * 0.06h);
 
-                half3 reflected = reflect(-input.viewDirectionWS, input.normalWS);
-                half grazing = 1 - saturate(dot(input.normalWS, input.viewDirectionWS));
                 half gloss = saturate((surface.smoothness - 0.48h) * 2.4h);
-                // Broaden the bright horizon on vertical faces so the coating reads at eye height.
-                half horizon = 1 - smoothstep(0.0h, 0.47h, abs(reflected.y));
-                half3 skyDirection = normalize(reflected + half3(0, 0.36h * horizon, 0));
-                half mip = lerp(3.4h, 0.35h, gloss);
-                half3 sky = SAMPLE_TEXTURECUBE_LOD(_CastlePlasticSky, sampler_CastlePlasticSky, skyDirection, mip).rgb;
-                half lightness = dot(sky, half3(0.2126h, 0.7152h, 0.0722h));
-                half cloud = smoothstep(0.26h, 0.76h, lightness);
-                half sunAlignment = saturate(dot(reflected, GetMainLight().direction));
-                half sun = pow(sunAlignment, lerp(14.0h, 38.0h, gloss));
+                surface.smoothness = lerp(0.56h, 0.69h, gloss);
+                half3 reflected = reflect(-input.viewDirectionWS, input.normalWS);
+                half grazing = 1.0h - saturate(dot(input.normalWS, input.viewDirectionWS));
+                half fresnel = grazing * grazing * grazing;
+                half3 sky = SAMPLE_TEXTURECUBE_LOD(_CastlePlasticSky, sampler_CastlePlasticSky,
+                    reflected, lerp(3.0h, 0.85h, gloss)).rgb;
+                half cloud = smoothstep(0.40h, 0.78h, dot(sky, half3(0.2126h, 0.7152h, 0.0722h)));
 
-                // Use the existing bevel normals for a soft rim on the molded edges.
+                half3 lightDirection = GetMainLight().direction;
+                half glint = pow(saturate(dot(reflected, lightDirection)), lerp(25.0h, 58.0h, gloss));
                 half3 face = abs(TransformWorldToObjectNormal(input.normalWS));
-                half bevel = smoothstep(0.06h, 0.42h, face.x + face.y + face.z - max(face.x, max(face.y, face.z)));
-                half3 coatTint = lerp(half3(1.0h, 0.95h, 0.91h), sqrt(dye), 0.31h);
-                half facing = 0.46h + 0.48h * grazing * grazing;
-                half glaze = cloud * facing + sun * 0.52h + bevel * (0.08h + cloud * 0.23h);
-                glaze *= (0.25h + gloss * 0.75h) * _CastlePlasticSkyWeight;
+                half bevel = smoothstep(0.08h, 0.45h, face.x + face.y + face.z - max(face.x, max(face.y, face.z)));
+                half litEdge = bevel * saturate(dot(input.normalWS, lightDirection));
+                half3 coatTint = lerp(half3(1.0h, 0.96h, 0.92h), sqrt(dye), 0.56h);
+                half sheen = cloud * (0.065h + 0.17h * fresnel + 0.12h * bevel) + 0.045h * litEdge;
 
                 half4 color = UniversalFragmentPBR(input, surface);
-                color.rgb += coatTint * glaze;
+                color.rgb += (coatTint * sheen + half3(1.0h, 0.96h, 0.90h) * glint * 0.34h)
+                    * gloss * _CastlePlasticSkyWeight;
                 return color;
             }
 
