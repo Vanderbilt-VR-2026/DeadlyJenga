@@ -72,13 +72,17 @@ namespace DeadlyJenga.CandyAudio
         void Rubble(Vector3 point,float strength)
         {
             var camera=Services.Session?.ActiveCamera;if(!camera)return;
-            float distance=Vector3.Distance(camera.transform.position,point);
-            if(strength>=12&&distance<90&&Time.unscaledTime>=nextHeavyImpact)
+            float distanceSquared=(camera.transform.position-point).sqrMagnitude;
+            bool mobile=Application.isMobilePlatform;
+            float heavyRange=mobile?32f:65f;
+            if(strength>=(mobile?20f:12f)&&distanceSquared<heavyRange*heavyRange&&Time.unscaledTime>=nextHeavyImpact)
             {
-                nextHeavyImpact=Time.unscaledTime+.22f;
-                CandyAudioEngine.Instance?.Play(CandySound.BlockSmash,point,Mathf.Clamp(strength/40,.25f,.85f),GetInstanceID());
+                nextHeavyImpact=Time.unscaledTime+(mobile?.75f:.34f);
+                CandyAudioEngine.Instance?.Play(CandySound.BlockSmash,point,
+                    Mathf.Clamp(strength/45,.2f,mobile?.57f:.76f),GetInstanceID());
             }
-            if(strength<6||Time.unscaledTime<nextRubble||Services.Session?.IsVR!=true||distance>14)return;
+            if(strength<6||Time.unscaledTime<nextRubble||Services.Session?.IsVR!=true||distanceSquared>196)return;
+            float distance=Mathf.Sqrt(distanceSquared);
             nextRubble=Time.unscaledTime+.14f;
             Pulse(Mathf.Clamp01((strength-3)/24)*(1-distance/14)*.32f,.10f);
         }

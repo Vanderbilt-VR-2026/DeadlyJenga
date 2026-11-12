@@ -109,7 +109,7 @@ namespace DeadlyJenga.CastlePrototype
             RestoreRememberedComfort();
         }
         void OnEnable() { if(!externallyDriven){move.Enable(); turn.Enable(); jump.Enable();} modeReady = false; Tracked.Movers.Add(this);UpdateSpectatorParticipation(); }
-        void OnDisable() { RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
+        void OnDisable() { ReleaseTrackingSystems();RestoreSpectatorParticipation();ClearSprint();ClearMovementPowerups(); move.Disable(); turn.Disable(); jump.Disable(); support = null; Vaulting = false; ResetClimb(false);ResetVRJump(); Tracked.Movers.Remove(this); }
         void OnDestroy() { if(tracker)tracker.enabled=false;foreach(var action in headActions)action.Dispose();move.Dispose(); turn.Dispose(); jump.Dispose(); }
 
         public void RefreshMode()
@@ -124,7 +124,7 @@ namespace DeadlyJenga.CastlePrototype
             playerScale = Mathf.Clamp(playerScale,.1f,2f);
             if (modeReady && vr == IsVR && Mathf.Approximately(appliedScale,playerScale)) return;
             bool wasVR=IsVR;modeReady = true; IsVR = vr;
-            if(vr!=wasVR){ClearSprint();sprintController=null;}
+            if(vr!=wasVR){ClearSprint();sprintController=null;if(vr)EnsureHeadPitchPivot();else{ResetVRLook();ReleaseTrackingSystems();}}
             appliedScale = playerScale;
             Capsule.radius = .24f * playerScale;
             Capsule.height = StandingHeight; Capsule.center = Vector3.up * StandingHeight * .5f;
@@ -154,7 +154,7 @@ namespace DeadlyJenga.CastlePrototype
             if (IsVR)
             {
                 UpdateSeatedHeight();
-                Vector3 head = transform.InverseTransformPoint(viewCamera.transform.position);
+                Vector3 head = transform.InverseTransformPoint(SafeAvatarHead(viewCamera.transform.position));
                 Capsule.height = Mathf.Clamp(head.y + .1f * playerScale, .7f * playerScale, 2.4f * playerScale);
                 Capsule.center = new Vector3(head.x, Capsule.height / 2, head.z);
             }
@@ -177,7 +177,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(command.suitFlight){ApplyBotHoverFlight(command.suitVelocity,Time.deltaTime);walking=Vector2.zero;pressed=held=false;}
                 else if(hoverEngaged)ClearHoverFlight();
             }
-            else if (!InputSuspended&&vrInputFocused)
+            else if (!InputSuspended&&vrInputFocused&&(!IsVR||!trackingRebase))
             {
                 if (IsVR)
                 {

@@ -180,7 +180,7 @@ namespace DeadlyJenga.CastlePrototype
             var launch=CandyChoice("launch");launch.faceColor=lobby.StartPending?CandyPeach:CandyMint;launch.edgeColor=launch.faceColor;
             var symbol=lobby.StartPending?LobbyTerminalGlyph.Symbol.Back:LobbyTerminalGlyph.Symbol.Play;
             if(launch.glyph&&launch.glyph.symbol!=symbol){launch.glyph.symbol=symbol;launch.glyph.SetVerticesDirty();}
-            CandyChoice("invite-all").faceColor=lobby.Connected?CandyMint:CandyFace;CandyChoice("invite-all").edgeColor=lobby.Connected?CandyMint:CandyLavender;
+            CandyChoice("invite-all").faceColor=lobby.Connected?CandyLavender:CandyFace;
             candyHostHelp.SetActive(!lobby.Connected&&!lobby.Busy);
             candyHostCodeFrame.SetActive(lobby.Connected&&!lobby.Busy);
             candyJoinedNote.gameObject.SetActive(lobby.Connected&&(Details?.HostRequests.Count??0)==0);

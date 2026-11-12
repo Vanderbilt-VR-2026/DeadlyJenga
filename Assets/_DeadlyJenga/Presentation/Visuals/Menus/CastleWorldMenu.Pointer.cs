@@ -309,14 +309,7 @@ namespace DeadlyJenga.CastlePrototype
                 pointerDot=PointerImage("Pointer dot",new Vector2(15,15));
                 var edge=pointerDot.gameObject.AddComponent<Outline>();edge.effectColor=CandyHudVisuals.Ink;edge.effectDistance=new Vector2(2,-2);
                 focusOutline=PointerImage("Pointed control focus bar",Vector2.zero);
-                var source=Resources.Load<Material>("CandyUtilityGlow");
-                if(source)
-                {
-                    var beam=new GameObject("Dominant controller tablet ray");beam.transform.SetParent(transform,false);
-                    pointerBeam=beam.AddComponent<LineRenderer>();pointerBeam.sharedMaterial=source;pointerBeam.useWorldSpace=true;
-                    pointerBeam.positionCount=2;pointerBeam.startWidth=.005f;pointerBeam.endWidth=.002f;
-                    pointerBeam.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;pointerBeam.receiveShadows=false;
-                }
+
             }
             var panel=(RectTransform)transform;
             bool intersects=Project(pointerRay,panel,out var at);
@@ -338,15 +331,8 @@ namespace DeadlyJenga.CastlePrototype
                 focusOutline.transform.position=row.TransformPoint(new Vector3(row.rect.xMin+8,0,-3));
                 focusOutline.transform.SetAsLastSibling();if(dot)pointerDot.transform.SetAsLastSibling();
             }
-            if(pointerBeam)
-            {
-                pointerBeam.enabled=usingController;
-                if(usingController)
-                {
-                    pointerBeam.startColor=color;pointerBeam.endColor=color;
-                    pointerBeam.SetPosition(0,pointerRay.GetPoint(.025f));pointerBeam.SetPosition(1,dot?at-transform.forward*.01f:pointerRay.GetPoint(MenuDistance));
-                }
-            }
+            DeadlyJenga.Presentation.MenuAim.PresentBeam(ref pointerBeam,transform,pointerRay,
+                at-transform.forward*.012f,usingController&&dot,actionable);
         }
 
         Image PointerImage(string name,Vector2 size)

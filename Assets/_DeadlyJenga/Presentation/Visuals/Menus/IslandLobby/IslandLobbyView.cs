@@ -82,12 +82,12 @@ namespace DeadlyJenga.CastlePrototype
         bool trackedLobbyPointer;
         void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
         {
-            if(!Player.IsVR){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(!Player.IsVR||!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
                 trackedLobbyPointer && distance > .03f && hit, actionable);
             if(!lobbyAimDot)
             {
-                lobbyAimDot=new GameObject("Lobby gaze cursor").AddComponent<TextMesh>();
+                lobbyAimDot=new GameObject("Lobby terminal reticle").AddComponent<TextMesh>();
                 lobbyAimDot.transform.SetParent(transform,false);
                 lobbyAimDot.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
                 lobbyAimDot.GetComponent<Renderer>().sharedMaterial=lobbyAimDot.font.material;
@@ -112,6 +112,7 @@ namespace DeadlyJenga.CastlePrototype
         void Update()
         {
             if (lobbyAimBeam) lobbyAimBeam.enabled = false;
+            if (lobbyAimDot) lobbyAimDot.gameObject.SetActive(false);
             trackedLobbyPointer = false;
             var keyboard=Keyboard.current;
             if(inputFocused&&spectatorWall&&spectatorWall.FullScreen&&

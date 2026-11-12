@@ -49,23 +49,23 @@ namespace DeadlyJenga.CastlePrototype
             var create=CandyPlace("host",0,190,1000,110);CandyPrimary(create);create.title=()=>"CREATE ROOM";CandyText(create,25,17,820,55,40);
             create.description=CandyReadout((RectTransform)create.button.transform,"Create room subtitle","Get a code. Bring your friends.",25,-30,820,30,24);
             CandyChoiceIcon(create,LobbyTerminalGlyph.Symbol.Plus,-430,0,47);
-            var code=CandyPanel(candyHostContent,"Connected room code",0,190,1000,140,CandyFace);code.SetAsFirstSibling();candyHostCodeFrame=code.gameObject;
-            CandyReadout(code,"Code label","JOIN CODE",0,44,900,30,22).color=CandyMuted;
-            hostCode.rectTransform.anchoredPosition=new Vector2(0,170);hostCode.rectTransform.sizeDelta=new Vector2(940,66);hostCode.fontSize=49;hostCode.resizeTextMaxSize=49;hostCode.resizeTextMinSize=32;hostCode.fontStyle=FontStyle.Bold;hostCode.color=CandyCream;
+            var code=CandyPanel(candyHostContent,"Connected room code",0,143,1000,150,CandyInk);code.SetAsFirstSibling();candyHostCodeFrame=code.gameObject;
+            CandyReadout(code,"Code label","ROOM CODE",0,47,900,39,27).color=CandyMuted;
+            hostCode.rectTransform.anchoredPosition=new Vector2(0,119);hostCode.rectTransform.sizeDelta=new Vector2(940,82);hostCode.fontSize=66;hostCode.resizeTextMaxSize=66;hostCode.resizeTextMinSize=42;hostCode.fontStyle=FontStyle.Bold;hostCode.color=CandyCream;
             var copy=CandyAdd(candyHostContent,"copy-code",()=>Time.unscaledTime<copiedHostCodeUntil?"COPIED":"COPY CODE",
-                -260,49,480,62,()=>{GUIUtility.systemCopyBuffer=lobby.HostCode;copiedHostCodeUntil=Time.unscaledTime+1.5f;},
+                0,-9,1000,90,()=>{GUIUtility.systemCopyBuffer=lobby.HostCode;copiedHostCodeUntil=Time.unscaledTime+1.5f;},
                 ()=>lobby.Connected&&!string.IsNullOrEmpty(lobby.HostCode),()=>lobby.Connected&&!string.IsNullOrEmpty(lobby.HostCode));
-            CandyPrimary(copy);
+            CandyPrimary(copy);CandyChoiceIcon(copy,LobbyTerminalGlyph.Symbol.Plus,-377,0,42);CandyText(copy,0,0,760,72,38);
             var region=CandyPlace("region",0,98,1000,45);region.title=()=>"REGION:  "+lobby.Region.ToUpperInvariant()+(lobby.CanHost?"     CHANGE":"");
-            region.visible=()=>true;CandyChoiceIcon(region,LobbyTerminalGlyph.Symbol.Globe,-440,0,34);CandyText(region,25,0,850,54,26);
-            var invite=CandyPlace("invite-all",260,49,480,62);CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.People,-190,0,31);CandyText(invite,23,0,390,54,25);
-            CandyPlace("request-host",0,-110,1000,60);CandyPlace("shared-controls",0,-110,1000,60);
-            CandyPlace("abandon-host",0,-190,1000,60);
+            region.visible=()=>!lobby.Connected;CandyChoiceIcon(region,LobbyTerminalGlyph.Symbol.Globe,-440,0,34);CandyText(region,25,0,850,54,26);
+            var invite=CandyPlace("invite-all",0,-117,1000,86);CandyChoiceIcon(invite,LobbyTerminalGlyph.Symbol.People,-377,0,42);CandyText(invite,0,0,760,70,36);
+            CandyPlace("request-host",0,-212,1000,52);CandyPlace("shared-controls",0,-212,1000,52);
+            CandyPlace("abandon-host",0,-278,1000,52);
             requestLabel.rectTransform.anchoredPosition=new Vector2(-100,-270);requestLabel.rectTransform.sizeDelta=new Vector2(760,58);
             requestLabel.fontSize=24;requestLabel.resizeTextMaxSize=24;requestLabel.color=CandyCream;
             CandyPlace("request-next",420,-270,180,50);CandyPlace("request-accept",-255,-335,490,58);CandyPlace("request-deny",255,-335,490,58);
             CandyPrimary(CandyChoice("request-accept"));
-            candyJoinedNote=CandyReadout(candyHostContent,"Connected instructions","Share the code above.\nChoose your mode and map at the next terminal.",0,-295,980,100,24);candyJoinedNote.color=CandyMuted;
+            candyJoinedNote=CandyReadout(candyHostContent,"Connected instructions","Share the code above.\nChoose your mode and map at the next terminal.",0,-350,980,72,23);candyJoinedNote.color=CandyMuted;
             var help=CandyPanel(candyHostContent,"How hosting works",0,-205,1000,230,CandyFace);help.SetAsFirstSibling();candyHostHelp=help.gameObject;
             CandyReadout(help,"Help heading","HOW IT WORKS",-130,82,680,38,30).fontStyle=FontStyle.Bold;
             string[] steps={"Create your room","Share your join code","Pick a mode and start next door"};

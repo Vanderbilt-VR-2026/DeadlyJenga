@@ -47,8 +47,8 @@ namespace DeadlyJenga.CastlePrototype
             var old = new List<Transform>();
             foreach (Transform child in transform) old.Add(child);
             legacyDeveloper = TabletRoot("Developer detail controls");
-            legacyDeveloper.localScale = Vector3.one * .58f;
-            legacyDeveloper.anchoredPosition = new Vector2(0,-38);
+            legacyDeveloper.localScale = Vector3.one * .84f;
+            legacyDeveloper.anchoredPosition = new Vector2(0,-48);
             foreach (var child in old) child.SetParent(legacyDeveloper,false);
 
             var nav = TabletRoot("Player tablet tabs");

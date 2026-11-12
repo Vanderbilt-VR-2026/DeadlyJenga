@@ -60,7 +60,8 @@ namespace DeadlyJenga.CandyArt
             this.material = material;
             this.water = water;
             pass = material.FindPass("Castle reflection");
-            if (pass < 0 || !SystemInfo.supportsInstancing) return;
+            // Quest uses the ocean shader's existing sky and shoreline fallbacks.
+            if (Application.isMobilePlatform || pass < 0 || !SystemInfo.supportsInstancing) return;
             material.enableInstancing = true;
             RenderPipelineManager.beginCameraRendering += Render;
         }

@@ -16,7 +16,7 @@ namespace DeadlyJenga.Presentation
     {
         static int consumedFrame=-1;
         static MaterialPropertyBlock beamColor;
-        static Material foreground;
+        static Material foreground,beamMaterial;
         static readonly List<Graphic> graphics=new();
         internal static void PresentInForeground(Transform root)
         {
@@ -150,11 +150,15 @@ namespace DeadlyJenga.Presentation
             }
             if (!beam)
             {
-                var material = Resources.Load<Material>("CandyUtilityGlow");
-                if (!material) return;
+                if (!beamMaterial)
+                {
+                    var shader=Resources.Load<Shader>("CandyScenery/CandyHeadsetOverlay");
+                    if(!shader)return;
+                    beamMaterial=new Material(shader){name="Foreground UI ray",hideFlags=HideFlags.DontSave};
+                }
                 beam = new GameObject("Tracked UI ray").AddComponent<LineRenderer>();
                 beam.transform.SetParent(owner, false);
-                beam.sharedMaterial = material;
+                beam.sharedMaterial = beamMaterial;
                 beam.useWorldSpace = true;
                 beam.positionCount = 2;
                 beam.startWidth = .006f;

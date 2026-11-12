@@ -19,6 +19,9 @@ namespace DeadlyJenga.Presentation
         CandyWaypointLayer waypoints;int boardPage;
         CandyEliminationFeed eliminationFeed;
         CandyDisasterWarningCard warning;
+        Text activeDisasters;
+        readonly System.Collections.Generic.List<string> disasterLabels=new(4);
+        readonly System.Text.StringBuilder disasterCopy=new();
         Text sinkWarning;
         Image sinkMeter;
         bool sinkUrgent;
@@ -66,6 +69,9 @@ namespace DeadlyJenga.Presentation
             teams=CandyHudCards.Create(root,"Team scores",new Vector2(0,289),new Vector2(384,36),17,TextAnchor.MiddleCenter);
             status=CandyHudCards.Create(root,"Round and spectators",new Vector2(0,334),new Vector2(295,40),17,TextAnchor.MiddleCenter);
             warning=new CandyDisasterWarningCard(root);
+            activeDisasters=Label("Active disasters",new Vector2(310,170),new Vector2(382,42),TextAnchor.MiddleRight,20);
+            activeDisasters.color=new Color(1,.91f,.78f);
+            activeDisasters.enabled=false;
             sinkWarning = CandyHudCards.Create(root, "Sinking escape warning", new Vector2(0, 130),
                 new Vector2(480, 74), 20, TextAnchor.MiddleCenter);
             CandyHudCards.Badge(sinkWarning);
@@ -121,25 +127,27 @@ namespace DeadlyJenga.Presentation
             var go=new GameObject(name,typeof(RectTransform),typeof(Text),typeof(Outline));go.transform.SetParent(root,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.fontSize=fontSize;t.fontStyle=FontStyle.Bold;t.alignment=alignment;t.color=Color.white;t.supportRichText=true;t.raycastTarget=false;t.rectTransform.sizeDelta=size;t.rectTransform.anchoredPosition=position;go.GetComponent<Outline>().effectColor=new Color(.08f,.025f,.14f,.85f);return t;
         }
         // All sources are replicated presentation views or host snapshots; no local scheduling.
-        internal static string IncomingDisaster(MatchFrame frame,out float seconds)
+        internal static string IncomingDisaster(MatchFrame frame,out float seconds,System.Collections.Generic.List<string> active=null)
         {
             string name=null;float next=float.PositiveInfinity;
-            void Offer(string label,float remaining)
+            void Offer(string label,float remaining,bool running=false)
             {
-                if(!string.IsNullOrWhiteSpace(label)&&remaining>0&&remaining<next){name=label;next=remaining;}
+                if(string.IsNullOrWhiteSpace(label))return;
+                if(remaining>0&&remaining<next){name=label;next=remaining;}
+                if(running&&remaining<=0&&active!=null&&!active.Contains(label))active.Add(label);
             }
             Offer(frame?.disasterWarning,frame?.disasterWarningRemaining??0);
             foreach(var view in Tracked.Waves)
             {
                 if(view==null||view is Object obj&&!obj)continue;
                 var wave=view.Wave;
-                if(wave.active)Offer("Tsunami",wave.warningRemaining);
+                if(wave.active)Offer("Tsunami",wave.warningRemaining,true);
             }
             foreach(var view in DisasterStates.Active)
             {
                 if(view is Object obj&&!obj)continue;
                 var disaster=view?.Capture();
-                if(disaster!=null&&!disaster.residualOnly)Offer(disaster.label,disaster.warning);
+                if(disaster!=null&&!disaster.residualOnly)Offer(disaster.label,disaster.warning,true);
             }
             seconds=name!=null?next:0;return name;
         }
@@ -305,7 +313,7 @@ namespace DeadlyJenga.Presentation
                 board.text=teams.text=claim.text="";claimFill.enabled=false;
                 status.text=vr?"WATCHING "+spectator.WatchedName(0)+"\nRight stick switches players":"";
                 foreach(var plate in plates.Values)if(plate)plate.gameObject.SetActive(false);
-                waypoints.Begin(false);waypoints.End();CandyHudCards.Visible(board,false);CandyHudCards.Visible(teams,false);warning.Hide();CandyHudCards.Visible(objective,false);
+                waypoints.Begin(false);waypoints.End();CandyHudCards.Visible(board,false);CandyHudCards.Visible(teams,false);warning.Hide();activeDisasters.enabled=false;CandyHudCards.Visible(objective,false);
                 return;
             }
             UpdateHealthBar(match.Frame,match.LocalActorId);
@@ -325,10 +333,21 @@ namespace DeadlyJenga.Presentation
                 : f.phase==RoundPhase.Victory?CandyHudContent.Safe(f.winner)+" WINS!":f.phase==RoundPhase.Results?"ROUND RESULTS":CandyHudContent.Mode(f.rules.mode)+"  ·  "+(f.phase==RoundPhase.Countdown?"STARTING · ":"")+CandyHudContent.Clock(f.remaining);
             if(!Expanded&&canvas.enabled&&f.phase==RoundPhase.Playing)
             {
-                var next=IncomingDisaster(f,out float seconds);
+                disasterLabels.Clear();
+                bool survival=f.rules.mode==GameModeKind.Survival;
+                var next=IncomingDisaster(f,out float seconds,survival?disasterLabels:null);
                 warning.Show(next,seconds);
+                activeDisasters.enabled=disasterLabels.Count>0;
+                if(activeDisasters.enabled)
+                {
+                    disasterCopy.Clear().Append("ACTIVE DISASTERS");
+                    foreach(var label in disasterLabels)
+                        disasterCopy.Append('\n').Append(CandyDisasterWarningCard.DisplayName(label));
+                    var display=disasterCopy.ToString();
+                    if(activeDisasters.text!=display)activeDisasters.text=display;
+                }
             }
-            else warning.Hide();
+            else{warning.Hide();activeDisasters.enabled=false;}
             CandyHudCards.Visible(board,Expanded);CandyHudCards.Visible(teams,!Expanded&&f.teams.Length>0);CandyHudCards.Visible(status,!Expanded);
             bool showObjective=!Expanded&&own!=null&&f.rules.mode!=GameModeKind.MurderMystery&&
                 (f.rules.mode==GameModeKind.CaptureFlag||f.rules.mode==GameModeKind.Ninja&&f.lantern?.active==true)&&!introCard.enabled;

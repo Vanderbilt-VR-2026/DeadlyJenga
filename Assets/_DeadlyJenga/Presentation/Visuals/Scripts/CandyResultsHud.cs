@@ -36,6 +36,13 @@ namespace DeadlyJenga.Presentation
         Camera camera;
         ISessionInfo source;
         Vector3 openingForward;
+        readonly InputAction selectLeft=MenuAim.SelectAction("Results left select",true);
+        readonly InputAction selectRight=MenuAim.SelectAction("Results right select",false);
+        LineRenderer resultsBeam;
+        Image resultsReticle;
+        bool releaseResultsSelect;
+
+        void OnEnable(){selectLeft.Enable();selectRight.Enable();}
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen() => GameEvents.SessionStarted += go =>
@@ -47,6 +54,8 @@ namespace DeadlyJenga.Presentation
 
         void Update()
         {
+            if(resultsBeam)resultsBeam.enabled=false;
+            if(resultsReticle)resultsReticle.gameObject.SetActive(false);
             var match = MatchRuntime.Current;
             var session = Services.Session;
             var frame = match?.Frame;
@@ -80,6 +89,7 @@ namespace DeadlyJenga.Presentation
                 owner = match;
                 page = infectionPage = 0;
                 rankedFrame = null;
+                releaseResultsSelect=true;
                 session.SetMenu(true);
             }
             if (opening || eye != camera || wasVr != session.IsVR)
@@ -90,6 +100,11 @@ namespace DeadlyJenga.Presentation
                 var forward = eye ? Vector3.ProjectOnPlane(eye.transform.forward, Vector3.up) : Vector3.forward;
                 openingForward = forward.sqrMagnitude > .01f ? forward.normalized : Vector3.forward;
                 foreach (var target in targets) target.enabled = wasVr;
+                if(wasVr)
+                {
+                    if(!resultsReticle)resultsReticle=MenuAim.CreateReticle(canvas.transform);
+                    MenuAim.PresentInForeground(canvas.transform);
+                }
             }
 
             visible = true;
@@ -127,20 +142,42 @@ namespace DeadlyJenga.Presentation
             if (!wasVr && code.Length > 0 && mouse != null && mouse.leftButton.wasPressedThisFrame
                 && RectTransformUtility.RectangleContainsScreenPoint(roomCode.rectTransform, mouse.position.ReadValue()))
                 GUIUtility.systemCopyBuffer = code;
-            var ray = eye ? new Ray(eye.transform.position, eye.transform.forward) : default;
+            Ray ray=default;
+            bool pressed=false,tracked=false;
+            if(wasVr&&eye)
+            {
+                bool left=session.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true;
+                ray=MenuAim.ResolveSelect(eye,eye.transform.parent,left,selectLeft,selectRight,
+                    session.MenuSelectPressed,out pressed,out tracked);
+                if(releaseResultsSelect)
+                {
+                    if(!selectLeft.IsPressed()&&!selectRight.IsPressed()&&!session.MenuSelectPressed)releaseResultsSelect=false;
+                    pressed=false;
+                }
+                if(MenuAim.InputConsumed)pressed=false;
+            }
             for (int i = 0; i < targets.Length; i++)
             {
                 bool enabled = i == 0 ? CanStartRound(match.Authority, session as IGameExperienceControls) : i == 1 ||
                     (split ? i == 2 ? Pages(sorted.Length, PageSize) > 1 : Pages(infectors.Length, SplitPage) > 1
                     : i == 2 ? page > 0 : page + 1 < Pages(sorted.Length, PageSize));
+                RaycastHit hit=default;
                 bool hovered = enabled && (wasVr
-                    ? eye && targets[i].Raycast(ray, out _, 4)
+                    ? tracked && targets[i].Raycast(ray, out hit, 4)
                     : mouse != null && RectTransformUtility.RectangleContainsScreenPoint(buttons[i].rectTransform, mouse.position.ReadValue()));
                 buttons[i].color = !enabled ? new Color(.17f, .12f, .24f) : hovered ? new Color(.23f, .39f, .46f)
                     : i < 2 ? new Color(.19f, .25f, .36f) : new Color(.20f, .13f, .33f);
                 labels[i].color = enabled ? (i == 0 ? Mint : Color.white) : new Color(.69f, .65f, .76f);
-                if (hovered && (wasVr ? session.MenuSelectPressed : mouse.leftButton.wasPressedThisFrame))
+                if(hovered&&wasVr)
                 {
+                    var plane=new Plane(canvas.transform.forward,canvas.transform.position);
+                    Vector3 point=plane.Raycast(ray,out float distance)?ray.GetPoint(distance):hit.point;
+                    MenuAim.Present(resultsReticle,point,true,true);
+                    MenuAim.PresentBeam(ref resultsBeam,transform,ray,point-ray.direction*.006f,true,true);
+                }
+                if (hovered && (wasVr ? pressed : mouse.leftButton.wasPressedThisFrame))
+                {
+                    if(wasVr)MenuAim.Consume();
                     Act(i);
                     break;
                 }
@@ -349,7 +386,7 @@ namespace DeadlyJenga.Presentation
             return label;
         }
 
-        void OnDisable() { visible = false; podium?.Hide(); if (canvas) canvas.gameObject.SetActive(false); }
-        void OnDestroy() { podium?.Dispose(); if (canvas) Destroy(canvas.gameObject); }
+        void OnDisable() { selectLeft.Disable();selectRight.Disable();if(resultsBeam)resultsBeam.enabled=false;visible = false; podium?.Hide(); if (canvas) canvas.gameObject.SetActive(false); }
+        void OnDestroy() { selectLeft.Dispose();selectRight.Dispose();podium?.Dispose(); if (canvas) Destroy(canvas.gameObject); }
     }
 }

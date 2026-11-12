@@ -1,6 +1,8 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
+using UnityEngine.XR;
+using System.Collections.Generic;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -28,7 +30,63 @@ namespace DeadlyJenga.CastlePrototype
         [Range(0,1)] public float jumpFistPress=.7f,jumpFistRelease=.5f;
         bool jumpArmed,gestureHeld,previousJumpHeld;
         bool vrInputFocused=true;
-        void OnApplicationFocus(bool focused){vrInputFocused=focused;if(!focused){ClearSprint();ResetVRJump();}}
+        Transform headPitchPivot;
+        readonly List<XRInputSubsystem> trackingSystems=new();
+        readonly List<XRInputSubsystem> observedTrackingSystems=new();
+        float nextTrackingScan;
+        bool trackingRebase;
+        float rebaseUntil;
+
+        void OnApplicationFocus(bool focused)
+        {
+            vrInputFocused=focused;
+            ClearSprint();
+            ResetVRJump();
+            if(focused&&IsVR)RequestTrackingRebase();
+        }
+        void RequestTrackingRebase()
+        {
+            trackingRebase=true;
+            rebaseUntil=Time.unscaledTime+.18f;
+            ResetVRLook();
+        }
+        void TrackingOriginChanged(XRInputSubsystem subsystem)=>RequestTrackingRebase();
+        void ReleaseTrackingSystems()
+        {
+            foreach(var system in observedTrackingSystems)system.trackingOriginUpdated-=TrackingOriginChanged;
+            observedTrackingSystems.Clear();
+            nextTrackingScan=0;
+        }
+        void ObserveTrackingOrigin()
+        {
+            if(Time.unscaledTime<nextTrackingScan)return;
+            nextTrackingScan=Time.unscaledTime+1;
+            SubsystemManager.GetSubsystems(trackingSystems);
+            foreach(var system in trackingSystems)
+            {
+                if(!system.running||observedTrackingSystems.Contains(system))continue;
+                system.trackingOriginUpdated+=TrackingOriginChanged;
+                observedTrackingSystems.Add(system);
+            }
+        }
+        void EnsureHeadPitchPivot()
+        {
+            if(headPitchPivot||!viewCamera)return;
+            var eye=viewCamera.transform;
+            headPitchPivot=new GameObject("Head-only joystick pitch").transform;
+            headPitchPivot.SetParent(eye.parent,false);
+            eye.SetParent(headPitchPivot,false);
+        }
+
+        internal Vector3 SafeAvatarHead(Vector3 position)
+        {
+            if(!IsVR||externallyDriven)return position;
+            var local=transform.InverseTransformPoint(position);
+            float height=eyeHeight*playerScale;
+            if(!vrInputFocused||trackingRebase||!float.IsFinite(local.y)||local.y<-.15f*playerScale||local.y>2.55f*playerScale)
+                local.y=height;
+            return transform.TransformPoint(local);
+        }
         public void CycleJumpGesture(){jumpGesture=jumpGesture==SurvivorJumpGesture.IndexPinch?SurvivorJumpGesture.Fist:SurvivorJumpGesture.IndexPinch;ResetVRJump();}
         bool calibrateSeated;
         float seatedHeightOffset,vrLookPitch;
@@ -41,9 +99,13 @@ namespace DeadlyJenga.CastlePrototype
         {
             get
             {
-                var basis=IsVR&&!externallyDriven&&vrMovement==SurvivorVRMovement.BodyRelative?transform:viewCamera.transform;
-                Vector3 forward=Vector3.ProjectOnPlane(basis.forward,Vector3.up);
-                return forward.sqrMagnitude>.001f?forward.normalized:Vector3.ProjectOnPlane(transform.forward,Vector3.up).normalized;
+                bool vr=IsVR&&!externallyDriven;
+                Vector3 direction=vr&&(vrMovement==SurvivorVRMovement.BodyRelative||!vrInputFocused||trackingRebase)
+                    ?transform.forward
+                    :vr&&headPitchPivot?headPitchPivot.parent.TransformDirection(viewCamera.transform.localRotation*Vector3.forward)
+                    :viewCamera.transform.forward;
+                Vector3 forward=Vector3.ProjectOnPlane(direction,Vector3.up);
+                return forward.sqrMagnitude>.025f?forward.normalized:Vector3.ProjectOnPlane(transform.forward,Vector3.up).normalized;
             }
         }
         // Input-only and center-eye backends both work. PassThrough avoids value-action
@@ -73,23 +135,20 @@ namespace DeadlyJenga.CastlePrototype
                 angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,360)*Mathf.Max(0,dt);
             if(angle!=0)transform.RotateAround(viewCamera.transform.position,Vector3.up,angle);
         }
-        Vector3 vrPitchAxis;
         public void ApplyVRLook(Vector2 stick,float dt)
         {
             if (PlayerPrefs.GetInt("SurvivorVR.InvertLookX") != 0) stick.x = -stick.x;
             if (PlayerPrefs.GetInt("SurvivorVR.InvertLookY") != 0) stick.y = -stick.y;
             ApplyVRTurn(stick.x,dt);
-            if(!IsVR||externallyDriven||InputSuspended||!cameraOffset||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
+            if(!IsVR||externallyDriven||InputSuspended||trackingRebase||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
             float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
             float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*Mathf.Clamp(vrSmoothDegreesPerSecond*.65f,65,220)*dt,-65,80);
-            if (next != vrLookPitch)
+            if(next!=vrLookPitch)
             {
-                var flatRight = Vector3.ProjectOnPlane(viewCamera.transform.right, Vector3.up);
-                if (flatRight.sqrMagnitude < .01f) flatRight = transform.right;
-                if (vrLookPitch != 0)
-                    cameraOffset.RotateAround(viewCamera.transform.position, transform.TransformDirection(vrPitchAxis), -vrLookPitch);
-                vrPitchAxis = transform.InverseTransformDirection(flatRight.normalized);
-                cameraOffset.RotateAround(viewCamera.transform.position, flatRight.normalized, next);
+                EnsureHeadPitchPivot();
+                ResetVRLook();
+                Vector3 right=Vector3.Cross(Vector3.up,MovementForward);
+                headPitchPivot.RotateAround(viewCamera.transform.position,right,next);
             }
             vrLookPitch=next;
         }
@@ -97,7 +156,7 @@ namespace DeadlyJenga.CastlePrototype
         public void UseStandingVR()=>SetVRPlayStyle(SurvivorVRPlayStyle.Standing);
         void ResetVRLook()
         {
-            if(cameraOffset&&viewCamera&&vrLookPitch!=0)cameraOffset.RotateAround(viewCamera.transform.position,transform.TransformDirection(vrPitchAxis),-vrLookPitch);
+            if(headPitchPivot)headPitchPivot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
             vrLookPitch=0;
         }
         public void SetVRPlayStyle(SurvivorVRPlayStyle style,bool remember=true)
@@ -115,10 +174,25 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(!IsVR||vrPlayStyle!=SurvivorVRPlayStyle.Seated||Climbing||Vaulting)return;
             float adjustment=eyeHeight*playerScale-transform.InverseTransformPoint(viewCamera.transform.position).y;
-            cameraOffset.localPosition+=Vector3.up*adjustment;seatedHeightOffset+=adjustment;calibrateSeated=false;
+            float previous=seatedHeightOffset;
+            seatedHeightOffset=Mathf.Clamp(previous+adjustment,-1.5f*playerScale,1.5f*playerScale);
+            cameraOffset.localPosition+=Vector3.up*(seatedHeightOffset-previous);
+            calibrateSeated=false;
         }
         void UpdateSeatedHeight()
         {
+            ObserveTrackingOrigin();
+            if(!vrInputFocused)return;
+            if(trackingRebase)
+            {
+                if(Time.unscaledTime<rebaseUntil)return;
+                var origin=GetComponent<Unity.XR.CoreUtils.XROrigin>();
+                bool floor=origin&&origin.CurrentTrackingOriginMode==TrackingOriginModeFlags.Floor;
+                cameraOffset.localPosition=Vector3.up*(floor?0:eyeHeight*playerScale);
+                seatedHeightOffset=0;
+                calibrateSeated=vrPlayStyle==SurvivorVRPlayStyle.Seated;
+                trackingRebase=false;
+            }
             if(calibrateSeated&&viewCamera.transform.localPosition.y>.3f)CalibrateSeatedHeight();
         }
         public Vector2 FilterVRMove(Vector2 stick)

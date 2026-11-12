@@ -51,7 +51,7 @@ namespace DeadlyJenga.Modes
             if(planned)
             {
                 if(elapsed<readyAt)return false;
-                if(active>=cap){if(!launchCadence)readyAt=elapsed+2;return false;}
+                if(active>=cap){readyAt=elapsed+.35f;return false;}
                 string id=Pending;planned=false;Pending="";
                 bool started=launch(id);
                 next=elapsed+(started?Interval(rules,elapsed)-(launchCadence?WarningLead(rules):0):10);
@@ -61,7 +61,7 @@ namespace DeadlyJenga.Modes
             Pending=choose()??"";
             if(Pending.Length==0){next=elapsed+10;return false;}
             // Activation cadence includes the warning and can warn before the previous hazard ends.
-            readyAt=(launchCadence?next:elapsed)+WarningLead(rules);planned=true;return false;
+            readyAt=elapsed+WarningLead(rules);planned=true;return false;
         }
     }
 }

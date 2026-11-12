@@ -86,6 +86,7 @@ namespace DeadlyJenga.World.Hazards
         protected override void BeginHazard(IWorldQuery map,Bounds bounds,float intensity,float seconds)
         {
             EnsureValues();world=map;area=bounds;strength=intensity;age=nextTick=0;started=false;cached=null;capturedAt=-1;
+            earthquakeCursor=earthquakeWakeCount=0;earthquakeFrame=-1;iceRevision=iceBlockCount=-1;
             if(Kind=="Tornado"){tornadoCursor=0;tornadoBudgetFrame=-1;tornadoPushAt.Clear();BeginTornadoRoute();}
             DisasterStates.Active.Add(this);
             if(Kind=="Vampire")GameEvents.Eliminated+=ResetSunlight;
@@ -331,34 +332,53 @@ namespace DeadlyJenga.World.Hazards
             TornadoCenter = next;
             tornadoPower = Mathf.SmoothStep(0f, 1f, progress / .12f) * (1f - departure);
         }
+        int earthquakeCursor,earthquakeWakeCount,earthquakeFrame=-1;
         void TickEarthquake(float dt)
         {
             float phase=(age-V("warning"))*V("frequency")*Mathf.PI*2;
             var impulse=new Vector3(Mathf.Sin(phase),Mathf.Sin(phase*1.31f)*V("vertical"),Mathf.Cos(phase*.83f))*V("force")*dt;
-            foreach(var b in world.Blocks)
+            var blocks=world.Blocks;
+            int count=blocks.Count;
+            if(count==0)return;
+            if(earthquakeFrame!=Time.frameCount){earthquakeFrame=Time.frameCount;earthquakeWakeCount=0;}
+            int start=earthquakeCursor%count;
+            int nextWake=start;
+            int wakeLimit=Application.isMobilePlatform?18:int.MaxValue;
+            var velocity=impulse*strength;
+            var torque=new Vector3(impulse.z,0,-impulse.x)*.08f;
+            for(int i=0;i<count;i++)
             {
-                if(!b||!b.gameObject.activeInHierarchy)continue;
-                if(b.isKinematic)
+                int index=(start+i)%count;
+                var body=blocks[index];
+                if(!body||!body.gameObject.activeInHierarchy)continue;
+                bool wake=body.isKinematic||body.IsSleeping();
+                if(wake&&earthquakeWakeCount>=wakeLimit)continue;
+                if(body.isKinematic)
                 {
-                    if(b.TryGetComponent<IHazardMotion>(out _)&&b.TryGetComponent<IPushable>(out var held))
-                        held.Push(impulse*strength,gameObject);
-                    continue;
+                    if(!body.TryGetComponent<IHazardMotion>(out _)||!body.TryGetComponent<IPushable>(out var held))continue;
+                    held.Push(velocity,gameObject);
                 }
-                b.AddForce(impulse*strength,ForceMode.VelocityChange);
-                b.AddTorque(new Vector3(impulse.z,0,-impulse.x)*.08f,ForceMode.VelocityChange);
+                else
+                {
+                    body.AddForce(velocity,ForceMode.VelocityChange);
+                    body.AddTorque(torque,ForceMode.VelocityChange);
+                }
+                if(wake){earthquakeWakeCount++;nextWake=index+1;}
             }
+            earthquakeCursor=nextWake;
             // Shaking the support already moves riders. A combat impulse here repeatedly broke traversal.
         }
         void TickRain(float dt)=>AffectPlayers(Vector3.zero,V("damage")*dt,true);
         void TickGravity(float dt)
         {
             float scale=Mathf.Clamp(V("gravity"),.05f,1);
+            float fallSpeed=V("fallSpeed");
             foreach(var b in world.Blocks)if(b&&!b.isKinematic&&b.useGravity&&!b.IsSleeping())
             {
                 // Cancel only part of natural gravity, every physics step. Never add lift.
                 b.AddForce(-Physics.gravity*(1-scale),ForceMode.Acceleration);
                 var velocity=b.linearVelocity;
-                if(velocity.y < -V("fallSpeed")){velocity.y=-V("fallSpeed");b.linearVelocity=velocity;}
+                if(velocity.y < -fallSpeed){velocity.y=-fallSpeed;b.linearVelocity=velocity;}
             }
         }
         void AffectPlayers(Vector3 impulse,float damage,bool sheltered)
@@ -366,8 +386,12 @@ namespace DeadlyJenga.World.Hazards
             int n=Physics.OverlapBoxNonAlloc(area.center,area.extents+Vector3.one*5,hits,Quaternion.identity,1<<Layers.Survivor,QueryTriggerInteraction.Collide);receivers.Clear();
             for(int i=0;i<n;i++)if(!sheltered||!world.IsSheltered(hits[i].bounds.center))Affect(hits[i],impulse,damage);
         }
+        int iceRevision=-1,iceBlockCount=-1;
         void ApplyIce()
         {
+            int revision=world is ISyncedWorld synced?synced.Revision:0;
+            if(iceRevision==revision&&iceBlockCount==world.Blocks.Count)return;
+            iceRevision=revision;iceBlockCount=world.Blocks.Count;
             if(!ice)ice=new PhysicsMaterial("Disaster ice (temporary)"){staticFriction=Mathf.Lerp(.04f,.005f,V("slip")),dynamicFriction=Mathf.Lerp(.02f,.002f,V("slip")),frictionCombine=PhysicsMaterialCombine.Minimum};
             foreach(var body in world.Blocks)if(body)MakeSlippery(body.GetComponent<Collider>());
             int n;

@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using DeadlyJenga.Core;
 using UnityEngine;
 using UnityEngine.Rendering;
-using UnityEngine.UI;
 
 namespace DeadlyJenga.Presentation
 {
@@ -12,7 +11,10 @@ namespace DeadlyJenga.Presentation
         readonly List<CandySummoningColumn> columns=new List<CandySummoningColumn>();
         readonly HashSet<int> targets=new HashSet<int>();
         float nextBotRefresh;
-        Canvas canvas; Image curtain; Mesh columnMesh; Material columnMaterial;
+        MeshRenderer curtain;
+        Mesh columnMesh, curtainMesh;
+        Material columnMaterial, curtainMaterial;
+        static readonly int CurtainColor=Shader.PropertyToID("_BaseColor");
         float started,duration,finishedAt,finishFrom,fade,arrivalFade;
         Camera curtainCamera;
         bool curtainStereo;
@@ -31,13 +33,13 @@ namespace DeadlyJenga.Presentation
             bool visualOnly=cue=="PlayerArrival";
             if(visualOnly&&current)
             {
-                if(current.arrival&&!current.finishing&&current.targets.Contains(who.transform.GetInstanceID()))return;
-                current.visualArrival=true;current.StartArrival();return;
+                if(!current.visualArrival&&current.finishing)current.queuedVisualArrival=who;
+                return;
             }
             if(!current)
             {
                 var go=new GameObject("Visual - player arrival beacon");DontDestroyOnLoad(go);current=go.AddComponent<CandySessionTravel>();
-                current.arrival=true;current.visualArrival=visualOnly;current.duration=visualOnly?1.2f:3;current.started=Time.unscaledTime;current.Build();
+                current.arrival=true;current.visualArrival=visualOnly;current.arrivalFade=visualOnly?0:1;current.duration=visualOnly?1.2f:3;current.started=Time.unscaledTime;current.Build();
             }
             else{current.visualArrival=visualOnly;current.StartArrival();}
         }
@@ -59,10 +61,11 @@ namespace DeadlyJenga.Presentation
         {
             if(!curtain)return;
             var session=Services.Session;
-            curtain.enabled=fade>.001f&&session?.IsVR==true&&session.ActiveCamera==camera;
-            if(!curtain.enabled)return;
+            bool active=fade>.001f&&session?.IsVR==true&&session.ActiveCamera==camera;
+            curtain.forceRenderingOff=!active;
+            if(!active)return;
 
-            var plane=(RectTransform)canvas.transform;
+            var plane=curtain.transform;
             plane.SetPositionAndRotation(camera.transform.position,camera.transform.rotation);
             float depth=camera.nearClipPlane+.08f;
             plane.position+=camera.transform.forward*depth;
@@ -83,8 +86,7 @@ namespace DeadlyJenga.Presentation
                         extent=Vector2.Max(extent,new Vector2(Mathf.Abs(local.x),Mathf.Abs(local.y)));
                     }
                 }
-                plane.sizeDelta=extent*2.16f+Vector2.one*.01f;
-                canvas.worldCamera=camera;
+                plane.localScale=new Vector3(extent.x*2.22f+.02f,extent.y*2.22f+.02f,1);
             }
         }
         void Emoted(GameObject who,string emote)
@@ -112,12 +114,23 @@ namespace DeadlyJenga.Presentation
                     AddTarget(behaviour.transform,targets);
                 }
             }
-            var go=new GameObject("Soft white arrival fade",typeof(RectTransform),typeof(Canvas));
-            go.transform.SetParent(transform,false);canvas=go.GetComponent<Canvas>();
-            canvas.renderMode=RenderMode.WorldSpace;canvas.sortingOrder=2000;
-            var image=new GameObject("White fade",typeof(RectTransform),typeof(Image));image.transform.SetParent(go.transform,false);
-            curtain=image.GetComponent<Image>();curtain.raycastTarget=false;
-            var rect=curtain.rectTransform;rect.anchorMin=Vector2.zero;rect.anchorMax=Vector2.one;rect.offsetMin=rect.offsetMax=Vector2.zero;
+            var overlay=Resources.Load<Shader>("CandyScenery/CandyHeadsetOverlay");
+            if(overlay)
+            {
+                var go=new GameObject("Stereo white arrival fade",typeof(MeshFilter),typeof(MeshRenderer));
+                go.transform.SetParent(transform,false);
+                curtainMesh=new Mesh{name="Travel fade quad"};
+                curtainMesh.vertices=new[]{new Vector3(-.5f,-.5f,0),new Vector3(.5f,-.5f,0),new Vector3(-.5f,.5f,0),new Vector3(.5f,.5f,0)};
+                curtainMesh.triangles=new[]{0,2,1,1,2,3};
+                go.GetComponent<MeshFilter>().sharedMesh=curtainMesh;
+                curtain=go.GetComponent<MeshRenderer>();
+                curtainMaterial=new Material(overlay){renderQueue=4999};
+                curtain.sharedMaterial=curtainMaterial;
+                curtain.shadowCastingMode=ShadowCastingMode.Off;
+                curtain.receiveShadows=false;
+                curtain.allowOcclusionWhenDynamic=false;
+                curtain.forceRenderingOff=true;
+            }
             AddBots();Render();
         }
         float ArrivalHeight()
@@ -130,7 +143,7 @@ namespace DeadlyJenga.Presentation
             foreach(var column in columns)if(column){column.SetVisible(false);column.gameObject.SetActive(false);Destroy(column.gameObject);}columns.Clear();
             if(columnMesh)Destroy(columnMesh);
             queuedVisualArrival=null;replayQueuedArrival=false;
-            arrivalFade=visualArrival?0:fade;
+            arrivalFade=visualArrival?0:Mathf.Max(fade,.97f);
             arrival=true;finishing=false;started=arrivalTick=Time.unscaledTime;arrivalTime=0;duration=visualArrival?1.2f:3;columnHeight=ArrivalHeight();
             columnMesh=CandySummoningColumn.CreateMesh(columnHeight);
             if(columnMaterial)
@@ -175,7 +188,7 @@ namespace DeadlyJenga.Presentation
             {nextBotRefresh=Time.unscaledTime+.1f;AddBots();}
             if(arrival&&!finishing){float now=Time.unscaledTime;arrivalTime=visualArrival?now-started:arrivalTime+Mathf.Clamp(now-arrivalTick,0,.05f);arrivalTick=now;}
             if(visualArrival&&arrival&&!finishing&&arrivalTime>=duration)Finish(false);
-            if(!finishing&&(arrival?arrivalTime:Time.unscaledTime-started)>duration+20)Finish(false);
+            if(!finishing&&Time.unscaledTime-started>duration+8)Finish(false);
             Render();if(finishing&&Time.unscaledTime-finishedAt>.65f){replayQueuedArrival=true;Destroy(gameObject);}
         }
         void Render()
@@ -183,7 +196,7 @@ namespace DeadlyJenga.Presentation
             float elapsed=arrival?arrivalTime:Time.unscaledTime-started,p=Mathf.Clamp01(elapsed/Mathf.Max(.3f,duration));
             float end=finishing?Mathf.Clamp01((Time.unscaledTime-finishedAt)/.6f):0;
             if(finishing)fade=finishFrom*(1-Mathf.SmoothStep(0,1,end));
-            else if(arrival)fade=arrivalFade*(1-Mathf.SmoothStep(0,1,elapsed/.48f));
+            else if(arrival)fade=arrivalFade*(1-Mathf.SmoothStep(0,1,Mathf.Max(0,elapsed-.16f)/.44f));
             else fade=Mathf.SmoothStep(0,1,Mathf.InverseLerp(Mathf.Max(0,duration-.36f),duration-.055f,elapsed));
             float strength=finishing?1-Mathf.SmoothStep(0,1,Mathf.Clamp01((Time.unscaledTime-finishedAt)/.35f)):arrival?1:Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.12f,p));
             var session = Services.Session;
@@ -197,13 +210,12 @@ namespace DeadlyJenga.Presentation
             }
             if(curtain)
             {
-                curtain.color=new Color(.985f,.99f,1,fade);
-                curtain.enabled=false;
+                curtainMaterial.SetColor(CurtainColor,new Color(.985f,.99f,1,fade));
             }
         }
         void OnGUI()
         {
-            if(!curtain||(Services.Session?.IsVR??false)||fade<=0)return;
+            if((Services.Session?.IsVR??false)||fade<=0)return;
             GUI.depth=-10000;if(Event.current.type!=EventType.Repaint)return;
             var matrix=GUI.matrix;var color=GUI.color;
             try{GUI.matrix=Matrix4x4.identity;GUI.color=new Color(.985f,.99f,1,fade);GUI.DrawTexture(new Rect(0,0,Screen.width,Screen.height),Texture2D.whiteTexture);}
@@ -214,6 +226,7 @@ namespace DeadlyJenga.Presentation
             GameEvents.Emoted-=Emoted;GameEvents.LobbyStarted-=Lobby;GameEvents.HomeStarted-=Lobby;
             RenderPipelineManager.beginCameraRendering-=ForCamera;
             if(columnMaterial)Destroy(columnMaterial);if(columnMesh)Destroy(columnMesh);
+            if(curtainMaterial)Destroy(curtainMaterial);if(curtainMesh)Destroy(curtainMesh);
             if(current==this)
             {
                 current=null;
