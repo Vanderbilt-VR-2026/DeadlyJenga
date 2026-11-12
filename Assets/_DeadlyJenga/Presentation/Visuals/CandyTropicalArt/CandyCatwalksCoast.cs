@@ -8,7 +8,13 @@ namespace DeadlyJenga.CandyArt
 {
     internal sealed class CandyCatwalksCoast : IDisposable
     {
-        static readonly Vector2[] ReefDirections = { new(.80f,.60f), new(.82f,-.57f), new(-.84f,-.54f) };
+        static readonly Vector2[] ReefDirections = { new(.80f,.60f), new(.82f,-.57f), new(-.84f,-.54f), new(-.48f,.88f) };
+        static readonly Vector4[] Islets =
+        {
+            new(93,48,8.7f,5.6f),
+            new(-104,67,13.6f,8.8f),
+            new(-54,-115,9.2f,6.3f)
+        };
         static readonly Vector3 SunEuler = new(42,49,0);
         internal static readonly Vector3 SunDirection = Quaternion.Euler(SunEuler)*Vector3.back;
         static readonly Color Sand = new(.87f,.66f,.36f);
@@ -61,8 +67,8 @@ namespace DeadlyJenga.CandyArt
                 reefs[i]=new Vector4(origin.x+center.x,origin.z+center.y,13f,9f);
                 BuildReef(i,center,terrain,random,i<schools.Length);
             }
-            BuildIslet(random);
-            BuildHorizon();
+            for(int i=0;i<Islets.Length;i++) BuildIslet(i,random);
+            BuildHorizon(random);
             BuildRay();
         }
 
@@ -82,8 +88,16 @@ namespace DeadlyJenga.CandyArt
             properties.SetVector("_ReefA",reefs[0]);
             properties.SetVector("_ReefB",reefs[1]);
             properties.SetVector("_ReefC",reefs[2]);
-            Vector3 islet=root.transform.position+new Vector3(93,0,48);
-            properties.SetVector("_CoastIslet",new Vector4(islet.x,islet.z,8.7f,5.6f));
+            properties.SetVector("_ReefD",reefs[3]);
+            properties.SetVector("_CoastIslet",WorldIslet(0));
+            properties.SetVector("_CoastIsletB",WorldIslet(1));
+            properties.SetVector("_CoastIsletC",WorldIslet(2));
+        }
+
+        Vector4 WorldIslet(int index)
+        {
+            Vector4 island=Islets[index];
+            return new Vector4(root.transform.position.x+island.x,root.transform.position.z+island.y,island.z,island.w);
         }
 
         internal Material DaySky(Material source)
@@ -122,7 +136,7 @@ namespace DeadlyJenga.CandyArt
         void BuildReef(int index, Vector2 center, CandySandbar terrain, System.Random random, bool hasSchool)
         {
             var garden=new ArtMesh();
-            for (int patch=0;patch<4;patch++)
+            for (int patch=0;patch<5;patch++)
             {
                 float angle=(patch*83+index*29)*Mathf.Deg2Rad;
                 float radius=patch==0?.17f:.36f+patch*.07f;
@@ -134,27 +148,31 @@ namespace DeadlyJenga.CandyArt
                 garden.Stone(position,new Vector3(1.2f,.43f,.92f)*scale,Rock,patch*.6f);
                 garden.Stone(position+new Vector3(-.62f,.12f,.48f)*scale,new Vector3(.64f,.32f,.55f)*scale,Rock*.83f,patch*.88f+.6f);
                 garden.Stone(position+new Vector3(.71f,.02f,-.28f)*scale,new Vector3(.66f,.31f,.55f)*scale,Rock*.77f,patch*.55f-.8f);
-                for (int stem=0;stem<5;stem++)
+                int stems=patch==0?8:5;
+                for (int stem=0;stem<stems;stem++)
                 {
                     float stemAngle=stem*2.4f;
-                    var foot=position+new Vector3(Mathf.Cos(stemAngle)*.42f,.25f,Mathf.Sin(stemAngle)*.31f)*scale;
+                    float spread=stem<4?.41f:.65f;
+                    var foot=position+new Vector3(Mathf.Cos(stemAngle)*spread,.23f,Mathf.Sin(stemAngle)*spread)*scale;
                     var up=new Vector3(Mathf.Cos(stemAngle)*.26f,1,Mathf.Sin(stemAngle)*.22f);
                     Color tint=Color.Lerp(Coral[0],new Color(1f,.42f,.45f),Range(random,.02f,.67f));
-                    Branch(garden,foot,up,scale*Range(random,.40f,.69f),.087f*scale,tint,3,random);
+                    Branch(garden,foot,up,scale*Range(random,.40f,.69f),.080f*scale,tint,stem<3&&patch==0?4:3,random);
                 }
-                for (int fan=0;fan<4;fan++)
+                for (int fan=0;fan<7;fan++)
                 {
-                    var foot=position+new Vector3(.3f+fan*.14f,.12f,-.42f+fan*.12f)*scale;
-                    garden.Cup(foot,Range(random,.17f,.32f)*scale,Range(random,.22f,.46f)*scale,Coral[1],fan);
+                    float phi=fan*2.39996f;
+                    float spread=.34f*Mathf.Sqrt(fan/7f);
+                    var foot=position+new Vector3(.54f+Mathf.Cos(phi)*spread,.18f,-.46f+Mathf.Sin(phi)*spread)*scale;
+                    garden.Cup(foot,Range(random,.135f,.26f)*scale,Range(random,.27f,.52f)*scale,Coral[1],fan);
                 }
-                for (int pebble=0;pebble<18;pebble++)
+                for (int pebble=0;pebble<24;pebble++)
                 {
-                    float a=pebble*2.37f, spread=.35f*Mathf.Sqrt(pebble/18f);
+                    float a=pebble*2.37f, spread=.41f*Mathf.Sqrt(pebble/24f);
                     var foot=position+new Vector3(Mathf.Cos(a)*spread-.72f,.23f-spread*.35f,Mathf.Sin(a)*spread-.32f)*scale;
                     float size=Range(random,.077f,.142f)*scale;
                     garden.Ellipsoid(foot,new Vector3(size,size*1.37f,size),Coral[2]*Range(random,.74f,1.16f),8,4);
                 }
-                for (int blade=0;blade<11;blade++)
+                for (int blade=0;blade<17;blade++)
                 {
                     float a=blade*2.39f;
                     var foot=position+new Vector3(Mathf.Cos(a)*1.24f,-.02f,Mathf.Sin(a)*.85f)*scale;
@@ -210,36 +228,42 @@ namespace DeadlyJenga.CandyArt
             }
         }
 
-        void BuildIslet(System.Random random)
+        void BuildIslet(int index,System.Random random)
         {
+            Vector4 island=Islets[index];
             var mesh=new ArtMesh();
-            // The outer sand skirts meet the water gradually so the islet reads as a separate landmark.
-            Vector3 center=new(93,-.09f,48);
-            mesh.Ellipsoid(center,new Vector3(8.7f,1.19f,5.6f),Sand,30,8);
-            for(int i=0;i<8;i++)
+            Vector3 center=new(island.x,-.11f,island.y);
+            float height=index==1?3.4f:1.65f;
+            float seed=index*1.3f+1;
+            mesh.Land(center,new Vector2(island.z,island.w),height,seed,1,32);
+            Vector3 Ground(float x,float z)
             {
-                float angle=i*2.4f;
-                var foot=center+new Vector3(Mathf.Cos(angle)*Range(random,2,6),.85f,Mathf.Sin(angle)*Range(random,1.7f,3.5f));
-                mesh.Ellipsoid(foot,new Vector3(Range(random,.52f,1.45f),Range(random,.28f,1.16f),Range(random,.5f,1.15f)),Rock,9,5);
+                float y=ArtMesh.LandHeight(x/island.z,z/island.w,seed,1)*height;
+                return center+new Vector3(x,y-.055f,z);
             }
-            for(int i=0;i<12;i++)
+            int rocks=index==1?13:7;
+            for(int i=0;i<rocks;i++)
             {
-                float angle=i*2.39f;
-                Vector3 bush=center+new Vector3(Mathf.Cos(angle)*Range(random,1.7f,3.4f),1.08f,Mathf.Sin(angle)*Range(random,1.3f,2.7f));
-                mesh.Ellipsoid(bush,new Vector3(.49f,.34f,.51f)*Range(random,.6f,1.45f),Grass*Range(random,.72f,1.2f),9,5);
+                float angle=i*2.39996f;
+                Vector3 foot=Ground(Mathf.Cos(angle)*Range(random,.8f,island.z*.63f),
+                    Mathf.Sin(angle)*Range(random,.6f,island.w*.64f));
+                mesh.Stone(foot,new Vector3(Range(random,.46f,1.5f),Range(random,.30f,1.35f),Range(random,.41f,1.22f)),
+                    Rock*Range(random,.84f,1.18f),i*.64f);
             }
-            Palm(mesh,center+new Vector3(-1.7f,1.45f,.35f),5.8f,new Vector3(1.6f,0,.3f));
-            Palm(mesh,center+new Vector3(2.1f,1.2f,1.45f),3.65f,new Vector3(1.15f,0,-.48f));
-            Draw("Twin palm islet",mesh,0);
-            var foam=new ArtMesh();
-            for(int i=0;i<52;i++)
+            int palms=index==1?5:index==0?2:3;
+            for(int i=0;i<palms;i++)
             {
-                float a=i*2*Mathf.PI/52, b=(i+1)*2*Mathf.PI/52;
-                Vector3 Outer(float angle,float width) => new(center.x+Mathf.Cos(angle)*(8.7f+width),.04f,center.z+Mathf.Sin(angle)*(5.6f+width));
-                float band=.12f+.10f*Mathf.Sin(a*6);
-                foam.Quad(Outer(a,0),Outer(b,0),Outer(b,band),Outer(a,band),new Color(.80f,.96f,.88f));
+                float side=i%2==0?-1:1;
+                var foot=Ground(side*(1.55f+i*.57f),Mathf.Sin(i*2.4f)*island.w*.42f);
+                Palm(mesh,foot,Range(random,3.2f,5.8f),new Vector3(side*Range(random,.45f,1.6f),0,Range(random,-.4f,.65f)));
             }
-            Draw("Palm islet surf line",foam,0);
+            for(int i=0;i<18;i++)
+            {
+                float angle=i*2.39996f, spread=Range(random,.16f,.66f);
+                var foot=Ground(Mathf.Cos(angle)*island.z*spread,Mathf.Sin(angle)*island.w*spread);
+                mesh.Ellipsoid(foot,new Vector3(.54f,.34f,.52f)*Range(random,.65f,1.35f),Grass*Range(random,.70f,1.2f),8,4);
+            }
+            Draw("Palm and rock islet "+(index+1),mesh,0);
         }
 
         static void Palm(ArtMesh mesh,Vector3 foot,float height,Vector3 bend)
@@ -262,26 +286,52 @@ namespace DeadlyJenga.CandyArt
             }
         }
 
-        void BuildHorizon()
+        void BuildHorizon(System.Random random)
         {
-            var artwork=Resources.Load<Texture2D>("CandyScenery/CatwalksHorizon");
-            if(!artwork) return;
-            material.SetTexture("_CoastHorizon",artwork);
-            var strip=new ArtMesh();
-            const int spans=28;
-            for(int i=0;i<=spans;i++)
+            // Every bearing gets its own coastline and relief rather than a view-facing sprite.
+            AddLand("Lighthouse coast",35,415,new Vector2(136,59),31,1.3f,3,true,random);
+            AddLand("Outer northeast ridge",88,535,new Vector2(142,71),29,6.2f,3,false,random);
+            AddLand("Twin limestone headlands",143,406,new Vector2(95,54),41,4.7f,2,false,random);
+            AddLand("Western green ridge",194,498,new Vector2(157,65),34,8.6f,4,false,random);
+            AddLand("Southwest wooded islands",242,415,new Vector2(118,57),26,2.4f,3,false,random);
+            AddLand("Southern rock stack",287,362,new Vector2(62,46),41,5.4f,2,false,random);
+            AddLand("Southeast volcanic shore",331,493,new Vector2(145,72),38,7.8f,3,false,random);
+        }
+
+        void AddLand(string name,float bearing,float distance,Vector2 size,float height,float seed,int peaks,
+            bool lighthouse,System.Random random)
+        {
+            float angle=bearing*Mathf.Deg2Rad;
+            Vector3 center=new(Mathf.Cos(angle)*distance,-1.35f,Mathf.Sin(angle)*distance);
+            Vector3 inland=new(Mathf.Cos(angle),0,Mathf.Sin(angle));
+            var mesh=new ArtMesh();
+            Vector3 side=Vector3.Cross(Vector3.up,inland);
+            float ridgeOffset=seed%2<1?-1:1;
+            Vector3 outerRidge=center+inland*61+side*(size.x*.34f*ridgeOffset);
+            mesh.Land(outerRidge,new Vector2(size.x*.67f,size.y*.87f),height*1.15f,seed+2.7f,3,28,inland);
+            mesh.Land(center,size,height,seed,peaks,46,inland);
+            const int canopySamples=236;
+            for(int i=0;i<canopySamples;i++)
             {
-                float t=i/(float)spans;
-                float bearing=Mathf.Lerp(135,-37,t)*Mathf.Deg2Rad;
-                Vector3 point=new(Mathf.Cos(bearing)*415,-.95f,Mathf.Sin(bearing)*415);
-                strip.Point(point,Color.white,new Vector2(t,.24f));
-                strip.Point(point+Vector3.up*42,Color.white,new Vector2(t,.52f));
-                if(i==0) continue;
-                int a=(i-1)*2;
-                strip.Triangle(a,a+1,a+2);
-                strip.Triangle(a+1,a+3,a+2);
+                float azimuth=i*2.39996f, radius=.78f*Mathf.Sqrt((i+.5f)/canopySamples);
+                float x=Mathf.Cos(azimuth)*radius,z=Mathf.Sin(azimuth)*radius;
+                float ground=ArtMesh.LandHeight(x,z,seed,peaks)*height;
+                if(ground<2.6f||Mathf.PerlinNoise(x*5+seed,z*4.3f+9)<.34f) continue;
+                float canopy=Range(random,2.1f,5.2f);
+                Vector3 point=center+side*(x*size.x)+inland*(z*size.y)+Vector3.up*(ground-canopy*.26f);
+                Color foliage=Color.Lerp(new Color(.025f,.12f,.052f),new Color(.15f,.32f,.069f),Range(random,0,1));
+                mesh.Ellipsoid(point,new Vector3(canopy,canopy*.71f,canopy*.95f),foliage,6,3);
             }
-            Draw("Painted distant island chain and lighthouse",strip,2);
+            if(lighthouse)
+            {
+                const float x=.55f,z=-.29f;
+                float baseHeight=ArtMesh.LandHeight(x,z,seed,peaks)*height;
+                Vector3 foot=center+side*(x*size.x)+inland*(z*size.y)+Vector3.up*(baseHeight-.35f);
+                mesh.Tube(foot,foot+Vector3.up*12,3.1f,2.2f,new Color(.92f,.86f,.72f),12);
+                mesh.Tube(foot+Vector3.up*12,foot+Vector3.up*15,2.6f,2.6f,new Color(.32f,.51f,.60f),12);
+                mesh.Tube(foot+Vector3.up*15,foot+Vector3.up*18,3.65f,.06f,new Color(.83f,.21f,.13f),12);
+            }
+            Draw(name,mesh,2);
         }
 
         void BuildRay()
@@ -370,6 +420,72 @@ namespace DeadlyJenga.CandyArt
                 }
                 Grid(start,segments,rings);
             }
+            internal static float LandHeight(float x,float z,float seed,int peaks)
+            {
+                float coast=Mathf.Sqrt(x*x+z*z);
+                if(peaks>1)
+                    coast+=(Mathf.PerlinNoise(x*3.9f+seed,z*5.2f+5)-.5f)*.17f;
+                float shore=1-Mathf.SmoothStep(0,1,Mathf.InverseLerp(.56f,.98f,coast));
+                float profile=0;
+                for(int i=0;i<peaks;i++)
+                {
+                    float offset=peaks==1?0:Mathf.Lerp(-.51f,.51f,i/(float)(peaks-1));
+                    float side=Mathf.Sin(seed*2.14f+i*1.7f)*.22f;
+                    float dx=(x-offset)*(2.35f+i*.12f),dz=(z-side)*(2.25f-i*.10f);
+                    float peak=Mathf.Exp(-(dx*dx+dz*dz))*(.65f+.32f*Mathf.Sin(seed+i*1.72f)*.5f+.16f);
+                    profile=Mathf.Max(profile,peak);
+                }
+                float folds=Mathf.PerlinNoise(x*6.1f+seed*2,z*6.8f+11.2f)-.5f;
+                float strata=Mathf.Sin(x*24+z*13+folds*2)*.048f;
+                float terrain=profile*.92f+folds*.20f+strata+.105f;
+                if(peaks>1)
+                {
+                    float ridge=1-Mathf.Abs(Mathf.PerlinNoise(x*8.2f+seed,z*9.1f+5)*2-1);
+                    float cliff=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.43f,.72f,terrain));
+                    terrain+=cliff*(ridge*ridge*.19f+Mathf.Sin(terrain*32)*.027f);
+                }
+                return Mathf.Max(0,terrain)*shore;
+            }
+
+            public void Land(Vector3 center,Vector2 radii,float height,float seed,int peaks,int resolution,
+                Vector3 inland=default)
+            {
+                if(inland==Vector3.zero) inland=Vector3.forward;
+                Vector3 side=Vector3.Cross(Vector3.up,inland);
+                int first=vertices.Count, stride=resolution+1;
+                for(int row=0;row<=resolution;row++)
+                for(int column=0;column<=resolution;column++)
+                {
+                    float x=column*2f/resolution-1,z=row*2f/resolution-1;
+                    float y=LandHeight(x,z,seed,peaks)*height;
+                    float slopeX=(LandHeight(x+.012f,z,seed,peaks)-LandHeight(x-.012f,z,seed,peaks))*height/(.024f*radii.x);
+                    float slopeZ=(LandHeight(x,z+.012f,seed,peaks)-LandHeight(x,z-.012f,seed,peaks))*height/(.024f*radii.y);
+                    float steep=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.40f,1.09f,Mathf.Sqrt(slopeX*slopeX+slopeZ*slopeZ)));
+                    float patch=Mathf.PerlinNoise(x*13+seed,z*11+7);
+                    Color canopy=Color.Lerp(new Color(.12f,.32f,.10f),new Color(.48f,.62f,.18f),patch);
+                    Color cliff=Color.Lerp(new Color(.43f,.32f,.27f),new Color(.82f,.62f,.42f),patch);
+                    Color earth=Color.Lerp(canopy,cliff,steep);
+                    Color tint=Color.Lerp(Sand,earth,Mathf.SmoothStep(0,1,Mathf.InverseLerp(.22f,height*.29f,y)));
+                    if(peaks>1)
+                    {
+                        canopy=Color.Lerp(new Color(.038f,.12f,.039f),new Color(.16f,.35f,.073f),patch);
+                        cliff=Color.Lerp(new Color(.16f,.099f,.069f),new Color(.43f,.255f,.14f),patch);
+                        float exposure=steep*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.23f,.62f,patch));
+                        earth=Color.Lerp(canopy,cliff,exposure);
+                        tint=Color.Lerp(new Color(.48f,.31f,.15f),earth,
+                            Mathf.SmoothStep(0,1,Mathf.InverseLerp(1.2f,4.2f,y)));
+                    }
+                    Point(center+side*(x*radii.x)+inland*(z*radii.y)+Vector3.up*y,tint,Vector2.zero);
+                }
+                for(int row=0;row<resolution;row++)
+                for(int column=0;column<resolution;column++)
+                {
+                    int a=first+row*stride+column;
+                    Triangle(a,a+stride,a+1);
+                    Triangle(a+1,a+stride,a+stride+1);
+                }
+            }
+
             public void Stone(Vector3 center,Vector3 scale,Color color,float seed)
             {
                 const int segments=16, rings=9;

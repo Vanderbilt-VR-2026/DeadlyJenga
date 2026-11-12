@@ -6,7 +6,6 @@ Shader "Candy Tropical/Catwalks Coast"
         [HideInInspector] _CoastWater("Water elevation",Float)=0
         [HideInInspector] _CoastMotion("Swim motion",Float)=0
         [NoScaleOffset] _CoastCaustics("Refracted sunlight",2D)="black"{}
-        [NoScaleOffset] _CoastHorizon("Horizon artwork",2D)="white"{}
     }
     SubShader
     {
@@ -23,7 +22,6 @@ Shader "Candy Tropical/Catwalks Coast"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "CandyCoastCaustics.hlsl"
-            TEXTURE2D(_CoastHorizon);SAMPLER(sampler_CoastHorizon);
             CBUFFER_START(UnityPerMaterial)
             float _CoastStyle,_CoastWater,_CoastMotion;
             CBUFFER_END
@@ -74,9 +72,18 @@ Shader "Candy Tropical/Catwalks Coast"
                 }
                 if(_CoastStyle>1.5)
                 {
-                    half4 island=SAMPLE_TEXTURE2D(_CoastHorizon,sampler_CoastHorizon,i.uv);
-                    clip(island.a-.38);
-                    color=lerp(island.rgb,half3(.14,.39,.59),lerp(.24,.53,smoothstep(235,560,distanceToEye)));
+                    float stratum=sin(i.world.y*.82+sin(i.world.x*.043+i.world.z*.071)*.65);
+                    float grain=sin(i.world.x*.76+i.world.z*.42)*sin(i.world.z*.54-i.world.x*.25);
+                    float pockets=sin(i.world.x*.49+grain*.67)*sin(i.world.z*.41-i.world.x*.33);
+                    float foliage=smoothstep(-.2,.61,pockets+normal.y*.33);
+                    float isVegetation=smoothstep(.006,.072,i.color.g-i.color.r);
+                    half3 skyBounce=half3(.14,.24,.32)*lerp(.43,1,saturate(normal.y));
+                    color=i.color*(skyBounce+sun.color*(.10+.77*diffuse));
+                    color*=1+stratum*.22*(1-saturate(normal.y))+grain*.065;
+                    color*=lerp(half3(1,1,1),lerp(half3(.62,.72,.76),half3(1.06,1.17,1),foliage),isVegetation*.76);
+                    float haze=lerp(.065,.55,smoothstep(235,640,distanceToEye));
+                    haze+=.05*(1-smoothstep(0,36,i.world.y-_CoastWater));
+                    color=lerp(color,half3(.063,.237,.395),haze);
                 }
                 float eyeDepth=_CoastWater-_WorldSpaceCameraPos.y;
                 if(eyeDepth>.08)

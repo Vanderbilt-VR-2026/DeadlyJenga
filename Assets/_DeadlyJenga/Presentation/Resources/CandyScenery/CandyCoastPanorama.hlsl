@@ -9,18 +9,19 @@ float2 CandyCoastSkyUV(float3 direction)
 half3 CandyCoastClouds(float3 direction)
 {
     float2 uv=CandyCoastSkyUV(direction);
-    // Blend around the wrap where the painted cloud shapes meet.
-    float seam=1-smoothstep(0,.035,min(frac(uv.x),1-frac(uv.x)));
+    // Use a continuous interior band where the source panorama edges meet.
+    float signedSeam=frac(uv.x+.5)-.5;
+    float blend=1-smoothstep(.025,.106,abs(signedSeam));
     float2 dx=ddx(uv), dy=ddy(uv);
     dx.x-=round(dx.x);
     dy.x-=round(dy.x);
     half3 painted=SAMPLE_TEXTURE2D_GRAD(_CoastPanorama,sampler_CoastPanorama,uv,dx,dy).rgb;
-    float blend=seam*smoothstep(.02,.30,direction.y);
     UNITY_BRANCH if(blend>.001)
     {
-        half3 opposite=SAMPLE_TEXTURE2D_GRAD(_CoastPanorama,sampler_CoastPanorama,float2(.5,uv.y),dx,dy).rgb;
+        half3 opposite=SAMPLE_TEXTURE2D_GRAD(_CoastPanorama,sampler_CoastPanorama,float2(.5+signedSeam,uv.y),dx,dy).rgb;
         painted=lerp(painted,opposite,blend);
     }
-    return painted;
+    float horizon=1-smoothstep(.012,.155,abs(direction.y));
+    return lerp(painted,half3(.19,.54,.84),horizon*.16);
 }
 #endif

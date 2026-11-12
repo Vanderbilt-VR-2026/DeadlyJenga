@@ -126,6 +126,12 @@ Shader "Candy Tropical/Sand"
                     float refractedSun=lerp(light.shadowAttenuation,max(.59,light.shadowAttenuation),indirect);
                     color+=float3(1.37,.98,.42)*glimmer*refractedSun*saturate(light.color.r);
                     float eyeDepth=_WaterHeight-_WorldSpaceCameraPos.y;
+                    if(_CoastDayWater>.5 && eyeDepth<=.08)
+                    {
+                        float lagoon=smoothstep(.24,1.08,submerged)*(1-smoothstep(2.65,5.2,submerged));
+                        color=color*lerp(float3(1,1,1),float3(.44,1.09,1.14),lagoon);
+                        color+=float3(.006,.075,.062)*lagoon;
+                    }
                     if(eyeDepth>.08)
                     {
                         float visibility=exp2(-distanceToEye*.072);
