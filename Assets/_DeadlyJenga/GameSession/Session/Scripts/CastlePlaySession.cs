@@ -129,9 +129,13 @@ namespace DeadlyJenga.CastlePrototype
                 room=IslandRoomConnection.Ensure();
             MatchSetup.Apply(this);
             if(!RoomGameExperience.Manages(this))MatchSetup.FillRecommended(this);
-            var social = gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>(); social.Initialize(this);
             Demo = new SessionDemoControls(this);
-            Social = new DeadlyJenga.CastleSocial.SocialControls(social);
+            if(DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)
+            {
+                var social=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();
+                social.Initialize(this);
+                Social=new DeadlyJenga.CastleSocial.SocialControls(social);
+            }
             Modes=gameObject.AddComponent<DeadlyJenga.Modes.MatchModeRuntime>();
             Modes.Initialize(this,RoomGameExperience.Manages(this));
             gameObject.AddComponent<CastleSessionMenuInput>().session=this;

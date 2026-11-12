@@ -29,7 +29,8 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<TabletButton> tabletTabs = new();
         readonly List<TabletButton> tabletActions = new();
         readonly RectTransform[] tabletPages = new RectTransform[4];
-        RectTransform legacyDeveloper;
+        RectTransform legacyDeveloper, tabletNav;
+        const float TabletHeight=760, DeveloperDetailHeight=1040;
         Text tabletInputLayout, leftControllerHelp, rightControllerHelp, tabletRoomStatus;
         Text leftInputTitle, rightInputTitle;
         RawImage leftController, rightController;
@@ -48,10 +49,10 @@ namespace DeadlyJenga.CastlePrototype
             foreach (Transform child in transform) old.Add(child);
             legacyDeveloper = TabletRoot("Developer detail controls");
             legacyDeveloper.localScale = Vector3.one * .84f;
-            legacyDeveloper.anchoredPosition = new Vector2(0,-48);
+            legacyDeveloper.anchoredPosition = new Vector2(0,-63);
             foreach (var child in old) child.SetParent(legacyDeveloper,false);
 
-            var nav = TabletRoot("Player tablet tabs");
+            var nav = tabletNav = TabletRoot("Player tablet tabs");
             const float tabWidth = 194;
             TabletControl(tabletTabs,nav,()=>"Resume",new(-408,316),new(tabWidth,68),()=>session.SetMenu(false));
             AddTab(TabletPage.Comfort,"Comfort",-204);
@@ -84,6 +85,7 @@ namespace DeadlyJenga.CastlePrototype
             menuCategory=menuSection=-1;
             tabletPage=page;
             tabletDeveloperDetails=false;
+            SetDeveloperLayout(false);
             tabletRefreshAt=0;
             legacyDeveloper.gameObject.SetActive(false);
             for (int i=0;i<tabletPages.Length;i++)
@@ -294,8 +296,17 @@ namespace DeadlyJenga.CastlePrototype
             if (!DeveloperTabAvailable) return;
             action();
             tabletDeveloperDetails=true;
+            SetDeveloperLayout(true);
             tabletPages[(int)TabletPage.Developer].gameObject.SetActive(false);
             legacyDeveloper.gameObject.SetActive(true);
+        }
+
+        void SetDeveloperLayout(bool expanded)
+        {
+            var rect=(RectTransform)transform;
+            rect.sizeDelta=new Vector2(rect.sizeDelta.x,expanded?DeveloperDetailHeight:TabletHeight);
+            tabletNav.anchoredPosition=Vector2.up*(expanded?136:0);
+            ResizeTabletFrame();
         }
 
         void PointPlayerTablet(Camera camera,bool pressed,bool held)

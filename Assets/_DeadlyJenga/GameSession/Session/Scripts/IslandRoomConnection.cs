@@ -462,7 +462,7 @@ namespace DeadlyJenga.CastlePrototype
         {var key=ReliableKey.FromInts(SocialChannel,kind,serial,0);if(IsHost)Runner.SendReliableDataToPlayer(player,key,bytes);else Runner.SendReliableDataToServer(key,bytes);}
         public void SendSocial(byte[] data,string except=null)
         {
-            if(!Connected||!IslandLobby.Current)return;
+            if(!DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled||!Connected||!IslandLobby.Current)return;
             if(IsHost){foreach(var p in peers)if(p.Value.ready&&p.Key.ToString()!=except){if(!socialPeers.TryGetValue(p.Key,out var flow))socialPeers[p.Key]=flow=new CastleSocialChannel();flow.Enqueue(data,Time.unscaledTime);}}
             else socialServer.Enqueue(data,Time.unscaledTime);
         }
@@ -493,8 +493,9 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 return;
             }
-            if(channel==SocialChannel&&Connected&&IslandLobby.Current)
+            if(channel==SocialChannel)
             {
+                if(!DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled||!Connected||!IslandLobby.Current)return;
                 if(IsHost&&(!runner.ActivePlayers.Contains(source)||!peers.TryGetValue(source,out var p)||!p.ready))return;
                 if(!socialPeers.TryGetValue(source,out var flow))socialPeers[source]=flow=new CastleSocialChannel();
                 if(kind==2){(IsHost?flow:socialServer).Ack(id);return;}
@@ -556,8 +557,11 @@ namespace DeadlyJenga.CastlePrototype
             if(Connected&&IslandLobby.Current&&!Busy&&!transitioning)CheckLaunch();
             if(!Connected||!IslandLobby.Current||Busy||transitioning)return;
             float now=Time.unscaledTime;
-            if(IsHost){foreach(var p in socialPeers)p.Value.Pump(now,(id,bytes)=>SendVoice(p.Key,1,id,bytes));}
-            else socialServer.Pump(now,(id,bytes)=>SendVoice(default,1,id,bytes));
+            if(DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)
+            {
+                if(IsHost){foreach(var p in socialPeers)p.Value.Pump(now,(id,bytes)=>SendVoice(p.Key,1,id,bytes));}
+                else socialServer.Pump(now,(id,bytes)=>SendVoice(default,1,id,bytes));
+            }
             if(IsHost)
             {
                 foreach(var pair in peers.ToArray())if(now-pair.Value.seen>20||pair.Value.waiting!=0&&now-pair.Value.sent>20){Runner.Disconnect(pair.Key);ReleaseMarinaSpawn(pair.Key);marinaRecoverySpawns.Remove(pair.Key);peers.Remove(pair.Key);IslandLobby.Current.RemovePeer(pair.Key.ToString());}

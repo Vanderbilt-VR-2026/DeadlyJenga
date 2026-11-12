@@ -477,7 +477,11 @@ namespace DeadlyJenga.CandyArt.Marina
                 VisibleFacePoint(ray, joinFace, screenRange, out point) ||
                 VisibleFacePoint(ray, hostFace, screenRange, out point);
             bool actionable = nearest != null && nearest.collider.enabled;
-            if (hitFace && trackedPointer && nearest != null) MenuAim.Present(aimDot, point, true, actionable);
+            if (hitFace && nearest != null && (!player.IsVR || trackedPointer))
+            {
+                aimDot.rectTransform.sizeDelta=Vector2.one*(player.IsVR?14:21);
+                MenuAim.Present(aimDot, point, true, actionable);
+            }
             else aimDot.gameObject.SetActive(false);
             MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
                 trackedPointer && hitFace && nearest != null, actionable);

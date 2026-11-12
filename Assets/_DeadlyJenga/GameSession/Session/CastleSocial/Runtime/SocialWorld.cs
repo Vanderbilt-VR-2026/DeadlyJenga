@@ -14,6 +14,9 @@ namespace DeadlyJenga.CastleSocial
     [DefaultExecutionOrder(300)]
     public sealed partial class SocialWorld : MonoBehaviour, IVoiceMix
     {
+        // Keep voice dormant during Quest performance testing.
+        internal static readonly bool RuntimeEnabled=false;
+
         public CastlePlaySession Session {get;private set;}
         public IslandLobby Lobby {get;private set;}
         public ISessionInfo Owner=>Lobby?(ISessionInfo)Lobby:Session;

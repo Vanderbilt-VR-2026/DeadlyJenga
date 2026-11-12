@@ -21,6 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         int tabletPointerDevice=-1;
         bool tabletDominantLeft,tabletWasHeld,pointerForegroundReady;
         Image tabletFrame;
+        Transform tabletCase;
         GraphicRaycaster desktopRaycaster;
         InputAction desktopSelect;
         Vector2 desktopClickPosition;
@@ -229,7 +230,8 @@ namespace DeadlyJenga.CastlePrototype
             var eye=camera.transform;
             transform.SetPositionAndRotation(eye.position+eye.forward*distance,eye.rotation);
             float height=2*distance*Mathf.Tan(camera.fieldOfView*Mathf.Deg2Rad*.5f);
-            transform.localScale=Vector3.one*(.88f*height*Mathf.Min(1,camera.aspect*800f/1160f)/800f);
+            var size=((RectTransform)transform).rect.size+new Vector2(40,40);
+            transform.localScale=Vector3.one*(.88f*height*Mathf.Min(1/size.y,camera.aspect/size.x));
             BuildTabletFrame();
         }
 
@@ -241,7 +243,16 @@ namespace DeadlyJenga.CastlePrototype
                 tabletFrame.type=Image.Type.Sliced;tabletFrame.pixelsPerUnitMultiplier=.30f;tabletFrame.fillCenter=false;tabletFrame.color=CandyHudVisuals.Lavender;
                 tabletFrame.transform.SetAsFirstSibling();
                 BuildTabletCase();
+                ResizeTabletFrame();
             }
+        }
+
+        void ResizeTabletFrame()
+        {
+            if(!tabletFrame)return;
+            float height=((RectTransform)transform).rect.height+40;
+            tabletFrame.rectTransform.sizeDelta=new Vector2(1160,height);
+            if(tabletCase)tabletCase.localScale=new Vector3(1,height/800,1);
         }
 
         void BuildTabletCase()
@@ -268,7 +279,7 @@ namespace DeadlyJenga.CastlePrototype
             tabletCaseMesh=new Mesh{name="Rounded tablet shell",hideFlags=HideFlags.DontSave};
             tabletCaseMesh.vertices=vertices;tabletCaseMesh.triangles=triangles.ToArray();tabletCaseMesh.RecalculateNormals();tabletCaseMesh.RecalculateBounds();
             var body=new GameObject("Visual - glossy tablet shell",typeof(MeshFilter),typeof(MeshRenderer));
-            body.transform.SetParent(transform,false);body.layer=gameObject.layer;
+            tabletCase=body.transform;tabletCase.SetParent(transform,false);body.layer=gameObject.layer;
             body.GetComponent<MeshFilter>().sharedMesh=tabletCaseMesh;
             var renderer=body.GetComponent<MeshRenderer>();renderer.sharedMaterial=tabletCaseMaterial;
             renderer.shadowCastingMode=UnityEngine.Rendering.ShadowCastingMode.Off;renderer.receiveShadows=false;

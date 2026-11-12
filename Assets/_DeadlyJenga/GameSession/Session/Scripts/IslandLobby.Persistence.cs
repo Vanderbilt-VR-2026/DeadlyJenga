@@ -139,6 +139,17 @@ namespace DeadlyJenga.CastlePrototype
             VisitOwner=null;ClearVisitingBots();SetPlayerPresent(false);
             GameEvents.RaiseEmoted(gameObject,"LobbyParked");
         }
+        void StartLobbyVoice()
+        {
+            if(!DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)return;
+            if(!Voice)
+            {
+                Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();
+                Voice.Initialize(this);
+            }
+            else Voice.enabled=true;
+        }
+
         internal void ResumeAfterMatch()
         {
             MatchResident=false;VisitOwner=null;ClearVisitingBots();departing=false;
@@ -146,7 +157,7 @@ namespace DeadlyJenga.CastlePrototype
             Room.CompleteDeparture();Room.ResumeLobbyConnection();
             SetPlayerPresent(true);
             if(lobbyBots==null)CreateLobbyPopulation();
-            if(!Voice){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}else Voice.enabled=true;
+            StartLobbyVoice();
             PlaceLocalLobbyArrival(returning:true);
             refreshInputOnReturn=true;
             PopulateLobbyWildlife();

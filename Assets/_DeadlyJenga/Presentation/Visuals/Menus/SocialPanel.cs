@@ -14,7 +14,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public static void Draw(ISocialControls social, bool diagnostics = true)
         {
-            if (social == null) { GUILayout.Label("AI players are getting ready..."); return; }
+            if (social == null) { GUILayout.Label("Voice and microphone are disabled for this test build."); return; }
             GUILayout.Label("AI players · social & voice"); GUILayout.Label(social.IsHost ? "Host simulation" : "Joined host simulation");
             var native=social as IOnDeviceVoiceControls;
             if(native!=null)

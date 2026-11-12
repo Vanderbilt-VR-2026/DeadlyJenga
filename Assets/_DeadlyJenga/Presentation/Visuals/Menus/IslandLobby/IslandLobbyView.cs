@@ -83,9 +83,9 @@ namespace DeadlyJenga.CastlePrototype
         bool trackedLobbyPointer;
         void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
         {
-            if(!Player.IsVR||!trackedLobbyPointer||!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(!hit||(Player.IsVR&&!trackedLobbyPointer)){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
-                trackedLobbyPointer && distance > .03f && hit, actionable);
+                Player.IsVR && trackedLobbyPointer && distance > .03f, actionable);
             if(!lobbyAimCanvas)
             {
                 var root=new GameObject("Lobby terminal reticle",typeof(RectTransform),typeof(Canvas));
@@ -102,6 +102,7 @@ namespace DeadlyJenga.CastlePrototype
             var reticle=lobbyAimCanvas.transform;
             reticle.SetPositionAndRotation(point,Player.ViewCamera.transform.rotation);
             reticle.localScale=Vector3.one*Mathf.Clamp(distance*.0007f,.0007f,.003f);
+            lobbyAimDot.rectTransform.sizeDelta=Vector2.one*(Player.IsVR?14:21);
             MenuAim.Present(lobbyAimDot,point,true,actionable);
         }
         bool terminalRequireRelease=true,inputFocused=true;
