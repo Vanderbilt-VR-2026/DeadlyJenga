@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using DeadlyJenga.Core;
+using DeadlyJenga.CandyArt;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -17,6 +18,12 @@ namespace DeadlyJenga.Presentation
         static readonly int CurtainColor=Shader.PropertyToID("_BaseColor");
         float started,duration,finishedAt,finishFrom,fade,arrivalFade;
         Camera curtainCamera;
+        Camera revealCamera;
+        IWorldQuery revealWorld;
+        float revealRequestedAt, arrivalReadyAt;
+        int readyRenderFrame = -1, readyFrames;
+        bool awaitingDepartureReveal, arrivalSettled;
+        const float RevealTimeout = 3.5f;
         bool curtainStereo;
         float curtainNear,curtainAspect,curtainFov;
         bool finishing,arrival,visualArrival,replayQueuedArrival;float columnHeight=150,arrivalTime,arrivalTick;
@@ -56,7 +63,7 @@ namespace DeadlyJenga.Presentation
             current.started=Time.unscaledTime;current.duration=Mathf.Max(.3f,seconds);current.Build();
         }
         void OnEnable()
-        {GameEvents.Emoted+=Emoted;GameEvents.LobbyStarted+=Lobby;GameEvents.HomeStarted+=Lobby;RenderPipelineManager.beginCameraRendering+=ForCamera;}
+        {GameEvents.Emoted+=Emoted;GameEvents.LobbyStarted+=Lobby;GameEvents.HomeStarted+=Lobby;RenderPipelineManager.beginCameraRendering+=ForCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void ForCamera(ScriptableRenderContext context,Camera camera)
         {
             if(!curtain)return;
@@ -89,6 +96,32 @@ namespace DeadlyJenga.Presentation
                 plane.localScale=new Vector3(extent.x*2.22f+.02f,extent.y*2.22f+.02f,1);
             }
         }
+        void AfterCamera(ScriptableRenderContext context,Camera camera)
+        {
+            if(!awaitingDepartureReveal && (!arrival || visualArrival || arrivalReadyAt>=0))return;
+            var world=Services.World;
+            if(camera!=Services.Session?.ActiveCamera || world is not Component map)return;
+            if(world!=revealWorld || camera!=revealCamera)
+            {
+                revealWorld=world;
+                revealCamera=camera;
+                readyFrames=0;
+                readyRenderFrame=-1;
+            }
+            if(readyRenderFrame==Time.frameCount)return;
+            var environment=CandyEnvironment.ForMap(map);
+            if(environment && !environment.ReadyForArrival(world))
+            {
+                readyFrames=0;
+                return;
+            }
+            readyRenderFrame=Time.frameCount;
+            readyFrames++;
+        }
+
+        bool RevealReady(float now,float requestedAt) =>
+            (readyFrames>=2 && now-requestedAt>=.35f) || now-requestedAt>=RevealTimeout;
+
         void Emoted(GameObject who,string emote)
         {
             if(emote=="LobbyResumed"||emote=="LobbyVisitOpened")
@@ -101,19 +134,27 @@ namespace DeadlyJenga.Presentation
                 }
                 return;
             }
-            if(emote=="TravelArrived"&&!arrival)Finish(true);
-            else if(emote=="DepartureCancelled"&&!arrival||emote=="SpawnArrivalSettled"&&arrival&&!visualArrival&&who==Services.Session?.Player?.gameObject)Finish(false);
+            if(emote=="TravelArrived"&&!arrival)
+            {
+                awaitingDepartureReveal=true;
+                revealRequestedAt=Time.unscaledTime;
+                readyFrames=0;
+                foreach(var column in columns)if(column)column.SetVisible(false);
+            }
+            else if(emote=="DepartureCancelled"&&!arrival)Finish(false);
+            else if(emote=="SpawnArrivalSettled"&&arrival&&!visualArrival&&who==Services.Session?.Player?.gameObject)
+                arrivalSettled=true;
         }
         void Lobby(GameObject who)=>Finish(false);
         void Finish(bool arrived)
         {
             if(finishing)return;
-            finishing=true;finishedAt=Time.unscaledTime;finishFrom=fade;
+            awaitingDepartureReveal=false;finishing=true;finishedAt=Time.unscaledTime;finishFrom=fade;
             if(arrived)foreach(var column in columns)if(column)column.SetVisible(false);
         }
         void Build()
         {
-            if(arrival){arrivalTime=0;arrivalTick=Time.unscaledTime;}
+            if(arrival){arrivalTime=0;arrivalTick=Time.unscaledTime;arrivalReadyAt=-1;}
             var shader=Resources.Load<Shader>("CandyScenery/CandySummoningColumn");
             if(shader)
             {
@@ -156,7 +197,12 @@ namespace DeadlyJenga.Presentation
             foreach(var column in columns)if(column){column.SetVisible(false);column.gameObject.SetActive(false);Destroy(column.gameObject);}columns.Clear();
             if(columnMesh)Destroy(columnMesh);
             queuedVisualArrival=null;replayQueuedArrival=false;
-            arrivalFade=visualArrival?0:Mathf.Max(fade,.97f);
+            arrivalFade=visualArrival?0:1;
+            awaitingDepartureReveal=false;
+            arrivalSettled=false;
+            arrivalReadyAt=-1;
+            readyFrames=0;
+            readyRenderFrame=-1;
             arrival=true;finishing=false;started=arrivalTick=Time.unscaledTime;arrivalTime=0;duration=visualArrival?1.2f:3;columnHeight=ArrivalHeight();
             columnMesh=CandySummoningColumn.CreateMesh(columnHeight);
             if(columnMaterial)
@@ -200,6 +246,13 @@ namespace DeadlyJenga.Presentation
             if(!finishing&&Time.unscaledTime>=nextBotRefresh)
             {nextBotRefresh=Time.unscaledTime+.1f;AddBots();}
             if(arrival&&!finishing){float now=Time.unscaledTime;arrivalTime=visualArrival?now-started:arrivalTime+Mathf.Clamp(now-arrivalTick,0,.05f);arrivalTick=now;}
+            float nowUnscaled=Time.unscaledTime;
+            if(awaitingDepartureReveal && RevealReady(nowUnscaled,revealRequestedAt))Finish(true);
+            if(arrival&&!visualArrival&&!finishing)
+            {
+                if(arrivalReadyAt<0 && RevealReady(nowUnscaled,started))arrivalReadyAt=nowUnscaled;
+                if(arrivalSettled && arrivalReadyAt>=0 && nowUnscaled-arrivalReadyAt>=.5f)Finish(false);
+            }
             if(visualArrival&&arrival&&!finishing&&arrivalTime>=duration)Finish(false);
             if(!finishing&&Time.unscaledTime-started>duration+8)Finish(false);
             Render();if(finishing&&Time.unscaledTime-finishedAt>.65f){replayQueuedArrival=true;Destroy(gameObject);}
@@ -209,7 +262,8 @@ namespace DeadlyJenga.Presentation
             float elapsed=arrival?arrivalTime:Time.unscaledTime-started,p=Mathf.Clamp01(elapsed/Mathf.Max(.3f,duration));
             float end=finishing?Mathf.Clamp01((Time.unscaledTime-finishedAt)/.6f):0;
             if(finishing)fade=finishFrom*(1-Mathf.SmoothStep(0,1,end));
-            else if(arrival)fade=arrivalFade*(1-Mathf.SmoothStep(0,1,Mathf.Max(0,elapsed-.16f)/.44f));
+            else if(arrival)fade=arrivalFade*(1-Mathf.SmoothStep(0,1,arrivalReadyAt<0?0:(Time.unscaledTime-arrivalReadyAt)/.5f));
+            else if(awaitingDepartureReveal)fade=1;
             else fade=Mathf.SmoothStep(0,1,Mathf.InverseLerp(Mathf.Max(0,duration-.36f),duration-.055f,elapsed));
             float strength=finishing?1-Mathf.SmoothStep(0,1,Mathf.Clamp01((Time.unscaledTime-finishedAt)/.35f)):arrival?1:Mathf.SmoothStep(0,1,Mathf.InverseLerp(0,.12f,p));
             var session = Services.Session;
@@ -219,7 +273,7 @@ namespace DeadlyJenga.Presentation
                 if (!column) continue;
                 if (NetworkActors.Alive(rider) && column.Target == rider.transform)
                     column.SetRiderCamera(session.ActiveCamera ? session.ActiveCamera : rider.ViewCamera);
-                column.Render(arrival ? -elapsed : elapsed, arrival ? 1 : p, strength);
+                column.Render(arrival ? -elapsed : elapsed, arrival ? 1 : p, awaitingDepartureReveal?0:strength);
             }
             if(curtain)
             {
@@ -238,6 +292,7 @@ namespace DeadlyJenga.Presentation
         {
             GameEvents.Emoted-=Emoted;GameEvents.LobbyStarted-=Lobby;GameEvents.HomeStarted-=Lobby;
             RenderPipelineManager.beginCameraRendering-=ForCamera;
+            RenderPipelineManager.endCameraRendering-=AfterCamera;
             if(columnMaterial)Destroy(columnMaterial);if(columnMesh)Destroy(columnMesh);
             if(curtainMaterial)Destroy(curtainMaterial);if(curtainMesh)Destroy(curtainMesh);
             if(current==this)

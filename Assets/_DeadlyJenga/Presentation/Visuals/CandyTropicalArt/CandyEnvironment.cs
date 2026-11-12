@@ -15,6 +15,12 @@ namespace DeadlyJenga.CandyArt
         MaterialPropertyBlock properties;
         DeadlyJenga.Core.IWorldQuery activeWorld;
         bool openWater,coastReady;
+        IWorldQuery arrivalReadyWorld;
+        int arrivalReadyFrame = -1;
+
+        internal bool ReadyForArrival(IWorldQuery world) =>
+            isActiveAndEnabled && ReferenceEquals(world,arrivalReadyWorld) &&
+            arrivalReadyFrame >= 0 && Time.frameCount > arrivalReadyFrame;
         CandyCatwalksCoast catwalksCoast;
         IWorldQuery coastWorld;
         Shader coastShader;
@@ -34,6 +40,8 @@ namespace DeadlyJenga.CandyArt
         void OnDisable()
         {
             coastReady=false;
+            arrivalReadyWorld=null;
+            arrivalReadyFrame=-1;
             ReleaseCoast();
         }
 
@@ -164,6 +172,21 @@ namespace DeadlyJenga.CandyArt
             bool showCoastReflections = coastDay && applyLighting && (!view || view.gameObject.scene == gameObject.scene)
                 && Shader.GetGlobalFloat("_CandyOutage") < .5f;
             catwalksCoast?.SetDayReflections(showCoastReflections);
+            bool terrainReady=openWater || !terrain || terrain.HeightMap;
+            bool coastApplied=!UsesCastleCoast || openWater || catwalksCoast!=null;
+            if(world!=null && waterRenderer.sharedMaterial && sandRenderer.sharedMaterial && terrainReady && coastApplied)
+            {
+                if(!ReferenceEquals(arrivalReadyWorld,world))
+                {
+                    arrivalReadyWorld=world;
+                    arrivalReadyFrame=Time.frameCount;
+                }
+            }
+            else
+            {
+                arrivalReadyWorld=null;
+                arrivalReadyFrame=-1;
+            }
             if(!applyLighting) return;
             Material sky=coastDay?catwalksCoast.DaySky(profile.sky):profile.sky;
             if(RenderSettings.skybox!=sky)RenderSettings.skybox=sky;

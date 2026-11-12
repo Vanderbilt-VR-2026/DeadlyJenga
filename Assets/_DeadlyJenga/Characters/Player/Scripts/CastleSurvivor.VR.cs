@@ -140,12 +140,17 @@ namespace DeadlyJenga.CastlePrototype
                 angle=Mathf.Sign(axis)*Mathf.InverseLerp(.2f,1,Mathf.Abs(axis))*Mathf.Clamp(vrSmoothDegreesPerSecond,15,360)*Mathf.Max(0,dt);
             if(angle!=0)transform.RotateAround(viewCamera.transform.position,Vector3.up,angle);
         }
-        public void ApplyVRLook(Vector2 stick,float dt)
+        public void ApplyVRLook(Vector2 stick,float dt,bool dualController=false)
         {
             if (PlayerPrefs.GetInt("SurvivorVR.InvertLookX") != 0) stick.x = -stick.x;
             if (PlayerPrefs.GetInt("SurvivorVR.InvertLookY") != 0) stick.y = -stick.y;
             ApplyVRTurn(stick.x,dt);
             if(!IsVR||externallyDriven||InputSuspended||trackingRebase||!viewCamera||Climbing||Vaulting||vrTurn==SurvivorVRTurn.PhysicalOnly)return;
+            if (dualController && vrPlayStyle==SurvivorVRPlayStyle.Seated && PlayerPrefs.GetInt("SurvivorVR.SeatedDualPitch",0)==0)
+            {
+                if (vrLookPitch!=0) ResetVRLook();
+                return;
+            }
             float amount=Mathf.InverseLerp(.25f,1,Mathf.Abs(stick.y));
             float next=Mathf.Clamp(vrLookPitch-Mathf.Sign(stick.y)*amount*Mathf.Clamp(vrSmoothDegreesPerSecond*.65f,65,220)*dt,-65,80);
             if(next==0&&vrLookPitch==0)return;

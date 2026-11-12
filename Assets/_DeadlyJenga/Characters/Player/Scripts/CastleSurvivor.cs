@@ -213,7 +213,7 @@ namespace DeadlyJenga.CastlePrototype
                     if(bothControllers&&!HybridXRInput.ControllerTracked(dominantLeft))ResetVRJump();
                     else ReadVRJump(gestureHand,jumpButton,out pressed,out held);
                     if (!RouteEmoteLook(looking, walking.sqrMagnitude > .001f || pressed))
-                        ApplyVRLook(looking,Time.deltaTime);
+                        ApplyVRLook(looking,Time.deltaTime,bothControllers);
                 }
                 else if (Cursor.lockState == CursorLockMode.Locked)
                 {

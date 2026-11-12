@@ -95,7 +95,8 @@ namespace DeadlyJenga.Presentation
             Add(new Vector2(-250,-125),()=>"Snap angle / "+(Settings?.SnapAngle.ToString("0")??"--")+" degrees",()=>Settings?.CycleSnapAngle());
             Add(new Vector2(250,-125),()=>"Recalibrate seated height",()=>Settings?.RecalibrateSeatedHeight());
             Add(new Vector2(-250,-210), LookDirectionLabel, CycleLookDirection);
-            Add(new Vector2(250,-210),()=>"Joystick look / enable",()=>EnableJoystickLook());
+            Add(new Vector2(130,-210),()=>"Enable stick look",EnableJoystickLook,224);
+            Add(new Vector2(370,-210),()=>SeatedPitch?"Vertical look / On":"Vertical look / Off",ToggleSeatedPitch,224);
             bindings=Label("",new Vector2(0,-287),new Vector2(980,74),19);
             feedback=Label("",new Vector2(0,-340),new Vector2(980,30),20);
             Add(new Vector2(-250,-390),()=>home?"Back to Home":"Back",Close);
@@ -124,6 +125,16 @@ namespace DeadlyJenga.Presentation
             PlayerPrefs.SetInt(x, next & 1);
             PlayerPrefs.SetInt(y, next >> 1);
         }
+        const string SeatedPitchKey = "SurvivorVR.SeatedDualPitch";
+        static bool SeatedPitch => PlayerPrefs.GetInt(SeatedPitchKey,0)!=0;
+
+        void ToggleSeatedPitch()
+        {
+            PlayerPrefs.SetInt(SeatedPitchKey,SeatedPitch?0:1);
+            PlayerPrefs.Save();
+            nextSample=0;
+        }
+
         void EnableJoystickLook()
         {
             var settings=Settings;if(settings==null)return;
@@ -197,8 +208,8 @@ namespace DeadlyJenga.Presentation
                 leftRoles.text=Roles(true);rightRoles.text=Roles(false);
                 bindings.text=!wasVr?"WASD: move. Mouse: look. Space: jump / hold climb. Left Shift: sprint.\nClick: fire. V: equip / holster. R: weapon mode. Delete: drop. Esc: back.\nDominant-hand choice is saved for your VR controllers.":home?"Preference saves for Game and Demo. Look speed and comfort are also available in Lobby / Pause.":
                     controllerCount==1?"One controller: stick moves; grip + stick looks. Your preferred hand stays saved.\nJump: controller primary button. Fire: trigger. Add both controllers for the layout above.":
-                    settings?.TurnLabel=="PhysicalOnly"?"JOYSTICK LOOK IS OFF: physical turning selected. Choose Joystick look / enable.\nTurn your head freely. Menu: bare left Y / native; right-only Grip + B.":
-                    "Dominant stick looks left/right AND up/down. Non-dominant stick moves.\nJump: dominant X / A. Fire equipped weapon: dominant trigger. Menu: bare left Y / native.";
+                    settings?.TurnLabel=="PhysicalOnly"?"JOYSTICK LOOK IS OFF: physical turning selected. Choose Enable stick look.\nTurn your head freely. Menu: bare left Y / native; right-only Grip + B.":
+                    "Dominant stick looks left/right. Seated vertical look: "+(SeatedPitch?"On":"Off")+". Non-dominant stick moves.\nJump: dominant X / A. Fire: dominant trigger. Menu: bare left Y / native.";
                 for(int i=0;i<buttons.Count;i++)
                 {
                     buttons[i].GetComponentInChildren<Text>().text=titles[i]();
@@ -264,12 +275,12 @@ namespace DeadlyJenga.Presentation
             var label=rect.GetComponent<Text>();label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.fontSize=fontSize;label.alignment=TextAnchor.MiddleCenter;label.color=Color.white;label.raycastTarget=false;label.text=value;
             return label;
         }
-        void Add(Vector2 position,Func<string> title,Action action)
+        void Add(Vector2 position,Func<string> title,Action action,float width=470)
         {
             var rect=new GameObject("Comfort control",typeof(RectTransform),typeof(Image),typeof(Button)).GetComponent<RectTransform>();
-            rect.SetParent(panel,false);rect.anchoredPosition=position;rect.sizeDelta=new Vector2(470,76);
+            rect.SetParent(panel,false);rect.anchoredPosition=position;rect.sizeDelta=new Vector2(width,76);
             var button=rect.GetComponent<Button>();button.image.sprite=CandyHudVisuals.Pill;button.image.type=Image.Type.Sliced;button.image.color=CandyHudVisuals.Panel;button.image.raycastTarget=false;
-            var label=Label(title(),Vector2.zero,new Vector2(448,68),24);label.transform.SetParent(rect,false);
+            var label=Label(title(),Vector2.zero,new Vector2(width-22,68),width<300?20:24);label.transform.SetParent(rect,false);
             buttons.Add(button);titles.Add(title);actions.Add(action);
         }
         void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){readyToSelect=false;if(aimDot)aimDot.gameObject.SetActive(false);}}
