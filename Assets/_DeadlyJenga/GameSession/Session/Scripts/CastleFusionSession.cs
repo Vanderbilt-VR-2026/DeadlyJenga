@@ -437,6 +437,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void SendSocial(byte[] data,string except=null)
         {
+            if(!DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)return;
             if(closing||runner==null||!runner.IsRunning)return;
             if(runner.IsServer)
             {
@@ -460,7 +461,7 @@ namespace DeadlyJenga.CastlePrototype
             key.GetInts(out int channel, out int kind, out int serial, out int receivedTag);
             if (outboundFailed || closing || source != runner || !IsCurrentScene || (receivedTag != 0 && receivedTag != sceneTag)) return;
             if (runner.IsServer && !source.ActivePlayers.Contains(player)) return;
-            if(channel==SocialChannel){ReceiveSocial(player,kind,serial,payload);return;}
+            if(channel==SocialChannel){if(DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)ReceiveSocial(player,kind,serial,payload);return;}
             if(channel!=Channel)return;
             if((kind==World||kind==Ack||kind==WorldResync)&&receivedTag!=sceneTag)return;
             if (runner.IsServer && !source.ActivePlayers.Contains(player)) return;
@@ -576,8 +577,11 @@ namespace DeadlyJenga.CastlePrototype
             try{PumpWorldResync(now);}catch(Exception){Fail("World resynchronization send failed. Rejoin with the same game build.");return;}
             FlushPoseReceipts(now);if(poseSendFailed)return;
             if(pendingStamina!=null&&now>=nextStamina){if(SessionDevelopmentPolicy.CanRequestLocal(session))Send(default,Command,System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(pendingStamina)));pendingStamina=null;nextStamina=now+.2f;}
-            if(runner.IsServer){foreach(var pair in socialPeers)if(peers.TryGetValue(pair.Key,out var ready)&&ready.ready)pair.Value.Pump(now,(serial,data)=>SendSocialPacket(pair.Key,1,serial,data));}
-            else if(welcomed)socialServer.Pump(now,(serial,data)=>SendSocialPacket(default,1,serial,data));
+            if(DeadlyJenga.CastleSocial.SocialWorld.RuntimeEnabled)
+            {
+                if(runner.IsServer){foreach(var pair in socialPeers)if(peers.TryGetValue(pair.Key,out var ready)&&ready.ready)pair.Value.Pump(now,(serial,data)=>SendSocialPacket(pair.Key,1,serial,data));}
+                else if(welcomed)socialServer.Pump(now,(serial,data)=>SendSocialPacket(default,1,serial,data));
+            }
             if (runner.IsServer)
             {
                 foreach (var pair in peers)

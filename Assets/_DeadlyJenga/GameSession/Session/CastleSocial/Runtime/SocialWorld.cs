@@ -17,7 +17,10 @@ namespace DeadlyJenga.CastleSocial
         // AI bot voices and the social simulation are switched off. Even muted, they cost CPU, memory and
         // network every frame, so sessions and lobbies don't create them at all. Bots keep their names and
         // personalities (those come from the match and bot presets). Launch with --dj-ai-voices to test them.
-        public static bool AiVoicesEnabled => Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-ai-voices") >= 0;
+        // Read once: the network loops check this every frame and must not allocate.
+        public static readonly bool AiVoicesEnabled = Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-ai-voices") >= 0;
+        // Network voice-packet pumps and receivers skip all work while voices are off.
+        internal static bool RuntimeEnabled => AiVoicesEnabled;
 
         public CastlePlaySession Session {get;private set;}
         public IslandLobby Lobby {get;private set;}
