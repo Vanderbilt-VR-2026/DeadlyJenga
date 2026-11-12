@@ -1,5 +1,11 @@
 #ifndef CANDY_COAST_PANORAMA_INCLUDED
 #define CANDY_COAST_PANORAMA_INCLUDED
+float3 CandyCoastMarineAir(float3 direction,float3 sun)
+{
+    float sunward=pow(saturate(dot(normalize(direction.xz+float2(.0001,0)),normalize(sun.xz+float2(.0001,0)))),5);
+    return lerp(float3(.25,.57,.75),float3(.54,.66,.69),sunward*.54);
+}
+#ifndef CANDY_COAST_MARINE_ONLY
 float2 CandyCoastSkyUV(float3 direction)
 {
     float heading=atan2(direction.z,direction.x)*(1.0/(2.0*PI))+.66;
@@ -24,4 +30,5 @@ half3 CandyCoastClouds(float3 direction)
     float horizon=1-smoothstep(.012,.155,abs(direction.y));
     return lerp(painted,half3(.19,.54,.84),horizon*.16);
 }
+#endif
 #endif

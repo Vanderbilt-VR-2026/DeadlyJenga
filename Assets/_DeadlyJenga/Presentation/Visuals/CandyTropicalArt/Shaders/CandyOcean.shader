@@ -246,7 +246,8 @@ Shader "Candy Tropical/Ocean"
                 float rimBreak=smoothstep(.55,.70,broad.a*.48+medium.a*.52);
                 glint+=crestRim*rimBreak*clean*lerp(.08,.55,sunPath)*(1-horizon*.4);
                 color+=float3(1,.84,.57)*glint*(1-horizon*.65)*lerp(.34,1,deep);
-                color=lerp(color,float3(.15,.43,.70),horizon*.30);
+                float clipHaze=smoothstep(.74,.97,distanceToEye*_ProjectionParams.w);
+                color=lerp(color,CandyCoastMarineAir(-view,sun),max(horizon*.16,clipHaze));
 
                 float shoreDepth=depth+(fine.b-.5)*.091+wave*.034;
                 float laceWave=abs(sin(wind.x*13+fine.r*5)+sin(wind.y*19+medium.b*5));
@@ -262,7 +263,11 @@ Shader "Candy Tropical/Ocean"
                 float clarity=max(reefClear*.86*(1-smoothstep(2.3,5.3,depth)),1-smoothstep(.48,4.7,depth));
                 float shelf=smoothstep(.24,1.2,depth)*(1-smoothstep(2.1,4.6,depth));
                 color=lerp(color,float3(.001,.47,.54),shelf*.24);
-                float alpha=lerp(.995,.22+reefTint*.32+fresnel*.10,clarity);
+                // A shallow point can still have a long sightline through the water at grazing angles.
+                float opticalDepth=depth/max(.10,saturate(view.y));
+                float absorption=lerp(.52,.25,smoothstep(.07,.40,view.y));
+                float transmission=exp2(-opticalDepth*absorption);
+                float alpha=lerp(1,.22+reefTint*.24,clarity*transmission);
                 float shimmer=smoothstep(.46,.79,broad.a*.35+medium.a*.53+fine.a*.12);
                 color+=float3(.018,.20,.23)*shimmer*clarity;
                 return half4(MixFog(color,i.fog),max(max(alpha,foam),reflectionCoverage*.67));

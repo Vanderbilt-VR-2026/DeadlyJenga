@@ -50,6 +50,10 @@ namespace DeadlyJenga.CandyArt
             caustics=Resources.Load<Texture2D>("CandyScenery/CatwalksRefractedLight");
             sandGrain=Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain");
             if(caustics) material.SetTexture("_CoastCaustics",caustics);
+            var granite=Resources.Load<Texture2D>("CandyScenery/CastleIslandGranite");
+            var canopy=Resources.Load<Texture2D>("CandyScenery/CastleIslandCanopy");
+            if(granite) material.SetTexture("_CoastGranite",granite);
+            if(canopy) material.SetTexture("_CoastCanopy",canopy);
             reflection=new CandyCoastReflection(world,waterRenderer,sandRenderer,material,waterLevel);
             reefLight=new CandyReefLight(world,waterRenderer,caustics,waterLevel);
             var random = new System.Random(61011);
@@ -367,21 +371,93 @@ namespace DeadlyJenga.CandyArt
             Vector3 side=Vector3.Cross(Vector3.up,inland);
             float ridgeOffset=seed%2<1?-1:1;
             Vector3 outerRidge=center+inland*61+side*(size.x*.34f*ridgeOffset);
-            mesh.Land(outerRidge,new Vector2(size.x*.67f,size.y*.87f),height*1.15f,seed+2.7f,3,28,inland);
-            mesh.Land(center,size,height,seed,peaks,46,inland);
-            const int canopySamples=236;
+            mesh.Land(outerRidge,new Vector2(size.x*.67f,size.y*.87f),height*1.08f,seed+2.7f,3,38,inland);
+            mesh.Land(center,size,height,seed,peaks,64,inland);
+
+            Vector3 Ground(float x,float z)
+            {
+                float elevation=ArtMesh.LandHeight(x,z,seed,peaks)*height;
+                return center+side*(x*size.x)+inland*(z*size.y)+Vector3.up*elevation;
+            }
+
+            for(int i=0;i<30;i++)
+            {
+                float azimuth=i*2.39996f+seed;
+                float radius=Range(random,.46f,.94f);
+                Vector3 point=Ground(Mathf.Cos(azimuth)*radius,Mathf.Sin(azimuth)*radius);
+                if(point.y<.05f) continue;
+                float scale=Range(random,2.1f,5.4f);
+                var tint=Color.Lerp(new Color(.37f,.19f,.10f),new Color(.76f,.47f,.25f),Range(random,0,1));
+                mesh.Stone(point-Vector3.up*(scale*.43f),new Vector3(scale*.68f,scale*1.40f,scale*.69f),tint,azimuth);
+            }
+            const int canopySamples=445;
             for(int i=0;i<canopySamples;i++)
             {
-                float azimuth=i*2.39996f, radius=.78f*Mathf.Sqrt((i+.5f)/canopySamples);
+                float azimuth=i*2.39996f, radius=.87f*Mathf.Sqrt((i+.5f)/canopySamples);
                 float x=Mathf.Cos(azimuth)*radius,z=Mathf.Sin(azimuth)*radius;
-                float ground=ArtMesh.LandHeight(x,z,seed,peaks)*height;
-                if(ground<2.6f||Mathf.PerlinNoise(x*5+seed,z*4.3f+9)<.34f) continue;
-                float canopy=Range(random,2.1f,5.2f);
-                Vector3 point=center+side*(x*size.x)+inland*(z*size.y)+Vector3.up*(ground-canopy*.26f);
-                Color foliage=Color.Lerp(new Color(.025f,.12f,.052f),new Color(.15f,.32f,.069f),Range(random,0,1));
-                mesh.Ellipsoid(point,new Vector3(canopy,canopy*.71f,canopy*.95f),foliage,6,3);
+                Vector3 point=Ground(x,z);
+                float vegetation=Mathf.PerlinNoise(x*5.4f+seed,z*4.5f+9);
+                if(point.y<.7f||vegetation<.33f) continue;
+                float canopy=Range(random,1.12f,3.35f);
+                var leaves=Color.Lerp(new Color(.021f,.14f,.037f),new Color(.24f,.44f,.051f),Range(random,0,1));
+                if(i%31==0) leaves=new Color(.57f,.23f,.033f);
+                mesh.Ellipsoid(point-Vector3.up*(canopy*.15f),
+                    new Vector3(canopy,canopy*.68f,canopy*.92f),leaves,7,4);
+                if(i%3==0)
+                    mesh.Ellipsoid(point+side*(canopy*.57f)+Vector3.up*(canopy*.24f),
+                        new Vector3(canopy*.58f,canopy*.50f,canopy*.66f),leaves*1.12f,6,3);
+            }
+            for(int i=0;i<26;i++)
+            {
+                float heading=i*2.39996f+seed;
+                float radius=Range(random,.26f,.82f);
+                Vector3 foot=Ground(Mathf.Cos(heading)*radius,Mathf.Sin(heading)*radius);
+                if(foot.y<1.0f)continue;
+                float tall=Range(random,3.4f,7.0f);
+                Vector3 lean=new(Mathf.Cos(heading),0,Mathf.Sin(heading));
+                Vector3 crown=foot+Vector3.up*tall+lean*tall*.23f;
+                Vector3 bend=Vector3.Lerp(foot,crown,.55f)-lean*.35f;
+                var bark=new Color(.36f,.21f,.094f);
+                mesh.Tube(foot-Vector3.up*.18f,bend,tall*.047f,tall*.027f,bark,6);
+                mesh.Tube(bend,crown,tall*.027f,tall*.014f,bark,6);
+                for(int frond=0;frond<8;frond++)
+                {
+                    float turn=heading+frond*2.39996f;
+                    mesh.Leaf(crown,new Vector3(Mathf.Cos(turn),0,Mathf.Sin(turn)),Vector3.up,
+                        tall*(frond%2==0?.62f:.49f),tall*.112f,new Color(.17f,.36f,.048f),true,5);
+                }
             }
             Draw(name,mesh,2);
+            DrawIslandSurf(name,center,inland,side,size,height,seed,peaks);
+        }
+
+        void DrawIslandSurf(string name,Vector3 center,Vector3 inland,Vector3 side,Vector2 size,float height,float seed,int peaks)
+        {
+            var surf=new ArtMesh();
+            const int points=100;
+            for(int i=0;i<=points;i++)
+            {
+                float angle=i*Mathf.PI*2/points;
+                float x=Mathf.Cos(angle),z=Mathf.Sin(angle);
+                float near=0,far=1.12f;
+                for(int step=0;step<11;step++)
+                {
+                    float mid=(near+far)*.5f;
+                    if(ArtMesh.LandHeight(x*mid,z*mid,seed,peaks)*height+center.y>0) near=mid;
+                    else far=mid;
+                }
+                Vector3 direction=side*x+inland*z;
+                Vector3 edge=center+side*(x*far*size.x)+inland*(z*far*size.y);
+                edge.y=.046f;
+                float width=.62f+1.12f*Mathf.Pow(.5f+.5f*Mathf.Sin(angle*15+seed),2);
+                surf.Point(edge+direction*.17f,new Color(.80f,.97f,.95f),Vector2.zero);
+                surf.Point(edge+direction*width,new Color(.10f,.60f,.67f),Vector2.zero);
+                if(i==0)continue;
+                int a=(i-1)*2;
+                surf.Triangle(a,a+1,a+2);
+                surf.Triangle(a+1,a+3,a+2);
+            }
+            Draw(name+" surf",surf,5);
         }
 
         void BuildRay()
@@ -491,8 +567,9 @@ namespace DeadlyJenga.CandyArt
                 if(peaks>1)
                 {
                     float ridge=1-Mathf.Abs(Mathf.PerlinNoise(x*8.2f+seed,z*9.1f+5)*2-1);
-                    float cliff=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.43f,.72f,terrain));
-                    terrain+=cliff*(ridge*ridge*.19f+Mathf.Sin(terrain*32)*.027f);
+                    float cliff=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.32f,.68f,terrain));
+                    float fractured=Mathf.PerlinNoise(x*14.7f+seed*3,z*16.9f+9)-.5f;
+                    terrain+=cliff*(ridge*ridge*.23f+Mathf.Sin(terrain*34)*.029f+fractured*.15f);
                 }
                 return Mathf.Max(0,terrain)*shore;
             }
@@ -533,9 +610,9 @@ namespace DeadlyJenga.CandyArt
                     }
                     if(peaks>1)
                     {
-                        canopy=Color.Lerp(new Color(.038f,.12f,.039f),new Color(.16f,.35f,.073f),patch);
-                        cliff=Color.Lerp(new Color(.16f,.099f,.069f),new Color(.43f,.255f,.14f),patch);
-                        float exposure=steep*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.23f,.62f,patch));
+                        canopy=Color.Lerp(new Color(.038f,.14f,.034f),new Color(.21f,.42f,.075f),patch);
+                        cliff=Color.Lerp(new Color(.22f,.12f,.077f),new Color(.58f,.36f,.19f),patch);
+                        float exposure=steep*Mathf.SmoothStep(0,1,Mathf.InverseLerp(.18f,.57f,patch));
                         earth=Color.Lerp(canopy,cliff,exposure);
                         tint=Color.Lerp(new Color(.48f,.31f,.15f),earth,
                             Mathf.SmoothStep(0,1,Mathf.InverseLerp(1.2f,4.2f,y)));

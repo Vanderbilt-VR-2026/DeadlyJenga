@@ -6,6 +6,8 @@ Shader "Candy Tropical/Catwalks Coast"
         [HideInInspector] _CoastWater("Water elevation",Float)=0
         [HideInInspector] _CoastMotion("Swim motion",Float)=0
         [NoScaleOffset] _CoastHorizon("Painted island chain",2D)="black"{}
+        [NoScaleOffset] _CoastGranite("Island granite",2D)="gray"{}
+        [NoScaleOffset] _CoastCanopy("Island canopy",2D)="gray"{}
         [NoScaleOffset] _CoastCaustics("Refracted sunlight",2D)="black"{}
     }
     SubShader
@@ -23,7 +25,11 @@ Shader "Candy Tropical/Catwalks Coast"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "CandyCoastCaustics.hlsl"
+            #define CANDY_COAST_MARINE_ONLY
+            #include "CandyCoastPanorama.hlsl"
             TEXTURE2D(_CoastHorizon); SAMPLER(sampler_CoastHorizon);
+            TEXTURE2D(_CoastGranite); SAMPLER(sampler_CoastGranite);
+            TEXTURE2D(_CoastCanopy); SAMPLER(sampler_CoastCanopy);
             CBUFFER_START(UnityPerMaterial)
             float _CoastStyle,_CoastWater,_CoastMotion;
             CBUFFER_END
@@ -79,11 +85,18 @@ Shader "Candy Tropical/Catwalks Coast"
                     float pockets=sin(i.world.x*.49+grain*.67)*sin(i.world.z*.41-i.world.x*.33);
                     float foliage=smoothstep(-.2,.61,pockets+normal.y*.33);
                     float isVegetation=smoothstep(.006,.072,i.color.g-i.color.r);
-                    half3 skyBounce=half3(.14,.24,.32)*lerp(.43,1,saturate(normal.y));
-                    color=i.color*(skyBounce+sun.color*(.10+.77*diffuse));
-                    color*=1+stratum*.22*(1-saturate(normal.y))+grain*.065;
-                    color*=lerp(half3(1,1,1),lerp(half3(.62,.72,.76),half3(1.06,1.17,1),foliage),isVegetation*.76);
-                    float haze=lerp(.065,.55,smoothstep(235,640,distanceToEye));
+                    float rockWeight=smoothstep(.015,.15,i.color.r-i.color.g);
+                    half3 granite=SAMPLE_TEXTURE2D(_CoastGranite,sampler_CoastGranite,
+                        float2(dot(i.world.xz,float2(.82,.57)),i.world.y)*float2(.085,.10)).rgb;
+                    half3 leaves=SAMPLE_TEXTURE2D(_CoastCanopy,sampler_CoastCanopy,i.world.xz*.095).rgb;
+                    half3 textured=lerp(leaves*half3(.83,1.13,.65),granite*half3(1.08,1.04,.95),rockWeight);
+                    float groundDetail=smoothstep(.38,3.6,i.world.y-_CoastWater);
+                    half3 baseColor=lerp(i.color,textured,groundDetail*lerp(.54,.73,rockWeight));
+                    half3 skyBounce=half3(.19,.24,.28)*lerp(.46,1,saturate(normal.y));
+                    color=baseColor*(skyBounce+sun.color*(.12+.89*diffuse));
+                    color*=1+stratum*.19*(1-saturate(normal.y))+grain*.073;
+                    color*=lerp(half3(1,1,1),lerp(half3(.60,.72,.68),half3(1.12,1.22,1),foliage),isVegetation*.81);
+                    float haze=lerp(.045,.39,smoothstep(260,690,distanceToEye));
                     haze+=.05*(1-smoothstep(0,36,i.world.y-_CoastWater));
                     color=lerp(color,half3(.063,.237,.395),haze);
                 }
@@ -95,7 +108,7 @@ Shader "Candy Tropical/Catwalks Coast"
                     float haze=lerp(.50,.26,elevation)+(1-painted.a)*.18;
                     color=lerp(painted.rgb*half3(.78,.90,1.01),half3(.100,.30,.47),haze);
                 }
-                if(_CoastStyle>3.5)
+                if(_CoastStyle>3.5 && _CoastStyle<4.5)
                 {
                     float coastalBand=smoothstep(.025,.45,i.world.y-_CoastWater);
                     float strata=sin(i.world.y*15+sin(i.world.x*2.7+i.world.z*2.2));
@@ -103,6 +116,21 @@ Shader "Candy Tropical/Catwalks Coast"
                     float detail=1-smoothstep(32,119,distanceToEye);
                     color*=lerp(half3(.61,.78,.78),half3(1,1,1),coastalBand);
                     color*=1+detail*(strata*.09*(1-saturate(normal.y))+fleck*.055);
+                }
+                if(_CoastStyle>4.5)
+                {
+                    float streak=sin(i.world.x*.38+i.world.z*.64+_Time.y*.57);
+                    float breakup=sin(i.world.x*2.4-i.world.z*1.27+streak);
+                    clip(breakup+streak*.51+.52);
+                    color=i.color*(.67+.28*saturate(streak));
+                }
+                if(_CoastStyle>1.5 && _CoastStyle<3.5)
+                {
+                    float marineHeight=max(0,i.world.y-_CoastWater);
+                    float contactHaze=smoothstep(.72,1,distanceToEye*_ProjectionParams.w)*
+                        (1-smoothstep(.1,16,marineHeight));
+                    float3 sight=normalize(i.world-_WorldSpaceCameraPos);
+                    color=lerp(color,CandyCoastMarineAir(sight,sun.direction),contactHaze*.83);
                 }
                 float eyeDepth=_CoastWater-_WorldSpaceCameraPos.y;
                 if(eyeDepth>.08)

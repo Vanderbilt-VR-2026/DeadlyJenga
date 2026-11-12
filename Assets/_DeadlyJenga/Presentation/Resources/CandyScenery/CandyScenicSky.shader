@@ -34,6 +34,24 @@ Shader "Candy Tropical/Scenic Sky"
      UNITY_BRANCH if(_CoastHasPanorama>.5) sky=CandyCoastClouds(d);
      sky+=_SunColor.rgb*(pow(saturate(dot(d,sun)),700)*1.32+pow(saturate(dot(d,sun)),23)*.10);
      float depth=_CoastWaterLevel-_WorldSpaceCameraPos.y;
+     float marineLine=d.y-depth*_ProjectionParams.w;
+     float airBlend=1-smoothstep(.012,.084,abs(marineLine));
+     float3 marineAir=CandyCoastMarineAir(d,sun);
+     sky=lerp(sky,marineAir,airBlend);
+     if(depth<.08 && marineLine>-.008 && marineLine<.065)
+     {
+         float2 bearing=normalize(d.xz+float2(.0001,0));
+         float group=smoothstep(.30,.68,noise(bearing*5.8+17.1));
+         float ridge=noise(bearing*29+8.3)*.70+noise(bearing*68+3.1)*.30;
+         float back=group*(.009+ridge*.029);
+         float front=smoothstep(.46,.79,noise(bearing*8.1-10.2))*(.004+ridge*.022);
+         float foot=smoothstep(-.004,.012,marineLine);
+         float horizonDetail=max(.0007,fwidth(marineLine));
+         float mountains=foot*(1-smoothstep(back-horizonDetail,back+horizonDetail,marineLine))*group;
+         float headlands=foot*(1-smoothstep(front-horizonDetail,front+horizonDetail,marineLine));
+         sky=lerp(sky,marineAir*float3(.68,.82,.90),mountains*.64);
+         sky=lerp(sky,marineAir*float3(.51,.74,.85),headlands*.56);
+     }
      if(depth>.08)
      {
          // Distant rays remain in the water even where the ocean mesh ends.

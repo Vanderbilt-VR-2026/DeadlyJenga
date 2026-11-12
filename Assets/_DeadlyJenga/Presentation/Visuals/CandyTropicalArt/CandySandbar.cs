@@ -38,12 +38,30 @@ namespace DeadlyJenga.CandyArt
             Release();feet.Clear();float half=shape!=null?shape.FootprintHalfSize:profile.islandRadius*.65f;
             // A softly oval natural island has room at its shoulders while covering the castle's corners.
             coastHalf=new Vector2(half+profile.sandMargin+2.7f,half+profile.sandMargin+2.3f);
-            if(CatwalksBeach) coastHalf+=new Vector2(4.2f,3.5f);
-            HalfSize=coastHalf+Vector2.one*(CatwalksBeach?38f:profile.sandShoreWidth);
             if(shape!=null){ground.Clear();shape.GetGroundFootprints(ground);
                 foreach(var piece in ground)feet.Add(new Foot{center=piece.center,half=piece.halfSize,rotation=Quaternion.Inverse(piece.rotation)});}
+            if(CatwalksBeach) coastHalf=CastleCoastRadii(half);
+            HalfSize=coastHalf+Vector2.one*(CatwalksBeach?56f:profile.sandShoreWidth);
             BuildMesh();signature=hash;
         }
+        Vector2 CastleCoastRadii(float half)
+        {
+            var aspect=new Vector2(1.10f,.97f);
+            float reach=half;
+            foreach(var foot in feet)
+            {
+                Quaternion rotation=Quaternion.Inverse(foot.rotation);
+                for(int x=-1;x<=1;x+=2)
+                for(int z=-1;z<=1;z+=2)
+                {
+                    Vector3 offset=rotation*new Vector3(x*foot.half.x,0,z*foot.half.y);
+                    Vector2 corner=foot.center+new Vector2(offset.x,offset.z);
+                    reach=Mathf.Max(reach,new Vector2(corner.x/aspect.x,corner.y/aspect.y).magnitude);
+                }
+            }
+            return aspect*(reach+Mathf.Max(7.3f,profile.sandMargin+4.4f));
+        }
+
         float SupportDistance(Vector2 p)
         {
             float distance=float.PositiveInfinity;
@@ -65,10 +83,10 @@ namespace DeadlyJenga.CandyArt
             float shoulder=.22f*Mathf.Sin(a*3+.7f)+.15f*Mathf.Sin(a*5-1.2f)+.09f*Mathf.Sin(a*7+.4f);
             if(CatwalksBeach)
             {
-                float headland=2.6f*Mathf.Sin(a-.95f)+1.8f*Mathf.Sin(a*3-1.4f);
-                float coves=1.25f*Mathf.Sin(a*5+.4f)+.60f*Mathf.Sin(a*9-1.25f);
-                float grain=(Mathf.PerlinNoise(p.x*.18f+12.6f,p.y*.18f+4.7f)-.5f)*1.20f;
-                shoulder+=headland+coves+grain;
+                float headland=3.2f*Mathf.Sin(a-.95f)+2.45f*Mathf.Sin(a*3-1.4f);
+                float coves=1.72f*Mathf.Sin(a*5+.4f)+.72f*Mathf.Sin(a*9-1.25f);
+                float grain=(Mathf.PerlinNoise(p.x*.15f+12.6f,p.y*.15f+4.7f)-.5f)*1.32f;
+                return (q.magnitude-1)*Mathf.Min(half.x,half.y)-headland-coves-grain;
             }
             return coast-shoulder;
         }
@@ -85,14 +103,14 @@ namespace DeadlyJenga.CandyArt
             {
                 float a=Mathf.Atan2(p.y,p.x);
                 float exposure=.5f+.5f*Mathf.Sin(a*2+.84f);
-                float beachWidth=Mathf.Lerp(4.8f,9.2f,exposure);
-                float wetRamp=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-beachWidth,4.2f,edge));
-                float shallowWidth=Mathf.Lerp(12.5f,19.5f,exposure);
-                float shallows=Mathf.SmoothStep(0,1,Mathf.InverseLerp(1.2f,shallowWidth,edge));
-                float drop=Mathf.SmoothStep(0,1,Mathf.InverseLerp(shallowWidth-3,shallowWidth+14,edge));
-                float dryLevel=Mathf.Max(.06f,BeachWaterOffset+.27f);
-                float bed=Mathf.Lerp(dryLevel,BeachWaterOffset-.37f,wetRamp)-1.32f*shallows-5.25f*drop;
-                float bedDetail=(n-.5f)*.23f*shallows*(1-drop);
+                float beachWidth=Mathf.Lerp(5.2f,10.5f,exposure);
+                float wetRamp=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-beachWidth,5.0f,edge));
+                float shelfLength=Mathf.Lerp(27f,44f,exposure);
+                float shelfDistance=Mathf.Max(0,edge+1.5f);
+                float shelf=1-Mathf.Exp(-Mathf.Pow(shelfDistance/shelfLength,2.05f));
+                float dryLevel=Mathf.Max(.06f,BeachWaterOffset+.32f);
+                float bed=Mathf.Lerp(dryLevel,BeachWaterOffset-.30f,wetRamp)-8.9f*shelf;
+                float bedDetail=(n-.5f)*.18f*wetRamp*(1-shelf);
                 float supported=1-reliefMask;
                 float supportLevel=Mathf.Max(0,bed);
                 return Mathf.Lerp(bed+relief*.11f*(1-wetRamp)+bedDetail,supportLevel,supported);
@@ -111,7 +129,7 @@ namespace DeadlyJenga.CandyArt
             for(int z=0;z<resolution;z++)for(int x=0;x<resolution;x++)
             {int a=z*row+x,b=a+1,c=a+row,d=c+1;triangles.Add(a);triangles.Add(c);triangles.Add(b);triangles.Add(b);triangles.Add(c);triangles.Add(d);}
             var border=new List<int>();for(int x=0;x<resolution;x++)border.Add(x);for(int z=0;z<resolution;z++)border.Add(z*row+resolution);for(int x=resolution;x>0;x--)border.Add(resolution*row+x);for(int z=resolution;z>0;z--)border.Add(z*row);
-            int bottom=vertices.Count;float floor=CatwalksBeach?BeachWaterOffset-8.2f:-profile.sandDepth-1.2f;
+            int bottom=vertices.Count;float floor=CatwalksBeach?BeachWaterOffset-10f:-profile.sandDepth-1.2f;
             foreach(int id in border){var v=vertices[id];v.y=floor;vertices.Add(v);uv.Add(Vector2.zero);}
             int center=vertices.Count;vertices.Add(new Vector3(0,floor,0));uv.Add(Vector2.zero);
             for(int i=0;i<border.Count;i++)
