@@ -140,7 +140,7 @@ namespace DeadlyJenga.DevTools.Editor
             camera.farClipPlane = Mathf.Max(source.farClipPlane,1600f);
             camera.fieldOfView = 49;
             camera.cullingMask &= ~(1 << LayerMask.NameToLayer("UI"));
-            var target = RenderTexture.GetTemporary(1920,1080,24);
+            var target = RenderTexture.GetTemporary(1920,1080,24,RenderTextureFormat.Default,RenderTextureReadWrite.Default,4);
             var pixels = new Texture2D(1920,1080,TextureFormat.RGB24,false);
             var previous = RenderTexture.active;
             var origin = world.transform.position;
@@ -158,11 +158,11 @@ namespace DeadlyJenga.DevTools.Editor
                     File.WriteAllBytes(Path.Combine(Output,name+".png"),pixels.EncodeToPNG());
                     Report("Captured "+name);
                 }
-                Shot("01-Tycoon-overview",new Vector3(6,118,-162),new Vector3(0,35,-6));
-                Shot("02-Tycoon-rear",new Vector3(-109,108,145),new Vector3(0,34,0));
-                Shot("03-Core-junction",new Vector3(-6,20,-21),new Vector3(3,25,-1));
-                Shot("04-West-flume",new Vector3(-38,9,-30),new Vector3(-38,19,-2));
-                Shot("05-East-terrace",new Vector3(35,19.7f,-38),new Vector3(28,25,-23));
+                Shot("01-Tycoon-overview",new Vector3(5,102,-158),new Vector3(0,36,-7));
+                Shot("02-Tycoon-rear",new Vector3(-122,104,138),new Vector3(0,35,0));
+                Shot("03-Core-junction",new Vector3(1,19.7f,-16.5f),new Vector3(7,22,-3));
+                Shot("04-West-flume",new Vector3(-27.5f,37.7f,14),new Vector3(-42,22,-7));
+                Shot("05-East-terrace",new Vector3(39,19.7f,-39.5f),new Vector3(29,21,-25));
             }
             finally
             {

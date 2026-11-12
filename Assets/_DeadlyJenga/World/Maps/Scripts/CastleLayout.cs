@@ -31,11 +31,14 @@ namespace DeadlyJenga.CastlePrototype
         public readonly CastleSection Section;
         public readonly int Course;
         public readonly Vector3 Size;
+        public readonly TycoonDeckProfile DeckProfile;
         public Vector3 BlockSize(CastleSettings settings) => Size == Vector3.zero ? settings.blockSize : Size;
         public CastlePlacement(Vector3 p, Quaternion r, CastleSection s, int c)
          : this(p,r,s,c,Vector3.zero) { }
         public CastlePlacement(Vector3 p, Quaternion r, CastleSection s, int c, Vector3 size)
-        { Position = p; Rotation = r; Section = s; Course = c; Size = size; }
+         : this(p,r,s,c,size,default) { }
+        public CastlePlacement(Vector3 p, Quaternion r, CastleSection s, int c, Vector3 size, TycoonDeckProfile deckProfile)
+        { Position = p; Rotation = r; Section = s; Course = c; Size = size; DeckProfile = deckProfile; }
     }
 
     // Pure layout: no scene objects, physics, networking, or randomness.

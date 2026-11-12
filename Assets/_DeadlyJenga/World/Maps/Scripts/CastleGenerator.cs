@@ -284,7 +284,19 @@ namespace DeadlyJenga.CastlePrototype
                         CastleSection.Aqua => aquaMaterial ? aquaMaterial : cornerMaterial,
                         _ => wallMaterial
                     };
-                    block.RefreshAppearance(); block.SyncSurface();
+                    if(p.DeckProfile.Finish == TycoonDeckFinish.Plain || !block.visualRoot)
+                    {
+                        block.RefreshAppearance();
+                    }
+                    else
+                    {
+                        foreach(Transform child in block.visualRoot) child.gameObject.SetActive(false);
+                        block.appearance=null;
+                        var mesh=new GameObject("Molded deck");
+                        mesh.transform.SetParent(block.visualRoot,false);
+                        mesh.AddComponent<TycoonDeckVisual>().Build(p.DeckProfile,block.sectionMaterial,aquaMaterial,p.BlockSize(settings));
+                    }
+                    block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);
                 float volumeRatio=size.x*size.y*size.z/(settings.blockSize.x*settings.blockSize.y*settings.blockSize.z);
