@@ -234,15 +234,18 @@ Shader "Candy Tropical/Ocean"
                 color=lerp(color,reflectedSky,max(reflectAmount,reflectionCoverage*.49));
                 float alignment=saturate(dot(normal,normalize(sun+view)));
                 float glintMask=smoothstep(.48,.75,medium.a*.56+fine.a*.44);
-                float glint=pow(alignment,20)*.085+pow(alignment,88)*(.026+glintMask*.93);
+                float glint=pow(alignment,23)*.058+pow(alignment,88)*(.026+glintMask*.93);
                 float horizon=smoothstep(360,780,distanceToEye);
                 float sunPath=pow(saturate(dot(normalize(view.xz+float2(.0001,0)),float2(.20,-.98))),7);
                 float crestFlash=smoothstep(.83,.98,windCrest)*clean*smoothstep(.53,.73,medium.a)*
                     smoothstep(.36,.66,fine.a);
                 float fineFlash=smoothstep(.67,.84,fine.a)*smoothstep(.50,.73,medium.a);
                 glint+=(sunPath*.82+.12)*crestFlash*lerp(.58,.14,horizon);
-                glint+=fineFlash*smoothstep(.14,.78,alignment)*clean*.13;
-                color+=float3(1,.87,.64)*glint*(1-horizon*.65)*lerp(.34,1,deep);
+                glint+=fineFlash*smoothstep(.14,.78,alignment)*clean*.075;
+                float crestRim=(1-smoothstep(.04,.24,abs(windSlope-.10)))*smoothstep(.77,.98,windCrest);
+                float rimBreak=smoothstep(.55,.70,broad.a*.48+medium.a*.52);
+                glint+=crestRim*rimBreak*clean*lerp(.08,.55,sunPath)*(1-horizon*.4);
+                color+=float3(1,.84,.57)*glint*(1-horizon*.65)*lerp(.34,1,deep);
                 color=lerp(color,float3(.15,.43,.70),horizon*.30);
 
                 float shoreDepth=depth+(fine.b-.5)*.091+wave*.034;
@@ -252,10 +255,11 @@ Shader "Candy Tropical/Ocean"
                 float broken=smoothstep(.29,.66,medium.a*.51+fine.a*.49);
                 float lip=smoothstep(.010,.032,shoreDepth)*(1-smoothstep(.062,.107,shoreDepth));
                 float wash=smoothstep(.027,.053,shoreDepth)*(1-smoothstep(.14,.25,shoreDepth));
-                float islet=1-smoothstep(.013,.056,abs(isletRadius-1.02+(fine.b-.5)*.018));
-                float foam=max(max(lip*(.27+broken*.71)+wash*lace*.62,islet*.61),CandySurgeWhitecaps(i.world.xz));
+                float isletBreak=smoothstep(.37,.73,medium.a*.54+fine.a*.46);
+                float islet=1-smoothstep(.025,.085,abs(isletRadius-.88+(fine.b-.5)*.065));
+                float foam=max(max(lip*(.20+broken*.70)+wash*lace*.59,islet*isletBreak*.56),CandySurgeWhitecaps(i.world.xz));
                 color=lerp(color,float3(1,.97,.88),saturate(foam));
-                float clarity=max(reefClear*.86,1-smoothstep(.48,4.7,depth));
+                float clarity=max(reefClear*.86*(1-smoothstep(2.3,5.3,depth)),1-smoothstep(.48,4.7,depth));
                 float shelf=smoothstep(.24,1.2,depth)*(1-smoothstep(2.1,4.6,depth));
                 color=lerp(color,float3(.001,.47,.54),shelf*.24);
                 float alpha=lerp(.995,.22+reefTint*.32+fresnel*.10,clarity);
@@ -278,8 +282,9 @@ Shader "Candy Tropical/Ocean"
                         min(ReefRadius(i.world.xz,_ReefC),ReefRadius(i.world.xz,_ReefD)));
                     isletRadius=min(ReefRadius(i.world.xz,_CoastIslet),
                         min(ReefRadius(i.world.xz,_CoastIsletB),ReefRadius(i.world.xz,_CoastIsletC)));
-                    float isletShallow=1-smoothstep(.98,1.50,isletRadius);
-                    depth=lerp(depth,min(depth,1.28),isletShallow);
+                    float islandShelf=smoothstep(.78,1.49,isletRadius);
+                    float islandDepth=lerp(.17,5.6,islandShelf);
+                    depth=min(depth,lerp(islandDepth,depth,smoothstep(1.35,1.62,isletRadius)));
                     reefClear=1-smoothstep(.48,1.13,reefRadius);
                 }
                 if(_CatwalksCoast>.5 && _CoastDayWater>.5 && !pool && _CandyOutage<.5)

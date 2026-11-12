@@ -5,6 +5,7 @@ Shader "Candy Tropical/Catwalks Coast"
         [HideInInspector] _CoastStyle("Coast surface",Float)=0
         [HideInInspector] _CoastWater("Water elevation",Float)=0
         [HideInInspector] _CoastMotion("Swim motion",Float)=0
+        [NoScaleOffset] _CoastHorizon("Painted island chain",2D)="black"{}
         [NoScaleOffset] _CoastCaustics("Refracted sunlight",2D)="black"{}
     }
     SubShader
@@ -22,6 +23,7 @@ Shader "Candy Tropical/Catwalks Coast"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
             #include "CandyCoastCaustics.hlsl"
+            TEXTURE2D(_CoastHorizon); SAMPLER(sampler_CoastHorizon);
             CBUFFER_START(UnityPerMaterial)
             float _CoastStyle,_CoastWater,_CoastMotion;
             CBUFFER_END
@@ -70,7 +72,7 @@ Shader "Candy Tropical/Catwalks Coast"
                         color*=1+filter*(polyps*.24-.045);
                     }
                 }
-                if(_CoastStyle>1.5)
+                if(_CoastStyle>1.5 && _CoastStyle<2.5)
                 {
                     float stratum=sin(i.world.y*.82+sin(i.world.x*.043+i.world.z*.071)*.65);
                     float grain=sin(i.world.x*.76+i.world.z*.42)*sin(i.world.z*.54-i.world.x*.25);
@@ -84,6 +86,23 @@ Shader "Candy Tropical/Catwalks Coast"
                     float haze=lerp(.065,.55,smoothstep(235,640,distanceToEye));
                     haze+=.05*(1-smoothstep(0,36,i.world.y-_CoastWater));
                     color=lerp(color,half3(.063,.237,.395),haze);
+                }
+                if(_CoastStyle>2.5 && _CoastStyle<3.5)
+                {
+                    half4 painted=SAMPLE_TEXTURE2D(_CoastHorizon,sampler_CoastHorizon,i.uv);
+                    clip(painted.a-.57);
+                    float elevation=smoothstep(0,37,i.world.y-_CoastWater);
+                    float haze=lerp(.50,.26,elevation)+(1-painted.a)*.18;
+                    color=lerp(painted.rgb*half3(.78,.90,1.01),half3(.100,.30,.47),haze);
+                }
+                if(_CoastStyle>3.5)
+                {
+                    float coastalBand=smoothstep(.025,.45,i.world.y-_CoastWater);
+                    float strata=sin(i.world.y*15+sin(i.world.x*2.7+i.world.z*2.2));
+                    float fleck=sin(i.world.x*17+i.world.z*8.1)*sin(i.world.z*16-i.world.x*5);
+                    float detail=1-smoothstep(32,119,distanceToEye);
+                    color*=lerp(half3(.61,.78,.78),half3(1,1,1),coastalBand);
+                    color*=1+detail*(strata*.09*(1-saturate(normal.y))+fleck*.055);
                 }
                 float eyeDepth=_CoastWater-_WorldSpaceCameraPos.y;
                 if(eyeDepth>.08)

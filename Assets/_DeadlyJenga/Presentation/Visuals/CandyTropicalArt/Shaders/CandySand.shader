@@ -114,7 +114,7 @@ Shader "Candy Tropical/Sand"
                 color=color*illumination+light.color*sheen*light.shadowAttenuation;
                 if(_CatwalksCoast>.5)
                 {
-                    float fade=(1-smoothstep(1.1,4.8,submerged))*(1-smoothstep(17,73,distanceToEye));
+                    float fade=(1-smoothstep(1.3,5.0,submerged))*(1-smoothstep(33,142,distanceToEye));
                     float movingDepth=submerged+.045*sin(dot(p,float2(.83,.57))-_Time.y*1.38);
                     float glimmer=CandyRefractedLight(p,submerged)*fade*smoothstep(.015,.21,movingDepth);
                     float dry=smoothstep(.0,.29,shoreHeight);
