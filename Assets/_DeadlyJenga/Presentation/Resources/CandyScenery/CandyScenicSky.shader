@@ -34,8 +34,8 @@ Shader "Candy Tropical/Scenic Sky"
      UNITY_BRANCH if(_CoastHasPanorama>.5) sky=CandyCoastClouds(d);
      sky+=_SunColor.rgb*(pow(saturate(dot(d,sun)),700)*1.32+pow(saturate(dot(d,sun)),23)*.10);
      float depth=_CoastWaterLevel-_WorldSpaceCameraPos.y;
-     float marineLine=d.y-depth*_ProjectionParams.w;
-     float airBlend=1-smoothstep(.012,.084,abs(marineLine));
+     float marineLine=d.y-depth*_ProjectionParams.w*CandyCoastViewDepth(d);
+     float airBlend=1-smoothstep(.002,.052,abs(marineLine));
      float3 marineAir=CandyCoastMarineAir(d,sun);
      sky=lerp(sky,marineAir,airBlend);
      if(depth<.08 && marineLine>-.008 && marineLine<.065)
@@ -45,12 +45,12 @@ Shader "Candy Tropical/Scenic Sky"
          float ridge=noise(bearing*29+8.3)*.70+noise(bearing*68+3.1)*.30;
          float back=group*(.009+ridge*.029);
          float front=smoothstep(.46,.79,noise(bearing*8.1-10.2))*(.004+ridge*.022);
-         float foot=smoothstep(-.004,.012,marineLine);
+         float foot=smoothstep(.003,.014,marineLine);
          float horizonDetail=max(.0007,fwidth(marineLine));
          float mountains=foot*(1-smoothstep(back-horizonDetail,back+horizonDetail,marineLine))*group;
          float headlands=foot*(1-smoothstep(front-horizonDetail,front+horizonDetail,marineLine));
-         sky=lerp(sky,marineAir*float3(.68,.82,.90),mountains*.64);
-         sky=lerp(sky,marineAir*float3(.51,.74,.85),headlands*.56);
+         sky=lerp(sky,marineAir*float3(.70,.84,.95),mountains*.56);
+         sky=lerp(sky,marineAir*float3(.57,.78,.91),headlands*.48);
      }
      if(depth>.08)
      {

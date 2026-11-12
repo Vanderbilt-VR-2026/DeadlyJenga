@@ -3,7 +3,11 @@
 float3 CandyCoastMarineAir(float3 direction,float3 sun)
 {
     float sunward=pow(saturate(dot(normalize(direction.xz+float2(.0001,0)),normalize(sun.xz+float2(.0001,0)))),5);
-    return lerp(float3(.25,.57,.75),float3(.54,.66,.69),sunward*.54);
+    return lerp(float3(.169,.432,.639),float3(.286,.488,.624),sunward*.59);
+}
+float CandyCoastViewDepth(float3 direction)
+{
+    return max(0,-dot(direction,UNITY_MATRIX_V[2].xyz));
 }
 #ifndef CANDY_COAST_MARINE_ONLY
 float2 CandyCoastSkyUV(float3 direction)

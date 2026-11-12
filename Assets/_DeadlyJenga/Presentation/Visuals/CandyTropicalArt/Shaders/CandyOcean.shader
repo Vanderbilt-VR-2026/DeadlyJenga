@@ -246,8 +246,9 @@ Shader "Candy Tropical/Ocean"
                 float rimBreak=smoothstep(.55,.70,broad.a*.48+medium.a*.52);
                 glint+=crestRim*rimBreak*clean*lerp(.08,.55,sunPath)*(1-horizon*.4);
                 color+=float3(1,.84,.57)*glint*(1-horizon*.65)*lerp(.34,1,deep);
-                float clipHaze=smoothstep(.74,.97,distanceToEye*_ProjectionParams.w);
-                color=lerp(color,CandyCoastMarineAir(-view,sun),max(horizon*.16,clipHaze));
+                float viewDepth=distanceToEye*CandyCoastViewDepth(-view);
+                float clipHaze=smoothstep(.78,1,viewDepth*_ProjectionParams.w);
+                color=lerp(color,CandyCoastMarineAir(-view,sun),max(horizon*.12,clipHaze));
 
                 float shoreDepth=depth+(fine.b-.5)*.091+wave*.034;
                 float laceWave=abs(sin(wind.x*13+fine.r*5)+sin(wind.y*19+medium.b*5));
