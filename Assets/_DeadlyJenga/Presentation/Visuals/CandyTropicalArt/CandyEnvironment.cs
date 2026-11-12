@@ -50,7 +50,7 @@ namespace DeadlyJenga.CandyArt
         }
 
         bool UsesCastleCoast => Application.isPlaying && WorldOverride==null &&
-            MatchChoices.MapId is "castle" or "mode-castle-gaps" or "mode-castle-catwalks" or "mode-castle-four-keeps";
+            MatchChoices.MapId is "castle" or "mode-castle-gaps" or "mode-castle-catwalks" or "mode-tycoon" or "mode-castle-four-keeps";
 
         void RefreshCoast(IWorldQuery world,CandySandbar terrain,Vector3 origin,float waterLevel)
         {

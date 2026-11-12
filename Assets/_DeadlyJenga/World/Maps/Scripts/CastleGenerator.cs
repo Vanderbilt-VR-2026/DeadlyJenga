@@ -9,6 +9,7 @@ namespace DeadlyJenga.CastlePrototype
         public CastleSettings settings = new CastleSettings();
         public GameObject blockPrefab;
         public Material cornerMaterial, wallMaterial, keepMaterial;
+        [SerializeField] Material goldMaterial, aquaMaterial;
         public Transform foundation;
         public bool generateOnStart = true;
         [Tooltip("Keep this map empty when rebuilding or synchronizing its layout.")]
@@ -275,8 +276,14 @@ namespace DeadlyJenga.CastlePrototype
                 var block = go.GetComponent<CastleBlock>();
                 if (block)
                 {
-                    block.sectionMaterial = p.Section == CastleSection.Corner ? cornerMaterial :
-                        p.Section == CastleSection.Keep ? keepMaterial : wallMaterial;
+                    block.sectionMaterial = p.Section switch
+                    {
+                        CastleSection.Corner => cornerMaterial,
+                        CastleSection.Keep => keepMaterial,
+                        CastleSection.Gold => goldMaterial ? goldMaterial : wallMaterial,
+                        CastleSection.Aqua => aquaMaterial ? aquaMaterial : cornerMaterial,
+                        _ => wallMaterial
+                    };
                     block.RefreshAppearance(); block.SyncSurface();
                 }
                 var size=p.BlockSize(settings);

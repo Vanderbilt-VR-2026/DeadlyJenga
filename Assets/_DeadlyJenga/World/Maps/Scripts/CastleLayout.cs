@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public enum CastleSection { Corner, Wall, Keep }
+    public enum CastleSection { Corner, Wall, Keep, Gold, Aqua }
     public enum CastleStructure { Original, Catwalks, FourKeeps }
 
     [Serializable]
