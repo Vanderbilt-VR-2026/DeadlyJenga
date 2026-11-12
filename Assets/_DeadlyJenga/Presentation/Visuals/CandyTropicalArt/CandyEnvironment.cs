@@ -159,9 +159,13 @@ namespace DeadlyJenga.CandyArt
             else properties.SetFloat(CoastEnabled,0);
             sandRenderer.SetPropertyBlock(properties);
             waterRenderer.SetPropertyBlock(properties);
+            bool coastDay = catwalksCoast != null && CandySceneSkins.Selected == CandySceneSkin.TropicalDay;
+            var view = Services.Session?.ActiveCamera;
+            bool showCoastReflections = coastDay && applyLighting && (!view || view.gameObject.scene == gameObject.scene)
+                && Shader.GetGlobalFloat("_CandyOutage") < .5f;
+            catwalksCoast?.SetDayReflections(showCoastReflections);
             if(!applyLighting) return;
-            Material sky=catwalksCoast!=null && CandySceneSkins.Selected==CandySceneSkin.TropicalDay?
-                catwalksCoast.DaySky(profile.sky):profile.sky;
+            Material sky=coastDay?catwalksCoast.DaySky(profile.sky):profile.sky;
             if(RenderSettings.skybox!=sky)RenderSettings.skybox=sky;
             RenderSettings.ambientMode=AmbientMode.Trilight;
             RenderSettings.ambientSkyColor=new Color(.55f,.72f,.9f);
@@ -170,7 +174,6 @@ namespace DeadlyJenga.CandyArt
             RenderSettings.ambientIntensity=1;
             if(sun)
             {
-                bool coastDay=catwalksCoast!=null && CandySceneSkins.Selected==CandySceneSkin.TropicalDay;
                 sun.transform.rotation=coastDay
                     ? Quaternion.LookRotation(-CandyCatwalksCoast.SunDirection)
                     : Quaternion.Euler(profile.sunEuler);

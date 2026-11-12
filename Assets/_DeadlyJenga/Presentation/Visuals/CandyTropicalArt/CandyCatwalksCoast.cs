@@ -28,6 +28,10 @@ namespace DeadlyJenga.CandyArt
         readonly CandyCoastReflection reflection;
         readonly CandyReefLight reefLight;
         Material daySky, daySkySource;
+        Cubemap plasticSky;
+        static readonly int PlasticSky = Shader.PropertyToID("_CastlePlasticSky");
+        static readonly int PlasticSkyWeight = Shader.PropertyToID("_CastlePlasticSkyWeight");
+        bool usingPlasticSky;
         readonly List<Mesh> meshes = new();
         readonly Vector4[] reefs = new Vector4[ReefDirections.Length];
         readonly Transform[] schools = new Transform[2];
@@ -103,6 +107,24 @@ namespace DeadlyJenga.CandyArt
         {
             Vector4 island=Islets[index];
             return new Vector4(root.transform.position.x+island.x,root.transform.position.z+island.y,island.z,island.w);
+        }
+
+        internal void SetDayReflections(bool enabled)
+        {
+            if (!enabled)
+            {
+                if (!usingPlasticSky) return;
+                usingPlasticSky = false;
+                Shader.SetGlobalFloat(PlasticSkyWeight, 0f);
+                return;
+            }
+
+            if (usingPlasticSky) return;
+            if (!plasticSky) plasticSky = Resources.Load<Cubemap>("CandyScenery/CastlePlasticSky");
+            if (!plasticSky) return;
+            Shader.SetGlobalTexture(PlasticSky, plasticSky);
+            Shader.SetGlobalFloat(PlasticSkyWeight, 0.92f);
+            usingPlasticSky = true;
         }
 
         internal Material DaySky(Material source)
@@ -504,6 +526,7 @@ namespace DeadlyJenga.CandyArt
         {
             if (disposed) return;
             disposed=true;
+            SetDayReflections(false);
             reflection.Dispose();
             reefLight.Dispose();
             if(root)root.SetActive(false);
