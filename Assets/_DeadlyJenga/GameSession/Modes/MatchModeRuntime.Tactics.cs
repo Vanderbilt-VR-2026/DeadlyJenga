@@ -9,6 +9,7 @@ namespace DeadlyJenga.Modes
         readonly List<DisasterFrame> tacticalHazards=new List<DisasterFrame>();
         readonly List<WaveFrame> tacticalWaves=new List<WaveFrame>();
         readonly List<Vector3> tacticalPoints=new List<Vector3>();
+        readonly HashSet<Vector3Int> tacticalCells = new HashSet<Vector3Int>();
         float nextTacticalSample;
         bool CollectHazardTactics(IModeActor actor,List<BotObjective> goals)
         {
@@ -24,7 +25,13 @@ namespace DeadlyJenga.Modes
             if(tacticalHazards.Count==0&&tacticalWaves.Count==0)return false;
             RefreshSupportGoals();float height=Mathf.Clamp(actor.ViewPose.position.y-actor.transform.position.y,.8f,5);
             ModeHazardTactics.Select(actor.transform.position,height,supportCandidates,tacticalHazards,tacticalWaves,Services.World.IsSheltered,tacticalPoints);
-            foreach(var point in tacticalPoints)AddGoal(goals,"hazard-safe:"+Mathf.RoundToInt(point.x)+":"+Mathf.RoundToInt(point.y)+":"+Mathf.RoundToInt(point.z),BotObjectiveKind.Guard,point,null,.7f,3);
+            tacticalCells.Clear();
+            foreach (var point in tacticalPoints)
+            {
+                var cell = Vector3Int.RoundToInt(point);
+                if (!tacticalCells.Add(cell)) continue;
+                AddGoal(goals, $"hazard-safe:{cell.x}:{cell.y}:{cell.z}", BotObjectiveKind.Guard, point, null, .7f, 3);
+            }
             return tacticalPoints.Count>0;
         }
     }

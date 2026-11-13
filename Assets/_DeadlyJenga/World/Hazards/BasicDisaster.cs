@@ -343,7 +343,7 @@ namespace DeadlyJenga.World.Hazards
             if(earthquakeFrame!=Time.frameCount){earthquakeFrame=Time.frameCount;earthquakeWakeCount=0;}
             int start=earthquakeCursor%count;
             int nextWake=start;
-            int wakeLimit=Application.isMobilePlatform?18:int.MaxValue;
+            int wakeLimit=Application.isMobilePlatform||count>=700?18:int.MaxValue;
             var velocity=impulse*strength;
             var torque=new Vector3(impulse.z,0,-impulse.x)*.08f;
             for(int i=0;i<count;i++)

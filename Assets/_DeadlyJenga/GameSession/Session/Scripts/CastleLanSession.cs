@@ -56,6 +56,7 @@ namespace DeadlyJenga.CastlePrototype
         float nextBeacon, nextState, nextPose, requestedAt, lastRequest, worldAt, lastWorldAt;
         P.Snapshot targetWorld;
         P.Pose[] previousBlocks;
+        bool worldInterpolationComplete;
         INetworkPreview localPreview;
         string displayName;
         bool oldRunInBackground;
@@ -164,7 +165,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(targetWorld!=null)for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]){World.Blocks[i].position=targetWorld.blocks[i].position;World.Blocks[i].rotation=targetWorld.blocks[i].rotation;}
                 Synced?.SetReplica(false);
-                for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
+                for(int i=0;i<World.Blocks.Count;i++)if(World.Blocks[i]&&!World.Blocks[i].isKinematic&&migrationVelocity!=null&&i<migrationVelocity.Length){World.Blocks[i].linearVelocity=migrationVelocity[i];if(migrationAngular!=null)World.Blocks[i].angularVelocity=migrationAngular[i];}
                 if(localPreview!=null)localPreview.NetworkPreview=false;
                 var bots=session.SurvivorBots;var handBots=session.HandBots;
                 if(bots!=null){bool fill=bots.AutoFill;bots.Clear();bots.AutoFill=fill;bots.Running=true;bots.TargetPopulation=Mathf.Max(10,bots.TargetPopulation);bots.SelectPreset(survivorPreset);}
@@ -463,7 +464,7 @@ namespace DeadlyJenga.CastlePrototype
         public bool TrySpawn(out P.Pose spawn)
         {
             Physics.SyncTransforms();
-            var sites = World.Blocks.Where(b => b && b.gameObject.activeInHierarchy && b.position.y > 0 && !b.isKinematic && b.linearVelocity.sqrMagnitude < 1 && Vector3.Dot(b.rotation * Vector3.up, Vector3.up) > .97f).OrderByDescending(b => b.position.y);
+            var sites = World.Blocks.Where(b => b && b.gameObject.activeInHierarchy && b.position.y > 0 && (b.isKinematic || b.linearVelocity.sqrMagnitude < 1) && Vector3.Dot(b.rotation * Vector3.up, Vector3.up) > .97f).OrderByDescending(b => b.position.y);
             foreach (var rb in sites)
             {
                 for (int lane = -1; lane <= 1; lane++)
@@ -584,10 +585,16 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < blocks.Count; i++)
             {
                 var b = blocks[i];
+                if (rebuild)
+                {
+                    b.position = s.blocks[i].position;
+                    b.rotation = s.blocks[i].rotation;
+                }
                 previousBlocks[i] = rebuild ? s.blocks[i] : new P.Pose(b.position, b.rotation);
                 b.gameObject.SetActive(s.active[i]);
             }
             targetWorld = s; worldAt = lastWorldAt = Time.unscaledTime;
+            worldInterpolationComplete = rebuild;
             var present = new HashSet<string>();
             foreach(var actor in s.actors)
             {
@@ -610,14 +617,18 @@ namespace DeadlyJenga.CastlePrototype
         }
         void InterpolateWorld()
         {
-            if (targetWorld == null) return;
+            if (targetWorld == null || worldInterpolationComplete) return;
             float t = Mathf.Clamp01((Time.unscaledTime - worldAt) * 15);
             for (int i = 0; i < targetWorld.blocks.Length; i++)
             {
-                var b = World.Blocks[i]; var p = targetWorld.blocks[i];
-                b.position = Vector3.Lerp(previousBlocks[i].position, p.position, t);
-                b.rotation = Quaternion.Slerp(previousBlocks[i].rotation, p.rotation, t);
+                var previous = previousBlocks[i];
+                var target = targetWorld.blocks[i];
+                if (previous.position.Equals(target.position) && previous.rotation.Equals(target.rotation)) continue;
+                var body = World.Blocks[i];
+                body.position = Vector3.Lerp(previous.position, target.position, t);
+                body.rotation = Quaternion.Slerp(previous.rotation, target.rotation, t);
             }
+            worldInterpolationComplete = t >= 1;
         }
         void ApplyOwnHandFeedback(P.Actor actor)
         {

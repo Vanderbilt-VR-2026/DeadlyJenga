@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||NearbyFlow?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||NearbyFlow||TycoonTest?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -243,9 +243,173 @@ namespace DeadlyJenga.CastlePrototype
                 "Both clients confirm the return",25);
         }
 
+        static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
+        const string TycoonMap = "mode-tycoon";
+
+        IEnumerator CheckTycoon()
+        {
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0, "Home initialized");
+            home.Demo();
+            yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player), "Developer enters usable lobby");
+            var lobby = IslandLobby.Current;
+            var room = lobby.Room;
+            bool host = role == "host";
+            bool solo = role == "solo";
+            string code = "";
+            if (host)
+            {
+                yield return Until(() => File.Exists(Mark("tycoon-guest-home")), "Guest ready in lobby");
+                var task = room.Host();
+                yield return Until(() => task.IsCompleted && room.IsHost && lobby.CanConfigure, "Host terminal opens a real Fusion room", 60, () => room.Status);
+            }
+            if (host || solo)
+            {
+                Require(lobby.SelectMode("demo") && lobby.SelectMap(TycoonMap), "Terminal selects Tycoon");
+                MatchSetup.BotTarget = solo ? 1 : 2;
+                if (host)
+                {
+                    code = room.Code;
+                    File.WriteAllText(Mark("tycoon-code-temp"), code);
+                    File.Move(Mark("tycoon-code-temp"), Mark("tycoon-code"));
+                    yield return Until(() => room.HumanCount == 2 && File.Exists(Mark("tycoon-guest-ready")), "Guest and host agree on the room and map", 75);
+                }
+                lobby.StartOrCancel();
+            }
+            else
+            {
+                File.WriteAllText(Mark("tycoon-guest-home"), "ready");
+                yield return Until(() => File.Exists(Mark("tycoon-code")), "Host publishes code", 90);
+                code = File.ReadAllText(Mark("tycoon-code"));
+                var task = room.Join(code);
+                yield return Until(() => task.IsCompleted && room.Connected && !room.IsHost && lobby.SelectedMapId == TycoonMap,
+                    "Guest joins by code and receives Tycoon selection", 75, () => room.Status);
+                File.WriteAllText(Mark("tycoon-guest-ready"), "ready");
+            }
+
+            CastlePlaySession session = null;
+            float nextDiagnostic = Time.realtimeSinceStartup + 5;
+            yield return Until(() =>
+            {
+                session = FindFirstObjectByType<CastlePlaySession>();
+                if (Time.realtimeSinceStartup >= nextDiagnostic)
+                {
+                    nextDiagnostic = Time.realtimeSinceStartup + 5;
+                    File.AppendAllText(Report, $"JOIN scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}; room={room.Status}; match={session != null}; actor={NetworkActors.Alive(session?.Player)}; waiting={session?.Network?.WaitingForWorld}; status={session?.Network?.Status}; world={Services.World?.Blocks.Count}; humans={room.HumanCount}\n");
+                }
+                return session &&
+                NetworkActors.Alive(session.Player) && Services.World is CastleGenerator map &&
+                map.settings.layoutPreset == TycoonLayout.Preset && map.Bodies.Count > 0 &&
+                (solo || session.Network && room.HumanCount == 2 && !session.Network.WaitingForWorld);
+            },
+                "Actual Game transition and Tycoon world snapshot complete", 85, () =>
+                    $"room={room.Status}; session={session != null}; actor={NetworkActors.Alive(session?.Player)}; " +
+                    $"world={Services.World?.Blocks.Count}; waiting={session?.Network?.WaitingForWorld}; humans={room.HumanCount}");
+            var world = (CastleGenerator)Services.World;
+            var blocks = world.Bodies.ToArray();
+            var authored = blocks.Select(body => body.position).ToArray();
+            if (host)
+                yield return Until(() => File.Exists(Mark("tycoon-guest-match")),
+                    "Guest confirms initial world snapshot before load is added", 60);
+            else if (!solo)
+                File.WriteAllText(Mark("tycoon-guest-match"), "ready");
+            Require(blocks.Length == 795 && blocks.All(body => body && body.isKinematic), "All 795 resting blocks have live supported colliders");
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = 90;
+            if (solo)
+            {
+                var probe = blocks.OrderByDescending(body => body.position.y).First();
+                var start = probe.position;
+                probe.GetComponent<IPushable>().Push(new Vector3(25, 0, 0), gameObject);
+                yield return Until(() => !probe.isKinematic, "Direct force releases a supported piece", 3);
+                yield return Until(() => probe.position.y < start.y - .5f, "Released piece falls under gravity", 8);
+                var ocean = world.Center + Vector3.right * (world.PlayableBounds.extents.x + 10);
+                probe.position = new Vector3(ocean.x, world.WaterHeight(ocean) + 4f, ocean.z);
+                probe.linearVelocity = Vector3.zero;
+                probe.angularVelocity = Vector3.zero;
+                yield return Until(() => probe && probe.position.y < world.WaterHeight(ocean), "Released block crosses the waterline under gravity", 8);
+                yield return Until(() => !probe.gameObject.activeSelf, "Submerged debris is retired", 12);
+                session.ResetMap();
+                yield return Until(() => world.Bodies.Count == blocks.Length && world.Bodies.All(body => body.isKinematic), "Rebuild restores all supports");
+                yield return SampleFrames("solo-idle", 6);
+                foreach (string hazard in new[] { "Earthquake", "Tornado" })
+                {
+                    var oldBodies = world.Bodies.ToArray();
+                    Require(DemoDisasters.ExecuteForMode(session, hazard), hazard + " starts from the production catalog");
+                    yield return Until(() => oldBodies.Count(body => body && !body.isKinematic) >= 2, hazard + " dislodges multiple map pieces", 35);
+                    yield return SampleFrames(hazard, 4);
+                    DemoDisasters.StopAll(session);
+                    session.ResetMap();
+                    yield return null;
+                }
+            }
+            if (host || solo)
+            {
+                session.SurvivorBots.AutoFill = false;
+                session.SurvivorBots.Clear();
+                for (int i = 0; i < 24; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == 24, "Host spawns 24 actual bots");
+                yield return SampleFrames("24-bots", 12);
+                var beforeWave = world.Bodies.Select(body => body.position).ToArray();
+                var wavePrefab = DemoDisasters.Prefabs.First(prefab => prefab.name == "Tsunami");
+                var parameters = DemoDisasters.Parameters(wavePrefab).Select(parameter => parameter.initial).ToArray();
+                parameters[0] = 23;
+                parameters[2] = 27;
+                UnityEngine.Random.InitState(71293);
+                parameters[4] = 1;
+                Require(DemoDisasters.ExecuteForMode(session, "Tsunami", parameters), "Host starts Tycoon tsunami");
+                yield return SampleFrames("24-bots-tsunami", 21);
+                int Moved() => world.Bodies.Where((body, index) => body && (body.position - beforeWave[index]).sqrMagnitude > 1f).Count();
+                yield return Until(() => Moved() >= 12, "Tsunami moves at least 12 blocks", 25, () => "Moved " + Moved());
+                File.AppendAllText(Report, $"Tsunami moved {Moved()} blocks over 1 m.\n");
+                Require(world.Bodies.All(body => body && float.IsFinite(body.position.sqrMagnitude)), "World remains finite after the wave");
+                if (host) yield return Until(() => File.Exists(Mark("tycoon-wave-seen")), "Guest receives wave and changed block poses");
+                DemoDisasters.StopAll(session);
+                Require(room.ReturnMatchToLobby(), "Host requests normal return to lobby");
+            }
+            else
+            {
+                yield return Until(() => Tracked.Waves.Any(wave => wave.Wave.active), "Guest sees the replicated tsunami", 60);
+                yield return SampleFrames("guest-tsunami", 12);
+                yield return Until(() => blocks.Where((body, index) => body && (body.position - authored[index]).sqrMagnitude > 1f).Count() >= 12,
+                    "Guest receives collapsed poses", 50);
+                File.WriteAllText(Mark("tycoon-wave-seen"), "yes");
+            }
+            yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
+                (solo || room.Connected && room.Code == code && room.HumanCount == 2),
+                "Returns to a usable lobby and retains the same party", 70, () => room.Status);
+            if (!solo)
+            {
+                File.WriteAllText(Mark("tycoon-return-" + role), "ready");
+                yield return Until(() => File.Exists(Mark("tycoon-return-" + (host ? "guest" : "host"))),
+                    "Both peers independently confirmed return", 40);
+            }
+        }
+
+        IEnumerator SampleFrames(string label, double seconds)
+        {
+            var times = new List<double>(2000);
+            double previous = Time.realtimeSinceStartupAsDouble;
+            double deadline = previous + seconds;
+            while (previous < deadline)
+            {
+                yield return null;
+                double now = Time.realtimeSinceStartupAsDouble;
+                times.Add((now - previous) * 1000);
+                previous = now;
+            }
+            var sorted = times.OrderBy(ms => ms).ToArray();
+            double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
+            int slow = times.Count(ms => ms >= 100);
+            File.AppendAllText(Report, $"FRAMES {label} n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={slow}\n");
+            File.WriteAllLines(Path.Combine(folder, role + "-" + label + "-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
+        }
+
+
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(TycoonTest){yield return CheckTycoon();yield break;}
             if(NearbyFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
             {

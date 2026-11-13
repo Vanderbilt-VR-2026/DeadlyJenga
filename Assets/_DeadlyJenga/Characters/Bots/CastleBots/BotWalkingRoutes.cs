@@ -27,6 +27,7 @@ namespace DeadlyJenga.CastleBots
         AsyncOperation building;
         IWorldQuery world;
         NavMeshBuildSettings settings;
+        const int DenseBlockLimit = 700;
         float nextScan;
         int signature;
         public int Revision { get; private set; }
@@ -41,6 +42,12 @@ namespace DeadlyJenga.CastleBots
             if(activeWorld==null||Time.time<nextScan)return;
             nextScan=Time.time+1;
             if(!ReferenceEquals(world,activeWorld)){Dispose();world=activeWorld;signature=0;}
+            if (activeWorld.Blocks.Count >= DenseBlockLimit)
+            {
+                if (data) { Dispose(); world = activeWorld; }
+                Status = "Using local traversal on dense structures";
+                return;
+            }
             if (building != null && !building.isDone) return;
             if (building != null) { building = null; Revision++; Status = "Walking corridors ready"; }
             if (NavMesh.GetSettingsCount() == 0) { Status = "No navigation agent settings"; return; }

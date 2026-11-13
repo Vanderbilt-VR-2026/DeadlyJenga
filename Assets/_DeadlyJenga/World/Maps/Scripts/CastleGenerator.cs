@@ -20,6 +20,7 @@ namespace DeadlyJenga.CastlePrototype
         [Tooltip("Experimental shared groups for naturally sleeping blocks. Disabled by default: current Editor measurements regress overall frame time.")]
         public bool groupRestingBlocks;
         [Min(1)] public int physicsGroupThreshold = 1500;
+        MagneticStructure tycoonSupports;
         public CastlePhysicsGroups PhysicsGroups { get; private set; }
         [Header("Debris cleanup")]
         public bool sinkDisplacedDebris = true, shatterHeavyImpacts = true;
@@ -154,6 +155,7 @@ namespace DeadlyJenga.CastlePrototype
                 body.interpolation = replica ? RigidbodyInterpolation.None : RigidbodyInterpolation.Interpolate;
             }
             if (Debris) Debris.SetReplica(replica);
+            if (tycoonSupports) tycoonSupports.SetReplica(replica);
         }
 
         // IMapFootprint: the bottom course of the castle, for the sand around it
@@ -246,7 +248,7 @@ namespace DeadlyJenga.CastlePrototype
                 generatedRoot.gameObject.SetActive(false);
                 if (Application.isPlaying) Destroy(generatedRoot.gameObject); else DestroyImmediate(generatedRoot.gameObject);
             }
-            PhysicsGroups=null;Debris=null;
+            PhysicsGroups=null;Debris=null;tycoonSupports=null;
             Bodies.Clear();submergedSince.Clear();debrisCursor=0;
             generatedRoot = new GameObject("Generated Castle Blocks").transform;
             generatedRoot.SetParent(transform, false);
@@ -309,7 +311,9 @@ namespace DeadlyJenga.CastlePrototype
                 Bodies.Add(body);
             }
             Physics.SyncTransforms();
-            if (Application.isPlaying && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
+            if (Application.isPlaying && settings.layoutPreset == TycoonLayout.Preset)
+                tycoonSupports = TycoonSupports.Build(generatedRoot, Bodies);
+            if (Application.isPlaying && !tycoonSupports && groupRestingBlocks && Bodies.Count>=physicsGroupThreshold)
             {
                 PhysicsGroups=generatedRoot.gameObject.AddComponent<CastlePhysicsGroups>();
                 PhysicsGroups.Initialize(Bodies);
