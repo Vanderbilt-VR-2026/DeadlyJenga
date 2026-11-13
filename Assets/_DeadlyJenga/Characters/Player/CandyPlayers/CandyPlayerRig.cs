@@ -64,7 +64,17 @@ namespace DeadlyJenga.CandyPlayers
             var copiedAttachments=copy.GetComponent<CandyAvatarAttachments>();if(copiedAttachments){copiedAttachments.Tint(copy);if((copiedAttachments.Appearance.accessories&AvatarAccessory.SkeletonMask)!=0)copy.headRenderer.enabled=false;}
             var corpse=copy.gameObject.AddComponent<CandyMysteryBody>();corpse.Initialize(copy.bones,copy.lengths);copy.gameObject.SetActive(true);return corpse;
         }
-        void Awake(){if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();if(Application.isPlaying&&bodyRenderer)bodyRenderer.sharedMesh=CandySmoothHandMesh.SeparateDigitWeights(bodyRenderer.sharedMesh,14,10);if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();}
+        void Awake()
+        {
+            if(!bodyRenderer||!bodyRenderer.sharedMesh)BuildModel();
+            if(bodyRenderer)
+            {
+                var mesh=bodyRenderer.sharedMesh;
+                if(Application.isPlaying)mesh=CandySmoothHandMesh.SeparateDigitWeights(mesh,14,10);
+                bodyRenderer.sharedMesh=BlendWristMesh(mesh);
+            }
+            if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();
+        }
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
         void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
         bool firstPersonOverride;
@@ -192,9 +202,11 @@ namespace DeadlyJenga.CandyPlayers
                 // The shoulder rolls forward on a reach across the chest. The tracked wrist stays fixed.
                 Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
                 Vector3 elbowPole=transform.TransformDirection(torsoRotation*(Vector3.right*sign+Vector3.forward*Mathf.Clamp(handLocal.z*2,-.45f,.75f)+Vector3.down*.25f));
-                Vector3 elbow=SolveJoint(shoulder,hand.position,.29f*scale,.27f*scale,elbowPole);
+                // Seat the forearm inside the back of the palm, without moving the tracked grip.
+                Vector3 wrist=hand.position-hand.rotation*Vector3.forward*(.022f*scale);
+                Vector3 elbow=SolveJoint(shoulder,wrist,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
-                Segment(upper,shoulder,elbow);Segment(upper+1,elbow,hand.position);
+                Segment(upper,shoulder,elbow);Segment(upper+1,elbow,wrist,hand.rotation*Vector3.up);
                 bones[upper+2].SetPositionAndRotation(hand.position,hand.rotation);bones[upper+2].localScale=Vector3.one;
                 var skeleton=hand.skeletonTracked?hand.skeleton:CandyHandSkeleton.Rest(side==0,.12f);
                 for(int finger=0;finger<5;finger++)for(int joint=0;joint<3;joint++)
