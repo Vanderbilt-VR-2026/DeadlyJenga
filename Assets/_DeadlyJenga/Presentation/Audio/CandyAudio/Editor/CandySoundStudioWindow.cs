@@ -11,7 +11,7 @@ using UnityEngine.UIElements;
 
 namespace DeadlyJenga.CandyAudio.Editor
 {
-    public sealed class CandySoundStudioWindow : EditorWindow
+    public sealed partial class CandySoundStudioWindow : EditorWindow
     {
         [SerializeField] CandyAudioBank bank;
         [SerializeField] int selectedId = -1;
@@ -21,7 +21,7 @@ namespace DeadlyJenga.CandyAudio.Editor
         ListView sounds;
         ScrollView sections, details;
         Label status, summary, liveText;
-        ToolbarSearchField searchField;
+        TextField searchField;
         bool invalidated, watching;
         CandyAudioBank trial, beforeTrial;
         CandyAudioEngine trialEngine;
@@ -56,10 +56,12 @@ namespace DeadlyJenga.CandyAudio.Editor
             Undo.undoRedoPerformed -= Invalidate;
             CandyAudioEngine.SoundPlayed -= Heard;
             EndTrial();
+            previewPlayer?.SetPlaying(false);
             Stop();
         }
-        void Invalidate() { invalidated = true; SetStatus("Project changed · refreshes when you return to this window, or choose Refresh."); }
-        void OnFocus() { if (invalidated && sounds != null && !EditorApplication.isCompiling && !EditorApplication.isUpdating) Refresh(); }
+        void Invalidate() { invalidated = true; CandySoundPreview.Invalidate(); SetStatus("Project changed · refreshes when you return to this window, or choose Refresh."); }
+        void OnFocus() { previewPlayer?.SetFocused(true); if (invalidated && sounds != null && !EditorApplication.isCompiling && !EditorApplication.isUpdating) Refresh(); }
+        void OnLostFocus() => previewPlayer?.SetFocused(false);
         void PlayModeChanged(PlayModeStateChange state)
         {
             Stop();
@@ -68,61 +70,8 @@ namespace DeadlyJenga.CandyAudio.Editor
             if (watching && state == PlayModeStateChange.EnteredPlayMode) CandyAudioEngine.SoundPlayed += Heard;
             Refresh();
         }
-        public void CreateGUI()
-        {
-            rootVisualElement.Clear();
-            rootVisualElement.AddToClassList("sound-studio");
-            rootVisualElement.styleSheets.Add(AssetDatabase.LoadAssetAtPath<StyleSheet>(ProjectPath.Find("CandySoundStudio.uss")));
-            var header = new VisualElement(); header.AddToClassList("studio-header");
-            header.Add(Text("SOUND STUDIO", "studio-title"));
-            header.Add(Text("Browse the game’s sounds. Hear every take. Author the next one.", "muted"));
-            rootVisualElement.Add(header);
-            var toolbar = new Toolbar();
-            var bankField = new ObjectField("Bank") { objectType = typeof(CandyAudioBank), allowSceneObjects = false };
-            if (!bank) bank = Resources.Load<CandyAudioBank>("CandyAudio/Default");
-            bankField.SetValueWithoutNotify(bank);
-            bankField.RegisterValueChangedCallback(e => { bank = e.newValue as CandyAudioBank; Refresh(); });
-            toolbar.Add(bankField);
-            toolbar.Add(new ToolbarButton(() => { CandySoundCatalog.RefreshSourceIndex(); Refresh(); }) { text = "Refresh" });
-            toolbar.Add(new ToolbarButton(Save) { text = "Save project" });
-            toolbar.Add(new ToolbarButton(ApplyToGame) { text = "Apply to running game" });
-            toolbar.Add(new ToolbarButton(NewSound) { text = "+ Sound + trigger" });
-            toolbar.Add(new ToolbarButton(ShowLibrary) { text = "Clip library" });
-            toolbar.Add(new ToolbarButton(ShowMix) { text = "Mix / budgets" });
-            rootVisualElement.Add(toolbar);
-            var searchRow = new VisualElement(); searchRow.AddToClassList("search-row");
-            searchField = new ToolbarSearchField(); searchField.SetValueWithoutNotify(search);
-            searchField.RegisterValueChangedCallback(e => { search = e.newValue; Filter(); });
-            searchRow.Add(searchField);
-            summary = Text("", "muted"); searchRow.Add(summary);
-            rootVisualElement.Add(searchRow);
-            var columns = new VisualElement(); columns.AddToClassList("studio-columns");
-            sections = new ScrollView(); sections.AddToClassList("studio-sections"); columns.Add(sections);
-            sounds = new ListView { fixedItemHeight = 57, selectionType = SelectionType.Single };
-            sounds.AddToClassList("studio-sounds");
-            sounds.makeItem = () => { var row = new VisualElement(); row.AddToClassList("sound-row"); row.Add(new Label { name = "name" }); row.Add(new Label { name = "meta" }); return row; };
-            sounds.bindItem = (row, i) => {
-                var entry = visible[i]; var authored = CandySoundCatalog.Authored(bank, entry.id);
-                row.Q<Label>("name").text = entry.title;
-                row.Q<Label>("meta").text = entry.category + "  ·  " + (authored != null ? authored.enabled ? "Authored" : "Muted" : "Default");
-                row.Q<Label>("meta").AddToClassList("muted");
-            };
-            sounds.selectionChanged += items => { if (items.FirstOrDefault() is CandySoundEntry entry) { selectedId = (int)entry.id; Show(entry); } };
-            columns.Add(sounds);
-            details = new ScrollView(); details.AddToClassList("studio-details"); columns.Add(details);
-            rootVisualElement.Add(columns);
-            var bottom = new VisualElement(); bottom.AddToClassList("studio-bottom");
-            var watch = new Toggle("Watch actual played cues (Editor Play Mode only)"); watch.SetValueWithoutNotify(watching);
-            watch.RegisterValueChangedCallback(e => { watching = e.newValue; CandyAudioEngine.SoundPlayed -= Heard; if (watching) CandyAudioEngine.SoundPlayed += Heard; });
-            bottom.Add(watch);
-            bottom.Add(new Button(() => { live.Clear(); liveText.text = "No recorded cues."; }) { text = "Clear history" });
-            bottom.Add(new Button(ShowHistory) { text = "Live history" });
-            liveText = Text("", "muted"); bottom.Add(liveText);
-            rootVisualElement.Add(bottom);
-            status = Text("", "studio-status"); rootVisualElement.Add(status);
-            Refresh();
-        }
-        static Label Text(string text, string style = null) { var label = new Label(text); if (style != null) label.AddToClassList(style); return label; }
+        public void CreateGUI() => BuildStudio();
+        static Label Text(string text, string style = null) { var label = new Label(text); if (style != null) label.AddToClassList(style); if (FriendlyFont && (style == "studio-title" || style == "detail-title" || style == "section-title" || style == "preview-empty-title")) label.style.unityFontDefinition = FontDefinition.FromFont(FriendlyFont); return label; }
         void SetStatus(string text) { if (status != null) status.text = text; }
         void Heard(CandySound id, AudioClip clip)
         {
@@ -133,7 +82,10 @@ namespace DeadlyJenga.CandyAudio.Editor
         }
         void ShowHistory()
         {
-            details.Clear(); details.Add(Text("Actual playback history", "detail-title"));
+            ClearDetails(); details.Add(Text("Live playback", "detail-title"));
+            var watch = new Toggle("Record played sounds in Play Mode") { value = watching };
+            watch.RegisterValueChangedCallback(e => { watching = e.newValue; CandyAudioEngine.SoundPlayed -= Heard; if (watching) CandyAudioEngine.SoundPlayed += Heard; }); details.Add(watch);
+            details.Add(Action("Clear history", () => { live.Clear(); ShowHistory(); }, "subtle"));
             details.Add(Text("Only accepted pooled playback is captured. Dedicated music/ambient sources and culled requests are not counted here. History is bounded to 80 entries.", "callout"));
             var engine = CandyAudioEngine.Instance;
             if (engine) details.Add(Text($"Active voices: {engine.ActiveVoices} · played: {engine.Played} · culled: {engine.Culled}", "muted"));
@@ -144,29 +96,18 @@ namespace DeadlyJenga.CandyAudio.Editor
             if (sounds == null) return;
             invalidated = false;
             Stop(); entries = CandySoundCatalog.Build(bank);
-            sections.Clear();
-            AddSection("All sounds");
-            foreach (var group in entries.GroupBy(e => e.category.Split('/')[0].Trim()))
-            {
-                var foldout = new Foldout { text = group.Key, value = section.StartsWith(group.Key, StringComparison.Ordinal) };
-                foreach (string category in group.Select(e => e.category).Distinct())
-                {
-                    string captured = category;
-                    var button = new Button(() => { section = captured; Filter(); }) { text = category.Contains('/') ? category.Substring(category.IndexOf('/') + 1).Trim() : category };
-                    button.AddToClassList("section-button"); foldout.Add(button);
-                }
-                sections.Add(foldout);
-            }
+            BuildSections();
+            tryGame?.SetEnabled(EditorApplication.isPlaying);
             Filter();
-            SetStatus($"{entries.Count} sound routes · catalog refreshed · no background scans or automated tests.");
+            SetStatus($"{entries.Count} sounds · Ready");
         }
         void AddSection(string name) { sections.Add(new Button(() => { section = name; Filter(); }) { text = name }); }
         void Filter()
         {
             if (sounds == null) return;
-            visible = entries.Where(e => (section == "All sounds" || e.category == section) &&
+            visible = entries.Where(e => (!string.IsNullOrWhiteSpace(search) || section == "All sounds" || e.category == section) &&
                 (string.IsNullOrWhiteSpace(search) || (e.title + " " + e.category + " " + e.trigger + " " + e.symbol).IndexOf(search, StringComparison.OrdinalIgnoreCase) >= 0)).ToList();
-            sounds.itemsSource = visible; sounds.Rebuild(); summary.text = $"{visible.Count} routes · {section}";
+            sounds.itemsSource = visible; sounds.Rebuild(); summary.text = $"{visible.Count} sounds · " + (string.IsNullOrWhiteSpace(search) ? section : "Search all");
             int index = visible.FindIndex(e => (int)e.id == selectedId);
             if (index < 0 && visible.Count > 0) index = 0;
             if (index >= 0)
@@ -177,81 +118,12 @@ namespace DeadlyJenga.CandyAudio.Editor
             }
             else
             {
-                Stop(); details.Unbind(); details.Clear();
+                Stop(); ClearDetails();
                 details.Add(Text("No matching sounds", "detail-title"));
                 details.Add(Text("Clear the search or choose another section.", "callout"));
             }
         }
-        void Show(CandySoundEntry entry)
-        {
-            Stop(); take = 0; details.Unbind(); details.Clear();
-            var authored = CandySoundCatalog.Authored(bank, entry.id);
-            resolved = authored ?? entry.fallback?.Invoke();
-            details.Add(Text(entry.title, "detail-title")); details.Add(Text(entry.category + " · ID " + (int)entry.id, "muted"));
-            details.Add(Text(entry.trigger, "callout"));
-            if (entry.direct) details.Add(Text("Dedicated source: clip and volume overrides are supported. Restart this scene to hear a changed clip. Pooled voice limits and event cooldown do not control this source.", "muted"));
-            if (resolved == null) details.Add(new HelpBox("No clip/default was found for this route. Create an override and assign a recording. Source references may describe an unused or legacy route.", HelpBoxMessageType.Warning));
-            var previewRow = new VisualElement(); previewRow.AddToClassList("button-row");
-            previewRow.Add(new Button(() => Audition(resolved, take)) { text = "▶ Preview take" });
-            previewRow.Add(new Button(Stop) { text = "■ Stop" });
-            previewRow.Add(new Button(() => { if (resolved?.variants?.Length > 0) { take = (take + 1) % resolved.variants.Length; Audition(resolved, take); } }) { text = "Next variation" });
-            details.Add(previewRow);
-            details.Add(Text("Preview plays the raw recording. The game adds mixer gain, spatial falloff, intensity and voice limits.", "muted"));
-            if (resolved?.variants != null) for (int i = 0; i < resolved.variants.Length; i++)
-            {
-                int index = i; AudioClip clip = resolved.variants[i];
-                var row = new VisualElement(); row.AddToClassList("take-row");
-                row.Add(new Button(() => { take = index; Audition(resolved, take); }) { text = "▶ " + (i + 1) });
-                var field = new ObjectField { objectType = typeof(AudioClip), allowSceneObjects = false, value = clip }; field.SetEnabled(false); row.Add(field);
-                row.Add(Text(clip ? $"{clip.length:0.00}s · {clip.frequency / 1000f:0.#} kHz · {clip.channels} ch" : "Missing clip", "muted")); details.Add(row);
-            }
-            var actions = new VisualElement(); actions.AddToClassList("button-row");
-            actions.Add(new Button(() => CopyBrief(entry)) { text = "Copy brief for Codex" });
-            actions.Add(new Button(() => ImportClip(entry)) { text = "Import recording…" });
-            details.Add(actions);
-            if (authored == null)
-                details.Add(new Button(() => { try { MakeOverride(entry); Refresh(); } catch (Exception error) { SetStatus(error.Message); Debug.LogException(error); } }) { text = "Create editable override" });
-            else
-            {
-                details.Add(Text("Project override · Undo supported · Save project to persist", "section-title"));
-                var serialized = new SerializedObject(bank);
-                int index = Array.FindIndex(bank.cues, c => c != null && c.sound == entry.id);
-                var property = serialized.FindProperty("cues").GetArrayElementAtIndex(index);
-                foreach (var name in new[] { "enabled", "displayName", "category", "triggerNotes", "variants", "volume" }) AddProperty(property, name);
-                if (!entry.direct) foreach (var name in new[] { "bus", "output", "pitch", "loop", "cooldown", "maxVoices", "priority", "minDistance", "maxDistance" }) AddProperty(property, name);
-                details.Bind(serialized);
-                if (entry.fallback?.Invoke() != null) details.Add(new Button(() => {
-                    if (!EditorUtility.DisplayDialog("Restore default sound?", "Remove this project override and use the original default. Your imported files are kept.", "Restore default", "Cancel")) return;
-                    Undo.RecordObject(bank, "Restore sound default"); bank.cues = bank.cues.Where(c => c == null || c.sound != entry.id).ToArray(); EditorUtility.SetDirty(bank); Refresh();
-                }) { text = "Restore default" });
-            }
-            var bindingFoldout = new Foldout { text = "Additional event bindings", value = false };
-            details.Add(bindingFoldout);
-            if (bank && bank.bindings != null)
-            {
-                var so = new SerializedObject(bank);
-                for (int i = 0; i < bank.bindings.Length; i++) if (bank.bindings[i] != null && bank.bindings[i].sound == entry.id)
-                {
-                    int index = i;
-                    var bindingPanel = new VisualElement();
-                    var property = so.FindProperty("bindings").GetArrayElementAtIndex(i);
-                    foreach (var name in new[] { "enabled", "trigger", "local", "localPlayerOnly", "filter", "minimumStrength", "intensity" })
-                        bindingPanel.Add(new PropertyField(property.FindPropertyRelative(name)));
-                    bindingPanel.Bind(so); bindingFoldout.Add(bindingPanel);
-                    bindingFoldout.Add(new Button(() => { Undo.RecordObject(bank, "Remove sound trigger"); bank.bindings = bank.bindings.Where((b, n) => n != index).ToArray(); EditorUtility.SetDirty(bank); Show(entry); }) { text = "Remove this binding" });
-                }
-            }
-            bindingFoldout.Add(Text("Existing game triggers are listed above and in source. Adding a binding layers another request; it does not replace existing gameplay logic.", "muted"));
-            bindingFoldout.Add(new Button(() => AddBinding(entry)) { text = "Add event binding" });
-            var sources = new Foldout { text = $"Source references ({entry.uses.Count}) · definitions and call sites", value = false };
-            details.Add(sources);
-            foreach (var use in entry.uses)
-            {
-                var captured = use;
-                sources.Add(new Button(() => AssetDatabase.OpenAsset(AssetDatabase.LoadAssetAtPath<MonoScript>(captured.path), captured.line)) { text = Path.GetFileName(use.path) + ":" + use.line });
-                sources.Add(Text(use.text, "source-line"));
-            }
-        }
+        void Show(CandySoundEntry entry) => ShowSound(entry);
         void AddProperty(SerializedProperty parent, string name) => details.Add(new PropertyField(parent.FindPropertyRelative(name)));
         public void Audition(CandyAudioCue cue, int index)
         {
@@ -264,13 +136,13 @@ namespace DeadlyJenga.CandyAudio.Editor
             SetStatus("Previewing " + previewClip.name + (cue.loop ? " · loop · Stop to end" : ""));
         }
         void Stop() { StopPreview?.Invoke(null, null); previewClip = null; }
-        public CandyAudioCue MakeOverride(CandySoundEntry entry)
+        public CandyAudioCue MakeOverride(CandySoundEntry entry, bool preserveRecordings = true)
         {
             if (!bank) throw new InvalidOperationException("Choose the game's audio bank first.");
             var existing = CandySoundCatalog.Authored(bank, entry.id); if (existing != null) return existing;
             var cue = CandyAudioDefaults.Copy(entry.fallback?.Invoke()) ?? new CandyAudioCue { sound = entry.id };
             cue.sound = entry.id; cue.displayName = entry.title; cue.category = entry.category; cue.triggerNotes = entry.trigger;
-            CandyStudioAssets.PersistGeneratedClips(bank, cue);
+            if (preserveRecordings) CandyStudioAssets.PersistGeneratedClips(bank, cue); else cue.variants = Array.Empty<AudioClip>();
             Undo.RecordObject(bank, "Author sound override");
             bank.cues = (bank.cues ?? Array.Empty<CandyAudioCue>()).Concat(new[] { cue }).ToArray(); EditorUtility.SetDirty(bank);
             return cue;
@@ -303,17 +175,25 @@ namespace DeadlyJenga.CandyAudio.Editor
         }
         void ShowMix()
         {
-            details.Unbind(); details.Clear(); details.Add(Text("Mix and voice budgets", "detail-title"));
-            details.Add(Text("These are the game's existing buses and bounded voice pool. No additional mixer, package or per-frame scanning is installed.", "callout"));
+            ClearDetails(); details.Add(Text("Mix and voice budgets", "detail-title"));
             if (!bank) return;
             var so = new SerializedObject(bank);
-            foreach (var name in new[] { "master", "world", "characters", "ambience", "music", "ui", "oneShotVoices", "loopVoices", "eventsPerSecond" }) details.Add(new PropertyField(so.FindProperty(name)));
+            var levels = Card("Volume balance"); levels.style.maxWidth = 820;
+            foreach (var name in new[] { "master", "world", "characters", "ambience", "music", "ui" })
+                levels.Add(new Slider(name == "ui" ? "Interface" : ObjectNames.NicifyVariableName(name), 0, 1) { bindingPath = name, showInputField = true });
+            details.Add(levels);
+            var limits = Card("Playback limits"); limits.style.maxWidth = 820;
+            limits.Add(Text("Caps simultaneous sounds and new starts to keep the mix clear.", "body-copy"));
+            limits.Add(new SliderInt("One-shot sounds", 8, 48) { bindingPath = "oneShotVoices", showInputField = true });
+            limits.Add(new SliderInt("Looping sounds", 4, 24) { bindingPath = "loopVoices", showInputField = true });
+            limits.Add(new SliderInt("Starts per second", 4, 40) { bindingPath = "eventsPerSecond", showInputField = true });
+            details.Add(limits);
             details.Bind(so);
             details.Add(new Button(() => { var issues = CandyStudioAssets.Validate(bank); SetStatus(issues.Count == 0 ? "Bank checks passed." : string.Join(" | ", issues)); }) { text = "Check bank" });
         }
         void NewSound()
         {
-            details.Unbind(); details.Clear(); details.Add(Text("New sound and trigger", "detail-title"));
+            ClearDetails(); details.Add(Text("New sound and trigger", "detail-title"));
             details.Add(Text("Adds a one-shot sound to an existing event. A new gameplay condition still requires a small observer in code; Copy brief supplies the details for Codex.", "callout"));
             var name = new TextField("Name") { value = "New sound" };
             var category = new TextField("Section / subsection") { value = "Custom / New sounds" };
@@ -339,21 +219,21 @@ namespace DeadlyJenga.CandyAudio.Editor
             bank.bindings = (bank.bindings ?? Array.Empty<CandyAudioBinding>()).Concat(new[] { new CandyAudioBinding { sound = entry.id } }).ToArray();
             EditorUtility.SetDirty(bank); Show(entry);
         }
-        void ImportClip(CandySoundEntry entry)
+        void ImportClip(CandySoundEntry entry, bool replace = false)
         {
             string file = EditorUtility.OpenFilePanelWithFilters("Import sound", "", new[] { "Audio", "wav,ogg,mp3,aif,aiff" });
             if (string.IsNullOrEmpty(file)) return;
             string folder = CandyStudioAssets.RecordingFolder(bank);
             string target = AssetDatabase.GenerateUniqueAssetPath(folder + "/" + Path.GetFileName(file));
-            File.Copy(file, target); AssetDatabase.ImportAsset(target);
+            File.Copy(file, target); AssetDatabase.ImportAsset(target, ImportAssetOptions.ForceSynchronousImport);
             var clip = AssetDatabase.LoadAssetAtPath<AudioClip>(target);
             if (!clip) { SetStatus("Unity could not import this recording; see Console."); return; }
-            var cue = MakeOverride(entry); Undo.RecordObject(bank, "Add recording variation");
-            cue.variants = cue.variants.Concat(new[] { clip }).ToArray(); EditorUtility.SetDirty(bank); Show(entry);
+            var cue = MakeOverride(entry, !replace); Undo.RecordObject(bank, replace ? "Replace recording" : "Add recording variation");
+            cue.variants = replace ? new[] { clip } : (cue.variants ?? Array.Empty<AudioClip>()).Concat(new[] { clip }).ToArray(); EditorUtility.SetDirty(bank); Show(entry);
         }
         void ShowLibrary()
         {
-            details.Unbind(); details.Clear(); details.Add(Text("Imported clip library", "detail-title"));
+            ClearDetails(); details.Add(Text("Imported clip library", "detail-title"));
             details.Add(Text("Search project recordings, preview, or assign a clip to the selected sound. Generated defaults appear in their sound routes instead.", "callout"));
             var paths = AssetDatabase.FindAssets("t:AudioClip").Select(AssetDatabase.GUIDToAssetPath).OrderBy(p => p).ToList();
             var filtered = new List<string>(paths);
@@ -368,7 +248,7 @@ namespace DeadlyJenga.CandyAudio.Editor
             details.Add(new Button(() => {
                 var entry = entries.Find(e => (int)e.id == selectedId);
                 if (entry == null || !chosen) { SetStatus("Select a sound route first, then a clip."); return; }
-                var cue = MakeOverride(entry); Undo.RecordObject(bank, "Replace sound recordings"); cue.variants = new[] { chosen }; EditorUtility.SetDirty(bank); Show(entry);
+                var cue = MakeOverride(entry, false); Undo.RecordObject(bank, "Replace sound recordings"); cue.variants = new[] { chosen }; EditorUtility.SetDirty(bank); Show(entry);
             }) { text = "Replace selected sound's recordings with this clip" });
         }
         void CopyBrief(CandySoundEntry entry)

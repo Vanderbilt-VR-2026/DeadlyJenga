@@ -32,6 +32,11 @@ May use: Core only. Reads characters through IMovementState, IFlyingState and IP
   or an explicit read-only explanation. Do not silently bypass the catalog.
   Run focused checks/audition for the changed route when appropriate; no recurring
   automation, voice service or paid generation is required to maintain the index.
+- Sound Studio trigger previews follow Audio/CandyAudio/SOUND_PREVIEW_CAPTURE_GUIDE.md.
+  Preserve stable cue IDs and source/action/target/listener meaning. Replace affected
+  previews when the visible action or trigger timing changes; audio-only volume or
+  recording edits do not require recapture. Import reviewed gameplay packages explicitly;
+  never label generic footage or concept images as the actual trigger.
 - Deleting this box must leave a playable gray-box game.
 - Menus send the player's requests through Core commands; the owning box decides.
   Never change gameplay state any other way.
