@@ -233,7 +233,8 @@ namespace DeadlyJenga.CastlePrototype
                     {
                         Vector2 delta = m.delta.ReadValue() * mouseSensitivity;
                         transform.Rotate(0, delta.x, 0);
-                        pitch = Mathf.Clamp(pitch - delta.y, -85, 85);
+                        float invertLook = PlayerPrefs.GetInt("SurvivorVR.InvertLookY", 0) != 0 ? -1f : 1f;
+                        pitch = Mathf.Clamp(pitch - delta.y * invertLook, -85, 85);
                         viewCamera.transform.localRotation = Quaternion.Euler(pitch, 0, 0);
                     }
                 }
@@ -270,7 +271,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 Vaulting=false;vaultSurface=null;vaultTime=0;ClearSprint();ActionStatus="Vault cancelled";
             }
-            bool canClimbNow = climbHeld && !InputSuspended && !CarryingFlag && (modeRules?.canClimb ?? true);
+            bool climbToggle = PlayerPrefs.GetInt("SurvivorVR.ClimbToggle", 0) != 0;
+            bool canClimbNow = (climbHeld || (climbToggle && (jumpPressed || toggleClimbActive))) && !InputSuspended && !CarryingFlag && (modeRules?.canClimb ?? true);
             if (!Sinking || Vaulting || InputSuspended || !Alive || !externallyDriven && !vrInputFocused)
                 sinkVaultPending = false;
             else if (jumpPressed && canClimbNow && climbingEnabled)
@@ -284,7 +286,7 @@ namespace DeadlyJenga.CastlePrototype
                 sinkVaultPending = false;
                 jumpPressed = true;
             }
-            if (UpdateClimb(Vector2.ClampMagnitude(input,1),canClimbNow,dt))
+            if (UpdateClimb(Vector2.ClampMagnitude(input,1),canClimbNow,dt,jumpPressed))
             {
                 sinkVaultPending = false;
                 return;

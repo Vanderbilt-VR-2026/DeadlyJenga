@@ -96,6 +96,7 @@ namespace DeadlyJenga.CastlePrototype
             tabletPage=page;
             tabletDeveloperDetails=false;
             tabletWeaponsOpen=false;
+            comfortSliderOpen=false;
             if(tabletDeveloperGrid)tabletDeveloperGrid.gameObject.SetActive(true);
             if(tabletDeveloperWeapons)tabletDeveloperWeapons.gameObject.SetActive(false);
             tabletRefreshAt=0;
@@ -163,44 +164,349 @@ namespace DeadlyJenga.CastlePrototype
             tabletRefreshAt = 0;
         }
 
+        bool ClimbToggle => PlayerPrefs.GetInt("SurvivorVR.ClimbToggle", 0) != 0;
+        void SetTabletClimbToggle(bool toggle)
+        {
+            PlayerPrefs.SetInt("SurvivorVR.ClimbToggle", toggle ? 1 : 0);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        bool InvertStick => PlayerPrefs.GetInt("SurvivorVR.InvertLookY", 0) != 0;
+        void SetTabletInvertStick(bool invert)
+        {
+            PlayerPrefs.SetInt("SurvivorVR.InvertLookY", invert ? 1 : 0);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        bool VignetteEnabled => PlayerPrefs.GetInt("SurvivorVR.Vignette", 0) != 0;
+        void SetTabletVignette(bool enabled)
+        {
+            PlayerPrefs.SetInt("SurvivorVR.Vignette", enabled ? 1 : 0);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        bool HapticsEnabled => PlayerPrefs.GetInt("SurvivorVR.Haptics", 1) != 0;
+        void SetTabletHaptics(bool enabled)
+        {
+            PlayerPrefs.SetInt("SurvivorVR.Haptics", enabled ? 1 : 0);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        bool HeadBobEnabled => PlayerPrefs.GetInt("SurvivorVR.HeadBob", 0) != 0;
+        void SetTabletHeadBob(bool enabled)
+        {
+            PlayerPrefs.SetInt("SurvivorVR.HeadBob", enabled ? 1 : 0);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        static readonly float[] SmoothTurnPresets = { 15f, 30f, 45f, 60f, 90f, 120f, 180f, 240f, 270f, 360f };
+        static readonly float[] SnapAnglePresets = { 15f, 30f, 45f, 60f, 90f };
+
+        void StepTurnPreset(bool increment)
+        {
+            var settings = Settings;
+            if (settings == null) return;
+            bool isSnap = settings.TurnLabel == "Snap";
+            float current = isSnap ? settings.SnapAngle : settings.SmoothTurnSpeed;
+            float[] presets = isSnap ? SnapAnglePresets : SmoothTurnPresets;
+            int closest = 0;
+            float minDiff = float.MaxValue;
+            for (int i = 0; i < presets.Length; i++)
+            {
+                float diff = Mathf.Abs(presets[i] - current);
+                if (diff < minDiff)
+                {
+                    minDiff = diff;
+                    closest = i;
+                }
+            }
+            int next = increment ? Mathf.Min(presets.Length - 1, closest + 1) : Mathf.Max(0, closest - 1);
+            if (isSnap) ApplyTabletSnapAngle(presets[next]);
+            else ApplyTabletSmoothSpeed(presets[next]);
+        }
+
+        void ApplyTabletSmoothSpeed(float speed)
+        {
+            var settings = Settings;
+            if (settings == null) return;
+            speed = Mathf.Clamp(speed, 15f, 360f);
+            var rules = JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(settings.CurrentRules));
+            rules.smoothDegrees = speed;
+            settings.ApplyMatchRules(rules);
+            PlayerPrefs.SetFloat("SurvivorVR.SmoothDegrees", speed);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        void ApplyTabletSnapAngle(float angle)
+        {
+            var settings = Settings;
+            if (settings == null) return;
+            angle = Mathf.Clamp(angle, 15f, 90f);
+            var rules = JsonUtility.FromJson<MatchRules>(JsonUtility.ToJson(settings.CurrentRules));
+            rules.snapAngle = angle;
+            settings.ApplyMatchRules(rules);
+            PlayerPrefs.SetFloat("SurvivorVR.SnapAngle", angle);
+            PlayerPrefs.Save();
+            tabletRefreshAt = 0;
+        }
+
+        void ResetSeatedHeightDefault()
+        {
+            session.Player?.gameObject.SendMessage("ResetSeatedHeightDefault", SendMessageOptions.DontRequireReceiver);
+            Settings?.UseStationaryPreset();
+            tabletRefreshAt = 0;
+        }
+
+        bool comfortSliderOpen;
+        RectTransform comfortMainGroup, comfortSliderGroup;
+        Text comfortSliderTitle, comfortSliderValueText;
+
+        void OpenComfortSlider()
+        {
+            comfortSliderOpen = true;
+            UpdateComfortSliderUI();
+            tabletRefreshAt = 0;
+        }
+
+        void CloseComfortSlider()
+        {
+            comfortSliderOpen = false;
+            UpdateComfortSliderUI();
+            tabletRefreshAt = 0;
+        }
+
+        void AdjustComfortValue(float delta)
+        {
+            var settings = Settings;
+            if (settings == null) return;
+            bool isSnap = settings.TurnLabel == "Snap";
+            if (isSnap)
+            {
+                float angle = Mathf.Clamp(settings.SnapAngle + delta, 15f, 90f);
+                ApplyTabletSnapAngle(angle);
+            }
+            else
+            {
+                float speed = Mathf.Clamp(settings.SmoothTurnSpeed + delta, 15f, 360f);
+                ApplyTabletSmoothSpeed(speed);
+            }
+            UpdateComfortSliderUI();
+        }
+
+        void UpdateComfortSliderUI()
+        {
+            if (comfortSliderGroup) comfortSliderGroup.gameObject.SetActive(comfortSliderOpen);
+            if (comfortMainGroup) comfortMainGroup.gameObject.SetActive(!comfortSliderOpen);
+            if (!comfortSliderOpen) return;
+            bool isSnap = Settings?.TurnLabel == "Snap";
+            float val = isSnap ? (Settings?.SnapAngle ?? 30f) : (Settings?.SmoothTurnSpeed ?? 120f);
+            if (comfortSliderTitle)
+                comfortSliderTitle.text = isSnap ? "SNAP ANGLE FINE TUNING" : "TURN SPEED FINE TUNING";
+            if (comfortSliderValueText)
+                comfortSliderValueText.text = isSnap ? $"<color=#52ffc6>{val:0}°</color>" : $"<color=#52ffc6>{val:0}°/s</color>";
+        }
+
         void BuildTabletComfort(RectTransform page)
         {
-            TabletText(page,"COMFORT",new(0,215),new(900,60),54);
-            string[] rows={"Play position","Turn style","Dominant hand","Sprint mode"};
-            for(int i=0;i<rows.Length;i++)
+            comfortMainGroup = new GameObject("ComfortMain", typeof(RectTransform)).GetComponent<RectTransform>();
+            comfortMainGroup.SetParent(page, false);
+            comfortMainGroup.anchorMin = Vector2.zero; comfortMainGroup.anchorMax = Vector2.one;
+            comfortMainGroup.sizeDelta = Vector2.zero;
+
+            TabletText(comfortMainGroup, "COMFORT", new Vector2(0, 222), new Vector2(900, 52), 48);
+
+            string[] rowTitles = { "Play position", "Dominant hand", "Sprint mode", "Climb mode", "Turn style (seated)" };
+            float[] rowYs = { 152, 84, 16, -52, -122 };
+
+            for (int i = 0; i < 5; i++)
             {
-                float y=120-i*85;
-                TabletRule(page,new(0,y),new(990,72),new Color(.27f,.10f,.30f));
-                TabletText(page,rows[i],new(-327,y),new(310,60),30,TextAnchor.MiddleLeft);
+                float y = rowYs[i];
+                TabletRule(comfortMainGroup, new Vector2(0, y), new Vector2(990, 60), new Color(.27f, .10f, .30f));
+                TabletText(comfortMainGroup, rowTitles[i], new Vector2(-365, y), new Vector2(240, 50), 24, TextAnchor.MiddleLeft);
             }
-            TabletControl(tabletActions,page,()=>"Seated",new(-30,120),new(185,58),
-                ()=>Settings?.UseStationaryPreset(),()=>Settings!=null&&!Settings.StandingPlay,()=>Settings!=null,TabletCoral);
-            TabletControl(tabletActions,page,()=>"Standing",new(170,120),new(185,58),
-                ()=>Settings?.UseStandingPreset(),()=>Settings?.StandingPlay==true,()=>Settings!=null,TabletCoral);
-            var turns=new[]{("Snap","Snap"),("Smooth","Smooth"),("Physical","PhysicalOnly")};
-            for(int i=0;i<turns.Length;i++)
+
+            // Row 0: Play position (Seated, Standing, Auto-detect)
+            TabletControl(tabletActions, comfortMainGroup, () => "Seated", new Vector2(-180, 152), new Vector2(110, 48),
+                () => { PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", 0); Settings?.UseStationaryPreset(); },
+                () => Settings != null && !Settings.StandingPlay && PlayerPrefs.GetInt("SurvivorVR.PlayPositionAuto", 1) == 0,
+                () => Settings != null, TabletCoral, font: 22);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Standing", new Vector2(-60, 152), new Vector2(110, 48),
+                () => { PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", 0); Settings?.UseStandingPreset(); },
+                () => Settings?.StandingPlay == true && PlayerPrefs.GetInt("SurvivorVR.PlayPositionAuto", 1) == 0,
+                () => Settings != null, TabletCoral, font: 22);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Auto", new Vector2(60, 152), new Vector2(110, 48),
+                () => {
+                    PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", 1);
+                    PlayerPrefs.Save();
+                    session.Player?.gameObject.SendMessage("SetAutoDetectHybrid", true, SendMessageOptions.DontRequireReceiver);
+                    tabletRefreshAt = 0;
+                },
+                () => PlayerPrefs.GetInt("SurvivorVR.PlayPositionAuto", 1) != 0,
+                () => true, TabletCoral, font: 22);
+
+            // Row 1: Dominant hand (Left, Right)
+            TabletControl(tabletActions, comfortMainGroup, () => "Left", new Vector2(-160, 84), new Vector2(135, 48),
+                () => SetTabletHand(true), () => DominantLeft, () => session.Player != null, TabletCoral, font: 24);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Right", new Vector2(-15, 84), new Vector2(135, 48),
+                () => SetTabletHand(false), () => !DominantLeft, () => session.Player != null, TabletCoral, font: 24);
+
+            // Row 2: Sprint mode (Toggle, Hold)
+            TabletControl(tabletActions, comfortMainGroup, () => "Toggle", new Vector2(-160, 16), new Vector2(135, 48),
+                () => SetTabletSprintHold(false), () => !SprintHold, () => true, TabletCoral, font: 24);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Hold", new Vector2(-15, 16), new Vector2(135, 48),
+                () => SetTabletSprintHold(true), () => SprintHold, () => true, TabletCoral, font: 24);
+
+            // Row 3: Climb mode (Toggle, Hold)
+            TabletControl(tabletActions, comfortMainGroup, () => "Toggle", new Vector2(-160, -52), new Vector2(135, 48),
+                () => SetTabletClimbToggle(true), () => ClimbToggle, () => true, TabletCoral, font: 24);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Hold", new Vector2(-15, -52), new Vector2(135, 48),
+                () => SetTabletClimbToggle(false), () => !ClimbToggle, () => true, TabletCoral, font: 24);
+
+            // Row 4: Turn style (seated) (Snap, Smooth)
+            TabletControl(tabletActions, comfortMainGroup, () => "Snap", new Vector2(-160, -122), new Vector2(135, 48),
+                () => SetTabletTurn("Snap"), () => Settings?.TurnLabel == "Snap", () => Settings != null, TabletCoral, font: 24);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Smooth", new Vector2(-15, -122), new Vector2(135, 48),
+                () => SetTabletTurn("Smooth"), () => Settings?.TurnLabel == "Smooth", () => Settings != null, TabletCoral, font: 24);
+
+            // Right side of Rows 0-3: Sub-labels & [Y] [N] options
+            // Row 0: Invert stick
+            TabletText(comfortMainGroup, "Invert stick", new Vector2(250, 152), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, 152), new Vector2(58, 44),
+                () => SetTabletInvertStick(true), () => InvertStick, () => true, TabletPanel, font: 20);
+            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, 152), new Vector2(58, 44),
+                () => SetTabletInvertStick(false), () => !InvertStick, () => true, TabletPanel, font: 20);
+
+            // Row 1: Vignette
+            TabletText(comfortMainGroup, "Vignette", new Vector2(250, 84), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, 84), new Vector2(58, 44),
+                () => SetTabletVignette(true), () => VignetteEnabled, () => true, TabletPanel, font: 20);
+            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, 84), new Vector2(58, 44),
+                () => SetTabletVignette(false), () => !VignetteEnabled, () => true, TabletPanel, font: 20);
+
+            // Row 2: Haptics
+            TabletText(comfortMainGroup, "Haptics", new Vector2(250, 16), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, 16), new Vector2(58, 44),
+                () => SetTabletHaptics(true), () => HapticsEnabled, () => true, TabletPanel, font: 20);
+            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, 16), new Vector2(58, 44),
+                () => SetTabletHaptics(false), () => !HapticsEnabled, () => true, TabletPanel, font: 20);
+
+            // Row 3: Head bob
+            TabletText(comfortMainGroup, "Head bob", new Vector2(250, -52), new Vector2(170, 48), 20, TextAnchor.MiddleRight);
+            TabletControl(tabletActions, comfortMainGroup, () => "Y", new Vector2(380, -52), new Vector2(58, 44),
+                () => SetTabletHeadBob(true), () => HeadBobEnabled, () => true, TabletPanel, font: 20);
+            TabletControl(tabletActions, comfortMainGroup, () => "N", new Vector2(448, -52), new Vector2(58, 44),
+                () => SetTabletHeadBob(false), () => !HeadBobEnabled, () => true, TabletPanel, font: 20);
+
+            // Bottom Row (y = -215):
+            // Left: Speed / Snap Angle Traversal (▼, Value, ▲)
+            TabletControl(tabletActions, comfortMainGroup, () => "▼", new Vector2(-446, -215), new Vector2(52, 64),
+                () => StepTurnPreset(false), allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
+                accent: TabletCoral, font: 24);
+
+            TabletControl(tabletActions, comfortMainGroup, () => Settings?.TurnLabel == "Snap"
+                ? $"Snap angle  {Settings.SnapAngle:0}°" : Settings?.TurnLabel == "PhysicalOnly"
+                ? "Physical turning" : $"Turn speed  {Settings?.SmoothTurnSpeed:0}°/s",
+                new Vector2(-262, -215), new Vector2(296, 64),
+                () => OpenComfortSlider(),
+                allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
+                accent: TabletCoral, font: 25);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "▲", new Vector2(-78, -215), new Vector2(52, 64),
+                () => StepTurnPreset(true), allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
+                accent: TabletCoral, font: 24);
+
+            // Right: Recenter height & Reset to default (blue)
+            TabletControl(tabletActions, comfortMainGroup, () => "Recenter height", new Vector2(115, -215), new Vector2(220, 64),
+                () => Settings?.RecalibrateSeatedHeight(), allowed: () => Settings != null, accent: TabletCoral, font: 25);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "Reset default", new Vector2(357, -215), new Vector2(204, 64),
+                () => ResetSeatedHeightDefault(), allowed: () => Settings != null, accent: new Color(.18f, .52f, .92f), font: 25);
+
+            BuildComfortSliderOverlay(page);
+        }
+
+        void BuildComfortSliderOverlay(RectTransform page)
+        {
+            comfortSliderGroup = new GameObject("ComfortSliderOverlay", typeof(RectTransform)).GetComponent<RectTransform>();
+            comfortSliderGroup.SetParent(page, false);
+            comfortSliderGroup.anchorMin = Vector2.zero; comfortSliderGroup.anchorMax = Vector2.one;
+            comfortSliderGroup.sizeDelta = Vector2.zero;
+
+            TabletRule(comfortSliderGroup, Vector2.zero, new Vector2(990, 580), new Color(.12f, .05f, .18f, .98f));
+
+            comfortSliderTitle = TabletText(comfortSliderGroup, "TURN SPEED FINE TUNING", new Vector2(0, 215), new Vector2(900, 50), 38);
+            comfortSliderValueText = TabletText(comfortSliderGroup, "120°/s", new Vector2(0, 140), new Vector2(700, 68), 58);
+            comfortSliderValueText.supportRichText = true;
+
+            // 1-degree & 10-degree step buttons
+            TabletControl(tabletActions, comfortSliderGroup, () => "-10°", new Vector2(-300, 55), new Vector2(130, 58),
+                () => AdjustComfortValue(-10f), font: 24, accent: TabletCoral);
+
+            TabletControl(tabletActions, comfortSliderGroup, () => "-1°", new Vector2(-110, 55), new Vector2(120, 58),
+                () => AdjustComfortValue(-1f), font: 24, accent: TabletCoral);
+
+            TabletControl(tabletActions, comfortSliderGroup, () => "+1°", new Vector2(110, 55), new Vector2(120, 58),
+                () => AdjustComfortValue(1f), font: 24, accent: TabletCoral);
+
+            TabletControl(tabletActions, comfortSliderGroup, () => "+10°", new Vector2(300, 55), new Vector2(130, 58),
+                () => AdjustComfortValue(10f), font: 24, accent: TabletCoral);
+
+            // Preset shortcut row
+            float[] presets = { 30, 60, 90, 120, 180, 240, 360 };
+            for (int i = 0; i < presets.Length; i++)
             {
-                var (label,value)=turns[i];
-                TabletControl(tabletActions,page,()=>label,new(-72+i*165,35),new(150,58),
-                    ()=>SetTabletTurn(value),()=>Settings?.TurnLabel==value,()=>Settings!=null,TabletCoral);
+                float p = presets[i];
+                TabletControl(tabletActions, comfortSliderGroup, () => $"{p:0}°", new Vector2(-390 + i * 130, -25), new Vector2(115, 52),
+                    () => {
+                        if (Settings?.TurnLabel == "Snap") ApplyTabletSnapAngle(Mathf.Clamp(p, 15f, 90f));
+                        else ApplyTabletSmoothSpeed(p);
+                        UpdateComfortSliderUI();
+                    },
+                    () => {
+                        float cur = Settings?.TurnLabel == "Snap" ? (Settings?.SnapAngle ?? 0) : (Settings?.SmoothTurnSpeed ?? 0);
+                        return Mathf.Approximately(cur, p);
+                    },
+                    font: 22, accent: TabletPanel);
             }
-            TabletControl(tabletActions,page,()=>"Left",new(-30,-50),new(185,58),
-                ()=>SetTabletHand(true),()=>DominantLeft,()=>session.Player!=null,TabletCoral);
-            TabletControl(tabletActions,page,()=>"Right",new(170,-50),new(185,58),
-                ()=>SetTabletHand(false),()=>!DominantLeft,()=>session.Player!=null,TabletCoral);
-            TabletControl(tabletActions,page,()=>"Toggle",new(-30,-135),new(185,58),
-                ()=>SetTabletSprintHold(false),()=>!SprintHold,()=>true,TabletCoral);
-            TabletControl(tabletActions,page,()=>"Hold",new(170,-135),new(185,58),
-                ()=>SetTabletSprintHold(true),()=>SprintHold,()=>true,TabletCoral);
-            TabletControl(tabletActions,page,()=>Settings?.TurnLabel=="Snap"
-                ?$"Snap angle  {Settings.SnapAngle:0}°":Settings?.TurnLabel=="PhysicalOnly"
-                ?"Physical turning":$"Turn speed  {Settings?.SmoothTurnSpeed:0}°/s",new(-246,-225),new(466,66),
-                ()=>{if(Settings?.TurnLabel=="Snap")Settings.CycleSnapAngle();else Settings?.CycleSmoothTurnSpeed();},
-                allowed:()=>Settings!=null&&Settings.TurnLabel!="PhysicalOnly",accent:TabletCoral);
-            TabletControl(tabletActions,page,()=>"Recenter height",new(246,-225),new(466,66),
-                ()=>Settings?.RecalibrateSeatedHeight(),allowed:()=>Settings!=null,accent:TabletCoral);
-            TabletControl(tabletActions,page,()=>"More comfort settings",new(0,-305),new(400,48),
-                ()=>CandyComfortPanel.Open(session),accent:TabletPlum,font:24);
+
+            // Scrub step buttons
+            TabletControl(tabletActions, comfortSliderGroup, () => "<< MIN 15°", new Vector2(-280, -100), new Vector2(165, 52),
+                () => {
+                    if (Settings?.TurnLabel == "Snap") ApplyTabletSnapAngle(15f);
+                    else ApplyTabletSmoothSpeed(15f);
+                    UpdateComfortSliderUI();
+                }, font: 20, accent: TabletPanel);
+
+            TabletControl(tabletActions, comfortSliderGroup, () => "-25°", new Vector2(-95, -100), new Vector2(125, 52),
+                () => AdjustComfortValue(-25f), font: 20, accent: TabletPanel);
+
+            TabletControl(tabletActions, comfortSliderGroup, () => "+25°", new Vector2(95, -100), new Vector2(125, 52),
+                () => AdjustComfortValue(25f), font: 20, accent: TabletPanel);
+
+            TabletControl(tabletActions, comfortSliderGroup, () => "MAX >>", new Vector2(280, -100), new Vector2(165, 52),
+                () => {
+                    if (Settings?.TurnLabel == "Snap") ApplyTabletSnapAngle(90f);
+                    else ApplyTabletSmoothSpeed(360f);
+                    UpdateComfortSliderUI();
+                }, font: 20, accent: TabletPanel);
+
+            // Back / Done Button
+            TabletControl(tabletActions, comfortSliderGroup, () => "◄ Done", new Vector2(0, -195), new Vector2(440, 64),
+                CloseComfortSlider, accent: CandyHudVisuals.Mint, font: 28);
+
+            comfortSliderGroup.gameObject.SetActive(false);
         }
 
         void SetTabletTurn(string turn)
@@ -636,6 +942,10 @@ namespace DeadlyJenga.CastlePrototype
                 if(tabletPage==TabletPage.Developer&&tabletWeaponsOpen)
                 {
                     RefreshWeaponWheelStats();
+                }
+                if(tabletPage==TabletPage.Comfort)
+                {
+                    UpdateComfortSliderUI();
                 }
             }
             PointTabletButtons(tabletActions,pressed);

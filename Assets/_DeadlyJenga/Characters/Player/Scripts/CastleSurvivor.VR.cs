@@ -191,6 +191,20 @@ namespace DeadlyJenga.CastlePrototype
             calibrateSeated=false;
             ApplySeatedOrigin(raw,true);
         }
+        public void ResetSeatedHeightDefault()
+        {
+            seatedCalibrated = false;
+            calibrateSeated = false;
+            seatedAnchor = Vector3.zero;
+            if (cameraOffset)
+                cameraOffset.localPosition = Vector3.up * (FloorTracking() ? 0 : eyeHeight * playerScale);
+        }
+        public void SetAutoDetectHybrid(bool enable)
+        {
+            autoDetectHybridControls = enable;
+            PlayerPrefs.SetInt("SurvivorVR.PlayPositionAuto", enable ? 1 : 0);
+            PlayerPrefs.Save();
+        }
 
         bool FloorTracking()
         {
@@ -282,6 +296,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void DetectHybridControls()
         {
+            if(PlayerPrefs.GetInt("SurvivorVR.PlayPositionAuto",1)==0)return;
             if(!autoDetectHybridControls)return;
             if(!candyTracking)candyTracking=GetComponent<DeadlyJenga.CandyPlayers.CandyTrackingSource>();
             if(!candyTracking)return;

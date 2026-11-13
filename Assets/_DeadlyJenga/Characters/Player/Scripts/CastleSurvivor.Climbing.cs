@@ -26,7 +26,7 @@ namespace DeadlyJenga.CastlePrototype
         Vector3 climbNormal,climbLocalFeet,climbWorldFeet,climbPointVelocity,climbLastVelocity;
         Quaternion climbLastRotation;
         float climbHold,climbCooldown,climbElapsed,climbGroundRest,climbGait,climbStun,climbFaceMissing;
-        bool climbMustRelease;
+        bool climbMustRelease,toggleClimbActive;
         readonly Vector3[] climbHandLocal=new Vector3[2];
         readonly Vector3[] climbHandFrom=new Vector3[2];
         readonly float[] climbHandReach=new float[2];
@@ -35,7 +35,7 @@ namespace DeadlyJenga.CastlePrototype
         [Min(.1f)] public float vrClimbAcceleration=10f;
         void ResetClimb(bool refill)
         {
-            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;
+            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;toggleClimbActive=false;
             vrClimbVelocity=Vector3.zero;
             climbHold=climbCooldown=climbElapsed=climbGroundRest=climbStun=0;climbMustRelease=false;
             if(refill)GripRemaining=1;
@@ -91,7 +91,7 @@ namespace DeadlyJenga.CastlePrototype
         void ReleaseClimb(string reason,bool forced)
         {
             Vector3 inherited=Vector3.ClampMagnitude(climbPointVelocity,12);
-            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;Grounded=false;support=null;
+            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;Grounded=false;support=null;toggleClimbActive=false;
             verticalSpeed=Mathf.Clamp(inherited.y,-10,8);slopeVelocity=Vector3.ProjectOnPlane(inherited,Vector3.up)+climbNormal*(forced?1.8f:.65f);
             jumped=true;lastGrounded=-100;airborneSince=Time.time;climbCooldown=forced?.85f:.3f;climbMustRelease=forced;
             climbHold=0;ActionStatus=reason;
@@ -104,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
             slopeVelocity+=Vector3.ProjectOnPlane(velocityChange,Vector3.up);verticalSpeed+=velocityChange.y;
             climbStun=.4f;climbCooldown=Mathf.Max(climbCooldown,.85f);climbMustRelease=true;Grounded=false;support=null;jumped=true;lastGrounded=-100;
         }
-        bool UpdateClimb(Vector2 input,bool held,float dt)
+        bool UpdateClimb(Vector2 input,bool held,float dt,bool jumpPressed=false)
         {
             if(PowerupUnlimitedStamina)GripRemaining=1;
             climbCooldown=Mathf.Max(0,climbCooldown-dt);climbStun=Mathf.Max(0,climbStun-dt);
@@ -114,15 +114,23 @@ namespace DeadlyJenga.CastlePrototype
                 // Rest on secure ground only. Dropping/regrabbing or changing blocks never refills grip.
                 if(Grounded&&GroundAngle<=slopeGripAngle&&SupportAtRest())climbGroundRest+=dt;else climbGroundRest=0;
                 if(climbGroundRest>Mathf.Max(0,climbRecoveryDelay))GripRemaining=CastleStaminaCurve.Advance(GripRemaining,Mathf.Max(0,climbRecoveryPerSecond)*dt,climbRecoveryCurve,climbRecoveryDegree);
-                if(!climbingEnabled||(modeRules!=null&&!modeRules.canClimb)||!held||climbMustRelease||climbHold<.18f||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
+                bool climbToggle=PlayerPrefs.GetInt("SurvivorVR.ClimbToggle",0)!=0;
+                bool climbIntent=climbToggle?(jumpPressed||held||climbHold>=.15f):(held&&climbHold>=.18f);
+                if(!climbingEnabled||(modeRules!=null&&!modeRules.canClimb)||!climbIntent||climbMustRelease||climbCooldown>0||climbStun>0||Vaulting||GripRemaining<.12f)return false;
                 var facing=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
                 if(!FindClimbFace(Feet,facing,out var initial))return false;
                 BindClimb(initial);climbPointVelocity=PointVelocity();
                 if(UnsafeClimb(climbPointVelocity,dt,true)){climbBlock=null;climbBody=null;climbCollider=null;return false;}
-                Climbing=true;Grounded=false;support=null;verticalSpeed=0;slopeVelocity=Vector3.zero;vrClimbVelocity=Vector3.zero;climbElapsed=climbGait=climbFaceMissing=0;climbMovingHand=-1;
+                Climbing=true;if(climbToggle)toggleClimbActive=true;Grounded=false;support=null;verticalSpeed=0;slopeVelocity=Vector3.zero;vrClimbVelocity=Vector3.zero;climbElapsed=climbGait=climbFaceMissing=0;climbMovingHand=-1;
                 PlantClimbHand(0);PlantClimbHand(1);climbHandFrom[0]=climbHandLocal[0];climbHandFrom[1]=climbHandLocal[1];climbHandReach[0]=climbHandReach[1]=1;ActionStatus="Scramble";
             }
-            if(!held||InputSuspended){ReleaseClimb("Released grip",false);return false;}
+            bool isToggle=PlayerPrefs.GetInt("SurvivorVR.ClimbToggle",0)!=0&&toggleClimbActive;
+            if(isToggle)
+            {
+                if(jumpPressed&&climbElapsed>.15f){ReleaseClimb("Jumped to drop",false);return false;}
+                if(InputSuspended){ReleaseClimb("Input suspended",false);return false;}
+            }
+            else if(!held||InputSuspended){ReleaseClimb("Released grip",false);return false;}
             climbPointVelocity=PointVelocity();
             if(UnsafeClimb(climbPointVelocity,dt,false)){ReleaseClimb("Block thrown / falling — grip broken",true);return false;}
             Vector3 carried=climbBlock.Anchor.TransformPoint(climbLocalFeet);
@@ -189,7 +197,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!PowerupUnlimitedStamina)GripRemaining=1-CastleStaminaCurve.Advance(1-GripRemaining,dt*Mathf.Max(0,climbDrainPerSecond)/Mathf.Max(.2f,climbGripSeconds)*(input.sqrMagnitude>.01f?1f:.85f),climbDrainCurve,climbDrainDegree);climbElapsed+=dt;
             climbLocalFeet=climbBlock.Anchor.InverseTransformPoint(Feet);climbWorldFeet=climbBlock.Anchor.TransformPoint(climbLocalFeet);
             climbLastVelocity=climbPointVelocity;climbLastRotation=climbBlock.Anchor.rotation;
-            verticalSpeed=0;Grounded=false;ActionStatus="Scramble · grip "+Mathf.CeilToInt(GripRemaining*100)+"% · release to drop";
+            verticalSpeed=0;Grounded=false;ActionStatus="Scramble · grip "+Mathf.CeilToInt(GripRemaining*100)+"% · "+(isToggle?"jump to drop":"release to drop");
             if(GripRemaining<=0){ReleaseClimb("Grip exhausted — find secure footing",true);return false;}
             if(input.y>.1f&&ClimbMantle())return true;
             return true;
@@ -231,7 +239,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool FinishClimbMantle(RaycastHit top,Vector3 destination)
         {
-            Climbing=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;vrClimbVelocity=Vector3.zero;
+            Climbing=false;toggleClimbActive=false;climbBlock=null;climbBody=null;climbCollider=null;climbCooldown=.3f;vrClimbVelocity=Vector3.zero;
             BeginVault(top,destination);return true;
         }
         void PlantClimbHand(int side)
