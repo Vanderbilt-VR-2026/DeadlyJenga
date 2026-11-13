@@ -9,6 +9,8 @@
         "DeadlyJenga.Presentation.Editor",
         "DeadlyJenga.GameSession",
         "DeadlyJenga.DevTools",
+        "Unity.Pipeline.Attributes",
+        "Unity.Pipeline",
         "HandDemo.Runtime",
         "Fusion.Unity",
         "Unity.InputSystem",
