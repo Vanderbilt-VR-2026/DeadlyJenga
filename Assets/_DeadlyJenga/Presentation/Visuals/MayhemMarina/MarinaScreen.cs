@@ -26,6 +26,21 @@ namespace DeadlyJenga.CandyArt.Marina
         static readonly Color Mint=new(.26f,.84f,.64f);
         InputAction select,leftSelect;
         Image aimDot;
+        Canvas aimCanvas;
+        void EnsureAimCanvas()
+        {
+            if (!aimCanvas)
+            {
+                var root = new GameObject("Marina aim reticle", typeof(RectTransform), typeof(Canvas));
+                root.transform.SetParent(transform, false);
+                aimCanvas = root.GetComponent<Canvas>();
+                aimCanvas.renderMode = RenderMode.WorldSpace;
+                aimCanvas.overrideSorting = true;
+                aimCanvas.sortingOrder = 999;
+                aimDot = MenuAim.CreateReticle(root.transform);
+                MenuAim.PresentInForeground(root.transform);
+            }
+        }
         RectTransform canvas,mainFace,joinFace,hostFace;
         Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading,playerCountLabel;
         Text liveStandings,liveActivity,liveHazards;
@@ -131,7 +146,7 @@ namespace DeadlyJenga.CandyArt.Marina
             focusPanel.gameObject.SetActive(false);
             select=MenuAim.SelectAction("Marina right select",false);select.Enable();
             leftSelect=MenuAim.SelectAction("Marina left select",true);leftSelect.Enable();
-            aimDot=MenuAim.CreateReticle(canvas);Refresh();
+            EnsureAimCanvas();Refresh();
         }
         void BuildProjectedBackdrop()
         {
@@ -528,11 +543,25 @@ namespace DeadlyJenga.CandyArt.Marina
                 VisibleFacePoint(ray, joinFace, screenRange, out point) ||
                 VisibleFacePoint(ray, hostFace, screenRange, out point);
             bool actionable = nearest != null && nearest.collider.enabled;
+            EnsureAimCanvas();
+            aimCanvas.worldCamera = camera;
             bool showReticle = hitFace && (trackedPointer || !player.IsVR);
             if (showReticle)
             {
+                float hitDistance = Vector3.Distance(ray.origin, point);
+                var reticleTransform = aimCanvas.transform;
+                reticleTransform.SetPositionAndRotation(point, camera.transform.rotation);
+                reticleTransform.localScale = Vector3.one * Mathf.Clamp(hitDistance * .0007f, .0007f, .003f);
                 MenuAim.Present(aimDot, point, true, actionable);
                 if (aimDot) aimDot.rectTransform.sizeDelta = actionable ? new Vector2(18, 18) : new Vector2(12, 12);
+            }
+            else if (!player.IsVR && camera != null)
+            {
+                var centerPoint = ray.GetPoint(1.8f);
+                aimCanvas.transform.SetPositionAndRotation(centerPoint, camera.transform.rotation);
+                aimCanvas.transform.localScale = Vector3.one * 0.0013f;
+                MenuAim.Present(aimDot, centerPoint, true, false);
+                if (aimDot) aimDot.rectTransform.sizeDelta = new Vector2(12, 12);
             }
             else if (aimDot) aimDot.gameObject.SetActive(false);
             MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
