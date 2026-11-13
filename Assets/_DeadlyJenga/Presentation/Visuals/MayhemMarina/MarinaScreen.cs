@@ -283,7 +283,7 @@ namespace DeadlyJenga.CandyArt.Marina
             playTitle.text=visiting?(lobby.CanStart?"Return to match":"WATCH LIVE"):
                 playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";
             joinTitle.text=visiting?"Room info":"Room code";
-            hostTitle.text=visiting?"Room info":lobby.Connected?(lobby.IsHost?"Manage room":"Room options"):"Create room";
+            hostTitle.text=visiting?"Room info":lobby.Connected?(lobby.IsHost?"Manage room":"Create room"):"Create room";
             joinStatus.text=visiting?"Match in progress":lobby.Busy?"Connecting…":lobby.Connected?"In a room":"Find your friends";
             hostStatus.text=visiting?"Match in progress":lobby.Busy?"Working…":lobby.IsHost&&lobby.Connected?"You are host":lobby.Connected?"Joined as guest":"Host your friends";
             var details=lobby as ILobbyDetails;

@@ -89,11 +89,11 @@ namespace DeadlyJenga.CastlePrototype
 
         // Host terminal
         public bool HostActive=>Room.LocalIsLobbyHost;
-        public bool CanHost=>!VisitingLobby&&(!Room.Busy&&!Room.Connected);
+        public bool CanHost=>!VisitingLobby&&(!Room.Busy&&(!Room.Connected||!Room.IsHost));
         public void Host(){if(CanHost)_=Room.Host();}
         public string HostCode=>Room.Busy?"CONNECTING…":Room.Connected?Room.Code:"PRIVATE SOLO ISLAND";
         public string Region=>Room.Region;
-        public void NextRegion(){if(CanHost)Room.Region=IslandRoomAddress.Regions[(Array.IndexOf(IslandRoomAddress.Regions,Room.Region)+1)%IslandRoomAddress.Regions.Length];}
+        public void NextRegion(){if(CanHost&&!Room.Connected)Room.Region=IslandRoomAddress.Regions[(Array.IndexOf(IslandRoomAddress.Regions,Room.Region)+1)%IslandRoomAddress.Regions.Length];}
         public bool CanInvite=>!VisitingLobby&&(!Room.Busy&&!Room.LaunchPending);
         public void InviteNearby(){if(CanInvite)Room.InviteNearby();}
         public bool DemoSelected=>catalog.modes[Room.ModeIndex].id=="demo";

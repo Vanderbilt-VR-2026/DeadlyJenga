@@ -304,7 +304,17 @@ namespace DeadlyJenga.CastlePrototype
         public void SelectMode(int index){if(CanConfigure&&Catalog&&index>=0&&index<Catalog.modes.Length&&Catalog.modes[index].available&&Catalog.maps.Any(m=>m.SupportsMode(Catalog.modes[index].id)))Act(new LobbyAction{verb="mode",index=index});}
         void PublishSelection()
         {if(IsHost){selectionVersion++;lastPublishedPopulation=MatchSetup.BotTarget;Runner.SessionInfo.UpdateCustomProperties(new Dictionary<string,SessionProperty>{{"map",MapIndex},{"mode",ModeIndex},{"population",lastPublishedPopulation}});}}
-        public Task Host()=>Connect(true,IslandRoomAddress.Create(Region));
+        public async Task Host()
+        {
+            if(transferringLobbyHost||Busy||!Catalog)return;
+            if(Connected)
+            {
+                if(IsHost)return;
+                int attempt=generation;await Leave();
+                if(generation!=unchecked(attempt+1)||leaving||Runner!=null)return;
+            }
+            await Connect(true,IslandRoomAddress.Create(Region));
+        }
         public async Task Join(string input)
         {
             if(transferringLobbyHost||Busy||!Catalog)return;

@@ -18,7 +18,7 @@ namespace DeadlyJenga.CastlePrototype
             var l=lobby;hostStation=Terminal("HOST",new Vector3(0,StationY,StationZ),0,new Vector2(800,900),CandyHudVisuals.Mint);
             roomCount=Label(hostStation,"0 CONNECTED",300,32,800,40);roomCount.fontStyle=FontStyle.Bold;
             hostCode=Label(hostStation,"",245,36,720,60);
-            Add(hostStation,"host",()=>"CREATE JOIN CODE",150,l.Host,()=>l.CanHost,0,700,105,()=>!l.Connected);
+            Add(hostStation,"host",()=>l.Connected?"HOST NEW ROOM":"CREATE JOIN CODE",150,l.Host,()=>l.CanHost,0,700,105,()=>!l.HostActive);
             Add(hostStation,"region",()=>"REGION: "+l.Region.ToUpperInvariant()+"  ·  CHANGE",65,l.NextRegion,()=>l.CanHost,0,650,50,()=>!l.Connected);
             Add(hostStation,"invite-all",()=>"INVITE NEARBY",-25,l.InviteNearby,()=>l.CanInvite,0,700,100);
             Add(hostStation,"request-host",()=>"REQUEST HOST",-125,()=>Details?.RequestHost(),()=>l.Connected&&!l.IsHost&&!l.Busy,0,700,65,()=>l.Connected&&!l.IsHost);

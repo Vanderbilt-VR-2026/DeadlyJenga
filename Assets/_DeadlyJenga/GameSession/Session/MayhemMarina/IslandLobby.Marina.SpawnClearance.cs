@@ -57,6 +57,16 @@ namespace DeadlyJenga.CastlePrototype
             if(gray)floor=flatFloor.GetComponent<Collider>();
             if(!floor||!floor.enabled){reason="Waiting for the lobby collision floor.";return MarinaSpawnResult.Wait;}
             if(!NetworkActors.Alive(Player)){reason="Waiting for the local lobby body.";return MarinaSpawnResult.Wait;}
+            if (slot == 0 && marinaArrivalPlaced && NetworkActors.Alive(Player) &&
+                MarinaFinite(Player.transform.position) && Player.transform.position.y > WaterHeight(Player.transform.position))
+            {
+                var feet = Player.transform.position;
+                if (floor.Raycast(new Ray(feet + Vector3.up * 1f, Vector3.down), out var floorHit, 2.5f) && floorHit.normal.y >= .7f)
+                {
+                    pose = new P.Pose(feet, Player.transform.rotation);
+                    return MarinaSpawnResult.Accepted;
+                }
+            }
             MarinaEnvelope(out float radius,out float height,out var center,out float bottom);
             if(!float.IsFinite(radius)||!float.IsFinite(height)||!MarinaFinite(center)||radius<=0||height<radius*2)
             {reason="The current lobby body envelope is invalid.";return MarinaSpawnResult.Rejected;}
@@ -116,7 +126,9 @@ namespace DeadlyJenga.CastlePrototype
         internal bool ApplyReservedMarinaSpawn(P.Pose pose)
         {
             if(!NetworkActors.Alive(Player)||MatchResident&&!VisitOwner||!MarinaFinite(pose.position)||!MarinaFinite(pose.rotation))return false;
-            Player.Place(pose.position,pose.rotation);marinaArrivalPending=false;marinaArrivalPlaced=true;
+            if(Vector3.Distance(Player.transform.position, pose.position) > .05f || Quaternion.Angle(Player.transform.rotation, pose.rotation) > 5f)
+                Player.Place(pose.position,pose.rotation);
+            marinaArrivalPending=false;marinaArrivalPlaced=true;
             marinaWasConnected=Room&&Room.Connected;marinaPlacedGeneration=Room?Room.MarinaSpawnGeneration:int.MinValue;marinaPlacedFloorRevision=marinaFloorRevision;
             SetMenu(MenuOpen);AnnounceMarinaArrival();return true;
         }
@@ -156,7 +168,17 @@ namespace DeadlyJenga.CastlePrototype
 
         bool PlaceLocalLobbyArrival(bool returning=false)
         {
-            if(!UsesMarinaSpawns){Player.Place(SafeSpawnPoint(),Quaternion.identity);AnnounceMarinaArrival();return true;}
+            if(!UsesMarinaSpawns)
+            {
+                if(marinaArrivalPlaced && NetworkActors.Alive(Player) && MarinaFinite(Player.transform.position) && Player.transform.position.y > WaterHeight(Player.transform.position))
+                {
+                    AnnounceMarinaArrival();
+                    return true;
+                }
+                Player.Place(SafeSpawnPoint(),Quaternion.identity);
+                AnnounceMarinaArrival();
+                return true;
+            }
             bool connected=Room&&Room.Connected&&!VisitOwner;
             // Keep the same admission when the persistent lobby resumes on the same floor and room generation.
             bool alreadyAdmitted=marinaArrivalPlaced&&marinaWasConnected==connected&&
