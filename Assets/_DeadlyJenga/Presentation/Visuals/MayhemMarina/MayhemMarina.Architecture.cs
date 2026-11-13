@@ -464,8 +464,8 @@ namespace DeadlyJenga.CandyArt.Marina
             Rail(new Vector3(-18,4.15f,13.1f),new Vector3(-9.5f,4.15f,13.1f));
             Rail(new Vector3(-9.5f,4.14f,13.1f),new Vector3(-9.5f,4.14f,18.25f));
             Rail(new Vector3(-6.7f,4.14f,13.1f),new Vector3(-6.7f,4.14f,18.25f));
-            Rail(new Vector3(-6.4f,4.15f,14),new Vector3(4.0f,4.15f,14));
-            Rail(new Vector3(4.0f,4.15f,14),new Vector3(4.0f,4.15f,16.25f));
+            Rail(new Vector3(-6.4f,4.15f,15.08f),new Vector3(3.88f,4.15f,15.08f));
+            Rail(new Vector3(3.88f,4.15f,15.08f),new Vector3(3.88f,4.15f,16.25f));
             Rail(new Vector3(4.0f,4.15f,19.65f),new Vector3(4.0f,4.15f,20.85f));
             mesh.Box(new Vector3(14,2.6f,15.8f),new Vector3(10,2.5f,6),F.Ivory,.3f,true);
             mesh.Box(new Vector3(14,3.94f,15.8f),new Vector3(10,.18f,6),F.Wood,.04f,true);
