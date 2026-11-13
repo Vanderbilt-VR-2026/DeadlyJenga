@@ -415,7 +415,7 @@ namespace DeadlyJenga.CastlePrototype
                 if(hover&&pressed){actions[i]();break;}
             }
         }
-        }
+
         void OpenMenuSection(int index)
         {
             menuSection=index;string name=DemoMenuSections.Sections[menuCategory][index];equipmentOffset=0;

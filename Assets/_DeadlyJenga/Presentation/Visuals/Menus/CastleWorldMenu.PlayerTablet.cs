@@ -799,9 +799,6 @@ namespace DeadlyJenga.CastlePrototype
             SetPictureSprite(tabletCenterWeaponPicture, CandyWeaponIcons.Get(tabletWeaponSelected), tabletWeaponSelected);
             RefreshWeaponWheelStats();
         }
-            SetPictureSprite(tabletCenterWeaponPicture, CandyWeaponIcons.Get(tabletWeaponSelected), tabletWeaponSelected);
-            RefreshWeaponWheelStats();
-        }
 
         void SetPictureSprite(RawImage image, Sprite sprite, EquipmentKind kind)
         {
