@@ -20,6 +20,44 @@ namespace DeadlyJenga.CastlePrototype
             public Action Select;
             public Func<bool> Selected, Allowed;
             public Color Accent;
+            public Vector2 BasePosition;
+        }
+
+        static Sprite juicyCircleSprite;
+        static Sprite JuicyCircleSprite
+        {
+            get
+            {
+                if (juicyCircleSprite) return juicyCircleSprite;
+                const int size = 64;
+                var tex = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "JuicyCircle", wrapMode = TextureWrapMode.Clamp };
+                var pixels = new Color32[size * size];
+                float radius = (size - 4) * 0.5f;
+                Vector2 center = new Vector2(size * 0.5f, size * 0.5f);
+                Vector2 lightPos = center + new Vector2(-radius * 0.35f, radius * 0.35f);
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    Vector2 pos = new Vector2(x + 0.5f, y + 0.5f);
+                    float dist = Vector2.Distance(pos, center);
+                    if (dist > radius + 1f) { pixels[y * size + x] = Color.clear; continue; }
+                    float edgeAlpha = Mathf.Clamp01(radius + 1f - dist);
+                    float normDist = Mathf.Clamp01(dist / radius);
+                    float z = Mathf.Sqrt(Mathf.Max(0, 1f - normDist * normDist));
+                    Vector3 normal = new Vector3((pos.x - center.x) / radius, (pos.y - center.y) / radius, z);
+                    float specDist = Vector2.Distance(pos, lightPos) / (radius * 0.55f);
+                    float specular = Mathf.Pow(Mathf.Clamp01(1f - specDist), 3f) * 0.85f;
+                    float lightDot = Mathf.Clamp01(Vector3.Dot(normal, new Vector3(-0.35f, 0.45f, 0.82f).normalized));
+                    Color baseRed = Color.Lerp(new Color(0.70f, 0.05f, 0.12f), new Color(0.98f, 0.22f, 0.28f), lightDot);
+                    Color finalColor = Color.Lerp(baseRed, Color.white, specular);
+                    if (dist > radius - 1.5f) finalColor = Color.Lerp(finalColor, new Color(0.45f, 0.02f, 0.08f), 0.5f);
+                    finalColor.a = edgeAlpha;
+                    pixels[y * size + x] = finalColor;
+                }
+                tex.SetPixels32(pixels); tex.Apply();
+                juicyCircleSprite = Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), 100);
+                return juicyCircleSprite;
+            }
         }
 
         static readonly Color TabletPlum = new(.20f,.055f,.22f);
@@ -57,18 +95,26 @@ namespace DeadlyJenga.CastlePrototype
             var old = new List<Transform>();
             foreach (Transform child in transform) old.Add(child);
             legacyDeveloper = TabletRoot("Developer detail controls");
-            legacyDeveloper.localScale = Vector3.one * .84f;
-            legacyDeveloper.anchoredPosition = new Vector2(0,-48);
+            legacyDeveloper.localScale = Vector3.one;
+            legacyDeveloper.anchoredPosition = Vector2.zero;
             foreach (var child in old) child.SetParent(legacyDeveloper,false);
 
             var nav = TabletRoot("Player tablet tabs");
             tabletNav = nav;
-            TabletControl(tabletTabs,nav,()=>"Resume",new(-415,316),new(150,68),()=>session.SetMenu(false));
-            AddTab(TabletPage.Comfort,"Comfort",-248,width:160);
-            AddTab(TabletPage.Controls,"Controls",-82,width:160);
-            AddTab(TabletPage.Room,"Room",84,width:160);
-            AddTab(TabletPage.Developer,"Developer",250,()=>DeveloperTabAvailable,width:160);
-            TabletControl(tabletTabs,nav,()=>"✕",new(465,316),new(58,58),()=>session.SetMenu(false),accent:JuicyRed,font:38);
+            AddTab(TabletPage.Comfort,"MOVEMENT SETTINGS",-330,width:240);
+            AddTab(TabletPage.Controls,"CONTROLS",-114,width:160);
+            AddTab(TabletPage.Room,"ROOM",52,width:140);
+            var devTab = AddTab(TabletPage.Developer,"DEVELOPER",238,()=>DeveloperTabAvailable,width:200);
+            devTab.Button.image.sprite = null;
+            devTab.Button.image.type = Image.Type.Simple;
+
+            var close = TabletControl(tabletTabs,nav,()=>"✕",new(450,316),new(58,58),()=>session.SetMenu(false),accent:JuicyRed,font:34);
+            close.Button.image.sprite = JuicyCircleSprite;
+            close.Button.image.type = Image.Type.Simple;
+
+            // Popout Resume button tab at bottom edge of tablet frame
+            TabletControl(tabletTabs,nav,()=>"RESUME",new(0,-366),new(220,50),()=>session.SetMenu(false),accent:TabletPanel,font:22);
+
             TabletRule(nav,new Vector2(0,270),new Vector2(1010,4),TabletCoral);
 
             for (int i=0;i<tabletPages.Length;i++)
@@ -80,10 +126,9 @@ namespace DeadlyJenga.CastlePrototype
             OpenPlayerTabletPage(TabletPage.Comfort);
         }
 
-        void AddTab(TabletPage page,string title,float x,Func<bool> allowed=null,float width=160)
+        TabletButton AddTab(TabletPage page,string title,float x,Func<bool> allowed=null,float width=160)
         {
-            var nav=(RectTransform)tabletTabs[0].Button.transform.parent;
-            TabletControl(tabletTabs,nav,()=>title,new(x,316),new(width,68),()=>OpenPlayerTabletPage(page),
+            return TabletControl(tabletTabs,tabletNav,()=>title,new(x,316),new(width,68),()=>OpenPlayerTabletPage(page),
                 ()=>tabletPage==page,allowed);
         }
 
@@ -151,7 +196,7 @@ namespace DeadlyJenga.CastlePrototype
             outline.effectDistance=new Vector2(3,-3);
             outline.effectColor=Color.clear;
             var entry=new TabletButton {Button=button,Target=target,Label=label,Title=title,Focus=outline,
-                Select=select,Selected=selected,Allowed=allowed,Accent=accent??TabletPanel};
+                Select=select,Selected=selected,Allowed=allowed,Accent=accent??TabletPanel,BasePosition=p};
             controls.Add(entry);
             return entry;
         }
@@ -622,102 +667,116 @@ namespace DeadlyJenga.CastlePrototype
             tabletDeveloperWeapons.anchoredPosition = Vector2.zero;
             tabletDeveloperWeapons.gameObject.SetActive(false);
 
-            // Top category selector pills
-            for (int c = 0; c < 3; c++)
+            TabletText(tabletDeveloperWeapons, "RANGED WEAPONS", new Vector2(-320, 205), new Vector2(280, 36), 22);
+            TabletText(tabletDeveloperWeapons, "MELEE WEAPONS", new Vector2(75, 205), new Vector2(280, 36), 22);
+            TabletText(tabletDeveloperWeapons, "POWERUPS", new Vector2(420, 205), new Vector2(200, 36), 22);
+
+            var rangedItems = WheelGroups[0];
+            var meleeItems = WheelGroups[1];
+            var powerupItems = WheelGroups[2];
+
+            int totalSlots = rangedItems.Length + meleeItems.Length + powerupItems.Length;
+            tabletWheelSlotButtons = new TabletButton[totalSlots];
+            tabletWheelSlotPictures = new RawImage[totalSlots];
+            int slotIdx = 0;
+
+            // Ranged Wheel (8 slots, radius 125 around (-320, 10))
+            Vector2 rangedCenter = new Vector2(-320, 10);
+            for (int i = 0; i < rangedItems.Length; i++)
             {
-                int categoryIndex = c;
-                float x = -200 + c * 200;
-                TabletControl(tabletActions, tabletDeveloperWeapons, () => WheelCategories[categoryIndex],
-                    new Vector2(x, 145), new Vector2(180, 44), () => {
-                        tabletWeaponCategory = categoryIndex;
-                        tabletWeaponOffset = 0;
-                        var items = WheelGroups[categoryIndex];
-                        if (items.Length > 0) tabletWeaponSelected = items[0];
-                        UpdateWeaponWheelIcons();
-                    }, selected: () => tabletWeaponCategory == categoryIndex, font: 20);
+                var kind = rangedItems[i];
+                float angle = (i * (360f / rangedItems.Length) + 90f) * Mathf.Deg2Rad;
+                Vector2 pos = rangedCenter + new Vector2(Mathf.Cos(angle) * 125f, Mathf.Sin(angle) * 125f);
+                string name = EquipmentSpecifications.Get(kind).name;
+                int slash = name.IndexOf('/');
+                if (slash > 0) name = name.Substring(0, slash).Trim();
+                int cur = slotIdx++;
+                var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
+                    pos, new Vector2(94, 58), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 12);
+                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -18);
+                slot.Label.rectTransform.sizeDelta = new Vector2(90, 22);
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(64, 34));
+                tabletWheelSlotButtons[cur] = slot;
+                tabletWheelSlotPictures[cur] = pic;
+                SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
             }
 
-            // Radial weapon wheel slots (6 slots around center preview at (0, -50))
-            Vector2 wheelCenter = new Vector2(0, -50);
-            Vector2[] wheelOffsets = {
-                new(0, 110),
-                new(108, 55),
-                new(108, -55),
-                new(0, -110),
-                new(-108, -55),
-                new(-108, 55)
-            };
-            tabletWheelSlotButtons = new TabletButton[6];
-            tabletWheelSlotPictures = new RawImage[6];
-            for (int i = 0; i < 6; i++)
-            {
-                int slotIndex = i;
-                var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => GetWheelSlotLabel(slotIndex),
-                    wheelCenter + wheelOffsets[slotIndex], new Vector2(104, 74), () => SelectWheelSlot(slotIndex),
-                    selected: () => IsWheelSlotSelected(slotIndex),
-                    allowed: () => IsWheelSlotVisible(slotIndex), font: 13);
-                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -22);
-                slot.Label.rectTransform.sizeDelta = new Vector2(98, 24);
-                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(76, 44));
-                tabletWheelSlotButtons[i] = slot;
-                tabletWheelSlotPictures[i] = pic;
-            }
-
-            // Center Preview of Selected Weapon
-            var centerBtn = TabletControl(tabletActions, tabletDeveloperWeapons, () => "",
-                wheelCenter, new Vector2(110, 80), GiveSelectedWeapon, font: 12, accent: TabletPanel);
-            tabletCenterWeaponPicture = TabletPicture((RectTransform)centerBtn.Button.transform, null, Vector2.zero, new Vector2(90, 52));
-
-            // Left Column Controls (Target & Pagination)
-            TabletControl(tabletActions, tabletDeveloperWeapons, () => "Target: " + (tabletGiveAll ? "EVERYONE" : "MYSELF"),
-                new Vector2(-360, 60), new Vector2(230, 54), () => {
+            // Target Toggle in Center of Ranged Wheel
+            TabletControl(tabletActions, tabletDeveloperWeapons, () => tabletGiveAll ? "TARGET:\nALL" : "TARGET:\nME",
+                rangedCenter, new Vector2(104, 52), () => {
                     tabletGiveAll = !tabletGiveAll;
                     if (!tabletGiveAll) tabletRepeat = false;
-                }, font: 20, accent: TabletPanel);
+                }, font: 13, accent: TabletPanel);
 
-            TabletControl(tabletActions, tabletDeveloperWeapons, () => tabletGiveAll ? (tabletRepeat ? "NOW + RESPAWN" : "THIS LIFE ONLY") : "SELF ONLY",
-                new Vector2(-360, -2), new Vector2(230, 52), () => tabletRepeat = !tabletRepeat,
-                allowed: () => tabletGiveAll && tabletWeaponSelected != EquipmentKind.FlyingHand, font: 18, accent: TabletPanel);
+            // Melee Wheel (11 slots, radius 136 around (75, 10))
+            Vector2 meleeCenter = new Vector2(75, 10);
+            for (int i = 0; i < meleeItems.Length; i++)
+            {
+                var kind = meleeItems[i];
+                float angle = (i * (360f / meleeItems.Length) + 90f) * Mathf.Deg2Rad;
+                Vector2 pos = meleeCenter + new Vector2(Mathf.Cos(angle) * 136f, Mathf.Sin(angle) * 136f);
+                string name = EquipmentSpecifications.Get(kind).name;
+                int slash = name.IndexOf('/');
+                if (slash > 0) name = name.Substring(0, slash).Trim();
+                int cur = slotIdx++;
+                var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
+                    pos, new Vector2(88, 54), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 11);
+                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -16);
+                slot.Label.rectTransform.sizeDelta = new Vector2(84, 20);
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(58, 30));
+                tabletWheelSlotButtons[cur] = slot;
+                tabletWheelSlotPictures[cur] = pic;
+                SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
+            }
 
-            TabletControl(tabletActions, tabletDeveloperWeapons, () => "Clear respawn grants",
-                new Vector2(-360, -64), new Vector2(230, 50), StopRespawnGrant,
-                allowed: () => (MatchRuntime.Current as IDemoLoadoutControls)?.RespawnEquipment != EquipmentKind.None,
-                font: 17, accent: TabletPanel);
+            // Center Preview in Melee Wheel
+            var centerBtn = TabletControl(tabletActions, tabletDeveloperWeapons, () => "",
+                meleeCenter, new Vector2(96, 60), GiveSelectedWeapon, font: 11, accent: TabletPanel);
+            tabletCenterWeaponPicture = TabletPicture((RectTransform)centerBtn.Button.transform, null, Vector2.zero, new Vector2(80, 48));
 
-            TabletControl(tabletActions, tabletDeveloperWeapons, () => "< PREV",
-                new Vector2(-420, -126), new Vector2(108, 48), () => {
-                    tabletWeaponOffset = Mathf.Max(0, tabletWeaponOffset - 6);
-                    UpdateWeaponWheelIcons();
-                }, allowed: () => tabletWeaponOffset > 0, font: 18, accent: TabletPanel);
+            // Powerups Column on Far Right (4 slots)
+            for (int i = 0; i < powerupItems.Length; i++)
+            {
+                var kind = powerupItems[i];
+                string name = EquipmentSpecifications.Get(kind).name;
+                int cur = slotIdx++;
+                var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
+                    new Vector2(420, 140 - i * 58), new Vector2(210, 52), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 17);
+                slot.Label.rectTransform.anchoredPosition = new Vector2(25, 0);
+                slot.Label.rectTransform.sizeDelta = new Vector2(150, 44);
+                slot.Label.alignment = TextAnchor.MiddleLeft;
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(-75, 0), new Vector2(42, 42));
+                tabletWheelSlotButtons[cur] = slot;
+                tabletWheelSlotPictures[cur] = pic;
+                SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
+            }
 
-            TabletControl(tabletActions, tabletDeveloperWeapons, () => "NEXT >",
-                new Vector2(-300, -126), new Vector2(108, 48), () => {
-                    var items = WheelGroups[tabletWeaponCategory];
-                    if (tabletWeaponOffset + 6 < items.Length) {
-                        tabletWeaponOffset += 6;
-                        UpdateWeaponWheelIcons();
-                    }
-                }, allowed: () => {
-                    var items = WheelGroups[tabletWeaponCategory];
-                    return tabletWeaponOffset + 6 < items.Length;
-                }, font: 18, accent: TabletPanel);
-
-            // Right Column Controls (Selection Info & Give)
-            tabletSelectedWeaponTitle = TabletText(tabletDeveloperWeapons, "", new Vector2(360, 75), new Vector2(245, 40), 22);
-            tabletSelectedWeaponStats = TabletText(tabletDeveloperWeapons, "", new Vector2(360, 22), new Vector2(245, 52), 16);
-            tabletSelectedWeaponStats.lineSpacing = 1.1f;
-
+            // Action Buttons under Powerups Column
             TabletControl(tabletActions, tabletDeveloperWeapons, () => "GIVE SELECTED",
-                new Vector2(360, -48), new Vector2(240, 60), GiveSelectedWeapon,
-                allowed: CanGiveSelectedWeapon, accent: CandyHudVisuals.Mint, font: 24);
+                new Vector2(420, -112), new Vector2(210, 52), GiveSelectedWeapon,
+                allowed: CanGiveSelectedWeapon, accent: CandyHudVisuals.Mint, font: 22);
 
             TabletControl(tabletActions, tabletDeveloperWeapons, () => IsWeaponDrawn() ? "Holster weapon" : "Draw weapon",
-                new Vector2(360, -118), new Vector2(240, 48), ToggleHolster,
-                allowed: CanToggleHolster, font: 18, accent: TabletCoral);
+                new Vector2(420, -170), new Vector2(210, 44), ToggleHolster,
+                allowed: CanToggleHolster, font: 17, accent: TabletCoral);
+
+            // Selection info & stats
+            tabletSelectedWeaponTitle = TabletText(tabletDeveloperWeapons, "", new Vector2(-120, -195), new Vector2(340, 30), 20);
+            tabletSelectedWeaponStats = TabletText(tabletDeveloperWeapons, "", new Vector2(-120, -225), new Vector2(340, 30), 15);
 
             // Bottom Merged Row: Back to Developer Tools
             TabletControl(tabletActions, tabletDeveloperWeapons, () => "◄ Back to Developer Tools",
-                new Vector2(0, -286), new Vector2(1004, 104), CloseWeaponWheel, accent: TabletPanel, font: 36);
+                new Vector2(0, -270), new Vector2(980, 48), CloseWeaponWheel, accent: TabletPanel, font: 24);
+        }
+
+        void SelectWeaponKind(EquipmentKind kind)
+        {
+            tabletWeaponSelected = kind;
+            SetPictureSprite(tabletCenterWeaponPicture, CandyWeaponIcons.Get(tabletWeaponSelected), tabletWeaponSelected);
+            RefreshWeaponWheelStats();
         }
 
         void OpenWeaponWheel()
@@ -735,61 +794,11 @@ namespace DeadlyJenga.CastlePrototype
             if (tabletDeveloperWeapons) tabletDeveloperWeapons.gameObject.SetActive(false);
         }
 
-        string GetWheelSlotLabel(int slotIndex)
-        {
-            var items = WheelGroups[tabletWeaponCategory];
-            int itemIndex = tabletWeaponOffset + slotIndex;
-            if (itemIndex >= 0 && itemIndex < items.Length)
-            {
-                string name = EquipmentSpecifications.Get(items[itemIndex]).name;
-                int slash = name.IndexOf('/');
-                if (slash > 0) name = name.Substring(0, slash).Trim();
-                return name;
-            }
-            return "";
-        }
-
-        bool IsWheelSlotVisible(int slotIndex)
-        {
-            var items = WheelGroups[tabletWeaponCategory];
-            return tabletWeaponOffset + slotIndex < items.Length;
-        }
-
-        bool IsWheelSlotSelected(int slotIndex)
-        {
-            var items = WheelGroups[tabletWeaponCategory];
-            int itemIndex = tabletWeaponOffset + slotIndex;
-            return itemIndex < items.Length && items[itemIndex] == tabletWeaponSelected;
-        }
-
-        void SelectWheelSlot(int slotIndex)
-        {
-            var items = WheelGroups[tabletWeaponCategory];
-            int itemIndex = tabletWeaponOffset + slotIndex;
-            if (itemIndex >= 0 && itemIndex < items.Length)
-            {
-                tabletWeaponSelected = items[itemIndex];
-                UpdateWeaponWheelIcons();
-            }
-        }
-
         void UpdateWeaponWheelIcons()
         {
-            var items = WheelGroups[tabletWeaponCategory];
-            for (int i = 0; i < 6; i++)
-            {
-                int itemIndex = tabletWeaponOffset + i;
-                bool visible = itemIndex < items.Length;
-                if (tabletWheelSlotButtons != null && i < tabletWheelSlotButtons.Length)
-                {
-                    tabletWheelSlotButtons[i].Button.gameObject.SetActive(visible);
-                    if (visible)
-                    {
-                        var kind = items[itemIndex];
-                        SetPictureSprite(tabletWheelSlotPictures[i], CandyWeaponIcons.Get(kind), kind);
-                    }
-                }
-            }
+            SetPictureSprite(tabletCenterWeaponPicture, CandyWeaponIcons.Get(tabletWeaponSelected), tabletWeaponSelected);
+            RefreshWeaponWheelStats();
+        }
             SetPictureSprite(tabletCenterWeaponPicture, CandyWeaponIcons.Get(tabletWeaponSelected), tabletWeaponSelected);
             RefreshWeaponWheelStats();
         }
@@ -962,17 +971,47 @@ namespace DeadlyJenga.CastlePrototype
                 control.Button.interactable=allowed;
                 control.Target.enabled=allowed;
                 bool hover=Hit(control.Target,pointerRay),selected=control.Selected?.Invoke()==true;
+                bool isTab=ReferenceEquals(controls,tabletTabs);
                 bool developerTile=tabletPage==TabletPage.Developer&&ReferenceEquals(controls,tabletActions)&&!tabletWeaponsOpen;
                 bool juicyClose=control.Accent==JuicyRed;
-                control.Focus.effectColor=hover?CandyHudVisuals.Mint:Color.clear;
-                control.Button.image.color=juicyClose?(hover?new Color(1f,.26f,.32f):JuicyRed):
-                    hover&&developerTile?Color.Lerp(control.Accent,CandyHudVisuals.Mint,.19f):
-                    hover||selected?CandyHudVisuals.Mint:
-                    allowed?control.Accent:Color.Lerp(control.Accent,TabletPlum,.65f);
-                control.Label.color=juicyClose?Color.white:
-                    hover&&!developerTile||selected||control.Accent==TabletCream&&allowed?TabletPlum:
-                    allowed?TabletCream:CandyHudVisuals.Muted;
-                string title=(selected&&!ReferenceEquals(controls,tabletTabs)?"✓ ":"")+control.Title();
+
+                if(isTab && control.BasePosition.y > 200 && !juicyClose)
+                {
+                    if(selected)
+                    {
+                        float bounce=Mathf.Sin(Time.unscaledTime*5f)*4f;
+                        ((RectTransform)control.Button.transform).anchoredPosition=new Vector2(control.BasePosition.x, control.BasePosition.y+bounce);
+                        control.Focus.effectDistance=new Vector2(4,-4);
+                        control.Focus.effectColor=new Color(CandyHudVisuals.Mint.r,CandyHudVisuals.Mint.g,CandyHudVisuals.Mint.b,0.65f+Mathf.Sin(Time.unscaledTime*6f)*0.3f);
+                    }
+                    else
+                    {
+                        ((RectTransform)control.Button.transform).anchoredPosition=control.BasePosition;
+                        control.Focus.effectDistance=new Vector2(3,-3);
+                        control.Focus.effectColor=hover?CandyHudVisuals.Mint:Color.clear;
+                    }
+                }
+                else
+                {
+                    control.Focus.effectDistance=new Vector2(3,-3);
+                    control.Focus.effectColor=hover?CandyHudVisuals.Mint:Color.clear;
+                }
+
+                if(juicyClose)
+                {
+                    control.Button.image.color=hover?new Color(1.18f,1.18f,1.18f,1f):Color.white;
+                    control.Label.color=Color.white;
+                }
+                else
+                {
+                    control.Button.image.color=hover&&developerTile?Color.Lerp(control.Accent,CandyHudVisuals.Mint,.19f):
+                        hover||selected?CandyHudVisuals.Mint:
+                        allowed?control.Accent:Color.Lerp(control.Accent,TabletPlum,.65f);
+                    control.Label.color=hover&&!developerTile||selected||control.Accent==TabletCream&&allowed?TabletPlum:
+                        allowed?TabletCream:CandyHudVisuals.Muted;
+                }
+
+                string title=(selected&&!isTab?"✓ ":"")+control.Title();
                 if(control.Label.text!=title) control.Label.text=title;
                 if(!hover||!pressed)continue;
                 control.Select();

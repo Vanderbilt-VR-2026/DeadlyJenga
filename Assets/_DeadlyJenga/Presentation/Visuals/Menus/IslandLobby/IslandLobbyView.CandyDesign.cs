@@ -190,21 +190,46 @@ namespace DeadlyJenga.CastlePrototype
             candyPlayerValue.text=(Details?.Setup.population??MatchChoices.BotTarget).ToString();
             var map=mapOptions.FirstOrDefault(m=>m.id==Details?.SelectedMapId);candyMapDescription.text=string.IsNullOrEmpty(map?.description)?"Choose your arena.":CandyBrief(map.description);
             candyRoomStatus.text="ROOM\n"+Mathf.Max(1,Details?.ConnectedCount??1)+" / "+(Details?.Setup.population??MatchChoices.BotTarget);
-            if(setupPage=="maps")for(int i=0;i<PickerPageSize;i++)
+            if(setupPage=="maps")
             {
-                var row=PickerRow(i);var choice=CandyChoice("picker-"+i);if(row==null)continue;
-                bool header=row.map==null;
-                string id=row.map?.id;
-                var thumbnail=mapCardPictures[i];
-                if(mapCardIds[i]!=id)
+                if(mapBreadcrumb)mapBreadcrumb.text=MapBreadcrumbTitle();
+                if(mapBrowserView==MapBrowserView.MapList)
                 {
-                    mapCardIds[i]=id;
-                    SetPicture(thumbnail, id==null ? null : MapPreviewImages.Get(id), 100, 38);
+                    for(int i=0;i<4;i++)
+                    {
+                        var opt=MapItemOption(i);var choice=CandyChoice("picker-"+i);if(choice==null)continue;
+                        if(opt==null)continue;
+                        var thumbnail=mapCardPictures[i];
+                        if(mapCardIds[i]!=opt.id)
+                        {
+                            mapCardIds[i]=opt.id;
+                            SetSquareThumbnail(thumbnail,MapPreviewImages.Get(opt.id),56);
+                        }
+                        bool isStaged=(stagedSelectedMapId??Details?.SelectedMapId)==opt.id;
+                        choice.faceColor=isStaged?new Color(.28f,.18f,.38f):new Color(.19f,.14f,.29f);
+                        choice.edgeColor=isStaged?CandyMint:new Color(.35f,.25f,.45f);
+                    }
                 }
-                float indent=thumbnail.enabled?62:header?(row.collection?0:12):24;
-                choice.faceColor=header?row.collection?new Color(.37f,.26f,.53f):CandyFace:new Color(.19f,.14f,.29f);
-                choice.label.fontStyle=header?FontStyle.Bold:FontStyle.Normal;
-                CandyText(choice,indent,0,440-indent*2,44,22,TextAnchor.MiddleLeft);
+                var selChoice=CandyChoice("map-select");
+                if(selChoice!=null)
+                {
+                    bool canSelect=!string.IsNullOrEmpty(stagedSelectedMapId)&&stagedSelectedMapId!=Details?.SelectedMapId&&lobby.CanConfigure;
+                    selChoice.faceColor=canSelect?CandyMint:CandyFace;
+                    selChoice.edgeColor=canSelect?CandyCream:CandyMuted;
+                }
+                var deselChoice=CandyChoice("map-deselect");
+                if(deselChoice!=null)
+                {
+                    bool canDeselect=!string.IsNullOrEmpty(stagedSelectedMapId);
+                    deselChoice.faceColor=canDeselect?new Color(.45f,.25f,.60f):CandyFace;
+                    deselChoice.edgeColor=canDeselect?CandyLavender:CandyMuted;
+                }
+                var cancelChoice=CandyChoice("map-cancel");
+                if(cancelChoice!=null)
+                {
+                    cancelChoice.faceColor=CandyPeach;
+                    cancelChoice.edgeColor=CandyCream;
+                }
             }
             if(candyLastCode!=(lobby.EnteredCode??""))
             {

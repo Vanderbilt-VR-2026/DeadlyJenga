@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             value.accessories&=SupportedAccessories;
             if((byte)value.skin>(byte)AvatarSkin.DiscoAlien)value.skin=0;if((byte)value.hair>15)value.hair=0;if((byte)value.eyewear>15)value.eyewear=0;
-            value.clothing&=(AvatarClothing)16383;return value;
+            value.clothing&=(AvatarClothing)16383;value.poweredArmor=false;return value;
         }
         public static uint StyleBits(AvatarAppearance value)=> ((uint)value.skin&7)|((uint)value.hair<<3)|(((uint)value.eyewear&7)<<7)|(((uint)value.clothing&511)<<10)|(value.poweredArmor?1u<<19:0)|(((uint)value.skin>>3)<<20)|(((uint)value.eyewear>>3)<<24)|(((uint)value.clothing>>9)<<25);
         public static AvatarAppearance WithStyle(AvatarAppearance value,uint bits)

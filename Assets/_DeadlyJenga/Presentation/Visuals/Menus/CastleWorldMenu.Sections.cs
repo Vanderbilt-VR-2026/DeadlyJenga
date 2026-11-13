@@ -78,6 +78,14 @@ namespace DeadlyJenga.CastlePrototype
         }
         bool PointPersistentNavigation(bool pressed)
         {
+            if(tabletDeveloperDetails)
+            {
+                for(int i=0;i<tabButtons.Length;i++)tabButtons[i].gameObject.SetActive(false);
+                for(int i=0;i<sectionButtons.Length;i++)sectionButtons[i].gameObject.SetActive(false);
+                if(sectionTitle)sectionTitle.gameObject.SetActive(false);
+                if(navigationPath)navigationPath.gameObject.SetActive(false);
+                return false;
+            }
             int category=NavigationCategory();
             for(int i=0;i<tabButtons.Length;i++)
             {
@@ -105,6 +113,12 @@ namespace DeadlyJenga.CastlePrototype
         bool PointNavigation(bool pressed)
         {
             if(PointPersistentNavigation(pressed))return true;
+            if(tabletDeveloperDetails)
+            {
+                if(backButton)backButton.gameObject.SetActive(false);
+                if(homeButton)homeButton.gameObject.SetActive(false);
+                return false;
+            }
             bool available=!DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session);
             backButton.gameObject.SetActive(available);homeButton.gameObject.SetActive(available);
             if(!available)return false;
@@ -168,10 +182,57 @@ namespace DeadlyJenga.CastlePrototype
             session.SetRole(!session.PlayingHand);
             session.SetMenu(false);
         }
+        bool matchAdvancedExpanded;
+
+        void PointTabletMapPage(Camera camera, bool pressed)
+        {
+            var maps = Demo as IDemoMapControls;
+            vrMapPicker.Update(maps?.Maps, maps?.CurrentMapId);
+            var options = vrMapPicker.Rows;
+            heading.text = "MAP SELECTION\n<size=17><color=#d0b8d8>" + (maps?.MapStatus ?? "Choose a map to preview and launch") + "</color></size>";
+            var actions = new System.Collections.Generic.List<Action>();
+            var names = new System.Collections.Generic.List<string>();
+            var enabled = new System.Collections.Generic.List<bool>();
+            var art = new System.Collections.Generic.List<CandyHudIcon>();
+            var captions = new System.Collections.Generic.List<string>();
+            var pictures = new System.Collections.Generic.List<Texture>();
+
+            void Add(string name, Action action, bool available = true, CandyHudIcon icon = CandyHudIcon.Key, string caption = "", Texture picture = null)
+            { names.Add(name); actions.Add(action); enabled.Add(available); art.Add(icon); captions.Add(caption); pictures.Add(picture); }
+
+            Add("◄ Back to Match", () => { mapPage = false; menuSection = -1; }, icon: CandyHudIcon.Home);
+
+            if (options != null)
+            {
+                int max = Mathf.Min(12, options.Count - mapOffset);
+                for (int i = 0; i < max; i++)
+                {
+                    int index = mapOffset + i;
+                    var row = options[index];
+                    Texture preview = row.map != null ? MapPreviewImages.Get(row.map.id) : null;
+                    bool canSelect = row.map == null || (DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session) && maps.CanSelectMap && row.map.available);
+                    string title = row.map == null ? vrMapPicker.Title(row) : (row.map.id == maps.CurrentMapId ? "★ " : "") + row.map.title;
+                    Add(title, () => {
+                        if (row.map == null) { vrMapPicker.Toggle(row); mapOffset = vrMapPicker.HeaderIndex / 12 * 12; }
+                        else maps.SelectMap(row.map.id);
+                    }, canSelect, CandyHudIcon.Home, row.map?.description ?? "Browse category", preview);
+                }
+                if (mapOffset > 0)
+                    Add("Previous maps", () => mapOffset = Mathf.Max(0, mapOffset - 12), icon: CandyHudIcon.Home);
+                if (mapOffset + 12 < options.Count)
+                    Add("More maps", () => mapOffset += 12, icon: CandyHudIcon.Home);
+            }
+
+            help.text = "Aim at a map to preview, or trigger to select. Connected players follow the host.";
+            RenderOrganizedMenuGrid(names, actions, enabled, art, captions, pictures, pressed);
+        }
+
         void PointOrganizedMenu(Camera camera,bool pressed)
         {
             HideDisasterSliders();scaffoldButton.gameObject.SetActive(false);
-            for(int i=0;i<buttons.Length;i++){var rect=(RectTransform)buttons[i].transform;rect.anchoredPosition=new Vector2(0,277-i*50);rect.sizeDelta=new Vector2(540,48);}
+            if(disasterPage){PointDisasterPage(camera,pressed,false);return;}
+            if(modePage){PointModePage(camera,pressed);return;}
+            if(mapPage){PointTabletMapPage(camera,pressed);return;}
             var actions=new System.Collections.Generic.List<Action>();var names=new System.Collections.Generic.List<string>();var enabled=new System.Collections.Generic.List<bool>();var art=new System.Collections.Generic.List<CandyHudIcon>();var captions=new System.Collections.Generic.List<string>();var pictures=new System.Collections.Generic.List<Texture>();
             void Add(string name,Action action,bool available=true,CandyHudIcon icon=CandyHudIcon.Key,string caption="",Texture picture=null)
             {names.Add(name);actions.Add(action);enabled.Add(available);art.Add(icon);captions.Add(caption);pictures.Add(picture);}
@@ -225,7 +286,28 @@ namespace DeadlyJenga.CastlePrototype
             else if(menuSection<0)
             {
                 heading.text=DemoMenuSections.Tabs[menuCategory];Add("All tabs",()=>menuCategory=-1,icon:CandyHudIcon.Home);
-                var sections=DemoMenuSections.Sections[menuCategory];for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));}
+                var sections=DemoMenuSections.Sections[menuCategory];
+                if(menuCategory==2) // Match
+                {
+                    for(int i=0;i<4;i++)
+                    {
+                        int index=i;
+                        Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));
+                    }
+                    Add("Advanced Settings   " + (matchAdvancedExpanded ? "▲" : "▼"), () => matchAdvancedExpanded = !matchAdvancedExpanded, icon: CandyHudIcon.Settings, caption: "Extra options: ground pickups and automatic powerups");
+                    if(matchAdvancedExpanded)
+                    {
+                        for(int i=4;i<sections.Length;i++)
+                        {
+                            int index=i;
+                            Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));
+                        }
+                    }
+                }
+                else
+                {
+                    for(int i=0;i<sections.Length;i++){int index=i;Add(sections[i]+"   /   "+DemoMenuSections.Caption(sections[i]),()=>OpenMenuSection(index),icon:DemoMenuSections.Icon(sections[i]),caption:DemoMenuSections.Caption(sections[i]));}
+                }
             }
             else
             {
@@ -280,23 +362,59 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             
-            var ray=pointerRay;
-            sectionGlyphsActive=true;
             help.text=batchPage?batchTarget>0?"Preview selected: "+batchTarget+" total. Choose Fill to apply.":"Choose a target to preview; it will not spawn until you apply.":menuCategory<0?"Choose a tab. Aim at a row and select.":
                 menuSection<0?"Choose a section. Each row shows what it contains.":
                 DemoMenuSections.Caption(DemoMenuSections.Sections[menuCategory][menuSection])+". Shared changes may require the host.";
+            RenderOrganizedMenuGrid(names, actions, enabled, art, captions, pictures, pressed);
+        }
+
+        void RenderOrganizedMenuGrid(System.Collections.Generic.List<string> names, System.Collections.Generic.List<Action> actions, System.Collections.Generic.List<bool> enabled, System.Collections.Generic.List<CandyHudIcon> art, System.Collections.Generic.List<string> captions, System.Collections.Generic.List<Texture> pictures, bool pressed)
+        {
+            var ray=pointerRay;
+            sectionGlyphsActive=true;
+            int total = names.Count;
+            bool twoCols = total > 6;
+            int rowsPerCol = twoCols ? (total + 1) / 2 : total;
+            float startY = twoCols ? 180f : Mathf.Min(180f, (total - 1) * 28f);
+            float rowHeight = twoCols ? 58f : 54f;
+            float btnW = twoCols ? 460f : 560f;
+            float btnH = twoCols ? 50f : 48f;
+
             for(int i=0;i<buttons.Length;i++)
             {
                 bool visible=i<names.Count;
                 buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible&&enabled[i];
                 if(!visible)continue;
-                labels[i].text=names[i];sectionGlyphs[i].gameObject.SetActive(true);sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);SetRowPreview(i,pictures[i]);
+
+                int col = twoCols ? (i < rowsPerCol ? 0 : 1) : 0;
+                int row = twoCols ? (i < rowsPerCol ? i : i - rowsPerCol) : i;
+                float x = twoCols ? (col == 0 ? -245f : 245f) : 0f;
+                float y = startY - row * rowHeight;
+
+                var rect = (RectTransform)buttons[i].transform;
+                rect.anchoredPosition = new Vector2(x, y);
+                rect.sizeDelta = new Vector2(btnW, btnH);
+                targets[i].size = new Vector3(btnW, btnH, 4);
+
+                labels[i].text=names[i];
+                labels[i].rectTransform.sizeDelta = new Vector2(btnW - 65, btnH);
+                labels[i].rectTransform.anchoredPosition = new Vector2(25, 0);
+
+                if(sectionGlyphs[i])
+                {
+                    sectionGlyphs[i].gameObject.SetActive(true);
+                    sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);
+                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + 25, 0);
+                }
+                SetRowPreview(i,pictures[i]);
+
                 bool hover=targets[i].enabled&&Hit(targets[i],ray);
                 buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;
                 labels[i].color=hover?CandyHudVisuals.Ink:enabled[i]?Color.white:CandyHudVisuals.Muted;
                 if(hover&&!string.IsNullOrEmpty(captions[i]))help.text=captions[i];
                 if(hover&&pressed){actions[i]();break;}
             }
+        }
         }
         void OpenMenuSection(int index)
         {

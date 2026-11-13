@@ -152,9 +152,13 @@ namespace DeadlyJenga.Presentation
             {
                 if (!beamMaterial)
                 {
-                    var shader=Resources.Load<Shader>("CandyScenery/CandyHeadsetOverlay");
+                    var shader=Resources.Load<Shader>("CandyScenery/CandyHeadsetOverlay")
+                        ??Shader.Find("Candy Tropical/Headset Overlay")
+                        ??Shader.Find("Universal Render Pipeline/Unlit");
                     if(!shader)return;
                     beamMaterial=new Material(shader){name="Foreground UI ray",hideFlags=HideFlags.DontSave};
+                    beamMaterial.renderQueue=(int)UnityEngine.Rendering.RenderQueue.Overlay+100;
+                    beamMaterial.SetInt("_ZTest",(int)UnityEngine.Rendering.CompareFunction.Always);
                 }
                 beam = new GameObject("Tracked UI ray").AddComponent<LineRenderer>();
                 beam.transform.SetParent(owner, false);
@@ -165,10 +169,10 @@ namespace DeadlyJenga.Presentation
                 beam.endWidth = .003f;
                 beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 beam.receiveShadows = false;
-                beam.sortingOrder = 550;
+                beam.sortingOrder = 999;
             }
             beam.enabled = true;
-            beam.sortingOrder = 550;
+            beam.sortingOrder = 999;
             beamColor ??= new MaterialPropertyBlock();
             beamColor.SetColor(BaseColor, actionable ? CandyHudVisuals.Mint : Color.white);
             beam.SetPropertyBlock(beamColor);

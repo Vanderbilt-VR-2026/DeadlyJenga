@@ -44,17 +44,17 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
                 heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\n<size=17><color=#d0b8d8>Settings apply to the next launch</color></size>";
-                heading.rectTransform.anchoredPosition=new Vector2(0,318);
-                heading.fontSize=22;
-                ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",260,allowed);
+                heading.rectTransform.anchoredPosition=new Vector2(0,250);
+                heading.fontSize=24;
+                ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",185,allowed);
                 for(int i=0;i<definitions.Count&&i<8;i++)
                 {
                     if(definitions[i].whole&&definitions[i].min==0&&definitions[i].max==1)
-                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),195-i*54,allowed);continue;}
+                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),125-i*48,allowed);continue;}
                     var slider=disasterSliders[i];var p=definitions[i];syncingDisasterSliders=true;slider.minValue=p.min;slider.maxValue=p.max;slider.wholeNumbers=p.whole;slider.SetValueWithoutNotify(values[i]);syncingDisasterSliders=false;
-                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,195-i*54);UpdateCaption(i,disasterSelection);
+                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,125-i*48);UpdateCaption(i,disasterSelection);
                 }
-                ButtonAt(10,"Stop all disasters",-160,allowed);ButtonAt(12,"Back to disasters",-218);
+                ButtonAt(10,"Stop all disasters",-185,allowed);ButtonAt(12,"◄ Back to disasters",-245);
             }
             
             var ray=pointerRay;

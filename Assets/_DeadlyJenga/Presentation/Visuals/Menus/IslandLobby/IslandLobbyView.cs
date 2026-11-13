@@ -81,11 +81,8 @@ namespace DeadlyJenga.CastlePrototype
         Canvas lobbyAimCanvas;
         LineRenderer lobbyAimBeam;
         bool trackedLobbyPointer;
-        void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
+        void EnsureLobbyAimCanvas()
         {
-            if(!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);if(lobbyAimBeam)lobbyAimBeam.enabled=false;return;}
-            MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
-                Player.IsVR && trackedLobbyPointer && distance > .03f && hit, actionable);
             if(!lobbyAimCanvas)
             {
                 var root=new GameObject("Lobby terminal reticle",typeof(RectTransform),typeof(Canvas));
@@ -93,11 +90,32 @@ namespace DeadlyJenga.CastlePrototype
                 lobbyAimCanvas=root.GetComponent<Canvas>();
                 lobbyAimCanvas.renderMode=RenderMode.WorldSpace;
                 lobbyAimCanvas.overrideSorting=true;
-                lobbyAimCanvas.sortingOrder=600;
+                lobbyAimCanvas.sortingOrder=999;
                 lobbyAimDot=MenuAim.CreateReticle(root.transform);
                 MenuAim.PresentInForeground(root.transform);
             }
-            var point=ray.GetPoint(distance-.015f);
+        }
+        void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
+        {
+            if(!hit)
+            {
+                if(Player!=null&&!Player.IsVR&&Player.ViewCamera!=null)
+                {
+                    EnsureLobbyAimCanvas();
+                    var centerPoint=ray.GetPoint(1.8f);
+                    lobbyAimCanvas.worldCamera=Player.ViewCamera;
+                    lobbyAimCanvas.transform.SetPositionAndRotation(centerPoint,Player.ViewCamera.transform.rotation);
+                    lobbyAimCanvas.transform.localScale=Vector3.one*0.0013f;
+                    MenuAim.Present(lobbyAimDot,centerPoint,true,false);
+                }
+                else if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);
+                if(lobbyAimBeam)lobbyAimBeam.enabled=false;
+                return;
+            }
+            MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(Mathf.Max(.1f,distance-.035f)),
+                Player.IsVR && trackedLobbyPointer && distance > .03f && hit, actionable);
+            EnsureLobbyAimCanvas();
+            var point=ray.GetPoint(Mathf.Max(.1f,distance-.035f));
             lobbyAimCanvas.worldCamera=Player.ViewCamera;
             var reticle=lobbyAimCanvas.transform;
             reticle.SetPositionAndRotation(point,Player.ViewCamera.transform.rotation);
@@ -257,15 +275,9 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var choice in choices)
                 if(choice.button&&choice.button.gameObject.activeInHierarchy)PaintCandyChoice(choice,choice==nearest,choice.button.interactable);
             PreviewMapChoice(nearest?.id);
-            UpdateWardrobeChoiceNotice(nearest?.id);
             if (DragRoomCodeKeyboard(ray, pressed, held, pointerDevice, distance, out float keyboardDepth))
             {
                 DrawLobbyAim(ray, keyboardDepth, true);
-                return;
-            }
-            if (DragWardrobePreview(ray,pressed,held,pointerDevice,distance,out float dragDepth))
-            {
-                DrawLobbyAim(ray,dragDepth,true);
                 return;
             }
             if (!wardrobeOpen && spectatorWall && spectatorWall.TryPoint(ray,distance,out int channel,out float tvDepth))

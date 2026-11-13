@@ -39,23 +39,10 @@ namespace DeadlyJenga.CastlePrototype
             MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
             MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
             BuildMarinaRoomScreens();
-            MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
+            MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 6.84f, 3.04f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
             BuildKeyboardGrabBar();
             marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);
-            var go = new GameObject("Marina detail back control", typeof(RectTransform), typeof(Canvas));
-            go.transform.SetParent(transform, false);
-            marinaBack = go.GetComponent<RectTransform>();
-            marinaBack.localPosition = new Vector3(0, 5.23f, 10.85f);
-            marinaBack.localScale = Vector3.one * .0026f;
-            marinaBack.sizeDelta = new Vector2(1000, 125);
-            go.GetComponent<Canvas>().renderMode = RenderMode.WorldSpace;
-            go.GetComponent<Canvas>().overrideSorting = true;
-            go.GetComponent<Canvas>().sortingOrder = 100;
-            var back = Add(marinaBack, "marina-close", () => "BACK TO MARINA", 0,
-                CloseSetupPage, () => true, 0, 1000, 125,
-                () => setupStation.gameObject.activeSelf);
-            back.button.image.color = CandyInk;
             if(wardrobeCamera)wardrobeCamera.backgroundColor=new Color(.10f,.28f,.34f);
             var style = new GameObject("Marina wardrobe entry", typeof(RectTransform), typeof(Canvas));
             style.transform.SetParent(transform, false);
@@ -574,7 +561,7 @@ namespace DeadlyJenga.CastlePrototype
             marinaScreen.Visible = !mainDetail && !wardrobeOpen;
             marinaScreen.SetCabinetVisibility(!joinStation.gameObject.activeSelf && !wardrobeOpen,
                 !hostStation.gameObject.activeSelf && !wardrobeOpen);
-            marinaBack.gameObject.SetActive(mainDetail && !wardrobeOpen);
+            if (marinaBack) marinaBack.gameObject.SetActive(mainDetail && !wardrobeOpen);
             if (marinaStylePrompt) marinaStylePrompt.gameObject.SetActive(!mainDetail && !wardrobeOpen);
             UpdateMarinaRoomScreens();
             UpdateMarinaKeyboard();

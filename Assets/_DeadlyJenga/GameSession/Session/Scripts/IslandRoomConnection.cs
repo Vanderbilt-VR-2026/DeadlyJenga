@@ -700,7 +700,7 @@ namespace DeadlyJenga.CastlePrototype
             launchCountdownRoutine=StartCoroutine(LaunchCountdownSequence());
         }
 
-        IEnumerator LaunchCountdownSequence()
+        System.Collections.IEnumerator LaunchCountdownSequence()
         {
             LaunchPending=true;
             LaunchCountdownRemaining=3.0f;
@@ -741,7 +741,7 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
-        IEnumerator PreloadMatchAssets(string modeId,IslandLobbyCatalog.Map map)
+        System.Collections.IEnumerator PreloadMatchAssets(string modeId,IslandLobbyCatalog.Map map)
         {
             if(map!=null&&!string.IsNullOrEmpty(map.id))
                 Resources.LoadAsync<Texture2D>("LobbyPreviews/"+map.id);
@@ -751,7 +751,7 @@ namespace DeadlyJenga.CastlePrototype
             yield return null;
         }
 
-        IEnumerator GuestCountdownSequence(float duration)
+        System.Collections.IEnumerator GuestCountdownSequence(float duration)
         {
             LaunchCountdownRemaining=duration;
             while(LaunchCountdownRemaining>0)

@@ -68,9 +68,28 @@ namespace DeadlyJenga.CastlePrototype
             if(focusOutline)focusOutline.gameObject.SetActive(false);
         }
 
+        void UpdateTabletDreamchase()
+        {
+            if(!tabletFrame)return;
+            float chase = Mathf.Sin(Time.unscaledTime * 3.2f) * 0.5f + 0.5f;
+            float pulse = Mathf.Sin(Time.unscaledTime * 1.8f) * 0.2f + 0.8f;
+            Color baseCol = CandyHudVisuals.Lavender;
+            Color dream = Color.Lerp(baseCol, new Color(.92f, .82f, 1f, .95f), chase);
+            dream.a = Mathf.Lerp(0.55f, 0.95f, pulse);
+            tabletFrame.color = dream;
+            var frameOutline = tabletFrame.GetComponent<Outline>();
+            if(!frameOutline)
+            {
+                frameOutline = tabletFrame.gameObject.AddComponent<Outline>();
+                frameOutline.effectDistance = new Vector2(4, -4);
+            }
+            frameOutline.effectColor = new Color(baseCol.r, baseCol.g, baseCol.b, 0.35f + Mathf.Sin(Time.unscaledTime * 4.2f) * 0.25f);
+        }
+
         public void Point(Camera camera,bool pressed,bool held=false)
         {
             if(!camera||!isActiveAndEnabled)return;
+            UpdateTabletDreamchase();
             bool consumed=DeadlyJenga.Presentation.MenuAim.InputConsumed;
             if(!giveEquipmentPage&&!(disasterPage&&disasterSelection<0)&&!(modePage&&modeWheel))RestoreEquipmentWheelLayout();
             focus=null;
@@ -318,8 +337,8 @@ namespace DeadlyJenga.CastlePrototype
             bool dot=intersects&&(panel.rect.Contains(panel.InverseTransformPoint(at))||actionable);
             bool confirming=actionable&&pressedTarget==focus&&Time.unscaledTime<pressedUntil;
             Color color=confirming?CandyHudVisuals.Peach:actionable?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
-            pointerDot.gameObject.SetActive(dot);
-            if(dot)
+            pointerDot.gameObject.SetActive(dot && session.IsVR);
+            if(dot && session.IsVR)
             {
                 pointerDot.color=color;pointerDot.rectTransform.sizeDelta=Vector2.one*(actionable?17:11);
                 pointerDot.transform.position=at-transform.forward*.008f;

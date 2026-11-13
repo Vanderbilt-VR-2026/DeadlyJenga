@@ -56,7 +56,7 @@ namespace DeadlyJenga.CastlePrototype
                     .Select(item=>new WardrobeItem(PrettyName(item.ToString()),style:(int)item)).Append(Accessory(AvatarAccessory.Glasses)).ToArray(),
                 new[]{AvatarClothing.MonkRobe,AvatarClothing.Diaper,AvatarClothing.FootballPads,AvatarClothing.GrassSkirt,AvatarClothing.Tuxedo,
                     AvatarClothing.Hoodie,AvatarClothing.BomberJacket,AvatarClothing.SailorShirt,AvatarClothing.Overalls,AvatarClothing.PufferVest}
-                    .Select(Clothing).Append(new WardrobeItem("Powered Armor",armor:true)).ToArray(),
+                    .Select(Clothing).ToArray(),
                 new[]{AvatarAccessory.Cape,AvatarAccessory.ButterflyWings,AvatarAccessory.AngelWings,AvatarAccessory.DragonWings}
                     .Select(Accessory).Append(Clothing(AvatarClothing.RoyalMantle)).ToArray(),
                 new[]{Accessory(AvatarAccessory.LongNose),Accessory(AvatarAccessory.StrongJaw),Clothing(AvatarClothing.BowTie)}

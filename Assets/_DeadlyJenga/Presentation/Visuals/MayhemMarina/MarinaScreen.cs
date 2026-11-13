@@ -108,11 +108,13 @@ namespace DeadlyJenga.CandyArt.Marina
             mapCard = targets.Find(target => target.id == "marina-maps").face.rectTransform;
 
             var settingsBtn=Button("marina-settings",new Vector2(-263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
-            var gearGo=new GameObject("Marina · settings gear",typeof(RectTransform),typeof(LobbyTerminalGlyph));
+            var gearGo=new GameObject("Marina · settings gear",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyTerminalGlyph));
+            gearGo.layer=5;
             gearGo.transform.SetParent(settingsBtn,false);
             var gear=gearGo.GetComponent<LobbyTerminalGlyph>();
             gear.symbol=LobbyTerminalGlyph.Symbol.Gear;
             gear.color=Cream;
+            gear.rectTransform.anchoredPosition=Vector2.zero;
             gear.rectTransform.sizeDelta=new Vector2(24,24);
             gear.raycastTarget=false;
             gear.UseVertexMesh();

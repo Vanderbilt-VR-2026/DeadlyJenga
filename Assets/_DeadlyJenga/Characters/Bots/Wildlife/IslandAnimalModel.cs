@@ -271,6 +271,7 @@ namespace DeadlyJenga.Wildlife
 
         void Pose(int limb,float pitch,float yaw,float roll,float lift=0)
         {
+            if (limb < 0 || limb >= limbs.Count || limb >= limbPivots.Count) return;
             limbs[limb].localPosition=limbPivots[limb]+Vector3.up*lift;
             limbs[limb].localRotation=Quaternion.Euler(pitch,yaw,roll);
         }

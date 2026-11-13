@@ -209,7 +209,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void UpdateRoster()
         {
-            if(IsAuthority&&room!=null&&flow.SetRoster(State.authorityTerm,room.GameExperienceRosterIds))CommitFlow();
+            if(IsAuthority&&room!=null&&flow!=null&&State!=null&&flow.SetRoster(State.authorityTerm,room.GameExperienceRosterIds))CommitFlow();
         }
         internal void HandleAuthoritativeCommand(string sender,GameExperienceCommand command)
         {

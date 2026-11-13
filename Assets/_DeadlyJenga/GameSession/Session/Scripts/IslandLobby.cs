@@ -162,7 +162,8 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     int humans=Room.Connected?Mathf.Max(1,Room.HumanCount):1;
                     lobbyBots.SetHumanPlayerCount(humans);
-                    lobbyBots.TargetPopulation=10;
+                    int target=Room!=null&&Room.Setup.population>0?Mathf.Clamp(Room.Setup.population,1,10):10;
+                    lobbyBots.TargetPopulation=target;
                     lobbyBots.FillToTarget();
                     if(ExperienceProvider.IsRotatingLobby)
                     {

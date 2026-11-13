@@ -1,9 +1,12 @@
 using System.Linq;
 using System;
+using System.Collections.Generic;
 using System.Reflection;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyArt;
+using DeadlyJenga.Presentation;
 using UnityEngine;
+using UnityEngine.UI;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -14,90 +17,317 @@ namespace DeadlyJenga.CastlePrototype
         static readonly FieldInfo[] quickModeFields=commonModeFields.Select(name=>modeFields.First(field=>field.Name==name)).ToArray();
         int modeOffset;bool hudPage,modeWheel;
 
-        void BeginChoiceWheel(string title, string subtitle)
+        sealed class WheelVisualCard
         {
-            BeginEquipmentWheel();
-            HideDisasterSliders();
-            scaffoldButton.gameObject.SetActive(false);
-            heading.text=title+"\n"+subtitle;
-            foreach(var preview in mapThumbnails)if(preview)preview.gameObject.SetActive(false);
-            for(int i=0;i<buttons.Length;i++)
-            {
-                buttons[i].gameObject.SetActive(false);
-                targets[i].enabled=false;
-            }
-            help.rectTransform.anchoredPosition=new Vector2(0,-435);
-            help.rectTransform.sizeDelta=new Vector2(550,52);
+            public RectTransform root;
+            public Button cardButton;
+            public BoxCollider cardTarget;
+            public Image cardImage;
+            public RawImage picture;
+            public Text title;
+            public Button playButton;
+            public BoxCollider playTarget;
+            public Image playImage;
+            public Text playLabel;
         }
 
-        void ChoiceWheelSlot(int index, string label, bool selected, bool enabled)
+        GameObject disasterWheelUI;
+        List<WheelVisualCard> disasterCards;
+        Button disasterStopBtn, disasterBackBtn;
+        BoxCollider disasterStopTarget, disasterBackTarget;
+
+        GameObject modeWheelUI;
+        List<WheelVisualCard> modeCards;
+        Button modeStartBtn, modeBackBtn, modeSettingsBtn;
+        BoxCollider modeStartTarget, modeBackTarget, modeSettingsTarget;
+        Text modeCenterLabel;
+
+        WheelVisualCard CreateWheelCard(Transform parent, Vector2 pos, Vector2 size, Vector2 playOffset, Vector2 playSize)
         {
-            Vector2 direction=ModeSetupPanel.WheelDirection(index);
-            WheelRow(index,new Vector2(direction.x*202f,48f+direction.y*169f),new Vector2(136,65),label,enabled,18);
-            if(selected)buttons[index].image.color=CandyHudVisuals.Lavender;
+            var go = new GameObject("WheelCard", typeof(RectTransform));
+            go.transform.SetParent(parent, false);
+            var rect = go.GetComponent<RectTransform>();
+            rect.anchoredPosition = pos;
+
+            var cardGo = new GameObject("CardBtn", typeof(RectTransform), typeof(Image), typeof(Button), typeof(BoxCollider));
+            cardGo.transform.SetParent(rect, false);
+            var cardRect = cardGo.GetComponent<RectTransform>();
+            cardRect.sizeDelta = size;
+            cardRect.anchoredPosition = Vector2.zero;
+            var cardImg = cardGo.GetComponent<Image>();
+            cardImg.sprite = CandyHudVisuals.Pill;
+            cardImg.type = Image.Type.Sliced;
+            cardImg.color = CandyHudVisuals.Card;
+            var cardTarget = cardGo.GetComponent<BoxCollider>();
+            cardTarget.size = new Vector3(size.x, size.y, 4);
+            cardTarget.isTrigger = true;
+
+            var picGo = new GameObject("Thumb", typeof(RectTransform), typeof(RawImage));
+            picGo.transform.SetParent(cardGo.transform, false);
+            var picRect = picGo.GetComponent<RectTransform>();
+            picRect.sizeDelta = new Vector2(size.x - 8, size.y - 24);
+            picRect.anchoredPosition = new Vector2(0, 10);
+            var pic = picGo.GetComponent<RawImage>();
+            pic.raycastTarget = false;
+
+            var title = Text("", new Vector2(0, -size.y * 0.5f + 11), new Vector2(size.x - 4, 20), 12);
+            title.transform.SetParent(cardGo.transform, false);
+            title.fontStyle = FontStyle.Bold;
+            title.color = Color.white;
+            title.alignment = TextAnchor.MiddleCenter;
+
+            var playGo = new GameObject("PlayBtn", typeof(RectTransform), typeof(Image), typeof(Button), typeof(BoxCollider));
+            playGo.transform.SetParent(rect, false);
+            var playRect = playGo.GetComponent<RectTransform>();
+            playRect.sizeDelta = playSize;
+            playRect.anchoredPosition = playOffset;
+            var playImg = playGo.GetComponent<Image>();
+            playImg.sprite = CandyHudVisuals.Pill;
+            playImg.type = Image.Type.Sliced;
+            playImg.color = new Color(0.24f, 0.12f, 0.32f);
+            var playTarget = playGo.GetComponent<BoxCollider>();
+            playTarget.size = new Vector3(playSize.x, playSize.y, 4);
+            playTarget.isTrigger = true;
+            var playLabel = Text("▶", Vector2.zero, playSize, 14);
+            playLabel.transform.SetParent(playGo.transform, false);
+            playLabel.fontStyle = FontStyle.Bold;
+            playLabel.color = CandyHudVisuals.Mint;
+            playLabel.alignment = TextAnchor.MiddleCenter;
+
+            return new WheelVisualCard {
+                root = rect,
+                cardButton = cardGo.GetComponent<Button>(),
+                cardTarget = cardTarget,
+                cardImage = cardImg,
+                picture = pic,
+                title = title,
+                playButton = playGo.GetComponent<Button>(),
+                playTarget = playTarget,
+                playImage = playImg,
+                playLabel = playLabel
+            };
         }
 
-        int PointChoiceWheel(bool pressed)
+        Button CreateWheelCenterButton(Transform parent, string label, Vector2 pos, Vector2 size, int font, out BoxCollider target)
         {
-            for(int i=0;i<buttons.Length;i++)
+            var btn = HeaderButton(label, 0, out target);
+            var r = (RectTransform)btn.transform;
+            r.SetParent(parent, false);
+            r.anchoredPosition = pos;
+            r.sizeDelta = size;
+            target.size = new Vector3(size.x, size.y, 4);
+            var t = btn.GetComponentInChildren<Text>();
+            t.text = label;
+            t.fontSize = font;
+            t.fontStyle = FontStyle.Bold;
+            return btn;
+        }
+
+        void EnsureDisasterWheelUI()
+        {
+            if (disasterWheelUI) return;
+            disasterWheelUI = new GameObject("Disaster Wheel UI", typeof(RectTransform));
+            disasterWheelUI.transform.SetParent(transform, false);
+            var rect = disasterWheelUI.GetComponent<RectTransform>();
+            rect.anchoredPosition = Vector2.zero;
+            disasterCards = new List<WheelVisualCard>();
+
+            int count = Demo?.DisasterCount ?? 12;
+            for (int i = 0; i < count; i++)
             {
-                if(!buttons[i].gameObject.activeSelf)continue;
-                bool hover=targets[i].enabled&&Hit(targets[i],pointerRay);
-                if(hover)buttons[i].image.color=CandyHudVisuals.Mint;
-                labels[i].color=buttons[i].image.color.grayscale>.5f?CandyHudVisuals.Ink:targets[i].enabled?Color.white:CandyHudVisuals.Muted;
-                if(hover&&pressed)return i;
+                float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
+                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 355f, 25f + Mathf.Sin(angle) * 195f);
+                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(114, 64), new Vector2(0, -45), new Vector2(38, 24));
+                disasterCards.Add(card);
             }
-            return -1;
+
+            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, 20), new Vector2(230, 44), 17, out disasterStopTarget);
+            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -32), new Vector2(140, 38), 16, out disasterBackTarget);
         }
 
         void PointDisasterWheel(bool pressed)
         {
-            const int size=ModeSetupPanel.ChoiceWheelSize;
-            int count=Demo?.DisasterCount??0;
-            disasterOffset=Mathf.Clamp(disasterOffset/size,0,Mathf.Max(0,(count-1)/size))*size;
-            BeginChoiceWheel("NATURAL DISASTERS","Choose a disaster to tune and launch");
-            for(int i=0;i<size&&disasterOffset+i<count;i++)
-                ChoiceWheelSlot(i,Demo.DisasterLabel(disasterOffset+i),false,true);
-            WheelRow(8,new Vector2(0,48),new Vector2(130,65),"DISASTERS",false);
-            WheelRow(9,new Vector2(0,-194),new Vector2(310,50),"STOP ALL DISASTERS",CanCommand);
-            WheelRow(10,new Vector2(-174,-267),new Vector2(130,46),"PREVIOUS",disasterOffset>0);
-            WheelRow(11,new Vector2(174,-267),new Vector2(130,46),"NEXT",disasterOffset+size<count);
-            WheelRow(12,new Vector2(0,-267),new Vector2(170,46),"BACK",true);
-            help.text=CanCommand?"Point and select a disaster. Settings are on the next screen.":"The host controls disaster launch.";
-            int pick=PointChoiceWheel(pressed);
-            if(pick>=0&&pick<size)
+            EnsureDisasterWheelUI();
+            disasterWheelUI.SetActive(true);
+            HideDisasterSliders();
+            scaffoldButton.gameObject.SetActive(false);
+            foreach (var b in buttons) b.gameObject.SetActive(false);
+            heading.text = "NATURAL DISASTERS\n<size=17><color=#d0b8d8>Click disaster for settings  ·  ▶ to launch immediately</color></size>";
+            help.text = CanCommand ? "Point at a disaster to configure its sliders, or ▶ to trigger it directly." : "The host controls disasters.";
+
+            int count = Demo?.DisasterCount ?? 0;
+            var ray = pointerRay;
+
+            for (int i = 0; i < disasterCards.Count && i < count; i++)
             {
-                RestoreEquipmentWheelLayout();disasterSelection=disasterOffset+pick;disasterStatus="";
+                var card = disasterCards[i];
+                string name = Demo.DisasterLabel(i);
+                card.title.text = CandyDisasterWarningCard.DisplayName(name);
+                var tex = CandyDisasterWarningCard.GetImage(name);
+                if (tex) { card.picture.texture = tex; card.picture.color = Color.white; }
+                else { card.picture.texture = null; card.picture.color = Color.clear; }
+
+                bool cardHover = Hit(card.cardTarget, ray);
+                bool playHover = Hit(card.playTarget, ray);
+                card.cardImage.color = cardHover ? CandyHudVisuals.Mint : CandyHudVisuals.Card;
+                card.title.color = cardHover ? CandyHudVisuals.Ink : Color.white;
+                card.playImage.color = playHover ? CandyHudVisuals.Mint : new Color(0.24f, 0.12f, 0.32f);
+                card.playLabel.color = playHover ? CandyHudVisuals.Ink : CandyHudVisuals.Mint;
+
+                if (cardHover && pressed)
+                {
+                    disasterWheelUI.SetActive(false);
+                    disasterSelection = i;
+                    disasterStatus = "";
+                    MenuAim.Consume();
+                    return;
+                }
+                if (playHover && pressed)
+                {
+                    if (CanCommand)
+                        disasterStatus = Demo.LaunchDisaster(i);
+                    MenuAim.Consume();
+                    return;
+                }
             }
-            else if(pick==9)Demo?.Run(DemoCommand.StopDisasters);
-            else if(pick==10)disasterOffset-=size;
-            else if(pick==11)disasterOffset+=size;
-            else if(pick==12){RestoreEquipmentWheelLayout();disasterPage=false;}
+
+            bool stopHover = Hit(disasterStopTarget, ray);
+            disasterStopBtn.image.color = stopHover ? CandyHudVisuals.Mint : TabletPanel;
+            if (stopHover && pressed)
+            {
+                Demo?.Run(DemoCommand.StopDisasters);
+                MenuAim.Consume();
+                return;
+            }
+
+            bool backHover = Hit(disasterBackTarget, ray);
+            disasterBackBtn.image.color = backHover ? CandyHudVisuals.Mint : TabletPanel;
+            if (backHover && pressed)
+            {
+                disasterWheelUI.SetActive(false);
+                disasterPage = false;
+                if (tabletDeveloperDetails)
+                {
+                    tabletDeveloperDetails = false;
+                    legacyDeveloper.gameObject.SetActive(false);
+                    if (tabletNav) tabletNav.gameObject.SetActive(true);
+                    tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
+                }
+                MenuAim.Consume();
+                return;
+            }
+        }
+
+        void EnsureModeWheelUI()
+        {
+            if (modeWheelUI) return;
+            modeWheelUI = new GameObject("Mode Wheel UI", typeof(RectTransform));
+            modeWheelUI.transform.SetParent(transform, false);
+            var rect = modeWheelUI.GetComponent<RectTransform>();
+            rect.anchoredPosition = Vector2.zero;
+            modeCards = new List<WheelVisualCard>();
+
+            int count = ModeSetupPanel.WheelModes.Length;
+            for (int i = 0; i < count; i++)
+            {
+                float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
+                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 260f, 25f + Mathf.Sin(angle) * 175f);
+                var card = CreateWheelCard(modeWheelUI.transform, cardPos, new Vector2(132, 74), new Vector2(0, -50), new Vector2(42, 28));
+                modeCards.Add(card);
+            }
+
+            var centerLabelGo = Text("", new Vector2(0, 52), new Vector2(220, 36), 18);
+            centerLabelGo.transform.SetParent(modeWheelUI.transform, false);
+            centerLabelGo.fontStyle = FontStyle.Bold;
+            centerLabelGo.color = CandyMint;
+            centerLabelGo.alignment = TextAnchor.MiddleCenter;
+            modeCenterLabel = centerLabelGo;
+
+            modeStartBtn = CreateWheelCenterButton(modeWheelUI.transform, "START ROUND", new Vector2(0, 8), new Vector2(210, 44), 18, out modeStartTarget);
+            modeBackBtn = CreateWheelCenterButton(modeWheelUI.transform, "◄ BACK", new Vector2(-75, -45), new Vector2(120, 38), 16, out modeBackTarget);
+            modeSettingsBtn = CreateWheelCenterButton(modeWheelUI.transform, "SETTINGS", new Vector2(75, -45), new Vector2(120, 38), 16, out modeSettingsTarget);
         }
 
         void PointModeWheel(IMatchRuntime match, bool pressed)
         {
-            bool allowed=match.Authority&&DeadlyJenga.Presentation.GameExperiencePanel.CanEditRawChoices(session);
-            BeginChoiceWheel("GAME MODES","Select a mode, then start the round");
-            for(int i=0;i<ModeSetupPanel.WheelModes.Length;i++)
+            EnsureModeWheelUI();
+            modeWheelUI.SetActive(true);
+            HideDisasterSliders();
+            scaffoldButton.gameObject.SetActive(false);
+            foreach (var b in buttons) b.gameObject.SetActive(false);
+            heading.text = "GAME MODES\n<size=17><color=#d0b8d8>Click mode to configure  ·  ▶ to start immediately</color></size>";
+            help.text = match.Authority ? "Point at a mode for settings, or ▶ to launch round." : "The host selects the mode.";
+            modeCenterLabel.text = "CURRENT: " + match.Rules.mode.ToString().ToUpperInvariant();
+
+            int count = ModeSetupPanel.WheelModes.Length;
+            var ray = pointerRay;
+
+            for (int i = 0; i < modeCards.Count && i < count; i++)
             {
-                var mode=ModeSetupPanel.WheelModes[i];
-                ChoiceWheelSlot(i,DeadlyJenga.Presentation.CandyHudContent.Mode(mode),mode==match.Rules.mode,allowed);
+                var card = modeCards[i];
+                var mode = ModeSetupPanel.WheelModes[i];
+                card.title.text = DeadlyJenga.Presentation.CandyHudContent.Mode(mode);
+                var tex = ModeSetupPanel.WheelModePicture(mode);
+                if (tex) { card.picture.texture = tex; card.picture.color = Color.white; }
+                else { card.picture.texture = null; card.picture.color = Color.clear; }
+
+                bool isSelected = mode == match.Rules.mode;
+                bool cardHover = Hit(card.cardTarget, ray);
+                bool playHover = Hit(card.playTarget, ray);
+
+                card.cardImage.color = cardHover ? CandyHudVisuals.Mint : isSelected ? CandyHudVisuals.Lavender : CandyHudVisuals.Card;
+                card.title.color = cardHover ? CandyHudVisuals.Ink : Color.white;
+                card.playImage.color = playHover ? CandyHudVisuals.Mint : new Color(0.24f, 0.12f, 0.32f);
+                card.playLabel.color = playHover ? CandyHudVisuals.Ink : CandyHudVisuals.Mint;
+
+                if (cardHover && pressed)
+                {
+                    if (mode != match.Rules.mode) match.Configure(ModeDefaults.Create(mode));
+                    modeWheelUI.SetActive(false);
+                    modeWheel = false;
+                    MenuAim.Consume();
+                    return;
+                }
+                if (playHover && pressed)
+                {
+                    if (match.Authority)
+                    {
+                        if (mode != match.Rules.mode) match.Configure(ModeDefaults.Create(mode));
+                        match.StartRound();
+                    }
+                    MenuAim.Consume();
+                    return;
+                }
             }
-            WheelRow(8,new Vector2(0,48),new Vector2(130,65),DeadlyJenga.Presentation.CandyHudContent.Mode(match.Rules.mode),false,17);
-            WheelRow(9,new Vector2(0,-194),new Vector2(310,50),"START / RESTART ROUND",allowed);
-            WheelRow(10,new Vector2(-135,-267),new Vector2(202,46),"BACK TO DEMO",true);
-            WheelRow(12,new Vector2(135,-267),new Vector2(202,46),"MATCH SETTINGS",true);
-            help.text=allowed?"Choose any mode directly. Back returns to match settings.":"The host selects the mode.";
-            int pick=PointChoiceWheel(pressed);
-            if(pick>=0&&pick<ModeSetupPanel.WheelModes.Length)
+
+            bool startHover = Hit(modeStartTarget, ray);
+            modeStartBtn.image.color = startHover ? CandyHudVisuals.Mint : TabletPanel;
+            if (startHover && pressed)
             {
-                var mode=ModeSetupPanel.WheelModes[pick];
-                if(mode!=match.Rules.mode)match.Configure(ModeDefaults.Create(mode));
+                if (match.Authority) match.StartRound();
+                MenuAim.Consume();
+                return;
             }
-            else if(pick==9)match.StartRound();
-            else if(pick==10){RestoreEquipmentWheelLayout();modePage=modeWheel=false;}
-            else if(pick==12){RestoreEquipmentWheelLayout();modeWheel=false;}
+
+            bool backHover = Hit(modeBackTarget, ray);
+            modeBackBtn.image.color = backHover ? CandyHudVisuals.Mint : TabletPanel;
+            if (backHover && pressed)
+            {
+                modeWheelUI.SetActive(false);
+                modePage = modeWheel = false;
+                MenuAim.Consume();
+                return;
+            }
+
+            bool settingsHover = Hit(modeSettingsTarget, ray);
+            modeSettingsBtn.image.color = settingsHover ? CandyHudVisuals.Mint : TabletPanel;
+            if (settingsHover && pressed)
+            {
+                modeWheelUI.SetActive(false);
+                modeWheel = false;
+                MenuAim.Consume();
+                return;
+            }
         }
         void PointModePage(Camera camera,bool pressed)
         {

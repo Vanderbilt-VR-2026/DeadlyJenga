@@ -5,7 +5,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed class LobbyTerminalGlyph : MaskableGraphic
     {
-        public enum Symbol { Play, Plus, People, Radar, Gear, Chevron, Back, Check, Globe, Island, Person, Invite, Copy }
+        public enum Symbol { Play, Plus, People, Radar, Gear, Chevron, Back, Check, Globe, Island, Person, Invite, Copy, Rotate }
         public Symbol symbol;
         VertexHelper mesh;
         Vector2 origin;
@@ -68,6 +68,20 @@ namespace DeadlyJenga.CastlePrototype
                     Bar(new Vector2(0,-.72f),new Vector2(1.7f,.13f));
                     Bar(new Vector2(-.1f,-.12f),new Vector2(.18f,1.10f),-15);
                     for(int i=0;i<4;i++)Bar(new Vector2((i<2?-.3f:.3f),.49f),new Vector2(.78f,.14f),(i%2==0?20:-20)*(i<2?-1:1));break;
+                case Symbol.Rotate:
+                    var center=new Vector2(0,.38f);
+                    const float radius=.72f;
+                    for(int i=0;i<16;i++)
+                    {
+                        float a=-(20+i*140f/16)*Mathf.Deg2Rad,b=-(20+(i+1)*140f/16)*Mathf.Deg2Rad;
+                        var from=center+new Vector2(Mathf.Cos(a),Mathf.Sin(a))*radius;
+                        var to=center+new Vector2(Mathf.Cos(b),Mathf.Sin(b))*radius;
+                        var segment=to-from;
+                        Bar((from+to)*.5f,new Vector2(segment.magnitude+.025f,.14f),Mathf.Atan2(segment.y,segment.x)*Mathf.Rad2Deg);
+                    }
+                    Triangle(new Vector2(-.85f,.31f),new Vector2(-.36f,.15f),new Vector2(-.73f,-.22f));
+                    Triangle(new Vector2(.85f,.31f),new Vector2(.73f,-.22f),new Vector2(.36f,.15f));
+                    break;
             }
         }
         void Triangle(Vector2 a,Vector2 b,Vector2 c)

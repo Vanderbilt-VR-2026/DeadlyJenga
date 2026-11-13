@@ -23,6 +23,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly RawImage[] mapCardPictures = new RawImage[PickerPageSize];
         readonly string[] mapCardIds = new string[PickerPageSize];
         RawImage browserMapPreview;Text browserMapName,browserMapMissing,browserMapDescription;string browserMapId,hoveredMapId;bool browserMapLoaded;
+        RectTransform mapBrowserRightFrame;
         readonly Text[] modeDescriptions=new Text[8],modePictureMissing=new Text[8];
 
         internal enum MapBrowserView { Tabs, ArchiveCategories, MapList }
@@ -242,6 +243,7 @@ namespace DeadlyJenga.CastlePrototype
             hoveredMapId = null;
             lastLookedMapId = null;
             HideBridge();
+            if (mapBrowserRightFrame) mapBrowserRightFrame.gameObject.SetActive(false);
             if (marina) SetMarinaDetail(setupStation, false);
         }
 
@@ -365,6 +367,8 @@ namespace DeadlyJenga.CastlePrototype
                 modePictureMissing[i].gameObject.SetActive(!texture);modeDescriptions[i].text=CandyBrief(option?.description??"",true);
             }
             UpdateMapBrowserPreview();
+            if (mapBrowserRightFrame) mapBrowserRightFrame.gameObject.SetActive(setupPage == "maps");
+            if (browserBridge && setupPage != "maps") browserBridge.gameObject.SetActive(false);
             gameHint.text=setupPage=="maps"||setupPage=="modes"?(setupPage=="maps"?"2 - CHOOSE MAP":"1 - CHOOSE GAME MODE")+"  -  "+(pickerOffset/PageSize+1)+" / "+PickerPages:setupPage=="settings"?"DEMO / MODE SETTINGS":
                 GameExperiencePanel.Resolve(session)?.Experience==GameExperience.Game?lobby.SetupHint:"";
             gameHint.gameObject.SetActive(!main||!string.IsNullOrEmpty(gameHint.text));
