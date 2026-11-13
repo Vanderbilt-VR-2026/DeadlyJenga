@@ -239,7 +239,7 @@ namespace DeadlyJenga.CastlePrototype
             var centerLabelGo = Text("", new Vector2(0, 52), new Vector2(220, 36), 18);
             centerLabelGo.transform.SetParent(modeWheelUI.transform, false);
             centerLabelGo.fontStyle = FontStyle.Bold;
-            centerLabelGo.color = CandyMint;
+            centerLabelGo.color = CandyHudVisuals.Mint;
             centerLabelGo.alignment = TextAnchor.MiddleCenter;
             modeCenterLabel = centerLabelGo;
 
