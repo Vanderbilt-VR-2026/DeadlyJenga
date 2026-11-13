@@ -76,6 +76,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var go=new GameObject(title,typeof(RectTransform),typeof(Canvas),typeof(Image));go.transform.SetParent(transform,false);go.transform.SetPositionAndRotation(position,Quaternion.Euler(0,yaw,0));go.transform.localScale=Vector3.one*(title=="WARDROBE"?.0022f:StationScale);
             var rect=go.GetComponent<RectTransform>();rect.sizeDelta=size;var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=100;
+            var scaler=go.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;scaler.referencePixelsPerUnit=100;
             var image=go.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
             Label(rect,title,size.y*.5f-72,68,size.x-70,105).fontStyle=FontStyle.Bold;
             var stripe=new GameObject("Candy accent",typeof(RectTransform),typeof(Image));stripe.transform.SetParent(rect,false);var color=stripe.GetComponent<Image>();color.sprite=CandyHudVisuals.Pill;color.type=Image.Type.Sliced;color.color=accent;color.raycastTarget=false;color.rectTransform.sizeDelta=new Vector2(size.x-80,8);color.rectTransform.anchoredPosition=new Vector2(0,size.y*.5f-12);
@@ -84,7 +85,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         Text Label(RectTransform parent,string text,float y,int size,float width=750,float height=56)
         {
-            var go=new GameObject("Label",typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=text;t.fontSize=size;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.resizeTextForBestFit=true;t.resizeTextMinSize=14;t.resizeTextMaxSize=size;t.rectTransform.sizeDelta=new Vector2(width,height);t.rectTransform.anchoredPosition=new Vector2(0,y);return t;
+            var go=new GameObject("Label",typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();
+            t.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.text=text;t.fontSize=size;t.fontStyle=FontStyle.Bold;t.color=Color.white;t.alignment=TextAnchor.MiddleCenter;t.raycastTarget=false;t.resizeTextForBestFit=true;t.resizeTextMinSize=14;t.resizeTextMaxSize=size;t.rectTransform.sizeDelta=new Vector2(width,height);t.rectTransform.anchoredPosition=new Vector2(0,y);return t;
         }
         Choice Add(RectTransform parent,string id,Func<string> title,float y,Action action,Func<bool> enabled,float x=0,float width=535,float height=55,Func<bool> visible=null)
         {

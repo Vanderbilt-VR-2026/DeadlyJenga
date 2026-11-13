@@ -30,6 +30,7 @@ namespace DeadlyJenga.CastlePrototype
             go.transform.SetPositionAndRotation(new Vector3(panel.position.x,.94f,.55f),yaw*Quaternion.Euler(40,0,0));
             go.transform.localScale=Vector3.one*(1000*StationScale/1680);
             piano=go.GetComponent<RectTransform>();piano.sizeDelta=new Vector2(1680,740);var canvas=go.GetComponent<Canvas>();canvas.renderMode=RenderMode.WorldSpace;canvas.overrideSorting=true;canvas.sortingOrder=101;
+            var scaler=go.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;scaler.referencePixelsPerUnit=100;
             Box(piano,"Glossy piano case",new Vector3(0,0,40),new Vector3(1680,740,120),new Color(.85f,.018f,.07f));
             if (!UsesMayhemMarina)
                 lobby.AddBlocker(go.transform,new Vector3(0,0,40),new Vector3(1680,740,120));

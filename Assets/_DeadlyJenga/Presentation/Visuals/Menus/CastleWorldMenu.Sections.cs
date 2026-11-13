@@ -133,10 +133,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 if(tabletDeveloperDetails)
                 {
-                    tabletDeveloperDetails=false;
-                    legacyDeveloper.gameObject.SetActive(false);
-                    if(tabletNav)tabletNav.gameObject.SetActive(true);
-                    tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
+                    CloseDeveloperDetails();
                     return true;
                 }
                 ResetPages();menuCategory=menuSection=-1;return true;
@@ -144,10 +141,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!back)return false;
             if(tabletDeveloperDetails&&disasterSelection<0&&menuSection<0)
             {
-                tabletDeveloperDetails=false;
-                legacyDeveloper.gameObject.SetActive(false);
-                if(tabletNav)tabletNav.gameObject.SetActive(true);
-                tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
+                CloseDeveloperDetails();
                 return true;
             }
             if(AtHome){session.SetMenu(false);return true;}
@@ -170,13 +164,26 @@ namespace DeadlyJenga.CastlePrototype
             if (disasterWheelUI) disasterWheelUI.SetActive(false);
             if (modeWheelUI) modeWheelUI.SetActive(false);
         }
-        void SetRowPreview(int i,Texture image)
+        void SetRowPreview(int i,Texture image, bool twoCols = false, float btnW = 980f)
         {
             if(!image)return;
             var preview=mapThumbnails[i];preview.texture=image;preview.gameObject.SetActive(true);
-            float fit=Mathf.Min(108f/image.width,43f/image.height);
-            preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
-            labels[i].rectTransform.sizeDelta=new Vector2(350,46);labels[i].rectTransform.anchoredPosition=new Vector2(-34,0);
+            if (twoCols)
+            {
+                float fit=Mathf.Min(80f/image.width,42f/image.height);
+                preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
+                preview.rectTransform.anchoredPosition=new Vector2(-btnW*0.5f+50f,0);
+                labels[i].rectTransform.sizeDelta=new Vector2(btnW-120f,46);
+                labels[i].rectTransform.anchoredPosition=new Vector2(25f,0);
+            }
+            else
+            {
+                float fit=Mathf.Min(120f/image.width,68f/image.height);
+                preview.rectTransform.sizeDelta=new Vector2(image.width*fit,image.height*fit);
+                preview.rectTransform.anchoredPosition=new Vector2(-btnW*0.5f+75f,0);
+                labels[i].rectTransform.sizeDelta=new Vector2(btnW-200f,60);
+                labels[i].rectTransform.anchoredPosition=new Vector2(40f,0);
+            }
         }
         void SwitchDemoRole()
         {
@@ -395,10 +402,11 @@ namespace DeadlyJenga.CastlePrototype
             int total = names.Count;
             bool twoCols = total > 6;
             int rowsPerCol = twoCols ? (total + 1) / 2 : total;
-            float btnW = twoCols ? 480f : 740f;
-            float btnH = twoCols ? 54f : 68f;
-            float rowHeight = twoCols ? 62f : 78f;
-            float startY = twoCols ? (rowsPerCol - 1) * 31f - 20f : (total - 1) * 39f - 10f;
+            float btnW = twoCols ? 495f : 980f;
+            float btnH = twoCols ? Mathf.Min(58f, (460f / Mathf.Max(1, rowsPerCol)) - 8f) : Mathf.Clamp(440f / total - 12f, 74f, 88f);
+            float rowHeight = twoCols ? btnH + 10f : btnH + 12f;
+            float verticalCenter = -45f;
+            float startY = verticalCenter + (rowsPerCol - 1) * rowHeight * 0.5f;
 
             for(int i=0;i<buttons.Length;i++)
             {
@@ -408,7 +416,7 @@ namespace DeadlyJenga.CastlePrototype
 
                 int col = twoCols ? (i < rowsPerCol ? 0 : 1) : 0;
                 int row = twoCols ? (i < rowsPerCol ? i : i - rowsPerCol) : i;
-                float x = twoCols ? (col == 0 ? -245f : 245f) : 0f;
+                float x = twoCols ? (col == 0 ? -255f : 255f) : 0f;
                 float y = startY - row * rowHeight;
 
                 var rect = (RectTransform)buttons[i].transform;
@@ -417,19 +425,20 @@ namespace DeadlyJenga.CastlePrototype
                 targets[i].size = new Vector3(btnW, btnH, 4);
 
                 labels[i].text=names[i];
-                labels[i].fontSize = twoCols ? 20 : 24;
+                labels[i].fontSize = twoCols ? (btnH < 50 ? 17 : 20) : (total <= 5 ? 26 : 22);
                 labels[i].fontStyle = FontStyle.Bold;
-                labels[i].rectTransform.sizeDelta = new Vector2(btnW - 90, btnH);
-                labels[i].rectTransform.anchoredPosition = new Vector2(twoCols ? 25 : 35, 0);
+                labels[i].alignment = twoCols ? TextAnchor.MiddleCenter : TextAnchor.MiddleLeft;
+                labels[i].rectTransform.sizeDelta = new Vector2(twoCols ? btnW - 80 : btnW - 130, btnH);
+                labels[i].rectTransform.anchoredPosition = new Vector2(twoCols ? 25 : 55, 0);
 
                 if(sectionGlyphs[i])
                 {
                     sectionGlyphs[i].gameObject.SetActive(true);
                     sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);
-                    sectionGlyphs[i].rectTransform.sizeDelta = twoCols ? new Vector2(30, 30) : new Vector2(40, 40);
-                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + (twoCols ? 28 : 38), 0);
+                    sectionGlyphs[i].rectTransform.sizeDelta = twoCols ? new Vector2(30, 30) : new Vector2(46, 46);
+                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + (twoCols ? 28 : 42), 0);
                 }
-                SetRowPreview(i,pictures[i]);
+                SetRowPreview(i,pictures[i],twoCols,btnW);
 
                 bool hover=targets[i].enabled&&Hit(targets[i],ray);
                 buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;

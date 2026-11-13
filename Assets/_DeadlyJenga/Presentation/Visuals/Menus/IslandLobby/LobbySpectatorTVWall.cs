@@ -88,6 +88,7 @@ namespace DeadlyJenga.CastlePrototype
                 var canvas=new GameObject("Full screen spectator television",typeof(RectTransform),typeof(Canvas)).GetComponent<Canvas>();
                 canvas.renderMode=RenderMode.WorldSpace;
                 canvas.overrideSorting=true;canvas.sortingOrder=300;
+                var scaler=canvas.gameObject.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;scaler.referencePixelsPerUnit=100;
                 fullScreenPanel=(RectTransform)canvas.transform;
                 fullScreenPanel.SetParent(transform,false);
                 fullScreenPanel.sizeDelta=new Vector2(1280,720);
@@ -98,7 +99,7 @@ namespace DeadlyJenga.CastlePrototype
                 fullScreenLabel=new GameObject("Channel and exit controls",typeof(RectTransform),typeof(Text)).GetComponent<Text>();
                 var label=fullScreenLabel.rectTransform;
                 label.SetParent(fullScreenPanel,false);label.sizeDelta=new Vector2(1190,50);label.anchoredPosition=new Vector2(0,-320);
-                fullScreenLabel.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");fullScreenLabel.fontSize=30;
+                fullScreenLabel.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");fullScreenLabel.fontSize=30;
                 fullScreenLabel.fontStyle=FontStyle.Bold;fullScreenLabel.alignment=TextAnchor.MiddleCenter;
                 fullScreenLabel.color=Color.white;fullScreenLabel.raycastTarget=false;
                 var outline=fullScreenLabel.gameObject.AddComponent<Outline>();outline.effectColor=Color.black;

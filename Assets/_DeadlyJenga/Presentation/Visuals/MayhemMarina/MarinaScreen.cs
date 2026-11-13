@@ -83,6 +83,7 @@ namespace DeadlyJenga.CandyArt.Marina
             canvas.localPosition=MayhemMarina.PlayScreen+Vector3.back*.20f;canvas.localScale=Vector3.one*.0095f;
             var worldCanvas=go.GetComponent<Canvas>();worldCanvas.renderMode=RenderMode.WorldSpace;
             worldCanvas.overrideSorting=true;worldCanvas.sortingOrder=70;
+            var scaler=go.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;scaler.referencePixelsPerUnit=100;
 
             mainFace = new GameObject("Marina · map and mode display", typeof(RectTransform)).GetComponent<RectTransform>();
             mainFace.SetParent(canvas,false);
@@ -249,7 +250,9 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         static Text Text(string value,Vector2 p,Vector2 size,int font,Transform parent)
         {
-            var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();t.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Bold;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
+            var go=new GameObject("Marina label · "+value,typeof(RectTransform),typeof(Text));go.transform.SetParent(parent,false);var t=go.GetComponent<Text>();
+            t.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            t.text=value;t.fontSize=font;t.fontStyle=FontStyle.Bold;t.alignment=TextAnchor.MiddleCenter;t.color=new Color(1,.97f,.89f);t.raycastTarget=false;t.rectTransform.anchoredPosition=p;t.rectTransform.sizeDelta=size;return t;
         }
         Text playlistStatus;
         Image playlistStatusBacking;

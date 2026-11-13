@@ -114,7 +114,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyChoiceIcon(launch,LobbyTerminalGlyph.Symbol.Play,-310,0,42);
             var room=CandyPanel(candySetupContent,"Room population",430,-350,170,86,CandyFace);candyMainDecor.Add(room.gameObject);
             candyRoomStatus=CandyReadout(room,"Room count","ROOM\n1 / 10",0,0,150,70,23);
-            setupHint.rectTransform.anchoredPosition=new Vector2(0,-412);setupHint.rectTransform.sizeDelta=new Vector2(1000,34);setupHint.fontSize=20;setupHint.resizeTextMaxSize=20;setupHint.resizeTextMinSize=18;setupHint.color=CandyMuted;
+            setupHint.rectTransform.anchoredPosition=new Vector2(0,-375);setupHint.rectTransform.sizeDelta=new Vector2(1000,34);setupHint.fontSize=20;setupHint.resizeTextMaxSize=20;setupHint.resizeTextMinSize=18;setupHint.color=CandyMuted;
             gameHint.rectTransform.anchoredPosition=new Vector2(0,312);gameHint.rectTransform.sizeDelta=new Vector2(1000,26);gameHint.fontSize=22;gameHint.resizeTextMaxSize=22;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
             // Breadcrumb Folder
             mapBreadcrumb = CandyReadout(candySetupContent, "Map breadcrumb", "MAP CATEGORIES", -260, 260, 440, 36, 24);
@@ -205,7 +205,7 @@ namespace DeadlyJenga.CastlePrototype
             browserBridgeImage.raycastTarget = false;
             browserBridge.gameObject.SetActive(false);
 
-            CandyPlace("picker-previous",-255,-345,490,58);CandyPlace("picker-next",255,-345,490,58);CandyPlace("setup-back",0,-410,700,58);
+            CandyPlace("picker-previous",-255,-280,480,54);CandyPlace("picker-next",255,-280,480,54);CandyPlace("setup-back",0,-345,680,54);
             CandyChoice("picker-previous").visible=()=> setupPage=="modes"&&PickerPages>1;
             CandyChoice("picker-next").visible=()=> setupPage=="modes"&&PickerPages>1;
             CandyChoiceIcon(CandyChoice("setup-back"),LobbyTerminalGlyph.Symbol.Back,-280);
@@ -216,7 +216,7 @@ namespace DeadlyJenga.CastlePrototype
                 CandyPlace("setting-minus-"+i,-470,225-i*84,80,70);CandyPlace("setting-plus-"+i,470,225-i*84,80,70);
                 setupFills[i].rectTransform.anchoredPosition=new Vector2(-380,-26);
             }
-            CandyPlace("settings-prev",-255,-290,490,58);CandyPlace("settings-next",255,-290,490,58);
+            CandyPlace("settings-prev",-255,-280,480,54);CandyPlace("settings-next",255,-280,480,54);
         }
         void CandyStyleModeCards()
         {

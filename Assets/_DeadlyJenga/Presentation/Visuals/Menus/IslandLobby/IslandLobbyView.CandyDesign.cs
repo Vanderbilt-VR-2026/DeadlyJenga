@@ -61,7 +61,7 @@ namespace DeadlyJenga.CastlePrototype
                 var shadow=heading.gameObject.AddComponent<Shadow>();shadow.effectColor=new Color(0,0,0,.6f);shadow.effectDistance=new Vector2(0,-3);
             }
             var stripe=content.Find("Candy accent");
-            if(stripe){stripe.gameObject.SetActive(true);var r=(RectTransform)stripe;r.anchoredPosition=new Vector2(0,424);r.sizeDelta=new Vector2(1000,7);stripe.GetComponent<Image>().color=accent;}
+            if(stripe){stripe.gameObject.SetActive(true);var r=(RectTransform)stripe;r.anchoredPosition=new Vector2(0,398);r.sizeDelta=new Vector2(1000,7);stripe.GetComponent<Image>().color=accent;}
             return content;
         }
         Choice CandyChoice(string id)=>choices.FirstOrDefault(c=>c.id==id);
@@ -81,20 +81,24 @@ namespace DeadlyJenga.CastlePrototype
             choice.button.transition=Selectable.Transition.None;choice.button.image.sprite=candyFaceSprite;choice.button.image.type=Image.Type.Sliced;
             choice.rim=CandyRim((RectTransform)choice.button.transform,new Color(CandyLavender.r,CandyLavender.g,CandyLavender.b,.7f));
             choice.rim.transform.SetAsFirstSibling();
-            choice.label.color=CandyCream;choice.label.horizontalOverflow=HorizontalWrapMode.Wrap;choice.label.verticalOverflow=VerticalWrapMode.Truncate;
+            choice.label.color=CandyCream;choice.label.fontStyle=FontStyle.Bold;choice.label.horizontalOverflow=HorizontalWrapMode.Wrap;choice.label.verticalOverflow=VerticalWrapMode.Truncate;
         }
         void CandyPrimary(Choice choice)
-        {if(choice!=null){choice.faceColor=CandyMint;choice.edgeColor=CandyMint;choice.label.fontSize=36;choice.label.resizeTextMaxSize=36;}}
+        {if(choice!=null){choice.faceColor=CandyMint;choice.edgeColor=CandyMint;choice.label.fontSize=36;choice.label.resizeTextMaxSize=36;choice.label.fontStyle=FontStyle.Bold;}}
         void CandyText(Choice choice,float x,float y,float width,float height,int size,TextAnchor alignment=TextAnchor.MiddleCenter)
         {
             if(choice==null)return;
             var t=choice.label;if(t.rectTransform.anchoredPosition!=new Vector2(x,y))t.rectTransform.anchoredPosition=new Vector2(x,y);if(t.rectTransform.sizeDelta!=new Vector2(width,height))t.rectTransform.sizeDelta=new Vector2(width,height);
-            t.fontSize=size;t.resizeTextMaxSize=size;t.resizeTextMinSize=Mathf.Min(size,22);t.alignment=alignment;
+            t.fontSize=size;t.resizeTextMaxSize=size;t.resizeTextMinSize=Mathf.Min(size,22);t.alignment=alignment;t.fontStyle=FontStyle.Bold;
         }
         Text CandyReadout(RectTransform parent,string name,string value,float x,float y,float width,float height,int size=24)
         {
             var t=Label(parent,value,y,size,width,height);t.name=name;t.rectTransform.anchoredPosition=new Vector2(x,y);
             t.resizeTextMinSize=Mathf.Min(size,20);t.color=CandyCream;t.horizontalOverflow=HorizontalWrapMode.Wrap;t.verticalOverflow=VerticalWrapMode.Truncate;
+            t.fontStyle=FontStyle.Bold;
+            var shadow=t.gameObject.GetComponent<Shadow>()??t.gameObject.AddComponent<Shadow>();
+            shadow.effectColor=new Color(0,0,0,.55f);
+            shadow.effectDistance=new Vector2(0,-2);
             return t;
         }
         RectTransform CandyPanel(RectTransform parent,string name,float x,float y,float width,float height,Color color)

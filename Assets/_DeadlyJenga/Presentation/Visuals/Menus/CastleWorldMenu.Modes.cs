@@ -42,6 +42,12 @@ namespace DeadlyJenga.CastlePrototype
         BoxCollider modeStartTarget, modeBackTarget, modeSettingsTarget;
         Text modeCenterLabel;
 
+        static readonly string[] DefaultDisasterCatalog = {
+            "Tsunami", "Tornado", "Meteor Shower", "Planet Killer Meteor",
+            "Icy", "Earthquake", "Acid Rain", "Fire",
+            "Low Gravity", "Time Slip", "Kraken", "Vampire"
+        };
+
         WheelVisualCard CreateWheelCard(Transform parent, Vector2 pos, Vector2 size, Vector2 playOffset, Vector2 playSize)
         {
             var go = new GameObject("WheelCard", typeof(RectTransform));
@@ -65,12 +71,12 @@ namespace DeadlyJenga.CastlePrototype
             var picGo = new GameObject("Thumb", typeof(RectTransform), typeof(RawImage));
             picGo.transform.SetParent(cardGo.transform, false);
             var picRect = picGo.GetComponent<RectTransform>();
-            picRect.sizeDelta = new Vector2(132, 88);
-            picRect.anchoredPosition = new Vector2(0, 10);
+            picRect.sizeDelta = new Vector2(150, 100);
+            picRect.anchoredPosition = new Vector2(0, 12);
             var pic = picGo.GetComponent<RawImage>();
             pic.raycastTarget = false;
 
-            var title = Text("", new Vector2(0, -46), new Vector2(140, 22), 13);
+            var title = Text("", new Vector2(-16, -50), new Vector2(116, 22), 13);
             title.transform.SetParent(cardGo.transform, false);
             title.fontStyle = FontStyle.Bold;
             title.color = Color.white;
@@ -88,7 +94,7 @@ namespace DeadlyJenga.CastlePrototype
             var playTarget = playGo.GetComponent<BoxCollider>();
             playTarget.size = new Vector3(playSize.x, playSize.y, 4);
             playTarget.isTrigger = true;
-            var playLabel = Text("▶", Vector2.zero, playSize, 14);
+            var playLabel = Text("▶", Vector2.zero, playSize, 13);
             playLabel.transform.SetParent(playGo.transform, false);
             playLabel.fontStyle = FontStyle.Bold;
             playLabel.color = CandyHudVisuals.Mint;
@@ -136,13 +142,13 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++)
             {
                 float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
-                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 405f, 10f + Mathf.Sin(angle) * 215f);
-                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(144, 118), new Vector2(0, -76), new Vector2(56, 26));
+                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 415f, -45f + Mathf.Sin(angle) * 205f);
+                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(164, 136), new Vector2(56, -50), new Vector2(36, 24));
                 disasterCards.Add(card);
             }
 
-            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, 32), new Vector2(260, 48), 18, out disasterStopTarget);
-            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -28), new Vector2(160, 42), 17, out disasterBackTarget);
+            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, -22), new Vector2(250, 46), 17, out disasterStopTarget);
+            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -74), new Vector2(160, 40), 16, out disasterBackTarget);
         }
 
         void PointDisasterWheel(bool pressed)
@@ -155,13 +161,14 @@ namespace DeadlyJenga.CastlePrototype
             heading.text = "NATURAL DISASTERS\n<size=17><color=#d0b8d8>Click disaster for settings  ·  ▶ to launch immediately</color></size>";
             help.text = CanCommand ? "Point at a disaster to configure its sliders, or ▶ to trigger it directly." : "The host controls disasters.";
 
-            int count = Demo?.DisasterCount ?? 0;
+            int demoCount = Demo?.DisasterCount ?? 0;
+            int count = demoCount > 0 ? demoCount : DefaultDisasterCatalog.Length;
             var ray = pointerRay;
 
             for (int i = 0; i < disasterCards.Count && i < count; i++)
             {
                 var card = disasterCards[i];
-                string name = Demo.DisasterLabel(i);
+                string name = demoCount > 0 ? Demo.DisasterLabel(i) : DefaultDisasterCatalog[i];
                 card.title.text = CandyDisasterWarningCard.DisplayName(name);
                 var tex = CandyDisasterWarningCard.GetImage(name);
                 if (tex) { card.picture.texture = tex; card.picture.color = Color.white; }

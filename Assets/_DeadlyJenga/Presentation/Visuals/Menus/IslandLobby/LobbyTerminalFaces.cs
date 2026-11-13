@@ -19,6 +19,7 @@ namespace DeadlyJenga.CastlePrototype
             var back=new GameObject(title+" / readable back",typeof(RectTransform),typeof(Canvas),typeof(Image),typeof(CanvasGroup));
             back.transform.SetParent(transform.parent,false);rearRect=back.GetComponent<RectTransform>();rearRect.sizeDelta=size;
             rearCanvas=back.GetComponent<Canvas>();rearCanvas.renderMode=RenderMode.WorldSpace;rearCanvas.overrideSorting=true;rearCanvas.sortingOrder=100;
+            var rearScaler=back.AddComponent<CanvasScaler>();rearScaler.dynamicPixelsPerUnit=3.5f;rearScaler.referencePixelsPerUnit=100;
             rearCanvas.enabled=isActiveAndEnabled;
             var image=back.GetComponent<Image>();image.sprite=CandyHudVisuals.Pill;image.type=Image.Type.Sliced;image.color=CandyHudVisuals.Ink;image.raycastTarget=false;
             rear=back.GetComponent<CanvasGroup>();
@@ -28,7 +29,8 @@ namespace DeadlyJenga.CastlePrototype
         void Label(string value,float y,int size,Color color)
         {
             var go=new GameObject(value,typeof(RectTransform),typeof(Text));go.transform.SetParent(rearRect,false);var label=go.GetComponent<Text>();
-            label.font=Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");label.text=value;label.fontSize=size;label.color=color;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;
+            label.font=Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            label.text=value;label.fontSize=size;label.fontStyle=FontStyle.Bold;label.color=color;label.alignment=TextAnchor.MiddleCenter;label.raycastTarget=false;
             label.rectTransform.sizeDelta=new Vector2(560,55);label.rectTransform.anchoredPosition=new Vector2(0,y);
         }
         public void MountSingleSided()

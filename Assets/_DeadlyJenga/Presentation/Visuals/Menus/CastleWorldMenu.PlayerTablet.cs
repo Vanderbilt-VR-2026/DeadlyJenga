@@ -104,7 +104,7 @@ namespace DeadlyJenga.CastlePrototype
             tabletNav = nav;
 
             tabletDevBackButton = TabletControl(tabletTabs, nav, () => "◄", new Vector2(-485, 316), new Vector2(56, 56),
-                OnDeveloperBackClicked, font: 28, accent: TabletPanel);
+                OnDeveloperBackClicked, allowed: IsDevBackButtonActive, font: 28, accent: TabletPanel);
             tabletDevBackButton.Button.image.sprite = JuicyCircleSprite;
             tabletDevBackButton.Button.image.type = Image.Type.Simple;
 
@@ -677,21 +677,20 @@ namespace DeadlyJenga.CastlePrototype
             EquipmentKind.MurderSword => "Murderer",
             EquipmentKind.Dagger => "Dagger",
             EquipmentKind.SawStaff => "Saw Staff",
-            EquipmentKind.TitanLaser => "Titan Laser",
-            EquipmentKind.BarbedBat => "Barbed Bat",
-            EquipmentKind.Chainsaw => "Chainsaw",
-            EquipmentKind.LaserClaws => "Laser Claws",
             EquipmentKind.LaserAxe => "Laser Axe",
+            EquipmentKind.BarbedBat => "Bat",
+            EquipmentKind.Chainsaw => "Chainsaw",
+            EquipmentKind.LaserClaws => "Claws",
             EquipmentKind.FlamingMarshmallow => "Flaming",
-            EquipmentKind.NeedleDrill => "Needle Drill",
+            EquipmentKind.NeedleDrill => "Drill",
             EquipmentKind.SheriffHammer => "Sheriff",
-            EquipmentKind.StockPistol => "Stock Pistol",
-            EquipmentKind.DualRifle => "Dual Rifle",
+            EquipmentKind.StockPistol => "Pistol",
+            EquipmentKind.DualRifle => "Rifle",
             EquipmentKind.RocketLauncher => "Rocket",
             EquipmentKind.GrenadeLauncher => "Grenade",
             EquipmentKind.ChainGun => "Chain Gun",
             EquipmentKind.WristLaser => "Wrist Laser",
-            EquipmentKind.Blaster => "Alien Blaster",
+            EquipmentKind.Blaster => "Blaster",
             _ => EquipmentSpecifications.Get(kind).name
         };
 
@@ -725,11 +724,14 @@ namespace DeadlyJenga.CastlePrototype
                 string name = CleanWeaponSlotName(kind);
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
-                    pos, new Vector2(94, 58), () => SelectWeaponKind(kind),
+                    pos, new Vector2(96, 60), () => SelectWeaponKind(kind),
                     selected: () => tabletWeaponSelected == kind, font: 12);
+                slot.Label.resizeTextForBestFit = true;
+                slot.Label.resizeTextMinSize = 9;
+                slot.Label.resizeTextMaxSize = 12;
                 slot.Label.rectTransform.anchoredPosition = new Vector2(0, -18);
-                slot.Label.rectTransform.sizeDelta = new Vector2(90, 22);
-                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(64, 34));
+                slot.Label.rectTransform.sizeDelta = new Vector2(92, 20);
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 11), new Vector2(62, 32));
                 tabletWheelSlotButtons[cur] = slot;
                 tabletWheelSlotPictures[cur] = pic;
                 SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
@@ -752,11 +754,14 @@ namespace DeadlyJenga.CastlePrototype
                 string name = CleanWeaponSlotName(kind);
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
-                    pos, new Vector2(92, 54), () => SelectWeaponKind(kind),
-                    selected: () => tabletWeaponSelected == kind, font: 12);
-                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -16);
-                slot.Label.rectTransform.sizeDelta = new Vector2(88, 20);
-                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(58, 30));
+                    pos, new Vector2(94, 56), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 11);
+                slot.Label.resizeTextForBestFit = true;
+                slot.Label.resizeTextMinSize = 9;
+                slot.Label.resizeTextMaxSize = 11;
+                slot.Label.rectTransform.anchoredPosition = new Vector2(0, -17);
+                slot.Label.rectTransform.sizeDelta = new Vector2(90, 18);
+                var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(58, 28));
                 tabletWheelSlotButtons[cur] = slot;
                 tabletWheelSlotPictures[cur] = pic;
                 SetPictureSprite(pic, CandyWeaponIcons.Get(kind), kind);
@@ -1138,6 +1143,14 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     control.Button.image.color=hover?new Color(1.18f,1.18f,1.18f,1f):Color.white;
                     control.Label.color=Color.white;
+                }
+                else if(control == tabletDevBackButton)
+                {
+                    bool active = IsDevBackButtonActive();
+                    control.Button.interactable = active;
+                    control.Target.enabled = active;
+                    control.Button.image.color = !active ? new Color(0.25f, 0.15f, 0.35f, 0.35f) : (hover ? CandyHudVisuals.Mint : TabletPanel);
+                    control.Label.color = !active ? new Color(1f, 1f, 1f, 0.30f) : (hover ? CandyHudVisuals.Ink : CandyHudVisuals.Mint);
                 }
                 else
                 {

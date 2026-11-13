@@ -35,11 +35,11 @@ namespace DeadlyJenga.CastlePrototype
                 lobby.AddBlocker(marina.transform,new Vector3(x,3.08f,11.13f),new Vector3(2.08f,2.48f,.96f));
             wardrobeCenter=MayhemMarina.Wardrobe;
             var pod=transform.Find("Visual - wardrobe pod");if(pod)pod.gameObject.SetActive(false);
-            var detailCenter = new Vector3(0, 3.67f, 10.85f);
+            var detailCenter = new Vector3(0, 3.85f, 10.88f);
             MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
             MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
             BuildMarinaRoomScreens();
-            MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
+            MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 6.4f, 2.95f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
             BuildKeyboardGrabBar();
             marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);
