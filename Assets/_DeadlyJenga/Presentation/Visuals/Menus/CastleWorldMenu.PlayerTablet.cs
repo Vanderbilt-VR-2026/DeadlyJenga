@@ -63,13 +63,12 @@ namespace DeadlyJenga.CastlePrototype
 
             var nav = TabletRoot("Player tablet tabs");
             tabletNav = nav;
-            const float tabWidth = 180;
-            TabletControl(tabletTabs,nav,()=>"Resume",new(-390,316),new(tabWidth,68),()=>session.SetMenu(false));
-            AddTab(TabletPage.Comfort,"Comfort",-195);
-            AddTab(TabletPage.Controls,"Controls",0);
-            AddTab(TabletPage.Room,"Room",195);
-            AddTab(TabletPage.Developer,"Developer",390,()=>DeveloperTabAvailable);
-            TabletControl(tabletTabs,nav,()=>"✕",new(518,316),new(58,58),()=>session.SetMenu(false),accent:JuicyRed,font:38);
+            TabletControl(tabletTabs,nav,()=>"Resume",new(-415,316),new(150,68),()=>session.SetMenu(false));
+            AddTab(TabletPage.Comfort,"Comfort",-248,width:160);
+            AddTab(TabletPage.Controls,"Controls",-82,width:160);
+            AddTab(TabletPage.Room,"Room",84,width:160);
+            AddTab(TabletPage.Developer,"Developer",250,()=>DeveloperTabAvailable,width:160);
+            TabletControl(tabletTabs,nav,()=>"✕",new(465,316),new(58,58),()=>session.SetMenu(false),accent:JuicyRed,font:38);
             TabletRule(nav,new Vector2(0,270),new Vector2(1010,4),TabletCoral);
 
             for (int i=0;i<tabletPages.Length;i++)
@@ -81,10 +80,10 @@ namespace DeadlyJenga.CastlePrototype
             OpenPlayerTabletPage(TabletPage.Comfort);
         }
 
-        void AddTab(TabletPage page,string title,float x,Func<bool> allowed=null)
+        void AddTab(TabletPage page,string title,float x,Func<bool> allowed=null,float width=160)
         {
             var nav=(RectTransform)tabletTabs[0].Button.transform.parent;
-            TabletControl(tabletTabs,nav,()=>title,new(x,316),new(180,68),()=>OpenPlayerTabletPage(page),
+            TabletControl(tabletTabs,nav,()=>title,new(x,316),new(width,68),()=>OpenPlayerTabletPage(page),
                 ()=>tabletPage==page,allowed);
         }
 
@@ -614,7 +613,7 @@ namespace DeadlyJenga.CastlePrototype
             action();
             tabletDeveloperDetails=true;
             tabletPages[(int)TabletPage.Developer].gameObject.SetActive(false);
-            if(tabletNav)tabletNav.gameObject.SetActive(false);
+            if(tabletNav)tabletNav.gameObject.SetActive(true);
             legacyDeveloper.gameObject.SetActive(true);
         }
 

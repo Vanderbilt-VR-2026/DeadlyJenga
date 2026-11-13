@@ -13,7 +13,7 @@ namespace DeadlyJenga.CandyArt.Marina
     // Requests still go through the real lobby. This is only its simplified front face.
     public sealed class MarinaScreen : MonoBehaviour
     {
-        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;public Text actionLabel;public Outline outline;public Shadow glow;public float pressedUntil;}
+        sealed class Target {public string id;public BoxCollider collider;public Image face;public Color color;public Action action;public Func<bool> allowed;public Text actionLabel;public Graphic glyph;public Outline outline;public Shadow glow;public float pressedUntil;}
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
@@ -27,7 +27,7 @@ namespace DeadlyJenga.CandyArt.Marina
         InputAction select,leftSelect;
         Image aimDot;
         RectTransform canvas,mainFace,joinFace,hostFace;
-        Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading;
+        Text modeTitle,mapTitle,playTitle,joinTitle,hostTitle,focusDescription,mainHeading,playerCountLabel;
         Text liveStandings,liveActivity,liveHazards;
         readonly Text[] standingRows=new Text[5],activityRows=new Text[5],hazardRows=new Text[4];
         readonly RawImage[] standingHeads=new RawImage[5],victimHeads=new RawImage[5],killerHeads=new RawImage[5],hazardArt=new RawImage[4];
@@ -75,7 +75,8 @@ namespace DeadlyJenga.CandyArt.Marina
             BuildProjectedBackdrop();
             marquee=Text("D E V E L O P E R",new Vector2(0,140),new Vector2(500,22),15,mainFace);
             marquee.color=Cream;
-            mainHeading=Text("PICK YOUR MATCH",new Vector2(0,113),new Vector2(635,54),40,mainFace);
+            marquee.gameObject.SetActive(false);
+            mainHeading=Text("MATCH OPTIONS",new Vector2(0,113),new Vector2(635,54),40,mainFace);
             var ruleColor=new Color(1f,.49f,.52f,.85f);
             for(int side=-1;side<=1;side+=2)
             {
@@ -90,11 +91,21 @@ namespace DeadlyJenga.CandyArt.Marina
             playTitle=ActionText("Start match",new Vector2(355,36),28,play);
             modeCard = targets.Find(target => target.id == "marina-modes").face.rectTransform;
             mapCard = targets.Find(target => target.id == "marina-maps").face.rectTransform;
-            SmallButton("marina-settings","Settings",new Vector2(-263,-111),()=>detail?.Invoke("settings"));
-            SmallButton("marina-style","Style",new Vector2(263,-111),()=>detail?.Invoke("style"));
-            var round=Button("marina-experience",new Vector2(0,-146),new Vector2(190,24),ProjectionInk,
-                ()=>GameExperiencePanel.Open(session),()=>GameExperiencePanel.Resolve(session)!=null);
-            ActionText("Round info",new Vector2(180,24),16,round);
+
+            var settingsBtn=Button("marina-settings",new Vector2(-263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
+            var gearGo=new GameObject("Marina · settings gear",typeof(RectTransform),typeof(LobbyTerminalGlyph));
+            gearGo.transform.SetParent(settingsBtn,false);
+            var gear=gearGo.GetComponent<LobbyTerminalGlyph>();
+            gear.symbol=LobbyTerminalGlyph.Symbol.Gear;
+            gear.color=Cream;
+            gear.rectTransform.sizeDelta=new Vector2(24,24);
+            gear.raycastTarget=false;
+            gear.UseVertexMesh();
+            var settingsTarget=targets.Find(target=>target.id=="marina-settings");
+            if(settingsTarget!=null)settingsTarget.glyph=gear;
+
+            var styleBtn=Button("marina-style",new Vector2(263,-111),new Vector2(122,34),ProjectionInk,()=>detail?.Invoke("settings"),()=>true);
+            playerCountLabel=ActionText("10 PLAYERS",new Vector2(113,32),17,styleBtn);
 
             liveStandings=LiveColumn(new Vector2(-170,20),new Vector2(313,126));
             liveActivity=LiveColumn(new Vector2(169,20),new Vector2(313,126));
@@ -239,8 +250,8 @@ namespace DeadlyJenga.CandyArt.Marina
             }
             bool countdown=playlist&&experience.AutomaticRounds&&!lobby.CanStart&&
                 experience.GamePhase==RoomGamePhase.Selected;
-            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"NEXT ROUND":playlist?"PLAY READY":"PICK YOUR MATCH";
-            marquee.gameObject.SetActive(!playlist&&!visiting);
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"NEXT ROUND":playlist?"PLAY READY":"MATCH OPTIONS";
+            marquee.gameObject.SetActive(false);
             playlistStatusBacking.gameObject.SetActive(playlist&&!visiting);
             playlistStatusBacking.color=countdown?Coral:ProjectionInk;
             playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?68:-78);
@@ -256,13 +267,16 @@ namespace DeadlyJenga.CandyArt.Marina
                 $"{seconds/60:00}:{seconds%60:00}":
                 lobby.Connected?$"ROOM {lobby.HostCode}    |    {humans} / {Mathf.Max(10,humans)}":
                 "LOCAL PLAY";
+            int totalPlayers=(lobby as ILobbyDetails)?.Setup?.population??MatchChoices.BotTarget;
+            if(totalPlayers<=0)totalPlayers=10;
+            if(playerCountLabel)playerCountLabel.text=$"{totalPlayers} PLAYERS";
             modeCard.gameObject.SetActive(!visiting&&(!playlist||countdown));
             mapCard.gameObject.SetActive(!visiting);
             modeCard.anchoredPosition=new Vector2(-169,countdown?-41:12);
             mapCard.anchoredPosition=new Vector2(playlist&&!countdown?0:169,countdown?-41:12);
             foreach(var target in targets)
             {
-                if(target.id is "marina-settings" or "marina-experience" or "marina-style")
+                if(target.id is "marina-settings" or "marina-style")
                     target.face.gameObject.SetActive(!playlist&&!visiting);
                 if(target.id=="marina-play")target.face.gameObject.SetActive(!countdown);
             }
@@ -410,21 +424,40 @@ namespace DeadlyJenga.CandyArt.Marina
         static void PaintTarget(Target target, bool hover, bool allowed)
         {
             bool pressed = allowed && Time.unscaledTime < target.pressedUntil;
-            target.face.rectTransform.localScale=Vector3.one*(pressed?.97f:hover&&allowed?1.035f:1f);
-            bool readOnlyPreview=target.id is "marina-maps" or "marina-modes";
-            allowed|=readOnlyPreview;
+            bool readOnlyPreview = target.id is "marina-maps" or "marina-modes";
+            float scale = pressed ? .96f : hover && (allowed || readOnlyPreview) ? (readOnlyPreview ? 1.075f : 1.035f) : 1f;
+            target.face.rectTransform.localScale = Vector3.one * scale;
+            allowed |= readOnlyPreview;
             target.face.color = !allowed ? Color.Lerp(target.color, Plum, .70f) :
                 pressed ? Color.Lerp(target.color, Mint, .70f) :
-                hover ? Color.Lerp(target.color, Cream, .35f) : target.color;
-            var rim = pressed ? Cream : allowed?CandyHudVisuals.Mint:Cream;
+                hover ? Color.Lerp(target.color, readOnlyPreview ? Color.white : Cream, .40f) : target.color;
+            var rim = pressed ? Cream : allowed ? CandyHudVisuals.Mint : Cream;
             float outline = hover || pressed ? 1 : 0;
-            target.outline.effectColor = new Color(rim.r, rim.g, rim.b, outline);
-            target.glow.effectColor = new Color(rim.r, rim.g, rim.b, outline * (pressed ? .85f : .50f));
+            if (readOnlyPreview && hover)
+            {
+                target.outline.effectDistance = new Vector2(8, -8);
+                target.outline.effectColor = new Color(.35f, 1f, .85f, 1f);
+                target.glow.effectDistance = new Vector2(0, -12);
+                target.glow.effectColor = new Color(.35f, 1f, .85f, .75f);
+            }
+            else
+            {
+                target.outline.effectDistance = new Vector2(4, -4);
+                target.outline.effectColor = new Color(rim.r, rim.g, rim.b, outline);
+                target.glow.effectDistance = new Vector2(0, -8);
+                target.glow.effectColor = new Color(rim.r, rim.g, rim.b, outline * (pressed ? .85f : .50f));
+            }
             if(target.actionLabel)
             {
                 Color face=target.face.color.linear;
                 float luminance=.2126f*face.r+.7152f*face.g+.0722f*face.b;
                 target.actionLabel.color=allowed?(luminance>.22f?Plum:Cream):CandyHudVisuals.Muted;
+            }
+            if(target.glyph)
+            {
+                Color face=target.face.color.linear;
+                float luminance=.2126f*face.r+.7152f*face.g+.0722f*face.b;
+                target.glyph.color=allowed?(luminance>.22f?Plum:Cream):CandyHudVisuals.Muted;
             }
         }
         LineRenderer aimBeam;
@@ -477,8 +510,13 @@ namespace DeadlyJenga.CandyArt.Marina
                 VisibleFacePoint(ray, joinFace, screenRange, out point) ||
                 VisibleFacePoint(ray, hostFace, screenRange, out point);
             bool actionable = nearest != null && nearest.collider.enabled;
-            if (hitFace && trackedPointer && nearest != null) MenuAim.Present(aimDot, point, true, actionable);
-            else aimDot.gameObject.SetActive(false);
+            bool showReticle = hitFace && (trackedPointer || !player.IsVR);
+            if (showReticle)
+            {
+                MenuAim.Present(aimDot, point, true, actionable);
+                if (aimDot) aimDot.rectTransform.sizeDelta = actionable ? new Vector2(18, 18) : new Vector2(12, 12);
+            }
+            else if (aimDot) aimDot.gameObject.SetActive(false);
             MenuAim.PresentBeam(ref aimBeam, transform, ray, point - ray.direction * .012f,
                 trackedPointer && hitFace && nearest != null, actionable);
             if (pressed && !requireRelease && nearest != null) Activate(nearest, pointerDevice);
