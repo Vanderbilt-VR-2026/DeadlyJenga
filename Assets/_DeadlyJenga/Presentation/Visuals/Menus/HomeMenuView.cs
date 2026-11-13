@@ -50,7 +50,7 @@ namespace DeadlyJenga.Presentation
             if (controls != null)
             {
                 int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
-                bool useVr = pref == 1 ? false : pref == 2 ? true : XRSettings.isDeviceActive;
+                bool useVr = pref == 1 ? false : (pref == 2 || pref == 3) ? true : XRSettings.isDeviceActive;
                 root.AddComponent<HomeMenuView>().Build(controls, useVr);
             }
         }
@@ -122,7 +122,7 @@ namespace DeadlyJenga.Presentation
             rightPointSelect=MenuAim.SelectAction("Home right select",false);
             leftPointSelect.Enable();
             rightPointSelect.Enable();
-            pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(true);
+            pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));var pointerImg=pointer.gameObject.AddComponent<Image>();pointerImg.sprite=DeadlyJenga.CastlePrototype.CandyHudVisuals.Pill;pointerImg.color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(true);
             SetSlide();
         }
         void ShowPage(GameObject page)
@@ -428,10 +428,11 @@ namespace DeadlyJenga.Presentation
         void CycleInputMode()
         {
             int current = PlayerPrefs.GetInt(ControlModePrefKey, 0);
-            int next = (current + 1) % 3;
+            int next = (current + 1) % 4;
             PlayerPrefs.SetInt(ControlModePrefKey, next);
             PlayerPrefs.Save();
             UpdateInputModeText();
+            XRSimulationManager.ApplyMode(next);
         }
         void UpdateInputModeText()
         {
@@ -439,7 +440,8 @@ namespace DeadlyJenga.Presentation
             string modeLabel = mode switch
             {
                 1 => "<color=#52ffc6>PC / DESKTOP</color>  (Keyboard & Mouse)",
-                2 => "<color=#ffa87d>XR SIMULATION</color>  (VR / Headset)",
+                2 => "<color=#ffa87d>XR SIMULATION</color>  (Emulated Quest Joysticks)",
+                3 => "<color=#7dc5ff>VR HEADSET</color>  (Physical Headset)",
                 _ => "<color=#d5c8ff>AUTO-DETECT</color>  (Device If Present)"
             };
             if (inputModeText)

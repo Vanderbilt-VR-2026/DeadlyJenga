@@ -127,7 +127,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var tabChoice = CandyPlace("map-tab-" + i, -310, 190 - i * 115, 430, 86);
                 CandyText(tabChoice, 0, 0, 390, 70, 26, TextAnchor.MiddleLeft);
-                CandyChoiceIcon(tabChoice, LobbyTerminalGlyph.Symbol.Next, 185);
+                CandyChoiceIcon(tabChoice, LobbyTerminalGlyph.Symbol.Chevron, 185);
             }
 
             // Back button from sub-sections
@@ -140,7 +140,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var catChoice = CandyPlace("archive-cat-" + i, -310, 215 - i * 68, 430, 58);
                 CandyText(catChoice, 0, 0, 390, 50, 22, TextAnchor.MiddleLeft);
-                CandyChoiceIcon(catChoice, LobbyTerminalGlyph.Symbol.Next, 185);
+                CandyChoiceIcon(catChoice, LobbyTerminalGlyph.Symbol.Chevron, 185);
             }
             var catUp = CandyPlace("cat-scroll-up", -310, 260, 430, 30);
             CandyText(catUp, 0, 0, 390, 26, 18);

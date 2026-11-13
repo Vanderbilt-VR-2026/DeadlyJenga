@@ -139,8 +139,10 @@ namespace FlyingHand
         }
         public void RefreshControlMode()
         {
-            var next = externallyDriven?ControlMode.Desktop:ControlModeOverride == ControlMode.Auto
-                ? (HasRunningXRDisplay() ? ControlMode.VR : ControlMode.Desktop) : ControlModeOverride;
+            int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
+            var effectiveOverride = pref == 1 ? ControlMode.Desktop : (pref == 2 || pref == 3) ? ControlMode.VR : ControlModeOverride;
+            var next = externallyDriven?ControlMode.Desktop:effectiveOverride == ControlMode.Auto
+                ? (HasRunningXRDisplay() ? ControlMode.VR : ControlMode.Desktop) : effectiveOverride;
             if (modeInitialized && next == ActiveControlMode) return;
             ActiveControlMode = next; modeInitialized = true;
             ClearInput();
