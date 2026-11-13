@@ -43,7 +43,10 @@ namespace DeadlyJenga.CandyAudio
             {
                 var clip=cue==MatchSoundCue.HitConfirm?hitClip:killClip;
                 var sound=cue==MatchSoundCue.HitConfirm?CandySound.HitConfirm:CandySound.KillConfirm;
+                var authored=CandyDirectAudio.Find(sound);
+                if(authored!=null){clip=authored.variants!=null&&authored.variants.Length>0?authored.variants[0]:null;}
                 float confirmationGain=Mathf.Clamp01(engine.bank.master*engine.bank.ui*CandySoundSuite.MixGain(sound));
+                if(authored!=null)confirmationGain*=authored.enabled?authored.volume:0;
                 if(clip&&confirmationGain>0)
                 {
                     confirmSpeaker.PlayOneShot(clip,confirmationGain);

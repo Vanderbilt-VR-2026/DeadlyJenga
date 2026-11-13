@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CandyAudio
 {
-    sealed class CandyWildlifeAudio : MonoBehaviour
+    public sealed class CandyWildlifeAudio : MonoBehaviour
     {
         struct Call
         {
@@ -37,7 +37,7 @@ namespace DeadlyJenga.CandyAudio
             ["beetle"]=new Call(1270,880,.80f,.34f,3),
         };
         static readonly Dictionary<string,CandyAudioCue> Cues=new Dictionary<string,CandyAudioCue>();
-        static readonly string[] Species={"otter","fox","tortoise","jaguar","penguin","ray","crab","frog","boar","monkey","seal","beetle"};
+        public static readonly string[] Species={"otter","fox","tortoise","jaguar","penguin","ray","crab","frog","boar","monkey","seal","beetle"};
         readonly Dictionary<Transform,float> due=new Dictionary<Transform,float>();
         readonly List<Transform> expired=new List<Transform>();
         ISessionInfo session;
@@ -107,7 +107,7 @@ namespace DeadlyJenga.CandyAudio
             }
         }
 
-        static CandyAudioCue Cue(string species)
+        public static CandyAudioCue Cue(string species)
         {
             if(Cues.TryGetValue(species,out var cue))return cue;
             var shape=Calls[species];

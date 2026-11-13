@@ -13,19 +13,26 @@ namespace DeadlyJenga.CandyAudio
         static void Reset(){foreach(var clip in generated)if(clip)UnityEngine.Object.Destroy(clip);generated.Clear();cues.Clear();}
         public static void PlayWeapon(EquipmentActionFrame action,bool global=false)
         {
+            var cue=DescribeWeapon(action,global);
+            CandyAudioEngine.Instance?.PlayCue(cue,action.position,1,action.actor?.GetHashCode()??0);
+        }
+        public static CandyAudioCue DescribeWeapon(EquipmentActionFrame action,bool global=false)
+        {
             string key=action.kind+"/"+action.action+(action.action==EquipmentAction.Shot? (action.shotgun?"/wide":"/precision"):"");bool shot=action.action==EquipmentAction.Shot,impact=action.action==EquipmentAction.Impact,reload=action.action==EquipmentAction.Reload;
             bool thunder=shot&&action.kind==EquipmentKind.LaserAxe&&action.shotgun;
             bool blade=action.kind==EquipmentKind.Dagger&&(shot||impact);
             float seconds=blade?(impact?.12f:.16f):thunder?.96f:impact?1.2f:reload?.8f:shot?(action.kind==EquipmentKind.ChainGun?.16f:.4f):.25f;
             var cue=Get(key,(int)action.kind*41+(int)action.action,seconds,false,shot,impact,reload,action.kind,thunder);
             cue.maxDistance=blade?25:global?10000:action.kind==EquipmentKind.ChainGun?120:impact?100:75;cue.minDistance=global?1000:action.kind==EquipmentKind.ChainGun?6:2;
-            CandyAudioEngine.Instance?.PlayCue(cue,action.position,1,action.actor?.GetHashCode()??0);
+            return cue;
         }
         public static void PlayEmote(GameObject who,string name)
         {
             if(!who)return;int seed=StableHash(name);
             CandyAudioEngine.Instance?.PlayCue(Get("emote/"+name,seed,.45f,true,false,false,false,EquipmentKind.None),who.transform.position+Vector3.up*1.3f,.7f,who.GetInstanceID());
         }
+        public static CandySound Id(string key)=>(CandySound)(1000+StableHash(key)%1000000);
+        public static CandyAudioCue DescribeEmote(string name)=>Get("emote/"+name,StableHash(name),.45f,true,false,false,false,EquipmentKind.None);
         static int StableHash(string text){unchecked{int h=17;foreach(char c in text)h=h*31+c;return h&int.MaxValue;}}
         static CandyAudioCue Get(string key,int seed,float duration,bool emote,bool shot,bool impact,bool reload,EquipmentKind kind,bool thunder=false)
         {

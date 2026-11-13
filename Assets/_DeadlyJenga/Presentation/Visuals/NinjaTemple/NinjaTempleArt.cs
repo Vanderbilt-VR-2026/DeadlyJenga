@@ -202,13 +202,13 @@ namespace DeadlyJenga.NinjaArt
             RenderSettings.ambientSkyColor = Color.Lerp(new Color(.2f, .23f, .36f), new Color(.34f, .12f, .14f), b);
             RenderSettings.ambientEquatorColor = new Color(.13f, .12f, .18f); RenderSettings.ambientGroundColor = new Color(.09f, .06f, .06f);
             if (moon) moon.color = Color.Lerp(new Color(.62f, .72f, 1), new Color(1, .45f, .4f), b * .85f);
-            if (taikoAudio) taikoAudio.volume = Mathf.Lerp(0, .32f, b) * Master;
+            if (taikoAudio) taikoAudio.volume = Mathf.Lerp(0, .32f, b) * Master * NinjaSounds.Gain(NinjaSounds.Taiko);
             var view = Services.Session?.ActiveCamera;
             if (view && weather)
             {
                 var at = view.transform.position; rain.transform.position = at; leaves.transform.position = at; fireflies.transform.position = new Vector3(at.x, transform.position.y, at.z);
                 bool sheltered = world != null && world.IsSheltered(at);
-                if (rainAudio) rainAudio.volume = Mathf.MoveTowards(rainAudio.volume, (sheltered ? .1f : .17f) * Master, Time.deltaTime * .3f);
+                if (rainAudio) rainAudio.volume = Mathf.MoveTowards(rainAudio.volume, (sheltered ? .1f : .17f) * Master * NinjaSounds.Gain(NinjaSounds.Rain), Time.deltaTime * .3f);
             }
             if (Time.unscaledTime >= nextClack)
             {
