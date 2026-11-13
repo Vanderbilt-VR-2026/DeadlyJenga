@@ -49,8 +49,6 @@ namespace DeadlyJenga.Presentation
         public static bool Expanded {get;private set;}
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         static void ResetBoard(){ScoreboardPinned=false;Expanded=false;FlagFocusIndex=0;}
-        CanvasGroup healthGroup;Image healthFill;Text healthText;
-        float shownHealth=1,lastHealth=1,fullHealthAt=-100;
         readonly StringBuilder text=new StringBuilder(512);
         readonly Dictionary<string,TextMesh> plates=new Dictionary<string,TextMesh>();
         readonly Dictionary<string,float> plateSeen=new Dictionary<string,float>();
@@ -111,16 +109,7 @@ namespace DeadlyJenga.Presentation
             BuildStandingsRows();
             claim=Label("Block ownership",new Vector2(400,36),new Vector2(0,-246),TextAnchor.MiddleCenter,17);
             var fill=new GameObject("Claim juice",typeof(RectTransform),typeof(Image));fill.transform.SetParent(root,false);claimFill=fill.GetComponent<Image>();claimFill.color=new Color(.25f,1,.8f,.8f);claimFill.raycastTarget=false;claimFill.rectTransform.anchoredPosition=new Vector2(-160,-268);claimFill.rectTransform.pivot=new Vector2(0,.5f);claimFill.rectTransform.sizeDelta=new Vector2(0,6);
-            var health=new GameObject("Health bar",typeof(RectTransform),typeof(CanvasGroup));health.transform.SetParent(root,false);
-            var rect=health.GetComponent<RectTransform>();rect.sizeDelta=new Vector2(230,42);rect.anchoredPosition=new Vector2(-463,-274);
-            healthGroup=health.GetComponent<CanvasGroup>();healthGroup.alpha=0;healthGroup.blocksRaycasts=false;healthGroup.interactable=false;
-            var track=new GameObject("Candy health track",typeof(RectTransform),typeof(Image));track.transform.SetParent(health.transform,false);
-            var back=track.GetComponent<Image>();back.sprite=CandyHudVisuals.Pill;back.type=Image.Type.Sliced;back.color=new Color(.055f,.02f,.1f,.9f);back.raycastTarget=false;back.rectTransform.sizeDelta=new Vector2(230,12);
-            var juice=new GameObject("Health juice",typeof(RectTransform),typeof(Image));juice.transform.SetParent(track.transform,false);healthFill=juice.GetComponent<Image>();healthFill.sprite=CandyHudVisuals.Pill;healthFill.type=Image.Type.Sliced;healthFill.raycastTarget=false;healthFill.rectTransform.pivot=new Vector2(0,.5f);healthFill.rectTransform.anchoredPosition=new Vector2(-110,0);healthFill.rectTransform.sizeDelta=new Vector2(220,6);
-            healthText=Label("Health",new Vector2(30,28),new Vector2(-135,0),TextAnchor.MiddleCenter,23);
-            healthText.transform.SetParent(health.transform,false);
-            healthText.text="♥";
-            healthText.color=CandyHudVisuals.Mint;
+
         }
         Text Label(string name,Vector2 size,Vector2 position,TextAnchor alignment,int fontSize)
         {
@@ -243,7 +232,7 @@ namespace DeadlyJenga.Presentation
             {
                 sinkSeconds = seconds;
                 sinkHint = hint;
-                sinkWarning.text = $"SINKING SAND  ·  {seconds}s\n{hint}";
+                sinkWarning.text = $"DEADLY SAND  ·  {seconds}s TO ESCAPE\n{hint}";
             }
             var urgency = Color.Lerp(CandyHudVisuals.Peach, new Color(1, .35f, .29f), progress);
             CandyHudCards.Tint(sinkWarning, urgency, .65f);
@@ -316,8 +305,6 @@ namespace DeadlyJenga.Presentation
                 waypoints.Begin(false);waypoints.End();CandyHudCards.Visible(board,false);CandyHudCards.Visible(teams,false);warning.Hide();activeDisasters.enabled=false;CandyHudCards.Visible(objective,false);
                 return;
             }
-            UpdateHealthBar(match.Frame,match.LocalActorId);
-            healthGroup.gameObject.SetActive(!Expanded);
             if (!Expanded || !canvas.enabled) podium?.Hide();
             else podium?.Draw();
             UpdateRoundIntro(match,canvas.enabled&&!Expanded);
@@ -398,19 +385,7 @@ namespace DeadlyJenga.Presentation
                 introOpacity.alpha = Mathf.Clamp01(Mathf.Min((4.5f-remaining)*5,remaining*3));
         }
 
-        void UpdateHealthBar(MatchFrame frame,string local)
-        {
-            MatchPlayerFrame own=null;foreach(var player in frame.players)if(player.id==local){own=player;break;}
-            bool available=frame.rules.healthEnabled&&own!=null&&own.role!="hand"&&own.role!="spectator"&&own.alive&&!own.dying;
-            float target=available?Mathf.Clamp01(own.health):1;
-            if(target<.9999f)fullHealthAt=float.PositiveInfinity;
-            else if(lastHealth<.9999f)fullHealthAt=Time.unscaledTime;
-            shownHealth=Mathf.MoveTowards(shownHealth,target,Time.unscaledDeltaTime*3);lastHealth=target;
-            bool visible=available&&(target<.9999f||Time.unscaledTime-fullHealthAt<5);
-            healthGroup.alpha=Mathf.MoveTowards(healthGroup.alpha,visible?1:available&&vr?.7f:0,Time.unscaledDeltaTime*4);
-            healthFill.rectTransform.sizeDelta=new Vector2(220*shownHealth,6);
-            healthFill.color=Color.Lerp(new Color(1f,.39f,.45f),CandyHudVisuals.Mint,shownHealth);
-        }
+
         // Movement-stick click is sprint; bare look-stick click holds the board with two controllers.
         static bool VrStandingsHeld(out string control)
         {

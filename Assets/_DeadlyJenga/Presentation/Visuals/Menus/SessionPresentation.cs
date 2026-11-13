@@ -3,7 +3,7 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // When a session starts, Presentation adds its menu, HUD and stamina bar, and runs the VR menu.
+    // When a session starts, Presentation adds its menu and body feedback, and runs the VR menu.
     // GameSession never names any of these; it only raises GameEvents.SessionStarted.
     public sealed class SessionPresentation : MonoBehaviour
     {

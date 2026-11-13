@@ -19,6 +19,7 @@ namespace DeadlyJenga.Presentation
         bool sawDeadFrame, sawAliveAfterDeath, localEventSeen, menuAtDeath;
         float began, wipeAt = -1;
         Color tint;
+        int environment;
         Canvas canvas;
         Image paint;
         Material material;
@@ -26,11 +27,30 @@ namespace DeadlyJenga.Presentation
         public static void Show(Color color) => Request(color, false);
         public static void ShowLocalDeath(Color color) => Request(color, true);
 
-        static void Request(Color color, bool localEvent)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Listen() => GameEvents.MatchSound += EnvironmentDeath;
+
+        static void EnvironmentDeath(MatchSoundCue cue, Vector3 point)
+        {
+            int kind = cue == MatchSoundCue.IslandDeath ? 1 : cue == MatchSoundCue.DrowningDeath ? 2 : 0;
+            var session = Services.Session;
+            if (kind == 0 || session?.Player == null || session.PlayingHand ||
+                (session as ILobbyMatchVisitControls)?.VisitingLobby == true ||
+                MatchRuntime.Current?.Frame?.phase != RoundPhase.Playing) return;
+            // These cues are addressed to the victim; bystanders receive NearbyDeath instead.
+            var actor = session.Player.gameObject.GetComponent<IModeActor>();
+            Request(actor?.Color ?? Color.cyan, false, kind);
+        }
+
+        static void Request(Color color, bool localEvent, int kind = 0)
         {
             if (active)
             {
-                if (!active.IsAnotherDeath(localEvent)) return;
+                if (!active.IsAnotherDeath(localEvent))
+                {
+                    if (kind > 0) active.SetEnvironment(kind);
+                    return;
+                }
                 active.canvas.enabled = false;
                 Destroy(active.gameObject);
                 active = null;
@@ -39,6 +59,7 @@ namespace DeadlyJenga.Presentation
             DontDestroyOnLoad(root);
             active = root.AddComponent<CandyDeathOverlay>();
             active.Begin(color);
+            if (kind > 0) active.SetEnvironment(kind);
             active.localEventSeen = localEvent;
         }
 
@@ -96,12 +117,29 @@ namespace DeadlyJenga.Presentation
             rect.anchorMin = Vector2.zero;
             rect.anchorMax = Vector2.one;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var shader = Resources.Load<Shader>("CandyScenery/CandyDeathPaint");
-            if (shader && shader.isSupported)
+            int kind = 0;
+            if (player?.sinking == true && player.sinkProgress >= .98f) kind = 1;
+            var world = Services.World;
+            if (deathView && world != null && deathView.transform.position.y <= world.WaterHeight(deathView.transform.position) + .25f) kind = 2;
+            SetEnvironment(kind);
+        }
+
+        void SetEnvironment(int kind)
+        {
+            if (material && environment == kind) return;
+            environment = kind;
+            if (material) Destroy(material);
+            var shader = Resources.Load<Shader>(kind == 0 ? "CandyScenery/CandyDeathPaint" : "CandyScenery/CandyBodyFeedback");
+            if (!shader || !shader.isSupported) return;
+            material = new Material(shader);
+            if (kind > 0)
             {
-                material = new Material(shader);
-                paint.material = material;
+                material.SetTexture("_SandTex", Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain"));
+                material.SetFloat("_DeathKind", kind);
+                material.SetVector("_State", new Vector4(0, 0, 0, kind == 1 ? 1 : 0));
             }
+            paint.material = material;
+            paint.color = kind == 0 ? tint : Color.white;
         }
 
         MatchPlayerFrame FindPlayer()
@@ -179,38 +217,17 @@ namespace DeadlyJenga.Presentation
             if (canvas.renderMode != renderMode) canvas.renderMode = renderMode;
             if (canvas.worldCamera != (vr ? camera : null)) canvas.worldCamera = vr ? camera : null;
             float aspect = Mathf.Max(.1f, camera.aspect);
-            if (vr) aspect = FitStereoPlane((RectTransform)transform, camera);
+            if (vr) aspect = CandyScreenPlane.Fit((RectTransform)transform, camera);
 
             if (material)
             {
                 material.SetFloat("_Age", Mathf.Min(age, 4));
                 material.SetFloat("_Wipe", wipe);
-                material.SetFloat("_Aspect", aspect);
+                if (environment == 0) material.SetFloat("_Aspect", aspect);
+                else material.SetFloat("_FeedbackTime", Time.unscaledTime % 120);
             }
             else paint.color = new Color(tint.r, tint.g, tint.b, 1 - wipe);
             canvas.enabled = true;
-        }
-
-        static float FitStereoPlane(RectTransform plane, Camera camera)
-        {
-            float depth = camera.nearClipPlane + Mathf.Min(.12f, (camera.farClipPlane - camera.nearClipPlane) * .5f);
-            Vector2 extent = Vector2.zero;
-            bool stereo = camera.stereoEnabled;
-            for (int eye = 0; eye < (stereo ? 2 : 1); eye++)
-            {
-                var projection = !stereo ? Camera.MonoOrStereoscopicEye.Mono :
-                    eye == 0 ? Camera.MonoOrStereoscopicEye.Left : Camera.MonoOrStereoscopicEye.Right;
-                for (int corner = 0; corner < 4; corner++)
-                {
-                    var point = camera.ViewportToWorldPoint(new Vector3(corner & 1, corner >> 1, depth), projection);
-                    var local = Quaternion.Inverse(camera.transform.rotation) * (point - camera.transform.position);
-                    extent = Vector2.Max(extent, new Vector2(Mathf.Abs(local.x), Mathf.Abs(local.y)));
-                }
-            }
-
-            plane.SetPositionAndRotation(camera.transform.position + camera.transform.forward * depth, camera.transform.rotation);
-            plane.sizeDelta = extent * 2.2f + Vector2.one * .03f;
-            return plane.sizeDelta.x / plane.sizeDelta.y;
         }
 
         void OnDestroy()
