@@ -38,6 +38,7 @@ namespace DeadlyJenga.DevTools.Editor
             Directory.CreateDirectory(Output);
             File.WriteAllText(Path.Combine(Output,"report.txt"),"Actual Marina Play Mode: collision routes and rendered scenery. No headset or network claim.\n");
             SessionState.SetInt(Key+"Legacy",PlayerPrefs.GetInt(IslandLobby.LegacyLobbyPreference,-1));
+            SessionState.SetFloat(Key+"Volume",AudioListener.volume);
             PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);
             SessionState.SetBool(Key,true);
             SessionState.SetBool(Key+"Failed",false);
@@ -72,6 +73,7 @@ namespace DeadlyJenga.DevTools.Editor
                 int prior=SessionState.GetInt(Key+"Legacy",-1);
                 if(prior<0)PlayerPrefs.DeleteKey(IslandLobby.LegacyLobbyPreference);
                 else PlayerPrefs.SetInt(IslandLobby.LegacyLobbyPreference,prior);
+                AudioListener.volume=SessionState.GetFloat(Key+"Volume",1);
                 SessionState.SetBool(Key,false);
                 Log("COMPLETE "+(SessionState.GetBool(Key+"Failed",false)?"FAIL":"PASS")+"; stable Edit Mode");
             }
@@ -130,7 +132,8 @@ namespace DeadlyJenga.DevTools.Editor
             }
             yield return Wait(1);
             var motor=lobby.Survivor();
-            Log($"Player alive={NetworkActors.Alive(lobby.Player)}; suspended={motor.InputSuspended}; triangles={marina.RenderTriangles}/{marina.CollisionTriangles}");
+            var capsule=motor.GetComponent<CharacterController>();
+            Log($"Player alive={NetworkActors.Alive(lobby.Player)}; suspended={motor.InputSuspended}; triangles={marina.RenderTriangles}/{marina.CollisionTriangles}; capsule={capsule.radius}/{capsule.height}; step={capsule.stepOffset}");
             Check(RenderSettings.skybox && RenderSettings.skybox.GetFloat("_CoastDay")>.5f,"Catwalks coastal sky active");
             var ocean=marina.transform.Find("Visual · Mayhem Marina/Marina ocean").GetComponent<Renderer>();
             var properties=new MaterialPropertyBlock();ocean.GetPropertyBlock(properties);
@@ -138,21 +141,21 @@ namespace DeadlyJenga.DevTools.Editor
             Check(marina.transform.Find("Visual · Mayhem Marina/Marina distant island backdrop"),"Distant painted coastline present");
             var origin=lobby.transform.position;
             yield return Walk(lobby,new[]{new Vector3(-8.1f,1.3f,11.4f),new Vector3(-8.1f,4.14f,19),new Vector3(-8.1f,1.3f,11.4f)},"terrace stairs both directions");
-            yield return Walk(lobby,new[]{new Vector3(7.6f,1.3f,10.25f),new Vector3(7.6f,4.03f,17.6f),new Vector3(10.0f,4.03f,17.95f)},"east ramp to terrace bridge");
+            yield return Walk(lobby,new[]{new Vector3(7.6f,1.3f,10.25f),new Vector3(7.6f,4.10f,17.6f),new Vector3(10.0f,4.03f,17.95f)},"east ramp to terrace bridge");
             yield return Walk(lobby,new[]{new Vector3(-21,1.3f,2.4f),new Vector3(-21,4.14f,18.5f),new Vector3(-18,4.14f,19.4f)},"west ramp and landing");
             yield return Walk(lobby,new[]{new Vector3(-10.2f,1.3f,7.6f),new Vector3(-5.0f,1.86f,7.6f),new Vector3(0,1.86f,7.6f)},"wardrobe to terminal platform");
             yield return Walk(lobby,new[]{new Vector3(22.9f,1.25f,8.8f),new Vector3(26.1f,.30f,9.2f),new Vector3(22.9f,1.25f,8.8f)},"east beach ramp both directions");
-            yield return Walk(lobby,new[]{new Vector3(-22.9f,1.25f,8.8f),new Vector3(-25.8f,.36f,9.25f)},"west beach ramp");
-            yield return Walk(lobby,new[]{new Vector3(1.1f,1.25f,24.4f),new Vector3(1.1f,.39f,28.4f)},"rear beach ramp");
+            yield return Walk(lobby,new[]{new Vector3(-22.9f,1.25f,8.8f),new Vector3(-25.8f,.36f,9.25f),new Vector3(-22.9f,1.25f,8.8f)},"west beach ramp both directions");
+            yield return Walk(lobby,new[]{new Vector3(1.1f,1.25f,24.4f),new Vector3(1.1f,.39f,28.4f),new Vector3(1.1f,1.25f,24.4f)},"rear beach ramp both directions");
             motor.InputSuspended=true;
             foreach(var renderer in motor.GetComponentsInChildren<Renderer>(true))renderer.enabled=false;
             yield return Wait(2);
             Capture(origin+new Vector3(-29,20,-37),origin+new Vector3(0,2.6f,3),61,"Marina-overview.png");
             Capture(origin+new Vector3(-9,3.0f,-11),origin+new Vector3(0,3.2f,9),76,"Marina-arrival.png");
-            Capture(origin+new Vector3(-4.9f,3.1f,9.6f),origin+new Vector3(-8.1f,3.5f,16.7f),72,"Marina-terrace-stairs.png");
+            Capture(origin+new Vector3(-8.1f,3.0f,10.7f),origin+new Vector3(-8.1f,4.7f,17.5f),72,"Marina-terrace-stairs.png");
             Capture(origin+new Vector3(-19.8f,5.85f,18.8f),origin+new Vector3(8,2.8f,-3),78,"Marina-upper-terrace.png");
-            Capture(origin+new Vector3(15,3.1f,1),origin+new Vector3(30,.6f,-13),74,"Marina-ocean.png");
-            Capture(origin+new Vector3(6.8f,3.1f,3.7f),origin+new Vector3(13.7f,2.7f,6.5f),74,"Marina-lounge-materials.png");
+            Capture(origin+new Vector3(23,3,5.5f),origin+new Vector3(60,4,150),74,"Marina-ocean.png");
+            Capture(origin+new Vector3(11,3,3),origin+new Vector3(14.2f,2.7f,6.7f),74,"Marina-lounge-materials.png");
             var sky=RenderSettings.skybox;
             GameEvents.RaiseEmoted(lobby.gameObject,"LobbyParked");
             Check(!ocean.gameObject.activeInHierarchy,"Parked lobby hides its ocean");

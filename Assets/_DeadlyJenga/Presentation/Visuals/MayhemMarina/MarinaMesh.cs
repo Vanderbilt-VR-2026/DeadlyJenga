@@ -137,7 +137,16 @@ namespace DeadlyJenga.CandyArt.Marina
                 Vector3 n=(Vector3.up-direction*.2f).normalized;
                 b.Vertex(p-side*w,n,new Vector2(0,t));b.Vertex(p+Vector3.up*w*.16f,n,new Vector2(.5f,t));b.Vertex(p+side*w,n,new Vector2(1,t));
             }
-            for(int i=0;i<6;i++)for(int j=0;j<2;j++){int a=start+i*3+j;b.Triangle(a,a+1,a+3,Vector3.up);b.Triangle(a+1,a+4,a+3,Vector3.up);b.indices.Add(a+3);b.indices.Add(a+1);b.indices.Add(a);b.indices.Add(a+3);b.indices.Add(a+4);b.indices.Add(a+1);}
+            // Give leaf undersides their own normals and winding so palms remain full from below.
+            int backOffset=b.vertices.Count-start;
+            for(int i=0;i<backOffset;i++)b.Vertex(b.vertices[start+i],-b.normals[start+i],b.uv[start+i]);
+            for(int i=0;i<6;i++)for(int j=0;j<2;j++)
+            {
+                int a=start+i*3+j;
+                b.Triangle(a,a+1,a+3,Vector3.up);b.Triangle(a+1,a+4,a+3,Vector3.up);
+                a+=backOffset;
+                b.Triangle(a,a+1,a+3,Vector3.down);b.Triangle(a+1,a+4,a+3,Vector3.down);
+            }
         }
         public void CurvedRoof(Vector3 center,float width,float depth,float rise,MarinaFinish finish)
         {
