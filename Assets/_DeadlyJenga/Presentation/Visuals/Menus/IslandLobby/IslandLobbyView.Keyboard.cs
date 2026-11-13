@@ -51,8 +51,8 @@ namespace DeadlyJenga.CastlePrototype
             var back=PhysicalKey("backspace","\u232b",-560,-275,370,lobby.EraseCode,()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
             back.label.enabled=false;
             var symbol=new GameObject("Backspace symbol",typeof(RectTransform),typeof(CanvasRenderer),typeof(LobbyBackspaceIcon));symbol.transform.SetParent(back.button.transform,false);symbol.GetComponent<RectTransform>().sizeDelta=new Vector2(100,58);symbol.GetComponent<RectTransform>().anchoredPosition3D=new Vector3(0,0,-68);back.keyIcon=symbol.GetComponent<LobbyBackspaceIcon>();back.keyIcon.raycastTarget=false;
-            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled,new Color(1,.25f,.32f));
-            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,new Color(1,.25f,.32f));
+            PhysicalKey("clear-code","CLEAR",-140,-275,370,()=>lobby.EnteredCode="",()=>lobby.JoinEnabled&&!ConfirmingJoin,new Color(1,.25f,.32f));
+            PhysicalKey("keyboard-enter","ENTER / JOIN",480,-275,700,RequestJoinCodeChoice,()=>lobby.JoinEnabled&&lobby.CodeValid&&!ConfirmingJoin,new Color(1,.25f,.32f));
         }
         void BuildKeyboardGrabBar()
         {
@@ -149,7 +149,7 @@ namespace DeadlyJenga.CastlePrototype
         void UpdateKeyboardTouches()
         {
             var fingers=Player.gameObject.GetComponent<IFingerTips>();
-            if(!Player.IsVR||fingers==null||!lobby.JoinEnabled){touching[0]=touching[1]=null;return;}
+            if(!Player.IsVR||fingers==null||!lobby.JoinEnabled||ConfirmingJoin){touching[0]=touching[1]=null;return;}
             for(int side=0;side<2;side++)
             {
                 if(!fingers.TryIndexTip(side==0,out var tip)){touching[side]=null;continue;}
@@ -160,7 +160,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if(hand<0||hand>1)return false;
             Choice hit=null;float distance=.018f*.018f;
-            if(lobby.JoinEnabled)
+            if(lobby.JoinEnabled&&!ConfirmingJoin)
             foreach(var choice in choices)
             {
                 if(!choice.physical||!choice.collider.gameObject.activeInHierarchy||!choice.collider.enabled||choice.enabled!=null&&!choice.enabled())continue;

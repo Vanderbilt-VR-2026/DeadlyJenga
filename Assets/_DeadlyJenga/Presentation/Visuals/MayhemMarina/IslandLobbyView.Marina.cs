@@ -80,12 +80,19 @@ namespace DeadlyJenga.CastlePrototype
         static readonly Color RoomPlum=new(.35f,.135f,.24f);
         static readonly Color RoomPurple=new(.86f,.49f,.87f);
         static readonly Color RoomMint=new(.34f,.85f,.65f);
+        static readonly Color RoomCoral=new(1f,.37f,.40f);
         RectTransform marinaJoinScreen,marinaHostScreen;
         Text marinaHostCode,marinaHostCount,marinaJoinRegion,marinaHostRegion,marinaJoinMessage;
         Font marinaRoomFont;
         bool marinaHostOptions;
         RectTransform marinaJoinVisit,marinaHostVisit;
         string marinaDisplayedHostCode;
+        RectTransform marinaHostWarningPanel,marinaJoinWarningPanel;
+        System.Action pendingJoinAction;
+        bool openedHostForConfirmation;
+
+        bool ConfirmingJoin => marinaJoinWarningPanel && marinaJoinWarningPanel.gameObject.activeSelf;
+        bool ConfirmingHostStation => marinaHostWarningPanel && marinaHostWarningPanel.gameObject.activeSelf;
 
         void BuildMarinaRoomScreens()
         {
@@ -111,9 +118,9 @@ namespace DeadlyJenga.CastlePrototype
             RoomLabel(marinaJoinScreen,"Room code",0,223,330,61,54);
             marinaJoinRegion=RoomLabel(marinaJoinScreen,"",354,183,130,36,25);
             RoomButton(marinaJoinScreen,"marina-submit-code",()=>"Join",0,-153,754,136,glaze,RoomPurple,
-                lobby.Join,()=>lobby.JoinEnabled&&lobby.CodeValid,88);
+                RequestJoinCodeChoice,()=>lobby.JoinEnabled&&lobby.CodeValid&&!ConfirmingJoin,88);
             var nearby=RoomButton(marinaJoinScreen,"marina-find-nearby",()=>"Find nearby",0,-269,395,67,linkArt,
-                Color.white,lobby.DetectNearby,()=>lobby.JoinEnabled,47,true);
+                Color.white,lobby.DetectNearby,()=>lobby.JoinEnabled&&!ConfirmingJoin,47,true);
             RoomLine((RectTransform)nearby.button.transform,0,-25,202,new Color(1,.91f,.73f,.85f));
             marinaJoinMessage=RoomLabel(marinaJoinScreen,"",0,-352,1000,59,28);
 
@@ -159,7 +166,154 @@ namespace DeadlyJenga.CastlePrototype
                 RoomButton(controls,pair.Item3,()=>"‹",-461,333,76,71,token,
                     new Color(.54f,.30f,.49f),()=>SetMarinaDetail(pair.Item1,false),()=>true,52);
             }
+            BuildMarinaWarningDialogs(glaze);
             UpdateMarinaRoomScreens();
+        }
+
+        void BuildMarinaWarningDialogs(Sprite buttonArt)
+        {
+            marinaHostWarningPanel = BuildTerminalWarningDialog(hostStation,
+                "Host warning dialog",
+                RoomCoral,
+                "LEAVE LOBBY?",
+                "Are you sure you want to leave this lobby and host your own?",
+                "station-host-yes",
+                "station-host-no",
+                buttonArt,
+                ConfirmHostFromStation,
+                CancelHostFromStation);
+
+            marinaJoinWarningPanel = BuildTerminalWarningDialog(joinStation,
+                "Join warning dialog",
+                RoomPurple,
+                "LEAVE LOBBY?",
+                "Are you sure you want to leave this lobby and join another?",
+                "station-join-yes",
+                "station-join-no",
+                buttonArt,
+                ConfirmJoinFromStation,
+                CancelJoinFromStation);
+        }
+
+        RectTransform BuildTerminalWarningDialog(RectTransform station, string title, Color accent,
+            string heading, string message, string yesId, string noId, Sprite buttonArt,
+            System.Action onYes, System.Action onNo)
+        {
+            var panel = new GameObject(title, typeof(RectTransform)).GetComponent<RectTransform>();
+            panel.SetParent(station, false);
+            panel.sizeDelta = new Vector2(1000, 800);
+            panel.localScale = Vector3.one;
+            panel.anchoredPosition = Vector2.zero;
+
+            RoomImage(panel, "Dimmer", null, new Color(0.08f, 0.04f, 0.12f, 0.92f), 0, 0, 1000, 800);
+            RoomImage(panel, "Dialog glass", RoomSprite(880, 520, 56, CabinetSurface.Glass), RoomPlum, 0, 0, 880, 520);
+            RoomImage(panel, "Dialog rim", RoomSprite(880, 520, 56, CabinetSurface.Rim), accent, 0, 0, 880, 520);
+
+            var head = RoomLabel(panel, heading, 0, 160, 780, 72, 54);
+            head.color = accent;
+
+            var prompt = RoomLabel(panel, message, 0, 30, 780, 140, 36);
+            prompt.color = CandyCream;
+            prompt.lineSpacing = 1.15f;
+
+            RoomButton(panel, yesId, () => "YES", -200, -140, 320, 96, buttonArt, accent, onYes, () => true, 46);
+            RoomButton(panel, noId, () => "NO", 200, -140, 320, 96, buttonArt, new Color(0.42f, 0.20f, 0.38f), onNo, () => true, 46);
+
+            panel.gameObject.SetActive(false);
+            return panel;
+        }
+
+        void PromptHostFromStation()
+        {
+            if (marinaHostWarningPanel)
+            {
+                marinaHostWarningPanel.SetAsLastSibling();
+                marinaHostWarningPanel.gameObject.SetActive(true);
+            }
+        }
+
+        void ConfirmHostFromStation()
+        {
+            openedHostForConfirmation = false;
+            if (marinaHostWarningPanel) marinaHostWarningPanel.gameObject.SetActive(false);
+            if (lobby.CanHost) lobby.Host();
+        }
+
+        void CancelHostFromStation()
+        {
+            if (marinaHostWarningPanel) marinaHostWarningPanel.gameObject.SetActive(false);
+            if (openedHostForConfirmation)
+            {
+                openedHostForConfirmation = false;
+                SetMarinaDetail(hostStation, false);
+            }
+        }
+
+        void PromptJoin(System.Action action)
+        {
+            pendingJoinAction = action;
+            if (marinaJoinWarningPanel)
+            {
+                marinaJoinWarningPanel.SetAsLastSibling();
+                marinaJoinWarningPanel.gameObject.SetActive(true);
+            }
+        }
+
+        void ConfirmJoinFromStation()
+        {
+            var act = pendingJoinAction;
+            pendingJoinAction = null;
+            if (marinaJoinWarningPanel) marinaJoinWarningPanel.gameObject.SetActive(false);
+            act?.Invoke();
+        }
+
+        void CancelJoinFromStation()
+        {
+            pendingJoinAction = null;
+            if (marinaJoinWarningPanel) marinaJoinWarningPanel.gameObject.SetActive(false);
+        }
+
+        void RequestHostChoice()
+        {
+            if (lobby != null && lobby.GetType().Name == "FixtureLobby")
+            {
+                if (lobby.CanHost) lobby.Host();
+                return;
+            }
+            PromptHostFromStation();
+        }
+
+        void RequestJoinCodeChoice()
+        {
+            if (!lobby.JoinEnabled || !lobby.CodeValid) return;
+            if (lobby != null && lobby.GetType().Name == "FixtureLobby")
+            {
+                lobby.Join();
+                return;
+            }
+            PromptJoin(lobby.Join);
+        }
+
+        void RequestJoinNearbyChoice(int slot)
+        {
+            if (!lobby.JoinEnabled || !lobby.HasNearby(slot)) return;
+            if (lobby != null && lobby.GetType().Name == "FixtureLobby")
+            {
+                lobby.JoinNearby(slot);
+                return;
+            }
+            PromptJoin(() => lobby.JoinNearby(slot));
+        }
+
+        void RequestAcceptInvitationChoice()
+        {
+            if (!lobby.JoinEnabled || lobby.InvitationFrom == null) return;
+            if (lobby != null && lobby.GetType().Name == "FixtureLobby")
+            {
+                lobby.AcceptInvitation();
+                return;
+            }
+            PromptJoin(lobby.AcceptInvitation);
         }
 
         RectTransform RoomScreen(RectTransform station,RectTransform existing,string title,Sprite rim,Color accent)
@@ -373,8 +527,9 @@ namespace DeadlyJenga.CastlePrototype
                     SetMarinaDetail(joinStation, true);
                     break;
                 case "host":
+                    openedHostForConfirmation = true;
                     SetMarinaDetail(hostStation, true);
-                    if (lobby.CanHost) lobby.Host();
+                    RequestHostChoice();
                     break;
                 case "host-invite":
                     SetMarinaDetail(hostStation, true);
@@ -398,8 +553,8 @@ namespace DeadlyJenga.CastlePrototype
                 SetMarinaDetail(hostStation,false);
             if (open && station!=setupStation && setupStation.gameObject.activeSelf)
                 SetMarinaDetail(setupStation,false);
-            if (station == joinStation && !open) lobby.UnfocusCode();
-            if (station == hostStation && !open) marinaHostOptions = false;
+            if (station == joinStation && !open) { lobby.UnfocusCode(); CancelJoinFromStation(); }
+            if (station == hostStation && !open) { marinaHostOptions = false; CancelHostFromStation(); }
             UpdateMarinaRoomScreens();
             if(open)
             {
@@ -429,6 +584,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             lobby?.UnfocusCode();
             marinaHostOptions=false;
+            CancelJoinFromStation();
+            CancelHostFromStation();
             terminalRequireRelease = true;
             DeadlyJenga.Presentation.MenuAim.Consume();
             joinStation.gameObject.SetActive(false);
@@ -443,19 +600,32 @@ namespace DeadlyJenga.CastlePrototype
         partial void UpdateMayhemMarina()
         {
             if(!marina)return;
-            if (!wardrobeOpen && Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+            if (!wardrobeOpen)
             {
-                if (lobby.CodeFocused) CloseRoomCodeKeyboard();
-                else if (setupStation.gameObject.activeSelf) CloseSetupPage();
-                else if (joinStation.gameObject.activeSelf) SetMarinaDetail(joinStation, false);
-                else if (hostStation.gameObject.activeSelf) SetMarinaDetail(hostStation, false);
+                if (ConfirmingJoin)
+                {
+                    if (Keyboard.current?.yKey.wasPressedThisFrame == true) { ConfirmJoinFromStation(); return; }
+                    if (Keyboard.current?.nKey.wasPressedThisFrame == true || Keyboard.current?.escapeKey.wasPressedThisFrame == true) { CancelJoinFromStation(); return; }
+                }
+                if (ConfirmingHostStation)
+                {
+                    if (Keyboard.current?.yKey.wasPressedThisFrame == true) { ConfirmHostFromStation(); return; }
+                    if (Keyboard.current?.nKey.wasPressedThisFrame == true || Keyboard.current?.escapeKey.wasPressedThisFrame == true) { CancelHostFromStation(); return; }
+                }
+                if (Keyboard.current?.escapeKey.wasPressedThisFrame == true)
+                {
+                    if (lobby.CodeFocused) CloseRoomCodeKeyboard();
+                    else if (setupStation.gameObject.activeSelf) CloseSetupPage();
+                    else if (joinStation.gameObject.activeSelf) SetMarinaDetail(joinStation, false);
+                    else if (hostStation.gameObject.activeSelf) SetMarinaDetail(hostStation, false);
+                }
             }
             RefreshMarinaDisplays();
             if(wardrobePanel)wardrobePanel.gameObject.SetActive(wardrobeOpen&&Player.IsVR);
             if(!wardrobeOpen&&Time.unscaledTime>=nextMarinaMirror&&Vector3.Distance(Player.transform.position,WardrobePosition)<6)
             {
                 nextMarinaMirror=Time.unscaledTime+.2f;var previous=wardrobePlayer;wardrobePlayer=Player;
-                try{PresentMarinaMirror();}finally{wardrobePlayer=previous;}
+                try{ResetWardrobeView();PresentWardrobe();}finally{wardrobePlayer=previous;}
             }
         }
         void BuildMarinaMirror()

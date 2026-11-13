@@ -19,15 +19,15 @@ namespace DeadlyJenga.CastlePrototype
             var l=lobby;
             joinStation=Terminal("JOIN",new Vector3(-3.05f,StationY,StationZ),0,new Vector2(1000,760),CandyHudVisuals.Lavender);
             joinFace=joinStation.GetComponent<LobbyTerminalFaces>();
-            Add(joinStation,"code",()=>l.EnteredCode.Length>0?l.EnteredCode:"ENTER A CODE",170,l.FocusCode,()=>l.JoinEnabled,-90,690,95);
-            Add(joinStation,"join",()=>"JOIN",170,l.Join,()=>l.JoinEnabled&&l.CodeValid,360,145,95);
+            Add(joinStation,"code",()=>l.EnteredCode.Length>0?l.EnteredCode:"ENTER A CODE",170,l.FocusCode,()=>l.JoinEnabled&&!ConfirmingJoin,-90,690,95);
+            Add(joinStation,"join",()=>"JOIN",170,RequestJoinCodeChoice,()=>l.JoinEnabled&&l.CodeValid&&!ConfirmingJoin,360,145,95);
             Label(joinStation,"OR",60,28,870,44).color=CandyHudVisuals.Muted;
-            Add(joinStation,"detect-nearby",()=>"SEARCH LOCAL",-35,l.DetectNearby,()=>l.JoinEnabled,0,870,105);
+            Add(joinStation,"detect-nearby",()=>"SEARCH LOCAL",-35,l.DetectNearby,()=>l.JoinEnabled&&!ConfirmingJoin,0,870,105);
             for(int i=0;i<3;i++)
-            {int slot=i;Add(joinStation,"nearby-room-"+i,()=>l.NearbyTitle(slot),-125-i*67,()=>l.JoinNearby(slot),()=>l.JoinEnabled&&l.HasNearby(slot),0,870,54,()=>l.ShowingNearby&&l.HasNearby(slot));}
-            Add(joinStation,"nearby-next",()=>"MORE ROOMS",-310,l.NextNearbyPage,()=>l.JoinEnabled,235,390,38,()=>l.ShowingNearby&&l.HasMoreNearby);
-            Add(joinStation,"code-instead",()=>"HIDE RESULTS",-310,l.ShowCodeEntry,()=>l.JoinEnabled,-235,390,38,()=>l.ShowingNearby);
-            Add(joinStation,"accept-invite",()=>"JOIN INVITATION: "+(l.InvitationFrom??""),-155,l.AcceptInvitation,()=>l.JoinEnabled,0,870,60,()=>!l.ShowingNearby&&l.InvitationFrom!=null);
+            {int slot=i;Add(joinStation,"nearby-room-"+i,()=>l.NearbyTitle(slot),-125-i*67,()=>RequestJoinNearbyChoice(slot),()=>l.JoinEnabled&&l.HasNearby(slot)&&!ConfirmingJoin,0,870,54,()=>l.ShowingNearby&&l.HasNearby(slot));}
+            Add(joinStation,"nearby-next",()=>"MORE ROOMS",-310,l.NextNearbyPage,()=>l.JoinEnabled&&!ConfirmingJoin,235,390,38,()=>l.ShowingNearby&&l.HasMoreNearby);
+            Add(joinStation,"code-instead",()=>"HIDE RESULTS",-310,l.ShowCodeEntry,()=>l.JoinEnabled&&!ConfirmingJoin,-235,390,38,()=>l.ShowingNearby);
+            Add(joinStation,"accept-invite",()=>"JOIN INVITATION: "+(l.InvitationFrom??""),-155,RequestAcceptInvitationChoice,()=>l.JoinEnabled&&!ConfirmingJoin,0,870,60,()=>!l.ShowingNearby&&l.InvitationFrom!=null);
             Add(joinStation,"leave-guest",()=>TerminalLeaveLabel(l.Busy?"CANCEL JOIN":"LEAVE ROOM"),-260,LeaveFromTerminal,()=>l.CanLeave,0,870,65,()=>!l.HostActive&&l.CanLeave);
             joinHint=Label(joinStation,"Use the enormous keyboard below.",-340,14,900,28);joinHint.color=CandyHudVisuals.Muted;
             BuildKeyboard(joinStation);
@@ -48,7 +48,7 @@ namespace DeadlyJenga.CastlePrototype
             setupHint.text=lobby.SetupHint;
             joinHint.text=ConfirmingTerminalLeave&&!lobby.IsHost?"Leaving disconnects you from the host.":lobby.JoinHint;
             if(codeKeyboard!=Keyboard.current){if(codeKeyboard!=null)codeKeyboard.onTextInput-=CodeText;codeKeyboard=Keyboard.current;if(codeKeyboard!=null)codeKeyboard.onTextInput+=CodeText;}
-            if(lobby.CodeFocused&&codeKeyboard!=null)
+            if(lobby.CodeFocused&&codeKeyboard!=null&&!ConfirmingJoin)
             {
                 if(codeKeyboard.backspaceKey.wasPressedThisFrame)lobby.EraseCode();
                 if(codeKeyboard.enterKey.wasPressedThisFrame)
@@ -71,7 +71,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             screen.GetComponent<LobbyTerminalFaces>().Refresh();
         }
-        void CodeText(char value){if(inputFocused&&!LocalModalBlocked&&lobby!=null&&lobby.CodeFocused)lobby.TypeCode(value);}
+        void CodeText(char value){if(inputFocused&&!LocalModalBlocked&&lobby!=null&&lobby.CodeFocused&&!ConfirmingJoin)lobby.TypeCode(value);}
         RectTransform Terminal(string title,Vector3 position,float yaw,Vector2 size,Color accent)
         {
             var go=new GameObject(title,typeof(RectTransform),typeof(Canvas),typeof(Image));go.transform.SetParent(transform,false);go.transform.SetPositionAndRotation(position,Quaternion.Euler(0,yaw,0));go.transform.localScale=Vector3.one*(title=="WARDROBE"?.0022f:StationScale);
