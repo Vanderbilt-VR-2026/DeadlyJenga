@@ -61,6 +61,21 @@ namespace DeadlyJenga.CastlePrototype
                 if(data.Length!=0||sequence<=0||!remoteDepartureActive||sequence!=remoteDepartureSequence||hostGeneration!=remoteDepartureGeneration)return;
                 CancelDeparture();return;
             }
+            if(kind==3)
+            {
+                float duration=data.Length==4?BitConverter.ToSingle(data.ToArray(),0):3.0f;
+                LaunchPending=true;
+                if(launchCountdownRoutine!=null)StopCoroutine(launchCountdownRoutine);
+                launchCountdownRoutine=StartCoroutine(GuestCountdownSequence(duration));
+                return;
+            }
+            if(kind==4)
+            {
+                if(launchCountdownRoutine!=null){StopCoroutine(launchCountdownRoutine);launchCountdownRoutine=null;}
+                LaunchCountdownRemaining=0;
+                LaunchPending=false;
+                return;
+            }
             if(kind!=1||data.Length!=4||sequence<0||hostGeneration<0||Departing)return;
             float seconds=BitConverter.ToSingle(data.ToArray(),0);
             if(float.IsNaN(seconds)||float.IsInfinity(seconds)||seconds<.3f||seconds>3)return;

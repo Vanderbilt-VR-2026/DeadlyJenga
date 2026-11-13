@@ -8,6 +8,63 @@ namespace DeadlyJenga.CastlePrototype
     internal sealed class MapCategoryPicker
     {
         internal static readonly string[] Categories={"Castles", "Game-mode arenas", "Social & seasonal islands", "Festival cities", "Structure experiments", "Workshops", "Test & custom maps", "Other maps", "Epic connected cities"};
+        internal enum MainTab { PlayApproved, InDevelopment, Archive }
+
+        internal static bool IsPlayApproved(LobbyOption map)
+        {
+            if (map == null) return false;
+            string id = (map.id ?? "").ToLowerInvariant();
+            return id == "castle-catwalks" || id == "castle";
+        }
+
+        internal static bool IsInDevelopment(LobbyOption map)
+        {
+            if (map == null) return false;
+            string id = (map.id ?? "").ToLowerInvariant();
+            return id.Contains("tycoon") || id.Contains("ninja");
+        }
+
+        internal static bool IsArchive(LobbyOption map)
+        {
+            return map != null && !IsPlayApproved(map) && !IsInDevelopment(map);
+        }
+
+        internal static MainTab GetMainTab(LobbyOption map)
+        {
+            if (IsPlayApproved(map)) return MainTab.PlayApproved;
+            if (IsInDevelopment(map)) return MainTab.InDevelopment;
+            return MainTab.Archive;
+        }
+
+        internal List<LobbyOption> GetMapsForMainTab(MainTab tab)
+        {
+            var result = new List<LobbyOption>();
+            foreach (var map in snapshot)
+            {
+                if (tab == MainTab.PlayApproved && IsPlayApproved(map)) result.Add(map);
+                else if (tab == MainTab.InDevelopment && IsInDevelopment(map)) result.Add(map);
+                else if (tab == MainTab.Archive && IsArchive(map)) result.Add(map);
+            }
+            return result;
+        }
+
+        internal List<LobbyOption> GetMapsForArchiveCategory(int category)
+        {
+            var result = new List<LobbyOption>();
+            foreach (var map in snapshot)
+            {
+                if (IsArchive(map) && Category(map) == category) result.Add(map);
+            }
+            return result;
+        }
+
+        internal int GetArchiveCategoryCount(int category)
+        {
+            int count = 0;
+            foreach (var map in snapshot)
+                if (IsArchive(map) && Category(map) == category) count++;
+            return count;
+        }
         internal sealed class Row
         {
             internal int category,count;

@@ -248,23 +248,40 @@ namespace DeadlyJenga.CandyArt.Marina
                 playlistStatusBacking=Panel("Play status backing",mainFace,new Vector2(0,-78),new Vector2(350,25),ProjectionInk);
                 playlistStatus=Text("",new Vector2(0,-78),new Vector2(340,25),17,mainFace);
             }
-            bool countdown=playlist&&experience.AutomaticRounds&&!lobby.CanStart&&
-                experience.GamePhase==RoomGamePhase.Selected;
-            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?"NEXT ROUND":playlist?"PLAY READY":"MATCH OPTIONS";
+            int countdownSeconds = 0;
+            bool countdown = false;
+            if (playlist && experience.AutomaticRounds && !lobby.CanStart && experience.GamePhase == RoomGamePhase.Selected)
+            {
+                countdownSeconds = Mathf.Max(0, Mathf.CeilToInt(experience?.CountdownSeconds ?? 0));
+                countdown = countdownSeconds <= 10;
+            }
+            else if (lobby.StartPending)
+            {
+                countdown = true;
+                countdownSeconds = 3;
+                if (!string.IsNullOrEmpty(lobby.SetupHint) && lobby.SetupHint.StartsWith("MATCH STARTING IN ", StringComparison.Ordinal))
+                {
+                    var parts = lobby.SetupHint.Split(' ');
+                    if (parts.Length >= 4 && int.TryParse(parts[3].TrimEnd('.'), out int parsed))
+                        countdownSeconds = Mathf.Max(1, parsed);
+                }
+            }
+
+            mainHeading.text=visiting?"SPECTATOR LOBBY":countdown?$"MATCH STARTING IN {countdownSeconds}...":playlist?"PLAY READY":"MATCH OPTIONS";
             marquee.gameObject.SetActive(false);
-            playlistStatusBacking.gameObject.SetActive(playlist&&!visiting);
+            playlistStatusBacking.gameObject.SetActive((playlist||countdown)&&!visiting);
             playlistStatusBacking.color=countdown?Coral:ProjectionInk;
             playlistStatusBacking.rectTransform.anchoredPosition=new Vector2(0,countdown?68:-78);
             playlistStatusBacking.rectTransform.sizeDelta=new Vector2(countdown?236:350,countdown?41:25);
             playlistStatus.rectTransform.anchoredPosition=playlistStatusBacking.rectTransform.anchoredPosition;
             playlistStatus.rectTransform.sizeDelta=playlistStatusBacking.rectTransform.sizeDelta;
             playlistStatus.fontSize=countdown?30:17;
-            playlistStatus.gameObject.SetActive(playlist&&!visiting);
+            playlistStatus.gameObject.SetActive((playlist||countdown)&&!visiting);
             RefreshLiveMatch(visiting);
-            int seconds=Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
+            int seconds=countdown?countdownSeconds:Mathf.Max(0,Mathf.CeilToInt(experience?.CountdownSeconds??0));
             int humans=Mathf.Max(1,session?.Multiplayer?.HumanCount??1);
             playlistStatus.text=visiting?"Live match on the spectator TVs":countdown?
-                $"{seconds/60:00}:{seconds%60:00}":
+                $"{seconds}s":
                 lobby.Connected?$"ROOM {lobby.HostCode}    |    {humans} / {Mathf.Max(10,humans)}":
                 "LOCAL PLAY";
             int totalPlayers=(lobby as ILobbyDetails)?.Setup?.population??MatchChoices.BotTarget;
@@ -277,8 +294,9 @@ namespace DeadlyJenga.CandyArt.Marina
             foreach(var target in targets)
             {
                 if(target.id is "marina-settings" or "marina-style")
-                    target.face.gameObject.SetActive(!playlist&&!visiting);
-                if(target.id=="marina-play")target.face.gameObject.SetActive(!countdown);
+                    target.face.gameObject.SetActive(!playlist&&!visiting&&!countdown);
+                if(target.id=="marina-play")
+                    target.face.gameObject.SetActive(!visiting&&(!countdown||(lobby.StartPending&&lobby.CanStart)));
             }
             playTitle.text=visiting?(lobby.CanStart?"Return to match":"WATCH LIVE"):
                 playlist?(experience.LocalReady?"READY":"GO"):lobby.StartPending?"Cancel start":"Start match";

@@ -683,23 +683,113 @@ namespace DeadlyJenga.CastlePrototype
             if(experience&&experience.Experience==GameExperience.Game){experience.RequestStart();return;}
             if(CanLaunch)Act(new LobbyAction{verb="launch"});
         }
+        Coroutine launchCountdownRoutine;
+        public float LaunchCountdownRemaining { get; private set; }
+        public bool LaunchCountdownActive => LaunchCountdownRemaining > 0;
+
         void LaunchAuthoritative()
         {
             if(Busy||LaunchPending||!Catalog||!Catalog.modes[ModeIndex].available)return;
+            StartLaunchCountdown();
+        }
+
+        void StartLaunchCountdown()
+        {
+            if(launchCountdownRoutine!=null)StopCoroutine(launchCountdownRoutine);
+            launchCountdownRoutine=StartCoroutine(LaunchCountdownSequence());
+        }
+
+        IEnumerator LaunchCountdownSequence()
+        {
+            LaunchPending=true;
+            LaunchCountdownRemaining=3.0f;
+            int sequence=++departureSequence;
+            if(Connected&&IsHost)
+            {
+                foreach(var player in Runner.ActivePlayers)
+                {
+                    if(player!=Runner.LocalPlayer)
+                    {
+                        try{Runner.SendReliableDataToPlayer(player,ReliableKey.FromInts(DepartureChannel,3,sequence,generation),BitConverter.GetBytes(3.0f));}
+                        catch{}
+                    }
+                }
+            }
+            StartCoroutine(PreloadMatchAssets(Catalog.modes[ModeIndex].id,Catalog.maps[MapIndex]));
+            while(LaunchCountdownRemaining>0)
+            {
+                yield return null;
+                LaunchCountdownRemaining-=Time.unscaledDeltaTime;
+            }
+            LaunchCountdownRemaining=0;
+            launchCountdownRoutine=null;
             if(!Connected)
             {
                 var map=Catalog.maps[MapIndex];
-                if(SceneUtility.GetBuildIndexByScenePath(map.scenePath)<0){Status="Selected map is not enabled in this build.";return;}
+                int scene=SceneUtility.GetBuildIndexByScenePath(map.scenePath);
+                if(scene<0){Status="Selected map is not enabled in this build.";LaunchPending=false;yield break;}
                 MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=map.id;
-                BeginDeparture(SceneUtility.GetBuildIndexByScenePath(map.scenePath),false);return;
+                BeginDeparture(scene,false);
             }
-            LaunchPending=true;launchDeadline=Time.unscaledTime+10;Status="Waiting for players to confirm the selected mode and map...";CheckLaunch();
+            else
+            {
+                int index=SceneUtility.GetBuildIndexByScenePath(Catalog.maps[MapIndex].scenePath);
+                if(index<0){Status="Selected map is not enabled in this build.";LaunchPending=false;yield break;}
+                MatchSetup.FromLobby=true;MatchSetup.StartLocalSession=false;MatchSetup.ModeId=Catalog.modes[ModeIndex].id;MatchSetup.MapId=Catalog.maps[MapIndex].id;
+                Status="Starting "+Catalog.modes[ModeIndex].title+"...";BeginDeparture(index,true);
+            }
         }
+
+        IEnumerator PreloadMatchAssets(string modeId,IslandLobbyCatalog.Map map)
+        {
+            if(map!=null&&!string.IsNullOrEmpty(map.id))
+                Resources.LoadAsync<Texture2D>("LobbyPreviews/"+map.id);
+            if(!string.IsNullOrEmpty(modeId))
+                Resources.LoadAsync<Texture2D>("LobbyModePictures/"+modeId);
+            Shader.WarmupAllShaders();
+            yield return null;
+        }
+
+        IEnumerator GuestCountdownSequence(float duration)
+        {
+            LaunchCountdownRemaining=duration;
+            while(LaunchCountdownRemaining>0)
+            {
+                yield return null;
+                LaunchCountdownRemaining-=Time.unscaledDeltaTime;
+            }
+            LaunchCountdownRemaining=0;
+            launchCountdownRoutine=null;
+        }
+
         public void CancelLaunch()
         {
             var experience=RoomGameExperience.Ensure(this);
             if(experience&&experience.Experience==GameExperience.Game){experience.CancelGameStart();return;}
             if(LocalIsLobbyHost&&!Departing)Act(new LobbyAction{verb="cancel"});
+            CancelLaunchCountdown();
+        }
+
+        void CancelLaunchCountdown()
+        {
+            if(launchCountdownRoutine!=null){StopCoroutine(launchCountdownRoutine);launchCountdownRoutine=null;}
+            if(LaunchCountdownRemaining>0||LaunchPending)
+            {
+                LaunchCountdownRemaining=0;
+                LaunchPending=false;
+                int sequence=++departureSequence;
+                if(Connected&&IsHost)
+                {
+                    foreach(var player in Runner.ActivePlayers)
+                    {
+                        if(player!=Runner.LocalPlayer)
+                        {
+                            try{Runner.SendReliableDataToPlayer(player,ReliableKey.FromInts(DepartureChannel,4,sequence,generation),Array.Empty<byte>());}
+                            catch{}
+                        }
+                    }
+                }
+            }
         }
         void CheckLaunch()
         {

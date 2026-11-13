@@ -116,23 +116,97 @@ namespace DeadlyJenga.CastlePrototype
             candyRoomStatus=CandyReadout(room,"Room count","ROOM\n1 / 10",0,0,150,70,23);
             setupHint.rectTransform.anchoredPosition=new Vector2(0,-412);setupHint.rectTransform.sizeDelta=new Vector2(1000,34);setupHint.fontSize=20;setupHint.resizeTextMaxSize=20;setupHint.resizeTextMinSize=18;setupHint.color=CandyMuted;
             gameHint.rectTransform.anchoredPosition=new Vector2(0,312);gameHint.rectTransform.sizeDelta=new Vector2(1000,26);gameHint.fontSize=22;gameHint.resizeTextMaxSize=22;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
-            for(int i=0;i<PickerPageSize;i++)
+            // Breadcrumb Folder
+            mapBreadcrumb = CandyReadout(candySetupContent, "Map breadcrumb", "MAP CATEGORIES", -310, 335, 430, 32, 22);
+            mapBreadcrumb.color = new Color(.68f, .58f, .80f);
+            mapBreadcrumb.fontStyle = FontStyle.Bold;
+            mapBreadcrumb.alignment = TextAnchor.MiddleLeft;
+
+            // Main Tab Buttons (Left Sidebar)
+            for (int i = 0; i < 3; i++)
             {
-                int slot=i;var c=CandyPlace("picker-"+i,i<5?-255:255,-75-i%5*52,480,48);
-                c.selected=()=>PickerOption(slot)?.id==Details?.SelectedMapId&&PickerOption(slot)!=null;
-                c.title=()=>PickerTitle(slot).Replace("[current]","").Trim();
-                CandyText(c,0,0,440,44,22,TextAnchor.MiddleLeft);
-                mapCardPictures[i] = Picture((RectTransform)c.button.transform, "Map card thumbnail", -176, 0, 100, 38);
-                mapCardPictures[i].enabled = false;
+                var tabChoice = CandyPlace("map-tab-" + i, -310, 190 - i * 115, 430, 86);
+                CandyText(tabChoice, 0, 0, 390, 70, 26, TextAnchor.MiddleLeft);
+                CandyChoiceIcon(tabChoice, LobbyTerminalGlyph.Symbol.Next, 185);
             }
-            browserMapPreview=Picture(candySetupContent,"Large map browser preview",0,160,940,250);
-            browserMapName=CandyReadout(candySetupContent,"Previewed map name","",0,15,960,30,25);
-            browserMapName.fontStyle=FontStyle.Bold;browserMapName.color=CandyMint;
-            browserMapDescription=CandyReadout(candySetupContent,"Previewed map description","",0,-23,960,40,20);browserMapDescription.color=CandyCream;
-            browserMapMissing=CandyReadout(candySetupContent,"Map preview unavailable","MAP PREVIEW COMING SOON",0,160,900,60,28);browserMapMissing.color=CandyMuted;
+
+            // Back button from sub-sections
+            var backBtn = CandyPlace("map-back", -310, 285, 430, 44);
+            CandyText(backBtn, 0, 0, 390, 38, 20, TextAnchor.MiddleLeft);
+            CandyChoiceIcon(backBtn, LobbyTerminalGlyph.Symbol.Back, -185);
+
+            // Archive Sub-Categories (5 slots)
+            for (int i = 0; i < 5; i++)
+            {
+                var catChoice = CandyPlace("archive-cat-" + i, -310, 215 - i * 68, 430, 58);
+                CandyText(catChoice, 0, 0, 390, 50, 22, TextAnchor.MiddleLeft);
+                CandyChoiceIcon(catChoice, LobbyTerminalGlyph.Symbol.Next, 185);
+            }
+            var catUp = CandyPlace("cat-scroll-up", -310, 260, 430, 30);
+            CandyText(catUp, 0, 0, 390, 26, 18);
+            var catDown = CandyPlace("cat-scroll-down", -310, -135, 430, 30);
+            CandyText(catDown, 0, 0, 390, 26, 18);
+
+            // Map Items (4 rows)
+            for (int i = 0; i < 4; i++)
+            {
+                int slot = i;
+                var c = CandyPlace("picker-" + i, -310, 175 - i * 78, 430, 70);
+                c.selected = () => (stagedSelectedMapId ?? Details?.SelectedMapId) == MapItemOption(slot)?.id && MapItemOption(slot) != null;
+                c.selectionGlyph = true;
+                CandyText(c, 42, 0, 270, 56, 22, TextAnchor.MiddleLeft);
+                mapCardPictures[i] = Picture((RectTransform)c.button.transform, "Map card thumbnail", -170, 0, 56, 56);
+                mapCardPictures[i].enabled = false;
+                CandyChoiceIcon(c, LobbyTerminalGlyph.Symbol.Check, 185);
+            }
+            // Dormant picker slots 4..9
+            for (int i = 4; i < PickerPageSize; i++)
+            {
+                CandyPlace("picker-" + i, -2000, 0, 10, 10);
+            }
+
+            // Map list scroll buttons
+            var mapUp = CandyPlace("map-scroll-up", -310, 235, 430, 28);
+            CandyText(mapUp, 0, 0, 390, 24, 18);
+            var mapDown = CandyPlace("map-scroll-down", -310, -145, 430, 28);
+            CandyText(mapDown, 0, 0, 390, 24, 18);
+
+            // Bottom Action Buttons
+            var selectBtn = CandyPlace("map-select", -440, -350, 125, 58);
+            CandyText(selectBtn, 0, 0, 115, 50, 22);
+            var deselectBtn = CandyPlace("map-deselect", -310, -350, 125, 58);
+            CandyText(deselectBtn, 0, 0, 115, 50, 20);
+            var cancelBtn = CandyPlace("map-cancel", -180, -350, 125, 58);
+            CandyText(cancelBtn, 0, 0, 115, 50, 22);
+
+            // Huge Right Side Preview
+            var rightFrame = CandyPanel(candySetupContent, "Large map frame", 235, -5, 570, 690, CandyFace);
+            browserMapPreview = Picture(rightFrame, "Large map browser preview", 0, 85, 540, 420);
+            browserMapName = CandyReadout(rightFrame, "Previewed map name", "", 0, -165, 540, 40, 30);
+            browserMapName.fontStyle = FontStyle.Bold;
+            browserMapName.color = CandyMint;
+            browserMapCategory = CandyReadout(rightFrame, "Previewed map category", "", 0, -205, 540, 26, 17);
+            browserMapCategory.fontStyle = FontStyle.Bold;
+            browserMapCategory.color = CandyPeach;
+            browserMapDescription = CandyReadout(rightFrame, "Previewed map description", "", 0, -265, 540, 75, 19);
+            browserMapDescription.color = CandyCream;
+            browserMapMissing = CandyReadout(rightFrame, "Map preview unavailable", "MAP PREVIEW COMING SOON", 0, 85, 520, 60, 28);
+            browserMapMissing.color = CandyMuted;
+
+            // Visual Bridge
+            var bridgeGo = new GameObject("Map browser visual bridge", typeof(RectTransform), typeof(Image));
+            bridgeGo.transform.SetParent(candySetupContent, false);
+            browserBridge = bridgeGo.GetComponent<RectTransform>();
+            browserBridge.sizeDelta = new Vector2(40, 48);
+            browserBridgeImage = bridgeGo.GetComponent<Image>();
+            browserBridgeImage.sprite = candyFaceSprite;
+            browserBridgeImage.color = CandyMint;
+            browserBridgeImage.raycastTarget = false;
+            browserBridge.gameObject.SetActive(false);
+
             CandyPlace("picker-previous",-255,-345,490,58);CandyPlace("picker-next",255,-345,490,58);CandyPlace("setup-back",0,-410,700,58);
-            CandyChoice("picker-previous").visible=()=> (setupPage=="maps"||setupPage=="modes")&&PickerPages>1;
-            CandyChoice("picker-next").visible=()=> (setupPage=="maps"||setupPage=="modes")&&PickerPages>1;
+            CandyChoice("picker-previous").visible=()=> setupPage=="modes"&&PickerPages>1;
+            CandyChoice("picker-next").visible=()=> setupPage=="modes"&&PickerPages>1;
             CandyChoiceIcon(CandyChoice("setup-back"),LobbyTerminalGlyph.Symbol.Back,-280);
             CandyStyleModeCards();
             for(int i=0;i<6;i++)

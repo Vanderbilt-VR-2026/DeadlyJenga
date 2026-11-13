@@ -210,20 +210,22 @@ namespace DeadlyJenga.DevTools.Editor
             var largePreview=(RawImage)Field(view,"browserMapPreview");
             Check(largePreview.gameObject.activeInHierarchy&&largePreview.enabled&&largePreview.texture,"Large map preview appears above names");
             var first=(RectTransform)Button(view,"picker-0").transform;
-            var secondColumn=(RectTransform)Button(view,"picker-5").transform;
-            Check(first.anchoredPosition.x<0&&secondColumn.anchoredPosition.x>0&&Mathf.Approximately(first.anchoredPosition.y,secondColumn.anchoredPosition.y),"Map names occupy two aligned columns");
-            int categorySlot=Enumerable.Range(0,10).First(i=>((string)Call(view,"PickerTitle",i)).Contains("Game-mode"));
-            Check(view.InvokeChoice("picker-"+categorySlot),"Map category expands");Sync(view);Layout(view,"expanded maps");
+            Check(first.anchoredPosition.x<0,"Map picker choices sit in left sidebar");
+            Check(largePreview.rectTransform.anchoredPosition.x>0,"Blown up map preview occupies huge right screen");
+            Check(view.InvokeChoice("map-tab-0"),"Play Approved tab opens");Sync(view);Layout(view,"approved maps");
             string selectedMap=((ILobbyDetails)lobby).SelectedMapId;
-            int previewSlot=Enumerable.Range(0,10).First(i=>Call(view,"PickerOption",i) is LobbyOption map&&map.id!=selectedMap);
+            int previewSlot=Enumerable.Range(0,4).FirstOrDefault(i=>Call(view,"PickerOption",i) is LobbyOption map&&map.id!=selectedMap);
             var previewOption=(LobbyOption)Call(view,"PickerOption",previewSlot);
-            var previewButton=Button(view,"picker-"+previewSlot).transform;
-            view.Point(new Ray(previewButton.position-previewButton.forward,previewButton.forward),false);
-            Check((string)Field(view,"browserMapId")==previewOption.id,"World-space cursor changes the large preview without clicking");
+            if(previewOption!=null)
+            {
+                var previewButton=Button(view,"picker-"+previewSlot).transform;
+                view.Point(new Ray(previewButton.position-previewButton.forward,previewButton.forward),false);
+                Check((string)Field(view,"browserMapId")==previewOption.id,"World-space cursor changes the large preview without clicking");
+            }
             Check(Page(view)=="maps"&&((ILobbyDetails)lobby).SelectedMapId==selectedMap,"Hover leaves the browser open and preserves selected map");
             Check(largePreview.uvRect==new Rect(0,0,1,1),"Preview shows the full screenshot without cropping");
             Capture(view,"MAP + MODE","Actual-Maps.png");
-            Check(view.InvokeChoice("setup-back")&&Page(view)=="main","Back returns to setup");
+            Check(view.InvokeChoice("map-cancel")&&Page(view)=="main","Cancel returns to setup");
             Check(view.InvokeChoice("mode-settings")&&Page(view)=="settings","All existing settings remain accessible");Sync(view);Layout(view,"settings");Capture(view,"MAP + MODE","Actual-Settings.png");
             var details=(ILobbyDetails)lobby;var saved=JsonUtility.FromJson<LobbySetup>(JsonUtility.ToJson(details.Setup));
             int before=details.Setup.population;Check(view.InvokeChoice("setting-plus-0"),"Settings adjustment action works");

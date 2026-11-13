@@ -121,14 +121,14 @@ namespace DeadlyJenga.CastlePrototype
         public bool SelectMap(string id){int i=Array.FindIndex(catalog.maps,m=>m.id==id);if(i<0||!CanConfigure||!AllowsMap(catalog.maps[i],SelectedModeId))return false;Room.SelectMap(i);return true;}
         public bool SelectMode(string id){int i=Array.FindIndex(catalog.modes,m=>m.id==id);if(i<0||!CanConfigure||!catalog.modes[i].available||!AllowsMode(id)||!Array.Exists(catalog.maps,m=>AllowsMap(m,id)))return false;Room.SelectMode(i);return true;}
         public bool CanStart=>VisitingLobby?VisitOwner.CanLeaveEliminationVisit:ExperienceProvider.PlayerPlaylist?
-            ExperienceProvider.CanGo:Room.CanLaunch||Room.LaunchPending&&Room.LocalIsLobbyHost;
-        public bool StartPending=>!VisitingLobby&&Room.LaunchPending;
+            ExperienceProvider.CanGo:Room.CanLaunch||(Room.LaunchPending||Room.LaunchCountdownActive)&&Room.LocalIsLobbyHost;
+        public bool StartPending=>!VisitingLobby&&(Room.LaunchPending||Room.LaunchCountdownActive);
         public void StartOrCancel()
         {
             if (!CanStart) return;
             if (VisitingLobby) { ReturnToMatch(); return; }
             if (ExperienceProvider.PlayerPlaylist) { ExperienceProvider.Go(); return; }
-            if (Room.LaunchPending) Room.CancelLaunch(); else Room.Launch();
+            if (Room.LaunchPending || Room.LaunchCountdownActive) Room.CancelLaunch(); else Room.Launch();
         }
         public string SetupHint{get;private set;}="";
 
@@ -140,7 +140,8 @@ namespace DeadlyJenga.CastlePrototype
                 Room.DiscoveryNotice.Length>0?Room.DiscoveryNotice:
                 Room.Connected?(Room.LocalIsLobbyHost?"You control this island.":"Guest · invite friends or request host."):
                 "Start solo now, or create a code / invite nearby.";
-            SetupHint=Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
+            SetupHint=Room.LaunchCountdownActive?$"MATCH STARTING IN {Mathf.Max(1,Mathf.CeilToInt(Room.LaunchCountdownRemaining))}...":
+                Room.LaunchPending?"Waiting for players to confirm…":!catalog.modes[Room.ModeIndex].available?"This mode is coming later.":Room.LocalIsLobbyHost?"Ready when you are.":"The host chooses the map, mode and settings.";
             if(ExperienceProvider.PlayerPlaylist)SetupHint=ExperienceProvider.GameStatus;
             JoinHint=Room.Busy?Room.Status:showingNearby?
                 (Room.Discovery?.HasJoinable==true?"Pick a room, or enter a code above.":
