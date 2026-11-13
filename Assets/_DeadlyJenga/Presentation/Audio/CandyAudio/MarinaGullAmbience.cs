@@ -23,7 +23,7 @@ namespace DeadlyJenga.CandyAudio
         void Awake()
         {
             session = GetComponent<ISessionInfo>();
-            var clip = Resources.Load<AudioClip>("CandyAudio/MarinaGullCalls");
+            var clip = CandyDirectAudio.Clip(CandyDirectAudio.Gulls, Resources.Load<AudioClip>("CandyAudio/MarinaGullCalls"));
             if (!clip) { enabled = false; return; }
             var emitter = new GameObject("Marina gull calls");
             emitter.transform.SetParent(transform, false);
@@ -48,7 +48,7 @@ namespace DeadlyJenga.CandyAudio
                 return;
             }
             var audio = CandyAudioEngine.Instance;
-            source.volume = audio && audio.bank ? audio.bank.master * audio.bank.ambience * .55f : .14f;
+            source.volume = CandyDirectAudio.Gain(CandyDirectAudio.Gulls) * (audio && audio.bank ? audio.bank.master * audio.bank.ambience * .55f : .14f);
             if (Time.unscaledTime < nextCall || source.isPlaying || source.volume <= .001f) return;
             source.transform.localPosition = Calls[call % Calls.Length];
             source.pitch = 1 + Mathf.Sin(call * 2.399963f) * .075f;
