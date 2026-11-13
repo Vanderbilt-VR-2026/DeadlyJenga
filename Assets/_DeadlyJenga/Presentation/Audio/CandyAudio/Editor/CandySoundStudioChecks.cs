@@ -112,6 +112,11 @@ namespace DeadlyJenga.CandyAudio.Editor
             if (string.IsNullOrEmpty(SessionState.GetString(Pending, ""))) return;
             EditorApplication.playModeStateChanged -= ModeChanged;
             EditorApplication.playModeStateChanged += ModeChanged;
+            if (EditorApplication.isPlaying)
+            {
+                stage = 0; next = EditorApplication.timeSinceStartup + 1;
+                EditorApplication.update -= Tick; EditorApplication.update += Tick;
+            }
         }
         static void ModeChanged(PlayModeStateChange state)
         {

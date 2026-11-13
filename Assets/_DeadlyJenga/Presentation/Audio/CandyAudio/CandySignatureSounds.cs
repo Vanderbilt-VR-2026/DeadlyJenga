@@ -36,7 +36,7 @@ namespace DeadlyJenga.CandyAudio
         static int StableHash(string text){unchecked{int h=17;foreach(char c in text)h=h*31+c;return h&int.MaxValue;}}
         static CandyAudioCue Get(string key,int seed,float duration,bool emote,bool shot,bool impact,bool reload,EquipmentKind kind,bool thunder=false)
         {
-            if(cues.TryGetValue(key,out var cue))return cue;
+            if(cues.TryGetValue(key,out var cue)&&cue.variants!=null&&cue.variants.Length>0&&cue.variants[0])return cue;
             cue=new CandyAudioCue{sound=(CandySound)(1000+StableHash(key)%1000000),bus=CandyBus.Character,volume=emote?.45f:.7f,priority=emote?150:65,cooldown=emote?.5f:.035f,maxVoices=emote?3:5,maxDistance=emote?22:75,variants=new AudioClip[5]};
             if(kind==EquipmentKind.ChainGun&&shot){var recorded=Resources.LoadAll<AudioClip>("CandyArsenal/ChainGun");if(recorded.Length>0){cue.variants=recorded;cue.pitch=Vector2.one;cue.volume=.70f;cue.maxVoices=2;cue.cooldown=.075f;cue.priority=38;cues[key]=cue;return cue;}}
             const int rate=16000;

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-175138
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 7c1edf879a17eaa428b2e3ce39c9594e, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 175138
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.67
+    title: Dagger Impact
+    atlasFile: atlas.png
+    atlasSha256: d54b124b44177b45a842e59c8fbd202becea6adb1a7797602551cd5cd0ec9c11
+    gifFile: preview.gif
+    gifSha256: 65d73875273b851e5ee543d069404fd4bdc8d0bbb02a4192ce5f012e1a250c6b
+    sourceSha256: dc064441ae2f78f24fc2450c5c09165266fce6804b60b80b8cda35d60bab75f2
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Steel dagger held in right hand
+    action: Dagger blade strikes block surface with visible impact mark and spark
+      impulse
+    target: Contacted block surface
+    listenerRole: Attacker / nearby observer hearing physical blade contact
+    triggerEvidence: Observed EquipmentAction.Impact frame for Dagger consumed by
+      CandyWeaponFeedback firing cue 175138
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

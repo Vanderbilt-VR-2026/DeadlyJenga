@@ -109,7 +109,7 @@ namespace DeadlyJenga.CandyAudio
 
         public static CandyAudioCue Cue(string species)
         {
-            if(Cues.TryGetValue(species,out var cue))return cue;
+            if(Cues.TryGetValue(species,out var cue)&&cue.variants!=null&&cue.variants.Length>0&&cue.variants[0])return cue;
             var shape=Calls[species];
             int index=System.Array.IndexOf(Species,species);
             const int rate=22050;

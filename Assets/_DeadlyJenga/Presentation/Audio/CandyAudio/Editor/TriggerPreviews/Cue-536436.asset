@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-536436
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a2ac367cb59f4d14c81c14dde9ff0bed, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 536436
+    frameCount: 30
+    columns: 8
+    rows: 4
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.83
+    title: Stock Pistol Reload
+    atlasFile: atlas.png
+    atlasSha256: e5945af57c91fa1ccd5a63ef0778d2daad96a894db3a236d7af5564daf2c3ac4
+    gifFile: preview.gif
+    gifSha256: 4b1534e6865019ed067f1654a973b51f6af6ec8fef9d48f16b66033fd0c89840
+    sourceSha256: 484e0f5538756e808c2b5c43af8d97d1f50e04e655341ecbfbd8519dcfb79677
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Stock Pistol in survivor hands
+    action: 'Full reload cycle: empty magazine dropped, fresh magazine inserted,
+      slide racked'
+    target: Stock Pistol weapon assembly
+    listenerRole: Local player handling weapon
+    triggerEvidence: Observed EquipmentAction.Reload frame for StockPistol consumed
+      by CandyWeaponFeedback firing cue 536436
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
