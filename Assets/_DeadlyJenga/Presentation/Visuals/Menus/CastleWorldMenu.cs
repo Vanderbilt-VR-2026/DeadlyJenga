@@ -31,7 +31,9 @@ namespace DeadlyJenga.CastlePrototype
         {
             session = owner;
             var canvas = gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            var scaler=gameObject.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=owner.IsVR?2f:1f;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 600;
+            var scaler=gameObject.AddComponent<CanvasScaler>();scaler.dynamicPixelsPerUnit=3.5f;
             var rect = GetComponent<RectTransform>(); rect.sizeDelta = new Vector2(1120, 760); transform.localScale = Vector3.one * .002f;
             sectionGlyphs=new RawImage[buttons.Length];
             var bg = gameObject.AddComponent<Image>();bg.sprite=CandyHudVisuals.Pill;bg.type=Image.Type.Sliced;bg.pixelsPerUnitMultiplier=.30f;bg.color = TabletPlum;
@@ -75,7 +77,7 @@ namespace DeadlyJenga.CastlePrototype
         Text Text(string value, Vector2 position, Vector2 size, int fontSize)
         {
             var go = new GameObject(value, typeof(RectTransform), typeof(Text)); go.transform.SetParent(transform, false);
-            var text = go.GetComponent<Text>(); text.text = value; text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+            var text = go.GetComponent<Text>(); text.text = value; text.font = Resources.Load<Font>("Fonts/Fredoka-Bold") ?? Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = fontSize; text.alignment = TextAnchor.MiddleCenter; text.color = Color.white;
             text.resizeTextForBestFit=true;text.resizeTextMinSize=Mathf.Min(18,fontSize);text.resizeTextMaxSize=fontSize;
             text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Truncate;
@@ -100,6 +102,8 @@ namespace DeadlyJenga.CastlePrototype
             PointScaffold(camera,pressed);
             if(tabletopPage){PointTabletop(camera,pressed);return;}
             if(hudPage){PointHudPage(camera,pressed);return;}
+            if (!disasterPage && disasterWheelUI && disasterWheelUI.activeSelf) disasterWheelUI.SetActive(false);
+            if (!modePage && modeWheelUI && modeWheelUI.activeSelf) modeWheelUI.SetActive(false);
             if(modePage){PointModePage(camera,pressed);return;}
             if(disasterPage){PointDisasterPage(camera,pressed,held);return;}
             if(!networkPage&&!comfortPage&&!tuningPage){PointOrganizedMenu(camera,pressed);return;}

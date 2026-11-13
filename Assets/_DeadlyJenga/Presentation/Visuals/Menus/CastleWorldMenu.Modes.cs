@@ -65,12 +65,12 @@ namespace DeadlyJenga.CastlePrototype
             var picGo = new GameObject("Thumb", typeof(RectTransform), typeof(RawImage));
             picGo.transform.SetParent(cardGo.transform, false);
             var picRect = picGo.GetComponent<RectTransform>();
-            picRect.sizeDelta = new Vector2(size.x - 8, size.y - 24);
+            picRect.sizeDelta = new Vector2(132, 88);
             picRect.anchoredPosition = new Vector2(0, 10);
             var pic = picGo.GetComponent<RawImage>();
             pic.raycastTarget = false;
 
-            var title = Text("", new Vector2(0, -size.y * 0.5f + 11), new Vector2(size.x - 4, 20), 12);
+            var title = Text("", new Vector2(0, -46), new Vector2(140, 22), 13);
             title.transform.SetParent(cardGo.transform, false);
             title.fontStyle = FontStyle.Bold;
             title.color = Color.white;
@@ -127,7 +127,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (disasterWheelUI) return;
             disasterWheelUI = new GameObject("Disaster Wheel UI", typeof(RectTransform));
-            disasterWheelUI.transform.SetParent(transform, false);
+            disasterWheelUI.transform.SetParent(legacyDeveloper != null ? legacyDeveloper : transform, false);
             var rect = disasterWheelUI.GetComponent<RectTransform>();
             rect.anchoredPosition = Vector2.zero;
             disasterCards = new List<WheelVisualCard>();
@@ -136,13 +136,13 @@ namespace DeadlyJenga.CastlePrototype
             for (int i = 0; i < count; i++)
             {
                 float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
-                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 355f, 25f + Mathf.Sin(angle) * 195f);
-                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(114, 64), new Vector2(0, -45), new Vector2(38, 24));
+                Vector2 cardPos = new Vector2(Mathf.Cos(angle) * 405f, 10f + Mathf.Sin(angle) * 215f);
+                var card = CreateWheelCard(disasterWheelUI.transform, cardPos, new Vector2(144, 118), new Vector2(0, -76), new Vector2(56, 26));
                 disasterCards.Add(card);
             }
 
-            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, 20), new Vector2(230, 44), 17, out disasterStopTarget);
-            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -32), new Vector2(140, 38), 16, out disasterBackTarget);
+            disasterStopBtn = CreateWheelCenterButton(disasterWheelUI.transform, "STOP ALL DISASTERS", new Vector2(0, 32), new Vector2(260, 48), 18, out disasterStopTarget);
+            disasterBackBtn = CreateWheelCenterButton(disasterWheelUI.transform, "◄ BACK", new Vector2(0, -28), new Vector2(160, 42), 17, out disasterBackTarget);
         }
 
         void PointDisasterWheel(bool pressed)
@@ -206,13 +206,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 disasterWheelUI.SetActive(false);
                 disasterPage = false;
-                if (tabletDeveloperDetails)
-                {
-                    tabletDeveloperDetails = false;
-                    legacyDeveloper.gameObject.SetActive(false);
-                    if (tabletNav) tabletNav.gameObject.SetActive(true);
-                    tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
-                }
+                CloseDeveloperDetails();
                 MenuAim.Consume();
                 return;
             }
@@ -222,7 +216,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (modeWheelUI) return;
             modeWheelUI = new GameObject("Mode Wheel UI", typeof(RectTransform));
-            modeWheelUI.transform.SetParent(transform, false);
+            modeWheelUI.transform.SetParent(legacyDeveloper != null ? legacyDeveloper : transform, false);
             var rect = modeWheelUI.GetComponent<RectTransform>();
             rect.anchoredPosition = Vector2.zero;
             modeCards = new List<WheelVisualCard>();
@@ -315,6 +309,7 @@ namespace DeadlyJenga.CastlePrototype
             {
                 modeWheelUI.SetActive(false);
                 modePage = modeWheel = false;
+                CloseDeveloperDetails();
                 MenuAim.Consume();
                 return;
             }

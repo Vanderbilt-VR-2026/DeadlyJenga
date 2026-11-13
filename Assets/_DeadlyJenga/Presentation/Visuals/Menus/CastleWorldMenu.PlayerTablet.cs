@@ -84,6 +84,7 @@ namespace DeadlyJenga.CastlePrototype
         RawImage tabletCenterWeaponPicture;
         TabletButton[] tabletWheelSlotButtons;
         RawImage[] tabletWheelSlotPictures;
+        TabletButton tabletDevBackButton;
 
         internal const string TabletOpenedPreference = "DeadlyJenga.PlayerTabletOpened";
 
@@ -101,6 +102,12 @@ namespace DeadlyJenga.CastlePrototype
 
             var nav = TabletRoot("Player tablet tabs");
             tabletNav = nav;
+
+            tabletDevBackButton = TabletControl(tabletTabs, nav, () => "◄", new Vector2(-485, 316), new Vector2(56, 56),
+                OnDeveloperBackClicked, font: 28, accent: TabletPanel);
+            tabletDevBackButton.Button.image.sprite = JuicyCircleSprite;
+            tabletDevBackButton.Button.image.type = Image.Type.Simple;
+
             AddTab(TabletPage.Comfort,"MOVEMENT SETTINGS",-330,width:240);
             AddTab(TabletPage.Controls,"CONTROLS",-114,width:160);
             AddTab(TabletPage.Room,"ROOM",52,width:140);
@@ -142,6 +149,8 @@ namespace DeadlyJenga.CastlePrototype
             tabletDeveloperDetails=false;
             tabletWeaponsOpen=false;
             comfortSliderOpen=false;
+            if (disasterWheelUI) disasterWheelUI.SetActive(false);
+            if (modeWheelUI) modeWheelUI.SetActive(false);
             if(tabletDeveloperGrid)tabletDeveloperGrid.gameObject.SetActive(true);
             if(tabletDeveloperWeapons)tabletDeveloperWeapons.gameObject.SetActive(false);
             tabletRefreshAt=0;
@@ -149,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype
             if(tabletNav)tabletNav.gameObject.SetActive(true);
             for (int i=0;i<tabletPages.Length;i++)
                 tabletPages[i].gameObject.SetActive(i==(int)page);
+            UpdateDevBackButtonState();
         }
 
         RectTransform TabletRoot(string name)
@@ -364,7 +374,7 @@ namespace DeadlyJenga.CastlePrototype
             comfortMainGroup.anchorMin = Vector2.zero; comfortMainGroup.anchorMax = Vector2.one;
             comfortMainGroup.sizeDelta = Vector2.zero;
 
-            TabletText(comfortMainGroup, "COMFORT", new Vector2(0, 222), new Vector2(900, 52), 48);
+            TabletText(comfortMainGroup, "MOVEMENT SETTINGS", new Vector2(0, 222), new Vector2(900, 52), 42);
 
             string[] rowTitles = { "Play position", "Dominant hand", "Sprint mode", "Climb mode", "Turn style (seated)" };
             float[] rowYs = { 152, 84, 16, -52, -122 };
@@ -455,29 +465,30 @@ namespace DeadlyJenga.CastlePrototype
                 () => SetTabletHeadBob(false), () => !HeadBobEnabled, () => true, TabletPanel, font: 20);
 
             // Bottom Row (y = -215):
-            // Left: Speed / Snap Angle Traversal (▼, Value, ▲)
-            TabletControl(tabletActions, comfortMainGroup, () => "▼", new Vector2(-446, -215), new Vector2(52, 64),
-                () => StepTurnPreset(false), allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
-                accent: TabletCoral, font: 24);
-
+            // Left: Speed / Snap Angle Traversal with stacked ▲ / ▼ buttons to the right
             TabletControl(tabletActions, comfortMainGroup, () => Settings?.TurnLabel == "Snap"
                 ? $"Snap angle  {Settings.SnapAngle:0}°" : Settings?.TurnLabel == "PhysicalOnly"
                 ? "Physical turning" : $"Turn speed  {Settings?.SmoothTurnSpeed:0}°/s",
-                new Vector2(-262, -215), new Vector2(296, 64),
+                new Vector2(-310, -215), new Vector2(300, 64),
                 () => OpenComfortSlider(),
                 allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
                 accent: TabletCoral, font: 25);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "▲", new Vector2(-78, -215), new Vector2(52, 64),
+            // Stacked directly to the right: ▲ (up) directly above ▼ (down)
+            TabletControl(tabletActions, comfortMainGroup, () => "▲", new Vector2(-125, -199), new Vector2(50, 30),
                 () => StepTurnPreset(true), allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
-                accent: TabletCoral, font: 24);
+                accent: TabletCoral, font: 18);
+
+            TabletControl(tabletActions, comfortMainGroup, () => "▼", new Vector2(-125, -231), new Vector2(50, 30),
+                () => StepTurnPreset(false), allowed: () => Settings != null && Settings.TurnLabel != "PhysicalOnly",
+                accent: TabletCoral, font: 18);
 
             // Right: Recenter height & Reset to default (blue)
-            TabletControl(tabletActions, comfortMainGroup, () => "Recenter height", new Vector2(115, -215), new Vector2(220, 64),
+            TabletControl(tabletActions, comfortMainGroup, () => "Recenter height", new Vector2(105, -215), new Vector2(230, 64),
                 () => Settings?.RecalibrateSeatedHeight(), allowed: () => Settings != null, accent: TabletCoral, font: 25);
 
-            TabletControl(tabletActions, comfortMainGroup, () => "Reset default", new Vector2(357, -215), new Vector2(204, 64),
-                () => ResetSeatedHeightDefault(), allowed: () => Settings != null, accent: new Color(.18f, .52f, .92f), font: 25);
+            TabletControl(tabletActions, comfortMainGroup, () => "Reset default", new Vector2(360, -215), new Vector2(210, 64),
+                () => ResetSeatedHeightDefault(), allowed: () => Settings != null, accent: new Color(.18f, .55f, .95f), font: 25);
 
             BuildComfortSliderOverlay(page);
         }
@@ -636,12 +647,12 @@ namespace DeadlyJenga.CastlePrototype
 
         void BuildTabletDeveloper(RectTransform page)
         {
-            TabletText(page,"DEVELOPER",new(-232,211),new(520,72),54,TextAnchor.MiddleLeft);
-            TabletText(page,"Quick tools",new(396,208),new(190,56),27);
-
             tabletDeveloperGrid = new GameObject("Developer grid", typeof(RectTransform)).GetComponent<RectTransform>();
             tabletDeveloperGrid.SetParent(page, false);
             tabletDeveloperGrid.anchoredPosition = Vector2.zero;
+
+            TabletText(tabletDeveloperGrid,"DEVELOPER",new(-232,211),new(520,72),54,TextAnchor.MiddleLeft);
+            TabletText(tabletDeveloperGrid,"Quick tools",new(396,208),new(190,56),27);
 
             DeveloperTile(tabletDeveloperGrid,"Weapons",0,CandyHudIcon.Trigger,OpenWeaponWheel,
                 ()=>CanCommand&&MatchRuntime.Current is IDemoEquipmentControls,
@@ -659,6 +670,30 @@ namespace DeadlyJenga.CastlePrototype
 
             BuildTabletWeaponWheel(page);
         }
+
+        static string CleanWeaponSlotName(EquipmentKind kind) => kind switch
+        {
+            EquipmentKind.BoxingGlove => "Boxing",
+            EquipmentKind.MurderSword => "Murderer",
+            EquipmentKind.Dagger => "Dagger",
+            EquipmentKind.SawStaff => "Saw Staff",
+            EquipmentKind.TitanLaser => "Titan Laser",
+            EquipmentKind.BarbedBat => "Barbed Bat",
+            EquipmentKind.Chainsaw => "Chainsaw",
+            EquipmentKind.LaserClaws => "Laser Claws",
+            EquipmentKind.LaserAxe => "Laser Axe",
+            EquipmentKind.FlamingMarshmallow => "Flaming",
+            EquipmentKind.NeedleDrill => "Needle Drill",
+            EquipmentKind.SheriffHammer => "Sheriff",
+            EquipmentKind.StockPistol => "Stock Pistol",
+            EquipmentKind.DualRifle => "Dual Rifle",
+            EquipmentKind.RocketLauncher => "Rocket",
+            EquipmentKind.GrenadeLauncher => "Grenade",
+            EquipmentKind.ChainGun => "Chain Gun",
+            EquipmentKind.WristLaser => "Wrist Laser",
+            EquipmentKind.Blaster => "Alien Blaster",
+            _ => EquipmentSpecifications.Get(kind).name
+        };
 
         void BuildTabletWeaponWheel(RectTransform page)
         {
@@ -687,9 +722,7 @@ namespace DeadlyJenga.CastlePrototype
                 var kind = rangedItems[i];
                 float angle = (i * (360f / rangedItems.Length) + 90f) * Mathf.Deg2Rad;
                 Vector2 pos = rangedCenter + new Vector2(Mathf.Cos(angle) * 125f, Mathf.Sin(angle) * 125f);
-                string name = EquipmentSpecifications.Get(kind).name;
-                int slash = name.IndexOf('/');
-                if (slash > 0) name = name.Substring(0, slash).Trim();
+                string name = CleanWeaponSlotName(kind);
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
                     pos, new Vector2(94, 58), () => SelectWeaponKind(kind),
@@ -709,22 +742,20 @@ namespace DeadlyJenga.CastlePrototype
                     if (!tabletGiveAll) tabletRepeat = false;
                 }, font: 13, accent: TabletPanel);
 
-            // Melee Wheel (11 slots, radius 136 around (75, 10))
+            // Melee Wheel (11 slots, radius 150 around (75, 10))
             Vector2 meleeCenter = new Vector2(75, 10);
             for (int i = 0; i < meleeItems.Length; i++)
             {
                 var kind = meleeItems[i];
                 float angle = (i * (360f / meleeItems.Length) + 90f) * Mathf.Deg2Rad;
-                Vector2 pos = meleeCenter + new Vector2(Mathf.Cos(angle) * 136f, Mathf.Sin(angle) * 136f);
-                string name = EquipmentSpecifications.Get(kind).name;
-                int slash = name.IndexOf('/');
-                if (slash > 0) name = name.Substring(0, slash).Trim();
+                Vector2 pos = meleeCenter + new Vector2(Mathf.Cos(angle) * 150f, Mathf.Sin(angle) * 150f);
+                string name = CleanWeaponSlotName(kind);
                 int cur = slotIdx++;
                 var slot = TabletControl(tabletActions, tabletDeveloperWeapons, () => name,
-                    pos, new Vector2(88, 54), () => SelectWeaponKind(kind),
-                    selected: () => tabletWeaponSelected == kind, font: 11);
+                    pos, new Vector2(92, 54), () => SelectWeaponKind(kind),
+                    selected: () => tabletWeaponSelected == kind, font: 12);
                 slot.Label.rectTransform.anchoredPosition = new Vector2(0, -16);
-                slot.Label.rectTransform.sizeDelta = new Vector2(84, 20);
+                slot.Label.rectTransform.sizeDelta = new Vector2(88, 20);
                 var pic = TabletPicture((RectTransform)slot.Button.transform, null, new Vector2(0, 10), new Vector2(58, 30));
                 tabletWheelSlotButtons[cur] = slot;
                 tabletWheelSlotPictures[cur] = pic;
@@ -785,6 +816,7 @@ namespace DeadlyJenga.CastlePrototype
             if (tabletDeveloperGrid) tabletDeveloperGrid.gameObject.SetActive(false);
             if (tabletDeveloperWeapons) tabletDeveloperWeapons.gameObject.SetActive(true);
             UpdateWeaponWheelIcons();
+            UpdateDevBackButtonState();
         }
 
         void CloseWeaponWheel()
@@ -792,6 +824,7 @@ namespace DeadlyJenga.CastlePrototype
             tabletWeaponsOpen = false;
             if (tabletDeveloperGrid) tabletDeveloperGrid.gameObject.SetActive(true);
             if (tabletDeveloperWeapons) tabletDeveloperWeapons.gameObject.SetActive(false);
+            UpdateDevBackButtonState();
         }
 
         void UpdateWeaponWheelIcons()
@@ -927,11 +960,118 @@ namespace DeadlyJenga.CastlePrototype
             tabletPages[(int)TabletPage.Developer].gameObject.SetActive(false);
             if(tabletNav)tabletNav.gameObject.SetActive(true);
             legacyDeveloper.gameObject.SetActive(true);
+            UpdateDevBackButtonState();
+        }
+
+        void CloseDeveloperDetails()
+        {
+            tabletDeveloperDetails = false;
+            disasterPage = false;
+            disasterSelection = -1;
+            modePage = modeWheel = false;
+            mapPage = false;
+            spectatePage = false;
+            batchPage = false;
+            menuCategory = menuSection = -1;
+            if (disasterWheelUI) disasterWheelUI.SetActive(false);
+            if (modeWheelUI) modeWheelUI.SetActive(false);
+            if (legacyDeveloper) legacyDeveloper.gameObject.SetActive(false);
+            if (tabletNav) tabletNav.gameObject.SetActive(true);
+            if (tabletPages[(int)TabletPage.Developer]) tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
+            if (tabletDeveloperGrid) tabletDeveloperGrid.gameObject.SetActive(true);
+            if (tabletDeveloperWeapons) tabletDeveloperWeapons.gameObject.SetActive(false);
+            tabletRefreshAt = 0;
+            UpdateDevBackButtonState();
+        }
+
+        bool IsDevBackButtonActive()
+        {
+            if (tabletPage != TabletPage.Developer) return false;
+            return tabletWeaponsOpen || tabletDeveloperDetails || disasterPage || modePage || mapPage ||
+                   spectatePage || batchPage || menuCategory >= 0 || menuSection >= 0 || disasterSelection >= 0 || comfortSliderOpen;
+        }
+
+        void UpdateDevBackButtonState()
+        {
+            if (tabletDevBackButton == null || tabletDevBackButton.Button == null) return;
+            bool active = IsDevBackButtonActive();
+            tabletDevBackButton.Button.interactable = active;
+            tabletDevBackButton.Button.image.color = active ? CandyHudVisuals.Mint : new Color(0.25f, 0.15f, 0.35f, 0.35f);
+            if (tabletDevBackButton.Label != null)
+                tabletDevBackButton.Label.color = active ? CandyHudVisuals.Ink : new Color(1f, 1f, 1f, 0.35f);
+        }
+
+        void OnDeveloperBackClicked()
+        {
+            if (!IsDevBackButtonActive()) return;
+
+            if (comfortSliderOpen)
+            {
+                CloseComfortSlider();
+                return;
+            }
+            if (tabletWeaponsOpen)
+            {
+                CloseWeaponWheel();
+                return;
+            }
+            if (disasterPage)
+            {
+                if (disasterSelection >= 0)
+                {
+                    disasterSelection = -1;
+                    UpdateDevBackButtonState();
+                    return;
+                }
+                CloseDeveloperDetails();
+                return;
+            }
+            if (modePage)
+            {
+                CloseDeveloperDetails();
+                return;
+            }
+            if (mapPage)
+            {
+                mapPage = false;
+                CloseDeveloperDetails();
+                return;
+            }
+            if (spectatePage)
+            {
+                spectatePage = false;
+                CloseDeveloperDetails();
+                return;
+            }
+            if (batchPage)
+            {
+                batchPage = false;
+                batchTarget = 0;
+                UpdateDevBackButtonState();
+                return;
+            }
+            if (menuSection >= 0)
+            {
+                menuSection = -1;
+                UpdateDevBackButtonState();
+                return;
+            }
+            if (menuCategory >= 0)
+            {
+                CloseDeveloperDetails();
+                return;
+            }
+            if (tabletDeveloperDetails)
+            {
+                CloseDeveloperDetails();
+                return;
+            }
         }
 
         void PointPlayerTablet(Camera camera,bool pressed,bool held)
         {
             if(tabletPage==TabletPage.Developer&&!DeveloperTabAvailable) OpenPlayerTabletPage(TabletPage.Comfort);
+            UpdateDevBackButtonState();
             if(PointTabletButtons(tabletTabs,pressed)) return;
             if(tabletDeveloperDetails){PointPage(camera,pressed,held);return;}
             if(Time.unscaledTime>=tabletRefreshAt)

@@ -39,7 +39,7 @@ namespace DeadlyJenga.CastlePrototype
             MountMarinaScreen(joinStation, MarinaScreen.CabinetScreen(false), Quaternion.identity, 1.69f, 1.55f);
             MountMarinaScreen(hostStation, MarinaScreen.CabinetScreen(true), Quaternion.identity, 1.69f, 1.55f);
             BuildMarinaRoomScreens();
-            MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 6.84f, 3.04f);
+            MountMarinaScreen(setupStation, detailCenter, Quaternion.identity, 5.8f, 2.62f);
             MountMarinaScreen(wardrobePanel, MayhemMarina.StyleScreen, MayhemMarina.StyleScreenFacing, 2.55f, 2.75f);
             BuildKeyboardGrabBar();
             marinaScreen=gameObject.AddComponent<MarinaScreen>();marinaScreen.Build(lobby,OpenMarinaDetail);

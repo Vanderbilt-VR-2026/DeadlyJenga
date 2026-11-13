@@ -36,7 +36,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildLobbyPortrait();
             BuildGameStation();
             FitTerminal(hostStation,new Vector2(1000,800),1.20f,.84f);
-            FitTerminal(setupStation,new Vector2(1440,640),1.60f,.74f);
+            FitTerminal(setupStation,new Vector2(1100,820),1.22f,.74f);
             BuildControlCabinet(hostStation,false);
             BuildControlCabinet(setupStation,true);
         }        void UpdateStations()

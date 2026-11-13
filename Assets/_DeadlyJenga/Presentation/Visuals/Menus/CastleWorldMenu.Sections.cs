@@ -31,7 +31,7 @@ namespace DeadlyJenga.CastlePrototype
             menuBody=new GameObject("Tablet page contents",typeof(RectTransform)).GetComponent<RectTransform>();
             menuBody.SetParent(transform,false);menuBody.sizeDelta=new Vector2(600,1080);
             foreach(var child in original)child.SetParent(menuBody,false);
-            menuBody.anchoredPosition=new Vector2(120,-50);menuBody.localScale=Vector3.one*.8f;
+            menuBody.anchoredPosition=Vector2.zero;menuBody.localScale=Vector3.one;
             for(int i=0;i<tabButtons.Length;i++)
             {
                 tabButtons[i]=HeaderButton(DemoMenuSections.Tabs[i],0,out tabTargets[i]);
@@ -167,6 +167,8 @@ namespace DeadlyJenga.CastlePrototype
             networkPage=comfortPage=tuningPage=modePage=hudPage=mapPage=spectatePage=
                 tabletopPage=disasterPage=giveEquipmentPage=randomPowerupPage=powerupPage=batchPage=quickGunPage=false;
             equipmentOffset=disasterOffset=mapOffset=batchTarget=0;disasterSelection=-1;
+            if (disasterWheelUI) disasterWheelUI.SetActive(false);
+            if (modeWheelUI) modeWheelUI.SetActive(false);
         }
         void SetRowPreview(int i,Texture image)
         {
@@ -230,6 +232,8 @@ namespace DeadlyJenga.CastlePrototype
         void PointOrganizedMenu(Camera camera,bool pressed)
         {
             HideDisasterSliders();scaffoldButton.gameObject.SetActive(false);
+            if (!disasterPage && disasterWheelUI && disasterWheelUI.activeSelf) disasterWheelUI.SetActive(false);
+            if (!modePage && modeWheelUI && modeWheelUI.activeSelf) modeWheelUI.SetActive(false);
             if(disasterPage){PointDisasterPage(camera,pressed,false);return;}
             if(modePage){PointModePage(camera,pressed);return;}
             if(mapPage){PointTabletMapPage(camera,pressed);return;}
@@ -372,13 +376,29 @@ namespace DeadlyJenga.CastlePrototype
         {
             var ray=pointerRay;
             sectionGlyphsActive=true;
+
+            if (heading != null)
+            {
+                heading.rectTransform.anchoredPosition = new Vector2(0, 230);
+                heading.rectTransform.sizeDelta = new Vector2(900, 50);
+                heading.fontSize = 28;
+                heading.fontStyle = FontStyle.Bold;
+                heading.color = CandyHudVisuals.Mint;
+            }
+            if (help != null)
+            {
+                help.rectTransform.anchoredPosition = new Vector2(0, -320);
+                help.rectTransform.sizeDelta = new Vector2(900, 44);
+                help.fontSize = 18;
+            }
+
             int total = names.Count;
             bool twoCols = total > 6;
             int rowsPerCol = twoCols ? (total + 1) / 2 : total;
-            float startY = twoCols ? 180f : Mathf.Min(180f, (total - 1) * 28f);
-            float rowHeight = twoCols ? 58f : 54f;
-            float btnW = twoCols ? 460f : 560f;
-            float btnH = twoCols ? 50f : 48f;
+            float btnW = twoCols ? 480f : 740f;
+            float btnH = twoCols ? 54f : 68f;
+            float rowHeight = twoCols ? 62f : 78f;
+            float startY = twoCols ? (rowsPerCol - 1) * 31f - 20f : (total - 1) * 39f - 10f;
 
             for(int i=0;i<buttons.Length;i++)
             {
@@ -397,14 +417,17 @@ namespace DeadlyJenga.CastlePrototype
                 targets[i].size = new Vector3(btnW, btnH, 4);
 
                 labels[i].text=names[i];
-                labels[i].rectTransform.sizeDelta = new Vector2(btnW - 65, btnH);
-                labels[i].rectTransform.anchoredPosition = new Vector2(25, 0);
+                labels[i].fontSize = twoCols ? 20 : 24;
+                labels[i].fontStyle = FontStyle.Bold;
+                labels[i].rectTransform.sizeDelta = new Vector2(btnW - 90, btnH);
+                labels[i].rectTransform.anchoredPosition = new Vector2(twoCols ? 25 : 35, 0);
 
                 if(sectionGlyphs[i])
                 {
                     sectionGlyphs[i].gameObject.SetActive(true);
                     sectionGlyphs[i].texture=CandyHudVisuals.Icon(art[i]);
-                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + 25, 0);
+                    sectionGlyphs[i].rectTransform.sizeDelta = twoCols ? new Vector2(30, 30) : new Vector2(40, 40);
+                    sectionGlyphs[i].rectTransform.anchoredPosition = new Vector2(-btnW * 0.5f + (twoCols ? 28 : 38), 0);
                 }
                 SetRowPreview(i,pictures[i]);
 
