@@ -191,7 +191,7 @@ namespace DeadlyJenga.Presentation
             if(!open)return;
             if (aimBeam) aimBeam.enabled = false;
             if(!inputFocused||MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close();return;}
+            if((Keyboard.current?.escapeKey.wasPressedThisFrame==true||MenuGamepad.Cancel)){Close();return;}
             if(!home&&(session==null||Services.Session!=session||!session.MenuOpen)||home&&!homeCamera){open=false;canvas.gameObject.SetActive(false);return;}
             if(!home&&(eye!=session.ActiveCamera||wasVr!=session.IsVR))Configure(true);
             canvas.gameObject.SetActive(true);
@@ -214,7 +214,7 @@ namespace DeadlyJenga.Presentation
                     controllerCount>1?"VR controllers":session?.Player?.HasHandTracking==true?"Hand tracking":"VR / waiting for tracking";
                 mode.text="Preferred dominant hand: "+(PreferredLeft?"LEFT":"RIGHT")+" / "+input;
                 leftRoles.text=Roles(true);rightRoles.text=Roles(false);
-                bindings.text=!wasVr?"WASD: move. Mouse: look. Space: jump / hold climb. Left Shift: sprint.\nClick: fire. V: equip / holster. R: weapon mode. Delete: drop. Esc: back.\nDominant-hand choice is saved for your VR controllers.":home?"Preference saves for Game and Demo. Look speed and comfort are also available in Lobby / Pause.":
+                bindings.text=!wasVr&&MenuGamepad.Current!=null?"L stick: move / click sprint. R stick: look / click weapon bash.\nBottom: jump / climb. Left: interact. Top: equip / holster. RT: fire. LT: aim.\nLB: drop. RB: weapon mode. Start: menu. Menu sticks: pointer; bottom: select; right: back.":!wasVr?"WASD: move. Mouse: look. Space: jump / hold climb. Left Shift: sprint.\nClick: fire. V: equip / holster. R: weapon mode. Delete: drop. Esc: back.\nDominant-hand choice is saved for your VR controllers.":home?"Preference saves for Game and Demo. Look speed and comfort are also available in Lobby / Pause.":
                     controllerCount==1?"One controller: stick moves; grip + stick looks. Your preferred hand stays saved.\nJump: controller primary button. Fire: trigger. Add both controllers for the layout above.":
                     settings?.TurnLabel=="PhysicalOnly"?"JOYSTICK LOOK IS OFF: physical turning selected. Choose Enable stick look.\nTurn your head freely. Menu: bare left Y / native; right-only Grip + B.":
                     "Dominant stick looks left/right. Seated vertical look: "+(SeatedPitch?"On":"Off")+". Non-dominant stick moves.\nJump: dominant X / A. Fire: dominant trigger. Menu: bare left Y / native.";
@@ -229,7 +229,7 @@ namespace DeadlyJenga.Presentation
             }
             if(!readyToSelect)
             {
-                if(session?.MenuSelectHeld!=true&&session?.Player?.SelectHeld!=true&&!rightSelect.IsPressed()&&!leftSelect.IsPressed()&&Mouse.current?.leftButton.isPressed!=true)readyToSelect=true;
+                if(session?.MenuSelectHeld!=true&&session?.Player?.SelectHeld!=true&&!rightSelect.IsPressed()&&!leftSelect.IsPressed()&&Mouse.current?.leftButton.isPressed!=true&&!MenuGamepad.Held)readyToSelect=true;
                 return;
             }
             bool pressed=false;Vector2 point;
@@ -244,8 +244,9 @@ namespace DeadlyJenga.Presentation
             }
             else
             {
-                if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point))return;
-                pressed=Mouse.current.leftButton.wasPressedThisFrame;
+                if(Mouse.current==null&&MenuGamepad.Current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,MenuGamepad.UsingPointer?MenuGamepad.Position:Mouse.current!=null?Mouse.current.position.ReadValue():MenuGamepad.Position,null,out point))return;
+                MenuGamepad.PresentPointer(aimDot,point);
+                pressed=MenuGamepad.UsingPointer?MenuGamepad.Pressed:Mouse.current?.leftButton.wasPressedThisFrame==true;
             }
             for(int i=0;i<buttons.Count;i++)
             {

@@ -60,12 +60,12 @@ namespace DeadlyJenga.CandyPlayers
             if (!motor.IsVR)
             {
                 ResetBashTracking();
-                if (Cursor.lockState != CursorLockMode.Locked || Mouse.current?.leftButton.isPressed == true ||
-                    Mouse.current?.rightButton.isPressed == true) return;
+                if ((Cursor.lockState != CursorLockMode.Locked&&DesktopGamepad.Current==null) || Mouse.current?.leftButton.isPressed == true ||
+                    Mouse.current?.rightButton.isPressed == true||DesktopGamepad.FireHeld||DesktopGamepad.AimHeld) return;
                 var keyboard = Keyboard.current;
                 if (keyboard?.tabKey.isPressed == true || keyboard?.vKey.wasPressedThisFrame == true ||
                     keyboard?.rKey.wasPressedThisFrame == true) return;
-                if (keyboard?.tKey.wasPressedThisFrame == true)
+                if (keyboard?.tKey.wasPressedThisFrame == true||DesktopGamepad.BashPressed)
                     RequestWeaponBash(GripPose.position, avatar.viewCamera.transform.forward, 2);
                 return;
             }
@@ -186,7 +186,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             bool vr=motor.IsVR;
             bool input=Local&&(vr?trigger?.IsPressed()==true||aimBlend>.05f:
-                Mouse.current?.leftButton.isPressed==true||Mouse.current?.rightButton.isPressed==true);
+                (Mouse.current?.leftButton.isPressed==true||DesktopGamepad.FireHeld)||(Mouse.current?.rightButton.isPressed==true||DesktopGamepad.AimHeld));
             bool shooting=state.triggerHeld||Time.time-Mathf.Max(primaryKickAt,pairedKickAt)<.24f||input;
             bool sprint=frame.sprinting&&!shooting&&state.reloadRemaining<=0;
             // Paired fire needs both weapon axes settled as soon as the trigger is pressed.

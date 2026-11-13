@@ -70,6 +70,7 @@ namespace DeadlyJenga.CastlePrototype
         readonly System.Collections.Generic.List<Tuple<RectTransform,Action>> wardrobeButtons=new System.Collections.Generic.List<Tuple<RectTransform,Action>>();
 
         RectTransform wardrobePanel,wardrobeDesktop;
+        Image wardrobePadCursor;
 
         Camera wardrobeCamera;
         readonly System.Collections.Generic.List<Renderer> wardrobeRenderers=new System.Collections.Generic.List<Renderer>();
@@ -463,6 +464,7 @@ namespace DeadlyJenga.CastlePrototype
 
         {
 
+            if(wardrobePadCursor)wardrobePadCursor.gameObject.SetActive(false);
             if(!wardrobePanel)return false;
 
             float distance=DistanceToWardrobe();
@@ -471,7 +473,7 @@ namespace DeadlyJenga.CastlePrototype
                 SetWardrobeOpen(true);
             if(!wardrobeOpen)return false;
             if(Player.IsVR&&(Player.MenuPressed||wardrobeCancel?.WasPressedThisFrame()==true)){SetWardrobeOpen(false);return true;}
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){SetWardrobeOpen(false);return true;}
+            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true||!Player.IsVR&&MenuGamepad.Cancel){SetWardrobeOpen(false);return true;}
 
             if(!ReferenceEquals(Player,wardrobePlayer)||distance>WardrobeExitRadius){SetWardrobeOpen(false);return false;}
 
@@ -479,10 +481,16 @@ namespace DeadlyJenga.CastlePrototype
             if(Player.IsVR){PresentWardrobe();return false;}
             if(Keyboard.current?.fKey.wasPressedThisFrame==true){SetWardrobeOpen(false);return true;}
             var mouse=Mouse.current;
-            if(mouse!=null)
+            bool pad=MenuGamepad.UsingPointer;
+            if(mouse!=null||pad)
             {
-                var point=mouse.position.ReadValue();
-                if(mouse.leftButton.wasPressedThisFrame)
+                var point=pad?MenuGamepad.Position:mouse.position.ReadValue();
+                if(pad&&wardrobeDesktop&&RectTransformUtility.ScreenPointToLocalPointInRectangle(wardrobeDesktop,point,null,out var localPoint))
+                {
+                    if(!wardrobePadCursor)wardrobePadCursor=MenuAim.CreateReticle(wardrobeDesktop);
+                    MenuGamepad.PresentPointer(wardrobePadCursor,localPoint);
+                }
+                if(pad?MenuGamepad.Pressed:mouse.leftButton.wasPressedThisFrame)
                 {
                     desktopWardrobeDrag=wardrobePreview&&RectTransformUtility.RectangleContainsScreenPoint(wardrobePreview,point,null);
                     if(!desktopWardrobeDrag)
@@ -490,10 +498,10 @@ namespace DeadlyJenga.CastlePrototype
                             if(button.Item1.gameObject.activeInHierarchy&&RectTransformUtility.RectangleContainsScreenPoint(button.Item1,point,null))
                             {button.Item2();break;}
                 }
-                if(!mouse.leftButton.isPressed)desktopWardrobeDrag=false;
+                if(!(pad?MenuGamepad.Held:mouse.leftButton.isPressed))desktopWardrobeDrag=false;
                 if(desktopWardrobeDrag)
                 {
-                    var delta=mouse.delta.ReadValue();
+                    var delta=pad?(MenuGamepad.Current.leftStick.ReadValue()+MenuGamepad.Current.rightStick.ReadValue())*Time.unscaledDeltaTime*600:mouse.delta.ReadValue();
                     wardrobeOrbit.Yaw+=delta.x*.25f;
                     wardrobeOrbit.Pitch-=delta.y*.2f;
                 }

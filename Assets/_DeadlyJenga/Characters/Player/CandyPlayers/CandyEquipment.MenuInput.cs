@@ -16,7 +16,7 @@ namespace DeadlyJenga.CandyPlayers
                 if(!motor.IsVR)
                 {
                     var keys=Keyboard.current;
-                    return keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||keys.sKey.isPressed||
+                    return DesktopGamepad.Moving||Mathf.Abs(DesktopGamepad.Lift)>.1f||keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||keys.sKey.isPressed||
                         keys.dKey.isPressed||keys.qKey.isPressed||keys.eKey.isPressed);
                 }
                 bool controllerLeft=SuitFlightLeft;

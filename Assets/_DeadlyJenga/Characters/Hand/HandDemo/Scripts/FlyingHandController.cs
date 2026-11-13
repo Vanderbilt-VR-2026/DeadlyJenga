@@ -84,8 +84,9 @@ namespace FlyingHand
         Vector3 smoothedInput;
         float smoothedYaw;
         bool focused = true;
+        Gamepad DesktopPad => PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode",0) is 0 or 4 ? Gamepad.current : null;
         public bool DesktopInputAllowed => focused && !InputSuspended && !externallyDriven && ActiveControlMode == ControlMode.Desktop &&
-            (!captureDesktopCursor || Cursor.lockState == CursorLockMode.Locked);
+            (!captureDesktopCursor || Cursor.lockState == CursorLockMode.Locked || DesktopPad!=null);
 
         void Awake() { Body = GetComponent<Rigidbody>(); ConfigureBody(); }
         public void ConfigureBody()
@@ -140,7 +141,7 @@ namespace FlyingHand
         public void RefreshControlMode()
         {
             int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
-            var effectiveOverride = pref == 1 ? ControlMode.Desktop : (pref == 2 || pref == 3) ? ControlMode.VR : ControlModeOverride;
+            var effectiveOverride = (pref == 1 || pref == 4) ? ControlMode.Desktop : (pref == 2 || pref == 3) ? ControlMode.VR : ControlModeOverride;
             var next = externallyDriven?ControlMode.Desktop:effectiveOverride == ControlMode.Auto
                 ? (HasRunningXRDisplay() ? ControlMode.VR : ControlMode.Desktop) : effectiveOverride;
             if (modeInitialized && next == ActiveControlMode) return;
@@ -209,6 +210,13 @@ namespace FlyingHand
                     (keyboard.wKey.isPressed ? 1 : 0) - (keyboard.sKey.isPressed ? 1 : 0)), 1);
                 VerticalInput = keyboard == null ? 0 : (keyboard.eKey.isPressed ? 1 : 0) - (keyboard.qKey.isPressed ? 1 : 0);
                 if (mouse != null && (!captureDesktopCursor || Cursor.lockState == CursorLockMode.Locked)) DesktopLookDelta = mouse.delta.ReadValue();
+                var pad=DesktopPad;
+                if(pad!=null)
+                {
+                    MoveInput=Vector2.ClampMagnitude(MoveInput+pad.leftStick.ReadValue(),1);
+                    VerticalInput=Mathf.Clamp(VerticalInput+(pad.buttonSouth.isPressed?1:0)-(pad.buttonEast.isPressed?1:0),-1,1);
+                    DesktopLookDelta+=pad.rightStick.ReadValue()*Time.deltaTime*180/Mathf.Max(.01f,mouseYawSensitivity);
+                }
                 // Mouse delta is displacement, so convert it to a requested angular
                 // rate before the common fixed-step yaw motor consumes it.
                 YawInput = Time.deltaTime > 0 && yawSpeed > 0

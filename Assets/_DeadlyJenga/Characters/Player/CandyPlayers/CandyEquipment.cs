@@ -169,7 +169,7 @@ namespace DeadlyJenga.CandyPlayers
                     else if(carried.drawn&&(carried.kind==EquipmentKind.ChainGun||IsShoulderLauncher(carried.kind)))
                         TryAimGripOffset(carried,left,false,out carryOffset);
                     var position=head.position+head.rotation*carryOffset*Scale;
-                    if(Local&&Equipment.drawn&&Mouse.current?.rightButton.isPressed==true&&
+                    if(Local&&Equipment.drawn&&(Mouse.current?.rightButton.isPressed==true||DesktopGamepad.AimHeld)&&
                         TryAimGripOffset(Equipment,left,false,out var offset))
                         position=head.position+head.rotation*offset*Scale;
                     Vector3 target=EquipmentAimPoint(head.position,head.forward,120);
@@ -420,7 +420,7 @@ namespace DeadlyJenga.CandyPlayers
                     eye.nearClipPlane,state.kind);
             }
             bool pressed=state.triggerHeld || motor.IsVR && Local && trigger?.IsPressed()==true ||
-                Local && !motor.IsVR && Mouse.current?.leftButton.isPressed==true && state.reloadRemaining<=0;
+                Local && !motor.IsVR && (Mouse.current?.leftButton.isPressed==true||DesktopGamepad.FireHeld) && state.reloadRemaining<=0;
             hand.position=pose.position;
             hand.rotation=pose.rotation;
             hand.skeleton=CandyHandSkeleton.ControllerGrip(state.leftHanded,1,pressed?1:0);
@@ -526,7 +526,7 @@ namespace DeadlyJenga.CandyPlayers
             }
             if(state.kind==EquipmentKind.PoweredArmor&&state.drawn){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();UpdateSuit(state);return;}
             if(motor.Climbing||motor.Vaulting){ResetBashTracking();CancelBashPresentation();ClearPickupFocus();ReleaseHeldArsenal();armed=false;handReady=false;return;}
-            if(!motor.IsVR&&Keyboard.current?.deleteKey.wasPressedThisFrame==true)
+            if(!motor.IsVR&&(Keyboard.current?.deleteKey.wasPressedThisFrame==true||DesktopGamepad.DropPressed))
             {
                 ResetBashTracking();CancelBashPresentation();ClearPickupFocus();
                 if((Runtime as IEquipmentDropRuntime)?.RequestDropEquipment()==true)
@@ -541,16 +541,16 @@ namespace DeadlyJenga.CandyPlayers
             }
             if(state.kind==EquipmentKind.PoweredArmor){ResetBashTracking();CancelBashPresentation();UpdateSuit(state);return;}
             UpdateWeaponBash(state);
-            bool vr=motor.IsVR,pressed=vr?trigger.WasPressedThisFrame():Mouse.current?.leftButton.wasPressedThisFrame==true;
-            bool held=vr?trigger.IsPressed():Cursor.lockState==CursorLockMode.Locked&&Mouse.current?.leftButton.isPressed==true;
+            bool vr=motor.IsVR,pressed=vr?trigger.WasPressedThisFrame():(Mouse.current?.leftButton.wasPressedThisFrame==true||DesktopGamepad.FirePressed);
+            bool held=vr?trigger.IsPressed():(Cursor.lockState==CursorLockMode.Locked||DesktopGamepad.Current!=null)&&(Mouse.current?.leftButton.isPressed==true||DesktopGamepad.FireHeld);
             if(!held)armed=true;
-            if((vr?HybridXRInput.SecondaryPressed(left):Keyboard.current?.vKey.wasPressedThisFrame==true)&&UsesTriggers)
+            if((vr?HybridXRInput.SecondaryPressed(left):(Keyboard.current?.vKey.wasPressedThisFrame==true||DesktopGamepad.HolsterPressed))&&UsesTriggers)
             {
                 SetEquipped(!state.drawn);
                 armed=false;
                 return;
             }
-            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(HybridXRInput.SingleController?HybridXRInput.SingleModePressed:offTrigger.WasPressedThisFrame()):Keyboard.current?.rKey.wasPressedThisFrame==true))ToggleRifleMode();
+            if(state.drawn&&EquipmentSpecifications.Get(state.kind).modeSwitch&&(vr?(HybridXRInput.SingleController?HybridXRInput.SingleModePressed:offTrigger.WasPressedThisFrame()):(Keyboard.current?.rKey.wasPressedThisFrame==true||DesktopGamepad.ModePressed)))ToggleRifleMode();
             if(state.kind>EquipmentKind.PoweredArmor&&(!EquipmentSpecifications.Get(state.kind).melee||state.kind==EquipmentKind.Chainsaw||state.kind==EquipmentKind.LaserAxe&&state.shotgun))
             {UpdateHeldArsenal(held&&armed&&state.drawn,state);return;}
             bool melee=EquipmentSpecifications.Get(state.kind).melee&&!(state.kind==EquipmentKind.Chainsaw&&state.shotgun)&&!(state.kind==EquipmentKind.LaserAxe&&state.shotgun);

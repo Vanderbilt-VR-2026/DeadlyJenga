@@ -236,7 +236,7 @@ namespace DeadlyJenga.CandyPhysicsHands
                     if(keyboard.digit6Key.wasPressedThisFrame||keyboard.numpad6Key.wasPressedThisFrame)DesktopPose=DesktopHandPose.Spread;
                 }
             }
-            bool held=input && Mouse.current!=null && Mouse.current.leftButton.isPressed;
+            bool held=input && (Mouse.current!=null && Mouse.current.leftButton.isPressed||DeadlyJenga.CandyPlayers.DesktopGamepad.FireHeld);
             DesktopClench=Mathf.MoveTowards(DesktopClench,held?1:0,Time.deltaTime*5);
             var goal=DesktopHandPoses.Build(useLeftHand,DesktopPose,DesktopClench);
             desktopSkeleton=desktopPoseReady?DesktopHandPoses.Blend(desktopSkeleton,goal,1-Mathf.Exp(-Time.deltaTime*12)):goal;

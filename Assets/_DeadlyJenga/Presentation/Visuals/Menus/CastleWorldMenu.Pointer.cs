@@ -107,11 +107,11 @@ namespace DeadlyJenga.CastlePrototype
                 var mouse=Mouse.current;
                 bool mousePressed=mouse?.leftButton.wasPressedThisFrame==true||
                     (Keyboard.current?.enterKey.wasPressedThisFrame==true);
-                pressed=mousePressed||desktopClick;
+                pressed=mousePressed||desktopClick||DeadlyJenga.Presentation.MenuGamepad.UsingPointer&&DeadlyJenga.Presentation.MenuGamepad.Pressed;
                 if(mouse?.leftButton.wasReleasedThisFrame==true)desktopHeld=false;
-                held=mouse?.leftButton.isPressed==true||desktopHeld;
+                held=mouse?.leftButton.isPressed==true||desktopHeld||DeadlyJenga.Presentation.MenuGamepad.UsingPointer&&DeadlyJenga.Presentation.MenuGamepad.Held;
                 desktopClick=false;
-                pointerRay=pressed&&!mousePressed?camera.ScreenPointToRay(desktopClickPosition):
+                pointerRay=DeadlyJenga.Presentation.MenuGamepad.UsingPointer?camera.ScreenPointToRay(DeadlyJenga.Presentation.MenuGamepad.Position):pressed&&!mousePressed?camera.ScreenPointToRay(desktopClickPosition):
                     mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):
                     new Ray(camera.transform.position,camera.transform.forward);
             }

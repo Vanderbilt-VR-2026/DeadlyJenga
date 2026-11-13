@@ -113,7 +113,7 @@ namespace DeadlyJenga.CandyPlayers
             if (focused != null)
             {
                 pendingPickup = focused.id;
-                bool activate = !fireHeld && (vr ? bestPriority == 2 : Keyboard.current?.eKey.wasPressedThisFrame == true);
+                bool activate = !fireHeld && (vr ? bestPriority == 2 : (Keyboard.current?.eKey.wasPressedThisFrame == true||DesktopGamepad.InteractPressed));
                 if (activate) return TakeFocusedPickup();
             }
             else if (touchingPower != null && Time.unscaledTime >= nextPickupRequest)
@@ -134,7 +134,7 @@ namespace DeadlyJenga.CandyPlayers
 
         bool PickupFireHeld() => motor.IsVR
             ? trigger?.IsPressed() == true || Equipment.kind == EquipmentKind.DualUzi && offTrigger?.IsPressed() == true
-            : Mouse.current?.leftButton.isPressed == true;
+            : Mouse.current?.leftButton.isPressed == true||DesktopGamepad.FireHeld;
 
         Vector3? PickupHand(bool left, bool vr, bool canGrab, ref float grabUntil)
         {

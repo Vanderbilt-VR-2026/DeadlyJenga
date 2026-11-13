@@ -156,7 +156,7 @@ namespace DeadlyJenga.CastlePrototype
                 openingInput = input;
                 selectReady = false;
             }
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(true);return;}
+            if((Keyboard.current?.escapeKey.wasPressedThisFrame==true||MenuGamepad.Cancel)){Close(true);return;}
             if(openingVr)DeadlyJenga.Presentation.MenuAim.PlaceTablet((RectTransform)panel.transform,openingCamera,owner,
                 owner.Player?.gameObject.GetComponent<IBlasterControls>()?.LeftHanded==true,ref lobbyPoseSet);
             if(!inputFocused||MenuAim.InputConsumed){if(aimDot)aimDot.gameObject.SetActive(false);return;}
@@ -177,8 +177,9 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
-                if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)panel.transform,Mouse.current.position.ReadValue(),null,out point))return;
-                pressed=Mouse.current.leftButton.wasPressedThisFrame;
+                if(Mouse.current==null&&MenuGamepad.Current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)panel.transform,MenuGamepad.UsingPointer?MenuGamepad.Position:Mouse.current!=null?Mouse.current.position.ReadValue():MenuGamepad.Position,null,out point))return;
+                MenuGamepad.PresentPointer(aimDot,point);
+                pressed=MenuGamepad.UsingPointer?MenuGamepad.Pressed:Mouse.current?.leftButton.wasPressedThisFrame==true;
             }
             for(int i=0;i<buttons.Count;i++)
             {

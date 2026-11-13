@@ -66,7 +66,7 @@ namespace DeadlyJenga.Presentation
             if(camera!=eye){RestoreFov();if(lens)lens.SetActive(false);eye=camera;originalFov=eye?eye.fieldOfView:60;}
             vr=session?.IsVR==true;state=player?.gameObject.GetComponent<IEquipmentControls>()?.Equipment;
             visible=eye&&player!=null&&player.gameObject.GetComponent<IModeActor>()?.Alive!=false&&!player.InputSuspended&&!session.MenuOpen&&!session.PlayingHand&&state?.drawn==true&&SupportsAim(state);
-            aiming=visible&&!vr&&Mouse.current?.rightButton.isPressed==true;
+            aiming=visible&&!vr&&(Mouse.current?.rightButton.isPressed==true||DeadlyJenga.Presentation.MenuGamepad.Current?.leftTrigger.isPressed==true);
             if(!vr&&aiming){if(!zoomed)originalFov=eye.fieldOfView;zoomed=true;eye.fieldOfView=Mathf.Lerp(eye.fieldOfView,originalFov/Magnification,1-Mathf.Exp(-20*Time.unscaledDeltaTime));}
             else RestoreFov();
             if(!visible||!vr){if(lens)lens.SetActive(false);return;}

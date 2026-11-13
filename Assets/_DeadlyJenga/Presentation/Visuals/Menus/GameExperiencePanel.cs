@@ -187,7 +187,7 @@ namespace DeadlyJenga.Presentation
                 owner.PlayingHand!=openingHand||!ReferenceEquals(Resolve(owner),controls))
             {Close(false);return;}
             if(!inputFocused||MenuAim.InputConsumed)return;
-            if(Keyboard.current?.escapeKey.wasPressedThisFrame==true){Close(true);return;}
+            if((Keyboard.current?.escapeKey.wasPressedThisFrame==true||MenuGamepad.Cancel)){Close(true);return;}
             int input = InputSignature();
             if (input != openingInput)
             {
@@ -211,8 +211,9 @@ namespace DeadlyJenga.Presentation
             }
             else
             {
-                if(Mouse.current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,Mouse.current.position.ReadValue(),null,out point))return;
-                pressed=Mouse.current.leftButton.wasPressedThisFrame;
+                if(Mouse.current==null&&MenuGamepad.Current==null||!RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,MenuGamepad.UsingPointer?MenuGamepad.Position:Mouse.current!=null?Mouse.current.position.ReadValue():MenuGamepad.Position,null,out point))return;
+                MenuGamepad.PresentPointer(aimDot,point);
+                pressed=MenuGamepad.UsingPointer?MenuGamepad.Pressed:Mouse.current?.leftButton.wasPressedThisFrame==true;
             }
             for(int i=0;i<buttons.Count;i++)
             {

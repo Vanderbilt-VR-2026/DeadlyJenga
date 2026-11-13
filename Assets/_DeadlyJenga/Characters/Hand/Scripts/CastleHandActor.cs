@@ -31,8 +31,8 @@ namespace DeadlyJenga.CastlePrototype
         CandyTrackingSource handTracking;
         CandyTrackingSource HandTracking => handTracking ? handTracking : handTracking = GetComponent<CandyTrackingSource>();
         public bool HasHandTracking => HandTracking && HandTracking.HasHandTracking;
-        public bool MenuPressed => HandTracking && HandTracking.LeftMenuPressed;
-        public bool MenuHeld=>HandTracking&&HandTracking.LeftMenuHeld;
+        public bool MenuPressed => !IsVR?DesktopGamepad.MenuPressed:HandTracking && HandTracking.LeftMenuPressed;
+        public bool MenuHeld=>!IsVR?DesktopGamepad.MenuHeld:HandTracking&&HandTracking.LeftMenuHeld;
         public bool MovementHeld
         {
             get
@@ -70,8 +70,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         static bool FlightPinchHeld(CandyHandPose hand)=>hand.tracked&&hand.skeletonTracked&&
             CandyHandTransition.IsValidPose(hand)&&Vector3.Distance(hand.skeleton.Joint(3),hand.skeleton.Joint(7))<.032f;
-        public bool SelectPressed => HandTracking && HandTracking.MenuSelectPressed;
-        public bool SelectHeld => HandTracking && HandTracking.MenuSelectHeld;
+        public bool SelectPressed => !IsVR?DesktopGamepad.SelectPressed:HandTracking && HandTracking.MenuSelectPressed;
+        public bool SelectHeld => !IsVR?DesktopGamepad.SelectHeld:HandTracking && HandTracking.MenuSelectHeld;
         public string StatusText => Bridge ? Bridge.TrackingStatus : "";
         public void PrepareForSession()
         {

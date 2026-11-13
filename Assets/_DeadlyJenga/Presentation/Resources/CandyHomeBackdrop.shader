@@ -49,13 +49,18 @@ Shader "DeadlyJenga/Candy Home Backdrop"
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
                 float3 direction = normalize(input.direction);
-                float depth = max(.35, dot(direction, _Forward));
+                float forward=dot(direction, _Forward);
+                float depth = sqrt(forward*forward+.1225);
                 // Match the 3 m panel, then mirror the art past its edges.
                 float2 uv = .5 + float2(dot(direction, _Right) / 1.28, direction.y / .72) / (2 * depth);
                 uv = 1 - abs(frac(uv * .5) * 2 - 1);
-                half3 color = tex2Dlod(_Slide, float4(uv, 0, 4)).rgb;
+                half3 color = tex2D(_Slide, uv).rgb;
                 color = lerp(color, half3(.12, .08, .18), .22);
-                return half4(lerp(color, half3(1, 1, 1), _Fade), 1);
+                // Stable world-direction dither avoids visible color bands without temporal shimmer.
+                float3 hash=frac(floor(direction*2048)*.1031);
+                hash+=dot(hash,hash.yzx+33.33);
+                float noise=frac((hash.x+hash.y)*hash.z)-.5;
+                return half4(lerp(color+noise/255.0, half3(1, 1, 1), _Fade), 1);
             }
             ENDCG
         }

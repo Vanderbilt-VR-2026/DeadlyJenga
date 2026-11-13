@@ -115,7 +115,7 @@ namespace DeadlyJenga.CastlePrototype
             { punchHandReady = false; return; }
             if (!IsVR)
             {
-                if (Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
+                if (DesktopGamepad.FirePressed || Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                     RequestPunch(viewCamera.transform.position, viewCamera.transform.forward, 2);
                 return;
             }

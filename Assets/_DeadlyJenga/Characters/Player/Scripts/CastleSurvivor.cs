@@ -116,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
         public void RefreshMode()
         {
             int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
-            var effectiveMode = pref == 1 ? ControlMode.Desktop : (pref == 2 || pref == 3) ? ControlMode.VR : controlMode;
+            var effectiveMode = (pref == 1 || pref == 4) ? ControlMode.Desktop : (pref == 2 || pref == 3) ? ControlMode.VR : controlMode;
             bool running = false;
             if(!externallyDriven&&effectiveMode==ControlMode.Auto)
             {
@@ -218,10 +218,10 @@ namespace DeadlyJenga.CastlePrototype
                     if (!RouteEmoteLook(looking, walking.sqrMagnitude > .001f || pressed))
                         ApplyVRLook(looking,Time.deltaTime,bothControllers);
                 }
-                else if (Cursor.lockState == CursorLockMode.Locked)
+                else if (Cursor.lockState == CursorLockMode.Locked || DesktopGamepad.Current!=null)
                 {
                     var k = Keyboard.current; var m = Mouse.current;
-                    if (k != null)
+                    if (k != null && Cursor.lockState == CursorLockMode.Locked)
                     {
                         walking = new Vector2((k.dKey.isPressed ? 1 : 0) - (k.aKey.isPressed ? 1 : 0),
                             (k.wKey.isPressed ? 1 : 0) - (k.sKey.isPressed ? 1 : 0));
@@ -229,9 +229,13 @@ namespace DeadlyJenga.CastlePrototype
                         held=k.spaceKey.isPressed;
                         sprintInput=true;sprintClick=k.leftShiftKey.wasPressedThisFrame;sprintHeld=k.leftShiftKey.isPressed;
                     }
-                    if (!RouteEmoteLook(Vector2.zero, walking.sqrMagnitude > .001f || pressed) && m != null)
+                    walking=Vector2.ClampMagnitude(walking+DesktopGamepad.Move,1);
+                    pressed|=DesktopGamepad.JumpPressed;held|=DesktopGamepad.JumpHeld;
+                    sprintInput|=DesktopGamepad.Current!=null;sprintClick|=DesktopGamepad.SprintPressed;sprintHeld|=DesktopGamepad.SprintHeld;
+                    if (!RouteEmoteLook(DesktopGamepad.Look, walking.sqrMagnitude > .001f || pressed))
                     {
-                        Vector2 delta = m.delta.ReadValue() * mouseSensitivity;
+                        Vector2 delta = m!=null&&Cursor.lockState==CursorLockMode.Locked?m.delta.ReadValue()*mouseSensitivity:Vector2.zero;
+                        delta+=DesktopGamepad.Look*PlayerPrefs.GetFloat("DeadlyJenga.GamepadLookSpeed",180f)*Time.deltaTime;
                         transform.Rotate(0, delta.x, 0);
                         float invertLook = PlayerPrefs.GetInt("SurvivorVR.InvertLookY", 0) != 0 ? -1f : 1f;
                         pitch = Mathf.Clamp(pitch - delta.y * invertLook, -85, 85);

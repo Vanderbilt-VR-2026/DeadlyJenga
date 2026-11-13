@@ -139,8 +139,22 @@ namespace DeadlyJenga.Presentation
             string code = MultiplayerPanel.JoinCode(session.Multiplayer);
             roomCode.text = code.Length > 0 ? "JOIN CODE   " + code + (wasVr ? "" : "   ·   COPY") : "";
             var mouse = Mouse.current;
-            if (!wasVr && code.Length > 0 && mouse != null && mouse.leftButton.wasPressedThisFrame
-                && RectTransformUtility.RectangleContainsScreenPoint(roomCode.rectTransform, mouse.position.ReadValue()))
+            bool pad=MenuGamepad.UsingPointer;
+            Vector2 screen=pad?MenuGamepad.Position:mouse?.position.ReadValue()??Vector2.zero;
+            bool desktopPressed=pad?MenuGamepad.Pressed:mouse?.leftButton.wasPressedThisFrame==true;
+            if(!wasVr&&releaseResultsSelect)
+            {
+                desktopPressed=false;
+                if(!MenuGamepad.Held&&mouse?.leftButton.isPressed!=true)releaseResultsSelect=false;
+            }
+            if(MenuAim.InputConsumed)desktopPressed=false;
+            if(!wasVr&&pad&&RectTransformUtility.ScreenPointToLocalPointInRectangle((RectTransform)canvas.transform,screen,null,out var localPoint))
+            {
+                if(!resultsReticle)resultsReticle=MenuAim.CreateReticle(canvas.transform);
+                MenuGamepad.PresentPointer(resultsReticle,localPoint);
+            }
+            if (!wasVr && code.Length > 0 && desktopPressed
+                && RectTransformUtility.RectangleContainsScreenPoint(roomCode.rectTransform, screen))
                 GUIUtility.systemCopyBuffer = code;
             Ray ray=default;
             bool pressed=false,tracked=false;
@@ -164,7 +178,7 @@ namespace DeadlyJenga.Presentation
                 RaycastHit hit=default;
                 bool hovered = enabled && (wasVr
                     ? tracked && targets[i].Raycast(ray, out hit, 4)
-                    : mouse != null && RectTransformUtility.RectangleContainsScreenPoint(buttons[i].rectTransform, mouse.position.ReadValue()));
+                    : (pad||mouse!=null) && RectTransformUtility.RectangleContainsScreenPoint(buttons[i].rectTransform, screen));
                 buttons[i].color = !enabled ? new Color(.17f, .12f, .24f) : hovered ? new Color(.23f, .39f, .46f)
                     : i < 2 ? new Color(.19f, .25f, .36f) : new Color(.20f, .13f, .33f);
                 labels[i].color = enabled ? (i == 0 ? Mint : Color.white) : new Color(.69f, .65f, .76f);
@@ -175,9 +189,9 @@ namespace DeadlyJenga.Presentation
                     MenuAim.Present(resultsReticle,point,true,true);
                     MenuAim.PresentBeam(ref resultsBeam,transform,ray,point-ray.direction*.006f,true,true);
                 }
-                if (hovered && (wasVr ? pressed : mouse.leftButton.wasPressedThisFrame))
+                if (hovered && (wasVr ? pressed : desktopPressed))
                 {
-                    if(wasVr)MenuAim.Consume();
+                    MenuAim.Consume();
                     Act(i);
                     break;
                 }

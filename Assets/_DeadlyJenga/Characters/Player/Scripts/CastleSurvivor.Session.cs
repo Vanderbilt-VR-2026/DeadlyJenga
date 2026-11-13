@@ -14,9 +14,9 @@ namespace DeadlyJenga.CastlePrototype
         CandyTrackingSource handTracking;
         CandyTrackingSource HandTracking => handTracking ? handTracking : handTracking = GetComponent<CandyTrackingSource>();
         public bool HasHandTracking => HandTracking && HandTracking.HasHandTracking;
-        public bool MenuPressed => HandTracking && HandTracking.LeftMenuPressed;
-        public bool SelectPressed => HandTracking && HandTracking.MenuSelectPressed;
-        public bool SelectHeld => HandTracking && HandTracking.MenuSelectHeld;
+        public bool MenuPressed => !IsVR?DesktopGamepad.MenuPressed:HandTracking && HandTracking.LeftMenuPressed;
+        public bool SelectPressed => !IsVR?DesktopGamepad.SelectPressed:HandTracking && HandTracking.MenuSelectPressed;
+        public bool SelectHeld => !IsVR?DesktopGamepad.SelectHeld:HandTracking && HandTracking.MenuSelectHeld;
         public string StatusText => SprintRequested||Time.unscaledTime<sprintFeedbackUntil?SprintStatusText:ActionStatus;
         public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; UpdateSpectatorParticipation(); }
         public void Place(Vector3 position, Quaternion rotation) { Teleport(position, rotation); Revive(); }

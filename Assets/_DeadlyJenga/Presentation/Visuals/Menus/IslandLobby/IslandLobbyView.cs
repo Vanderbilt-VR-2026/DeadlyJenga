@@ -156,11 +156,11 @@ namespace DeadlyJenga.CastlePrototype
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             bool vr = Player.IsVR;
-            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld : mouse?.leftButton.isPressed==true;
+            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld : mouse?.leftButton.isPressed==true||Player.SelectHeld;
             bool held = pointerHeld || !vr && !lobby.CodeFocused && keyboard?.eKey.isPressed==true;
             if(terminalRequireRelease){if(!held)terminalRequireRelease=false;return;}
             bool pressed = vr ? Player.SelectPressed :
-                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true;
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true||Player.SelectPressed;
             int pointerDevice=0;
             Ray ray;
             if (Player.IsVR)
@@ -186,7 +186,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
             else
-                ray=session.MenuOpen&&mouse!=null?eye.ScreenPointToRay(mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+                ray=session.MenuOpen&&(mouse!=null||MenuGamepad.UsingPointer)?eye.ScreenPointToRay(MenuGamepad.UsingPointer?MenuGamepad.Position:mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
             if (spectatorWall && spectatorWall.FullScreen)
             {
                 if (pressed || keyboard?.escapeKey.wasPressedThisFrame == true)

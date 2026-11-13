@@ -7,14 +7,14 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleSurvivor : IMenuInputState
     {
-        public bool MenuHeld=>HandTracking&&HandTracking.LeftMenuHeld;
+        public bool MenuHeld=>!IsVR?DesktopGamepad.MenuHeld:HandTracking&&HandTracking.LeftMenuHeld;
         public bool MovementHeld
         {
             get
             {
                 if(externallyDriven)return false;
                 var keys=Keyboard.current;
-                if(!IsVR)return keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||
+                if(!IsVR)return DesktopGamepad.Moving||keys!=null&&(keys.wKey.isPressed||keys.aKey.isPressed||
                     keys.sKey.isPressed||keys.dKey.isPressed||keys.spaceKey.isPressed||keys.leftShiftKey.isPressed);
                 var equipment=GetComponent<CandyEquipment>();
                 if(equipment&&equipment.SuitMovementHeld)return true;

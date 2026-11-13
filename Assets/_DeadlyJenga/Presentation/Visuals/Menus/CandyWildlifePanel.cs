@@ -46,7 +46,7 @@ namespace DeadlyJenga.Presentation
             if(inputFocused&&Keyboard.current?.f6Key.wasPressedThisFrame==true){if(open)Close();else Open(session);}
             if(open&&(!session.MenuOpen||!NetworkActors.Alive(session.Player)||!session.Player.gameObject.activeInHierarchy||
                 MatchRuntime.Current?.Frame?.phase==RoundPhase.Results))Close();
-            if(inputFocused&&Keyboard.current?.escapeKey.wasPressedThisFrame==true&&open)Close();
+            if(inputFocused&&(Keyboard.current?.escapeKey.wasPressedThisFrame==true||MenuGamepad.Cancel)&&open)Close();
             if(!canvas&&open)Build();
             if(!canvas)return;
             canvas.gameObject.SetActive(open);
@@ -90,11 +90,14 @@ namespace DeadlyJenga.Presentation
             {
                 canvas.renderMode=RenderMode.ScreenSpaceOverlay;canvas.sortingOrder=1500;panel.localScale=Vector3.one;panel.anchoredPosition=Vector2.zero;panel.localRotation=Quaternion.identity;
                 var mouse=Mouse.current;
-                if(mouse==null)return;
-                bool pressed=selectReady&&!MenuAim.InputConsumed&&mouse.leftButton.wasPressedThisFrame;
-                if(!mouse.leftButton.isPressed)selectReady=true;
-                if(RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,mouse.position.ReadValue(),null,out var point))
+                if(mouse==null&&MenuGamepad.Current==null)return;
+                bool pad=MenuGamepad.UsingPointer;
+                bool pressed=selectReady&&!MenuAim.InputConsumed&&(pad?MenuGamepad.Pressed:mouse?.leftButton.wasPressedThisFrame==true);
+                if(!(pad?MenuGamepad.Held:mouse?.leftButton.isPressed==true))selectReady=true;
+                Vector2 screen=pad?MenuGamepad.Position:mouse.position.ReadValue();
+                if(RectTransformUtility.ScreenPointToLocalPointInRectangle(panel,screen,null,out var point))
                 {
+                    MenuGamepad.PresentPointer(aimDot,point);
                     for(int i=0;i<buttons.Count;i++)
                     {
                         var rect=(RectTransform)buttons[i].transform;bool hover=rect.rect.Contains(point-(Vector2)rect.localPosition);
