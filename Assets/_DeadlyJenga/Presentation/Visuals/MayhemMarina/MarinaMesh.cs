@@ -190,11 +190,30 @@ namespace DeadlyJenga.CandyArt.Marina
             var m=new Material(sandShader?sandShader:Shader.Find("Universal Render Pipeline/Lit"))
                 {name="Marina "+finish,enableInstancing=true};
             m.SetColor("_BaseColor",colors[(int)finish]);
-            if(sandShader)return m;
-            float gloss=finish>=MarinaFinish.CandyCream ? .81f:finish==MarinaFinish.Red||finish==MarinaFinish.Green||finish==MarinaFinish.Purple ? .69f:finish==MarinaFinish.Wood ? .36f:finish==MarinaFinish.Stone ? .29f:finish>=MarinaFinish.CreamFabric ? .19f:.38f;
+            if(sandShader)
+            {
+                m.SetFloat("_CatwalksCoast",1);
+                m.SetFloat("_CoastDayWater",1);
+                var grain=Resources.Load<Texture2D>("CandyScenery/CatwalksSandGrain");
+                var caustics=Resources.Load<Texture2D>("CandyScenery/CatwalksRefractedLight");
+                m.SetFloat("_CoastHasGrain",grain?1:0);
+                if(grain)m.SetTexture("_CoastSandGrain",grain);
+                if(caustics)m.SetTexture("_CoastCaustics",caustics);
+                return m;
+            }
+            float gloss=finish>=MarinaFinish.CandyCream ? .81f:finish==MarinaFinish.Red||finish==MarinaFinish.Green||finish==MarinaFinish.Purple ? .74f:finish==MarinaFinish.Wood ? .48f:finish==MarinaFinish.Stone ? .43f:finish>=MarinaFinish.CreamFabric ? .24f:.46f;
             m.SetFloat("_Smoothness",gloss);m.SetFloat("_Metallic",finish==MarinaFinish.Metal||finish==MarinaFinish.Brass ? .72f:.02f);
-            if(finish==MarinaFinish.Wood||finish==MarinaFinish.DarkWood)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaWood"));
-            if(finish==MarinaFinish.Stone||finish==MarinaFinish.Ivory)m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaStone"));
+            if(finish==MarinaFinish.Wood||finish==MarinaFinish.DarkWood)
+            {
+                m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaWood"));
+                m.SetTextureScale("_BaseMap",new Vector2(2.2f,1.35f));
+            }
+            if(finish==MarinaFinish.Stone||finish==MarinaFinish.Ivory)
+            {
+                m.SetTexture("_BaseMap",Resources.Load<Texture2D>("MayhemMarina/MarinaStone"));
+                m.SetTextureScale("_BaseMap",Vector2.one*(finish==MarinaFinish.Stone?2.4f:3.2f));
+                m.SetColor("_BaseColor",finish==MarinaFinish.Stone?new Color(1,.97f,.91f):new Color(1,.98f,.94f));
+            }
             if(finish>=MarinaFinish.CandyCream&&finish!=MarinaFinish.CandyGrape)
             {
                 m.EnableKeyword("_EMISSION");

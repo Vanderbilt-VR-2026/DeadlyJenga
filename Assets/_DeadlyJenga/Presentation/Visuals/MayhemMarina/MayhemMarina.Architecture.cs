@@ -441,12 +441,14 @@ namespace DeadlyJenga.CandyArt.Marina
         }
         void UpperTerraces()
         {
-            mesh.Box(new Vector3(-12,2.7f,17),new Vector3(13,2.6f,8),F.Ivory,.5f,true);
-            mesh.Box(new Vector3(-12,4.05f,17),new Vector3(13,.18f,8),F.Stone,.06f,true);
+            // Leave the entire stair flight open, including headroom below the top landing.
+            TerraceSection(-18.5f,-9.5f,13,21);
+            TerraceSection(-6.7f,-5.5f,13,21);
+            TerraceSection(-9.5f,-6.7f,18.4f,21);
             mesh.Box(new Vector3(-1,3.4f,18),new Vector3(10,1.1f,6),F.Ivory,.4f,true);
             mesh.Box(new Vector3(-1,4.05f,18),new Vector3(10,.18f,6),F.Stone,.06f,true);
-            Stairs(new Vector3(-8.0f,1.3f,9.5f),new Vector3(-8.0f,4.14f,16.5f),2.3f);
-            Ramp(new Vector3(8.2f,1.285f,9.55f),new Vector3(8.2f,4.03f,16.85f),2.4f,false);
+            Stairs(new Vector3(-8.1f,1.285f,11.5f),new Vector3(-8.1f,4.14f,18.4f),2.3f);
+            Ramp(new Vector3(7.6f,1.285f,10.35f),new Vector3(7.6f,4.03f,16.85f),2.4f);
             mesh.Box(new Vector3(8.3f,3.94f,17.75f),new Vector3(2.85f,.18f,1.85f),F.Wood,.025f,true);
             // A broad side ramp gives the upper gathering terrace a route without jumps.
             Ramp(new Vector3(-21.0f,1.28f,2.4f),new Vector3(-21.0f,4.14f,17.4f),2.5f);
@@ -460,6 +462,8 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<8;i++)mesh.Box(new Vector3(-12.1f,7.24f,14+i*.82f),new Vector3(11,.1f,.25f),F.Wood,.025f);
             Sofa(new Vector3(-14,4.15f,18.4f),4.3f,Quaternion.identity);Table(new Vector3(-14,4.15f,16.6f),1.1f);
             Rail(new Vector3(-18,4.15f,13.1f),new Vector3(-9.5f,4.15f,13.1f));
+            Rail(new Vector3(-9.5f,4.14f,13.1f),new Vector3(-9.5f,4.14f,18.25f));
+            Rail(new Vector3(-6.7f,4.14f,13.1f),new Vector3(-6.7f,4.14f,18.25f));
             Rail(new Vector3(-6.4f,4.15f,14),new Vector3(4.0f,4.15f,14));
             Rail(new Vector3(4.0f,4.15f,14),new Vector3(4.0f,4.15f,16.25f));
             Rail(new Vector3(4.0f,4.15f,19.65f),new Vector3(4.0f,4.15f,20.85f));
@@ -473,6 +477,14 @@ namespace DeadlyJenga.CandyArt.Marina
                 Target(new Vector3(x,5.2f,18.14f),.41f);
             }
             mesh.Box(new Vector3(14,4.8f,16.9f),new Vector3(8.4f,.18f,.8f),F.Wood,.08f,true);
+        }
+        void TerraceSection(float left,float right,float front,float back)
+        {
+            var center=new Vector3((left+right)*.5f,2.7f,(front+back)*.5f);
+            var size=new Vector3(right-left,2.6f,back-front);
+            mesh.Box(center,size,F.Ivory,.08f,true);
+            center.y=4.05f;size.y=.18f;
+            mesh.Box(center,size,F.Stone,.025f,true);
         }
         void Stairs(Vector3 from,Vector3 to,float width)
         {

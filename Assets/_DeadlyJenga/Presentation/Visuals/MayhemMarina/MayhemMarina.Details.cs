@@ -11,19 +11,26 @@ namespace DeadlyJenga.CandyArt.Marina
             for(int i=0;i<28;i++)
             {
                 float a=Mathf.Lerp(-106,117,i/27f)*Mathf.Deg2Rad;
-                Rock(new Vector3(Mathf.Sin(a)*24.0f,-.15f,4+Mathf.Cos(a)*21),new Vector3(1.4f+i%3*.38f,1.1f+i%2*.32f,1.6f),i+50,true);
+                var shore=new Vector3(Mathf.Sin(a)*24.0f,-.15f,4+Mathf.Cos(a)*21);
+                if(Mathf.Abs(shore.z-9.0f)<2.7f && Mathf.Abs(shore.x)>21)continue;
+                if(Mathf.Abs(shore.x-1.1f)<3.2f && shore.z>23)continue;
+                Rock(shore,new Vector3(1.4f+i%3*.38f,1.1f+i%2*.32f,1.6f),i+50,true);
             }
-            Palm(new Vector3(-20,1.3f,10),6.8f,.65f,0);Palm(new Vector3(-16,4.15f,19),5.2f,-.4f,1);
-            Palm(new Vector3(-20,4.15f,18.6f),6.1f,.45f,2);Palm(new Vector3(-10.5f,4.15f,21),4.7f,.5f,3);
-            Palm(new Vector3(6,4.15f,20),5.8f,-.5f,4);Palm(new Vector3(19.5f,1.3f,10),5.9f,-.5f,5);
+            Palm(new Vector3(-18.8f,1.285f,11.6f),6.8f,.65f,0);Palm(new Vector3(-16,4.14f,19.9f),5.2f,-.4f,1);
+            Palm(new Vector3(-20,4.14f,20.2f),6.1f,.45f,2);Palm(new Vector3(-10.8f,4.14f,20.2f),4.7f,.5f,3);
+            Palm(new Vector3(-3.7f,4.14f,19.9f),5.8f,-.5f,4);Palm(new Vector3(19.5f,1.285f,10),5.9f,-.5f,5);
             Palm(new Vector3(22,1.3f,3),5.3f,.6f,6);Palm(new Vector3(-22,1.3f,-1.5f),4.6f,-.4f,7);
-            Palm(new Vector3(-23,1.3f,16),5.7f,.45f,8);
-            Vector3[] pots={new(-16,1.3f,2),new(-18.5f,1.3f,12.8f),new(6.4f,1.3f,2),new(9.5f,1.3f,2),new(18.8f,1.3f,1.8f),new(-6.9f,4.15f,15),new(-18.3f,4.15f,14),new(2.5f,4.15f,20),new(-6,4.15f,20.5f)};
+            Palm(new Vector3(20.6f,1.25f,13.5f),5.7f,.45f,8);
+            Vector3[] pots={new(-16,1.285f,2.9f),new(-18.8f,1.25f,13.2f),new(5.8f,1.285f,3.1f),new(10.1f,1.285f,3.2f),new(18.8f,1.285f,2.5f),new(-5.9f,4.14f,15.6f),new(-17.5f,4.14f,14.1f),new(2.8f,4.14f,15.2f),new(-6,4.14f,20.2f)};
             for(int i=0;i<pots.Length;i++)Pot(pots[i],.45f+(i%3)*.07f,.72f+(i%2)*.12f,i+20);
             for(int i=0;i<18;i++)
             {
                 float a=Mathf.Lerp(-125,110,i/17f)*Mathf.Deg2Rad;
                 var p=new Vector3(Mathf.Sin(a)*21.2f,1.25f,4+Mathf.Cos(a)*18.7f);
+                // Leave clear approaches to the terrace ramp and all three beach ramps.
+                if(p.x < -19.3f && p.z < 19.0f) continue;
+                if(Mathf.Abs(p.x-1.1f)<2.1f && p.z>20) continue;
+                if(Mathf.Abs(p.z-9.0f)<2.0f && Mathf.Abs(p.x)>19) continue;
                 Shrub(p,.6f+(i%3)*.15f,i);
             }
             for(int i=0;i<5;i++)
