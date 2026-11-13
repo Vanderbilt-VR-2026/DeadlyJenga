@@ -8,7 +8,8 @@
         "DeadlyJenga.GameSession",
         "HandDemo.Runtime",
         "Unity.InputSystem",
-        "Unity.XR.CoreUtils"
+        "Unity.XR.CoreUtils",
+        "Fusion.Unity"
     ],
     "autoReferenced": false
 }
