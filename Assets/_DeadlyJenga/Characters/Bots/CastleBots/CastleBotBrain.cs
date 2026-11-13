@@ -90,7 +90,7 @@ namespace DeadlyJenga.CastleBots
         }
         void Update()
         {
-            if(!Motor||!Population)return;
+            if(!Motor||!Population||Population.Session==null)return;
             bool matchOwnsLife=Population.Session.lobbyWorld==null&&MatchRuntime.Current!=null;
             if(matchOwnsLife)
             {

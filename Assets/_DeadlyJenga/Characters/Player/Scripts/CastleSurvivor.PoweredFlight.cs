@@ -27,10 +27,12 @@ namespace DeadlyJenga.CastlePrototype
             bool nearGround=Grounded;
             Vaulting=false;support=null;Grounded=false;jumped=true;lastGrounded=-100;peakFallSpeed=0;
             hoverUntil=Time.time+Mathf.Max(.05f,Mathf.Min(seconds,.1f)*2);
-            hoverVelocity=Vector3.MoveTowards(hoverVelocity,Vector3.ClampMagnitude(Vector3.ProjectOnPlane(velocity,Vector3.up),7*playerScale),20*seconds);
-            hoverVertical=takeoff?3*playerScale:Mathf.MoveTowards(hoverVertical,Mathf.Clamp(velocity.y,-3,4)*playerScale,12*seconds);
+            float maxSpeed=(SprintRequested?14f:7f)*playerScale;
+            hoverVelocity=Vector3.MoveTowards(hoverVelocity,Vector3.ClampMagnitude(Vector3.ProjectOnPlane(velocity,Vector3.up),maxSpeed),(SprintRequested?30:20)*seconds);
+            float maxVert=SprintRequested?7f:4f;
+            hoverVertical=takeoff?3*playerScale:Mathf.MoveTowards(hoverVertical,Mathf.Clamp(velocity.y,-5,maxVert)*playerScale,(SprintRequested?18:12)*seconds);
             if(nearGround)hoverVertical=Mathf.Max(hoverVertical,1.5f*playerScale);
-            slopeVelocity=hoverVelocity;verticalSpeed=hoverVertical;ActionStatus="Suit hover flight";
+            slopeVelocity=hoverVelocity;verticalSpeed=hoverVertical;ActionStatus=SprintRequested?"Suit supersonic flight":"Suit hover flight";
         }
         internal void ClearHoverFlight()
         {

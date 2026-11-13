@@ -85,12 +85,15 @@ namespace DeadlyJenga.CandyPlayers
                 (keyboard?.dKey.isPressed==true?1:0)-(keyboard?.aKey.isPressed==true?1:0),
                 (keyboard?.wKey.isPressed==true?1:0)-(keyboard?.sKey.isPressed==true?1:0));
             float magnitude=Mathf.InverseLerp(vr?SuitMoveDeadzone:0f,1f,move.magnitude);
+            bool sprinting=motor.SprintRequested||keyboard?.leftShiftKey.isPressed==true;
+            float speedMult=sprinting?2.1f:1f;
             var forward=motor.MovementForward;
             var right=Vector3.Cross(Vector3.up,forward);
-            var horizontal=(right*move.normalized.x+forward*move.normalized.y)*(5f*magnitude);
+            var horizontal=(right*move.normalized.x+forward*move.normalized.y)*(5f*speedMult*magnitude);
             float lift=vr?Axis("trigger")-Axis("grip"):
                 (keyboard?.eKey.isPressed==true?1:0)-(keyboard?.qKey.isPressed==true?1:0);
-            float climb=Mathf.Sign(lift)*Mathf.InverseLerp(SuitLiftDeadzone,1f,Mathf.Abs(lift))*(lift>=0?3.5f:3f);
+            float climbSpeed=lift>=0?(sprinting?6f:3.5f):(sprinting?4.5f:3f);
+            float climb=Mathf.Sign(lift)*Mathf.InverseLerp(SuitLiftDeadzone,1f,Mathf.Abs(lift))*climbSpeed;
             motor.ApplyHoverFlight(horizontal+Vector3.up*climb,Time.deltaTime,Time.time<suitTakeoffUntil);
 
             var shootHand=avatar.tracking?avatar.tracking.WorldHand(SuitShootingLeft):default;

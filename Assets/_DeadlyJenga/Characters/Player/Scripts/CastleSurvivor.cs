@@ -42,8 +42,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         const float SprintMultiplier=2.1f;
         XRController sprintController;
+        float sprintStuckTimer;
         public bool Sprinting {get;private set;}
-        void ClearSprint(){SprintRequested=false;Sprinting=false;sprintToggleArmed=false;sprintFeedbackUntil=0;}
+        void ClearSprint(){SprintRequested=false;Sprinting=false;sprintToggleArmed=false;sprintFeedbackUntil=0;sprintStuckTimer=0;}
         [HideInInspector] public bool externallyDriven;
         public DeadlyJenga.CastleBots.ICastleSurvivorDriver InputDriver { get; set; }
         public bool IsVR { get; private set; }
@@ -114,13 +115,15 @@ namespace DeadlyJenga.CastlePrototype
 
         public void RefreshMode()
         {
+            int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
+            var effectiveMode = pref == 1 ? ControlMode.Desktop : pref == 2 ? ControlMode.VR : controlMode;
             bool running = false;
-            if(!externallyDriven&&controlMode==ControlMode.Auto)
+            if(!externallyDriven&&effectiveMode==ControlMode.Auto)
             {
                 UnityEngine.SubsystemManager.GetSubsystems(displays);
                 running=displays.Exists(d=>d.running);
             }
-            bool vr = !externallyDriven && (controlMode == ControlMode.VR || (controlMode == ControlMode.Auto && running));
+            bool vr = !externallyDriven && (effectiveMode == ControlMode.VR || (effectiveMode == ControlMode.Auto && running));
             playerScale = Mathf.Clamp(playerScale,.1f,2f);
             if (modeReady && vr == IsVR && Mathf.Approximately(appliedScale,playerScale)) return;
             bool wasVR=IsVR;modeReady = true; IsVR = vr;
@@ -239,7 +242,7 @@ namespace DeadlyJenga.CastlePrototype
             var equipped=equipmentControls?.Equipment;
             bool flyingSuit=!externallyDriven&&equipped?.kind==EquipmentKind.PoweredArmor&&equipped.drawn;
             if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}
-            UpdateSprintToggle(sprintInput&&!flyingSuit&&Alive&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
+            UpdateSprintToggle(sprintInput&&Alive&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
                 sprintClick,sprintHeld);
             UpdatePunch();
             Simulate(walking, pressed, Time.deltaTime,held);
@@ -311,6 +314,11 @@ namespace DeadlyJenga.CastlePrototype
                 else if ((Sinking || !Grounded && Time.time - airborneSince > .06f) && TryStartVault()) return;
                 else ActionStatus = "No reachable ledge — no double jump";
             }
+            if (SprintRequested && !SprintHold && Time.time >= hoverUntil && Grounded)
+            {
+                if (input.sqrMagnitude < .04f || input.y < .08f)
+                    ClearSprint();
+            }
             Sprinting=CanSprint(input);
             Vector3 forward = MovementForward;
             Vector3 right = Vector3.Cross(Vector3.up, forward);
@@ -347,7 +355,16 @@ namespace DeadlyJenga.CastlePrototype
             if(verticalSpeed < -fallLimit)verticalSpeed=-fallLimit;
             if(!float.IsPositiveInfinity(fallLimit))peakFallSpeed=Mathf.Min(peakFallSpeed,fallLimit);
             float fall = verticalSpeed * dt - .5f * effectiveGravity * dt * dt;
+            Vector3 preMovePos = transform.position;
             var flags = Capsule.Move((movement+slopeVelocity)*dt + Vector3.up * fall);
+            Vector3 actualMoved = transform.position - preMovePos; actualMoved.y = 0;
+            float actualSpeed = actualMoved.magnitude / Mathf.Max(dt, .0001f);
+            if (Grounded && Sprinting && input.y > .3f && actualSpeed < .4f && movement.sqrMagnitude > 1f && Time.time >= hoverUntil)
+            {
+                sprintStuckTimer += dt;
+                if (sprintStuckTimer > .35f) { ClearSprint(); sprintStuckTimer = 0; }
+            }
+            else sprintStuckTimer = 0;
             verticalSpeed = Mathf.Max(-fallLimit,verticalSpeed-effectiveGravity*dt);
             if ((flags & CollisionFlags.Above) != 0 && verticalSpeed > 0) verticalSpeed = 0;
             if ((flags & CollisionFlags.Below) != 0 && verticalSpeed < 0) verticalSpeed = -1;

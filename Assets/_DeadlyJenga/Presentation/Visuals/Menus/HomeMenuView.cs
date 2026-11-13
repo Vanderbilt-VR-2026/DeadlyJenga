@@ -47,7 +47,12 @@ namespace DeadlyJenga.Presentation
         static void Attach(GameObject root)
         {
             var controls = root.GetComponent<IHomeMenuControls>();
-            if (controls != null) root.AddComponent<HomeMenuView>().Build(controls, XRSettings.isDeviceActive);
+            if (controls != null)
+            {
+                int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
+                bool useVr = pref == 1 ? false : pref == 2 ? true : XRSettings.isDeviceActive;
+                root.AddComponent<HomeMenuView>().Build(controls, useVr);
+            }
         }
         void Build(IHomeMenuControls source, bool useVr)
         {
@@ -102,6 +107,7 @@ namespace DeadlyJenga.Presentation
             BuildQuickPlay();
             joinPage=Node("Join a session",content,new Vector2(0,-65),new Vector2(620,520)).gameObject;
             BuildJoin();ShowPage(entryPage);
+            BuildInputModeToggle(content, new Vector2(0, -360), new Vector2(580, 52));
             status=Label(content,"",new Vector2(0,-450),new Vector2(580,65),22,new Color(.85f,.83f,.95f));
             Label(frame,"PHYSICS. FRIENDS. PURE MAYHEM.",new Vector2(425,-470),new Vector2(900,50),23,Color.white);
             ButtonAt(frame,"CONTROLS / LEFT OR RIGHT HAND",new Vector2(285,448),new Vector2(570,70),()=>CandyComfortPanel.OpenHome(gameObject,eye,vr));
@@ -116,7 +122,7 @@ namespace DeadlyJenga.Presentation
             rightPointSelect=MenuAim.SelectAction("Home right select",false);
             leftPointSelect.Enable();
             rightPointSelect.Enable();
-            pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(vr);
+            pointer=Node("XR pointer",frame,Vector2.zero,new Vector2(14,14));pointer.gameObject.AddComponent<Image>().color=new Color(.45f,1,.8f);pointer.gameObject.SetActive(true);
             SetSlide();
         }
         void ShowPage(GameObject page)
@@ -220,7 +226,7 @@ namespace DeadlyJenga.Presentation
             if(Keyboard.current?.escapeKey.wasPressedThisFrame==true&&!controls.Busy&&!entryPage.activeSelf)
                 ShowPage(mainPage.activeSelf?entryPage:mainPage);
             if(Keyboard.current?.enterKey.wasPressedThisFrame==true&&joinPage.activeSelf&&!controls.Busy&&controls.CodeValid)controls.JoinCode();
-            if(vr && recenterFrames==0)Point();
+            if(recenterFrames==0)Point();
         }
         void AnimateSlideshow(float delta)
         {
@@ -304,22 +310,43 @@ namespace DeadlyJenga.Presentation
         void Point()
         {
             if(!eye||MenuAim.InputConsumed)return;
-            bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
-            var ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out bool pressed,out bool tracked);
-            var plane=new Plane(frame.forward,frame.position);
-            if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){ClearHomeAim();return;}
-            pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
             Button target=null;
-            foreach(var button in buttons)
+            bool pressed=false;
+            if(vr)
             {
-                if(!button.gameObject.activeInHierarchy||!button.interactable)continue;
-                var rect=(RectTransform)button.transform;var local=rect.InverseTransformPoint(pointer.position);
-                if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
+                bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
+                var ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out pressed,out bool tracked);
+                var plane=new Plane(frame.forward,frame.position);
+                if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){ClearHomeAim();return;}
+                pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
+                foreach(var button in buttons)
+                {
+                    if(!button.gameObject.activeInHierarchy||!button.interactable)continue;
+                    var rect=(RectTransform)button.transform;var local=rect.InverseTransformPoint(pointer.position);
+                    if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
+                }
+                MenuAim.PresentBeam(ref homeAimBeam, transform, ray, pointer.position-ray.direction*.015f, tracked, target);
+                if(!selectReady){if(!leftPointSelect.IsPressed()&&!rightPointSelect.IsPressed())selectReady=true;return;}
+            }
+            else
+            {
+                var mouse=Mouse.current;
+                if(mouse==null){ClearHomeAim();return;}
+                Vector2 mouseScreen=mouse.position.ReadValue();
+                if(!RectTransformUtility.ScreenPointToLocalPointInRectangle(frame,mouseScreen,null,out var localPos)){ClearHomeAim();return;}
+                pointer.gameObject.SetActive(true);
+                pointer.anchoredPosition=localPos;
+                foreach(var button in buttons)
+                {
+                    if(!button.gameObject.activeInHierarchy||!button.interactable)continue;
+                    var rect=(RectTransform)button.transform;
+                    if(RectTransformUtility.RectangleContainsScreenPoint(rect,mouseScreen,null)){target=button;break;}
+                }
+                pressed=mouse.leftButton.wasPressedThisFrame;
             }
             pointer.SetAsLastSibling();
             pointer.GetComponent<Image>().color=target?Color.white:new Color(.45f,1,.8f);
             pointer.sizeDelta=Vector2.one*(target?24:14);
-            MenuAim.PresentBeam(ref homeAimBeam, transform, ray, pointer.position-ray.direction*.015f, tracked, target);
             if(target!=gazeFocus)
             {
                 if(gazeFocus)
@@ -338,7 +365,6 @@ namespace DeadlyJenga.Presentation
                 }
                 gazeFocus=target;
             }
-            if(!selectReady){if(!leftPointSelect.IsPressed()&&!rightPointSelect.IsPressed())selectReady=true;return;}
             if(target&&pressed){selectReady=false;MenuAim.Consume();target.onClick.Invoke();}
         }
         void SetSlide()
@@ -377,6 +403,47 @@ namespace DeadlyJenga.Presentation
             var button=ButtonAt(parent,title,new Vector2(0,y),new Vector2(620,120),action);
             var text=button.GetComponentInChildren<Text>();text.alignment=TextAnchor.UpperLeft;text.fontSize=35;text.rectTransform.anchoredPosition=new Vector2(9,-12);
             Label(button.transform,subtitle,new Vector2(10,-30),new Vector2(580,48),21,new Color(.82f,.8f,.92f));
+        }
+        Button inputModeButton;
+        Text inputModeText;
+        const string ControlModePrefKey = "DeadlyJenga.PreferredControlMode";
+        void BuildInputModeToggle(Transform parent, Vector2 position, Vector2 size)
+        {
+            var rect = Node("Input mode toggle", parent, position, size);
+            var image = rect.gameObject.AddComponent<Image>();
+            image.color = new Color(.16f, .10f, .26f, .88f);
+            inputModeButton = rect.gameObject.AddComponent<Button>();
+            inputModeButton.targetGraphic = image;
+            var colors = inputModeButton.colors;
+            colors.highlightedColor = new Color(.30f, .22f, .46f, .95f);
+            colors.pressedColor = new Color(.45f, .34f, .65f, 1f);
+            inputModeButton.colors = colors;
+            inputModeText = Label(rect, "", Vector2.zero, size - new Vector2(24, 0), 20, new Color(.78f, .74f, .92f));
+            inputModeText.alignment = TextAnchor.MiddleCenter;
+            inputModeText.supportRichText = true;
+            inputModeButton.onClick.AddListener(CycleInputMode);
+            buttons.Add(inputModeButton);
+            UpdateInputModeText();
+        }
+        void CycleInputMode()
+        {
+            int current = PlayerPrefs.GetInt(ControlModePrefKey, 0);
+            int next = (current + 1) % 3;
+            PlayerPrefs.SetInt(ControlModePrefKey, next);
+            PlayerPrefs.Save();
+            UpdateInputModeText();
+        }
+        void UpdateInputModeText()
+        {
+            int mode = PlayerPrefs.GetInt(ControlModePrefKey, 0);
+            string modeLabel = mode switch
+            {
+                1 => "<color=#52ffc6>PC / DESKTOP</color>  (Keyboard & Mouse)",
+                2 => "<color=#ffa87d>XR SIMULATION</color>  (VR / Headset)",
+                _ => "<color=#d5c8ff>AUTO-DETECT</color>  (Device If Present)"
+            };
+            if (inputModeText)
+                inputModeText.text = "<size=17><color=#8d82aa>INPUT MODE · </color></size>" + modeLabel + "  <size=17><color=#8d82aa>›</color></size>";
         }
         void OnApplicationFocus(bool focused){inputFocused=focused;if(!focused){selectReady=false;if(pointer)pointer.gameObject.SetActive(false);}}
         void OnDestroy()

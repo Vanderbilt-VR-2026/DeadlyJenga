@@ -205,8 +205,8 @@ namespace DeadlyJenga.CastleBots
         public float ThreatCost(Vector3 point)
         {
             using var measurement = DJBotThreatMarker.Auto();
-            float cost=BotHazardRisk.Cost(point)+(Session.HandBots?Session.HandBots.ThreatCost(point):0);
-            if(Session.PlayingHand&&Session.Hand.gameObject.activeInHierarchy)
+            float cost=BotHazardRisk.Cost(point)+(Session!=null&&Session.HandBots?Session.HandBots.ThreatCost(point):0);
+            if(Session!=null&&Session.PlayingHand&&Session.Hand.gameObject.activeInHierarchy)
             {
                 Vector3 position=handBridge&&handBridge.PhysicalHand&&handBridge.PhysicalHand.IsInteractive?handBridge.PhysicalHand.bodies[0].position:Session.Hand.motor.transform.position;
                 cost+=Mathf.Max(0,7-Vector3.Distance(point,position))*.5f;

@@ -83,9 +83,9 @@ namespace DeadlyJenga.CastlePrototype
         bool trackedLobbyPointer;
         void DrawLobbyAim(Ray ray,float distance,bool hit,bool actionable=true)
         {
-            if(!Player.IsVR||!trackedLobbyPointer||!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
+            if(!hit){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);if(lobbyAimBeam)lobbyAimBeam.enabled=false;return;}
             MenuAim.PresentBeam(ref lobbyAimBeam, transform, ray, ray.GetPoint(distance-.015f),
-                trackedLobbyPointer && distance > .03f && hit, actionable);
+                Player.IsVR && trackedLobbyPointer && distance > .03f && hit, actionable);
             if(!lobbyAimCanvas)
             {
                 var root=new GameObject("Lobby terminal reticle",typeof(RectTransform),typeof(Canvas));
@@ -286,7 +286,26 @@ namespace DeadlyJenga.CastlePrototype
                 if(nearest.slide!=null&&(nearest.slideEnabled?.Invoke()??true)&&(pressed||held)){var rect=(RectTransform)nearest.button.transform;nearest.slide(Mathf.InverseLerp(-rect.rect.width*.5f,rect.rect.width*.5f,rect.InverseTransformPoint(selectionPoint).x));}
                 else if(pressed)InvokeChoice(nearest.id,pointerDevice);
             }
-            DrawLobbyAim(ray,distance,nearest!=null,actionable);
+            bool hitStation = nearest != null;
+            if (!hitStation)
+            {
+                RectTransform[] stations = { hostStation, setupStation, joinStation, wardrobePanel, piano };
+                foreach (var station in stations)
+                {
+                    if (station && station.gameObject.activeInHierarchy &&
+                        MenuAim.TryPoint(ray, station, distance, out _, out var stationPoint))
+                    {
+                        float depth = Vector3.Distance(ray.origin, stationPoint);
+                        if (depth < distance)
+                        {
+                            distance = depth;
+                            selectionPoint = stationPoint;
+                            hitStation = true;
+                        }
+                    }
+                }
+            }
+            DrawLobbyAim(ray,distance,hitStation,actionable);
         }
         void OnGUI()
         {

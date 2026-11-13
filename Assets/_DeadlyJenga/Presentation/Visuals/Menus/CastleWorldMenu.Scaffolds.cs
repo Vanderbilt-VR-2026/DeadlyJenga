@@ -47,6 +47,16 @@ namespace DeadlyJenga.CastlePrototype
         {
             for(int i=0;i<mapThumbnails.Length;i++){mapThumbnails[i].gameObject.SetActive(false);labels[i].rectTransform.sizeDelta=new Vector2(472,46);labels[i].rectTransform.anchoredPosition=new Vector2(20,0);}
             if(DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session))return true;
+            bool detailPage=disasterPage||mapPage||spectatePage||giveEquipmentPage||randomPowerupPage||powerupPage||tabletopPage||hudPage||modePage||comfortPage||tuningPage||tabletDeveloperDetails;
+            wildlifeButton.gameObject.SetActive(!detailPage);
+            inspectionButton.gameObject.SetActive(!detailPage&&DemoMode);
+            var review=MatchRuntime.Current as IMatchReviewControls;bool endVisible=review?.DevelopmentReviewEnabled==true;
+            endButton.gameObject.SetActive(!detailPage&&endVisible);
+            exitButton.gameObject.SetActive(!detailPage);
+            mapButton.gameObject.SetActive(!detailPage);
+            spectateButton.gameObject.SetActive(!detailPage);
+            if(connectionTile)connectionTile.gameObject.SetActive(!detailPage);
+            if(detailPage)return false;
             var ray=pointerRay;
             bool wildlifeHover=Hit(wildlifeTarget,ray);
             wildlifeButton.image.color=wildlifeHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
@@ -56,7 +66,7 @@ namespace DeadlyJenga.CastlePrototype
             bool inspectHover=DemoMode&&canInspect&&Hit(inspectionTarget,ray);
             inspectionButton.image.color=inspectHover?CandyHudVisuals.Mint:canInspect?CandyHudVisuals.Lavender:CandyHudVisuals.Card;
             if(pressed&&inspectHover){inspection.Begin();return true;}
-            var review=MatchRuntime.Current as IMatchReviewControls;bool endVisible=review?.DevelopmentReviewEnabled==true;
+            review=MatchRuntime.Current as IMatchReviewControls;endVisible=review?.DevelopmentReviewEnabled==true;
             endLabel.text=MultiplayerPanel.EndAction(session.Multiplayer);
             endButton.gameObject.SetActive(endVisible);endTarget.enabled=endVisible&&review.CanEndGame;
             bool endHover=endVisible&&review.CanEndGame&&Hit(endTarget,ray);

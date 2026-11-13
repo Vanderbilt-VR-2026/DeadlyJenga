@@ -92,6 +92,7 @@ namespace DeadlyJenga.CandyPlayers
                 levels[level] = next;
             }
             if (next == current) return current;
+            if (properties == null) properties = new MaterialPropertyBlock();
             // Each renderer keeps one vertex layout for its entire lifetime.
             current.GetPropertyBlock(properties);
             next.SetPropertyBlock(properties);

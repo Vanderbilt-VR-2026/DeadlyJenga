@@ -40,20 +40,21 @@ namespace DeadlyJenga.CastlePrototype
             bool allowed=CanCommand;int switchParameter=-1;
             foreach(var button in buttons)button.gameObject.SetActive(false);
             void ButtonAt(int i,string text,float y,bool enabled=true)
-            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(540,48);}
-            ButtonAt(0,"Resume",277);
+            {buttons[i].gameObject.SetActive(true);labels[i].text=text;targets[i].enabled=enabled;var r=(RectTransform)buttons[i].transform;r.anchoredPosition=new Vector2(0,y);r.sizeDelta=new Vector2(480,44);targets[i].size=new Vector3(480,44,4);}
             {
                 var definitions=Demo.DisasterParameters(disasterSelection);var values=Demo.DisasterValues(disasterSelection);
-                heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\nSettings apply to the next launch";
-                ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",220,allowed);
+                heading.text=Demo.DisasterLabel(disasterSelection).ToUpperInvariant()+"\n<size=17><color=#d0b8d8>Settings apply to the next launch</color></size>";
+                heading.rectTransform.anchoredPosition=new Vector2(0,318);
+                heading.fontSize=22;
+                ButtonAt(1,Demo.DisasterIsToggle(disasterSelection)?"Toggle on / off":"Launch disaster",260,allowed);
                 for(int i=0;i<definitions.Count&&i<8;i++)
                 {
                     if(definitions[i].whole&&definitions[i].min==0&&definitions[i].max==1)
-                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),158-i*60,allowed);continue;}
+                    {switchParameter=i;ButtonAt(11,definitions[i].label+" · "+(values[i]>.5f?"ON":"OFF"),195-i*54,allowed);continue;}
                     var slider=disasterSliders[i];var p=definitions[i];syncingDisasterSliders=true;slider.minValue=p.min;slider.maxValue=p.max;slider.wholeNumbers=p.whole;slider.SetValueWithoutNotify(values[i]);syncingDisasterSliders=false;
-                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,158-i*60);UpdateCaption(i,disasterSelection);
+                    slider.interactable=allowed;slider.gameObject.SetActive(true);((RectTransform)slider.transform).anchoredPosition=new Vector2(0,195-i*54);UpdateCaption(i,disasterSelection);
                 }
-                ButtonAt(10,"Stop all disasters",-355,allowed);ButtonAt(12,"Back to disasters",-415);
+                ButtonAt(10,"Stop all disasters",-160,allowed);ButtonAt(12,"Back to disasters",-218);
             }
             
             var ray=pointerRay;

@@ -165,8 +165,10 @@ namespace DeadlyJenga.Presentation
                 beam.endWidth = .003f;
                 beam.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 beam.receiveShadows = false;
+                beam.sortingOrder = 550;
             }
             beam.enabled = true;
+            beam.sortingOrder = 550;
             beamColor ??= new MaterialPropertyBlock();
             beamColor.SetColor(BaseColor, actionable ? CandyHudVisuals.Mint : Color.white);
             beam.SetPropertyBlock(beamColor);

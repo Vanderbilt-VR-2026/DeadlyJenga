@@ -35,20 +35,20 @@ namespace DeadlyJenga.CastlePrototype
             for(int i=0;i<tabButtons.Length;i++)
             {
                 tabButtons[i]=HeaderButton(DemoMenuSections.Tabs[i],0,out tabTargets[i]);
-                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,508),new Vector2(216,76),30);
+                SizeNavigation(tabButtons[i],tabTargets[i],new Vector2(-345+i*230,490),new Vector2(216,62),26);
                 tabLabels[i]=tabButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
                 tabLabels[i].supportRichText=true;tabLabels[i].resizeTextForBestFit=false;tabLabels[i].lineSpacing=.85f;
-                tabLabels[i].text=DemoMenuSections.Tabs[i]+"\n<size=22>"+DemoMenuSections.TabDescriptions[i]+"</size>";
+                tabLabels[i].text=DemoMenuSections.Tabs[i]+"\n<size=20>"+DemoMenuSections.TabDescriptions[i]+"</size>";
             }
             backButton=HeaderButton("Back",0,out backTarget);homeButton=HeaderButton("Demo Home",0,out homeTarget);
-            SizeNavigation(backButton,backTarget,new Vector2(-345,440),new Vector2(210,52),26);
-            SizeNavigation(homeButton,homeTarget,new Vector2(-115,440),new Vector2(210,52),26);
-            navigationPath=Text("",new Vector2(235,440),new Vector2(430,58),26);
-            sectionTitle=Text("SECTIONS",new Vector2(-350,378),new Vector2(210,38),20);sectionTitle.color=CandyHudVisuals.Muted;
+            SizeNavigation(backButton,backTarget,new Vector2(-345,425),new Vector2(210,46),22);
+            SizeNavigation(homeButton,homeTarget,new Vector2(-115,425),new Vector2(210,46),22);
+            navigationPath=Text("",new Vector2(235,425),new Vector2(430,46),22);
+            sectionTitle=Text("SECTIONS",new Vector2(-350,365),new Vector2(210,32),18);sectionTitle.color=CandyHudVisuals.Muted;
             for(int i=0;i<sectionButtons.Length;i++)
             {
                 sectionButtons[i]=HeaderButton("",0,out sectionTargets[i]);
-                SizeNavigation(sectionButtons[i],sectionTargets[i],new Vector2(-350,320-i*70),new Vector2(210,60),24);
+                SizeNavigation(sectionButtons[i],sectionTargets[i],new Vector2(-350,315-i*58),new Vector2(210,50),21);
                 sectionLabels[i]=sectionButtons[i].GetComponentInChildren<UnityEngine.UI.Text>();
             }
         }
@@ -115,8 +115,27 @@ namespace DeadlyJenga.CastlePrototype
             homeButton.image.color=home?CandyHudVisuals.Mint:homeTarget.enabled?CandyHudVisuals.Lavender:CandyHudVisuals.Card;
             homeButton.GetComponentInChildren<UnityEngine.UI.Text>().color=homeTarget.enabled?CandyHudVisuals.Ink:CandyHudVisuals.Muted;
             if(!pressed)return false;
-            if(home){ResetPages();menuCategory=menuSection=-1;return true;}
+            if(home)
+            {
+                if(tabletDeveloperDetails)
+                {
+                    tabletDeveloperDetails=false;
+                    legacyDeveloper.gameObject.SetActive(false);
+                    if(tabletNav)tabletNav.gameObject.SetActive(true);
+                    tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
+                    return true;
+                }
+                ResetPages();menuCategory=menuSection=-1;return true;
+            }
             if(!back)return false;
+            if(tabletDeveloperDetails&&disasterSelection<0&&menuSection<0)
+            {
+                tabletDeveloperDetails=false;
+                legacyDeveloper.gameObject.SetActive(false);
+                if(tabletNav)tabletNav.gameObject.SetActive(true);
+                tabletPages[(int)TabletPage.Developer].gameObject.SetActive(true);
+                return true;
+            }
             if(AtHome){session.SetMenu(false);return true;}
             if(disasterPage&&disasterSelection>=0){disasterSelection=-1;return true;}
             if(batchPage&&batchTarget>0){batchTarget=0;return true;}
