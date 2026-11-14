@@ -10,6 +10,10 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class IslandLobbyView
     {
         const float StationY = 1.95f, StationZ = 1f, StationScale = .0022f;
+        // MAP + MODE is as wide as the projector screen it is shown on (about 6.4 x 2.95 m).
+        const float SetupWidth = 1900, SetupHeight = 880;
+        // JOIN and HOST fill the 1.69 x 1.55 m cabinet projector screens.
+        const float CabinetHeight = 917;
         RectTransform joinStation,hostStation,setupStation;
         LobbyTerminalFaces joinFace,setupFace;
         Text joinHint,hostHint,setupHint,hostCode;
@@ -35,8 +39,9 @@ namespace DeadlyJenga.CastlePrototype
             BuildRoomStation();
             BuildLobbyPortrait();
             BuildGameStation();
-            FitTerminal(hostStation,new Vector2(1000,800),1.20f,.84f);
-            FitTerminal(setupStation,new Vector2(1100,820),1.22f,.74f);
+            FitTerminal(hostStation,new Vector2(1000,CabinetHeight),1.20f,.84f*CabinetHeight/800f);
+            FitTerminal(joinStation,new Vector2(1000,CabinetHeight),1f,CabinetHeight/760f);
+            FitTerminal(setupStation,new Vector2(SetupWidth,SetupHeight),1.22f,.80f);
             BuildControlCabinet(hostStation,false);
             BuildControlCabinet(setupStation,true);
         }        void UpdateStations()

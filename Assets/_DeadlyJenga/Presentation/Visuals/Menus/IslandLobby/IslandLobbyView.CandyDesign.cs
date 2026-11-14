@@ -32,7 +32,7 @@ namespace DeadlyJenga.CastlePrototype
             BuildCandyAtlas();
             candyJoinContent=CandyContent(joinStation,CandyLavender,out var joinHeading);joinHeading.text="JOIN A GAME";
             candyHostContent=CandyContent(hostStation,CandyMint,out var hostHeading);hostHeading.text="HOST YOUR GAME";
-            candySetupContent=CandyContent(setupStation,CandyPeach,out candySetupHeading);
+            candySetupContent=CandyContent(setupStation,CandyPeach,out candySetupHeading,SetupWidth);
             foreach(var choice in choices)
                 if(!choice.physical&&(choice.button.transform.IsChildOf(joinStation)||choice.button.transform.IsChildOf(hostStation)||choice.button.transform.IsChildOf(setupStation)))
                     CandyStyle(choice);
@@ -44,24 +44,24 @@ namespace DeadlyJenga.CastlePrototype
             }
             UpdateCandyDesign();
         }
-        RectTransform CandyContent(RectTransform screen,Color accent,out Text heading)
+        RectTransform CandyContent(RectTransform screen,Color accent,out Text heading,float width=1100)
         {
             var children=screen.Cast<Transform>().OfType<RectTransform>().ToArray();
             heading=children.Select(c=>c.GetComponent<Text>()).FirstOrDefault(t=>t);
             var content=new GameObject("Candy Arcade content",typeof(RectTransform)).GetComponent<RectTransform>();
-            content.SetParent(screen,false);content.sizeDelta=new Vector2(1100,880);
-            content.localScale=new Vector3(screen.rect.width/1100f,screen.rect.height/880f,1);
+            content.SetParent(screen,false);content.sizeDelta=new Vector2(width,880);
+            content.localScale=new Vector3(screen.rect.width/width,screen.rect.height/880f,1);
             foreach(var child in children)child.SetParent(content,false);
             screen.GetComponent<Image>().sprite=candyFaceSprite;screen.GetComponent<Image>().color=CandyInk;
             CandyRim(screen,new Color(.56f,.43f,.72f,.8f));
             if(heading)
             {
-                heading.name="Terminal heading";heading.rectTransform.anchoredPosition=new Vector2(0,365);heading.rectTransform.sizeDelta=new Vector2(1020,80);
-                heading.fontSize=64;heading.resizeTextMaxSize=64;heading.resizeTextMinSize=42;heading.fontStyle=FontStyle.Bold;heading.color=CandyCream;
+                heading.name="Terminal heading";heading.rectTransform.anchoredPosition=new Vector2(0,365);heading.rectTransform.sizeDelta=new Vector2(width-80,80);
+                heading.fontSize=width>1100?72:64;heading.resizeTextMaxSize=heading.fontSize;heading.resizeTextMinSize=42;heading.fontStyle=FontStyle.Bold;heading.color=CandyCream;
                 var shadow=heading.gameObject.AddComponent<Shadow>();shadow.effectColor=new Color(0,0,0,.6f);shadow.effectDistance=new Vector2(0,-3);
             }
             var stripe=content.Find("Candy accent");
-            if(stripe){stripe.gameObject.SetActive(true);var r=(RectTransform)stripe;r.anchoredPosition=new Vector2(0,398);r.sizeDelta=new Vector2(1000,7);stripe.GetComponent<Image>().color=accent;}
+            if(stripe){stripe.gameObject.SetActive(true);var r=(RectTransform)stripe;r.anchoredPosition=new Vector2(0,398);r.sizeDelta=new Vector2(width-100,7);stripe.GetComponent<Image>().color=accent;}
             return content;
         }
         Choice CandyChoice(string id)=>choices.FirstOrDefault(c=>c.id==id);
@@ -207,7 +207,7 @@ namespace DeadlyJenga.CastlePrototype
                         if(mapCardIds[i]!=opt.id)
                         {
                             mapCardIds[i]=opt.id;
-                            SetSquareThumbnail(thumbnail,MapPreviewImages.Get(opt.id),56);
+                            SetSquareThumbnail(thumbnail,MapPreviewImages.Get(opt.id),MapThumbSize);
                         }
                         bool isStaged=(stagedSelectedMapId??Details?.SelectedMapId)==opt.id;
                         choice.faceColor=isStaged?new Color(.28f,.18f,.38f):new Color(.19f,.14f,.29f);

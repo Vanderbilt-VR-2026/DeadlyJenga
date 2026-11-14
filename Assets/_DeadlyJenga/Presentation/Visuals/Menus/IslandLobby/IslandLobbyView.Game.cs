@@ -130,7 +130,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (!browserBridge) return;
             browserBridge.gameObject.SetActive(true);
-            browserBridge.anchoredPosition = new Vector2(-70, 175 - slot * 78);
+            browserBridge.anchoredPosition = new Vector2(-95, MapRowTop - slot * MapRowStep);
         }
 
         void HideBridge()
@@ -355,15 +355,15 @@ namespace DeadlyJenga.CastlePrototype
             RefreshModeOptions();
             bool main=setupPage=="main";
             mapPreview.gameObject.SetActive(main);modePreview.gameObject.SetActive(main);mapCaption.gameObject.SetActive(main);modeCaption.gameObject.SetActive(main);modeDescription.gameObject.SetActive(main);setupHint.gameObject.SetActive(main);
-            if(Details!=null&&previewId!=Details.SelectedMapId){previewId=Details.SelectedMapId;SetPicture(mapPreview,MapPreviewImages.Get(previewId),440,138);}
-            if(Details!=null&&modePreviewId!=Details.SelectedModeId){modePreviewId=Details.SelectedModeId;SetPicture(modePreview,ModePicture(modePreviewId),440,138);}
+            if(Details!=null&&previewId!=Details.SelectedMapId){previewId=Details.SelectedMapId;SetPicture(mapPreview,MapPreviewImages.Get(previewId),SummaryPictureWidth,SummaryPictureHeight);}
+            if(Details!=null&&modePreviewId!=Details.SelectedModeId){modePreviewId=Details.SelectedModeId;SetPicture(modePreview,ModePicture(modePreviewId),SummaryPictureWidth,SummaryPictureHeight);}
             previewMissing.gameObject.SetActive(main&&!mapPreview.texture);modeMissing.gameObject.SetActive(main&&!modePreview.texture);
             modeDescription.text=CandyBrief(allModes.FirstOrDefault(p=>p.id==Details?.SelectedModeId)?.description??"");
             pvpCategory.gameObject.SetActive(setupPage=="modes");survivalCategory.gameObject.SetActive(setupPage=="modes");
             if(setupPage=="modes")for(int i=0;i<modePictures.Length;i++)
             {
                 var option=ModeCardOption(i);var texture=option!=null?ModePicture(option.id):null;
-                SetPicture(modePictures[i],texture,118,118);
+                SetPicture(modePictures[i],texture,ModeCardPicture,ModeCardPicture);
                 modePictureMissing[i].gameObject.SetActive(!texture);modeDescriptions[i].text=CandyBrief(option?.description??"",true);
             }
             UpdateMapBrowserPreview();
@@ -432,7 +432,7 @@ namespace DeadlyJenga.CastlePrototype
             if(!browserMapLoaded||browserMapId!=id)
             {
                 browserMapLoaded=true;browserMapId=id;var texture=MapPreviewImages.Get(id);
-                SetBlownUpPicture(browserMapPreview,texture,540,400);
+                SetBlownUpPicture(browserMapPreview,texture,MapPreviewWidth,MapPreviewHeight);
                 var option=mapOptions.FirstOrDefault(m=>m.id==id);
                 if(browserMapName)browserMapName.text=option?.title??"Choose a map";
                 if(browserMapCategory)

@@ -79,159 +79,159 @@ namespace DeadlyJenga.CastlePrototype
             hostHint.rectTransform.anchoredPosition=new Vector2(0,-405);hostHint.rectTransform.sizeDelta=new Vector2(1000,46);
             hostHint.fontSize=20;hostHint.resizeTextMaxSize=20;hostHint.resizeTextMinSize=18;hostHint.color=CandyMuted;
         }
+        // MAP + MODE layout on a 1900 x 880 canvas (x -950..950, y -440..440).
+        const float SummaryPictureWidth = 490, SummaryPictureHeight = 290, ModeCardPicture = 112;
+        const float MapPreviewWidth = 900, MapPreviewHeight = 470, MapThumbSize = 76;
+        const float MapRowTop = 150, MapRowStep = 95, SettingFillWidth = 1240;
+        const float ListX = -520, ListWidth = 760;
         void BuildCandySetup()
         {
+            // Main page: mode and map cards on the left, match options on the right.
             foreach(string id in new[]{"mode-previous","mode-next","map-previous","map-next"})CandyChoice(id).visible=()=>false;
-            var mode=CandyPlace("mode-current",-255,130,480,250);var map=CandyPlace("map-current",255,130,480,250);
+            var mode=CandyPlace("mode-current",-645,30,530,500);var map=CandyPlace("map-current",-95,30,530,500);
             mode.title=()=>lobby.ModeTitle;map.title=()=>lobby.MapTitle;mode.selected=()=>true;map.edgeColor=CandyPeach;
-            CandyText(mode,-10,-48,390,56,28);CandyText(map,-10,-48,390,56,28);
-            modePreview.rectTransform.SetParent(mode.button.transform,false);modePreview.rectTransform.anchoredPosition=new Vector2(0,55);
-            mapPreview.rectTransform.SetParent(map.button.transform,false);mapPreview.rectTransform.anchoredPosition=new Vector2(0,55);
-            modeMissing.rectTransform.SetParent(mode.button.transform,false);modeMissing.rectTransform.anchoredPosition=new Vector2(0,55);modeMissing.rectTransform.sizeDelta=new Vector2(440,128);
-            previewMissing.rectTransform.SetParent(map.button.transform,false);previewMissing.rectTransform.anchoredPosition=new Vector2(0,55);previewMissing.rectTransform.sizeDelta=new Vector2(440,128);
-            modeDescription.rectTransform.SetParent(mode.button.transform,false);modeDescription.rectTransform.anchoredPosition=new Vector2(0,-88);modeDescription.rectTransform.sizeDelta=new Vector2(430,52);
-            modeDescription.fontSize=20;modeDescription.resizeTextMaxSize=20;modeDescription.resizeTextMinSize=20;modeDescription.color=CandyMuted;mode.description=modeDescription;
-            candyMapDescription=CandyReadout((RectTransform)map.button.transform,"Map description","Choose your arena.",0,-88,430,52,20);candyMapDescription.color=CandyMuted;map.description=candyMapDescription;
-            CandyChoiceIcon(mode,LobbyTerminalGlyph.Symbol.Chevron,207,-50,25);CandyChoiceIcon(map,LobbyTerminalGlyph.Symbol.Chevron,207,-50,25);
-            modeCaption.rectTransform.anchoredPosition=new Vector2(-255,282);mapCaption.rectTransform.anchoredPosition=new Vector2(255,282);
-            modeCaption.rectTransform.sizeDelta=mapCaption.rectTransform.sizeDelta=new Vector2(480,30);
+            CandyText(mode,-10,-130,440,60,40);CandyText(map,-10,-130,440,60,40);
+            foreach(var picture in new Graphic[]{modePreview,mapPreview,modeMissing,previewMissing})
+            {
+                picture.rectTransform.SetParent((picture==modePreview||picture==modeMissing?mode:map).button.transform,false);
+                picture.rectTransform.anchoredPosition=new Vector2(0,75);
+            }
+            modeMissing.rectTransform.sizeDelta=previewMissing.rectTransform.sizeDelta=new Vector2(SummaryPictureWidth,SummaryPictureHeight);
+            modeDescription.rectTransform.SetParent(mode.button.transform,false);modeDescription.rectTransform.anchoredPosition=new Vector2(0,-195);modeDescription.rectTransform.sizeDelta=new Vector2(490,70);
+            modeDescription.fontSize=26;modeDescription.resizeTextMaxSize=26;modeDescription.resizeTextMinSize=22;modeDescription.color=CandyMuted;mode.description=modeDescription;
+            candyMapDescription=CandyReadout((RectTransform)map.button.transform,"Map description","Choose your arena.",0,-195,490,70,26);candyMapDescription.color=CandyMuted;map.description=candyMapDescription;
+            CandyChoiceIcon(mode,LobbyTerminalGlyph.Symbol.Chevron,230,-130,34);CandyChoiceIcon(map,LobbyTerminalGlyph.Symbol.Chevron,230,-130,34);
+            modeCaption.rectTransform.anchoredPosition=new Vector2(-645,305);mapCaption.rectTransform.anchoredPosition=new Vector2(-95,305);
+            modeCaption.rectTransform.sizeDelta=mapCaption.rectTransform.sizeDelta=new Vector2(530,40);
+            modeCaption.fontSize=mapCaption.fontSize=30;modeCaption.resizeTextMaxSize=mapCaption.resizeTextMaxSize=30;
             modeCaption.text="1  MODE";mapCaption.text="2  MAP";modeCaption.color=CandyMint;mapCaption.color=CandyPeach;
-            var population=CandyPlace("player-target",0,-55,1000,62);population.title=()=>"PLAYERS";
-            CandyText(population,-90,0,650,54,26,TextAnchor.MiddleLeft);CandyChoiceIcon(population,LobbyTerminalGlyph.Symbol.People,-440);
-            var value=CandyPanel((RectTransform)population.button.transform,"Population value",130,0,220,52,CandyInk);
-            candyPlayerValue=CandyReadout(value,"Player count","10",0,0,200,46,30);candyPlayerValue.fontStyle=FontStyle.Bold;
-            var minus=CandyAdd(candySetupContent,"population-minus",()=>"-",340,-55,90,62,()=>AdjustCandyPopulation(-1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
-            var plus=CandyAdd(candySetupContent,"population-plus",()=>"+",445,-55,90,62,()=>AdjustCandyPopulation(1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
+            const float rightX=580,rightWidth=660;
+            var population=CandyPlace("player-target",rightX,240,rightWidth,96);population.title=()=>"PLAYERS";
+            CandyText(population,-150,0,190,70,32,TextAnchor.MiddleLeft);CandyChoiceIcon(population,LobbyTerminalGlyph.Symbol.People,-285,0,40);
+            var value=CandyPanel((RectTransform)population.button.transform,"Population value",20,0,140,72,CandyInk);
+            candyPlayerValue=CandyReadout(value,"Player count","10",0,0,130,64,38);candyPlayerValue.fontStyle=FontStyle.Bold;
+            var minus=CandyAdd(candySetupContent,"population-minus",()=>"-",rightX+160,240,90,84,()=>AdjustCandyPopulation(-1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
+            var plus=CandyAdd(candySetupContent,"population-plus",()=>"+",rightX+265,240,90,84,()=>AdjustCandyPopulation(1),()=>lobby.CanConfigure&&Details!=null,()=>setupPage=="main");
             minus.faceColor=plus.faceColor=CandyPeach;minus.edgeColor=plus.edgeColor=CandyPeach;
-            ((RectTransform)minus.button.transform).anchoredPosition3D=new Vector3(340,-55,-8);((RectTransform)plus.button.transform).anchoredPosition3D=new Vector3(445,-55,-8);
-            var island=CandyPlace("island-effects",0,-130,1000,62);
-            island.title=()=>Details?.Setup.rules.island==DeadlyJenga.Core.IslandRule.Walkable?"ISLAND EFFECTS    OFF / NORMAL MOVEMENT":"ISLAND EFFECTS    "+Details?.Setup.rules.island.ToString().ToUpperInvariant();
-            CandyText(island,25,0,850,54,25);CandyChoiceIcon(island,LobbyTerminalGlyph.Symbol.Island,-440);
-            var settings=CandyPlace("mode-settings",0,-205,1000,62);settings.title=()=>"MODE SETTINGS";settings.faceColor=CandyLavender;
-            CandyChoiceIcon(settings,LobbyTerminalGlyph.Symbol.Gear,-440);CandyText(settings,25,0,850,54,28);
-            CandyPlace("human-team",0,-270,1000,46);CandyText(CandyChoice("human-team"),0,0,950,40,22);
-            var launch=CandyPlace("launch",-95,-350,800,86);CandyPrimary(launch);CandyText(launch,25,0,650,72,38);
-            CandyChoiceIcon(launch,LobbyTerminalGlyph.Symbol.Play,-310,0,42);
-            var room=CandyPanel(candySetupContent,"Room population",430,-350,170,86,CandyFace);candyMainDecor.Add(room.gameObject);
-            candyRoomStatus=CandyReadout(room,"Room count","ROOM\n1 / 10",0,0,150,70,23);
-            setupHint.rectTransform.anchoredPosition=new Vector2(0,-375);setupHint.rectTransform.sizeDelta=new Vector2(1000,34);setupHint.fontSize=20;setupHint.resizeTextMaxSize=20;setupHint.resizeTextMinSize=18;setupHint.color=CandyMuted;
-            gameHint.rectTransform.anchoredPosition=new Vector2(0,312);gameHint.rectTransform.sizeDelta=new Vector2(1000,26);gameHint.fontSize=22;gameHint.resizeTextMaxSize=22;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
-            // Breadcrumb Folder
-            mapBreadcrumb = CandyReadout(candySetupContent, "Map breadcrumb", "MAP CATEGORIES", -260, 260, 440, 36, 24);
+            CandyText(minus,0,0,70,72,44);CandyText(plus,0,0,70,72,44);
+            ((RectTransform)minus.button.transform).anchoredPosition3D=new Vector3(rightX+160,240,-8);((RectTransform)plus.button.transform).anchoredPosition3D=new Vector3(rightX+265,240,-8);
+            var island=CandyPlace("island-effects",rightX,128,rightWidth,96);
+            island.title=()=>Details?.Setup.rules.island==DeadlyJenga.Core.IslandRule.Walkable?"ISLAND EFFECTS: OFF":"ISLAND EFFECTS: "+Details?.Setup.rules.island.ToString().ToUpperInvariant();
+            CandyText(island,35,0,540,80,30);CandyChoiceIcon(island,LobbyTerminalGlyph.Symbol.Island,-285,0,40);
+            var settings=CandyPlace("mode-settings",rightX,16,rightWidth,96);settings.title=()=>"MODE SETTINGS";settings.faceColor=CandyLavender;
+            CandyChoiceIcon(settings,LobbyTerminalGlyph.Symbol.Gear,-285,0,40);CandyText(settings,35,0,540,80,32);
+            CandyPlace("human-team",rightX,-96,rightWidth,96);CandyText(CandyChoice("human-team"),0,0,620,80,28);
+            var launch=CandyPlace("launch",-370,-315,1080,110);CandyPrimary(launch);CandyText(launch,25,0,900,92,50);
+            CandyChoiceIcon(launch,LobbyTerminalGlyph.Symbol.Play,-420,0,54);
+            var room=CandyPanel(candySetupContent,"Room population",rightX,-315,rightWidth,110,CandyFace);candyMainDecor.Add(room.gameObject);
+            candyRoomStatus=CandyReadout(room,"Room count","ROOM\n1 / 10",0,0,600,96,32);
+            setupHint.rectTransform.anchoredPosition=new Vector2(0,-398);setupHint.rectTransform.sizeDelta=new Vector2(1760,36);setupHint.fontSize=26;setupHint.resizeTextMaxSize=26;setupHint.resizeTextMinSize=20;setupHint.color=CandyMuted;
+            gameHint.rectTransform.anchoredPosition=new Vector2(0,312);gameHint.rectTransform.sizeDelta=new Vector2(1000,30);gameHint.fontSize=26;gameHint.resizeTextMaxSize=26;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
+
+            // Map page: list on the left, large preview on the right.
+            mapBreadcrumb = CandyReadout(candySetupContent, "Map breadcrumb", "MAP CATEGORIES", ListX, 270, ListWidth, 40, 30);
             mapBreadcrumb.color = new Color(.68f, .58f, .80f);
             mapBreadcrumb.fontStyle = FontStyle.Bold;
             mapBreadcrumb.alignment = TextAnchor.MiddleLeft;
-
-            // Main Tab Buttons (Left Sidebar)
             for (int i = 0; i < 3; i++)
             {
-                var tabChoice = CandyPlace("map-tab-" + i, -260, 155 - i * 110, 440, 95);
-                CandyText(tabChoice, 0, 0, 400, 75, 28, TextAnchor.MiddleLeft);
-                CandyChoiceIcon(tabChoice, LobbyTerminalGlyph.Symbol.Chevron, 185);
+                var tabChoice = CandyPlace("map-tab-" + i, ListX, 180 - i * 130, ListWidth, 110);
+                CandyText(tabChoice, -20, 0, 660, 90, 38, TextAnchor.MiddleLeft);
+                CandyChoiceIcon(tabChoice, LobbyTerminalGlyph.Symbol.Chevron, 335, 0, 42);
             }
-
-            // Back button from sub-sections
-            var backBtn = CandyPlace("map-back", -260, 225, 440, 48);
-            CandyText(backBtn, 0, 0, 400, 42, 22, TextAnchor.MiddleLeft);
-            CandyChoiceIcon(backBtn, LobbyTerminalGlyph.Symbol.Back, -185);
-
-            // Archive Sub-Categories (5 slots)
+            var backBtn = CandyPlace("map-back", ListX, 215, ListWidth, 56);
+            CandyText(backBtn, 30, 0, 660, 48, 28, TextAnchor.MiddleLeft);
+            CandyChoiceIcon(backBtn, LobbyTerminalGlyph.Symbol.Back, -340);
             for (int i = 0; i < 5; i++)
             {
-                var catChoice = CandyPlace("archive-cat-" + i, -260, 160 - i * 60, 440, 54);
-                CandyText(catChoice, 0, 0, 400, 46, 22, TextAnchor.MiddleLeft);
-                CandyChoiceIcon(catChoice, LobbyTerminalGlyph.Symbol.Chevron, 185);
+                var catChoice = CandyPlace("archive-cat-" + i, ListX, 145 - i * 72, ListWidth, 64);
+                CandyText(catChoice, -20, 0, 660, 56, 30, TextAnchor.MiddleLeft);
+                CandyChoiceIcon(catChoice, LobbyTerminalGlyph.Symbol.Chevron, 340);
             }
-            var catUp = CandyPlace("cat-scroll-up", -260, 205, 440, 30);
-            CandyText(catUp, 0, 0, 400, 26, 18);
-            var catDown = CandyPlace("cat-scroll-down", -260, -145, 440, 30);
-            CandyText(catDown, 0, 0, 400, 26, 18);
-
-            // Map Items (4 rows)
+            var catUp = CandyPlace("cat-scroll-up", ListX - 195, -220, 370, 50);
+            CandyText(catUp, 0, 0, 350, 44, 26);
+            var catDown = CandyPlace("cat-scroll-down", ListX + 195, -220, 370, 50);
+            CandyText(catDown, 0, 0, 350, 44, 26);
             for (int i = 0; i < 4; i++)
             {
                 int slot = i;
-                var c = CandyPlace("picker-" + i, -260, 155 - i * 78, 440, 72);
+                var c = CandyPlace("picker-" + i, ListX, MapRowTop - i * MapRowStep, ListWidth, 86);
                 c.selected = () => (stagedSelectedMapId ?? Details?.SelectedMapId) == MapItemOption(slot)?.id && MapItemOption(slot) != null;
                 c.selectionGlyph = true;
-                CandyText(c, 45, 0, 280, 58, 22, TextAnchor.MiddleLeft);
-                mapCardPictures[i] = Picture((RectTransform)c.button.transform, "Map card thumbnail", -175, 0, 56, 56);
+                CandyText(c, 40, 0, 560, 74, 32, TextAnchor.MiddleLeft);
+                mapCardPictures[i] = Picture((RectTransform)c.button.transform, "Map card thumbnail", -325, 0, MapThumbSize, MapThumbSize);
                 mapCardPictures[i].enabled = false;
-                CandyChoiceIcon(c, LobbyTerminalGlyph.Symbol.Check, 185);
+                CandyChoiceIcon(c, LobbyTerminalGlyph.Symbol.Check, 340, 0, 38);
             }
-            // Dormant picker slots 4..9
             for (int i = 4; i < PickerPageSize; i++)
             {
                 CandyPlace("picker-" + i, -2000, 0, 10, 10);
             }
-
-            // Map list scroll buttons
-            var mapUp = CandyPlace("map-scroll-up", -260, 205, 440, 30);
-            CandyText(mapUp, 0, 0, 400, 24, 18);
-            var mapDown = CandyPlace("map-scroll-down", -260, -165, 440, 30);
-            CandyText(mapDown, 0, 0, 400, 24, 18);
-
-            // Bottom Action Buttons
-            var selectBtn = CandyPlace("map-select", -390, -235, 125, 64);
-            CandyText(selectBtn, 0, 0, 115, 56, 22);
-            var deselectBtn = CandyPlace("map-deselect", -260, -235, 115, 64);
-            CandyText(deselectBtn, 0, 0, 105, 56, 20);
-            var cancelBtn = CandyPlace("map-cancel", -130, -235, 125, 64);
-            CandyText(cancelBtn, 0, 0, 115, 56, 22);
-
-            // Right Side Preview Frame
-            var rightFrame = CandyPanel(candySetupContent, "Large map frame", 240, 0, 520, 510, CandyFace);
+            var mapUp = CandyPlace("map-scroll-up", ListX - 195, -220, 370, 50);
+            CandyText(mapUp, 0, 0, 350, 44, 26);
+            var mapDown = CandyPlace("map-scroll-down", ListX + 195, -220, 370, 50);
+            CandyText(mapDown, 0, 0, 350, 44, 26);
+            var selectBtn = CandyPlace("map-select", ListX - 255, -315, 240, 84);
+            CandyText(selectBtn, 0, 0, 220, 72, 30);
+            var deselectBtn = CandyPlace("map-deselect", ListX, -315, 240, 84);
+            CandyText(deselectBtn, 0, 0, 220, 72, 30);
+            var cancelBtn = CandyPlace("map-cancel", ListX + 255, -315, 240, 84);
+            CandyText(cancelBtn, 0, 0, 220, 72, 30);
+            var rightFrame = CandyPanel(candySetupContent, "Large map frame", 420, -10, 940, 650, CandyFace);
             mapBrowserRightFrame = rightFrame;
-            browserMapPreview = Picture(rightFrame, "Large map browser preview", 0, 55, 490, 320);
-            browserMapName = CandyReadout(rightFrame, "Previewed map name", "", 0, -140, 490, 40, 30);
+            browserMapPreview = Picture(rightFrame, "Large map browser preview", 0, 70, MapPreviewWidth, MapPreviewHeight);
+            browserMapName = CandyReadout(rightFrame, "Previewed map name", "", 0, -200, 900, 50, 40);
             browserMapName.fontStyle = FontStyle.Bold;
             browserMapName.color = CandyMint;
-            browserMapCategory = CandyReadout(rightFrame, "Previewed map category", "", 0, -180, 490, 26, 20);
+            browserMapCategory = CandyReadout(rightFrame, "Previewed map category", "", 0, -245, 900, 34, 26);
             browserMapCategory.fontStyle = FontStyle.Bold;
             browserMapCategory.color = CandyPeach;
-            browserMapDescription = CandyReadout(rightFrame, "Previewed map description", "", 0, -220, 490, 44, 18);
+            browserMapDescription = CandyReadout(rightFrame, "Previewed map description", "", 0, -288, 900, 46, 24);
             browserMapDescription.color = CandyCream;
-            browserMapMissing = CandyReadout(rightFrame, "Map preview unavailable", "MAP PREVIEW COMING SOON", 0, 55, 460, 60, 26);
+            browserMapMissing = CandyReadout(rightFrame, "Map preview unavailable", "MAP PREVIEW COMING SOON", 0, 70, 800, 70, 36);
             browserMapMissing.color = CandyMuted;
-
-            // Visual Bridge
             var bridgeGo = new GameObject("Map browser visual bridge", typeof(RectTransform), typeof(Image));
             bridgeGo.transform.SetParent(candySetupContent, false);
             browserBridge = bridgeGo.GetComponent<RectTransform>();
-            browserBridge.sizeDelta = new Vector2(40, 48);
+            browserBridge.sizeDelta = new Vector2(90, 56);
             browserBridgeImage = bridgeGo.GetComponent<Image>();
             browserBridgeImage.sprite = candyFaceSprite;
             browserBridgeImage.color = CandyMint;
             browserBridgeImage.raycastTarget = false;
             browserBridge.gameObject.SetActive(false);
 
-            CandyPlace("picker-previous",-255,-280,480,54);CandyPlace("picker-next",255,-280,480,54);CandyPlace("setup-back",0,-345,680,54);
+            // Mode page and settings page share the bottom row: previous, back, next.
+            CandyPlace("picker-previous",-650,-335,500,76);CandyPlace("picker-next",650,-335,500,76);CandyPlace("setup-back",0,-335,500,76);
+            foreach(string id in new[]{"picker-previous","picker-next","setup-back","settings-prev","settings-next"})CandyText(CandyChoice(id),0,0,440,64,32);
             CandyChoice("picker-previous").visible=()=> setupPage=="modes"&&PickerPages>1;
             CandyChoice("picker-next").visible=()=> setupPage=="modes"&&PickerPages>1;
-            CandyChoiceIcon(CandyChoice("setup-back"),LobbyTerminalGlyph.Symbol.Back,-280);
+            CandyChoiceIcon(CandyChoice("setup-back"),LobbyTerminalGlyph.Symbol.Back,-200);
             CandyStyleModeCards();
             for(int i=0;i<6;i++)
             {
-                CandyPlace("setting-value-"+i,0,225-i*84,800,70);CandyText(CandyChoice("setting-value-"+i),0,0,760,62,26);
-                CandyPlace("setting-minus-"+i,-470,225-i*84,80,70);CandyPlace("setting-plus-"+i,470,225-i*84,80,70);
-                setupFills[i].rectTransform.anchoredPosition=new Vector2(-380,-26);
+                CandyPlace("setting-value-"+i,0,230-i*88,1300,78);CandyText(CandyChoice("setting-value-"+i),0,0,1240,66,32);
+                CandyPlace("setting-minus-"+i,-730,230-i*88,120,78);CandyPlace("setting-plus-"+i,730,230-i*88,120,78);
+                CandyText(CandyChoice("setting-minus-"+i),0,0,100,70,44);CandyText(CandyChoice("setting-plus-"+i),0,0,100,70,44);
+                setupFills[i].rectTransform.anchoredPosition=new Vector2(-SettingFillWidth/2,-30);
             }
-            CandyPlace("settings-prev",-255,-280,480,54);CandyPlace("settings-next",255,-280,480,54);
+            CandyPlace("settings-prev",-650,-335,500,76);CandyPlace("settings-next",650,-335,500,76);
+            CandyText(CandyChoice("settings-prev"),0,0,440,64,30);CandyText(CandyChoice("settings-next"),0,0,440,64,30);
         }
         void CandyStyleModeCards()
         {
-            pvpCategory.rectTransform.anchoredPosition=new Vector2(-255,276);survivalCategory.rectTransform.anchoredPosition=new Vector2(255,276);
-            pvpCategory.rectTransform.sizeDelta=survivalCategory.rectTransform.sizeDelta=new Vector2(480,38);pvpCategory.color=CandyPeach;survivalCategory.color=CandyMint;
+            pvpCategory.rectTransform.anchoredPosition=new Vector2(-470,285);survivalCategory.rectTransform.anchoredPosition=new Vector2(470,285);
+            pvpCategory.rectTransform.sizeDelta=survivalCategory.rectTransform.sizeDelta=new Vector2(860,44);pvpCategory.color=CandyPeach;survivalCategory.color=CandyMint;
+            pvpCategory.fontSize=survivalCategory.fontSize=34;pvpCategory.resizeTextMaxSize=survivalCategory.resizeTextMaxSize=34;
             pvpCategory.fontStyle=survivalCategory.fontStyle=FontStyle.Bold;
             for(int i=0;i<8;i++)
             {
-                int slot=i;var card=CandyPlace("mode-card-"+i,i<4?-255:255,190-(i%4)*144,480,132);
+                int slot=i;var card=CandyPlace("mode-card-"+i,i<4?-470:470,200-(i%4)*138,860,126);
                 card.selected=()=>ModeCardOption(slot)?.id==Details?.SelectedModeId&&ModeCardOption(slot)!=null;card.selectionGlyph=true;
-                CandyText(card,58,30,270,44,24,TextAnchor.MiddleLeft);
-                modePictures[i].rectTransform.anchoredPosition=new Vector2(-172,0);
-                modePictureMissing[i].rectTransform.anchoredPosition=new Vector2(-172,0);modePictureMissing[i].rectTransform.sizeDelta=new Vector2(118,118);
-                modeDescriptions[i].rectTransform.anchoredPosition=new Vector2(58,-24);modeDescriptions[i].rectTransform.sizeDelta=new Vector2(270,64);modeDescriptions[i].fontSize=20;modeDescriptions[i].resizeTextMaxSize=20;modeDescriptions[i].resizeTextMinSize=19;modeDescriptions[i].alignment=TextAnchor.MiddleLeft;modeDescriptions[i].color=CandyMuted;card.description=modeDescriptions[i];
-                CandyChoiceIcon(card,LobbyTerminalGlyph.Symbol.Check,211,36,23);
+                CandyText(card,40,28,620,48,32,TextAnchor.MiddleLeft);
+                modePictures[i].rectTransform.anchoredPosition=new Vector2(-355,0);
+                modePictureMissing[i].rectTransform.anchoredPosition=new Vector2(-355,0);modePictureMissing[i].rectTransform.sizeDelta=new Vector2(ModeCardPicture,ModeCardPicture);
+                modeDescriptions[i].rectTransform.anchoredPosition=new Vector2(40,-24);modeDescriptions[i].rectTransform.sizeDelta=new Vector2(620,56);modeDescriptions[i].fontSize=24;modeDescriptions[i].resizeTextMaxSize=24;modeDescriptions[i].resizeTextMinSize=20;modeDescriptions[i].alignment=TextAnchor.MiddleLeft;modeDescriptions[i].color=CandyMuted;card.description=modeDescriptions[i];
+                CandyChoiceIcon(card,LobbyTerminalGlyph.Symbol.Check,390,30,30);
             }
         }
         void AdjustCandyPopulation(int step)
