@@ -25,7 +25,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||NearbyFlow||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(NearbyFlow?850:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -227,12 +227,13 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
                 "Other client confirmed joining",85,LobbyState);
-            if(host)
-            {
-                yield return Until(() => IslandLobby.Current.CanStart,
-                    "Play's Marina GO button is available",35,LobbyState);
-                IslandLobby.Current.StartOrCancel();
-            }
+            if (!host)
+                yield return Until(() => File.Exists(Mark("host-pressed-go")),
+                    "Host opens the ready check", 40, LobbyState);
+            yield return Until(() => IslandLobby.Current.CanStart,
+                "Play's Marina GO button is available", 35, LobbyState);
+            IslandLobby.Current.StartOrCancel();
+            if (host) File.WriteAllText(Mark("host-pressed-go"), "ready");
             CastlePlaySession game=null;
             yield return Until(()=>(game=FindFirstObjectByType<CastlePlaySession>())&&game.Network&&
                 !game.Network.WaitingForWorld&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing&&
@@ -241,23 +242,9 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
                 "Both clients confirmed the match before returning",25);
-            if (host)
-            {
-                // Keep the actual Play rotation and use a shorter round for two-client QA.
-                var rules = game.Modes.Rules.Copy();
-                rules.roundSeconds = 25;
-                rules.countdownSeconds = 1;
-                rules.victorySeconds = 12;
-                rules.automaticDisasters = false;
-                game.Modes.Configure(rules);
-                game.Modes.StartRound();
-            }
-            yield return Until(() => game.Modes.Frame.rules.roundSeconds == 25 &&
+            yield return Until(() => game && game.Modes &&
                 game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
-                "The real Play round finishes after nearby join",100,()=>room.Status);
-            bool SeesOtherHuman() => IslandLobby.Current && room.Connected && room.Runner &&
-                room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
-                    IslandLobby.Current.TryPeerPosition(player.ToString(), out _));
+                "The full Play round reaches results after nearby join", 480, () => room.Status);
             yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
                 room.HumanCount==2&&SeesOtherHuman(),
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
