@@ -5,6 +5,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
+using Unity.Profiling;
+using Unity.Profiling.LowLevel.Unsafe;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastleSocial;
 using DeadlyJenga.World.Hazards;
@@ -214,29 +216,50 @@ namespace DeadlyJenga.CastlePrototype
                 Require(string.IsNullOrEmpty(home.Code),"No code entered in the join form");
                 home.JoinNearby(row);
             }
+            string LobbyState() => $"scene={UnityEngine.SceneManagement.SceneManager.GetActiveScene().name}, room={room.Status}, " +
+                $"busy={room.Busy}, humans={room.HumanCount}, mirrors={IslandLobby.Current?.PeerCount}, home={(home ? home.Status : "closed")}";
+            bool SeesOtherHuman() => IslandLobby.Current && room.Connected && room.Runner &&
+                room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
+                    IslandLobby.Current.TryPeerPosition(player.ToString(), out _));
             yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
-                room.HumanCount==2&&IslandLobby.Current.PeerCount==1,
-                "Both real Fusion clients share the same Marina room and see one another",85,()=>room.Status);
+                room.HumanCount==2&&SeesOtherHuman(),
+                "Both real Fusion clients share the same Marina room and see one another",75,LobbyState);
             File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
-                "Other client confirmed joining",25);
+                "Other client confirmed joining",85,LobbyState);
             if(host)
             {
-                Require(IslandLobby.Current.SelectMode("ctf")&&IslandLobby.Current.SelectMap("ctf"),
-                    "Host selects Capture the Flag and its authored map");
+                yield return Until(() => IslandLobby.Current.CanStart,
+                    "Play's Marina GO button is available",35,LobbyState);
                 IslandLobby.Current.StartOrCancel();
             }
             CastlePlaySession game=null;
             yield return Until(()=>(game=FindFirstObjectByType<CastlePlaySession>())&&game.Network&&
                 !game.Network.WaitingForWorld&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing&&
-                MatchSetup.MapId=="ctf"&&room.Connected&&room.Code==address,
-                "Guest follows host from Marina to active CTF in the same room",110,()=>room.Status);
+                MatchSetup.MapId=="mode-castle-catwalks"&&room.Connected&&room.Code==address,
+                "Guest follows host from Marina to the real Play round in the same room",125,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
                 "Both clients confirmed the match before returning",25);
-            if(host)game.Modes.ReturnToLobby();
+            if (host)
+            {
+                // Keep the actual Play rotation and use a shorter round for two-client QA.
+                var rules = game.Modes.Rules.Copy();
+                rules.roundSeconds = 25;
+                rules.countdownSeconds = 1;
+                rules.victorySeconds = 12;
+                rules.automaticDisasters = false;
+                game.Modes.Configure(rules);
+                game.Modes.StartRound();
+            }
+            yield return Until(() => game.Modes.Frame.rules.roundSeconds == 25 &&
+                game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
+                "The real Play round finishes after nearby join",100,()=>room.Status);
+            bool SeesOtherHuman() => IslandLobby.Current && room.Connected && room.Runner &&
+                room.Runner.ActivePlayers.Any(player => player != room.Runner.LocalPlayer &&
+                    IslandLobby.Current.TryPeerPosition(player.ToString(), out _));
             yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
-                room.HumanCount==2&&IslandLobby.Current.PeerCount==1,
+                room.HumanCount==2&&SeesOtherHuman(),
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-returned"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-returned")),
@@ -245,6 +268,7 @@ namespace DeadlyJenga.CastlePrototype
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
         const string TycoonMap = "mode-tycoon";
+        static bool MigrationRound => Environment.GetCommandLineArgs().Contains("--dj-migrate-round");
         static bool FullRound => Environment.GetCommandLineArgs().Contains("--dj-full-round");
 
         IEnumerator CheckFullRound()
@@ -304,6 +328,36 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(() => match.Modes.Frame.phase == RoundPhase.Playing && match.Modes.Frame.rules.roundSeconds == 20 &&
                 room.Connected && room.HumanCount == 2, "Authoritative timed round is playing on both peers", 40,
                 () => room.Status);
+            if (MigrationRound)
+            {
+                if (host)
+                {
+                    yield return Until(() => File.Exists(Mark("guest-migration-ready")), "Guest observed in-progress round");
+                    var leave = room.Leave();
+                    yield return Until(() => leave.IsCompleted && !room.Connected, "Former host leaves during the actual round", 40);
+                    yield return Until(() => File.Exists(Mark("guest-migration-returned")), "Promoted guest independently confirms the full round", 160);
+                    yield break;
+                }
+
+                yield return Until(() => match.Modes.Frame.remaining <= 17f &&
+                    match.Modes.Frame.phase == RoundPhase.Playing, "Guest records round progress before transfer");
+                string lastLocalId = room.LocalLobbyId;
+                float remaining = match.Modes.Frame.remaining;
+                File.WriteAllText(Mark("guest-migration-ready"), "ready");
+                yield return Until(() => room.IsHost && !room.Busy && match.Network && !match.Network.IsClient,
+                    "Guest becomes authoritative in the same active Game session", 90, () => room.Status);
+                Require(room.Code == code && room.LocalLobbyId == lastLocalId,
+                    "Room code and local actor identity survive host transfer");
+                Require(match.Modes.Frame.phase == RoundPhase.Playing && match.Modes.Frame.remaining <= remaining + 1,
+                    "Host transfer preserves the existing round and timer");
+                yield return Until(() => match.Modes.Frame.phase == RoundPhase.Results && room.IsHost && room.Code == code,
+                    "Promoted guest finishes the original round", 75, () => room.Status);
+                match.Modes.ReturnToLobby();
+                yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
+                    room.IsHost && room.Code == code, "Promoted guest returns to the same Marina room", 85, () => room.Status);
+                File.WriteAllText(Mark("guest-migration-returned"), "ready");
+                yield break;
+            }
             yield return Until(() => match.Modes.Frame.phase == RoundPhase.Results && room.Connected && room.HumanCount == 2,
                 "Both peers reach final results in the same room", 75, () => room.Status);
             File.WriteAllText(Mark(role + "-results"), "ready");
@@ -466,20 +520,48 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator SampleFrames(string label, double seconds)
         {
             var times = new List<double>(2000);
-            double previous = Time.realtimeSinceStartupAsDouble;
-            double deadline = previous + seconds;
-            while (previous < deadline)
+            var handles = new List<ProfilerRecorderHandle>();
+            ProfilerRecorderHandle.GetAvailable(handles);
+            var recorders = new List<(string name, ProfilerRecorder recorder)>();
+            foreach (var handle in handles)
             {
-                yield return null;
-                double now = Time.realtimeSinceStartupAsDouble;
-                times.Add((now - previous) * 1000);
-                previous = now;
+                var description = ProfilerRecorderHandle.GetDescription(handle);
+                string name = description.Name;
+                if (name.StartsWith("DJ.", StringComparison.Ordinal) ||
+                    name.StartsWith("DeadlyJenga.", StringComparison.Ordinal) ||
+                    name is "Main Thread" or "Render Thread" or "Physics.Simulate" or
+                        "Physics.SyncTransforms" or "GC Allocated In Frame" or "GC.Collect" or "BehaviourFixedUpdate")
+                    recorders.Add((name, ProfilerRecorder.StartNew(description.Category, name, 2048)));
             }
-            var sorted = times.OrderBy(ms => ms).ToArray();
-            double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
-            int slow = times.Count(ms => ms >= 100);
-            File.AppendAllText(Report, $"FRAMES {label} n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={slow}\n");
-            File.WriteAllLines(Path.Combine(folder, role + "-" + label + "-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
+            try
+            {
+                double previous = Time.realtimeSinceStartupAsDouble;
+                double deadline = previous + seconds;
+                while (previous < deadline)
+                {
+                    yield return null;
+                    double now = Time.realtimeSinceStartupAsDouble;
+                    times.Add((now - previous) * 1000);
+                    previous = now;
+                }
+                var sorted = times.OrderBy(ms => ms).ToArray();
+                double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
+                int slow = times.Count(ms => ms >= 100);
+                File.AppendAllText(Report, $"FRAMES {label} n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={slow}\n");
+                File.WriteAllLines(Path.Combine(folder, role + "-" + label + "-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
+                foreach (var counter in recorders)
+                {
+                    var samples = new List<ProfilerRecorderSample>();
+                    if (!counter.recorder.Valid) continue;
+                    counter.recorder.CopyTo(samples);
+                    if (samples.Count == 0) continue;
+                    File.AppendAllText(Report, $"PROFILE {label} {counter.name} n={samples.Count} mean={samples.Average(sample => (double)sample.Value):F0} max={samples.Max(sample => sample.Value)}\n");
+                }
+            }
+            finally
+            {
+                foreach (var counter in recorders) counter.recorder.Dispose();
+            }
         }
 
 

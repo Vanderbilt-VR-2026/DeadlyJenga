@@ -156,7 +156,11 @@ namespace DeadlyJenga.CastleBots
         {
             if(Session?.world==null)return;
             bots.RemoveAll(b=>!b);
-            if(bots.Count>0)WalkingRoutes.Refresh(bots[0]);
+            if (bots.Count > 0)
+            {
+                CastleBotJourneyPlanner.AdvanceGeometry(Session.world);
+                WalkingRoutes.Refresh(bots[0]);
+            }
             planningQueue.Clear();
             foreach(var bot in bots)if(bot.PlanningPending)planningQueue.Add(bot);
             planningQueue.Sort((a,b)=>b.PlanningPriority.CompareTo(a.PlanningPriority));

@@ -21,39 +21,102 @@ namespace DeadlyJenga.CastleBots
             public readonly List<CastleBotLanding> nodes=new List<CastleBotLanding>();
             public readonly Dictionary<Vector3Int,List<int>> cells=new Dictionary<Vector3Int,List<int>>();
         }
-        static Snapshot shared;
+        const int DenseGeometrySize = 256;
+        const int GeometryBodiesPerFrame = 48;
+        static Snapshot shared, pending;
+        static int geometryCursor, lastGeometryFrame = -1;
+        static bool checkingGeometry;
         static Vector3Int Cell(Vector3 p)=>new Vector3Int(Mathf.FloorToInt(p.x/3),Mathf.FloorToInt(p.y/3),Mathf.FloorToInt(p.z/3));
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        static void ResetGeometry()
+        {
+            shared = pending = null;
+            geometryCursor = 0;
+            lastGeometryFrame = -1;
+        }
+
         static Snapshot Geometry(IWorldQuery generator)
         {
+            var blocks = generator.Blocks;
+            var first = blocks.Count > 0 ? blocks[0] : null;
+            if (shared == null || !ReferenceEquals(shared.generator, generator) || shared.first != first)
+            {
+                shared = new Snapshot { generator = generator, first = first, at = float.NegativeInfinity };
+                pending = null;
+            }
+            if (pending == null && Time.time - shared.at >= 1)
+            {
+                pending = new Snapshot { generator = generator, first = first };
+                checkingGeometry = shared.bodies.Count == blocks.Count;
+                geometryCursor = 0;
+            }
+            AdvanceGeometry(generator);
+            return shared;
+        }
+
+        // Continue even when no bot asks for a new route on this frame.
+        internal static void AdvanceGeometry(IWorldQuery generator)
+        {
+            if (pending == null || !ReferenceEquals(pending.generator, generator)) return;
+            var bodies = generator.Blocks;
+            if (bodies.Count > 0 && pending.first != bodies[0] || geometryCursor > bodies.Count)
+            {
+                pending = null;
+                return;
+            }
+            bool dense = bodies.Count >= DenseGeometrySize;
+            if (dense && lastGeometryFrame == Time.frameCount) return;
+            lastGeometryFrame = Time.frameCount;
             using var measurement = DJBotGeometryMarker.Auto();
-            var first=generator.Blocks.Count>0?generator.Blocks[0]:null;
-            if(shared!=null&&shared.generator==generator&&shared.first==first&&Time.time-shared.at<1)return shared;
-            bool same=shared!=null&&shared.generator==generator&&shared.first==first&&shared.bodies.Count==generator.Blocks.Count;
-            var samples=geometryScratch;
-            for(int i=0;i<generator.Blocks.Count;i++)
+            int limit = dense ? GeometryBodiesPerFrame : int.MaxValue;
+            for (int work = 0; work < limit && geometryCursor < bodies.Count; work++)
             {
-                var rb=generator.Blocks[i];bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
-                if(included)BotGeometrySamples.Fill(rb,samples);
-                if(same){var old=shared.bodies[i];if(old.body!=rb||old.included!=included||included&&old.version!=BotGeometrySamples.Version(rb))same=false;}
-            }
-            if(same){shared.at=Time.time;return shared;}
-            var graph=new Snapshot{generator=generator,first=first,at=Time.time};
-            foreach(var rb in generator.Blocks)
-            {
-                bool included=rb&&rb.gameObject.activeInHierarchy&&(rb.isKinematic||rb.linearVelocity.sqrMagnitude<=1.44f);
-                graph.bodies.Add((rb,rb?BotGeometrySamples.Version(rb):0,included));
-                if(!included)continue;
-                BotGeometrySamples.Fill(rb,samples);
-                var anchor=rb.transform;var inverse=anchor.worldToLocalMatrix;
-                foreach(var p in samples)
+                var body = bodies[geometryCursor];
+                bool included = body && body.gameObject.activeInHierarchy &&
+                    (body.isKinematic || body.linearVelocity.sqrMagnitude <= 1.44f);
+                if (included) BotGeometrySamples.Fill(body, geometryScratch);
+                int version = body ? BotGeometrySamples.Version(body) : 0;
+                if (checkingGeometry)
                 {
-                    var local=inverse.MultiplyPoint3x4(p);
-                    int id=graph.nodes.Count;graph.nodes.Add(new CastleBotLanding{surface=anchor,body=rb,local=local});
-                    var cell=Cell(p);if(!graph.cells.TryGetValue(cell,out var list))graph.cells[cell]=list=new List<int>();list.Add(id);
-                    graph.minY=Mathf.Min(graph.minY,p.y);graph.maxY=Mathf.Max(graph.maxY,p.y);
+                    if (geometryCursor >= shared.bodies.Count ||
+                        shared.bodies[geometryCursor] != (body, version, included))
+                    {
+                        checkingGeometry = false;
+                        geometryCursor = 0;
+                        continue;
+                    }
                 }
+                else
+                {
+                    pending.bodies.Add((body, version, included));
+                    if (included) AddBodyGeometry(pending, body);
+                }
+                geometryCursor++;
             }
-            shared=graph;return graph;
+            if (geometryCursor != bodies.Count) return;
+            if (!checkingGeometry) shared = pending;
+            shared.at = Time.time;
+            pending = null;
+        }
+
+        static void AddBodyGeometry(Snapshot graph, Rigidbody body)
+        {
+            var anchor = body.transform;
+            var inverse = anchor.worldToLocalMatrix;
+            foreach (var point in geometryScratch)
+            {
+                int id = graph.nodes.Count;
+                graph.nodes.Add(new CastleBotLanding
+                {
+                    surface = anchor, body = body, local = inverse.MultiplyPoint3x4(point)
+                });
+                var cell = Cell(point);
+                if (!graph.cells.TryGetValue(cell, out var list)) graph.cells[cell] = list = new List<int>();
+                list.Add(id);
+                graph.minY = Mathf.Min(graph.minY, point.y);
+                graph.maxY = Mathf.Max(graph.maxY, point.y);
+            }
         }
         static readonly List<Vector3> geometryScratch=new(64);
         static readonly Dictionary<Rigidbody,Matrix4x4> destinationMatrices=new();
@@ -62,9 +125,10 @@ namespace DeadlyJenga.CastleBots
         {
             using var measurement = DJBotDestinationMarker.Auto();
             var graph=Geometry(bot.Population.Session.world);var p=bot.Personality;var feet=bot.transform.position;
+            Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
+            if (graph.nodes.Count == 0) return feet + bearing * 5;
             float fraction=Mathf.Repeat(bot.Seed*.173f+trip*.618034f,1);
             float targetY=Mathf.Lerp(feet.y,Mathf.Lerp(graph.minY,graph.maxY,fraction),p.verticalVariety);
-            Vector3 bearing=Quaternion.Euler(0,trip*137.508f,0)*bot.WanderDirection;
             var ranked=destinationRanks;ranked.Clear();destinationMatrices.Clear();
             foreach(var node in graph.nodes)
             {
