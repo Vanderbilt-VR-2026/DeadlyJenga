@@ -62,8 +62,8 @@ namespace DeadlyJenga.CastlePrototype
         {
             ActionCard(119,CandyHudIcon.Hand,session.PlayingHand?"Become Survivor":"Become Flying Hand",DemoMode?"Switch your local character; your mode role is restored when you return.":"The host controls development character changes during a match.",()=>{session.SetRole(!session.PlayingHand);session.SetMenu(false);},DemoMode);
             ActionCard(223,CandyHudIcon.Home,"Return to the top","Place your survivor on the highest safe support.",()=>{session.SetRole(false);session.SetMenu(false);},DemoMode);
-            var inspect=CandyThirdPersonInspection.For(session);
-            ActionCard(327,CandyHudIcon.Survivor,"Third person inspection","Stand still; orbit and zoom around your character.",()=>inspect.Begin(),inspect.CanInspect);
+            var inspect=session.Player?.ThirdPerson;
+            ActionCard(327,CandyHudIcon.Survivor,"Third person inspection","Stand still; orbit and zoom around your character.",()=>inspect?.Begin(),inspect?.CanInspect==true);
             var gun=session.Player.gameObject.GetComponent<IBlasterControls>();var item=session.Player.gameObject.GetComponent<IEquipmentControls>();
             ActionCard(431,CandyHudIcon.Hand,item?.Equipment.drawn==true?"Holster weapon":"Draw weapon","V or dominant controller upper face button.",()=>item.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
             ActionCard(535,CandyHudIcon.Settings,"Dominant hand: "+(gun?.LeftHanded==true?"LEFT":"RIGHT"),"Changes the weapon hand.",()=>gun.SetLeftHanded(!gun.LeftHanded),gun!=null);

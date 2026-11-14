@@ -18,6 +18,16 @@ namespace DeadlyJenga.Core
         string StatusText { get; }      // one line for the HUD
         void PrepareForSession();       // cameras clear to the sky; hands leave the desktop cursor alone
         void Place(Vector3 position, Quaternion rotation);   // put here, ready to play (survivors are revived)
+        IThirdPersonInspection ThirdPerson { get; }          // look at your own character from outside; null if not offered
+    }
+
+    // Stand still and look at your own character from outside. The character owns the state; Presentation draws the view.
+    public interface IThirdPersonInspection
+    {
+        bool CanInspect { get; }
+        bool Inspecting { get; }
+        void Begin();
+        void End();
     }
 
     // Survivor settings and rules that menus, the lobby and multiplayer change.

@@ -109,9 +109,9 @@ namespace DeadlyJenga.DevTools.Editor
             finally{avatar.ApplyAppearance(saved);}
             var tracking=player.GetComponent<CandyTrackingSource>();bool wasEnabled=tracking.enabled;tracking.enabled=false;Check(!tracking.WorldHand(true).tracked&&!tracking.WorldHand(false).tracked&&!tracking.RightPinching&&!tracking.LeftPinching,"Disabled tracking cannot expose cached poses or gestures");tracking.enabled=wasEnabled;
             session.SetMenu(false);player.InputSuspended=false;var camera=player.ViewCamera;bool cameraEnabled=camera.enabled;
-            var inspection=CandyThirdPersonInspection.For(session);inspection.Begin();yield return null;
-            Check(inspection.Inspecting&&player.InputSuspended&&inspection.InspectionCamera,"Demo inspection suspends movement and creates a separate orbit camera");
-            Check(!session.IsVR&&!camera.enabled&&!inspection.InspectionCamera.GetUniversalAdditionalCameraData().allowXRRendering,"Desktop inspection renders independently of the first-person camera");inspection.End();yield return null;
+            var inspection=session.Player?.ThirdPerson;inspection.Begin();yield return null;
+            Check(inspection.Inspecting&&player.InputSuspended&&CandyThirdPersonInspection.Current.InspectionCamera,"Demo inspection suspends movement and creates a separate orbit camera");
+            Check(!session.IsVR&&!camera.enabled&&!CandyThirdPersonInspection.Current.InspectionCamera.GetUniversalAdditionalCameraData().allowXRRendering,"Desktop inspection renders independently of the first-person camera");inspection.End();yield return null;
             Check(camera.enabled==cameraEnabled&&!player.InputSuspended,"Leaving inspection restores camera and movement");player.InputSuspended=true;
             yield return MeltControlChecks.Play(session,Check,(melt,name)=>Capture(melt.CurrentBodyBounds.center+new Vector3(1.2f,.75f,1.6f),melt.CurrentBodyBounds.center,name+".png"));
             foreach(string guid in AssetDatabase.FindAssets("t:Shader",new[]{ProjectPath.FolderOf("CandySpirit.shader").TrimEnd('/')})){var shader=AssetDatabase.LoadAssetAtPath<Shader>(AssetDatabase.GUIDToAssetPath(guid));Check(shader&&!ShaderUtil.ShaderHasError(shader),"Runtime scenery shader compiles: "+shader.name);}

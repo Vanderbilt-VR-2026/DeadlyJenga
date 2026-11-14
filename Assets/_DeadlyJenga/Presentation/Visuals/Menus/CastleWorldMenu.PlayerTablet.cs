@@ -660,6 +660,9 @@ namespace DeadlyJenga.CastlePrototype
             DeveloperTile(tabletDeveloperGrid,"Bots",1,CandyHudIcon.Survivor,()=>{menuCategory=1;menuSection=-1;});
             // Disasters, Map & Mode and Rebuild live under More tools > Match (Disasters, Maps, Modes, World).
             DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true);
+            // Closes the tablet and shows your avatar from outside. V (or Done in VR) returns to first person.
+            DeveloperTile(tabletDeveloperGrid,"Third person",3,CandyHudIcon.Survivor,()=>session.Player?.ThirdPerson?.Begin(),
+                ()=>session.Player?.ThirdPerson?.CanInspect==true,opensDetails:false);
 
             // Last row: one wide cell across both columns for "More tools"
             TabletControl(tabletActions,tabletDeveloperGrid,()=>"More tools",new Vector2(0,-158),new Vector2(1004,104),

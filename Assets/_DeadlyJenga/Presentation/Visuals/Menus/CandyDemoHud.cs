@@ -167,8 +167,8 @@ namespace DeadlyJenga.CastlePrototype
             if(Button(new Rect(963,28,207,51),"Resume  ·  Esc",CandyHudVisuals.Mint))session.SetMenu(false);
             if(Button(new Rect(26,94,218,28),CanCommand?"DEMO CONTROLS: ON":"ENABLE DEMO CONTROLS",CanCommand?CandyHudVisuals.Mint:CandyHudVisuals.Peach))EnableDemoControls();
             if(Button(new Rect(256,94,220,28),"CONTROLS / HAND",CandyHudVisuals.Lavender))CandyComfortPanel.Open(session);
-            var inspection=CandyThirdPersonInspection.For(session);
-            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection.Begin();GUI.enabled=enabled;}
+            var inspection=session.Player?.ThirdPerson;
+            if(DemoMode){bool enabled=GUI.enabled;GUI.enabled=inspection?.CanInspect==true;if(Button(new Rect(963,94,207,28),"Third person",CandyHudVisuals.Lavender))inspection?.Begin();GUI.enabled=enabled;}
             if(Button(new Rect(748,28,201,51),MultiplayerPanel.LobbyAction(session.Multiplayer),CandyHudVisuals.Peach))MatchRuntime.Current?.ReturnToLobby();
             string joinCode=MultiplayerPanel.JoinCode(session.Multiplayer);
             if(joinCode.Length>0&&Button(new Rect(488,94,248,28),"Code: "+joinCode+" / Copy",CandyHudVisuals.Card))GUIUtility.systemCopyBuffer=joinCode;
@@ -242,8 +242,8 @@ namespace DeadlyJenga.CastlePrototype
                     var item=kind;ActionCard(1159+weaponRow++*104,CandyHudIcon.Play,"Spawn "+EquipmentNames(item),"One weapon or powerup per player. Walk near it and confirm a swap.",()=>{(match as IEquipmentRuntime)?.SpawnEquipment(item);session.SetMenu(false);},can&&match?.Authority==true);
                 }
                 Note(1790,Demo.Status);
-                var inspection=CandyThirdPersonInspection.For(session);
-                ActionCard(1895,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Drag to orbit, scroll to zoom; V returns to first person.",()=>inspection.Begin(),inspection!=null&&inspection.CanInspect);
+                var inspection=session.Player?.ThirdPerson;
+                ActionCard(1895,CandyHudIcon.Survivor,"Inspect your character in third person","Leave your character still. Drag to orbit, scroll to zoom; V returns to first person.",()=>inspection?.Begin(),inspection!=null&&inspection.CanInspect);
             }
             if(match is IPowerupSpawnControls)
                 ActionCard(DemoMode?2010:535,CandyHudIcon.Settings,"Random block powerup settings","Spawn interval, active limit, lifetime, and weighted types / percentages.",()=>DeadlyJenga.Presentation.CandyPowerupSpawnPanel.Open());
@@ -547,8 +547,8 @@ namespace DeadlyJenga.CastlePrototype
         }
         void ControlsPage()
         {
-            var inspection=CandyThirdPersonInspection.For(session);
-            ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection.Begin(),inspection?.CanInspect==true);
+            var inspection=session.Player?.ThirdPerson;
+            ActionCard(117,CandyHudIcon.Survivor,"Third person / inspect your avatar",session.IsVR?"Stationary mirror: look at its orbit / zoom buttons, then hold RIGHT trigger or pinch.":"Character stays still. Drag mouse to orbit, scroll to zoom; V returns.",()=>inspection?.Begin(),inspection?.CanInspect==true);
             Note(550,session.IsVR?"PICKUP: Look at the weapon, reach and squeeze grip or pinch. Swapping drops the item in your slot.":
                 "PICKUP: Aim at the weapon and press E. Swapping drops the item in your slot. Delete drops it directly.");
             var hints=Hints();for(int i=0;i<hints.Length;i++){Panel(new Rect(8,221+i*107,824,94),CandyHudVisuals.Card);Icon(new Rect(25,244+i*107,44,44),hints[i].icon,CandyHudVisuals.Mint);GUI.Label(new Rect(88,233+i*107,720,32),hints[i].key,heading);GUI.Label(new Rect(88,272+i*107,720,38),hints[i].text,body);}

@@ -80,6 +80,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         public void Teleport(Vector3 position, Quaternion rotation) => Place(position, rotation);
+        public IThirdPersonInspection ThirdPerson => null;   // only the survivor can be inspected
         public void Place(Vector3 position, Quaternion rotation)
         {
             motor.Body.position = position; motor.Body.rotation = rotation;

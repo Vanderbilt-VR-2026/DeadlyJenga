@@ -327,7 +327,7 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     Add(session.PlayingHand?"Become Survivor":"Become Flying Hand",SwitchDemoRole,DemoMode,CandyHudIcon.Hand,"Switch your local demo character.");
                     Add("Respawn on top",()=>{session.SetRole(false);session.SetMenu(false);},DemoMode);
-                    Add("Third person inspection",()=>CandyThirdPersonInspection.For(session).Begin(),CandyThirdPersonInspection.For(session)?.CanInspect==true);
+                    Add("Third person inspection",()=>session.Player?.ThirdPerson.Begin(),session.Player?.ThirdPerson?.CanInspect==true);
                     var item=session.Player.gameObject.GetComponent<IEquipmentControls>();var gun=session.Player.gameObject.GetComponent<IBlasterControls>();
                     Add(item?.Equipment.drawn==true?"Holster "+item.Equipment.kind:"Draw "+(item?.Equipment.kind.ToString()??"equipment"),()=>item?.SetEquipped(!item.Equipment.drawn),item?.Equipment.kind>=EquipmentKind.Blaster);
                     var drop=MatchRuntime.Current as IEquipmentDropRuntime;

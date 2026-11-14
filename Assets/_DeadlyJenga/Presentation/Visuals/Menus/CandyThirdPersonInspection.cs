@@ -6,47 +6,51 @@ using UnityEngine.UI;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    // A separate view leaves the avatar, its camera and headset tracking untouched.
+    // The view only. Core's IPlayableCharacter.ThirdPerson owns the state (Characters);
+    // this draws the orbit camera and VR mirror while that state says Inspecting.
     [DefaultExecutionOrder(900)]
     public sealed class CandyThirdPersonInspection : MonoBehaviour
     {
-        ISessionInfo session;
+        public static CandyThirdPersonInspection Current { get; private set; }
         IPlayableCharacter player;
+        IThirdPersonInspection state;
         Camera orbit, original;
         RenderTexture texture;
         GameObject panel;
         readonly RectTransform[] controls = new RectTransform[7];
         readonly RaycastHit[] obstacles = new RaycastHit[32];
-        bool originalEnabled, suspended, vr;
+        bool originalEnabled, vr, built;
         InputAction mirrorSelect;
         bool selectArmed;
         readonly CandyOrbitView orbitView = new CandyOrbitView();
         float yaw { get => orbitView.Yaw; set => orbitView.Yaw = value; }
         float pitch { get => orbitView.Pitch; set => orbitView.Pitch = value; }
         float distance { get => orbitView.Distance; set => orbitView.Distance = value; }
-        public bool Inspecting { get; private set; }
         public Camera InspectionCamera => orbit;
 
-        public static CandyThirdPersonInspection For(ISessionInfo owner)
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void Listen() => GameEvents.SessionStarted += go => { if (!go.GetComponent<CandyThirdPersonInspection>()) go.AddComponent<CandyThirdPersonInspection>(); };
+
+        void OnEnable() => Current = this;
+
+        void Update()
         {
-            if (!(owner is Component component)) return null;
-            var driver = component.GetComponent<CandyThirdPersonInspection>();
-            if (!driver) driver = component.gameObject.AddComponent<CandyThirdPersonInspection>();
-            driver.session = owner;
-            return driver;
+            var session = Services.Session;
+            state = session?.Player?.ThirdPerson;
+            if (state == null || !state.Inspecting) { if (built) Teardown(); return; }
+            if (!built && !Build(session)) { state.End(); return; }
+            if (!ReferenceEquals(player, session.Player) || original != player.ViewCamera || session.IsVR != vr)
+            { state.End(); return; }
+            if (vr) { if (!MirrorSelectHeld) selectArmed = true; return; }
+            if (Keyboard.current?.vKey.wasPressedThisFrame == true) { state.End(); return; }
+            orbitView.ReadDesktop();
         }
 
-        public bool CanInspect => (session as ILobbyMatchVisitControls)?.VisitingLobby!=true && session?.Demo != null && (session.Demo.DemoMode || session.Demo.CanCommand) && !session.PlayingHand &&
-            session.Player != null && (session.Demo as ISpectatorControls)?.Spectating != true &&
-            MatchRuntime.Current?.Frame.phase != RoundPhase.Results;
-
-        public void Begin()
+        bool Build(ISessionInfo session)
         {
-            if (Inspecting || !CanInspect) return;
             player = session.Player; original = player.ViewCamera;
-            if (!original) return;
+            if (!original) return false;
             session.SetMenu(false);
-            suspended = player.InputSuspended; player.InputSuspended = true;
             vr = session.IsVR; originalEnabled = original.enabled;
             orbitView.Reset(original.transform.eulerAngles.y + 180);
             var go = new GameObject("Visual - third person inspection camera");
@@ -65,18 +69,16 @@ namespace DeadlyJenga.CastlePrototype
                 mirrorSelect.Enable();selectArmed=false;BuildMirror();
             }
             else original.enabled = false;
-            Inspecting = true;
+            built = true;
+            return true;
         }
 
-        public void End()
+        void Teardown()
         {
-            if (!Inspecting && !orbit) return;
-            Inspecting = false;
-            bool spectating=(session?.Demo as ISpectatorControls)?.Spectating==true;
-            if (original && !vr && ReferenceEquals(session?.ActiveCamera,original) && session?.PlayingHand!=true && !spectating)
+            built = false;
+            if (original && !vr && ReferenceEquals(Services.Session?.ActiveCamera, original) && Services.Session?.PlayingHand != true
+                && (Services.Session?.Demo as ISpectatorControls)?.Spectating != true)
                 original.enabled = originalEnabled;
-            if (player != null && NetworkActors.Alive(player))
-                player.InputSuspended = suspended || session?.MenuOpen == true || spectating;
             if (orbit) { orbit.targetTexture = null; Destroy(orbit.gameObject); }
             if (panel) Destroy(panel);
             if (texture) { texture.Release(); Destroy(texture); }
@@ -84,25 +86,9 @@ namespace DeadlyJenga.CastlePrototype
             orbit = null; texture = null; panel = null; player = null; original = null;
         }
 
-        void Update()
-        {
-            if (!Inspecting) return;
-            if (!CanInspect || session.MenuOpen || session.IsVR != vr ||
-                !NetworkActors.Alive(player) || !ReferenceEquals(player, session.Player) || original != player.ViewCamera)
-            { End(); return; }
-            var runtime = MatchRuntime.Current;
-            if (runtime?.Frame != null) foreach (var row in runtime.Frame.players)
-                if (row.id == runtime.LocalActorId && (!row.alive || row.dying || row.role == "spectator")) { End(); return; }
-            player.InputSuspended = true;
-            if (vr) { if(!MirrorSelectHeld)selectArmed=true;return; }
-            var keys = Keyboard.current; var mouse = Mouse.current;
-            if (keys?.vKey.wasPressedThisFrame == true) { End(); return; }
-            orbitView.ReadDesktop();
-        }
-
         void LateUpdate()
         {
-            if (!Inspecting || !orbit || player == null) return;
+            if (!built || !orbit || player == null) return;
             pitch = Mathf.Clamp(pitch, -30, 70); distance = Mathf.Clamp(distance, 1.1f, 7);
             float height = Mathf.Clamp(original.transform.position.y - player.transform.position.y, .45f, 3);
             Vector3 target = player.transform.position + Vector3.up * height * .58f;
@@ -158,7 +144,7 @@ namespace DeadlyJenga.CastlePrototype
                 controls[i].GetComponent<Image>().color = hover ? CandyHudVisuals.Mint : CandyHudVisuals.Ink;
                 if (!hover) continue;
                 if(!selectArmed)return;
-                if (i == 6) { if (mirrorSelect?.WasPressedThisFrame()==true||player.SelectPressed) End(); return; }
+                if (i == 6) { if (mirrorSelect?.WasPressedThisFrame()==true||player.SelectPressed) state?.End(); return; }
                 if (!MirrorSelectHeld) return;
                 float step = Time.unscaledDeltaTime;
                 if (i < 2) yaw += (i == 0 ? -1 : 1) * 65 * step;
@@ -171,14 +157,13 @@ namespace DeadlyJenga.CastlePrototype
 
         void OnGUI()
         {
-            if (!Inspecting || vr || !texture) return;
+            if (!built || vr || !texture) return;
             int old = GUI.depth; GUI.depth = -90;
             GUI.DrawTexture(new Rect(0, 0, Screen.width, Screen.height), texture, ScaleMode.ScaleToFit);
             GUI.Box(new Rect(18, 18, Mathf.Min(Screen.width - 36, 760), 54), "THIRD PERSON  ·  Drag mouse / arrows: orbit  ·  Scroll / +/-: zoom  ·  V: return  ·  Esc: menu");
             GUI.depth = old;
         }
-        void OnDisable() => End();
-        void OnDestroy() => End();
-        void OnApplicationPause(bool paused) { if(paused)End(); }
+        void OnDisable() { if (built) Teardown(); if (Current == this) Current = null; }
+        void OnDestroy() { if (built) Teardown(); if (Current == this) Current = null; }
     }
 }

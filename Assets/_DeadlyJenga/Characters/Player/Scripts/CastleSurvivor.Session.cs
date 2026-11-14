@@ -20,6 +20,8 @@ namespace DeadlyJenga.CastlePrototype
         public string StatusText => SprintRequested||Time.unscaledTime<sprintFeedbackUntil?SprintStatusText:ActionStatus;
         public void PrepareForSession() { if (viewCamera) viewCamera.clearFlags = CameraClearFlags.Skybox; UpdateSpectatorParticipation(); }
         public void Place(Vector3 position, Quaternion rotation) { Teleport(position, rotation); Revive(); }
+        CastleThirdPerson thirdPerson;
+        public IThirdPersonInspection ThirdPerson => thirdPerson ? thirdPerson : thirdPerson = gameObject.AddComponent<CastleThirdPerson>();
 
         // ISurvivorSettings
         public string MovementLabel => vrMovement.ToString();

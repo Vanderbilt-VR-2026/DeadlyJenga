@@ -61,11 +61,11 @@ namespace DeadlyJenga.CastlePrototype
             bool wildlifeHover=Hit(wildlifeTarget,ray);
             wildlifeButton.image.color=wildlifeHover?CandyHudVisuals.Mint:CandyHudVisuals.Lavender;
             if(pressed&&wildlifeHover){DeadlyJenga.Presentation.CandyWildlifePanel.Open(session);return true;}
-            var inspection=CandyThirdPersonInspection.For(session);bool canInspect=inspection?.CanInspect==true;
+            var inspection=session.Player?.ThirdPerson;bool canInspect=inspection?.CanInspect==true;
             inspectionButton.gameObject.SetActive(DemoMode);inspectionTarget.enabled=canInspect;
             bool inspectHover=DemoMode&&canInspect&&Hit(inspectionTarget,ray);
             inspectionButton.image.color=inspectHover?CandyHudVisuals.Mint:canInspect?CandyHudVisuals.Lavender:CandyHudVisuals.Card;
-            if(pressed&&inspectHover){inspection.Begin();return true;}
+            if(pressed&&inspectHover){inspection?.Begin();return true;}
             review=MatchRuntime.Current as IMatchReviewControls;endVisible=review?.DevelopmentReviewEnabled==true;
             endLabel.text=MultiplayerPanel.EndAction(session.Multiplayer);
             endButton.gameObject.SetActive(endVisible);endTarget.enabled=endVisible&&review.CanEndGame;
@@ -129,10 +129,10 @@ namespace DeadlyJenga.CastlePrototype
                     foreach(var p in MatchRuntime.Current.Frame.players)if(p.id==watchedId){player=p;break;}
                     labels[i].text="DEV · "+role+": "+(player?.name??"not assigned");enabled=player!=null&&player.alive&&!player.dying;
                 }
-                if(i==7){labels[i].text="Inspect your avatar · third person mirror";enabled=CandyThirdPersonInspection.For(session)?.CanInspect==true;}
+                if(i==7){labels[i].text="Inspect your avatar · third person mirror";enabled=session.Player?.ThirdPerson?.CanInspect==true;}
                 targets[i].enabled=enabled;bool hover=Hit(targets[i],ray);buttons[i].image.color=hover?CandyHudVisuals.Mint:CandyHudVisuals.Card;labels[i].color=hover?CandyHudVisuals.Ink:enabled?Color.white:CandyHudVisuals.Muted;
                 if(hover&&pressed)
-                {if(i==0)spectatePage=false;else if(i==7)CandyThirdPersonInspection.For(session)?.Begin();else if(i>=5)review.WatchPlayer(watchedId);else if(i==1){controls.SetSpectating(!controls.Spectating);session.SetMenu(false);}else if(i==4)controls.SetFourViews(!controls.FourViews);else{controls.CycleWatched(i==2?-1:1);session.SetMenu(false);}break;}
+                {if(i==0)spectatePage=false;else if(i==7)session.Player?.ThirdPerson?.Begin();else if(i>=5)review.WatchPlayer(watchedId);else if(i==1){controls.SetSpectating(!controls.Spectating);session.SetMenu(false);}else if(i==4)controls.SetFourViews(!controls.FourViews);else{controls.CycleWatched(i==2?-1:1);session.SetMenu(false);}break;}
             }
             help.text=controls?.Spectating==true?"Watching "+controls.WatchedName(0)+"\nRight stick switches players. Open this menu to return.":"No movement commands reach the watched player.\nYour body can still be affected by the match.";
             
