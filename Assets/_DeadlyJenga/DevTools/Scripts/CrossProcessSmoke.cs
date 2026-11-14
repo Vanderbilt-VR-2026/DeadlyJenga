@@ -264,8 +264,20 @@ namespace DeadlyJenga.CastlePrototype
             var room = IslandRoomConnection.Instance;
             if (host)
             {
-                home.Host();
-                yield return Until(() => IslandLobby.Current && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                if (MatchTest)
+                {
+                    // Same entry as the Tycoon run: a local lobby first, then Host from its terminal.
+                    home.Demo();
+                    yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player), "Host enters usable lobby", 90);
+                    var opened = room.Host();
+                    yield return Until(() => opened.IsCompleted && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                    yield return ChooseDemoCastle(IslandLobby.Current, players + ScaleArg("--dj-match-bots", 8));
+                }
+                else
+                {
+                    home.Host();
+                    yield return Until(() => IslandLobby.Current && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                }
                 File.WriteAllText(Mark("scale-code-temp"), room.Code);
                 File.Move(Mark("scale-code-temp"), Mark("scale-code"));
             }
@@ -305,17 +317,23 @@ namespace DeadlyJenga.CastlePrototype
         // Match run: host starts Demo on Castle with a fixed bot count, then both processes hold the round.
         static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
 
+        // Chosen while the host is alone: a joined guest standing in a lobby slot blocks terminal changes.
+        IEnumerator ChooseDemoCastle(IslandLobby lobby, int population)
+        {
+            MatchSetup.BotTarget = population;
+            yield return Until(() => lobby.CanConfigure, "Host terminal is configurable", 60,
+                () => $"canStart={lobby.CanStart} status={IslandRoomConnection.Instance.Status}");
+            lobby.SelectMode("demo");
+            yield return Until(() => lobby.SelectedModeId == "demo", "Terminal selects Demo mode", 30);
+            lobby.SelectMap("castle");
+            yield return Until(() => lobby.SelectedMapId == "castle", "Terminal selects Castle map", 30);
+        }
+
         IEnumerator CheckMatch(IslandRoomConnection room, int players, int bots, float seconds)
         {
             bool host = role == "host";
             var lobby = IslandLobby.Current;
-            if (host)
-            {
-                MatchSetup.BotTarget = players + bots;
-                Require(lobby.SelectMode("demo") && lobby.SelectMap("castle"), "Terminal selects Demo on Castle");
-                yield return Until(() => lobby.CanConfigure, "Host terminal is configurable", 30);
-                lobby.StartOrCancel();
-            }
+            if (host) lobby.StartOrCancel();
             CastlePlaySession session = null;
             yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && NetworkActors.Alive(session.Player)
                 && session.Network && !session.Network.WaitingForWorld, "Room transitions to a Castle match", 150, () => $"room={room.Status}");
