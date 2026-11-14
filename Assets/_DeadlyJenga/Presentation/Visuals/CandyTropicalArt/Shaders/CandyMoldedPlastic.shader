@@ -50,34 +50,37 @@ Shader "Candy Tropical/Molded Plastic"
 
             half4 LitWithMoldedFinish(InputData input, SurfaceData surface)
             {
-                UNITY_BRANCH if (_CastlePlasticSkyWeight <= 0)
-                    return UniversalFragmentPBR(input, surface);
+                half3 coat = 0;
+                UNITY_BRANCH if (_CastlePlasticSkyWeight > 0)
+                {
+                    half3 dye = saturate(surface.albedo);
+                    half luminance = dot(dye, half3(0.2126h, 0.7152h, 0.0722h));
+                    // Keep the dye bright through the broad faces. Reserve the brightest highlights for the coat.
+                    surface.albedo = saturate(lerp(luminance.xxx, dye, 1.10h) + dye * 0.06h);
 
-                half3 dye = saturate(surface.albedo);
-                half luminance = dot(dye, half3(0.2126h, 0.7152h, 0.0722h));
-                // Keep the dye bright through the broad faces. Reserve the brightest highlights for the coat.
-                surface.albedo = saturate(lerp(luminance.xxx, dye, 1.10h) + dye * 0.06h);
+                    half gloss = saturate((surface.smoothness - 0.48h) * 2.4h);
+                    surface.smoothness = lerp(0.56h, 0.69h, gloss);
+                    half3 reflected = reflect(-input.viewDirectionWS, input.normalWS);
+                    half grazing = 1.0h - saturate(dot(input.normalWS, input.viewDirectionWS));
+                    half fresnel = grazing * grazing * grazing;
+                    half3 sky = SAMPLE_TEXTURECUBE_LOD(_CastlePlasticSky, sampler_CastlePlasticSky,
+                        reflected, lerp(3.0h, 0.85h, gloss)).rgb;
+                    half cloud = smoothstep(0.40h, 0.78h, dot(sky, half3(0.2126h, 0.7152h, 0.0722h)));
 
-                half gloss = saturate((surface.smoothness - 0.48h) * 2.4h);
-                surface.smoothness = lerp(0.56h, 0.69h, gloss);
-                half3 reflected = reflect(-input.viewDirectionWS, input.normalWS);
-                half grazing = 1.0h - saturate(dot(input.normalWS, input.viewDirectionWS));
-                half fresnel = grazing * grazing * grazing;
-                half3 sky = SAMPLE_TEXTURECUBE_LOD(_CastlePlasticSky, sampler_CastlePlasticSky,
-                    reflected, lerp(3.0h, 0.85h, gloss)).rgb;
-                half cloud = smoothstep(0.40h, 0.78h, dot(sky, half3(0.2126h, 0.7152h, 0.0722h)));
+                    half3 lightDirection = GetMainLight().direction;
+                    half glint = pow(saturate(dot(reflected, lightDirection)), lerp(25.0h, 58.0h, gloss));
+                    half3 face = abs(TransformWorldToObjectNormal(input.normalWS));
+                    half bevel = smoothstep(0.08h, 0.45h, face.x + face.y + face.z - max(face.x, max(face.y, face.z)));
+                    half litEdge = bevel * saturate(dot(input.normalWS, lightDirection));
+                    half3 coatTint = lerp(half3(1.0h, 0.96h, 0.92h), sqrt(dye), 0.56h);
+                    half sheen = cloud * (0.065h + 0.17h * fresnel + 0.12h * bevel) + 0.045h * litEdge;
 
-                half3 lightDirection = GetMainLight().direction;
-                half glint = pow(saturate(dot(reflected, lightDirection)), lerp(25.0h, 58.0h, gloss));
-                half3 face = abs(TransformWorldToObjectNormal(input.normalWS));
-                half bevel = smoothstep(0.08h, 0.45h, face.x + face.y + face.z - max(face.x, max(face.y, face.z)));
-                half litEdge = bevel * saturate(dot(input.normalWS, lightDirection));
-                half3 coatTint = lerp(half3(1.0h, 0.96h, 0.92h), sqrt(dye), 0.56h);
-                half sheen = cloud * (0.065h + 0.17h * fresnel + 0.12h * bevel) + 0.045h * litEdge;
+                    coat = (coatTint * sheen + half3(1.0h, 0.96h, 0.90h) * glint * 0.34h)
+                        * gloss * _CastlePlasticSkyWeight;
+                }
 
                 half4 color = UniversalFragmentPBR(input, surface);
-                color.rgb += (coatTint * sheen + half3(1.0h, 0.96h, 0.90h) * glint * 0.34h)
-                    * gloss * _CastlePlasticSkyWeight;
+                color.rgb += coat;
                 return color;
             }
 

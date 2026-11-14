@@ -32,7 +32,7 @@ namespace DeadlyJenga.Presentation
         IMatchRuntime owner;
         MatchFrame rankedFrame;
         int rankedRevision, page, infectionPage;
-        bool visible, wasVr, split, rankedCurated, modalHidden;
+        bool visible, wasVr, split, rankedCurated, modalHidden, announcedRoundEnd;
         Camera camera;
         ISessionInfo source;
         Vector3 openingForward;
@@ -60,7 +60,16 @@ namespace DeadlyJenga.Presentation
             var session = Services.Session;
             var frame = match?.Frame;
             if (ReferenceEquals(session, source))
+            {
                 LobbyLastRoundBoard.Observe(match, session);
+                bool roundOver = frame?.phase == RoundPhase.Victory || frame?.phase == RoundPhase.Results;
+                if (roundOver && !announcedRoundEnd && session?.ActiveCamera)
+                {
+                    CandyDeathOverlay.ShowGameOver(session);
+                    announcedRoundEnd = true;
+                }
+                else if (!roundOver) announcedRoundEnd = false;
+            }
             bool show = frame?.phase == RoundPhase.Results && session != null && !CandyDeathOverlay.GameOverActive
                 && (session as ILobbyMatchVisitControls)?.VisitingLobby != true;
             if (!show)

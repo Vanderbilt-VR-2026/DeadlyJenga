@@ -26,6 +26,8 @@ namespace DeadlyJenga.Presentation
         Image bannerDim;
         Text bannerText;
         RectTransform bannerRect;
+        Outline bannerOutline;
+        Shadow bannerShadow;
         Color tint;
         int environment;
         Canvas canvas;
@@ -34,6 +36,20 @@ namespace DeadlyJenga.Presentation
 
         public static void Show(Color color) => Request(color, false);
         public static void ShowLocalDeath(Color color) => Request(color, true);
+
+        public static void ShowGameOver(ISessionInfo session)
+        {
+            var camera = session?.ActiveCamera;
+            if (!camera || GameOverActive) return;
+            if (!active)
+            {
+                var root = new GameObject("Candy death overlay", typeof(RectTransform), typeof(Canvas));
+                DontDestroyOnLoad(root);
+                active = root.AddComponent<CandyDeathOverlay>();
+                active.Begin(Color.clear);
+            }
+            active.StartGameOver(session, camera);
+        }
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void Listen() => GameEvents.MatchSound += EnvironmentDeath;
@@ -271,7 +287,7 @@ namespace DeadlyJenga.Presentation
             dimRect.anchorMin = Vector2.zero;
             dimRect.anchorMax = Vector2.one;
             dimRect.offsetMin = dimRect.offsetMax = Vector2.zero;
-            var label = new GameObject("GAME OVER", typeof(RectTransform), typeof(Text), typeof(Outline), typeof(Shadow));
+            var label = new GameObject("GAME OVER", typeof(RectTransform), typeof(Text));
             label.transform.SetParent(go.transform, false);
             bannerRect = (RectTransform)label.transform;
             bannerRect.sizeDelta = new Vector2(1200, 300);
@@ -285,12 +301,10 @@ namespace DeadlyJenga.Presentation
             bannerText.raycastTarget = false;
             bannerText.text = "GAME OVER";
             bannerText.color = new Color(1f, .96f, .62f);
-            var outline = label.GetComponent<Outline>();
-            outline.effectColor = new Color(1f, .22f, .62f);
-            outline.effectDistance = new Vector2(9, -9);
-            var shadow = label.GetComponent<Shadow>();
-            shadow.effectColor = new Color(.25f, .08f, .5f, .8f);
-            shadow.effectDistance = new Vector2(0, -22);
+            bannerOutline = label.AddComponent<Outline>();
+            bannerOutline.effectDistance = new Vector2(9, -9);
+            bannerShadow = label.AddComponent<Shadow>();
+            bannerShadow.effectDistance = new Vector2(0, -22);
             TickGameOver(gameOverAt);
         }
 
@@ -313,8 +327,8 @@ namespace DeadlyJenga.Presentation
             bannerRect.localRotation = Quaternion.Euler(0, 0, -4 + Mathf.Sin(t * 60) * shake * .25f);
             bannerRect.anchoredPosition = new Vector2(Mathf.Sin(t * 83) * shake, 20 + Mathf.Cos(t * 71) * shake);
             bannerText.color = new Color(1f, .96f, .62f, Mathf.Clamp01(pop * 2) * fade);
-            bannerText.GetComponent<Outline>().effectColor = new Color(1f, .22f, .62f, fade);
-            bannerText.GetComponent<Shadow>().effectColor = new Color(.25f, .08f, .5f, .8f * fade);
+            bannerOutline.effectColor = new Color(1f, .22f, .62f, fade);
+            bannerShadow.effectColor = new Color(.25f, .08f, .5f, .8f * fade);
             bannerDim.color = new Color(.09f, .03f, .2f, .5f * Mathf.Clamp01(t / .15f) * fade);
         }
 
