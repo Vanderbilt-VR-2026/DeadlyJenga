@@ -28,7 +28,7 @@ namespace DeadlyJenga.CandyAudio.Editor
             Directory.CreateDirectory(Path.GetDirectoryName(Report));
             File.WriteAllText(Report, "Sound Studio preview/editor checks · " + DateTime.UtcNow.ToString("O") + "\nSynthetic fixture, NOT gameplay evidence.\n");
             string parent = ProjectPath.FolderOf("CandySoundPreviewChecks.cs").TrimEnd('/');
-            string folder = parent + "/StudioPreviewCheck-" + Guid.NewGuid().ToString("N");
+            string folder = parent + "/PreviewQA-" + Guid.NewGuid().ToString("N").Substring(0, 8);
             string package = Path.Combine("Logs", "SoundStudio", "preview-fixture");
             AssetDatabase.CreateFolder(parent, Path.GetFileName(folder)); Directory.CreateDirectory(package);
             Texture2D texture = null;

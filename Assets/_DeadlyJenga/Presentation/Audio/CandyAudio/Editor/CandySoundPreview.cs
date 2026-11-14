@@ -98,7 +98,7 @@ namespace DeadlyJenga.CandyAudio.Editor
             string parent = ProjectPath.FolderOf("CandySoundPreview.cs").TrimEnd('/');
             if (!parent.Contains("/Editor")) throw new InvalidOperationException("Preview storage must be Editor-only.");
             string destination = testFolder ?? parent + "/TriggerPreviews";
-            if (testFolder != null && (!testFolder.StartsWith(parent + "/StudioPreviewCheck-", StringComparison.Ordinal) || !AssetDatabase.IsValidFolder(testFolder))) throw new InvalidOperationException("Invalid preview test folder.");
+            if (testFolder != null && (!testFolder.StartsWith(parent + "/PreviewQA-", StringComparison.Ordinal) || !AssetDatabase.IsValidFolder(testFolder))) throw new InvalidOperationException("Invalid preview test folder.");
             if (!AssetDatabase.IsValidFolder(destination)) AssetDatabase.CreateFolder(parent, "TriggerPreviews");
             string texturePath = destination + "/Cue-" + packet.cueId + "-" + packet.atlasSha256 + ".png";
             if (!File.Exists(texturePath)) File.Copy(atlas, texturePath);

@@ -387,7 +387,10 @@ namespace DeadlyJenga.CastlePrototype
                     "Guest confirms initial world snapshot before load is added", 60);
             else if (!solo)
                 File.WriteAllText(Mark("tycoon-guest-match"), "ready");
-            Require(blocks.Length == 795 && blocks.All(body => body && body.isKinematic), "All 795 resting blocks have live supported colliders");
+            const int expectedTycoonBlocks = 775;
+            Require(blocks.Length == expectedTycoonBlocks &&
+                blocks.All(body => body && body.isKinematic && body.TryGetComponent<Collider>(out var collider) && collider.enabled),
+                $"All {expectedTycoonBlocks} resting Tycoon blocks have live colliders");
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 90;
             if (solo)
