@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-71
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 0b89aa2663b1a674d9731af13bb5fbb2, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 71
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Weapon Boxing
+    atlasFile: atlas.png
+    atlasSha256: b0bbc2dba0b97296ba020ddc900dd220cb8d93965cb02f896825b1062ccd632d
+    gifFile: preview.gif
+    gifSha256: 5211473cfb7307919c42ced572b911c52da26a169e7e5369b34e338deade758c
+    sourceSha256: 3e845c03b40157c6fa77a69f497e55bef9e3b1fee46d717350e57aaec7656213
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Weapon Boxing
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Weapon Boxing
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

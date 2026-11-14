@@ -112,6 +112,20 @@ namespace DeadlyJenga.DevTools.Editor
                         File.AppendAllText(Report, "BATCH 3 WORLD COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
                         Debug.Log("Slot 2 Batch 3 World Captures Complete! See: " + Report);
                     }
+                    else if (phase == 40)
+                    {
+                        SessionState.SetBool(Key, false);
+                        SessionState.SetInt(Key + ".Phase", 0);
+                        File.AppendAllText(Report, "BATCH 4A COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
+                        Debug.Log("Slot 2 Batch 4A Captures Complete! See: " + Report);
+                    }
+                    else if (phase == 41)
+                    {
+                        SessionState.SetBool(Key, false);
+                        SessionState.SetInt(Key + ".Phase", 0);
+                        File.AppendAllText(Report, "BATCH 4B COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
+                        Debug.Log("Slot 2 Batch 4B Captures Complete! See: " + Report);
+                    }
                     else if (phase == 50)
                     {
                         SessionState.SetBool(Key, false);
@@ -234,6 +248,70 @@ namespace DeadlyJenga.DevTools.Editor
                 EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
                 EditorApplication.EnterPlaymode();
             }
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 4A Combat (45 Cues)")]
+        public static void RunBatch4A()
+        {
+            Directory.CreateDirectory(RawRoot);
+            File.AppendAllText(Report, "Starting Batch 4A Combat Captures (45 cues) · " + DateTime.UtcNow.ToString("O") + "\n");
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 40);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            if (EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                EditorApplication.EnterPlaymode();
+            }
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Import Batch 4A Previews")]
+        public static void ImportBatch4A()
+        {
+            ImportBatch("batch4a_meta.json");
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 4B 12 Main Weapons (120 Cues)")]
+        public static void RunBatch4B()
+        {
+            Directory.CreateDirectory(RawRoot);
+            File.AppendAllText(Report, "Starting Batch 4B Weapons Captures (120 cues) · " + DateTime.UtcNow.ToString("O") + "\n");
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 41);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            if (EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                EditorApplication.EnterPlaymode();
+            }
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Import Batch 4B Previews")]
+        public static void ImportBatch4B()
+        {
+            ImportBatch("batch4b_meta.json");
         }
 
         [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 5 Wildlife (21 Cues)")]
@@ -376,6 +454,20 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!lobby || lobby.Player == null || !lobby.ActiveCamera) return;
                 EditorApplication.update -= StartRoutineWhenReady;
                 lobby.StartCoroutine(Guard(RunBatch3LobbyCaptures(lobby)));
+            }
+            else if (phase == 40)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch4ACaptures(session)));
+            }
+            else if (phase == 41)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch4BCaptures(session)));
             }
             else if (phase == 50)
             {
@@ -2172,6 +2264,398 @@ namespace DeadlyJenga.DevTools.Editor
 
             Object.DestroyImmediate(camObj);
             Log("Batch 5 (Wildlife & Jaguar) captures successfully completed!");
+            EditorApplication.isPlaying = false;
+        }
+
+        static int actionSeq = 100;
+        static void PlayWeaponAction(CastlePlaySession session, GameObject bot, EquipmentKind kind, EquipmentAction act, bool alt = false)
+        {
+            var frame = new EquipmentActionFrame
+            {
+                id = ++actionSeq,
+                actor = session.Modes?.LocalActorId ?? "player",
+                kind = kind,
+                action = act,
+                shotgun = alt,
+                position = bot.transform.position
+            };
+            var cue = CandySignatureSounds.DescribeWeapon(frame);
+            CandyAudioEngine.Instance?.PlayCue(cue, bot.transform.position, 1f, bot.GetInstanceID());
+        }
+
+        static IEnumerator RunBatch4ACaptures(CastlePlaySession session)
+        {
+            Log("Game.unity session loaded for Batch 4A Combat. Setting up match rules...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds = 0;
+            rules.healthEnabled = true;
+            rules.deathEnabled = false;
+            rules.fallDamage = false;
+            rules.island = IslandRule.Walkable;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SetRole(true);
+            session.SetMenu(false);
+
+            session.Player.InputSuspended = true;
+            if (session.Hand != null) session.Hand.InputSuspended = true;
+
+            var world = Services.World;
+
+            // Dedicated camera
+            var camObj = new GameObject("Batch4A_Capture_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            // Platform top
+            var blocksWithCollider = world.Blocks.Where(b => b && b.GetComponent<Collider>()).ToList();
+            var castlePlatform = blocksWithCollider
+                .Select(b => b.GetComponent<Collider>().bounds)
+                .OrderByDescending(b => b.max.y).First();
+            Vector3 platformTop = new Vector3(castlePlatform.center.x, castlePlatform.max.y + 0.05f, castlePlatform.center.z);
+
+            GameObject bot = session.SurvivorBots.SpawnOne();
+            if (!bot) bot = session.Player.gameObject;
+            var botMotor = bot.GetComponent<CastleSurvivor>();
+            var botBrain = bot.GetComponent<CastleBotBrain>();
+            if (botBrain) botBrain.enabled = false;
+            if (botMotor) botMotor.InputSuspended = true;
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            var rig = bot.GetComponentInChildren<CandyPlayerRig>();
+            var weaponHost = new GameObject("Held Weapon Visual Host 4A").transform;
+            weaponHost.SetParent(bot.transform, false);
+
+            CandyWeaponVisual weaponVisual = null;
+            if (rig && rig.style != null) weaponVisual = new CandyWeaponVisual(weaponHost, rig.style.material);
+
+            void ShowWeapon(EquipmentKind k, bool drawn = true, bool alt = false)
+            {
+                foreach (Transform c in weaponHost) Object.DestroyImmediate(c.gameObject);
+                if (weaponVisual != null && rig != null)
+                {
+                    var st = new EquipmentState { kind = k, drawn = drawn, shotgun = alt };
+                    var fr = new CandyAvatarFrame { feet = platformTop, head = platformTop + Vector3.up * 1.6f, headRotation = Quaternion.LookRotation(Vector3.back), scale = 1 };
+                    fr.right = new CandyHandPose { position = platformTop + new Vector3(0.28f, 1.12f, -0.38f), rotation = Quaternion.LookRotation(Vector3.back), skeleton = CandyHandSkeleton.Rest(false, 1), skeletonTracked = true };
+                    fr.left = new CandyHandPose { position = platformTop + new Vector3(-0.28f, 1.12f, -0.38f), rotation = Quaternion.LookRotation(Vector3.back), skeleton = CandyHandSkeleton.Rest(true, 1), skeletonTracked = true };
+                    rig.ApplyFrame(fr);
+                    weaponVisual.Present(st, fr, true);
+                }
+            }
+
+            // Camera framing
+            cam.transform.position = platformTop + Vector3.back * 1.8f + Vector3.up * 1.25f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.0f);
+
+            // ========================================================
+            // SECTION 1: IRON SUIT (3 CUES: 84, 85, 86)
+            // ========================================================
+            Log("--- Commencing Iron Suit captures (3 cues) ---");
+            if (rig != null) rig.SetAppearance(new AvatarAppearance { poweredArmor = true });
+
+            yield return CaptureCue(cam, 84, "Suit Thruster", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyPlayerSounds.DefaultCue(CandySound.SuitThruster), bot.transform.position, 1f, bot.GetInstanceID());
+                if (f >= 6 && botMotor) botMotor.Teleport(platformTop + Vector3.up * ((f - 6) * 0.05f), Quaternion.LookRotation(Vector3.back));
+            });
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+
+            yield return CaptureCue(cam, 85, "Suit Ignition", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyPlayerSounds.DefaultCue(CandySound.SuitIgnition), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            yield return CaptureCue(cam, 86, "Suit Shutdown", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyPlayerSounds.DefaultCue(CandySound.SuitShutdown), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+            if (rig != null) rig.SetAppearance(new AvatarAppearance { poweredArmor = false });
+
+            // ========================================================
+            // SECTION 2: GENERIC WEAPON SOUNDS (13 CUES: 60..72)
+            // ========================================================
+            Log("--- Commencing Generic Weapon Sounds captures (13 cues) ---");
+            (CandySound snd, EquipmentKind k, bool dr, string nm)[] genericWeapons = {
+                (CandySound.WeaponRifle, EquipmentKind.DualRifle, true, "Weapon Rifle"),
+                (CandySound.WeaponShotgun, EquipmentKind.DualRifle, true, "Weapon Shotgun"),
+                (CandySound.WeaponBlaster, EquipmentKind.Blaster, true, "Weapon Blaster"),
+                (CandySound.WeaponTransform, EquipmentKind.DualRifle, true, "Weapon Transform"),
+                (CandySound.WeaponDraw, EquipmentKind.StockPistol, true, "Weapon Draw"),
+                (CandySound.WeaponHolster, EquipmentKind.StockPistol, false, "Weapon Holster"),
+                (CandySound.WeaponPickup, EquipmentKind.StockPistol, true, "Weapon Pickup"),
+                (CandySound.WeaponSwap, EquipmentKind.DualUzi, true, "Weapon Swap"),
+                (CandySound.WeaponDrop, EquipmentKind.StockPistol, false, "Weapon Drop"),
+                (CandySound.WeaponSword, EquipmentKind.MurderSword, true, "Weapon Sword"),
+                (CandySound.WeaponHammer, EquipmentKind.SheriffHammer, true, "Weapon Hammer"),
+                (CandySound.WeaponBoxing, EquipmentKind.BoxingGlove, true, "Weapon Boxing"),
+                (CandySound.WeaponPlasmaImpact, EquipmentKind.Blaster, true, "Weapon Plasma Impact")
+            };
+
+            foreach (var gw in genericWeapons)
+            {
+                ShowWeapon(gw.k, gw.dr, gw.snd == CandySound.WeaponShotgun);
+                yield return CaptureCue(cam, (int)gw.snd, gw.nm, 24, f => {
+                    if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyWeaponSounds.DefaultCue(gw.snd), bot.transform.position, 1f, bot.GetInstanceID());
+                });
+            }
+
+            // ========================================================
+            // SECTION 3: MATCH COMBAT FEEDBACK (6 CUES: 110, 111, 112, 114, 115, 116)
+            // ========================================================
+            Log("--- Commencing Match Combat Feedback captures (6 cues) ---");
+            (CandySound cs, string nm)[] matchFeedback = {
+                (CandySound.HitConfirm, "Hit Confirm"),
+                (CandySound.KillConfirm, "Kill Confirm"),
+                (CandySound.PersonalHit, "Personal Hit"),
+                (CandySound.NearbyHit, "Nearby Hit"),
+                (CandySound.NearbyShot, "Nearby Shot"),
+                (CandySound.PlayerKilled, "Player Killed")
+            };
+
+            foreach (var mf in matchFeedback)
+            {
+                yield return CaptureCue(cam, (int)mf.cs, mf.nm, 24, f => {
+                    if (f == 6) CandyAudioEngine.Instance?.Play(mf.cs, bot.transform.position, 1f, bot.GetInstanceID());
+                    if (mf.cs == CandySound.PlayerKilled && f >= 6 && botMotor)
+                    {
+                        float sink = Mathf.Min(0.6f, (f - 6) * 0.06f);
+                        botMotor.Teleport(platformTop + Vector3.down * sink, Quaternion.LookRotation(Vector3.back));
+                    }
+                });
+                if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            }
+
+            // ========================================================
+            // SECTION 4: PARTIAL WEAPONS (23 CUES)
+            // ========================================================
+            Log("--- Commencing Partial Weapons captures (23 cues) ---");
+
+            // Blaster: 877884 Reload
+            ShowWeapon(EquipmentKind.Blaster, true);
+            yield return CaptureCue(cam, 877884, "Blaster Reload", 24, f => {
+                if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.Blaster, EquipmentAction.Reload);
+            });
+
+            // Dual Rifle: 246101 Reload
+            ShowWeapon(EquipmentKind.DualRifle, true);
+            yield return CaptureCue(cam, 246101, "Dual Rifle Reload", 24, f => {
+                if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.DualRifle, EquipmentAction.Reload);
+            });
+
+            // Murder Sword: 262667 Reload, 573979 Shot primary
+            ShowWeapon(EquipmentKind.MurderSword, true);
+            yield return CaptureCue(cam, 262667, "Murder Sword Reload", 24, f => {
+                if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.MurderSword, EquipmentAction.Reload);
+            });
+            yield return CaptureCue(cam, 573979, "Murder Sword Shot primary", 24, f => {
+                if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.MurderSword, EquipmentAction.Shot, false);
+            });
+
+            // Sheriff Hammer: 486036 Reload, 216100 Shot primary
+            ShowWeapon(EquipmentKind.SheriffHammer, true);
+            yield return CaptureCue(cam, 486036, "Sheriff Hammer Reload", 24, f => {
+                if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.SheriffHammer, EquipmentAction.Reload);
+            });
+            yield return CaptureCue(cam, 216100, "Sheriff Hammer Shot primary", 24, f => {
+                if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.SheriffHammer, EquipmentAction.Shot, false);
+            });
+
+            // Dagger: 9 cues
+            ShowWeapon(EquipmentKind.Dagger, true);
+            (int id, EquipmentAction act, bool alt, string nm)[] daggerCues = {
+                (789792, EquipmentAction.Draw, false, "Dagger Draw"),
+                (790219, EquipmentAction.Drop, false, "Dagger Drop"),
+                (437191, EquipmentAction.Holster, false, "Dagger Holster"),
+                (711827, EquipmentAction.ModeSwitch, false, "Dagger Mode Switch"),
+                (507992, EquipmentAction.Pickup, false, "Dagger Pickup"),
+                (343541, EquipmentAction.Reload, false, "Dagger Reload"),
+                (552572, EquipmentAction.Shot, true, "Dagger Shot alternate"),
+                (575365, EquipmentAction.Shot, false, "Dagger Shot primary"),
+                (241455, EquipmentAction.Swap, false, "Dagger Swap")
+            };
+            foreach (var dc in daggerCues)
+            {
+                ShowWeapon(EquipmentKind.Dagger, dc.act != EquipmentAction.Holster && dc.act != EquipmentAction.Drop, dc.alt);
+                yield return CaptureCue(cam, dc.id, dc.nm, 24, f => {
+                    if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.Dagger, dc.act, dc.alt);
+                });
+            }
+
+            // Stock Pistol: 8 cues
+            ShowWeapon(EquipmentKind.StockPistol, true);
+            (int id, EquipmentAction act, bool alt, string nm)[] pistolCues = {
+                (609055, EquipmentAction.Draw, false, "Stock Pistol Draw"),
+                (609482, EquipmentAction.Drop, false, "Stock Pistol Drop"),
+                (475432, EquipmentAction.Holster, false, "Stock Pistol Holster"),
+                (368033, EquipmentAction.Impact, false, "Stock Pistol Impact"),
+                (849298, EquipmentAction.ModeSwitch, false, "Stock Pistol Mode Switch"),
+                (700887, EquipmentAction.Pickup, false, "Stock Pistol Pickup"),
+                (575773, EquipmentAction.Shot, true, "Stock Pistol Shot alternate"),
+                (60718, EquipmentAction.Swap, false, "Stock Pistol Swap")
+            };
+            foreach (var pc in pistolCues)
+            {
+                ShowWeapon(EquipmentKind.StockPistol, pc.act != EquipmentAction.Holster && pc.act != EquipmentAction.Drop, pc.alt);
+                yield return CaptureCue(cam, pc.id, pc.nm, 24, f => {
+                    if (f == 6) PlayWeaponAction(session, bot, EquipmentKind.StockPistol, pc.act, pc.alt);
+                });
+            }
+
+            if (weaponHost) Object.DestroyImmediate(weaponHost.gameObject);
+            if (bot != session.Player.gameObject) Object.DestroyImmediate(bot);
+            Object.DestroyImmediate(camObj);
+
+            Log("Batch 4A captures successfully completed!");
+            EditorApplication.isPlaying = false;
+        }
+
+        static IEnumerator RunBatch4BCaptures(CastlePlaySession session)
+        {
+            Log("Game.unity session loaded for Batch 4B 12 Main Weapons. Setting up match rules...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds = 0;
+            rules.healthEnabled = true;
+            rules.deathEnabled = false;
+            rules.fallDamage = false;
+            rules.island = IslandRule.Walkable;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SetRole(true);
+            session.SetMenu(false);
+
+            session.Player.InputSuspended = true;
+            if (session.Hand != null) session.Hand.InputSuspended = true;
+
+            var world = Services.World;
+
+            // Dedicated camera
+            var camObj = new GameObject("Batch4B_Capture_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            var blocksWithCollider = world.Blocks.Where(b => b && b.GetComponent<Collider>()).ToList();
+            var castlePlatform = blocksWithCollider
+                .Select(b => b.GetComponent<Collider>().bounds)
+                .OrderByDescending(b => b.max.y).First();
+            Vector3 platformTop = new Vector3(castlePlatform.center.x, castlePlatform.max.y + 0.05f, castlePlatform.center.z);
+
+            GameObject bot = session.SurvivorBots.SpawnOne();
+            if (!bot) bot = session.Player.gameObject;
+            var botMotor = bot.GetComponent<CastleSurvivor>();
+            var botBrain = bot.GetComponent<CastleBotBrain>();
+            if (botBrain) botBrain.enabled = false;
+            if (botMotor) botMotor.InputSuspended = true;
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            var rig = bot.GetComponentInChildren<CandyPlayerRig>();
+            var weaponHost = new GameObject("Held Weapon Visual Host 4B").transform;
+            weaponHost.SetParent(bot.transform, false);
+
+            CandyWeaponVisual weaponVisual = null;
+            if (rig && rig.style != null) weaponVisual = new CandyWeaponVisual(weaponHost, rig.style.material);
+
+            void ShowWeapon(EquipmentKind k, bool drawn = true, bool alt = false)
+            {
+                foreach (Transform c in weaponHost) Object.DestroyImmediate(c.gameObject);
+                if (weaponVisual != null && rig != null)
+                {
+                    var st = new EquipmentState { kind = k, drawn = drawn, shotgun = alt };
+                    var fr = new CandyAvatarFrame { feet = platformTop, head = platformTop + Vector3.up * 1.6f, headRotation = Quaternion.LookRotation(Vector3.back), scale = 1 };
+                    fr.right = new CandyHandPose { position = platformTop + new Vector3(0.28f, 1.12f, -0.38f), rotation = Quaternion.LookRotation(Vector3.back), skeleton = CandyHandSkeleton.Rest(false, 1), skeletonTracked = true };
+                    fr.left = new CandyHandPose { position = platformTop + new Vector3(-0.28f, 1.12f, -0.38f), rotation = Quaternion.LookRotation(Vector3.back), skeleton = CandyHandSkeleton.Rest(true, 1), skeletonTracked = true };
+                    rig.ApplyFrame(fr);
+                    weaponVisual.Present(st, fr, true);
+                }
+            }
+
+            cam.transform.position = platformTop + Vector3.back * 1.8f + Vector3.up * 1.25f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.0f);
+
+            EquipmentKind[] weapons = {
+                EquipmentKind.BarbedBat,
+                EquipmentKind.ChainGun,
+                EquipmentKind.Chainsaw,
+                EquipmentKind.DualUzi,
+                EquipmentKind.FlamingMarshmallow,
+                EquipmentKind.GrenadeLauncher,
+                EquipmentKind.LaserAxe,
+                EquipmentKind.LaserClaws,
+                EquipmentKind.NeedleDrill,
+                EquipmentKind.RocketLauncher,
+                EquipmentKind.SawStaff,
+                EquipmentKind.WristLaser
+            };
+
+            (EquipmentAction act, bool alt, string title)[] actions = {
+                (EquipmentAction.Draw, false, "Draw"),
+                (EquipmentAction.Drop, false, "Drop"),
+                (EquipmentAction.Holster, false, "Holster"),
+                (EquipmentAction.Impact, false, "Impact"),
+                (EquipmentAction.ModeSwitch, false, "Mode Switch"),
+                (EquipmentAction.Pickup, false, "Pickup"),
+                (EquipmentAction.Reload, false, "Reload"),
+                (EquipmentAction.Shot, false, "Shot · primary"),
+                (EquipmentAction.Shot, true, "Shot · alternate"),
+                (EquipmentAction.Swap, false, "Swap")
+            };
+
+            foreach (var kind in weapons)
+            {
+                Log($"--- Commencing captures for {kind} (10 cues) ---");
+                foreach (var a in actions)
+                {
+                    var frame = new EquipmentActionFrame
+                    {
+                        id = ++actionSeq,
+                        actor = session.Modes?.LocalActorId ?? "player",
+                        kind = kind,
+                        action = a.act,
+                        shotgun = a.alt,
+                        position = bot.transform.position
+                    };
+                    var cue = CandySignatureSounds.DescribeWeapon(frame);
+                    int cueId = (int)cue.sound;
+
+                    ShowWeapon(kind, a.act != EquipmentAction.Holster && a.act != EquipmentAction.Drop, a.alt);
+
+                    yield return CaptureCue(cam, cueId, $"{kind} {a.title}", 24, f => {
+                        if (f == 6) CandyAudioEngine.Instance?.PlayCue(cue, bot.transform.position, 1f, bot.GetInstanceID());
+                        if (f >= 6 && f <= 12)
+                        {
+                            if (a.act == EquipmentAction.Shot) cam.transform.position += Vector3.back * 0.005f;
+                            else if (a.act == EquipmentAction.Impact) cam.transform.position += Vector3.down * 0.004f;
+                        }
+                        else if (f > 12 && f <= 18)
+                        {
+                            if (a.act == EquipmentAction.Shot) cam.transform.position += Vector3.forward * 0.005f;
+                            else if (a.act == EquipmentAction.Impact) cam.transform.position += Vector3.up * 0.004f;
+                        }
+                    });
+                }
+            }
+
+            if (weaponHost) Object.DestroyImmediate(weaponHost.gameObject);
+            if (bot != session.Player.gameObject) Object.DestroyImmediate(bot);
+            Object.DestroyImmediate(camObj);
+
+            Log("Batch 4B 12 Main Weapons captures successfully completed!");
             EditorApplication.isPlaying = false;
         }
 

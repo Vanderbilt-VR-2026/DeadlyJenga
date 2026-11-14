@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-241455
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: d521d220b96cd954a97ba8c8c41044a9, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 241455
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Swap
+    atlasFile: atlas.png
+    atlasSha256: 6e0cbeb6217c17c7ca11401deffbef6b8515857363c3156aee2c25ec662166e5
+    gifFile: preview.gif
+    gifSha256: 2e4332564034187b8f2fb9785c49cd13690b59199658d4b18d75f32ea19a5384
+    sourceSha256: 4bf3ce863e29109cde98f9a1cb397f0af14ca36ac60c06038a0716ef0adc4fa3
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Dagger in the acting player's hands
+    action: Swap with Dagger
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Swap
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

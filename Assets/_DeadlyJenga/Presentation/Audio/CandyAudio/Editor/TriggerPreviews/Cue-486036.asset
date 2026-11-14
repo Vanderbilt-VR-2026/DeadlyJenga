@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-486036
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: b932e4efadc153b4d806dd3721a93967, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 486036
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Reload
+    atlasFile: atlas.png
+    atlasSha256: c2ccc366f4e4bec17fafb88865eb291a00dc4f5ff175e599ee2643a3a8e30670
+    gifFile: preview.gif
+    gifSha256: 406cb96b83eec75346ab60824f9fe8c687f0140d226e4fa4ef7290f99b1989d1
+    sourceSha256: 1eb49e297a4b484e8392d27a2c8888ab71f64256c45eaeadf46cacf4754b8faa
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Sheriff Hammer in the acting player's hands
+    action: Reload with Sheriff Hammer
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Reload
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
