@@ -139,6 +139,7 @@ Shader "Candy Tropical/Body Feedback"
                         Layer(result,half3(1,.9,1),rim*ink*_Impact*.55);
                     }
                     Layer(result,half3(.35,1,.76),smoothstep(.88,1.25,edge)*_Recovery*.22);
+                    result *= smoothstep(.28, .55, edge);
                 }
                 if (_State.w>.001 || (_DeathKind>.5 && _DeathKind<1.5))
                 {

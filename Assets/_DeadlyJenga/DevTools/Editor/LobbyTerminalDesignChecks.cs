@@ -167,18 +167,23 @@ namespace DeadlyJenga.DevTools.Editor
                 view.transform.Find("Marina wardrobe entry"),"Showtime Plaza exposes both the wardrobe and Hall of Fame");
             Layout(view,"main");
             Capture(view,"JOIN","Actual-Join.png");Capture(view,"HOST","Actual-Host-Offline.png");Capture(view,"MAP + MODE","Actual-Setup.png");
+            Call(view,"OpenMarinaDetail","join-code");
+            Check(view.GiantKeyboard.gameObject.activeInHierarchy,"Room-code detail opens the floating keyboard");
             lobby.EnteredCode="";Check(view.InvokeChoice("key-A")&&view.InvokeChoice("key-1")&&view.InvokeChoice("key--")&&view.InvokeChoice("key-B")&&lobby.EnteredCode=="A1-B","Actual numeric/letter/hyphen keyboard routes through lobby");
             Check(view.InvokeChoice("backspace")&&lobby.EnteredCode=="A1-","Actual backspace works");
             Check(view.InvokeChoice("clear-code")&&lobby.EnteredCode=="","Actual clear works");
             Check(!view.InvokeChoice("keyboard-enter")&&!view.InvokeChoice("join"),"Invalid code cannot trigger join");
-            foreach(string code in new[]{"US-ABC234","EU-ABC234XYZ"})
+            foreach(string code in new[]{"US-ABC234","EU-XYZ785"})
             {
                 lobby.EnteredCode=code;Sync(view);
-                var slots=(List<RectTransform>)Field(view,"candyCodeSlots");var letters=(List<Text>)Field(view,"candyCodeLetters");
-                Check(slots.Count(s=>s.gameObject.activeSelf)==code.Length&&string.Concat(letters.Take(code.Length).Select(t=>t.text))==code,"Region-prefixed code renders without truncation: "+code);
+                Call(view,"UpdateMarinaRoomScreens");
+                var letters=(Text[])Field(view,"marinaCodeSlots");
+                Check(((Text)Field(view,"marinaJoinRegion")).text==code.Substring(0,2)&&
+                    string.Concat(letters.Select(t=>t.text))==code.Substring(3),"Region-prefixed code renders without truncation: "+code);
             }
             Capture(view,"JOIN","Actual-Join-Code.png");lobby.EnteredCode="";lobby.UnfocusCode();Sync(view);
-            Check(view.InvokeChoice("mode-current")&&Page(view)=="modes","Mode picker opens");Sync(view);Layout(view,"modes");
+            Call(view,"OpenMarinaDetail","modes");
+            Check(Page(view)=="modes","Main terminal opens its mode picker");Sync(view);Layout(view,"modes");
             bool viewWasEnabled=view.enabled;view.enabled=false;
             float focusUntil=Time.realtimeSinceStartup+.3f;
             while(Time.realtimeSinceStartup<focusUntil){yield return null;Sync(view);}

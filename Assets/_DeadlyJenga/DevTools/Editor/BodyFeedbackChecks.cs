@@ -108,7 +108,7 @@ namespace DeadlyJenga.DevTools.Editor
             var mask=material.GetTexture("_Masks") as Texture2D;
             Check(mask&&mask.width==512&&mask.format==TextureFormat.RGBA32,"Packed feedback masks retain uncompressed precision");
             var exhausted=Capture(camera,canvas,"02-exhausted.png");
-            Check(CenterDelta(baseline,exhausted)<.015f,"Fully exhausted center remains clear in actual shader pixels");
+            Check(CenterClear(camera,canvas,"02-exhausted"),"Fully exhausted center remains clear in actual shader pixels");
             Object.Destroy(exhausted);
             Property(motor,"GripRemaining",1f);hud.Present(motor,.1f);Check(hud.Opacity>.5f,"Recovery unwinds fatigue instead of popping off");
             hud.Present(motor,2);Check(!canvas.enabled,"Full stamina finishes recovery and removes overlay");
@@ -119,7 +119,7 @@ namespace DeadlyJenga.DevTools.Editor
             var sprint=Capture(camera,canvas,"03-sprinting.png");Object.Destroy(sprint);
             Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);own.health=.22f;hud.Present(motor,2);
             var damage=Capture(camera,canvas,"04-injured.png");
-            Check(CenterDelta(baseline,damage)<.015f,"Low-health ink preserves the aim and navigation center");Object.Destroy(damage);
+            Check(CenterClear(camera,canvas,"04-injured"),"Low-health ink preserves the aim and navigation center");Object.Destroy(damage);
             var health=motor.GetComponent<CandyHealthFeedback>();hud.Present(motor,10);
             Check(Mathf.Abs(health.Damage-.78f)<.001f,"Ink remains after ten seconds without healing");
             Check(material.GetColor("_Ink")==own.color,"Ink uses the local participant's color");
@@ -127,7 +127,7 @@ namespace DeadlyJenga.DevTools.Editor
             hud.Present(motor,2);own.health=1;hud.Present(motor,2);Check(health.Damage==0,"Full healing clears all damage paint");
             own.sinking=true;own.sinkProgress=.9f;hud.Present(motor,2);
             var sand=Capture(camera,canvas,"05-sinking.png");
-            Check(CenterDelta(baseline,sand)<.015f,"Sand warning leaves the center navigable before death");Object.Destroy(sand);
+            Check(CenterClear(camera,canvas,"05-sinking"),"Sand warning leaves the center navigable before death");Object.Destroy(sand);
             session.SetMenu(true);hud.Present(motor,2);Check(!canvas.enabled,"Menus immediately suppress effects and restore readability");
             session.SetMenu(false);own.sinking=false;motor.InputSuspended=false;hud.Present(motor,2);
             Check(Field<Vector4>(hud,"state").w==0,"Escaping sand removes its overlay");
@@ -147,7 +147,11 @@ namespace DeadlyJenga.DevTools.Editor
             Check(death&&Field<int>(death,"environment")==0&&Field<Material>(death,"material").shader.name.Contains("Death"),"Ordinary death retains original player-color splatter shader");
             typeof(CandyDeathOverlay).GetField("began",Flags).SetValue(death,Time.unscaledTime-.5f);Call(death,"LateUpdate");
             var dead=Capture(camera,Field<Canvas>(death,"canvas"),"08-death-paint.png");Object.Destroy(dead);
-            match.Frame.phase=RoundPhase.Results;Call(death,"LateUpdate");Check(Field<float>(death,"wipeAt")>=0,"Entering results starts death-overlay cleanup");Object.DestroyImmediate(death.gameObject);
+            match.Frame.phase=RoundPhase.Results;
+            Call(death,"LateUpdate");
+            Check(CandyDeathOverlay.GameOverActive && Field<float>(death,"wipeAt")<0,
+                "Entering results replaces the death wipe with GAME OVER");
+            Object.DestroyImmediate(death.gameObject);
             own.alive=true;own.dying=false;match.Frame.phase=RoundPhase.Playing;
             match.Rules.healthEnabled=false;own.health=.2f;hud.Present(motor,2);
             Check(health.Damage==0,"Health-disabled rules cannot leave damage ink behind");
@@ -182,6 +186,42 @@ namespace DeadlyJenga.DevTools.Editor
             for(int y=320;y<480;y+=7)for(int x=512;x<768;x+=7)
             {var d=a.GetPixel(x,y)-b.GetPixel(x,y);diff=Mathf.Max(diff,Mathf.Abs(d.r),Mathf.Abs(d.g),Mathf.Abs(d.b));}
             return diff;
+        }
+        static bool CenterClear(Camera camera, Canvas overlay, string name)
+        {
+            var clear = camera.clearFlags;
+            var mask = camera.cullingMask;
+            var color = camera.backgroundColor;
+            var nodes = overlay.GetComponentsInChildren<Transform>(true);
+            var layers = nodes.Select(node => node.gameObject.layer).ToArray();
+            try
+            {
+                camera.clearFlags = CameraClearFlags.SolidColor;
+                camera.backgroundColor = Color.gray;
+                camera.cullingMask = 0;
+                var reference = Capture(camera, null, name+"-reference.png");
+                foreach (var node in nodes) node.gameObject.layer = 31;
+                camera.cullingMask = 1 << 31;
+                var isolated = Capture(camera, overlay, name+"-overlay.png");
+                bool visiblePeriphery = false;
+                for (int x = 16; x < isolated.width && !visiblePeriphery; x += 43)
+                for (int y = 16; y < isolated.height && !visiblePeriphery; y += 37)
+                {
+                    Color delta = isolated.GetPixel(x,y) - reference.GetPixel(x,y);
+                    visiblePeriphery = Mathf.Max(Mathf.Abs(delta.r),Mathf.Abs(delta.g),Mathf.Abs(delta.b)) > .025f;
+                }
+                bool clearCenter = visiblePeriphery && CenterDelta(reference, isolated) < .015f;
+                Object.Destroy(reference);
+                Object.Destroy(isolated);
+                return clearCenter;
+            }
+            finally
+            {
+                camera.clearFlags = clear;
+                camera.backgroundColor = color;
+                camera.cullingMask = mask;
+                for (int i = 0; i < nodes.Length; i++) nodes[i].gameObject.layer = layers[i];
+            }
         }
     }
 }
