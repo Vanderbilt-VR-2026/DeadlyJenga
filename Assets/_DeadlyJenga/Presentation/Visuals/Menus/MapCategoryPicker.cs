@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             if (map == null) return false;
             string id = (map.id ?? "").ToLowerInvariant();
-            return id.Contains("tycoon") || id.Contains("ninja");
+            return id.Contains("tycoon") || id.Contains("ninja") || id.StartsWith("workshop-", StringComparison.Ordinal);
         }
 
         internal static bool IsArchive(LobbyOption map)
