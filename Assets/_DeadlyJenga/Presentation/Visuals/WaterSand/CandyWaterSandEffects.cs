@@ -159,12 +159,13 @@ namespace DeadlyJenga.Presentation
         // ---------- sand cave-in ----------
         sealed class Crater
         {
-            public Rigidbody block; public Vector3 point; public float footprint, started, ended = -1, nextRipple;
-            public GameObject disc; public Material material;
+            public Rigidbody block; public Collider shape; public Vector3 point; public float footprint, started, ended = -1, nextRipple;
+            public float surface, depth, builtDepth = -1, builtRadius = -1;
+            public GameObject disc; public Material material; public Mesh mesh; public int seed;
         }
         readonly Dictionary<Rigidbody, Crater> craters = new();
         readonly List<Rigidbody> finished = new();
-        Mesh craterMesh;
+        Shader caveShader;
 
         // Ground layers only: no blocks, survivors or their climb surfaces.
         static int GroundMask => ~((1 << Layers.Block) | (1 << Layers.Survivor) | (1 << Layers.Surface));
@@ -190,15 +191,21 @@ namespace DeadlyJenga.Presentation
                 block = block, point = new Vector3(hit.point.x, Mathf.Max(surface, water), hit.point.z), started = Time.time,
                 footprint = Mathf.Clamp(new Vector2(bounds.size.x, bounds.size.z).magnitude * .5f, .35f, 1.4f)
             };
+            if (!caveShader) caveShader = Resources.Load<Shader>("CandySandCaveIn");
+            if (!caveShader) return;
+            crater.shape = block.GetComponent<Collider>();
+            crater.surface = crater.point.y;
+            crater.seed = Random.Range(1, 100000);
             crater.disc = new GameObject("Sand cave-in");
             crater.disc.transform.SetParent(transform, true);
-            crater.disc.transform.SetPositionAndRotation(crater.point + Vector3.up * .015f, Quaternion.Euler(0, Random.Range(0, 360f), 0));
-            crater.disc.AddComponent<MeshFilter>().sharedMesh = craterMesh ? craterMesh : craterMesh = CraterMesh();
+            crater.disc.transform.SetPositionAndRotation(crater.point, Quaternion.identity);
+            crater.mesh = new Mesh { name = "Sand cave-in" };
+            crater.mesh.MarkDynamic();
+            crater.disc.AddComponent<MeshFilter>().sharedMesh = crater.mesh;
             var renderer = crater.disc.AddComponent<MeshRenderer>();
-            crater.material = Transparent("Sand cave-in", CraterTexture());
-            crater.material.renderQueue = (int)RenderQueue.Transparent + 100;   // after the sea surface
+            crater.material = new Material(caveShader) { name = "Sand cave-in" };
             renderer.sharedMaterial = crater.material;
-            renderer.shadowCastingMode = ShadowCastingMode.Off;
+            renderer.shadowCastingMode = ShadowCastingMode.Off; renderer.receiveShadows = false;
             craters[block] = crater;
         }
 
@@ -236,8 +243,16 @@ namespace DeadlyJenga.Presentation
                 float grow = Mathf.Clamp01((Time.time - c.started) / 2.5f);
                 float fade = c.ended < 0 ? 1 : 1 - Mathf.Clamp01((Time.time - c.ended) / 3.5f);
                 if (fade <= 0) { finished.Add(pair.Key); continue; }
-                c.disc.transform.localScale = Vector3.one * c.footprint * Mathf.Lerp(.9f, 1.9f, grow);
-                c.material.SetColor("_BaseColor", new Color(1, 1, 1, fade));
+                // The pit deepens as the block sinks and the rim collapses inward; it settles back when the block is gone.
+                if (c.ended < 0 && c.shape) c.depth = Mathf.Max(c.depth, c.surface - c.shape.bounds.min.y);
+                float radius = c.footprint * Mathf.Lerp(.9f, 1.9f, grow);
+                float shown = c.depth * (c.ended < 0 ? 1 : fade);
+                if (Mathf.Abs(shown - c.builtDepth) > .006f || Mathf.Abs(radius - c.builtRadius) > .02f)
+                {
+                    BuildCaveIn(c.mesh, radius, shown, c.seed);
+                    c.builtDepth = shown; c.builtRadius = radius;
+                }
+                c.material.SetFloat("_Fade", c.ended < 0 ? 1 : Mathf.Clamp01(fade * 1.5f));
                 if (c.ended < 0 && Time.time >= c.nextRipple)
                 {
                     // Expanding rings in the sand plus a few grains puffing up at the rim.
@@ -267,6 +282,7 @@ namespace DeadlyJenga.Presentation
                 var c = craters[key];
                 if (c.disc) Destroy(c.disc);
                 if (c.material) Destroy(c.material);
+                if (c.mesh) Destroy(c.mesh);
                 craters.Remove(key);
             }
         }
@@ -282,6 +298,7 @@ namespace DeadlyJenga.Presentation
             var eye = Services.Session?.ActiveCamera;
             if (!eye) eye = Camera.main;
             bool under = eye && world != null && eye.transform.position.y < world.WaterHeight(eye.transform.position) - .02f;
+
             underwater = Mathf.MoveTowards(underwater, under ? 1 : 0, Time.unscaledDeltaTime * 5);
             if (underwater > 0 && !volume) volume = UnderwaterVolume();
             if (volume) volume.weight = underwater;
@@ -505,39 +522,66 @@ namespace DeadlyJenga.Presentation
             return t;
         }
 
-        // A flat quad textured with a crater: deep shadowed middle, sloped ring, lighter raised rim, soft edge.
-        Mesh CraterMesh()
+        const int CaveRings = 7, CaveSegments = 20;
+        static readonly List<Vector3> caveVerts = new();
+        static readonly List<Color> caveColors = new();
+        static readonly List<int> caveTris = new();
+        static readonly Vector3[] caveGrid = new Vector3[(CaveRings + 1) * CaveSegments];
+        static readonly Color[] caveGridColor = new Color[(CaveRings + 1) * CaveSegments];
+
+        // Low-poly cave-in: a displaced polar grid. The cavity floor sits at ground level and a sand lip
+        // piles up around it; both grow with the sink depth, so the pit reads deeper as the block goes under.
+        // Triangles do not share vertices, so every facet is flat shaded.
+        static void BuildCaveIn(Mesh mesh, float radius, float depth, int seed)
         {
-            var mesh = new Mesh { name = "Sand cave-in" };
-            mesh.SetVertices(new List<Vector3> { new(-1, 0, -1), new(1, 0, -1), new(-1, 0, 1), new(1, 0, 1) });
-            mesh.SetUVs(0, new List<Vector2> { new(0, 0), new(1, 0), new(0, 1), new(1, 1) });
-            mesh.SetTriangles(new[] { 0, 2, 1, 1, 2, 3 }, 0);
+            float depthN = Mathf.Clamp01(depth / .6f);
+            float lip = Mathf.Lerp(.02f, .13f, depthN);
+            Color cavity = new(.16f, .10f, .06f, 1), wall = new(.42f, .30f, .18f, 1), crest = new(.78f, .64f, .42f, 1);
+            for (int ring = 0; ring <= CaveRings; ring++)
+                for (int seg = 0; seg < CaveSegments; seg++)
+                {
+                    int i = ring * CaveSegments + seg;
+                    float h1 = Hash01(seed, i), h2 = Hash01(seed + 7, i);
+                    float u = ring / (float)CaveRings;
+                    if (ring > 0 && ring < CaveRings) u += (h1 - .5f) * .09f;
+                    float angle = (seg + (ring % 2) * .5f + (h2 - .5f) * .4f) / CaveSegments * Mathf.PI * 2;
+                    float y; Color col;
+                    if (u < .3f) { y = .008f; col = cavity; }
+                    else if (u < .62f) { float k = Mathf.SmoothStep(0, 1, (u - .3f) / .32f); y = Mathf.Lerp(.008f, lip, k); col = Color.Lerp(cavity, wall, k); }
+                    else { float k = Mathf.SmoothStep(0, 1, (u - .62f) / .38f); y = Mathf.Lerp(lip, .004f, k); col = Color.Lerp(crest, wall, k * .5f); col.a = 1 - k * k; }
+                    y *= .85f + h2 * .3f;
+                    caveGrid[i] = new Vector3(Mathf.Cos(angle) * u * radius, y, Mathf.Sin(angle) * u * radius);
+                    caveGridColor[i] = col;
+                }
+            caveVerts.Clear(); caveColors.Clear(); caveTris.Clear();
+            for (int ring = 0; ring < CaveRings; ring++)
+                for (int seg = 0; seg < CaveSegments; seg++)
+                {
+                    int next = (seg + 1) % CaveSegments;
+                    int a = ring * CaveSegments + seg, b = ring * CaveSegments + next, c = a + CaveSegments, d = b + CaveSegments;
+                    AddFacet(a, b, c, seed); AddFacet(b, d, c, seed);
+                }
+            mesh.Clear();
+            mesh.SetVertices(caveVerts); mesh.SetColors(caveColors); mesh.SetTriangles(caveTris, 0);
             mesh.RecalculateNormals(); mesh.RecalculateBounds();
-            owned.Add(mesh);
-            return mesh;
         }
 
-        Texture2D craterTexture;
-        Texture2D CraterTexture()
+        static void AddFacet(int a, int b, int c, int seed)
         {
-            if (craterTexture) return craterTexture;
-            const int size = 128;
-            var t = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Sand crater", wrapMode = TextureWrapMode.Clamp };
-            Color deep = new(.24f, .17f, .10f, .92f), slope = new(.38f, .28f, .17f, .85f), rim = new(.66f, .54f, .36f, .55f);
-            for (int y = 0; y < size; y++)
-                for (int x = 0; x < size; x++)
-                {
-                    var v = new Vector2(x + .5f, y + .5f) / size * 2 - Vector2.one;
-                    float angle = Mathf.Atan2(v.y, v.x);
-                    float d = v.magnitude / (1 + Mathf.Sin(angle * 5) * .05f + Mathf.Sin(angle * 11 + 1.7f) * .03f);
-                    Color c = d < .45f ? Color.Lerp(deep, slope, d / .45f)
-                        : d < .75f ? Color.Lerp(slope, rim, (d - .45f) / .3f)
-                        : new Color(rim.r, rim.g, rim.b, rim.a * Mathf.Clamp01((1 - d) / .25f));
-                    float grain = Mathf.PerlinNoise(x * .21f, y * .21f) * .12f - .06f;
-                    t.SetPixel(x, y, new Color(c.r + grain, c.g + grain, c.b + grain * .6f, d >= 1 ? 0 : c.a));
-                }
-            t.Apply(); owned.Add(t);
-            return craterTexture = t;
+            float shade = .9f + Hash01(seed + 3, a * 31 + c) * .2f;
+            foreach (int i in new[] { a, b, c })
+            {
+                var col = caveGridColor[i]; col.r *= shade; col.g *= shade; col.b *= shade;
+                caveTris.Add(caveVerts.Count);
+                caveVerts.Add(caveGrid[i]); caveColors.Add(col);
+            }
+        }
+
+        static float Hash01(int seed, int i)
+        {
+            uint h = (uint)(seed * 73856093 ^ i * 19349663);
+            h ^= h >> 13; h *= 1274126177u; h ^= h >> 16;
+            return (h & 0xFFFF) / 65535f;
         }
     }
 }
