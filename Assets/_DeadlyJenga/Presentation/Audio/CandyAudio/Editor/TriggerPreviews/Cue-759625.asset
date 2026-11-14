@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-759625
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: abf689e1e4feb124f8d6b30282992d4c, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 759625
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Slow Clap
+    atlasFile: atlas.png
+    atlasSha256: b9f4fbc3dc9ac97338b8fee2ad9e538758c83228f4eb665180bd2aeabef25971
+    gifFile: preview.gif
+    gifSha256: 2cd3bc6a4eb85b1f23f66dd2588a93cf1ee1953b5d6ff0544421e88da9f22452
+    sourceSha256: b49e8126036925cb39b8bfbb352cf5ee01e7dc0e77a42ccc6f7838d1a2155af4
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Slow Clap
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Slow Clap
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

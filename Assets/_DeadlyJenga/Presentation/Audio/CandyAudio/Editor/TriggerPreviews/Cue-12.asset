@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-12
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: ab5e4f61ca640df49b33bb7370715541, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 12
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Land Soft
+    atlasFile: atlas.png
+    atlasSha256: 1b97d7a7d9f54805a718b55f5723a8bdc8767c6481754be12046ad90a233a81e
+    gifFile: preview.gif
+    gifSha256: 4fc97761283609119e6f92008df882a1a73b393c5dbb217fc103535739899f2d
+    sourceSha256: bd4fd363f91b26ae230de7ae69f972d89b85eec201c06ed7453f1ed0a878a86b
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Land Soft
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Land Soft
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

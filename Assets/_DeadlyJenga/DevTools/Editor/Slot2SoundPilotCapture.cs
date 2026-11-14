@@ -6,6 +6,7 @@ using System.Linq;
 using System.Reflection;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.CastleBots;
 using DeadlyJenga.CandyArt;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.World.Hazards;
@@ -71,11 +72,44 @@ namespace DeadlyJenga.DevTools.Editor
                         File.AppendAllText(Report, "BATCH 1 DISASTERS COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
                         Debug.Log("Slot 2 Batch 1 Disasters Captures Complete! See: " + Report);
                     }
+                    else if (phase == 20)
+                    {
+                        SessionState.SetBool(Key, false);
+                        SessionState.SetInt(Key + ".Phase", 0);
+                        File.AppendAllText(Report, "BATCH 2 PLAYER COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
+                        Debug.Log("Slot 2 Batch 2 Player Captures Complete! See: " + Report);
+                    }
                 }
             };
         }
 
-        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 1 Disasters (42 Cues)")]
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 2 Player (42 Cues)")]
+        public static void RunBatch2Player()
+        {
+            Directory.CreateDirectory(RawRoot);
+            File.AppendAllText(Report, "Starting Batch 2 Player Captures (42 cues) · " + DateTime.UtcNow.ToString("O") + "\n");
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 20);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            if (EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                EditorApplication.EnterPlaymode();
+            }
+        }
+
+
         public static void RunBatch1Disasters()
         {
             Directory.CreateDirectory(RawRoot);
@@ -99,6 +133,39 @@ namespace DeadlyJenga.DevTools.Editor
                 EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
                 EditorApplication.EnterPlaymode();
             }
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Import Batch 2 Player Previews")]
+        public static void ImportBatch2()
+        {
+            ImportBatch("batch2_player_meta.json");
+        }
+
+        public static void ImportBatch(string metaFileName)
+        {
+            var bank = Resources.Load<CandyAudioBank>("CandyAudio/Default");
+            string capturesRoot = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Logs", "SoundStudio", "captures");
+            string metaPath = Path.Combine(Path.GetDirectoryName(Application.dataPath), "Logs", "SoundStudio", metaFileName);
+            if (!File.Exists(metaPath)) throw new FileNotFoundException("Missing meta file: " + metaPath);
+            string metaText = File.ReadAllText(metaPath);
+
+            int count = 0;
+            foreach (var dir in Directory.GetDirectories(capturesRoot))
+            {
+                string folderName = Path.GetFileName(dir);
+                if (!int.TryParse(folderName, out int cueId)) continue;
+                if (!metaText.Contains("\"" + cueId + "\":")) continue;
+
+                string pkg = Path.Combine(dir, "preview.json");
+                if (File.Exists(pkg))
+                {
+                    CandySoundPreview.Import(pkg, bank);
+                    count++;
+                }
+            }
+            AssetDatabase.SaveAssets();
+            AssetDatabase.Refresh();
+            Debug.Log($"Imported {count} previews for {metaFileName}");
         }
 
         [MenuItem("Tools/Candy Audio/Pilot Captures/Run 10 Pilot Captures")]
@@ -154,6 +221,13 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
                 EditorApplication.update -= StartRoutineWhenReady;
                 session.StartCoroutine(Guard(RunBatch1DisastersCaptures(session)));
+            }
+            else if (phase == 20)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch2PlayerCaptures(session)));
             }
         }
 
@@ -968,6 +1042,386 @@ namespace DeadlyJenga.DevTools.Editor
 
             Object.DestroyImmediate(cam.gameObject);
             Log("Batch 1 (Disasters) captures successfully completed!");
+        }
+
+        static IEnumerator RunBatch2PlayerCaptures(CastlePlaySession session)
+        {
+            Log("Game.unity session loaded for Batch 2 Player. Setting up match rules...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds = 0;
+            rules.healthEnabled = true;
+            rules.deathEnabled = false;
+            rules.fallDamage = false;
+            rules.island = IslandRule.Walkable;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SetRole(true);
+            session.SetMenu(false);
+
+            session.Player.InputSuspended = true;
+            if (session.Hand != null) session.Hand.InputSuspended = true;
+
+            var world = Services.World;
+            float waterY = world != null ? world.WaterHeight(world.Center) : 0f;
+
+            // Dedicated camera
+            var camObj = new GameObject("Batch2_Capture_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            // Find top castle platform block
+            var blocksWithCollider = world.Blocks.Where(b => b && b.GetComponent<Collider>()).ToList();
+            var castlePlatform = blocksWithCollider
+                .Select(b => b.GetComponent<Collider>().bounds)
+                .OrderByDescending(b => b.max.y).First();
+            Vector3 platformTop = new Vector3(castlePlatform.center.x, castlePlatform.max.y + 0.05f, castlePlatform.center.z);
+
+            // Spawn bot survivor
+            GameObject bot = session.SurvivorBots.SpawnOne();
+            if (!bot)
+            {
+                Log("Using session.Player as primary survivor actor");
+                bot = session.Player.gameObject;
+            }
+            var botMotor = bot.GetComponent<CastleSurvivor>();
+            var botBrain = bot.GetComponent<CastleBotBrain>();
+            var botEmotes = bot.GetComponent<CastleBotEmotes>();
+            var botAvatar = bot.GetComponent<CandyPlayerAvatar>();
+            if (botBrain) botBrain.enabled = false;
+            if (botMotor) botMotor.InputSuspended = true;
+
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION A: EMOTES (14 CUES)
+            // ========================================================
+            Log("--- Commencing Emote captures (14 cues) ---");
+            cam.transform.position = platformTop + Vector3.back * 2.2f + Vector3.up * 1.35f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.15f);
+
+            // 27: Friendly Wave
+            yield return CaptureCue(cam, 27, "Friendly Wave", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.FriendlyWave, true); });
+            // 28: Totally Meant That
+            yield return CaptureCue(cam, 28, "Totally Meant That", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.TotallyMeantThat, true); });
+            // 29: Phew
+            yield return CaptureCue(cam, 29, "Phew", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Phew, true); });
+            // 30: What Was That
+            yield return CaptureCue(cam, 30, "What Was That", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.WhatWasThat, true); });
+            // 31: Golf Clap
+            yield return CaptureCue(cam, 31, "Golf Clap", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.GolfClap, true); });
+            // 32: Just Chilling
+            yield return CaptureCue(cam, 32, "Just Chilling", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.JustChilling, true); });
+            // 33: Nope Nope Nope
+            yield return CaptureCue(cam, 33, "Nope Nope Nope", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.NopeNopeNope, true); });
+            // 34: Tiny Victory Dance
+            yield return CaptureCue(cam, 34, "Tiny Victory Dance", 24, f => { if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.TinyVictoryDance, true); });
+
+            // 99982: Irish Dance
+            yield return CaptureCue(cam, 99982, "Irish Dance", 24, f => {
+                if (f == 6) { if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.RobotDance, true); GameEvents.RaiseEmoted(bot, "Irish Dance"); }
+            });
+            // 211503: Thumbs Down
+            yield return CaptureCue(cam, 211503, "Thumbs Down", 24, f => {
+                if (f == 6) { if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.ThumbsDown, true); GameEvents.RaiseEmoted(bot, "Thumbs Down"); }
+            });
+            // 418932: Finger Wag
+            yield return CaptureCue(cam, 418932, "Finger Wag", 24, f => {
+                if (f == 6) { if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.WatchingYou, true); GameEvents.RaiseEmoted(bot, "Finger Wag"); }
+            });
+            // 663524: Breakdance
+            yield return CaptureCue(cam, 663524, "Breakdance", 24, f => {
+                if (f == 6) { if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.AirGuitar, true); GameEvents.RaiseEmoted(bot, "Breakdance"); }
+            });
+            // 759625: Slow Clap
+            yield return CaptureCue(cam, 759625, "Slow Clap", 24, f => {
+                if (f == 6) { if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.GolfClap, true); GameEvents.RaiseEmoted(bot, "Slow Clap"); }
+            });
+            // 858650: Point And Laugh
+            yield return CaptureCue(cam, 858650, "Point And Laugh", 24, f => {
+                if (f == 6) { if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Laughing, true); GameEvents.RaiseEmoted(bot, "Point And Laugh"); }
+            });
+
+            // ========================================================
+            // SECTION B: MOVEMENT (6 CUES)
+            // ========================================================
+            Log("--- Commencing Movement captures (6 cues) ---");
+
+            // 9: Footstep Candy
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            cam.transform.position = platformTop + Vector3.back * 1.5f + Vector3.right * 0.4f + Vector3.up * 0.45f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.2f);
+            yield return CaptureCue(cam, 9, "Footstep Candy", 24, f => {
+                if (f >= 6 && botMotor) botMotor.Teleport(platformTop + Vector3.back * (f - 6) * 0.06f, Quaternion.LookRotation(Vector3.back));
+            });
+
+            // 10: Footstep Sand
+            Vector3 sandSpot = world.Center + Vector3.forward * 32f + Vector3.up * (waterY + 0.15f);
+            if (botMotor) botMotor.Teleport(sandSpot, Quaternion.LookRotation(Vector3.back));
+            cam.transform.position = sandSpot + Vector3.back * 1.5f + Vector3.right * 0.4f + Vector3.up * 0.45f;
+            cam.transform.LookAt(sandSpot + Vector3.up * 0.2f);
+            yield return CaptureCue(cam, 10, "Footstep Sand", 24, f => {
+                if (f >= 6 && botMotor) botMotor.Teleport(sandSpot + Vector3.back * (f - 6) * 0.06f, Quaternion.LookRotation(Vector3.back));
+            });
+
+            // 11: Jump
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            cam.transform.position = platformTop + Vector3.right * 2.8f + Vector3.up * 1.1f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.2f);
+            yield return CaptureCue(cam, 11, "Jump", 24, f => {
+                if (f >= 6 && botMotor) {
+                    float t = (f - 6) / 18f;
+                    float yOffset = Mathf.Sin(t * Mathf.PI) * 1.6f;
+                    botMotor.Teleport(platformTop + Vector3.up * yOffset, Quaternion.LookRotation(Vector3.back));
+                }
+            });
+
+            // 12: Land Soft
+            cam.transform.position = platformTop + Vector3.right * 2.4f + Vector3.up * 0.6f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.35f);
+            yield return CaptureCue(cam, 12, "Land Soft", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? Mathf.Lerp(1.2f, 0f, f / 6f) : 0f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                }
+            });
+
+            // 18: Fall Wind
+            Vector3 towerEdge = world.Center + Vector3.right * 14f + Vector3.up * 25f;
+            cam.transform.position = towerEdge + Vector3.forward * 3.5f + Vector3.up * 1f;
+            cam.transform.LookAt(towerEdge);
+            yield return CaptureCue(cam, 18, "Fall Wind", 24, f => {
+                float y = Mathf.Lerp(25f, 4f, f / 24f);
+                Vector3 fallPos = new Vector3(towerEdge.x, y, towerEdge.z);
+                if (botMotor) botMotor.Teleport(fallPos, Quaternion.LookRotation(Vector3.down));
+                cam.transform.position = fallPos + Vector3.forward * 3.5f + Vector3.up * 1f;
+                cam.transform.LookAt(fallPos);
+            });
+
+            // 6: Player Splash
+            Vector3 waterSpot = world.Center + Vector3.forward * 22f + Vector3.up * waterY;
+            cam.transform.position = waterSpot + Vector3.back * 3.5f + Vector3.up * 0.8f;
+            cam.transform.LookAt(waterSpot + Vector3.up * 0.2f);
+            yield return CaptureCue(cam, 6, "Player Splash", 24, f => {
+                float y = f < 6 ? Mathf.Lerp(waterY + 3f, waterY, f / 6f) : waterY - (f - 6) * 0.08f;
+                if (botMotor) botMotor.Teleport(new Vector3(waterSpot.x, y, waterSpot.z), Quaternion.LookRotation(Vector3.back));
+            });
+
+            // ========================================================
+            // SECTION C: CLIMBING & STAMINA (10 CUES)
+            // ========================================================
+            Log("--- Commencing Climbing & Stamina captures (10 cues) ---");
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            cam.transform.position = platformTop + Vector3.back * 2.2f + Vector3.up * 1.35f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.15f);
+
+            // 15: Climb Grunt
+            cam.transform.position = platformTop + Vector3.right * 1.8f + Vector3.back * 0.5f + Vector3.up * 0.5f;
+            cam.transform.LookAt(platformTop);
+            yield return CaptureCue(cam, 15, "Climb Grunt", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? -0.8f : Mathf.Lerp(-0.8f, 0f, (f - 6) / 18f);
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.forward));
+                }
+            });
+
+            // 14: Vault Grunt
+            cam.transform.position = platformTop + Vector3.right * 1.8f + Vector3.up * 0.6f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.2f);
+            yield return CaptureCue(cam, 14, "Vault Grunt", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? -0.4f : Mathf.Lerp(-0.4f, 0.1f, (f - 6) / 18f);
+                    float z = f < 6 ? -0.3f : Mathf.Lerp(-0.3f, 0.3f, (f - 6) / 18f);
+                    botMotor.Teleport(platformTop + new Vector3(0, y, z), Quaternion.LookRotation(Vector3.forward));
+                }
+            });
+
+            // 17: Climb Release
+            yield return CaptureCue(cam, 17, "Climb Release", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? 0f : -(f - 6) * 0.12f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.forward));
+                }
+            });
+
+            // 26: Grip Warning
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            cam.transform.position = platformTop + Vector3.back * 2.0f + Vector3.up * 1.3f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.1f);
+            yield return CaptureCue(cam, 26, "Grip Warning", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Shaking, true);
+            });
+
+            // 35: Breath Exertion
+            yield return CaptureCue(cam, 35, "Breath Exertion", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Exhausted, true);
+            });
+
+            // 36: Breath Recovery
+            yield return CaptureCue(cam, 36, "Breath Recovery", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.DeepBreath, true);
+            });
+
+            // 37: Breath Exhausted
+            yield return CaptureCue(cam, 37, "Breath Exhausted", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Exhausted, true);
+            });
+
+            // 121: Stamina Low
+            yield return CaptureCue(cam, 121, "Stamina Low", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Stretch, true);
+            });
+
+            // 122: Stamina Empty
+            yield return CaptureCue(cam, 122, "Stamina Empty", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Exhausted, true);
+            });
+
+            // 123: Stamina Usable
+            yield return CaptureCue(cam, 123, "Stamina Usable", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.ReadyToFight, true);
+            });
+
+            // ========================================================
+            // SECTION D: HEALTH & DEATH (6 CUES)
+            // ========================================================
+            Log("--- Commencing Health & Death captures (6 cues) ---");
+
+            // 82: Player Pain
+            yield return CaptureCue(cam, 82, "Player Pain", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Oops, true);
+            });
+
+            // 83: Player Death
+            yield return CaptureCue(cam, 83, "Player Death", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.FacePalm, true);
+            });
+
+            // 87: Player Heal
+            yield return CaptureCue(cam, 87, "Player Heal", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.SafeAtLast, true);
+            });
+
+            // 117: Nearby Death
+            var botB = session.SurvivorBots.SpawnOne();
+            if (botB)
+            {
+                var botBMotor = botB.GetComponent<CastleSurvivor>();
+                var botBBrain = botB.GetComponent<CastleBotBrain>();
+                var botBEmotes = botB.GetComponent<CastleBotEmotes>();
+                if (botBBrain) botBBrain.enabled = false;
+                if (botBMotor) {
+                    botBMotor.InputSuspended = true;
+                    botBMotor.Teleport(platformTop + Vector3.right * 1.5f, Quaternion.LookRotation(Vector3.back));
+                }
+                cam.transform.position = platformTop + Vector3.back * 3.2f + Vector3.up * 1.35f;
+                cam.transform.LookAt(platformTop + Vector3.right * 0.75f + Vector3.up * 1.15f);
+                yield return CaptureCue(cam, 117, "Nearby Death", 24, f => {
+                    if (f == 6) {
+                        if (botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.BodyFound, true);
+                        if (botBEmotes) botBEmotes.TryPlay(CastleBotEmotes.Emote.FacePalm, true);
+                    }
+                });
+                Object.DestroyImmediate(botB);
+            }
+            else
+            {
+                yield return CaptureCue(cam, 117, "Nearby Death", 24, f => {
+                    if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.BodyFound, true);
+                });
+            }
+
+            // 120: Drowning Death
+            cam.transform.position = waterSpot + Vector3.back * 2.4f + Vector3.down * 0.6f;
+            cam.transform.LookAt(waterSpot + Vector3.down * 0.6f);
+            if (botMotor) botMotor.Teleport(waterSpot + Vector3.down * 0.6f, Quaternion.LookRotation(Vector3.back));
+            yield return CaptureCue(cam, 120, "Drowning Death", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.PleaseNo, true);
+            });
+
+            // 124: Health Regenerating
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            cam.transform.position = platformTop + Vector3.back * 2.2f + Vector3.up * 1.35f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.15f);
+            yield return CaptureCue(cam, 124, "Health Regenerating", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.SafeAtLast, true);
+            });
+
+            // ========================================================
+            // SECTION E: TRAVEL & SPAWNING (6 CUES)
+            // ========================================================
+            Log("--- Commencing Travel & Spawning captures (6 cues) ---");
+
+            // 23: Spawn
+            cam.transform.position = platformTop + Vector3.back * 2.8f + Vector3.up * 1.4f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.0f);
+            yield return CaptureCue(cam, 23, "Spawn", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? -5f : 0f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                    if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Salute, true);
+                }
+            });
+
+            // 24: Respawn
+            yield return CaptureCue(cam, 24, "Respawn", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? -5f : 0f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                    if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Bow, true);
+                }
+            });
+
+            // 58: Lobby Launch
+            yield return CaptureCue(cam, 58, "Lobby Launch", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? 0f : (f - 6) * 0.8f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.up));
+                }
+            });
+
+            // 59: Spawn Slam
+            cam.transform.position = platformTop + Vector3.back * 2.2f + Vector3.up * 0.6f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.3f);
+            yield return CaptureCue(cam, 59, "Spawn Slam", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? Mathf.Lerp(4f, 0f, f / 6f) : 0f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                    if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.JumpForJoy, true);
+                }
+            });
+
+            // 108: Beam Flyout
+            cam.transform.position = platformTop + Vector3.back * 3.0f + Vector3.up * 1.5f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.2f);
+            yield return CaptureCue(cam, 108, "Beam Flyout", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? 0f : (f - 6) * 0.9f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                }
+            });
+
+            // 109: Beam Arrival
+            yield return CaptureCue(cam, 109, "Beam Arrival", 24, f => {
+                if (botMotor) {
+                    float y = f < 6 ? 8f : 0f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                    if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Salute, true);
+                }
+            });
+
+            Object.DestroyImmediate(cam.gameObject);
+            session.SurvivorBots.Clear();
+            Log("Batch 2 (Player) captures successfully completed!");
         }
 
         sealed class SimplePickupSource : IEquipmentPickupSource
