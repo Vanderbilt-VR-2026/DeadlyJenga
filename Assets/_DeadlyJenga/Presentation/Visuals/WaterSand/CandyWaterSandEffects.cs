@@ -289,7 +289,8 @@ namespace DeadlyJenga.Presentation
 
         // ---------- underwater filter ----------
         Volume volume;
-        float underwater;
+        float underwater, dippedFor;
+        const float UnderwaterDelay = .2f;
         bool fogOwned, savedFog;
         Color savedFogColor; FogMode savedFogMode; float savedFogDensity;
 
@@ -297,8 +298,10 @@ namespace DeadlyJenga.Presentation
         {
             var eye = Services.Session?.ActiveCamera;
             if (!eye) eye = Camera.main;
-            bool under = eye && world != null && eye.transform.position.y < world.WaterHeight(eye.transform.position) - .02f;
-
+            bool dipped = eye && world != null && eye.transform.position.y < world.WaterHeight(eye.transform.position) - .02f;
+            // A hard landing on sand can bounce the camera below the surface for a few frames: wait for a real dip.
+            dippedFor = dipped ? dippedFor + Time.unscaledDeltaTime : 0;
+            bool under = dipped && dippedFor >= UnderwaterDelay;
             underwater = Mathf.MoveTowards(underwater, under ? 1 : 0, Time.unscaledDeltaTime * 5);
             if (underwater > 0 && !volume) volume = UnderwaterVolume();
             if (volume) volume.weight = underwater;
