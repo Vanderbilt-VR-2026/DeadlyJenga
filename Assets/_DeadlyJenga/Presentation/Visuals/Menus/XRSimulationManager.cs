@@ -47,6 +47,12 @@ namespace DeadlyJenga.Presentation
 
         static void EnsureSimulator()
         {
+#if UNITY_EDITOR || UNITY_STANDALONE
+            // Desktop: our own keyboard + mouse driver feeds virtual Quest-style devices.
+            DestroyUnitySimulators();
+            PcSimulatedVR.Create();
+            return;
+#else
             if (XRInteractionSimulator.instance != null)
             {
                 if (!XRInteractionSimulator.instance.gameObject.activeSelf)
@@ -75,9 +81,18 @@ namespace DeadlyJenga.Presentation
             {
                 Debug.LogWarning("[XRSimulationManager] Unable to find XR Interaction Simulator prefab.");
             }
+#endif
         }
 
         static void DestroySimulator()
+        {
+#if UNITY_EDITOR || UNITY_STANDALONE
+            if (PcSimulatedVR.Instance) Object.Destroy(PcSimulatedVR.Instance.gameObject);
+#endif
+            DestroyUnitySimulators();
+        }
+
+        static void DestroyUnitySimulators()
         {
             if (XRInteractionSimulator.instance != null)
             {

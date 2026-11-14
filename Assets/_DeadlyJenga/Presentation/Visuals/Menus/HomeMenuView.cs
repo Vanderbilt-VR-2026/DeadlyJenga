@@ -444,7 +444,7 @@ namespace DeadlyJenga.Presentation
             inputModeButton.onClick.AddListener(()=>ShowPage(inputPage));
             inputPage=Node("Choose input",parent,new Vector2(0,-70),new Vector2(620,470)).gameObject;
             ButtonAt(inputPage.transform,"BACK",new Vector2(-215,200),new Vector2(150,48),()=>ShowPage(entryPage));
-            string[] modes={"AUTO-DETECT","KEYBOARD & MOUSE","PC XR SIMULATION","VR HEADSET","GAMEPAD"};
+            string[] modes={"AUTO-DETECT","KEYBOARD & MOUSE","PC-SIMULATED VR","VR HEADSET","GAMEPAD"};
             for(int i=0;i<modes.Length;i++)
             {
                 int selected=i;
@@ -468,7 +468,7 @@ namespace DeadlyJenga.Presentation
             string modeLabel = mode switch
             {
                 1 => "<color=#52ffc6>PC / DESKTOP</color>  (Keyboard & Mouse)",
-                2 => "<color=#ffa87d>XR SIMULATION</color>  (Emulated Quest Joysticks)",
+                2 => "<color=#ffa87d>PC-SIMULATED VR</color>  (Keyboard + Mouse)",
                 3 => "<color=#7dc5ff>VR HEADSET</color>  (Physical Headset)",
                 4 => "<color=#52ffc6>GAMEPAD</color>  · "+MenuGamepad.DeviceName,
                 _ => "<color=#d5c8ff>AUTO-DETECT</color>  · "+(vr?"VR headset":MenuGamepad.Connected!=null?MenuGamepad.DeviceName:"Keyboard & mouse")
