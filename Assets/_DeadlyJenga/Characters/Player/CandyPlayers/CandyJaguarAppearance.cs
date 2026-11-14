@@ -129,11 +129,19 @@ namespace DeadlyJenga.CandyPlayers
             pigment.SetColor("_BaseColor",Color.white);pigment.SetTexture("_BaseMap",FurTexture());
             pigment.SetTexture("_BumpMap",normal);pigment.SetFloat("_BumpScale",.35f);pigment.SetFloat("_Smoothness",.24f);renderer.SetPropertyBlock(pigment);
         }
+        // The coat is stored in the renderer's property block; take the fur texture back out so later looks are not tinted by it.
+        void ResetCoat(SkinnedMeshRenderer renderer,Material original)
+        {
+            if(!renderer||!original)return;pigment??=new MaterialPropertyBlock();renderer.GetPropertyBlock(pigment);
+            if(pigment.GetTexture("_BaseMap")!=FurTexture())return;
+            pigment.SetTexture("_BaseMap",Texture2D.whiteTexture);pigment.SetTexture("_BumpMap",Texture2D.normalTexture);pigment.SetFloat("_BumpScale",1);
+            pigment.SetFloat("_Smoothness",original.HasProperty("_Smoothness")?original.GetFloat("_Smoothness"):.78f);renderer.SetPropertyBlock(pigment);
+        }
         void Clear()
         {
             foreach(var r in pieces)if(r){r.gameObject.SetActive(false);Destroy(r.gameObject);}pieces.Clear();concealed.Clear();
             if(tail){tail.gameObject.SetActive(false);Destroy(tail.gameObject);}tail=null;
-            if(rig&&originalBody){rig.bodyRenderer.sharedMaterial=originalBody;rig.headRenderer.sharedMaterial=originalHead;}
+            if(rig&&originalBody){ResetCoat(rig.bodyRenderer,originalBody);ResetCoat(rig.headRenderer,originalHead);rig.bodyRenderer.sharedMaterial=originalBody;rig.headRenderer.sharedMaterial=originalHead;}
         }
         static void EnsureMaterials(Material source)
         {

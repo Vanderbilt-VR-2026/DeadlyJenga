@@ -9,7 +9,7 @@ namespace DeadlyJenga.CandyPlayers
         {
             if(OneOf(skin,AvatarSkin.Fox,AvatarSkin.Leopard,AvatarSkin.Clownfish,AvatarSkin.Cat,AvatarSkin.TRex))return new Color(.95f,.39f,.07f);
             if(OneOf(skin,AvatarSkin.Koala,AvatarSkin.Elephant,AvatarSkin.Gargoyle,AvatarSkin.Walrus))return new Color(.43f,.48f,.54f);
-            if(OneOf(skin,AvatarSkin.Panda,AvatarSkin.Husky,AvatarSkin.Ghost,AvatarSkin.Mummy,AvatarSkin.Zebra,AvatarSkin.ScaryClown,AvatarSkin.FriendlyClown))return Color.white;
+            if(OneOf(skin,AvatarSkin.Panda,AvatarSkin.Husky,AvatarSkin.Ghost,AvatarSkin.Zebra,AvatarSkin.ScaryClown,AvatarSkin.FriendlyClown))return Color.white;
             if(OneOf(skin,AvatarSkin.GoldenRetriever,AvatarSkin.HoneyBear,AvatarSkin.Lion,AvatarSkin.Banana,AvatarSkin.Pineapple))return new Color(1,.72f,.13f);
             if(OneOf(skin,AvatarSkin.Dragon,AvatarSkin.Alligator,AvatarSkin.Snake,AvatarSkin.Turtle,AvatarSkin.Elf,AvatarSkin.RobinHood))return new Color(.25f,.67f,.20f);
             if(skin==AvatarSkin.RagDoll)return new Color(1,.79f,.66f);
@@ -17,7 +17,14 @@ namespace DeadlyJenga.CandyPlayers
             if(skin==AvatarSkin.Fish)return new Color(.08f,.65f,.88f);
             if(OneOf(skin,AvatarSkin.CyclopsMonster,AvatarSkin.Axolotl,AvatarSkin.DiscoAlien))return new Color(.95f,.27f,.63f);
             if(OneOf(skin,AvatarSkin.Santa,AvatarSkin.MrsClaus,AvatarSkin.CandyCane,AvatarSkin.ScaryClown,AvatarSkin.Parrot))return new Color(.88f,.035f,.07f);
-            if(OneOf(skin,AvatarSkin.Astronaut,AvatarSkin.NeonRobot,AvatarSkin.DeepSeaDiver,AvatarSkin.CrystalKnight,AvatarSkin.StormWizard))return new Color(.12f,.65f,.88f);
+            if(skin==AvatarSkin.Astronaut)return new Color(1,.58f,.18f);
+            if(skin==AvatarSkin.CyberSamurai)return new Color(.86f,.10f,.20f);
+            if(skin==AvatarSkin.DeepSeaDiver)return new Color(1,.74f,.12f);
+            if(skin==AvatarSkin.CrystalKnight)return new Color(.72f,.38f,.95f);
+            if(skin==AvatarSkin.NeonRobot)return new Color(.15f,.80f,.72f);
+            if(skin==AvatarSkin.CandyKnight)return new Color(1,.36f,.58f);
+            if(skin==AvatarSkin.Mummy)return new Color(.92f,.80f,.62f);
+            if(skin==AvatarSkin.StormWizard)return new Color(.12f,.65f,.88f);
             return new Color(.50f,.29f,.13f);
         }
         void BuildExpandedSkin(CandyPlayerRig rig)
@@ -61,7 +68,7 @@ namespace DeadlyJenga.CandyPlayers
                 Add(rig,id+" beak or mouth",1,skin==AvatarSkin.Parrot?Tone.Black:Tone.Yellow,b=>b.Cone(new Vector3(0,-.035f,.18f),new Vector3(0,-.09f,.39f),.09f,0,12));
                 for(int side=-1;side<=1;side+=2){int s=side;Add(rig,id+" fin or wing"+s,s<0?2:5,Tone.Primary,b=>b.Wedge(new Vector3(-.06f,0,0),new Vector3(.06f,0,0),new Vector3(-.20f,.32f,-.03f),new Vector3(.20f,.32f,-.03f),.04f));}
                 if(skin==AvatarSkin.Parrot){for(int side=0;side<2;side++)Ball(rig,"parrot blue wing"+side,side==0?2:5,Tone.Blue,new Vector3(0,.15f,-.025f),new Vector3(.09f,.23f,.065f));}
-                if(skin==AvatarSkin.Clownfish)Spots(rig,id,Tone.White,true);
+                if(skin==AvatarSkin.Clownfish)Add(rig,id+" white bands",0,Tone.White,b=>{foreach(float y in new[]{.78f,.93f,1.08f,1.23f}){float t=(y-.96f)/.36f;float k=Mathf.Sqrt(Mathf.Max(0,1-t*t));b.Ring(new Vector3(0,y,0),.29f*k,.028f,Quaternion.Euler(90,0,0),new Vector2(1,.2f/.29f));}});
                 if(skin==AvatarSkin.Owl)for(int side=-1;side<=1;side+=2)Ball(rig,"owl facial disc"+side,1,Tone.White,new Vector3(side*.10f,.04f,.17f),new Vector3(.11f,.12f,.045f));return;
             }
             if(OneOf(skin,AvatarSkin.Dragon,AvatarSkin.TRex,AvatarSkin.Snake,AvatarSkin.Alligator,AvatarSkin.Turtle,AvatarSkin.Axolotl))
@@ -70,7 +77,7 @@ namespace DeadlyJenga.CandyPlayers
                 Add(rig,id+" dorsal crest",0,Tone.Dark,b=>{for(int i=0;i<6;i++)b.Cone(new Vector3(0,.65f+i*.12f,-.15f),new Vector3(0,.68f+i*.12f,-.29f),.06f,0,5);});
                 if(skin==AvatarSkin.Dragon||skin==AvatarSkin.Alligator||skin==AvatarSkin.TRex)Add(rig,id+" teeth",1,Tone.White,b=>{for(int side=-1;side<=1;side+=2)for(int tooth=0;tooth<5;tooth++)b.Cone(new Vector3(side*.12f,-.07f,.19f+tooth*.045f),new Vector3(side*.12f,-.15f,.19f+tooth*.045f),.014f,0,6);});
                 if(skin==AvatarSkin.Turtle)Ball(rig,"turtle shell",0,Tone.Brown,new Vector3(0,.95f,-.16f),new Vector3(.31f,.37f,.18f));
-                if(skin==AvatarSkin.Dragon){Cape(rig,"dragon wing membrane",Tone.Dark);Add(rig,"dragon swept horns",1,Tone.Yellow,b=>{for(int side=-1;side<=1;side+=2)b.Cone(new Vector3(side*.14f,.15f,-.03f),new Vector3(side*.24f,.39f,-.16f),.055f,0,10);});}
+                if(skin==AvatarSkin.Dragon){Add(rig,"dragon wings",0,Tone.Red,b=>CandyAccessoryMeshes.Wings(b,AvatarAccessory.DragonWings));Add(rig,"dragon swept horns",1,Tone.Yellow,b=>{for(int side=-1;side<=1;side+=2)b.Cone(new Vector3(side*.14f,.15f,-.03f),new Vector3(side*.24f,.39f,-.16f),.055f,0,10);});}
                 if(skin==AvatarSkin.Axolotl)for(int side=-1;side<=1;side+=2)for(int i=0;i<3;i++){int s=side,n=i;Add(rig,"axolotl gill"+s+n,1,Tone.Red,b=>b.Beam(new Vector3(s*.17f,.10f-n*.07f,0),new Vector3(s*.38f,.19f-n*.12f,0),.022f));}
                 return;
             }
@@ -96,11 +103,11 @@ namespace DeadlyJenga.CandyPlayers
             if(skin==AvatarSkin.Mummy){Spots(rig,"mummy bandages",Tone.White,true);return;}
             if(skin==AvatarSkin.Banana||skin==AvatarSkin.Pineapple||skin==AvatarSkin.CandyCorn||skin==AvatarSkin.CandyCane||skin==AvatarSkin.Gingerbread)
             {
-                if(skin==AvatarSkin.Pineapple){Ball(rig,"pineapple textured body",0,Tone.Yellow,new Vector3(0,.99f,0),new Vector3(.27f,.39f,.22f));Add(rig,"pineapple leaf crown",1,Tone.Green,b=>{for(int i=0;i<9;i++){float a=i*2.399963f;var edge=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));b.Wedge(edge*.055f+Vector3.up*.17f,edge*.13f+Vector3.up*.18f,edge*.25f+Vector3.up*(.48f+i%3*.10f),edge*.25f+Vector3.up*(.48f+i%3*.10f),.016f);}});Spots(rig,"pineapple diamond eyes",Tone.Brown,false);}
+                if(skin==AvatarSkin.Pineapple){Ball(rig,"pineapple textured body",0,Tone.Yellow,new Vector3(0,.99f,0),new Vector3(.27f,.39f,.22f));Add(rig,"pineapple leaf crown",1,Tone.Green,b=>{for(int i=0;i<9;i++){float a=i*2.399963f;var edge=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));b.Wedge(edge*.055f+Vector3.up*.17f,edge*.13f+Vector3.up*.18f,edge*.25f+Vector3.up*(.48f+i%3*.10f),edge*.25f+Vector3.up*(.48f+i%3*.10f),.016f);}});Add(rig,"pineapple diamond eyes",0,Tone.Brown,b=>{for(int i=0;i<26;i++){float u=(i+.5f)/26,pitch=Mathf.Acos(1-2*u),yaw=i*2.399963f;var n=new Vector3(Mathf.Sin(pitch)*Mathf.Cos(yaw),Mathf.Cos(pitch),Mathf.Sin(pitch)*Mathf.Sin(yaw));var radii=new Vector3(.27f,.39f,.22f);var pos=new Vector3(0,.99f,0)+Vector3.Scale(n,radii);var normal=new Vector3(n.x/radii.x,n.y/radii.y,n.z/radii.z).normalized;b.Sphere(pos,new Vector3(.03f,.036f,.013f),Quaternion.FromToRotation(Vector3.forward,normal));}});}
                 if(skin==AvatarSkin.Banana)Add(rig,"banana peel crown",1,Tone.Yellow,b=>{for(int i=0;i<4;i++){float a=i*Mathf.PI*.5f;var tip=new Vector3(Mathf.Cos(a)*.31f,.39f,Mathf.Sin(a)*.31f);b.Cone(new Vector3(0,.16f,0),tip,.065f,0,8);}});
                 if(skin==AvatarSkin.CandyCorn){Robe(rig,"candy corn orange base",Tone.Orange);Hat(rig,"candy corn white tip",Tone.White,true);}
                 if(skin==AvatarSkin.CandyCane)Spots(rig,"candy cane stripe",Tone.White,true);
-                if(skin==AvatarSkin.Gingerbread){for(int i=0;i<3;i++)Ball(rig,"gingerbread gumdrop"+i,0,Tone.Glow,new Vector3(0,.85f+i*.14f,.17f),Vector3.one*.035f);Hair(rig,AvatarHair.Curls);}return;
+                if(skin==AvatarSkin.Gingerbread){for(int i=0;i<3;i++){float gy=.85f+i*.14f;Ball(rig,"gingerbread gumdrop"+i,0,Tone.Glow,new Vector3(0,gy,SurfacePoint(rig,Mathf.PI*.5f,gy,out _).z+.012f),Vector3.one*.038f);}Hair(rig,AvatarHair.Curls);}return;
             }
             bool festive=OneOf(skin,AvatarSkin.Santa,AvatarSkin.MrsClaus,AvatarSkin.Elf);
             if(festive)
@@ -125,12 +132,12 @@ namespace DeadlyJenga.CandyPlayers
                 }
                 else Hair(rig,skin==AvatarSkin.RagDoll?AvatarHair.Braids:AvatarHair.Afro);
                 Ball(rig,id+" red nose",1,Tone.Red,new Vector3(0,0,.24f),Vector3.one*.05f);
-                Jacket(rig,id+" costume",Tone.Purple);Spots(rig,id,Tone.White,false);return;
+                Jacket(rig,id+" costume",Tone.Purple);Spots(rig,id,Tone.White,false,true);return;
             }
             if(skin==AvatarSkin.HeadlessHorseman){Cape(rig,id,Tone.Dark,true);Pumpkin(rig,"horseman pumpkin",Tone.Orange);Pants(rig,id,Tone.Dark);return;}
-            if(skin==AvatarSkin.Gargoyle){Cape(rig,"gargoyle stone wings",Tone.Primary);Add(rig,"gargoyle swept horns",1,Tone.Dark,b=>{for(int side=-1;side<=1;side+=2){b.Cone(new Vector3(side*.14f,.15f,0),new Vector3(side*.24f,.38f,-.06f),.065f,.025f,10);b.Cone(new Vector3(side*.24f,.38f,-.06f),new Vector3(side*.16f,.45f,-.1f),.025f,0,10);}});return;}
+            if(skin==AvatarSkin.Gargoyle){Add(rig,"gargoyle stone wings",0,Tone.Primary,b=>CandyAccessoryMeshes.Wings(b,AvatarAccessory.DragonWings));Add(rig,"gargoyle swept horns",1,Tone.Dark,b=>{for(int side=-1;side<=1;side+=2){b.Cone(new Vector3(side*.14f,.15f,0),new Vector3(side*.24f,.38f,-.06f),.065f,.025f,10);b.Cone(new Vector3(side*.24f,.38f,-.06f),new Vector3(side*.16f,.45f,-.1f),.025f,0,10);}});return;}
             if(skin==AvatarSkin.Sailor){for(int side=0;side<2;side++)Ball(rig,"sailor strong forearm"+side,side==0?3:6,Tone.Primary,new Vector3(0,.16f,0),new Vector3(.105f,.14f,.10f));Add(rig,"sailor pipe",1,Tone.Brown,b=>{b.Beam(new Vector3(.04f,-.10f,.21f),new Vector3(.20f,-.12f,.32f),.009f);b.Cone(new Vector3(.20f,-.13f,.32f),new Vector3(.20f,-.06f,.32f),.025f,.034f,10);});}
-            if(skin==AvatarSkin.Inmate||skin==AvatarSkin.Sailor){Jacket(rig,id+" shirt",Tone.White);Pants(rig,id+" pants",Tone.Dark);Spots(rig,id,Tone.Black,true);Hat(rig,id+" cap",Tone.White,false);return;}
+            if(skin==AvatarSkin.Inmate||skin==AvatarSkin.Sailor){Jacket(rig,id+" shirt",Tone.White);Pants(rig,id+" pants",Tone.Dark);Spots(rig,id,Tone.Black,true,true);Hat(rig,id+" cap",Tone.White,false);return;}
             if(skin==AvatarSkin.RobinHood||skin==AvatarSkin.Scarecrow){Jacket(rig,id+" tunic",Tone.Primary);Hat(rig,id+" hat",Tone.Brown,true);Pants(rig,id,Tone.Brown);return;}
             if(skin==AvatarSkin.StormWizard){Robe(rig,"storm wizard gown",Tone.Blue);Hat(rig,"storm wizard hat",Tone.Blue,true);Cape(rig,"storm stars cape",Tone.Purple);return;}
             if(skin==AvatarSkin.MushroomSprite){Ball(rig,"mushroom sprite cap",1,Tone.Red,new Vector3(0,.23f,0),new Vector3(.40f,.14f,.35f));Add(rig,"mushroom white cap spots",1,Tone.White,b=>{for(int i=0;i<18;i++){float a=i*2.399963f,y=.24f+(i%3)*.04f,r=.36f*(1-(i%3)*.19f);b.Sphere(new Vector3(Mathf.Cos(a)*r,y,Mathf.Sin(a)*r*.86f),Vector3.one*.035f);}});return;}
@@ -144,9 +151,12 @@ namespace DeadlyJenga.CandyPlayers
             if(skin==AvatarSkin.CyberSamurai)Hat(rig,"samurai crest",Tone.Red,true);
             if(skin==AvatarSkin.CrystalKnight)Spots(rig,"crystal facets",Tone.Glow,false);
         }
-        void Spots(CandyPlayerRig rig,string id,Tone tone,bool stripes)
+        // Stripes are cut from the body so they wrap it exactly. Spots are seated on the real skin at golden-angle spacing.
+        void Spots(CandyPlayerRig rig,string id,Tone tone,bool stripes,bool overClothes=false)
         {
-            Add(rig,id+" pattern",0,tone,b=>{for(int i=0;i<(stripes?8:24);i++){float a=i*2.399963f;float y=.73f+(i%8)*.065f;if(stripes)b.Ring(new Vector3(0,y,0),.20f,.012f,Quaternion.Euler(90,0,0));else b.Sphere(new Vector3(Mathf.Cos(a)*.19f,y,Mathf.Sin(a)*.15f),new Vector3(.025f,.03f,.012f));}});
+            float offset=overClothes?.034f:.014f;
+            if(stripes){Band(rig,id+" stripes",tone,offset,true,Stripes(.12f,1.22f,.075f,.032f));return;}
+            Add(rig,id+" pattern",0,tone,b=>{for(int i=0;i<24;i++){var p=SurfacePoint(rig,i*2.399963f,.78f+(i%8)*.07f,out var n);b.Sphere(p+n*(overClothes?.034f:.006f),new Vector3(.034f,.04f,.014f),Quaternion.FromToRotation(Vector3.forward,n));}});
         }
     }
 }

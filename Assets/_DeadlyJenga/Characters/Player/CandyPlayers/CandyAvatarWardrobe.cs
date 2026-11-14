@@ -8,7 +8,7 @@ namespace DeadlyJenga.CandyPlayers
     // Cosmetic shells follow the existing bones. No physics or gameplay components are added.
     public sealed partial class CandyAvatarWardrobe : MonoBehaviour
     {
-        enum Tone { Primary, Dark, White, Black, Orange, Yellow, Blue, Purple, Red, Brown, Silver, Glow, Armor, Hair, Green }
+        enum Tone { Primary, Dark, White, Black, Orange, Yellow, Blue, Purple, Red, Brown, Silver, Glow, Armor, Hair, Green, Cream }
         sealed class Piece { public Renderer renderer; public Tone tone; public int bone; public bool armor; }
         readonly List<Piece> pieces=new List<Piece>();
         static readonly Dictionary<Material,Material> emitterMaterials=new Dictionary<Material,Material>();
@@ -55,7 +55,7 @@ namespace DeadlyJenga.CandyPlayers
         }
         void Add(CandyPlayerRig rig,string id,int bone,Tone tone,System.Action<CandyAccessoryMeshes.Builder> build)
         {
-            if(!meshes.TryGetValue(id,out var mesh)){var builder=new CandyAccessoryMeshes.Builder();build(builder);mesh=builder.Mesh(id);meshes[id]=mesh;}
+            if(!meshes.TryGetValue(id,out var mesh)){var builder=new CandyAccessoryMeshes.Builder{Soft=true};build(builder);mesh=builder.Mesh(id);meshes[id]=mesh;}
             var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.AppearanceBone(bone),false);
             go.AddComponent<MeshFilter>().sharedMesh=mesh;var renderer=go.AddComponent<MeshRenderer>();renderer.sharedMaterial=tone==Tone.Glow?EmitterMaterial(rig.bodyRenderer.sharedMaterial):rig.bodyRenderer.sharedMaterial;
             pieces.Add(new Piece{renderer=renderer,tone=tone,bone=bone});
@@ -72,9 +72,22 @@ namespace DeadlyJenga.CandyPlayers
         void FaceEyes(CandyPlayerRig rig,string id,Tone tone)
         {for(int s=-1;s<=1;s+=2)Ball(rig,id+s,1,tone,new Vector3(s*.085f,.045f,.205f),new Vector3(.032f,.038f,.018f));}
         void Hat(CandyPlayerRig rig,string id,Tone tone,bool pointed)
-        {Add(rig,id,1,tone,b=>{b.Cone(new Vector3(0,.18f,0),new Vector3(0,.205f,0),.31f,.31f,24);b.Cone(new Vector3(0,.20f,0),new Vector3(pointed?.07f:0,pointed?.63f:.43f,0),.17f,pointed?0:.17f,24);});}
+        {
+            Add(rig,id,1,tone,b=>{
+                b.Sphere(new Vector3(0,.19f,0),new Vector3(.33f,.03f,.33f));
+                if(pointed)b.Cone(new Vector3(0,.19f,0),new Vector3(.07f,.63f,0),.17f,0,20);else b.Cone(new Vector3(0,.19f,0),new Vector3(0,.43f,0),.17f,.16f,20);
+                b.Ring(new Vector3(0,.225f,0),.172f,.02f,Quaternion.Euler(90,0,0));
+            });
+        }
+        // A cape is a puffy curved panel that wraps a little around the shoulders and flares at the hem.
         void Cape(CandyPlayerRig rig,string id,Tone tone,bool collar=false)
-        {Add(rig,id,0,tone,b=>{b.Wedge(new Vector3(-.23f,1.25f,-.13f),new Vector3(.23f,1.25f,-.13f),new Vector3(-.37f,.32f,-.30f),new Vector3(.37f,.32f,-.30f),.025f);if(collar)b.Wedge(new Vector3(-.29f,1.45f,-.12f),new Vector3(.29f,1.45f,-.12f),new Vector3(-.17f,1.20f,-.12f),new Vector3(.17f,1.20f,-.12f),.035f);});}
+        {
+            Add(rig,id,0,tone,b=>{
+                b.Pillow(new Vector3(-.23f,1.26f,-.17f),new Vector3(.23f,1.26f,-.17f),new Vector3(-.38f,.34f,-.34f),new Vector3(.38f,.34f,-.34f),.05f,.13f,.025f);
+                b.Sphere(new Vector3(0,1.28f,-.10f),new Vector3(.20f,.06f,.12f));
+                if(collar)b.Ring(new Vector3(0,1.36f,-.04f),.17f,.045f,Quaternion.Euler(90,0,0),new Vector2(1,.9f));
+            });
+        }
         void Pants(CandyPlayerRig rig,string id,Tone tone)=>FittedGarment(rig,id,tone,true);
         void Pumpkin(CandyPlayerRig rig,string id,Tone tone)
         {
@@ -117,17 +130,28 @@ namespace DeadlyJenga.CandyPlayers
         void Hair(CandyPlayerRig rig,AvatarHair hair)
         {
             Add(rig,"hair "+hair,1,Tone.Hair,b=>{
-                if(hair==AvatarHair.Dreadlocks){for(int i=0;i<12;i++){float a=i*2.399963f;b.Cone(new Vector3(Mathf.Cos(a)*.20f,.18f,Mathf.Sin(a)*.18f),new Vector3(Mathf.Cos(a)*.23f,-.24f,Mathf.Sin(a)*.23f),.027f,.02f,8);}return;}
-                if(hair==AvatarHair.Pompadour){b.Sphere(new Vector3(0,.24f,.06f),new Vector3(.21f,.17f,.20f));return;}
-                if(hair==AvatarHair.LibertySpikes){for(int i=0;i<7;i++){float a=i*Mathf.PI/3.5f;b.Cone(new Vector3(Mathf.Cos(a)*.13f,.18f,Mathf.Sin(a)*.13f),new Vector3(Mathf.Cos(a)*.32f,.50f,Mathf.Sin(a)*.32f),.055f,0,6);}return;}
-                if(hair==AvatarHair.Spikes){for(int i=0;i<13;i++){float a=i*2.4f;b.Cone(new Vector3(Mathf.Cos(a)*.16f,.17f,Mathf.Sin(a)*.14f),new Vector3(Mathf.Cos(a)*.21f,.28f+(i%3)*.035f,Mathf.Sin(a)*.18f),.065f,0,8);}return;}
-                b.Sphere(new Vector3(0,.14f,-.035f),new Vector3(.226f,hair==AvatarHair.Buzz?.075f:.13f,.214f));
+                // Every cut starts from a cap that hugs the scalp: a dome on top and, for longer styles, a soft wrap down the back.
+                void Cap(float height,bool nape)
+                {
+                    b.Sphere(new Vector3(0,.12f,-.03f),new Vector3(.236f,height,.238f));
+                    if(nape)b.Sphere(new Vector3(0,-.02f,-.075f),new Vector3(.228f,.19f,.205f));
+                }
+                if(hair==AvatarHair.Dreadlocks)
+                {
+                    Cap(.15f,true);
+                    for(int i=0;i<14;i++){float a=i*2.399963f;float z=Mathf.Sin(a);if(z>.55f)continue;b.Cone(new Vector3(Mathf.Cos(a)*.19f,.12f,z*.17f-.02f),new Vector3(Mathf.Cos(a)*.245f,-.26f,z*.22f-.04f),.034f,.026f,10);}
+                    return;
+                }
+                if(hair==AvatarHair.Pompadour){Cap(.15f,false);b.Sphere(new Vector3(0,.27f,.09f),new Vector3(.16f,.13f,.18f),Quaternion.Euler(-18,0,0));return;}
+                if(hair==AvatarHair.LibertySpikes){Cap(.14f,false);for(int i=0;i<7;i++){float a=i*Mathf.PI/3.5f;b.Cone(new Vector3(Mathf.Cos(a)*.13f,.20f,Mathf.Sin(a)*.13f),new Vector3(Mathf.Cos(a)*.32f,.50f,Mathf.Sin(a)*.32f),.06f,0,10);}return;}
+                if(hair==AvatarHair.Spikes){Cap(.14f,false);for(int i=0;i<13;i++){float a=i*2.4f;b.Cone(new Vector3(Mathf.Cos(a)*.16f,.19f,Mathf.Sin(a)*.14f),new Vector3(Mathf.Cos(a)*.21f,.30f+(i%3)*.035f,Mathf.Sin(a)*.18f),.07f,0,10);}return;}
+                bool shortCut=hair==AvatarHair.Buzz||hair==AvatarHair.CrewCut;
+                Cap(shortCut?.135f:.15f,!shortCut);
                 if(hair==AvatarHair.Afro||hair==AvatarHair.Curls){for(int i=0;i<18;i++){float a=i*2.4f;b.Sphere(new Vector3(Mathf.Cos(a)*.21f,.13f+(i%3)*.055f,Mathf.Sin(a)*.20f),Vector3.one*(hair==AvatarHair.Afro?.115f:.065f));}}
                 if(hair==AvatarHair.Bob||hair==AvatarHair.LongWaves||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2)for(int i=0;i<(hair==AvatarHair.LongWaves?7:4);i++)b.Sphere(new Vector3(s*(.21f+(hair==AvatarHair.LongWaves?Mathf.Sin(i*1.5f)*.025f:0)),.12f-i*.075f,-.055f),new Vector3(.065f,.08f,.17f));}
-                if(hair==AvatarHair.Ponytail||hair==AvatarHair.TwinTails||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2){float x=hair==AvatarHair.Ponytail?0:s*.23f;b.Sphere(new Vector3(x,.035f,-.23f),new Vector3(.065f,.20f,.075f));if(x==0)break;}}
-                if(hair==AvatarHair.Bun)b.Sphere(new Vector3(0,.30f,-.07f),Vector3.one*.105f);
-                if(hair==AvatarHair.SidePart)b.Sphere(new Vector3(-.08f,.23f,.07f),new Vector3(.16f,.08f,.14f));
-                if(hair==AvatarHair.CrewCut)b.Box(new Vector3(0,.21f,0),new Vector3(.31f,.08f,.27f));
+                if(hair==AvatarHair.Ponytail||hair==AvatarHair.TwinTails||hair==AvatarHair.Braids){for(int s=-1;s<=1;s+=2){float x=hair==AvatarHair.Ponytail?0:s*.23f;b.Sphere(new Vector3(x,.035f,-.23f),new Vector3(.07f,.21f,.08f));b.Sphere(new Vector3(x,.20f,-.22f),Vector3.one*.04f);if(x==0)break;}}
+                if(hair==AvatarHair.Bun)b.Sphere(new Vector3(0,.31f,-.07f),Vector3.one*.11f);
+                if(hair==AvatarHair.SidePart)b.Sphere(new Vector3(-.08f,.23f,.07f),new Vector3(.16f,.085f,.14f));
             });
         }
         void BuildGlasses(CandyPlayerRig rig)
@@ -149,53 +173,130 @@ namespace DeadlyJenga.CandyPlayers
                 if(kind!=AvatarEyewear.Monocle)b.Beam(new Vector3(-.03f,.04f,.24f),new Vector3(.03f,.04f,.24f),.01f);
             });
         }
+        // A curved bar that follows the head instead of floating in a flat plane (cages and face guards).
+        static void CageBar(CandyAccessoryMeshes.Builder b,Vector3 from,Vector3 to,float radius,float shell)
+        {
+            const int steps=5;var previous=from.normalized*shell;
+            for(int i=1;i<=steps;i++){var next=Vector3.Lerp(from,to,i/(float)steps).normalized*shell;b.Beam(previous,next,radius);previous=next;}
+        }
         void BuildClothes(CandyPlayerRig rig)
         {
             var clothes=appearance.clothing;
-            if((clothes&AvatarClothing.MonkRobe)!=0){Robe(rig,"monk robes",Tone.Brown);Jacket(rig,"monk lapels",Tone.Brown);Add(rig,"monk belt",0,Tone.Dark,b=>b.Box(new Vector3(0,.85f,.02f),new Vector3(.40f,.055f,.29f)));}
-            if((clothes&AvatarClothing.Diaper)!=0){Ball(rig,"white diaper",0,Tone.White,new Vector3(0,.64f,.005f),new Vector3(.202f,.135f,.15f));Add(rig,"silver diaper clasp",0,Tone.Silver,b=>b.Box(new Vector3(.12f,.68f,.15f),new Vector3(.055f,.025f,.025f)));}
-            if((clothes&AvatarClothing.FootballPads)!=0){Ball(rig,"football chest pads",0,Tone.Silver,new Vector3(0,1.12f,0),new Vector3(.24f,.20f,.18f));for(int s=0;s<2;s++)Ball(rig,"football shoulder pad "+s,s==0?2:5,Tone.White,Vector3.zero,new Vector3(.14f,.12f,.15f));}
+            if((clothes&AvatarClothing.MonkRobe)!=0)
+            {
+                Robe(rig,"monk robes",Tone.Brown);
+                Band(rig,"monk rope belt",Tone.Yellow,.045f,false,.80f,.865f);
+                Add(rig,"monk rope knot",0,Tone.Yellow,b=>{b.Sphere(new Vector3(.10f,.80f,.17f),Vector3.one*.04f);b.Cone(new Vector3(.10f,.79f,.17f),new Vector3(.11f,.60f,.19f),.022f,.016f,8);});
+                Add(rig,"monk soft cowl",0,Tone.Brown,b=>b.Ring(new Vector3(0,1.34f,0),.17f,.06f,Quaternion.Euler(90,0,0),new Vector2(1,.86f)));
+            }
+            if((clothes&AvatarClothing.Diaper)!=0)
+            {
+                FittedPatch(rig,"white diaper",Tone.White,.034f,"diaper",(p,n,bone)=>(bone==0||bone==8||bone==11)&&p.y>.54f&&p.y<.78f&&(bone==0||p.y>.58f));
+                Add(rig,"diaper tabs",0,Tone.Yellow,b=>{for(int sd=-1;sd<=1;sd+=2)b.Box(new Vector3(sd*.15f,.74f,.15f),new Vector3(.07f,.04f,.025f));});
+            }
+            if((clothes&AvatarClothing.FootballPads)!=0)
+            {
+                FittedPatch(rig,"football chest pads",Tone.Silver,.045f,"pads",(p,n,bone)=>bone==0&&p.y>.96f&&p.y<1.31f);
+                for(int s=0;s<2;s++)Ball(rig,"football shoulder pad "+s,s==0?2:5,Tone.White,new Vector3(0,.035f,0),new Vector3(.125f,.105f,.125f));
+            }
             if((clothes&AvatarClothing.HockeyHelmet)!=0)
             {
-                Ball(rig,"hockey helmet shell",1,Tone.Primary,new Vector3(0,.15f,-.055f),new Vector3(.245f,.115f,.225f));
-                Add(rig,"hockey helmet vents",1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2)for(int i=0;i<3;i++)b.Box(new Vector3(s*(.09f+i*.035f),.235f,-.04f),new Vector3(.014f,.018f,.10f));});
-                Add(rig,"hockey wire cage",1,Tone.Silver,b=>{for(int i=-3;i<=3;i++){float x=i*.055f;b.Beam(new Vector3(x,.09f,.24f),new Vector3(x,-.19f,.22f),.005f);}for(int i=0;i<4;i++)b.Beam(new Vector3(-.20f,.07f-i*.075f,.235f),new Vector3(.20f,.07f-i*.075f,.235f),.005f);});
+                Ball(rig,"hockey helmet shell",1,Tone.Primary,new Vector3(0,.13f,-.05f),new Vector3(.245f,.15f,.232f));
+                Add(rig,"hockey helmet vents",1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2)for(int i=0;i<3;i++)b.Box(new Vector3(s*(.09f+i*.035f),.265f,-.04f),new Vector3(.016f,.02f,.10f));});
+                Add(rig,"hockey wire cage",1,Tone.Silver,b=>{
+                    for(int i=-2;i<=2;i++){float x=i*.075f;CageBar(b,new Vector3(x,.07f,.30f),new Vector3(x*1.1f,-.19f,.26f),.008f,.245f);}
+                    for(int i=0;i<3;i++){float y=.04f-i*.08f;CageBar(b,new Vector3(-.30f,y,.20f),new Vector3(.30f,y,.20f),.008f,.245f);}
+                });
             }
             if((clothes&AvatarClothing.FootballHelmet)!=0)
             {
-                Ball(rig,"football helmet crown",1,Tone.Primary,new Vector3(0,.13f,-.075f),new Vector3(.27f,.17f,.24f));
+                Ball(rig,"football helmet crown",1,Tone.Primary,new Vector3(0,.12f,-.075f),new Vector3(.27f,.19f,.24f));
                 for(int side=-1;side<=1;side+=2){Ball(rig,"football ear guard "+side,1,Tone.Primary,new Vector3(side*.23f,-.02f,-.025f),new Vector3(.052f,.15f,.13f));Ball(rig,"football ear port "+side,1,Tone.Dark,new Vector3(side*.275f,-.015f,.005f),new Vector3(.007f,.035f,.035f));}
-                Add(rig,"football helmet stripe",1,Tone.White,b=>b.Box(new Vector3(0,.29f,-.055f),new Vector3(.055f,.018f,.29f)));
-                Add(rig,"football face bars",1,Tone.Silver,b=>{for(int i=0;i<2;i++){float y=-.08f-i*.075f;b.Beam(new Vector3(-.21f,y,.27f),new Vector3(.21f,y,.27f),.012f);}for(int side=-1;side<=1;side+=2){b.Beam(new Vector3(side*.19f,.01f,.19f),new Vector3(side*.22f,-.17f,.27f),.012f);b.Beam(new Vector3(side*.09f,-.08f,.27f),new Vector3(side*.09f,-.16f,.27f),.009f);}});
+                Add(rig,"football helmet stripe",1,Tone.White,b=>b.Cone(new Vector3(0,.30f,.15f),new Vector3(0,.30f,-.30f),.03f,.03f,10));
+                Add(rig,"football face bars",1,Tone.Silver,b=>{
+                    for(int i=0;i<2;i++){float y=-.05f-i*.08f;CageBar(b,new Vector3(-.30f,y,.22f),new Vector3(.30f,y,.22f),.013f,.255f);}
+                    for(int side=-1;side<=1;side+=2){CageBar(b,new Vector3(side*.22f,.02f,.17f),new Vector3(side*.12f,-.17f,.27f),.013f,.255f);CageBar(b,new Vector3(side*.07f,-.03f,.27f),new Vector3(side*.07f,-.17f,.27f),.011f,.255f);}
+                });
             }
-            if((clothes&AvatarClothing.GrassSkirt)!=0)Add(rig,"grass skirt",0,Tone.Primary,b=>{for(int i=0;i<28;i++){float a=i*Mathf.PI*2/28;var v=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));b.Cone(new Vector3(0,.75f,0)+v*.18f,new Vector3(0,.37f,0)+v*.27f,.014f,.006f,5);}});
-            if((clothes&AvatarClothing.Tuxedo)!=0){Jacket(rig,"tux jacket",Tone.Dark);Add(rig,"tux shirt",0,Tone.White,b=>b.Box(new Vector3(0,1.10f,.155f),new Vector3(.12f,.30f,.025f)));Pants(rig,"tux pants",Tone.Dark);}
-            if((clothes&(AvatarClothing.Tuxedo|AvatarClothing.BowTie))!=0)Add(rig,"bow tie",0,Tone.Red,b=>{b.Sphere(new Vector3(-.045f,1.23f,.18f),new Vector3(.045f,.025f,.025f));b.Sphere(new Vector3(.045f,1.23f,.18f),new Vector3(.045f,.025f,.025f));});
-            if((clothes&AvatarClothing.Hoodie)!=0){Jacket(rig,"hoodie",Tone.Primary);Add(rig,"hoodie rim",1,Tone.Primary,b=>b.Ring(new Vector3(0,0,-.08f),.245f,.055f,Quaternion.identity));}
+            if((clothes&AvatarClothing.GrassSkirt)!=0)Add(rig,"grass skirt",0,Tone.Green,b=>{
+                for(int row=0;row<2;row++)for(int i=0;i<20;i++)
+                {
+                    float a=(i+row*.5f)*Mathf.PI*2/20;var o=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));var t=new Vector3(-Mathf.Sin(a),0,Mathf.Cos(a));
+                    var top=new Vector3(0,.78f-row*.025f,0)+new Vector3(o.x*.19f,0,o.z*.165f);var bottom=new Vector3(0,.42f-row*.05f,0)+new Vector3(o.x*.285f,0,o.z*.25f);
+                    b.Pillow(top+t*.035f,top-t*.035f,bottom+t*.05f,bottom-t*.05f,.02f,.0f,.0f,2,4);
+                }
+                b.Ring(new Vector3(0,.78f,0),.2f,.025f,Quaternion.Euler(90,0,0),new Vector2(1,.86f));
+            });
+            if((clothes&AvatarClothing.Tuxedo)!=0)
+            {
+                Jacket(rig,"tux jacket",Tone.Dark);
+                FittedPatch(rig,"tux shirt",Tone.White,.032f,"shirt",(p,n,bone)=>bone==0&&n.z>.2f&&Mathf.Abs(p.x)<.075f&&p.y>.93f&&p.y<1.30f);
+                Pants(rig,"tux pants",Tone.Dark);
+            }
+            if((clothes&(AvatarClothing.Tuxedo|AvatarClothing.BowTie))!=0)
+            {
+                var anchor=SurfacePoint(rig,Mathf.PI*.5f,1.25f,out var normal);float z=anchor.z+((clothes&AvatarClothing.Tuxedo)!=0?.05f:.03f);
+                Add(rig,"bow tie",0,Tone.Red,b=>{for(int sd=-1;sd<=1;sd+=2)b.Sphere(new Vector3(sd*.055f,1.25f,z),new Vector3(.055f,.04f,.03f),Quaternion.Euler(0,0,sd*-14));b.Sphere(new Vector3(0,1.25f,z+.006f),new Vector3(.028f,.03f,.028f));});
+            }
+            if((clothes&AvatarClothing.Hoodie)!=0)
+            {
+                Jacket(rig,"hoodie",Tone.Primary);
+                Add(rig,"hoodie hood",1,Tone.Primary,b=>{b.Sphere(new Vector3(0,.02f,-.13f),new Vector3(.275f,.28f,.215f));b.Ring(new Vector3(0,-.17f,-.01f),.20f,.055f,Quaternion.Euler(90,0,0),new Vector2(1,.94f));});
+                Band(rig,"hoodie hem ribbing",Tone.Primary,.05f,false,.76f,.80f);
+            }
         }
         void BuildExpandedClothes(CandyPlayerRig rig)
         {
             var clothes=appearance.clothing;
-            if((clothes&AvatarClothing.BomberJacket)!=0){Jacket(rig,"bomber jacket",Tone.Brown);Add(rig,"bomber zip",0,Tone.Silver,b=>b.Box(new Vector3(0,1.03f,.20f),new Vector3(.018f,.47f,.02f)));}
-            if((clothes&AvatarClothing.SailorShirt)!=0){Jacket(rig,"sailor shirt",Tone.White);Add(rig,"sailor collar",0,Tone.Blue,b=>b.Wedge(new Vector3(-.18f,1.27f,.18f),new Vector3(.18f,1.27f,.18f),new Vector3(-.02f,1.03f,.20f),new Vector3(.02f,1.03f,.20f),.02f));}
-            if((clothes&AvatarClothing.Overalls)!=0){Pants(rig,"denim overalls",Tone.Blue);Ball(rig,"overall bib",0,Tone.Blue,new Vector3(0,.94f,.15f),new Vector3(.17f,.20f,.065f));}
-            if((clothes&AvatarClothing.PufferVest)!=0){Jacket(rig,"puffer vest",Tone.Primary);Add(rig,"quilted vest seams",0,Tone.Dark,b=>{for(int i=0;i<6;i++)b.Ring(new Vector3(0,.80f+i*.08f,0),.215f,.009f,Quaternion.Euler(90,0,0));});}
-            if((clothes&AvatarClothing.RoyalMantle)!=0){Cape(rig,"royal velvet mantle",Tone.Purple,true);Add(rig,"royal white collar",0,Tone.White,b=>b.Ring(new Vector3(0,1.27f,0),.22f,.035f,Quaternion.Euler(90,0,0)));}
+            if((clothes&AvatarClothing.BomberJacket)!=0)
+            {
+                Jacket(rig,"bomber jacket",Tone.Brown);
+                FittedPatch(rig,"bomber zip",Tone.Silver,.034f,"zip",(p,n,bone)=>bone==0&&n.z>.1f&&Mathf.Abs(p.x)<.013f&&p.y>.74f&&p.y<1.27f);
+                Band(rig,"bomber knit hem",Tone.Dark,.032f,false,.73f,.79f);
+            }
+            if((clothes&AvatarClothing.SailorShirt)!=0)
+            {
+                Jacket(rig,"sailor shirt",Tone.White);
+                FittedPatch(rig,"sailor collar",Tone.Blue,.034f,"collar",(p,n,bone)=>bone==0&&p.y>1.02f&&p.y<1.31f&&(n.z>.05f&&Mathf.Abs(p.x)<(p.y-1.02f)*.9f+.03f||n.z<-.05f&&p.y>1.14f));
+            }
+            if((clothes&AvatarClothing.Overalls)!=0)
+            {
+                Pants(rig,"denim overalls",Tone.Blue);
+                FittedPatch(rig,"overall bib",Tone.Blue,.03f,"bib",(p,n,bone)=>bone==0&&(n.z>.1f&&Mathf.Abs(p.x)<.14f&&p.y>.76f&&p.y<1.12f||Mathf.Abs(p.x)>.07f&&Mathf.Abs(p.x)<.125f&&p.y>1.10f&&p.y<1.34f));
+                for(int sd=-1;sd<=1;sd+=2)Ball(rig,"overall button "+sd,0,Tone.Yellow,new Vector3(sd*.10f,1.05f,SurfacePoint(rig,Mathf.PI*.5f,1.05f,out _).z+.045f),Vector3.one*.022f);
+            }
+            if((clothes&AvatarClothing.PufferVest)!=0)
+            {
+                Jacket(rig,"puffer vest",Tone.Primary);
+                Band(rig,"quilted vest seams",Tone.Dark,.036f,false,.80f,.825f,.88f,.905f,.96f,.985f,1.04f,1.065f,1.12f,1.145f,1.20f,1.225f);
+            }
+            if((clothes&AvatarClothing.RoyalMantle)!=0)
+            {
+                Cape(rig,"royal velvet mantle",Tone.Purple,false);
+                Add(rig,"royal white collar",0,Tone.White,b=>{b.Ring(new Vector3(0,1.29f,0),.215f,.055f,Quaternion.Euler(90,0,0),new Vector2(1,.84f));});
+            }
         }
         static readonly Dictionary<Tone,Material> armorSurfaces=new Dictionary<Tone,Material>();
-        static Texture2D armorGrain,armorNormal;
-        static Material ArmorSurface(Tone tone)
+                static Material ArmorSurface(Tone tone)
         {
             if(armorSurfaces.TryGetValue(tone,out var cached))return cached;
-            if(!armorGrain)
-            {
-                const int size=512;armorGrain=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Armor ceramic fine directional finish",wrapMode=TextureWrapMode.Repeat,anisoLevel=4};armorNormal=new Texture2D(size,size,TextureFormat.RGBA32,true,true){name="Armor microscopic brushed normal",wrapMode=TextureWrapMode.Repeat,anisoLevel=4};
-                var colors=new Color[size*size];var normals=new Color[colors.Length];
-                for(int y=0;y<size;y++)for(int x=0;x<size;x++){int i=y*size+x;float n=Mathf.PerlinNoise(x*.048f,y*.57f);float v=.91f+n*.09f;colors[i]=new Color(v,v,v,1);float nx=.5f+(n-.5f)*.035f;normals[i]=new Color(nx,.5f,1,nx);}
-                armorGrain.SetPixels(colors);armorGrain.Apply(true,true);armorNormal.SetPixels(normals);armorNormal.Apply(true,true);
-            }
-            var material=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Detailed flying armor "+tone,enableInstancing=true};material.SetTexture("_BaseMap",armorGrain);material.SetTexture("_BumpMap",armorNormal);material.SetFloat("_BumpScale",tone==Tone.Dark?.55f:.18f);material.EnableKeyword("_NORMALMAP");material.SetFloat("_Metallic",tone==Tone.Dark?.05f:tone==Tone.Glow?.15f:.78f);material.SetFloat("_Smoothness",tone==Tone.Dark?.28f:tone==Tone.Armor?.77f:.88f);
-            if(tone==Tone.Glow){material.EnableKeyword("_EMISSION");material.SetColor("_EmissionColor",new Color(.10f,.75f,1)*1.3f);}armorSurfaces[tone]=material;return material;
+            // Candy armor: smooth glossy plastic shells. The colour comes from the palette, so it stays warm and playful.
+            var material=new Material(Shader.Find("Universal Render Pipeline/Lit")){name="Candy plastic armor "+tone,enableInstancing=true};material.SetFloat("_Metallic",0);material.SetFloat("_Smoothness",tone==Tone.Dark?.62f:.93f);
+            if(tone==Tone.Glow){material.EnableKeyword("_EMISSION");material.SetColor("_EmissionColor",new Color(1,.78f,.30f)*1.3f);}armorSurfaces[tone]=material;return material;
+        }
+        // Plates are built from separate triangles; sharing normals at matching points turns them from faceted to rounded.
+        static void WeldNormals(Mesh mesh)
+        {
+            var vertices=mesh.vertices;var normals=mesh.normals;var sums=new Dictionary<Vector3Int,Vector3>();const float grid=20000f;
+            Vector3Int Key(Vector3 v)=>new Vector3Int(Mathf.RoundToInt(v.x*grid),Mathf.RoundToInt(v.y*grid),Mathf.RoundToInt(v.z*grid));
+            for(int i=0;i<vertices.Length;i++){var k=Key(vertices[i]);sums[k]=sums.TryGetValue(k,out var sum)?sum+normals[i]:normals[i];}
+            for(int i=0;i<vertices.Length;i++)normals[i]=sums[Key(vertices[i])].normalized;
+            mesh.normals=normals;
+        }
+        static Color ArmorColor(Tone tone,Color primary,bool teamed)
+        {
+            switch(tone){case Tone.Dark:return teamed?primary*.35f:new Color(.34f,.14f,.09f);case Tone.Silver:return new Color(1,.92f,.78f);case Tone.Glow:return new Color(1,.82f,.35f);}
+            return Color.clear;
         }
         void ArmorPart(CandyPlayerRig rig,string id,int bone,Tone tone,System.Func<Mesh> create)
         {
@@ -216,7 +317,7 @@ namespace DeadlyJenga.CandyPlayers
                 void Tri(Vector3 a,Vector3 b,Vector3 c){int i=vertices.Count;vertices.AddRange(new[]{a,b,c});uv.AddRange(new[]{new Vector2(a.x*3,a.y*3),new Vector2(b.x*3,b.y*3),new Vector2(c.x*3,c.y*3)});triangles.AddRange(new[]{i,i+1,i+2});}
                 for(int i=1;i<outline.Length-1;i++){Tri(rings[0,0],rings[0,i+1],rings[0,i]);Tri(rings[3,0],rings[3,i],rings[3,i+1]);}
                 for(int r=0;r<3;r++)for(int i=0;i<outline.Length;i++){int j=(i+1)%outline.Length;Tri(rings[r,i],rings[r,j],rings[r+1,j]);Tri(rings[r,i],rings[r+1,j],rings[r+1,i]);}
-                var mesh=new Mesh();mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();return mesh;
+                var mesh=new Mesh();mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.RecalculateNormals();WeldNormals(mesh);return mesh;
             });
         }
         void ArmorRing(CandyPlayerRig rig,string id,int bone,Tone tone,Vector3 p,float radius,float thickness,Quaternion rotation,Vector3 scale)
@@ -309,7 +410,7 @@ namespace DeadlyJenga.CandyPlayers
             Color primary=teamed?actor.Color:appearance.skin>AvatarSkin.Vampire?ExpandedSkinColor(appearance.skin):appearance.skin==AvatarSkin.Snowman||appearance.skin==AvatarSkin.Vampire?Color.white:appearance.skin==AvatarSkin.Frankenstein||appearance.skin==AvatarSkin.Witch?new Color(.34f,.73f,.30f):appearance.skin==AvatarSkin.Penguin||appearance.skin==AvatarSkin.JackOLantern?new Color(.025f,.03f,.05f):rig.BaseAppearanceColor;
             if(primary==lastTeam&&teamed==lastTeamed)return;lastTeam=primary;lastTeamed=teamed;
             rig.ApplyBodyPalette(teamed&&appearance.skin==AvatarSkin.Penguin?primary*.10f:primary);
-            foreach(var p in pieces)if(p.renderer){p.renderer.GetPropertyBlock(properties);var color=ColorFor(p.tone,primary,teamed);properties.SetColor("_BaseColor",color);properties.SetFloat("_Metallic",p.armor?p.renderer.sharedMaterial.GetFloat("_Metallic"):p.tone==Tone.Armor?.75f:p.tone==Tone.Silver?.85f:0);properties.SetFloat("_Smoothness",p.armor?p.renderer.sharedMaterial.GetFloat("_Smoothness"):p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f);properties.SetColor("_EmissionColor",p.tone==Tone.Glow?color*2:Color.black);p.renderer.SetPropertyBlock(properties);}
+            foreach(var p in pieces)if(p.renderer){p.renderer.GetPropertyBlock(properties);var color=p.armor?ArmorColor(p.tone,primary,teamed):Color.clear;if(color==Color.clear)color=ColorFor(p.tone,primary,teamed);properties.SetColor("_BaseColor",color);properties.SetFloat("_Metallic",p.armor?p.renderer.sharedMaterial.GetFloat("_Metallic"):p.tone==Tone.Armor?.75f:p.tone==Tone.Silver?.85f:0);properties.SetFloat("_Smoothness",p.armor?p.renderer.sharedMaterial.GetFloat("_Smoothness"):p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f);properties.SetColor("_EmissionColor",p.tone==Tone.Glow?color*2:Color.black);p.renderer.SetPropertyBlock(properties);}
         }
         Color ColorFor(Tone tone,Color primary,bool teamed)
         {
@@ -320,7 +421,7 @@ namespace DeadlyJenga.CandyPlayers
                 case Tone.Hair:if(appearance.skin==AvatarSkin.RagDoll)return new Color(.8f,.055f,.02f);if(appearance.skin==AvatarSkin.MrsClaus||appearance.skin==AvatarSkin.Santa)return Color.white;return new Color(.018f,.02f,.027f);
                 case Tone.Black:return skinTeam&&(appearance.skin==AvatarSkin.Penguin||appearance.skin==AvatarSkin.Witch||appearance.skin==AvatarSkin.Vampire)?primary*.10f:new Color(.018f,.02f,.027f);
                 case Tone.Orange:return skinTeam&&(appearance.skin==AvatarSkin.JackOLantern||appearance.skin==AvatarSkin.Witch)?primary:new Color(1,.30f,.035f);
-                case Tone.Yellow:return new Color(1,.77f,.07f);case Tone.Blue:return new Color(.32f,.75f,1);
+                case Tone.Cream:return new Color(1,.92f,.78f);case Tone.Yellow:return new Color(1,.77f,.07f);case Tone.Blue:return new Color(.32f,.75f,1);
                 case Tone.Purple:return skinTeam&&appearance.skin==AvatarSkin.Witch?primary:new Color(.32f,.11f,.48f);
                 case Tone.Red:return skinTeam?primary:new Color(.72f,.025f,.05f);case Tone.Brown:return new Color(.27f,.13f,.055f);
                 case Tone.Silver:return new Color(.55f,.64f,.70f);case Tone.Glow:return new Color(.20f,.87f,1);case Tone.Armor:return teamed||appearance.skin>=AvatarSkin.Astronaut&&!appearance.poweredArmor?primary:new Color(.95f,.20f,.035f);default:return primary;}
