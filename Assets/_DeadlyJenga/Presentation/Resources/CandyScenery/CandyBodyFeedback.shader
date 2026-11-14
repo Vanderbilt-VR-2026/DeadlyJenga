@@ -74,9 +74,10 @@ Shader "Candy Tropical/Body Feedback"
                         half inner=lerp(1.04,.6,fatigue);
                         half closing=smoothstep(inner,inner+.42,edge);
                         Layer(result,half3(.012,.008,.025),closing*(.3+.66*fatigue));
-                        // Heat haze: a faint warm veil that drifts over the whole view.
+                        // Heat haze: a faint warm veil that drifts over the edges, never the center.
                         half haze=fatigue*(.08+.04*sin(uv.y*21+_FeedbackTime*1.7)+.03*sin(uv.x*13-_FeedbackTime*1.1));
-                        Layer(result,half3(.95,.86,.74),haze);
+                        half hazeEdge=smoothstep(.5,1.1,edge);
+                        Layer(result,half3(.95,.86,.74),haze*hazeEdge);
                         // Sweat runs down the screen and gathers near the edges.
                         half near=smoothstep(.45,1.05,edge);
                         half4 sweat=SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,frac(uv.y+_FeedbackTime*.03)));
