@@ -720,7 +720,7 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 }
             }
-            StartCoroutine(PreloadMatchAssets(Catalog.modes[ModeIndex].id,Catalog.maps[MapIndex]));
+            PreloadMatchPreviews(Catalog.modes[ModeIndex].id,Catalog.maps[MapIndex]);
             while(LaunchCountdownRemaining>0)
             {
                 yield return null;
@@ -745,14 +745,12 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
-        System.Collections.IEnumerator PreloadMatchAssets(string modeId,IslandLobbyCatalog.Map map)
+        static void PreloadMatchPreviews(string modeId,IslandLobbyCatalog.Map map)
         {
             if(map!=null&&!string.IsNullOrEmpty(map.id))
                 Resources.LoadAsync<Texture2D>("LobbyPreviews/"+map.id);
             if(!string.IsNullOrEmpty(modeId))
                 Resources.LoadAsync<Texture2D>("LobbyModePictures/"+modeId);
-            Shader.WarmupAllShaders();
-            yield return null;
         }
 
         System.Collections.IEnumerator GuestCountdownSequence(float duration)

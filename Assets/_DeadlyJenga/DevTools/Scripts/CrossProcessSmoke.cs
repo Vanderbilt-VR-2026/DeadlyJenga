@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||NearbyFlow||TycoonTest?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||NearbyFlow||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -245,6 +245,80 @@ namespace DeadlyJenga.CastlePrototype
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
         const string TycoonMap = "mode-tycoon";
+        static bool FullRound => Environment.GetCommandLineArgs().Contains("--dj-full-round");
+
+        IEnumerator CheckFullRound()
+        {
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && home.Region.Length > 0,
+                "Home initializes", 60);
+            home.Demo();
+            yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player),
+                "Developer opens the Marina", 85);
+            var lobby = IslandLobby.Current;
+            var room = lobby.Room;
+            bool host = role == "host";
+            string code;
+            if (host)
+            {
+                var connect = room.Host();
+                yield return Until(() => connect.IsCompleted && room.IsHost && lobby.CanConfigure,
+                    "Host creates a Fusion room through the Marina", 75, () => room.Status);
+                Require(lobby.SelectMode("survival") && lobby.SelectMap("castle"), "Host selects Disaster Survival on Castle");
+                MatchSetup.BotTarget = 2;
+                code = room.Code;
+                File.WriteAllText(Mark("code-pending"), code);
+                File.Move(Mark("code-pending"), Mark("code"));
+                yield return Until(() => room.HumanCount == 2 && File.Exists(Mark("guest-ready")),
+                    "Guest joins and receives the host's selection", 90, () => room.Status);
+                lobby.StartOrCancel();
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("code")), "Host advertises its room code", 150);
+                code = File.ReadAllText(Mark("code"));
+                var connect = room.Join(code);
+                yield return Until(() => connect.IsCompleted && room.Connected && !room.IsHost &&
+                    lobby.SelectedMapId == "castle" && lobby.SelectedModeId == "survival",
+                    "Guest joins by code and reads the chosen map and mode", 90, () => room.Status);
+                File.WriteAllText(Mark("guest-ready"), "ready");
+            }
+
+            CastlePlaySession match = null;
+            yield return Until(() => (match = FindFirstObjectByType<CastlePlaySession>()) && match.Network &&
+                !match.Network.WaitingForWorld && match.Modes && NetworkActors.Alive(match.Player) &&
+                room.Connected && room.Code == code && room.HumanCount == 2 && Services.World?.Blocks.Count > 0,
+                "Both peers enter Game with an actor and synchronized blocks", 110, () => room.Status);
+            File.WriteAllText(Mark(role + "-in-game"), "ready");
+            if (host)
+            {
+                yield return Until(() => File.Exists(Mark("guest-in-game")), "Guest confirms its world snapshot");
+                var rules = match.Modes.Rules.Copy();
+                rules.countdownSeconds = 1;
+                rules.roundSeconds = 20;
+                rules.victorySeconds = 2;
+                rules.automaticDisasters = false;
+                match.Modes.Configure(rules);
+                match.Modes.StartRound();
+            }
+            yield return Until(() => match.Modes.Frame.phase == RoundPhase.Playing && match.Modes.Frame.rules.roundSeconds == 20 &&
+                room.Connected && room.HumanCount == 2, "Authoritative timed round is playing on both peers", 40,
+                () => room.Status);
+            yield return Until(() => match.Modes.Frame.phase == RoundPhase.Results && room.Connected && room.HumanCount == 2,
+                "Both peers reach final results in the same room", 75, () => room.Status);
+            File.WriteAllText(Mark(role + "-results"), "ready");
+            if (host)
+            {
+                yield return Until(() => File.Exists(Mark("guest-results")), "Guest independently confirms results");
+                match.Modes.ReturnToLobby();
+            }
+            yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
+                room.Connected && room.Code == code && room.HumanCount == 2 && IslandLobby.Current.PeerCount == 1,
+                "Both players return to a usable Marina in the same room", 90, () => room.Status);
+            File.WriteAllText(Mark(role + "-returned"), "ready");
+            yield return Until(() => File.Exists(Mark((host ? "guest" : "host") + "-returned")),
+                "Other peer independently confirms the return");
+        }
 
         IEnumerator CheckTycoon()
         {
@@ -409,6 +483,7 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(FullRound){yield return CheckFullRound();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
             if(NearbyFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
