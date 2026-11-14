@@ -658,14 +658,11 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>CanCommand&&MatchRuntime.Current is IDemoEquipmentControls,
                 CandyEquipmentView.Outline(EquipmentKind.Blaster),opensDetails:false);
             DeveloperTile(tabletDeveloperGrid,"Bots",1,CandyHudIcon.Survivor,()=>{menuCategory=1;menuSection=-1;});
-            DeveloperTile(tabletDeveloperGrid,"Disasters",2,CandyHudIcon.Flight,()=>{disasterPage=true;disasterSelection=-1;},
-                picture:Resources.Load<Texture2D>("LobbyModePictures/disasters"));
-            DeveloperTile(tabletDeveloperGrid,"Map & Mode",3,CandyHudIcon.Home,()=>{menuCategory=2;menuSection=-1;});
-            DeveloperTile(tabletDeveloperGrid,"Rebuild",4,CandyHudIcon.Turn,()=>session.ResetMap(),()=>session.CanEditWorld,opensDetails:false);
-            DeveloperTile(tabletDeveloperGrid,"Spectate",5,CandyHudIcon.Look,()=>spectatePage=true);
+            // Disasters, Map & Mode and Rebuild live under More tools > Match (Disasters, Maps, Modes, World).
+            DeveloperTile(tabletDeveloperGrid,"Spectate",2,CandyHudIcon.Look,()=>spectatePage=true);
 
-            // Row 3: Big merged cell across both columns for "More tools"
-            TabletControl(tabletActions,tabletDeveloperGrid,()=>"More tools",new Vector2(0,-286),new Vector2(1004,104),
+            // Last row: one wide cell across both columns for "More tools"
+            TabletControl(tabletActions,tabletDeveloperGrid,()=>"More tools",new Vector2(0,-158),new Vector2(1004,104),
                 ()=>ShowDeveloperDetails(()=>{}),accent:CandyHudVisuals.Lavender,font:39);
 
             BuildTabletWeaponWheel(page);
@@ -950,7 +947,7 @@ namespace DeadlyJenga.CastlePrototype
                 ()=>{if(opensDetails)ShowDeveloperDetails(action);else action();},allowed:allowed,font:39);
             tile.Label.rectTransform.anchoredPosition=new Vector2(52,0);
             tile.Label.rectTransform.sizeDelta=new Vector2(345,88);
-            var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+(slot==3?"MapMode":label));
+            var approved=Resources.Load<Texture2D>("PlayerTabletArt/"+label);
             Texture art=approved?approved:picture?picture:CandyHudVisuals.Icon(icon);
             float scale=Mathf.Min(137f/art.width,90f/art.height);
             TabletPicture((RectTransform)tile.Button.transform,art,new(-163,0),
