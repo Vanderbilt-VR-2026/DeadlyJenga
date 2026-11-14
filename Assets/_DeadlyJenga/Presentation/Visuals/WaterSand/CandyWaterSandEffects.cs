@@ -47,6 +47,7 @@ namespace DeadlyJenga.Presentation
         void OnDestroy()
         {
             RestoreFog();
+            foreach (var probe in sandProbes) if (probe) Destroy(probe);
             foreach (var coat in coats.Values) coat.Remove();
             foreach (var crater in craters.Values) if (crater.disc) Destroy(crater.disc);
             foreach (var o in owned) if (o) Destroy(o);
@@ -70,7 +71,7 @@ namespace DeadlyJenga.Presentation
 
         void ScanBlocks(IWorldQuery world)
         {
-            if (!ReferenceEquals(world, lastWorld)) { seen.Clear(); lastWorld = world; }
+            if (!ReferenceEquals(world, lastWorld)) { seen.Clear(); lastWorld = world; BuildSandProbes(); }
             var blocks = world.Blocks;
             if (blocks == null || blocks.Count == 0) return;
             int count = Mathf.Min(BlocksPerFrame, blocks.Count);
@@ -177,11 +178,16 @@ namespace DeadlyJenga.Presentation
             if (craters.ContainsKey(block)) return;
             var from = new Vector3(bounds.center.x, bounds.max.y + .6f, bounds.center.z);
             if (!Physics.Raycast(from, Vector3.down, out var hit, bounds.size.y + 2.5f, GroundMask, QueryTriggerInteraction.Ignore)) return;
-            if (hit.rigidbody || hit.normal.y < .6f || hit.point.y < bounds.min.y + .04f || hit.point.y < water - .3f) return;
+            if (hit.rigidbody || hit.normal.y < .6f || hit.point.y < water - .3f) return;
+            // The visible sand can be an art mesh above the physics floor: measure it with the hidden probe.
+            float surface = hit.point.y;
+            if (Physics.Raycast(from, Vector3.down, out var art, bounds.size.y + 2.5f, 1 << SandProbeLayer, QueryTriggerInteraction.Collide))
+                surface = Mathf.Max(surface, art.point.y);
+            if (surface < bounds.min.y + .04f) return;
             var crater = new Crater
             {
                 // Some maps sit their floor just under sea level; draw on whichever surface is visible.
-                block = block, point = new Vector3(hit.point.x, Mathf.Max(hit.point.y, water), hit.point.z), started = Time.time,
+                block = block, point = new Vector3(hit.point.x, Mathf.Max(surface, water), hit.point.z), started = Time.time,
                 footprint = Mathf.Clamp(new Vector2(bounds.size.x, bounds.size.z).magnitude * .5f, .35f, 1.4f)
             };
             crater.disc = new GameObject("Sand cave-in");
@@ -189,10 +195,33 @@ namespace DeadlyJenga.Presentation
             crater.disc.transform.SetPositionAndRotation(crater.point + Vector3.up * .015f, Quaternion.Euler(0, Random.Range(0, 360f), 0));
             crater.disc.AddComponent<MeshFilter>().sharedMesh = craterMesh ? craterMesh : craterMesh = CraterMesh();
             var renderer = crater.disc.AddComponent<MeshRenderer>();
-            crater.material = Transparent("Sand cave-in", null);
+            crater.material = Transparent("Sand cave-in", CraterTexture());
+            crater.material.renderQueue = (int)RenderQueue.Transparent + 100;   // after the sea surface
             renderer.sharedMaterial = crater.material;
             renderer.shadowCastingMode = ShadowCastingMode.Off;
             craters[block] = crater;
+        }
+
+        // A spare layer that collides with nothing: only used to measure where sand art meshes are.
+        const int SandProbeLayer = 31;
+        readonly List<GameObject> sandProbes = new();
+
+        void BuildSandProbes()
+        {
+            foreach (var probe in sandProbes) if (probe) Destroy(probe);
+            sandProbes.Clear();
+            for (int i = 0; i < 32; i++) Physics.IgnoreLayerCollision(SandProbeLayer, i, true);
+            foreach (var r in FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+            {
+                if (!r.name.ToLowerInvariant().Contains("sand") || r.transform.IsChildOf(transform) || r.GetComponent<Collider>()) continue;
+                var mesh = r.GetComponent<MeshFilter>()?.sharedMesh;
+                if (!mesh || !mesh.isReadable) continue;
+                var probe = new GameObject("Sand height probe");
+                probe.layer = SandProbeLayer;
+                probe.transform.SetParent(r.transform, false);
+                probe.AddComponent<MeshCollider>().sharedMesh = mesh;
+                sandProbes.Add(probe);
+            }
         }
 
         void UpdateCraters()
@@ -257,16 +286,29 @@ namespace DeadlyJenga.Presentation
             if (underwater > 0 && !volume) volume = UnderwaterVolume();
             if (volume) volume.weight = underwater;
             // Thick teal fog hides the underside of the map, so nothing looks broken down there.
-            if (under && !fogOwned)
+            if (under)
             {
-                savedFog = RenderSettings.fog; savedFogColor = RenderSettings.fogColor;
-                savedFogMode = RenderSettings.fogMode; savedFogDensity = RenderSettings.fogDensity;
-                RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
-                RenderSettings.fogColor = new Color(.05f, .36f, .42f); RenderSettings.fogDensity = .11f;
-                fogOwned = true;
+                if (!fogOwned)
+                {
+                    savedFog = RenderSettings.fog; savedFogColor = RenderSettings.fogColor;
+                    savedFogMode = RenderSettings.fogMode; savedFogDensity = RenderSettings.fogDensity;
+                    fogOwned = true;
+                }
+                ApplyUnderwaterFog();
             }
-            else if (!under && fogOwned) RestoreFog();
+            else if (fogOwned) RestoreFog();
         }
+
+        // Applied again right before each frame renders, because map atmosphere scripts can
+        // rewrite the global fog later in the frame.
+        void ApplyUnderwaterFog()
+        {
+            RenderSettings.fog = true; RenderSettings.fogMode = FogMode.ExponentialSquared;
+            RenderSettings.fogColor = new Color(.05f, .36f, .42f); RenderSettings.fogDensity = .11f;
+        }
+        void OnEnable() => RenderPipelineManager.beginContextRendering += BeforeRender;
+        void OnDisable() => RenderPipelineManager.beginContextRendering -= BeforeRender;
+        void BeforeRender(ScriptableRenderContext context, List<Camera> cameras) { if (fogOwned) ApplyUnderwaterFog(); }
 
         void RestoreFog()
         {
@@ -463,34 +505,39 @@ namespace DeadlyJenga.Presentation
             return t;
         }
 
-        // A flat disc darker toward its sunken middle, with a soft lighter rim and transparent edge.
+        // A flat quad textured with a crater: deep shadowed middle, sloped ring, lighter raised rim, soft edge.
         Mesh CraterMesh()
         {
-            const int sides = 32;
-            var vertices = new List<Vector3> { Vector3.down * .02f };
-            var colors = new List<Color> { new Color(SandDark.r * .8f, SandDark.g * .8f, SandDark.b * .8f, .95f) };
-            var triangles = new List<int>();
-            float[] radii = { .55f, .85f, 1f };
-            Color[] ring = { new(SandDark.r, SandDark.g, SandDark.b, .85f), new(SandLight.r, SandLight.g, SandLight.b, .6f), new(SandLight.r, SandLight.g, SandLight.b, 0) };
-            for (int r = 0; r < radii.Length; r++)
-                for (int i = 0; i < sides; i++)
-                {
-                    float a = i * Mathf.PI * 2 / sides, wobble = 1 + Mathf.Sin(a * 5 + r) * .06f;
-                    vertices.Add(new Vector3(Mathf.Cos(a) * radii[r] * wobble, r == 1 ? .015f : 0, Mathf.Sin(a) * radii[r] * wobble));
-                    colors.Add(ring[r]);
-                }
-            for (int i = 0; i < sides; i++) { triangles.Add(0); triangles.Add(1 + (i + 1) % sides); triangles.Add(1 + i); }
-            for (int r = 0; r < radii.Length - 1; r++)
-                for (int i = 0; i < sides; i++)
-                {
-                    int a = 1 + r * sides + i, b = 1 + r * sides + (i + 1) % sides, c = a + sides, d = b + sides;
-                    triangles.AddRange(new[] { a, b, d, a, d, c });
-                }
             var mesh = new Mesh { name = "Sand cave-in" };
-            mesh.SetVertices(vertices); mesh.SetColors(colors); mesh.SetTriangles(triangles, 0);
+            mesh.SetVertices(new List<Vector3> { new(-1, 0, -1), new(1, 0, -1), new(-1, 0, 1), new(1, 0, 1) });
+            mesh.SetUVs(0, new List<Vector2> { new(0, 0), new(1, 0), new(0, 1), new(1, 1) });
+            mesh.SetTriangles(new[] { 0, 2, 1, 1, 2, 3 }, 0);
             mesh.RecalculateNormals(); mesh.RecalculateBounds();
             owned.Add(mesh);
             return mesh;
+        }
+
+        Texture2D craterTexture;
+        Texture2D CraterTexture()
+        {
+            if (craterTexture) return craterTexture;
+            const int size = 128;
+            var t = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Sand crater", wrapMode = TextureWrapMode.Clamp };
+            Color deep = new(.24f, .17f, .10f, .92f), slope = new(.38f, .28f, .17f, .85f), rim = new(.66f, .54f, .36f, .55f);
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    var v = new Vector2(x + .5f, y + .5f) / size * 2 - Vector2.one;
+                    float angle = Mathf.Atan2(v.y, v.x);
+                    float d = v.magnitude / (1 + Mathf.Sin(angle * 5) * .05f + Mathf.Sin(angle * 11 + 1.7f) * .03f);
+                    Color c = d < .45f ? Color.Lerp(deep, slope, d / .45f)
+                        : d < .75f ? Color.Lerp(slope, rim, (d - .45f) / .3f)
+                        : new Color(rim.r, rim.g, rim.b, rim.a * Mathf.Clamp01((1 - d) / .25f));
+                    float grain = Mathf.PerlinNoise(x * .21f, y * .21f) * .12f - .06f;
+                    t.SetPixel(x, y, new Color(c.r + grain, c.g + grain, c.b + grain * .6f, d >= 1 ? 0 : c.a));
+                }
+            t.Apply(); owned.Add(t);
+            return craterTexture = t;
         }
     }
 }
