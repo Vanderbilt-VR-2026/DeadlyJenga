@@ -96,15 +96,47 @@ Shader "Candy Tropical/Body Feedback"
                     }
                     if (_State.y>.001 || _Impact>.001)
                     {
+                        // Glossy candy-paint splatter: bright shifting colors, wet highlights, drips and sugar sparkle.
                         half4 masks=SAMPLE_TEXTURE2D(_Masks,sampler_Masks,uv);
-                        half growth=saturate((_State.y-masks.g)*7);
-                        half ink=smoothstep(.025,.07,masks.r)*growth;
-                        // Impact briefly glistens toward the hit; persistent coverage follows health only.
-                        half direction=saturate(dot(p,_Bearing.xy));
-                        half shine=(1-smoothstep(.07,.16,masks.r))*ink;
-                        half3 color=_Ink.rgb*(.75+.25*masks.r)+shine*.12;
+                        // A fresh hit splashes extra paint on top of the persistent health coverage.
+                        half damage=saturate(_State.y*1.3+_Impact*.22);
+                        half growth=saturate((damage-masks.g)*6);
+                        half blob=smoothstep(.02,.06,masks.r);
+                        half ink=blob*growth;
+                        // Drips run down from paint above them and get longer as health drops.
+                        float cols=26;
+                        float column=floor(uv.x*cols);
+                        float dripLen=(.04+Grain(float2(column,3))*.16)*saturate(damage*1.4);
+                        half dripShape=1-smoothstep(.1,.42,abs(frac(uv.x*cols)-.5)*2);
+                        half above=smoothstep(.02,.06,SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,saturate(uv.y+dripLen*.55))).r)
+                            *saturate((damage-SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,saturate(uv.y+dripLen*.55))).g)*6);
+                        half drip=above*dripShape*step(.35,Grain(float2(column,9)))*(1-ink);
+                        half coat=saturate(ink+drip);
+                        // Pretty candy palette around the player's own color.
+                        half hueMix=frac(masks.r*3.1+Grain(floor(uv*float2(5,4)))*.55+_FeedbackTime*.015);
+                        half3 pink=half3(1,.38,.74), mint=half3(.35,1,.78), sun=half3(1,.88,.35), grape=half3(.66,.45,1);
+                        half3 color=lerp(_Ink.rgb,pink,smoothstep(.12,.34,hueMix));
+                        color=lerp(color,sun,smoothstep(.34,.52,hueMix));
+                        color=lerp(color,mint,smoothstep(.52,.72,hueMix));
+                        color=lerp(color,grape,smoothstep(.72,.92,hueMix));
+                        color=lerp(color,_Ink.rgb*1.15,.35);
+                        // Fake a rounded wet surface from the blob mask gradient.
+                        float2 slope=float2(ddx(masks.r),ddy(masks.r))*38;
+                        float3 normal=normalize(float3(-slope,1));
+                        float3 lightDir=normalize(float3(-.45,.7,.6));
+                        float3 halfway=normalize(lightDir+float3(0,0,1));
+                        half gloss=pow(saturate(dot(normal,halfway)),48)*(.55+.45*saturate(masks.r*2));
+                        half rim=(1-smoothstep(.04,.14,masks.r))*blob;
+                        half depth=saturate(masks.r*1.6);
+                        color*=.78+.3*depth;
+                        color=lerp(color,half3(1,1,1),rim*.28);
+                        color+=gloss*half3(1,.97,1);
+                        half sparkle=step(.985,Grain(floor(uv*float2(260,150))))*(.5+.5*sin(_FeedbackTime*5+Grain(floor(uv*160))*40));
+                        color+=sparkle*ink*half3(1,1,1)*.9;
                         color=lerp(color,half3(.7,1,.85),_Recovery*.2);
-                        Layer(result,color,ink*(.90+_Impact*.08*direction));
+                        Layer(result,color,coat*(.95+_Impact*.05*saturate(dot(p,_Bearing.xy)+.5)));
+                        // A bright candy outline flashes for the first moments after a hit.
+                        Layer(result,half3(1,.9,1),rim*ink*_Impact*.55);
                     }
                     Layer(result,half3(.35,1,.76),smoothstep(.88,1.25,edge)*_Recovery*.22);
                 }

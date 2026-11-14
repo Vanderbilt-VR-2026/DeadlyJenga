@@ -61,7 +61,7 @@ namespace DeadlyJenga.Presentation
             var frame = match?.Frame;
             if (ReferenceEquals(session, source))
                 LobbyLastRoundBoard.Observe(match, session);
-            bool show = frame?.phase == RoundPhase.Results && session != null
+            bool show = frame?.phase == RoundPhase.Results && session != null && !CandyDeathOverlay.GameOverActive
                 && (session as ILobbyMatchVisitControls)?.VisitingLobby != true;
             if (!show)
             {

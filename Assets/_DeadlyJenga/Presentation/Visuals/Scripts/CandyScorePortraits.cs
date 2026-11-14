@@ -82,7 +82,7 @@ namespace DeadlyJenga.Presentation
             var actor = match.FindActor(player.id);
             var visual = actor?.Visual;
             if (!visual) return null;
-            var head = visual.Find("Head");
+            var head = FindHead(visual);
             Vector3 center = head ? head.position : actor.ViewPose.position;
             Quaternion rotation = head ? head.rotation : actor.ViewPose.rotation;
             float scale = Mathf.Max(.15f, Mathf.Abs(visual.lossyScale.y));
@@ -170,6 +170,18 @@ namespace DeadlyJenga.Presentation
             image.color = texture ? Color.white : Color.Lerp(player.color, new Color(.13f, .07f, .21f), .64f);
             string name = CandyHudContent.Safe(player.name);
             fallback.text = texture || name.Length == 0 ? "" : name.Substring(0, 1).ToUpperInvariant();
+        }
+
+        // The head bone is often nested under a rig, so search the whole avatar.
+        static Transform FindHead(Transform visual)
+        {
+            Transform loose = null;
+            foreach (var part in visual.GetComponentsInChildren<Transform>(true))
+            {
+                if (part.name == "Head") return part;
+                if (!loose && part.name.IndexOf("head", System.StringComparison.OrdinalIgnoreCase) >= 0) loose = part;
+            }
+            return loose;
         }
 
         internal static bool VisibleInAvatar(Transform part, Transform visual)

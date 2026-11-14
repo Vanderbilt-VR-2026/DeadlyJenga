@@ -56,7 +56,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyRim(screen,new Color(.56f,.43f,.72f,.8f));
             if(heading)
             {
-                heading.name="Terminal heading";heading.rectTransform.anchoredPosition=new Vector2(0,365);heading.rectTransform.sizeDelta=new Vector2(width-80,80);
+                heading.name="Terminal heading";heading.rectTransform.anchoredPosition=new Vector2(0,382);heading.rectTransform.sizeDelta=new Vector2(width-80,80);
                 heading.fontSize=width>1100?72:64;heading.resizeTextMaxSize=heading.fontSize;heading.resizeTextMinSize=42;heading.fontStyle=FontStyle.Bold;heading.color=CandyCream;
                 var shadow=heading.gameObject.AddComponent<Shadow>();shadow.effectColor=new Color(0,0,0,.6f);shadow.effectDistance=new Vector2(0,-3);
             }

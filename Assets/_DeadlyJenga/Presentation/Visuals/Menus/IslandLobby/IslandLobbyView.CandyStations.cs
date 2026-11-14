@@ -126,7 +126,7 @@ namespace DeadlyJenga.CastlePrototype
             var room=CandyPanel(candySetupContent,"Room population",rightX,-315,rightWidth,110,CandyFace);candyMainDecor.Add(room.gameObject);
             candyRoomStatus=CandyReadout(room,"Room count","ROOM\n1 / 10",0,0,600,96,32);
             setupHint.rectTransform.anchoredPosition=new Vector2(0,-398);setupHint.rectTransform.sizeDelta=new Vector2(1760,36);setupHint.fontSize=26;setupHint.resizeTextMaxSize=26;setupHint.resizeTextMinSize=20;setupHint.color=CandyMuted;
-            gameHint.rectTransform.anchoredPosition=new Vector2(0,312);gameHint.rectTransform.sizeDelta=new Vector2(1000,30);gameHint.fontSize=26;gameHint.resizeTextMaxSize=26;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
+            gameHint.rectTransform.anchoredPosition=new Vector2(0,320);gameHint.rectTransform.sizeDelta=new Vector2(1000,30);gameHint.fontSize=26;gameHint.resizeTextMaxSize=26;gameHint.resizeTextMinSize=20;gameHint.color=CandyMuted;
 
             // Map page: list on the left, large preview on the right.
             mapBreadcrumb = CandyReadout(candySetupContent, "Map breadcrumb", "MAP CATEGORIES", ListX, 270, ListWidth, 40, 30);
@@ -177,7 +177,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyText(deselectBtn, 0, 0, 220, 72, 30);
             var cancelBtn = CandyPlace("map-cancel", ListX + 255, -315, 240, 84);
             CandyText(cancelBtn, 0, 0, 220, 72, 30);
-            var rightFrame = CandyPanel(candySetupContent, "Large map frame", 420, -10, 940, 650, CandyFace);
+            var rightFrame = CandyPanel(candySetupContent, "Large map frame", 420, -10, 940, 630, CandyFace);
             mapBrowserRightFrame = rightFrame;
             browserMapPreview = Picture(rightFrame, "Large map browser preview", 0, 70, MapPreviewWidth, MapPreviewHeight);
             browserMapName = CandyReadout(rightFrame, "Previewed map name", "", 0, -200, 900, 50, 40);

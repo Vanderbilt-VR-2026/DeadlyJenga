@@ -276,7 +276,7 @@ namespace DeadlyJenga.CandyPlayers
             if((clothes&AvatarClothing.Overalls)!=0)
             {
                 Pants(rig,"denim overalls",Tone.Blue);
-                FittedPatch(rig,"overall bib",Tone.Blue,.03f,"bib",(p,n,bone)=>bone==0&&(n.z>.1f&&Mathf.Abs(p.x)<.14f&&p.y>.76f&&p.y<1.12f||Mathf.Abs(p.x)>.07f&&Mathf.Abs(p.x)<.125f&&p.y>1.10f&&p.y<1.34f));
+                FittedPatch(rig,"overall bib",Tone.Blue,.03f,"bib",(p,n,bone)=>bone==0&&(n.z>.1f&&Mathf.Pow(p.x/.14f,2)+Mathf.Pow((p.y-.93f)/.18f,2)<1f||Mathf.Abs(p.x)>.07f&&Mathf.Abs(p.x)<.125f&&p.y>1.10f&&p.y<1.34f));
                 for(int sd=-1;sd<=1;sd+=2)Ball(rig,"overall button "+sd,0,Tone.Yellow,new Vector3(sd*.10f,1.05f,SurfacePoint(rig,Mathf.PI*.5f,1.05f,out _).z+.045f),Vector3.one*.022f);
             }
             if((clothes&AvatarClothing.PufferVest)!=0)
