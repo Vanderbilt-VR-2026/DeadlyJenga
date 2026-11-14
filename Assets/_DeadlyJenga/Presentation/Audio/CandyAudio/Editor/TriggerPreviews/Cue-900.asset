@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-900
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: df21636e55a5e0646ba875264193399a, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 900
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: otter
+    atlasFile: atlas.png
+    atlasSha256: 7535a7bf2e0b77b1a05a6480f63452e64747dcb87a68e7768b2f15334590cb5e
+    gifFile: preview.gif
+    gifSha256: b6cf1c698c33bb2ebfc4afd15392a5609e83c126aa85de25f7e6a8d6eef47c61
+    sourceSha256: 4bb511aeafca27974ecff671d26f0e7a30b248a1cccab608a0d122a6e2942dd1
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife otter companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing otter
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

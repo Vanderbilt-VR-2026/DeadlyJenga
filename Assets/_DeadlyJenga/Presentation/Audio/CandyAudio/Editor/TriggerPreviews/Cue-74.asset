@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-74
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 98478161e51170e4d94c8457ea742b25, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 74
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Jaguar Chuff
+    atlasFile: atlas.png
+    atlasSha256: 7818ff6337ff67f7383c20dc899525c44c737b2019a41c02f2bcb9dfda5c26d0
+    gifFile: preview.gif
+    gifSha256: ba333646cf34bd144a6e79445a49166d6f8bbf6b20a164b6ab4af4bd14431498
+    sourceSha256: f33a94eee91136b5d6a14425c7e2e02b94f9b5c323d1cf7d457528f375405a74
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Feline avatar / bot
+    action: foley
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing Jaguar Chuff
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

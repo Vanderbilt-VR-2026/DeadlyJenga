@@ -147,7 +147,7 @@ namespace DeadlyJenga.CandyAudio
                 maxVoices=2,
                 priority=135
             };
-            Cues.Add(species,cue);
+            Cues[species]=cue;
             return cue;
         }
     }

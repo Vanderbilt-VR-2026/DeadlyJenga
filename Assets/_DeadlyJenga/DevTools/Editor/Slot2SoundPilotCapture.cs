@@ -14,6 +14,7 @@ using DeadlyJenga.World.Hazards;
 using DeadlyJenga.Modes;
 using DeadlyJenga.CandyAudio;
 using DeadlyJenga.CandyAudio.Editor;
+using DeadlyJenga.Wildlife;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -110,6 +111,13 @@ namespace DeadlyJenga.DevTools.Editor
                         SessionState.SetInt(Key + ".Phase", 0);
                         File.AppendAllText(Report, "BATCH 3 WORLD COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
                         Debug.Log("Slot 2 Batch 3 World Captures Complete! See: " + Report);
+                    }
+                    else if (phase == 50)
+                    {
+                        SessionState.SetBool(Key, false);
+                        SessionState.SetInt(Key + ".Phase", 0);
+                        File.AppendAllText(Report, "BATCH 5 WILDLIFE COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
+                        Debug.Log("Slot 2 Batch 5 Wildlife Captures Complete! See: " + Report);
                     }
                 }
             };
@@ -228,6 +236,38 @@ namespace DeadlyJenga.DevTools.Editor
             }
         }
 
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 5 Wildlife (21 Cues)")]
+        public static void RunBatch5Wildlife()
+        {
+            Directory.CreateDirectory(RawRoot);
+            File.AppendAllText(Report, "Starting Batch 5 Wildlife Captures (21 cues) · " + DateTime.UtcNow.ToString("O") + "\n");
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 50);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            if (EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                EditorApplication.EnterPlaymode();
+            }
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Import Batch 5 Wildlife Previews")]
+        public static void ImportBatch5()
+        {
+            ImportBatch("batch5_wildlife_meta.json");
+        }
+
         public static void ImportBatch(string metaFileName)
         {
             var bank = Resources.Load<CandyAudioBank>("CandyAudio/Default");
@@ -336,6 +376,13 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!lobby || lobby.Player == null || !lobby.ActiveCamera) return;
                 EditorApplication.update -= StartRoutineWhenReady;
                 lobby.StartCoroutine(Guard(RunBatch3LobbyCaptures(lobby)));
+            }
+            else if (phase == 50)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch5WildlifeCaptures(session)));
             }
         }
 
@@ -1932,6 +1979,199 @@ namespace DeadlyJenga.DevTools.Editor
 
             Object.DestroyImmediate(cam.gameObject);
             Log("Lobby.unity Batch 3 captures complete.");
+            EditorApplication.isPlaying = false;
+        }
+
+        static IEnumerator RunBatch5WildlifeCaptures(CastlePlaySession session)
+        {
+            Log("Game.unity session loaded for Batch 5 Wildlife. Setting up match rules...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds = 0;
+            rules.healthEnabled = true;
+            rules.deathEnabled = false;
+            rules.fallDamage = false;
+            rules.island = IslandRule.Walkable;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SetRole(true);
+            session.SetMenu(false);
+
+            session.Player.InputSuspended = true;
+            if (session.Hand != null) session.Hand.InputSuspended = true;
+
+            var world = Services.World;
+            float waterY = world != null ? world.WaterHeight(world.Center) : 0f;
+
+            // Dedicated camera
+            var camObj = new GameObject("Batch5_Capture_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            // Find top castle platform block
+            var blocksWithCollider = world.Blocks.Where(b => b && b.GetComponent<Collider>()).ToList();
+            var castlePlatform = blocksWithCollider
+                .Select(b => b.GetComponent<Collider>().bounds)
+                .OrderByDescending(b => b.max.y).First();
+            Vector3 platformTop = new Vector3(castlePlatform.center.x, castlePlatform.max.y + 0.05f, castlePlatform.center.z);
+
+            // ========================================================
+            // SECTION A: JAGUAR FOLEY (9 CUES: 73..81)
+            // ========================================================
+            Log("--- Commencing Jaguar Foley captures (9 cues) ---");
+
+            GameObject bot = session.SurvivorBots.SpawnOne();
+            if (!bot) bot = session.Player.gameObject;
+            var botMotor = bot.GetComponent<CastleSurvivor>();
+            var botBrain = bot.GetComponent<CastleBotBrain>();
+            if (botBrain) botBrain.enabled = false;
+            if (botMotor) botMotor.InputSuspended = true;
+
+            var rig = bot.GetComponentInChildren<CandyPlayerRig>();
+            CandyJaguarAppearance app = bot.GetComponent<CandyJaguarAppearance>();
+            if (!app && rig)
+            {
+                app = bot.AddComponent<CandyJaguarAppearance>();
+                app.Apply(rig, AvatarAccessory.PantherHead | AvatarAccessory.PantherClaws | AvatarAccessory.PantherTail);
+            }
+            else if (app && rig)
+            {
+                app.Apply(rig, AvatarAccessory.PantherHead | AvatarAccessory.PantherClaws | AvatarAccessory.PantherTail);
+            }
+
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            // Camera framed on Jaguar
+            cam.transform.position = platformTop + Vector3.back * 2.0f + Vector3.up * 1.25f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.95f);
+
+            // 73: Jaguar Idle
+            yield return CaptureCue(cam, 73, "Jaguar Idle", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarIdle), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            // 74: Jaguar Chuff
+            yield return CaptureCue(cam, 74, "Jaguar Chuff", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarChuff), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            // 75: Jaguar Growl
+            yield return CaptureCue(cam, 75, "Jaguar Growl", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarGrowl), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            // 76: Jaguar Alert
+            yield return CaptureCue(cam, 76, "Jaguar Alert", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarAlert), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            // 77: Jaguar Attack
+            yield return CaptureCue(cam, 77, "Jaguar Attack", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarAttack), bot.transform.position, 1f, bot.GetInstanceID());
+                if (f >= 6 && f <= 12 && botMotor) botMotor.Teleport(platformTop + Vector3.back * ((f - 6) * 0.08f), Quaternion.LookRotation(Vector3.back));
+            });
+
+            // 78: Jaguar Hurt
+            yield return CaptureCue(cam, 78, "Jaguar Hurt", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarHurt), bot.transform.position, 1f, bot.GetInstanceID());
+                if (f >= 6 && f <= 12 && botMotor) botMotor.Teleport(platformTop + Vector3.forward * ((f - 6) * 0.04f), Quaternion.LookRotation(Vector3.back));
+            });
+
+            // 79: Jaguar Death
+            yield return CaptureCue(cam, 79, "Jaguar Death", 24, f => {
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarDeath), bot.transform.position, 1f, bot.GetInstanceID());
+                if (f >= 6 && botMotor)
+                {
+                    float sink = Mathf.Min(0.6f, (f - 6) * 0.06f);
+                    botMotor.Teleport(platformTop + Vector3.down * sink, Quaternion.LookRotation(Vector3.back));
+                }
+            });
+
+            // Reset bot position
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+
+            // 80: Jaguar Footfall
+            cam.transform.position = platformTop + Vector3.back * 1.5f + Vector3.right * 0.4f + Vector3.up * 0.45f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.2f);
+            yield return CaptureCue(cam, 80, "Jaguar Footfall", 24, f => {
+                if (f >= 6 && botMotor) botMotor.Teleport(platformTop + Vector3.back * ((f - 6) * 0.06f), Quaternion.LookRotation(Vector3.back));
+                if (f == 6 || f == 14) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarFootfall), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            // 81: Jaguar Land
+            cam.transform.position = platformTop + Vector3.right * 2.2f + Vector3.up * 0.6f;
+            cam.transform.LookAt(platformTop + Vector3.up * 0.35f);
+            yield return CaptureCue(cam, 81, "Jaguar Land", 24, f => {
+                if (botMotor)
+                {
+                    float y = f < 6 ? Mathf.Lerp(1.2f, 0f, f / 6f) : 0f;
+                    botMotor.Teleport(platformTop + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                }
+                if (f == 6) CandyAudioEngine.Instance?.PlayCue(CandyJaguarSounds.DefaultCue(CandySound.JaguarLand), bot.transform.position, 1f, bot.GetInstanceID());
+            });
+
+            // Clean up bot
+            if (bot != session.Player.gameObject) Object.DestroyImmediate(bot);
+
+            // ========================================================
+            // SECTION B: WILDLIFE CALLS (12 CUES: 900..911)
+            // ========================================================
+            Log("--- Commencing Wildlife Calls captures (12 cues) ---");
+
+            var wildlife = session.GetComponent<IslandWildlife>();
+            if (!wildlife) wildlife = session.gameObject.AddComponent<IslandWildlife>();
+
+            string[] speciesList = CandyWildlifeAudio.Species;
+
+            // Place survivor on island beach/ground for wildlife companion spawning
+            Vector3 wildSpot = world.Center + Vector3.forward * 28f + Vector3.up * (waterY + 0.2f);
+            session.Player.Place(wildSpot, Quaternion.LookRotation(Vector3.back));
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            for (int i = 0; i < speciesList.Length; i++)
+            {
+                string sp = speciesList[i];
+                int cueId = 900 + i;
+
+                // Clean up previous animals
+                foreach (var existing in session.GetComponentsInChildren<IslandAnimal>()) Object.DestroyImmediate(existing.gameObject);
+                yield return null;
+
+                GameObject animalObj = wildlife.Spawn(sp, true);
+                if (!animalObj)
+                {
+                    animalObj = new GameObject("Island wildlife - " + sp);
+                    animalObj.transform.SetParent(session.transform, true);
+                    animalObj.transform.position = wildSpot + Vector3.forward * 1.5f;
+                    var animalComp = animalObj.AddComponent<IslandAnimal>();
+                    animalComp.Initialize(wildlife, sp, i + 1);
+                }
+
+                Vector3 animalPos = animalObj.transform.position;
+                cam.transform.position = animalPos + Vector3.back * 1.4f + Vector3.up * 0.6f;
+                cam.transform.LookAt(animalPos + Vector3.up * 0.25f);
+
+                yield return CaptureCue(cam, cueId, sp, 24, f => {
+                    if (f == 6 && animalObj)
+                    {
+                        CandyAudioEngine.Instance?.PlayCue(CandyWildlifeAudio.Cue(sp), animalObj.transform.position + Vector3.up * 0.2f, 1f, animalObj.GetInstanceID());
+                    }
+                });
+
+                if (animalObj) Object.DestroyImmediate(animalObj);
+            }
+
+            Object.DestroyImmediate(camObj);
+            Log("Batch 5 (Wildlife & Jaguar) captures successfully completed!");
             EditorApplication.isPlaying = false;
         }
 

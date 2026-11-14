@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-73
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: e62821659efc3b149858201657fdb544, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 73
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Jaguar Idle
+    atlasFile: atlas.png
+    atlasSha256: 38c116866dc8d4da017f0b00cd9d7e7247b9edb7c18abe37df834529360320ac
+    gifFile: preview.gif
+    gifSha256: 090c41e62131dde77537f4c8f4685d9cce031ae83842047829cbd10a2a332a7b
+    sourceSha256: 87d86b3b2118b56dd5fd3be1350ca815a77634f9c6b0031f38cc3b48fb72777a
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Feline avatar / bot
+    action: foley
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing Jaguar Idle
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
