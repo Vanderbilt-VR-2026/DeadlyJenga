@@ -83,6 +83,19 @@ namespace DeadlyJenga.CastlePrototype
             text.horizontalOverflow=HorizontalWrapMode.Wrap;text.verticalOverflow=VerticalWrapMode.Truncate;
             text.rectTransform.sizeDelta = size; text.rectTransform.anchoredPosition = position; return text;
         }
+        // A tall list of rows is split into two columns so it stays inside the tablet.
+        void LayoutTwoColumns(int rowsInFirstColumn)
+        {
+            for(int i=0;i<buttons.Length;i++)
+            {
+                int column=i<rowsInFirstColumn?0:1,row=column==0?i:i-rowsInFirstColumn;
+                var rect=(RectTransform)buttons[i].transform;
+                rect.anchoredPosition=new Vector2(column==0?-270:270,185-row*54);rect.sizeDelta=new Vector2(520,48);
+                targets[i].size=new Vector3(520,48,4);
+                labels[i].rectTransform.sizeDelta=new Vector2(452,44);
+                sectionGlyphs[i].rectTransform.anchoredPosition=new Vector2(-233,0);
+            }
+        }
         void PointPage(Camera camera, bool pressed,bool held)
         {
             connectionTile.Refresh(session.Multiplayer);
@@ -135,10 +148,13 @@ namespace DeadlyJenga.CastlePrototype
                     float force=rules.handPhysics?.forceNewtons??1200,friction=rules.handPhysics?.friction??2f;
                     string[] handTitles={"Resume","Hand drive force: "+force.ToString("0")+" N","Drive -100 N","Drive +100 N","Drive -1000 N","Drive +1000 N","Drive 0 N","Drive 100 N","Drive 300 N","Drive 1000 N","Drive 3000 N","Contact friction: "+friction.ToString("0.00"),"Back to tuning","Friction +0.1 / cycle","Reset: 3000 N / friction 1.8"};
                     for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(true);labels[i].text=handTitles[i];targets[i].enabled=i==0||i==12||(CanCommand&&i!=1&&i!=11);}
+                    heading.text="FLYING HAND DRIVE / FRICTION";heading.rectTransform.anchoredPosition=new Vector2(0,238);heading.rectTransform.sizeDelta=new Vector2(900,40);
+                    LayoutTwoColumns(8);
                     help.text="Drive budget, not total impact force. Zero disables drive, not existing momentum.";
                 }
                 else
                 {
+                heading.rectTransform.anchoredPosition=new Vector2(0,355);heading.rectTransform.sizeDelta=new Vector2(570,95);
                 string[] titles={"Resume","Grip capacity: "+rules.gripSeconds.ToString("F1")+" s  (+)","Grip capacity  (-)","Drain: "+rules.drainRate.ToString("F2")+" / s  (cycle)","Recovery: "+rules.recoveryRate.ToString("F2")+" / s  (cycle)","Recovery delay: "+rules.recoveryDelay.ToString("F2")+" s  (cycle)","Drain curve: "+rules.drainCurve,"Recovery curve: "+rules.recoveryCurve,"Drain degree: "+rules.drainDegree.ToString("F1"),"Recovery degree: "+rules.recoveryDegree.ToString("F1"),"Master volume: "+(audio&&audio.bank?audio.bank.master.ToString("P0"):"unavailable"),"Music volume: "+(audio&&audio.bank?audio.bank.music.ToString("P0"):"unavailable"),"Back to demo controls","Preview sound","Flying hand drive / friction"};
                 for(int i=0;i<buttons.Length;i++){buttons[i].gameObject.SetActive(i<titles.Length);if(i<titles.Length){labels[i].text=titles[i];targets[i].enabled=i==0||i>=10||session.CanEditWorld;}}
                 }
