@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-907
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: f7333f4be2189d043bc50106e4832fab, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 907
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: frog
+    atlasFile: atlas.png
+    atlasSha256: 0616be1a2007d6eabaa6ecaeee114c8aa035e6a4aac7571c0dd10af8aa0815fb
+    gifFile: preview.gif
+    gifSha256: 836f2d167fd029a050eaef2e95ed998cb7a4a4c250e544fcb3006888923e489c
+    sourceSha256: 1265b68c5a1f3e4c85ca897d913cbf8e7dfd51f569500b39e31122e348f98550
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife frog companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing frog
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

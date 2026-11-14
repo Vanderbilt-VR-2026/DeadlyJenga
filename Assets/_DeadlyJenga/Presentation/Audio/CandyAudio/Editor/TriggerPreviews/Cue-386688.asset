@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-386688
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: f91d88201f03ae548a633c12718552a9, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 386688
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Holster
+    atlasFile: atlas.png
+    atlasSha256: 1df5564961bde53055b74bfe7cb484d87ce6017c1de2cd6d18994be4375a716f
+    gifFile: preview.gif
+    gifSha256: bc391bc88d1f22afeed2c0849e8e584e77895d7675349e9ee461ebd60ad9bd7e
+    sourceSha256: 1fe3f05c8b6434deee97499136c6b6a694d052c46bd449de20fd2a3d1404524d
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Laser Axe in the acting player's hands
+    action: Holster with Laser Axe
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Holster
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-7
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 71ef51b2857909143adbb0466c1a43e2, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 7
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Rubber Slide
+    atlasFile: atlas.png
+    atlasSha256: a1f2ee1d52b73f70fdca2fe6746220ff9415901817d157c53b7b0831479bd84a
+    gifFile: preview.gif
+    gifSha256: 6b8f9e382f932553bdb6b7aa1656ab6e49bba8f7433942ddffeb0cf8d1ede856
+    sourceSha256: 780f7c179cb0bea4a89d8d4797b258ea0236bf6a110c042ed04a1e98428b9693
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Rubber Slide
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Rubber Slide
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

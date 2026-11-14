@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-19
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 81bb3ac9e3621a84f966a7f748569c17, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 19
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Beach Wind
+    atlasFile: atlas.png
+    atlasSha256: 7828423b04d3c710c57559baa4c8b56ff022f23a967051c91c8265ddb3e14718
+    gifFile: preview.gif
+    gifSha256: e1bfb22b317ba6205ce54fca346bb1667d928a3351a4db684b8b74ecb497f61d
+    sourceSha256: fa1f353ed4f2eb685775fd99fe966f39633676ec79e27877ae333f8665d813fe
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The actual environment or menu where this bed is active
+    action: Sustained environmental/menu state
+    target: none (ambient bed)
+    listenerRole: Local listener in that environment
+    triggerEvidence: Observed gameplay lifecycle firing Beach Wind
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-224214
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 8e0d5be3a25eebd4587fa5c4c09d3898, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 224214
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Swap
+    atlasFile: atlas.png
+    atlasSha256: 08caeb69491217bbd616468b729e37f732d596b675e54d8904ef64d0c9db0ccd
+    gifFile: preview.gif
+    gifSha256: 6fd6b485891dd7242b19d01a72015e87eb5cbd6dda02b82f2ab223705ebda586
+    sourceSha256: 5bdf714e351256d6930dab6ba77054398d1053a8e2e038148caae41ccca1139c
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Laser Axe in the acting player's hands
+    action: Swap with Laser Axe
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Swap
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

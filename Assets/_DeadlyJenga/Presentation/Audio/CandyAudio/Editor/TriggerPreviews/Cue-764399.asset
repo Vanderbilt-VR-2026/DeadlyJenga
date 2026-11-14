@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-764399
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: d77d23f194dd1e64bb580918f60d5325, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 764399
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Swap
+    atlasFile: atlas.png
+    atlasSha256: 2c23a813d3e0d688a5906927f4f02968ecd65618bae71a40ec113178580a56ce
+    gifFile: preview.gif
+    gifSha256: 36ef759be56f33118c6c1a2492335531ee3bd0bdca0a6171afef990461347a2e
+    sourceSha256: 5deeaf444ba9674db048376761f4ae31ca15658b33d95977832827db4e2e1d97
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Needle Drill in the acting player's hands
+    action: Swap with Needle Drill
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Swap
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-63
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 0b2b6ae9f4d976a4687137a325ebcda8, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 63
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Weapon Transform
+    atlasFile: atlas.png
+    atlasSha256: a85c6a65436c67817671b71ca593333ebf83544416a38c6eac6fb5771dd4ea9d
+    gifFile: preview.gif
+    gifSha256: 00c4050cf09d8d5a258e73dc39289efc62c93ff070cfa6ab0e692a8c374a549f
+    sourceSha256: 6e352ed5a006b132884a94407d3dfd5b86c9747c187d26f7a245271693dcee15
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Weapon Transform
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Weapon Transform
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

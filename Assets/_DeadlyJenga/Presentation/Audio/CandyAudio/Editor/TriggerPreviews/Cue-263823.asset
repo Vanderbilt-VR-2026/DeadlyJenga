@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-263823
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: ba3a98e133d581c4fbd543c46c051c11, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 263823
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Drop
+    atlasFile: atlas.png
+    atlasSha256: 79cb3eab1fcf057526fc4d6753333352d5cf30208ae4792503b4fcef693b9ae3
+    gifFile: preview.gif
+    gifSha256: 3e0f5dfd71ee20ad3baba61fe7e42edcc1189f52dd5da237532caf38c0a952b6
+    sourceSha256: 9388ad93c8ffdb527a72c20bbc7a491e02d16b61ac498ae2824394af3e268bb8
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Dual Uzi in the acting player's hands
+    action: Drop with Dual Uzi
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Drop
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

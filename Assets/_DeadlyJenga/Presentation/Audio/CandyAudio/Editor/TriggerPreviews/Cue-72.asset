@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-72
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 2d0dd1fa8ee19bd4fabd19618d2bb222, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 72
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Weapon Plasma Impact
+    atlasFile: atlas.png
+    atlasSha256: 212cbc3c6cbccd9efbe59ce21655d6815550e1b4196592590ab33daefa57f7f6
+    gifFile: preview.gif
+    gifSha256: 6c131c51089801e34d0759844ebfdbd95339d1a2c708546f9ab49e0d74b6c9e5
+    sourceSha256: aa9089621d309fe03168dcc93c4896a722611ef56b907ca62d731bfead5f7e96
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Weapon Plasma Impact
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Weapon Plasma Impact
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

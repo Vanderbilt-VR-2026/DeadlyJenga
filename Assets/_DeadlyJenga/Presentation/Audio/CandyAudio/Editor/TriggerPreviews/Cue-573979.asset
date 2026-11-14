@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-573979
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: d185ad7d1605e9d448b1386115a05d76, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 573979
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: "Shot \xB7 primary"
+    atlasFile: atlas.png
+    atlasSha256: 4d6bcb0509aec82be788b4007d8fbf97860e6a3db85b850e8d8603e29ea4e8db
+    gifFile: preview.gif
+    gifSha256: c75e0ca60ab47fe21eb050a4a19ee6fcb5dcffcef54b38f2c54e6521872aa12f
+    sourceSha256: af80c8d88d3a5892f6045d3779a9f06b49a5bd17ffcf4c8c66e4e286a0553c26
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Murder Sword in the acting player's hands
+    action: Weapon attack / swing / discharge (inspect this weapon's caller; a melee
+      Shot is not a bullet)
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: "Observed gameplay lifecycle firing Shot \xB7 primary"
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

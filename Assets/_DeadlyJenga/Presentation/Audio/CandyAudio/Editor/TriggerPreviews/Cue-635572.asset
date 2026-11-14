@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-635572
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 4236b27383143e04cad29bd5691c2574, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 635572
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Swap
+    atlasFile: atlas.png
+    atlasSha256: 50cea18192e86ec5c4bc5c7192c4c49f4dbb3b7cf0a550d1f42e799a5e6d99d3
+    gifFile: preview.gif
+    gifSha256: 6255cec3e7f9481a8b730d4caa477a9c996457e4ddd3392ca1755484349219db
+    sourceSha256: 4dfa9e7a36d05ee3ce237b16973d75f37efbe825260bba8360857f7442405cd2
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Barbed Bat in the acting player's hands
+    action: Swap with Barbed Bat
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Swap
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

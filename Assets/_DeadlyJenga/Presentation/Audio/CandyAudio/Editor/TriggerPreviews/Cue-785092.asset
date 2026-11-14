@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-785092
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: d520cf0792de8594a91c8a6ca7eb128f, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 785092
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.5
+    title: "Stock Pistol Shot \xB7 primary"
+    atlasFile: atlas.png
+    atlasSha256: 0aa56ec3a58d36389a2186966179cc6853cb517bfce08f8fbfc2c2911a5ce463
+    gifFile: preview.gif
+    gifSha256: 9dc0cda1a073e0b3001e65824d2e10f8b8ca9ece3f58abc107d1f68afbb40c8e
+    sourceSha256: f59f1b34aaa9c752034f2ca534b9530427a7415f3e08d514af474b532b63df29
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Stock Pistol held by survivor
+    action: Primary discharge with muzzle flash, projectile release, and recoil kick
+    target: Forward aim path
+    listenerRole: Attacker firing weapon (first-person / over-shoulder)
+    triggerEvidence: Observed EquipmentAction.Shot frame for StockPistol consumed
+      by CandyWeaponFeedback firing cue 785092
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

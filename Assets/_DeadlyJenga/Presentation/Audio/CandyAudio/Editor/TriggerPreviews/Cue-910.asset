@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-910
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 47fe640a814e9184cbd805a0d7d8acfb, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 910
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: seal
+    atlasFile: atlas.png
+    atlasSha256: c3b9ca597fa7adda5679a080a7f90a29cae944d9515081d2913d0c1ee17b795d
+    gifFile: preview.gif
+    gifSha256: 0101f5fc09c19790bc621528d14f8ac678e7ce11e38963d7d73be2114f81a284
+    sourceSha256: 99cc01d12bc12a08dfc059fef80e38ba5693015ded154cacfb4e8101098914e5
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife seal companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing seal
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

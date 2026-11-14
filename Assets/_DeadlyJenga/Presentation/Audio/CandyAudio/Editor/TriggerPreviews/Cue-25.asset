@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-25
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 4d06b2e54257f6e46b56a6c2bba14e0a, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 25
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.67
+    title: Ui Click
+    atlasFile: atlas.png
+    atlasSha256: 887b381016fafeac633d9bfe7275d09a3dc3a6d3556d6c51cc0c68621f056e86
+    gifFile: preview.gif
+    gifSha256: 13ecd1b42e5b30c1fe60dc6e60f4e3f8091048f4801c25bcb2f6a2ad3024ad3d
+    sourceSha256: b9e0aabe3c436ffc889931290935c2accb42b2a23731e489e47789b2fd08c423
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Home.unity
+    map: Marina Island Lobby
+    mode: lobby
+    captureKind: staged-gameplay
+    source: Marina lobby interactive terminal button
+    action: Player pointer presses terminal button, button depresses and highlights
+      with visual state update
+    target: Marina lobby terminal control surface
+    listenerRole: Local UI user interacting with terminal
+    triggerEvidence: Observed IslandLobby terminal button activation firing CandySound.UiClick
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

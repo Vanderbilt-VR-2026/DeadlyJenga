@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-901
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 5029b35dc8a09b542bababa65a463095, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 901
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: fox
+    atlasFile: atlas.png
+    atlasSha256: 30eb550b55b8a8d725e9c356292f9709f137f2789c3ea29b5cc4518033264c12
+    gifFile: preview.gif
+    gifSha256: 25be38982f28761ddf9abc030ba4de8e4f655ced0080c9ba4729739d3c951d16
+    sourceSha256: 3ef24b721a277f33d0e291a34150d6bc87cbb6257e21870cf8f8c3f9ee1a8e3e
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife fox companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing fox
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

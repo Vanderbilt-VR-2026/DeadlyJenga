@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-88
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 326ef7c2abfd8974f966e32236a3bc61, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 88
+    frameCount: 30
+    columns: 8
+    rows: 4
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 1
+    title: Kraken Rise
+    atlasFile: atlas.png
+    atlasSha256: 8f37075cb55a1bacbbdd9f555c937283472cc7eb4360a4b1acbdafac4434830c
+    gifFile: preview.gif
+    gifSha256: df8eb41ea79b1bdfbea47b1e628243b8f88b068e2e576cdcd7fcf2d3fbd9660c
+    sourceSha256: 58de2a8de43507f398c0e019d3dba8aef5e529a518161a79f83893ca22d1664e
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Kraken head and body emerging from sea
+    action: Kraken rises from below the waterline with displaced water
+    target: Ocean waterline boundary surrounding tower
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed KrakenPresentation.Sounds rise >= 0.05 event firing
+      CandySound.KrakenRise
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

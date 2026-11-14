@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-117
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: bcb34ecb04d194743aa80f2ab128887d, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 117
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Nearby Death
+    atlasFile: atlas.png
+    atlasSha256: 24eb278379d12ad1c8d712242dc01048733e2ac5e4a7b719df7a571edaf2677f
+    gifFile: preview.gif
+    gifSha256: 9081fd38fb3c3f2eb55cefbc2804dd5bb87b501beae9d260ed49b20df8cdb340
+    sourceSha256: c81435fff1540325e8f8e3c2923b137e269c9ec0bc2a854e97fb0765e740a0fb
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Nearby Death
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Nearby Death
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

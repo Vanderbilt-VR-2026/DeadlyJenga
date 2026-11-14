@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-360110
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a40fa546573a1a74d94652cbde92a5f6, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 360110
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Draw
+    atlasFile: atlas.png
+    atlasSha256: f4b4f8c8a325a4e3b3179f140f24a13fed16493290e5345ce375a685472ca7d4
+    gifFile: preview.gif
+    gifSha256: 93165ea522504094070362c0ddc8b9ea22f9096fdfbe97fa1a7bc7bf6bec86de
+    sourceSha256: 53d22ac503a3b2ec294caac3526f0ec2ac98f28ec72f6cbfbf1cf996d111782d
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wrist Laser in the acting player's hands
+    action: Draw with Wrist Laser
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Draw
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

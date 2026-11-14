@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-17
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 8081498baef84954a889aefb7717c3fb, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 17
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Climb Release
+    atlasFile: atlas.png
+    atlasSha256: 0083224aea1570d8f8decd5b2fddb5f704bf6479a35477aafda5d9d060d20e93
+    gifFile: preview.gif
+    gifSha256: 5c5732746cdb6f0f6781d8c487052777b555460eae8de4a695a7742a79cceee7
+    sourceSha256: c7aff0d54083b9142eb9f82b46d9c7fc288523d57b7479efed099c64847b30e0
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The moving player's feet, hands or exertion
+    action: Climb Release
+    target: The contacted ground or climbable ledge; show its material
+    listenerRole: That player for local breathing; nearby listener for movement contacts
+    triggerEvidence: Observed gameplay lifecycle firing Climb Release
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

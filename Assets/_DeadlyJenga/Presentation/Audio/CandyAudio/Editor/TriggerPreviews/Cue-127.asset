@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-127
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 157bad1c45c72384d9a04eb9fb1bd817, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 127
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Earth Jolt
+    atlasFile: atlas.png
+    atlasSha256: a5910267800563fc4b33b75e9ac66099f3c01dd71f345241b7c2a10d8add13b0
+    gifFile: preview.gif
+    gifSha256: fc0a0e2ee603e71f0624e162cacbe2b5f58e2e910d812dca1177e00d167066bc
+    sourceSha256: cdbd411055b5bac129345872e70d7ef5c46066f0802d4aa5fe2c7d1476b834f8
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Earth Jolt
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Earth Jolt
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

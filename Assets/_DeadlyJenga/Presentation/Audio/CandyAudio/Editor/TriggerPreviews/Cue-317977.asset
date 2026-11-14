@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-317977
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 1236bfac590a74a46a8141ca600312ff, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 317977
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Pickup
+    atlasFile: atlas.png
+    atlasSha256: 5d9244548d2bf6ca02fffc9f98eb738e41bbda5efe523b66d70afe98e0682c3d
+    gifFile: preview.gif
+    gifSha256: 94d006b21b1ade3a0c256a995999d7b29cf09177498f9b834d2f158877e5a170
+    sourceSha256: c1936f0f14e969ada22c6ab14e1b9d851e24ace13908e545b05ada7877b69cba
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Laser Claws in the acting player's hands
+    action: Pickup with Laser Claws
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Pickup
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

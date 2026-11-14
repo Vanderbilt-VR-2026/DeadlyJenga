@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-85
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 9bfb08822e442384bb45966b7cd5c706, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 85
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Suit Ignition
+    atlasFile: atlas.png
+    atlasSha256: 862164f9d71d70ef55b9a14e55740d973cb7b1b3e115976d46729e1768ac91ed
+    gifFile: preview.gif
+    gifSha256: 4abe074df59981b6e1cdf86bbc540fc69d43680fc2130d0b8b032ccae15978a4
+    sourceSha256: 32399740c60e5d935a64c554e512c2d7e6a20f2ba15c22c9ea0d28a2b64487d9
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Suit Ignition
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Suit Ignition
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

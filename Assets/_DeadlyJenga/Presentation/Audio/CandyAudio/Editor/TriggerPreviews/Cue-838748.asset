@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-838748
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: f7a8353a0ee10ec44bb1dbe3c8608a01, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 838748
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Holster
+    atlasFile: atlas.png
+    atlasSha256: d4f02075d93dbd75c9b07898d0fe50d8efcfcc1fa45d173839ac201733bfe13f
+    gifFile: preview.gif
+    gifSha256: 26fffea917b12dffcae1616b2069fed51afb2fa4112e84797ffbdc33a9c9f79f
+    sourceSha256: 3f396f0a47ba5b34eaaee5002e1f0a3678c2a141c4e9ce1f4f44c476223ecb14
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Flaming Marshmallow in the acting player's hands
+    action: Holster with Flaming Marshmallow
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Holster
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

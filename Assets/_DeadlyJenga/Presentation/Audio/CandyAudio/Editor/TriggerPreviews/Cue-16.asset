@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-16
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: b40f6e4a34c560b4db32c9b5fcd9caab, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 16
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.67
+    title: Climb Plant
+    atlasFile: atlas.png
+    atlasSha256: 0c1c0448d47e151d3f7f8ace7682c0417182b94ddcd8642dd4a29c3387f3132e
+    gifFile: preview.gif
+    gifSha256: 0ade75aa2af6a875ac114143810b62a893a18e792431b0bcd710d4c4557d0753
+    sourceSha256: aa64e4c104ea15c386ea518e636d6be82a840fa314d89bcfbbe70cd9be4496b1
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Survivor hands and grip contact
+    action: Hands reach up and plant firm grip on climbable block ledge, pulling
+      body upward
+    target: Climbable block upper ledge edge
+    listenerRole: Climbing survivor hearing grip contact
+    triggerEvidence: Observed CandyPlayerAudio grip settling into contact firing
+      CandySound.ClimbPlant
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

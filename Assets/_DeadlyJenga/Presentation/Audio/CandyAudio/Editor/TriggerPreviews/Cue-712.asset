@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-712
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: fd243794a7824c2439ef24618030247c, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 712
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Marina gull calls
+    atlasFile: atlas.png
+    atlasSha256: ea0493cffb2f7d95872ec70eb51c91b2eb8783541878c733607189571bccd428
+    gifFile: preview.gif
+    gifSha256: 579f35ee5e1c02324640c5736bf36096166eb9081683b0d85c6a7d592e408a57
+    sourceSha256: 4c443f4b8b2e36e06cc98f214b337026e8227909c7620225db11eed9deece237
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The actual environment or menu where this bed is active
+    action: Sustained environmental/menu state
+    target: none (ambient bed)
+    listenerRole: Local listener in that environment
+    triggerEvidence: Observed gameplay lifecycle firing Marina gull calls
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

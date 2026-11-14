@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-906
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: e9877a9a7fb2f694eb1e8b2171bc664b, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 906
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: crab
+    atlasFile: atlas.png
+    atlasSha256: cd9caf4ac5fce96f5aeb05b210e271066bbcbe0a9a3058e841563ebd3d15427a
+    gifFile: preview.gif
+    gifSha256: c141ff18b1bd1a5882fd00af0ee9dd9fb67f706f1859b6c108757bc4080acfc9
+    sourceSha256: 8a306d69e48ca531b593da298a8e09680f9e4c050fb2ae8d51d7d9d3449b2bc3
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Wildlife crab companion
+    action: call
+    target: Environment / local listener
+    listenerRole: Local player camera / ear
+    triggerEvidence: Observed gameplay lifecycle firing crab
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

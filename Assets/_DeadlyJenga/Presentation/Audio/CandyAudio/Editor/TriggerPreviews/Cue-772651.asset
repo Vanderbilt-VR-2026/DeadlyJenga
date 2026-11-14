@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-772651
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 4df82dd5ac4d6f741b14253dee6980a3, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 772651
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Draw
+    atlasFile: atlas.png
+    atlasSha256: 17db34fcfd04ab7dc7fd239b67918c47858b8101474af435efa7e214507a030b
+    gifFile: preview.gif
+    gifSha256: 4f016861dde8b34b68674480f07c8f29db1d7be57e26f8f5f88b8a0e9d15c2ff
+    sourceSha256: e022756ccf5b6ae859bbb3f71f4458ecd33130b711ce2cf4f7c8067beeec486d
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Flaming Marshmallow in the acting player's hands
+    action: Draw with Flaming Marshmallow
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Draw
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

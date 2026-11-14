@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-642197
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 5058bb5576a748445a70d29812683205, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 642197
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Impact
+    atlasFile: atlas.png
+    atlasSha256: d714a6da7cf81f464bd66fd57a10258cfff21e1cbc6d0c8be507427c6430a1e2
+    gifFile: preview.gif
+    gifSha256: e93c406477134627e7585719887863b18038e49224f740cd94ddd2ccdebe739a
+    sourceSha256: d38b8e08b2ffd506ede70679b568cc0b6ad4a17f15b28df7696aec876b06fe7d
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Saw Staff in the acting player's hands
+    action: Impact with Saw Staff
+    target: The exact victim, block or surface contacted by this weapon/projectile
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Impact
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

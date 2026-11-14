@@ -1,0 +1,45 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-95
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 407b0756d7641e64e84c81bb02f18b3e, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 95
+    frameCount: 30
+    columns: 8
+    rows: 4
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 1.2
+    title: Kraken Slam
+    atlasFile: atlas.png
+    atlasSha256: d940093febac866bf43cec3355b7e90088459c5095fe43091a8a49ec3bf852a0
+    gifFile: preview.gif
+    gifSha256: 11bff9364bd511d6d8224ac10a04a18acd83f31a8acc9a22ae258278916fb698
+    sourceSha256: b8df0670e47c547b9dfc134e2f254c4415cf4733f910dc1fa2e6fc9a369e2838
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Kraken tentacle arm sweeping downward
+    action: Tentacle smacks tower blocks causing visible impact and impulse
+    target: Tower candy blocks contacted by the tentacle
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed KrakenPresentation.Sounds arm in Slamming phase with
+      block collision overlap firing CandySound.KrakenSlam
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

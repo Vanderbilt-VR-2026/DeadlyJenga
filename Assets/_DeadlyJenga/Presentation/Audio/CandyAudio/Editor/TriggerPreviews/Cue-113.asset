@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-113
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a745fc9fcb71d2a4c96a89e8cf6d32f1, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 113
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.67
+    title: Personal Shot
+    atlasFile: atlas.png
+    atlasSha256: 62bd020d4e96cd51ad136e76b85017767d796580ad6a4542ea91781843a9503e
+    gifFile: preview.gif
+    gifSha256: a7ea7d1af667465d8b101d2f7e93360ae4ec215179108040ec34432c24442782
+    sourceSha256: f527dff38d51b313c350e5e2ac34e6065949d3f6df01a363393f729c48aca455
+    sourceCommit: d3bd9450422c1e091a984bae667936ac9de5c902
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Incoming projectile striking victim
+    action: Projectile damages victim, triggering red screen vignette flash and camera
+      impulse punch
+    target: Victim survivor body (first-person POV)
+    listenerRole: Victim receiving personal projectile damage feedback
+    triggerEvidence: Observed MatchModeRuntime.SoundSuite damage routing at victim
+      impact point firing CandySound.PersonalShot
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

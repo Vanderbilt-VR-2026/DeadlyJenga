@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-64
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 297c16a05339aef47be7d9cb840591c6, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 64
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Weapon Draw
+    atlasFile: atlas.png
+    atlasSha256: 349d729282f47fe34d38ce0587aef515e84765f733f859759c28b60d70aa1635
+    gifFile: preview.gif
+    gifSha256: 3f4ea2d2a2c47af8f1e12924cb2d6f13516832d4ebd4fa9c17be2eb36cc9d152
+    sourceSha256: 7367233fa529820b1adc3aed0578ce0633e50f3e543c6274b657d55bd4fe4c84
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Weapon Draw
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Weapon Draw
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

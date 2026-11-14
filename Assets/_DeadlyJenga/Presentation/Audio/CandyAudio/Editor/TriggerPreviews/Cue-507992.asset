@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-507992
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: d0f770291cef90a448e52aabec37445b, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 507992
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Pickup
+    atlasFile: atlas.png
+    atlasSha256: 929ea6516c8eade424e985895c3df2c7e3b80b2a4830ce52f94b868e4aab2c21
+    gifFile: preview.gif
+    gifSha256: f9eb383068140487fd244d442d9d2c57a6b0930d6d8ad59d9ac715ba34252592
+    sourceSha256: fd0a4f24e650c9996d0fccd9a91ddb14bfd1e0749a3da842eded4b11b573be9d
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Dagger in the acting player's hands
+    action: Pickup with Dagger
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Pickup
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

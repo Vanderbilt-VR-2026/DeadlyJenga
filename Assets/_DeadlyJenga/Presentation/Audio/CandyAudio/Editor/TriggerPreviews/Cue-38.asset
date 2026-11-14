@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-38
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: bd96fa09261cbc949bdfe7741291f8e2, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 38
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Disaster Horn
+    atlasFile: atlas.png
+    atlasSha256: 81d9451ee1c9f9d96d1901c10cd3182b41980db8577ff8c54df19e31c580760f
+    gifFile: preview.gif
+    gifSha256: 7e1978a24e9bb9c1323e11fcf90f37c4f04ae4a751c421bb4a20ce368ede61f9
+    sourceSha256: 9fc62195bc23726af94f2f282a74a590deac9c75005a2cf657394d10101ff45e
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Disaster Horn
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Disaster Horn
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

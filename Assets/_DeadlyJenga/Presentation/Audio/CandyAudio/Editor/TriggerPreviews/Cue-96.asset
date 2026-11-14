@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-96
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 9ca5630ca741be14db18c91ec8a8a603, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 96
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Submerge
+    atlasFile: atlas.png
+    atlasSha256: e02d5f9f5815a93fa90712381cca901b7770c814c21fd689c25080fdb3816716
+    gifFile: preview.gif
+    gifSha256: 2a15d5be99ddda9596fb845373ca92b7bb530fe31c74203041ade615d36b4ec0
+    sourceSha256: 0cbf5152704f6a5e5fabd710c65d346bb708884b5b2bc1ec039e696e86c5475b
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: One tentacle sinks below the waterline
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Submerge
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
