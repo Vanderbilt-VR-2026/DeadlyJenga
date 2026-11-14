@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-131
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: a6901524f42f9954a8ce32cc9dd264af, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 131
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Planet Impact
+    atlasFile: atlas.png
+    atlasSha256: d03a692abe860d8b082cae98a683dd118396608b6193647d707dd572838717e9
+    gifFile: preview.gif
+    gifSha256: 05fbb45996e8c5650519ae61939f22075d238dda6de710d51eaf83c42130cf4e
+    sourceSha256: 8dc0fc9f09d22d835e6e85635d0ee5cf37d6907cbb71742394f4f7fd78dc920c
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Planet Impact
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Planet Impact
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

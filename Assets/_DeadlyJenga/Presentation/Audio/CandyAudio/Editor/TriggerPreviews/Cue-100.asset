@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-100
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: c16d19a5d89b9cb43b175383ecac629a, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 100
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Wave Roar
+    atlasFile: atlas.png
+    atlasSha256: a5e1f1a39d6483a7c7cbfbcafa47e7ec61b5f1a99d3656805172ddf444217cc9
+    gifFile: preview.gif
+    gifSha256: b5a15b82c00fbcaeab9a2ed09c87d342715e28a13e6f80bdff17e1202e6ad7d8
+    sourceSha256: 0eb71b9f4f5aeab4be890955330a4307717529e38ea112e55dd2b321a37adfe8
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Wave Roar
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Wave Roar
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

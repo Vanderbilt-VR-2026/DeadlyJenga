@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-128
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: bcd61d76cbb524647b43d75a91839eb4, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 128
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Meteor Flyby
+    atlasFile: atlas.png
+    atlasSha256: 8ad4a8cf8349a7f6156ee0fd5358fbe4ac3dde4e0f6a10e0b84ac0b056b49b97
+    gifFile: preview.gif
+    gifSha256: 9db6dc26d89d000e3b6d4d8cd34397a28302e293f5718dea9ea7e819ba34fa55
+    sourceSha256: 283ba80ae4c9471406f4a5311d72313d29e0408b65da9e72da3424d805da7d24
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Meteor Flyby
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Meteor Flyby
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

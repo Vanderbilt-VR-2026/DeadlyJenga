@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-47
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 9cbe67c3f15760f499d70626ba58fd88, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 47
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Fire Crackle
+    atlasFile: atlas.png
+    atlasSha256: 856fe5f2ff3410473ade01c8e7a2e6a7388d2f5ff3921d83de4434be9e96357b
+    gifFile: preview.gif
+    gifSha256: b5b9d5e5de871c458f39aa4827bc8a8d89173914837b82f38de6da600011f811
+    sourceSha256: 8c37fab63bfe7b33bdcddd757ecafacdc8033b68f8c4ed2def869cfaa1b82bab
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Fire Crackle
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Fire Crackle
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

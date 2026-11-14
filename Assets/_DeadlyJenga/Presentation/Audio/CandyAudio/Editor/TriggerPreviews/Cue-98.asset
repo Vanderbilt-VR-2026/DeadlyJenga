@@ -1,0 +1,46 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-98
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 87d9be1fec54cb441bec892d29675567, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 98
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Wave Submerged
+    atlasFile: atlas.png
+    atlasSha256: e3511f65377028990d3d757f0d96bfd26e5eda0e4425f7924560ef467be28bdf
+    gifFile: preview.gif
+    gifSha256: 78327ec5fd7633a9129d64bdb752c12266d0b402210bfea627df4ba46cbdeb2f
+    sourceSha256: 72597bd1cdd40548dabde20da63d9e57d7864d2ef7d210140ad405a5afc5d97d
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Resolve the sound-producing object from the linked caller; do not infer
+      it from the filename.
+    action: Wave Submerged
+    target: Resolve the affected object, surface or player; use 'none' only when
+      there is no target.
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed disaster gameplay lifecycle firing Wave Submerged
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

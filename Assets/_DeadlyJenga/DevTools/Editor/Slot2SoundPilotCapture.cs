@@ -28,12 +28,19 @@ namespace DeadlyJenga.DevTools.Editor
 
         static Slot2SoundPilotCapture()
         {
+            if (SessionState.GetBool(Key, false) && EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
             EditorApplication.playModeStateChanged += state =>
             {
                 if (!SessionState.GetBool(Key, false)) return;
                 if (state == PlayModeStateChange.EnteredPlayMode)
                 {
                     Application.runInBackground = true;
+                    EditorApplication.update -= StartRoutineWhenReady;
                     EditorApplication.update += StartRoutineWhenReady;
                 }
                 if (state == PlayModeStateChange.EnteredEditMode)
@@ -57,8 +64,41 @@ namespace DeadlyJenga.DevTools.Editor
                         File.AppendAllText(Report, "ALL PHASES COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
                         Debug.Log("Slot 2 Sound Pilot Captures Complete! See: " + Report);
                     }
+                    else if (phase == 10)
+                    {
+                        SessionState.SetBool(Key, false);
+                        SessionState.SetInt(Key + ".Phase", 0);
+                        File.AppendAllText(Report, "BATCH 1 DISASTERS COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
+                        Debug.Log("Slot 2 Batch 1 Disasters Captures Complete! See: " + Report);
+                    }
                 }
             };
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 1 Disasters (42 Cues)")]
+        public static void RunBatch1Disasters()
+        {
+            Directory.CreateDirectory(RawRoot);
+            File.AppendAllText(Report, "Starting Batch 1 Disasters Captures (42 cues) · " + DateTime.UtcNow.ToString("O") + "\n");
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 10);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            if (EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                EditorApplication.EnterPlaymode();
+            }
         }
 
         [MenuItem("Tools/Candy Audio/Pilot Captures/Run 10 Pilot Captures")]
@@ -107,6 +147,13 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!home) return;
                 EditorApplication.update -= StartRoutineWhenReady;
                 home.StartCoroutine(Guard(RunHomeSceneCaptures(home)));
+            }
+            else if (phase == 10)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch1DisastersCaptures(session)));
             }
         }
 
@@ -482,6 +529,445 @@ namespace DeadlyJenga.DevTools.Editor
             }
             Object.DestroyImmediate(cam.gameObject);
             Log("Completed Cue 25 (24 frames).");
+        }
+
+        static IEnumerator CaptureCue(Camera camera, int cueId, string name, int frameCount = 24, Action<int> onFrame = null)
+        {
+            Log($"Starting Cue {cueId}: {name}...");
+            string dir = Path.Combine(RawRoot, cueId.ToString());
+            Directory.CreateDirectory(dir);
+            for (int f = 0; f < frameCount; f++)
+            {
+                onFrame?.Invoke(f);
+                CaptureFrame(camera, Path.Combine(dir, $"frame_{f:D4}.png"));
+                yield return new WaitForSecondsRealtime(1f / 12f);
+            }
+            Log($"Completed Cue {cueId}: {name} ({frameCount} frames).");
+        }
+
+        static GameObject GetPrefab(string name)
+        {
+            var p = Array.Find(DemoDisasters.Prefabs, x => x && x.name == name);
+            if (!p) throw new InvalidOperationException("Disaster prefab not found: " + name);
+            return p;
+        }
+
+        static void StartDisaster(CastlePlaySession session, string name, float duration = 60f)
+        {
+            DemoDisasters.StopAll(session);
+            var prefab = GetPrefab(name);
+            var pars = DemoDisasters.Parameters(prefab);
+            for (int i = 0; i < pars.Count; i++)
+            {
+                if (pars[i].id == "warning") DemoDisasters.SetValue(session, prefab, i, 0);
+                if (pars[i].id == "duration") DemoDisasters.SetValue(session, prefab, i, duration);
+            }
+            DemoDisasters.Request(session, prefab);
+        }
+
+        static IEnumerator RunBatch1DisastersCaptures(CastlePlaySession session)
+        {
+            Log("Game.unity session loaded for Batch 1 Disasters. Setting up match rules...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds = 0;
+            rules.healthEnabled = true;
+            rules.deathEnabled = false;
+            rules.fallDamage = false;
+            rules.island = IslandRule.Walkable;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SetRole(true);
+            session.SetMenu(false);
+            session.Player.InputSuspended = true;
+            yield return new WaitForSecondsRealtime(1f);
+
+            var cam = new GameObject("Disaster Capture Camera").AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+            cam.rect = new Rect(0, 0, 1, 1);
+            cam.fieldOfView = 55;
+
+            var world = Services.World;
+            var player = session.Survivor();
+            float waterY = world.WaterHeight(world.Center);
+
+            var topBlock = world.Blocks.Where(b => b && b.GetComponent<Collider>())
+                .Select(b => b.GetComponent<Collider>().bounds)
+                .OrderByDescending(b => b.max.y).First();
+            Vector3 standPos = new Vector3(topBlock.center.x, topBlock.max.y + 0.05f, topBlock.center.z);
+            player.Place(standPos, Quaternion.identity);
+
+            // ========================================================
+            // SECTION A: KRAKEN REMAINING (8 CUES: 89, 90, 91, 92, 93, 94, 96, 97)
+            // ========================================================
+            Log("--- Commencing Kraken captures ---");
+            StartDisaster(session, "Kraken", 90f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            KrakenHazard kraken = null;
+            float deadline = Time.realtimeSinceStartup + 10f;
+            while (Time.realtimeSinceStartup < deadline && !(kraken = Object.FindFirstObjectByType<KrakenHazard>()))
+                yield return null;
+
+            var headField = typeof(KrakenHazard).GetField("head", BindingFlags.Instance | BindingFlags.NonPublic);
+            var headDirField = typeof(KrakenHazard).GetField("headDir", BindingFlags.Instance | BindingFlags.NonPublic);
+            Vector3 kHead = headField != null ? (Vector3)headField.GetValue(kraken) : world.Center + Vector3.forward * 40f + Vector3.up * waterY;
+            Vector3 kDir = headDirField != null ? (Vector3)headDirField.GetValue(kraken) : Vector3.forward;
+
+            // 89: Kraken Idle
+            cam.transform.position = kHead - kDir * 26f + Vector3.up * 7f;
+            cam.transform.LookAt(kHead + Vector3.up * 4f);
+            yield return CaptureCue(cam, 89, "Kraken Idle");
+
+            // 90: Kraken Surface
+            cam.transform.position = kHead - kDir * 18f + Vector3.up * 3f;
+            cam.transform.LookAt(kHead + kDir * 5f + Vector3.up * 1f);
+            yield return CaptureCue(cam, 90, "Kraken Surface");
+
+            // 91: Kraken Reach
+            cam.transform.position = world.Center + Vector3.up * (waterY + 10f) + kDir * 15f + Vector3.right * 15f;
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 8f));
+            yield return CaptureCue(cam, 91, "Kraken Reach");
+
+            // 92: Kraken Grip
+            var targetBlock = world.Blocks.FirstOrDefault(b => b != null && b.position.y > waterY + 4f && b.position.y < waterY + 12f);
+            Vector3 gripPos = targetBlock ? targetBlock.position : world.Center + Vector3.up * (waterY + 6f);
+            cam.transform.position = gripPos + new Vector3(8f, 4f, 8f);
+            cam.transform.LookAt(gripPos);
+            yield return CaptureCue(cam, 92, "Kraken Grip");
+
+            // 93: Kraken Drag
+            cam.transform.position = gripPos + new Vector3(10f, 5f, 5f);
+            cam.transform.LookAt(gripPos);
+            yield return CaptureCue(cam, 93, "Kraken Drag");
+
+            // 94: Kraken Windup
+            cam.transform.position = gripPos + new Vector3(12f, 8f, 10f);
+            cam.transform.LookAt(gripPos + Vector3.up * 4f);
+            yield return CaptureCue(cam, 94, "Kraken Windup");
+
+            // 96: Kraken Submerge
+            cam.transform.position = kHead - kDir * 15f + Vector3.up * 2f;
+            cam.transform.LookAt(kHead + Vector3.up * 0.5f);
+            yield return CaptureCue(cam, 96, "Kraken Submerge");
+
+            // 97: Kraken Retreat
+            DemoDisasters.StopAll(session);
+            cam.transform.position = kHead - kDir * 28f + Vector3.up * 8f;
+            cam.transform.LookAt(kHead + Vector3.up * 2f);
+            yield return CaptureCue(cam, 97, "Kraken Retreat");
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION B: TORNADO (4 CUES: 45, 101, 132, 133)
+            // ========================================================
+            Log("--- Commencing Tornado captures ---");
+            StartDisaster(session, "Tornado", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            var tornado = Object.FindFirstObjectByType<TornadoHazard>();
+            Vector3 tPos = tornado ? tornado.transform.position : world.Center + Vector3.forward * 12f;
+
+            // 45: CycloneWind
+            cam.transform.position = world.Center + Vector3.back * 25f + Vector3.up * 10f;
+            cam.transform.LookAt(world.Center + Vector3.up * 12f);
+            yield return CaptureCue(cam, 45, "CycloneWind");
+
+            // 101: CycloneDebris
+            cam.transform.position = tPos + Vector3.right * 10f + Vector3.up * 3f;
+            cam.transform.LookAt(tPos + Vector3.up * 4f);
+            yield return CaptureCue(cam, 101, "CycloneDebris");
+
+            // 132: TornadoPass
+            cam.transform.position = standPos + Vector3.right * 6f + Vector3.up * 1.5f;
+            cam.transform.LookAt(standPos + Vector3.forward * 8f);
+            yield return CaptureCue(cam, 132, "TornadoPass");
+
+            // 133: TornadoPressure
+            cam.transform.position = tPos + Vector3.forward * 2f + Vector3.up * 4f;
+            cam.transform.LookAt(tPos + Vector3.up * 5f);
+            yield return CaptureCue(cam, 133, "TornadoPressure");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION C: TSUNAMI (6 CUES: 40, 41, 42, 98, 99, 100)
+            // ========================================================
+            Log("--- Commencing Tsunami captures ---");
+            StartDisaster(session, "Tsunami", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 100: WaveRoar
+            cam.transform.position = standPos + Vector3.up * 3f;
+            cam.transform.LookAt(world.Center + Vector3.forward * 50f + Vector3.up * 10f);
+            yield return CaptureCue(cam, 100, "WaveRoar");
+
+            // 40: WaveImpact
+            Vector3 towerBase = world.Center + Vector3.up * (waterY + 2f);
+            cam.transform.position = towerBase + Vector3.right * 15f + Vector3.up * 5f;
+            cam.transform.LookAt(towerBase);
+            yield return CaptureCue(cam, 40, "WaveImpact");
+
+            // 41: WaveSpray
+            cam.transform.position = towerBase + Vector3.forward * 12f + Vector3.up * 6f;
+            cam.transform.LookAt(towerBase + Vector3.up * 2f);
+            yield return CaptureCue(cam, 41, "WaveSpray");
+
+            // 98: WaveSubmerged
+            cam.transform.position = world.Center + Vector3.up * (waterY - 1f) + Vector3.forward * 5f;
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY - 0.5f));
+            yield return CaptureCue(cam, 98, "WaveSubmerged");
+
+            // 99: WaveSurfaceBreath
+            cam.transform.position = world.Center + Vector3.up * (waterY + 0.3f) + Vector3.forward * 5f;
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 1.5f));
+            yield return CaptureCue(cam, 99, "WaveSurfaceBreath");
+
+            // 42: PuddleDrain
+            cam.transform.position = towerBase + Vector3.forward * 8f + Vector3.up * 3f;
+            cam.transform.LookAt(towerBase - Vector3.up * 0.5f);
+            yield return CaptureCue(cam, 42, "PuddleDrain");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION D: METEORS & PLANET (5 CUES: 128, 49, 129, 130, 131)
+            // ========================================================
+            Log("--- Commencing Meteors captures ---");
+            StartDisaster(session, "MeteorShower", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 128: MeteorFlyby
+            cam.transform.position = standPos + Vector3.up * 2f;
+            cam.transform.LookAt(standPos + Vector3.up * 25f + Vector3.forward * 10f);
+            yield return CaptureCue(cam, 128, "MeteorFlyby");
+
+            // 49: MeteorImpact
+            cam.transform.position = world.Center + Vector3.back * 16f + Vector3.up * (waterY + 6f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 2f));
+            yield return CaptureCue(cam, 49, "MeteorImpact");
+
+            // 129: MeteorWaterImpact
+            Vector3 oceanSpot = world.Center + Vector3.forward * (world.Radius + 15f) + Vector3.up * waterY;
+            cam.transform.position = oceanSpot + Vector3.back * 20f + Vector3.up * 8f;
+            cam.transform.LookAt(oceanSpot);
+            yield return CaptureCue(cam, 129, "MeteorWaterImpact");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            Log("--- Commencing Planet captures ---");
+            StartDisaster(session, "PlanetKillerMeteor", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 130: PlanetApproach
+            cam.transform.position = standPos + Vector3.up * 2f;
+            cam.transform.LookAt(standPos + Vector3.up * 40f + Vector3.forward * 20f);
+            yield return CaptureCue(cam, 130, "PlanetApproach");
+
+            // 131: PlanetImpact
+            cam.transform.position = world.Center + Vector3.back * 30f + Vector3.up * 15f;
+            cam.transform.LookAt(world.Center + Vector3.up * 5f);
+            yield return CaptureCue(cam, 131, "PlanetImpact");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION E: ACID RAIN (3 CUES: 43, 125, 44)
+            // ========================================================
+            Log("--- Commencing Acid Rain captures ---");
+            StartDisaster(session, "AcidRain", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 43: AcidSizzle
+            cam.transform.position = standPos + Vector3.back * 4f + Vector3.up * 3f;
+            cam.transform.LookAt(standPos);
+            yield return CaptureCue(cam, 43, "AcidSizzle");
+
+            // 125: AcidRoofRain
+            cam.transform.position = world.Center + Vector3.up * (waterY + 3f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 5f) + Vector3.forward * 2f);
+            yield return CaptureCue(cam, 125, "AcidRoofRain");
+
+            // 44: AcidBurn
+            cam.transform.position = standPos + Vector3.forward * 2f + Vector3.up * 1.5f;
+            cam.transform.LookAt(standPos + Vector3.up * 1.2f);
+            yield return CaptureCue(cam, 44, "AcidBurn", 24, f =>
+            {
+                if (f == 8)
+                {
+                    player.GetComponent<IDamageable>()?.Damage(5f, null);
+                    GameEvents.RaiseDamaged(player.gameObject, 5f);
+                }
+            });
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION F: EARTHQUAKE (2 CUES: 127, 46)
+            // ========================================================
+            Log("--- Commencing Earthquake captures ---");
+            StartDisaster(session, "Earthquake", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 127: EarthJolt
+            cam.transform.position = world.Center + Vector3.back * 18f + Vector3.up * 8f;
+            cam.transform.LookAt(world.Center + Vector3.up * 6f);
+            yield return CaptureCue(cam, 127, "EarthJolt");
+
+            // 46: EarthRumble
+            cam.transform.position = world.Center + Vector3.right * 16f + Vector3.up * 10f;
+            cam.transform.LookAt(world.Center + Vector3.up * 7f);
+            yield return CaptureCue(cam, 46, "EarthRumble");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION G: FIRE (1 CUE: 47)
+            // ========================================================
+            Log("--- Commencing Fire captures ---");
+            StartDisaster(session, "Fire", 60f);
+            yield return new WaitForSecondsRealtime(2.5f);
+
+            // 47: FireCrackle
+            cam.transform.position = standPos + Vector3.back * 5f + Vector3.up * 2f;
+            cam.transform.LookAt(standPos);
+            yield return CaptureCue(cam, 47, "FireCrackle");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION H: ICE (1 CUE: 102)
+            // ========================================================
+            Log("--- Commencing Ice captures ---");
+            StartDisaster(session, "Icey", 60f);
+            yield return new WaitForSecondsRealtime(2f);
+
+            // 102: FrostCreak
+            cam.transform.position = standPos + Vector3.back * 4f + Vector3.up * 2f;
+            cam.transform.LookAt(standPos);
+            yield return CaptureCue(cam, 102, "FrostCreak");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION I: LOW GRAVITY (1 CUE: 103)
+            // ========================================================
+            Log("--- Commencing Low Gravity captures ---");
+            StartDisaster(session, "AntiGravity", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 103: LowGravityHum
+            cam.transform.position = standPos + Vector3.back * 4f + Vector3.up * 2f;
+            cam.transform.LookAt(standPos + Vector3.up * 1f);
+            yield return CaptureCue(cam, 103, "LowGravityHum");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION J: POWER OUTAGE (3 CUES: 50, 104, 51)
+            // ========================================================
+            Log("--- Commencing Power Outage captures ---");
+            StartDisaster(session, "PowerOutage", 60f);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // 50: PowerDown
+            cam.transform.position = world.Center + Vector3.back * 20f + Vector3.up * 10f;
+            cam.transform.LookAt(world.Center + Vector3.up * 6f);
+            yield return CaptureCue(cam, 50, "PowerDown");
+
+            // 104: OutageHum
+            cam.transform.position = standPos + Vector3.back * 3f + Vector3.up * 1.5f;
+            cam.transform.LookAt(standPos);
+            yield return CaptureCue(cam, 104, "OutageHum");
+
+            // 51: PowerUp
+            DemoDisasters.StopAll(session);
+            cam.transform.position = world.Center + Vector3.back * 20f + Vector3.up * 10f;
+            cam.transform.LookAt(world.Center + Vector3.up * 6f);
+            yield return CaptureCue(cam, 51, "PowerUp");
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION K: REWIND (3 CUES: 134, 137, 135)
+            // ========================================================
+            Log("--- Commencing Rewind captures ---");
+            StartDisaster(session, "TimeSlip", 60f);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // 134: RewindStart
+            cam.transform.position = world.Center + Vector3.back * 18f + Vector3.up * 8f;
+            cam.transform.LookAt(world.Center + Vector3.up * 6f);
+            yield return CaptureCue(cam, 134, "RewindStart");
+
+            // 137: RewindBed
+            cam.transform.position = standPos + Vector3.back * 4f + Vector3.up * 2f;
+            cam.transform.LookAt(standPos);
+            yield return CaptureCue(cam, 137, "RewindBed");
+
+            // 135: RewindRelease
+            DemoDisasters.StopAll(session);
+            cam.transform.position = world.Center + Vector3.back * 18f + Vector3.up * 8f;
+            cam.transform.LookAt(world.Center + Vector3.up * 6f);
+            yield return CaptureCue(cam, 135, "RewindRelease");
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION L: VAMPIRE (2 CUES: 57, 136)
+            // ========================================================
+            Log("--- Commencing Vampire captures ---");
+            StartDisaster(session, "Vampire", 60f);
+            yield return new WaitForSecondsRealtime(1.5f);
+
+            // 57: VampireSizzle (Direct sun)
+            cam.transform.position = standPos + Vector3.back * 2f + Vector3.up * 1.5f;
+            cam.transform.LookAt(standPos + Vector3.up * 1f);
+            yield return CaptureCue(cam, 57, "VampireSizzle");
+
+            // 136: VampireShade (Covered shadow)
+            Vector3 shadeSpot = world.Center + Vector3.up * (waterY + 2f);
+            cam.transform.position = shadeSpot + Vector3.back * 2f + Vector3.up * 1.5f;
+            cam.transform.LookAt(shadeSpot + Vector3.up * 1f);
+            yield return CaptureCue(cam, 136, "VampireShade");
+
+            DemoDisasters.StopAll(session);
+            yield return new WaitForSecondsRealtime(1f);
+
+            // ========================================================
+            // SECTION M: WARNINGS (3 CUES: 38, 39, 126)
+            // ========================================================
+            Log("--- Commencing Warnings captures ---");
+            // 38: DisasterHorn
+            cam.transform.position = world.Center + Vector3.back * 30f + Vector3.up * 14f;
+            cam.transform.LookAt(world.Center + Vector3.up * 8f);
+            yield return CaptureCue(cam, 38, "DisasterHorn");
+
+            // 39: DisasterTension
+            cam.transform.position = standPos + Vector3.up * 2f;
+            cam.transform.LookAt(world.Center + Vector3.forward * 40f + Vector3.up * 15f);
+            yield return CaptureCue(cam, 39, "DisasterTension");
+
+            // 126: DisasterWarningTone
+            cam.transform.position = standPos + Vector3.up * 1.55f;
+            cam.transform.rotation = player.transform.rotation;
+            yield return CaptureCue(cam, 126, "DisasterWarningTone");
+
+            Object.DestroyImmediate(cam.gameObject);
+            Log("Batch 1 (Disasters) captures successfully completed!");
         }
 
         sealed class SimplePickupSource : IEquipmentPickupSource

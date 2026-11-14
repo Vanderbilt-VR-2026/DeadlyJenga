@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-97
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: b966f6c5c11b5e04284c6afa5d7017b5, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 97
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Kraken Retreat
+    atlasFile: atlas.png
+    atlasSha256: 99c97094c12561219ac813904ee0744d8ea3c570083db16483e6ab6da5b54758
+    gifFile: preview.gif
+    gifSha256: 5c6a57b3d1d18511597a259032656f681e39977ad7a748f763619d94be5aa5f9
+    sourceSha256: dae770a016c8142cf35df5231f05568712c7988a22bc8213f51a8c05beb4720a
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: The specific Kraken body or tentacle performing this phase
+    action: The entire Kraken withdraws at disaster end
+    target: Water or the exact tower/block/player the arm is acting upon
+    listenerRole: Nearby survivor hearing spatial Kraken audio
+    triggerEvidence: Observed disaster gameplay lifecycle firing Kraken Retreat
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
