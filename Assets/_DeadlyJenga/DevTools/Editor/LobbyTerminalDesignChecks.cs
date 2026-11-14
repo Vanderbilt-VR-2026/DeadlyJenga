@@ -98,6 +98,20 @@ namespace DeadlyJenga.DevTools.Editor
         static Button Button(IslandLobbyView view,string id)=>view.GetComponentsInChildren<Button>(true).Single(b=>b.name==id);
         static bool Shown(IslandLobbyView view,string id)=>Button(view,id).gameObject.activeInHierarchy;
         static string Page(IslandLobbyView view)=>(string)Field(view,"setupPage");
+        static bool InsideTerminal(RectTransform button)
+        {
+            Transform content = button;
+            while (content.parent && content.name != "Candy Arcade content") content = content.parent;
+            if (content is not RectTransform terminal) return false;
+            var bounds = terminal.rect;
+            bounds.xMin -= 1;
+            bounds.xMax += 1;
+            bounds.yMin -= 1;
+            bounds.yMax += 1;
+            var corners = new Vector3[4];
+            button.GetWorldCorners(corners);
+            return corners.All(point => bounds.Contains(terminal.InverseTransformPoint(point)));
+        }
         static void Layout(IslandLobbyView view,string page)
         {
             var choices=((IEnumerable)Field(view,"choices")).Cast<object>().Where(c=>(bool)Field(c,"candy")).ToArray();
@@ -107,10 +121,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var rect=(RectTransform)b.transform;var hit=(BoxCollider)Field(c,"collider");var text=(Text)Field(c,"label");
                 Check(Mathf.Abs(hit.size.x-rect.rect.width)<.1f&&Mathf.Abs(hit.size.y-rect.rect.height)<.1f,"Visual/hit target agree: "+page+" / "+b.name);
                 Check(text.font&&text.resizeTextMinSize>=20,"Readable font minimum: "+page+" / "+b.name);
-                var content=b.transform;
-                while(content.parent&&content.name!="Candy Arcade content")content=content.parent;
-                var corners=new Vector3[4];rect.GetWorldCorners(corners);
-                Check(corners.All(p=>{var local=content.InverseTransformPoint(p);return Mathf.Abs(local.x)<=551&&Mathf.Abs(local.y)<=441;}),"Button contained by screen: "+page+" / "+b.name);
+                Check(InsideTerminal(rect),"Button contained by screen: "+page+" / "+b.name);
             }
             var shown=choices.Select(c=>(Button)Field(c,"button")).Where(b=>b.gameObject.activeInHierarchy).ToArray();
             for(int i=0;i<shown.Length;i++)for(int j=i+1;j<shown.Length;j++)
@@ -213,8 +224,7 @@ namespace DeadlyJenga.DevTools.Editor
             {yield return null;view.Point(new Ray(hoverCard.position-hoverCard.forward,hoverCard.forward),false);}
             Check(hoverCard.localScale.x>1.3f,"Pointer hover enlarges the full mode card");
             Check(((ILobbyDetails)lobby).SelectedModeId==selectedMode,"Hover enlargement does not select a mode");
-            var focusCorners=new Vector3[4];((RectTransform)hoverCard).GetWorldCorners(focusCorners);
-            Check(focusCorners.All(p=>{var local=hoverCard.parent.InverseTransformPoint(p);return Mathf.Abs(local.x)<=550&&Mathf.Abs(local.y)<=440;}),"Enlarged mode stays within its terminal");
+            Check(InsideTerminal((RectTransform)hoverCard),"Enlarged mode stays within its terminal");
             Capture(view,"MAP + MODE","Actual-Modes-Hover.png");
             view.enabled=viewWasEnabled;
             if(SessionState.GetBool(Key+"ModesOnly",false))
