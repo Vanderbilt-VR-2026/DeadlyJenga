@@ -369,7 +369,7 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes: []
   - id: sparse-prototype-moving-shelter
-    title: "Moving Shelter (Experimental)"
+    title: Moving Shelter (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: 2389c98f50f94ca29eea9a15b426f345, type: 3}
     recommendedPlayers: 1
@@ -378,7 +378,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: sparse-prototype-peel-away-screen
-    title: "Peel-Away Screen (Experimental)"
+    title: Peel-Away Screen (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: a05311989f0344b4a6ef49f903ad25d5, type: 3}
     recommendedPlayers: 1
@@ -387,7 +387,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: sparse-prototype-collapse-created-route
-    title: "Collapse-Created Route (Experimental)"
+    title: Collapse-Created Route (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: 63a657bd346047b483d97d595bb31eea, type: 3}
     recommendedPlayers: 1
@@ -396,7 +396,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: sparse-prototype-pivoting-causeway
-    title: "Pivoting Causeway (Experimental)"
+    title: Pivoting Causeway (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: 5291477c18134850b21f169d524cb972, type: 3}
     recommendedPlayers: 1
@@ -405,7 +405,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: sparse-prototype-refuge-exchange
-    title: "Refuge Exchange (Experimental)"
+    title: Refuge Exchange (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: f9a49eecaae84e1bba82eaff6ca71f1b, type: 3}
     recommendedPlayers: 1
@@ -414,7 +414,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: sparse-prototype-break-contact-borough
-    title: "Break-Contact Borough (Experimental)"
+    title: Break-Contact Borough (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: e98549fd8d324ecf8455131d0432a94a, type: 3}
     recommendedPlayers: 1
@@ -423,7 +423,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: sparse-prototype-skyline-island
-    title: "Skyline Exchange (Experimental)"
+    title: Skyline Exchange (Experimental)
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 100000, guid: 73db7fb3df4f4b43ba16ba82e39e1378, type: 3}
     recommendedPlayers: 1
@@ -431,6 +431,14 @@ MonoBehaviour:
     walkableIsland: 1
     supportedModes:
     - demo
+  - id: workshop-under-the-tree
+    title: "Underneath the Tree \xB7 Block-out"
+    scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    mapPrefab: {fileID: 1682020381547342917, guid: 3ec6e291a6bb2d949a04592b5f35c320, type: 3}
+    recommendedPlayers: 10
+    recommendedMode: demo
+    walkableIsland: 0
+    supportedModes: []
   modes:
   - id: demo
     title: Demo
