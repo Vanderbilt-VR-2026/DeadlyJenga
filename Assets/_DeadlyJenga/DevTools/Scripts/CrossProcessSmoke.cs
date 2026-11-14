@@ -128,7 +128,7 @@ namespace DeadlyJenga.CastlePrototype
                     "Home Host opens a normal Play lobby",65);
                 var lobby=IslandLobby.Current;
                 var room=lobby.Room;
-                Require(lobby.SelectMode("ctf")&&lobby.SelectMap("mode-ctf"),"Host chooses Capture the Flag and its map");
+                Require(lobby.SelectMode("ctf")&&lobby.SelectMap("ctf"),"Host chooses Capture the Flag and its map");
                 File.WriteAllText(Mark("code-pending"),room.Code);
                 File.Move(Mark("code-pending"),Mark("code"));
                 yield return Until(()=>room.HumanCount==2&&File.Exists(Mark("guest-ready")),
@@ -147,7 +147,7 @@ namespace DeadlyJenga.CastlePrototype
                 home.Code=code;
                 home.JoinCode();
                 yield return Until(()=>IslandLobby.Current&&IslandLobby.Current.Room.Connected&&
-                    !IslandLobby.Current.Room.IsHost&&IslandLobby.Current.SelectedMapId=="mode-ctf",
+                    !IslandLobby.Current.Room.IsHost&&IslandLobby.Current.SelectedMapId=="ctf",
                     "Guest joins the same room and receives the chosen map",75);
                 var lobby=IslandLobby.Current;
                 var room=lobby.Room;
@@ -159,7 +159,7 @@ namespace DeadlyJenga.CastlePrototype
                     "Guest becomes the Fusion host and can start a match",75,()=>room.Status);
                 Require(room.Code==code&&room.LocalLobbyId==identity&&room.HumanCount==1&&lobby.IsHost,
                     "The new host keeps the room code, identity and control");
-                Require(lobby.SelectedModeId=="ctf"&&lobby.SelectedMapId=="mode-ctf",
+                Require(lobby.SelectedModeId=="ctf"&&lobby.SelectedMapId=="ctf",
                     "The selected mode and map survive the handoff");
                 Require(lobby.SelectMode("hill")&&lobby.SelectMap("mode-koth"),"New host can change mode and map");
                 lobby.StartOrCancel();
@@ -222,14 +222,14 @@ namespace DeadlyJenga.CastlePrototype
                 "Other client confirmed joining",25);
             if(host)
             {
-                Require(IslandLobby.Current.SelectMode("ctf")&&IslandLobby.Current.SelectMap("mode-ctf"),
+                Require(IslandLobby.Current.SelectMode("ctf")&&IslandLobby.Current.SelectMap("ctf"),
                     "Host selects Capture the Flag and its authored map");
                 IslandLobby.Current.StartOrCancel();
             }
             CastlePlaySession game=null;
             yield return Until(()=>(game=FindFirstObjectByType<CastlePlaySession>())&&game.Network&&
                 !game.Network.WaitingForWorld&&game.Modes&&game.Modes.Frame.phase==RoundPhase.Playing&&
-                MatchSetup.MapId=="mode-ctf"&&room.Connected&&room.Code==address,
+                MatchSetup.MapId=="ctf"&&room.Connected&&room.Code==address,
                 "Guest follows host from Marina to active CTF in the same room",110,()=>room.Status);
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
