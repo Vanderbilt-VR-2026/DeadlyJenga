@@ -71,6 +71,18 @@ Shader "DeadlyJenga/Sand Coating"
                 return output;
             }
 
+            // One rounded grain per 3D cell. Returns x = grain mask (0..1, soft edge), yzw = bump direction.
+            float4 Grain(float3 p, float freq, float seedShift)
+            {
+                float3 q = p * freq + seedShift;
+                float3 id = floor(q), f = frac(q) - 0.5;
+                float3 jitter = float3(Hash(id + 1.7), Hash(id + 5.3), Hash(id + 9.1)) - 0.5;
+                float3 d = f - jitter * 0.45;
+                float r = 0.30 + 0.12 * Hash(id + 13.7);
+                float len = length(d);
+                return float4(1 - smoothstep(r - 0.10, r, len), d / r);
+            }
+
             half4 Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input); UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
@@ -81,24 +93,32 @@ Shader "DeadlyJenga/Sand Coating"
                 float edge = 1 + (Noise(p * 6) - 0.5) * 0.32 + (Noise(p * 17) - 0.5) * 0.14;
                 clip(edge - t);
                 clip(t + 0.05);
-                // Dense at the feet, patchy toward the waist, with a few bare spots; coverage dusts grains off.
+                // Dense at the feet, patchy toward the waist; coverage dusts grains off.
+                // Smooth noise (not a point-sampled grid) decides where the coat is, so edges stay soft.
                 float density = lerp(1.0, 0.45, saturate(t)) * smoothstep(0.18, 0.55, Noise(p * 4.5 + 3.1));
-                float grain = Hash(floor(p * 160));
-                clip(density * _Coverage * 1.25 - grain * 0.55 - 0.08);
+                clip(density * _Coverage * 1.25 - Noise(p * 38 + 11.0) * 0.55 - 0.08);
 
-                // Sugar base with darker cinnamon flecks and a little grainy shading.
-                half3 sugar = half3(0.95, 0.86, 0.69), cinnamon = half3(0.56, 0.30, 0.14);
-                float fleck = step(0.8, Hash(floor(p * 120) + 7.7));
-                half3 albedo = lerp(sugar, cinnamon, fleck * 0.85 + Noise(p * 9) * 0.18) * (0.88 + grain * 0.22);
+                // Round sugar crystals and cinnamon clumps, each shaded like a tiny bump.
+                float dist = distance(_WorldSpaceCameraPos, p);
+                float detail = saturate(1 - dist / 7);               // fades to a smooth average from afar (no shimmer)
+                float4 sugarG = Grain(p, 70, 0), spiceG = Grain(p, 46, 31.7);
+                float clump = smoothstep(0.42, 0.72, Noise(p * 7 + 5.5));
+                float spice = saturate(spiceG.x * (0.35 + clump * 0.75));
+                half3 sugar = half3(0.97, 0.89, 0.72), cinnamon = half3(0.50, 0.26, 0.11), gap = half3(0.36, 0.20, 0.10);
+                half3 albedo = lerp(gap, sugar, lerp(0.8, sugarG.x, detail));
+                albedo = lerp(albedo, cinnamon * (0.85 + 0.3 * spiceG.y * 0.5 + 0.15), spice * lerp(0.55, 1, detail));
+                albedo *= 0.92 + (Noise(p * 9) - 0.5) * 0.18;
 
                 float3 n = normalize(input.normalWS);
+                float3 bump = lerp(sugarG.yzw, spiceG.yzw, spice) * detail * 0.55;
+                n = normalize(n + bump);
                 Light light = GetMainLight();
                 half diffuse = saturate(dot(n, light.direction)) * 0.8 + 0.2;
                 half3 color = albedo * (light.color * diffuse + SampleSH(n) * 0.6);
-                // Occasional glints, like sugar crystals catching the sun.
+                // Glints on a few crystals, like sugar catching the sun.
                 float3 view = normalize(GetWorldSpaceViewDir(p));
-                float glint = step(0.985, Hash(floor(p * 220) + 3.3)) * pow(saturate(dot(n, normalize(light.direction + view))), 24);
-                color += glint * light.color * 1.6;
+                float sparkle = step(0.82, Hash(floor(p * 70) + 3.3)) * sugarG.x * detail;
+                color += sparkle * pow(saturate(dot(n, normalize(light.direction + view))), 18) * light.color * 1.8;
                 color = MixFog(color, input.fog);
                 return half4(color, 1);
             }
