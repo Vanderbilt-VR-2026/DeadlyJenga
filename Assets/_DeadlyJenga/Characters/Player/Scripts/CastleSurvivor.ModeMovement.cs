@@ -6,10 +6,12 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    public sealed partial class CastleSurvivor : IModeActor
+    public sealed partial class CastleSurvivor : IModeActor, ISandState
     {
         public bool Sinking { get; private set; }
         public float SinkProgress { get; private set; }
+        bool ISandState.InSand => Sinking;
+        float ISandState.SandDepth => SinkProgress;
         bool sinkVaultPending;
         public bool CarryingFlag { get; private set; }
         public bool HasWalkableIsland => modeRules!=null&&modeRules.island==IslandRule.Walkable;

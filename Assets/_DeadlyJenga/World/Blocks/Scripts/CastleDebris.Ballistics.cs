@@ -141,8 +141,10 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 body.position+=movement;body.rotation=rotation;body.transform.SetPositionAndRotation(body.position,rotation);
                 block.velocity+=Physics.gravity*dt;
-                if(body.position.y+half.y<(Services.World?.WaterHeight(body.position)??0)-.2f)
-                {body.gameObject.SetActive(false);visual.RemoveAt(i);SunkCount++;}
+                // Hand the block back to real physics at the water: it splashes in, sinks under water drag
+                // and the map retires it deep down, instead of vanishing at the surface.
+                if(body.position.y-half.y<(Services.World?.WaterHeight(body.position)??0))
+                {Restore(block,replica);visual.RemoveAt(i);SunkCount++;}
             }
         }
     }

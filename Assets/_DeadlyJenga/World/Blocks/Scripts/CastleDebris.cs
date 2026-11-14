@@ -30,6 +30,8 @@ namespace DeadlyJenga.CastlePrototype
         float nextScan, born;
         public bool SinkDebris = true, ShatterOnImpact = true;
         public float SinkSpeed = 2, ImpactSpeed = 18;
+        // Sand swallows debris at a fraction of SinkSpeed (about 0.4 m/s), with time for tall blocks to go fully under.
+        const float QuicksandPace = .2f, QuicksandSeconds = 20f;
         public int SunkCount { get; private set; }
         public int ShatteredCount { get; private set; }
         public int SinkingCount => sinking.Count;
@@ -88,8 +90,13 @@ namespace DeadlyJenga.CastlePrototype
             {
                 var block=sinking[i];
                 if(!block.body || !block.body.gameObject.activeSelf){sinking.RemoveAt(i);continue;}
-                block.body.MovePosition(block.body.position+Vector3.down*Mathf.Max(.1f,SinkSpeed)*Time.fixedDeltaTime);
-                if(block.shape.bounds.max.y<block.ground-.2f || Time.time-block.began>12)
+                // Quicksand: a slow, slightly uneven sink with a gentle rocking tilt as the sand gives way.
+                float age=Time.time-block.began;
+                float pace=Mathf.Max(.1f,SinkSpeed)*QuicksandPace*(.75f+.25f*Mathf.Sin(age*2.3f+block.ground*7));
+                var rock=Quaternion.Euler(Mathf.Sin(age*1.7f)*.35f,0,Mathf.Cos(age*1.3f)*.35f);
+                block.body.MoveRotation(rock*block.body.rotation);
+                block.body.MovePosition(block.body.position+Vector3.down*pace*Time.fixedDeltaTime);
+                if(block.shape.bounds.max.y<block.ground-.2f || age>QuicksandSeconds)
                 {block.body.gameObject.SetActive(false);sinking.RemoveAt(i);SunkCount++;}
             }
             if((!SinkDebris && !VisualFastDebris) || Time.time-born<2 || Time.time<nextScan || blocks.Count==0)return;

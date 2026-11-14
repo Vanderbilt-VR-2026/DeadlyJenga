@@ -52,21 +52,49 @@ namespace DeadlyJenga.CastlePrototype
         float nextKillCheck;
         int debrisCursor;
         readonly Dictionary<int,float> submergedSince=new Dictionary<int,float>();
+        readonly Dictionary<int,(float linear,float angular)> dryDamping=new Dictionary<int,(float,float)>();
+        readonly List<int> retiredSubmerged=new List<int>();
+        readonly Dictionary<int,float> fullySubmergedSince=new Dictionary<int,float>();
+        // Water slows a block so it sinks and tumbles like it would in real water, then it is retired deep down.
+        const float WaterLinearDrag=3.2f, WaterAngularDrag=2.2f, RetireDepth=3f, RetireSeconds=9f;
         void RetireSubmergedBlocks()
         {
             if(Services.Session is IWorldAuthority authority&&!authority.HasWorldAuthority)return;
-            int count=Mathf.Min(Bodies.Count,Mathf.Max(32,Mathf.CeilToInt(Bodies.Count/8f)));
-            for(int n=0;n<count;n++)
+            for(int i=0;i<Bodies.Count;i++)
             {
-                int i=debrisCursor++%Bodies.Count;var body=Bodies[i];
-                if(!body||!body.gameObject.activeSelf)continue;
-                var collider=body.GetComponent<Collider>();
-                if(!collider||collider.bounds.max.y>WaterHeight(body.position)-.15f){submergedSince.Remove(i);continue;}
-                if(!submergedSince.TryGetValue(i,out float began)){submergedSince[i]=Time.time;continue;}
-                if(Time.time-began<2)continue;
-                body.gameObject.SetActive(false);submergedSince.Remove(i);
+                var body=Bodies[i];
+                if(!body||!body.gameObject.activeSelf||body.isKinematic)continue;
+                bool tracked=submergedSince.ContainsKey(i);
+                if(!tracked&&body.IsSleeping())continue;
+                float water=WaterHeight(body.position);
+                bool wet=body.worldCenterOfMass.y<water;
+                if(wet&&!tracked)
+                {
+                    submergedSince[i]=Time.time;dryDamping[i]=(body.linearDamping,body.angularDamping);
+                    body.linearDamping=WaterLinearDrag;body.angularDamping=WaterAngularDrag;
+                }
+                else if(!wet&&tracked)
+                {
+                    if(dryDamping.TryGetValue(i,out var dry)){body.linearDamping=dry.linear;body.angularDamping=dry.angular;}
+                    submergedSince.Remove(i);dryDamping.Remove(i);
+                }
             }
-            if(debrisCursor>100000000)debrisCursor=0;
+            retiredSubmerged.Clear();
+            foreach(var entry in submergedSince)
+            {
+                var body=entry.Key<Bodies.Count?Bodies[entry.Key]:null;
+                if(!body||!body.gameObject.activeSelf){retiredSubmerged.Add(entry.Key);continue;}
+                // Only blocks fully under water are retired; one resting half-in at the shore is left alone.
+                var collider=body.GetComponent<Collider>();
+                float water=WaterHeight(body.position);
+                if(!collider||collider.bounds.max.y>water-.15f){fullySubmergedSince.Remove(entry.Key);continue;}
+                if(!fullySubmergedSince.TryGetValue(entry.Key,out float since)){fullySubmergedSince[entry.Key]=Time.time;continue;}
+                bool deep=collider.bounds.max.y<water-RetireDepth;
+                if(!deep&&Time.time-since<RetireSeconds)continue;
+                if(dryDamping.TryGetValue(entry.Key,out var dry)){body.linearDamping=dry.linear;body.angularDamping=dry.angular;}
+                body.gameObject.SetActive(false);retiredSubmerged.Add(entry.Key);
+            }
+            foreach(int i in retiredSubmerged){submergedSince.Remove(i);dryDamping.Remove(i);fullySubmergedSince.Remove(i);}
         }
 
         void Start() { if (generateOnStart) Rebuild(); }
@@ -249,7 +277,7 @@ namespace DeadlyJenga.CastlePrototype
                 if (Application.isPlaying) Destroy(generatedRoot.gameObject); else DestroyImmediate(generatedRoot.gameObject);
             }
             PhysicsGroups=null;Debris=null;tycoonSupports=null;
-            Bodies.Clear();submergedSince.Clear();debrisCursor=0;
+            Bodies.Clear();submergedSince.Clear();dryDamping.Clear();fullySubmergedSince.Clear();debrisCursor=0;
             generatedRoot = new GameObject("Generated Castle Blocks").transform;
             generatedRoot.SetParent(transform, false);
             if (magneticMap)
