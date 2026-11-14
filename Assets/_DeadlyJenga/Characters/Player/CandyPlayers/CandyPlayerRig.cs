@@ -201,9 +201,9 @@ namespace DeadlyJenga.CandyPlayers
                 float ahead=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.03f,.25f,handLocal.z));
                 // The shoulder rolls forward on a reach across the chest. The tracked wrist stays fixed.
                 Vector3 shoulder=transform.TransformPoint(torsoOffset+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
-                Vector3 elbowPole=transform.TransformDirection(torsoRotation*(Vector3.right*sign+Vector3.forward*Mathf.Clamp(handLocal.z*2,-.45f,.75f)+Vector3.down*.25f));
                 // Seat the forearm inside the back of the palm, without moving the tracked grip.
                 Vector3 wrist=hand.position-hand.rotation*Vector3.forward*(.022f*scale);
+                Vector3 elbowPole=ElbowPole(wrist-shoulder,transform.TransformDirection(torsoRotation*(Vector3.right*sign)),transform.TransformDirection(torsoRotation*Vector3.down));
                 Vector3 elbow=SolveJoint(shoulder,wrist,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,wrist,hand.rotation*Vector3.up);
@@ -234,9 +234,21 @@ namespace DeadlyJenga.CandyPlayers
             float scale=Mathf.Max(.001f,transform.lossyScale.y);
             bones[index].localScale=new Vector3(1,Mathf.Max(.001f,delta.magnitude)/(Mathf.Max(.001f,lengths[index])*scale),1);
         }
+        // The elbow points down and out from the torso. It stays that way when the hand is high or low.
+        // If the reach lines up with the pole, fall back to other body directions so the elbow never flips.
+        static Vector3 ElbowPole(Vector3 reach,Vector3 outward,Vector3 down)
+        {
+            Vector3 direction=reach.normalized;
+            Vector3 pole=Vector3.ProjectOnPlane(outward+down*.8f,direction);
+            if(pole.sqrMagnitude<.04f)pole=Vector3.ProjectOnPlane(down,direction);
+            if(pole.sqrMagnitude<.04f)pole=Vector3.ProjectOnPlane(outward,direction);
+            return pole.normalized;
+        }
         static Vector3 SolveJoint(Vector3 a,Vector3 b,float l1,float l2,Vector3 pole)
         {
             Vector3 delta=b-a;float distance=Mathf.Max(.0001f,delta.magnitude);Vector3 direction=delta/distance;
+            // A hand almost on the shoulder would fold the arm into a wire. Keep a small minimum reach.
+            distance=Mathf.Max(distance,Mathf.Abs(l1-l2)+.02f);
             float stretch=Mathf.Max(1,distance/(l1+l2)*1.001f);l1*=stretch;l2*=stretch;
             float along=Mathf.Clamp((l1*l1-l2*l2+distance*distance)/(2*distance),0,l1);
             float bend=Mathf.Sqrt(Mathf.Max(0,l1*l1-along*along));
