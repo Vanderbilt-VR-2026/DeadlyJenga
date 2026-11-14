@@ -27,7 +27,6 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(p,new Vector3(1.05f,.24f,.48f),F.Ivory,.07f,false,Quaternion.Euler(0,a*Mathf.Rad2Deg+90,0));
             }
             Bridge(new Vector3(-18,1.24f,-25),new Vector3(-10,1.33f,-12.3f),3.6f,0);
-            Bridge(new Vector3(-6.9f,1.33f,-5.1f),new Vector3(-3,1.285f,3.15f),4.4f,.17f);
             mesh.Box(new Vector3(-8.27f,1.225f,3.15f),new Vector3(1.12f,.12f,2.65f),F.Stone,0,true);
             mesh.Box(new Vector3(0,1.294f,3.1f),new Vector3(15.4f,.007f,1.1f),F.Ivory,.002f);
             mesh.Disk(new Vector3(17,-.7f,-8),5.5f,1,F.Rock,true);
@@ -102,7 +101,8 @@ namespace DeadlyJenga.CandyArt.Marina
             DirectionBoard(new Vector3(-22.7f, 1.24f, -24.2f), Quaternion.Euler(0, 180, 0), 2.8f);
         }
 
-        static readonly Vector3 BeaconWalkStart = new(-5.65f, 1.33f, -8.45f);
+        // Starts on the plaza's east edge (clear of the Hall of Fame) and leads to the lounge and pool.
+        static readonly Vector3 BeaconWalkStart = new(6.9f, 1.31f, -4.8f);
         static readonly Vector3 BeaconWalkEnd = new(11.5f, 1.285f, 1.95f);
         static readonly Quaternion BeaconWalkFacing = Quaternion.LookRotation(
             Vector3.ProjectOnPlane(BeaconWalkEnd - BeaconWalkStart, Vector3.up));
@@ -142,7 +142,6 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(new Vector3(19, 1.45f, -3.34f), new Vector3(.14f, .64f, .14f), F.DarkWood, .024f);
             mesh.Box(new Vector3(19, 1.76f, -3.34f), new Vector3(2.28f, .42f, .18f), F.DarkWood, .05f);
             mesh.Box(new Vector3(-10, 1.340f, -10.1f), new Vector3(5.1f, .018f, .8f), F.Ivory, .008f);
-            DirectionBoard(new Vector3(-9.2f, 1.33f, -5.0f), Quaternion.Euler(0, 12, 0), 2.5f);
             DirectionBoard(new Vector3(6.65f, 1.285f, 3.64f), Quaternion.identity, 2.55f);
         }
         void LightingFixtures()
@@ -344,42 +343,26 @@ namespace DeadlyJenga.CandyArt.Marina
             // Offset along the slab normal, so its top meets both existing flat landings exactly.
             mesh.Box((from+to)*.5f-rotation*Vector3.up*.11f,new Vector3(3.2f,.22f,Vector3.Distance(from,to)),F.Stone,0,true,rotation);
         }
-        void StyleShop()
+        // The old style shop's deck becomes a shaded garden lounge beside the plaza.
+        // Routes stay clear: the cinema connector (z 7.6), terrace stairs (x -8.1) and west ramp (x -21).
+        void GardenLounge()
         {
-            Vector3 c=new(-13,1.3f,7.7f);
-            Portal(c,9.2f,5.6f,5.2f,true);
-            mesh.Box(c+new Vector3(0,2.0f,2.8f),new Vector3(8.6f,4.1f,.3f),F.Wood,.18f,true);
-            mesh.Box(c+new Vector3(0,3.88f,-2.7f),new Vector3(3.7f,.75f,.27f),F.Wood,.12f);
-            var styleFrame = StyleScreen + StyleScreenFacing * Vector3.forward * .12f;
-            mesh.Box(styleFrame, new Vector3(2.48f, 2.91f, .16f), F.DarkWood, .09f, true, StyleScreenFacing);
-            for (int side = -1; side <= 1; side += 2)
+            const float floor = 1.285f;
+            foreach (var p in new[] { new Vector2(-17.6f, 3.6f), new Vector2(-12.4f, 3.6f), new Vector2(-17.6f, 5.9f), new Vector2(-12.4f, 5.9f) })
             {
-                var foot = styleFrame + StyleScreenFacing * Vector3.right * (side * .95f);
-                foot.y = 1.58f;
-                mesh.Box(foot, new Vector3(.16f, .59f, .20f), F.Brass, .035f, true, StyleScreenFacing);
+                mesh.Box(new Vector3(p.x, floor + .12f, p.y), new Vector3(.5f, .24f, .5f), F.Stone, .06f, true);
+                mesh.Beam(new Vector3(p.x, floor + .2f, p.y), new Vector3(p.x, floor + 3.2f, p.y), .13f, F.Wood, true);
             }
-            // The illuminated oval mirror is centered in the open wardrobe, as in the approved render.
-            var ring=new List<Vector3>();for(int i=0;i<=64;i++){float a=i*Mathf.PI/32;ring.Add(c+new Vector3(Mathf.Cos(a)*1.38f,2.1f+Mathf.Sin(a)*1.9f,2.42f));}
-            mesh.Tube(ring,.14f,F.Wood,10);mesh.Tube(ring,.065f,F.Glow,10);
-            for(int i=0;i<20;i++){float a=i*Mathf.PI/10;mesh.Ellipsoid(c+new Vector3(Mathf.Cos(a)*1.4f,2.1f+Mathf.Sin(a)*1.91f,2.28f),Vector3.one*.06f,F.Glow,rings:5,sides:8);}
-            mesh.Disk(new Vector3(-13,1.35f,8.2f),1.32f,.18f,F.Stone,true,40);
-            for(int side=-1;side<=1;side+=2)
-            {
-                for(int shelf=0;shelf<3;shelf++)mesh.Box(c+new Vector3(side*3.12f,1.05f+shelf*1.02f,2.12f),new Vector3(1.75f,.12f,.68f),F.Wood,.04f);
-                for(int j=0;j<3;j++)
-                {
-                    var p=c+new Vector3(side*3.1f+(j-1)*.53f,2.93f,1.94f);
-                    mesh.Disk(p,.24f,.05f,F.Metal,false,20);mesh.Disk(p+Vector3.up*.05f,.15f,.28f,(F)((int)F.Red+(j+1)%3),false,20);
-                }
-                float railZ=side>0?1.75f:1.42f;
-                var railA=c+new Vector3(side*3.2f-.7f,2.0f,railZ);var railB=c+new Vector3(side*3.2f+.7f,2.0f,railZ);mesh.Beam(railA,railB,.027f,F.Brass);
-                for(int j=0;j<4;j++)
-                {
-                    var p=c+new Vector3(side*3.2f+(j-1.5f)*.34f,1.4f,railZ-.02f);var color=j%2==0?F.MintFabric:F.CoralFabric;
-                    mesh.Box(p,new Vector3(.3f,.85f,.12f),color,.06f);mesh.Box(p+new Vector3(-.18f,.24f,0),new Vector3(.16f,.5f,.12f),color,.05f,false,Quaternion.Euler(0,0,-14));mesh.Box(p+new Vector3(.18f,.24f,0),new Vector3(.16f,.5f,.12f),color,.05f,false,Quaternion.Euler(0,0,14));
-                }
-            }
-            Pot(new Vector3(-18.1f,1.29f,3.2f),.56f,.9f,4);Pot(new Vector3(-7.8f,1.29f,3.8f),.45f,.8f,5);
+            for (int side = 0; side < 2; side++)
+                mesh.Beam(new Vector3(-18.1f, floor + 3.2f, side == 0 ? 3.6f : 5.9f), new Vector3(-11.9f, floor + 3.2f, side == 0 ? 3.6f : 5.9f), .14f, F.Wood);
+            for (int i = 0; i < 9; i++)
+                mesh.Box(new Vector3(-17.8f + i * .68f, floor + 3.36f, 4.75f), new Vector3(.12f, .14f, 3.2f), F.Wood, .03f);
+            Sofa(new Vector3(-15, floor, 5.3f), 3.6f, Quaternion.Euler(0, 180, 0));
+            Sofa(new Vector3(-17.1f, floor, 4.1f), 1.6f, Quaternion.Euler(0, 90, 0));
+            Table(new Vector3(-15, floor, 4.2f), .9f);
+            Lantern(new Vector3(-15, floor + 2.75f, 4.75f), .22f);
+            foreach (var p in new[] { new Vector3(-18.6f, floor, 3.0f), new Vector3(-11.6f, floor, 3.0f), new Vector3(-18.6f, floor, 12.2f) })
+                Pot(p, .5f, .85f, (int)(p.x * 7 + p.z));
         }
         void Portal(Vector3 center,float width,float height,float depth,bool wardrobePassage=false)
         {

@@ -143,7 +143,12 @@ namespace DeadlyJenga.DevTools.Editor
             yield return Walk(lobby,new[]{new Vector3(-8.1f,1.3f,11.4f),new Vector3(-8.1f,4.14f,19),new Vector3(-8.1f,1.3f,11.4f)},"terrace stairs both directions");
             yield return Walk(lobby,new[]{new Vector3(7.6f,1.3f,10.25f),new Vector3(7.6f,4.10f,17.6f),new Vector3(10.0f,4.03f,17.95f)},"east ramp to terrace bridge");
             yield return Walk(lobby,new[]{new Vector3(-21,1.3f,2.4f),new Vector3(-21,4.14f,18.5f),new Vector3(-18,4.14f,19.4f)},"west ramp and landing");
-            yield return Walk(lobby,new[]{new Vector3(-10.2f,1.3f,7.6f),new Vector3(-5.0f,1.86f,7.6f),new Vector3(0,1.86f,7.6f)},"wardrobe to terminal platform");
+            yield return Walk(lobby,new[]{new Vector3(-10.2f,1.3f,7.6f),new Vector3(-5.0f,1.86f,7.6f),new Vector3(0,1.86f,7.6f)},"garden deck to terminal platform");
+            var plaza=MayhemMarina.PlazaCenter;
+            yield return Walk(lobby,new[]{new Vector3(-10,1.33f,-8),plaza,new Vector3(6.9f,1.31f,-4.6f),new Vector3(11,1.29f,1.4f)},"arrival across Showtime Plaza to Beacon Walk");
+            yield return Walk(lobby,new[]{plaza,new Vector3(0,1.29f,3.2f),new Vector3(0,1.86f,6.0f)},"plaza to cinema ramp and terminals");
+            yield return Walk(lobby,new[]{plaza,plaza+Quaternion.Euler(0,-58,0)*new Vector3(0,0,2.6f)},"plaza to wardrobe stage");
+            yield return Walk(lobby,new[]{plaza,plaza+Quaternion.Euler(0,58,0)*new Vector3(0,0,3.2f)},"plaza to Hall of Fame steps");
             yield return Walk(lobby,new[]{new Vector3(22.9f,1.25f,8.8f),new Vector3(26.1f,.30f,9.2f),new Vector3(22.9f,1.25f,8.8f)},"east beach ramp both directions");
             yield return Walk(lobby,new[]{new Vector3(-22.9f,1.25f,8.8f),new Vector3(-25.8f,.36f,9.25f),new Vector3(-22.9f,1.25f,8.8f)},"west beach ramp both directions");
             yield return Walk(lobby,new[]{new Vector3(1.1f,1.25f,24.4f),new Vector3(1.1f,.39f,28.4f),new Vector3(1.1f,1.25f,24.4f)},"rear beach ramp both directions");
@@ -156,6 +161,11 @@ namespace DeadlyJenga.DevTools.Editor
             Capture(origin+new Vector3(-19.8f,5.85f,18.8f),origin+new Vector3(8,2.8f,-3),78,"Marina-upper-terrace.png");
             Capture(origin+new Vector3(23,3,5.5f),origin+new Vector3(60,4,150),74,"Marina-ocean.png");
             Capture(origin+new Vector3(11,3,3),origin+new Vector3(14.2f,2.7f,6.7f),74,"Marina-lounge-materials.png");
+            var center=origin+MayhemMarina.PlazaCenter;
+            Capture(origin+new Vector3(-12.5f,3.1f,-10.5f),center+new Vector3(0,1.6f,2),72,"Marina-plaza-arrival.png");
+            Capture(center+Quaternion.Euler(0,122,0)*new Vector3(0,1.75f,3.2f),origin+MayhemMarina.Wardrobe+Vector3.up*1.1f,70,"Marina-wardrobe-stage.png");
+            Capture(center+Quaternion.Euler(0,-122,0)*new Vector3(0,1.75f,3.2f),origin+MayhemMarina.FameBoard+Vector3.down*.6f,70,"Marina-hall-of-fame.png");
+            Capture(center+new Vector3(0,9,-14),center+new Vector3(0,0,1.5f),64,"Marina-plaza-overhead.png");
             var sky=RenderSettings.skybox;
             GameEvents.RaiseEmoted(lobby.gameObject,"LobbyParked");
             Check(!ocean.gameObject.activeInHierarchy,"Parked lobby hides its ocean");

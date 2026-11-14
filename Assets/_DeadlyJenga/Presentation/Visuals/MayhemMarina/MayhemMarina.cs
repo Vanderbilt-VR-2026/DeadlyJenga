@@ -10,12 +10,23 @@ namespace DeadlyJenga.CandyArt.Marina
     public sealed partial class MayhemMarina : MonoBehaviour
     {
         public static readonly Vector3 Arrival=new(-10,1.36f,-8);
-        public static readonly Vector3 Wardrobe=new(-13,1.55f,8.2f);
+        // Showtime Plaza: one open deck between the arrival island and the cinema.
+        // The wardrobe stage and the Hall of Fame face each other across it.
+        public static readonly Vector3 PlazaCenter = new(0, 1.31f, -3.6f);
+        public const float PlazaRadius = 7.2f;
+        static readonly Quaternion StyleStageTurn = Quaternion.Euler(0, -58, 0);
+        static readonly Quaternion FameTurn = Quaternion.Euler(0, 58, 0);
+        public static readonly Vector3 Wardrobe = PlazaCenter + StyleStageTurn * new Vector3(0, .22f, 4.3f);
         public static readonly Vector3 PlayScreen=new(0,3.85f,11.1f);
         public static readonly Vector3 CodeKeyboard = new(-4.87f, 2.84f, 10.30f);
         public static readonly Quaternion CodeKeyboardFacing = Quaternion.Euler(61, 0, 0);
-        public static readonly Vector3 StyleScreen = new(-10.7f, 3.05f, 9.22f);
-        public static readonly Quaternion StyleScreenFacing = Quaternion.Euler(0, 65, 0);
+        public static readonly Vector3 StyleScreen = Wardrobe + StyleStageTurn * new Vector3(2.3f, 1.5f, 1.02f);
+        public static readonly Quaternion StyleScreenFacing = StyleStageTurn * Quaternion.Euler(0, 65, 0);
+        public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
+        public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
+        // The last-match board stands at the far side of the Hall of Fame, readable from the plaza.
+        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 2.25f, 5.85f);
+        public static readonly Quaternion FameFacing = FameTurn;
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;
@@ -188,7 +199,7 @@ namespace DeadlyJenga.CandyArt.Marina
         {
             if(Built)return;controls=lobby;mesh=new MarinaMesh();
             visual=new GameObject("Visual · Mayhem Marina").transform;visual.SetParent(transform,false);
-            ShoreAndCourts();Pavilion();StyleShop();Lounge();UpperTerraces();Landmark();Planting();
+            ShoreAndCourts();ShowtimePlaza();Pavilion();StyleStage();HallOfFame();GardenLounge();Lounge();UpperTerraces();Landmark();Planting();
             BeaconWalk();MarshAndBeach();JetSkiDock();LightingFixtures();SignMounts();
             mesh.Disk(new Vector3(0, OceanLevel - SeabedDepth - .12f, 3), 38, .12f, MarinaFinish.Sand, false, 80);
             mesh.Flush(visual,transform.TransformPoint(Vector3.up*OceanLevel).y);
@@ -198,6 +209,7 @@ namespace DeadlyJenga.CandyArt.Marina
             Mark("Play interaction",new Vector3(0,1.285f,3.4f));Mark("Lounge",new Vector3(13,1.28f,5));
             Mark("Beacon Walk", Vector3.Lerp(BeaconWalkStart, BeaconWalkEnd, .5f));
             Mark("Pool",new Vector3(17,.3f,-8));Mark("Roof terrace",new Vector3(-12,4.05f,17));
+            Mark("Showtime plaza",PlazaCenter);Mark("Hall of fame",FameBoard);
             Mark("Overview camera",new Vector3(-29,18,-39));Mark("Arrival camera",new Vector3(-11,3.1f,-8.9f));
             Built=true;
         }
@@ -233,7 +245,7 @@ namespace DeadlyJenga.CandyArt.Marina
             var amber = new Color(1, .68f, .34f);
             var cool = new Color(.35f, .78f, 1);
             Accent("Play Pavilion", new Vector3(0, 4.7f, 7), new Color(1,.96f,.91f), 2.4f, 8);
-            Accent("Style", new Vector3(-13, 3.5f, 8.6f), new Color(1, .79f, .61f), 3, 6);
+            Accent("Garden lounge", new Vector3(-15, 3.9f, 4.75f), amber, 2.2f, 5.5f);
             Accent("Waterfront lounge", new Vector3(13.7f, 3.8f, 5.4f), amber, 3.2f, 6.5f);
             Accent("Arrival", new Vector3(-12.5f, 2.45f, -10.25f), amber, 2, 5.5f);
             Accent("Practice pool", new Vector3(19, 2.1f, -3.25f), cool, 2.5f, 5.5f);
@@ -450,10 +462,14 @@ namespace DeadlyJenga.CandyArt.Marina
             Sign("SOLO  /  E OR GRIP", new Vector3(-22.7f, 2.46f, -24.115f), .024f, cream, new Vector3(0, 180, 0));
             Sign("BEACON WALK", BeaconWalkGate + BeaconWalkFacing * Vector3.back * .13f, .048f, cream,
                 BeaconWalkFacing.eulerAngles);
-            Sign("PLAY  /  AHEAD", new Vector3(-9.2f, 2.68f, -5.082f), .034f, cream, new Vector3(0, 12, 0));
             Sign("LOUNGE  /  POOL  >", new Vector3(6.65f, 2.635f, 3.56f), .032f, cream);
             Sign("BEACHSIDE CINEMA", new Vector3(0, 5.58f, 3.58f), .062f, cream);
-            Sign("STYLE", new Vector3(-13, 5.18f, 4.85f), .095f, cream);
+            var styleBase = new Vector3(Wardrobe.x, PlazaTop, Wardrobe.z);
+            Sign("STYLE", styleBase + StyleStageTurn * new Vector3(0, 4.72f, 1.95f), .085f, cream, StyleStageTurn.eulerAngles);
+            var fameBase = new Vector3(FameBoard.x, PlazaTop, FameBoard.z);
+            Sign("HALL OF FAME", fameBase + FameTurn * new Vector3(0, 3.98f, .04f), .05f, cream, FameTurn.eulerAngles);
+            Sign("SHOWTIME PLAZA", OnPlaza(-114, 4.7f, PlazaTop - PlazaCenter.y + .012f), .05f,
+                new Color(.23f, .16f, .10f), new Vector3(90, 66, 0));
             Sign("WATERFRONT LOUNGE", new Vector3(13.7f, 4.42f, 2.49f), .044f, cream);
             Sign("PRACTICE POOL", new Vector3(19, 1.76f, -3.24f), .026f, cream, new Vector3(0, 180, 0));
             Sign("MAYHEM MARINA", new Vector3(-10, 1.352f, -10.1f), .06f, new Color(.23f, .16f, .10f), new Vector3(90, 0, 0));

@@ -74,7 +74,10 @@ namespace DeadlyJenga.Presentation
         {
             var root = new GameObject("Last match billboard", typeof(RectTransform), typeof(Canvas));
             root.transform.SetParent(transform, false);
-            root.transform.localPosition = new Vector3(13.65f, 3.6f, 8.72f);
+            // Hall of Fame on Showtime Plaza. Shift left so the board and the top-three card sit centered.
+            var facing = DeadlyJenga.CandyArt.Marina.MayhemMarina.FameFacing;
+            root.transform.SetLocalPositionAndRotation(
+                DeadlyJenga.CandyArt.Marina.MayhemMarina.FameBoard + facing * Vector3.left * .76f, facing);
             root.transform.localScale = Vector3.one * .0045f;
             var canvas = root.GetComponent<Canvas>();
             canvas.renderMode = RenderMode.WorldSpace;
