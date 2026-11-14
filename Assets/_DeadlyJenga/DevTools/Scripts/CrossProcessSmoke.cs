@@ -280,19 +280,86 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(() => room.Connected && room.HumanCount == players,
                 $"Room reaches {players} humans", 240, () => $"humans={room.HumanCount}; status={room.Status}");
             File.AppendAllText(Report, $"SCALE joined humans={room.HumanCount} of {players}\n");
-            float holdUntil = Time.realtimeSinceStartup + holdSeconds;
-            int minHumans = int.MaxValue, drops = 0;
-            while (Time.realtimeSinceStartup < holdUntil)
+            if (MatchTest)
             {
-                yield return new WaitForSeconds(1f);
-                int humans = room.HumanCount;
-                minHumans = Mathf.Min(minHumans, humans);
-                if (!room.Connected) drops++;
+                yield return CheckMatch(room, players, ScaleArg("--dj-match-bots", 8), holdSeconds);
             }
-            File.AppendAllText(Report, $"SCALE held minHumans={minHumans} disconnectedSeconds={drops}\n");
-            Require(drops == 0 && minHumans == players, $"Room held {players} humans for {holdSeconds:F0}s without drops");
+            else
+            {
+                float holdUntil = Time.realtimeSinceStartup + holdSeconds;
+                int minHumans = int.MaxValue, drops = 0;
+                while (Time.realtimeSinceStartup < holdUntil)
+                {
+                    yield return new WaitForSeconds(1f);
+                    int humans = room.HumanCount;
+                    minHumans = Mathf.Min(minHumans, humans);
+                    if (!room.Connected) drops++;
+                }
+                File.AppendAllText(Report, $"SCALE held minHumans={minHumans} disconnectedSeconds={drops}\n");
+                Require(drops == 0 && minHumans == players, $"Room held {players} humans for {holdSeconds:F0}s without drops");
+            }
             var leave = room.Leave();
             yield return Until(() => leave.IsCompleted, "Process leaves the room", 30);
+        }
+
+        // Match run: host starts Demo on Castle with a fixed bot count, then both processes hold the round.
+        static bool MatchTest => Environment.GetCommandLineArgs().Contains("--dj-match");
+
+        IEnumerator CheckMatch(IslandRoomConnection room, int players, int bots, float seconds)
+        {
+            bool host = role == "host";
+            var lobby = IslandLobby.Current;
+            if (host)
+            {
+                MatchSetup.BotTarget = players + bots;
+                Require(lobby.SelectMode("demo") && lobby.SelectMap("castle"), "Terminal selects Demo on Castle");
+                yield return Until(() => lobby.CanConfigure, "Host terminal is configurable", 30);
+                lobby.StartOrCancel();
+            }
+            CastlePlaySession session = null;
+            yield return Until(() => (session = FindFirstObjectByType<CastlePlaySession>()) && NetworkActors.Alive(session.Player)
+                && session.Network && !session.Network.WaitingForWorld, "Room transitions to a Castle match", 150, () => $"room={room.Status}");
+            if (host)
+            {
+                session.SurvivorBots.AutoFill = false;
+                session.SurvivorBots.Clear();
+                for (int i = 0; i < bots; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == bots, $"Host spawns {bots} bots");
+            }
+            yield return Until(() => session.SurvivorBots.Count == bots || !host, $"Bots replicate to {role} ({bots} expected)", 60,
+                () => $"count={session.SurvivorBots.Count}");
+            File.AppendAllText(Report, $"MATCH started role={role} bots={session.SurvivorBots.Count} humans={room.HumanCount}\n");
+
+            var start = new Dictionary<GameObject, Vector3>();
+            foreach (var bot in session.SurvivorBots.Members) if (bot) start[bot] = bot.transform.position;
+            var times = new List<double>(4000);
+            int disconnected = 0, hitchSeconds = 0, minHumans = int.MaxValue;
+            double previous = Time.realtimeSinceStartupAsDouble, end = previous + seconds, nextSecond = previous + 1;
+            double worstInSecond = 0;
+            while (previous < end)
+            {
+                yield return null;
+                double now = Time.realtimeSinceStartupAsDouble, ms = (now - previous) * 1000;
+                times.Add(ms); worstInSecond = System.Math.Max(worstInSecond, ms); previous = now;
+                if (now >= nextSecond)
+                {
+                    nextSecond += 1;
+                    if (!room.Connected) disconnected++;
+                    if (worstInSecond >= 100) hitchSeconds++;
+                    minHumans = Mathf.Min(minHumans, room.HumanCount);
+                    worstInSecond = 0;
+                }
+            }
+            int moved = 0;
+            foreach (var pair in start)
+                if (pair.Key && Vector3.Distance(pair.Key.transform.position, pair.Value) > 1f) moved++;
+            var sorted = times.OrderBy(ms => ms).ToArray();
+            double Percentile(float fraction) => sorted[Mathf.Clamp(Mathf.CeilToInt(sorted.Length * fraction) - 1, 0, sorted.Length - 1)];
+            File.AppendAllText(Report, $"FRAMES match n={times.Count} p50={Percentile(.5f):F1}ms p95={Percentile(.95f):F1}ms p99={Percentile(.99f):F1}ms max={sorted.Last():F1}ms >=100ms={times.Count(ms => ms >= 100)}\n");
+            File.WriteAllLines(Path.Combine(folder, role + "-match-frames-ms.txt"), times.Select(ms => ms.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)));
+            File.AppendAllText(Report, $"MATCH held seconds={seconds:F0} bots={session.SurvivorBots.Count} botsMoved={moved}/{start.Count} minHumans={minHumans} disconnectedSeconds={disconnected} hitchSeconds={hitchSeconds}\n");
+            Require(disconnected == 0 && minHumans == players, $"Match held {players} humans for {seconds:F0}s without drops");
+            Require(moved > 0 || !host, "Bots move during the match");
         }
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");

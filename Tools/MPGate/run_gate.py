@@ -1,5 +1,5 @@
 """Launch N Deadly Jenga player processes (1 host + N-1 guests) and collect their reports.
-usage: python run_gate.py <player exe> <players> <hold seconds> [--out <folder>] [--windowed]
+usage: python run_gate.py <player exe> <players> <hold seconds> [--out <folder>] [--windowed] [--match --bots N]
 Each process writes <out>/<role>.txt and <out>/<role>-timeline.jsonl (MultiplayerTimeline).
 Prints one line per process and exits non-zero if any process failed."""
 import os, subprocess, sys, time, datetime
@@ -11,12 +11,13 @@ def main():
         datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
     out = os.path.abspath(out)
     os.makedirs(out, exist_ok=True)
+    extra = ["--dj-match", f"--dj-match-bots={sys.argv[sys.argv.index('--bots') + 1]}"] if "--match" in sys.argv else []
     roles = ["host"] + [f"guest{i}" for i in range(1, players)]
     procs = {}
     for role in roles:
         args = [exe, "-screen-width", "640", "-screen-height", "360", "-window-mode", "windowed",
                 f"--dj-smoke={role}", f"--dj-smoke-dir={out}", f"--dj-timeline={out}",
-                "--dj-scale", f"--dj-scale-players={players}", f"--dj-scale-seconds={hold}"]
+                "--dj-scale", f"--dj-scale-players={players}", f"--dj-scale-seconds={hold}"] + extra
         procs[role] = subprocess.Popen(args)
         time.sleep(2)  # stagger starts so the host can publish its code first
     failed = []
