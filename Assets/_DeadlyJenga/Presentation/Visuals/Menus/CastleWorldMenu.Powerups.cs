@@ -15,7 +15,7 @@ namespace DeadlyJenga.CastlePrototype
         string wheelFeedback;
         static readonly string[] WheelCategories={"RANGED","MELEE","POWERUPS"};
         static readonly EquipmentKind[][] WheelGroups={WheelItems(0),WheelItems(1),WheelItems(2)};
-        static readonly Vector2[] WheelPositions={new Vector2(0,235),new Vector2(155.885f,145),new Vector2(155.885f,-35),new Vector2(0,-125),new Vector2(-155.885f,-35),new Vector2(-155.885f,145)};
+        static readonly Vector2[] WheelPositions={new Vector2(0,165),new Vector2(150,105),new Vector2(150,-15),new Vector2(0,-75),new Vector2(-150,-15),new Vector2(-150,105)};
 
         sealed class WheelRowState
         {
@@ -113,28 +113,29 @@ namespace DeadlyJenga.CastlePrototype
             bool canEveryone=host&&everyone!=null&&wheelSelected!=EquipmentKind.FlyingHand;
             if(!giveAllEquipment||wheelSelected==EquipmentKind.FlyingHand)repeatEquipment=false;
             bool canGive=wheelSelected!=EquipmentKind.None&&(giveAllEquipment?canEveryone:canSelf);
-            heading.text="EQUIPMENT WHEEL / "+WheelCategories[wheelCategory]+"\nPreview an icon, then choose Give";
+            heading.text="EQUIPMENT WHEEL / "+WheelCategories[wheelCategory];
+            heading.rectTransform.anchoredPosition=new Vector2(0,232);heading.rectTransform.sizeDelta=new Vector2(900,44);
             for(int i=0;i<6;i++)
             {
                 int item=equipmentOffset+i;bool visible=item<items.Length;
                 buttons[i].gameObject.SetActive(visible);targets[i].enabled=visible;if(!visible){sectionGlyphs[i].gameObject.SetActive(false);continue;}
-                var kind=items[item];WheelRow(i,WheelPositions[i],new Vector2(142,112),EquipmentSpecifications.Get(kind).name,true,17);
-                labels[i].rectTransform.anchoredPosition=new Vector2(0,-34);labels[i].rectTransform.sizeDelta=new Vector2(132,43);
-                WheelIcon(i,kind,new Vector2(0,17),new Vector2(112,56));
+                var kind=items[item];WheelRow(i,WheelPositions[i],new Vector2(130,96),EquipmentSpecifications.Get(kind).name,true,17);
+                labels[i].rectTransform.anchoredPosition=new Vector2(0,-30);labels[i].rectTransform.sizeDelta=new Vector2(122,40);
+                WheelIcon(i,kind,new Vector2(0,14),new Vector2(100,48));
                 if(kind==wheelSelected)buttons[i].image.color=CandyHudVisuals.Lavender;
             }
             string previewName=wheelSelected==EquipmentKind.DualRifle?"DUAL RIFLE\n"+(WheelAlternateView(wheelSelected)?"SHOTGUN VIEW":"RIFLE VIEW"):EquipmentSpecifications.Get(wheelSelected).name;
-            WheelRow(6,new Vector2(0,55),new Vector2(150,126),previewName,false,18);
-            labels[6].rectTransform.anchoredPosition=new Vector2(0,-39);labels[6].rectTransform.sizeDelta=new Vector2(142,45);WheelIcon(6,wheelSelected,new Vector2(0,20),new Vector2(136,70));
-            WheelRow(7,new Vector2(0,-225),new Vector2(520,54),"GIVE SELECTED / "+(giveAllEquipment?"EVERYONE":"MYSELF"),canGive,22);
-            WheelRow(8,new Vector2(-140,-282),new Vector2(240,44),"Target: "+(giveAllEquipment?"EVERYONE":"MYSELF"),host&&everyone!=null,18);
-            WheelRow(9,new Vector2(140,-282),new Vector2(240,44),giveAllEquipment?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":"SELF / THIS LIFE ONLY",host&&everyone!=null&&giveAllEquipment&&wheelSelected!=EquipmentKind.FlyingHand,17);
-            WheelRow(10,new Vector2(0,-389),new Vector2(520,40),"Stop everyone respawn grants",host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None,18);
-            WheelRow(11,new Vector2(0,-337),new Vector2(520,44),"Category: "+WheelCategories[wheelCategory]+" / change",true,20);
-            WheelRow(12,new Vector2(-200,-442),new Vector2(140,42),"< PREVIOUS",equipmentOffset>0,17);
-            WheelRow(13,new Vector2(200,-442),new Vector2(140,42),"NEXT >",equipmentOffset+6<items.Length,17);
-            WheelRow(14,new Vector2(0,-442),new Vector2(210,42),"BACK / "+(equipmentOffset/6+1)+" OF "+pageCount,true,17);
-            help.rectTransform.anchoredPosition=new Vector2(0,-505);help.rectTransform.sizeDelta=new Vector2(550,56);
+            WheelRow(6,new Vector2(0,45),new Vector2(150,100),previewName,false,18);
+            labels[6].rectTransform.anchoredPosition=new Vector2(0,-33);labels[6].rectTransform.sizeDelta=new Vector2(142,40);WheelIcon(6,wheelSelected,new Vector2(0,18),new Vector2(130,52));
+            WheelRow(7,new Vector2(0,-160),new Vector2(520,52),"GIVE SELECTED / "+(giveAllEquipment?"EVERYONE":"MYSELF"),canGive,22);
+            WheelRow(8,new Vector2(-355,70),new Vector2(250,46),"Target: "+(giveAllEquipment?"EVERYONE":"MYSELF"),host&&everyone!=null,18);
+            WheelRow(9,new Vector2(355,130),new Vector2(250,46),giveAllEquipment?repeatEquipment?"NOW + EVERY RESPAWN":"THIS LIFE ONLY":"SELF / THIS LIFE ONLY",host&&everyone!=null&&giveAllEquipment&&wheelSelected!=EquipmentKind.FlyingHand,17);
+            WheelRow(10,new Vector2(355,70),new Vector2(250,46),"Stop everyone respawn grants",host&&everyone!=null&&everyone.RespawnEquipment!=EquipmentKind.None,18);
+            WheelRow(11,new Vector2(-355,130),new Vector2(250,46),"Category: "+WheelCategories[wheelCategory]+" / change",true,20);
+            WheelRow(12,new Vector2(-355,10),new Vector2(250,46),"< PREVIOUS",equipmentOffset>0,17);
+            WheelRow(13,new Vector2(355,10),new Vector2(250,46),"NEXT >",equipmentOffset+6<items.Length,17);
+            WheelRow(14,new Vector2(0,-222),new Vector2(300,46),"BACK / "+(equipmentOffset/6+1)+" OF "+pageCount,true,17);
+            help.rectTransform.anchoredPosition=new Vector2(0,-292);help.rectTransform.sizeDelta=new Vector2(700,68);
             string state=!host?"Host/demo authority is required to give. Preview is available.":giveAllEquipment&&wheelSelected==EquipmentKind.FlyingHand?"Flying hand transformation is self-only; choose Myself.":wheelSelected==EquipmentKind.DualRifle?"One item; center preview alternates rifle / shotgun.":giveAllEquipment?"Everyone = living survivor players + bots; no bots-only grant.":"One inventory item at a time; select a card before Give.";
             help.text=(string.IsNullOrEmpty(wheelFeedback)?state:wheelFeedback)+"\nRespawn grant: "+EquipmentSpecifications.Get(everyone?.RespawnEquipment??EquipmentKind.None).name;
             for(int i=0;i<buttons.Length;i++)
