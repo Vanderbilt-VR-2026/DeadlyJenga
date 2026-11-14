@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-457698
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 36bd4eaad10deaf4f9819dee12d1cad5, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 457698
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Draw
+    atlasFile: atlas.png
+    atlasSha256: ecc42bb13e5a19f3b854585b041b65b8f599392d93a99cfe86bb96fa426f1e6c
+    gifFile: preview.gif
+    gifSha256: deb4abb4cfc717d1b8e7ca53640ac02c2b6933e924031381984248fbb571f350
+    sourceSha256: 1a85fdbf8b20ebf7dd30ee4752adc0ceb1ae80a5c460acbc9aef16b62d6d6cdb
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Chainsaw in the acting player's hands
+    action: Draw with Chainsaw
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Draw
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

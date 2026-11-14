@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-479433
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 62f9e18234a6a60438fcf19cf5ebd91d, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 479433
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Impact
+    atlasFile: atlas.png
+    atlasSha256: 1b09f421641bad6a765384524fb819a7fae658e1a953b71b658f22540a6a61a5
+    gifFile: preview.gif
+    gifSha256: 015835267ad0c548e48ff3eba54061047203663b74be4de5ea77dc04af8128f3
+    sourceSha256: e612b128b30d21dd4c8edc3d2370bb2d10cd9ba3b5f393e34deea606331cd313
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Laser Axe in the acting player's hands
+    action: Impact with Laser Axe
+    target: The exact victim, block or surface contacted by this weapon/projectile
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Impact
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

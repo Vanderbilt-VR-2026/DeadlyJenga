@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-184336
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: ac8b3ee80c63b4f4a8a629b317789180, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 184336
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Drop
+    atlasFile: atlas.png
+    atlasSha256: 5adbf416d49f8d827939eb4ff024891ea91ae1e71f076c3f390355845fc1ee82
+    gifFile: preview.gif
+    gifSha256: 92c55b4b26cccd2b1b157d65a5017763cc18f57b3279c3bd5d19c7e8a694fdf3
+    sourceSha256: 663716cf836a45fb2a15214a863c643fd32484610370a1533d64671617a44a87
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Barbed Bat in the acting player's hands
+    action: Drop with Barbed Bat
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Drop
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 

@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b4952a6bdb4942fdbfe7ab1f040a2ef5, type: 3}
+  m_Name: Cue-160585
+  m_EditorClassIdentifier: DeadlyJenga.Presentation.Editor::DeadlyJenga.CandyAudio.Editor.CandySoundPreview
+  atlas: {fileID: 2800000, guid: 87bef273b01708a408fd8c1468deeab0, type: 3}
+  packet:
+    schemaVersion: 1
+    cueId: 160585
+    frameCount: 24
+    columns: 8
+    rows: 3
+    frameWidth: 512
+    frameHeight: 288
+    fps: 12
+    eventTimeSeconds: 0.8
+    title: Holster
+    atlasFile: atlas.png
+    atlasSha256: 751e6d0e7234364408bf855f0bb14d195079b14c5f83ba35e07973e27498eeb7
+    gifFile: preview.gif
+    gifSha256: 72a75a183224fc48fc3ac56444395edcc2d6b1250a7cdf8732026f9becdf682c
+    sourceSha256: eb003dcde5f8a0f942c690a2714e40cce3a8772134e10ec03c3cd8e9fbd80521
+    sourceCommit: fcd8e80d7da0bedfb2a47372d3cf080d0bcf5939
+    scene: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
+    map: Candy Castle
+    mode: demo
+    captureKind: staged-gameplay
+    source: Grenade Launcher in the acting player's hands
+    action: Holster with Grenade Launcher
+    target: The weapon, holder and relevant nearby target
+    listenerRole: Resolve local/remote listener routing from the caller.
+    triggerEvidence: Observed gameplay lifecycle firing Holster
+    semanticReview: verified
+    reviewer: Antigravity
+    viewerUrl: 
