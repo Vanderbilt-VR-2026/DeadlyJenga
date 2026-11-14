@@ -6,7 +6,9 @@ namespace DeadlyJenga.CastlePrototype
     public static class TycoonLayout
     {
         public const string Preset = "tycoon";
-        public const int HeightCourses = 42;
+        // The core climbs CoreFlights flights of 6 m; the crown rings start on the summit deck.
+        const int CoreFlights = 10;
+        public const int HeightCourses = CoreFlights * 3 + 6;
         public static readonly Vector2 Size = new Vector2(96, 90);
 
         public static List<CastlePlacement> Build(CastleSettings settings)
@@ -125,12 +127,12 @@ namespace DeadlyJenga.CastlePrototype
         static void Core(List<CastlePlacement> plan, CastleSettings settings)
         {
             var purple = CastleSection.Keep;
-            for (int flight = 0; flight < 12; flight++)
+            for (int flight = 0; flight < CoreFlights; flight++)
             {
                 float bottom = flight * 6;
                 float top = bottom + 6;
                 float direction = flight % 2 == 0 ? 1 : -1;
-                bool summit = flight == 11;
+                bool summit = flight == CoreFlights - 1;
                 foreach (int side in new[] { -1, 1 })
                 {
                     float capTop = side == direction || summit ? top - .6f : top;
@@ -150,8 +152,8 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             float radius = CastleVariants.KeepRadius(settings.blockSize);
-            Deck(plan,purple,0,72,0,24,18.5f);
-            for (int course = 36; course < HeightCourses; course++)
+            Deck(plan,purple,0,CoreFlights * 6,0,24,18.5f);
+            for (int course = CoreFlights * 3; course < HeightCourses; course++)
             for (int side = 0; side < 4; side++)
             {
                 var rotation = Quaternion.Euler(0, side*90+(course%2)*45, 0);
