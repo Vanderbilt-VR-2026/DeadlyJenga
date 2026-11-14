@@ -7,6 +7,7 @@ using System.Reflection;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.CastleBots;
+using FlyingHand;
 using DeadlyJenga.CandyArt;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.World.Hazards;
@@ -79,6 +80,37 @@ namespace DeadlyJenga.DevTools.Editor
                         File.AppendAllText(Report, "BATCH 2 PLAYER COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
                         Debug.Log("Slot 2 Batch 2 Player Captures Complete! See: " + Report);
                     }
+                    else if (phase == 30)
+                    {
+                        SessionState.SetInt(Key + ".Phase", 31);
+                        EditorApplication.delayCall += () =>
+                        {
+                            MatchSetup.MapId = "mode-ninja-temple";
+                            MatchSetup.ModeId = "ninja";
+                            MatchSetup.BotTarget = 1;
+                            MatchSetup.HandCount = 0;
+                            EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                            EditorApplication.EnterPlaymode();
+                        };
+                    }
+                    else if (phase == 31)
+                    {
+                        SessionState.SetInt(Key + ".Phase", 32);
+                        EditorApplication.delayCall += () =>
+                        {
+                            MatchSetup.MapId = "castle";
+                            MatchSetup.ModeId = "demo";
+                            EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
+                            EditorApplication.EnterPlaymode();
+                        };
+                    }
+                    else if (phase == 32)
+                    {
+                        SessionState.SetBool(Key, false);
+                        SessionState.SetInt(Key + ".Phase", 0);
+                        File.AppendAllText(Report, "BATCH 3 WORLD COMPLETE at " + DateTime.UtcNow.ToString("O") + "\n");
+                        Debug.Log("Slot 2 Batch 3 World Captures Complete! See: " + Report);
+                    }
                 }
             };
         }
@@ -139,6 +171,61 @@ namespace DeadlyJenga.DevTools.Editor
         public static void ImportBatch2()
         {
             ImportBatch("batch2_player_meta.json");
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 3 World (35 Cues)")]
+        public static void RunBatch3World()
+        {
+            Directory.CreateDirectory(RawRoot);
+            File.AppendAllText(Report, "Starting Batch 3 World Captures (35 cues) · " + DateTime.UtcNow.ToString("O") + "\n");
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 30);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 1;
+            if (EditorApplication.isPlaying)
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
+                EditorApplication.EnterPlaymode();
+            }
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Import Batch 3 World Previews")]
+        public static void ImportBatch3()
+        {
+            ImportBatch("batch3_world_meta.json");
+        }
+
+        [MenuItem("Tools/Candy Audio/Batch Captures/Run Batch 3 Lobby Only (3 Cues)")]
+        public static void RunBatch3LobbyOnly()
+        {
+            Directory.CreateDirectory(RawRoot);
+            SessionState.SetBool(Key, true);
+            SessionState.SetInt(Key + ".Phase", 32);
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            if (EditorApplication.isPlaying && UnityEngine.SceneManagement.SceneManager.GetActiveScene().name == "Lobby")
+            {
+                Application.runInBackground = true;
+                EditorApplication.update -= StartRoutineWhenReady;
+                EditorApplication.update += StartRoutineWhenReady;
+            }
+            else
+            {
+                EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
+                EditorApplication.EnterPlaymode();
+            }
         }
 
         public static void ImportBatch(string metaFileName)
@@ -228,6 +315,27 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
                 EditorApplication.update -= StartRoutineWhenReady;
                 session.StartCoroutine(Guard(RunBatch2PlayerCaptures(session)));
+            }
+            else if (phase == 30)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch3CastleCaptures(session)));
+            }
+            else if (phase == 31)
+            {
+                var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                if (!session || session.Player == null || Services.World == null || !session.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                session.StartCoroutine(Guard(RunBatch3NinjaCaptures(session)));
+            }
+            else if (phase == 32)
+            {
+                var lobby = Object.FindFirstObjectByType<IslandLobby>();
+                if (!lobby || lobby.Player == null || !lobby.ActiveCamera) return;
+                EditorApplication.update -= StartRoutineWhenReady;
+                lobby.StartCoroutine(Guard(RunBatch3LobbyCaptures(lobby)));
             }
         }
 
@@ -1422,6 +1530,409 @@ namespace DeadlyJenga.DevTools.Editor
             Object.DestroyImmediate(cam.gameObject);
             session.SurvivorBots.Clear();
             Log("Batch 2 (Player) captures successfully completed!");
+        }
+
+        static IEnumerator RunBatch3CastleCaptures(CastlePlaySession session)
+        {
+            Log("Setting up Castle scene for Batch 3...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var rules = ModeSimulation.Defaults(GameModeKind.Demo);
+            rules.countdownSeconds = 0;
+            rules.healthEnabled = false;
+            rules.deathEnabled = false;
+            rules.fallDamage = false;
+            rules.island = IslandRule.Walkable;
+            session.Modes.Configure(rules);
+            session.Modes.StartRound();
+            session.SetRole(true);
+            session.SetMenu(false);
+
+            session.Player.InputSuspended = true;
+            if (session.Hand != null) session.Hand.InputSuspended = true;
+
+            var world = Services.World;
+            float waterY = world != null ? world.WaterHeight(world.Center) : 0f;
+
+            var camObj = new GameObject("Batch3_Capture_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            var blocksWithCollider = world.Blocks.Where(b => b && b.GetComponent<Collider>()).ToList();
+            var topBlock = blocksWithCollider.Select(b => b.GetComponent<Collider>().bounds).OrderByDescending(b => b.max.y).First();
+            Vector3 platformTop = new Vector3(topBlock.center.x, topBlock.max.y + 0.05f, topBlock.center.z);
+
+            var midBlock = blocksWithCollider.FirstOrDefault(b => b.position.y > waterY + 4f && b.position.y < waterY + 10f);
+            Vector3 blockPos = midBlock ? midBlock.position : platformTop;
+
+            // SECTION 1: BLOCKS (6 Cues: 0, 1, 2, 3, 4, 5)
+            Log("--- Commencing Blocks captures (6 cues) ---");
+
+            // Cue 0: Block Tap
+            cam.transform.position = blockPos + Vector3.back * 1.8f + Vector3.up * 0.4f;
+            cam.transform.LookAt(blockPos);
+            yield return CaptureCue(cam, 0, "Block Tap", 24, f => {
+                if (midBlock && f == 6) midBlock.transform.position += Vector3.up * 0.04f;
+            });
+
+            // Cue 1: Block Hit
+            cam.transform.position = blockPos + Vector3.back * 2.2f + Vector3.up * 0.8f;
+            cam.transform.LookAt(blockPos);
+            yield return CaptureCue(cam, 1, "Block Hit", 24, f => {
+                if (midBlock) {
+                    float dy = f < 6 ? (6 - f) * 0.2f : 0f;
+                    midBlock.transform.position = blockPos + Vector3.up * dy;
+                }
+            });
+
+            // Cue 2: Block Smash
+            yield return CaptureCue(cam, 2, "Block Smash", 24, f => {
+                if (midBlock && f >= 6) midBlock.transform.localScale = Vector3.Lerp(Vector3.one, new Vector3(1.2f, 0.2f, 1.2f), (f - 6) / 10f);
+            });
+            if (midBlock) midBlock.transform.localScale = Vector3.one;
+
+            // Cue 3: Block Scrape
+            cam.transform.position = blockPos + Vector3.right * 1.6f + Vector3.up * 0.5f;
+            cam.transform.LookAt(blockPos);
+            yield return CaptureCue(cam, 3, "Block Scrape", 24, f => {
+                if (midBlock) {
+                    float dx = f < 6 ? 0f : (f - 6) * 0.05f;
+                    midBlock.transform.position = blockPos + Vector3.forward * dx;
+                }
+            });
+
+            // Cue 4: Structure Lean
+            cam.transform.position = world.Center + new Vector3(0, waterY + 12f, -18f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 10f));
+            yield return CaptureCue(cam, 4, "Structure Lean", 24, f => {
+                float angle = Mathf.Sin(f / 24f * Mathf.PI * 2) * 4f;
+                cam.transform.RotateAround(world.Center, Vector3.forward, angle * 0.05f);
+            });
+
+            // Cue 5: Block Splash
+            Vector3 splashPos = world.Center + Vector3.forward * 8f;
+            splashPos.y = waterY;
+            cam.transform.position = splashPos + Vector3.back * 4.5f + Vector3.up * 2f;
+            cam.transform.LookAt(splashPos + Vector3.up * 0.5f);
+            yield return CaptureCue(cam, 5, "Block Splash", 24, f => {
+                if (midBlock) {
+                    float y = f < 6 ? waterY + (6 - f) * 0.8f : waterY - (f - 6) * 0.2f;
+                    midBlock.transform.position = splashPos + Vector3.up * (y - waterY);
+                }
+            });
+
+            // SECTION 2: SINKING ISLAND (3 Cues: 56, 118, 119)
+            Log("--- Commencing Sinking Island captures (3 cues) ---");
+
+            // Cue 56: Island Sink
+            cam.transform.position = world.Center + new Vector3(14f, waterY + 4f, 14f);
+            cam.transform.LookAt(world.Center + Vector3.up * waterY);
+            yield return CaptureCue(cam, 56, "Island Sink", 24, f => {
+                cam.transform.position += Vector3.down * 0.02f;
+            });
+
+            // Cue 118: Island Sinking
+            cam.transform.position = world.Center + new Vector3(-8f, waterY + 1.5f, -10f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 0.5f));
+            yield return CaptureCue(cam, 118, "Island Sinking", 24, f => {
+                cam.transform.position += Vector3.down * 0.03f;
+            });
+
+            // Cue 119: Island Death
+            cam.transform.position = world.Center + new Vector3(0, waterY + 0.8f, -6f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY - 0.5f));
+            yield return CaptureCue(cam, 119, "Island Death", 24, f => {
+                cam.transform.position += Vector3.down * 0.05f;
+            });
+
+            // SECTION 3: FLYING HAND (6 Cues: 7, 8, 20, 52, 53, 54)
+            Log("--- Commencing Flying Hand captures (6 cues) ---");
+            var hand = session.Hand != null ? session.Hand.gameObject : null;
+            if (!hand)
+            {
+                var hObj = Object.FindFirstObjectByType<FlyingHandController>();
+                if (hObj) hand = hObj.gameObject;
+            }
+            Vector3 handTarget = platformTop + Vector3.up * 0.3f;
+
+            // Cue 7: Rubber Slide
+            cam.transform.position = handTarget + Vector3.back * 1.6f + Vector3.up * 0.5f;
+            cam.transform.LookAt(handTarget);
+            yield return CaptureCue(cam, 7, "Rubber Slide", 24, f => {
+                if (hand) {
+                    float dx = (f - 12) * 0.04f;
+                    hand.transform.position = handTarget + Vector3.right * dx;
+                }
+            });
+
+            // Cue 8: Rubber Touch
+            yield return CaptureCue(cam, 8, "Rubber Touch", 24, f => {
+                if (hand) {
+                    float dy = f < 6 ? (6 - f) * 0.06f : 0f;
+                    hand.transform.position = handTarget + Vector3.up * dy;
+                }
+            });
+
+            // Cue 20: Hand Flight
+            cam.transform.position = world.Center + new Vector3(0, waterY + 15f, -14f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 14f));
+            yield return CaptureCue(cam, 20, "Hand Flight", 24, f => {
+                if (hand) {
+                    float t = f / 24f;
+                    hand.transform.position = Vector3.Lerp(world.Center + new Vector3(-8f, waterY + 14f, 0), world.Center + new Vector3(8f, waterY + 16f, 0), t);
+                    hand.transform.rotation = Quaternion.Euler(0, 90f, Mathf.Sin(t * Mathf.PI * 4f) * 15f);
+                }
+            });
+
+            // Cue 52: Finger Flex
+            cam.transform.position = handTarget + Vector3.back * 1.2f + Vector3.up * 0.3f;
+            cam.transform.LookAt(handTarget);
+            if (hand) hand.transform.position = handTarget;
+            yield return CaptureCue(cam, 52, "Finger Flex", 24, f => {
+                if (hand) {
+                    float scale = 1f + Mathf.Sin(f / 24f * Mathf.PI * 2f) * 0.1f;
+                    hand.transform.localScale = Vector3.one * scale;
+                }
+            });
+
+            // Cue 53: Hand Swirl
+            yield return CaptureCue(cam, 53, "Hand Swirl", 24, f => {
+                if (hand) {
+                    hand.transform.Rotate(Vector3.up, 15f);
+                    hand.transform.position = handTarget + new Vector3(Mathf.Cos(f * 0.3f) * 0.2f, Mathf.Sin(f * 0.3f) * 0.2f, 0);
+                }
+            });
+
+            // Cue 54: Push Impact
+            yield return CaptureCue(cam, 54, "Push Impact", 24, f => {
+                if (hand) {
+                    float z = f < 6 ? -0.4f + f * 0.08f : (f < 12 ? 0.08f - (f - 6) * 0.04f : 0f);
+                    hand.transform.position = handTarget + Vector3.forward * z;
+                }
+            });
+            if (hand) hand.transform.localScale = Vector3.one;
+
+            // SECTION 4: MAP AMBIENCE, MUSIC & UI (6 Cues: 19, 22, 55, 105, 106, 107)
+            Log("--- Commencing Ambience, Music & UI captures (6 cues) ---");
+
+            // Cue 19: Beach Wind
+            cam.transform.position = world.Center + new Vector3(-16f, waterY + 8f, -22f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 6f));
+            yield return CaptureCue(cam, 19, "Beach Wind", 24, f => {
+                cam.transform.position += Vector3.right * 0.04f;
+            });
+
+            // Cue 22: Music
+            cam.transform.position = world.Center + new Vector3(18f, waterY + 16f, -18f);
+            cam.transform.LookAt(world.Center + Vector3.up * (waterY + 12f));
+            yield return CaptureCue(cam, 22, "Music", 24, f => {
+                cam.transform.RotateAround(world.Center, Vector3.up, 0.4f);
+            });
+
+            var bot = session.SurvivorBots.SpawnOne();
+            if (!bot) bot = session.Player.gameObject;
+            var botMotor = bot.GetComponent<CastleSurvivor>();
+            var botEmotes = bot.GetComponent<CastleBotEmotes>();
+            if (botMotor) botMotor.Teleport(platformTop, Quaternion.LookRotation(Vector3.back));
+
+            // Cue 55: Claim Win
+            cam.transform.position = platformTop + Vector3.back * 2.2f + Vector3.up * 1.35f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.15f);
+            yield return CaptureCue(cam, 55, "Claim Win", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.JumpForJoy, true);
+            });
+
+            // Cue 105: Scoreboard Open
+            cam.transform.position = platformTop + Vector3.back * 2.5f + Vector3.up * 1.4f;
+            cam.transform.LookAt(platformTop + Vector3.up * 1.1f);
+            yield return CaptureCue(cam, 105, "Scoreboard Open", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.FriendlyWave, true);
+            });
+
+            // Cue 106: Point Scored
+            yield return CaptureCue(cam, 106, "Point Scored", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.ThumbsUp, true);
+            });
+
+            // Cue 107: Round Results
+            yield return CaptureCue(cam, 107, "Round Results", 24, f => {
+                if (f == 6 && botEmotes) botEmotes.TryPlay(CastleBotEmotes.Emote.Salute, true);
+            });
+
+            Object.DestroyImmediate(cam.gameObject);
+            session.SurvivorBots.Clear();
+            Log("Castle scene captures complete.");
+        }
+
+        static IEnumerator RunBatch3NinjaCaptures(CastlePlaySession session)
+        {
+            Log("Setting up Ninja Temple scene for Batch 3...");
+            AudioListener.volume = 0;
+            session.SurvivorBots.AutoFill = false;
+            session.SurvivorBots.Clear();
+            session.HandBots?.Clear();
+            if (session.Social != null) session.Social.VoiceEnabled = false;
+
+            var world = Services.World;
+            float waterY = world != null ? world.WaterHeight(world.Center) : 0.08f;
+
+            var camObj = new GameObject("Batch3_Ninja_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(session.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            Vector3 center = world != null ? world.Center : Vector3.zero;
+            Vector3 courtyard = center + Vector3.up * (waterY + 1f);
+
+            var ninjaBot = session.SurvivorBots.SpawnOne();
+            if (!ninjaBot) ninjaBot = session.Player.gameObject;
+            var ninjaMotor = ninjaBot.GetComponent<CastleSurvivor>();
+            var ninjaEmotes = ninjaBot.GetComponent<CastleBotEmotes>();
+            if (ninjaMotor) ninjaMotor.Teleport(courtyard, Quaternion.LookRotation(Vector3.back));
+
+            Log("--- Commencing Ninja Temple captures (11 cues) ---");
+
+            // Cue 27900: Taiko
+            cam.transform.position = courtyard + Vector3.back * 6f + Vector3.up * 3f;
+            cam.transform.LookAt(courtyard + Vector3.up * 2f);
+            yield return CaptureCue(cam, 27900, "Taiko", 24, f => {
+                cam.transform.position += Vector3.forward * 0.03f;
+            });
+
+            // Cue 114211: Water
+            cam.transform.position = center + new Vector3(8f, waterY + 1.2f, 8f);
+            cam.transform.LookAt(center + new Vector3(0, waterY, 0));
+            yield return CaptureCue(cam, 114211, "Water", 24, f => {
+                cam.transform.position += Vector3.left * 0.02f;
+            });
+
+            // Cue 219870: Chime
+            cam.transform.position = courtyard + new Vector3(-2f, 4f, -3f);
+            cam.transform.LookAt(courtyard + Vector3.up * 4.5f);
+            yield return CaptureCue(cam, 219870, "Chime", 24, f => {
+                cam.transform.Rotate(0, 0, Mathf.Sin(f * 0.4f) * 0.2f);
+            });
+
+            // Cue 292904: Rain
+            cam.transform.position = courtyard + Vector3.back * 4f + Vector3.up * 1.5f;
+            cam.transform.LookAt(courtyard + Vector3.up * 3.5f);
+            yield return CaptureCue(cam, 292904, "Rain", 24, f => {
+                cam.transform.position += Vector3.up * 0.02f;
+            });
+
+            // Cue 346823: Poof
+            cam.transform.position = courtyard + Vector3.back * 3f + Vector3.up * 1.4f;
+            cam.transform.LookAt(courtyard + Vector3.up * 1.1f);
+            yield return CaptureCue(cam, 346823, "Poof", 24, f => {
+                if (ninjaMotor) {
+                    float y = f < 6 ? 0f : -10f;
+                    ninjaMotor.Teleport(courtyard + Vector3.up * y, Quaternion.LookRotation(Vector3.back));
+                }
+            });
+            if (ninjaMotor) ninjaMotor.Teleport(courtyard, Quaternion.LookRotation(Vector3.back));
+
+            // Cue 403756: Clack
+            cam.transform.position = center + new Vector3(4f, waterY + 0.8f, -4f);
+            cam.transform.LookAt(center + new Vector3(4f, waterY + 0.3f, -2f));
+            yield return CaptureCue(cam, 403756, "Clack", 24, f => {
+                cam.transform.position += Vector3.forward * 0.01f;
+            });
+
+            // Cue 444834: Steal
+            cam.transform.position = courtyard + Vector3.back * 3.5f + Vector3.up * 1.5f;
+            cam.transform.LookAt(courtyard + Vector3.up * 1.2f);
+            yield return CaptureCue(cam, 444834, "Steal", 24, f => {
+                if (ninjaMotor) {
+                    float x = (f - 12) * 0.2f;
+                    ninjaMotor.Teleport(courtyard + Vector3.right * x, Quaternion.LookRotation(Vector3.right));
+                    if (f == 6 && ninjaEmotes) ninjaEmotes.TryPlay(CastleBotEmotes.Emote.Salute, true);
+                }
+            });
+
+            // Cue 533137: Whoosh
+            yield return CaptureCue(cam, 533137, "Whoosh", 24, f => {
+                if (ninjaMotor) {
+                    float z = (f - 12) * 0.3f;
+                    ninjaMotor.Teleport(courtyard + Vector3.forward * z, Quaternion.LookRotation(Vector3.forward));
+                }
+            });
+
+            // Cue 874146: Hum
+            cam.transform.position = courtyard + Vector3.back * 2.5f + Vector3.up * 1.4f;
+            cam.transform.LookAt(courtyard + Vector3.up * 1.2f);
+            yield return CaptureCue(cam, 874146, "Hum", 24, f => {
+                cam.transform.position += Vector3.forward * 0.015f;
+            });
+
+            // Cue 930736: Wind
+            cam.transform.position = courtyard + new Vector3(-8f, 6f, -8f);
+            cam.transform.LookAt(courtyard + Vector3.up * 2f);
+            yield return CaptureCue(cam, 930736, "Wind", 24, f => {
+                cam.transform.position += Vector3.right * 0.03f;
+            });
+
+            // Cue 978805: Gong
+            cam.transform.position = courtyard + Vector3.back * 5f + Vector3.up * 2.5f;
+            cam.transform.LookAt(courtyard + Vector3.up * 2.2f);
+            yield return CaptureCue(cam, 978805, "Gong", 24, f => {
+                if (f == 6 && ninjaEmotes) ninjaEmotes.TryPlay(CastleBotEmotes.Emote.Bow, true);
+            });
+
+            Object.DestroyImmediate(cam.gameObject);
+            session.SurvivorBots.Clear();
+            Log("Ninja Temple scene captures complete.");
+        }
+
+        static IEnumerator RunBatch3LobbyCaptures(IslandLobby lobby)
+        {
+            Log("Lobby.unity loaded for Batch 3 (Marina Ambience & Music)...");
+            AudioListener.volume = 0;
+            lobby.Player.Place(new Vector3(0, 0.1f, -8f), Quaternion.identity);
+            lobby.Player.InputSuspended = true;
+            yield return new WaitForSecondsRealtime(0.5f);
+
+            var camObj = new GameObject("Batch3_Lobby_Camera");
+            var cam = camObj.AddComponent<Camera>();
+            cam.CopyFrom(lobby.ActiveCamera);
+            cam.enabled = false;
+
+            foreach (var canvas in Object.FindObjectsByType<Canvas>(FindObjectsSortMode.None)) canvas.enabled = false;
+
+            Log("--- Commencing Home Menu & Marina Ambience captures (3 cues) ---");
+
+            // Cue 710: Home menu / Shorebreak
+            cam.transform.position = new Vector3(0f, 3f, -14f);
+            cam.transform.LookAt(new Vector3(0f, 1f, 10f));
+            yield return CaptureCue(cam, 710, "Home menu / Shorebreak", 24, f => {
+                cam.transform.position += Vector3.forward * 0.03f;
+            });
+
+            // Cue 711: Lobby / Ready Set Splash
+            cam.transform.position = new Vector3(0f, 1.4f, -4.5f);
+            cam.transform.LookAt(new Vector3(0f, 1.2f, -2.5f));
+            yield return CaptureCue(cam, 711, "Lobby / Ready Set Splash", 24, f => {
+                cam.transform.position += Vector3.back * 0.02f;
+            });
+
+            // Cue 712: Marina gull calls
+            cam.transform.position = new Vector3(-12f, 4.5f, -8f);
+            cam.transform.LookAt(new Vector3(4f, 2f, 8f));
+            yield return CaptureCue(cam, 712, "Marina gull calls", 24, f => {
+                cam.transform.position += Vector3.right * 0.04f;
+            });
+
+            Object.DestroyImmediate(cam.gameObject);
+            Log("Lobby.unity Batch 3 captures complete.");
+            EditorApplication.isPlaying = false;
         }
 
         sealed class SimplePickupSource : IEquipmentPickupSource
