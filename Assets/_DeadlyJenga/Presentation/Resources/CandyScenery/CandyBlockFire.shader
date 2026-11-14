@@ -1,6 +1,6 @@
 Shader "Candy Tropical/Engulfing Block Fire"
 {
- Properties {_BaseColor("Tint",Color)=(1,.45,.04,1) _Tongue("Flame tongue",Float)=0 _Cull("Cull",Float)=2}
+ Properties {_BaseColor("Tint",Color)=(1,1,1,1) _Tongue("Flame tongue",Float)=0 _Cull("Cull",Float)=2}
  SubShader
  {
   Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent+5" "RenderType"="Transparent"}
@@ -46,7 +46,9 @@ Shader "Candy Tropical/Engulfing Block Fire"
     UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
     float t=_Time.y;
     float2 flow=float2(dot(i.world.xz,float2(.76,.65)),i.world.y-t*1.8);
-    float n=Noise(flow*4)+.35*Noise(flow*9);
+    float2 warp=float2(Noise(flow*2.1),Noise(flow*2.1+float2(4.7,1.3)));
+    float2 warped=flow+(warp-.5)*.42;
+    float n=.78*Noise(warped*4)+.40*Noise(warped*9)+.17*Noise(warped*17);
     if(_Tongue<.5)
     {
      // The shell connects the tongues along the bevels while the face remains readable.

@@ -28,7 +28,9 @@ namespace DeadlyJenga.CandyArt
         public int FireShellCount=>fireShells.Count;
         public int FlameSubjectCount=>flameSubjects.Count;
         readonly List<Matrix4x4> fireShells=new List<Matrix4x4>(512),fireTips=new List<Matrix4x4>(384);
-        readonly List<Matrix4x4> smoulders=new List<Matrix4x4>(192);
+        readonly List<Matrix4x4> smoulders=new List<Matrix4x4>(192),fireSmokePuffs=new List<Matrix4x4>(MaxFireSmokePuffs);
+        const int MaxFireSmokePuffs=160;
+        Material fireSmoke;
         sealed class CharredLook
         {
             public Renderer renderer;public Material[] originals,replacements;public MaterialPropertyBlock originalsProps;
@@ -48,7 +50,10 @@ namespace DeadlyJenga.CandyArt
             fireShell=ObjectMaterial("CandyBlockFire",Color.white);
             fireTongue=new Material(fireShell){name="Candy flame tongues",enableInstancing=true};fireTongue.SetFloat("_Tongue",1);fireTongue.SetFloat("_Cull",0);
             charredMaterial=ObjectMaterial("CandyCharredBlock",Color.white);
-            smoulderMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.31f,.29f,.27f,.30f));burnProps=new MaterialPropertyBlock();
+            smoulderMaterial=ObjectMaterial("CandyDisasterSmoke",new Color(.12f,.11f,.10f,.34f));
+            // Heavy, dark smoke that rolls off burning blocks. Only fire draws this material.
+            fireSmoke=ObjectMaterial("CandyDisasterSmoke",new Color(.055f,.05f,.048f,.62f));
+            burnProps=new MaterialPropertyBlock();
         }
         static Mesh CreateBlockFlameMesh()
         {
@@ -103,7 +108,7 @@ namespace DeadlyJenga.CandyArt
         {
             var world=Services.World;var first=world!=null&&world.Blocks.Count>0?world.Blocks[0]:null;
             if(!ReferenceEquals(fireWorld,world)||fireFirst!=first){ClearCharred();fireWorld=world;fireFirst=first;}
-            fireShells.Clear();fireTips.Clear();fireLowTips.Clear();flameSubjects.Clear();smoulders.Clear();seenCharred.Clear();FireTongueTriangleCount=0;
+            fireShells.Clear();fireTips.Clear();fireLowTips.Clear();flameSubjects.Clear();smoulders.Clear();fireSmokePuffs.Clear();seenCharred.Clear();FireTongueTriangleCount=0;
         }
         void FireSurfaces(DisasterFrame frame)
         {
@@ -166,11 +171,11 @@ namespace DeadlyJenga.CandyArt
             float distanceSquared=view?(view.transform.position-bounds.center).sqrMagnitude:float.PositiveInfinity;
             if(view&&distanceSquared>3025)return;
             QueueFlameSubject(new FlameSubject{body=body,id=id,bounds=bounds,rotation=rotation,distanceSquared=distanceSquared,preferNear=nearFireBodies.Contains(body)&&distanceSquared<256});
-            float width=Mathf.Clamp(Mathf.Max(bounds.size.x,bounds.size.z)*.16f,.28f,1.25f);
-            if(smoulders.Count<192)
+            float width=Mathf.Clamp(Mathf.Max(bounds.size.x,bounds.size.z)*.24f,.35f,1.8f);
+            if(fireSmokePuffs.Count<MaxFireSmokePuffs)
             {
-                float phase=Mathf.Repeat(Time.time*.28f+Hash(id+81),1);
-                Puff(smoulders,bounds.center+Vector3.up*(bounds.extents.y+.45f+phase*2.6f),width*(.6f+phase),width*(1.6f+phase),id*31);
+                float phase=Mathf.Repeat(Time.time*.22f+Hash(id+81),1);
+                Puff(fireSmokePuffs,bounds.center+Vector3.up*(bounds.extents.y+phase*4),width*(1.3f+phase),width*(1.8f+phase*1.5f),id*31);
             }
         }
         static int CompareFlameDistance(FlameSubject a,FlameSubject b)
@@ -296,7 +301,7 @@ namespace DeadlyJenga.CandyArt
                 }
             }
             foreach(var renderer in oldCharred)charred.Remove(renderer);
-            DrawObjects(fireShells,fireCube,fireShell);DrawObjects(fireTips,fireTongueMesh,fireTongue);DrawObjects(fireLowTips,fireLowTongueMesh,fireTongue);DrawObjects(smoulders,quad,smoulderMaterial);
+            DrawObjects(fireShells,fireCube,fireShell);DrawObjects(fireTips,fireTongueMesh,fireTongue);DrawObjects(fireLowTips,fireLowTongueMesh,fireTongue);DrawObjects(smoulders,quad,smoulderMaterial);DrawObjects(fireSmokePuffs,quad,fireSmoke);
         }
         void UpdateFireGlow()
         {
@@ -331,8 +336,8 @@ namespace DeadlyJenga.CandyArt
             if(look.renderer&&look.renderer.sharedMaterial==charredMaterial&&look.originals!=null)
             {look.renderer.sharedMaterials=look.originals;look.renderer.SetPropertyBlock(look.originalsProps);}
         }
-        void ClearCharred(){if(fireGlow)fireGlow.enabled=false;fireShells.Clear();smoulders.Clear();nearFlameSubjects.Clear();nearFireBodies.Clear();detailedFireCounts.Clear();oldNearFireBodies.Clear();flameSubjects.Clear();fireTips.Clear();fireLowTips.Clear();FireTongueTriangleCount=0;foreach(var look in charred.Values)RestoreCharred(look);charred.Clear();burnRenderers.Clear();seenCharred.Clear();}
+        void ClearCharred(){if(fireGlow)fireGlow.enabled=false;fireShells.Clear();smoulders.Clear();fireSmokePuffs.Clear();nearFlameSubjects.Clear();nearFireBodies.Clear();detailedFireCounts.Clear();oldNearFireBodies.Clear();flameSubjects.Clear();fireTips.Clear();fireLowTips.Clear();FireTongueTriangleCount=0;foreach(var look in charred.Values)RestoreCharred(look);charred.Clear();burnRenderers.Clear();seenCharred.Clear();}
         public void ReleaseFireSurfaces()=>ClearCharred();
-        void DestroyFire(){ClearCharred();if(fireGlow)Destroy(fireGlow.gameObject);if(fireTongueMesh)Destroy(fireTongueMesh);if(fireLowTongueMesh)Destroy(fireLowTongueMesh);foreach(var material in new[]{fireShell,fireTongue,charredMaterial,smoulderMaterial})if(material)Destroy(material);}
+        void DestroyFire(){ClearCharred();if(fireGlow)Destroy(fireGlow.gameObject);if(fireTongueMesh)Destroy(fireTongueMesh);if(fireLowTongueMesh)Destroy(fireLowTongueMesh);foreach(var material in new[]{fireShell,fireTongue,charredMaterial,smoulderMaterial,fireSmoke})if(material)Destroy(material);}
     }
 }
