@@ -166,6 +166,12 @@ namespace DeadlyJenga.DevTools.Editor
             Capture(center+Quaternion.Euler(0,122,0)*new Vector3(0,1.75f,3.2f),origin+MayhemMarina.Wardrobe+Vector3.up*1.1f,70,"Marina-wardrobe-stage.png");
             Capture(center+Quaternion.Euler(0,-122,0)*new Vector3(0,1.75f,3.2f),origin+MayhemMarina.FameBoard+Vector3.down*.6f,70,"Marina-hall-of-fame.png");
             Capture(center+new Vector3(0,9,-14),center+new Vector3(0,0,1.5f),64,"Marina-plaza-overhead.png");
+            foreach(var shipName in new[]{"Cruise ship · Coral Dream","Cruise ship · Candy Wonder"})
+            {
+                var ship=GameObject.Find(shipName);
+                Check(ship,"Cruise ship present: "+shipName);
+                if(ship)Capture(center+new Vector3(0,3.2f,-6),ship.transform.position+Vector3.up*8,38,shipName.Replace("Cruise ship · ","Marina-cruise-").Replace(" ","-")+".png");
+            }
             var sky=RenderSettings.skybox;
             GameEvents.RaiseEmoted(lobby.gameObject,"LobbyParked");
             Check(!ocean.gameObject.activeInHierarchy,"Parked lobby hides its ocean");

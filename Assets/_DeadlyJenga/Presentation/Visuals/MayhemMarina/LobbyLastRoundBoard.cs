@@ -21,6 +21,7 @@ namespace DeadlyJenga.Presentation
         static RoundPhase observedPhase;
         Result displayed;
         CandyScorePodium podium;
+        Transform billboard;
         float nextPodiumDraw;
         Text title, details, heading, infectionHeading, footer;
         readonly Text[] left = new Text[PageSize], right = new Text[PageSize];
@@ -73,6 +74,7 @@ namespace DeadlyJenga.Presentation
         void Build()
         {
             var root = new GameObject("Last match billboard", typeof(RectTransform), typeof(Canvas));
+            billboard = root.transform;
             root.transform.SetParent(transform, false);
             // Hall of Fame on Showtime Plaza. Shift left so the board and the top-three card sit centered.
             var facing = DeadlyJenga.CandyArt.Marina.MayhemMarina.FameFacing;
@@ -128,8 +130,11 @@ namespace DeadlyJenga.Presentation
         {
             displayed = latest;
             nextPage = Time.unscaledTime + 7;
+            // Centre the board alone until a match result brings the top-three card beside it.
+            var facing = DeadlyJenga.CandyArt.Marina.MayhemMarina.FameFacing;
+            billboard.localPosition = DeadlyJenga.CandyArt.Marina.MayhemMarina.FameBoard + facing * Vector3.left * (latest != null ? .76f : 0);
             bool split = latest?.infections != null;
-            title.text = latest?.headline ?? "No completed match yet";
+            title.text = latest?.headline ?? "Win a match to claim the Hall of Fame";
             details.text = latest?.mode ?? "";
             heading.text = latest == null ? "" : split ? "LONGEST SURVIVORS" : "FINAL STANDINGS";
             infectionHeading.text = split ? "SURVIVORS INFECTED" : "";

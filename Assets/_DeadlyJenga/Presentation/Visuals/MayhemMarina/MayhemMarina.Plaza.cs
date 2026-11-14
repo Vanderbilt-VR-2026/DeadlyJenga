@@ -26,6 +26,13 @@ namespace DeadlyJenga.CandyArt.Marina
             return false;
         }
 
+        void CruiseShips()
+        {
+            var fleet = new GameObject("Marina cruise ships");
+            fleet.transform.SetParent(visual, false);
+            fleet.AddComponent<MarinaCruiseShips>().Build(visual.Find("Marina ocean"), OceanLevel);
+        }
+
         void ShowtimePlaza()
         {
             var floor = new Vector3(PlazaCenter.x, PlazaTop, PlazaCenter.z);
@@ -33,8 +40,26 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Disk(floor + Vector3.down * 2.2f, PlazaRadius + .3f, 2.07f, F.Rock, true, 72);
             mesh.Disk(floor + Vector3.down * .13f, PlazaRadius, .13f, F.Stone, true, 72);
 
-            // Flush inlays: a cream medallion, a brass ring and warm wood rays (art only, no collision).
+            // Flush inlays: a candy-tile mosaic medallion, a brass ring and warm wood rays (art only, no collision).
             mesh.Disk(floor, 1.55f, .006f, F.CandyCream, false, 48);
+            F[] tiles = { F.CandyMint, F.CandyCoral, F.CandyLilac, F.CandyCream };
+            for (int ring = 0; ring < 3; ring++)
+            {
+                float inner = 1.85f + ring * .55f, outer = inner + .48f;
+                int count = 16 + ring * 8;
+                for (int i = 0; i < count; i++)
+                {
+                    float from = i * 360f / count + 1.2f, to = (i + 1) * 360f / count - 1.2f;
+                    mesh.ArcSlab(floor, Vector2.one * inner, Vector2.one * outer, .007f, from, to, tiles[(i + ring) % tiles.Length], false, 3);
+                }
+            }
+            // A five-pointed candy star at the very centre.
+            for (int i = 0; i < 5; i++)
+            {
+                float a = i * 72f;
+                var tip = OnPlaza(a, .95f, PlazaTop - PlazaCenter.y + .009f);
+                mesh.Box((tip + floor) * .5f + Vector3.up * .009f, new Vector3(.32f, .004f, .95f), F.CandyCoral, .002f, false, Quaternion.Euler(0, a, 0));
+            }
             mesh.ArcSlab(floor, Vector2.one * 1.55f, Vector2.one * 1.72f, .008f, 0, 360, F.Brass, false, 48);
             mesh.ArcSlab(floor, Vector2.one * (PlazaRadius - .62f), Vector2.one * (PlazaRadius - .48f), .008f, 0, 360, F.Brass, false, 72);
             for (int i = 0; i < 12; i++)
@@ -55,8 +80,33 @@ namespace DeadlyJenga.CandyArt.Marina
                 mesh.Box(p, new Vector3(.86f, .2f, .42f), F.Ivory, .07f, false, Quaternion.Euler(0, a + 90, 0));
             }
             // Low lanterns ring the plaza edge so it reads as a stage at every time of day.
-            foreach (float a in new[] { -160f, -60f, 44f, 80f, 140f, 180f })
+            float[] posts = { -160f, -60f, 44f, 80f, 140f, 180f };
+            foreach (float a in posts)
                 DeckLight(OnPlaza(a, PlazaRadius - .55f, PlazaTop - PlazaCenter.y));
+
+            // Festive pennant bunting strung between neighbouring lantern posts, high above head height.
+            F[] pennants = { F.CandyCoral, F.CandyMint, F.CandyLilac, F.Brass };
+            for (int p = 0; p < posts.Length; p++)
+            {
+                float a0 = posts[p], a1 = posts[(p + 1) % posts.Length];
+                if (a1 <= a0) a1 += 360;
+                if (a1 - a0 > 110) continue;
+                var from = OnPlaza(a0, PlazaRadius - .55f, PlazaTop - PlazaCenter.y + 3.1f);
+                var to = OnPlaza(a1, PlazaRadius - .55f, PlazaTop - PlazaCenter.y + 3.1f);
+                var rope = new List<Vector3>();
+                for (int i = 0; i <= 12; i++)
+                {
+                    float t = i / 12f;
+                    rope.Add(Vector3.Lerp(from, to, t) + Vector3.down * Mathf.Sin(t * Mathf.PI) * .55f);
+                }
+                mesh.Tube(rope, .015f, F.CreamFabric, 6);
+                var along = Quaternion.LookRotation(Vector3.ProjectOnPlane(to - from, Vector3.up));
+                for (int i = 1; i < 12; i++)
+                    mesh.Box(rope[i] + Vector3.down * .16f, new Vector3(.02f, .3f, .22f), pennants[(i + p) % pennants.Length], .01f, false, along * Quaternion.Euler(0, 90, 0));
+            }
+            // Flower planters between the lanterns soften the open-water edge.
+            foreach (float a in new[] { -145f, -75f, 128f, 160f })
+                Pot(OnPlaza(a, PlazaRadius - .7f, PlazaTop - PlazaCenter.y), .42f, .7f, (int)a + 400);
         }
 
         void StyleStage()
