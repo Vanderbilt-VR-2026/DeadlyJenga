@@ -479,7 +479,8 @@ namespace DeadlyJenga.CastlePrototype
                             var added=new Peer {lastPose=Time.unscaledTime,welcome=castle.FusionWelcome(player.ToString())};
                             added.posesInFlight.Traffic.PeerId=player.ToString();peers.Add(player,added);
                         }
-                        if (!peers[player].ready) Send(player, Welcome, peers[player].welcome);
+                        // A loading guest repeats Ready each second; it is alive, so keep its timeout fresh.
+                        if (!peers[player].ready) { peers[player].lastPose = Time.unscaledTime; Send(player, Welcome, peers[player].welcome); }
                     }
                     else if (peers.TryGetValue(player, out var peer))
                     {
@@ -491,7 +492,7 @@ namespace DeadlyJenga.CastlePrototype
                             modeRuntime?.ReceiveCommand(player.ToString(),modeRequest);}
                         else if (kind == WelcomeAck)
                         {
-                            peer.ready=true;
+                            peer.ready=true;peer.lastPose=Time.unscaledTime;
                             var room=IslandRoomConnection.Instance;
                             if(room&&room.Owns(runner))room.NoteMatchPeer(player.ToString());
                         }

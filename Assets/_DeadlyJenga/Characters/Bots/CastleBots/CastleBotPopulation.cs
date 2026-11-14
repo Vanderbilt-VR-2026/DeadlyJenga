@@ -214,7 +214,14 @@ namespace DeadlyJenga.CastleBots
             cost+=hazards.Cost(point);
             return cost;
         }
-        public float Crowding(Vector3 point,CastleBotBrain self)
+        // Bots in the 2 m crowd cell around a point and its neighbours (refreshed 5 times a second).
+        public void Neighbours(Vector3 point,List<CastleBotBrain> into)
+        {
+            into.Clear();RefreshCrowd();var cell=CrowdCell(point);
+            for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++)
+                if(crowdCells.TryGetValue(cell+new Vector3Int(x,y,z),out var list))into.AddRange(list);
+        }
+        void RefreshCrowd()
         {
             if(Time.time>=crowdAt)
             {
@@ -228,6 +235,10 @@ namespace DeadlyJenga.CastleBots
                     list.Add(bot);
                 }
             }
+        }
+        public float Crowding(Vector3 point,CastleBotBrain self)
+        {
+            RefreshCrowd();
             float cost=0;var cell=CrowdCell(point);
             for(int x=-1;x<=1;x++)for(int y=-1;y<=1;y++)for(int z=-1;z<=1;z++)
                 if(crowdCells.TryGetValue(cell+new Vector3Int(x,y,z),out var list))

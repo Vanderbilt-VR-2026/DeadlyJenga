@@ -180,12 +180,14 @@ namespace DeadlyJenga.CastleBots
             else LocalFallback();
         }
 
+        static readonly List<CastleBotBrain> nearbyBots=new List<CastleBotBrain>(16);
         Vector3 Steer(Vector3 desired,float dt)
         {
             if(desired.sqrMagnitude<.001f){steeringVelocity=Vector3.zero;return desired;}
             Vector3 separation=Vector3.zero;int considered=0;
             var origin=transform.position;var direction=desired.normalized;
-            foreach(var other in Population.Bots)
+            Population.Neighbours(origin,nearbyBots);
+            foreach(var other in nearbyBots)
             {
                 if(!other||other==this||other.Respawning||Mathf.Abs(other.transform.position.y-origin.y)>.45f)continue;
                 var delta=Vector3.ProjectOnPlane(origin-other.transform.position,Vector3.up);
