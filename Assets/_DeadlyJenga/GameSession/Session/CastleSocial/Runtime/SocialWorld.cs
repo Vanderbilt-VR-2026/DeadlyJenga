@@ -14,6 +14,11 @@ namespace DeadlyJenga.CastleSocial
     [DefaultExecutionOrder(300)]
     public sealed partial class SocialWorld : MonoBehaviour, IVoiceMix
     {
+        // AI bot voices and the social simulation are switched off. Even muted, they cost CPU, memory and
+        // network every frame, so sessions and lobbies don't create them at all. Bots keep their names and
+        // personalities (those come from the match and bot presets). Launch with --dj-ai-voices to test them.
+        public static bool AiVoicesEnabled => Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-ai-voices") >= 0;
+
         public CastlePlaySession Session {get;private set;}
         public IslandLobby Lobby {get;private set;}
         public ISessionInfo Owner=>Lobby?(ISessionInfo)Lobby:Session;

@@ -146,7 +146,8 @@ namespace DeadlyJenga.CastlePrototype
             Room.CompleteDeparture();Room.ResumeLobbyConnection();
             SetPlayerPresent(true);
             if(lobbyBots==null)CreateLobbyPopulation();
-            if(!Voice){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}else Voice.enabled=true;
+            if(Voice)Voice.enabled=true;
+            else if(DeadlyJenga.CastleSocial.SocialWorld.AiVoicesEnabled){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}
             PlaceLocalLobbyArrival(returning:true);
             refreshInputOnReturn=true;
             PopulateLobbyWildlife();

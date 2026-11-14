@@ -96,7 +96,8 @@ namespace DeadlyJenga.CastlePrototype
                 PlaceLocalLobbyArrival();
                 if(!match)
                 {
-                    CreateLobbyPopulation();Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);
+                    CreateLobbyPopulation();
+                    if(DeadlyJenga.CastleSocial.SocialWorld.AiVoicesEnabled){Voice=gameObject.AddComponent<DeadlyJenga.CastleSocial.SocialWorld>();Voice.Initialize(this);}
                 }
                 menu=new InputAction("Lobby controls",InputActionType.Button,"<XRController>{LeftHand}/secondaryButton");menu.Enable();
                 SetMenu(false);
