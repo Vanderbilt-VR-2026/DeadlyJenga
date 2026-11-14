@@ -79,13 +79,14 @@ namespace DeadlyJenga.CandyPhysicsHands
                     result.SetJoint(f*4+j+1,at);
                 }
             }
-            return result;
+            // Slerping each bone separately can bend a blended finger past the limit, so clamp the result too.
+            return LimitFlexion(result);
         }
 
         // Limits how far each finger segment can bend from the one before it. Only the bend is changed, never the length.
+        // Joints are stored at 1 mm, so the stored bend is checked after rounding and pulled in if rounding pushed it over.
         public static CandyHandSkeleton LimitFlexion(CandyHandSkeleton skeleton)
         {
-            float maxRadians=MaximumBendDegrees*Mathf.Deg2Rad;
             for(int f=0;f<5;f++)
             {
                 Vector3 previous=Vector3.zero;
@@ -99,8 +100,16 @@ namespace DeadlyJenga.CandyPhysicsHands
                     Vector3 direction=bone/length;
                     if(previous.sqrMagnitude>0&&Vector3.Angle(previous,direction)>MaximumBendDegrees)
                     {
-                        direction=Vector3.RotateTowards(previous,direction,maxRadians,0f).normalized;
-                        skeleton.SetJoint(i+1,start+direction*length);
+                        Vector3 wanted=direction;
+                        float limit=MaximumBendDegrees;
+                        for(int attempt=0;attempt<16;attempt++)
+                        {
+                            direction=Vector3.RotateTowards(previous,wanted,limit*Mathf.Deg2Rad,0f).normalized;
+                            skeleton.SetJoint(i+1,start+direction*length);
+                            direction=(skeleton.Joint(i+1)-start).normalized;
+                            if(Vector3.Angle(previous,direction)<=MaximumBendDegrees)break;
+                            limit-=.25f;
+                        }
                     }
                     previous=direction;
                 }
