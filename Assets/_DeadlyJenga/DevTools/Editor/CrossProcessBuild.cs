@@ -38,6 +38,33 @@ namespace DeadlyJenga.CastlePrototype.Editor
             EditorApplication.Exit(report.Any(line => line.StartsWith("COMPLETE ")) ? 0 : 2);
         }
 
+        // Builds the smoke player without exiting the editor, so an open editor can run the harness.
+        public static string BuildSmokePlayer(string exePath, bool scriptsOnly)
+        {
+            var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path).ToArray();
+            // OpenXR build validation fails unless Composition Layers is on for the build (same as RunBatch).
+            var composition = UnityEngine.XR.OpenXR.OpenXRSettings
+                .GetSettingsForBuildTargetGroup(BuildTargetGroup.Standalone)
+                ?.GetFeatures<UnityEngine.XR.OpenXR.Features.OpenXRFeature>()
+                .FirstOrDefault(feature => feature.GetType().Name == "OpenXRCompositionLayersFeature");
+            bool compositionWasEnabled = composition && composition.enabled;
+            try
+            {
+                if (composition) composition.enabled = true;
+                var build = BuildPipeline.BuildPlayer(new BuildPlayerOptions
+                {
+                    scenes = scenes, locationPathName = exePath,
+                    target = BuildTarget.StandaloneWindows64,
+                    options = BuildOptions.Development | (scriptsOnly ? BuildOptions.BuildScriptsOnly : BuildOptions.None)
+                });
+                return build.summary.result + " " + build.summary.totalSize + " bytes " + build.summary.totalTime;
+            }
+            finally
+            {
+                if (composition) composition.enabled = compositionWasEnabled;
+            }
+        }
+
         public static void RunBatch()
         {
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");

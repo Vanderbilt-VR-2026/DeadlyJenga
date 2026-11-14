@@ -23,7 +23,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(LobbyHandoff||NearbyFlow||TycoonTest?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(ScaleTest?900:LobbyHandoff||NearbyFlow||TycoonTest?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -243,6 +243,58 @@ namespace DeadlyJenga.CastlePrototype
                 "Both clients confirm the return",25);
         }
 
+        // N-player join: one host (--dj-smoke=host) and N-1 guests (--dj-smoke=guestK). Each process
+        // holds the room for --dj-scale-seconds once everyone is in, then leaves.
+        static bool ScaleTest => Environment.GetCommandLineArgs().Contains("--dj-scale");
+        static int ScaleArg(string name, int fallback)
+        {
+            foreach (var arg in Environment.GetCommandLineArgs())
+                if (arg.StartsWith(name + "=") && int.TryParse(arg.Substring(name.Length + 1), out int value)) return value;
+            return fallback;
+        }
+
+        IEnumerator CheckScale()
+        {
+            int players = ScaleArg("--dj-scale-players", 2);
+            float holdSeconds = ScaleArg("--dj-scale-seconds", 60);
+            bool host = role == "host";
+            HomeSession home = null;
+            yield return Until(() => (home = FindFirstObjectByType<HomeSession>()) && !string.IsNullOrEmpty(home.Region),
+                "Home initializes its room connection", 90);
+            var room = IslandRoomConnection.Instance;
+            if (host)
+            {
+                home.Host();
+                yield return Until(() => IslandLobby.Current && room.IsHost && !room.Busy, "Host opens a Fusion room", 90, () => room.Status);
+                File.WriteAllText(Mark("scale-code-temp"), room.Code);
+                File.Move(Mark("scale-code-temp"), Mark("scale-code"));
+            }
+            else
+            {
+                yield return Until(() => File.Exists(Mark("scale-code")), "Host publishes the room code", 180);
+                home.Code = File.ReadAllText(Mark("scale-code"));
+                home.JoinCode();
+                yield return Until(() => IslandLobby.Current && room.Connected && !room.IsHost && !room.Busy,
+                    "Guest joins the room", 120, () => room.Status);
+            }
+            yield return Until(() => room.Connected && room.HumanCount == players,
+                $"Room reaches {players} humans", 240, () => $"humans={room.HumanCount}; status={room.Status}");
+            File.AppendAllText(Report, $"SCALE joined humans={room.HumanCount} of {players}\n");
+            float holdUntil = Time.realtimeSinceStartup + holdSeconds;
+            int minHumans = int.MaxValue, drops = 0;
+            while (Time.realtimeSinceStartup < holdUntil)
+            {
+                yield return new WaitForSeconds(1f);
+                int humans = room.HumanCount;
+                minHumans = Mathf.Min(minHumans, humans);
+                if (!room.Connected) drops++;
+            }
+            File.AppendAllText(Report, $"SCALE held minHumans={minHumans} disconnectedSeconds={drops}\n");
+            Require(drops == 0 && minHumans == players, $"Room held {players} humans for {holdSeconds:F0}s without drops");
+            var leave = room.Leave();
+            yield return Until(() => leave.IsCompleted, "Process leaves the room", 30);
+        }
+
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
         const string TycoonMap = "mode-tycoon";
 
@@ -409,6 +461,7 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(ScaleTest){yield return CheckScale();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
             if(NearbyFlow){yield return CheckNearbyLobby();yield break;}
             if(LobbyHandoff)
