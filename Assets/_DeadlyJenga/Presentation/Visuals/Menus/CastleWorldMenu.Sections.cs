@@ -358,13 +358,7 @@ namespace DeadlyJenga.CastlePrototype
                     Add("Clear enemy NPCs",()=>{if(CanCommand)enemies?.ClearEnemies();},CanCommand&&enemies!=null);
                 }
                 if(name=="Controls"){Add("VR movement / gestures",()=>comfortPage=true);
-                    var equipment=session.Player.gameObject.GetComponent<IEquipmentControls>();
-                    var hand=session.Player.gameObject.GetComponent<IBlasterControls>();
-                    Add("Dominant hand: "+(hand?.LeftHanded==true?"LEFT":"RIGHT"),()=>hand?.SetLeftHanded(!hand.LeftHanded),hand!=null);
-                    Add(equipment?.Equipment.drawn==true?"Holster "+equipment.Equipment.kind:"Draw "+(equipment?.Equipment.kind.ToString()??"equipment"),()=>equipment?.SetEquipped(!equipment.Equipment.drawn),equipment?.Equipment.kind>=EquipmentKind.Blaster);
-                    var drop=MatchRuntime.Current as IEquipmentDropRuntime;
-                    Add("Drop weapon here",()=>drop?.RequestDropEquipment(),drop!=null&&!session.PlayingHand&&equipment?.Equipment.kind>=EquipmentKind.Blaster,CandyHudIcon.Hand);
-                    Add("Jump: dominant lower button / pinch. Hold to climb.",()=>{},false);Add("Stamina / audio / scenery",()=>tuningPage=true);}
+                    Add("Stamina / audio / scenery",()=>tuningPage=true);}
                 if(name=="Ground pickups")
                 {
                     int max=Mathf.Min(10,EquipmentSpecifications.All.Length-1-equipmentOffset);
