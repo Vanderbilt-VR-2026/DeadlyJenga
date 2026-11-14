@@ -169,10 +169,19 @@ namespace DeadlyJenga.DevTools.Editor
             Capture(view,"JOIN","Actual-Join.png");Capture(view,"HOST","Actual-Host-Offline.png");Capture(view,"MAP + MODE","Actual-Setup.png");
             Call(view,"OpenMarinaDetail","join-code");
             Check(view.GiantKeyboard.gameObject.activeInHierarchy,"Room-code detail opens the floating keyboard");
-            lobby.EnteredCode="";Check(view.InvokeChoice("key-A")&&view.InvokeChoice("key-1")&&view.InvokeChoice("key--")&&view.InvokeChoice("key-B")&&lobby.EnteredCode=="A1-B","Actual numeric/letter/hyphen keyboard routes through lobby");
+            lobby.EnteredCode="";
+            foreach (char key in "A1-B")
+            {
+                yield return null;
+                Check(view.InvokeChoice("key-"+key),"Production floating keyboard accepts "+key);
+            }
+            Check(lobby.EnteredCode=="A1-B","Actual numeric/letter/hyphen keyboard routes through lobby");
+            yield return null;
             Check(view.InvokeChoice("backspace")&&lobby.EnteredCode=="A1-","Actual backspace works");
+            yield return null;
             Check(view.InvokeChoice("clear-code")&&lobby.EnteredCode=="","Actual clear works");
-            Check(!view.InvokeChoice("keyboard-enter")&&!view.InvokeChoice("join"),"Invalid code cannot trigger join");
+            yield return null;
+            Check(!view.InvokeChoice("keyboard-enter")&&!view.InvokeChoice("marina-submit-code"),"Invalid code cannot trigger join");
             foreach(string code in new[]{"US-ABC234","EU-XYZ785"})
             {
                 lobby.EnteredCode=code;Sync(view);
