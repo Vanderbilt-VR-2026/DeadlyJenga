@@ -70,17 +70,28 @@ Shader "Candy Tropical/Body Feedback"
                     half fatigue=_State.x;
                     if (fatigue>.001)
                     {
-                        half closing=smoothstep(1.02-fatigue*.38,1.25,edge);
-                        Layer(result,half3(.035,.026,.07),closing*fatigue*.66);
-                        half4 sweat=SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,frac(uv.y+_FeedbackTime*.013)));
-                        Layer(result,half3(.11,.27,.31),sweat.b*fatigue*.19);
-                        Layer(result,half3(.82,.97,1),sweat.a*fatigue*.63);
+                        // Tunnel vision: the dark ring moves in and gets darker as grip runs out.
+                        half inner=lerp(1.04,.6,fatigue);
+                        half closing=smoothstep(inner,inner+.42,edge);
+                        Layer(result,half3(.012,.008,.025),closing*(.3+.66*fatigue));
+                        // Heat haze: a faint warm veil that drifts over the whole view.
+                        half haze=fatigue*(.08+.04*sin(uv.y*21+_FeedbackTime*1.7)+.03*sin(uv.x*13-_FeedbackTime*1.1));
+                        Layer(result,half3(.95,.86,.74),haze);
+                        // Sweat runs down the screen and gathers near the edges.
+                        half near=smoothstep(.45,1.05,edge);
+                        half4 sweat=SAMPLE_TEXTURE2D(_Masks,sampler_Masks,float2(uv.x,frac(uv.y+_FeedbackTime*.03)));
+                        Layer(result,half3(.11,.27,.31),sweat.b*near*fatigue*.32);
+                        Layer(result,half3(.82,.97,1),sweat.a*near*fatigue*.9);
                     }
                     if (_State.z>.001)
                     {
-                        float lane=frac(uv.y*11+abs(p.x)*3-_FeedbackTime*2.1);
-                        half streak=(1-smoothstep(.018,.042,abs(lane-.5)))*smoothstep(.82,1,abs(p.x));
-                        Layer(result,half3(.65,.94,1),streak*_State.z*.22);
+                        // Sprint focus: the periphery goes pale and soft, and the view narrows.
+                        float s=_State.z;
+                        float shake=sin(_FeedbackTime*41)*.004+sin(_FeedbackTime*27)*.003;
+                        half narrow=smoothstep(.62-.2*s+shake,1.1,edge);
+                        Layer(result,half3(.88,.97,1),narrow*s*.34);
+                        // Wider, softer halo stands in for blur (no scene grab pass).
+                        Layer(result,half3(.95,1,1),smoothstep(.3,.9,edge+shake)*s*.12);
                     }
                     if (_State.y>.001 || _Impact>.001)
                     {
