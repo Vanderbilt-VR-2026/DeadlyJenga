@@ -162,7 +162,9 @@ namespace DeadlyJenga.DevTools.Editor
                 SessionState.SetBool(Key+"CabinetsOnly",false);Check(errors==0,"Controller cabinet captures have no runtime errors");yield break;
             }
             Check(view.transform.Find("JOIN/Candy Arcade content")&&view.transform.Find("HOST/Candy Arcade content")&&view.transform.Find("MAP + MODE/Candy Arcade content"),"All three terminals use approved design");
-            var wardrobe=view.transform.Find("WARDROBE");Check(wardrobe&&!wardrobe.Find("Candy Arcade content"),"Existing wardrobe kept separate");
+            var marina=view.GetComponent<DeadlyJenga.CandyArt.Marina.MayhemMarina>();
+            Check(marina&&marina.Anchor("Wardrobe")&&marina.Anchor("Hall of fame")&&
+                view.transform.Find("Marina wardrobe entry"),"Showtime Plaza exposes both the wardrobe and Hall of Fame");
             Layout(view,"main");
             Capture(view,"JOIN","Actual-Join.png");Capture(view,"HOST","Actual-Host-Offline.png");Capture(view,"MAP + MODE","Actual-Setup.png");
             lobby.EnteredCode="";Check(view.InvokeChoice("key-A")&&view.InvokeChoice("key-1")&&view.InvokeChoice("key--")&&view.InvokeChoice("key-B")&&lobby.EnteredCode=="A1-B","Actual numeric/letter/hyphen keyboard routes through lobby");
