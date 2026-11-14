@@ -127,8 +127,8 @@ namespace DeadlyJenga.CandyPlayers
             var fit=calibration;
             // Tracking and equipment already provide the shared hand anchors used by weapons and remote views.
             Vector3 forward=Vector3.ProjectOnPlane(frame.headRotation*Vector3.forward,Vector3.up).normalized;
-            if(forward.sqrMagnitude<.01f)forward=transform.forward;
-            transform.SetPositionAndRotation(frame.feet,Quaternion.LookRotation(forward));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
+            float bodyYaw=UpdateBodyYaw(frame,forward);
+            transform.SetPositionAndRotation(frame.feet,Quaternion.Euler(0f,bodyYaw,0f));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
             float dance = downed ? 0 : frame.danceWeight;
             float headY=transform.InverseTransformPoint(frame.head).y;
@@ -218,6 +218,35 @@ namespace DeadlyJenga.CandyPlayers
             }
             bodyRenderer.localBounds=new Bounds(new Vector3(0,1,0),new Vector3(6,5,6));
             if(downed){bones[0].localRotation=Quaternion.Euler(65,0,0);bones[0].localPosition=new Vector3(0,.05f,.28f);}
+        }
+        // The body turns after the head: it waits while the head stays within HeadYawLead degrees,
+        // then turns at BodyTurnSpeed. Once the head has been still for a moment, the body catches up.
+        const float HeadYawLead=35f,BodyTurnSpeed=180f,BodySettleSpeed=90f,BodySettleDelay=.6f,BodyTeleportDistance=1.5f;
+        float bodyYaw,lastHeadYaw,settleTime;
+        bool bodyYawReady;
+        int bodyYawFrame=-1;
+        Vector3 bodyYawFeet;
+        float UpdateBodyYaw(CandyAvatarFrame frame,Vector3 forward)
+        {
+            float headYaw=forward.sqrMagnitude<.01f?bodyYaw:Mathf.Atan2(forward.x,forward.z)*Mathf.Rad2Deg;
+            // Teleports and recentering snap the body so it never swings through the old direction.
+            if(!bodyYawReady||Vector3.Distance(frame.feet,bodyYawFeet)>BodyTeleportDistance*Mathf.Max(.1f,frame.scale))
+            {
+                bodyYaw=lastHeadYaw=headYaw;settleTime=0;bodyYawReady=true;
+            }
+            bodyYawFeet=frame.feet;
+            // Several pose calls can run in one frame; only the first one moves the body.
+            if(bodyYawFrame==Time.frameCount)return bodyYaw;
+            bodyYawFrame=Time.frameCount;
+            float dt=Mathf.Min(Time.deltaTime,.05f);
+            settleTime=Mathf.Abs(Mathf.DeltaAngle(lastHeadYaw,headYaw))>.5f?0f:settleTime+dt;
+            lastHeadYaw=headYaw;
+            float lead=Mathf.DeltaAngle(bodyYaw,headYaw);
+            float target=headYaw-Mathf.Clamp(lead,-HeadYawLead,HeadYawLead);
+            float speed=BodyTurnSpeed;
+            if(settleTime>BodySettleDelay){target=headYaw;speed=BodySettleSpeed;}
+            bodyYaw=Mathf.MoveTowardsAngle(bodyYaw,target,speed*dt);
+            return bodyYaw;
         }
         static Quaternion Orientation(Vector3 delta,Vector3 normal)
         {
