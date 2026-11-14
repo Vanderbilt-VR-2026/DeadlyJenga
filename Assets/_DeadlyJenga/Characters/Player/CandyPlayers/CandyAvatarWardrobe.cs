@@ -179,6 +179,20 @@ namespace DeadlyJenga.CandyPlayers
             const int steps=5;var previous=from.normalized*shell;
             for(int i=1;i<=steps;i++){var next=Vector3.Lerp(from,to,i/(float)steps).normalized*shell;b.Beam(previous,next,radius);previous=next;}
         }
+        // Pushes a point out to the hockey helmet's surface, so its cage hugs the shell instead of floating.
+        static Vector3 OnHockeyHelmet(Vector3 point,float outside)
+        {
+            var center=new Vector3(0,.13f,-.05f);var axes=new Vector3(.245f,.15f,.232f);
+            var d=point-center;var scaled=new Vector3(d.x/axes.x,d.y/axes.y,d.z/axes.z);
+            float length=scaled.magnitude;
+            return length<1e-5f?point:center+d*(outside/length);
+        }
+        // CageBar for the hockey helmet: every step is projected onto the helmet ellipsoid.
+        static void HockeyCageBar(CandyAccessoryMeshes.Builder b,Vector3 from,Vector3 to,float radius,float outside)
+        {
+            const int steps=5;var previous=OnHockeyHelmet(from,outside);
+            for(int i=1;i<=steps;i++){var next=OnHockeyHelmet(Vector3.Lerp(from,to,i/(float)steps),outside);b.Beam(previous,next,radius);previous=next;}
+        }
         void BuildClothes(CandyPlayerRig rig)
         {
             var clothes=appearance.clothing;
@@ -204,8 +218,8 @@ namespace DeadlyJenga.CandyPlayers
                 Ball(rig,"hockey helmet shell",1,Tone.Primary,new Vector3(0,.13f,-.05f),new Vector3(.245f,.15f,.232f));
                 Add(rig,"hockey helmet vents",1,Tone.Dark,b=>{for(int s=-1;s<=1;s+=2)for(int i=0;i<3;i++)b.Box(new Vector3(s*(.09f+i*.035f),.265f,-.04f),new Vector3(.016f,.02f,.10f));});
                 Add(rig,"hockey wire cage",1,Tone.Silver,b=>{
-                    for(int i=-2;i<=2;i++){float x=i*.075f;CageBar(b,new Vector3(x,.07f,.30f),new Vector3(x*1.1f,-.19f,.26f),.008f,.245f);}
-                    for(int i=0;i<3;i++){float y=.04f-i*.08f;CageBar(b,new Vector3(-.30f,y,.20f),new Vector3(.30f,y,.20f),.008f,.245f);}
+                    for(int i=-2;i<=2;i++){float x=i*.075f;HockeyCageBar(b,new Vector3(x,.07f,.30f),new Vector3(x*1.1f,-.19f,.26f),.008f,1.035f);}
+                    for(int i=0;i<3;i++){float y=.04f-i*.08f;HockeyCageBar(b,new Vector3(-.30f,y,.20f),new Vector3(.30f,y,.20f),.008f,1.035f);}
                 });
             }
             if((clothes&AvatarClothing.FootballHelmet)!=0)
