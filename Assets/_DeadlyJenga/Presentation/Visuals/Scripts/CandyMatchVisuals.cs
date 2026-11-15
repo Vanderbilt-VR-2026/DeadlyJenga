@@ -13,6 +13,8 @@ namespace DeadlyJenga.Presentation
         readonly Dictionary<string,List<Look>> looks=new Dictionary<string,List<Look>>();
         readonly Dictionary<string,float> displayedHealth=new Dictionary<string,float>();
         MaterialPropertyBlock props;
+        static readonly int HealthId=Shader.PropertyToID("_Health"), RecoveringId=Shader.PropertyToID("_Recovering"), SinkId=Shader.PropertyToID("_Sink"), BottomId=Shader.PropertyToID("_Bottom"), TopId=Shader.PropertyToID("_Top"), MeltId=Shader.PropertyToID("_MeltStart");
+        static readonly Unity.Profiling.ProfilerMarker HealthMarker=new("DJ.Visual.Health");
         Shader healthShader;Material healthMaterial;float scanAt,transitionAt=-100,sinkCurtain;bool curtainStereo;Color transitionColor;Image curtain;Canvas canvas;Camera view;Material liquid;bool viewVR;
         bool wasOutage;string skin="";int winner=-2;readonly Dictionary<Renderer,MaterialPropertyBlock> winnerOriginal=new Dictionary<Renderer,MaterialPropertyBlock>();
         readonly Dictionary<Renderer,Material> blockOriginals=new Dictionary<Renderer,Material>();readonly Dictionary<(Material,string),Material> teamMaterials=new Dictionary<(Material,string),Material>();int claimRevision=-1;
@@ -67,6 +69,7 @@ namespace DeadlyJenga.Presentation
         void RestoreHandTints(){foreach(var pair in handOriginals)if(pair.Key)pair.Key.SetPropertyBlock(pair.Value);handOriginals.Clear();}
         void Health(IMatchRuntime runtime,MatchFrame f)
         {
+            using var measurement=HealthMarker.Auto();
             staleLooks.Clear();foreach(var pair in looks)if(runtime.FindActor(pair.Key)?.Visual==null)staleLooks.Add(pair.Key);foreach(var id in staleLooks){ReleaseLooks(looks[id]);looks.Remove(id);displayedHealth.Remove(id);}
             bool sinking=false;foreach(var p in f.players){var a=runtime.FindActor(p.id);if(a!=null&&runtime.RulesFor(a.gameObject).sinking){sinking=true;break;}}
             if(!f.rules.healthEnabled&&!sinking){RestoreLooks();return;}
@@ -91,8 +94,18 @@ namespace DeadlyJenga.Presentation
                 float shown=displayedHealth.TryGetValue(p.id,out var previous)?Mathf.Lerp(previous,target,1-Mathf.Exp(-24*Time.unscaledDeltaTime)):target;
                 if(Mathf.Abs(shown-target)<.001f)shown=target;displayedHealth[p.id]=shown;
                 float bottom=actor.transform.position.y,top=Mathf.Max(bottom+.1f,actor.ViewPose.position.y);
+                float recovering=target>previous+.0001f?1:0,sink=runtime.RulesFor(actor.gameObject).sinkProgress;
                 foreach(var look in list)if(look.renderer)
-                {look.renderer.GetPropertyBlock(props);props.SetFloat("_Health",shown);props.SetFloat("_Recovering",target>previous+.0001f?1:0);props.SetFloat("_Sink",runtime.RulesFor(actor.gameObject).sinkProgress);props.SetFloat("_Bottom",bottom);props.SetFloat("_Top",top);look.renderer.SetPropertyBlock(props);}
+                {
+                    look.renderer.GetPropertyBlock(props);
+                    // Full, dry health does not use the height interval. Read the live block
+                    // so wardrobe changes and other visual effects cannot invalidate a cache.
+                    bool heightVisible=shown<.9999f||sink>0||props.HasFloat(MeltId)&&props.GetFloat(MeltId)>=0;
+                    if(props.HasFloat(HealthId)&&props.GetFloat(HealthId)==shown&&props.GetFloat(RecoveringId)==recovering&&props.GetFloat(SinkId)==sink&&
+                        (!heightVisible||props.GetFloat(BottomId)==bottom&&props.GetFloat(TopId)==top))continue;
+                    props.SetFloat(HealthId,shown);props.SetFloat(RecoveringId,recovering);props.SetFloat(SinkId,sink);
+                    props.SetFloat(BottomId,bottom);props.SetFloat(TopId,top);look.renderer.SetPropertyBlock(props);
+                }
             }
         }
         void RestoreLooks()

@@ -519,8 +519,12 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
 
+        readonly string ImpactHazard = Environment.GetCommandLineArgs().FirstOrDefault(arg => arg.StartsWith("--dj-impact-hazard=", StringComparison.Ordinal))?[19..] ?? "Tsunami";
+        string ImpactLabel => ImpactHazard == "Tsunami" ? "tsunami" : ImpactHazard.ToLowerInvariant();
+
         IEnumerator CheckTycoonImpact(CastlePlaySession session, CastleGenerator world, Rigidbody[] blocks, bool host, bool solo)
         {
+            Require(ImpactHazard is "Tsunami" or "Tornado" or "PlanetKillerMeteor" or "Combined", "Recognized production impact scenario: " + ImpactHazard);
             var populationArg = Environment.GetCommandLineArgs().FirstOrDefault(arg => arg.StartsWith("--dj-bots=", StringComparison.Ordinal));
             int population = populationArg == "--dj-bots=52" ? 52 : 24;
             Require(populationArg == null || populationArg == "--dj-bots=24" || populationArg == "--dj-bots=52",
@@ -551,26 +555,36 @@ namespace DeadlyJenga.CastlePrototype
                 File.WriteAllText(Mark("impact-guest-baseline"), "ready");
             if (host || solo)
             {
-                var wavePrefab = DemoDisasters.Prefabs.First(prefab => prefab.name == "Tsunami");
-                var parameters = DemoDisasters.Parameters(wavePrefab).Select(parameter => parameter.initial).ToArray();
-                parameters[0] = 23;
-                parameters[2] = 27;
-                parameters[4] = 1;
                 UnityEngine.Random.InitState(71293);
-                Require(DemoDisasters.ExecuteForMode(session, "Tsunami", parameters), "Authority starts the production Tycoon tsunami");
+                foreach (string hazard in ImpactHazard == "Combined" ? new[] { "Tsunami", "Tornado", "PlanetKillerMeteor" } : new[] { ImpactHazard })
+                {
+                    var prefab = DemoDisasters.Prefabs.First(item => item.name == hazard);
+                    var schema = DemoDisasters.Parameters(prefab);
+                    var parameters = schema.Select(parameter => parameter.initial).ToArray();
+                    for (int i = 0; i < schema.Count; i++)
+                    {
+                        if (schema[i].id == "warning") parameters[i] = ImpactHazard == "Combined" && hazard == "PlanetKillerMeteor" ? 8 : 1;
+                        if (schema[i].id == "duration" && hazard == "Tornado") parameters[i] = 45;
+                    }
+                    if (hazard == "Tsunami") { parameters[0] = 23; parameters[2] = 27; parameters[4] = 1; }
+                    File.AppendAllText(Report, "HAZARD " + hazard + " " + string.Join(" ", schema.Select((parameter, i) => parameter.id + "=" + parameters[i].ToString(CultureInfo.InvariantCulture))) + "\n");
+                    Require(DemoDisasters.ExecuteForMode(session, hazard, parameters), "Authority starts production " + hazard);
+                }
             }
 
-            yield return Until(() => Tracked.Waves.Any(wave => wave.Wave.active), "Active tsunami is visible locally", 75);
+            yield return Until(() => ImpactHazard == "Tsunami" || ImpactHazard == "Combined"
+                ? Tracked.Waves.Any(wave => wave.Wave.active)
+                : DisasterStates.Active.Any(source => source.Capture()?.kind == ImpactHazard), "Disaster is visible locally: " + ImpactHazard, 75);
             bool binaryProfile = Environment.GetCommandLineArgs().Contains("--dj-impact-raw-profile");
             try
             {
                 if (binaryProfile)
                 {
-                    UnityEngine.Profiling.Profiler.logFile = Path.Combine(folder, role + "-tsunami.raw");
+                    UnityEngine.Profiling.Profiler.logFile = Path.Combine(folder, role + "-" + ImpactLabel + ".raw");
                     UnityEngine.Profiling.Profiler.enableBinaryLog = true;
                     UnityEngine.Profiling.Profiler.enabled = true;
                 }
-                yield return SampleImpactFrames("tsunami", blocks, before, 8);
+                yield return SampleImpactFrames(ImpactLabel, blocks, before, 8);
             }
             finally
             {
@@ -616,7 +630,7 @@ namespace DeadlyJenga.CastlePrototype
 
         IEnumerator SampleImpactFrames(string label, Rigidbody[] bodies, Vector3[] authored, double seconds)
         {
-            bool requireImpact = label == "tsunami";
+            bool requireImpact = label != "before-wave";
             var headers = new List<ProfilerRecorderHandle>();
             ProfilerRecorderHandle.GetAvailable(headers);
             var recorders = new List<(string name, ProfilerRecorder recorder)>();
@@ -640,7 +654,7 @@ namespace DeadlyJenga.CastlePrototype
 
             var accepted = new List<double>(1024);
             var csv = new StringBuilder(512 * 1024);
-            csv.Append("completed_frame,seconds_since_start,phase,wave_active,wall_ms,moved_over_25cm,moved_over_1m,moving_this_frame,local_wave_targets,world_age_ms,pose_age_ms,pose_applied,bots_alive,bots_moving,bots_grounded,bot_travel_metres");
+            csv.Append("completed_frame,seconds_since_start,phase,wave_active,wall_ms,moved_over_25cm,moved_over_1m,moving_this_frame,local_wave_targets,world_age_ms,pose_age_ms,pose_applied,bots_alive,bots_moving,bots_grounded,bot_travel_metres,impact_eligible,tornado_active,planet_land_contact");
             foreach (var counter in recorders) csv.Append(',').Append('"').Append(counter.name.Replace("\"", "\"\"")).Append('"');
             csv.AppendLine();
             var sync = FindFirstObjectByType<CastleFusionSession>();
@@ -655,6 +669,7 @@ namespace DeadlyJenga.CastlePrototype
             var positions = bodies.Select(body => body.position).ToArray();
             int moved = 0, movedOne = 0, moving = 0, targets = 0, peakMoved = 0, activeMotionFrames = 0, totalFrames = 0;
             bool waveActive = false;
+            bool eligible=false,tornadoActive=false,planetContact=false;
             double started = Time.realtimeSinceStartupAsDouble;
             double previous = started, impact = double.NaN;
             try
@@ -666,7 +681,7 @@ namespace DeadlyJenga.CastlePrototype
                     double delta = (now - previous) * 1000;
                     string phase = !requireImpact ? "baseline" : double.IsNaN(impact) ? "approach" : "impact";
                     totalFrames++;
-                    if (phase == "baseline" || phase == "impact" && waveActive)
+                    if (phase == "baseline" || phase == "impact" && eligible)
                     {
                         accepted.Add(delta);
                         if (moving > 0) activeMotionFrames++;
@@ -674,6 +689,7 @@ namespace DeadlyJenga.CastlePrototype
                     csv.AppendFormat(CultureInfo.InvariantCulture, "{0},{1:F4},{2},{3},{4:F4},{5},{6},{7},{8}",
                         Time.frameCount - 1, now - started, phase, waveActive ? 1 : 0, delta, moved, movedOne, moving, targets);
                     csv.AppendFormat(CultureInfo.InvariantCulture, ",{0:F3},{1:F3},{2},{3},{4},{5},{6:F3}", worldAge, poseAge, poseApplied, botsAlive, botsMoving, botsGrounded, botTravel);
+                    csv.AppendFormat(CultureInfo.InvariantCulture, ",{0},{1},{2}", eligible ? 1 : 0, tornadoActive ? 1 : 0, planetContact ? 1 : 0);
                     foreach (var counter in recorders) csv.Append(',').Append(counter.recorder.LastValue);
                     csv.AppendLine();
 
@@ -703,6 +719,21 @@ namespace DeadlyJenga.CastlePrototype
                             waveActive = true;
                             if (wave is TsunamiHazard tsunami) targets += tsunami.LastTargetCount;
                         }
+                        tornadoActive=false;
+                        if (ImpactHazard != "Tsunami") foreach (var source in DisasterStates.Active)
+                        {
+                            var state=source.Capture();
+                            if(state==null)continue;
+                            if(state.kind=="Tornado"&&state.warning<=0)tornadoActive=true;
+                            if(state.kind=="PlanetLandContact"&&state.points?.Length>0)planetContact=true;
+                        }
+                        eligible=ImpactHazard switch
+                        {
+                            "Tornado" => tornadoActive,
+                            "PlanetKillerMeteor" => planetContact,
+                            "Combined" => waveActive&&tornadoActive&&planetContact,
+                            _ => waveActive
+                        };
                         for (int i = 0; i < bodies.Length; i++)
                         {
                             var body = bodies[i];
@@ -716,7 +747,8 @@ namespace DeadlyJenga.CastlePrototype
                         }
                     }
                     peakMoved = Mathf.Max(movedOne, peakMoved);
-                    if (requireImpact && double.IsNaN(impact) && waveActive && moving >= 2 && (role == "guest" || targets > 0))
+                    if (requireImpact && double.IsNaN(impact) && eligible && moving >= 2 &&
+                        (ImpactHazard != "Tsunami" && ImpactHazard != "Combined" || role == "guest" || targets > 0))
                         impact = now;
                     previous = now;
                     if (!double.IsNaN(impact) && now - impact >= seconds) break;
@@ -730,7 +762,7 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Path.Combine(folder, role + "-" + label + "-frames.csv"), csv.ToString());
             if (requireImpact)
                 Require(!double.IsNaN(impact) && activeMotionFrames >= 10 && peakMoved >= 12,
-                    $"Wave window observed moving blocks on {activeMotionFrames} frames and at least {peakMoved} blocks displaced over 1 m");
+                    $"{ImpactHazard} impact window observed moving blocks on {activeMotionFrames} frames and at least {peakMoved} blocks displaced over 1 m");
             Require(accepted.Count > 0, "Frame timing window contains completed frames");
             accepted.Sort();
             double Percentile(double fraction) => accepted[Math.Max(0, (int)Math.Ceiling(accepted.Count * fraction) - 1)];

@@ -16,6 +16,7 @@ namespace DeadlyJenga.Presentation
     {
         const int BlocksPerFrame = 96;
         const float SplashSpeed = 1.2f;
+        static readonly Unity.Profiling.ProfilerMarker ScanMarker=new("DJ.WaterSand.Blocks"), CraterMarker=new("DJ.WaterSand.Craters"), CoatMarker=new("DJ.WaterSand.Coats");
         static readonly Color SandDark = new(.62f, .47f, .30f), SandLight = new(.93f, .83f, .62f);
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -71,6 +72,7 @@ namespace DeadlyJenga.Presentation
 
         void ScanBlocks(IWorldQuery world)
         {
+            using var measurement=ScanMarker.Auto();
             if (!ReferenceEquals(world, lastWorld)) { seen.Clear(); lastWorld = world; BuildSandProbes(); }
             var blocks = world.Blocks;
             if (blocks == null || blocks.Count == 0) return;
@@ -233,6 +235,7 @@ namespace DeadlyJenga.Presentation
 
         void UpdateCraters()
         {
+            using var measurement=CraterMarker.Auto();
             finished.Clear();
             var emit = new ParticleSystem.EmitParams();
             foreach (var pair in craters)
@@ -384,6 +387,7 @@ namespace DeadlyJenga.Presentation
 
         void UpdateCoatings()
         {
+            using var measurement=CoatMarker.Auto();
             foreach (var mover in Tracked.Movers)
             {
                 if (!(mover is ISandState sand) || !(mover is Component owner) || !owner) continue;
