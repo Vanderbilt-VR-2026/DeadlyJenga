@@ -109,12 +109,12 @@ namespace DeadlyJenga.CastlePrototype
             return true;
         }
 
-        void UpdatePunch()
+        void UpdatePunch(CandyEquipment weapon)
         {
             if(MatchRuntime.Current!=null)ApplyModeRules(MatchRuntime.Current.RulesFor(gameObject));
-            var weapon=GetComponent<CandyEquipment>();if(weapon?.Equipment.drawn==true){punchHandReady=false;return;}
             if (externallyDriven || !PunchEnabled || CarryingFlag || InputSuspended || !vrInputFocused)
             { punchHandReady = false; return; }
+            if(weapon?.Equipment.drawn==true){punchHandReady=false;return;}
             if (!IsVR)
             {
                 if (DesktopGamepad.FirePressed || Cursor.lockState == CursorLockMode.Locked && Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)

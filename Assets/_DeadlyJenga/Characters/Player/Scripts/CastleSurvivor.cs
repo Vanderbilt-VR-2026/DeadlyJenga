@@ -5,6 +5,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.XR;
 using DeadlyJenga.Core;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CastleBots;
 
 namespace DeadlyJenga.CastlePrototype
 {
@@ -115,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
 
         public void RefreshMode()
         {
-            int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
+            int pref = externallyDriven ? 0 : PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
             var effectiveMode = (pref == 1 || pref == 4) ? ControlMode.Desktop : (pref == 2 || pref == 3) ? ControlMode.VR : controlMode;
             bool running = false;
             if(!externallyDriven&&effectiveMode==ControlMode.Auto)
@@ -156,7 +157,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
+            RefreshTraversalCollisionMask();
             RefreshMode();
             if(UpdateSpectatorParticipation())return;
             if (IsVR)
@@ -177,7 +178,9 @@ namespace DeadlyJenga.CastlePrototype
             var equipmentControls=GetComponent<CandyEquipment>();
             if(externallyDriven)
             {
-                var command=!InputSuspended&&InputDriver!=null?InputDriver.ReadCommand(this,Time.deltaTime):default;
+                CastleBotCommand command;
+                using (BotInputMarker.Auto())
+                    command=!InputSuspended&&InputDriver!=null?InputDriver.ReadCommand(this,Time.deltaTime):default;
                 Vector3 facing=Vector3.ProjectOnPlane(command.look.sqrMagnitude>.001f?command.look:command.move,Vector3.up);
                 if(facing.sqrMagnitude>.001f)transform.rotation=Quaternion.RotateTowards(transform.rotation,Quaternion.LookRotation(facing),360*Time.deltaTime);
                 Vector3 f=Vector3.ProjectOnPlane(viewCamera.transform.forward,Vector3.up).normalized;
@@ -249,8 +252,18 @@ namespace DeadlyJenga.CastlePrototype
             if(flyingSuit){ResetVRJump();pressed=held=false;walking=Vector2.zero;}
             UpdateSprintToggle(sprintInput&&Alive&&!Vaulting&&!Sinking&&modeRules?.downed!=true,
                 sprintClick,sprintHeld);
-            UpdatePunch();
+            UpdatePunch(equipmentControls);
             Simulate(walking, pressed, Time.deltaTime,held);
+        }
+
+        static readonly Unity.Profiling.ProfilerMarker BotInputMarker=new("DJ.Survivor.BotInput");
+        static readonly Unity.Profiling.ProfilerMarker MotorMarker=new("DJ.Survivor.Motor");
+        static readonly Unity.Profiling.ProfilerMarker GroundProbeMarker=new("DJ.Survivor.GroundProbe");
+
+        void RefreshTraversalCollisionMask()
+        {
+            int mask = TraversalCollision.Unified ? 0 : 1 << Layers.Block;
+            if (Capsule.excludeLayers.value != mask) Capsule.excludeLayers = mask;
         }
 
         public void Teleport(Vector3 feet, Quaternion rotation)
@@ -266,8 +279,9 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {
+            using var measurement=MotorMarker.Auto();
             if (UpdateSpectatorParticipation() || dt <= 0 || !Capsule.enabled) return;
-            Capsule.excludeLayers=TraversalCollision.Unified?0:1<<Layers.Block;
+            RefreshTraversalCollisionMask();
             RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
             Physics.SyncTransforms();
@@ -275,8 +289,8 @@ namespace DeadlyJenga.CastlePrototype
             {
                 Vaulting=false;vaultSurface=null;vaultTime=0;ClearSprint();ActionStatus="Vault cancelled";
             }
-            bool climbToggle = PlayerPrefs.GetInt("SurvivorVR.ClimbToggle", 0) != 0;
-            bool canClimbNow = (climbHeld || (climbToggle && (jumpPressed || toggleClimbActive))) && !InputSuspended && !CarryingFlag && (modeRules?.canClimb ?? true);
+            bool canClimbNow = !InputSuspended && !CarryingFlag && (modeRules?.canClimb ?? true) &&
+                (climbHeld || (jumpPressed || toggleClimbActive) && PlayerPrefs.GetInt("SurvivorVR.ClimbToggle", 0) != 0);
             if (!Sinking || Vaulting || InputSuspended || !Alive || !externallyDriven && !vrInputFocused)
                 sinkVaultPending = false;
             else if (jumpPressed && canClimbNow && climbingEnabled)
@@ -298,9 +312,9 @@ namespace DeadlyJenga.CastlePrototype
             if (Vaulting) { ClearSprint();AdvanceVault(dt); return; }
             if (support && Grounded)
             {
-                Vector3 next = support.TransformPoint(supportLocal);
-                Vector3 carry = next - supportWorld;
-                if (carry.magnitude < 2) Capsule.Move(carry);
+                Vector3 carry = support.TransformPoint(supportLocal) - supportWorld;
+                float distanceSquared = carry.sqrMagnitude;
+                if (distanceSquared < 4 && (distanceSquared > 0 || !externallyDriven)) Capsule.Move(carry);
             }
             ProbeGround();
             ApplyFallImpact();
@@ -380,33 +394,45 @@ namespace DeadlyJenga.CastlePrototype
         readonly RaycastHit[] groundContacts=new RaycastHit[24];
         static readonly Vector3[] supportProbes={Vector3.zero,Vector3.right,Vector3.left,Vector3.forward,Vector3.back,
             new Vector3(1,0,1).normalized,new Vector3(-1,0,1).normalized,new Vector3(1,0,-1).normalized,new Vector3(-1,0,-1).normalized};
-        bool SupportFace(ref RaycastHit hit,Vector3 feet,int mask)
+        bool SupportFace(ref RaycastHit hit,Vector3 feet,int mask,float minimumGap,float maximumGap,float minimumNormalY)
         {
             if(Physics.Raycast(hit.point+Vector3.up*(.06f*playerScale),Vector3.down,out var face,.12f*playerScale,mask,QueryTriggerInteraction.Ignore)&&face.collider==hit.collider)hit=face;
             float gap=feet.y-hit.point.y;
-            return gap>=-(Capsule.radius+Capsule.skinWidth*2)&&gap<=.12f*playerScale+Capsule.skinWidth*2&&hit.normal.y>=Mathf.Cos(slopeSupportAngle*Mathf.Deg2Rad);
+            return gap>=minimumGap&&gap<=maximumGap&&hit.normal.y>=minimumNormalY;
         }
         void ProbeGround()
         {
+            using var measurement=GroundProbeMarker.Auto();
+            if (verticalSpeed > 0)
+            {
+                if (Grounded) airborneSince=Time.time;
+                Grounded=false;
+                support=null;
+                StandingSurface=null;
+                return;
+            }
             Vector3 feet=Feet;bool wasGrounded=Grounded;
             int mask=TraversalCollision.Mask;
-            int count=Physics.SphereCastNonAlloc(feet+Vector3.up*(Capsule.radius+.14f*playerScale),Capsule.radius*.9f,Vector3.down,groundContacts,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
+            float radius=Capsule.radius, skin=Capsule.skinWidth;
+            float minimumGap=-(radius+skin*2), gapLimit=.12f*playerScale+skin*2;
+            float minimumNormalY=Mathf.Cos(slopeSupportAngle*Mathf.Deg2Rad);
+            int count=Physics.SphereCastNonAlloc(feet+Vector3.up*(radius+.14f*playerScale),radius*.9f,Vector3.down,groundContacts,.24f*playerScale,mask,QueryTriggerInteraction.Ignore);
             bool contact=false;RaycastHit hit=default;float best=float.NegativeInfinity;
             for(int i=0;i<count;i++)
             {
-                var candidate=groundContacts[i];if(!SupportFace(ref candidate,feet,mask))continue;
+                var candidate=groundContacts[i];if(!SupportFace(ref candidate,feet,mask,minimumGap,gapLimit,minimumNormalY))continue;
                 float score=candidate.normal.y-Mathf.Abs(feet.y-candidate.point.y);
                 if(score>best){best=score;hit=candidate;contact=true;}
             }
             // The rounded base can touch a lip outside the smaller sphere probe.
-            float gapLimit=.12f*playerScale+Capsule.skinWidth*2;
-            if(!contact&&verticalSpeed<=0&&(count>0||Capsule.isGrounded||Physics.CheckSphere(feet+Vector3.up*Capsule.radius,Capsule.radius+gapLimit,mask,QueryTriggerInteraction.Ignore)))
+            if(!contact&&verticalSpeed<=0&&(count>0||Capsule.isGrounded||Physics.CheckSphere(feet+Vector3.up*radius,radius+gapLimit,mask,QueryTriggerInteraction.Ignore)))
             {
-                float lift=Capsule.radius+Capsule.skinWidth*2+.05f*playerScale;
+                float lift=radius+skin*2+.05f*playerScale;
+                float reach=radius*.95f+skin;
                 for(int i=0;i<supportProbes.Length;i++)
                 {
-                    Vector3 offset=supportProbes[i]*(Capsule.radius*.95f+Capsule.skinWidth);
-                    if(!Physics.Raycast(feet+offset+Vector3.up*lift,Vector3.down,out var candidate,lift+gapLimit,mask,QueryTriggerInteraction.Ignore)||!SupportFace(ref candidate,feet,mask))continue;
+                    Vector3 offset=supportProbes[i]*reach;
+                    if(!Physics.Raycast(feet+offset+Vector3.up*lift,Vector3.down,out var candidate,lift+gapLimit,mask,QueryTriggerInteraction.Ignore)||!SupportFace(ref candidate,feet,mask,minimumGap,gapLimit,minimumNormalY))continue;
                     if(!contact||candidate.normal.y>hit.normal.y){hit=candidate;contact=true;}
                     if(hit.normal.y>.999f)break;
                 }
