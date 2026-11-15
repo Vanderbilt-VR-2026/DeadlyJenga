@@ -48,16 +48,19 @@ Shader "Hidden/DeadlyJenga/Sprint Camera FX"
                 float2 uv = input.texcoord;
                 float2 offset = uv - .5;
                 half4 scene = SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv, 0);
-                float edge = smoothstep(.50, 1.02, length(offset * 2.0));
+                float edge = smoothstep(.47, 1.0, abs(offset.x) * 2.0);
                 if (edge <= .001) return scene;
 
-                float2 smear = offset * (.100 * edge * _SprintBlend);
-                half3 blur = scene.rgb * .25;
-                blur += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv - smear * .44, 0).rgb * .22;
-                blur += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv + smear * .40, 0).rgb * .20;
-                blur += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv - smear * .89, 0).rgb * .14;
-                blur += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv + smear * .82, 0).rgb * .12;
-                blur += SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv - smear * 1.31, 0).rgb * .07;
+                float2 smear = offset * (.077 * edge * _SprintBlend);
+                half3 blur = scene.rgb * .18;
+                [unroll]
+                for (int tap = 1; tap <= 4; ++tap)
+                {
+                    float2 shift = smear * (tap * .25);
+                    half weight = tap == 1 ? .16 : tap == 2 ? .125 : tap == 3 ? .08 : .045;
+                    blur += (SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv - shift, 0).rgb
+                           + SAMPLE_TEXTURE2D_X_LOD(_BlitTexture, sampler_LinearClamp, uv + shift, 0).rgb) * weight;
+                }
                 scene.rgb = lerp(scene.rgb, blur, edge * _SprintBlend);
 
                 float sides = smoothstep(.56, .94, abs(offset.x) * 2.0);

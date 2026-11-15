@@ -307,7 +307,7 @@ namespace DeadlyJenga.DevTools.Editor
             RenderPipelineManager.beginCameraRendering += Observe;
             try
             {
-                Object.Destroy(Capture(camera,null,"sprint-resting.png"));
+                var resting = Capture(camera,null,"sprint-resting.png");
                 Check(Mathf.Approximately(renderFov,baseFov),"Resting view uses normal lens");
                 SetSprint(hud,motor,true,false,1f);
                 Object.Destroy(Capture(camera,null,"sprint-armed.png"));
@@ -317,7 +317,11 @@ namespace DeadlyJenga.DevTools.Editor
                 Check(Field<float>(hud,"desktopSprint") is >0 and <1,"Sprint eases in");
                 SetSprint(hud,motor,true,true,1f);
                 var sprint = Capture(camera,null,"sprint-active.png");
-                float sprintFov = renderFov;
+                // A renderer recreated during the render can subscribe after Observe.
+                var feature = Resources.FindObjectsOfTypeAll<CandySprintCameraFx>()
+                    .FirstOrDefault(item => Field<float>(item,"appliedFieldOfView") > 0f);
+                Check(feature,"The installed PC renderer applied the sprint lens");
+                float sprintFov = Field<float>(feature,"appliedFieldOfView");
                 File.AppendAllText(Report,$"Classic Castle {MatchSetup.ModeId}; camera={camera.name}; position={camera.transform.position}; rotation={camera.transform.eulerAngles}; rest FOV={baseFov:F2}; sprint FOV={sprintFov:F2}; actual Game view, controlled survivor sprint state.\n");
                 Check(Mathf.Abs(sprintFov-baseFov-7f)<.05f && Mathf.Approximately(camera.fieldOfView,baseFov),
                     "Sprint widens the rendered lens by seven degrees and restores the base lens after rendering");
@@ -333,14 +337,18 @@ namespace DeadlyJenga.DevTools.Editor
                     var lensOnly = Capture(camera,null,"sprint-wide-reference.png");
                     Check(EdgeDelta(sprint,lensOnly)>.025f,
                         "Rendered sprint blur and streaks change the edges beyond lens widening");
-                    Check(CenterDelta(sprint,lensOnly)<.02f,
-                        "Compared at equal FOV, the rendered effect leaves the center clear");
+                    float centerShift = CenterDelta(sprint,lensOnly);
+                    float lensShift = CenterDelta(resting,lensOnly);
+                    File.AppendAllText(Report,$"Rendered RGB deltas in the center: active vs wide-only {centerShift:F4}; resting vs wide-only {lensShift:F4}.\n");
+                    Check(centerShift<.02f && lensShift>.05f,
+                        "The sprint image matches the wider lens in the center without blurring it");
                     Object.Destroy(lensOnly);
                 }
                 finally
                 {
                     camera.fieldOfView=baseFov;
                     Object.Destroy(sprint);
+                    Object.Destroy(resting);
                 }
                 Object.Destroy(Capture(camera,null,"sprint-recovered.png"));
                 Check(Mathf.Approximately(renderFov,baseFov),"Releasing sprint restores the normal view");
