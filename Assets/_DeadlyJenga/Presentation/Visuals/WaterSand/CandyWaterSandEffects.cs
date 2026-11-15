@@ -31,7 +31,7 @@ namespace DeadlyJenga.Presentation
         }
 
         // ---------- shared particles ----------
-        ParticleSystem droplets, bubbles, ripples, dust;
+        ParticleSystem droplets, splashMist, bubbles, ripples, dust;
         CandyBlockWhitewater whitewater;
         readonly List<Object> owned = new();
 
@@ -39,11 +39,12 @@ namespace DeadlyJenga.Presentation
         {
             var soft = SoftDot(32);
             var ring = RingTexture(64);
-            droplets = Particles("Water splash droplets", SprayTexture(), 900, 1.65f, false);
+            droplets = Particles("Water splash droplets", SprayTexture(), 1100, 1.9f, false);
             var sprayRenderer = droplets.GetComponent<ParticleSystemRenderer>();
             sprayRenderer.renderMode = ParticleSystemRenderMode.Stretch;
-            sprayRenderer.velocityScale = .13f;
-            sprayRenderer.lengthScale = 1.3f;
+            sprayRenderer.velocityScale = .045f;
+            sprayRenderer.lengthScale = 1.15f;
+            splashMist = Particles("Whitewater mist", MistTexture(), 280, .48f, false);
             whitewater = new CandyBlockWhitewater(transform);
             bubbles = Particles("Underwater bubbles", soft, 300, -.25f, false);
             ripples = Particles("Sand ripples", ring, 120, 0, true);
@@ -70,6 +71,7 @@ namespace DeadlyJenga.Presentation
                 lastWorld = world;
                 cursor = 0;
                 droplets.Clear();
+                splashMist.Clear();
                 whitewater.Clear();
                 bubbles.Clear();
             }
@@ -162,23 +164,38 @@ namespace DeadlyJenga.Presentation
             whitewater.Emit(at, footprint, energy, drift);
 
             var emit = new ParticleSystem.EmitParams();
-            int sprays = Mathf.RoundToInt(32 + 58 * energy * Mathf.Clamp(footprint / .78f, .65f, 1.35f));
+            int sprays = Mathf.RoundToInt(45 + 78 * energy * Mathf.Clamp(footprint / .78f, .65f, 1.35f));
             float seed = Random.Range(0, 20f);
             for (int i = 0; i < sprays; i++)
             {
                 float angle = Random.Range(0, 2f * Mathf.PI);
                 var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
                 float side = Vector2.Dot(direction, drift);
-                float lobe = .78f + .22f * Mathf.Sin(angle * 5 + seed);
-                float speedOut = Random.Range(2.2f, 4.6f) * lobe * (.64f + energy * .62f + .28f * side);
-                float speedUp = Random.Range(2.3f, 5f) * lobe * (.58f + energy * .78f);
+                float lobe = .74f + .26f * Mathf.Sin(angle * 5 + seed);
+                bool jet = i % 4 == 0;
+                float speedOut = Random.Range(3.8f, 7.2f) * lobe * (.68f + energy * .58f + .24f * side);
+                float speedUp = Random.Range(3f, 6.1f) * lobe * (.65f + energy * .71f);
+                if (jet) speedUp *= 1.52f;
                 emit.position = at + new Vector3(direction.x, .08f, direction.y) * footprint * Random.Range(.36f, .85f);
                 emit.velocity = new Vector3(direction.x * speedOut, speedUp, direction.y * speedOut);
-                emit.startSize = Random.Range(.025f, .12f) * Mathf.Lerp(.75f, 1.45f, energy / 1.6f);
-                emit.startLifetime = Random.Range(.34f, .7f);
+                emit.startSize = Random.Range(.025f, .11f) * Mathf.Lerp(.9f, 1.55f, energy / 1.6f);
+                emit.startLifetime = Random.Range(.36f, .92f);
                 emit.startColor = new Color(.92f, .99f, 1f, Random.Range(.65f, .98f));
                 droplets.Emit(emit, 1);
             }
+            int mistCount = Mathf.RoundToInt(12 + 22 * energy);
+            for (int i = 0; i < mistCount; i++)
+            {
+                var direction = Random.insideUnitCircle.normalized;
+                float spread = Random.Range(2.2f, 4.5f) * (.60f + energy * .48f);
+                emit.position = at + new Vector3(direction.x, .12f, direction.y) * footprint * .8f;
+                emit.velocity = new Vector3(direction.x * spread, Random.Range(1.6f, 4.5f) * (.6f + energy * .48f), direction.y * spread);
+                emit.startSize = Random.Range(.25f, .64f) * (.65f + energy * .52f);
+                emit.startLifetime = Random.Range(.35f, .77f);
+                emit.startColor = new Color(.90f, .97f, 1f, Random.Range(.20f, .48f));
+                splashMist.Emit(emit, 1);
+            }
+
             if (block) bubbling.Add(new Bubbler { block = block, until = Time.time + 3f, next = 0 });
         }
 
@@ -570,6 +587,31 @@ namespace DeadlyJenga.Presentation
             }
             texture.SetPixels32(colors);
             texture.Apply(false, true);
+            owned.Add(texture);
+            return texture;
+        }
+
+        Texture2D MistTexture()
+        {
+            const int size = 64;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, true, true)
+            {
+                name = "Whitewater mist and microdroplets",
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var pixels = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                var uv = new Vector2(x + .5f, y + .5f) * (2f / size) - Vector2.one;
+                float falloff = Mathf.Clamp01(1 - uv.sqrMagnitude);
+                float cloud = Mathf.PerlinNoise(x * .16f + 21, y * .18f + 7);
+                float flecks = Mathf.PerlinNoise(x * .67f + 4, y * .74f + 16);
+                float opacity = falloff * falloff * Mathf.Clamp01(cloud * .42f + flecks * flecks * .86f);
+                pixels[y * size + x] = (Color32)new Color(.96f, .99f, 1, opacity);
+            }
+            texture.SetPixels32(pixels);
+            texture.Apply(true, true);
             owned.Add(texture);
             return texture;
         }

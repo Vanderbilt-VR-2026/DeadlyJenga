@@ -4,10 +4,10 @@ using UnityEngine.Rendering;
 
 namespace DeadlyJenga.Presentation
 {
-    // Two expanding walls of whitewater and a lingering foam bed share one mesh per impact.
+    // A flared skirt, two breaking walls and a lingering foam bed share one mesh per impact.
     internal sealed class CandyBlockWhitewater
     {
-        const int Sectors = 48, Rows = 9, MaxBursts = 10;
+        const int Sectors = 64, Rows = 12, MaxBursts = 10;
         const float Lifetime = 2.35f;
         static readonly int Shape = Shader.PropertyToID("_ImpactShape");
         static readonly int Motion = Shader.PropertyToID("_ImpactMotion");
@@ -109,7 +109,7 @@ namespace DeadlyJenga.Presentation
             var uv = new List<Vector2>();
             var layers = new List<Vector2>();
             var triangles = new List<int>();
-            for (int layer = 0; layer < 3; layer++)
+            for (int layer = 0; layer < 4; layer++)
             {
                 int start = vertices.Count;
                 for (int y = 0; y <= Rows; y++)
@@ -133,7 +133,7 @@ namespace DeadlyJenga.Presentation
             mesh.SetUVs(0, uv);
             mesh.SetUVs(1, layers);
             mesh.SetTriangles(triangles, 0, false);
-            mesh.bounds = new Bounds(Vector3.up, new Vector3(27, 12, 27));
+            mesh.bounds = new Bounds(Vector3.up * 2.5f, new Vector3(32, 14, 32));
             grain = BuildGrain();
             material = new Material(shader) { name = "Block impact whitewater" };
             material.SetTexture(Grain, grain);
