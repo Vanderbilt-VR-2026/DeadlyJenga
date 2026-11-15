@@ -27,7 +27,7 @@ namespace DeadlyJenga.CastlePrototype
             if(role==null||folder==null)return;
             var go=new GameObject("Explicit multiplayer smoke test");DontDestroyOnLoad(go);
             var test=go.AddComponent<CrossProcessSmoke>();test.role=role.Substring(11);test.folder=Path.GetFullPath(folder.Substring(15));
-            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(NearbyFlow?850:LobbyHandoff||TycoonTest||FullRound?600:180);
+            Directory.CreateDirectory(test.folder);test.deadline=Time.realtimeSinceStartup+(NearbyFlow?850:TenRound?900:LobbyHandoff||TycoonTest||FullRound?600:180);
             Application.runInBackground=true;Application.logMessageReceived+=test.Log;test.StartCoroutine(test.Guard(test.Check()));
         }
         string Report=>Path.Combine(folder,role+".txt");
@@ -260,6 +260,77 @@ namespace DeadlyJenga.CastlePrototype
         const string TycoonMap = "mode-tycoon";
         static bool MigrationRound => Environment.GetCommandLineArgs().Contains("--dj-migrate-round");
         static bool FullRound => Environment.GetCommandLineArgs().Contains("--dj-full-round");
+        static bool TenRound => Environment.GetCommandLineArgs().Contains("--dj-ten-round");
+
+        IEnumerator CheckTenPlayerRound()
+        {
+            QualitySettings.vSyncCount=0;Application.targetFrameRate=30;
+            File.AppendAllText(Report,"CONFIG functional ten-client test; cap=30; graphics="+SystemInfo.graphicsDeviceType+"\n");
+            bool host=role=="host";
+            var guests=Enumerable.Range(1,9).Select(index=>"guest"+index).ToArray();
+            bool AllGuests(string suffix)=>guests.All(guest=>File.Exists(Mark(guest+suffix)));
+            Require(host||guests.Contains(role),"Unique ten-player process role: "+role);
+            HomeSession home=null;
+            yield return Until(()=>(home=FindFirstObjectByType<HomeSession>())&&home.Region.Length>0,"Home initializes",90);
+            home.Demo();
+            yield return Until(()=>IslandLobby.Current&&NetworkActors.Alive(IslandLobby.Current.Player),"Developer opens Marina",100);
+            var lobby=IslandLobby.Current;var room=lobby.Room;string code;
+            if(host)
+            {
+                var connect=room.Host();
+                yield return Until(()=>connect.IsCompleted&&room.IsHost&&lobby.CanConfigure,"Host creates real Fusion room",100,()=>room.Status);
+                Require(lobby.SelectMode("survival")&&lobby.SelectMap("castle"),"Select survival on Castle");
+                MatchSetup.BotTarget=10;
+                code=room.Code;File.WriteAllText(Mark("code-pending"),code);File.Move(Mark("code-pending"),Mark("code"));
+            }
+            else
+            {
+                yield return Until(()=>File.Exists(Mark("code")),"Host publishes room",180);
+                code=File.ReadAllText(Mark("code"));var connect=room.Join(code);
+                yield return Until(()=>connect.IsCompleted&&room.Connected&&!room.IsHost&&lobby.SelectedMapId=="castle"&&lobby.SelectedModeId=="survival",
+                    "Join same room and receive map/mode",100,()=>room.Status);
+            }
+            yield return Until(()=>room.HumanCount==10&&lobby.PeerCount==9&&room.Runner.ActivePlayers.Count()==10,
+                "Ten actual Fusion humans and nine remote lobby avatars",150,()=>room.Status+" humans="+room.HumanCount+" avatars="+lobby.PeerCount);
+            File.WriteAllText(Mark(role+"-ready"),room.LocalLobbyId);
+            if(host){yield return Until(()=>AllGuests("-ready"),"All nine guests independently verify full lobby",90);lobby.StartOrCancel();}
+            CastlePlaySession match=null;
+            yield return Until(()=>(match=FindFirstObjectByType<CastlePlaySession>())&&match.Network&&!match.Network.WaitingForWorld&&match.Modes&&
+                NetworkActors.Alive(match.Player)&&room.Connected&&room.Code==code&&room.HumanCount==10&&Services.World?.Blocks.Count>0,
+                "Enter actual Game with ten humans and world snapshot",150,()=>room.Status);
+            File.WriteAllText(Mark(role+"-in-game"),"ready");
+            if(host)
+            {
+                yield return Until(()=>AllGuests("-in-game"),"Every guest loaded the world",90);
+                var rules=match.Modes.Rules.Copy();rules.countdownSeconds=1;rules.roundSeconds=30;rules.victorySeconds=2;rules.automaticDisasters=false;
+                match.Modes.Configure(rules);match.Modes.StartRound();
+            }
+            yield return Until(()=>match.Modes.Frame.phase==RoundPhase.Playing&&match.Modes.Frame.rules.roundSeconds==30&&room.HumanCount==10,
+                "Ten-player timed round is playing",60,()=>room.Status);
+            if(host)
+            {
+                yield return Until(()=>AllGuests("-migration-ready"),"All guests observe progress before migration",60);
+                var leave=room.Leave();
+                yield return Until(()=>leave.IsCompleted&&!room.Connected,"Host leaves during the live round",60);
+                yield return Until(()=>AllGuests("-returned"),"All nine remaining players finish and return after migration",220);
+                yield break;
+            }
+            yield return Until(()=>match.Modes.Frame.phase==RoundPhase.Playing&&match.Modes.Frame.remaining<=27,"Observe round progress before migration",50);
+            string identity=room.LocalLobbyId;float remaining=match.Modes.Frame.remaining;
+            File.WriteAllText(Mark(role+"-migration-ready"),identity);
+            yield return Until(()=>room.Connected&&!room.Busy&&room.HumanCount==9&&match.Network&&
+                (room.IsHost?!match.Network.IsClient:match.Network.IsClient),"Nine clients resume with one replacement authority",100,()=>room.Status);
+            Require(room.Code==code&&room.LocalLobbyId==identity,"Room and local actor identity survive migration");
+            Require(match.Modes.Frame.phase==RoundPhase.Playing&&match.Modes.Frame.remaining<=remaining+1,"Migration preserves the original running round and timer");
+            File.AppendAllText(Report,"MIGRATION authority="+room.IsHost+" identity="+identity+" remaining="+match.Modes.Frame.remaining.ToString(CultureInfo.InvariantCulture)+"\n");
+            yield return Until(()=>match.Modes.Frame.phase==RoundPhase.Results&&room.Connected&&room.HumanCount==9,"Original round reaches results after migration",90,()=>room.Status);
+            File.WriteAllText(Mark(role+"-results"),"ready");
+            if(room.IsHost){yield return Until(()=>AllGuests("-results"),"All remaining peers see results",60);match.Modes.ReturnToLobby();}
+            yield return Until(()=>IslandLobby.Current&&NetworkActors.Alive(IslandLobby.Current.Player)&&room.Connected&&room.Code==code&&
+                room.HumanCount==9&&IslandLobby.Current.PeerCount==8,"Nine players return to the same usable lobby",100,()=>room.Status);
+            File.WriteAllText(Mark(role+"-returned"),"ready");
+            yield return Until(()=>AllGuests("-returned"),"Every remaining peer independently confirms return",60);
+        }
 
         IEnumerator CheckFullRound()
         {
@@ -563,8 +634,9 @@ namespace DeadlyJenga.CastlePrototype
                     var parameters = schema.Select(parameter => parameter.initial).ToArray();
                     for (int i = 0; i < schema.Count; i++)
                     {
-                        if (schema[i].id == "warning") parameters[i] = ImpactHazard == "Combined" && hazard == "PlanetKillerMeteor" ? 8 : 1;
+                        if (schema[i].id == "warning") parameters[i] = 1;
                         if (schema[i].id == "duration" && hazard == "Tornado") parameters[i] = 45;
+                        if (schema[i].id == "size" && hazard == "PlanetKillerMeteor") parameters[i] = 90;
                     }
                     if (hazard == "Tsunami") { parameters[0] = 23; parameters[2] = 27; parameters[4] = 1; }
                     File.AppendAllText(Report, "HAZARD " + hazard + " " + string.Join(" ", schema.Select((parameter, i) => parameter.id + "=" + parameters[i].ToString(CultureInfo.InvariantCulture))) + "\n");
@@ -628,8 +700,27 @@ namespace DeadlyJenga.CastlePrototype
 
         static readonly ProfilerMarker ImpactProbeMarker = new ProfilerMarker("DJ.Test.ImpactProbe");
 
+        void RecordNetworkTraffic(string phase)
+        {
+            var sync=FindFirstObjectByType<CastleFusionSession>();
+            if(!sync)return;
+            var text=new StringBuilder();
+            text.AppendLine("PHASE "+phase+" time="+Time.realtimeSinceStartupAsDouble.ToString("F4",CultureInfo.InvariantCulture));
+            text.AppendLine("HotpathBytesSubmitted="+sync.HotpathBytesSubmitted+" HotpathBundlesSubmitted="+sync.HotpathBundlesSubmitted);
+            var room=IslandRoomConnection.Instance;
+            if(room&&room.Runner)text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
+            foreach(var traffic in role=="host"?sync.PeerPoseTraffic:new[]{sync.LocalPoseTraffic})
+            {
+                text.AppendLine("PEER "+traffic.PeerId);
+                foreach(var property in typeof(CastleFusionSession.LivePoseTraffic).GetProperties())
+                    text.AppendLine(property.Name+"="+Convert.ToString(property.GetValue(traffic),CultureInfo.InvariantCulture));
+            }
+            File.AppendAllText(Path.Combine(folder,role+"-network-traffic.txt"),text.ToString());
+        }
+
         IEnumerator SampleImpactFrames(string label, Rigidbody[] bodies, Vector3[] authored, double seconds)
         {
+            RecordNetworkTraffic(label+"-start");
             bool requireImpact = label != "before-wave";
             var headers = new List<ProfilerRecorderHandle>();
             ProfilerRecorderHandle.GetAvailable(headers);
@@ -760,6 +851,7 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             File.WriteAllText(Path.Combine(folder, role + "-" + label + "-frames.csv"), csv.ToString());
+            RecordNetworkTraffic(label+"-end");
             if (requireImpact)
                 Require(!double.IsNaN(impact) && activeMotionFrames >= 10 && peakMoved >= 12,
                     $"{ImpactHazard} impact window observed moving blocks on {activeMotionFrames} frames and at least {peakMoved} blocks displaced over 1 m");
@@ -822,6 +914,7 @@ namespace DeadlyJenga.CastlePrototype
         IEnumerator Check()
         {
             File.WriteAllText(Report,"Independent player "+role+"\n");
+            if(TenRound){yield return CheckTenPlayerRound();yield break;}
             if(FullRound){yield return CheckFullRound();yield break;}
             if(TycoonTest){yield return CheckTycoon();yield break;}
             if(NearbyFlow){yield return CheckNearbyLobby();yield break;}

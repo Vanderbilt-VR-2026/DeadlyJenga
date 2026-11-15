@@ -1,6 +1,6 @@
 # Tycoon standalone tsunami frame times
 
-The 24-bot Windows player improved from 21.4 to 26.1 typical FPS while the tsunami was moving blocks, a 22% gain across two runs per revision. The 50% goal for this setup was about 32.2 FPS.
+Historical first checkpoint: the 24-bot Windows player improved from 21.4 to 26.1 typical FPS while the tsunami was moving blocks, a 22% gain across two runs per revision. The 50% goal for this setup was about 32.2 FPS.
 
 ## Builds and measurement
 
@@ -46,3 +46,37 @@ The follow-up request expands this checkpoint into sustained CPU, navigation and
 - Preserve full debris, collisions, visuals and bot reactions. Core additions require approval of the exact additive contract. Each change requires evidence before integration; a regression leaves the candidate unaccepted.
 
 Current diagnostic revision: `dde089c01dd802165a38b702374da638c8a95f03`, based on current Sprint 4 `e6d1bf0909f8a32bbf871cca39423df3dd3b56d4` plus the prior unaccepted motor checkpoint. The new scopes distinguish motor synchronization, capsule sweep, bot movement decision, objectives and steering. Runtime results pending. Existing packed baseline assets are retained for the script-only timing experiment; this is not a newly packaged current-art release.
+
+
+### Fresh CPU investigation and repeat baselines
+
+All entries below are separate-process Windows development players with the settings above. Each impact sample contains real moving blocks; no raw-profiler run is used for FPS comparisons. These are single runs per cell, not a statistically established gain.
+
+| Scripts | 24 bots impact FPS | 52 bots impact FPS | Evidence |
+|---|---:|---:|---|
+| Original `151249891dca7dec5dc6d9ce972bb4fbf777cfbc`, refreshed | 24.77 | 15.72 | Original executable, packed assets and task DLL hashes reverified against original run manifest |
+| Finger candidate `aeea2111272f243a277cb578812c56cd38eaabe5` | 28.91 | 18.41 | 810 native finger world-pose equivalence checks; ordinary lobby return |
+| Spatial candidate `e82517cbbc2e696764bbaebcc60a3f274fb878fd` | 27.17 | 20.11 | Exhaustive/spatial candidate lists match for first/middle/last bots before and after collapse; ordinary lobby return |
+
+The spatial candidate is approximately +10% at 24 bots and +28% at 52 against the fresh baseline, not +50%. Its 52-bot impact p50 is 49.739 ms, p95 70.746 ms and max 102.113 ms. All 153 sampled impact frames contain moving blocks, with at least 28 blocks displaced over one metre. The 24-bot run has 199 moving-block frames and 26 displaced over one metre, p50 36.802 ms, p95 70.127 ms and max 111.994 ms. There is no claim that spikes are eliminated.
+
+The original refreshed 24-bot baseline (40.374 ms) is materially faster than the historical 45.6–47.6 ms baselines. Do not select the old denominator to claim a larger improvement. The refreshed 52-bot baseline is 63.595 ms. Repeated matched trials remain necessary.
+
+The new 52-bot raw CPU trace identifies exclusive median costs of 2.85 ms in the motor, 2.82 ms in avatar posing, 2.31 ms in match visuals, and 2.24 ms in population/planning work. Finger inheritance removed repeated digit world-transform work; spatial queries avoid inspecting every block for local fallback candidates. No bot update-rate, collision, debris-count or visual-content reduction was used.
+
+Candidate `0244039b8e4946618513592a75cd75b0535f93ad` reuses neighbor-sort distances and reach parameters, avoids unchanged full-health dry-overlay writes, adds visual cost markers, and extends the fixture to production tornado, Planet Killer and combined impact. Compilation passed; selected runtime results follow. Planet Killer timing must latch actual land contact, not its approach; aftermath remains eligible after the meteor hazard ends. Combined tests require active wave and tornado plus recorded planet land contact and moving blocks. Reproduce with `--dj-impact-hazard=Tornado`, `PlanetKillerMeteor` or `Combined`; omission retains the tsunami scenario.
+
+Source is on `codex/tycoon-impact-profile`, intended target `origin/Evan_Sprint_4`, integration base `e6d1bf0909f8a32bbf871cca39423df3dd3b56d4`. `e82517cbbc2e696764bbaebcc60a3f274fb878fd` was pushed and remote-SHA verified. No shared-target integration, current-art repackaging, Editor Play Mode stress acceptance or Quest/APK claim is implied. All expanded acceptance gates above remain open.
+
+
+### Route/health checkpoint and replication failure
+
+`0244039b8e4946618513592a75cd75b0535f93ad` compiled, passed the 810 pose checks, and completed 52-bot standalone tsunami and two-process 52-bot tsunami runs. Solo impact was 19.63 FPS (50.940 ms median); host 18.48 FPS (54.123 ms); guest 59.32 FPS (16.857 ms). The 1.15 FPS host gap is a single same-PC comparison, not general acceptance.
+
+Replication is explicitly failing: guest world receipt age during impact was 581.909 ms median, 1167.953 ms p95 and 1299.362 ms maximum. Guest human pose application age was 260.208 ms median and 1024.803 ms maximum. The guest showed block motion on just 21 of 450 impact frames despite receiving 23 displaced blocks. High render FPS does not make this responsive. Both peers completed ordinary return to the same lobby.
+
+The standalone tornado scenario used height 65 m, funnel 16 m, force 7, reach 28 m, warning 1 s, duration 45 s. It passed with all 168 impact frames moving, 42 blocks displaced over a metre, 21.68 FPS, p95 65.486 ms and maximum 94.216 ms. No before/after tornado improvement is established yet.
+
+Two fixture failures are retained. A 45 m Planet Killer landed and moved blocks on 144 frames, but displaced only 11 by over a metre, below the 12-block stress gate. The first combined attempt started the meteor too late: planet land contact arrived at 16.34 s, after the tsunami's last local target at 14.62 s, so the overlap gate correctly rejected the run. The next stress configuration uses a 90 m meteor and a one-second warning for all hazards; the acceptance gate remains intact.
+
+The installed Fusion configuration allows one reliable-channel packet per network send. The next isolated candidate increases the runtime copy to eight, logs submitted traffic and pose acknowledgements, and adds ten actual process roles with individual lobby/round/migration/result/return barriers. It does not change project settings or packages. The earlier unreliable RPC experiment (`6bd7171e6d2d8dcb24101821557b266b4c99f95c`) was recovered by `e5c52a5081e787bc4bcd6b05da79c3beb6b16d8d` because native RPC invocation threw MethodAccessException; it has not been silently reinstated.
