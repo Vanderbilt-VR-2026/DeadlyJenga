@@ -25,7 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
             EditorApplication.playModeStateChanged+=state=>{
                 if(!SessionState.GetBool(Key,false))return;
                 if(state==PlayModeStateChange.EnteredPlayMode){checks=errors=0;Application.logMessageReceived+=Log;EditorApplication.delayCall+=()=>new GameObject("Castle variant validation").AddComponent<CastleVariantDriver>().StartCoroutine(Guard());}
-                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);var saved=JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes;if(saved.Any(s=>s.isLoaded&&s.isActive))EditorSceneManager.RestoreSceneManagerSetup(saved);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);File.AppendAllText(Report,"PASS Original scenes and choices restored\n");if(Application.isBatchMode)EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL ")||errors>0?1:0);}
+                if(state==PlayModeStateChange.EnteredEditMode){Application.logMessageReceived-=Log;SessionState.SetBool(Key,false);var saved=JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes","")).scenes;if(saved.Any(s=>s.isLoaded&&s.isActive))EditorSceneManager.RestoreSceneManagerSetup(saved);else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);File.AppendAllText(Report,"PASS Original scenes and choices restored\n");if(Application.isBatchMode)EditorApplication.Exit(File.ReadLines(Report).Any(line=>line.StartsWith("FAIL ",StringComparison.Ordinal)||line.StartsWith("ERROR ",StringComparison.Ordinal))?1:0);}
             };
         }
         [MenuItem("Tools/Deadly Jenga/Validation/Check Castle Variants")]
@@ -81,7 +81,7 @@ namespace DeadlyJenga.DevTools.Editor
         static IEnumerator Guard()
         {
             var iterator=SessionState.GetBool(Key+"Routes",false)?CatwalkRoutes():Checks();while(true){bool more=false;Exception error=null;try{more=iterator.MoveNext();}catch(Exception e){error=e;}if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}if(!more)break;yield return iterator.Current;}
-            (iterator as IDisposable)?.Dispose();File.AppendAllText(Report,"COMPLETE checks="+checks+" runtimeErrors="+errors+"\n");if(Application.isBatchMode){SessionState.SetBool(Key,false);SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices","")));MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby",false);MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local",false);EditorApplication.Exit(File.ReadAllText(Report).Contains("FAIL ")||errors>0?1:0);}else EditorApplication.ExitPlaymode();
+            (iterator as IDisposable)?.Dispose();File.AppendAllText(Report,"COMPLETE checks="+checks+" runtimeErrors="+errors+"\n");EditorApplication.ExitPlaymode();
         }
         sealed class RouteObjectives : IBotObjectives
         {
