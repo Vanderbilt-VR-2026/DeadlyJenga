@@ -210,6 +210,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var priorFieldOfView = camera.fieldOfView;
             var priorAspect = camera.aspect;
             var previousMSAA = camera.allowMSAA;
+            var previousAsyncCompilation = ShaderUtil.allowAsyncCompilation;
             var render = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.Default, RenderTextureReadWrite.Default, ultraHd ? 2 : 4);
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
             try
@@ -219,6 +220,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 camera.allowMSAA = true;
                 camera.aspect = (float)width / height;
                 camera.fieldOfView = fieldOfView;
+                // Keep cold shader variants from dropping dressings out of the first view.
+                ShaderUtil.allowAsyncCompilation = false;
                 camera.Render();
                 RenderTexture.active = render;
                 image.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
@@ -251,6 +254,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             finally
             {
+                ShaderUtil.allowAsyncCompilation = previousAsyncCompilation;
                 camera.targetTexture = priorTexture;
                 camera.allowMSAA = previousMSAA;
                 camera.fieldOfView = priorFieldOfView;
