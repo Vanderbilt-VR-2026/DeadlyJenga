@@ -170,7 +170,7 @@ namespace DeadlyJenga.Presentation
                     if (visual)
                     {
                         EnsureStage();
-                        CopyAvatar(leader, i);
+                        CopyAvatar(leader, i, player.dying || !player.alive);
                     }
                     nextRender = 0;
                 }
@@ -223,7 +223,7 @@ namespace DeadlyJenga.Presentation
             image.enabled = true;
         }
 
-        void CopyAvatar(Leader leader, int rank)
+        void CopyAvatar(Leader leader, int rank, bool eliminated)
         {
             var source = leader.source;
             var model = new GameObject("Visual - ranked avatar").transform;
@@ -267,7 +267,9 @@ namespace DeadlyJenga.Presentation
             {
                 bool avatarBody = original is SkinnedMeshRenderer && original.name == "Candy body and shared hands";
                 bool avatarHead = original is SkinnedMeshRenderer && original.name == "Candy spherical head" && original.enabled;
-                if ((!avatarBody && !avatarHead && (!original.enabled || original.forceRenderingOff)) ||
+                // Elimination hides the world avatar, including its equipped attachments.
+                bool hiddenInWorld = original.forceRenderingOff && !eliminated;
+                if ((!avatarBody && !avatarHead && (!original.enabled || hiddenInWorld)) ||
                     !CandyScorePortraits.VisibleInAvatar(original.transform, source)) continue;
                 Renderer copy;
                 if (original is SkinnedMeshRenderer skin && skin.sharedMesh)
