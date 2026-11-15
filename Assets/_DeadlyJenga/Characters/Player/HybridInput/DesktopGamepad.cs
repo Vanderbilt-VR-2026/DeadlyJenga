@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.XR;
@@ -7,7 +9,24 @@ namespace DeadlyJenga.CandyPlayers
     public static class DesktopGamepad
     {
         // OpenXR 1.16 registers an XR device named DPad over the standard control.
-        // Give gamepads their own control name without touching XR layouts or packages.
+        // Native pads redeclare the D-pad in their own layouts, so override them together.
+        [Serializable]
+        sealed class GamepadLayoutOverride
+        {
+            public string name = "CandyGamepadControls";
+            public string extend = "Gamepad";
+            public string[] extendMultiple;
+            public Control[] controls = { new Control() };
+
+            [Serializable]
+            public sealed class Control
+            {
+                public string name = "dpad";
+                public string layout = "CandyGamepadDpad";
+            }
+        }
+
+        // Keep the workaround local to gamepads so OpenXR's D-Pad device is still available.
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
 #if UNITY_EDITOR
         [UnityEditor.InitializeOnLoadMethod]
@@ -15,7 +34,11 @@ namespace DeadlyJenga.CandyPlayers
         static void RegisterLayouts()
         {
             InputSystem.RegisterLayout<UnityEngine.InputSystem.Controls.DpadControl>("CandyGamepadDpad");
-            InputSystem.RegisterLayoutOverride(@"{""name"":""CandyGamepadControls"",""extend"":""Gamepad"",""controls"":[{""name"":""dpad"",""layout"":""CandyGamepadDpad""}]}");
+            var layouts = new GamepadLayoutOverride
+            {
+                extendMultiple = InputSystem.ListLayoutsBasedOn("Gamepad").ToArray()
+            };
+            InputSystem.RegisterLayoutOverride(JsonUtility.ToJson(layouts));
         }
         public static Gamepad Current
         {
