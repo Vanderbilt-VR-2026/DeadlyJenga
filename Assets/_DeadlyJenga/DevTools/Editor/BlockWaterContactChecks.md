@@ -72,3 +72,23 @@ The capture fixture printed a stale gameplay SHA in its banner. Checked
 admission and the slot Git HEAD verified the exact fixture before launch.
 The change was limited to splash presentation. Quest appearance and
 performance remain unverified.
+
+## Combined Sprint 4 desktop acceptance
+
+On base `1359ca474fb8a0bc86cdd72dca7dab5e3e631a71`, desktop Castle Local
+Demo passed `RunGameViews` at `4acb59d81880d02a953102e54cb608a38ff20b37`
+with zero failed assertions. Production water source is
+`9027fb1228bf73926146e9fd09682b86c15acbea`. Subsequent changes through
+the tested revision update the Editor fixture alone.
+
+The fixture holds the two real active cameras away from moving parents for
+the controlled dry, shallow, deep and resurfaced renders. It restores their
+local transforms before the 12 m shore drop. The survivor landed on the
+chosen support with 0.77 m water clearance and a 0.80 m eye-to-feet offset.
+The normal match view handed off to the above-water camera.
+
+The bot used the real shore. It settled on dry support after both contacts.
+A sampled 0.358 s contact left no coat. A sampled 1.363 s contact applied a
+full lower-body coat. It faded to 0.594 coverage by 18.52 s and was removed
+by 20.51 s. These are controlled desktop checks with a staged transfer to
+dry support. Quest and guest replication remain unverified.
