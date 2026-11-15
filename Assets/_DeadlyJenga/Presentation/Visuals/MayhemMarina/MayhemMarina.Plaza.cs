@@ -197,7 +197,7 @@ namespace DeadlyJenga.CandyArt.Marina
             mesh.Box(At(0, FameHeaderHeight, .22f), new Vector3(6.6f, .5f, .3f), F.DarkWood, .08f, false, turn);
             mesh.Box(At(0, FameHeaderHeight + .28f, .22f), new Vector3(6.8f, .07f, .38f), F.Brass, .02f, false, turn);
             mesh.Box(At(0, 1.2f, .32f), new Vector3(6.3f, 2.4f, .16f), F.Teal, .08f, true, turn);
-            mesh.Box(At(0, 4.17f, .32f), new Vector3(6.3f, 3.58f, .16f), F.Teal, .08f, false, turn);
+            mesh.Box(At(0, 3.895f, .32f), new Vector3(6.3f, 3.03f, .16f), F.Teal, .08f, false, turn);
             mesh.Box(At(0, .14f, .2f), new Vector3(6.9f, .28f, .9f), F.Stone, .06f, true, turn);
 
             // Winners' steps in front of the board. Solid, so players can hop up for a victory pose.

@@ -25,12 +25,12 @@ namespace DeadlyJenga.CandyArt.Marina
         public static readonly Vector3 StyleMirror = Wardrobe + StyleStageTurn * new Vector3(0, 1.85f, 1.88f);
         public static readonly Quaternion StyleMirrorFacing = StyleStageTurn;
         // The last-match board stands at the far side of the Hall of Fame, readable from the plaza.
-        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 4.92f, 5.85f);
+        public static readonly Vector3 FameBoard = PlazaCenter + FameTurn * new Vector3(0, 4.37f, 5.85f);
         public static readonly Quaternion FameFacing = FameTurn;
         internal static readonly Vector3 FamePodium = PlazaCenter + FameTurn * new Vector3(0, 0, 4.4f);
         internal static readonly Vector3[] FameSteps = { new(0,.6f,0), new(-1.15f,.4f,0), new(1.15f,.26f,0) };
         internal const float FameStepCap = .03f;
-        const float FameHeaderHeight = 6.25f;
+        const float FameHeaderHeight = 5.70f;
         public bool Built {get;private set;}
         public int RenderTriangles=>mesh?.RenderTriangles??0;
         public int CollisionTriangles=>mesh?.CollisionTriangles??0;

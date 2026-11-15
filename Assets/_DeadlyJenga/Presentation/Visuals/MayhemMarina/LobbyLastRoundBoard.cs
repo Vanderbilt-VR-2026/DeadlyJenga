@@ -88,7 +88,7 @@ namespace DeadlyJenga.Presentation
                 Standing[] Rows(MatchPlayerFrame[] order, bool infections) => order.Select((player, rank) => new Standing
                 {
                     player = player.Copy(),
-                    text = $"{rank + 1}.  {CandyHudContent.Safe(player.name)}   Â·   {CandyResultsHud.RankStats(player, mode, infections)}"
+                    text = $"{rank + 1}.  {CandyHudContent.Safe(player.name)}   \u00B7   {CandyResultsHud.RankStats(player, mode, infections)}"
                 }).ToArray();
 
                 if (!ReferenceEquals(match, observed))
@@ -102,7 +102,7 @@ namespace DeadlyJenga.Presentation
 
                 latest.headline = string.IsNullOrEmpty(frame.winner) ? "Round complete"
                     : CandyHudContent.Safe(frame.winner) + (frame.winner == "Draw" ? "" : " wins");
-                latest.mode = CandyHudContent.Mode(mode) + "  Â·  " + CandyHudContent.Safe(frame.metricLabel);
+                latest.mode = CandyHudContent.Mode(mode) + "  \u00B7  " + CandyHudContent.Safe(frame.metricLabel);
                 latest.standings = Rows(ranked, false);
                 latest.infections = split ? Rows(CandyResultsHud.Rank(players, true, true), true) : null;
                 latest.nextPortrait = 0;
