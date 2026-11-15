@@ -180,8 +180,10 @@ namespace DeadlyJenga.CastleBots
             else LocalFallback();
         }
 
+        static readonly Unity.Profiling.ProfilerMarker SteerMarker=new("DJ.Bot.Steer");
         Vector3 Steer(Vector3 desired,float dt)
         {
+            using var measurement=SteerMarker.Auto();
             if(desired.sqrMagnitude<.001f){steeringVelocity=Vector3.zero;return desired;}
             Vector3 separation=Vector3.zero;int considered=0;
             var origin=transform.position;var direction=desired.normalized;

@@ -256,6 +256,8 @@ namespace DeadlyJenga.CastlePrototype
             Simulate(walking, pressed, Time.deltaTime,held);
         }
 
+        static readonly Unity.Profiling.ProfilerMarker SyncMarker=new("DJ.Survivor.SyncTransforms");
+        static readonly Unity.Profiling.ProfilerMarker MoveMarker=new("DJ.Survivor.CapsuleMove");
         static readonly Unity.Profiling.ProfilerMarker BotInputMarker=new("DJ.Survivor.BotInput");
         static readonly Unity.Profiling.ProfilerMarker MotorMarker=new("DJ.Survivor.Motor");
         static readonly Unity.Profiling.ProfilerMarker GroundProbeMarker=new("DJ.Survivor.GroundProbe");
@@ -284,7 +286,7 @@ namespace DeadlyJenga.CastlePrototype
             RefreshTraversalCollisionMask();
             RecoverUnifiedOverlap();
             peakFallSpeed=Mathf.Max(peakFallSpeed,-verticalSpeed);
-            Physics.SyncTransforms();
+            using (SyncMarker.Auto()) Physics.SyncTransforms();
             if(Vaulting&&(InputSuspended||!externallyDriven&&!vrInputFocused))
             {
                 Vaulting=false;vaultSurface=null;vaultTime=0;ClearSprint();ActionStatus="Vault cancelled";
@@ -376,7 +378,8 @@ namespace DeadlyJenga.CastlePrototype
             if(!float.IsPositiveInfinity(fallLimit))peakFallSpeed=Mathf.Min(peakFallSpeed,fallLimit);
             float fall = verticalSpeed * dt - .5f * effectiveGravity * dt * dt;
             Vector3 preMovePos = transform.position;
-            var flags = Capsule.Move((movement+slopeVelocity)*dt + Vector3.up * fall);
+            CollisionFlags flags;
+            using (MoveMarker.Auto()) flags = Capsule.Move((movement+slopeVelocity)*dt + Vector3.up * fall);
             Vector3 actualMoved = transform.position - preMovePos; actualMoved.y = 0;
             float actualSpeed = actualMoved.magnitude / Mathf.Max(dt, .0001f);
             if (Grounded && Sprinting && input.y > .3f && actualSpeed < .4f && movement.sqrMagnitude > 1f && Time.time >= hoverUntil)

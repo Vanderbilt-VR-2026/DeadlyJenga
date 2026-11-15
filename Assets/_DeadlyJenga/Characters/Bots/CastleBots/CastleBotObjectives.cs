@@ -18,8 +18,10 @@ namespace DeadlyJenga.CastleBots
         public int RouteFailures { get; private set; }
         public int Climbs { get; private set; }
 
+        static readonly Unity.Profiling.ProfilerMarker ObjectivesMarker=new("DJ.Bot.Objectives");
         void UpdateObjectives()
         {
+            using var measurement=ObjectivesMarker.Auto();
             if(Population.Session.lobbyWorld!=null||BotObjectives.Current==null){ClearObjective();return;}
             if(!Motor.Grounded||Motor.Climbing||Motor.Vaulting)return;
             if(Time.time<nextObjective)return;

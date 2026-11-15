@@ -260,8 +260,10 @@ namespace DeadlyJenga.CastleBots
             }
             WanderDirection=Quaternion.Euler(0,47+Seed%90,0)*WanderDirection;
         }
+        static readonly Unity.Profiling.ProfilerMarker MovementMarker=new("DJ.Bot.Movement");
         CastleBotCommand ReadMovementCommand(CastleSurvivor motor,float dt)
         {
+            using var measurement=MovementMarker.Auto();
             if(!isActiveAndEnabled||Respawning||!Population)return default;
             UpdateObjectives();
             if(motor.Climbing&&!wasObjectiveClimbing)Climbs++;
