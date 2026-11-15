@@ -25,6 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         static WeaponShowcaseCapture()
         {
             EditorApplication.update+=()=>{
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 var path=ProjectPath.Report("WeaponShowcase.request");
                 if(!File.Exists(path)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
                 if(File.ReadAllText(path).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString())return;

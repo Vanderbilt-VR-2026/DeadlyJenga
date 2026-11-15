@@ -2,6 +2,14 @@
 
 Current overhaul status: +50% typical FPS is not met, and neither desktop Editor smoothness nor replication freshness is accepted. Source changes are isolated on the task branch; no shared integration or APK claim.
 
+## Latest runtime evidence and Editor polling candidate
+
+Exact source `1a6f7755d75f6738f1adbb4280a1679fab210c29` passed 16,616 compact-match validation assertions, including the captured match payload, and built successfully. The opt-in compact peer run measured host 16.73 FPS and guest 55.14 FPS; guest world age median 478.365 ms (maximum 1305.702), human pose age median 173.750 ms (maximum 886.135). This improves freshness relative to the default trial but still fails acceptance and slightly worsens FPS. It remains disabled by default; migration is not validated for this protocol.
+
+Nearby invite and ordinary nearby discovery both passed real two-process UDP discovery/join without a typed code, shared-room avatars, production gameplay through results, and return to the same usable lobby. Both processes exited zero in each run. These were same-machine tests. Invite used a 300-second configured round; discovery used 600 seconds and reached victory with 448.432 seconds remaining. Neither result should be described as a complete timer countdown or cross-device proof.
+
+The Editor trace also showed approximately 32 ms median inside Editor update callbacks. Thirty-five inactive request pollers were creating/checking report directories before checking whether Play Mode prohibited their work. The next DevTools-only candidate checks the existing Editor-state exclusions before filesystem access. Request contents, running tests and request handling in edit mode are unchanged. Actual Editor frame-time improvement remains unmeasured; no player-build improvement is expected from this Editor-only change.
+
 ## Matched Editor and next network encoding candidate
 
 The corrected bfcaa98b Editor fixture verified actual 960x540 before sampling. It completed at 4.87 typical FPS (205.468 ms median, 331.102 ms p95), 38 moving-block samples and 32 blocks over one metre. This remains a desktop Editor performance failure. The d1444d7f standalone 480x270 diagnostic reached 21.30 FPS versus 19.50 at 960x540; this reduced-resolution run is diagnostic only, not accepted target performance.

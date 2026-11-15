@@ -23,6 +23,7 @@ namespace DeadlyJenga.DevTools.Editor
         static TidalKaijuChecks()
         {
             EditorApplication.update+=()=>{
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 string request=ProjectPath.Report("TidalKaiju.request");
                 if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating||File.Exists(ProjectPath.Report("TsunamiChecks.request"))||!File.Exists(request))return;
                 File.Delete(request);Run();

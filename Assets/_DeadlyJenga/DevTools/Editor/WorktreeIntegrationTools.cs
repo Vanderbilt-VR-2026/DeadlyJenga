@@ -40,6 +40,7 @@ namespace DeadlyJenga.DevTools.Editor
         {if(kind==LogType.Error||kind==LogType.Exception||kind==LogType.Assert){smokeErrors++;File.AppendAllText(ProjectPath.Report("WorktreeMapsPlay.txt"),"ERROR "+message+"\n");}}
         static void Poll()
         {
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             string path=ProjectPath.Report("WorktreeIntegration.request");
             if(!File.Exists(path)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             string command=File.ReadAllText(path).Trim();File.Delete(path);

@@ -17,6 +17,7 @@ namespace DeadlyJenga.DevTools.Editor
         static DenseWaveChecks()
         {
             EditorApplication.update += () => {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 var request=ProjectPath.Report("DenseWaveChecks.request");
                 if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
                 File.Delete(request);Run();

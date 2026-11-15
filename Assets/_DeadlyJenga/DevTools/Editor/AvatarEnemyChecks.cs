@@ -31,6 +31,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update+=()=>
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 var request=ProjectPath.Report("AvatarEnemies.request");
                 if(starting||!File.Exists(request)||EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 try{if(File.ReadAllText(request).Trim()=="equipment")SessionState.SetBool(Key+"EquipmentOnly",true);File.Delete(request);}catch(IOException){return;}Run();

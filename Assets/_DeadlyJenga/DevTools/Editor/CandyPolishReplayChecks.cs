@@ -25,6 +25,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update+=()=>
             {
+                if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
                 string path=ProjectPath.Report("CandyPolishReplay.request");
                 if(!File.Exists(path)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
                 bool visualOnly=File.ReadAllText(path).Trim()=="visuals";File.Delete(path);Run();SessionState.SetBool(Key+"VisualOnly",visualOnly);

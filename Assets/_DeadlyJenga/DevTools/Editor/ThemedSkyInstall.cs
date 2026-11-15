@@ -13,6 +13,7 @@ namespace DeadlyJenga.DevTools.Editor
         static ThemedSkyInstall(){EditorApplication.update+=Tick;}
         static void Tick()
         {
+            if(EditorApplication.isPlayingOrWillChangePlaymode||EditorApplication.isCompiling||EditorApplication.isUpdating)return;
             string request=ProjectPath.Report("ThemedSkyInstall.request");
             if(!File.Exists(request)||EditorApplication.isCompiling||EditorApplication.isUpdating||EditorApplication.isPlayingOrWillChangePlaymode)return;
             if(File.ReadAllText(request).Trim()!=System.Diagnostics.Process.GetCurrentProcess().Id.ToString())return;
