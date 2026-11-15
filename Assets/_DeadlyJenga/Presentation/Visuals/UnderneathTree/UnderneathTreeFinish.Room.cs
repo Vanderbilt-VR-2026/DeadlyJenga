@@ -148,7 +148,8 @@ namespace DeadlyJenga.CandyArt
             Wall("North wall right bay", right, 82f, 0f, 177f, z, plaster);
             Wall("North wall overhead", left, right, head, 177f, z, plaster);
             Wall("North wall below window", left, right, 0f, sill, z, plaster);
-            Box("West wall", new Vector3(-258f, 88.5f, -92f), new Vector3(3.0f, 177f, 343f), plaster);
+            Box("West wall", new Vector3(-258f, 88.5f, -92f), new Vector3(3.0f, 177f, 343f), plaster)
+                .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
             Box("West oak wainscot", new Vector3(-255.7f, 8f, -92f), new Vector3(2f, 16f, 343f), wood);
             Box("North oak wainscot", new Vector3(-88f, 7.8f, z - 2.2f), new Vector3(343f, 15.6f, 2f), wood);
             Box("North chair rail", new Vector3(-88f, 16.7f, z - 3.0f), new Vector3(343f, 1.9f, 2.5f), casing);
@@ -160,9 +161,9 @@ namespace DeadlyJenga.CandyArt
             foreach (float x in new[] { left, right, 2.5f })
                 Box("Window mullion", new Vector3(x, 50f, z - 2f), new Vector3(2.3f, 55f, 4.3f), casing);
             Box("Window meeting rail", new Vector3(2.5f, 52f, z - 2f), new Vector3(73f, 2.0f, 4.5f), casing);
-            Box("Curtain rod", new Vector3(2.5f, 87f, z - 5.6f), new Vector3(111f, 1.2f, 1.4f), wood);
-            Curtain("Left drape", -47f, 87f, z - 4.9f, curtain);
-            Curtain("Right drape", 52f, 87f, z - 4.9f, curtain);
+            Box("Curtain rod", new Vector3(2.5f, 87f, z - 10.3f), new Vector3(111f, 1.2f, 1.4f), wood);
+            Curtain("Left drape", -47f, 87f, z - 10.5f, curtain);
+            Curtain("Right drape", 52f, 87f, z - 10.5f, curtain);
             NightWindow("Front window snow", new Vector3(2.5f, 50f, z + 1.3f), new Vector2(74, 57), Quaternion.identity);
             NightWindow("Side window snow", new Vector3(84.5f, 98.6f, -130f), new Vector2(106, 86), Quaternion.Euler(0f, 90f, 0f));
             BuildHearth();
@@ -171,7 +172,8 @@ namespace DeadlyJenga.CandyArt
         void Wall(string label, float left, float right, float low, float high, float depth, Material material)
         {
             Box(label, new Vector3((right + left) * .5f, (high + low) * .5f, depth),
-                new Vector3(right - left, high - low, 3f), material);
+                new Vector3(right - left, high - low, 3f), material)
+                .GetComponent<MeshRenderer>().shadowCastingMode = ShadowCastingMode.Off;
         }
 
         void NightWindow(string label, Vector3 center, Vector2 size, Quaternion rotation)
@@ -268,7 +270,8 @@ namespace DeadlyJenga.CandyArt
             var renderer = obj.AddComponent<MeshRenderer>();
             renderer.sharedMaterial = material;
             renderer.shadowCastingMode = shadows;
-            meshes.Add(mesh);
+            if (!meshes.Contains(mesh))
+                meshes.Add(mesh);
             return renderer;
         }
 
