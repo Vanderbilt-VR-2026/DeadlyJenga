@@ -9,15 +9,17 @@ Shader "DeadlyJenga/Sand Coating"
         _CoatTop("Coat top (world Y)", Float) = 1
         _Coverage("Coverage", Range(0,1)) = 1
         _Seed("Seed", Float) = 0
+        _HasRest("Rest surface coordinates", Float) = 0
     }
     SubShader
     {
-        Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Geometry+20" "RenderType"="TransparentCutout"}
+        Tags {"RenderPipeline"="UniversalPipeline" "Queue"="Transparent-10" "RenderType"="TransparentCutout"}
         Pass
         {
             Name "SandCoating"
             Tags {"LightMode"="UniversalForward"}
-            Cull Back ZWrite On ZTest LEqual
+            Cull Back ZWrite Off ZTest LEqual
+            Blend SrcAlpha OneMinusSrcAlpha
             HLSLPROGRAM
             #pragma target 3.5
             #pragma vertex Vert
@@ -28,17 +30,17 @@ Shader "DeadlyJenga/Sand Coating"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Lighting.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
-                float _CoatBottom, _CoatTop, _Coverage, _Seed;
+                float _CoatBottom, _CoatTop, _Coverage, _Seed, _HasRest;
             CBUFFER_END
 
             struct Attributes
             {
-                float4 positionOS : POSITION; float3 normalOS : NORMAL;
+                float4 positionOS : POSITION; float3 normalOS : NORMAL; float4 rest : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID
             };
             struct Varyings
             {
-                float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; half fog : TEXCOORD2;
+                float4 positionCS : SV_POSITION; float3 positionWS : TEXCOORD0; float3 normalWS : TEXCOORD1; half fog : TEXCOORD2; float4 rest : TEXCOORD3;
                 UNITY_VERTEX_INPUT_INSTANCE_ID UNITY_VERTEX_OUTPUT_STEREO
             };
 
@@ -64,63 +66,69 @@ Shader "DeadlyJenga/Sand Coating"
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
                 float3 normalWS = TransformObjectToWorldNormal(input.normalOS);
                 // Sit the grains a hair above the body so they never z-fight with it.
-                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz) + normalWS * 0.006;
+                float3 positionWS = TransformObjectToWorld(input.positionOS.xyz) + normalWS * 0.00065;
+                output.rest = lerp(float4(input.positionOS.xyz, (positionWS.y - _CoatBottom) / max(.05, _CoatTop - _CoatBottom)), input.rest, _HasRest);
                 output.positionWS = positionWS; output.normalWS = normalWS;
                 output.positionCS = TransformWorldToHClip(positionWS);
                 output.fog = ComputeFogFactor(output.positionCS.z);
                 return output;
             }
 
-            // One rounded grain per 3D cell. Returns x = grain mask (0..1, soft edge), yzw = bump direction.
-            float4 Grain(float3 p, float freq, float seedShift)
+            // Irregular faceted crystals. Derivatives average detail smaller than a pixel.
+            float4 Crystal(float3 p, float frequency)
             {
-                float3 q = p * freq + seedShift;
-                float3 id = floor(q), f = frac(q) - 0.5;
-                float3 jitter = float3(Hash(id + 1.7), Hash(id + 5.3), Hash(id + 9.1)) - 0.5;
-                float3 d = f - jitter * 0.45;
-                float r = 0.30 + 0.12 * Hash(id + 13.7);
-                float len = length(d);
-                return float4(1 - smoothstep(r - 0.10, r, len), d / r);
+                float3 q = p * frequency;
+                float3 cell = floor(q);
+                float3 random = float3(Hash(cell + 1.1), Hash(cell + 7.3), Hash(cell + 17.7));
+                float3 d = frac(q) - .5 - (random - .5) * .3;
+                float3 a = abs(d);
+                float facet = max(max(a.x, a.y * 1.15), a.z * .87);
+                facet = max(facet, (a.x + a.y + a.z) * .55);
+                float radius = lerp(.22, .48, random.x);
+                float footprint = max(length(ddx(q)), length(ddy(q)));
+                float edge = max(.025, footprint * .65);
+                float mask = 1 - smoothstep(radius - edge, radius + edge, facet);
+                float resolved = 1 - smoothstep(.35, 1.4, footprint);
+                float height = max(0, radius - facet) * mask;
+                return float4(lerp(.55, mask, resolved), height * resolved, random.y, resolved);
             }
 
             half4 Frag(Varyings input) : SV_Target
             {
                 UNITY_SETUP_INSTANCE_ID(input); UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(input);
-                float3 p = input.positionWS;
-                float span = max(0.05, _CoatTop - _CoatBottom);
-                float t = (p.y - _CoatBottom) / span;
-                // Jagged, imperfect top edge instead of a clean cutoff.
-                float edge = 1 + (Noise(p * 6) - 0.5) * 0.32 + (Noise(p * 17) - 0.5) * 0.14;
-                clip(edge - t);
-                clip(t + 0.05);
-                // Dense at the feet, patchy toward the waist; coverage dusts grains off.
-                // Smooth noise (not a point-sampled grid) decides where the coat is, so edges stay soft.
-                float density = lerp(1.0, 0.45, saturate(t)) * smoothstep(0.18, 0.55, Noise(p * 4.5 + 3.1));
-                clip(density * _Coverage * 1.25 - Noise(p * 38 + 11.0) * 0.55 - 0.08);
-
-                // Round sugar crystals and cinnamon clumps, each shaded like a tiny bump.
-                float dist = distance(_WorldSpaceCameraPos, p);
-                float detail = saturate(1 - dist / 7);               // fades to a smooth average from afar (no shimmer)
-                float4 sugarG = Grain(p, 70, 0), spiceG = Grain(p, 46, 31.7);
-                float clump = smoothstep(0.42, 0.72, Noise(p * 7 + 5.5));
-                float spice = saturate(spiceG.x * (0.35 + clump * 0.75));
-                half3 sugar = half3(0.97, 0.89, 0.72), cinnamon = half3(0.50, 0.26, 0.11), gap = half3(0.36, 0.20, 0.10);
-                half3 albedo = lerp(gap, sugar, lerp(0.8, sugarG.x, detail));
-                albedo = lerp(albedo, cinnamon * (0.85 + 0.3 * spiceG.y * 0.5 + 0.15), spice * lerp(0.55, 1, detail));
-                albedo *= 0.92 + (Noise(p * 9) - 0.5) * 0.18;
-
+                float3 p = input.rest.xyz + _Seed * float3(.137, .271, .193);
+                float t = input.rest.w;
+                float edge = 1 + (Noise(p * 15) - .5) * .3;
+                float patches = Noise(p * 9 + 3.1) * .65 + Noise(p * 23) * .35;
+                float density = saturate((edge - t) * 3.5) * smoothstep(.2, .53, patches);
+                float erosion = (1 - _Coverage) * .92;
+                float boundary = density - erosion - .06;
+                float aa = max(fwidth(boundary), .012);
+                float coverage = smoothstep(-aa, aa, boundary) * smoothstep(-.07, -.03, t);
+                clip(coverage - .015);
+                float4 crystal = Crystal(p, 420);
+                float4 cluster = Crystal(p + 1.3, 190);
+                float grains = saturate(crystal.x * .78 + cluster.x * .32);
+                float height = crystal.y * .0017 + cluster.y * .0012;
                 float3 n = normalize(input.normalWS);
-                float3 bump = lerp(sugarG.yzw, spiceG.yzw, spice) * detail * 0.55;
-                n = normalize(n + bump);
+                float3 dx = ddx(input.positionWS), dy = ddy(input.positionWS);
+                float3 rx = cross(dy, n), ry = cross(n, dx);
+                float determinant = dot(dx, rx);
+                float3 gradient = (ddx(height) * rx + ddy(height) * ry) / (abs(determinant) + 1e-10) * sign(determinant);
+                n = normalize(n - gradient * .65);
+                half3 amber = half3(.66, .36, .115);
+                half3 ivory = half3(.98, .87, .64);
+                half3 albedo = lerp(amber, ivory, saturate(grains * .65 + crystal.z * .22));
                 Light light = GetMainLight();
-                half diffuse = saturate(dot(n, light.direction)) * 0.8 + 0.2;
-                half3 color = albedo * (light.color * diffuse + SampleSH(n) * 0.6);
-                // Glints on a few crystals, like sugar catching the sun.
-                float3 view = normalize(GetWorldSpaceViewDir(p));
-                float sparkle = step(0.82, Hash(floor(p * 70) + 3.3)) * sugarG.x * detail;
-                color += sparkle * pow(saturate(dot(n, normalize(light.direction + view))), 18) * light.color * 1.8;
-                color = MixFog(color, input.fog);
-                return half4(color, 1);
+                float ndl = saturate(dot(n, light.direction));
+                half3 color = albedo * (SampleSH(n) + light.color * (.18 + ndl * .82));
+                float3 view = normalize(GetWorldSpaceViewDir(input.positionWS));
+                float nh = saturate(dot(n, normalize(view + light.direction)));
+                float glint = pow(nh, 72) * grains * crystal.w;
+                float glaze = pow(nh, 28) * .2;
+                color += light.color * (glint * .65 + glaze);
+                float alpha = coverage * lerp(.40, .96, grains);
+                return half4(MixFog(color, input.fog), alpha);
             }
             ENDHLSL
         }

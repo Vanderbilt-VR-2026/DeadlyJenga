@@ -31,7 +31,7 @@ namespace DeadlyJenga.Presentation
         }
 
         // ---------- shared particles ----------
-        ParticleSystem droplets, splashMist, bubbles, ripples, dust;
+        ParticleSystem droplets, splashMist, bubbles, ripples, dust, sugar;
         CandyBlockWhitewater whitewater;
         readonly List<Object> owned = new();
 
@@ -49,6 +49,7 @@ namespace DeadlyJenga.Presentation
             bubbles = Particles("Underwater bubbles", soft, 300, -.25f, false);
             ripples = Particles("Sand ripples", ring, 120, 0, true);
             dust = Particles("Sand dust", soft, 300, .08f, false);
+            sugar = SugarParticles();
         }
 
         void OnDestroy()
@@ -427,19 +428,14 @@ namespace DeadlyJenga.Presentation
         {
             public Component owner; public ISandState sand;
             public float sandSeconds, coatedAt = -1, dustNext;
-            public Renderer[] renderers; public Material material;
+            public readonly List<CandySugarSurface> surfaces = new();
+            public Material material;
             public float footOffset, waistOffset;
 
             public void Remove()
             {
-                if (renderers != null)
-                    foreach (var r in renderers)
-                    {
-                        if (!r) continue;
-                        var list = new List<Material>(r.sharedMaterials);
-                        if (list.Remove(material)) r.sharedMaterials = list.ToArray();
-                    }
-                renderers = null;
+                foreach (var surface in surfaces) surface.Dispose();
+                surfaces.Clear();
                 if (material) Object.Destroy(material);
                 coatedAt = -1;
             }
@@ -476,15 +472,21 @@ namespace DeadlyJenga.Presentation
                 coat.material.SetFloat("_Coverage", coverage);
                 if (coverage < 1 && Time.time >= coat.dustNext)
                 {
-                    coat.dustNext = Time.time + .08f;
+                    coat.dustNext = Time.time + .06f;
+                    if (coat.surfaces.Count == 0) continue;
+                    var surface = coat.surfaces[Random.Range(0, coat.surfaces.Count)];
+                    if (!surface.TrySample(out var position)) continue;
+                    if (position.y > feet + coat.waistOffset || position.y < feet + coat.footOffset) continue;
                     var emit = new ParticleSystem.EmitParams
                     {
-                        position = coat.owner.transform.position + Vector3.up * Random.Range(coat.footOffset, coat.waistOffset) + Random.insideUnitSphere * .18f,
-                        velocity = new Vector3(Random.Range(-.2f, .2f), Random.Range(-.6f, -.1f), Random.Range(-.2f, .2f)),
-                        startSize = Random.Range(.04f, .09f), startLifetime = Random.Range(.5f, .9f),
-                        startColor = new Color(.82f, .62f, .40f, .85f)
+                        position = position,
+                        velocity = new Vector3(Random.Range(-.08f, .08f), Random.Range(-.18f, -.04f), Random.Range(-.08f, .08f)),
+                        startSize = Random.Range(.0015f, .0045f), startLifetime = Random.Range(.45f, .85f),
+                        rotation3D = Random.insideUnitSphere * 180,
+                        startColor = Color.Lerp(new Color(.67f, .40f, .16f), new Color(1f, .90f, .68f), Random.value)
                     };
-                    dust.Emit(emit, 2);
+                    sugar.Emit(emit, Random.Range(3, 7));
+
                 }
             }
             foreach (int id in goneCoats) coats.Remove(id);
@@ -502,23 +504,49 @@ namespace DeadlyJenga.Presentation
             float low = float.MaxValue, high = float.MinValue;
             foreach (var r in renderers)
             {
-                if (!(r is SkinnedMeshRenderer || r is MeshRenderer) || !r.enabled) continue;
+                if (!(r is SkinnedMeshRenderer || r is MeshRenderer) || r.name == "Sticky sugar surface") continue;
                 bodies.Add(r);
                 low = Mathf.Min(low, r.bounds.min.y); high = Mathf.Max(high, r.bounds.max.y);
             }
             if (bodies.Count == 0) return;
-            coat.material = new Material(coatShader) { name = "Cinnamon sugar coating" };
+            coat.material = new Material(coatShader) { name = "Sticky sugar coating" };
             coat.material.SetFloat("_Seed", Random.value * 100);
             float feet = coat.owner.transform.position.y;
             coat.footOffset = low - feet - .05f;
             coat.waistOffset = low - feet + (high - low) * Random.Range(.44f, .52f);
+            coat.material.SetFloat("_CoatBottom", feet + coat.footOffset);
+            coat.material.SetFloat("_CoatTop", feet + coat.waistOffset);
+            coat.material.SetFloat("_Coverage", 1);
             foreach (var r in bodies)
-            {
-                var list = new List<Material>(r.sharedMaterials) { coat.material };
-                r.sharedMaterials = list.ToArray();
-            }
-            coat.renderers = bodies.ToArray();
+                coat.surfaces.Add(new CandySugarSurface(r, coat.material, feet + coat.footOffset, feet + coat.waistOffset));
             coat.coatedAt = Time.time;
+        }
+
+        ParticleSystem SugarParticles()
+        {
+            var ps = Particles("Falling sugar crystals", null, 600, .65f, false);
+            var renderer = ps.GetComponent<ParticleSystemRenderer>();
+            var material = new Material(Shader.Find("Universal Render Pipeline/Particles/Lit"));
+            material.SetColor("_BaseColor", Color.white);
+            material.SetFloat("_Smoothness", .48f);
+            owned.Add(material);
+            renderer.sharedMaterial = material;
+            renderer.renderMode = ParticleSystemRenderMode.Mesh;
+            var points = new[] { Vector3.up * .6f, Vector3.down * .6f, Vector3.left * .4f,
+                Vector3.forward * .4f, Vector3.right * .4f, Vector3.back * .4f };
+            var faces = new[] { 0,3,2, 0,4,3, 0,5,4, 0,2,5, 1,2,3, 1,3,4, 1,4,5, 1,5,2 };
+            var vertices = new Vector3[faces.Length];
+            var indices = new int[faces.Length];
+            for (int i = 0; i < faces.Length; i++) { vertices[i] = points[faces[i]]; indices[i] = i; }
+            var mesh = new Mesh { name = "Sugar crystal facets", vertices = vertices, triangles = indices };
+            mesh.RecalculateNormals(); mesh.RecalculateBounds();
+            owned.Add(mesh); renderer.mesh = mesh;
+            var main = ps.main; main.startRotation3D = true;
+            var rotation = ps.rotationOverLifetime; rotation.enabled = true; rotation.separateAxes = true;
+            rotation.x = new ParticleSystem.MinMaxCurve(-4, 4);
+            rotation.y = new ParticleSystem.MinMaxCurve(-3, 3);
+            rotation.z = new ParticleSystem.MinMaxCurve(-5, 5);
+            return ps;
         }
 
         // ---------- helpers ----------
