@@ -53,9 +53,12 @@ namespace DeadlyJenga.DevTools.Editor
                     Application.logMessageReceived -= Log; SessionState.SetBool(Key, false);
                     SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices", "")));
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby", false); MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local", false);
-                    EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes", "")).scenes);
                     if (Application.isBatchMode && SessionState.GetString(Key+"Label", "") == TycoonBatch)
+                    {
                         EditorApplication.Exit(errors == 0 ? 0 : 2);
+                        return;
+                    }
+                    EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes", "")).scenes);
                 }
             };
         }
