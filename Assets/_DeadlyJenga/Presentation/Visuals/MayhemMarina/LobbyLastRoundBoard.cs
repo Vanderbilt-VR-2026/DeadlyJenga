@@ -88,7 +88,7 @@ namespace DeadlyJenga.Presentation
                 Standing[] Rows(MatchPlayerFrame[] order, bool infections) => order.Select((player, rank) => new Standing
                 {
                     player = player.Copy(),
-                    text = $"{rank + 1}.  {CandyHudContent.Safe(player.name)}   ·   {CandyResultsHud.RankStats(player, mode, infections)}"
+                    text = $"{rank + 1}.  {CandyHudContent.Safe(player.name)}   Â·   {CandyResultsHud.RankStats(player, mode, infections)}"
                 }).ToArray();
 
                 if (!ReferenceEquals(match, observed))
@@ -102,7 +102,7 @@ namespace DeadlyJenga.Presentation
 
                 latest.headline = string.IsNullOrEmpty(frame.winner) ? "Round complete"
                     : CandyHudContent.Safe(frame.winner) + (frame.winner == "Draw" ? "" : " wins");
-                latest.mode = CandyHudContent.Mode(mode) + "  ·  " + CandyHudContent.Safe(frame.metricLabel);
+                latest.mode = CandyHudContent.Mode(mode) + "  Â·  " + CandyHudContent.Safe(frame.metricLabel);
                 latest.standings = Rows(ranked, false);
                 latest.infections = split ? Rows(CandyResultsHud.Rank(players, true, true), true) : null;
                 latest.nextPortrait = 0;
@@ -123,8 +123,13 @@ namespace DeadlyJenga.Presentation
             {
                 var player = latest.standings[latest.nextPortrait++].player;
                 if (latest.portraits.ContainsKey(player.id)) continue;
-                if (cache.Get(match, player) is Texture2D portrait)
-                    latest.portraits.Add(player.id, Instantiate(portrait));
+                var portrait = cache.Get(match, player);
+                if (!portrait) continue;
+                var snapshot = new RenderTexture(portrait.width, portrait.height, 0) { name = "Head portrait - Hall of Fame" };
+                var previous = RenderTexture.active;
+                try { Graphics.Blit(portrait, snapshot); }
+                finally { RenderTexture.active = previous; }
+                latest.portraits.Add(player.id, snapshot);
             }
             if (latest.nextPortrait == latest.standings.Length)
             {
