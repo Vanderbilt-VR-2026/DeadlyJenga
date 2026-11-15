@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.IO;
+using System.Reflection;
 using DeadlyJenga.CandyArt;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
@@ -364,7 +365,7 @@ namespace DeadlyJenga.DevTools.Editor
             return cut;
         }
 
-        static Color RenderMarker(Camera camera, RenderTexture target)
+        static Color RenderMarker(Camera camera, RenderTexture target, string capture = null)
         {
             var previous = RenderTexture.active;
             var pixel = new Texture2D(1, 1, TextureFormat.RGB24, false);
@@ -373,6 +374,16 @@ namespace DeadlyJenga.DevTools.Editor
                 camera.Render();
                 RenderTexture.active = target;
                 pixel.ReadPixels(new Rect(32, 32, 1, 1), 0, 0);
+                if (capture != null)
+                {
+                    var frame = new Texture2D(target.width, target.height, TextureFormat.RGB24, false);
+                    try
+                    {
+                        frame.ReadPixels(new Rect(0, 0, target.width, target.height), 0, 0);
+                        File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(Report), capture + ".png"), frame.EncodeToPNG());
+                    }
+                    finally { Object.Destroy(frame); }
+                }
                 return pixel.GetPixel(0, 0);
             }
             finally
@@ -454,14 +465,17 @@ namespace DeadlyJenga.DevTools.Editor
                         yield return null;
                     } while (Time.unscaledTime < deadline);
                     eye.transform.SetPositionAndRotation(poses[i], Quaternion.identity);
-                    colors[i] = RenderMarker(eye, target);
+                    var capture = $"{(hand ? "hand" : "survivor")}-{i}";
+                    LogViewSample(capture, poses[i], session, eye, effects, marker, target, world);
+                    colors[i] = RenderMarker(eye, target, capture);
                     eye.transform.SetPositionAndRotation(savedPose.position, savedPose.rotation);
                 }
 
+                Check(colors[0].r > .65f, $"{label} dry reference renders the red marker {colors[0]}");
                 Check(colors[0].r > .65f && colors[1].r < colors[0].r * .75f && colors[1].b > colors[0].b + .02f,
                     $"{label} dry and shallow-water samples {colors[0]} / {colors[1]}");
                 Check(colors[2].r < .22f && colors[2].b > .02f, $"{label} cannot see beneath the map {colors[2]}");
-                Check(colors[3].r > colors[0].r * .9f, $"{label} clears the filter after resurfacing {colors[3]}");
+                Check(colors[0].r > .65f && colors[3].r > .65f && colors[3].r > colors[0].r * .9f, $"{label} clears the filter after resurfacing {colors[3]}");
 
                 eye.targetTexture = savedTexture;
                 eye.cullingMask = savedMask;
@@ -506,8 +520,12 @@ namespace DeadlyJenga.DevTools.Editor
             }
             var landedEye = survivor.ViewCamera.transform.position;
             lowestEye = Mathf.Min(lowestEye, landedEye.y - world.WaterHeight(landedEye));
-            Check(survivor.Grounded && lowestEye > 0 && session.ActiveCamera == survivor.ViewCamera,
-                $"survivor drops 12 m onto actual sand with a dry active eye; lowest clearance {lowestEye:F2} m");
+            var feet = survivor.transform.position;
+            var horizontalError = Vector3.ProjectOnPlane(feet - shore, Vector3.up).magnitude;
+            var supportHeightError = Mathf.Abs(feet.y - shore.y);
+            Check(survivor.Grounded && horizontalError < 1f && supportHeightError < .5f &&
+                  lowestEye > 0 && session.ActiveCamera == survivor.ViewCamera,
+                $"survivor drops 12 m onto actual sand with a dry active eye; lowest clearance {lowestEye:F2} m, feet {feet:F2}, intended support {shore:F2}");
             survivor.Teleport(safe, Quaternion.identity);
 
             for (int trial = 0; trial < 2; trial++)
@@ -542,6 +560,24 @@ namespace DeadlyJenga.DevTools.Editor
             var guardedEye = session.ActiveCamera;
             Check(guardedEye && guardedEye != survivorEye && guardedEye.transform.position.y >= world.WaterHeight(shallow),
                 "normal match view hands off to an above-water camera during survival immersion");
+        }
+
+        static void LogViewSample(string name, Vector3 expected, CastlePlaySession session, Camera eye,
+            CandyWaterSandEffects effects, GameObject marker, RenderTexture target, IWorldQuery world)
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            var type = typeof(CandyWaterSandEffects);
+            var point = eye.transform.position;
+            var sampledEye = type.GetField("waterEye", flags)?.GetValue(effects) as Camera;
+            var wet = type.GetField("underwater", flags)?.GetValue(effects);
+            var concealed = type.GetField("hiddenDepth", flags)?.GetValue(effects);
+            var dipped = type.GetField("dippedFor", flags)?.GetValue(effects);
+            var localSand = session.Player.gameObject.GetComponent<ISandState>();
+            Log($"PROBE {name}: expected={expected:F2}, eye={point:F2}, depth={world.WaterHeight(point) - point.y:F3}, " +
+                $"active={session.ActiveCamera == eye}, sampledEye={sampledEye == eye}, wet={wet}, concealed={concealed}, " +
+                $"dippedFor={dipped}, inSand={localSand?.InSand}, menu={session.MenuOpen}, cursor={Cursor.lockState}, " +
+                $"markerViewport={eye.WorldToViewportPoint(marker.transform.position):F2}, eyeEnabled={eye.enabled}, " +
+                $"targetMatched={eye.targetTexture == target}, mask={eye.cullingMask:X8}, rect={eye.rect}, clips={eye.nearClipPlane:F3}/{eye.farClipPlane:F1}");
         }
 
         static Vector3 FindIslandSupport(CastleGenerator map)
