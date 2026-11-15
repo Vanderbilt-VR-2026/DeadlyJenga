@@ -20,9 +20,21 @@ namespace DeadlyJenga.CastlePrototype
                 {
                     if (piece == hit || piece.IsLoose)
                         continue;
-                    Vector3 outward = Vector3.ProjectOnPlane(piece.Body.position - center, Vector3.up).normalized;
-                    // Release the wrapping and give the panels a modest kick away from the shell.
-                    piece.Release(impulse * .18f + outward * .65f + Vector3.up * .28f);
+                    Vector3 outward = Vector3.ProjectOnPlane(piece.Body.worldCenterOfMass - center, Vector3.up).normalized;
+                    Vector3 shared = impulse * .16f;
+                    if (piece.Role == GiftPieceRole.Wall)
+                    {
+                        // Tipping the panel outward keeps it from balancing upright on its thin bottom edge.
+                        if (outward.sqrMagnitude < .01f)
+                            outward = piece.transform.right;
+                        piece.Release(shared + outward * 3.4f + Vector3.up * .55f,
+                            Vector3.Cross(Vector3.up, outward) * 2.3f);
+                    }
+                    else if (piece.Role == GiftPieceRole.Lid)
+                        piece.Release(shared + piece.transform.parent.forward * 2.28f + Vector3.up * 1.1f,
+                            piece.transform.parent.right * .88f);
+                    else
+                        piece.Release(shared);
                 }
                 return;
             }
@@ -110,13 +122,15 @@ namespace DeadlyJenga.CastlePrototype
             GameEvents.RaiseBlockHit(transform.position, force.magnitude);
         }
 
-        internal void Release(Vector3 impulse)
+        internal void Release(Vector3 impulse, Vector3 angularVelocity = default)
         {
             if (IsLoose || replica)
                 return;
             IsLoose = true;
             SetReplica(false);
             Body.AddForce(impulse, ForceMode.VelocityChange);
+            if (angularVelocity.sqrMagnitude > 0f)
+                Body.AddTorque(angularVelocity, ForceMode.VelocityChange);
         }
 
         void OnCollisionEnter(Collision collision)

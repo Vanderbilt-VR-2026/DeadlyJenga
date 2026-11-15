@@ -20,6 +20,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static UnderneathTreeMap map;
         static Rigidbody loosePanel, looseDrum;
         static string[] originalPieces;
+        static Rigidbody[] creamWalls;
+        static Quaternion[] creamWallRotations;
         static Vector3 initialPanelPosition, initialDrumPosition, initialTrainPosition;
         static int blockCount, revision;
 
@@ -109,6 +111,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         "skirt motifs are present");
                     var cream = gifts["Cream Landing"];
                     var drum = gifts["Present 01"];
+                    creamWalls = cream.Where(b => b.name != "Bottom" && b.name != "Lid").ToArray();
+                    creamWallRotations = creamWalls.Select(b => b.rotation).ToArray();
                     loosePanel = cream.Single(b => b.name == "Lid");
                     looseDrum = drum.First(b => b.name.StartsWith("Curved wall"));
                     initialPanelPosition = loosePanel.position;
@@ -126,6 +130,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     return;
                 Require(Vector3.Distance(initialPanelPosition, loosePanel.position) > .1f,
                     "released rectangular lid is displaced by PhysX");
+                Require(creamWalls.Where((wall, i) => Quaternion.Angle(wall.rotation, creamWallRotations[i]) > 24f).Count() >= 2,
+                    "at least two rectangular walls visibly tip as the shell falls apart");
                 Require(Vector3.Distance(initialDrumPosition, looseDrum.position) > .1f,
                     "released curved wall is displaced by PhysX");
                 Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .2f,
