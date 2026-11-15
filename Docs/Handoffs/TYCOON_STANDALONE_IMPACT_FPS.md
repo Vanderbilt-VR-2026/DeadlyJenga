@@ -14,6 +14,14 @@ Nearby UDP invite, joining without a code and entering the same round passed; fu
 
 A separate 139-frame whole-CPU/GPU diagnostic at source 644e3970 measured median CPU frame time 55.616 ms and GPU frame duration 55.171 ms. These recording-overhead samples are not FPS acceptance; GPU frame duration alone does not establish GPU execution as the bottleneck.
 
+## Native-world failure and follow-up
+
+The d9544896 experiment compiled and passed the existing equivalence checks, but failed real peer acceptance. Host impact was 15.57 FPS (121 moving-block frames, 28 blocks over one metre); the guest observed zero eligible collapse frames. The 64 KiB state also exceeded Fusion's 32 KiB host-migration transfer buffer. These are failed diagnostic results, not accepted performance gains. Native state is still opt-in.
+
+The follow-up bounds its native state to 24 KiB, losslessly compresses the existing world payload, keeps the original heap configuration, and budgets 16 native game-channel sends. Oversized packets fall back to the existing transport. New validation covers byte-for-byte round trips and invalid expansion lengths. Actual freshness, bandwidth, FPS, late joining and migration remain required.
+
+A separate Characters/Player candidate snapshots the rig's matrices and rotation once per pose, avoiding repeated Unity transform queries for limbs/feet. It preserves the pose calculations and needs the existing finger equivalence and impact retests. Frame logs now include application focus and simulated physics time to diagnose the poor Editor result.
+
 ## Native checkpoint 644e3970
 
 Exact source and verified task-branch remote: `644e397068ea6be16c1e96a6a4147b1265ea4bd2`. Native build succeeded; 810 finger-pose and 4,617 deformation position/normal/bounds checks passed. Core and packages are unchanged. No shared-target integration or APK inclusion is claimed.

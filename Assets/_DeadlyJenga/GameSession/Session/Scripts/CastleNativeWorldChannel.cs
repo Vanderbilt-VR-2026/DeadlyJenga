@@ -7,21 +7,15 @@ namespace DeadlyJenga.CastlePrototype
     // Development transport candidate: native atomic snapshots, with the existing world decoder.
     public sealed class CastleNativeWorldChannel : NetworkBehaviour
     {
-        public const int CapacityBytes = 65536;
+        public const int CapacityBytes = 24576;
         internal static bool Enabled => Array.IndexOf(Environment.GetCommandLineArgs(), "--dj-native-world") >= 0;
         internal static readonly NetworkObjectGuid PrefabGuid = NetworkObjectGuid.Parse("3c2e37ad019b4c8d926075abda6049b9");
         static NetworkObject template;
         internal static void PrepareConfig(NetworkProjectConfig config)
         {
             if(!Enabled)return;
-            // One complete snapshot must fit in a heap page, including Fusion's header.
-            // Keep the total configured heap capacity unchanged for this opt-in experiment.
-            if((int)config.Heap.PageShift<17)
-            {
-                int shift=17-(int)config.Heap.PageShift;
-                config.Heap.PageCount=Math.Max(1,config.Heap.PageCount>>shift);
-                config.Heap.PageShift=(PageSizes)17;
-            }
+            // Native state uses the game channel; reliable streams have a separate budget.
+            config.Network.GameChannelSendCount=16;
             if(!template)
             {
                 var root=new GameObject("Native world transport template");
@@ -42,6 +36,8 @@ namespace DeadlyJenga.CastlePrototype
         public static long PublishedBytes { get; private set; }
         public static long PublishedFrames { get; private set; }
         public static long ReceivedFrames { get; private set; }
+        public static long RawPublishedBytes { get; internal set; }
+        public static long FallbackFrames { get; internal set; }
 
         internal void Publish(byte[] bytes, int scope) { pending = bytes; pendingScope = scope; }
         public override void FixedUpdateNetwork()
@@ -73,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
                 ulong word = Bytes[i / 8];
                 for (int b = 0; b < 8 && i + b < data.Length; b++) data[i + b] = (byte)(word >> (b * 8));
             }
-            if (!owner.Receive(data)) return;
+            if (!owner.Receive(data.Length==0?data:WorldDeltaCodec.UnpackNative(data))) return;
             received = Sequence; ReceivedFrames++;
         }
         public override void Spawned()
@@ -113,8 +109,11 @@ namespace DeadlyJenga.CastlePrototype
             if(!Channel&&!spawned&&runner&&runner.IsRunning&&runner.IsServer)
             {spawned=true;runner.Spawn(prefab,flags:NetworkSpawnFlags.DontDestroyOnLoad);}
             if (!Channel || !Channel.Object || !Channel.Object.HasStateAuthority) return false;
-            if(data.Length > CastleNativeWorldChannel.CapacityBytes){Channel.Publish(Array.Empty<byte>(),Scope);return false;}
-            Channel.Publish(data, Scope); return true;
+            var packet=WorldDeltaCodec.PackNative(data);
+            if(packet.Length > CastleNativeWorldChannel.CapacityBytes)
+            {CastleNativeWorldChannel.FallbackFrames++;Channel.Publish(Array.Empty<byte>(),Scope);return false;}
+            CastleNativeWorldChannel.RawPublishedBytes+=data.Length;
+            Channel.Publish(packet, Scope); return true;
         }
     }
 }

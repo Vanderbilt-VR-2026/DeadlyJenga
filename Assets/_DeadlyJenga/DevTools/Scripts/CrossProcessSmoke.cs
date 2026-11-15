@@ -739,7 +739,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 text.AppendLine("ReliableDataSendRate="+room.Runner.ReliableDataSendRate);
                 text.AppendLine($"NativeStateProbe received={CastleNativeStateProbe.Received} gapSum={CastleNativeStateProbe.GapSum:F6} maxGap={CastleNativeStateProbe.MaxGap:F6}");
-                text.AppendLine($"NativeWorld published={CastleNativeWorldChannel.PublishedFrames} bytes={CastleNativeWorldChannel.PublishedBytes} received={CastleNativeWorldChannel.ReceivedFrames}");
+                text.AppendLine($"NativeWorld published={CastleNativeWorldChannel.PublishedFrames} bytes={CastleNativeWorldChannel.PublishedBytes} rawBytes={CastleNativeWorldChannel.RawPublishedBytes} received={CastleNativeWorldChannel.ReceivedFrames} fallbacks={CastleNativeWorldChannel.FallbackFrames}");
                 text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
                 foreach(var player in room.Runner.ActivePlayers)
                     if(room.Runner.IsServer||player==room.Runner.LocalPlayer)
@@ -783,6 +783,7 @@ namespace DeadlyJenga.CastlePrototype
             var csv = new StringBuilder(512 * 1024);
             csv.Append("completed_frame,seconds_since_start,phase,wave_active,wall_ms,moved_over_25cm,moved_over_1m,moving_this_frame,local_wave_targets,world_age_ms,pose_age_ms,pose_applied,bots_alive,bots_moving,bots_grounded,bot_travel_metres,impact_eligible,tornado_active,planet_land_contact");
             foreach (var counter in recorders) csv.Append(',').Append('"').Append(counter.name.Replace("\"", "\"\"")).Append('"');
+            csv.Append(",application_focused,physics_ms_since_sample");
             csv.AppendLine();
             var sync = FindFirstObjectByType<CastleFusionSession>();
             var worldTime = typeof(CastleFusionSession).GetField("lastWorld", PrivateField);
@@ -799,6 +800,7 @@ namespace DeadlyJenga.CastlePrototype
             bool eligible=false,tornadoActive=false,planetContact=false;
             double started = Time.realtimeSinceStartupAsDouble;
             double previous = started, impact = double.NaN;
+            double previousFixed=Time.fixedTimeAsDouble;
             try
             {
                 while (previous - started < (requireImpact ? 95 : seconds))
@@ -818,6 +820,8 @@ namespace DeadlyJenga.CastlePrototype
                     csv.AppendFormat(CultureInfo.InvariantCulture, ",{0:F3},{1:F3},{2},{3},{4},{5},{6:F3}", worldAge, poseAge, poseApplied, botsAlive, botsMoving, botsGrounded, botTravel);
                     csv.AppendFormat(CultureInfo.InvariantCulture, ",{0},{1},{2}", eligible ? 1 : 0, tornadoActive ? 1 : 0, planetContact ? 1 : 0);
                     foreach (var counter in recorders) csv.Append(',').Append(counter.recorder.LastValue);
+                    csv.AppendFormat(CultureInfo.InvariantCulture,",{0},{1:F3}",Application.isFocused?1:0,(Time.fixedTimeAsDouble-previousFixed)*1000);
+                    previousFixed=Time.fixedTimeAsDouble;
                     csv.AppendLine();
 
                     using (ImpactProbeMarker.Auto())

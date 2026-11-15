@@ -32,6 +32,19 @@ namespace DeadlyJenga.CastlePrototype
             int at=0,n;while(at<length&&(n=zip.Read(raw,at,length-at))>0)at+=n;
             Require(at==length&&zip.ReadByte()==-1,"World expansion differs from exact target length");return raw;
         }
+        internal static byte[] PackNative(byte[] raw)
+        {
+            Require(raw.Length>0&&raw.Length<=MaxBytes,"Native world size invalid");
+            var zipped=Zip(raw);var packet=new byte[zipped.Length+4];
+            Buffer.BlockCopy(BitConverter.GetBytes(raw.Length),0,packet,0,4);
+            Buffer.BlockCopy(zipped,0,packet,4,zipped.Length);return packet;
+        }
+        internal static byte[] UnpackNative(byte[] packet)
+        {
+            Require(packet.Length>4,"Native world envelope incomplete");
+            var zipped=new byte[packet.Length-4];Buffer.BlockCopy(packet,4,zipped,0,zipped.Length);
+            return Unzip(zipped,BitConverter.ToInt32(packet,0));
+        }
         static byte[] Token(Guid generation,int serial,int length,byte[] hash)
         {using var output=new MemoryStream();using var w=new BinaryWriter(output);w.Write(TokenMagic);w.Write(generation.ToByteArray());w.Write(serial);w.Write(length);w.Write(hash);return output.ToArray();}
         static bool Match(byte[] token,Guid generation,int serial,int length,byte[] hash)

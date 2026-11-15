@@ -152,7 +152,7 @@ namespace DeadlyJenga.CastlePrototype
             catch (Exception error) { DiscoveryStatus = "Wi-Fi receive permission: " + error.Message + ". Room codes still work."; }
         }
         string RoomProtocol(string appVersion)=>(appVersion??"")+"/"+Catalog.NetworkVersion+
-            "/pose-reliable-recovery-1/server-data-c2s-1"+(CastleNativeWorldChannel.Enabled?"/native-world-prototype-1":"");
+            "/pose-reliable-recovery-1/server-data-c2s-1"+(CastleNativeWorldChannel.Enabled?"/native-world-prototype-2":"");
         public void StartDiscovery()
         {
             if(Discovery!=null||!Catalog)return;

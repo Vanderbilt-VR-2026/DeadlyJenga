@@ -89,7 +89,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunBatch()
         {
-            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) { ValidateFingerPose(); ValidateDeathDeformation(); }
+            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) { ValidateFingerPose(); ValidateDeathDeformation(); ValidateNativeWorldCodec(); }
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path);
             var composition = (poseProbe || Environment.GetCommandLineArgs().Contains("--dj-tycoon") ||
@@ -120,6 +120,30 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 return;
             }
             EditorApplication.Exit(0);
+        }
+
+        static void ValidateNativeWorldCodec()
+        {
+            var type=typeof(CastleNativeWorldChannel).Assembly.GetType("DeadlyJenga.CastlePrototype.WorldDeltaCodec",true);
+            var flags=System.Reflection.BindingFlags.Static|System.Reflection.BindingFlags.NonPublic;
+            var pack=type.GetMethod("PackNative",flags);var unpack=type.GetMethod("UnpackNative",flags);
+            var random=new System.Random(71293);
+            foreach(int length in new[]{1,1024,60000,2*1024*1024})
+            foreach(bool noisy in new[]{false,true})
+            {
+                var raw=new byte[length];if(noisy)random.NextBytes(raw);
+                var packet=(byte[])pack.Invoke(null,new object[]{raw});
+                var restored=(byte[])unpack.Invoke(null,new object[]{packet});
+                if(!raw.SequenceEqual(restored))throw new InvalidOperationException("Native world codec changed bytes");
+            }
+            foreach(var malformed in new[]{new byte[4],new byte[]{255,255,255,127,0},new byte[]{20,0,0,0,0}})
+            {
+                bool rejected=false;
+                try{unpack.Invoke(null,new object[]{malformed});}
+                catch(System.Reflection.TargetInvocationException error) when(error.InnerException is InvalidDataException){rejected=true;}
+                if(!rejected)throw new InvalidOperationException("Native world codec accepted malformed input");
+            }
+            Debug.Log("PASS native world codec: eight lossless round trips and three malformed/oversized input rejections");
         }
 
         static void ValidateFingerPose()
