@@ -53,7 +53,17 @@ namespace DeadlyJenga.CandyPlayers
             }
         }
         void OnEnable(){Application.onBeforeRender+=BeforeRender;if(survivor)survivor.PunchRequested+=BeginPunch;if(!remoteDriven)NetworkActors.Local.Add(this);}
-        void OnDisable(){Application.onBeforeRender-=BeforeRender;if(survivor)survivor.PunchRequested-=BeginPunch;ResetPunch();wasVaulting=false;NetworkActors.Local.Remove(this);}
+        void OnDisable()
+        {
+            Application.onBeforeRender -= BeforeRender;
+            if (survivor) survivor.PunchRequested -= BeginPunch;
+            ResetPunch();
+            wasVaulting = wasClimbing = false;
+            climbRelease = 1f;
+            handSwing = handSprintBlend = 0f;
+            handMotionFrame = -1;
+            NetworkActors.Local.Remove(this);
+        }
         // Emotes and the elimination burst live on SurvivorMoments (looks come from the avatar appearance system).
         void Start(){if(!GetComponent<SurvivorMoments>())gameObject.AddComponent<SurvivorMoments>();}
         SurvivorMoments moments;
@@ -224,8 +234,16 @@ namespace DeadlyJenga.CandyPlayers
             {
                 climbRelease=Mathf.Min(1,climbRelease+dt/.16f);
                 float t=Mathf.SmoothStep(0,1,climbRelease);
-                frame.left.position=Vector3.Lerp(climbLastLeft.position,frame.left.position,t);frame.left.rotation=Quaternion.Slerp(climbLastLeft.rotation,frame.left.rotation,t);
-                frame.right.position=Vector3.Lerp(climbLastRight.position,frame.right.position,t);frame.right.rotation=Quaternion.Slerp(climbLastRight.rotation,frame.right.rotation,t);
+                if (!frame.left.tracked)
+                {
+                    frame.left.position = Vector3.Lerp(climbLastLeft.position, frame.left.position, t);
+                    frame.left.rotation = Quaternion.Slerp(climbLastLeft.rotation, frame.left.rotation, t);
+                }
+                if (!frame.right.tracked)
+                {
+                    frame.right.position = Vector3.Lerp(climbLastRight.position, frame.right.position, t);
+                    frame.right.rotation = Quaternion.Slerp(climbLastRight.rotation, frame.right.rotation, t);
+                }
             }
             wasClimbing=climbing;
             bool vaulting=survivor&&survivor.Vaulting&&Rig.style.lockHandsDuringVault;

@@ -263,6 +263,7 @@ namespace DeadlyJenga.CastlePrototype
             ResetClimb(true);
             ResetVRJump();
             SetSinking(false); punchHandReady = false;peakFallSpeed=0;
+            LandedAt = float.NegativeInfinity;
         }
         public void Simulate(Vector2 input, bool jumpPressed, float dt,bool climbHeld=false)
         {

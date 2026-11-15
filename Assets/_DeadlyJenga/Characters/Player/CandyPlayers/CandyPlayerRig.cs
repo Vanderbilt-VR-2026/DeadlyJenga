@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Rendering;
 using DeadlyJenga.Core;
+using DeadlyJenga.CastlePrototype;
 
 namespace DeadlyJenga.CandyPlayers
 {
@@ -19,6 +20,19 @@ namespace DeadlyJenga.CandyPlayers
             // The headset can change height independently of the avatar's standing proportions.
             frame.head.y = frame.feet.y + 1.6f * Mathf.Max(.1f, frame.scale);
             return frame;
+        }
+        static float LandingWeight(CastleSurvivor motor)
+        {
+            if (!motor || !motor.Grounded) return 0;
+            float elapsed = Time.time - motor.LandedAt;
+            const float absorb = .07f;
+            float strength = Mathf.InverseLerp(2.25f, 10f, motor.LandingSpeed);
+            float recover = Mathf.Lerp(.20f, .36f, strength);
+            if (elapsed >= recover || elapsed < 0) return 0;
+            float bend = elapsed < absorb
+                ? Mathf.SmoothStep(0, 1, elapsed / absorb)
+                : Mathf.SmoothStep(1, 0, (elapsed - absorb) / (recover - absorb));
+            return bend * Mathf.Lerp(.18f, 1f, strength);
         }
         [SerializeField] Transform[] bones;
         [SerializeField] float[] lengths;
@@ -172,13 +186,16 @@ namespace DeadlyJenga.CandyPlayers
                 walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
             }
             float run = grounded && !downed && dance <= .01f ? sprintBlend : 0f;
+            float landing = grounded && !downed && dance <= .01f ? LandingWeight(actor as CastleSurvivor) : 0f;
             float counterSwing = Mathf.Cos(walkPhase);
             torsoOffset.y -= run * (.038f - .017f * Mathf.Abs(counterSwing));
             float stride=grounded?Mathf.Clamp01(locomotionSpeed/2)*.13f:0;
             float dropTarget=PlanFeet(grounded&&!downed&&dance<=.01f,scale,stride,run);
             groundDrop=Application.isPlaying?Mathf.Lerp(groundDrop,dropTarget,1f-Mathf.Exp(-14f*Time.deltaTime)):dropTarget;
             torsoOffset.y+=groundDrop/scale;
-            PoseTorso(frame, torsoOffset, crouch, width, run, dance, grounded && !downed);
+            torsoOffset.y -= landing * .16f;
+            torsoOffset.z -= landing * .055f;
+            PoseTorso(frame, torsoOffset, crouch, width, run, dance, grounded && !downed, landing);
             var headOffset=frame.headRotation*((style?style.headCenterOffset:new Vector3(0,0,-.08f))+(fit?.headOffset??Vector3.zero))+Vector3.down*.14f;
             bones[1].SetPositionAndRotation(frame.head+headOffset*scale,frame.headRotation);
             bones[1].localScale=Vector3.one*(fit?.headSize??1f);
