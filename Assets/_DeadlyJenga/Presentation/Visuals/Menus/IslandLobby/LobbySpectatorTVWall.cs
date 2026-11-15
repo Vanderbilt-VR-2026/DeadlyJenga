@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
 
     {
 
-        const int FeedFramesPerSecond = 24;
+        const int FeedFramesPerSecond = 25;
 
         [Range(128,512)] public int textureWidth=256;
 
@@ -150,7 +150,7 @@ namespace DeadlyJenga.CastlePrototype
 
         float nextRoster;
         double nextFrame;
-        int nextChannel;
+        int nextChannel, lastVisibleFrame = -1;
 
         readonly Plane[] planes=new Plane[6];
 
@@ -216,6 +216,12 @@ namespace DeadlyJenga.CastlePrototype
 
             double now = Time.unscaledTimeAsDouble;
             double interval = 1.0 / (FeedFramesPerSecond * AssignedChannels);
+            const double maxBacklog = 3.0 / FeedFramesPerSecond;
+            if (lastVisibleFrame != Time.frameCount - 1)
+                nextFrame = now - (AssignedChannels - 1) * interval;
+            else
+                nextFrame = Math.Max(nextFrame, now - maxBacklog);
+            lastVisibleFrame = Time.frameCount;
 
             // Keep the round-robin cadence across frames, with at most one pass through the wall.
             for (int visited = 0; visited < channels.Length && now >= nextFrame; visited++)
@@ -231,9 +237,7 @@ namespace DeadlyJenga.CastlePrototype
                 nextFrame += interval;
             }
 
-            // Drop missed updates after a stall or after the wall was out of view.
-            if (now >= nextFrame)
-                nextFrame = now + interval;
+
 
         }
 
