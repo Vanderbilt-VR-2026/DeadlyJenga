@@ -25,6 +25,14 @@ namespace DeadlyJenga.CastlePrototype
         internal const int Rows = 2;
         internal const int ChannelCount = Columns * Rows;
         const int FeedFramesPerSecond = 25;
+        const float BroadcastAngleSeconds = 5f;
+        const float BroadcastInterval = 1f / 20f;
+        static readonly (string label, float yaw, float height)[] BroadcastAngles =
+        {
+            ("ARENA WIDE", 35f, .52f),
+            ("REVERSE ANGLE", 155f, .75f),
+            ("BIRD'S-EYE", 280f, 2.5f)
+        };
 
         [Range(128,512)] public int textureWidth=256;
 
@@ -60,6 +68,11 @@ namespace DeadlyJenga.CastlePrototype
 
         ISessionInfo viewer;Camera feedCamera;Texture2D standby;
         Text matchTimer;
+        RawImage broadcastScreen;
+        Text broadcastLabel;
+        RenderTexture broadcastTexture;
+        IMatchRuntime broadcastMatch;
+        float broadcastStarted, nextBroadcastFrame;
         RectTransform fullScreenPanel;
         RawImage fullScreenImage;
         Text fullScreenLabel;
@@ -151,6 +164,12 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void SetMatchTimer(Text label)=>matchTimer=label;
 
+        internal void SetBroadcast(RawImage screen, Text label)
+        {
+            broadcastScreen = screen;
+            broadcastLabel = label;
+        }
+
         float nextRoster;
         double nextFrame;
         int nextChannel, lastVisibleFrame = -1;
@@ -184,6 +203,7 @@ namespace DeadlyJenga.CastlePrototype
             data.requiresColorOption=CameraOverrideOption.Off;data.requiresDepthOption=CameraOverrideOption.Off;data.antialiasing=AntialiasingMode.None;
 
             foreach(var channel in channels)if(channel!=null){channel.screen.texture=standby;}
+            if (broadcastScreen) broadcastScreen.texture = standby;
 
         }
 
@@ -206,14 +226,15 @@ namespace DeadlyJenga.CastlePrototype
                 }
             }
 
-            var eye=viewer.ActiveCamera;
-            if(FullScreen){PresentFullScreen(eye);return;}
+            var eye = viewer.ActiveCamera;
+            RefreshBroadcast();
+            if (FullScreen) { PresentFullScreen(eye); return; }
+            if (!FeedsEnabled || !eye || !eye.isActiveAndEnabled || (AssignedChannels == 0 && broadcastMatch == null)) return;
 
-            if(AssignedChannels==0||!FeedsEnabled||!eye||!eye.enabled||(eye.transform.position-transform.position).sqrMagnitude>324)return;
-
-            if(Vector3.Dot(transform.forward,eye.transform.position-transform.position)>0)return;
-
-            GeometryUtility.CalculateFrustumPlanes(eye,planes);
+            GeometryUtility.CalculateFrustumPlanes(eye, planes);
+            if (broadcastMatch != null) PresentBroadcast(eye);
+            if (AssignedChannels == 0 || (eye.transform.position - transform.position).sqrMagnitude > 324) return;
+            if (Vector3.Dot(transform.forward, eye.transform.position - transform.position) > 0) return;
 
             if(!GeometryUtility.TestPlanesAABB(planes,new Bounds(transform.TransformPoint(new Vector3(0,1.15f,0)),new Vector3(3.8f,2.3f,3.8f))))return;
 
@@ -242,6 +263,44 @@ namespace DeadlyJenga.CastlePrototype
 
 
 
+        }
+
+        void RefreshBroadcast()
+        {
+            if (!broadcastScreen) return;
+            var match = FeedsEnabled && (viewer as ILobbyMatchVisitControls)?.VisitingLobby == true
+                ? MatchRuntime.Current : null;
+            if (match?.Frame?.phase != RoundPhase.Playing) match = null;
+            if (ReferenceEquals(match, broadcastMatch)) return;
+            broadcastMatch = match;
+            broadcastStarted = Time.unscaledTime;
+            nextBroadcastFrame = 0;
+            broadcastScreen.texture = standby;
+            broadcastLabel.text = "STANDBY";
+        }
+
+        void PresentBroadcast(Camera eye)
+        {
+            var screen = broadcastScreen.rectTransform;
+            var toEye = eye.transform.position - screen.position;
+            if (toEye.sqrMagnitude > 324 || Vector3.Dot(screen.forward, toEye) > 0 ||
+                !GeometryUtility.TestPlanesAABB(planes, new Bounds(screen.position, new Vector3(2.2f, 1.25f, 2.2f)))) return;
+
+            float now = Time.unscaledTime;
+            if (now < nextBroadcastFrame || Services.World == null) return;
+            nextBroadcastFrame = Mathf.Max(nextBroadcastFrame + BroadcastInterval, now);
+            var bounds = Services.World.PlayableBounds;
+            if (bounds.size.x <= 0 || bounds.size.y <= 0 || bounds.size.z <= 0) return;
+
+            int index = Mathf.FloorToInt((now - broadcastStarted) / BroadcastAngleSeconds) % BroadcastAngles.Length;
+            var angle = BroadcastAngles[index];
+            float spread = Mathf.Max(5f, bounds.extents.magnitude);
+            var outward = Quaternion.Euler(0, angle.yaw, 0) * Vector3.forward;
+            var offset = spread * (outward * (index == 2 ? 1f : 1.85f) + Vector3.up * angle.height);
+            var cameraPosition = bounds.center + offset;
+            if (!broadcastTexture) broadcastTexture = MakeTexture(448);
+            RenderFeed(new Pose(cameraPosition, Quaternion.LookRotation(-offset)), 60f, broadcastTexture, broadcastScreen);
+            broadcastLabel.text = "LIVE  /  " + angle.label;
         }
 
         void RefreshRoster()
@@ -303,30 +362,40 @@ namespace DeadlyJenga.CastlePrototype
         void RenderChannel(Channel channel,RenderTexture texture,RawImage display)
         {
 
-            var pose=channel.actor.ViewPose;
-
-            feedCamera.transform.SetPositionAndRotation(pose.position,pose.rotation);feedCamera.targetTexture=texture;
-
-            for(int i=0;i<channel.renderers.Length;i++){var renderer=channel.renderers[i];if(!renderer)continue;channel.hidden[i]=renderer.forceRenderingOff;renderer.forceRenderingOff=true;}
-
-            long start=System.Diagnostics.Stopwatch.GetTimestamp();
-
-            try{feedCamera.Render();display.texture=texture;RenderCount++;}
-
-            finally
-
+            for (int i = 0; i < channel.renderers.Length; i++)
             {
-
-                RenderMilliseconds=(System.Diagnostics.Stopwatch.GetTimestamp()-start)*1000.0/System.Diagnostics.Stopwatch.Frequency;
-
-                TotalRenderMilliseconds+=RenderMilliseconds;
-
-                for(int i=0;i<channel.renderers.Length;i++)if(channel.renderers[i])channel.renderers[i].forceRenderingOff=channel.hidden[i];
-
-                feedCamera.targetTexture=null;
-
+                var renderer = channel.renderers[i];
+                if (!renderer) continue;
+                channel.hidden[i] = renderer.forceRenderingOff;
+                renderer.forceRenderingOff = true;
             }
+            try { RenderFeed(channel.actor.ViewPose, 76f, texture, display); }
+            finally
+            {
+                for (int i = 0; i < channel.renderers.Length; i++)
+                    if (channel.renderers[i]) channel.renderers[i].forceRenderingOff = channel.hidden[i];
+            }
+        }
 
+        void RenderFeed(Pose pose, float fieldOfView, RenderTexture texture, RawImage display)
+        {
+            feedCamera.transform.SetPositionAndRotation(pose.position, pose.rotation);
+            feedCamera.fieldOfView = fieldOfView;
+            feedCamera.targetTexture = texture;
+            long start = System.Diagnostics.Stopwatch.GetTimestamp();
+            try
+            {
+                feedCamera.Render();
+                display.texture = texture;
+                RenderCount++;
+            }
+            finally
+            {
+                RenderMilliseconds = (System.Diagnostics.Stopwatch.GetTimestamp() - start) * 1000.0 /
+                    System.Diagnostics.Stopwatch.Frequency;
+                TotalRenderMilliseconds += RenderMilliseconds;
+                feedCamera.targetTexture = null;
+            }
         }
 
         void OnDestroy()
@@ -336,6 +405,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach(var channel in channels)if(channel?.texture){channel.texture.Release();Destroy(channel.texture);}
 
             if(fullScreenTexture){fullScreenTexture.Release();Destroy(fullScreenTexture);}
+            if(broadcastTexture){broadcastTexture.Release();Destroy(broadcastTexture);}
             if(standby)Destroy(standby);if(feedCamera)Destroy(feedCamera.gameObject);
 
         }
