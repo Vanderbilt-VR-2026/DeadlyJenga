@@ -216,8 +216,8 @@ namespace DeadlyJenga.CandyArt
                     if (i == sides)
                         continue;
                     int a = first + i * 2;
-                    faces.Add(a); faces.Add(a + 2); faces.Add(a + 1);
-                    faces.Add(a + 2); faces.Add(a + 3); faces.Add(a + 1);
+                    faces.Add(a); faces.Add(a + 1); faces.Add(a + 2);
+                    faces.Add(a + 2); faces.Add(a + 1); faces.Add(a + 3);
                 }
             }
 
