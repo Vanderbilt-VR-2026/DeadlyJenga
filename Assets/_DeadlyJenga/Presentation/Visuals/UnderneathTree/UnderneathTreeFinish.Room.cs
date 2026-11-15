@@ -20,7 +20,7 @@ namespace DeadlyJenga.CandyArt
             {
                 material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + tile));
                 material.SetTextureScale("_BaseMap", repeat);
-                var normal = Resources.Load<Texture2D>(ResourcePath + tile + " Normal");
+                var normal = Resources.Load<Texture2D>(ResourcePath + (tile == "Winter Print" ? "Paper" : tile) + " Normal");
                 if (normal)
                 {
                     material.SetTexture("_BumpMap", normal);
@@ -77,7 +77,8 @@ namespace DeadlyJenga.CandyArt
                 int n = name[name.Length - 1] - '0';
                 if (n >= 0 && n < GiftColors.Length)
                     color = GiftColors[n];
-                return Surface("Lacquered " + name, "Paper", color, .49f, new Vector2(1.4f, 1.4f), .03f);
+                return Surface("Lacquered " + name, n % 3 == 0 || n == 4 ? "Winter Print" : "Paper",
+                    color, .49f, new Vector2(1.4f, 1.4f), .03f);
             }
             if (name.Contains("ribbon") || name.Contains("Ribbon") || name.Contains("Satin"))
             {

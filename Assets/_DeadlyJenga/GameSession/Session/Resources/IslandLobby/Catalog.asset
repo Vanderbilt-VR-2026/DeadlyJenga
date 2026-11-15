@@ -432,7 +432,7 @@ MonoBehaviour:
     supportedModes:
     - demo
   - id: workshop-under-the-tree
-    title: "Underneath the Tree \xB7 Block-out"
+    title: Underneath the Tree
     scenePath: Assets/_DeadlyJenga/GameSession/Session/Scenes/Game.unity
     mapPrefab: {fileID: 1682020381547342917, guid: 3ec6e291a6bb2d949a04592b5f35c320, type: 3}
     recommendedPlayers: 10
