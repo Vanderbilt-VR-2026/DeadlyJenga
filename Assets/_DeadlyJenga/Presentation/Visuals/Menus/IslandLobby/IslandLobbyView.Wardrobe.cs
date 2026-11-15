@@ -550,6 +550,7 @@ namespace DeadlyJenga.CastlePrototype
 
         void PresentLobbyPortrait()
         {
+            if(SystemInfo.graphicsDeviceType==UnityEngine.Rendering.GraphicsDeviceType.Null)return;
             if(!wardrobeCamera||!NetworkActors.Alive(wardrobePlayer))return;
             var visual=wardrobePlayer.gameObject.GetComponent<IModeActor>()?.Visual;if(!visual)return;
             var eye=wardrobePlayer.ViewCamera;var feet=wardrobePlayer.transform.position;

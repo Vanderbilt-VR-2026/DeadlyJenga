@@ -291,7 +291,8 @@ namespace DeadlyJenga.CastlePrototype
                     "Join same room and receive map/mode",100,()=>room.Status);
             }
             yield return Until(()=>room.HumanCount==10&&lobby.PeerCount==9&&room.Runner.ActivePlayers.Count()==10,
-                "Ten actual Fusion humans and nine remote lobby avatars",150,()=>room.Status+" humans="+room.HumanCount+" avatars="+lobby.PeerCount);
+                "Ten actual Fusion humans and nine remote lobby avatars",150,()=>room.Status+" humans="+room.HumanCount+" avatars="+lobby.PeerCount+
+                    " blocker="+typeof(IslandLobby).GetProperty("MarinaSpawnBlocker",PrivateField)?.GetValue(lobby));
             File.WriteAllText(Mark(role+"-ready"),room.LocalLobbyId);
             if(host){yield return Until(()=>AllGuests("-ready"),"All nine guests independently verify full lobby",90);lobby.StartOrCancel();}
             CastlePlaySession match=null;
@@ -708,7 +709,13 @@ namespace DeadlyJenga.CastlePrototype
             text.AppendLine("PHASE "+phase+" time="+Time.realtimeSinceStartupAsDouble.ToString("F4",CultureInfo.InvariantCulture));
             text.AppendLine("HotpathBytesSubmitted="+sync.HotpathBytesSubmitted+" HotpathBundlesSubmitted="+sync.HotpathBundlesSubmitted);
             var room=IslandRoomConnection.Instance;
-            if(room&&room.Runner)text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
+            if(room&&room.Runner)
+            {
+                text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
+                foreach(var player in room.Runner.ActivePlayers)
+                    if(room.Runner.IsServer||player==room.Runner.LocalPlayer)
+                        text.AppendLine("RTT "+player+" seconds="+room.Runner.GetPlayerRtt(player).ToString("F6",CultureInfo.InvariantCulture));
+            }
             foreach(var traffic in role=="host"?sync.PeerPoseTraffic:new[]{sync.LocalPoseTraffic})
             {
                 text.AppendLine("PEER "+traffic.PeerId);

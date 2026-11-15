@@ -356,9 +356,6 @@ namespace DeadlyJenga.CastlePrototype
         {
             var config=NetworkProjectConfig.Deserialize(NetworkProjectConfig.Serialize(NetworkProjectConfig.Global));
             config.Network.ReliableDataTransferModes=NetworkConfiguration.ReliableDataTransfers.ClientToServer;
-            // World snapshots and live poses share this channel. One packet per send
-            // leaves fresh poses queued behind a large moving-world snapshot.
-            config.Network.GameReliableChannelSendCount=8;
             config.HostMigration.EnableAutoUpdate=false;config.HostMigration.UpdateDelay=2;return config;
         }
         internal int ConnectionGeneration=>generation;

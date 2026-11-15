@@ -1,5 +1,7 @@
 # Tycoon standalone tsunami frame times
 
+Current overhaul status: the +50% goal is not met. Fresh single-run gains remain about +10% (24 bots) and +25–28% (52 bots) against the refreshed original baseline. Replication and ten-human lobby acceptance currently fail. The older results below are retained history, not the current acceptance result.
+
 Historical first checkpoint: the 24-bot Windows player improved from 21.4 to 26.1 typical FPS while the tsunami was moving blocks, a 22% gain across two runs per revision. The 50% goal for this setup was about 32.2 FPS.
 
 ## Builds and measurement
@@ -80,3 +82,15 @@ The standalone tornado scenario used height 65 m, funnel 16 m, force 7, reach 28
 Two fixture failures are retained. A 45 m Planet Killer landed and moved blocks on 144 frames, but displaced only 11 by over a metre, below the 12-block stress gate. The first combined attempt started the meteor too late: planet land contact arrived at 16.34 s, after the tsunami's last local target at 14.62 s, so the overlap gate correctly rejected the run. The next stress configuration uses a 90 m meteor and a one-second warning for all hazards; the acceptance gate remains intact.
 
 The installed Fusion configuration allows one reliable-channel packet per network send. The next isolated candidate increases the runtime copy to eight, logs submitted traffic and pose acknowledgements, and adds ten actual process roles with individual lobby/round/migration/result/return barriers. It does not change project settings or packages. The earlier unreliable RPC experiment (`6bd7171e6d2d8dcb24101821557b266b4c99f95c`) was recovered by `e5c52a5081e787bc4bcd6b05da79c3beb6b16d8d` because native RPC invocation threw MethodAccessException; it has not been silently reinstated.
+
+### Transport experiment, heavier impacts, and ten-client failure
+
+Exact tested scripts: `1209a703056c44403c822a6619d3d9f48922202e`. Build/810 pose checks passed. Increasing runtime reliable send capacity from 1 to 8 did not improve freshness: 52-bot tsunami host 16.39 FPS, guest 54.43 FPS; guest world receipt age p50 625.305 ms, p95 1221.210 ms, max 1346.024 ms. Only 19 of 411 guest frames showed moving blocks. This experiment is rejected; the next source checkpoint removes the override. Native Fusion RTT is added to subsequent diagnostic traffic reports to distinguish transport delay from application acknowledgment/queue delay.
+
+Planet Killer at diameter 90 passed the unchanged workload gate with 30 blocks displaced over a metre: 18.39 typical FPS, p95 212.794 ms, p99 297.384 ms, max 457.949 ms. Combined tsunami/tornado/Planet Killer now overlaps actual local wave targets, tornado activity and planet land contact; 54 moving-block frames and 30 displaced blocks, 14.44 FPS, p95 432.067 ms, max 478.504 ms. Neither has a matched old-script baseline yet. A separate raw Planet Killer profile is retained for attribution, excluded from FPS results.
+
+Ten separate Fusion processes (two rendered, eight headless; functional test only) failed before entering Game. Eight guests joined the host; the ninth guest could not obtain spawn clearance and disconnected. Host reported `A player or moving object occupies this lobby slot; waiting. humans=9 avatars=8`. No ten-client migration pass is claimed. Next checkpoint exposes the blocking collider only through an internal diagnostic property and records it on fixture failure. Headless portrait rendering also produced RenderTexture errors; the next checkpoint skips the portrait camera only when there is no graphics device.
+
+The installed Fusion runtime and player Fusion.Runtime.dll hashes match. Metadata inspection confirms that the existing static unreliable-RPC helper's woven CheckInvokeRpc call targets a non-public runtime method. The earlier native MethodAccessException remains unresolved; this path stays disabled, with no vendor/package patch or permission bypass.
+
+Additional requested investigation now includes Jobs/Burst for suitable snapshot math, shared incremental navigation, bounded tactical/search scheduling, unnecessary collision/query work, and whole-frame reconciliation. Existing shared geometry, traversal caching and planning budgets are retained; reducing bot capability or spectacle is not an accepted optimization. The next profile reader exports every exclusive marker, all CPU threads and per-thread root/exclusive residuals. Parallel thread time must not be added to main-thread time; waits are not assumed removable computation or proof of GPU cost. GPU execution timing, allocations/GC, render preparation, complete physics/worker synchronization, networking scaling and dynamic-map traversal remain explicit open measurements.

@@ -21,6 +21,7 @@ namespace DeadlyJenga.CastlePrototype
             new(-13,1.33f,-7),new(-13,1.33f,-9),new(-7,1.33f,-9),new(-10,1.33f,-5.2f)
         };
         readonly Collider[] marinaSpawnOverlaps=new Collider[64];
+        internal string MarinaSpawnBlocker { get; private set; }
         internal bool UsesMarinaSpawns=>Radius>=30&&PlayerPrefs.GetInt(LegacyLobbyPreference,0)!=1;
         internal int MarinaFloorRevision=>marinaFloorRevision;
         internal void InvalidateMarinaSpawnClearance(){marinaFloorRevision++;nextMarinaArrival=0;}
@@ -100,6 +101,7 @@ namespace DeadlyJenga.CastlePrototype
                 bool moving=actor!=null||other is CharacterController||other.GetComponentInParent<IMovementState>()!=null||
                     other.GetComponentInParent<IFlyingState>()!=null||other.attachedRigidbody;
                 if(!occupancy&&moving)continue;
+                MarinaSpawnBlocker=$"{other.name} ({other.GetType().Name}) root={other.transform.root.name} position={other.transform.position} bounds={other.bounds} trigger={other.isTrigger} actor={actor?.gameObject.name} requested={position}";
                 reason=moving?"A player or moving object occupies this lobby slot; waiting.":"Lobby spawn is obstructed by "+other.name+".";
                 return moving?MarinaSpawnResult.Wait:MarinaSpawnResult.Rejected;
             }

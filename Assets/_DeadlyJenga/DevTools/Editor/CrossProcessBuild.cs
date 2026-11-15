@@ -68,6 +68,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
             {
                 if (composition) composition.enabled = compositionWasEnabled;
             }
+            if (Environment.GetCommandLineArgs().Any(arg => arg.StartsWith("--dj-profile-input=", StringComparison.Ordinal)))
+            {
+                SummarizeCpuProfileBatch();
+                return;
+            }
             EditorApplication.Exit(0);
         }
 
@@ -141,6 +146,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
             int captured = 0;
             var markers = new Dictionary<(string thread, string name), List<double>>();
             var behaviours = new Dictionary<(string thread, string name), List<double>>();
+            using var reconciliation = new StreamWriter(output + ".frames.csv", append: false);
+            reconciliation.WriteLine("frame,thread,root_ms,exclusive_ms,residual_ms");
             for (int frameIndex = first; frameIndex <= ProfilerDriver.lastFrameIndex; frameIndex++)
             {
                 bool validFrame = false;
@@ -150,21 +157,26 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     using var frame = ProfilerDriver.GetRawFrameDataView(frameIndex, thread);
                     if (!frame.valid) break;
-                    if (frame.threadName != "Main Thread" && frame.threadName != "Render Thread") continue;
                     validFrame = true;
+                    string threadName = frame.threadName + " #" + thread;
+                    double rootTime = 0, exclusiveTime = 0;
+                    int nextRoot = 0;
                     for (int sample = 0; sample < frame.sampleCount; sample++)
                     {
                         double inclusiveTime = frame.GetSampleTimeMs(sample);
                         double selfTime = inclusiveTime;
                         int end = sample + frame.GetSampleChildrenCountRecursive(sample) + 1;
+                        if (sample == nextRoot) { rootTime += inclusiveTime; nextRoot = end; }
                         for (int child = sample + 1; child < end; child += 1 + frame.GetSampleChildrenCountRecursive(child))
                             selfTime -= frame.GetSampleTimeMs(child);
                         string name = frame.GetSampleName(sample) ?? "[Unnamed marker]";
-                        var marker = (frame.threadName, name);
+                        var marker = (threadName, name);
+                        exclusiveTime += selfTime;
                         if (selfTime > 0) AddTime(selfTimes, marker, selfTime);
                         if (inclusiveTime > 0 && name.Contains("Update", StringComparison.Ordinal) && name.Contains('('))
                             AddTime(behaviourTimes, marker, inclusiveTime);
                     }
+                    reconciliation.WriteLine(FormattableString.Invariant($"{frameIndex},\"{threadName.Replace("\"", "\"\"")}\",{rootTime:F6},{exclusiveTime:F6},{rootTime-exclusiveTime:F6}"));
                 }
                 if (!validFrame) continue;
                 captured++;
@@ -181,9 +193,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             using var report = new StreamWriter(output, append: false);
             report.WriteLine($"Frames {first}–{ProfilerDriver.lastFrameIndex}, {captured} captured. Times are CPU ms, including waits.");
+            report.WriteLine("Exclusive samples reconcile to each thread's roots in .frames.csv. Threads overlap: never add their totals to estimate frame time. Inclusive Update times overlap exclusive samples. CPU waits do not establish GPU execution time.");
             WriteTimings("Exclusive marker times", markers);
             WriteTimings("Inclusive Update method times", behaviours);
             report.Flush();
+            reconciliation.Flush();
             EditorApplication.Exit(0);
 
             static void AddTime(Dictionary<(string thread, string name), double> times, (string thread, string name) marker, double time)
@@ -207,7 +221,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     report.WriteLine(thread.Key);
                     foreach (var marker in thread.Select(entry => (entry.Key.name, median: Median(entry.Value),
-                        mean: entry.Value.Sum() / captured, present: entry.Value.Count)).OrderByDescending(entry => entry.mean).Take(35))
+                        mean: entry.Value.Sum() / captured, present: entry.Value.Count)).OrderByDescending(entry => entry.mean))
                         report.WriteLine(FormattableString.Invariant($"{marker.mean:F3} mean  {marker.median:F3} median  {marker.present}/{captured}  {marker.name}"));
                 }
             }
