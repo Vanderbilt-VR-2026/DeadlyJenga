@@ -31,3 +31,18 @@ The source is a benchmarked checkpoint. Integration remains pending. In the 52-b
 ## Reproduction
 
 Build the Windows development player using `DeadlyJenga.CastlePrototype.Editor.CrossProcessBuild.RunBatch` with `--dj-tycoon`. Start it with `--dj-tycoon --dj-tycoon-impact --dj-bots=24 --dj-smoke=solo --dj-smoke-dir=<result-directory>`. Use 52 for the solo stress case. For peers, start independent `host` and `guest` processes with the same result directory and bot count. They join a real Fusion room by code and verify remote displacement and normal return to the lobby. Add `--dj-impact-raw-profile` to a separate diagnostic run for the binary Unity Profiler trace.
+
+
+## November 15 overhaul acceptance (in progress)
+
+The follow-up request expands this checkpoint into sustained CPU, navigation and multiplayer work. The original results above remain historical; instrumentation and new source are not proof that a target passed.
+
+- First pass: at least 1.5 times typical FPS in matched 24- and 52-bot active-impact cases. Then attempt twice baseline, then 60 FPS. Typical FPS is 1000 / median completed-frame milliseconds; also retain total frames / elapsed and p95/p99/max milliseconds. No substitution of worst-frame wins for typical performance.
+- Compare solo and independent host/guest with identical map, population, settings, resolution and active disaster phase. Target at most 3 FPS additional loss; retain source, artifact hashes, phase alignment and competing-process evidence. Local two-process results are not separate-device performance.
+- Exercise tsunami, Planet Killer and tornado, plus simultaneous heavy-disaster stress with 52 bots. Count active disasters, moving/displaced blocks, actual surviving bots and bot progress so removed workload cannot manufacture improvement. Include desktop Editor Play Mode and Windows standalone separately. Quest comes later.
+- Measure peer update arrival intervals and state age, latest pose/world sequence, block displacement agreement, bot/player movement and disaster state. Rendering fast while receiving stale state fails acceptance.
+- Exercise discovery -> visible invite -> acceptance -> actual same Fusion lobby, ten occupied human slots, host departure/migration during a round, and normal completion. Synthetic socket/codec tests are preliminary only.
+- Test travel on structurally different maps, physical high-tower descent, jumps, wall catches, lower-route drops, sand escape and tight-space recovery. Mutate/remove/add supported geometry after initial navigation construction, then command destinations across the reachable map. Record arrival, blocked duration, retries and physical movement. No teleports to count as traversal, no map-specific hard-coded route substitute. Physically disconnected destinations must report unreachable/retry appropriately rather than claim success.
+- Preserve full debris, collisions, visuals and bot reactions. Core additions require approval of the exact additive contract. Each change requires evidence before integration; a regression leaves the candidate unaccepted.
+
+Current diagnostic revision: `dde089c01dd802165a38b702374da638c8a95f03`, based on current Sprint 4 `e6d1bf0909f8a32bbf871cca39423df3dd3b56d4` plus the prior unaccepted motor checkpoint. The new scopes distinguish motor synchronization, capsule sweep, bot movement decision, objectives and steering. Runtime results pending. Existing packed baseline assets are retained for the script-only timing experiment; this is not a newly packaged current-art release.
