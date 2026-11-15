@@ -107,7 +107,9 @@ namespace DeadlyJenga.Presentation
 
             var blocks = world.Blocks;
             if (blocks == null || blocks.Count == 0) return;
-            int count = Mathf.Min(BlocksPerFrame, blocks.Count);
+            // At slower frame rates a fixed per-frame budget can miss the entire entry.
+            int scans = Mathf.Clamp(Mathf.CeilToInt(Time.unscaledDeltaTime * 35), 1, 8);
+            int count = Mathf.Min(BlocksPerFrame * scans, blocks.Count);
             for (int n = 0; n < count; n++)
             {
                 var body = blocks[cursor++ % blocks.Count];
