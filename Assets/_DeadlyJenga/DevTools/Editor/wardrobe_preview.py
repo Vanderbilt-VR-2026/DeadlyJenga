@@ -37,12 +37,15 @@ figure {background:#17313e;margin:0;border:1px solid #3b5864;border-radius:18px;
 <nav aria-label="Wardrobe controls">
 <select id="skin" aria-label="Skin"><option>Rabbit</option><option>Clownfish</option>
 <option value="CandyCorn">Candy Corn</option><option>Default</option></select>
+<select id="environment" aria-label="Lighting and environment"><option value="studio">Studio</option>
+<option value="castle">Castle</option></select>
 <button id="reset">Reset view</button><button id="stop">Stop preview</button>
 </nav>
 <figure><img id="avatar" tabindex="0" draggable="false" alt="Unity wardrobe preview"></figure>
 <p id="status" role="status">Starting Unity…</p>
 <script>
 const skin = document.querySelector('#skin'), avatar = document.querySelector('#avatar');
+const environment = document.querySelector('#environment');
 const status = document.querySelector('#status'), token = __TOKEN__;
 const guidance = 'Drag or use arrow keys to orbit. Scroll or use + and − to zoom.';
 let yaw=155, pitch=9, zoom=1, drag, dirty=true, busy=false, stopped=false, imageUrl;
@@ -55,7 +58,7 @@ setInterval(async () => {
   busy=true; dirty=false;
   try {
     const selection=skin.value;
-    const response=await request('/frame',JSON.stringify({skin:selection,yaw,pitch,zoom}));
+    const response=await request('/frame',JSON.stringify({skin:selection,environment:environment.value,yaw,pitch,zoom}));
     if (!response.ok) {status.textContent=await response.text(); dirty=response.status===503; return;}
     const next=URL.createObjectURL(await response.blob());
     if (imageUrl) URL.revokeObjectURL(imageUrl);
@@ -88,6 +91,7 @@ avatar.addEventListener('keydown',e => {
   e.preventDefault(); render();
 });
 skin.addEventListener('change',render);
+environment.addEventListener('change',render);
 document.querySelector('#reset').onclick=()=>{yaw=155;pitch=9;zoom=1;render();};
 document.querySelector('#stop').onclick=async e=>{
   e.currentTarget.disabled=true; stopped=true;
@@ -165,7 +169,8 @@ class Request(BaseHTTPRequestHandler):
             data = json.loads(self.rfile.read(size))
             orbit = {key: float(data[key]) for key in ("yaw", "pitch", "zoom")}
             skin = data["skin"]
-            if skin not in SKINS or not all(math.isfinite(v) for v in orbit.values()):
+            environment = data.get("environment", "studio")
+            if skin not in SKINS or environment not in ("studio", "castle") or not all(math.isfinite(v) for v in orbit.values()):
                 raise ValueError()
         except (ValueError, KeyError, TypeError, TimeoutError):
             self.reply(400, "Invalid skin or orbit.")
@@ -184,7 +189,7 @@ class Request(BaseHTTPRequestHandler):
         try:
             request_id = uuid.uuid4().hex
             output = folder / f"frame-{request_id}.png"
-            write_json(folder / "orbit.json", {"id": request_id, "skin": skin, **orbit})
+            write_json(folder / "orbit.json", {"id": request_id, "skin": skin, "environment": environment, **orbit})
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline and not output.exists() and not (folder / "unity-error.txt").exists():
                 time.sleep(.025)
