@@ -50,8 +50,12 @@ namespace DeadlyJenga.CastlePrototype
 
         internal static bool LobbyDeveloperAvailable(ISessionInfo info) =>
             info is ILobbyControls &&
-            (info as ILobbyMatchVisitControls)?.VisitingLobby != true &&
             DeadlyJenga.Presentation.GameExperiencePanel.Resolve(info)?.Experience == GameExperience.Demo;
+
+        internal void ResetLobbyTablet()
+        {
+            if (worldMenu) worldMenu.ResetLobbyContext();
+        }
 
         void LateUpdate()
         {

@@ -8,7 +8,10 @@ namespace DeadlyJenga.CastlePrototype
         Light lobbySun;
         void LobbyResidenceChanged(GameObject owner,string state)
         {
-            if(owner!=gameObject||!Environment)return;
+            if (owner != gameObject) return;
+            if (state is "LobbyVisitOpened" or "LobbyResumed")
+                GetComponent<SessionPresentation>()?.ResetLobbyTablet();
+            if (!Environment) return;
             if(state=="LobbyParked")
             {
                 if(spectatorWall)spectatorWall.CloseFullScreen();
