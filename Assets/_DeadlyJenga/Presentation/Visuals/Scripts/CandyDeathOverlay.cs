@@ -68,6 +68,8 @@ namespace DeadlyJenga.Presentation
 
         static void Request(Color color, bool localEvent, int kind = 0)
         {
+            var phase = MatchRuntime.Current?.Frame?.phase;
+            if (phase == RoundPhase.Victory || phase == RoundPhase.Results) return;
             if (active)
             {
                 if (!active.IsAnotherDeath(localEvent))
@@ -226,8 +228,13 @@ namespace DeadlyJenga.Presentation
 
             float now = Time.unscaledTime;
             var phase = deathMatch?.Frame?.phase;
-            bool roundOver = phase == RoundPhase.Victory || phase == RoundPhase.Results;
-            if (gameOverAt < 0 && roundOver && wipeAt < 0) StartGameOver(session, camera);
+            if (gameOverAt < 0 && phase == RoundPhase.Victory)
+            {
+                canvas.enabled = false;
+                Destroy(gameObject);
+                return;
+            }
+            if (gameOverAt < 0 && phase == RoundPhase.Results) StartGameOver(session, camera);
             if (gameOverAt >= 0)
             {
                 TickGameOver(now);
@@ -267,7 +274,7 @@ namespace DeadlyJenga.Presentation
             canvas.enabled = true;
         }
 
-        // The round just ended while this death was showing: swap the paint for a quick GAME OVER.
+        // Keep the banner immediately before the results panel, after the winner announcement.
         void StartGameOver(ISessionInfo session, Camera camera)
         {
             gameOverAt = Time.unscaledTime;
