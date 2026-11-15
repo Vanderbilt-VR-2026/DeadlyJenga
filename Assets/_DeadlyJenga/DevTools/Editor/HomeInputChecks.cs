@@ -14,7 +14,6 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
-using UnityEngine.InputSystem.XR;
 using Object=UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
@@ -145,9 +144,6 @@ namespace DeadlyJenga.DevTools.Editor
                 "Selecting PC-Simulated VR changes the existing Home view and creates virtual devices");
             for(int i=0;i<8;i++)yield return null;
             bool left=home.GetComponent<IBlasterControls>()?.LeftHanded==true;
-            var controller=Field<XRController>(sim,left?"left":"right");
-            Check(controller!=null && controller.added,"The simulator adds the Home pointer device");
-            var simEye=Field<Camera>(home,"eye");
             foreach(string label in new[]{"PLAY MODE","DEVELOPER MODE"})
             {
                 var choice=home.GetComponentsInChildren<Button>().First(b=>b.name==label);
@@ -156,10 +152,9 @@ namespace DeadlyJenga.DevTools.Editor
                 choice.onClick.AddListener(()=>submits++);
                 for(int i=0;i<3;i++)
                 {
-                    var rayOrigin=controller.isTracked.isPressed
-                        ? home.transform.TransformPoint(controller.devicePosition.ReadValue()) : simEye.transform.position;
-                    var rotation=controller.isTracked.isPressed
-                        ? home.transform.rotation*controller.deviceRotation.ReadValue() : simEye.transform.rotation;
+                    var pose=(Pose)Call(sim,"ControllerPose",left);
+                    var rayOrigin=home.transform.TransformPoint(pose.position);
+                    var rotation=home.transform.rotation*pose.rotation;
                     var aimed=Quaternion.LookRotation(choice.transform.position-rayOrigin).eulerAngles;
                     var current=rotation.eulerAngles;
                     sim.TestLook=new Vector2(Mathf.DeltaAngle(current.y,aimed.y),-Mathf.DeltaAngle(current.x,aimed.x))/sim.lookSensitivity;

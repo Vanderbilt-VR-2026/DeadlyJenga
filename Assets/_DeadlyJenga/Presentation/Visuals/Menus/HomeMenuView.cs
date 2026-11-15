@@ -27,7 +27,7 @@ namespace DeadlyJenga.Presentation
         Button quickModeButton, quickMapButton, quickStartButton, recenterButton;
         int modeIndex, mapIndex, quickModes, quickMaps;
         Camera eye;
-        bool vr;
+        bool vr, pcSimulator;
         float slideTime, nextNearby;
         int fadePhase=2, recenterFrames;
         Material backdrop, blur;
@@ -237,7 +237,7 @@ namespace DeadlyJenga.Presentation
             if((Keyboard.current?.escapeKey.wasPressedThisFrame==true||!vr&&MenuGamepad.Cancel)&&!controls.Busy&&!entryPage.activeSelf)
                 ShowPage(mainPage.activeSelf?entryPage:mainPage);
             if(Keyboard.current?.enterKey.wasPressedThisFrame==true&&joinPage.activeSelf&&!controls.Busy&&controls.CodeValid)controls.JoinCode();
-            if(recenterFrames==0)Point();
+            if(recenterFrames==0 && !UsesPcSimulator)Point();
         }
         void AnimateSlideshow(float delta)
         {
@@ -290,8 +290,16 @@ namespace DeadlyJenga.Presentation
 
         void LateUpdate()
         {
-            if(!vr || recenterFrames==0 || --recenterFrames!=0)return;
-            AnchorToHead();
+            if (!vr) return;
+#if UNITY_EDITOR || UNITY_STANDALONE
+            if (UsesPcSimulator && PcSimulatedVR.Instance)
+            {
+                var pose = PcSimulatedVR.Instance.HeadPose;
+                eye.transform.SetLocalPositionAndRotation(pose.position, pose.rotation);
+                if (recenterFrames == 0 && inputFocused && !comfortWasOpen) Point();
+            }
+#endif
+            if (recenterFrames > 0 && --recenterFrames == 0) AnchorToHead();
         }
 
         void AnchorToHead()
@@ -328,7 +336,24 @@ namespace DeadlyJenga.Presentation
             if(vr)
             {
                 bool preferred=GetComponent<IBlasterControls>()?.LeftHanded==true;
-                var ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out pressed,out bool tracked);
+                Ray ray;
+                bool tracked, mouseHeld = false;
+#if UNITY_EDITOR || UNITY_STANDALONE
+                if (UsesPcSimulator && PcSimulatedVR.Instance is { } simulator)
+                {
+                    var pose = simulator.ControllerPose(preferred);
+                    ray = new Ray(transform.TransformPoint(pose.position),
+                        transform.TransformDirection(pose.rotation * Vector3.forward));
+                    var click = Mouse.current?.leftButton;
+                    mouseHeld = click?.isPressed == true;
+                    pressed = simulator.MouseSelectEnabled && click?.wasPressedThisFrame == true;
+                    tracked = true;
+                }
+                else
+#endif
+                {
+                    ray=MenuAim.ResolveSelect(eye,transform,preferred,leftPointSelect,rightPointSelect,false,out pressed,out tracked);
+                }
                 var plane=new Plane(frame.forward,frame.position);
                 if(Vector3.Dot(ray.direction,frame.forward)<=.01f||!plane.Raycast(ray,out float distance)||distance>8){ClearHomeAim();return;}
                 pointer.gameObject.SetActive(true);pointer.position=ray.GetPoint(distance);
@@ -339,20 +364,10 @@ namespace DeadlyJenga.Presentation
                     if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
                 }
                 MenuAim.PresentBeam(ref homeAimBeam, transform, ray, pointer.position-ray.direction*.015f, tracked, target);
-                bool mouseHeld = false;
-#if UNITY_EDITOR || UNITY_STANDALONE
-                if (XRSimulationManager.CurrentMode == XRSimulationManager.XRSimulation && PcSimulatedVR.Instance)
-                {
-                    var click = Mouse.current?.leftButton;
-                    mouseHeld = click?.isPressed == true;
-                    // Use the same ray for hover and mouse selection even before the newly added XR actions resolve.
-                    pressed |= PcSimulatedVR.Instance.MouseSelectEnabled && click?.wasPressedThisFrame == true;
-                }
-#endif
                 if (!selectReady)
                 {
                     pressed = false;
-                    selectReady = !mouseHeld && !leftPointSelect.IsPressed() && !rightPointSelect.IsPressed();
+                    selectReady = !mouseHeld && (pcSimulator || !leftPointSelect.IsPressed() && !rightPointSelect.IsPressed());
                 }
             }
             else
@@ -489,16 +504,30 @@ namespace DeadlyJenga.Presentation
             if (inputModeText)
                 inputModeText.text = "<size=17><color=#8d82aa>INPUT MODE · </color></size>" + modeLabel + "  <size=17><color=#8d82aa>›</color></size>";
         }
+        static bool UsesPcSimulator
+        {
+            get
+            {
+#if UNITY_EDITOR || UNITY_STANDALONE
+                return XRSimulationManager.CurrentMode == XRSimulationManager.XRSimulation;
+#else
+                return false;
+#endif
+            }
+        }
+
         void RefreshDisplayMode()
         {
             int pref=XRSimulationManager.CurrentMode;
             bool next=pref==1||pref==4?false:pref==2||pref==3||XRSettings.isDeviceActive;
             var module=homeEvents?homeEvents.GetComponent<InputSystemUIInputModule>():null;
             if(module)module.enabled=!next;
-            if(next==vr)return;
+            bool useSimulator=UsesPcSimulator;
+            if(next==vr && useSimulator==pcSimulator)return;
+            pcSimulator=useSimulator;
             ClearHomeAim();vr=next;
-            if(recenterButton)recenterButton.gameObject.SetActive(vr);
             var pose=eye.GetComponent<TrackedPoseDriver>();
+            if(recenterButton)recenterButton.gameObject.SetActive(vr);
             if(vr)
             {
                 if(!pose)
@@ -507,7 +536,7 @@ namespace DeadlyJenga.Presentation
                     pose.positionInput=new InputActionProperty(new InputAction("Home head position",InputActionType.Value,"<XRHMD>/centerEyePosition"));
                     pose.rotationInput=new InputActionProperty(new InputAction("Home head rotation",InputActionType.Value,"<XRHMD>/centerEyeRotation"));
                 }
-                pose.enabled=true;
+                pose.enabled=!UsesPcSimulator;
                 homeCanvas.renderMode=RenderMode.WorldSpace;homeCanvas.worldCamera=eye;
                 homeCanvas.GetComponent<CanvasScaler>().uiScaleMode=CanvasScaler.ScaleMode.ConstantPixelSize;
                 frame.sizeDelta=new Vector2(1920,1080);frame.localScale=Vector3.one*.002f;
