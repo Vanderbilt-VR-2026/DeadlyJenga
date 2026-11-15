@@ -727,6 +727,7 @@ namespace DeadlyJenga.CastlePrototype
                 }
                 text.AppendLine("ReliableDataSendRate="+room.Runner.ReliableDataSendRate);
                 text.AppendLine($"NativeStateProbe received={CastleNativeStateProbe.Received} gapSum={CastleNativeStateProbe.GapSum:F6} maxGap={CastleNativeStateProbe.MaxGap:F6}");
+                text.AppendLine($"NativeWorld published={CastleNativeWorldChannel.PublishedFrames} bytes={CastleNativeWorldChannel.PublishedBytes} received={CastleNativeWorldChannel.ReceivedFrames}");
                 text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
                 foreach(var player in room.Runner.ActivePlayers)
                     if(room.Runner.IsServer||player==room.Runner.LocalPlayer)

@@ -152,7 +152,7 @@ namespace DeadlyJenga.CastlePrototype
             catch (Exception error) { DiscoveryStatus = "Wi-Fi receive permission: " + error.Message + ". Room codes still work."; }
         }
         string RoomProtocol(string appVersion)=>(appVersion??"")+"/"+Catalog.NetworkVersion+
-            "/pose-reliable-recovery-1/server-data-c2s-1";
+            "/pose-reliable-recovery-1/server-data-c2s-1"+(CastleNativeWorldChannel.Enabled?"/native-world-prototype-1":"");
         public void StartDiscovery()
         {
             if(Discovery!=null||!Catalog)return;
@@ -356,6 +356,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             var config=NetworkProjectConfig.Deserialize(NetworkProjectConfig.Serialize(NetworkProjectConfig.Global));
             config.Network.ReliableDataTransferModes=NetworkConfiguration.ReliableDataTransfers.ClientToServer;
+            CastleNativeWorldChannel.PrepareConfig(config);
             config.HostMigration.EnableAutoUpdate=false;config.HostMigration.UpdateDelay=2;return config;
         }
         internal int ConnectionGeneration=>generation;

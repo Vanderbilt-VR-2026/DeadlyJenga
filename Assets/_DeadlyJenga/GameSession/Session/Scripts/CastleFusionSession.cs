@@ -265,7 +265,7 @@ namespace DeadlyJenga.CastlePrototype
             {pendingWorldResync=frame.Token();pendingWorldResyncSerial=serial;return;}
             if(frame.status==WorldDeltaCodec.Status.Ready)
             {
-                castle.FusionApplyWorld(frame.raw);
+                if(!nativeWorldReceived)castle.FusionApplyWorld(frame.raw);
                 worldReceiver.Applied(frame);lastWorld=Time.unscaledTime;pendingWorldResync=null;pendingWorldResyncSerial=0;
             }
             Send(default,Ack,frame.Token(),serial);
@@ -359,6 +359,19 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         bool welcomed, closing, leavingIntentionally,poseSendFailed;
+        CastleNativeWorldSetup nativeWorld;
+        bool nativeWorldReceived;
+        void BindNativeWorld()
+        {
+            nativeWorldReceived=false;
+            if(!CastleNativeWorldChannel.Enabled)return;
+            nativeWorld=CastleNativeWorldChannel.Bind(runner,sceneTag,data=>
+            {
+                if(!this||closing||!IsCurrentScene||!welcomed||runner.IsServer)return false;
+                if(data.Length==0){nativeWorldReceived=false;return true;}
+                castle.FusionApplyWorld(data);lastWorld=Time.unscaledTime;nativeWorldReceived=true;return true;
+            });
+        }
         float nextSend, lastWorld;
 
         [Serializable] public sealed class DemoState
@@ -381,7 +394,7 @@ namespace DeadlyJenga.CastlePrototype
             ResetPoseWindows();peers.Clear();socialPeers.Clear();socialServer.Clear();welcomed=false;closing=false;nextSend=0;
             runner=next;posesInFlight.Traffic.PeerId=next.LocalPlayer.ToString();sceneTag=SceneTag(next);BindWorldConnection();if(next.IsServer&&session.SurvivorBots!=null){if(Demo.target>0)session.SurvivorBots.TargetPopulation=Mathf.Max(1,Demo.target);session.SurvivorBots.AutoFill=Demo.autoFill;}castle.FusionRebind(next.LocalPlayer.ToString(),!next.IsServer,Demo.survivors,Demo.hands,Demo.survivorPreset,Demo.handPreset);
             if(next.IsServer&&session.Modes){session.Modes.ResumeAuthorityFromFrame();session.Modes.ReconcileHumanRoster(next.ActivePlayers.Select(p=>p.ToString()));}
-            AttachCallbacks();lastWorld=Time.unscaledTime;UpdatePopulation();
+            AttachCallbacks();BindNativeWorld();lastWorld=Time.unscaledTime;UpdatePopulation();
         }
         void AttachCallbacks()
         {
@@ -401,6 +414,7 @@ namespace DeadlyJenga.CastlePrototype
             if (physics) physics.Update3DPhysicsScene = true;
             castle.InitializeFusion(owner, runner.LocalPlayer.ToString(), !runner.IsServer);
             AttachCallbacks();
+            BindNativeWorld();
             lastWorld = Time.unscaledTime;
             UpdatePopulation();
         }
@@ -601,6 +615,11 @@ namespace DeadlyJenga.CastlePrototype
                 castle.FusionRoomNotice(Demo.roomNotice);
                 string admin=JsonUtility.ToJson(Demo);
                 byte[] world = null;string worldContext=null;
+                bool nativePublished=false;
+                if(nativeWorld&&peers.Values.Any(peer=>peer.ready))
+                {
+                    world=castle.FusionCaptureWorld();nativePublished=nativeWorld.Publish(world);
+                }
                 foreach (var pair in peers)
                 {
                     if (!pair.Value.ready || pair.Value.waiting != 0) continue;
@@ -608,7 +627,9 @@ namespace DeadlyJenga.CastlePrototype
                     if(disasterVisualPacket!=null&&!ReferenceEquals(pair.Value.disasters,disasterVisualPacket)){var packet=disasterVisualPacket;Send(pair.Key,DisasterVisuals,packet,0,()=>pair.Value.disasters=packet);}
                     if(pair.Value.admin!=admin){Send(pair.Key,Admin,System.Text.Encoding.UTF8.GetBytes(admin),0,()=>pair.Value.admin=admin);}
                     string rules=MatchSetup.CaptureRules(session.Player);if(pair.Value.rules!=rules){Send(pair.Key,Rules,System.Text.Encoding.UTF8.GetBytes(rules),0,()=>pair.Value.rules=rules);}
+                    if(nativePublished)continue;
                     if(world==null){world=castle.FusionCaptureWorld();worldContext=WorldContext(world);}
+                    if(worldContext==null)worldContext=WorldContext(world);
                     try{SendWorld(pair.Key,pair.Value,world,worldContext,now);}
                     catch(Exception){Fail("World transfer encoding or send failed. Rejoin with the same game build.");return;}
                 }

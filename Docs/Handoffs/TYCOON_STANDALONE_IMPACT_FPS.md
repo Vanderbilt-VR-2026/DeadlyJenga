@@ -1,6 +1,18 @@
 # Tycoon standalone tsunami frame times
 
-Current overhaul status: the +50% goal is not met. Fresh single-run tsunami gains remain about +10% (24 bots) and +25–28% (52 bots) against the refreshed original baseline. Replication acceptance fails. Ten humans now join and migrate through a round, but the clean-log test exposed headless results-rendering errors. The older results below are retained history, not the current acceptance result.
+Current overhaul status: +50% typical FPS is not met, and neither desktop Editor smoothness nor replication freshness is accepted. Source changes are isolated on the task branch; no shared integration or APK claim.
+
+## Checkpoint a7fa560d and native-world experiment
+
+The exact tested source was 7fa560ded398ebefc0c59706ec8498113550dc7. All ten independent Fusion processes passed the round, original-host departure, single replacement authority, original timer continuation, results and lobby return. Host and one guest rendered; eight clients were headless. This is same-machine functional evidence, not ten-rendered-client performance or cross-device evidence.
+
+Actual rendered Editor Play Mode at 960x540 with 52 bots measured 4.53 typical FPS during tsunami impact (37 moving-block frames, 26 blocks displaced over one metre). Median frame time was 220.701 ms, p95 287.245 ms. The desktop Editor target fails. The standalone figures must not be presented as Editor results.
+
+An opt-in 1 KB native Networked-state probe received 486 atomic snapshots with 53.876 ms mean spacing and 165.222 ms maximum spacing. That probe did not transport real gameplay state. The next opt-in native-world experiment uses the existing decoder and a bounded 64 KiB native snapshot, with separate room protocol and legacy fallback. Compilation, late join, migration, large-world fallback and actual impact freshness remain pending for that experiment.
+
+Nearby UDP invite, joining without a code and entering the same round passed; full round completion timed out. The fixture needs timer/mode diagnostics and the shader fallback needs a new runtime check. Nearby discovery remains pending.
+
+A separate 139-frame whole-CPU/GPU diagnostic at source 644e3970 measured median CPU frame time 55.616 ms and GPU frame duration 55.171 ms. These recording-overhead samples are not FPS acceptance; GPU frame duration alone does not establish GPU execution as the bottleneck.
 
 ## Native checkpoint 644e3970
 
