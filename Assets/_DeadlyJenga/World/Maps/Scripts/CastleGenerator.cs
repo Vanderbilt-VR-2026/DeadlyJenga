@@ -51,55 +51,115 @@ namespace DeadlyJenga.CastlePrototype
         bool CuratedCtf => !magneticMap && !environmentOnly && settings.layoutPreset == "ctf";
         float nextKillCheck;
         int debrisCursor;
-        readonly Dictionary<int,float> submergedSince=new Dictionary<int,float>();
-        readonly Dictionary<int,(float linear,float angular)> dryDamping=new Dictionary<int,(float,float)>();
-        readonly List<int> retiredSubmerged=new List<int>();
-        readonly Dictionary<int,float> fullySubmergedSince=new Dictionary<int,float>();
-        // Water slows a block so it sinks and tumbles like it would in real water, then it is retired deep down.
-        const float WaterLinearDrag=3.2f, WaterAngularDrag=2.2f, RetireDepth=3f, RetireSeconds=9f;
-        void RetireSubmergedBlocks()
+        readonly Dictionary<Rigidbody, (float linear, float angular)> dryDamping = new();
+        const float WaterLinearDrag = 3.2f, WaterAngularDrag = 2.2f;
+        const float EntrySpeed = .85f, EntryDepth = .025f, RetireDepth = 3f;
+        const int WaterGroundMask = ~((1 << Layers.Block) | (1 << Layers.Survivor) | (1 << Layers.Surface));
+
+        void UpdateBlockWaterContact()
         {
-            if(Services.Session is IWorldAuthority authority&&!authority.HasWorldAuthority)return;
-            for(int i=0;i<Bodies.Count;i++)
+            if (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority) return;
+
+            foreach (var body in Bodies)
             {
-                var body=Bodies[i];
-                if(!body||!body.gameObject.activeSelf||body.isKinematic)continue;
-                bool tracked=submergedSince.ContainsKey(i);
-                if(!tracked&&body.IsSleeping())continue;
-                float water=WaterHeight(body.position);
-                bool wet=body.worldCenterOfMass.y<water;
-                if(wet&&!tracked)
+                if (!body) continue;
+                bool wet = dryDamping.ContainsKey(body);
+                if (!body.gameObject.activeInHierarchy || body.isKinematic)
                 {
-                    submergedSince[i]=Time.time;dryDamping[i]=(body.linearDamping,body.angularDamping);
-                    body.linearDamping=WaterLinearDrag;body.angularDamping=WaterAngularDrag;
+                    if (wet) RestoreDryDamping(body);
+                    continue;
                 }
-                else if(!wet&&tracked)
+                if (!wet && body.IsSleeping()) continue;
+
+                var shape = body.GetComponent<Collider>();
+                if (!shape || !shape.enabled || shape.isTrigger)
                 {
-                    if(dryDamping.TryGetValue(i,out var dry)){body.linearDamping=dry.linear;body.angularDamping=dry.angular;}
-                    submergedSince.Remove(i);dryDamping.Remove(i);
+                    if (wet) RestoreDryDamping(body);
+                    continue;
+                }
+                var bounds = shape.bounds;
+                float water = WaterHeight(bounds.center);
+                float gap = bounds.min.y - water;
+                var velocity = body.linearVelocity;
+                float step = Time.fixedDeltaTime;
+                float gravity = body.useGravity ? Physics.gravity.y : 0;
+                if (gap > Mathf.Max(0, -(velocity.y + gravity * step) * step))
+                {
+                    if (wet) RestoreDryDamping(body);
+                    continue;
+                }
+
+                // Solid ground at the water line takes the impact instead of water.
+                if (gap >= -.35f || wet)
+                {
+                    float rayStart = Mathf.Max(water + .05f, bounds.min.y + .05f);
+                    var aboveSurface = new Vector3(bounds.center.x, rayStart, bounds.center.z);
+                    if (Physics.Raycast(aboveSurface, Vector3.down, out var hit, rayStart - water + .3f,
+                            WaterGroundMask, QueryTriggerInteraction.Ignore) && !hit.rigidbody)
+                    {
+                        if (wet) RestoreDryDamping(body);
+                        continue;
+                    }
+                }
+
+                if (!wet)
+                {
+                    if (gap > 0)
+                    {
+                        // Resolve the surface crossing next step, even for a thin, fast block.
+                        float crossingSpeed = -(gap + EntryDepth) / step;
+                        if (velocity.y < crossingSpeed)
+                        {
+                            velocity.y = crossingSpeed;
+                            body.linearVelocity = velocity;
+                        }
+                        continue;
+                    }
+
+                    dryDamping.Add(body, (body.linearDamping, body.angularDamping));
+                    body.linearDamping = WaterLinearDrag;
+                    body.angularDamping = WaterAngularDrag;
+                    if (velocity.y < -EntrySpeed)
+                    {
+                        velocity.y = -EntrySpeed;
+                        body.linearVelocity = velocity;
+                    }
+                }
+
+                if (bounds.max.y <= water - RetireDepth)
+                {
+                    RestoreDryDamping(body);
+                    body.gameObject.SetActive(false);
                 }
             }
-            retiredSubmerged.Clear();
-            foreach(var entry in submergedSince)
+        }
+
+        void RestoreDryDamping(Rigidbody body)
+        {
+            if (!dryDamping.Remove(body, out var dry)) return;
+            body.linearDamping = dry.linear;
+            body.angularDamping = dry.angular;
+        }
+
+        void ResetBlockWaterContact()
+        {
+            foreach (var entry in dryDamping)
             {
-                var body=entry.Key<Bodies.Count?Bodies[entry.Key]:null;
-                if(!body||!body.gameObject.activeSelf){retiredSubmerged.Add(entry.Key);continue;}
-                // Only blocks fully under water are retired; one resting half-in at the shore is left alone.
-                var collider=body.GetComponent<Collider>();
-                float water=WaterHeight(body.position);
-                if(!collider||collider.bounds.max.y>water-.15f){fullySubmergedSince.Remove(entry.Key);continue;}
-                if(!fullySubmergedSince.TryGetValue(entry.Key,out float since)){fullySubmergedSince[entry.Key]=Time.time;continue;}
-                bool deep=collider.bounds.max.y<water-RetireDepth;
-                if(!deep&&Time.time-since<RetireSeconds)continue;
-                if(dryDamping.TryGetValue(entry.Key,out var dry)){body.linearDamping=dry.linear;body.angularDamping=dry.angular;}
-                body.gameObject.SetActive(false);retiredSubmerged.Add(entry.Key);
+                if (!entry.Key) continue;
+                entry.Key.linearDamping = entry.Value.linear;
+                entry.Key.angularDamping = entry.Value.angular;
             }
-            foreach(int i in retiredSubmerged){submergedSince.Remove(i);dryDamping.Remove(i);fullySubmergedSince.Remove(i);}
+            dryDamping.Clear();
         }
 
         void Start() { if (generateOnStart) Rebuild(); }
         void OnEnable() { if(foundation&&foundation.gameObject!=gameObject)foundation.gameObject.SetActive(true);Services.World = this; }
-        void OnDisable() { if(foundation&&foundation.gameObject!=gameObject)foundation.gameObject.SetActive(false);if (ReferenceEquals(Services.World, this)) Services.World = null; }
+        void OnDisable()
+        {
+            ResetBlockWaterContact();
+            if (foundation && foundation.gameObject != gameObject) foundation.gameObject.SetActive(false);
+            if (ReferenceEquals(Services.World, this)) Services.World = null;
+        }
 
         // IWorldQuery
         public float WaterHeight(Vector3 position) => waterHeight;
@@ -172,6 +232,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         public void SetReplica(bool replica)
         {
+            if (replica) ResetBlockWaterContact();
             if (magneticMap && magneticMap.Structure) { magneticMap.Structure.SetReplica(replica); return; }
             if (PhysicsGroups) PhysicsGroups.SetReplica(replica);
             foreach (var body in Bodies)
@@ -249,9 +310,10 @@ namespace DeadlyJenga.CastlePrototype
         // The ocean: eliminate anything that falls below the kill height.
         void FixedUpdate()
         {
-            if (!Application.isPlaying || Time.time < nextKillCheck) return;
+            if (!Application.isPlaying) return;
+            UpdateBlockWaterContact();
+            if (Time.time < nextKillCheck) return;
             nextKillCheck = Time.time + .1f;
-            RetireSubmergedBlocks();
             var center = new Vector3(transform.position.x, oceanKillHeight - 500, transform.position.z);
             int mask = ~((1 << Layers.Block) | (1 << Layers.Surface));
             int count = Physics.OverlapBoxNonAlloc(center, new Vector3(2000, 500, 2000), fallen, Quaternion.identity, mask, QueryTriggerInteraction.Ignore);
@@ -271,13 +333,14 @@ namespace DeadlyJenga.CastlePrototype
             if (!environmentOnly && !magneticMap && (!blockPrefab || !blockPrefab.GetComponent<Rigidbody>() || !blockPrefab.GetComponent<BoxCollider>()))
                 throw new System.InvalidOperationException("Assign a unit cube prefab with Rigidbody and BoxCollider.");
             float started = Time.realtimeSinceStartup;
+            ResetBlockWaterContact();
             if (generatedRoot)
             {
                 generatedRoot.gameObject.SetActive(false);
                 if (Application.isPlaying) Destroy(generatedRoot.gameObject); else DestroyImmediate(generatedRoot.gameObject);
             }
             PhysicsGroups=null;Debris=null;tycoonSupports=null;
-            Bodies.Clear();submergedSince.Clear();dryDamping.Clear();fullySubmergedSince.Clear();debrisCursor=0;
+            Bodies.Clear();debrisCursor=0;
             generatedRoot = new GameObject("Generated Castle Blocks").transform;
             generatedRoot.SetParent(transform, false);
             if (magneticMap)
