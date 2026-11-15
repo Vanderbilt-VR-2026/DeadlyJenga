@@ -42,12 +42,6 @@ namespace DeadlyJenga.CastlePrototype
         BoxCollider modeStartTarget, modeBackTarget, modeSettingsTarget;
         Text modeCenterLabel;
 
-        static readonly string[] DefaultDisasterCatalog = {
-            "Tsunami", "Tornado", "Meteor Shower", "Planet Killer Meteor",
-            "Icy", "Earthquake", "Acid Rain", "Fire",
-            "Low Gravity", "Time Slip", "Kraken", "Vampire"
-        };
-
         WheelVisualCard CreateWheelCard(Transform parent, Vector2 pos, Vector2 size, Vector2 playOffset, Vector2 playSize)
         {
             var go = new GameObject("WheelCard", typeof(RectTransform));
@@ -129,16 +123,20 @@ namespace DeadlyJenga.CastlePrototype
             return btn;
         }
 
-        void EnsureDisasterWheelUI()
+        void EnsureDisasterWheelUI(int count)
         {
-            if (disasterWheelUI) return;
+            if (disasterWheelUI && disasterCards.Count == count) return;
+            if (disasterWheelUI)
+            {
+                disasterWheelUI.SetActive(false);
+                Destroy(disasterWheelUI);
+            }
             disasterWheelUI = new GameObject("Disaster Wheel UI", typeof(RectTransform));
             disasterWheelUI.transform.SetParent(legacyDeveloper != null ? legacyDeveloper : transform, false);
             var rect = disasterWheelUI.GetComponent<RectTransform>();
             rect.anchoredPosition = Vector2.zero;
             disasterCards = new List<WheelVisualCard>();
 
-            int count = Demo?.DisasterCount ?? 12;
             for (int i = 0; i < count; i++)
             {
                 float angle = (90f - i * (360f / count)) * Mathf.Deg2Rad;
@@ -153,7 +151,8 @@ namespace DeadlyJenga.CastlePrototype
 
         void PointDisasterWheel(bool pressed)
         {
-            EnsureDisasterWheelUI();
+            int count = Demo?.DisasterCount ?? 0;
+            EnsureDisasterWheelUI(count);
             disasterWheelUI.SetActive(true);
             HideDisasterSliders();
             scaffoldButton.gameObject.SetActive(false);
@@ -161,14 +160,12 @@ namespace DeadlyJenga.CastlePrototype
             heading.text = "NATURAL DISASTERS\n<size=17><color=#d0b8d8>Click disaster for settings  ·  ▶ to launch immediately</color></size>";
             help.text = CanCommand ? "Point at a disaster to configure its sliders, or ▶ to trigger it directly." : "The host controls disasters.";
 
-            int demoCount = Demo?.DisasterCount ?? 0;
-            int count = demoCount > 0 ? demoCount : DefaultDisasterCatalog.Length;
             var ray = pointerRay;
 
             for (int i = 0; i < disasterCards.Count && i < count; i++)
             {
                 var card = disasterCards[i];
-                string name = demoCount > 0 ? Demo.DisasterLabel(i) : DefaultDisasterCatalog[i];
+                string name = Demo.DisasterLabel(i);
                 card.title.text = CandyDisasterWarningCard.DisplayName(name);
                 var tex = CandyDisasterWarningCard.GetImage(name);
                 if (tex) { card.picture.texture = tex; card.picture.color = Color.white; }

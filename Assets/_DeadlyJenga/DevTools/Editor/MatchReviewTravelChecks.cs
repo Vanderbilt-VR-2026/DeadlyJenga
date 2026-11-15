@@ -118,7 +118,8 @@ namespace DeadlyJenga.DevTools.Editor
             Check(session&&Services.World?.Blocks.Count>0&&rewind?.Recorded>=.4f,"Real solo Game has blocks and usable rewind history");
             session.ResetMap();
             Check(rewind.Recorded==0&&!rewind.Rewind(4),"Rebuild immediately invalidates the old blocks' history");
-            Check(!DemoDisasters.Execute(session,"TimeSlip"),"Demo rejects Time Slip until the new castle has history");
+            Check(DemoDisasters.Prefabs.All(prefab=>prefab.name!="TimeSlip") && !Resources.Load<GameObject>("TimeSlip"),
+                "Time Slip is absent from the disaster catalog and runtime resources");
 
             var block=Services.World.Blocks[0];
             block.isKinematic=true;
@@ -126,14 +127,15 @@ namespace DeadlyJenga.DevTools.Editor
             yield return new WaitForSeconds(.6f);
             block.position=original+Vector3.up*12;
             yield return new WaitForSeconds(.25f);
-            Check(block.position.y>original.y+10&&DemoDisasters.Execute(session,"TimeSlip")&&rewind.Rewinding,
-                "The actual Time Slip disaster starts after new history exists");
+            Check(!DemoDisasters.ExecuteForMode(session,"TimeSlip"),"Mode launch rejects retired Time Slip even with recorded history");
+            Check(block.position.y>original.y+10&&rewind.Rewind(4)&&rewind.Rewinding,
+                "The underlying block timeline can still rewind after new history exists");
             deadline=Time.realtimeSinceStartup+15;
             while(rewind.Rewinding&&Time.realtimeSinceStartup<deadline)yield return null;
-            Check(!rewind.Rewinding&&Vector3.Distance(block.position,original)<.3f,"Time Slip restores the recorded pose");
+            Check(!rewind.Rewinding&&Vector3.Distance(block.position,original)<.3f,"Block rewind restores the recorded pose");
 
             yield return new WaitForSeconds(.5f);
-            Check(DemoDisasters.Execute(session,"TimeSlip")&&rewind.Rewinding,"Time Slip can run again after finishing");
+            Check(rewind.Rewind(4)&&rewind.Rewinding,"The block timeline can rewind again after finishing");
             session.ResetMap();
             yield return new WaitForFixedUpdate();
             yield return new WaitForFixedUpdate();
@@ -147,7 +149,7 @@ namespace DeadlyJenga.DevTools.Editor
             Check(!Object.FindFirstObjectByType<BlockStressEngine>()&&!Object.FindFirstObjectByType<DeadlyJenga.Destruction.DestructionPresentation>()
                 &&Services.World.Blocks.All(body=>!body||body.GetComponent<IBreakable>()==null),
                 "Game has no active stress engine, crack art, or breakable castle block ability");
-            Check(Services.Rewind!=null,"Time Slip still has its block timeline");
+            Check(Services.Rewind!=null,"The block timeline is still available");
             var wavePrefab=Resources.Load<GameObject>("DemoDisasters/Tsunami");
             Check(wavePrefab,"Real tsunami prefab resolves");
             var wave=Object.Instantiate(wavePrefab).GetComponent<TsunamiHazard>();
