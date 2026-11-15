@@ -1,0 +1,216 @@
+using System;
+using System.Collections;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.CandyArt.Marina;
+using DeadlyJenga.CastlePrototype;
+using DeadlyJenga.Core;
+using UnityEditor;
+using UnityEditor.SceneManagement;
+using UnityEngine;
+using UnityEngine.UI;
+
+namespace DeadlyJenga.DevTools.Editor
+{
+    [InitializeOnLoad]
+    public static class WardrobeCloseoutChecks
+    {
+        const string Key = "WardrobeCloseoutChecks";
+        const string Legacy = "CandyAvatar.Accessories.v1";
+        const string Style = "CandyAvatar.Style.v2";
+        const BindingFlags Instance = BindingFlags.Instance | BindingFlags.NonPublic;
+        static string Report => ProjectPath.Report("WardrobeCloseoutChecks.txt");
+        static bool failed;
+
+        static WardrobeCloseoutChecks()
+        {
+            EditorApplication.playModeStateChanged += State;
+        }
+
+        public static void Run()
+        {
+            if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
+                throw new InvalidOperationException("Use the reserved batch editor.");
+            File.WriteAllText(Report, "Desktop Marina wardrobe and solo match. Buttons invoked through their bound actions. Unity " +
+                Application.unityVersion + "\n");
+            SessionState.SetBool(Key + Legacy, PlayerPrefs.HasKey(Legacy));
+            SessionState.SetInt(Key + Legacy, PlayerPrefs.GetInt(Legacy));
+            SessionState.SetBool(Key + Style, PlayerPrefs.HasKey(Style));
+            SessionState.SetString(Key + Style, PlayerPrefs.GetString(Style));
+            SessionState.SetBool(Key, true);
+            EditorSceneManager.OpenScene(ProjectPath.Find("Lobby.unity"));
+            EditorApplication.EnterPlaymode();
+        }
+
+        static void State(PlayModeStateChange state)
+        {
+            if (!SessionState.GetBool(Key, false)) return;
+            if (state == PlayModeStateChange.EnteredPlayMode)
+            {
+                failed = false;
+                Application.logMessageReceived += Log;
+                var driver = new GameObject("Wardrobe validation driver");
+                UnityEngine.Object.DontDestroyOnLoad(driver);
+                driver.AddComponent<MayhemMarinaChecksDriver>().StartCoroutine(Guard());
+            }
+            if (state != PlayModeStateChange.EnteredEditMode) return;
+            Application.logMessageReceived -= Log;
+            SessionState.SetBool(Key, false);
+            if (SessionState.GetBool(Key + Legacy, false)) PlayerPrefs.SetInt(Legacy, SessionState.GetInt(Key + Legacy, 0));
+            else PlayerPrefs.DeleteKey(Legacy);
+            if (SessionState.GetBool(Key + Style, false)) PlayerPrefs.SetString(Style, SessionState.GetString(Key + Style, ""));
+            else PlayerPrefs.DeleteKey(Style);
+            PlayerPrefs.Save();
+            File.AppendAllText(Report, $"COMPLETE failed={failed}\n");
+            EditorApplication.Exit(failed ? 2 : 0);
+        }
+
+        static IEnumerator Guard()
+        {
+            using (var test = CheckWardrobe())
+            {
+                while (true)
+                {
+                    object next;
+                    try
+                    {
+                        if (!test.MoveNext()) break;
+                        next = test.Current;
+                    }
+                    catch (Exception exception)
+                    {
+                        failed = true;
+                        File.AppendAllText(Report, exception + "\n");
+                        break;
+                    }
+                    yield return next;
+                }
+            }
+            EditorApplication.ExitPlaymode();
+        }
+
+        static System.Collections.Generic.IEnumerator<object> CheckWardrobe()
+        {
+            float deadline = Time.realtimeSinceStartup + 35;
+            while ((!IslandLobby.Current || IslandLobby.Current.Player == null) && Time.realtimeSinceStartup < deadline)
+                yield return null;
+            var lobby = IslandLobby.Current;
+            Check(lobby && lobby.Player != null && !lobby.Player.IsVR, "Desktop lobby player is ready");
+            var view = lobby.View();
+            Check(view && lobby.GetComponent<MayhemMarina>(), "Actual Marina and wardrobe view are loaded");
+            var avatar = lobby.Player.gameObject.GetComponent<CandyPlayerAvatar>();
+            Check(avatar && avatar.Rig, "Actual local Candy avatar is available");
+            var requested = new AvatarAppearance
+            {
+                accessories = AvatarAccessory.TopHat | AvatarAccessory.Beanie | AvatarAccessory.DevilHorns,
+                hair = AvatarHair.Afro
+            };
+            avatar.ApplyAppearance(requested);
+            string saved = PlayerPrefs.GetString(Style);
+            lobby.SetMenu(false);
+            lobby.Player.Place(view.WardrobePosition, Quaternion.identity);
+            view.SetWardrobeOpen(true);
+            for (int frame = 0; frame < 4; frame++) yield return null;
+            Check(view.WardrobeOpen, "Wardrobe opens at the Marina boutique");
+            Check(avatar.Appearance.Equals(requested) && PlayerPrefs.GetString(Style) == saved,
+                "Opening does not normalize or rewrite the desired outfit");
+            var status = (Text)typeof(IslandLobbyView).GetField("desktopWardrobeStatus", Instance).GetValue(view);
+            Check(status.text.Contains("stay saved"), "Desktop viewer explains hidden items");
+            var fit = (float)typeof(IslandLobbyView).GetField("wardrobeFitDistance", Instance).GetValue(view);
+            Check(fit > 0 && fit < 6, $"Mirror fits measured avatar geometry (distance {fit:F2} m)");
+            Click(view, "Category 2");
+            Click(view, "Accessory 0");
+            Check((avatar.Appearance.accessories & AvatarAccessory.Beanie) != 0 &&
+                (avatar.EvaluateAppearance(avatar.Appearance).effective.accessories & AvatarAccessory.Beanie) != 0,
+                "Removing Top Hat reveals the previously hidden Beanie");
+            Click(view, "Accessory 2");
+            Check(avatar.EvaluateAppearance(avatar.Appearance).effective.hair == AvatarHair.Afro,
+                "Removing Beanie restores the saved Afro");
+            Click(view, "Accessory 3");
+            Check((avatar.Appearance.accessories & (AvatarAccessory.CowboyHat | AvatarAccessory.DevilHorns)) ==
+                (AvatarAccessory.CowboyHat | AvatarAccessory.DevilHorns), "Hat selection keeps the saved horns");
+
+            requested = new AvatarAppearance
+            {
+                accessories = AvatarAccessory.DevilHorns | AvatarAccessory.AntAntennae,
+                clothing = AvatarClothing.PufferVest,
+                hair = AvatarHair.Ponytail,
+                eyewear = AvatarEyewear.Round
+            };
+            avatar.ApplyAppearance(requested);
+            Check(avatar.EvaluateAppearance(requested).effective.Equals(requested),
+                "Ponytail, Devil Horns, Ant Antennae, Round eyewear and vest coexist in the resolver");
+            var covered = requested;
+            covered.skin = AvatarSkin.DeepSeaDiver;
+            avatar.ApplyAppearance(covered);
+            var resolution = avatar.EvaluateAppearance(covered);
+            Check(resolution.hiddenHair && resolution.hiddenClothing == AvatarClothing.PufferVest &&
+                resolution.effective.eyewear == AvatarEyewear.None && avatar.Appearance.Equals(covered),
+                "Diver covers outfit, hair and eyewear without rewriting choices");
+            Click(view, "Category 0");
+            Click(view, "Accessory 0");
+            Check(avatar.Appearance.Equals(requested), "Selecting Default restores the saved outfit");
+            Check(CandyPlayerAvatar.WithStyle(requested, CandyPlayerAvatar.StyleBits(requested)).Equals(requested),
+                "Appearance style bits round-trip");
+            requested.poweredArmor = true;
+            Check(CandyPlayerAvatar.WithStyle(requested, CandyPlayerAvatar.StyleBits(requested)).poweredArmor,
+                "Existing powered armor bit round-trips");
+            requested.poweredArmor = false;
+            Click(view, "Done");
+            Check(!view.WardrobeOpen, "Done closes the wardrobe");
+
+            var details = (ILobbyDetails)lobby;
+            var setup = details.Setup;
+            setup.population = 1;
+            setup.hands = 0;
+            setup.rules.automaticDisasters = false;
+            details.ConfigureSetup(setup);
+            Check(lobby.SelectMode("demo") && lobby.SelectMap("castle"), "Classic Castle solo demo selected");
+            Check(lobby.GetComponent<MarinaScreen>().Invoke("marina-play"), "Marina Play starts travel");
+            deadline = Time.realtimeSinceStartup + 45;
+            while ((!(Services.Session is CastlePlaySession) || !NetworkActors.Alive(Services.Session.Player))
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            var match = Services.Session as CastlePlaySession;
+            Check(match && NetworkActors.Alive(match.Player), "Actual Game player is ready");
+            var gameAvatar = match.Player.gameObject.GetComponent<CandyPlayerAvatar>();
+            Check(gameAvatar && gameAvatar.Appearance.Equals(requested), "Selected wardrobe persists into Game");
+            match.Modes.ReturnToLobby();
+            deadline = Time.realtimeSinceStartup + 35;
+            while (!(Services.Session is IslandLobby current && NetworkActors.Alive(current.Player))
+                && Time.realtimeSinceStartup < deadline) yield return null;
+            var returned = Services.Session as IslandLobby;
+            Check(returned && NetworkActors.Alive(returned.Player), "Solo match returns to Marina");
+            var returnedView = returned.View();
+            returned.Player.Place(returnedView.WardrobePosition, Quaternion.identity);
+            returnedView.SetWardrobeOpen(true);
+            Check(returnedView.WardrobeOpen &&
+                returned.Player.gameObject.GetComponent<CandyPlayerAvatar>().Appearance.Equals(requested),
+                "Reopening after Game preserves the selected wardrobe");
+            returnedView.SetWardrobeOpen(false);
+        }
+
+        static void Click(IslandLobbyView view, string name)
+        {
+            var entries = (System.Collections.Generic.List<Tuple<RectTransform, Action>>)
+                typeof(IslandLobbyView).GetField("wardrobeButtons", Instance).GetValue(view);
+            var entry = entries.Single(item => item.Item1.name == name);
+            Check(entry.Item1.gameObject.activeInHierarchy, "Desktop item is reachable: " + name);
+            entry.Item2();
+        }
+
+        static void Check(bool passed, string message)
+        {
+            File.AppendAllText(Report, (passed ? "PASS " : "FAIL ") + message + "\n");
+            if (!passed) throw new InvalidOperationException(message);
+        }
+
+        static void Log(string message, string stack, LogType type)
+        {
+            if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+            failed = true;
+            File.AppendAllText(Report, message + "\n" + stack + "\n");
+        }
+    }
+}

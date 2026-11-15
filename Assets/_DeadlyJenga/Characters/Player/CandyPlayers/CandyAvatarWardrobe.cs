@@ -27,17 +27,21 @@ namespace DeadlyJenga.CandyPlayers
 
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
-            value=CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(value)).effective;
             if(built&&appearance.accessories==value.accessories&&CandyPlayerAvatar.StyleBits(appearance)==CandyPlayerAvatar.StyleBits(value))return;
             foreach(var p in pieces)if(p.renderer){p.renderer.gameObject.SetActive(false);Destroy(p.renderer.gameObject);}
             foreach(var t in new[]{LeftPalmEmitter,RightPalmEmitter,LeftSoleEmitter,RightSoleEmitter})if(t)Destroy(t.gameObject);
             LeftPalmEmitter=RightPalmEmitter=LeftSoleEmitter=RightSoleEmitter=null;
             pieces.Clear();appearance=value;built=true;
             if(!originalBody)originalBody=rig.bodyRenderer.sharedMesh;
-            rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman?SnowBody(originalBody):originalBody;
-            BuildSkin(rig);BuildExpandedSkin(rig);BuildHair(rig);BuildGlasses(rig);BuildClothes(rig);BuildExpandedClothes(rig);
-            if((value.accessories&AvatarAccessory.PumpkinHelmet)!=0)Pumpkin(rig,"accessory pumpkin",Tone.Primary);
+            rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman&&!value.poweredArmor?SnowBody(originalBody):originalBody;
             if(value.poweredArmor)BuildArmor(rig);
+            else
+            {
+                BuildSkin(rig);
+                BuildExpandedSkin(rig);
+            }
+            BuildHair(rig);BuildGlasses(rig);BuildClothes(rig);BuildExpandedClothes(rig);
+            if((value.accessories&AvatarAccessory.PumpkinHelmet)!=0)Pumpkin(rig,"accessory pumpkin",Tone.Primary);
             BatchPieces(rig);
             lastTeam=new Color(-1,-1,-1);RefreshPalette(rig);
         }

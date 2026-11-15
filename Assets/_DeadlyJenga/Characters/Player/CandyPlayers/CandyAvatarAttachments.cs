@@ -14,13 +14,17 @@ namespace DeadlyJenga.CandyPlayers
         public AvatarAppearance Appearance=>appearance;
         public void Apply(CandyPlayerRig rig,AvatarAppearance value)
         {
-            value=CandyWardrobeCompatibility.Resolve(CandyPlayerAvatar.SanitizeAppearance(value)).effective;
+            bool equippedArmor=value.poweredArmor;
+            value=CandyPlayerAvatar.SanitizeAppearance(value);
+            value.poweredArmor=equippedArmor;
+            value=CandyWardrobeCompatibility.Resolve(value).effective;
             if(rig.headRenderer)rig.headRenderer.enabled=(value.accessories&AvatarAccessory.SkeletonMask)==0;
             if(!wardrobe)wardrobe=GetComponent<CandyAvatarWardrobe>();if(!wardrobe)wardrobe=gameObject.AddComponent<CandyAvatarWardrobe>();
             wardrobe.Apply(rig,value);
             if(!mushroom)mushroom=GetComponent<CandyMushroomAppearance>();
-            if(!mushroom&&value.skin==AvatarSkin.MushroomSprite)mushroom=gameObject.AddComponent<CandyMushroomAppearance>();
-            if(mushroom)mushroom.Apply(rig,value.skin==AvatarSkin.MushroomSprite,(value.accessories&AvatarAccessory.SkeletonMask)!=0);
+            bool showMushroom=value.skin==AvatarSkin.MushroomSprite&&!value.poweredArmor;
+            if(!mushroom&&showMushroom)mushroom=gameObject.AddComponent<CandyMushroomAppearance>();
+            if(mushroom)mushroom.Apply(rig,showMushroom,(value.accessories&AvatarAccessory.SkeletonMask)!=0);
             const AvatarAccessory feline=AvatarAccessory.PantherHead|AvatarAccessory.PantherClaws|AvatarAccessory.PantherTail;
             if(!jaguar)jaguar=GetComponent<CandyJaguarAppearance>();
             if(!jaguar&&(value.accessories&feline)!=0)jaguar=gameObject.AddComponent<CandyJaguarAppearance>();
