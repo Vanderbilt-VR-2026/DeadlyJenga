@@ -36,6 +36,8 @@ namespace DeadlyJenga.CandyArt
         float refreshAt;
         int revision = -1;
         Light key;
+        ReflectionProbe roomProbe;
+        bool roomReflected;
         Mesh roundedWrap;
         Volume volume;
         VolumeProfile grade;
@@ -127,6 +129,8 @@ namespace DeadlyJenga.CandyArt
                     light.enabled = !externalLighting;
                 if (volume)
                     volume.enabled = !externalLighting;
+                if (roomProbe)
+                    roomProbe.enabled = !externalLighting;
             }
 
             if (Time.unscaledTime < refreshAt)
@@ -149,6 +153,11 @@ namespace DeadlyJenga.CandyArt
                 Hide(environment.sandRenderer);
                 Hide(environment.waterRenderer);
             }
+            if (roomProbe && !externalLighting && !roomReflected)
+            {
+                roomReflected = true;
+                roomProbe.RenderProbe();
+            }
             if (Application.platform != RuntimePlatform.Android && Services.Session?.ActiveCamera is Camera active &&
                 active.TryGetComponent<UniversalAdditionalCameraData>(out var data))
             {
@@ -160,9 +169,9 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.30f, .265f, .29f);
+            var fill = new Color(.30f, .247f, .211f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
-                RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .38f))
+                RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .68f))
                 return;
             RenderSettings.skybox = null;
             RenderSettings.fog = false;
@@ -171,7 +180,7 @@ namespace DeadlyJenga.CandyArt
             var probe = new SphericalHarmonicsL2();
             probe.AddAmbientLight(fill);
             RenderSettings.ambientProbe = probe;
-            RenderSettings.reflectionIntensity = .38f;
+            RenderSettings.reflectionIntensity = .68f;
         }
 
         void Hide(Renderer renderer)
@@ -262,25 +271,37 @@ namespace DeadlyJenga.CandyArt
 
         void BuildLighting()
         {
-            key = MakeLight("Warm ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .82f, .66f), 1.28f, 0f);
-            key.transform.localRotation = Quaternion.Euler(51f, 34f, 0f);
+            key = MakeLight("Amber lamplight and ceiling bounce", LightType.Directional,
+                Vector3.zero, new Color(1f, .81f, .60f), 1.56f, 0f);
+            key.transform.localRotation = Quaternion.Euler(42f, 58f, 0f);
             key.shadows = LightShadows.Soft;
-            key.shadowStrength = .72f;
+            key.shadowStrength = .86f;
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
-                new Vector3(-26, 2, -44), new Color(.43f, .63f, 1f), 1220f, 177f, 105f);
+                new Vector3(-14, 1, -66), new Color(.38f, .58f, 1f), 1650f, 185f, 81f);
             MakeSpot("Hearth bounce", new Vector3(-113, 37, -148),
-                new Vector3(-45, 7, -54), new Color(1f, .45f, .13f), 1150f, 220f, 115f);
+                new Vector3(-45, 7, -54), new Color(1f, .50f, .21f), 880f, 220f, 100f);
             MakeLight("Golden light under the tree", LightType.Point,
-                new Vector3(-9, 18, -30), new Color(1f, .58f, .28f), 155f, 64f);
+                new Vector3(-25, 28, -38), new Color(1f, .66f, .33f), 210f, 80f);
             MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
-                new Vector3(1, 1, -23), new Color(1f, .73f, .43f), 290f, 77f, 91f);
+                new Vector3(10, 2, -69), new Color(1f, .76f, .51f), 430f, 112f, 86f);
             MakeLight("Floor lamp", LightType.Point,
                 new Vector3(-203, 63, -12), new Color(1f, .67f, .31f), 430f, 112f);
 
             if (Application.platform == RuntimePlatform.Android)
                 return;
+            var reflections = new GameObject("Christmas Room Reflections");
+            reflections.transform.SetParent(art, false);
+            reflections.transform.localPosition = new Vector3(-39f, 36f, -65f);
+            roomProbe = reflections.AddComponent<ReflectionProbe>();
+            roomProbe.mode = ReflectionProbeMode.Realtime;
+            roomProbe.refreshMode = ReflectionProbeRefreshMode.ViaScripting;
+            roomProbe.timeSlicingMode = ReflectionProbeTimeSlicingMode.IndividualFaces;
+            roomProbe.resolution = 128;
+            roomProbe.size = new Vector3(220f, 135f, 200f);
+            roomProbe.boxProjection = true;
+            roomProbe.intensity = .85f;
+
             var post = new GameObject("Christmas Eve Grade");
             post.transform.SetParent(art, false);
             volume = post.AddComponent<Volume>();
@@ -291,13 +312,13 @@ namespace DeadlyJenga.CandyArt
             var tone = grade.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
-            bloom.threshold.Override(.85f);
-            bloom.intensity.Override(.39f);
+            bloom.threshold.Override(1.04f);
+            bloom.intensity.Override(.27f);
             bloom.scatter.Override(.62f);
             var color = grade.Add<ColorAdjustments>(true);
-            color.postExposure.Override(.24f);
-            color.contrast.Override(10f);
-            color.saturation.Override(10f);
+            color.postExposure.Override(.14f);
+            color.contrast.Override(13f);
+            color.saturation.Override(5f);
         }
 
         Light MakeLight(string label, LightType type, Vector3 position, Color color, float power, float range)

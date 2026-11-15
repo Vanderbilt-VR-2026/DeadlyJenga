@@ -24,6 +24,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
         static Quaternion[] creamWallRotations;
         static Vector3 initialPanelPosition, initialDrumPosition, initialTrainPosition;
         static int blockCount, revision;
+        static double renderReady;
+        static string captureDirectory;
+        static Rigidbody bridgeLid;
+        static Rigidbody[] railBodies;
+        static Vector3 initialBridgePosition;
 
         public static void Run()
         {
@@ -32,6 +37,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (!EditorApplication.ExecuteMenuItem("Tools/Deadly Jenga/Validate Disaster Setup"))
                 throw new InvalidOperationException("Disaster validation menu is unavailable.");
             File.WriteAllText(Report, "Underneath the Tree, clean solo Game.unity load and runtime checks\n");
+            SessionState.SetString("UnderneathTree.CaptureDirectory", "UnderneathTree-" + Guid.NewGuid().ToString("N"));
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));
             SessionState.SetBool(Pending, true);
             SessionState.SetBool(Failed, true);
@@ -60,7 +66,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 {
                     SelectMap();
                     phase = 0;
-                    deadline = EditorApplication.timeSinceStartup + 50;
+                    renderReady = double.PositiveInfinity;
+                    captureDirectory = SessionState.GetString("UnderneathTree.CaptureDirectory", "UnderneathTree");
+                    deadline = EditorApplication.timeSinceStartup + 85;
                     EditorApplication.update += Check;
                 }
                 else if (state == PlayModeStateChange.EnteredEditMode)
@@ -86,9 +94,14 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     var player = Services.Session?.Player;
                     if (!map || player == null || !player.ViewCamera || Time.frameCount < 10)
                         return;
+                    if (double.IsPositiveInfinity(renderReady))
+                        renderReady = now + 1.7;
+                    if (now < renderReady)
+                        return;
                     blockCount = map.Blocks.Count;
                     revision = map.Revision;
-                    var gifts = map.Blocks.GroupBy(body => body.transform.parent.name)
+                    railBodies = map.Blocks.Where(body => body.name.StartsWith("Gift-supported rail ", StringComparison.Ordinal)).ToArray();
+                    var gifts = map.Blocks.Except(railBodies).GroupBy(body => body.transform.parent.name)
                         .ToDictionary(group => group.Key, group => group.ToArray());
                     originalPieces = PieceOrder();
                     Require(gifts.Count >= 30 && map.Blocks.All(b => b && b.isKinematic && b.useGravity),
@@ -103,9 +116,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         out var spawn, 1f, 1 << Layers.Block) && spawn.collider.transform.parent.name == "Present 206",
                         "normal spawn is above the movable junction approach lid");
                     CheckJunction();
+                    CheckRoutes(gifts);
                     var train = map.GetComponentInChildren<UnderneathTreeTrain>();
                     Require(train, "tinplate train imported");
                     initialTrainPosition = train.transform.position;
+                    Shot(player.ViewCamera, "christmas-room", new Vector3(44.175f, 81f, -158.15f),
+                        new Vector3(-58f, 11f, -68f), 64f);
+                    Shot(player.ViewCamera, "bridge-approach", new Vector3(33f, 8f, -85f),
+                        new Vector3(12.45f, 5.4f, -65.9f), 69f);
+                    Shot(player.ViewCamera, "bridge-tunnel", new Vector3(23.2f, 1.75f, -71.4f),
+                        new Vector3(8f, 3.0f, -63.8f), 76f);
                     Require(map.Root.GetComponentsInChildren<MeshRenderer>().Any(r =>
                         r.name.StartsWith("Skirt skull") && r.GetComponent<MeshFilter>().sharedMesh.vertexCount > 0),
                         "skirt motifs are present");
@@ -128,14 +148,33 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
                 if (Time.fixedTime - impactFixedTime < .75f)
                     return;
-                Require(Vector3.Distance(initialPanelPosition, loosePanel.position) > .1f,
-                    "released rectangular lid is displaced by PhysX");
-                Require(creamWalls.Where((wall, i) => Quaternion.Angle(wall.rotation, creamWallRotations[i]) > 24f).Count() >= 2,
-                    "at least two rectangular walls visibly tip as the shell falls apart");
-                Require(Vector3.Distance(initialDrumPosition, looseDrum.position) > .1f,
-                    "released curved wall is displaced by PhysX");
-                Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .2f,
-                    "train advances on the track during Play Mode");
+                if (phase == 1)
+                {
+                    Require(Vector3.Distance(initialPanelPosition, loosePanel.position) > .1f,
+                        "released rectangular lid is displaced by PhysX");
+                    Require(creamWalls.Where((wall, i) => Quaternion.Angle(wall.rotation, creamWallRotations[i]) > 24f).Count() >= 2,
+                        "at least two rectangular walls visibly tip as the shell falls apart");
+                    Require(Vector3.Distance(initialDrumPosition, looseDrum.position) > .1f,
+                        "released curved wall is displaced by PhysX");
+                    Require(Vector3.Distance(initialTrainPosition, map.GetComponentInChildren<UnderneathTreeTrain>().transform.position) > .2f,
+                        "train advances on the track during Play Mode");
+                    bridgeLid = map.Blocks.Single(body => body.name == "Lid" && body.transform.parent.name == "Gift Bridge / Navy Span");
+                    initialBridgePosition = bridgeLid.position;
+                    map.Blocks.Single(body => body.name == "Bottom" && body.transform.parent.name == "Gift Bridge / Pine Bearing")
+                        .GetComponent<IPushable>().Push(Vector3.left * 6f, null);
+                    foreach (var bearing in map.Blocks.Where(body => body.name == "Bottom" &&
+                        body.transform.parent.name.StartsWith("Rail Gift ", StringComparison.Ordinal)))
+                        bearing.GetComponent<IPushable>().Push(Vector3.left * 6f, null);
+                    phase = 2;
+                    impactFixedTime = Time.fixedTime;
+                    return;
+                }
+                Require(!bridgeLid.isKinematic && Vector3.Distance(initialBridgePosition, bridgeLid.position) > .2f,
+                    "destroying a bearing gift releases and moves the bridge");
+                Require(railBodies.Any(body => !body.isKinematic),
+                    "losing gift support releases real rail sections");
+                Shot(Services.Session.Player.ViewCamera, "fallen-bridge", new Vector3(33f, 8f, -85f),
+                    new Vector3(12.45f, 5.4f, -65.9f), 69f);
                 Services.Session.ResetMap();
                 Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
                     "normal map reset restores the original intact pieces");
@@ -155,6 +194,98 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 Debug.LogException(error);
                 Finish(false);
             }
+        }
+
+        static void Shot(Camera camera, string id, Vector3 eye, Vector3 target, float fieldOfView)
+        {
+            const int width = 1920;
+            const int height = 1080;
+            var directory = ProjectPath.Report(captureDirectory);
+            Directory.CreateDirectory(directory);
+            var path = Path.Combine(directory, id + ".png");
+            var priorTexture = camera.targetTexture;
+            var priorActive = RenderTexture.active;
+            var priorPosition = camera.transform.position;
+            var priorRotation = camera.transform.rotation;
+            var priorFieldOfView = camera.fieldOfView;
+            var priorAspect = camera.aspect;
+            var previousMSAA = camera.allowMSAA;
+            var render = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.Default, RenderTextureReadWrite.Default, 4);
+            var image = new Texture2D(width, height, TextureFormat.RGB24, false);
+            try
+            {
+                camera.transform.SetPositionAndRotation(eye, Quaternion.LookRotation(target - eye));
+                camera.targetTexture = render;
+                camera.allowMSAA = true;
+                camera.aspect = (float)width / height;
+                camera.fieldOfView = fieldOfView;
+                camera.Render();
+                RenderTexture.active = render;
+                image.ReadPixels(new Rect(0f, 0f, width, height), 0, 0);
+                image.Apply();
+                File.WriteAllBytes(path + ".tmp", image.EncodeToPNG());
+                File.Move(path + ".tmp", path);
+                using var sha = System.Security.Cryptography.SHA256.Create();
+                var digest = BitConverter.ToString(sha.ComputeHash(File.ReadAllBytes(path))).Replace("-", "");
+                var receipt = new ShotReceipt
+                {
+                    view = id,
+                    map = MatchChoices.MapId,
+                    scene = UnityEngine.SceneManagement.SceneManager.GetActiveScene().name,
+                    builder = map.GetType().FullName,
+                    project = Directory.GetCurrentDirectory(),
+                    pid = System.Diagnostics.Process.GetCurrentProcess().Id,
+                    frame = Time.frameCount,
+                    camera = camera.name,
+                    position = eye.ToString("F3"),
+                    rotation = camera.transform.rotation.eulerAngles.ToString("F3"),
+                    fov = fieldOfView,
+                    sha256 = digest,
+                    utc = DateTime.UtcNow.ToString("O"),
+                    classification = "Runtime Unity render. Actual survivor camera, staged pose and FOV. World-space HUD may be present."
+                };
+                File.WriteAllText(path + ".json", JsonUtility.ToJson(receipt, true));
+                File.AppendAllText(Report, "CAPTURE " + path + " " + digest + "\n");
+            }
+            finally
+            {
+                camera.targetTexture = priorTexture;
+                camera.allowMSAA = previousMSAA;
+                camera.fieldOfView = priorFieldOfView;
+                camera.aspect = priorAspect;
+                camera.transform.SetPositionAndRotation(priorPosition, priorRotation);
+                RenderTexture.active = priorActive;
+                RenderTexture.ReleaseTemporary(render);
+                UnityEngine.Object.Destroy(image);
+            }
+        }
+
+        [Serializable]
+        sealed class ShotReceipt
+        {
+            public string view, map, scene, builder, project, camera, position, rotation, sha256, utc, classification;
+            public int pid, frame;
+            public float fov;
+        }
+
+        static void CheckRoutes(System.Collections.Generic.Dictionary<string, Rigidbody[]> gifts)
+        {
+            var names = new[] { "Sofa Approach / Cream Step", "Tree-side Stack / Green Perch",
+                "Skirt Landing / Navy Tread", "Bridge Junction / Low Step", "Gift Bridge / Navy Span",
+                "Gift Bridge / Red Tread", "Gift Bridge / Red Shelf" };
+            foreach (var name in names)
+            {
+                Require(gifts.TryGetValue(name, out var parts) &&
+                    parts.All(body => body.GetComponent<IClimbable>()?.CanClimb == true),
+                    name + " has climbable physics pieces");
+            }
+            Require(railBodies.Length > 5 && map.Root.Find("Underneath the Tree Layout/Independent railway trestles") == null,
+                "the toy train has breakaway sections and no independent trestles");
+            var span = gifts["Gift Bridge / Navy Span"].Single(body => body.name == "Lid");
+            var center = span.transform.position;
+            var floor = new Vector3(center.x, 1.65f, center.z);
+            Require(!Physics.Raycast(floor - span.transform.right * 4f, span.transform.right, 8f, 1 << Layers.Block),
+                "the floor-level bridge passage is open");
         }
 
         static string[] PieceOrder() => map.Blocks.Select(body => body.transform.parent.name + "/" + body.name).ToArray();

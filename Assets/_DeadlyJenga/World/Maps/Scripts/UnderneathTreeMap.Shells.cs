@@ -123,52 +123,5 @@ namespace DeadlyJenga.CastlePrototype
             return mesh;
         }
 
-        void BuildTrackSupports(List<Vector3> rail)
-        {
-            var walnut = ColoredPaper("Track Tie support timber", new Color(.215f, .106f, .055f), .29f);
-            var root = Child(built, "Independent railway trestles", Vector3.zero, Quaternion.identity);
-            int mask = 1 << Layers.Block;
-            Vector3 last = Vector3.one * 1000f;
-            for (int i = 0; i < rail.Count; i++)
-            {
-                var point = rail[i];
-                if (Vector3.Distance(point, last) < 13f)
-                    continue;
-                float floor = GiftFloor(point) + .04f;
-                float height = point.y - .81f - floor;
-                if (height < 3f)
-                    continue;
-                var size = new Vector3(1.2f, height, 1.2f);
-                var position = new Vector3(point.x, floor + height * .5f, point.z);
-                var overlaps = Physics.OverlapBox(transform.TransformPoint(position),
-                    (size * .5f - Vector3.one * .02f) * transform.lossyScale.x,
-                    transform.rotation, mask, QueryTriggerInteraction.Ignore);
-                bool blockingGift = false;
-                foreach (var hit in overlaps)
-                    if (hit.transform.IsChildOf(built))
-                    {
-                        blockingGift = true;
-                        break;
-                    }
-                if (blockingGift)
-                    continue;
-                var pier = Child(root, "Climbable timber trestle", position, Quaternion.identity);
-                AddBox(pier, size, false);
-                AddBody(pier.gameObject);
-                pier.gameObject.AddComponent<PowerupLabSurface>();
-                VisualBox(pier, "Trestle timber", Vector3.zero, size, walnut);
-                VisualBox(pier, "Trestle cap", Vector3.up * (height * .5f - .16f), new Vector3(4.05f, .32f, .78f), walnut);
-                last = point;
-            }
-
-            var platform = Child(root, "Rail service landing", new Vector3(6.3f, 5.22f, -35.7f), Quaternion.identity);
-            var deck = new Vector3(2.4f, .32f, 2.8f);
-            AddBox(platform, deck, false);
-            AddBody(platform.gameObject);
-            platform.gameObject.AddComponent<PowerupLabSurface>();
-            VisualBox(platform, "Service landing boards", Vector3.zero, deck, walnut);
-            VisualBox(platform, "Service landing legs", Vector3.down * 2.26f, new Vector3(1.05f, 4.3f, 1.15f), walnut);
-            fallbackSpawn = platform.localPosition + Vector3.up * .25f;
-        }
     }
 }

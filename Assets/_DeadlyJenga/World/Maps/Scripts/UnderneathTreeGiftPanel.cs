@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace DeadlyJenga.CastlePrototype
 {
-    internal enum GiftPieceRole { Base, Wall, Lid }
+    internal enum GiftPieceRole { Base, Wall, Lid, Rail }
 
     // Wrapping holds the shell in place until damage reaches a structural piece.
     internal sealed class UnderneathTreeGiftShell
@@ -75,6 +75,15 @@ namespace DeadlyJenga.CastlePrototype
         Quaternion wrappedRotation;
         bool replica;
 
+        internal bool IsAtWrappedPose()
+        {
+            var parent = transform.parent;
+            var localPosition = parent.InverseTransformPoint(Body.position);
+            var localRotation = Quaternion.Inverse(parent.rotation) * Body.rotation;
+            return (localPosition - wrappedPosition).sqrMagnitude <= .035f * .035f &&
+                Quaternion.Angle(localRotation, wrappedRotation) <= .85f;
+        }
+
         internal void SetUp(Rigidbody body, Transform visual, UnderneathTreeGiftShell owner, GiftPieceRole role)
         {
             Body = body;
@@ -90,13 +99,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             // Snapshots carry body poses. Pieces displaced by the former host stay loose when authority returns.
             if (replica && !value && gameObject.activeSelf)
-            {
-                var parent = transform.parent;
-                var localPosition = parent.InverseTransformPoint(Body.position);
-                var localRotation = Quaternion.Inverse(parent.rotation) * Body.rotation;
-                IsLoose |= (localPosition - wrappedPosition).sqrMagnitude > .035f * .035f ||
-                    Quaternion.Angle(localRotation, wrappedRotation) > .85f;
-            }
+                IsLoose |= !IsAtWrappedPose();
             replica = value;
             if (value)
                 Body.collisionDetectionMode = CollisionDetectionMode.Discrete;

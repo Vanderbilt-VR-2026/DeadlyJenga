@@ -22,15 +22,15 @@ namespace DeadlyJenga.CandyArt
 
         void BuildFir()
         {
-            var bark = Surface("Fir bark", "Mahogany", new Color(.24f, .128f, .066f),
-                .25f, new Vector2(2f, 4f), 0f, .70f);
-            var forest = Surface("Fir needles in shade", "Paper", new Color(.102f, .214f, .115f),
+            var bark = Surface("Fir bark", "Walnut Grain", new Color(.42f, .27f, .14f),
+                .23f, new Vector2(5f, 9f), 0f, .90f);
+            var forest = Surface("Fir needles in shade", "Paper", new Color(.075f, .17f, .085f),
                 .37f, Vector2.one, 0f, .26f);
-            var crown = Surface("Fir needles in light", "Paper", new Color(.24f, .382f, .174f),
+            var crown = Surface("Fir needles in light", "Paper", new Color(.19f, .33f, .135f),
                 .39f, Vector2.one, 0f, .26f);
             forest.SetFloat("_Cull", 0f);
             crown.SetFloat("_Cull", 0f);
-            var treeCenter = new Vector3(-35f, 0f, -35f);
+            var treeCenter = new Vector3(-43f, 0f, -42f);
             var random = new System.Random(241215);
             var stems = new FirMesh();
             for (int y = 0; y < 8; y++)
@@ -52,8 +52,8 @@ namespace DeadlyJenga.CandyArt
                 for (int tier = band * 5; tier < Mathf.Min(whorls, (band + 1) * 5); tier++)
                 {
                     float t = tier / (float)(whorls - 1);
-                    float y = 25f + t * 108f;
-                    float reach = Mathf.Lerp(44f, 2.8f, Mathf.Pow(t, 1.03f));
+                    float y = 42f + t * 91f;
+                    float reach = Mathf.Lerp(39f, 2.8f, Mathf.Pow(t, 1.03f));
                     int count = tier >= 14 ? 6 : 10;
                     float phase = tier * .462f + .26f;
                     for (int i = 0; i < count; i++)

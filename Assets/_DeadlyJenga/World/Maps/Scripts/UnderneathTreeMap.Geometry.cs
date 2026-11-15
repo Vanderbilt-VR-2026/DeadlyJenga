@@ -49,7 +49,8 @@ namespace DeadlyJenga.CastlePrototype
             return fromTree.sqrMagnitude < 77f * 77f ? .54f : .02f;
         }
 
-        void BoxGift(string label, Vector3 center, Vector3 size, Quaternion orientation, Material wrap, Material ribbon)
+        UnderneathTreeGiftPanel BoxGift(string label, Vector3 center, Vector3 size, Quaternion orientation,
+            Material wrap, Material ribbon, bool spawn = true)
         {
             float bottom = center.y - size.y * .5f;
             float trim = Mathf.Clamp(GiftFloor(center) - bottom, 0f, size.y * .25f);
@@ -68,7 +69,7 @@ namespace DeadlyJenga.CastlePrototype
                 new Vector3(size.x, thick, size.z), wrap, ribbon, Vector3.up);
             if (label == "Present 206")
                 spawnTops.Insert(0, top);
-            else
+            else if (spawn)
                 spawnTops.Add(top);
 
             foreach (float sign in new[] { -1f, 1f })
@@ -80,6 +81,8 @@ namespace DeadlyJenga.CastlePrototype
                     Vector3.forward * (sign * (size.z - thick) * .5f),
                     new Vector3(insideX, insideY, thick), wrap, ribbon, Vector3.forward * sign);
             }
+            playArea.Encapsulate(top.bounds);
+            return top.GetComponent<UnderneathTreeGiftPanel>();
         }
 
         Collider AddPanel(Transform gift, UnderneathTreeGiftShell shell, string label, GiftPieceRole role,
@@ -90,19 +93,19 @@ namespace DeadlyJenga.CastlePrototype
             var visual = VisualBox(piece, "Visual", Vector3.zero, size, wrap);
             if (ribbon)
             {
-                float width = Mathf.Min(size.x, size.z) * .18f;
+                float width = Mathf.Min(size.x, size.z) * .135f;
                 if (facing.y != 0f)
                 {
-                    VisualBox(piece, "Ribbon across", Vector3.up * (size.y * .5f + .007f),
+                    VisualBox(piece, "Ribbon across", new Vector3(0f, size.y * .5f + .007f, -.23f * size.z),
                         new Vector3(size.x, .014f, width), ribbon);
-                    VisualBox(piece, "Ribbon lengthwise", Vector3.up * (size.y * .5f + .014f),
+                    VisualBox(piece, "Ribbon lengthwise", new Vector3(.26f * size.x, size.y * .5f + .014f, 0f),
                         new Vector3(width, .014f, size.z), ribbon);
                 }
                 else if (facing.x != 0f)
-                    VisualBox(piece, "Ribbon", facing * (size.x * .5f + .007f),
+                    VisualBox(piece, "Ribbon", facing * (size.x * .5f + .007f) - Vector3.forward * (size.z * .23f),
                         new Vector3(.014f, size.y, size.z * .18f), ribbon);
                 else
-                    VisualBox(piece, "Ribbon", facing * (size.z * .5f + .007f),
+                    VisualBox(piece, "Ribbon", facing * (size.z * .5f + .007f) + Vector3.right * (size.x * .33f),
                         new Vector3(size.x * .18f, size.y, .014f), ribbon);
             }
             RegisterPanel(piece.gameObject, visual.transform, shell, role, size.x * size.y * size.z);
@@ -151,48 +154,6 @@ namespace DeadlyJenga.CastlePrototype
             visual.transform.localScale = dimensions;
             visual.GetComponent<MeshRenderer>().sharedMaterial = material;
             return visual;
-        }
-
-        void BuildTrack(List<Vector3> course)
-        {
-            if (course.Count < 3)
-                throw new InvalidOperationException("The Christmas rail loop is missing its paired rails.");
-            var combined = new List<CombineInstance>();
-            var floor = ColoredPaper("Dark wood track bed", new Color(.16f, .077f, .036f), .27f);
-            var decking = Child(built, "Train Loop", Vector3.zero, Quaternion.identity);
-            Mesh cubeMesh = null;
-            for (int i = 0; i < course.Count; i++)
-            {
-                var start = course[i] - Vector3.up * .64f;
-                var end = course[(i + 1) % course.Count] - Vector3.up * .64f;
-                var delta = end - start;
-                var center = (start + end) * .5f;
-                var rotation = Quaternion.LookRotation(delta);
-                var size = new Vector3(4.25f, .36f, delta.magnitude + .23f);
-                var plank = Child(decking, "Rail bed " + i, center, rotation);
-                AddBox(plank, size, false);
-                if (!cubeMesh)
-                {
-                    var sample = VisualBox(plank, "Bed Cube", Vector3.zero, Vector3.one, floor);
-                    cubeMesh = sample.GetComponent<MeshFilter>().sharedMesh;
-                    Release(sample);
-                }
-                combined.Add(new CombineInstance { mesh = cubeMesh, transform = Matrix4x4.TRS(center, rotation, size) });
-                playArea.Encapsulate(transform.TransformPoint(start));
-            }
-            var mesh = new Mesh { name = "Joined rail bed" };
-            mesh.CombineMeshes(combined.ToArray(), true, true);
-            generatedMeshes.Add(mesh);
-            AddBody(decking.gameObject);
-            decking.gameObject.AddComponent<MeshFilter>().sharedMesh = mesh;
-            decking.gameObject.AddComponent<MeshRenderer>().sharedMaterial = floor;
-
-            if (locomotive)
-            {
-                var train = Instantiate(locomotive, decking);
-                train.name = "Tinplate Christmas Train";
-                train.AddComponent<UnderneathTreeTrain>().SetUp(course.ToArray());
-            }
         }
 
         void BuildApproach(List<Vector3> course)

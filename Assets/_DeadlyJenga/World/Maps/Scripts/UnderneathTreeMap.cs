@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class UnderneathTreeMap : MonoBehaviour, IWorldQuery, ISyncedWorld,
         IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        const string Layout = "underneath-the-tree-v2";
+        const string Layout = "underneath-the-tree-v3";
 
         [SerializeField] GameObject model = null, room = null, locomotive = null;
         [SerializeField] Material paper = null;
@@ -116,6 +116,12 @@ namespace DeadlyJenga.CastlePrototype
                 var drum = parts.Find(filter => filter.name.EndsWith(" drum", StringComparison.Ordinal));
                 var lid = parts.Find(filter => filter.name.EndsWith(" lid", StringComparison.Ordinal));
                 var ribbon = parts.Find(filter => filter.name.Contains("ribbon A"));
+                if (pair.Key is "Present 200" or "Present 205" or "Present 208" or "Present 210")
+                {
+                    foreach (var part in parts)
+                        part.gameObject.SetActive(false);
+                    continue;
+                }
                 if (box)
                     BuildPaperPanels(box, box.GetComponent<Renderer>().sharedMaterial,
                         ribbon ? ribbon.GetComponent<Renderer>().sharedMaterial : null);
@@ -128,11 +134,12 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             BuildJunction();
-            BuildTrack(rail);
-            BuildApproach(rail);
-            playArea.Expand(new Vector3(8f, 12f, 8f));
+            BuildGiftRoutes();
             Physics.SyncTransforms();
-            BuildTrackSupports(rail);
+            BuildTrack(rail, byName);
+            BuildApproach(rail);
+            fallbackSpawn = new Vector3(6.3f, 1f, -35.7f);
+            playArea.Expand(new Vector3(8f, 12f, 8f));
             Physics.SyncTransforms();
             BuildSkirtStitching();
             Revision++;
@@ -151,6 +158,7 @@ namespace DeadlyJenga.CastlePrototype
             wrapping.Clear();
             bodies.Clear();
             panels.Clear();
+            giftBearings.Clear();
             foreach (var mesh in generatedMeshes)
                 Release(mesh);
             generatedMeshes.Clear();
@@ -209,8 +217,11 @@ namespace DeadlyJenga.CastlePrototype
 
         void FixedUpdate()
         {
-            if (replica || Time.time < nextDebrisCleanup ||
-                (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority))
+            if (replica || (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority))
+                return;
+            foreach (var bearing in giftBearings)
+                bearing.Check();
+            if (Time.time < nextDebrisCleanup)
                 return;
             nextDebrisCleanup = Time.time + .8f;
             foreach (var panel in panels)

@@ -13,8 +13,8 @@ namespace DeadlyJenga.CandyArt
         {
             BuildFloorboards();
             BuildFleece();
-            var mohair = Surface("Burgundy sofa cushions", "Woven", new Color(.39f, .103f, .155f),
-                .26f, new Vector2(4, 4));
+            var mohair = Surface("Burgundy sofa cushions", "Red Velvet", new Color(.90f, .73f, .77f),
+                .27f, new Vector2(2.5f, 2.5f), 0f, .58f);
             for (int i = 0; i < 3; i++)
             {
                 float z = -152f + 42f * i;
@@ -55,8 +55,8 @@ namespace DeadlyJenga.CandyArt
             for (int i = 0; i < boards.Length; i++)
             {
                 float tint = Mathf.Lerp(.76f, 1.2f, i / (float)(boards.Length - 1));
-                var varnish = Surface("Polished mahogany board " + i, "Mahogany",
-                    new Color(.39f * tint, .19f * tint, .102f * tint), .61f, new Vector2(.72f, 1.5f), 0f, .27f);
+                var varnish = Surface("Polished walnut board " + i, "Walnut Grain",
+                    new Color(.75f * tint, .57f * tint, .43f * tint), .58f, new Vector2(.86f, 1.05f), 0f, .35f);
                 Combined("Staggered hardwood boards " + i, boards[i], varnish, ShadowCastingMode.Off);
             }
         }
@@ -114,10 +114,11 @@ namespace DeadlyJenga.CandyArt
 
         void AddGiftBow(MeshRenderer renderer)
         {
-            string label = renderer.name;
-            if (label != "Visual" || !renderer.transform.parent || renderer.transform.parent.name != "Front")
+            var panel = renderer.transform;
+            if (renderer.name != "Visual" || !panel.parent || panel.parent.name != "Lid")
                 return;
-            if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
+            var ribbon = panel.parent.Find("Ribbon lengthwise");
+            if (!ribbon || !ribbon.TryGetComponent<MeshRenderer>(out var strip) || !strip.sharedMaterial)
                 return;
             if (!giftBow)
             {
@@ -125,22 +126,22 @@ namespace DeadlyJenga.CandyArt
                 meshes.Add(giftBow);
             }
 
-            var finish = Surface("Silk bow in warm gold", "Woven", new Color(.86f, .46f, .16f),
-                .73f, new Vector2(3, 2), .19f, .32f);
-            finish.SetFloat("_Cull", 0f);
+            var finish = ChooseFinish(strip.name, strip.sharedMaterial) ?? strip.sharedMaterial;
+            var bowMaterial = Surface("Bow " + finish.name, "Woven", finish.color, .72f,
+                new Vector2(3f, 2f), .1f, .25f);
+            bowMaterial.SetFloat("_Cull", 0f);
             var obj = new GameObject("Hand-tied satin bow", typeof(MeshFilter), typeof(MeshRenderer));
             obj.GetComponent<MeshFilter>().sharedMesh = giftBow;
             var skin = obj.GetComponent<MeshRenderer>();
-            skin.sharedMaterial = finish;
+            skin.sharedMaterial = bowMaterial;
             skin.shadowCastingMode = ShadowCastingMode.TwoSided;
-            var bounds = filter.sharedMesh.bounds;
-            var panel = renderer.transform;
-            var size = Vector3.Scale(panel.localScale, bounds.size);
+            var size = panel.localScale;
             obj.transform.SetParent(panel.parent, false);
-            obj.transform.localPosition = panel.localPosition + Vector3.Scale(panel.localScale, bounds.center)
-                + new Vector3(0f, .2f * size.y, -.52f * size.z);
-            obj.transform.localScale = new Vector3(Mathf.Clamp(size.x * .24f, .55f, 3.5f),
-                Mathf.Clamp(size.y * .18f, .46f, 3.4f), Mathf.Clamp(size.x * .10f, .38f, 1.4f));
+            obj.transform.localPosition = new Vector3(.26f * size.x, .5f * size.y + .046f, -.23f * size.z);
+            obj.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
+            float span = Mathf.Min(size.x, size.z);
+            obj.transform.localScale = new Vector3(Mathf.Clamp(span * .17f, .22f, 1.55f),
+                Mathf.Clamp(span * .093f, .16f, .85f), Mathf.Clamp(span * .04f, .06f, .24f));
             mapDressings.Add(obj);
         }
 

@@ -20,7 +20,13 @@ namespace DeadlyJenga.CandyArt
             {
                 material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + tile));
                 material.SetTextureScale("_BaseMap", repeat);
-                var normal = Resources.Load<Texture2D>(ResourcePath + (tile == "Winter Print" ? "Paper" : tile) + " Normal");
+                var normalTile = tile switch {
+                    "Botanical Paper" or "Winter Print" => "Paper",
+                    "Walnut Grain" => "Mahogany",
+                    "Red Velvet" => "Woven",
+                    _ => tile
+                };
+                var normal = Resources.Load<Texture2D>(ResourcePath + normalTile + " Normal");
                 if (normal)
                 {
                     material.SetTexture("_BumpMap", normal);
@@ -77,8 +83,8 @@ namespace DeadlyJenga.CandyArt
                 int n = name[name.Length - 1] - '0';
                 if (n >= 0 && n < GiftColors.Length)
                     color = GiftColors[n];
-                return Surface("Lacquered " + name, n % 3 == 0 || n == 4 ? "Winter Print" : "Paper",
-                    color, .49f, new Vector2(1.4f, 1.4f), .03f);
+                return Surface("Lacquered " + name, n % 3 == 0 || n == 4 ? "Botanical Paper" : "Winter Print",
+                    color, .38f, new Vector2(1.8f, 1.8f), 0f, .55f);
             }
             if (name.Contains("ribbon") || name.Contains("Ribbon") || name.Contains("Satin"))
             {
@@ -88,26 +94,27 @@ namespace DeadlyJenga.CandyArt
                 return Surface("Satin " + name, "Woven", color, .69f, new Vector2(2, 3), gold ? .25f : .06f, .42f);
             }
             if (name.Contains("gift wrap") || name.Contains("gift Wrap") || name.Contains("Mulberry"))
-                return Surface(name + " paper", "Paper", color, .53f, new Vector2(2, 2), .035f);
+                return Surface(name + " paper", name.Contains("snowflake") ? "Winter Print" : "Botanical Paper",
+                    color, .37f, new Vector2(1.75f, 1.75f), 0f, .48f);
             if (name.StartsWith("Felt"))
-                return Surface("Deep cranberry wool", "Woven", new Color(.49f, .082f, .125f), .23f, new Vector2(20, 20));
+                return Surface("Deep cranberry wool", "Woven", new Color(.57f, .105f, .139f), .17f, new Vector2(24, 24), 0f, .90f);
             if (name.StartsWith("Fluff"))
                 return Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
             if (objectName.StartsWith("Wood Planks") || name.Contains("Mahogany"))
-                return Surface("French polished mahogany", "Mahogany", new Color(.39f, .197f, .115f), .64f, new Vector2(2.2f, 6.1f), 0f, .42f);
+                return Surface("French polished walnut", "Walnut Grain", new Color(.72f, .50f, .33f), .59f, new Vector2(2.2f, 6.1f), 0f, .42f);
             if (name.Contains("Wallpap"))
                 return WallCover();
             if (name == "Brick")
                 return Surface("Fireplace terracotta", "Brick", new Color(.55f, .34f, .252f), .30f, new Vector2(3, 1.7f), 0f, .75f);
             if (name.Contains("Sofa"))
-                return Surface("Burgundy mohair", "Woven", new Color(.36f, .096f, .148f), .29f, new Vector2(7f, 4f));
+                return Surface("Burgundy velvet", "Red Velvet", new Color(.85f, .61f, .65f), .25f, new Vector2(4.5f, 3f), 0f, .55f);
             if (name.StartsWith("Stocking"))
                 return Surface("Knitted " + name, "Woven", color, .32f, new Vector2(2, 3));
             if (name.Contains("Dark Wood") || name.Contains("track bed") || name.Contains("Track Tie"))
-                return Surface("Stained " + name, "Mahogany", new Color(.24f, .123f, .072f), .43f, new Vector2(1, 2));
+                return Surface("Stained " + name, "Walnut Grain", new Color(.54f, .37f, .24f), .52f, new Vector2(1, 2));
             if (name.Contains("Track Rail") || name.Contains("brass"))
                 return Surface("Polished " + name, "Paper", name.Contains("brass") ?
-                    new Color(.8f, .55f, .23f) : new Color(.38f, .43f, .48f), .75f, Vector2.one, .58f, .18f);
+                    new Color(.85f, .58f, .30f) : new Color(.58f, .59f, .63f), .83f, Vector2.one, .67f, .13f);
             if (name == "Lamp ivory")
                 return Glow("Locomotive headlight", new Color(1f, .79f, .48f), 2.15f);
             if (name.Contains("enamel") || name.Contains("tinplate") || name.Contains("window"))
