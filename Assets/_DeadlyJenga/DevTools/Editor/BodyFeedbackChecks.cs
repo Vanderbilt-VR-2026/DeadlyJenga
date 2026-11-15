@@ -22,7 +22,6 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly BindingFlags Flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
         static double began;
         static int errors;
-        static bool failed;
         [Serializable] sealed class Saved { public SceneSetup[] scenes; }
         static BodyFeedbackChecks() { EditorApplication.update+=Tick; EditorApplication.playModeStateChanged+=State; }
         static void Tick()
@@ -32,9 +31,20 @@ namespace DeadlyJenga.DevTools.Editor
                 if(!EditorApplication.isPlaying||began<=0)return;
                 if(EditorApplication.timeSinceStartup-began<8)return;
                 began=0;
-                try { RunChecks();File.AppendAllText(Report,"COMPLETE assertions passed; runtime/editor errors observed: "+errors+"\n"); }
-                catch(Exception e){failed=true;File.AppendAllText(Report,"FAIL "+e+"\n");}
-                finally{Time.timeScale=1;EditorApplication.ExitPlaymode();}
+                int exitCode = 2;
+                try
+                {
+                    RunChecks();
+                    File.AppendAllText(Report,"COMPLETE assertions passed; runtime/editor errors observed: "+errors+"\n");
+                    if (errors == 0) exitCode = 0;
+                }
+                catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");}
+                finally
+                {
+                    SessionState.SetInt(Key+"ExitCode",exitCode);
+                    Time.timeScale=1;
+                    EditorApplication.ExitPlaymode();
+                }
                 return;
             }
             var path=ProjectPath.Report("BodyFeedback.request");
@@ -67,15 +77,22 @@ namespace DeadlyJenga.DevTools.Editor
         static void State(PlayModeStateChange state)
         {
             if(!SessionState.GetBool(Key,false))return;
-            if(state==PlayModeStateChange.EnteredPlayMode){began=EditorApplication.timeSinceStartup;errors=0;failed=false;Application.logMessageReceived+=OnLog;}
+            if(state==PlayModeStateChange.EnteredPlayMode){began=EditorApplication.timeSinceStartup;errors=0;Application.logMessageReceived+=OnLog;}
             if(state!=PlayModeStateChange.EnteredEditMode)return;
             Application.logMessageReceived-=OnLog;
-            var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
-            SessionState.SetBool(Key,false);EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
-            File.AppendAllText(Report,"CLEANUP restored Edit Mode scenes\n");
+            SessionState.SetBool(Key,false);
+            ValidationRunGate.Release(Key);
             bool sandOnly = SessionState.GetBool(Key+"SandOnly",false);
             SessionState.SetBool(Key+"SandOnly",false);
-            if (sandOnly && Application.isBatchMode) EditorApplication.Exit(failed || errors > 0 ? 2 : 0);
+            if (sandOnly && Application.isBatchMode)
+            {
+                File.AppendAllText(Report,"CLEANUP exited Play Mode in the isolated batch editor\n");
+                EditorApplication.Exit(SessionState.GetInt(Key+"ExitCode",2));
+                return;
+            }
+            var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
+            EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);
+            File.AppendAllText(Report,"CLEANUP restored Edit Mode scenes\n");
         }
         static void OnLog(string message,string stack,LogType type)
         {
