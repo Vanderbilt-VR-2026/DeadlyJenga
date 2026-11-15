@@ -27,14 +27,17 @@ namespace DeadlyJenga.CharacterNetwork
             return p;
         }
 
-        // Packed avatar color already carries presentation flags. Older readers ignore this bit.
+        // Packed avatar color already carries presentation flags. Older readers ignore the extra pose bit.
         const int SprintPoseBit = 1 << 24;
+        const int AirbornePoseBit = 1 << 25;
+        const int PoseBits = SprintPoseBit | AirbornePoseBit;
 
         // Survivor: body frame plus color.
         public static void WriteSurvivor(BinaryWriter w, CandyAvatarFrame f, int color)
         {
             NetWire.Write(w, f.feet); NetWire.Write(w, f.head); NetWire.Write(w, f.headRotation); w.Write(f.scale);
-            WriteHandPose(w, f.left); WriteHandPose(w, f.right); w.Write((color & ~SprintPoseBit) | (f.sprinting ? SprintPoseBit : 0));
+            WriteHandPose(w, f.left); WriteHandPose(w, f.right);
+            w.Write((color & ~PoseBits) | (f.sprinting ? SprintPoseBit : 0) | (f.airborne ? AirbornePoseBit : 0));
         }
         public static void ReadSurvivor(BinaryReader r, out CandyAvatarFrame frame, out int color)
         {
@@ -42,7 +45,8 @@ namespace DeadlyJenga.CharacterNetwork
             if (frame.scale < .1f || frame.scale > 2) throw new InvalidDataException("Invalid avatar scale");
             color = r.ReadInt32();
             frame.sprinting = (color & SprintPoseBit) != 0;
-            color &= ~SprintPoseBit;
+            frame.airborne = (color & AirbornePoseBit) != 0;
+            color &= ~PoseBits;
         }
         const int AppearanceMagic=0x41565031;
         public static void WriteSurvivor(BinaryWriter w,CandyAvatarFrame frame,int color,AvatarAppearance appearance,IEnemyActor enemy=null,IBlasterControls blaster=null,byte remoteBlaster=0)

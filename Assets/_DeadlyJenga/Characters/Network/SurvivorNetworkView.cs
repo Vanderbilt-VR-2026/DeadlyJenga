@@ -151,7 +151,8 @@ namespace DeadlyJenga.CharacterNetwork
             UpdateCollisionPose();
             bool generatedActor = IsBot || context.actorId?.StartsWith("lobby-bot:", System.StringComparison.Ordinal) == true;
             var rendered = generatedActor ? frame : CandyPlayerRig.UprightTrackingPose(frame);
-            rig.ApplyFrame(rendered, true, dt);
+            bool grounded = !target.airborne;
+            rig.ApplyFrame(rendered, grounded, dt);
             var equipment=(MatchRuntime.Current as IEquipmentRuntime)?.EquipmentFor(ActorId)??new EquipmentState();
             bool held = equipment.drawn && equipment.kind >= EquipmentKind.Blaster && equipment.kind != EquipmentKind.PoweredArmor;
             bool twoHanded = held && EquipmentSpecifications.Get(equipment.kind).twoHanded;
@@ -169,7 +170,7 @@ namespace DeadlyJenga.CharacterNetwork
                         if (equipment.leftHanded || paired) SurvivorMoments.KeepGrip(ref rendered.left, frame.left);
                         if (!equipment.leftHanded || paired) SurvivorMoments.KeepGrip(ref rendered.right, frame.right);
                     }
-                    rig.ApplyFrame(rendered, true, 0);
+                    rig.ApplyFrame(rendered, grounded, 0);
                 }
             }
             if(IsEnemy)rig.SetTint(new Color(.035f,.045f,.065f));

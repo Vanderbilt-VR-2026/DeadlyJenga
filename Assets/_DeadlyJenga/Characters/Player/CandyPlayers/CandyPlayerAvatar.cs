@@ -65,7 +65,13 @@ namespace DeadlyJenga.CandyPlayers
         public bool NetworkActive{get{if(!bot)bot=GetComponent<CastleBotBrain>();return !(bot&&bot.Respawning);}}
         public Vector3 NetworkPosition=>transform.position;
         // Third byte of the synced color value: the emote showing right now (index + 1, or 0).
-        public void WriteState(BinaryWriter w)=>CharacterWire.WriteSurvivor(w,survivor&&survivor.externallyDriven&&LastFrame.scale>0?LastFrame:ReadFrame(),(ColorIndex&0xFF)|(Moments?Moments.NetworkBits<<16:0),EquippedAppearance,GetComponent<IEnemyActor>(),GetComponent<IBlasterControls>());
+        public void WriteState(BinaryWriter w)
+        {
+            var frame = survivor && survivor.externallyDriven && LastFrame.scale > 0 ? LastFrame : ReadFrame();
+            frame.airborne = survivor && !survivor.Grounded;
+            CharacterWire.WriteSurvivor(w, frame, (ColorIndex & 0xFF) | (Moments ? Moments.NetworkBits << 16 : 0),
+                EquippedAppearance, GetComponent<IEnemyActor>(), GetComponent<IBlasterControls>());
+        }
         void LateUpdate(){if(!remoteDriven)Present(Time.deltaTime);}
         [BeforeRenderOrder(100)] void BeforeRender(){if(!remoteDriven)Present(0);}
         public void SetColor(int index){ColorIndex=index;if(Rig)Rig.SetColor(index);}
