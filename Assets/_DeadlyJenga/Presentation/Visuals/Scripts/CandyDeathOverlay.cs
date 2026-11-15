@@ -318,7 +318,8 @@ namespace DeadlyJenga.Presentation
         void TickGameOver(float now)
         {
             float t = now - gameOverAt;
-            if (t >= GameOverSeconds)
+            if (t >= GameOverSeconds || !bannerCanvas || !bannerRect || !bannerText ||
+                !bannerOutline || !bannerShadow || !bannerDim)
             {
                 Destroy(gameObject);
                 return;
