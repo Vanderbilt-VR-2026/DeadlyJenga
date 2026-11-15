@@ -54,9 +54,9 @@ namespace DeadlyJenga.Presentation
             var controls = root.GetComponent<IHomeMenuControls>();
             if (controls != null)
             {
-                int pref = PlayerPrefs.GetInt("DeadlyJenga.PreferredControlMode", 0);
-                bool useVr = (pref == 1 || pref == 4) ? false : (pref == 2 || pref == 3) ? true : XRSettings.isDeviceActive;
-                root.AddComponent<HomeMenuView>().Build(controls, useVr);
+                PlayerPrefs.SetInt(XRSimulationManager.ControlModePrefKey, XRSimulationManager.AutoDetect);
+                XRSimulationManager.ApplyMode(XRSimulationManager.AutoDetect);
+                root.AddComponent<HomeMenuView>().Build(controls, XRSettings.isDeviceActive);
             }
         }
         void Build(IHomeMenuControls source, bool useVr)
@@ -339,7 +339,21 @@ namespace DeadlyJenga.Presentation
                     if(rect.rect.Contains(new Vector2(local.x,local.y))){target=button;break;}
                 }
                 MenuAim.PresentBeam(ref homeAimBeam, transform, ray, pointer.position-ray.direction*.015f, tracked, target);
-                if(!selectReady){pressed=false;if(!leftPointSelect.IsPressed()&&!rightPointSelect.IsPressed())selectReady=true;}
+                bool mouseHeld = false;
+#if UNITY_EDITOR || UNITY_STANDALONE
+                if (XRSimulationManager.CurrentMode == XRSimulationManager.XRSimulation && PcSimulatedVR.Instance)
+                {
+                    var click = Mouse.current?.leftButton;
+                    mouseHeld = click?.isPressed == true;
+                    // Use the same ray for hover and mouse selection even before the newly added XR actions resolve.
+                    pressed |= PcSimulatedVR.Instance.MouseSelectEnabled && click?.wasPressedThisFrame == true;
+                }
+#endif
+                if (!selectReady)
+                {
+                    pressed = false;
+                    selectReady = !mouseHeld && !leftPointSelect.IsPressed() && !rightPointSelect.IsPressed();
+                }
             }
             else
             {
@@ -425,7 +439,6 @@ namespace DeadlyJenga.Presentation
         }
         Button inputModeButton;
         Text inputModeText;
-        const string ControlModePrefKey = "DeadlyJenga.PreferredControlMode";
         void BuildInputModeToggle(Transform parent, Vector2 position, Vector2 size)
         {
             var rect = Node("Input mode toggle", parent, position, size);
@@ -456,15 +469,14 @@ namespace DeadlyJenga.Presentation
         }
         void SetInputMode(int next)
         {
-            PlayerPrefs.SetInt(ControlModePrefKey, next);
-            PlayerPrefs.Save();
-            UpdateInputModeText();
+            PlayerPrefs.SetInt(XRSimulationManager.ControlModePrefKey, next);
+            selectReady = false;
             XRSimulationManager.ApplyMode(next);
-            ClearHomeAim();RefreshDisplayMode();ShowPage(entryPage);
+            ClearHomeAim();RefreshDisplayMode();UpdateInputModeText();ShowPage(entryPage);
         }
         void UpdateInputModeText()
         {
-            int mode = PlayerPrefs.GetInt(ControlModePrefKey, 0);
+            int mode = XRSimulationManager.CurrentMode;
             string modeLabel = mode switch
             {
                 1 => "<color=#52ffc6>PC / DESKTOP</color>  (Keyboard & Mouse)",
@@ -479,7 +491,7 @@ namespace DeadlyJenga.Presentation
         }
         void RefreshDisplayMode()
         {
-            int pref=PlayerPrefs.GetInt(ControlModePrefKey,0);
+            int pref=XRSimulationManager.CurrentMode;
             bool next=pref==1||pref==4?false:pref==2||pref==3||XRSettings.isDeviceActive;
             var module=homeEvents?homeEvents.GetComponent<InputSystemUIInputModule>():null;
             if(module)module.enabled=!next;

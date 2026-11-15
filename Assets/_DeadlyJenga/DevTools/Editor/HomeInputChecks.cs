@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using DeadlyJenga.CandyPlayers;
+using DeadlyJenga.Core;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Presentation;
 using UnityEditor;
@@ -13,6 +14,7 @@ using UnityEngine.InputSystem;
 using UnityEngine.InputSystem.LowLevel;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using UnityEngine.InputSystem.XR;
 using Object=UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
@@ -39,6 +41,7 @@ namespace DeadlyJenga.DevTools.Editor
         static int nextFrame;
         static double deadline;
         static Gamepad pad;
+        static Mouse mouse;
         static InputSettings savedInput;
         static InputSettings.BackgroundBehavior savedBackground;
         static InputSettings.EditorInputBehaviorInPlayMode savedRouting;
@@ -67,6 +70,7 @@ namespace DeadlyJenga.DevTools.Editor
             finally { }
             (run as IDisposable)?.Dispose();run=null;
             if(pad!=null&&pad.added)InputSystem.RemoveDevice(pad);pad=null;
+            if(mouse!=null&&mouse.added)InputSystem.RemoveDevice(mouse);mouse=null;
             if(motorObject)Object.Destroy(motorObject);if(floor)Object.Destroy(floor);
             if(savedInput){savedInput.backgroundBehavior=savedBackground;savedInput.editorInputBehaviorInPlayMode=savedRouting;}
             savedInput=null;
@@ -115,7 +119,9 @@ namespace DeadlyJenga.DevTools.Editor
             var probe=home.gameObject.AddComponent<HomeGamepadProbe>();
             InputSystem.QueueStateEvent(pad,new GamepadState());yield return null;yield return null;
             Check(DesktopGamepad.Current==pad&&MenuGamepad.Connected==pad,"Hot-plugged standard gamepad is detected by gameplay and home UI");
-            Check(Field<Text>(home,"inputModeText").text.Contains("GAMEPAD"),"Home displays the manual Gamepad input mode");
+            Check(XRSimulationManager.CurrentMode==XRSimulationManager.AutoDetect &&
+                Field<Text>(home,"inputModeText").text.Contains("AUTO-DETECT"),
+                "Home starts at Auto-Detect despite a previous Gamepad selection");
             PlayerPrefs.SetInt("DeadlyJenga.PreferredControlMode",1);
             Check(DesktopGamepad.Current==null&&MenuGamepad.Current==null,"Explicit keyboard/mouse mode ignores connected gamepad");
             PlayerPrefs.SetInt("DeadlyJenga.PreferredControlMode",0);
@@ -131,6 +137,47 @@ namespace DeadlyJenga.DevTools.Editor
             Check(probe.jump,"Queued gamepad input is observed in the normal PlayerLoop");
             InputSystem.QueueStateEvent(pad,new GamepadState());yield return null;yield return null;
             button.gameObject.SetActive(false);yield return null;
+            mouse=InputSystem.AddDevice<Mouse>();
+            Field<Button>(home,"inputModeButton").onClick.Invoke();
+            home.GetComponentsInChildren<Button>().First(b=>b.name=="PC-SIMULATED VR").onClick.Invoke();
+            var sim=PcSimulatedVR.Instance;
+            Check(sim && Field<bool>(home,"vr") && XRSimulationManager.CurrentMode==XRSimulationManager.XRSimulation,
+                "Selecting PC-Simulated VR changes the existing Home view and creates virtual devices");
+            for(int i=0;i<8;i++)yield return null;
+            bool left=home.GetComponent<IBlasterControls>()?.LeftHanded==true;
+            var controller=Field<XRController>(sim,left?"left":"right");
+            Check(controller!=null && controller.added,"The simulator adds the Home pointer device");
+            var simEye=Field<Camera>(home,"eye");
+            foreach(string label in new[]{"PLAY MODE","DEVELOPER MODE"})
+            {
+                var choice=home.GetComponentsInChildren<Button>().First(b=>b.name==label);
+                int submits=0;
+                choice.onClick=new Button.ButtonClickedEvent();
+                choice.onClick.AddListener(()=>submits++);
+                for(int i=0;i<3;i++)
+                {
+                    var rayOrigin=controller.isTracked.isPressed
+                        ? home.transform.TransformPoint(controller.devicePosition.ReadValue()) : simEye.transform.position;
+                    var rotation=controller.isTracked.isPressed
+                        ? home.transform.rotation*controller.deviceRotation.ReadValue() : simEye.transform.rotation;
+                    var aimed=Quaternion.LookRotation(choice.transform.position-rayOrigin).eulerAngles;
+                    var current=rotation.eulerAngles;
+                    sim.TestLook=new Vector2(Mathf.DeltaAngle(current.y,aimed.y),-Mathf.DeltaAngle(current.x,aimed.x))/sim.lookSensitivity;
+                    yield return null;
+                }
+                sim.TestLook=Vector2.zero;
+                yield return null;yield return null;
+                Check(Field<Button>(home,"gazeFocus")==choice,"Simulated aim highlights "+label);
+                InputSystem.QueueStateEvent(mouse,new MouseState().WithButton(MouseButton.Left));
+                yield return null;yield return null;yield return null;
+                Check(submits==1,"First mouse press submits "+label+" once in the same Home scene");
+                InputSystem.QueueStateEvent(mouse,new MouseState());
+                yield return null;yield return null;
+            }
+            InputSystem.RemoveDevice(mouse);mouse=null;
+            Call(home,"SetInputMode",XRSimulationManager.VRHeadset);
+            yield return null;yield return null;
+
             // The same menu renders in world space with a controlled camera for pointer/style checks.
             PlayerPrefs.SetInt("DeadlyJenga.PreferredControlMode",3);Call(home,"RefreshDisplayMode");
             var eye=Field<Camera>(home,"eye");

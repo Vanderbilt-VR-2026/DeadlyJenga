@@ -177,6 +177,9 @@ namespace DeadlyJenga.Presentation
             if (skipMouse) { Cursor.lockState = want; Cursor.visible = free; }
         }
 
+        internal bool MouseSelectEnabled => !cursorFree && !Held(Keyboard.current?.escapeKey) &&
+            !Held(Keyboard.current?.qKey) && !Held(Keyboard.current?.eKey);
+
         static bool Held(UnityEngine.InputSystem.Controls.KeyControl key) => key != null && key.isPressed;
         static bool Pressed(UnityEngine.InputSystem.Controls.KeyControl key) => key != null && key.wasPressedThisFrame;
     }
