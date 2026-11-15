@@ -332,7 +332,12 @@ namespace DeadlyJenga.CastlePrototype
             if(session.MenuOpen&&GUI.Button(new Rect(490,15,330,60),"CONTROLS / LEFT OR RIGHT HAND"))DeadlyJenga.Presentation.CandyComfortPanel.Open(session);
             bool typing=lobby.CodeFocused;
             string escapeHint=SessionPresentation.LobbyDeveloperAvailable(session)?"Esc opens tablet":"Esc releases mouse";
-            GUI.Box(new Rect(15,15,460,typing?95:70),"ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  "+escapeHint+(typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
+            bool gamepad = MenuGamepad.Current != null;
+            string controls = gamepad
+                ? "ISLAND LOBBY  /  Left stick move  /  Right stick aim\nAim at a terminal button and press X"
+                : "ISLAND LOBBY  /  WASD move  /  mouse look\nE / click selects  /  " + escapeHint;
+            GUI.Box(new Rect(15,15,460,typing?95:70),controls+
+                (typing?"\nType your code  /  Enter joins  /  Backspace erases":""));
         }
         void OnDestroy()
         {
