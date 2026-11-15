@@ -49,10 +49,15 @@ namespace DeadlyJenga.DevTools.Editor
             Application.logMessageReceived-=Log;
             if(SessionState.GetBool(Key+"HadName",false))PlayerPrefs.SetString(NameKey,SessionState.GetString(Key+"Name",""));else PlayerPrefs.DeleteKey(NameKey);
             PlayerPrefs.Save();
-            EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Scenes","")).scenes);
-            SessionState.SetBool(Key,false);ValidationRunGate.Release(Key);
-            File.AppendAllText(Report,"CLEANUP restored name preference and saved scenes.\n");
-            EditorApplication.Exit(SessionState.GetInt(Key+"Exit",2));
+            try
+            {
+                var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Scenes","")).scenes;
+                if(saved.Any(s=>s.isLoaded)&&saved.Count(s=>s.isActive)==1)EditorSceneManager.RestoreSceneManagerSetup(saved);
+                else EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+                File.AppendAllText(Report,"CLEANUP restored name preference and initial scene state.\n");
+            }
+            catch(Exception e){File.AppendAllText(Report,"CLEANUP FAIL "+e+"\n");SessionState.SetInt(Key+"Exit",2);}
+            finally{SessionState.SetBool(Key,false);ValidationRunGate.Release(Key);EditorApplication.Exit(SessionState.GetInt(Key+"Exit",2));}
         }
         static void Log(string text,string stack,LogType type){if(type is LogType.Error or LogType.Exception or LogType.Assert){errors++;File.AppendAllText(Report,"ERROR "+text+"\n"+stack+"\n");}}
         static void Tick()
