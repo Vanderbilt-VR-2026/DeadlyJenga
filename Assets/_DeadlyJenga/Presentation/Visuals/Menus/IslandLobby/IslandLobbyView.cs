@@ -130,7 +130,13 @@ namespace DeadlyJenga.CastlePrototype
             wardrobeDragDevice = 0;
             draggingKeyboard=false;
         }
-        bool LocalModalBlocked=>session?.IsVR==true&&session.MenuOpen&&!wardrobeOpen||DeadlyJenga.Presentation.MenuAim.InputConsumed||DeadlyJenga.Presentation.GameExperiencePanel.Showing(session)||DeadlyJenga.Presentation.CandyComfortPanel.Showing(session)||DeadlyJenga.Presentation.CandyWildlifePanel.Showing(session)||CharacterPicker.Showing(session);
+        bool TabletOwnsLobbyInput => session?.MenuOpen == true && !wardrobeOpen && lobby?.CodeFocused != true &&
+            (session.IsVR || SessionPresentation.LobbyDeveloperAvailable(session));
+
+        bool LocalModalBlocked => TabletOwnsLobbyInput || MenuAim.InputConsumed ||
+            GameExperiencePanel.Showing(session) || CandyComfortPanel.Showing(session) ||
+            CandyWildlifePanel.Showing(session) || CharacterPicker.Showing(session);
+
         void Update()
         {
             if (lobbyAimBeam) lobbyAimBeam.enabled = false;
