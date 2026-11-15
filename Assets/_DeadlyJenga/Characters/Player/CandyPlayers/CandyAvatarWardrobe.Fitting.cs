@@ -10,7 +10,7 @@ namespace DeadlyJenga.CandyPlayers
         void BatchPieces(CandyPlayerRig rig)
         {
             var groups=new Dictionary<string,List<Piece>>();
-            foreach(var p in pieces)if(p.renderer is MeshRenderer){string key=p.bone+":"+p.tone+":"+(p.renderer.sharedMaterial?p.renderer.sharedMaterial.GetInstanceID():0);if(!groups.TryGetValue(key,out var group)){group=new List<Piece>();groups[key]=group;}group.Add(p);}
+            foreach(var p in pieces)if(p.renderer is MeshRenderer&&p.materialIndex<0){string key=p.bone+":"+p.tone+":"+p.molded+":"+(p.renderer.sharedMaterial?p.renderer.sharedMaterial.GetInstanceID():0);if(!groups.TryGetValue(key,out var group)){group=new List<Piece>();groups[key]=group;}group.Add(p);}
             foreach(var pair in groups)
             {
                 var group=pair.Value;if(group.Count<2)continue;string key="wardrobe batch:"+CandyPlayerAvatar.StyleBits(appearance)+":"+(uint)appearance.accessories+":"+pair.Key;
@@ -21,29 +21,39 @@ namespace DeadlyJenga.CandyPlayers
         }
         // A skirt that hangs from the waist. The legs pull its hem gently, and the left and right leg weights
         // blend smoothly across the middle so the front and back never tear open when the legs swing.
-        void FittedSkirt(CandyPlayerRig rig,string id,Tone tone)
+        void FittedSkirt(CandyPlayerRig rig,string id,Tone tone,bool candyCorn=false)
         {
-            string key="skirt:"+rig.bodyRenderer.sharedMesh.GetInstanceID();
+            string key="skirt:"+rig.bodyRenderer.sharedMesh.GetInstanceID()+":"+candyCorn;
             if(!garments.TryGetValue(key,out var mesh))
             {
-                const int rows=12,sides=32;var vertices=new List<Vector3>();var uv=new List<Vector2>();var weights=new List<BoneWeight>();var triangles=new List<int>();
+                const int rows=12,sides=32;var vertices=new List<Vector3>();var uv=new List<Vector2>();var weights=new List<BoneWeight>();var triangles=new List<int>();var gold=new List<int>();
                 for(int row=0;row<=rows;row++)for(int side=0;side<=sides;side++)
                 {
                     float t=(float)row/rows,y=Mathf.Lerp(.29f,.84f,t),angle=side*Mathf.PI*2/sides;
                     // A soft flare, with the hem tucked in slightly so the cut edge reads as a rolled hem.
-                    float radius=Mathf.Lerp(.32f,.215f,Mathf.Pow(t,.8f));if(row==0)radius-=.012f;
+                    float radius=Mathf.Lerp(.32f,.215f,Mathf.Pow(t,.8f));
+                    if(row==0)radius-=candyCorn?.021f:.012f;
+                    if(candyCorn&&row==1)radius-=.004f;
                     float x=Mathf.Cos(angle)*radius;
                     vertices.Add(new Vector3(x,row==0?y+.012f:y,Mathf.Sin(angle)*radius*.90f));uv.Add(new Vector2((float)side/sides,t));
                     float root=Mathf.SmoothStep(.15f,1,Mathf.InverseLerp(.29f,.74f,y));float mix=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.10f,.10f,x));
                     weights.Add(new BoneWeight{boneIndex0=0,weight0=root,boneIndex1=8,weight1=(1-root)*(1-mix),boneIndex2=11,weight2=(1-root)*mix});
-                    if(row==rows||side==sides)continue;int v=row*(sides+1)+side;triangles.AddRange(new[]{v,v+sides+1,v+1,v+1,v+sides+1,v+sides+2});
+                    if(row==rows||side==sides)continue;int v=row*(sides+1)+side;(candyCorn&&row==1?gold:triangles).AddRange(new[]{v,v+sides+1,v+1,v+1,v+sides+1,v+sides+2});
                 }
-                mesh=new Mesh{name="Fitted flowing skirt"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.SetTriangles(triangles,0);mesh.boneWeights=weights.ToArray();mesh.bindposes=rig.bodyRenderer.sharedMesh.bindposes;mesh.RecalculateNormals();
+                mesh=new Mesh{name="Fitted flowing skirt"};mesh.SetVertices(vertices);mesh.SetUVs(0,uv);mesh.subMeshCount=candyCorn?2:1;mesh.SetTriangles(triangles,0);if(candyCorn)mesh.SetTriangles(gold,1);mesh.boneWeights=weights.ToArray();mesh.bindposes=rig.bodyRenderer.sharedMesh.bindposes;mesh.RecalculateNormals();
                 // Share normals across the seam where the last column meets the first, so no line shows down the side.
                 var normals=mesh.normals;for(int row=0;row<=rows;row++){int first=row*(sides+1),last=first+sides;var joined=(normals[first]+normals[last]).normalized;normals[first]=joined;normals[last]=joined;}
                 mesh.normals=normals;mesh.RecalculateBounds();garments[key]=mesh;
             }
-            var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0});
+            var go=new GameObject("Visual - "+id);go.transform.SetParent(rig.transform,false);var renderer=go.AddComponent<SkinnedMeshRenderer>();renderer.sharedMesh=mesh;renderer.sharedMaterial=rig.bodyRenderer.sharedMaterial;renderer.bones=rig.bodyRenderer.bones;renderer.rootBone=rig.bodyRenderer.rootBone;renderer.localBounds=rig.bodyRenderer.localBounds;renderer.updateWhenOffscreen=true;
+            if(candyCorn)
+            {
+                var material=rig.bodyRenderer.sharedMaterial;
+                renderer.sharedMaterials=new[]{material,material};
+                pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0,materialIndex=0});
+                pieces.Add(new Piece{renderer=renderer,tone=Tone.Yellow,bone=0,materialIndex=1});
+            }
+            else pieces.Add(new Piece{renderer=renderer,tone=tone,bone=0});
         }
         void FittedGarment(CandyPlayerRig rig,string id,Tone tone,bool pants)
         {

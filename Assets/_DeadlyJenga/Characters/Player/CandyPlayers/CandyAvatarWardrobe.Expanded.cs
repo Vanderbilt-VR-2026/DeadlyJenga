@@ -1,5 +1,6 @@
 using DeadlyJenga.Core;
 using UnityEngine;
+using System.Collections.Generic;
 namespace DeadlyJenga.CandyPlayers
 {
     public sealed partial class CandyAvatarWardrobe
@@ -41,7 +42,7 @@ namespace DeadlyJenga.CandyPlayers
                     if(skin==AvatarSkin.Rabbit)
                     {
                         var tilt=Quaternion.Euler(0,0,-s*11f);
-                        var center=new Vector3(s*.135f,.39f,-.02f);
+                        var center=new Vector3(s*.132f,.373f,-.02f);
                         Add(rig,id+" long ear "+s,1,Tone.Primary,b=>b.Sphere(center,new Vector3(.077f,.26f,.055f),tilt));
                         Add(rig,id+" inset ear "+s,1,Tone.Dark,b=>b.Sphere(center+new Vector3(s*.006f,.023f,.037f),
                             new Vector3(.044f,.185f,.023f),tilt));
@@ -52,6 +53,15 @@ namespace DeadlyJenga.CandyPlayers
                     Ball(rig,id+" inner ear "+s,1,Tone.Dark,new Vector3(s*.21f,floppy?-.01f:.21f,.035f),new Vector3(.052f,floppy?.12f:.058f,.012f));
                 }
                 bool longSnout=OneOf(skin,AvatarSkin.Fox,AvatarSkin.Husky,AvatarSkin.Wolf,AvatarSkin.Werewolf,AvatarSkin.Horse,AvatarSkin.GoldenRetriever);
+                if(skin==AvatarSkin.Rabbit)
+                {
+                    Ball(rig,"rabbit cream muzzle",1,Tone.Cream,new Vector3(0,-.065f,.17f),new Vector3(.134f,.102f,.078f));
+                    Ball(rig,"rabbit polished nose",1,Tone.Black,new Vector3(0,-.029f,.238f),new Vector3(.049f,.031f,.020f));
+                    FittedPatch(rig,"rabbit cream belly inlay",Tone.Cream,.002f,"rabbit belly",(p,n,bone)=>
+                        p.z>.035f&&n.z>.15f&&Mathf.Pow(p.x/.121f,2)+Mathf.Pow((p.y-.956f)/.218f,2)<1f);
+                    FaceEyes(rig,id+" eyes",Tone.Black);
+                    return;
+                }
                 Ball(rig,id+" muzzle",1,skin==AvatarSkin.HoneyBear?Tone.Primary:Tone.White,new Vector3(0,-.07f,longSnout?.25f:.19f),new Vector3(.14f,.095f,longSnout?.18f:.10f));
                 Ball(rig,id+" nose",1,Tone.Black,new Vector3(0,-.025f,longSnout?.42f:.285f),new Vector3(.055f,.035f,.025f));
                 Ball(rig,id+" belly",0,skin==AvatarSkin.HoneyBear?Tone.Primary:Tone.White,new Vector3(0,.98f,.13f),new Vector3(.16f,.25f,.075f));FaceEyes(rig,id+" eyes",Tone.Black);
@@ -70,13 +80,13 @@ namespace DeadlyJenga.CandyPlayers
                 return;
             }
             if(skin!=AvatarSkin.CyclopsMonster&&skin!=AvatarSkin.DiscoAlien)FaceEyes(rig,id+" eyes",Tone.Black);
-            if(OneOf(skin,AvatarSkin.Fish,AvatarSkin.Clownfish,AvatarSkin.Owl,AvatarSkin.Parrot))
+            if(skin==AvatarSkin.Clownfish){BuildMoldedClownfish(rig);return;}
+            if(OneOf(skin,AvatarSkin.Fish,AvatarSkin.Owl,AvatarSkin.Parrot))
             {
                 Ball(rig,id+" broad breast",0,Tone.Primary,new Vector3(0,.96f,0),new Vector3(.29f,.36f,.20f));
                 Add(rig,id+" beak or mouth",1,skin==AvatarSkin.Parrot?Tone.Black:Tone.Yellow,b=>b.Cone(new Vector3(0,-.035f,.18f),new Vector3(0,-.09f,.39f),.09f,0,12));
                 for(int side=-1;side<=1;side+=2){int s=side;Add(rig,id+" fin or wing"+s,s<0?2:5,Tone.Primary,b=>b.Wedge(new Vector3(-.06f,0,0),new Vector3(.06f,0,0),new Vector3(-.20f,.32f,-.03f),new Vector3(.20f,.32f,-.03f),.04f));}
                 if(skin==AvatarSkin.Parrot){for(int side=0;side<2;side++)Ball(rig,"parrot blue wing"+side,side==0?2:5,Tone.Blue,new Vector3(0,.15f,-.025f),new Vector3(.09f,.23f,.065f));}
-                if(skin==AvatarSkin.Clownfish)Add(rig,id+" white bands",0,Tone.White,b=>{foreach(float y in new[]{.78f,.93f,1.08f,1.23f}){float t=(y-.96f)/.36f;float k=Mathf.Sqrt(Mathf.Max(0,1-t*t));b.Ring(new Vector3(0,y,0),.29f*k,.028f,Quaternion.Euler(90,0,0),new Vector2(1,.2f/.29f));}});
                 if(skin==AvatarSkin.Owl)for(int side=-1;side<=1;side+=2)Ball(rig,"owl facial disc"+side,1,Tone.White,new Vector3(side*.10f,.04f,.17f),new Vector3(.11f,.12f,.045f));return;
             }
             if(OneOf(skin,AvatarSkin.Dragon,AvatarSkin.TRex,AvatarSkin.Snake,AvatarSkin.Alligator,AvatarSkin.Turtle,AvatarSkin.Axolotl))
@@ -113,7 +123,7 @@ namespace DeadlyJenga.CandyPlayers
             {
                 if(skin==AvatarSkin.Pineapple){Ball(rig,"pineapple textured body",0,Tone.Yellow,new Vector3(0,.99f,0),new Vector3(.27f,.39f,.22f));Add(rig,"pineapple leaf crown",1,Tone.Green,b=>{for(int i=0;i<9;i++){float a=i*2.399963f;var edge=new Vector3(Mathf.Cos(a),0,Mathf.Sin(a));b.Wedge(edge*.055f+Vector3.up*.17f,edge*.13f+Vector3.up*.18f,edge*.25f+Vector3.up*(.48f+i%3*.10f),edge*.25f+Vector3.up*(.48f+i%3*.10f),.016f);}});Add(rig,"pineapple diamond eyes",0,Tone.Brown,b=>{for(int i=0;i<26;i++){float u=(i+.5f)/26,pitch=Mathf.Acos(1-2*u),yaw=i*2.399963f;var n=new Vector3(Mathf.Sin(pitch)*Mathf.Cos(yaw),Mathf.Cos(pitch),Mathf.Sin(pitch)*Mathf.Sin(yaw));var radii=new Vector3(.27f,.39f,.22f);var pos=new Vector3(0,.99f,0)+Vector3.Scale(n,radii);var normal=new Vector3(n.x/radii.x,n.y/radii.y,n.z/radii.z).normalized;b.Sphere(pos,new Vector3(.03f,.036f,.013f),Quaternion.FromToRotation(Vector3.forward,normal));}});}
                 if(skin==AvatarSkin.Banana)Add(rig,"banana peel crown",1,Tone.Yellow,b=>{for(int i=0;i<4;i++){float a=i*Mathf.PI*.5f;var tip=new Vector3(Mathf.Cos(a)*.31f,.39f,Mathf.Sin(a)*.31f);b.Cone(new Vector3(0,.16f,0),tip,.065f,0,8);}});
-                if(skin==AvatarSkin.CandyCorn){Robe(rig,"candy corn orange base",Tone.Orange);Hat(rig,"candy corn white tip",Tone.White,true);}
+                if(skin==AvatarSkin.CandyCorn)BuildMoldedCandyCorn(rig);
                 if(skin==AvatarSkin.CandyCane)Spots(rig,"candy cane stripe",Tone.White,true);
                 if(skin==AvatarSkin.Gingerbread){for(int i=0;i<3;i++){float gy=.85f+i*.14f;Ball(rig,"gingerbread gumdrop"+i,0,Tone.Glow,new Vector3(0,gy,SurfacePoint(rig,Mathf.PI*.5f,gy,out _).z+.012f),Vector3.one*.038f);}Hair(rig,AvatarHair.Curls);}return;
             }
@@ -159,6 +169,123 @@ namespace DeadlyJenga.CandyPlayers
             if(skin==AvatarSkin.CyberSamurai)Hat(rig,"samurai crest",Tone.Red,true);
             if(skin==AvatarSkin.CrystalKnight)Spots(rig,"crystal facets",Tone.Glow,false);
         }
+        void BuildMoldedClownfish(CandyPlayerRig rig)
+        {
+            const string id="clownfish molded shell";
+            if(!meshes.TryGetValue(id,out var mesh))
+            {
+                var rows=new SortedSet<float>();
+                for(int row=0;row<=48;row++)rows.Add(Mathf.Lerp(.60f,1.32f,row/48f));
+                float[] stripes={.758f,.805f,.907f,.952f,1.068f,1.114f,1.211f,1.248f};
+                foreach(float height in stripes)rows.Add(height);
+                float Radius(float y)
+                {
+                    float t=(y-.96f)/.36f;
+                    return .287f*Mathf.Sqrt(Mathf.Max(0f,1-t*t));
+                }
+                mesh=MoldedSurface(id,rows,Radius,y=>
+                {
+                    for(int i=0;i<stripes.Length;i+=2)if(y>=stripes[i]&&y<stripes[i+1])return true;
+                    return false;
+                },.70f);
+                meshes[id]=mesh;
+            }
+            AddMoldedSurface(rig,id,0,mesh,Tone.Primary,Tone.Cream);
+            Ball(rig,"clownfish tucked mouth",1,Tone.Yellow,new Vector3(0,-.045f,.194f),new Vector3(.078f,.074f,.077f));
+            for(int side=-1;side<=1;side+=2)
+            {
+                int sideIndex=side;
+                Add(rig,"clownfish rounded fin "+sideIndex,sideIndex<0?2:5,Tone.Primary,b=>
+                    b.Sphere(new Vector3(sideIndex*.095f,.133f,-.031f),new Vector3(.102f,.176f,.032f),
+                        Quaternion.Euler(0,0,-sideIndex*34)));
+            }
+        }
+
+        void BuildMoldedCandyCorn(CandyPlayerRig rig)
+        {
+            FittedGarment(rig,"candy corn tunic",Tone.Orange,false);
+            FittedSkirt(rig,"candy corn molded skirt",Tone.Orange,true);
+            const string id="candy corn rounded ivory tip";
+            if(!meshes.TryGetValue(id,out var mesh))
+            {
+                float[] rows={.155f,.164f,.18f,.20f,.23f,.27f,.31f,.35f,.39f,.423f,.446f,.462f,.468f};
+                float Radius(float y)
+                {
+                    float t=Mathf.Clamp01((y-.155f)/.313f);
+                    float roundedRim=Mathf.SmoothStep(.84f,1f,Mathf.Clamp01(t/.12f));
+                    return .163f*roundedRim*Mathf.Pow(1-t*t,.82f);
+                }
+                mesh=MoldedSurface(id,rows,Radius,null,1f);
+                meshes[id]=mesh;
+            }
+            AddMoldedSurface(rig,id,1,mesh,Tone.Cream);
+        }
+
+        void AddMoldedSurface(CandyPlayerRig rig,string id,int bone,Mesh mesh,Tone baseTone,Tone? stripeTone=null)
+        {
+            var go=new GameObject("Visual - "+id);
+            go.transform.SetParent(rig.AppearanceBone(bone),false);
+            go.AddComponent<MeshFilter>().sharedMesh=mesh;
+            var renderer=go.AddComponent<MeshRenderer>();
+            var material=rig.bodyRenderer.sharedMaterial;
+            if(stripeTone.HasValue)
+            {
+                renderer.sharedMaterials=new[]{material,material};
+                pieces.Add(new Piece{renderer=renderer,tone=baseTone,bone=bone,materialIndex=0});
+                pieces.Add(new Piece{renderer=renderer,tone=stripeTone.Value,bone=bone,materialIndex=1});
+            }
+            else
+            {
+                renderer.sharedMaterial=material;
+                pieces.Add(new Piece{renderer=renderer,tone=baseTone,bone=bone});
+            }
+        }
+
+        // Both tints share identical normals and vertices over a color edge.
+        static Mesh MoldedSurface(string id,IEnumerable<float> heights,System.Func<float,float> radius,
+            System.Func<float,bool> stripe,float depth)
+        {
+            const int sides=48;
+            var vertices=new List<Vector3>();
+            var normals=new List<Vector3>();
+            var uv=new List<Vector2>();
+            var baseTriangles=new List<int>();
+            var stripeTriangles=new List<int>();
+            float? previous=null;
+            foreach(float y in heights)
+            {
+                float r=radius(y);
+                float slope=(radius(y+.001f)-radius(y-.001f))/.002f;
+                int first=vertices.Count;
+                for(int side=0;side<=sides;side++)
+                {
+                    float angle=2*Mathf.PI*side/sides;
+                    float x=Mathf.Cos(angle),z=Mathf.Sin(angle);
+                    vertices.Add(new Vector3(x*r,y,z*r*depth));
+                    normals.Add(new Vector3(x,-slope,z/depth).normalized);
+                    uv.Add(new Vector2((float)side/sides,y));
+                }
+                if(previous.HasValue)
+                {
+                    var triangles=stripe!=null&&stripe((previous.Value+y)*.5f)?stripeTriangles:baseTriangles;
+                    for(int side=0;side<sides;side++)
+                    {
+                        int upper=first+side,lower=upper-sides-1;
+                        triangles.Add(lower);triangles.Add(upper);triangles.Add(lower+1);
+                        triangles.Add(lower+1);triangles.Add(upper);triangles.Add(upper+1);
+                    }
+                }
+                previous=y;
+            }
+            var mesh=new Mesh{name=id,subMeshCount=stripe==null?1:2};
+            mesh.SetVertices(vertices);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0,uv);
+            mesh.SetTriangles(baseTriangles,0);
+            if(stripe!=null)mesh.SetTriangles(stripeTriangles,1);
+            return mesh;
+        }
+
         // Stripes are cut from the body so they wrap it exactly. Spots are seated on the real skin at golden-angle spacing.
         void Spots(CandyPlayerRig rig,string id,Tone tone,bool stripes,bool overClothes=false)
         {

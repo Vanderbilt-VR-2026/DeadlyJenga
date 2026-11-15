@@ -9,7 +9,7 @@ namespace DeadlyJenga.CandyPlayers
     public sealed partial class CandyAvatarWardrobe : MonoBehaviour
     {
         enum Tone { Primary, Dark, White, Black, Orange, Yellow, Blue, Purple, Red, Brown, Silver, Glow, Armor, Hair, Green, Cream }
-        sealed class Piece { public Renderer renderer; public Tone tone; public int bone; public bool armor; }
+        sealed class Piece { public Renderer renderer; public Tone tone; public int bone; public bool armor, molded; public int materialIndex=-1; }
         readonly List<Piece> pieces=new List<Piece>();
         static readonly Dictionary<Material,Material> emitterMaterials=new Dictionary<Material,Material>();
         static readonly Dictionary<string,Mesh> meshes=new Dictionary<string,Mesh>();
@@ -39,6 +39,8 @@ namespace DeadlyJenga.CandyPlayers
             {
                 BuildSkin(rig);
                 BuildExpandedSkin(rig);
+                if(value.skin==AvatarSkin.Rabbit||value.skin==AvatarSkin.Clownfish||value.skin==AvatarSkin.CandyCorn)
+                    foreach(var piece in pieces)piece.molded=true;
             }
             BuildHair(rig);BuildGlasses(rig);BuildClothes(rig);BuildExpandedClothes(rig);
             if((value.accessories&AvatarAccessory.PumpkinHelmet)!=0)Pumpkin(rig,"accessory pumpkin",Tone.Primary);
@@ -428,7 +430,23 @@ namespace DeadlyJenga.CandyPlayers
             Color primary=teamed?actor.Color:appearance.skin>AvatarSkin.Vampire?ExpandedSkinColor(appearance.skin):appearance.skin==AvatarSkin.Snowman||appearance.skin==AvatarSkin.Vampire?Color.white:appearance.skin==AvatarSkin.Frankenstein||appearance.skin==AvatarSkin.Witch?new Color(.34f,.73f,.30f):appearance.skin==AvatarSkin.Penguin||appearance.skin==AvatarSkin.JackOLantern?new Color(.025f,.03f,.05f):rig.BaseAppearanceColor;
             if(primary==lastTeam&&teamed==lastTeamed)return;lastTeam=primary;lastTeamed=teamed;
             rig.ApplyBodyPalette(teamed&&appearance.skin==AvatarSkin.Penguin?primary*.10f:primary);
-            foreach(var p in pieces)if(p.renderer){p.renderer.GetPropertyBlock(properties);var color=p.armor?ArmorColor(p.tone,primary,teamed):Color.clear;if(color==Color.clear)color=ColorFor(p.tone,primary,teamed);properties.SetColor("_BaseColor",color);properties.SetFloat("_Metallic",p.armor?p.renderer.sharedMaterial.GetFloat("_Metallic"):p.tone==Tone.Armor?.75f:p.tone==Tone.Silver?.85f:0);properties.SetFloat("_Smoothness",p.armor?p.renderer.sharedMaterial.GetFloat("_Smoothness"):p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f);properties.SetColor("_EmissionColor",p.tone==Tone.Glow?color*2:Color.black);p.renderer.SetPropertyBlock(properties);}
+            foreach(var p in pieces)
+            {
+                if(!p.renderer)continue;
+                if(p.materialIndex<0)p.renderer.GetPropertyBlock(properties);
+                else p.renderer.GetPropertyBlock(properties,p.materialIndex);
+                var color=p.armor?ArmorColor(p.tone,primary,teamed):Color.clear;
+                if(color==Color.clear)color=ColorFor(p.tone,primary,teamed);
+                var material=p.renderer.sharedMaterial;
+                float smoothness=p.molded?(rig.style?rig.style.smoothness:.78f):
+                    p.tone==Tone.Armor||p.tone==Tone.Silver?.88f:.52f;
+                properties.SetColor("_BaseColor",color);
+                properties.SetFloat("_Metallic",p.armor?material.GetFloat("_Metallic"):p.tone==Tone.Armor?.75f:p.tone==Tone.Silver?.85f:0);
+                properties.SetFloat("_Smoothness",p.armor?material.GetFloat("_Smoothness"):smoothness);
+                properties.SetColor("_EmissionColor",p.tone==Tone.Glow?color*2:Color.black);
+                if(p.materialIndex<0)p.renderer.SetPropertyBlock(properties);
+                else p.renderer.SetPropertyBlock(properties,p.materialIndex);
+            }
         }
         Color ColorFor(Tone tone,Color primary,bool teamed)
         {
@@ -439,7 +457,7 @@ namespace DeadlyJenga.CandyPlayers
                 case Tone.Hair:if(appearance.skin==AvatarSkin.RagDoll)return new Color(.8f,.055f,.02f);if(appearance.skin==AvatarSkin.MrsClaus||appearance.skin==AvatarSkin.Santa)return Color.white;return new Color(.018f,.02f,.027f);
                 case Tone.Black:return skinTeam&&(appearance.skin==AvatarSkin.Penguin||appearance.skin==AvatarSkin.Witch||appearance.skin==AvatarSkin.Vampire)?primary*.10f:new Color(.018f,.02f,.027f);
                 case Tone.Orange:return skinTeam&&(appearance.skin==AvatarSkin.JackOLantern||appearance.skin==AvatarSkin.Witch)?primary:new Color(1,.30f,.035f);
-                case Tone.Cream:return new Color(1,.92f,.78f);case Tone.Yellow:return new Color(1,.77f,.07f);case Tone.Blue:return new Color(.32f,.75f,1);
+                case Tone.Cream:return skinTeam?primary:new Color(1,.92f,.78f);case Tone.Yellow:return new Color(1,.77f,.07f);case Tone.Blue:return new Color(.32f,.75f,1);
                 case Tone.Purple:return skinTeam&&appearance.skin==AvatarSkin.Witch?primary:new Color(.32f,.11f,.48f);
                 case Tone.Red:return skinTeam?primary:new Color(.72f,.025f,.05f);case Tone.Brown:return new Color(.27f,.13f,.055f);
                 case Tone.Silver:return new Color(.55f,.64f,.70f);case Tone.Glow:return new Color(.20f,.87f,1);case Tone.Armor:return teamed||appearance.skin>=AvatarSkin.Astronaut&&!appearance.poweredArmor?primary:new Color(.95f,.20f,.035f);default:return primary;}
