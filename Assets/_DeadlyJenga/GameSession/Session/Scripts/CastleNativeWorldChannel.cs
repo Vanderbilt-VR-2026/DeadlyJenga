@@ -16,11 +16,11 @@ namespace DeadlyJenga.CastlePrototype
             if(!Enabled)return;
             // One complete snapshot must fit in a heap page, including Fusion's header.
             // Keep the total configured heap capacity unchanged for this opt-in experiment.
-            if(config.Heap.PageShift<17)
+            if((int)config.Heap.PageShift<17)
             {
-                int shift=17-config.Heap.PageShift;
+                int shift=17-(int)config.Heap.PageShift;
                 config.Heap.PageCount=Math.Max(1,config.Heap.PageCount>>shift);
-                config.Heap.PageShift=17;
+                config.Heap.PageShift=(PageSizes)17;
             }
             if(!template)
             {
