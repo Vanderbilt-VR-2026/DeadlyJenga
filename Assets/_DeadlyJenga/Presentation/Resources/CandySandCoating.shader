@@ -77,20 +77,29 @@ Shader "DeadlyJenga/Sand Coating"
             // Irregular faceted crystals. Derivatives average detail smaller than a pixel.
             float4 Crystal(float3 p, float frequency)
             {
-                float3 q = p * frequency;
-                float3 cell = floor(q);
-                float3 random = float3(Hash(cell + 1.1), Hash(cell + 7.3), Hash(cell + 17.7));
-                float3 d = frac(q) - .5 - (random - .5) * .3;
-                float3 a = abs(d);
-                float facet = max(max(a.x, a.y * 1.15), a.z * .87);
-                facet = max(facet, (a.x + a.y + a.z) * .55);
-                float radius = lerp(.22, .48, random.x);
+                float3 q = mul(float3x3(.36,.48,-.8, -.8,.6,0, .48,.64,.6), p) * frequency;
+                float3 cell = floor(q), local = frac(q);
+                float nearest = 10, second = 10, shade = 0;
+                [unroll] for (int z = -1; z <= 1; z++)
+                [unroll] for (int y = -1; y <= 1; y++)
+                [unroll] for (int x = -1; x <= 1; x++)
+                {
+                    float3 offset = float3(x,y,z);
+                    float3 id = cell + offset;
+                    float3 random = float3(Hash(id + 1.1), Hash(id + 7.3), Hash(id + 17.7));
+                    float3 d = offset + random - local;
+                    float distanceSquared = dot(d,d);
+                    if (distanceSquared < nearest)
+                    {
+                        second = nearest; nearest = distanceSquared; shade = random.y;
+                    }
+                    else second = min(second, distanceSquared);
+                }
                 float footprint = max(length(ddx(q)), length(ddy(q)));
-                float edge = max(.025, footprint * .65);
-                float mask = 1 - smoothstep(radius - edge, radius + edge, facet);
-                float resolved = 1 - smoothstep(.35, 1.4, footprint);
-                float height = max(0, radius - facet) * mask;
-                return float4(lerp(.55, mask, resolved), height * resolved, random.y, resolved);
+                float resolved = 1 - smoothstep(.45, 1.5, footprint);
+                float ridge = sqrt(second) - sqrt(nearest);
+                float mask = smoothstep(.015, .13 + footprint * .08, ridge);
+                return float4(lerp(.70, mask, resolved), ridge * resolved, shade, resolved);
             }
 
             half4 Frag(Varyings input) : SV_Target
@@ -99,26 +108,25 @@ Shader "DeadlyJenga/Sand Coating"
                 float3 p = input.rest.xyz + _Seed * float3(.137, .271, .193);
                 float t = input.rest.w;
                 float edge = 1 + (Noise(p * 15) - .5) * .3;
-                float patches = Noise(p * 9 + 3.1) * .65 + Noise(p * 23) * .35;
-                float density = saturate((edge - t) * 3.5) * smoothstep(.2, .53, patches);
-                float erosion = (1 - _Coverage) * .92;
-                float boundary = density - erosion - .06;
+                float patches = Noise(p * float3(27, 6, 27) + 3.1) * .65 + Noise(p * 43) * .35;
+                float density = saturate((edge - t) * 4) * smoothstep(.16, .67, patches);
+                float erosion = (1 - _Coverage) * .66;
+                float boundary = density - erosion - .17 - Noise(p * 145) * .16;
                 float aa = max(fwidth(boundary), .012);
                 float coverage = smoothstep(-aa, aa, boundary) * smoothstep(-.07, -.03, t);
                 clip(coverage - .015);
-                float4 crystal = Crystal(p, 420);
-                float4 cluster = Crystal(p + 1.3, 190);
-                float grains = saturate(crystal.x * .78 + cluster.x * .32);
-                float height = crystal.y * .0017 + cluster.y * .0012;
+                float4 crystal = Crystal(p, 440);
+                float grains = crystal.x;
+                float height = crystal.y * .0018;
                 float3 n = normalize(input.normalWS);
                 float3 dx = ddx(input.positionWS), dy = ddy(input.positionWS);
                 float3 rx = cross(dy, n), ry = cross(n, dx);
                 float determinant = dot(dx, rx);
                 float3 gradient = (ddx(height) * rx + ddy(height) * ry) / (abs(determinant) + 1e-10) * sign(determinant);
                 n = normalize(n - gradient * .65);
-                half3 amber = half3(.66, .36, .115);
-                half3 ivory = half3(.98, .87, .64);
-                half3 albedo = lerp(amber, ivory, saturate(grains * .65 + crystal.z * .22));
+                half3 amber = half3(.48, .245, .075);
+                half3 ivory = half3(.95, .79, .48);
+                half3 albedo = lerp(amber, ivory, saturate(grains * .48 + crystal.z * .24));
                 Light light = GetMainLight();
                 float ndl = saturate(dot(n, light.direction));
                 half3 color = albedo * (SampleSH(n) + light.color * (.18 + ndl * .82));
@@ -127,7 +135,7 @@ Shader "DeadlyJenga/Sand Coating"
                 float glint = pow(nh, 72) * grains * crystal.w;
                 float glaze = pow(nh, 28) * .2;
                 color += light.color * (glint * .65 + glaze);
-                float alpha = coverage * lerp(.40, .96, grains);
+                float alpha = coverage * .985;
                 return half4(MixFog(color, input.fog), alpha);
             }
             ENDHLSL
