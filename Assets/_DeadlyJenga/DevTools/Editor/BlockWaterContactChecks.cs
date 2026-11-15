@@ -566,10 +566,17 @@ namespace DeadlyJenga.DevTools.Editor
                     (sustained ? sampled >= 1f : sampled < 1f && !float.IsNaN(sampled)),
                     $"bot maintains {(sustained ? "sustained" : "short")} sand contact: observed {observed:F3}s, presenter sampled {sampled:F3}s, depth {sand.SandDepth:F3}");
                 motor.Teleport(safe, Quaternion.identity);
-                deadline = Time.time + 1;
-                while (sand.InSand && Time.time < deadline) yield return null;
-                yield return null;
-                Check(!sand.InSand, $"bot clears sand state after {(sustained ? "sustained" : "short")} contact");
+                // Teleport clears the motor immediately. Wait for match and support updates to agree.
+                deadline = Time.time + 2.5f;
+                int drySupportFrames = 0;
+                do
+                {
+                    yield return null;
+                    drySupportFrames = motor.Grounded && !sand.InSand ? drySupportFrames + 1 : 0;
+                } while (drySupportFrames < 2 && Time.time < deadline);
+                Check(drySupportFrames >= 2,
+                    $"bot settles clear of sand after {(sustained ? "sustained" : "short")} contact: " +
+                    $"grounded={motor.Grounded}, inSand={sand.InSand}, feet={motor.transform.position:F2}, safe={safe:F2}");
                 if (!sustained) Check(!FindCoat(visual), "short contact leaves no coating");
             }
             float appliedAt = CoatValue(effects, motor, "coatedAt");
