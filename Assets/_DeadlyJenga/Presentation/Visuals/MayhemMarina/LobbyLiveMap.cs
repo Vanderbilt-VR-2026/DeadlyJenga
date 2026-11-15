@@ -34,8 +34,8 @@ namespace DeadlyJenga.Presentation
         readonly HashSet<string> seen = new();
         readonly List<string> departed = new();
         readonly Plane[] planes = new Plane[6];
-        readonly MaterialPropertyBlock color = new();
-        readonly MaterialPropertyBlock appearance = new();
+        MaterialPropertyBlock color;
+        MaterialPropertyBlock appearance;
         ISessionInfo viewer;
         ILobbyMatchVisitControls visit;
         Transform miniature;
@@ -61,6 +61,8 @@ namespace DeadlyJenga.Presentation
 
         void Build(ISessionInfo session)
         {
+            color = new MaterialPropertyBlock();
+            appearance = new MaterialPropertyBlock();
             viewer = session;
             visit = session as ILobbyMatchVisitControls;
             cube = Resources.GetBuiltinResource<Mesh>("Cube.fbx");
