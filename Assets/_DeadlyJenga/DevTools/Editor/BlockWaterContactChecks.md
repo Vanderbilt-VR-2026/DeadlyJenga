@@ -33,3 +33,42 @@ Splash timing is sampled from local poses. An
 optional `IBlockSurfaceContactSource.TryGetLastContact(Rigidbody block, out BlockSurfaceContact contact)`
 could provide exact contact type, sequence, position, footprint and incident
 speed. Guest bodies would also need a protocol for that contact data.
+
+## Log-flume whitewater and dry sand
+
+Follow-up branch: `codex/marina-whitewater`, based on `ed687f49a3dd96b0c3c839cae046df41ed84838e`.
+Production source: `4d84b914787eea78d0b056c031fa89f19ccfbaf3`. Integration target
+and owner are unchanged.
+
+Presentation/Visuals adds pooled 3D spray sheets, droplets and lingering foam.
+The base ocean clips beneath the original dry island surface, while the deforming
+sand uses more mesh resolution around the play area. The follow-up adds no Core
+contract, gameplay physics, or scene changes.
+
+Desktop Castle Demo in Unity 6000.3.23f1 completed with the capture-only fixture
+`94cbabb8c547cbfad418bfd7ba32fd4c32e1500a` on top of the production source. It
+used real blocks, controlled releases, a fixed camera and temporary support for
+the sand setup. The ordinary and fast water entries showed 74 and 112 live
+droplets and active whitewater meshes. The sand run observed two sinking blocks
+and five live ripple particles. Frame review confirmed a dry dent with the ocean
+still visible offshore. Fresh role-camera, multiplayer and Quest checks remain
+open for this follow-up.
+
+## Breaking whitewater follow-up
+
+Production source: `996b777f8ec6000645bc114ff7014d0d448b9a59` on
+`codex/marina-whitewater`. The desktop capture loaded that source plus the
+Editor-only fixture at `bdd47ed29b8b2ff11d7e1118358e4ea3d9afd5fe`.
+
+The same Castle Local Demo cameras and controlled releases verified the low
+outward skirt, the taller breaking crests, spray and mist. The ordinary drop
+produced 106 live droplets and 27 mist particles. The fast drop produced 158
+droplets and 36 mist particles. The previous source produced 74 and 112 live
+droplets in the same setups. The fast crest extended past the top of the
+matched view, and the ordinary view captured the full crest. The batch exited
+successfully with both sink sequences recorded.
+
+The capture fixture printed a stale gameplay SHA in its banner. Checked
+admission and the slot Git HEAD verified the exact fixture before launch.
+The change was limited to splash presentation. Quest appearance and
+performance remain unverified.
