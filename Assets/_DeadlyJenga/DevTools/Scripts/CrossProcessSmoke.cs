@@ -7,6 +7,7 @@ using System.Linq;
 using UnityEngine;
 using Unity.Profiling;
 using Unity.Profiling.LowLevel.Unsafe;
+using DeadlyJenga.CharacterNetwork;
 using DeadlyJenga.Core;
 using DeadlyJenga.CastleSocial;
 using DeadlyJenga.World.Hazards;
@@ -227,6 +228,11 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-joined"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-joined")),
                 "Other client confirmed joining",85,LobbyState);
+            yield return Until(() => host
+                    ? IslandLobby.Current.SurvivorBots?.Count == 8
+                    : FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None).Count(view =>
+                        view.Alive && view.ActorId?.StartsWith("lobby-bot:", StringComparison.Ordinal) == true) == 8,
+                "The live 10-slot Marina cohort has two client processes and eight lobby bots", 35, LobbyState);
             if (!host)
                 yield return Until(() => File.Exists(Mark("host-pressed-go")),
                     "Host opens the ready check", 40, LobbyState);
@@ -255,6 +261,18 @@ namespace DeadlyJenga.CastlePrototype
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
         const string TycoonMap = "mode-tycoon";
+        [Serializable] sealed class DisplacedBlock
+        {
+            public int index;
+            public bool active;
+            public Vector3 position;
+            public Quaternion rotation;
+        }
+
+        [Serializable] sealed class DisplacedWorld
+        {
+            public DisplacedBlock[] blocks;
+        }
         static bool MigrationRound => Environment.GetCommandLineArgs().Contains("--dj-migrate-round");
         static bool FullRound => Environment.GetCommandLineArgs().Contains("--dj-full-round");
 
@@ -423,6 +441,11 @@ namespace DeadlyJenga.CastlePrototype
             var world = (CastleGenerator)Services.World;
             var blocks = world.Bodies.ToArray();
             var authored = blocks.Select(body => body.position).ToArray();
+            if (!solo)
+                yield return Until(() => session.Network.HumanPositions().Any(player =>
+                        player.Key != session.Network.LocalParticipantId &&
+                        session.Network.TryParticipantPosition(player.Key, out _)),
+                    "Remote human avatar and position are live in Game", 30);
             if (host)
                 yield return Until(() => File.Exists(Mark("tycoon-guest-match")),
                     "Guest confirms initial world snapshot before load is added", 60);
@@ -433,7 +456,7 @@ namespace DeadlyJenga.CastlePrototype
                 blocks.All(body => body && body.isKinematic && body.TryGetComponent<Collider>(out var collider) && collider.enabled),
                 $"All {expectedTycoonBlocks} resting Tycoon blocks have live colliders");
             QualitySettings.vSyncCount = 0;
-            Application.targetFrameRate = 90;
+            Application.targetFrameRate = -1;
             if (solo)
             {
                 var probe = blocks.OrderByDescending(body => body.position.y).First();
@@ -468,6 +491,9 @@ namespace DeadlyJenga.CastlePrototype
                 for (int i = 0; i < 24; i++) session.SurvivorBots.SpawnOne();
                 Require(session.SurvivorBots.Count == 24, "Host spawns 24 actual bots");
                 yield return SampleFrames("24-bots", 12);
+                if (host)
+                    yield return Until(() => File.Exists(Mark("tycoon-guest-bots-sampled")),
+                        "Guest sampled its replicated 24-bot workload before tsunami", 45);
                 var beforeWave = world.Bodies.Select(body => body.position).ToArray();
                 var wavePrefab = DemoDisasters.Prefabs.First(prefab => prefab.name == "Tsunami");
                 var parameters = DemoDisasters.Parameters(wavePrefab).Select(parameter => parameter.initial).ToArray();
@@ -481,16 +507,54 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => Moved() >= 12, "Tsunami moves at least 12 blocks", 25, () => "Moved " + Moved());
                 File.AppendAllText(Report, $"Tsunami moved {Moved()} blocks over 1 m.\n");
                 Require(world.Bodies.All(body => body && float.IsFinite(body.position.sqrMagnitude)), "World remains finite after the wave");
-                if (host) yield return Until(() => File.Exists(Mark("tycoon-wave-seen")), "Guest receives wave and changed block poses");
+                if (host)
+                {
+                    var displaced = new DisplacedWorld
+                    {
+                        blocks = world.Bodies.Select((body, index) => new DisplacedBlock
+                        {
+                            index = index, active = body.gameObject.activeSelf,
+                            position = body.position, rotation = body.rotation
+                        }).Where(block => (block.position - beforeWave[block.index]).sqrMagnitude > 1f).ToArray()
+                    };
+                    File.WriteAllText(Mark("tycoon-world-pending"), JsonUtility.ToJson(displaced));
+                    File.Move(Mark("tycoon-world-pending"), Mark("tycoon-world"));
+                    yield return Until(() => File.Exists(Mark("tycoon-wave-seen")),
+                        "Guest measures the replicated wave and checks displaced blocks", 30);
+                }
                 DemoDisasters.StopAll(session);
                 Require(room.ReturnMatchToLobby(), "Host requests normal return to lobby");
             }
             else
             {
+                var sync = session.GetComponent<CastleFusionSession>();
+                yield return Until(() => sync && sync.Demo.survivors == 24 &&
+                        FindObjectsByType<SurvivorNetworkView>(FindObjectsSortMode.None)
+                            .Count(view => view.IsBot && !view.IsEnemy) == 24,
+                    "Guest sees 24 bot replicas and the authoritative count", 55);
+                yield return SampleFrames("24-bots", 12);
+                File.WriteAllText(Mark("tycoon-guest-bots-sampled"), "ready");
                 yield return Until(() => Tracked.Waves.Any(wave => wave.Wave.active), "Guest sees the replicated tsunami", 60);
-                yield return SampleFrames("guest-tsunami", 12);
+                yield return SampleFrames("24-bots-tsunami", 21);
                 yield return Until(() => blocks.Where((body, index) => body && (body.position - authored[index]).sqrMagnitude > 1f).Count() >= 12,
                     "Guest receives collapsed poses", 50);
+                yield return Until(() => File.Exists(Mark("tycoon-world")), "Host records the displaced blocks", 30);
+                var sample = JsonUtility.FromJson<DisplacedWorld>(File.ReadAllText(Mark("tycoon-world"))).blocks;
+                int Matches() => sample.Count(expected =>
+                {
+                    var body = blocks[expected.index];
+                    return body && body.gameObject.activeSelf == expected.active &&
+                        (!expected.active || (body.position - expected.position).sqrMagnitude <= 1 &&
+                        Quaternion.Angle(body.rotation, expected.rotation) <= 20);
+                });
+                int best = Matches();
+                double end = Time.realtimeSinceStartupAsDouble + 2;
+                while (Time.realtimeSinceStartupAsDouble < end && best < sample.Length)
+                {
+                    yield return null;
+                    best = Mathf.Max(best, Matches());
+                }
+                File.AppendAllText(Report, $"WORLD displaced samples matching host at one instant: {best}/{sample.Length}; 1 m and 20 degree tolerances; 2 s observation window\n");
                 File.WriteAllText(Mark("tycoon-wave-seen"), "yes");
             }
             yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
