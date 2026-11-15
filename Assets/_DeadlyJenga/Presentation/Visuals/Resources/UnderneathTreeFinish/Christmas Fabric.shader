@@ -26,7 +26,7 @@ Shader "DeadlyJenga/Christmas Fabric"
             #pragma fragment FabricFragment
             #pragma multi_compile _ _MAIN_LIGHT_SHADOWS _MAIN_LIGHT_SHADOWS_CASCADE _MAIN_LIGHT_SHADOWS_SCREEN
             #pragma multi_compile _ _ADDITIONAL_LIGHTS_VERTEX _ADDITIONAL_LIGHTS
-            #pragma multi_compile _ _FORWARD_PLUS
+            #pragma multi_compile _ _CLUSTER_LIGHT_LOOP
             #pragma multi_compile_fragment _ _ADDITIONAL_LIGHT_SHADOWS
             #pragma multi_compile_fragment _ _SHADOWS_SOFT _SHADOWS_SOFT_LOW _SHADOWS_SOFT_MEDIUM _SHADOWS_SOFT_HIGH
             #pragma multi_compile_fog
@@ -73,16 +73,16 @@ Shader "DeadlyJenga/Christmas Fabric"
                 FabricVaryings output = (FabricVaryings)0;
                 UNITY_SETUP_INSTANCE_ID(input);
                 UNITY_INITIALIZE_VERTEX_OUTPUT_STEREO(output);
-                VertexPositionInputs point = GetVertexPositionInputs(input.positionOS.xyz);
+                VertexPositionInputs vertexPosition = GetVertexPositionInputs(input.positionOS.xyz);
                 VertexNormalInputs basis = GetVertexNormalInputs(input.normalOS, input.tangentOS);
-                output.positionCS = point.positionCS;
-                output.positionWS = point.positionWS;
+                output.positionCS = vertexPosition.positionCS;
+                output.positionWS = vertexPosition.positionWS;
                 output.normalWS = basis.normalWS;
                 output.tangentWS = half4(basis.tangentWS, input.tangentOS.w * GetOddNegativeScale());
                 output.uv = TRANSFORM_TEX(input.uv, _BaseMap);
-                output.shadowCoord = GetShadowCoord(point);
-                output.vertexLighting = VertexLighting(point.positionWS, basis.normalWS);
-                output.fog = ComputeFogFactor(point.positionCS.z);
+                output.shadowCoord = GetShadowCoord(vertexPosition);
+                output.vertexLighting = VertexLighting(vertexPosition.positionWS, basis.normalWS);
+                output.fog = ComputeFogFactor(vertexPosition.positionCS.z);
                 return output;
             }
 
