@@ -24,8 +24,7 @@ headless scene checks do not establish these.
 
 ## Reconnaissance
 
-Work began on Evan_Sprint_3 at 27c761c44. Uncommitted Tools/ArchitectureMap work
-was present and is outside this implementation. Unity is 6000.3.23f1, URP 17.3,
+Work began on Evan_Sprint_3 at 27c761c44. Unity is 6000.3.23f1, URP 17.3,
 XR Hands 1.7.3, Input System 1.20 and XRI 3.3.2. The enabled build is the standalone
 CastlePhysicsTest scene; separate Lobby/Main assets use Photon Fusion. There was
 no existing session voice transport or speech-model stack.
