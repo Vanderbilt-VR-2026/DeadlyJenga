@@ -62,13 +62,13 @@ namespace DeadlyJenga.Presentation
             if (ReferenceEquals(session, source))
             {
                 LobbyLastRoundBoard.Observe(match, session);
-                bool roundOver = frame?.phase == RoundPhase.Victory || frame?.phase == RoundPhase.Results;
-                if (roundOver && !announcedRoundEnd && session?.ActiveCamera)
+                bool results = frame?.phase == RoundPhase.Results;
+                if (results && !announcedRoundEnd && session?.ActiveCamera)
                 {
                     CandyDeathOverlay.ShowGameOver(session);
                     announcedRoundEnd = true;
                 }
-                else if (!roundOver) announcedRoundEnd = false;
+                else if (!results) announcedRoundEnd = false;
             }
             bool show = frame?.phase == RoundPhase.Results && session != null && !CandyDeathOverlay.GameOverActive
                 && (session as ILobbyMatchVisitControls)?.VisitingLobby != true;
