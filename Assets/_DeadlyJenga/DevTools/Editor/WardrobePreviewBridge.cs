@@ -4,6 +4,7 @@ using System.IO;
 using DeadlyJenga.CandyPlayers;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -41,15 +42,14 @@ namespace DeadlyJenga.DevTools.Editor
         static RenderTexture target;
         static Texture2D pixels;
         static AvatarSkin? activeSkin;
-        static bool activeCastle;
         static bool castleReady;
         static Vector3 castleStage;
         static Quaternion castleFacing;
         static Light[] castleLights;
+        static SkinWeights? originalSkinWeights;
         static readonly List<Light> StudioLights = new List<Light>();
         static int castleMask;
         static bool castlePostProcessing;
-        static readonly Vector3 Stage = new Vector3(2000, 1000, 2000);
         static readonly List<Renderer> Renderers = new List<Renderer>();
         static WardrobeFraming.GeometrySampler sampler;
         static Bounds bounds;
@@ -109,9 +109,12 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var prefab = Resources.Load<CandyPlayerRig>("CandyPlayerVisual");
             if (!prefab) throw new InvalidOperationException("Production CandyPlayerVisual is missing.");
+            originalSkinWeights = QualitySettings.skinWeights;
+            QualitySettings.skinWeights = SkinWeights.FourBones;
             root = new GameObject("Wardrobe preview");
             rig = Object.Instantiate(prefab, root.transform);
             rig.SetColor(0);
+            if (rig.TryGetComponent<CandyAvatarDetail>(out var detail)) detail.enabled = false;
 
             var cameraRoot = new GameObject("Wardrobe preview camera", typeof(Camera));
             cameraRoot.transform.SetParent(root.transform);
@@ -139,7 +142,7 @@ namespace DeadlyJenga.DevTools.Editor
         {
             var go = new GameObject("Wardrobe studio light", typeof(Light));
             go.transform.SetParent(root.transform);
-            go.transform.position = Stage + offset;
+            go.transform.localPosition = offset;
             var light = go.GetComponent<Light>();
             light.type = LightType.Point;
             light.color = color;
@@ -212,10 +215,14 @@ namespace DeadlyJenga.DevTools.Editor
             if (!castleReady)
             {
                 castleStage = world.SafeSpawnPoint();
+                if (Physics.Raycast(castleStage + Vector3.up * .8f, Vector3.down, out var floor, 2.8f,
+                        (1 << Layers.Block) | (1 << Layers.Surface), QueryTriggerInteraction.Ignore))
+                    castleStage = floor.point + Vector3.up * .015f;
                 castleFacing = Quaternion.identity;
                 castleReady = true;
             }
 
+            root.transform.SetPositionAndRotation(castleStage, castleFacing);
             var gameCamera = session.ActiveCamera;
             var cameraData = gameCamera.GetUniversalAdditionalCameraData();
             castleMask = (gameCamera.cullingMask | (1 << PreviewLayer)) & ~(1 << 5);
@@ -223,6 +230,7 @@ namespace DeadlyJenga.DevTools.Editor
             camera.GetUniversalAdditionalCameraData().volumeLayerMask = cameraData.volumeLayerMask;
             HideActor(session.Player);
             HideActor(session.Hand);
+            if (session.TryGetComponent<CandyEquipmentView>(out var equipment)) Object.Destroy(equipment);
             if (session.SurvivorBots != null)
             {
                 session.SurvivorBots.AutoFill = false;
@@ -254,9 +262,9 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void Render(AvatarSkin skin, bool castle, float yaw, float pitch, float zoom)
         {
-            Vector3 stage = castle ? castleStage : Stage;
-            Quaternion facing = castle ? castleFacing : Quaternion.identity;
-            if (skin != activeSkin || castle != activeCastle)
+            Vector3 stage = castleStage;
+            Quaternion facing = castleFacing;
+            if (skin != activeSkin)
             {
                 rig.SetAppearance(new AvatarAppearance { skin = skin });
                 rig.ApplyFrame(new CandyAvatarFrame
@@ -273,7 +281,6 @@ namespace DeadlyJenga.DevTools.Editor
                 if (sampler.TryBounds(Renderers, out bounds, out _)) bounds.Encapsulate(envelope);
                 else bounds = envelope;
                 activeSkin = skin;
-                activeCastle = castle;
             }
 
             Quaternion orbit = facing * Quaternion.Euler(Mathf.Clamp(pitch, castle ? -6 : -55, 70), yaw, 0);
@@ -333,12 +340,14 @@ namespace DeadlyJenga.DevTools.Editor
         {
             EditorApplication.update -= Tick;
             sampler?.Dispose();
+            if (originalSkinWeights.HasValue) QualitySettings.skinWeights = originalSkinWeights.Value;
+            originalSkinWeights = null;
             if (camera) camera.targetTexture = null;
             if (target) { target.Release(); Object.Destroy(target); }
             if (pixels) Object.Destroy(pixels);
             if (root) Object.Destroy(root);
             activeSkin = null;
-            activeCastle = castleReady = false;
+            castleReady = false;
             castleLights = null;
             StudioLights.Clear();
             lastId = null;
