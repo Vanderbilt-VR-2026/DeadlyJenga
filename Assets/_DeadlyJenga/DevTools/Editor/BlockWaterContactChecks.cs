@@ -1,8 +1,10 @@
 using System;
 using System.Collections;
 using System.IO;
+using DeadlyJenga.CandyArt;
 using DeadlyJenga.CastlePrototype;
 using DeadlyJenga.Core;
+using DeadlyJenga.Presentation;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -14,17 +16,22 @@ namespace DeadlyJenga.DevTools.Editor
     public static class BlockWaterContactChecks
     {
         const string RunKey = nameof(BlockWaterContactChecks);
-        static string Report => ProjectPath.Report("BlockWaterContact.txt");
+        const string SandKey = RunKey + "Sand";
+        static string Report => ProjectPath.Report(SessionState.GetBool(SandKey, false) ? "BlockSandContact.txt" : "BlockWaterContact.txt");
         static int failures;
 
         static BlockWaterContactChecks() => EditorApplication.playModeStateChanged += OnPlayMode;
 
-        public static void Run()
+        public static void Run() => Begin(false);
+        public static void RunSand() => Begin(true);
+
+        static void Begin(bool sand)
         {
             if (!Application.isBatchMode || EditorApplication.isPlayingOrWillChangePlaymode)
                 throw new InvalidOperationException("Run in a reserved batch editor.");
 
-            File.WriteAllText(Report, "Unity Play Mode, production CastleGenerator and CastleBlock prefab, isolated contact geometry.\n");
+            SessionState.SetBool(SandKey, sand);
+            File.WriteAllText(Report, "Unity Play Mode, production Castle block and contact components, isolated contact geometry.\n");
             EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Single);
             SessionState.SetBool(RunKey, true);
             EditorApplication.EnterPlaymode();
@@ -43,7 +50,7 @@ namespace DeadlyJenga.DevTools.Editor
 
         static IEnumerator Guard()
         {
-            var checks = Checks();
+            var checks = SessionState.GetBool(SandKey, false) ? SandChecks() : Checks();
             while (true)
             {
                 object next;
@@ -62,6 +69,7 @@ namespace DeadlyJenga.DevTools.Editor
 
             Application.logMessageReceived -= RecordError;
             Log($"COMPLETE failures={failures}");
+            SessionState.EraseBool(SandKey);
             EditorApplication.Exit(failures == 0 ? 0 : 1);
         }
 
@@ -145,6 +153,211 @@ namespace DeadlyJenga.DevTools.Editor
             body.linearVelocity = Vector3.down * speed;
             map.Bodies.Add(body);
             return new Drop(body);
+        }
+
+        static IEnumerator SandChecks()
+        {
+            var root = new GameObject("Sand contact fixture");
+            var map = root.AddComponent<CastleGenerator>();
+            map.generateOnStart = false;
+            map.waterHeight = 0;
+            root.AddComponent<CandyWaterSandEffects>();
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(ProjectPath.Find("CastleBlock.prefab"));
+            var profile = Object.Instantiate(AssetDatabase.LoadAssetAtPath<CandyArtProfile>(ProjectPath.Find("Candy Tropical.asset")));
+            profile.islandRadius = 6;
+            profile.sandRelief = 0;
+
+            var floor = GameObject.CreatePrimitive(PrimitiveType.Cube);
+            floor.name = "Sand fixture static support";
+            floor.transform.SetParent(root.transform);
+            floor.transform.position = Vector3.down * .35f;
+            floor.transform.localScale = new Vector3(12, 1, 12);
+            floor.GetComponent<MeshRenderer>().enabled = false;
+
+            var terrain = new GameObject("Generated sand");
+            terrain.transform.SetParent(root.transform);
+            terrain.transform.position = Vector3.up * .15f;
+            var filter = terrain.AddComponent<MeshFilter>();
+            terrain.AddComponent<MeshRenderer>().sharedMaterial = profile.sand;
+            var sand = terrain.AddComponent<CandySandbar>();
+            sand.profile = profile;
+            sand.Refresh();
+            var mesh = filter.sharedMesh;
+            Check(mesh, "Production terrain generated");
+            var before = mesh.vertices;
+            var fixedStep = new WaitForFixedUpdate();
+
+            var eyeObject = new GameObject("Contact fixture camera");
+            eyeObject.transform.SetParent(root.transform);
+            eyeObject.tag = "MainCamera";
+            var eye = eyeObject.AddComponent<Camera>();
+            eye.clearFlags = CameraClearFlags.SolidColor;
+            eye.backgroundColor = Color.black;
+            var target = new RenderTexture(64, 64, 24);
+            eye.targetTexture = target;
+            var marker = GameObject.CreatePrimitive(PrimitiveType.Quad);
+            marker.layer = 28;
+            eye.cullingMask = 1 << marker.layer;
+            marker.GetComponent<Collider>().enabled = false;
+            marker.transform.SetParent(eye.transform, false);
+            marker.transform.localPosition = Vector3.forward * 2;
+            var markerMaterial = new Material(Shader.Find("Universal Render Pipeline/Unlit"));
+            markerMaterial.SetColor("_BaseColor", Color.red);
+            marker.GetComponent<Renderer>().sharedMaterial = markerMaterial;
+
+            eye.transform.position = new Vector3(15, .6f, 0);
+            yield return null;
+            var dry = RenderMarker(eye, target);
+            Check(dry.r > .75f, $"dry camera renders red marker {dry}");
+            eye.transform.position = new Vector3(15, -.35f, 0);
+            yield return new WaitForSeconds(.45f);
+            var shallow = RenderMarker(eye, target);
+            Check(shallow.r < dry.r * .7f && shallow.b > dry.b + .02f, $"shallow open water filters scene {shallow}");
+            eye.transform.position = new Vector3(15, .6f, 0);
+            yield return new WaitForSeconds(.35f);
+            var surfaced = RenderMarker(eye, target);
+            Check(surfaced.r > dry.r * .95f, $"surfacing clears the water filter {surfaced}");
+            eye.transform.position = new Vector3(0, -.07f, 0);
+            yield return new WaitForSeconds(.32f);
+            var landing = RenderMarker(eye, target);
+            Check(landing.r > dry.r * .95f, $"near-water sand landing pose stays dry {landing}");
+            eye.transform.position = new Vector3(0, -2, 0);
+            yield return null;
+            yield return null;
+            var hidden = RenderMarker(eye, target);
+            Check(hidden.r < .14f && hidden.b > .02f, $"under-map camera occludes near scenery {hidden}");
+            eye.targetTexture = null;
+            Object.Destroy(eyeObject);
+            Object.Destroy(markerMaterial);
+            Object.Destroy(target);
+
+            var spray = root.transform.Find("Water splash droplets").GetComponent<ParticleSystem>();
+            int smallSpray = 0;
+            for (int trial = 0; trial < 2; trial++)
+            {
+                var size = trial == 0 ? new Vector3(.65f, .45f, .65f) : new Vector3(2.4f, 1.8f, 1.3f);
+                var drop = AddDrop(map, prefab, "Splash size fixture", new Vector3(15, 3, 0), size, trial == 0 ? 5 : 25);
+                Physics.SyncTransforms();
+                float timeout = Time.time + 2;
+                while (Time.time < timeout && spray.particleCount == 0) yield return null;
+                int firstSpray = spray.particleCount;
+                int peakSpray = firstSpray;
+                timeout = Time.time + .55f;
+                while (Time.time < timeout)
+                {
+                    yield return null;
+                    peakSpray = Mathf.Max(peakSpray, spray.particleCount);
+                }
+                Check(firstSpray > 0 && firstSpray == peakSpray,
+                    $"splash {trial + 1}: {firstSpray} droplets on entry, {peakSpray} peak during immersion");
+                if (trial == 0) smallSpray = firstSpray;
+                else Check(firstSpray > smallSpray, $"large fast splash emits more droplets ({firstSpray} vs {smallSpray})");
+                drop.Body.gameObject.SetActive(false);
+                Object.Destroy(drop.Body.gameObject);
+                map.Bodies.Clear();
+                spray.Clear();
+                yield return fixedStep;
+            }
+
+            for (int round = 1; round <= 2; round++)
+            {
+                var debrisRoot = new GameObject("Sand debris controller");
+                debrisRoot.transform.SetParent(root.transform);
+                var debris = debrisRoot.AddComponent<CastleDebris>();
+                debris.ShatterOnImpact = false;
+                debris.VisualFastDebris = false;
+                var left = AddDrop(map, prefab, "left heavy block", new Vector3(-.7f, 2.8f, 0), Vector3.one, 0).Body;
+                var right = AddDrop(map, prefab, "right heavy block", new Vector3(.7f, 2.8f, 0), Vector3.one, 0).Body;
+                left.mass = 55;
+                right.mass = 70;
+                left.useGravity = right.useGravity = false;
+                Physics.SyncTransforms();
+                debris.Initialize(map.Bodies, null);
+
+                yield return new WaitForSeconds(2.1f);
+                left.useGravity = right.useGravity = true;
+                left.linearVelocity = right.linearVelocity = Vector3.down * 6;
+                float deadline = Time.fixedTime + 2.5f;
+                while (Time.fixedTime < deadline && debris.SinkingCount < 2) yield return fixedStep;
+                Check(debris.SinkingCount == 2, $"round {round}: both heavy blocks enter the production sand sink");
+                yield return new WaitForSeconds(.85f);
+
+                var during = mesh.vertices;
+                float leftCut = CutDepth(before, during, -.7f);
+                float rightCut = CutDepth(before, during, .7f);
+                float joinCut = CutDepth(before, during, 0);
+                Check(leftCut > .1f && rightCut > .1f && joinCut > .01f,
+                    $"round {round}: terrain drops {leftCut:F2}/{rightCut:F2} m, overlap {joinCut:F2} m");
+                var ripple = root.transform.Find("Sand ripples")?.GetComponent<ParticleSystem>();
+                Check(ripple && ripple.particleCount > 0, $"round {round}: sand ripple particles emitted");
+
+                if (round == 1)
+                {
+                    var hazard = new HazardFixture();
+                    DisasterStates.Active.Add(hazard);
+                    yield return fixedStep;
+                    Check(!left.isKinematic && !right.isKinematic && debris.SinkingCount == 0,
+                        "active hazard releases both sinking blocks to physics");
+                    DisasterStates.Active.Remove(hazard);
+                    left.gameObject.SetActive(false);
+                    right.gameObject.SetActive(false);
+                }
+                else
+                {
+                    deadline = Time.fixedTime + 6;
+                    while (Time.fixedTime < deadline && (left.gameObject.activeSelf || right.gameObject.activeSelf))
+                        yield return fixedStep;
+                    Check(!left.gameObject.activeSelf && !right.gameObject.activeSelf && debris.SunkCount == 2,
+                        "both repeat-round blocks fully sink and retire");
+                }
+
+                yield return new WaitForSeconds(3.8f);
+                var restored = mesh.vertices;
+                Check(CutDepth(before, restored, -.7f) < .001f && CutDepth(before, restored, .7f) < .001f,
+                    $"round {round}: original sand heights restored after creep settles");
+                Object.Destroy(left.gameObject);
+                Object.Destroy(right.gameObject);
+                Object.Destroy(debrisRoot);
+                map.Bodies.Clear();
+                yield return fixedStep;
+            }
+
+            Object.Destroy(root);
+            Object.Destroy(profile);
+            yield return null;
+            Check(Services.World == null, "World registration released on fixture teardown");
+        }
+
+        static float CutDepth(Vector3[] original, Vector3[] deformed, float x)
+        {
+            float cut = 0;
+            for (int i = 0; i < original.Length; i++)
+                if (Mathf.Abs(original[i].x - x) < .26f && Mathf.Abs(original[i].z) < .4f)
+                    cut = Mathf.Max(cut, original[i].y - deformed[i].y);
+            return cut;
+        }
+
+        static Color RenderMarker(Camera camera, RenderTexture target)
+        {
+            var previous = RenderTexture.active;
+            var pixel = new Texture2D(1, 1, TextureFormat.RGB24, false);
+            try
+            {
+                camera.Render();
+                RenderTexture.active = target;
+                pixel.ReadPixels(new Rect(32, 32, 1, 1), 0, 0);
+                return pixel.GetPixel(0, 0);
+            }
+            finally
+            {
+                RenderTexture.active = previous;
+                Object.Destroy(pixel);
+            }
+        }
+
+        sealed class HazardFixture : IDisasterState
+        {
+            public DisasterFrame Capture() => null;
         }
 
         static void Check(bool condition, string message)

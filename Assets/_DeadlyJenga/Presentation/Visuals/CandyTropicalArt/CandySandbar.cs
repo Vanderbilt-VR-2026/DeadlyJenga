@@ -19,13 +19,65 @@ namespace DeadlyJenga.CandyArt
         internal bool CatwalksBeach { get; set; }
         internal float BeachWaterOffset { get; set; }
         Vector2 coastHalf;
+        Vector3[] flatVertices, caveVertices;
+        int terrainResolution;
+        bool deformed;
         public float SampleHeight(Vector2 p)=>SurfaceHeight(p);
         struct Foot {public Vector2 center,half;public Quaternion rotation;}
         readonly List<Foot> feet=new List<Foot>();
         void OnEnable(){Refresh();}
         void OnDisable(){Release();}
         void Dispose(Object item){if(!item)return;if(Application.isPlaying)Destroy(item);else DestroyImmediate(item);}
-        void Release(){Dispose(owned);Dispose(heights);owned=null;heights=null;}
+        void Release(){Dispose(owned);Dispose(heights);owned=null;heights=null;flatVertices=caveVertices=null;deformed=false;}
+
+        internal bool TrySampleSurface(Vector3 point, out Vector3 surface)
+        {
+            surface = default;
+            if (!owned || !isActiveAndEnabled || !TryGetComponent<MeshRenderer>(out var renderer) ||
+                !renderer.enabled) return false;
+            var local = transform.InverseTransformPoint(point);
+            if (Mathf.Abs(local.x) > HalfSize.x || Mathf.Abs(local.z) > HalfSize.y) return false;
+            local.y = SurfaceHeight(new Vector2(local.x, local.z));
+            surface = transform.TransformPoint(local);
+            return true;
+        }
+
+        // Centres and dimensions are in local space. Overlapping holes share a floor.
+        internal void ApplyCaveIns(IReadOnlyList<Vector4> craters)
+        {
+            if (!owned || (craters.Count == 0 && !deformed)) return;
+            flatVertices ??= owned.vertices;
+            caveVertices ??= new Vector3[flatVertices.Length];
+            System.Array.Copy(flatVertices, caveVertices, flatVertices.Length);
+
+            var step = 2 * HalfSize / terrainResolution;
+            int row = terrainResolution + 1;
+            foreach (var crater in craters)
+            {
+                float radius = Mathf.Max(crater.z, Mathf.Max(step.x, step.y) * 1.65f);
+                int minX = Mathf.Max(1, Mathf.FloorToInt((crater.x - radius + HalfSize.x) / step.x));
+                int maxX = Mathf.Min(row - 2, Mathf.CeilToInt((crater.x + radius + HalfSize.x) / step.x));
+                int minZ = Mathf.Max(1, Mathf.FloorToInt((crater.y - radius + HalfSize.y) / step.y));
+                int maxZ = Mathf.Min(row - 2, Mathf.CeilToInt((crater.y + radius + HalfSize.y) / step.y));
+                for (int z = minZ; z <= maxZ; z++)
+                for (int x = minX; x <= maxX; x++)
+                {
+                    int index = z * row + x;
+                    var original = flatVertices[index];
+                    float distance = new Vector2(original.x - crater.x, original.z - crater.y).magnitude / radius;
+                    if (distance >= 1) continue;
+                    float bowl = 1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.14f, .7f, distance));
+                    float lip = Mathf.Max(0, 1 - Mathf.Abs(distance - .8f) / .2f);
+                    float y = original.y - crater.w * bowl + Mathf.Min(.09f, crater.w * .2f) * lip;
+                    if (y < original.y) caveVertices[index].y = Mathf.Min(caveVertices[index].y, y);
+                    else if (caveVertices[index].y >= original.y) caveVertices[index].y = Mathf.Max(caveVertices[index].y, y);
+                }
+            }
+            owned.SetVertices(caveVertices);
+            owned.RecalculateBounds();
+            owned.RecalculateNormals();
+            deformed = craters.Count != 0;
+        }
         public void Refresh()
         {
             if(!profile)return;var shape=map?Map:null;
@@ -120,6 +172,7 @@ namespace DeadlyJenga.CandyArt
         void BuildMesh()
         {
             int resolution=CatwalksBeach?160:Mathf.Clamp(profile.terrainResolution,48,160),row=resolution+1;
+            terrainResolution=resolution;
             var vertices=new List<Vector3>();var uv=new List<Vector2>();var triangles=new List<int>();var samples=new float[row*row];
             for(int z=0;z<=resolution;z++)for(int x=0;x<=resolution;x++)
             {

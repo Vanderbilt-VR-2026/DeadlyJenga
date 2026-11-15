@@ -18,6 +18,7 @@ Shader "Candy Tropical/Wave Immersion"
 
             float4 _WaterWash; // submersion, surface turbulence, time, warp strength
             float _WaveHasDepth;
+            float _WaterSceneOcclusion;
 
             float Hash(float2 p)
             {
@@ -73,7 +74,7 @@ Shader "Candy Tropical/Wave Immersion"
                 half luminance = dot(scene.rgb, half3(.25,.62,.13));
                 half3 filtered = lerp(scene.rgb * half3(.31,.73,.74),
                     luminance * half3(.24,.62,.65), .40);
-                half3 submerged = water + filtered * visibility;
+                half3 submerged = water + filtered * visibility * (1 - _WaterSceneOcclusion);
                 float bubbles = Bubbles(uv * float2(23, 14), t) +
                                 .5 * Bubbles(uv * float2(39, 24) + .37, t * 1.36);
                 submerged += bubbles * half3(.076,.19,.20);
