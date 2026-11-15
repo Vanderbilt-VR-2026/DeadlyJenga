@@ -83,10 +83,12 @@ namespace DeadlyJenga.CastlePrototype.Editor
             int first = Math.Max(ProfilerDriver.firstFrameIndex, ProfilerDriver.lastFrameIndex - frames + 1);
             int captured = 0;
             var markers = new Dictionary<(string thread, string name), List<double>>();
+            var behaviours = new Dictionary<(string thread, string name), List<double>>();
             for (int frameIndex = first; frameIndex <= ProfilerDriver.lastFrameIndex; frameIndex++)
             {
                 bool validFrame = false;
                 var selfTimes = new Dictionary<(string thread, string name), double>();
+                var behaviourTimes = new Dictionary<(string thread, string name), double>();
                 for (int thread = 0; ; thread++)
                 {
                     using var frame = ProfilerDriver.GetRawFrameDataView(frameIndex, thread);
@@ -95,23 +97,22 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     validFrame = true;
                     for (int sample = 0; sample < frame.sampleCount; sample++)
                     {
-                        double selfTime = frame.GetSampleTimeMs(sample);
+                        double inclusiveTime = frame.GetSampleTimeMs(sample);
+                        double selfTime = inclusiveTime;
                         int end = sample + frame.GetSampleChildrenCountRecursive(sample) + 1;
                         for (int child = sample + 1; child < end; child += 1 + frame.GetSampleChildrenCountRecursive(child))
                             selfTime -= frame.GetSampleTimeMs(child);
-                        if (selfTime <= 0) continue;
-                        var marker = (frame.threadName, frame.GetSampleName(sample));
-                        selfTimes.TryGetValue(marker, out double previous);
-                        selfTimes[marker] = previous + selfTime;
+                        string name = frame.GetSampleName(sample);
+                        var marker = (frame.threadName, name);
+                        if (selfTime > 0) AddTime(selfTimes, marker, selfTime);
+                        if (inclusiveTime > 0 && name.Contains("Update", StringComparison.Ordinal) && name.Contains('('))
+                            AddTime(behaviourTimes, marker, inclusiveTime);
                     }
                 }
                 if (!validFrame) continue;
                 captured++;
-                foreach (var (marker, time) in selfTimes)
-                {
-                    if (!markers.TryGetValue(marker, out var samples)) markers.Add(marker, samples = new List<double>());
-                    samples.Add(time);
-                }
+                Accumulate(markers, selfTimes);
+                Accumulate(behaviours, behaviourTimes);
             }
             if (captured == 0) throw new InvalidOperationException("Profiler contains no captured main/render thread frames");
 
@@ -122,16 +123,37 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 return index < 0 ? 0 : values[index];
             }
             using var report = new StreamWriter(output, append: false);
-            report.WriteLine($"Frames {first}–{ProfilerDriver.lastFrameIndex}, {captured} captured. Times are exclusive CPU ms, including waits.");
-            foreach (var thread in markers.GroupBy(entry => entry.Key.thread))
-            {
-                report.WriteLine(thread.Key);
-                foreach (var marker in thread.Select(entry => (entry.Key.name, median: Median(entry.Value),
-                    mean: entry.Value.Sum() / captured, present: entry.Value.Count)).OrderByDescending(entry => entry.mean).Take(35))
-                    report.WriteLine(FormattableString.Invariant($"{marker.mean:F3} mean  {marker.median:F3} median  {marker.present}/{captured}  {marker.name}"));
-            }
+            report.WriteLine($"Frames {first}–{ProfilerDriver.lastFrameIndex}, {captured} captured. Times are CPU ms, including waits.");
+            WriteTimings("Exclusive marker times", markers);
+            WriteTimings("Inclusive Update method times", behaviours);
             report.Flush();
             EditorApplication.Exit(0);
+
+            static void AddTime(Dictionary<(string thread, string name), double> times, (string thread, string name) marker, double time)
+            {
+                times.TryGetValue(marker, out double previous);
+                times[marker] = previous + time;
+            }
+            static void Accumulate(Dictionary<(string thread, string name), List<double>> series,
+                Dictionary<(string thread, string name), double> times)
+            {
+                foreach (var (marker, time) in times)
+                {
+                    if (!series.TryGetValue(marker, out var samples)) series.Add(marker, samples = new List<double>());
+                    samples.Add(time);
+                }
+            }
+            void WriteTimings(string title, Dictionary<(string thread, string name), List<double>> series)
+            {
+                report.WriteLine(title);
+                foreach (var thread in series.GroupBy(entry => entry.Key.thread))
+                {
+                    report.WriteLine(thread.Key);
+                    foreach (var marker in thread.Select(entry => (entry.Key.name, median: Median(entry.Value),
+                        mean: entry.Value.Sum() / captured, present: entry.Value.Count)).OrderByDescending(entry => entry.mean).Take(35))
+                        report.WriteLine(FormattableString.Invariant($"{marker.mean:F3} mean  {marker.median:F3} median  {marker.present}/{captured}  {marker.name}"));
+                }
+            }
         }
     }
 }
