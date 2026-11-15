@@ -648,11 +648,14 @@ namespace DeadlyJenga.CastlePrototype
             yield return Until(() => ImpactHazard == "Tsunami" || ImpactHazard == "Combined"
                 ? Tracked.Waves.Any(wave => wave.Wave.active)
                 : DisasterStates.Active.Any(source => source.Capture()?.kind == ImpactHazard), "Disaster is visible locally: " + ImpactHazard, 75);
-            bool binaryProfile = Environment.GetCommandLineArgs().Contains("--dj-impact-raw-profile");
+            bool gpuProfile = Environment.GetCommandLineArgs().Contains("--dj-impact-gpu-profile");
+            bool binaryProfile = gpuProfile || Environment.GetCommandLineArgs().Contains("--dj-impact-raw-profile");
+            bool gpuWasEnabled = UnityEngine.Profiling.Profiler.GetAreaEnabled(UnityEngine.Profiling.ProfilerArea.GPU);
             try
             {
                 if (binaryProfile)
                 {
+                    if (gpuProfile) UnityEngine.Profiling.Profiler.SetAreaEnabled(UnityEngine.Profiling.ProfilerArea.GPU, true);
                     UnityEngine.Profiling.Profiler.logFile = Path.Combine(folder, role + "-" + ImpactLabel + ".raw");
                     UnityEngine.Profiling.Profiler.enableBinaryLog = true;
                     UnityEngine.Profiling.Profiler.enabled = true;
@@ -666,6 +669,7 @@ namespace DeadlyJenga.CastlePrototype
                     UnityEngine.Profiling.Profiler.enabled = false;
                     UnityEngine.Profiling.Profiler.enableBinaryLog = false;
                     UnityEngine.Profiling.Profiler.logFile = "";
+                    if (gpuProfile) UnityEngine.Profiling.Profiler.SetAreaEnabled(UnityEngine.Profiling.ProfilerArea.GPU, gpuWasEnabled);
                 }
             }
             if (host || solo) CheckNearbyCandidates("after-impact");
@@ -700,6 +704,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static readonly ProfilerMarker ImpactProbeMarker = new ProfilerMarker("DJ.Test.ImpactProbe");
+        Fusion.NetworkRunner rateConfiguredRunner;
 
         void RecordNetworkTraffic(string phase)
         {
@@ -711,6 +716,15 @@ namespace DeadlyJenga.CastlePrototype
             var room=IslandRoomConnection.Instance;
             if(room&&room.Runner)
             {
+                text.AppendLine("ReliableDataSendRateBefore="+room.Runner.ReliableDataSendRate);
+                if(rateConfiguredRunner!=room.Runner)
+                {
+                    var argument=Environment.GetCommandLineArgs().FirstOrDefault(arg=>arg.StartsWith("--dj-reliable-rate=",StringComparison.Ordinal));
+                    if(argument!=null&&int.TryParse(argument[19..],out int rate)&&rate>=1&&rate<=60)
+                        room.Runner.ReliableDataSendRate=rate;
+                    rateConfiguredRunner=room.Runner;
+                }
+                text.AppendLine("ReliableDataSendRate="+room.Runner.ReliableDataSendRate);
                 text.AppendLine("ReliableSendCount="+room.Runner.Config.Network.GameReliableChannelSendCount);
                 foreach(var player in room.Runner.ActivePlayers)
                     if(room.Runner.IsServer||player==room.Runner.LocalPlayer)

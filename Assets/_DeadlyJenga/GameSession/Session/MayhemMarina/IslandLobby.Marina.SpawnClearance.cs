@@ -22,6 +22,22 @@ namespace DeadlyJenga.CastlePrototype
         };
         readonly Collider[] marinaSpawnOverlaps=new Collider[64];
         internal string MarinaSpawnBlocker { get; private set; }
+        internal int PreferredMarinaHostSlot
+        {
+            get
+            {
+                if(!NetworkActors.Alive(Player))return 0;
+                int nearest=0;float distance=float.PositiveInfinity;
+                var feet=Player.transform.position;
+                for(int i=0;i<10;i++)
+                {
+                    var at=transform.TransformPoint(new Vector3(-2.4f+1.2f*(i%5),1.86f,6.2f+1.4f*(i/5)));
+                    float d=new Vector2(at.x-feet.x,at.z-feet.z).sqrMagnitude;
+                    if(d<distance){nearest=i;distance=d;}
+                }
+                return distance<=.15f*.15f?nearest:0;
+            }
+        }
         internal bool UsesMarinaSpawns=>Radius>=30&&PlayerPrefs.GetInt(LegacyLobbyPreference,0)!=1;
         internal int MarinaFloorRevision=>marinaFloorRevision;
         internal void InvalidateMarinaSpawnClearance(){marinaFloorRevision++;nextMarinaArrival=0;}
@@ -58,16 +74,6 @@ namespace DeadlyJenga.CastlePrototype
             if(gray)floor=flatFloor.GetComponent<Collider>();
             if(!floor||!floor.enabled){reason="Waiting for the lobby collision floor.";return MarinaSpawnResult.Wait;}
             if(!NetworkActors.Alive(Player)){reason="Waiting for the local lobby body.";return MarinaSpawnResult.Wait;}
-            if (slot == 0 && marinaArrivalPlaced && NetworkActors.Alive(Player) &&
-                MarinaFinite(Player.transform.position) && Player.transform.position.y > WaterHeight(Player.transform.position))
-            {
-                var feet = Player.transform.position;
-                if (floor.Raycast(new Ray(feet + Vector3.up * 1f, Vector3.down), out var floorHit, 2.5f) && floorHit.normal.y >= .7f)
-                {
-                    pose = new P.Pose(feet, Player.transform.rotation);
-                    return MarinaSpawnResult.Accepted;
-                }
-            }
             MarinaEnvelope(out float radius,out float height,out var center,out float bottom);
             if(!float.IsFinite(radius)||!float.IsFinite(height)||!MarinaFinite(center)||radius<=0||height<radius*2)
             {reason="The current lobby body envelope is invalid.";return MarinaSpawnResult.Rejected;}

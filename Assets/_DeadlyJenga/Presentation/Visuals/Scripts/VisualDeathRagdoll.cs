@@ -29,6 +29,7 @@ namespace DeadlyJenga.Presentation
             public Quaternion initialRotation;
             public Bounds bounds;
             public int nearest;
+            public VisualSkinDeformation deformation;
         }
         readonly List<Joint> joints=new List<Joint>();
         readonly List<Skin> skins=new List<Skin>();
@@ -130,6 +131,8 @@ namespace DeadlyJenga.Presentation
                     var w=skin.weights[i];float total=w.weight0+w.weight1+w.weight2+w.weight3;
                     skin.single[i]=total<=.001f?skin.nearest:w.weight1==0&&w.weight2==0&&w.weight3==0?skin.bones[w.boneIndex0]:-1;
                 }
+                if(vertices.Length>=512)
+                    skin.deformation=new VisualSkinDeformation(skin.origin,skin.normal,skin.weights,skin.bones,skin.single,joints.Count);
             }
             skins.Add(skin);
         }
@@ -202,6 +205,7 @@ namespace DeadlyJenga.Presentation
             }
         }
         public void Present()=>Deform();
+        public void Dispose(){foreach(var skin in skins)skin.deformation?.Dispose();}
         bool Scenery(RaycastHit hit)
         {
             if(!hit.collider||hit.collider.isTrigger)return false;
@@ -241,25 +245,30 @@ namespace DeadlyJenga.Presentation
                     var inverseRotation=Quaternion.Inverse(skin.transform.rotation);
                     for(int j=0;j<joints.Count;j++)
                     {skin.localPoses[j]=inverse*poses[j];skin.normalPoses[j]=Matrix4x4.Rotate(inverseRotation*joints[j].rotation);}
-                    Vector3 localMin=Vector3.one*float.PositiveInfinity,localMax=Vector3.one*float.NegativeInfinity;
-                    for(int i=0;i<skin.vertices.Length;i++)
+                    if(skin.deformation!=null)
+                        skin.bounds=skin.deformation.Present(skin.localPoses,skin.normalPoses,skin.mesh);
+                    else
                     {
-                        Vector3 p,n;
-                        int single=skin.single[i];
-                        if(single>=0)
-                        {p=skin.localPoses[single].MultiplyPoint3x4(skin.origin[i]);n=skin.normalPoses[single].MultiplyVector(skin.normal[i]);}
-                        else
+                        Vector3 localMin=Vector3.one*float.PositiveInfinity,localMax=Vector3.one*float.NegativeInfinity;
+                        for(int i=0;i<skin.vertices.Length;i++)
                         {
-                            var w=skin.weights[i];float total=w.weight0+w.weight1+w.weight2+w.weight3;
-                            p=n=Vector3.zero;
-                            Weighted(skin,i,w.boneIndex0,w.weight0,ref p,ref n);Weighted(skin,i,w.boneIndex1,w.weight1,ref p,ref n);
-                            Weighted(skin,i,w.boneIndex2,w.weight2,ref p,ref n);Weighted(skin,i,w.boneIndex3,w.weight3,ref p,ref n);p/=total;
+                            Vector3 p,n;
+                            int single=skin.single[i];
+                            if(single>=0)
+                            {p=skin.localPoses[single].MultiplyPoint3x4(skin.origin[i]);n=skin.normalPoses[single].MultiplyVector(skin.normal[i]);}
+                            else
+                            {
+                                var w=skin.weights[i];float total=w.weight0+w.weight1+w.weight2+w.weight3;
+                                p=n=Vector3.zero;
+                                Weighted(skin,i,w.boneIndex0,w.weight0,ref p,ref n);Weighted(skin,i,w.boneIndex1,w.weight1,ref p,ref n);
+                                Weighted(skin,i,w.boneIndex2,w.weight2,ref p,ref n);Weighted(skin,i,w.boneIndex3,w.weight3,ref p,ref n);p/=total;
+                            }
+                            skin.vertices[i]=p;skin.normals[i]=n.normalized;
+                            localMin=Vector3.Min(localMin,p);localMax=Vector3.Max(localMax,p);
                         }
-                        skin.vertices[i]=p;skin.normals[i]=n.normalized;
-                        localMin=Vector3.Min(localMin,p);localMax=Vector3.Max(localMax,p);
+                        skin.bounds=new Bounds((localMin+localMax)*.5f,localMax-localMin);
+                        skin.mesh.vertices=skin.vertices;skin.mesh.normals=skin.normals;skin.mesh.bounds=skin.bounds;
                     }
-                    skin.bounds=new Bounds((localMin+localMax)*.5f,localMax-localMin);
-                    skin.mesh.vertices=skin.vertices;skin.mesh.normals=skin.normals;skin.mesh.bounds=skin.bounds;
                     skin.renderer.localBounds=new Bounds(skin.bounds.center,skin.bounds.size+Vector3.one*radius*24);
                 }
                 var world=WorldBounds(skin.bounds,skin.transform);minimum=Vector3.Min(minimum,world.min);maximum=Vector3.Max(maximum,world.max);

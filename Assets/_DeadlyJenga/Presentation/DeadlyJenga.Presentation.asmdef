@@ -2,6 +2,8 @@
     "name": "DeadlyJenga.Presentation",
     "references": [
         "DeadlyJenga.Core",
+        "Unity.Burst",
+        "Unity.Collections",
         "Unity.InputSystem",
         "UnityEngine.UI",
         "Unity.TextMeshPro",

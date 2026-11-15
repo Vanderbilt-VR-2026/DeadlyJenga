@@ -617,6 +617,6 @@ namespace DeadlyJenga.Presentation
             }
             Present();
         }
-        void OnDestroy(){foreach(var m in owned)if(m)Destroy(m);foreach(var mesh in meshes)if(mesh)Destroy(mesh);}
+        void OnDestroy(){ragdoll?.Dispose();foreach(var m in owned)if(m)Destroy(m);foreach(var mesh in meshes)if(mesh)Destroy(mesh);}
     }
 }

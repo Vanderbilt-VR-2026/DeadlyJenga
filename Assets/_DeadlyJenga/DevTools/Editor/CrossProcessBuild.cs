@@ -7,6 +7,7 @@ using UnityEditor.Build.Reporting;
 using UnityEditor.SceneManagement;
 using UnityEditorInternal;
 using System.IO;
+using UnityEngine;
 namespace DeadlyJenga.CastlePrototype.Editor
 {
     [InitializeOnLoad]
@@ -43,7 +44,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunBatch()
         {
-            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) ValidateFingerPose();
+            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) { ValidateFingerPose(); ValidateDeathDeformation(); }
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path);
             var composition = (poseProbe || Environment.GetCommandLineArgs().Contains("--dj-tycoon") ||
@@ -132,6 +133,67 @@ namespace DeadlyJenga.CastlePrototype.Editor
             finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
+        static void ValidateDeathDeformation()
+        {
+            const int count = 769;
+            var origin = new Vector3[count]; var normals = new Vector3[count];
+            var weights = new BoneWeight[count]; var single = new int[count];
+            var map = new[] { 2, 0, 3, 1 };
+            for (int i = 0; i < count; i++)
+            {
+                origin[i] = new Vector3(Mathf.Sin(i * .17f), i * .013f, Mathf.Cos(i * .31f));
+                normals[i] = new Vector3(.2f, Mathf.Sin(i), 1).normalized;
+                weights[i] = new BoneWeight { boneIndex0 = 0, boneIndex1 = 1, boneIndex2 = 2, boneIndex3 = 3,
+                    weight0 = .3f, weight1 = .2f, weight2 = .15f, weight3 = .05f };
+                single[i] = i % 3 == 0 ? i % 4 : -1;
+            }
+            var type = typeof(DeadlyJenga.Presentation.CandyMelt).Assembly.GetType("DeadlyJenga.Presentation.VisualSkinDeformation", true);
+            var flags = System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var worker = (IDisposable)Activator.CreateInstance(type, flags, null,
+                new object[] { origin, normals, weights, map, single, 4 }, CultureInfo.InvariantCulture);
+            var present = type.GetMethod("Present", flags);
+            var mesh = new Mesh();
+            try
+            {
+                for (int sample = 0; sample < 3; sample++)
+                {
+                    var poses = new Matrix4x4[4]; var normalPoses = new Matrix4x4[4];
+                    for (int bone = 0; bone < 4; bone++)
+                    {
+                        var rotation = Quaternion.Euler(sample * 13 + bone * 17, bone * 23 - sample * 31, sample * 29);
+                        poses[bone] = Matrix4x4.TRS(new Vector3(bone, sample - bone, sample * .3f), rotation,
+                            new Vector3(.3f + sample, 1.1f + bone * .1f, .7f));
+                        normalPoses[bone] = Matrix4x4.Rotate(rotation);
+                    }
+                    var bounds = (Bounds)present.Invoke(worker, new object[] { poses, normalPoses, mesh });
+                    var actual = mesh.vertices; var actualNormals = mesh.normals;
+                    Vector3 min = Vector3.one * float.PositiveInfinity, max = Vector3.one * float.NegativeInfinity;
+                    for (int i = 0; i < count; i++)
+                    {
+                        Vector3 p = Vector3.zero, n = Vector3.zero;
+                        if (single[i] >= 0)
+                        { p = poses[single[i]].MultiplyPoint3x4(origin[i]); n = normalPoses[single[i]].MultiplyVector(normals[i]); }
+                        else
+                        {
+                            var w = weights[i];
+                            void Add(int index, float weight)
+                            { p += poses[map[index]].MultiplyPoint3x4(origin[i]) * weight; n += normalPoses[map[index]].MultiplyVector(normals[i]) * weight; }
+                            Add(w.boneIndex0, w.weight0); Add(w.boneIndex1, w.weight1);
+                            Add(w.boneIndex2, w.weight2); Add(w.boneIndex3, w.weight3);
+                            p /= w.weight0 + w.weight1 + w.weight2 + w.weight3;
+                        }
+                        if (Vector3.Distance(p, actual[i]) > .0002f || Vector3.Distance(n.normalized, actualNormals[i]) > .0002f)
+                            throw new InvalidOperationException($"Parallel death deformation differs: sample {sample}, vertex {i}");
+                        min = Vector3.Min(min, p); max = Vector3.Max(max, p);
+                    }
+                    if (Vector3.Distance(bounds.min, min) > .0003f || Vector3.Distance(bounds.max, max) > .0003f)
+                        throw new InvalidOperationException("Parallel death deformation bounds differ");
+                }
+                UnityEngine.Debug.Log("PASS 4617 death deformation position/normal/bounds checks across four worker batches and three matrix sets");
+            }
+            finally { worker.Dispose(); UnityEngine.Object.DestroyImmediate(mesh); }
+        }
+
         public static void SummarizeCpuProfileBatch()
         {
             var args = Environment.GetCommandLineArgs();
@@ -147,7 +209,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var markers = new Dictionary<(string thread, string name), List<double>>();
             var behaviours = new Dictionary<(string thread, string name), List<double>>();
             using var reconciliation = new StreamWriter(output + ".frames.csv", append: false);
-            reconciliation.WriteLine("frame,thread,root_ms,exclusive_ms,residual_ms");
+            reconciliation.WriteLine("frame,thread,root_ms,exclusive_ms,residual_ms,cpu_frame_ms,gpu_frame_ms");
             for (int frameIndex = first; frameIndex <= ProfilerDriver.lastFrameIndex; frameIndex++)
             {
                 bool validFrame = false;
@@ -176,7 +238,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         if (inclusiveTime > 0 && name.Contains("Update", StringComparison.Ordinal) && name.Contains('('))
                             AddTime(behaviourTimes, marker, inclusiveTime);
                     }
-                    reconciliation.WriteLine(FormattableString.Invariant($"{frameIndex},\"{threadName.Replace("\"", "\"\"")}\",{rootTime:F6},{exclusiveTime:F6},{rootTime-exclusiveTime:F6}"));
+                    reconciliation.WriteLine(FormattableString.Invariant($"{frameIndex},\"{threadName.Replace("\"", "\"\"")}\",{rootTime:F6},{exclusiveTime:F6},{rootTime-exclusiveTime:F6},{frame.frameTimeMs:F6},{frame.frameGpuTimeMs:F6}"));
                 }
                 if (!validFrame) continue;
                 captured++;
