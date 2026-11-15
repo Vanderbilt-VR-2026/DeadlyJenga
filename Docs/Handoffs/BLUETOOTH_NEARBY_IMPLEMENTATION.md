@@ -1,4 +1,4 @@
-# Direct Bluetooth nearby rooms — implementation checkpoint
+# Direct Bluetooth nearby rooms ï¿½ implementation checkpoint
 
 Owner/task: bluetooth-nearby-approval. Branch: codex/bluetooth-nearby-approval. Target: origin/Evan_Sprint_4. Base: 1359ca474fb8a0bc86cdd72dca7dab5e3e631a71. Approved additive Core dependency: 6c6d5269ff40c68750808ec3dcbc7d844e2a78ba (core/nearby-room-contract).
 
@@ -27,4 +27,3 @@ Full Unity launch was refused by the two-task-editor admission limit. Initial ma
 Resume the requested scan after the Android permission dialog, preserve disabled state after denial, and throttle native permission/configuration polling to five times per second. Desktop lobby Wardrobe can now open the name/Room tablet pages. Current source passed offline Core, GameSession, Presentation, GameSession.Editor and Android-defined GameSession compilation. These remain compilation checks, not gameplay tests.
 
 Full APK attempt at dd75740b6f24c36eeac9d932e1b1612aeab9d089 crashed in Unity D3D12 asset import before the validation method ran. Its clean slot was returned; no full game APK was produced. A D3D11 retry is planned for this follow-up revision. Headset validation is deferred at the user's request.
-
