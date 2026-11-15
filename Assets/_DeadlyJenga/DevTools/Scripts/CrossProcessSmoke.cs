@@ -187,6 +187,8 @@ namespace DeadlyJenga.CastlePrototype
             string address=null;
             if(host)
             {
+                yield return Until(() => File.Exists(Mark("guest-home-nearby")),
+                    "Guest Home is ready before opening the nearby room", 180);
                 home.Host();
                 yield return Until(()=>IslandLobby.Current&&room.IsHost&&!room.Busy&&IslandLobby.Current.CanStart,
                     "Home Host creates a playable Marina room",95,()=>room.Status);
@@ -198,6 +200,7 @@ namespace DeadlyJenga.CastlePrototype
             }
             else
             {
+                File.WriteAllText(Mark("guest-home-nearby"), "ready");
                 yield return Until(()=>File.Exists(Mark("code")),"Host test rendezvous is ready",110);
                 address=File.ReadAllText(Mark("code"));
                 home.DetectNearby();
