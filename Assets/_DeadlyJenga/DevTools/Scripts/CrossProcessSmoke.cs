@@ -514,7 +514,7 @@ namespace DeadlyJenga.CastlePrototype
             if (!solo)
             {
                 File.WriteAllText(Mark("tycoon-return-" + role), "ready");
-                yield return Until(() => File.Exists(Mark("tycoon-return-" + (host ? "guest" : "host"))),
+                yield return Until(() => File.Exists(Mark("tycoon-return-" + (role == "host" ? "guest" : "host"))),
                     "Both peers independently confirmed return", 40);
             }
         }
