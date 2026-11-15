@@ -635,6 +635,11 @@ namespace DeadlyJenga.CastlePrototype
             bool fitted=wardrobeGeometry.TryBounds(wardrobeRenderers,out var bounds,out _);
             if(fitted)
             {
+                // Some skinned meshes can bake to only part of the visible avatar. Always fit
+                // the neutral body between the player's feet and just above their eye line.
+                var bodyCenter=new Vector3(target.x,feet.y+height*.58f,target.z);
+                var bodyEnvelope=new Bounds(bodyCenter,new Vector3(height*.72f,height*1.24f,height*.52f));
+                bounds.Encapsulate(bodyEnvelope);
                 if(!wardrobePivotReady&&Time.frameCount>=wardrobeFramingReadyAt)
                 {wardrobePivotOffset=bounds.center-feet;wardrobePivotReady=true;}
                 target=wardrobePivotReady?feet+wardrobePivotOffset:bounds.center;
