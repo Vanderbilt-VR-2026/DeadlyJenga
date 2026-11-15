@@ -23,6 +23,7 @@ namespace DeadlyJenga.DevTools.Editor
     [InitializeOnLoad] public static class DenseWavePerformance
     {
         const string Key = "DenseWavePerformance";
+        const string TycoonBatch = "tycoon-navigation";
         [Serializable] sealed class Scenes { public SceneSetup[] scenes; }
         static string Report => ProjectPath.Report("DenseWave-" + SessionState.GetString(Key+"Label", "run") + ".txt");
         static int errors;
@@ -38,18 +39,29 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!SessionState.GetBool(Key, false)) return;
                 if (state == PlayModeStateChange.EnteredPlayMode) {
                     errors=0; Application.logMessageReceived += Log;
-                    EditorApplication.delayCall += () => Object.FindFirstObjectByType<CastlePlaySession>().StartCoroutine(Guard());
+                    EditorApplication.delayCall += () => {
+                        var session = Object.FindFirstObjectByType<CastlePlaySession>();
+                        if (session) session.StartCoroutine(Guard());
+                        else {
+                            errors++;
+                            File.AppendAllText(Report, "FAIL Game scene did not load a session.\n");
+                            EditorApplication.ExitPlaymode();
+                        }
+                    };
                 }
                 if (state == PlayModeStateChange.EnteredEditMode) {
                     Application.logMessageReceived -= Log; SessionState.SetBool(Key, false);
                     SpectatorVideoCapture.ApplyChoices(JsonUtility.FromJson<SpectatorRecordingPlan>(SessionState.GetString(Key+"Choices", "")));
                     MatchSetup.FromLobby=SessionState.GetBool(Key+"Lobby", false); MatchSetup.StartLocalSession=SessionState.GetBool(Key+"Local", false);
                     EditorSceneManager.RestoreSceneManagerSetup(JsonUtility.FromJson<Scenes>(SessionState.GetString(Key+"Scenes", "")).scenes);
+                    if (Application.isBatchMode && SessionState.GetString(Key+"Label", "") == TycoonBatch)
+                        EditorApplication.Exit(errors == 0 ? 0 : 2);
                 }
             };
         }
         [MenuItem("Tools/Deadly Jenga/Performance/Profile Dense Blocks Bots and Tsunami")]
         public static void RunMenu() => Run("manual");
+        public static void RunTycoonNavigationBatch() => Run(TycoonBatch);
         static void Run(string label)
         {
             var scenes=EditorSceneManager.GetSceneManagerSetup();
@@ -61,7 +73,9 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Label",label); SessionState.SetBool(Key,true);
             MatchSetup.FromLobby=false; MatchSetup.StartLocalSession=false;
             string scene=label.Contains("dense") ? "MapDrafterEvan1.unity" : "Game.unity";
-            File.WriteAllText(Report,"Actual "+scene+"; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.\n");
+            File.WriteAllText(Report, label == TycoonBatch
+                ? "Game.unity local Play Mode, Tycoon Demo, 24 bots, voices off, seeded tsunami. Editor wall-clock frame timings.\n"
+                : "Actual "+scene+"; castle; 0/32 bots; identical seeded tsunami. Editor CPU timing, not GPU/device certification.\n");
             EditorSceneManager.OpenScene(ProjectPath.Find(scene)); EditorApplication.EnterPlaymode();
         }
         static void Log(string message,string trace,LogType kind)
@@ -72,7 +86,7 @@ namespace DeadlyJenga.DevTools.Editor
             while(stack.Count>0) {
                 bool next=false;object current=null;Exception error=null;
                 try { next=stack.Peek().MoveNext();if(next)current=stack.Peek().Current; } catch(Exception e){error=e;}
-                if(error!=null){File.AppendAllText(Report,"FAIL "+error+"\n");break;}
+                if(error!=null){errors++;File.AppendAllText(Report,"FAIL "+error+"\n");break;}
                 if(!next){(stack.Pop() as IDisposable)?.Dispose();continue;}
                 if(current is IEnumerator child){stack.Push(child);continue;}yield return current;
             }
@@ -86,6 +100,10 @@ namespace DeadlyJenga.DevTools.Editor
             var session=Services.Session as CastlePlaySession;
             if(!session)throw new Exception("Game session unavailable.");
             session.SurvivorBots?.Clear();session.HandBots?.Clear();if(session.Social!=null)session.Social.VoiceEnabled=false;
+            if (SessionState.GetString(Key+"Label", "") == TycoonBatch) {
+                yield return CheckTycoonNavigation(session);
+                yield break;
+            }
             if(!SessionState.GetString(Key+"Label", "").Contains("dense")) { MatchSetup.ModeId="demo";MatchSetup.MapId="mode-castle-gaps";MatchSetup.FromLobby=false;MatchSetup.ApplyMap(); }
             yield return null;
             int vsync=QualitySettings.vSyncCount,rate=Application.targetFrameRate;float scale=Time.timeScale;
@@ -128,6 +146,93 @@ namespace DeadlyJenga.DevTools.Editor
         }
         static void Require(bool pass,string message)
         {if(!pass)throw new Exception(message);File.AppendAllText(Report,"PASS "+message+"\n");}
+
+        static IEnumerator CheckTycoonNavigation(CastlePlaySession session)
+        {
+            MatchSetup.ModeId = "demo";
+            MatchSetup.MapId = "mode-tycoon";
+            UnityEngine.Random.InitState(71293);
+            MatchSetup.ApplyMap();
+            yield return null;
+            var world = Services.World as CastleGenerator;
+            Require(world && world.settings.layoutPreset == TycoonLayout.Preset && world.Bodies.Count > 0,
+                "Tycoon loaded through the catalog in Game");
+
+            int vSync = QualitySettings.vSyncCount;
+            int frameRate = Application.targetFrameRate;
+            QualitySettings.vSyncCount = 0;
+            Application.targetFrameRate = -1;
+            try
+            {
+                session.SurvivorBots.AutoFill = false;
+                for (int i = 0; i < 24; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == 24, "24 actual survivor bots spawned");
+                yield return new WaitForSeconds(3);
+                var bots = session.Bots().Bots.ToArray();
+                var anchorPositions = world.Bodies.Select(body => body.position).ToArray();
+                yield return SampleTycoon("24-bots", 6);
+
+                var prefab = DemoDisasters.Prefabs.First(hazard => hazard.name == "Tsunami");
+                var parameters = DemoDisasters.Parameters(prefab).Select(parameter => parameter.initial).ToArray();
+                parameters[0] = 23;
+                parameters[2] = 27;
+                parameters[4] = 1;
+                UnityEngine.Random.InitState(71293);
+                Require(DemoDisasters.ExecuteForMode(session, "Tsunami", parameters), "Catalog tsunami started");
+                yield return SampleTycoon("24-bots-tsunami", 21);
+                int moved = world.Bodies.Where((body, i) => body && (body.position - anchorPositions[i]).sqrMagnitude > 1).Count();
+                Require(moved >= 12, $"{moved} Tycoon blocks moved more than one metre");
+                Require(bots.Count(bot => bot && bot.TravelDistance > 1) >= 12, "At least half the bots travelled more than one metre");
+            }
+            finally
+            {
+                DemoDisasters.StopAll(session);
+                QualitySettings.vSyncCount = vSync;
+                Application.targetFrameRate = frameRate;
+            }
+        }
+
+        static IEnumerator SampleTycoon(string label, float duration)
+        {
+            var watched = new HashSet<string> {
+                "DJ.BotDestination", "DJ.BotGeometry", "DJ.WalkingSources", "DJ.BotThreat",
+                "Main Thread", "Physics.Simulate", "BehaviourUpdate", "BehaviourFixedUpdate", "GC Allocated In Frame"
+            };
+            var handles = new List<ProfilerRecorderHandle>();
+            ProfilerRecorderHandle.GetAvailable(handles);
+            var recorders = handles.Select(ProfilerRecorderHandle.GetDescription)
+                .Where(description => watched.Contains(description.Name))
+                .Select(description => (description.Name, ProfilerRecorder.StartNew(description.Category, description.Name, 4096)))
+                .ToArray();
+            try
+            {
+                var frames = new List<double>();
+                double last = Time.realtimeSinceStartupAsDouble;
+                double until = last + duration;
+                while (last < until)
+                {
+                    yield return null;
+                    double now = Time.realtimeSinceStartupAsDouble;
+                    frames.Add((now - last) * 1000);
+                    last = now;
+                }
+                frames.Sort();
+                double Quantile(double p) => frames[(int)Math.Ceiling(p * frames.Count) - 1];
+                File.AppendAllText(Report, $"FRAMES {label} n={frames.Count} p50={Quantile(.5):F2} p95={Quantile(.95):F2} p99={Quantile(.99):F2} max={frames.Last():F2} ms\n");
+                foreach (var (name, recorder) in recorders)
+                {
+                    if (!recorder.Valid) continue;
+                    var samples = new List<ProfilerRecorderSample>();
+                    recorder.CopyTo(samples);
+                    if (samples.Count == 0) continue;
+                    File.AppendAllText(Report, $"PROFILE {label} {name} n={samples.Count} mean={samples.Average(sample => (double)sample.Value):F0} max={samples.Max(sample => sample.Value)}\n");
+                }
+            }
+            finally
+            {
+                foreach (var (_, recorder) in recorders) recorder.Dispose();
+            }
+        }
         static IEnumerator GroupChecks(CastlePlaySession session)
         {
             session.SurvivorBots.Clear();session.HandBots.Clear();
