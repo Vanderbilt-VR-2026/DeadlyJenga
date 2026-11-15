@@ -100,9 +100,9 @@ namespace DeadlyJenga.Presentation
             if (Pressed(kb?.cKey)) crouched = !crouched;
 
             // Headset (in tracking space; XR Origin adds the eye height).
-            var head = Quaternion.Euler(pitch, yaw, 0f);
-            var body = Quaternion.Euler(0f, yaw, 0f);
-            var headPos = new Vector3(0f, standingHeadHeight - (crouched ? crouchDrop : 0f), 0f);
+            var headPose = HeadPose;
+            var head = headPose.rotation;
+            var headPos = headPose.position;
             var h = new XRSimulatedHMDState
             {
                 centerEyePosition = headPos, centerEyeRotation = head,
@@ -128,18 +128,20 @@ namespace DeadlyJenga.Presentation
             bool grab = TestGrip || mouseOk && mouse.rightButton.isPressed;
             bool offFire = Held(kb?.gKey);
 
+            var leftPose = ControllerPose(true);
+            var rightPose = ControllerPose(false);
             var l = new XRSimulatedControllerState
             {
                 primary2DAxis = stick,
-                devicePosition = headPos + body * (LeftHome + leftOffset),
-                deviceRotation = head * leftTilt,
+                devicePosition = leftPose.position,
+                deviceRotation = leftPose.rotation,
                 isTracked = true, trackingState = 3, batteryLevel = 1f,
             };
             var r = new XRSimulatedControllerState
             {
                 primary2DAxis = turn,
-                devicePosition = headPos + body * (RightHome + rightOffset),
-                deviceRotation = head * rightTilt,
+                devicePosition = rightPose.position,
+                deviceRotation = rightPose.rotation,
                 isTracked = true, trackingState = 3, batteryLevel = 1f,
             };
             l = l.WithButton(ControllerButton.Primary2DAxisClick, TestSprint || Held(kb?.leftShiftKey))
@@ -176,6 +178,20 @@ namespace DeadlyJenga.Presentation
             skipMouse = Cursor.lockState != want;
             if (skipMouse) { Cursor.lockState = want; Cursor.visible = free; }
         }
+
+        internal Pose HeadPose => new(new Vector3(0f, standingHeadHeight - (crouched ? crouchDrop : 0f), 0f),
+            Quaternion.Euler(pitch, yaw, 0f));
+
+        internal Pose ControllerPose(bool useLeft)
+        {
+            var head = HeadPose;
+            var body = Quaternion.Euler(0f, yaw, 0f);
+            var offset = useLeft ? LeftHome + leftOffset : RightHome + rightOffset;
+            return new Pose(head.position + body * offset, head.rotation * (useLeft ? leftTilt : rightTilt));
+        }
+
+        internal bool MouseSelectEnabled => !cursorFree && !Held(Keyboard.current?.escapeKey) &&
+            !Held(Keyboard.current?.qKey) && !Held(Keyboard.current?.eKey);
 
         static bool Held(UnityEngine.InputSystem.Controls.KeyControl key) => key != null && key.isPressed;
         static bool Pressed(UnityEngine.InputSystem.Controls.KeyControl key) => key != null && key.wasPressedThisFrame;
