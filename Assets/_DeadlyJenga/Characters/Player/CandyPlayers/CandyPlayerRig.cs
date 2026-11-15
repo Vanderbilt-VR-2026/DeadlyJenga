@@ -30,6 +30,7 @@ namespace DeadlyJenga.CandyPlayers
         float currentSmoothness;
         int colorIndex=int.MinValue;
         Vector3 previousFeet;
+        bool gaitReady;
         float walkPhase, sprintBlend;
         Vector3 strideDirection = Vector3.forward;
         float locomotionSpeed;
@@ -77,7 +78,15 @@ namespace DeadlyJenga.CandyPlayers
             if(Application.isPlaying&&!GetComponent<CandyAvatarDetail>())gameObject.AddComponent<CandyAvatarDetail>();
         }
         void OnEnable(){RenderPipelineManager.beginCameraRendering+=BeforeCamera;RenderPipelineManager.endCameraRendering+=AfterCamera;}
-        void OnDisable(){RenderPipelineManager.beginCameraRendering-=BeforeCamera;RenderPipelineManager.endCameraRendering-=AfterCamera;if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;RestoreFirstPersonBody();if(attachments)attachments.FirstPerson(this,false);}
+        void OnDisable()
+        {
+            RenderPipelineManager.beginCameraRendering-=BeforeCamera;
+            RenderPipelineManager.endCameraRendering-=AfterCamera;
+            gaitReady=false;
+            if(headRenderer)headRenderer.shadowCastingMode=ShadowCastingMode.On;
+            RestoreFirstPersonBody();
+            if(attachments)attachments.FirstPerson(this,false);
+        }
         bool firstPersonOverride;
         void BeforeCamera(ScriptableRenderContext context,Camera camera)
         {
@@ -138,8 +147,17 @@ namespace DeadlyJenga.CandyPlayers
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
             if(deltaTime>0f)
             {
-                Vector3 travel = Vector3.ProjectOnPlane(frame.feet - previousFeet, Vector3.up);
+                Vector3 displacement = frame.feet - previousFeet;
+                float teleportDistance = BodyTeleportDistance * scale;
+                bool resetGait = !gaitReady || displacement.sqrMagnitude > teleportDistance * teleportDistance;
+                Vector3 travel = resetGait ? Vector3.zero : Vector3.ProjectOnPlane(displacement, Vector3.up);
                 previousFeet = frame.feet;
+                gaitReady = true;
+                if (resetGait)
+                {
+                    sprintBlend = 0f;
+                    strideDirection = Vector3.forward;
+                }
                 locomotionSpeed = travel.magnitude / (deltaTime * scale);
                 bool running = frame.sprinting && grounded && !downed && dance <= .01f;
                 float runTarget = running ? Mathf.InverseLerp(.3f, 2.4f, locomotionSpeed) : 0f;
