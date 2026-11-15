@@ -85,8 +85,8 @@ namespace DeadlyJenga.CandyArt
                     if (i == around || j == cross)
                         continue;
                     int a = i * (cross + 1) + j, b = a + cross + 1;
-                    triangles.Add(a); triangles.Add(b); triangles.Add(a + 1);
-                    triangles.Add(b); triangles.Add(b + 1); triangles.Add(a + 1);
+                    triangles.Add(a); triangles.Add(a + 1); triangles.Add(b);
+                    triangles.Add(b); triangles.Add(a + 1); triangles.Add(b + 1);
                     if (spin > Mathf.PI)
                         continue;
                     for (int t = 0; t < 3; t++)
