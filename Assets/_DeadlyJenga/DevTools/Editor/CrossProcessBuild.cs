@@ -48,10 +48,28 @@ namespace DeadlyJenga.CastlePrototype.Editor
             int index = (int)group.GetType().GetMethod("GetTotalCount").Invoke(group, null) - 1;
             var selected = viewType.GetProperty("selectedSizeIndex", flags);
             SessionState.SetInt(LobbyHandoffKey + "GameViewSize", (int)selected.GetValue(view));
+            SessionState.SetInt(LobbyHandoffKey + "GameViewAdded", index);
+            SessionState.SetString(LobbyHandoffKey + "GameViewGroup", current.ToString());
             selected.SetValue(view, index);
             viewType.GetMethod("SizeSelectionCallback", flags)?.Invoke(view, new object[] { index, null });
             view.Show(); view.Focus(); view.Repaint();
             Debug.Log("Impact Editor GameView targetSize=" + viewType.GetProperty("targetSize", flags)?.GetValue(view));
+        }
+        static void RestoreImpactGameView()
+        {
+            string groupName = SessionState.GetString(LobbyHandoffKey + "GameViewGroup", "");
+            if (groupName.Length == 0) return;
+            var assembly = typeof(UnityEditor.Editor).Assembly;
+            var flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance;
+            var viewType = assembly.GetType("UnityEditor.GameView");
+            var view = Resources.FindObjectsOfTypeAll(viewType).FirstOrDefault();
+            if (view) viewType.GetProperty("selectedSizeIndex", flags).SetValue(view, SessionState.GetInt(LobbyHandoffKey + "GameViewSize", 0));
+            var sizesType = assembly.GetType("UnityEditor.GameViewSizes");
+            var sizes = typeof(ScriptableSingleton<>).MakeGenericType(sizesType).GetProperty("instance", System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static).GetValue(null);
+            var group = sizesType.GetMethod("GetGroup").Invoke(sizes, new[] { Enum.Parse(assembly.GetType("UnityEditor.GameViewSizeGroupType"), groupName) });
+            int builtins = (int)group.GetType().GetMethod("GetBuiltinCount").Invoke(group, null);
+            group.GetType().GetMethod("RemoveCustomSize").Invoke(group, new object[] { SessionState.GetInt(LobbyHandoffKey + "GameViewAdded", builtins) - builtins });
+            SessionState.EraseString(LobbyHandoffKey + "GameViewGroup");
         }
         static void PollLobbyHandoff()
         {
@@ -65,6 +83,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             if (!report.Any(line => line.StartsWith("COMPLETE ") || line.StartsWith("FAILED "))) return;
             SessionState.SetBool(LobbyHandoffKey, false);
             EditorApplication.update -= PollLobbyHandoff;
+            RestoreImpactGameView();
             EditorApplication.Exit(report.Any(line => line.StartsWith("COMPLETE ")) ? 0 : 2);
         }
 
