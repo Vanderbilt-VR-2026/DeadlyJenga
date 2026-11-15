@@ -30,7 +30,9 @@ namespace DeadlyJenga.CandyArt
                 .39f, Vector2.one, 0f, .26f);
             forest.SetFloat("_Cull", 0f);
             crown.SetFloat("_Cull", 0f);
-            var treeCenter = new Vector3(-43f, 0f, -42f);
+            var trunkAnchor = world.Root.Find("Underneath the Tree Layout/Fir trunk collision");
+            var treeCenter = trunkAnchor ? Vector3.ProjectOnPlane(art.InverseTransformPoint(trunkAnchor.position), Vector3.up) :
+                new Vector3(-37f, 0f, -35.7f);
             var random = new System.Random(241215);
             var stems = new FirMesh();
             for (int y = 0; y < 8; y++)
@@ -39,7 +41,7 @@ namespace DeadlyJenga.CandyArt
                 float high = (y + 1) / 8f;
                 var a = treeCenter + new Vector3(Mathf.Sin(low * 3.5f) * 1.45f, low * 138f, Mathf.Sin(low * 6f));
                 var b = treeCenter + new Vector3(Mathf.Sin(high * 3.5f) * 1.45f, high * 138f, Mathf.Sin(high * 6f));
-                stems.Tube(a, b, Mathf.Lerp(5.9f, .2f, low), Mathf.Lerp(5.9f, .2f, high), 12);
+                stems.Tube(a, b, Mathf.Lerp(5.05f, .2f, low), Mathf.Lerp(5.05f, .2f, high), 12);
             }
 
             const int whorls = 17;

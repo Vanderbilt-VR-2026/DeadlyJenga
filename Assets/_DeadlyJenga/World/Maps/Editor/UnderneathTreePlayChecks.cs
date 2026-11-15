@@ -281,6 +281,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
             Require(railBodies.Length > 5 && map.Root.Find("Underneath the Tree Layout/Independent railway trestles") == null,
                 "the toy train has breakaway sections and no independent trestles");
+            var trunk = map.Root.Find("Underneath the Tree Layout/Fir trunk collision");
+            Require(trunk && railBodies.SelectMany(body => body.GetComponentsInChildren<BoxCollider>())
+                .All(deck =>
+                {
+                    var upright = new Vector3(trunk.position.x, deck.bounds.center.y, trunk.position.z);
+                    return Vector3.Distance(upright, deck.ClosestPoint(upright)) > 4.8f;
+                }), "the trunk clears every piece of rail deck");
             var span = gifts["Gift Bridge / Navy Span"].Single(body => body.name == "Lid");
             var center = span.transform.position;
             var floor = new Vector3(center.x, 1.65f, center.z);

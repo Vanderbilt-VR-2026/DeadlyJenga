@@ -99,14 +99,14 @@ namespace DeadlyJenga.CastlePrototype
                 Quaternion.Euler(0f, yaw, 0f), navy, ivory, false);
             giftBearings.Add(new GiftBearing(GiftBase(span), leftLid, rightLid));
 
-            var leftShelf = left + across * 5.1f - axis * 2.2f;
+            var leftShelf = left + across * 6.3f - axis * 2.2f;
             var leftStep = leftShelf - axis * 4.1f + across * 1.4f;
             var leftEntry = leftStep - axis * 4.9f + across * .9f;
             BridgeGift("Cream Landing", leftEntry, 6.5f, 1.75f, 5.8f, -13f, cream, berry);
             BridgeGift("Red Tread", leftStep, 5.7f, 3.15f, 5.6f, 7f, red, gold);
             BridgeGift("Pine Step", leftShelf, 5.1f, 4.55f, 5.2f, -4f, green, ivory);
 
-            var rightShelf = right + across * 5.5f + axis * 1.2f;
+            var rightShelf = right + across * 7.05f + axis * 1.2f;
             var rightStep = rightShelf + axis * 4.6f + across * .9f;
             var rightEntry = rightStep + axis * 4.7f + across * 1.5f;
             BridgeGift("Ochre Entry", rightEntry, 6.4f, 1.7f, 5.2f, 11f, orange, ivory);
@@ -116,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Gift Bridge / Gold Lookout", perch.x, perch.z, 4.4f, 1.55f, 3.6f, yaw - 17f,
                 orange, berry, shelf);
 
-            var trunk = Child(built, "Fir trunk collision", new Vector3(-43f, 17f, -42f), Quaternion.identity);
+            var trunk = Child(built, "Fir trunk collision", new Vector3(-37f, 17f, -35.7f), Quaternion.identity);
             trunk.gameObject.layer = Layers.Surface;
             var trunkShape = trunk.gameObject.AddComponent<CapsuleCollider>();
             trunkShape.radius = 4.65f;
