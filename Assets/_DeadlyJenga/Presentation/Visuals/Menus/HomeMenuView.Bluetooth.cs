@@ -17,7 +17,7 @@ namespace DeadlyJenga.Presentation
             ButtonAt(root,"BACK",new(-215,225),new(150,45),()=>ShowPage(joinPage));
             ButtonAt(root,"FIND ROOMS",new(110,225),new(350,45),()=>{bluetoothPageIndex=0;NearbyRoomUi.Controls?.RefreshNearby();});
             bluetoothStatus=Label(root,"",new(0,130),new(590,120),23,Color.white);
-            for(int i=0;i<4;i++){int slot=i;bluetoothLabels[i]=ButtonAt(root,"",new(0,35-i*62),new(590,54),()=>{if(bluetoothIds[slot]!=null)NearbyRoomUi.Controls?.RequestJoin(bluetoothIds[slot]);}).GetComponentInChildren<Text>();bluetoothLabels[i].richText=false;}
+            for(int i=0;i<4;i++){int slot=i;bluetoothLabels[i]=ButtonAt(root,"",new(0,35-i*62),new(590,54),()=>{if(bluetoothIds[slot]!=null)NearbyRoomUi.Controls?.RequestJoin(bluetoothIds[slot]);}).GetComponentInChildren<Text>();bluetoothLabels[i].supportRichText=false;}
             ButtonAt(root,"PREVIOUS",new(-153,-235),new(280,48),()=>bluetoothPageIndex=Mathf.Max(0,bluetoothPageIndex-1));
             ButtonAt(root,"NEXT",new(153,-235),new(280,48),()=>bluetoothPageIndex++);
             ButtonAt(root,"CANCEL REQUEST",new(0,-300),new(590,48),()=>NearbyRoomUi.Controls?.CancelJoinRequest());

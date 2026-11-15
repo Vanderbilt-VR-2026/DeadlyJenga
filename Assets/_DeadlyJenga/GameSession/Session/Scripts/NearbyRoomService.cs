@@ -13,8 +13,9 @@ namespace DeadlyJenga.CastlePrototype
         const string Key="DeadlyJenga.PlayerName.v1";
         public static string Clean(string value)
         {
+            string normalized;try{normalized=(value??"").Normalize(NormalizationForm.FormC);}catch(ArgumentException){return "";}
             var result=new StringBuilder();
-            foreach(char c in (value??"").Normalize(NormalizationForm.FormC))
+            foreach(char c in normalized)
             {
                 if(result.Length>=24)break;
                 if(char.IsLetterOrDigit(c)||c==' '||c=='-'||c=='_'||c=='\'')result.Append(c);
@@ -80,7 +81,7 @@ namespace DeadlyJenga.CastlePrototype
             if(permissionRequested)return;permissionRequested=true;
             var callbacks=new UnityEngine.Android.PermissionCallbacks();
             callbacks.PermissionDenied+=_=>{permissionRequested=false;NearbyStatus="Nearby devices permission denied. Enable it in app permissions, then try again.";enabledNearby=false;};
-            callbacks.PermissionGranted+=_=>{permissionRequested=false;lastConfiguration="";};
+            callbacks.PermissionGranted+=_=>{permissionRequested=!permissions.All(UnityEngine.Android.Permission.HasUserAuthorizedPermission);lastConfiguration="";};
             UnityEngine.Android.Permission.RequestUserPermissions(permissions,callbacks);
 #else
             NearbyStatus="Bluetooth rooms require the Android APK. Room codes and Wi-Fi discovery still work here.";
@@ -146,7 +147,7 @@ namespace DeadlyJenga.CastlePrototype
         }
         void Update()
         {
-            if(!owner)return;
+            if(!owner||!owner.Catalog)return;
             try
             {
                 if(enabledNearby&&!Ready()){if(!permissionRequested)EnsurePermission();return;}

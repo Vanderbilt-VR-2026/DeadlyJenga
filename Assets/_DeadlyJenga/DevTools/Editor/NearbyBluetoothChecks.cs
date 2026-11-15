@@ -11,7 +11,7 @@ namespace DeadlyJenga.DevTools.Editor
     {
         public static void RunApkBatch()
         {
-            try{Validate();TycoonLocalQuestBuild.RunBatch();}
+            try{Validate();TycoonLocalQuestBuild.RunTo(Path.GetFullPath(ProjectPath.Report("NearbyBluetooth-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss")+".apk")));}
             catch(Exception e){Debug.LogException(e);EditorApplication.Exit(2);}
         }
         public static void ValidateBatch()

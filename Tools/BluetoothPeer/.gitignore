@@ -1,0 +1,3 @@
+bin/
+obj/
+!BluetoothPeer.csproj

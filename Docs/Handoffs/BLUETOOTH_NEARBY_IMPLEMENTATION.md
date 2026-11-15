@@ -11,3 +11,13 @@ Names are stored in local PlayerPrefs and survive restarts and in-place updates 
 Validation so far: Java compiles against installed Android API 36. Source diff checks. Unity compilation, APK packaging/manifest/native-code inspection, actual rendered UI, real host/guest regression and Bluetooth radio tests pending. No Quest attached. Windows reports a Realtek Bluetooth adapter; role support has not yet been verified. A one-Quest/PC test can provide partial radio evidence, not final Quest-to-Quest proof.
 
 Status: checkpoint-not-ready. No shared integration or hardware success claim. No package additions or SDK replacement. Generated-build settings changes stay in the leased test slot, not source.
+
+## Native/offline validation update
+
+Core, GameSession, Presentation and GameSession.Editor compiled successfully using the installed Unity Roslyn compiler and cached dependency references, with current owned source lists. A separate GameSession compile with Android defines passed, covering JNI/permission code. These checks are not Unity import/IL2CPP/APK or runtime proof. The check caught and corrected a uGUI Text property typo. Java API compilation passed.
+
+Tools/BluetoothPeer builds successfully for Windows .NET 9. Adapter reports central/peripheral support; the actual GATT advertising probe aborted (Windows status Aborted, error Success), so PC-host support is NOT accepted. A 12-second scan completed without a matching headset; no remote radio exchange was tested. No driver or system permissions changed.
+
+Tools/BluetoothProbe produces a separate diagnostic Android APK using the exact same native bridge. The initial diagnostic APK passed signature verification, all three Bluetooth-permission checks and DEX bridge inclusion; SHA-256 83f50ecfff4a6a68cd0de761aaf69da2e9bbc8b5c8f27c899d25dced61852150, 24,979 bytes. It does not include Unity UI or Photon, and has not run on Quest. Build scripts and one-headset test instructions are repository-visible under Tools.
+
+Full Unity launch was refused by the two-task-editor admission limit. Initial manual job 9c86fb54505c43e98baf05a011ce460f was returned cancelled without an Editor launch. A transient external Unity CLI process also prevented check-in twice; later check-in succeeded without modifying or stopping another task. Full game APK, rendered UI and actual host/guest regression remain pending.

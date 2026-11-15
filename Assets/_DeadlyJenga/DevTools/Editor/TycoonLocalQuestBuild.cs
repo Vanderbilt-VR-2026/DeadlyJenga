@@ -14,20 +14,22 @@ namespace DeadlyJenga.DevTools.Editor
 {
     public static class TycoonLocalQuestBuild
     {
-        public static void RunBatch()
+        public static void RunBatch()=>RunTo(null);
+
+        public static void RunTo(string explicitOutput)
         {
             string report=ProjectPath.Report("TycoonLocalQuestBuild.txt");
             try
             {
                 if(EditorUserBuildSettings.activeBuildTarget!=BuildTarget.Android)throw new Exception("Launch with -buildTarget Android");
                 var args=Environment.GetCommandLineArgs();int index=Array.IndexOf(args,"-questOutput");
-                if(index<0||index+1>=args.Length)throw new Exception("Explicit -questOutput APK path required");
-                string output=Path.GetFullPath(args[index+1]);if(File.Exists(output))throw new Exception("Refusing to replace existing APK");
+                if(explicitOutput==null&&(index<0||index+1>=args.Length))throw new Exception("Explicit -questOutput APK path required");
+                string output=Path.GetFullPath(explicitOutput??args[index+1]);if(File.Exists(output))throw new Exception("Refusing to replace existing APK");
                 Directory.CreateDirectory(Path.GetDirectoryName(output));
                 if(!BuildPipeline.IsBuildTargetSupported(BuildTargetGroup.Android,BuildTarget.Android))throw new Exception("Android support is not installed");
                 PlayerSettings.productName="Deadly Jenga";
                 PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.deadlyjenga.quest3");
-                PlayerSettings.bundleVersion="0.4.0";PlayerSettings.Android.bundleVersionCode=20261112;
+                PlayerSettings.bundleVersion="0.4.0";PlayerSettings.Android.bundleVersionCode=explicitOutput==null?20261112:20261115;
                 PlayerSettings.Android.minSdkVersion=AndroidSdkVersions.AndroidApiLevel32;
                 PlayerSettings.Android.targetSdkVersion=AndroidSdkVersions.AndroidApiLevel35;
                 PlayerSettings.Android.targetArchitectures=AndroidArchitecture.ARM64;
@@ -75,9 +77,24 @@ namespace DeadlyJenga.DevTools.Editor
                     if(message.type==LogType.Error||message.type==LogType.Exception)File.AppendAllText(report,step.name+": "+message.content+"\n");
                 if(result.summary.result!=BuildResult.Succeeded||!File.Exists(output))throw new Exception("Quest APK build failed: "+result.summary.result);
                 File.WriteAllText(ProjectPath.Report("TycoonLocalQuestBuild.json"),JsonUtility.ToJson(new Receipt{project=Directory.GetParent(Application.dataPath).FullName,apk=output,bytes=new FileInfo(output).Length,result="Succeeded",errors=result.summary.totalErrors,warnings=result.summary.totalWarnings,unity=Application.unityVersion,package="com.deadlyjenga.quest3"},true));
+                if(explicitOutput!=null)PreserveAndRemoveGeneratedGdk();
                 EditorApplication.Exit(0);
             }
-            catch(Exception error){File.AppendAllText(report,"FAIL "+error+"\n");Debug.LogException(error);EditorApplication.Exit(2);}
+            catch(Exception error){File.AppendAllText(report,"FAIL "+error+"\n");Debug.LogException(error);if(explicitOutput!=null)PreserveAndRemoveGeneratedGdk();EditorApplication.Exit(2);}
+        }
+        static void PreserveAndRemoveGeneratedGdk()
+        {
+            // The isolated build starts from a clean lease; preserve the generated SDK asset before Editor deletion.
+            var folders=AssetDatabase.FindAssets("GDKEditionAutoGen t:Folder").Select(AssetDatabase.GUIDToAssetPath)
+                .Where(p=>Path.GetFileName(p)=="GDKEditionAutoGen").ToArray();
+            if(folders.Length!=1)return;
+            string folder=folders[0];var files=Directory.GetFiles(folder,"*",SearchOption.AllDirectories);
+            if(files.Any(p=>Path.GetFileName(p)!="GDKEdition.asset"&&Path.GetFileName(p)!="GDKEdition.asset.meta"))return;
+            string backup=ProjectPath.Report("NearbyBluetoothGeneratedBackup-"+DateTime.UtcNow.ToString("yyyyMMdd-HHmmss"));
+            Directory.CreateDirectory(backup);
+            foreach(string file in files)File.Copy(file,Path.Combine(backup,Path.GetFileName(file)),false);
+            if(File.Exists(folder+".meta"))File.Copy(folder+".meta",Path.Combine(backup,"GDKEditionAutoGen.meta"),false);
+            AssetDatabase.DeleteAsset(folder);
         }
         [Serializable] sealed class Receipt
         {public string project,apk,result,unity,package;public long bytes;public int errors,warnings;}
