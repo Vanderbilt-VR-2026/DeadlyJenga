@@ -19,9 +19,7 @@ namespace DeadlyJenga.CastlePrototype
 
         internal static bool IsInDevelopment(LobbyOption map)
         {
-            if (map == null) return false;
-            string id = (map.id ?? "").ToLowerInvariant();
-            return id.Contains("tycoon") || id.Contains("ninja") || id.StartsWith("workshop-", StringComparison.Ordinal);
+            return map?.id is "mode-vanderbilt" or "mode-cant-catch-me" or "mode-tycoon" or "mode-ninja-temple";
         }
 
         internal static bool IsArchive(LobbyOption map)
