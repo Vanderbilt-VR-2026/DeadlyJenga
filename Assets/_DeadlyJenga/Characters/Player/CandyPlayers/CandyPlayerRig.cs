@@ -179,8 +179,11 @@ namespace DeadlyJenga.CandyPlayers
                 if (travel.sqrMagnitude > .00001f)
                 {
                     Vector3 targetDirection = transform.InverseTransformDirection(travel.normalized);
-                    Vector3 blendedDirection = Vector3.Lerp(strideDirection, targetDirection, 1f - Mathf.Exp(-12f * deltaTime));
-                    strideDirection = blendedDirection.sqrMagnitude > .01f ? blendedDirection.normalized : targetDirection;
+                    // Interpolate the heading so opposite directions cannot cancel or stall.
+                    float oldHeading = Mathf.Atan2(strideDirection.x, strideDirection.z) * Mathf.Rad2Deg;
+                    float targetHeading = Mathf.Atan2(targetDirection.x, targetDirection.z) * Mathf.Rad2Deg;
+                    float heading = Mathf.LerpAngle(oldHeading, targetHeading, 1f - Mathf.Exp(-12f * deltaTime)) * Mathf.Deg2Rad;
+                    strideDirection = new Vector3(Mathf.Sin(heading), 0f, Mathf.Cos(heading));
                 }
                 float cadence = Mathf.Lerp(6f, 11f, Mathf.InverseLerp(.12f, 4f, locomotionSpeed)) + sprintBlend * 3.8f;
                 walkPhase = frame.hasGaitPhase ? frame.gaitPhase : Mathf.Repeat(walkPhase + cadence * deltaTime, 2f * Mathf.PI);
