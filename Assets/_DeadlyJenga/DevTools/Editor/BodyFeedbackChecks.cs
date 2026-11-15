@@ -152,11 +152,18 @@ namespace DeadlyJenga.DevTools.Editor
             Property(motor,"GripRemaining",1f);hud.Present(motor,.1f);Check(hud.Opacity>.5f,"Recovery unwinds fatigue instead of popping off");
             hud.Present(motor,2);Check(!canvas.enabled,"Full stamina finishes recovery and removes overlay");
             Property(motor,"SprintRequested",true);hud.Present(motor,2);
-            Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary does not show speed streaks");
-            Property(motor,"Sprinting",true);hud.Present(motor,2);
-            Check(Field<Vector4>(hud,"state").z==1,"Active sprint shows separate peripheral streaks");
+            Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary produces no vignette");
+            Property(motor,"Sprinting",true);hud.Present(motor,.06f);
+            Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades in");
+            hud.Present(motor,2);
+            Check(Field<Vector4>(hud,"state").z==1,"Active sprint enables the edge vignette");
             var sprint=Capture(camera,canvas,"03-sprinting.png");Object.Destroy(sprint);
-            Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);own.health=.22f;hud.Present(motor,2);
+            Check(CenterClear(camera,canvas,"03-sprinting",subtleDarkening:true),
+                "Sprint darkens the edges gently and leaves the center clear in actual shader pixels");
+            Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);hud.Present(motor,.06f);
+            Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades out");
+            hud.Present(motor,2);Check(!canvas.enabled,"Stopping sprint removes the vignette");
+            own.health=.22f;hud.Present(motor,2);
             var damage=Capture(camera,canvas,"04-injured.png");
             Check(CenterClear(camera,canvas,"04-injured"),"Low-health ink preserves the aim and navigation center");Object.Destroy(damage);
             var health=motor.GetComponent<CandyHealthFeedback>();hud.Present(motor,10);
@@ -263,7 +270,7 @@ namespace DeadlyJenga.DevTools.Editor
             {var d=a.GetPixel(x,y)-b.GetPixel(x,y);diff=Mathf.Max(diff,Mathf.Abs(d.r),Mathf.Abs(d.g),Mathf.Abs(d.b));}
             return diff;
         }
-        static bool CenterClear(Camera camera, Canvas overlay, string name)
+        static bool CenterClear(Camera camera, Canvas overlay, string name, bool subtleDarkening=false)
         {
             var clear = camera.clearFlags;
             var mask = camera.cullingMask;
@@ -279,13 +286,17 @@ namespace DeadlyJenga.DevTools.Editor
                 foreach (var node in nodes) node.gameObject.layer = 31;
                 camera.cullingMask = 1 << 31;
                 var isolated = Capture(camera, overlay, name+"-overlay.png");
-                bool visiblePeriphery = false;
-                for (int x = 16; x < isolated.width && !visiblePeriphery; x += 43)
-                for (int y = 16; y < isolated.height && !visiblePeriphery; y += 37)
+                float darkening = 0, brightening = 0;
+                for (int x = 16; x < isolated.width; x += 43)
+                for (int y = 16; y < isolated.height; y += 37)
                 {
                     Color delta = isolated.GetPixel(x,y) - reference.GetPixel(x,y);
-                    visiblePeriphery = Mathf.Max(Mathf.Abs(delta.r),Mathf.Abs(delta.g),Mathf.Abs(delta.b)) > .025f;
+                    darkening = Mathf.Max(darkening,-Mathf.Min(delta.r,delta.g,delta.b));
+                    brightening = Mathf.Max(brightening,Mathf.Max(delta.r,delta.g,delta.b));
                 }
+                bool visiblePeriphery = subtleDarkening
+                    ? darkening is >.025f and <.14f && brightening < .015f
+                    : Mathf.Max(darkening,brightening) > .025f;
                 bool clearCenter = visiblePeriphery && CenterDelta(reference, isolated) < .015f;
                 Object.Destroy(reference);
                 Object.Destroy(isolated);
