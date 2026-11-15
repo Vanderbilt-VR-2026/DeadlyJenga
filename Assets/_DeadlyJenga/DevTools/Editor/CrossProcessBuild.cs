@@ -102,7 +102,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         int end = sample + frame.GetSampleChildrenCountRecursive(sample) + 1;
                         for (int child = sample + 1; child < end; child += 1 + frame.GetSampleChildrenCountRecursive(child))
                             selfTime -= frame.GetSampleTimeMs(child);
-                        string name = frame.GetSampleName(sample);
+                        string name = frame.GetSampleName(sample) ?? "[Unnamed marker]";
                         var marker = (frame.threadName, name);
                         if (selfTime > 0) AddTime(selfTimes, marker, selfTime);
                         if (inclusiveTime > 0 && name.Contains("Update", StringComparison.Ordinal) && name.Contains('('))
