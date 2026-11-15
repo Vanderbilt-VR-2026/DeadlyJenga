@@ -416,19 +416,6 @@ namespace DeadlyJenga.DevTools.Editor
             var below = world.Center;
             below.y = world.WaterHeight(below) - 4.5f;
 
-            session.SetRole(false);
-            yield return null;
-            var survivorEye = session.Player.ViewCamera;
-            var originalEye = survivorEye.transform.position;
-            survivorEye.transform.position = shallow;
-            yield return null;
-            var guardedEye = session.ActiveCamera;
-            Check(guardedEye && guardedEye != survivorEye && guardedEye.transform.position.y >= world.WaterHeight(shallow),
-                "normal match view hands off to an above-water camera during survival immersion");
-            survivorEye.transform.position = originalEye;
-            session.SetRole(false);
-            yield return null;
-
             // The real match guard substitutes its own above-water camera. Hold it for these injected views.
             session.Modes.enabled = false;
             for (int role = 0; role < 2; role++)
@@ -441,7 +428,7 @@ namespace DeadlyJenga.DevTools.Editor
                 var eye = actor.ViewCamera;
                 string label = hand ? "flying hand" : "survivor";
                 Check(session.PlayingHand == hand && eye && eye.enabled && session.ActiveCamera == eye,
-                    $"{label} owns the real active camera");
+                    $"{label} owns the real active camera: playingHand={session.PlayingHand}, active={session.ActiveCamera?.name}, enabled={eye && eye.enabled}");
 
                 if (!eye || session.ActiveCamera != eye) continue;
                 var savedTexture = eye.targetTexture;
@@ -547,6 +534,14 @@ namespace DeadlyJenga.DevTools.Editor
                 "bot coating is dusting off late in its lifetime");
             yield return new WaitForSeconds(2f);
             Check(!FindCoat(visual), "bot coating is removed after about 20 seconds");
+
+            // A forced drowning pose can start a death view. Run it after the other checks.
+            var survivorEye = session.Player.ViewCamera;
+            survivorEye.transform.position = shallow;
+            yield return null;
+            var guardedEye = session.ActiveCamera;
+            Check(guardedEye && guardedEye != survivorEye && guardedEye.transform.position.y >= world.WaterHeight(shallow),
+                "normal match view hands off to an above-water camera during survival immersion");
         }
 
         static Vector3 FindIslandSupport(CastleGenerator map)
