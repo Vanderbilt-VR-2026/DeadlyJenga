@@ -48,9 +48,9 @@ namespace DeadlyJenga.Presentation
             [ReadOnly] public NativeArray<int> bones;
             [ReadOnly] public NativeArray<Matrix4x4> poses, normalPoses;
             // Each worker owns one disjoint contiguous batch of vertices.
-            [Unity.Collections.LowLevel.Unsafe.NativeDisableParallelForRestriction]
+            [NativeDisableParallelForRestriction]
             public NativeArray<Vector3> vertices;
-            [Unity.Collections.LowLevel.Unsafe.NativeDisableParallelForRestriction]
+            [NativeDisableParallelForRestriction]
             public NativeArray<Vector3> normals;
             [WriteOnly] public NativeArray<Extent> extents;
             public void Execute(int batch)
