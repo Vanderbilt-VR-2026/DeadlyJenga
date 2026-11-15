@@ -162,11 +162,15 @@ namespace DeadlyJenga.CastlePrototype
             UpdateMayhemMarina();
             if(UpdateWardrobe()){if(lobbyAimDot)lobbyAimDot.gameObject.SetActive(false);return;}
             bool vr = Player.IsVR;
-            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld : mouse?.leftButton.isPressed==true||Player.SelectHeld;
+            bool codePointer = !vr && lobby.CodeFocused && MenuGamepad.UsingPointer;
+            bool gamepadInteract = !vr && MenuGamepad.InteractPressed;
+            bool pointerHeld = vr ? select.IsPressed() || Player.SelectHeld :
+                mouse?.leftButton.isPressed==true || MenuGamepad.InteractHeld || (codePointer && MenuGamepad.Held);
             bool held = pointerHeld || !vr && !lobby.CodeFocused && keyboard?.eKey.isPressed==true;
             if(terminalRequireRelease){if(!held)terminalRequireRelease=false;return;}
             bool pressed = vr ? Player.SelectPressed :
-                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true||Player.SelectPressed;
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true ||
+                gamepadInteract || (codePointer && MenuGamepad.Pressed);
             int pointerDevice=0;
             Ray ray;
             if (Player.IsVR)
@@ -191,8 +195,11 @@ namespace DeadlyJenga.CastlePrototype
                     }
                 }
             }
+            else if (codePointer)
+                ray = eye.ScreenPointToRay(MenuGamepad.Position);
             else
-                ray=session.MenuOpen&&(mouse!=null||MenuGamepad.UsingPointer)?eye.ScreenPointToRay(MenuGamepad.UsingPointer?MenuGamepad.Position:mouse.position.ReadValue()):new Ray(eye.transform.position,eye.transform.forward);
+                ray = session.MenuOpen && mouse != null && !gamepadInteract
+                    ? eye.ScreenPointToRay(mouse.position.ReadValue()) : new Ray(eye.transform.position, eye.transform.forward);
             if (spectatorWall && spectatorWall.FullScreen)
             {
                 if (pressed || keyboard?.escapeKey.wasPressedThisFrame == true)

@@ -32,6 +32,8 @@ namespace DeadlyJenga.Presentation
             string.IsNullOrEmpty(Connected.description.product)?Connected.displayName:Connected.description.product;
         public static bool Pressed=>Current?.buttonSouth.wasPressedThisFrame==true;
         public static bool Held=>Current?.buttonSouth.isPressed==true;
+        internal static bool InteractPressed=>Current?.buttonWest.wasPressedThisFrame==true;
+        internal static bool InteractHeld=>Current?.buttonWest.isPressed==true;
         public static bool Cancel=>Current?.buttonEast.wasPressedThisFrame==true;
         public static bool UsingPointer { get { Update();return active; } }
         public static Vector2 Position { get { Update();return position; } }

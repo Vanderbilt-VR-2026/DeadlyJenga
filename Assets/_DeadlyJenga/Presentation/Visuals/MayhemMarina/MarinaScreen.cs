@@ -17,7 +17,7 @@ namespace DeadlyJenga.CandyArt.Marina
         readonly List<Target> targets=new();
         ILobbyControls lobby;ISessionInfo session;Action<string> detail;
         bool requireRelease=true,inputFocused=true;
-        bool ModalBlocked=>session?.IsVR==true&&session.MenuOpen||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
+        bool ModalBlocked=>session?.MenuOpen==true&&(session.IsVR||SessionPresentation.LobbyDeveloperAvailable(session))||MenuAim.InputConsumed||!inputFocused||GameExperiencePanel.Showing(session)||CandyWildlifePanel.Showing(session)||CandyComfortPanel.Showing(session)||CharacterPicker.Showing(session);
         static readonly Color Plum=new(.12f,.055f,.19f);
         static readonly Color Cream=new(1,.96f,.83f);
         static readonly Color ProjectionInk=new(.29f,.12f,.30f);
@@ -505,11 +505,12 @@ namespace DeadlyJenga.CandyArt.Marina
             if(!AnyFaceVisible||ModalBlocked||!NetworkActors.Alive(session?.Player)||!session.Player.gameObject.activeInHierarchy){requireRelease=true;if(aimDot)aimDot.gameObject.SetActive(false);if(focusPanel)focusPanel.gameObject.SetActive(false);return;}if(Time.unscaledTime>=refreshAt){refreshAt=Time.unscaledTime+.2f;Refresh();}
             var player=session?.Player;if(!NetworkActors.Alive(player)||!player.ViewCamera){aimDot.gameObject.SetActive(false);return;}
             var mouse=Mouse.current;var keyboard=Keyboard.current;
+            bool gamepadInteract = !player.IsVR && MenuGamepad.InteractPressed;
             bool held=player.IsVR ? select.IsPressed() || leftSelect.IsPressed() || player.SelectHeld :
-                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true;
+                !lobby.CodeFocused && keyboard?.eKey.isPressed==true || mouse?.leftButton.isPressed==true || MenuGamepad.InteractHeld;
             if(requireRelease&&!held)requireRelease=false;
             bool pressed=player.IsVR ? player.SelectPressed :
-                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true;
+                !lobby.CodeFocused && keyboard?.eKey.wasPressedThisFrame==true || mouse?.leftButton.wasPressedThisFrame==true || gamepadInteract;
             int pointerDevice = 0;
             var camera=player.ViewCamera;
             Ray ray;
@@ -535,7 +536,8 @@ namespace DeadlyJenga.CandyArt.Marina
                 }
             }
             else
-                ray=session.MenuOpen&&mouse!=null?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
+                ray=session.MenuOpen&&mouse!=null&&!gamepadInteract
+                    ?camera.ScreenPointToRay(mouse.position.ReadValue()):new Ray(camera.transform.position,camera.transform.forward);
             float screenRange = 11;
             if (Physics.Raycast(ray, out var obstruction, screenRange, 1 << Layers.Surface, QueryTriggerInteraction.Ignore))
                 screenRange = Mathf.Min(screenRange,obstruction.distance+.05f);
