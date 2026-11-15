@@ -174,7 +174,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             void Reject(Action action)
             {
                 bool rejected = false;
-                try { action(); } catch (IOException) { rejected = true; }
+                try { action(); } catch (Exception error) when (error is InvalidDataException || error is EndOfStreamException) { rejected = true; }
                 Check(rejected, "malformed packet rejected");
             }
             var empty = new DeadlyJenga.Core.MatchFrame();
