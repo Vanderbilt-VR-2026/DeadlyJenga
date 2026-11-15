@@ -2,8 +2,10 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Text;
 using UnityEngine;
 using Unity.Profiling;
 using Unity.Profiling.LowLevel.Unsafe;
@@ -254,6 +256,7 @@ namespace DeadlyJenga.CastlePrototype
         }
 
         static bool TycoonTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon");
+        static bool TycoonImpactTest => Environment.GetCommandLineArgs().Contains("--dj-tycoon-impact");
         const string TycoonMap = "mode-tycoon";
         static bool MigrationRound => Environment.GetCommandLineArgs().Contains("--dj-migrate-round");
         static bool FullRound => Environment.GetCommandLineArgs().Contains("--dj-full-round");
@@ -434,6 +437,13 @@ namespace DeadlyJenga.CastlePrototype
                 $"All {expectedTycoonBlocks} resting Tycoon blocks have live colliders");
             QualitySettings.vSyncCount = 0;
             Application.targetFrameRate = 90;
+            if (TycoonImpactTest)
+            {
+                yield return CheckTycoonImpact(session, world, blocks, host, solo);
+                if (host || solo) Require(room.ReturnMatchToLobby(), "Host requests normal return to lobby");
+                yield return CheckTycoonReturn(room, code, solo);
+                yield break;
+            }
             if (solo)
             {
                 var probe = blocks.OrderByDescending(body => body.position.y).First();
@@ -493,6 +503,11 @@ namespace DeadlyJenga.CastlePrototype
                     "Guest receives collapsed poses", 50);
                 File.WriteAllText(Mark("tycoon-wave-seen"), "yes");
             }
+            yield return CheckTycoonReturn(room, code, solo);
+        }
+
+        IEnumerator CheckTycoonReturn(IslandRoomConnection room, string code, bool solo)
+        {
             yield return Until(() => IslandLobby.Current && NetworkActors.Alive(IslandLobby.Current.Player) &&
                 (solo || room.Connected && room.Code == code && room.HumanCount == 2),
                 "Returns to a usable lobby and retains the same party", 70, () => room.Status);
@@ -502,6 +517,176 @@ namespace DeadlyJenga.CastlePrototype
                 yield return Until(() => File.Exists(Mark("tycoon-return-" + (host ? "guest" : "host"))),
                     "Both peers independently confirmed return", 40);
             }
+        }
+
+        IEnumerator CheckTycoonImpact(CastlePlaySession session, CastleGenerator world, Rigidbody[] blocks, bool host, bool solo)
+        {
+            var populationArg = Environment.GetCommandLineArgs().FirstOrDefault(arg => arg.StartsWith("--dj-bots=", StringComparison.Ordinal));
+            int population = populationArg == "--dj-bots=52" ? 52 : 24;
+            Require(populationArg == null || populationArg == "--dj-bots=24" || populationArg == "--dj-bots=52",
+                "Impact benchmark supports 24 or 52 survivor bots");
+            var before = blocks.Select(body => body.position).ToArray();
+            if (host || solo)
+            {
+                UnityEngine.Random.InitState(71292);
+                session.SurvivorBots.AutoFill = false;
+                session.SurvivorBots.Clear();
+                for (int i = 0; i < population; i++) session.SurvivorBots.SpawnOne();
+                Require(session.SurvivorBots.Count == population, $"Authority spawned {population} actual survivor bots");
+                if (host) File.WriteAllText(Mark("impact-bots-spawned"), population.ToString(CultureInfo.InvariantCulture));
+            }
+            else
+                yield return Until(() => File.Exists(Mark("impact-bots-spawned")), "Host spawned load before the guest samples baseline");
+
+            File.AppendAllText(Report, $"CONFIG bots={population} vsync={QualitySettings.vSyncCount} cap={Application.targetFrameRate} " +
+                $"resolution={Screen.width}x{Screen.height} gpu={SystemInfo.graphicsDeviceName} api={SystemInfo.graphicsDeviceType}\n");
+            yield return new WaitForSecondsRealtime(4);
+            yield return SampleImpactFrames("before-wave", blocks, before, 8);
+
+            if (host)
+                yield return Until(() => File.Exists(Mark("impact-guest-baseline")), "Guest completes its no-disaster sample");
+            else if (!solo)
+                File.WriteAllText(Mark("impact-guest-baseline"), "ready");
+            if (host || solo)
+            {
+                var wavePrefab = DemoDisasters.Prefabs.First(prefab => prefab.name == "Tsunami");
+                var parameters = DemoDisasters.Parameters(wavePrefab).Select(parameter => parameter.initial).ToArray();
+                parameters[0] = 23;
+                parameters[2] = 27;
+                parameters[4] = 1;
+                UnityEngine.Random.InitState(71293);
+                Require(DemoDisasters.ExecuteForMode(session, "Tsunami", parameters), "Authority starts the production Tycoon tsunami");
+            }
+
+            yield return Until(() => Tracked.Waves.Any(wave => wave.Wave.active), "Active tsunami is visible locally", 75);
+            bool binaryProfile = Environment.GetCommandLineArgs().Contains("--dj-impact-raw-profile");
+            try
+            {
+                if (binaryProfile)
+                {
+                    UnityEngine.Profiling.Profiler.logFile = Path.Combine(folder, role + "-tsunami.raw");
+                    UnityEngine.Profiling.Profiler.enableBinaryLog = true;
+                    UnityEngine.Profiling.Profiler.enabled = true;
+                }
+                yield return SampleImpactFrames("tsunami", blocks, before, 8);
+            }
+            finally
+            {
+                if (binaryProfile)
+                {
+                    UnityEngine.Profiling.Profiler.enabled = false;
+                    UnityEngine.Profiling.Profiler.enableBinaryLog = false;
+                    UnityEngine.Profiling.Profiler.logFile = "";
+                }
+            }
+            Require(world.Bodies.Count == blocks.Length &&
+                world.Bodies.All(body => body && float.IsFinite(body.position.sqrMagnitude)), "World remains finite after the wave");
+            if (host)
+                yield return Until(() => File.Exists(Mark("impact-guest-complete")), "Guest independently measured replicated block displacement", 90);
+            else if (!solo)
+                File.WriteAllText(Mark("impact-guest-complete"), "ready");
+            if (host || solo) DemoDisasters.StopAll(session);
+        }
+
+        static readonly ProfilerMarker ImpactProbeMarker = new ProfilerMarker("DJ.Test.ImpactProbe");
+
+        IEnumerator SampleImpactFrames(string label, Rigidbody[] bodies, Vector3[] authored, double seconds)
+        {
+            bool requireImpact = label == "tsunami";
+            var headers = new List<ProfilerRecorderHandle>();
+            ProfilerRecorderHandle.GetAvailable(headers);
+            var recorders = new List<(string name, ProfilerRecorder recorder)>();
+            foreach (var handle in headers)
+            {
+                var description = ProfilerRecorderHandle.GetDescription(handle);
+                string name = description.Name;
+                if (name.StartsWith("DJ.", StringComparison.Ordinal) || name.StartsWith("DeadlyJenga.", StringComparison.Ordinal) ||
+                    name.StartsWith("Behaviour", StringComparison.Ordinal) || name.StartsWith("Gfx.Wait", StringComparison.Ordinal) ||
+                    name is "Main Thread" or "Render Thread" or "PlayerLoop" or "Camera.Render" or
+                        "RenderPipelineManager.DoRenderLoop_Internal" or "Physics.Simulate" or "Physics.SyncTransforms" or
+                        "Update.ScriptRunBehaviourUpdate" or "PreLateUpdate.ScriptRunBehaviourLateUpdate" or
+                        "GC Allocated In Frame" or "GC.Collect" or "Draw Calls Count" or "SetPass Calls Count" or
+                        "Batches Count" or "Triangles Count" or "GPU Frame Time" or "CPU Total Frame Time" or "WaitForTargetFPS")
+                {
+                    var recorder = ProfilerRecorder.StartNew(description.Category, name, 1);
+                    if (recorder.Valid) recorders.Add(($"{description.Category.Name}/{name} [{description.UnitType}]", recorder));
+                    else recorder.Dispose();
+                }
+            }
+
+            var accepted = new List<double>(1024);
+            var csv = new StringBuilder(512 * 1024);
+            csv.Append("completed_frame,seconds_since_start,phase,wave_active,wall_ms,moved_over_25cm,moved_over_1m,moving_this_frame,local_wave_targets");
+            foreach (var counter in recorders) csv.Append(',').Append('"').Append(counter.name.Replace("\"", "\"\"")).Append('"');
+            csv.AppendLine();
+            var positions = bodies.Select(body => body.position).ToArray();
+            int moved = 0, movedOne = 0, moving = 0, targets = 0, peakMoved = 0, activeMotionFrames = 0, totalFrames = 0;
+            bool waveActive = false;
+            double started = Time.realtimeSinceStartupAsDouble;
+            double previous = started, impact = double.NaN;
+            try
+            {
+                while (previous - started < (requireImpact ? 95 : seconds))
+                {
+                    yield return null;
+                    double now = Time.realtimeSinceStartupAsDouble;
+                    double delta = (now - previous) * 1000;
+                    string phase = !requireImpact ? "baseline" : double.IsNaN(impact) ? "approach" : "impact";
+                    totalFrames++;
+                    if (phase == "baseline" || phase == "impact" && waveActive)
+                    {
+                        accepted.Add(delta);
+                        if (moving > 0) activeMotionFrames++;
+                    }
+                    csv.AppendFormat(CultureInfo.InvariantCulture, "{0},{1:F4},{2},{3},{4:F4},{5},{6},{7},{8}",
+                        Time.frameCount - 1, now - started, phase, waveActive ? 1 : 0, delta, moved, movedOne, moving, targets);
+                    foreach (var counter in recorders) csv.Append(',').Append(counter.recorder.LastValue);
+                    csv.AppendLine();
+
+                    using (ImpactProbeMarker.Auto())
+                    {
+                        moved = movedOne = moving = targets = 0;
+                        waveActive = false;
+                        foreach (var wave in Tracked.Waves)
+                        {
+                            if (!wave.Wave.active) continue;
+                            waveActive = true;
+                            if (wave is TsunamiHazard tsunami) targets += tsunami.LastTargetCount;
+                        }
+                        for (int i = 0; i < bodies.Length; i++)
+                        {
+                            var body = bodies[i];
+                            if (!body || !body.gameObject.activeSelf) continue;
+                            Vector3 position = body.position;
+                            float offset = (position - authored[i]).sqrMagnitude;
+                            if (offset > .0625f) moved++;
+                            if (offset > 1f) movedOne++;
+                            if (offset > .0625f && (position - positions[i]).sqrMagnitude > .000025f) moving++;
+                            positions[i] = position;
+                        }
+                    }
+                    peakMoved = Mathf.Max(movedOne, peakMoved);
+                    if (requireImpact && double.IsNaN(impact) && waveActive && moving >= 2 && (role == "guest" || targets > 0))
+                        impact = now;
+                    previous = now;
+                    if (!double.IsNaN(impact) && now - impact >= seconds) break;
+                }
+            }
+            finally
+            {
+                foreach (var counter in recorders) counter.recorder.Dispose();
+            }
+
+            File.WriteAllText(Path.Combine(folder, role + "-" + label + "-frames.csv"), csv.ToString());
+            if (requireImpact)
+                Require(!double.IsNaN(impact) && activeMotionFrames >= 10 && peakMoved >= 12,
+                    $"Wave window observed moving blocks on {activeMotionFrames} frames and at least {peakMoved} blocks displaced over 1 m");
+            Require(accepted.Count > 0, "Frame timing window contains completed frames");
+            accepted.Sort();
+            double Percentile(double fraction) => accepted[Math.Max(0, (int)Math.Ceiling(accepted.Count * fraction) - 1)];
+            double median = Percentile(.5);
+            File.AppendAllText(Report, FormattableString.Invariant(
+                $"IMPACT {label} n={accepted.Count} totalFrames={totalFrames} onset={impact - started:F3}s p50={median:F3}ms fps={1000 / median:F2} p95={Percentile(.95):F3}ms p99={Percentile(.99):F3}ms max={accepted.Last():F3}ms motionFrames={activeMotionFrames} displaced1m={peakMoved}\n"));
         }
 
         IEnumerator SampleFrames(string label, double seconds)
