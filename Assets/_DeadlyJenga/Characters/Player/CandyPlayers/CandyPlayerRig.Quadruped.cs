@@ -6,6 +6,7 @@ namespace DeadlyJenga.CandyPlayers
         public void PoseQuadruped(float weight,float phase,bool grounded)
         {
             if(weight<=0)return;
+            fingerPoseReady[0] = fingerPoseReady[1] = false;
             Vector3 World(Vector3 local)=>transform.TransformPoint(local);
             void Blend(int bone,Vector3 local,Quaternion rotation){bones[bone].position=Vector3.Lerp(bones[bone].position,World(local),weight);bones[bone].rotation=Quaternion.Slerp(bones[bone].rotation,transform.rotation*rotation,weight);}
             bones[0].localPosition=Vector3.Lerp(bones[0].localPosition,new Vector3(0,.30f,-.75f),weight);bones[0].localRotation=Quaternion.Slerp(bones[0].localRotation,Quaternion.Euler(75,0,0),weight);bones[0].localScale=Vector3.Lerp(bones[0].localScale,Vector3.one,weight);

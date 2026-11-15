@@ -43,6 +43,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunBatch()
         {
+            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) ValidateFingerPose();
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path);
             var composition = (poseProbe || Environment.GetCommandLineArgs().Contains("--dj-tycoon") ||
@@ -68,6 +69,62 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 if (composition) composition.enabled = compositionWasEnabled;
             }
             EditorApplication.Exit(0);
+        }
+
+        static void ValidateFingerPose()
+        {
+            var root = new UnityEngine.GameObject("Temporary finger pose equivalence");
+            try
+            {
+                var rig = root.AddComponent<DeadlyJenga.CandyPlayers.CandyPlayerRig>();
+                if (!rig.bodyRenderer) rig.BuildModel();
+                var orientation = typeof(DeadlyJenga.CandyPlayers.CandyPlayerRig).GetMethod("Orientation",
+                    System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.NonPublic);
+                var lengths = (float[])typeof(DeadlyJenga.CandyPlayers.CandyPlayerRig).GetField("lengths",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(rig);
+                foreach (float scale in new[] { .1f, .5f, 2f })
+                foreach (float curl in new[] { 0f, .12f, .85f })
+                for (int pass = 0; pass < 3; pass++)
+                {
+                    var frame = new DeadlyJenga.CandyPlayers.CandyAvatarFrame
+                    {
+                        feet = new UnityEngine.Vector3(pass, 2, -3), scale = scale,
+                        head = new UnityEngine.Vector3(pass, 2 + 1.6f * scale, -3),
+                        headRotation = UnityEngine.Quaternion.Euler(10, pass * 43, 0)
+                    };
+                    for (int side = 0; side < 2; side++)
+                    {
+                        var hand = new DeadlyJenga.CandyPlayers.CandyHandPose
+                        {
+                            tracked = true, skeletonTracked = true,
+                            position = frame.feet + new UnityEngine.Vector3(side == 0 ? -.3f : .3f, 1.1f, .2f) * scale,
+                            rotation = UnityEngine.Quaternion.Euler(pass * 21, pass * 47, side * 75),
+                            skeleton = DeadlyJenga.CandyPlayers.CandyHandSkeleton.Rest(side == 0, curl)
+                        };
+                        if (side == 0) frame.left = hand; else frame.right = hand;
+                    }
+                    rig.ApplyFrame(frame, false, .016f);
+                    for (int side = 0; side < 2; side++)
+                    for (int finger = 0; finger < 5; finger++)
+                    for (int joint = 0; joint < 3; joint++)
+                    {
+                        var hand = side == 0 ? frame.left : frame.right;
+                        int index = 14 + side * 15 + finger * 3 + joint;
+                        var start = hand.position + hand.rotation * (hand.skeleton.Joint(finger * 4 + joint) * scale);
+                        var end = hand.position + hand.rotation * (hand.skeleton.Joint(finger * 4 + joint + 1) * scale);
+                        var delta = end - start;
+                        var expected = (UnityEngine.Quaternion)orientation.Invoke(null, new object[] { delta, hand.rotation * UnityEngine.Vector3.up });
+                        var bone = rig.AppearanceBone(index);
+                        float expectedLength = UnityEngine.Mathf.Max(.001f, delta.magnitude) / UnityEngine.Mathf.Max(.001f, lengths[index]);
+                        if (UnityEngine.Vector3.Distance(bone.position, start) > .0001f ||
+                            UnityEngine.Quaternion.Angle(bone.rotation, expected) > .15f ||
+                            UnityEngine.Mathf.Abs(bone.lossyScale.y - expectedLength) > .0002f)
+                            throw new InvalidOperationException($"Finger pose mismatch: scale={scale} curl={curl} pass={pass} bone={index}");
+                    }
+                }
+                UnityEngine.Debug.Log("PASS 810 finger world poses match uncached transforms across scale, curl and palm motion");
+            }
+            finally { UnityEngine.Object.DestroyImmediate(root); }
         }
 
         public static void SummarizeCpuProfileBatch()

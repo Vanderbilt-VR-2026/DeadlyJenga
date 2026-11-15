@@ -616,9 +616,18 @@ namespace DeadlyJenga.CastlePrototype
 
             var accepted = new List<double>(1024);
             var csv = new StringBuilder(512 * 1024);
-            csv.Append("completed_frame,seconds_since_start,phase,wave_active,wall_ms,moved_over_25cm,moved_over_1m,moving_this_frame,local_wave_targets");
+            csv.Append("completed_frame,seconds_since_start,phase,wave_active,wall_ms,moved_over_25cm,moved_over_1m,moving_this_frame,local_wave_targets,world_age_ms,pose_age_ms,pose_applied,bots_alive,bots_moving,bots_grounded,bot_travel_metres");
             foreach (var counter in recorders) csv.Append(',').Append('"').Append(counter.name.Replace("\"", "\"\"")).Append('"');
             csv.AppendLine();
+            var sync = FindFirstObjectByType<CastleFusionSession>();
+            var worldTime = typeof(CastleFusionSession).GetField("lastWorld", PrivateField);
+            var poseTraffic = sync ? (role == "host" ? sync.PeerPoseTraffic : new[] { sync.LocalPoseTraffic }) : Array.Empty<CastleFusionSession.LivePoseTraffic>();
+            // Local arrival age, not end-to-end network latency or synchronized clocks.
+            double worldAge = -1, poseAge = -1;
+            long poseApplied = 0;
+            var measuredBots = FindObjectsByType<DeadlyJenga.CastleBots.CastleBotBrain>(FindObjectsSortMode.None);
+            int botsAlive = 0, botsMoving = 0, botsGrounded = 0;
+            double botTravel = 0;
             var positions = bodies.Select(body => body.position).ToArray();
             int moved = 0, movedOne = 0, moving = 0, targets = 0, peakMoved = 0, activeMotionFrames = 0, totalFrames = 0;
             bool waveActive = false;
@@ -640,11 +649,28 @@ namespace DeadlyJenga.CastlePrototype
                     }
                     csv.AppendFormat(CultureInfo.InvariantCulture, "{0},{1:F4},{2},{3},{4:F4},{5},{6},{7},{8}",
                         Time.frameCount - 1, now - started, phase, waveActive ? 1 : 0, delta, moved, movedOne, moving, targets);
+                    csv.AppendFormat(CultureInfo.InvariantCulture, ",{0:F3},{1:F3},{2},{3},{4},{5},{6:F3}", worldAge, poseAge, poseApplied, botsAlive, botsMoving, botsGrounded, botTravel);
                     foreach (var counter in recorders) csv.Append(',').Append(counter.recorder.LastValue);
                     csv.AppendLine();
 
                     using (ImpactProbeMarker.Auto())
                     {
+                        botsAlive = botsMoving = botsGrounded = 0; botTravel = 0;
+                        foreach (var bot in measuredBots)
+                        {
+                            if (!bot || !bot.Motor || !bot.Motor.Alive || bot.Respawning) continue;
+                            botsAlive++;
+                            if (bot.ActualSpeed > .15f) botsMoving++;
+                            if (bot.Motor.Grounded) botsGrounded++;
+                            botTravel += bot.TravelDistance;
+                        }
+                        worldAge = sync && role == "guest" ? (Time.unscaledTime - (float)worldTime.GetValue(sync)) * 1000 : -1;
+                        poseAge = -1; poseApplied = 0;
+                        foreach (var traffic in poseTraffic)
+                        {
+                            if (traffic.LastAppliedAt > 0) poseAge = Math.Max(poseAge, (Time.unscaledTime - traffic.LastAppliedAt) * 1000);
+                            poseApplied += traffic.AppliedFrames;
+                        }
                         moved = movedOne = moving = targets = 0;
                         waveActive = false;
                         foreach (var wave in Tracked.Waves)
