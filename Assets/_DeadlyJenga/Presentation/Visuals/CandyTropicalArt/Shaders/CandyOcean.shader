@@ -279,7 +279,10 @@ Shader "Candy Tropical/Ocean"
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos),r=IslandDistance(i.world.xz);
                 bool pool=_SoakingPool.x>.5;
                 float poolEdge=pool?1-smoothstep(.74,1,length(i.poolLocal)):1;
-                float depth=pool?max(.01,_SoakingPool.y*poolEdge):max(.01,i.world.y-TerrainHeight(i.world.xz));
+                float terrain = pool ? 0 : TerrainHeight(i.world.xz);
+                // The original dry shoreline still occludes the base ocean when the sand dents.
+                if (!pool && _HasTerrain > .5) clip(_WaterHeight + .07 - terrain);
+                float depth=pool?max(.01,_SoakingPool.y*poolEdge):max(.01,i.world.y-terrain);
                 float reefRadius=2;
                 float reefClear=0,isletRadius=3;
                 if(_CatwalksCoast>.5 && !pool)

@@ -31,15 +31,20 @@ namespace DeadlyJenga.Presentation
         }
 
         // ---------- shared particles ----------
-        ParticleSystem droplets, foam, bubbles, ripples, dust;
+        ParticleSystem droplets, bubbles, ripples, dust;
+        CandyBlockWhitewater whitewater;
         readonly List<Object> owned = new();
 
         void Awake()
         {
             var soft = SoftDot(32);
             var ring = RingTexture(64);
-            droplets = Particles("Water splash droplets", soft, 600, .9f, false);
-            foam = Particles("Water splash foam", soft, 400, 0, true);
+            droplets = Particles("Water splash droplets", SprayTexture(), 900, 1.65f, false);
+            var sprayRenderer = droplets.GetComponent<ParticleSystemRenderer>();
+            sprayRenderer.renderMode = ParticleSystemRenderMode.Stretch;
+            sprayRenderer.velocityScale = .13f;
+            sprayRenderer.lengthScale = 1.3f;
+            whitewater = new CandyBlockWhitewater(transform);
             bubbles = Particles("Underwater bubbles", soft, 300, -.25f, false);
             ripples = Particles("Sand ripples", ring, 120, 0, true);
             dust = Particles("Sand dust", soft, 300, .08f, false);
@@ -48,6 +53,7 @@ namespace DeadlyJenga.Presentation
         void OnDestroy()
         {
             if (waterMaterial) Destroy(waterMaterial);
+            whitewater?.Dispose();
             foreach (var coat in coats.Values) coat.Remove();
             ResetCraters();
             foreach (var o in owned) if (o) Destroy(o);
@@ -64,10 +70,11 @@ namespace DeadlyJenga.Presentation
                 lastWorld = world;
                 cursor = 0;
                 droplets.Clear();
-                foam.Clear();
+                whitewater.Clear();
                 bubbles.Clear();
             }
             if (world != null) ScanBlocks(world);
+            whitewater.Tick();
             UpdateBubbles(world);
             UpdateCraters();
             UpdateUnderwater(world);
@@ -132,7 +139,8 @@ namespace DeadlyJenga.Presentation
                         point.y = world.WaterHeight(point);
                         if (impact >= SplashSpeed && OpenWater(point, point.y))
                         {
-                            Splash(point, bounds.size, impact, body);
+                            var drift = new Vector2(bounds.center.x - before.center.x, bounds.center.z - before.center.z);
+                            Splash(point, bounds.size, impact, Vector2.ClampMagnitude(drift / (dt * 8), 1), body);
                             splashAt = now;
                         }
                         armed = false;
@@ -145,37 +153,30 @@ namespace DeadlyJenga.Presentation
             if (cursor > 100000000) cursor = 0;
         }
 
-        void Splash(Vector3 at, Vector3 size, float speed, Rigidbody block)
+        void Splash(Vector3 at, Vector3 size, float speed, Vector2 drift, Rigidbody block)
         {
-            float footprint = Mathf.Max(.4f, new Vector2(size.x, size.z).magnitude * .5f);
-            float strength = Mathf.Clamp01(speed / 12f) * Mathf.Clamp(footprint / .7f, .6f, 2.2f);
+            float footprint = Mathf.Clamp(new Vector2(size.x, size.z).magnitude * .5f, .32f, 2.4f);
+            float energy = Mathf.Clamp(speed / 10f, .15f, 1.6f);
+            whitewater.Emit(at, footprint, energy, drift);
+
             var emit = new ParticleSystem.EmitParams();
-            int sprays = Mathf.RoundToInt(16 + 44 * strength);
+            int sprays = Mathf.RoundToInt(32 + 58 * energy * Mathf.Clamp(footprint / .78f, .65f, 1.35f));
+            float seed = Random.Range(0, 20f);
             for (int i = 0; i < sprays; i++)
             {
-                var out2 = Random.insideUnitCircle.normalized * Random.Range(.3f, 1.2f);
-                emit.position = at + new Vector3(out2.x, 0, out2.y) * footprint * .6f;
-                emit.velocity = new Vector3(out2.x * (1.2f + strength * 2), Random.Range(2.5f, 4.5f) + strength * 4.5f, out2.y * (1.2f + strength * 2));
-                emit.startSize = Random.Range(.06f, .16f) * (1 + strength);
-                emit.startLifetime = Random.Range(.7f, 1.2f);
-                emit.startColor = new Color(.92f, .98f, 1f, .9f);
+                float angle = Random.Range(0, 2f * Mathf.PI);
+                var direction = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
+                float side = Vector2.Dot(direction, drift);
+                float lobe = .78f + .22f * Mathf.Sin(angle * 5 + seed);
+                float speedOut = Random.Range(2.2f, 4.6f) * lobe * (.64f + energy * .62f + .28f * side);
+                float speedUp = Random.Range(2.3f, 5f) * lobe * (.58f + energy * .78f);
+                emit.position = at + new Vector3(direction.x, .08f, direction.y) * footprint * Random.Range(.36f, .85f);
+                emit.velocity = new Vector3(direction.x * speedOut, speedUp, direction.y * speedOut);
+                emit.startSize = Random.Range(.025f, .12f) * Mathf.Lerp(.75f, 1.45f, energy / 1.6f);
+                emit.startLifetime = Random.Range(.34f, .7f);
+                emit.startColor = new Color(.92f, .99f, 1f, Random.Range(.65f, .98f));
                 droplets.Emit(emit, 1);
             }
-            // A crown of white foam rolling outward on the surface.
-            int rings = Mathf.RoundToInt(18 + 18 * strength);
-            for (int i = 0; i < rings; i++)
-            {
-                float a = i * Mathf.PI * 2 / rings;
-                var dir = new Vector3(Mathf.Cos(a), 0, Mathf.Sin(a));
-                emit.position = at + dir * footprint + Vector3.up * .03f;
-                emit.velocity = dir * (.6f + strength * 1.4f);
-                emit.startSize = Random.Range(.35f, .6f) * footprint;
-                emit.startLifetime = Random.Range(1.2f, 1.9f);
-                emit.startColor = new Color(1, 1, 1, .75f);
-                emit.rotation3D = new Vector3(90, Random.Range(0, 360), 0);
-                foam.Emit(emit, 1);
-            }
-            emit.ResetRotation();
             if (block) bubbling.Add(new Bubbler { block = block, until = Time.time + 3f, next = 0 });
         }
 
@@ -278,8 +279,8 @@ namespace DeadlyJenga.Presentation
                 if (rebuild)
                 {
                     float grow = Mathf.Clamp01((now - c.started) / 2.5f);
-                    float radius = c.footprint * Mathf.Lerp(1.15f, 1.9f, grow);
-                    float depth = Mathf.Min(c.footprint * .85f, c.depth * .8f) * fade;
+                    float radius = c.footprint * Mathf.Lerp(1.65f, 2.8f, grow);
+                    float depth = Mathf.Min(c.footprint * .74f, c.depth * .85f) * fade;
                     var local = c.terrain.transform.InverseTransformPoint(c.point);
                     terrainCraters[c.terrain].Add(new Vector4(local.x, local.z, radius, depth));
                 }
@@ -289,9 +290,9 @@ namespace DeadlyJenga.Presentation
                 emit.position = c.point + Vector3.up * .03f;
                 emit.velocity = Vector3.zero;
                 emit.rotation3D = new Vector3(90, Random.Range(0, 360f), 0);
-                emit.startSize = c.footprint * 2.5f;
+                emit.startSize = c.footprint * 3.9f;
                 emit.startLifetime = 1.6f;
-                emit.startColor = new Color(SandDark.r, SandDark.g, SandDark.b, .55f);
+                emit.startColor = new Color(SandDark.r, SandDark.g, SandDark.b, .32f);
                 ripples.Emit(emit, 1);
                 emit.ResetRotation();
                 for (int i = 0; i < 4; i++)
@@ -379,6 +380,7 @@ namespace DeadlyJenga.Presentation
             ResetCraters();
             seen.Clear();
             bubbling.Clear();
+            whitewater?.Clear();
             waterEye = null;
             underwater = dippedFor = hiddenDepth = 0;
         }
@@ -542,6 +544,32 @@ namespace DeadlyJenga.Presentation
             m.renderQueue = (int)RenderQueue.Transparent;
             owned.Add(m);
             return m;
+        }
+
+        Texture2D SprayTexture()
+        {
+            const int size = 32;
+            var texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+            {
+                name = "Tapered water spray",
+                wrapMode = TextureWrapMode.Clamp
+            };
+            var colors = new Color32[size * size];
+            for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+            {
+                float v = (y + .5f) / size;
+                float width = .23f + .65f * Mathf.Sin(v * Mathf.PI);
+                float u = Mathf.Abs((x + .5f) / size * 2 - 1) / width;
+                float alpha = (1 - Mathf.SmoothStep(.12f, .98f, Mathf.Clamp01(u))) *
+                    Mathf.SmoothStep(0, 1, Mathf.InverseLerp(0, .22f, v)) *
+                    (1 - Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.72f, 1, v)));
+                colors[y * size + x] = (Color32)new Color(.95f, .99f, 1, alpha);
+            }
+            texture.SetPixels32(colors);
+            texture.Apply(false, true);
+            owned.Add(texture);
+            return texture;
         }
 
         Texture2D SoftDot(int size)
