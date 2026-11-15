@@ -14,6 +14,14 @@ Nearby UDP invite, joining without a code and entering the same round passed; fu
 
 A separate 139-frame whole-CPU/GPU diagnostic at source 644e3970 measured median CPU frame time 55.616 ms and GPU frame duration 55.171 ms. These recording-overhead samples are not FPS acceptance; GPU frame duration alone does not establish GPU execution as the bottleneck.
 
+## Current a14239fc evidence
+
+Native player build passed 810 finger, 4,617 deformation and 11 compression checks. The compressed native-world peer trial still failed: migration buffer assertions persisted and the guest timed out waiting for the tsunami visual. Host impact was 16.62 FPS with errors, so it is diagnostic only. This opt-in transport is not ready.
+
+The rendered Editor CPU/GPU diagnostic had application focus on all sampled frames. It measured 3.66 typical FPS with recording overhead, 30 moving-block impact samples and 22 blocks displaced over one metre. Median simulated physics advancement was 260 ms per sample; this is not a background-focus explanation. Exclusive main-thread costs included GetComponentNullErrorMessage (17.179 ms mean, 7.692 ms median), OnGUI (14.083 / 13.576 ms), Tsunami (12.974 / 4.896 ms), and collision callback dispatch (8.072 / 7.942 ms). The next export resolves those markers to parent call paths. These diagnostic figures are not a matched before/after FPS result.
+
+Installed SDK inspection found that WriteHostMigrationData asserts its existing target array is at most 32 KiB, but can grow that array to twice the encoded object data size. The next call can then fail. No vendor binary/package changes were made. Per-message-kind traffic instrumentation is being added because the experimental run still submitted over 1 MB through the reliable bundle path despite moving world payloads to native state.
+
 ## Native-world failure and follow-up
 
 The d9544896 experiment compiled and passed the existing equivalence checks, but failed real peer acceptance. Host impact was 15.57 FPS (121 moving-block frames, 28 blocks over one metre); the guest observed zero eligible collapse frames. The 64 KiB state also exceeded Fusion's 32 KiB host-migration transfer buffer. These are failed diagnostic results, not accepted performance gains. Native state is still opt-in.

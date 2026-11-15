@@ -632,6 +632,8 @@ namespace DeadlyJenga.CastlePrototype
             if (host || solo) CheckNearbyCandidates("settled");
             yield return null; yield return null;
             yield return SampleImpactFrames("before-wave", blocks, before, 8);
+            if((host||solo)&&session.Network&&Environment.GetCommandLineArgs().Contains("--dj-impact-dump-world"))
+                File.WriteAllBytes(Path.Combine(folder,role+"-settled-world.bin"),session.Network.FusionCaptureWorld());
 
             if (host)
                 yield return Until(() => File.Exists(Mark("impact-guest-baseline")), "Guest completes its no-disaster sample");
@@ -725,6 +727,7 @@ namespace DeadlyJenga.CastlePrototype
             var text=new StringBuilder();
             text.AppendLine("PHASE "+phase+" time="+Time.realtimeSinceStartupAsDouble.ToString("F4",CultureInfo.InvariantCulture));
             text.AppendLine("HotpathBytesSubmitted="+sync.HotpathBytesSubmitted+" HotpathBundlesSubmitted="+sync.HotpathBundlesSubmitted);
+            text.Append(sync.CapturePacketTraffic());
             var room=IslandRoomConnection.Instance;
             if(room&&room.Runner)
             {

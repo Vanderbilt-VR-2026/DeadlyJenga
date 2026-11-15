@@ -277,6 +277,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             int captured = 0;
             var markers = new Dictionary<(string thread, string name), List<double>>();
             var behaviours = new Dictionary<(string thread, string name), List<double>>();
+            var callPaths = new Dictionary<(string thread, string name), List<double>>();
             using var reconciliation = new StreamWriter(output + ".frames.csv", append: false);
             reconciliation.WriteLine("frame,thread,root_ms,exclusive_ms,residual_ms,cpu_frame_ms,gpu_frame_ms");
             for (int frameIndex = first; frameIndex <= ProfilerDriver.lastFrameIndex; frameIndex++)
@@ -284,6 +285,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 bool validFrame = false;
                 var selfTimes = new Dictionary<(string thread, string name), double>();
                 var behaviourTimes = new Dictionary<(string thread, string name), double>();
+                var pathTimes = new Dictionary<(string thread, string name), double>();
                 for (int thread = 0; ; thread++)
                 {
                     using var frame = ProfilerDriver.GetRawFrameDataView(frameIndex, thread);
@@ -292,6 +294,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     string threadName = frame.threadName + " #" + thread;
                     double rootTime = 0, exclusiveTime = 0;
                     int nextRoot = 0;
+                    var parents = new List<(string name,int end)>();
                     for (int sample = 0; sample < frame.sampleCount; sample++)
                     {
                         double inclusiveTime = frame.GetSampleTimeMs(sample);
@@ -301,6 +304,13 @@ namespace DeadlyJenga.CastlePrototype.Editor
                         for (int child = sample + 1; child < end; child += 1 + frame.GetSampleChildrenCountRecursive(child))
                             selfTime -= frame.GetSampleTimeMs(child);
                         string name = frame.GetSampleName(sample) ?? "[Unnamed marker]";
+                        while(parents.Count>0&&sample>=parents[^1].end)parents.RemoveAt(parents.Count-1);
+                        if(name is "GetComponentNullErrorMessage" or "OnGUI" or "GC.Alloc" or "Physics.InvokeOnCollisionEvents")
+                        {
+                            string path=string.Join(" > ",parents.Skip(Math.Max(0,parents.Count-6)).Select(p=>p.name))+" > "+name;
+                            AddTime(pathTimes,(threadName,path),selfTime);
+                        }
+                        if(end>sample+1)parents.Add((name,end));
                         var marker = (threadName, name);
                         exclusiveTime += selfTime;
                         if (selfTime > 0) AddTime(selfTimes, marker, selfTime);
@@ -313,6 +323,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 captured++;
                 Accumulate(markers, selfTimes);
                 Accumulate(behaviours, behaviourTimes);
+                Accumulate(callPaths, pathTimes);
             }
             if (captured == 0) throw new InvalidOperationException("Profiler contains no captured main/render thread frames");
 
@@ -327,6 +338,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             report.WriteLine("Exclusive samples reconcile to each thread's roots in .frames.csv. Threads overlap: never add their totals to estimate frame time. Inclusive Update times overlap exclusive samples. CPU waits do not establish GPU execution time.");
             WriteTimings("Exclusive marker times", markers);
             WriteTimings("Inclusive Update method times", behaviours);
+            WriteTimings("Selected expensive call paths (exclusive leaf time)", callPaths);
             report.Flush();
             reconciliation.Flush();
             EditorApplication.Exit(0);

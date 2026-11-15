@@ -312,6 +312,14 @@ namespace DeadlyJenga.CastlePrototype
         public LivePoseTraffic[] PeerPoseTraffic=>peers.Values.Select(peer=>peer.posesInFlight.Traffic).ToArray();
         public long WorldTransfersSubmitted{get;private set;}
         public long WorldPayloadBytesSubmitted{get;private set;}
+        readonly long[] submittedKindBytes=new long[64],submittedKindFrames=new long[64];
+        public string CapturePacketTraffic()
+        {
+            var text=new System.Text.StringBuilder();
+            for(int kind=0;kind<submittedKindBytes.Length;kind++)
+                if(submittedKindFrames[kind]>0)text.AppendLine($"PacketKind {kind} frames={submittedKindFrames[kind]} bytes={submittedKindBytes[kind]}");
+            return text.ToString();
+        }
         void ResetPoseWindows()
         {CancelHotpathFrames();ResetWorldTransfers();posesInFlight.Clear();poseReceipts.Clear();posesInFlight.Traffic.PendingReceiptCount=0;nextReceiptFlush=0;foreach(var peer in peers.Values){peer.posesInFlight.Clear();peer.receipts.Clear();peer.posesInFlight.Traffic.PendingReceiptCount=0;}hasPoseBatch=false;lastPoseBatch=0;nextPoseSend=0;poseSendFailed=false;}
         bool SendPose(PlayerRef target,int kind,LivePoseWindow window,LivePoseReceipts receipts,byte[] packet,float now)
@@ -424,6 +432,7 @@ namespace DeadlyJenga.CastlePrototype
             if(outboundFailed||closing||!IsCurrentScene){onCanceled?.Invoke();return;}
             Action submitted=()=>
             {
+                if(kind>=0&&kind<submittedKindBytes.Length){submittedKindBytes[kind]+=bytes.Length;submittedKindFrames[kind]++;}
                 if(kind==World){WorldTransfersSubmitted++;WorldPayloadBytesSubmitted+=bytes.Length;}
                 onSubmitted?.Invoke();
             };
