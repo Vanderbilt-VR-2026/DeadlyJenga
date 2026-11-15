@@ -643,7 +643,7 @@ namespace DeadlyJenga.CastlePrototype
             }
 
             }
-            catch(Exception){outboundFailed=true;CancelHotpathFrames();Fail("Hotpath production failed. Rejoin with the same game build.");}
+            catch(Exception error){Debug.LogException(error);outboundFailed=true;CancelHotpathFrames();Fail("Hotpath production failed. Rejoin with the same game build.");}
             finally
             {
                 if(outboundFailed||closing)CancelHotpathFrames();else FlushHotpathFrames();

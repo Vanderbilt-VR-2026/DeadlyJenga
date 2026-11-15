@@ -244,9 +244,21 @@ namespace DeadlyJenga.CastlePrototype
             File.WriteAllText(Mark(role+"-nearby-playing"),"ready");
             yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-playing")),
                 "Both clients confirmed the match before returning",25);
-            yield return Until(() => game && game.Modes &&
-                game.Modes.Frame.phase is RoundPhase.Victory or RoundPhase.Results,
-                "The full Play round reaches results after nearby join", 480, () => room.Status);
+            string RoundState() => $"room={room.Status}, phase={game?.Modes?.Frame.phase}, remaining={game?.Modes?.Frame.remaining}, duration={game?.Modes?.Frame.rules.roundSeconds}, flow={RoomGameExperience.Current?.GamePhase}";
+            File.AppendAllText(Report,"NEARBY ROUND "+RoundState()+"\n");
+            float nextProgress=Time.realtimeSinceStartup;
+            float roundTimeout=Mathf.Max(480,game.Modes.Frame.rules.roundSeconds+120);
+            deadline=Mathf.Max(deadline,Time.realtimeSinceStartup+roundTimeout+150);
+            yield return Until(() =>
+            {
+                if(Time.realtimeSinceStartup>=nextProgress)
+                {nextProgress=Time.realtimeSinceStartup+30;File.AppendAllText(Report,"NEARBY PROGRESS "+RoundState()+"\n");}
+                return game && game.Modes && game.Modes.Frame.phase==RoundPhase.Results;
+            }, "The full Play round reaches results after nearby join", roundTimeout, RoundState);
+            File.WriteAllText(Mark(role+"-nearby-results"),"ready");
+            yield return Until(()=>File.Exists(Mark((host?"guest":"host")+"-nearby-results")),
+                "Both clients observe results before the host returns",30,RoundState);
+            if(host&&!RoomGameExperience.Current.AutomaticRounds)RoomGameExperience.Current.RequestReturn();
             yield return Until(()=>IslandLobby.Current&&room.Connected&&!room.Busy&&room.Code==address&&
                 room.HumanCount==2&&SeesOtherHuman(),
                 "Guest follows host back to Marina without disconnecting",90,()=>room.Status);
