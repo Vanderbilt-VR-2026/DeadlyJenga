@@ -117,11 +117,11 @@ namespace DeadlyJenga.CandyPlayers
             Vector3 o1 = pelvisPosition + pelvis * (p1 - spineRelative * p1);
             chestRotation = r1 * chestRelative;
             chestPosition = o1 + r1 * (p2 - chestRelative * p2);
-            bones[0].localPosition = pelvisPosition; bones[0].localRotation = pelvisRotation; bones[0].localScale = size;
+            bones[0].SetLocalPositionAndRotation(pelvisPosition,pelvisRotation); bones[0].localScale = size;
             if (!spine || !chest) { chestPosition = pelvisPosition; chestRotation = pelvisRotation; return; }
             if (spine.parent != transform) { spine.SetParent(transform, false); chest.SetParent(transform, false); }
-            spine.localPosition = o1; spine.localRotation = r1; spine.localScale = size;
-            chest.localPosition = chestPosition; chest.localRotation = chestRotation; chest.localScale = size;
+            spine.SetLocalPositionAndRotation(o1,r1); spine.localScale = size;
+            chest.SetLocalPositionAndRotation(chestPosition,chestRotation); chest.localScale = size;
         }
 
         // Lean, hip and shoulder counter-rotation and breathing, shared between the three torso bones.

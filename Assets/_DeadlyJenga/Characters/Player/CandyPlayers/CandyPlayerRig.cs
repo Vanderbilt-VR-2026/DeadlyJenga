@@ -112,6 +112,18 @@ namespace DeadlyJenga.CandyPlayers
             if(!pendingPose)return;
             pendingPose=false;ApplyFrame(pendingFrame,pendingGrounded,pendingDelta);
         }
+        Matrix4x4 poseToWorld, worldToPose;
+        Quaternion poseRotation;
+        Vector3 poseForward;
+        float poseScale;
+        void CapturePoseSpace()
+        {
+            poseToWorld=transform.localToWorldMatrix;
+            worldToPose=transform.worldToLocalMatrix;
+            poseRotation=transform.rotation;
+            poseForward=poseRotation*Vector3.forward;
+            poseScale=transform.lossyScale.y;
+        }
         static readonly Unity.Profiling.ProfilerMarker AvatarPoseMarker = new("DJ.Avatar.Pose");
         public void ApplyFrame(CandyAvatarFrame frame,bool grounded=true,float deltaTime=0)
         {
@@ -133,8 +145,9 @@ namespace DeadlyJenga.CandyPlayers
             float bodyYaw=UpdateBodyYaw(frame,forward);
             transform.SetPositionAndRotation(frame.feet,Quaternion.Euler(0f,bodyYaw,0f));var parentScale=transform.parent?transform.parent.lossyScale:Vector3.one;
             transform.localScale=new Vector3(scale/Mathf.Max(.001f,Mathf.Abs(parentScale.x)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.y)),scale/Mathf.Max(.001f,Mathf.Abs(parentScale.z)));
+            CapturePoseSpace();
             float dance = downed ? 0 : frame.danceWeight;
-            float headY=transform.InverseTransformPoint(frame.head).y;
+            float headY=worldToPose.MultiplyPoint3x4(frame.head).y;
             float crouch=Mathf.Clamp(headY/1.6f,.4f,1.25f)*(fit?.bodyHeight??1f);
             float width=fit?.shoulderWidth??1f;
             Vector3 torsoOffset=fit?.bodyOffset??Vector3.zero;
@@ -148,7 +161,7 @@ namespace DeadlyJenga.CandyPlayers
                 sprintBlend = Mathf.MoveTowards(sprintBlend, runTarget, deltaTime * 6f);
                 if (travel.sqrMagnitude > .00001f)
                 {
-                    Vector3 targetDirection = transform.InverseTransformDirection(travel.normalized);
+                    Vector3 targetDirection = Quaternion.Inverse(poseRotation)*travel.normalized;
                     Vector3 blendedDirection = Vector3.Lerp(strideDirection, targetDirection, 1f - Mathf.Exp(-12f * deltaTime));
                     strideDirection = blendedDirection.sqrMagnitude > .01f ? blendedDirection.normalized : targetDirection;
                 }
@@ -170,29 +183,29 @@ namespace DeadlyJenga.CandyPlayers
             for(int side=0;side<2;side++)
             {
                 float sign=side==0?-1:1;
-                Vector3 hip=transform.TransformPoint(pelvisPosition+pelvisRotation*new Vector3(sign*.105f*width,.67f*crouch,0));
+                Vector3 hip=poseToWorld.MultiplyPoint3x4(pelvisPosition+pelvisRotation*new Vector3(sign*.105f*width,.67f*crouch,0));
                 Vector3 footLocal = feetLocal[side];
                 float footPitch = feetPitch[side];
-                Vector3 foot=transform.TransformPoint(footLocal);
-                if(!grounded)foot=transform.TransformPoint(new Vector3(sign*.13f,.13f,.015f));
+                Vector3 foot=poseToWorld.MultiplyPoint3x4(footLocal);
+                if(!grounded)foot=poseToWorld.MultiplyPoint3x4(new Vector3(sign*.13f,.13f,.015f));
                 if (dance > 0)
-                    foot = Vector3.Lerp(foot, transform.TransformPoint(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
+                    foot = Vector3.Lerp(foot, poseToWorld.MultiplyPoint3x4(side == 0 ? frame.danceLeftFoot : frame.danceRightFoot), dance);
                 if (feetWeight[side] > 0f)
                     foot = Vector3.Lerp(foot, feetTarget[side], feetWeight[side]);
                 int thigh=side==0?8:11;
-                Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,transform.forward+Vector3.down*.1f);
+                Vector3 knee=SolveJoint(hip,foot,.31f*scale,.31f*scale,poseForward+Vector3.down*.1f);
                 Segment(thigh,hip,knee);Segment(thigh+1,knee,foot);
-                bones[thigh+2].SetPositionAndRotation(foot,feetTilt[side]*transform.rotation*Quaternion.Euler(footPitch,0f,0f));bones[thigh+2].localScale=Vector3.one;
+                bones[thigh+2].SetPositionAndRotation(foot,feetTilt[side]*poseRotation*Quaternion.Euler(footPitch,0f,0f));bones[thigh+2].localScale=Vector3.one;
                 var hand=side==0?frame.left:frame.right;
                 Quaternion torsoRotation=chestRotation;
-                Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(transform.InverseTransformPoint(hand.position)-chestPosition);
+                Vector3 handLocal=Quaternion.Inverse(torsoRotation)*(worldToPose.MultiplyPoint3x4(hand.position)-chestPosition);
                 float across=Mathf.SmoothStep(0,1,Mathf.InverseLerp(-.12f*width,.18f*width,-sign*handLocal.x));
                 float ahead=Mathf.SmoothStep(0,1,Mathf.InverseLerp(.03f,.25f,handLocal.z));
                 // The shoulder rolls forward on a reach across the chest. The tracked wrist stays fixed.
-                Vector3 shoulder=transform.TransformPoint(chestPosition+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
+                Vector3 shoulder=poseToWorld.MultiplyPoint3x4(chestPosition+torsoRotation*new Vector3(sign*.21f*width,1.255f*crouch,.12f*across*ahead));
                 // Seat the forearm inside the back of the palm, without moving the tracked grip.
                 Vector3 wrist=hand.position-hand.rotation*Vector3.forward*(.022f*scale);
-                Vector3 elbowPole=ElbowPole(wrist-shoulder,transform.TransformDirection(torsoRotation*(Vector3.right*sign)),transform.TransformDirection(torsoRotation*Vector3.down));
+                Vector3 elbowPole=ElbowPole(wrist-shoulder,poseRotation*(torsoRotation*(Vector3.right*sign)),poseRotation*(torsoRotation*Vector3.down));
                 Vector3 elbow=SolveJoint(shoulder,wrist,.29f*scale,.27f*scale,elbowPole);
                 int upper=side==0?2:5;
                 Segment(upper,shoulder,elbow);Segment(upper+1,elbow,wrist,hand.rotation*Vector3.up);
@@ -242,8 +255,8 @@ namespace DeadlyJenga.CandyPlayers
         void Segment(int index,Vector3 a,Vector3 b,Vector3? normal=null)
         {
             Vector3 delta=b-a;
-            bones[index].SetPositionAndRotation(a,delta.sqrMagnitude>.0000001f?Orientation(delta,normal??transform.forward):transform.rotation);
-            float scale=Mathf.Max(.001f,transform.lossyScale.y);
+            bones[index].SetPositionAndRotation(a,delta.sqrMagnitude>.0000001f?Orientation(delta,normal??poseForward):poseRotation);
+            float scale=Mathf.Max(.001f,poseScale);
             bones[index].localScale=new Vector3(1,Mathf.Max(.001f,delta.magnitude)/(Mathf.Max(.001f,lengths[index])*scale),1);
         }
         // The elbow points down and out from the torso. It stays that way when the hand is high or low.

@@ -24,7 +24,7 @@ namespace DeadlyJenga.CandyPlayers
                 feetWeight[side] = 0f;
                 feetTilt[side] = Quaternion.identity;
                 if (!planted) continue;
-                Vector3 foot = transform.TransformPoint(feetLocal[side]);
+                Vector3 foot = poseToWorld.MultiplyPoint3x4(feetLocal[side]);
                 if (!ProbeGround(foot, scale, out Vector3 point, out Vector3 normal)) continue;
                 // A swing foot is in the air, so it keeps the animated lift instead of snapping down.
                 feetWeight[side] = 1f - Mathf.Clamp01((feetLocal[side].y - AnkleHeight) / SwingLift);
