@@ -13,6 +13,7 @@ namespace DeadlyJenga.Presentation
         readonly float span;
         readonly MaterialPropertyBlock properties = new();
         Mesh currentMesh;
+        int materialCount = -1;
         readonly List<Vector3> sampleVertices = new();
         Mesh sampledMesh;
 
@@ -86,11 +87,12 @@ namespace DeadlyJenga.Presentation
                     target.SetBlendShapeWeight(i, skin.GetBlendShapeWeight(i));
             }
             else overlay.GetComponent<MeshFilter>().sharedMesh = surface;
-            if (overlay.sharedMaterials.Length != mesh.subMeshCount)
+            if (materialCount != mesh.subMeshCount)
             {
                 var materials = new Material[mesh.subMeshCount];
                 for (int i = 0; i < materials.Length; i++) materials[i] = material;
                 overlay.sharedMaterials = materials;
+                materialCount = materials.Length;
             }
         }
 
