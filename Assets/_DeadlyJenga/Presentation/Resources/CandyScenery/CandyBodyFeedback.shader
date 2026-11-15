@@ -113,13 +113,9 @@ Shader "Candy Tropical/Body Feedback"
                     }
                     if (_State.z>.001)
                     {
-                        // Sprint focus: the periphery goes pale and soft, and the view narrows.
-                        float s=_State.z;
-                        float shake=sin(_FeedbackTime*41)*.004+sin(_FeedbackTime*27)*.003;
-                        half narrow=smoothstep(.62-.2*s+shake,1.1,edge);
-                        Layer(result,half3(.88,.97,1),narrow*s*.34);
-                        // Wider, softer halo stands in for blur (no scene grab pass).
-                        Layer(result,half3(.95,1,1),smoothstep(.3,.9,edge+shake)*s*.12);
+                        half sprint = smoothstep(0, 1, _State.z);
+                        half vignette = smoothstep(.70, 1.28, edge) * sprint * .17;
+                        Layer(result, half3(.018, .022, .03), vignette);
                     }
                     if (_State.y>.001)
                     {
