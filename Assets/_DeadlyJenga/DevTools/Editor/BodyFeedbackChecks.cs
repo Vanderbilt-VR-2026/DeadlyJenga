@@ -9,6 +9,7 @@ using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.Rendering;
 using Object=UnityEngine.Object;
 
 namespace DeadlyJenga.DevTools.Editor
@@ -63,7 +64,10 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Saved",JsonUtility.ToJson(new Saved{scenes=scenes}));SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
-        public static void RunSandEngulf()
+        public static void RunSandEngulf() => RunFocused("SandOnly");
+        public static void RunSprintCapture() => RunFocused("SprintOnly");
+
+        static void RunFocused(string scope)
         {
             if (!Application.isBatchMode) throw new InvalidOperationException("Use an isolated batch validation checkout");
             MatchSetup.MapId = "castle";
@@ -72,7 +76,7 @@ namespace DeadlyJenga.DevTools.Editor
             MatchSetup.HandCount = 0;
             MatchSetup.FromLobby = false;
             MatchSetup.StartLocalSession = false;
-            SessionState.SetBool(Key+"SandOnly",true);
+            SessionState.SetBool(Key+scope,true);
             Run();
         }
         static void State(PlayModeStateChange state)
@@ -83,9 +87,10 @@ namespace DeadlyJenga.DevTools.Editor
             Application.logMessageReceived-=OnLog;
             SessionState.SetBool(Key,false);
             ValidationRunGate.Release(Key);
-            bool sandOnly = SessionState.GetBool(Key+"SandOnly",false);
+            bool focused = SessionState.GetBool(Key+"SandOnly",false) || SessionState.GetBool(Key+"SprintOnly",false);
             SessionState.SetBool(Key+"SandOnly",false);
-            if (sandOnly && Application.isBatchMode)
+            SessionState.SetBool(Key+"SprintOnly",false);
+            if (focused && Application.isBatchMode)
             {
                 File.AppendAllText(Report,"CLEANUP exited Play Mode in the isolated batch editor\n");
                 EditorApplication.Exit(SessionState.GetInt(Key+"ExitCode",2));
@@ -118,8 +123,18 @@ namespace DeadlyJenga.DevTools.Editor
             Check(hud&&match?.Frame!=null,"Production session attaches shared body HUD and match runtime");
             session.SetMenu(false);session.enabled=false;((Behaviour)match).enabled=false;
             foreach(var transit in Object.FindObjectsByType<CandySessionTravel>(FindObjectsSortMode.None)) Object.DestroyImmediate(transit.gameObject);
-            Time.timeScale=0;motor.externallyDriven=false;motor.InputSuspended=false;motor.SendMessage("OnApplicationFocus",true);
+            bool sprintOnly = SessionState.GetBool(Key+"SprintOnly",false);
+            Time.timeScale=0;
+            if (sprintOnly)
+            {
+                motor.externallyDriven=true;
+                motor.RefreshMode();
+            }
+            motor.externallyDriven=false;
+            motor.InputSuspended=false;
+            if (!sprintOnly) motor.SendMessage("OnApplicationFocus",true);
             var camera=motor.viewCamera;camera.enabled=true;
+            var playerEye = new Pose(camera.transform.position, camera.transform.rotation);
             var world=Services.World;
             if(world!=null)
             {
@@ -133,6 +148,18 @@ namespace DeadlyJenga.DevTools.Editor
             if (SessionState.GetBool(Key+"SandOnly",false))
             {
                 CheckSandEngulf(session,motor,match,camera);
+                return;
+            }
+            if (sprintOnly)
+            {
+                Check(!motor.IsVR && camera == session.ActiveCamera && MatchSetup.MapId == "castle",
+                    "Classic Castle Demo with the production desktop survivor camera");
+                CheckDesktopSprint(hud, motor, camera);
+                camera.transform.SetPositionAndRotation(playerEye.position, playerEye.rotation);
+                Object.Destroy(Capture(camera,null,"player-eye-resting.png"));
+                SetSprint(hud,motor,true,true,1f);
+                Object.Destroy(Capture(camera,null,"player-eye-sprinting.png"));
+                SetSprint(hud,motor,false,false,1f);
                 return;
             }
             Property(motor,"GripRemaining",1f);Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);
@@ -151,18 +178,22 @@ namespace DeadlyJenga.DevTools.Editor
             Object.Destroy(exhausted);
             Property(motor,"GripRemaining",1f);hud.Present(motor,.1f);Check(hud.Opacity>.5f,"Recovery unwinds fatigue instead of popping off");
             hud.Present(motor,2);Check(!canvas.enabled,"Full stamina finishes recovery and removes overlay");
-            Property(motor,"SprintRequested",true);hud.Present(motor,2);
-            Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary produces no vignette");
-            Property(motor,"Sprinting",true);hud.Present(motor,.06f);
-            Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades in");
-            hud.Present(motor,2);
-            Check(Field<Vector4>(hud,"state").z==1,"Active sprint enables the edge vignette");
-            var sprint=Capture(camera,canvas,"03-sprinting.png");Object.Destroy(sprint);
-            Check(CenterClear(camera,canvas,"03-sprinting",subtleDarkening:true),
-                "Sprint darkens the edges gently and leaves the center clear in actual shader pixels");
-            Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);hud.Present(motor,.06f);
-            Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades out");
-            hud.Present(motor,2);Check(!canvas.enabled,"Stopping sprint removes the vignette");
+            if (motor.IsVR)
+            {
+                Property(motor,"SprintRequested",true);hud.Present(motor,2);
+                Check(Field<Vector4>(hud,"state").z==0,"Sprint armed while stationary produces no vignette");
+                Property(motor,"Sprinting",true);hud.Present(motor,.06f);
+                Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades in");
+                hud.Present(motor,2);
+                Check(Field<Vector4>(hud,"state").z==1,"Active sprint enables the edge vignette");
+                var sprint=Capture(camera,canvas,"03-sprinting.png");Object.Destroy(sprint);
+                Check(CenterClear(camera,canvas,"03-sprinting",subtleDarkening:true),
+                    "Sprint darkens the edges gently and leaves the center clear in actual shader pixels");
+                Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);hud.Present(motor,.06f);
+                Check(Field<Vector4>(hud,"state").z is >0 and <1,"Sprint vignette fades out");
+                hud.Present(motor,2);Check(!canvas.enabled,"Stopping sprint removes the vignette");
+            }
+            else CheckDesktopSprint(hud,motor,camera);
             own.health=.22f;hud.Present(motor,2);
             var damage=Capture(camera,canvas,"04-injured.png");
             Check(CenterClear(camera,canvas,"04-injured"),"Low-health ink preserves the aim and navigation center");Object.Destroy(damage);
@@ -255,6 +286,85 @@ namespace DeadlyJenga.DevTools.Editor
             Call(engulf,"Present",.5f);
             Check(!quad.activeSelf, "The escape fade finishes and disables the renderer");
         }
+        static void SetSprint(CandyStaminaHud hud, CastleSurvivor motor, bool requested, bool sprinting, float dt)
+        {
+            Property(motor,"SprintRequested",requested);
+            Property(motor,"Sprinting",sprinting);
+            hud.Present(motor,dt);
+        }
+
+        static void CheckDesktopSprint(CandyStaminaHud hud, CastleSurvivor motor, Camera camera)
+        {
+            Property(motor,"GripRemaining",1f);
+            SetSprint(hud,motor,false,false,1f);
+            float baseFov = camera.fieldOfView;
+            float renderFov = -1;
+            void Observe(ScriptableRenderContext context, Camera rendering)
+            {
+                if (rendering == camera) renderFov = camera.fieldOfView;
+            }
+
+            RenderPipelineManager.beginCameraRendering += Observe;
+            try
+            {
+                Object.Destroy(Capture(camera,null,"sprint-resting.png"));
+                Check(Mathf.Approximately(renderFov,baseFov),"Resting view uses normal lens");
+                SetSprint(hud,motor,true,false,1f);
+                Object.Destroy(Capture(camera,null,"sprint-armed.png"));
+                Check(Mathf.Approximately(renderFov,baseFov),"Arming sprint does not widen the lens");
+
+                SetSprint(hud,motor,true,true,.06f);
+                Check(Field<float>(hud,"desktopSprint") is >0 and <1,"Sprint eases in");
+                SetSprint(hud,motor,true,true,1f);
+                var sprint = Capture(camera,null,"sprint-active.png");
+                float sprintFov = renderFov;
+                File.AppendAllText(Report,$"Classic Castle {MatchSetup.ModeId}; camera={camera.name}; position={camera.transform.position}; rotation={camera.transform.eulerAngles}; rest FOV={baseFov:F2}; sprint FOV={sprintFov:F2}; actual Game view, controlled survivor sprint state.\n");
+                Check(Mathf.Abs(sprintFov-baseFov-7f)<.05f && Mathf.Approximately(camera.fieldOfView,baseFov),
+                    "Sprint widens the rendered lens by seven degrees and restores the base lens after rendering");
+                var body = Field<Canvas>(hud,"canvas");
+                Check(!body || !body.enabled,"Desktop sprint has no old body vignette");
+
+                SetSprint(hud,motor,false,false,.06f);
+                Check(Field<float>(hud,"desktopSprint") is >0 and <1,"Sprint eases out");
+                SetSprint(hud,motor,false,false,1f);
+                camera.fieldOfView=sprintFov;
+                try
+                {
+                    var lensOnly = Capture(camera,null,"sprint-wide-reference.png");
+                    Check(EdgeDelta(sprint,lensOnly)>.025f,
+                        "Rendered sprint blur and streaks change the edges beyond lens widening");
+                    Check(CenterDelta(sprint,lensOnly)<.02f,
+                        "Compared at equal FOV, the rendered effect leaves the center clear");
+                    Object.Destroy(lensOnly);
+                }
+                finally
+                {
+                    camera.fieldOfView=baseFov;
+                    Object.Destroy(sprint);
+                }
+                Object.Destroy(Capture(camera,null,"sprint-recovered.png"));
+                Check(Mathf.Approximately(renderFov,baseFov),"Releasing sprint restores the normal view");
+            }
+            finally
+            {
+                SetSprint(hud,motor,false,false,1f);
+                RenderPipelineManager.beginCameraRendering -= Observe;
+            }
+        }
+
+        static float EdgeDelta(Texture2D a, Texture2D b)
+        {
+            float delta=0;
+            for(int y=20; y<a.height-20; y+=13)
+            for(int x=12; x<a.width-12; x+=13)
+            {
+                if(x>a.width/7 && x<a.width*6/7) continue;
+                Color d=a.GetPixel(x,y)-b.GetPixel(x,y);
+                delta=Mathf.Max(delta,Mathf.Abs(d.r),Mathf.Abs(d.g),Mathf.Abs(d.b));
+            }
+            return delta;
+        }
+
         static Texture2D Capture(Camera camera,Canvas overlay,string name)
         {
             if(overlay){overlay.renderMode=RenderMode.ScreenSpaceCamera;overlay.worldCamera=camera;overlay.planeDistance=camera.nearClipPlane+.1f;Canvas.ForceUpdateCanvases();}

@@ -14,6 +14,8 @@ namespace DeadlyJenga.CastlePrototype
         IMovementState owner;
         CandyHealthFeedback health;
         Vector4 state;
+        Camera sprintView;
+        float desktopSprint;
         public float Opacity => canvas && canvas.enabled ? state.x : 0;
         public static float TargetOpacity(bool climbing, float grip, bool hidden) =>
             hidden ? 0 : Mathf.SmoothStep(0, 1, 1 - Mathf.Clamp01(grip));
@@ -62,10 +64,12 @@ namespace DeadlyJenga.CastlePrototype
             if (!health) health = GetComponent<CandyHealthFeedback>() ?? gameObject.AddComponent<CandyHealthFeedback>();
             health.Sample(player, match?.Rules?.healthEnabled == true, dt);
             string action = (motor as IPlayableCharacter)?.StatusText;
-            bool sprinting = action == "SPRINTING" || action == "CLIMB SPRINT";
+            bool running = action == "SPRINTING";
+            UpdateDesktopSprint(view, session as Component, running && !motor.Climbing && !motor.Vaulting, dt);
+            bool comfortSprint = view.IsVR && (running || action == "CLIMB SPRINT");
             float sand = player?.sinking == true && !motor.Climbing && !motor.Vaulting
                 ? Mathf.Lerp(.08f, 1, Mathf.Clamp01(player.sinkProgress)) : 0;
-            var target = new Vector4(TargetOpacity(motor.Climbing, motor.Stamina, false), health.Damage, sprinting ? 1 : 0, sand);
+            var target = new Vector4(TargetOpacity(motor.Climbing, motor.Stamina, false), health.Damage, comfortSprint ? 1 : 0, sand);
             state.x = Mathf.MoveTowards(state.x, target.x, Mathf.Max(0, dt) * (target.x > state.x ? 2.5f : .9f));
             state.y = health.Damage;
             state.z = Mathf.MoveTowards(state.z, target.z, Mathf.Max(0, dt) * 5);
@@ -81,7 +85,42 @@ namespace DeadlyJenga.CastlePrototype
             material.SetFloat("_FeedbackTime", Time.unscaledTime % 120);
             canvas.enabled = true;
         }
-        void Hide() { if (canvas) canvas.enabled = false; state = Vector4.zero; if (health) health.ResetDisplay(); }
+        void UpdateDesktopSprint(IPlayerView view, Component session, bool running, float dt)
+        {
+            if (sprintView && sprintView != view.ViewCamera) ClearDesktopSprint();
+            if (view.IsVR || view.ViewCamera.stereoEnabled ||
+                (session && session.TryGetComponent<CandyGunSights>(out var sights) && sights.Aiming))
+            {
+                ClearDesktopSprint();
+                return;
+            }
+
+            desktopSprint = Mathf.MoveTowards(desktopSprint, running ? 1f : 0f,
+                Mathf.Max(0, dt) * (running ? 5f : 3.5f));
+            if (desktopSprint <= 0)
+            {
+                ClearDesktopSprint();
+                return;
+            }
+
+            sprintView = view.ViewCamera;
+            CandySprintCameraFx.SetView(sprintView, desktopSprint);
+        }
+
+        void ClearDesktopSprint()
+        {
+            if (sprintView) CandySprintCameraFx.ClearView(sprintView);
+            sprintView = null;
+            desktopSprint = 0;
+        }
+
+        void Hide()
+        {
+            ClearDesktopSprint();
+            if (canvas) canvas.enabled = false;
+            state = Vector4.zero;
+            if (health) health.ResetDisplay();
+        }
         void OnDisable() => Hide();
         void OnDestroy() { if (canvas) Destroy(canvas.gameObject); if (material) Destroy(material); }
     }
