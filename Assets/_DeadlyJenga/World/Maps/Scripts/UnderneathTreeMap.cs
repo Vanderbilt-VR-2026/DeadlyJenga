@@ -9,11 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class UnderneathTreeMap : MonoBehaviour, IWorldQuery, ISyncedWorld,
         IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        const string Layout = "underneath-the-tree-v1";
-        static readonly HashSet<string> StationaryGifts = new HashSet<string> {
-            "Present 00", "Present 01", "Present 02", "Present 03", "Present 04",
-            "Present 05", "Present 06", "Present 07", "Present 202", "Present 206"
-        };
+        const string Layout = "underneath-the-tree-v2";
 
         [SerializeField] GameObject model = null, room = null, locomotive = null;
         [SerializeField] Material paper = null;
@@ -22,7 +18,10 @@ namespace DeadlyJenga.CastlePrototype
         readonly List<UnderneathTreeGiftPanel> panels = new List<UnderneathTreeGiftPanel>();
         readonly List<Material> wrapping = new List<Material>();
         Transform built;
-        MeshCollider spawn, skirt;
+        readonly List<Collider> spawnTops = new List<Collider>();
+        MeshCollider skirt;
+        Vector3 fallbackSpawn;
+        float nextDebrisCleanup;
         bool collisionOwned, oldSurvivorBlock, oldSurfaceBlock;
         Bounds playArea;
         bool replica;
@@ -80,9 +79,8 @@ namespace DeadlyJenga.CastlePrototype
             var filters = layout.GetComponentsInChildren<MeshFilter>()
                 .OrderBy(filter => filter.name, StringComparer.Ordinal).ToArray();
             var byName = filters.ToDictionary(filter => filter.name, StringComparer.Ordinal);
-            var paperByGift = new Dictionary<string, Material>(StringComparer.Ordinal);
-            var ribbonByGift = new Dictionary<string, Material>(StringComparer.Ordinal);
             var rail = new List<Vector3>();
+            var gifts = new SortedDictionary<string, List<MeshFilter>>(StringComparer.Ordinal);
             playArea = new Bounds(transform.position, Vector3.zero);
 
             foreach (var filter in filters)
@@ -94,63 +92,47 @@ namespace DeadlyJenga.CastlePrototype
                     rail.Add(transform.InverseTransformPoint((filter.GetComponent<Renderer>().bounds.center +
                         opposite.GetComponent<Renderer>().bounds.center) * .5f));
                 }
-
-                if (name.StartsWith("Present ", StringComparison.Ordinal))
+                else if (name.StartsWith("Present ", StringComparison.Ordinal))
                 {
                     int suffix = name.IndexOf(' ', "Present ".Length);
                     if (suffix == -1)
                         continue;
                     var giftName = name.Substring(0, suffix);
-                    var part = name.Substring(suffix + 1);
-                    if (!ribbonByGift.ContainsKey(giftName) &&
-                        (part.StartsWith("ribbon", StringComparison.OrdinalIgnoreCase) || part == "lid"))
-                        ribbonByGift.Add(giftName, filter.GetComponent<Renderer>().sharedMaterial);
-                    if (part == "box" && !StationaryGifts.Contains(giftName))
-                        paperByGift.Add(giftName, filter.GetComponent<Renderer>().sharedMaterial);
+                    if (!gifts.TryGetValue(giftName, out var parts))
+                        gifts.Add(giftName, parts = new List<MeshFilter>());
+                    parts.Add(filter);
+                    playArea.Encapsulate(filter.GetComponent<Renderer>().bounds);
                 }
+                else if (name.Contains("kill floor"))
+                    skirt = AddMeshSurface(filter);
+                else if (name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim")
+                    AddMeshSurface(filter);
             }
 
-            foreach (var filter in filters)
+            foreach (var pair in gifts)
             {
-                string name = filter.name;
-                if (name.StartsWith("Present ", StringComparison.Ordinal))
-                {
-                    int suffix = name.IndexOf(' ', "Present ".Length);
-                    if (suffix == -1)
-                        continue;
-                    var giftName = name.Substring(0, suffix);
-                    var part = name.Substring(suffix + 1);
-                    playArea.Encapsulate(filter.GetComponent<Renderer>().bounds);
-                    if (paperByGift.TryGetValue(giftName, out var giftPaper))
-                    {
-                        if (part == "box")
-                        {
-                            ribbonByGift.TryGetValue(giftName, out var ribbon);
-                            BuildPaperPanels(filter, giftPaper, ribbon);
-                        }
-                        filter.gameObject.SetActive(false);
-                    }
-                    else if (!StationaryGifts.Contains(giftName) && part == "lid")
-                        BuildRoundLid(filter);
-                    else if (!part.StartsWith("ribbon", StringComparison.OrdinalIgnoreCase))
-                    {
-                        var surface = AddMeshSurface(filter, true);
-                        if (name == "Present 206 box")
-                            spawn = surface;
-                    }
-                    continue;
-                }
-
-                if (name.Contains("kill floor"))
-                    skirt = AddMeshSurface(filter, false);
-                else if (name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim")
-                    AddMeshSurface(filter, false);
+                var parts = pair.Value;
+                var box = parts.Find(filter => filter.name.EndsWith(" box", StringComparison.Ordinal));
+                var drum = parts.Find(filter => filter.name.EndsWith(" drum", StringComparison.Ordinal));
+                var lid = parts.Find(filter => filter.name.EndsWith(" lid", StringComparison.Ordinal));
+                var ribbon = parts.Find(filter => filter.name.Contains("ribbon A"));
+                if (box)
+                    BuildPaperPanels(box, box.GetComponent<Renderer>().sharedMaterial,
+                        ribbon ? ribbon.GetComponent<Renderer>().sharedMaterial : null);
+                else if (drum && lid)
+                    BuildRoundGift(drum, lid);
+                else
+                    throw new InvalidOperationException("Incomplete gift shell: " + pair.Key);
+                foreach (var part in parts)
+                    part.gameObject.SetActive(false);
             }
 
             BuildJunction();
             BuildTrack(rail);
             BuildApproach(rail);
             playArea.Expand(new Vector3(8f, 12f, 8f));
+            Physics.SyncTransforms();
+            BuildTrackSupports(rail);
             Physics.SyncTransforms();
             BuildSkirtStitching();
             Revision++;
@@ -172,7 +154,7 @@ namespace DeadlyJenga.CastlePrototype
             foreach (var mesh in generatedMeshes)
                 Release(mesh);
             generatedMeshes.Clear();
-            spawn = null;
+            spawnTops.Clear();
             skirt = null;
         }
 
@@ -192,16 +174,12 @@ namespace DeadlyJenga.CastlePrototype
                 Release(mesh);
         }
 
-        static MeshCollider AddMeshSurface(MeshFilter filter, bool climbable)
+        static MeshCollider AddMeshSurface(MeshFilter filter)
         {
             var go = filter.gameObject;
             go.layer = Layers.Surface;
-            if (climbable)
-                AddBody(go);
             var collider = go.AddComponent<MeshCollider>();
             collider.sharedMesh = filter.sharedMesh;
-            if (climbable)
-                go.AddComponent<PowerupLabSurface>();
             return collider;
         }
 
@@ -215,9 +193,30 @@ namespace DeadlyJenga.CastlePrototype
 
         public Vector3 SafeSpawnPoint()
         {
-            if (spawn)
-                return new Vector3(spawn.bounds.center.x, spawn.bounds.max.y + .06f, spawn.bounds.center.z);
-            return Center + Vector3.up * 6f;
+            int surface = (1 << Layers.Block) | (1 << Layers.Surface);
+            foreach (var top in spawnTops)
+            {
+                if (!top || !top.gameObject.activeInHierarchy || !top.attachedRigidbody.isKinematic)
+                    continue;
+                var bounds = top.bounds;
+                var start = new Vector3(bounds.center.x, bounds.max.y + .95f, bounds.center.z);
+                if (Physics.Raycast(start, Vector3.down, out var hit, 1.12f, surface, QueryTriggerInteraction.Ignore) &&
+                    hit.collider == top && hit.normal.y > .92f)
+                    return hit.point + Vector3.up * .07f;
+            }
+            return transform.TransformPoint(fallbackSpawn);
+        }
+
+        void FixedUpdate()
+        {
+            if (replica || Time.time < nextDebrisCleanup ||
+                (Services.Session is IWorldAuthority authority && !authority.HasWorldAuthority))
+                return;
+            nextDebrisCleanup = Time.time + .8f;
+            foreach (var panel in panels)
+                if (panel && panel.IsLoose && panel.gameObject.activeSelf &&
+                    panel.Body.position.y < WaterHeight(panel.Body.position) - 22f)
+                    panel.gameObject.SetActive(false);
         }
 
         public float WaterHeight(Vector3 position) => transform.position.y - 18f;

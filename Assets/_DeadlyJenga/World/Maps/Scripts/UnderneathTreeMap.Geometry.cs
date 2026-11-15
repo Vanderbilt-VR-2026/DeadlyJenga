@@ -14,9 +14,9 @@ namespace DeadlyJenga.CastlePrototype
             var emerald = ColoredPaper("Evergreen gift wrap", new Color(.045f, .32f, .15f), .36f);
             var cranberry = ColoredPaper("Cranberry ribbon", new Color(.65f, .10f, .15f), .55f);
             var gold = ColoredPaper("Satin gold ribbon", new Color(.88f, .55f, .16f), .55f);
-            FixedGift("Cream Landing", new Vector3(4.896f, 2.330f, -20.026f),
+            BoxGift("Cream Landing", new Vector3(4.896f, 2.330f, -20.026f),
                 new Vector3(3.4f, 3.48f, 3.5f), orientation, cream, cranberry);
-            FixedGift("Green Climb", new Vector3(7.828f, 3.530f, -18.935f),
+            BoxGift("Green Climb", new Vector3(7.828f, 3.530f, -18.935f),
                 new Vector3(2.8f, 5.88f, 3.05f), orientation, emerald, gold);
         }
 
@@ -28,54 +28,65 @@ namespace DeadlyJenga.CastlePrototype
             return material;
         }
 
-        void FixedGift(string label, Vector3 center, Vector3 size, Quaternion orientation, Material wrap, Material ribbon)
-        {
-            var root = Child(built, label, center, orientation);
-            AddBox(root, size, false);
-            var art = VisualBox(root, "Visual", Vector3.zero, size, wrap);
-            AddRibbon(root, size, ribbon);
-            AddBody(root.gameObject);
-            root.gameObject.AddComponent<PowerupLabSurface>();
-            playArea.Encapsulate(art.GetComponent<MeshRenderer>().bounds);
-        }
-
         void BuildPaperPanels(MeshFilter source, Material wrap, Material ribbon)
         {
             var mesh = source.sharedMesh.bounds;
             var original = source.transform;
-            var frame = Child(built, source.name.Replace(" box", ""),
-                transform.InverseTransformPoint(original.TransformPoint(mesh.center)),
-                Quaternion.Inverse(transform.rotation) * original.rotation);
-            Vector3 size = Vector3.Scale(mesh.size, original.lossyScale) / transform.lossyScale.x;
-            size = new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z));
+            Vector3 center = transform.InverseTransformPoint(original.TransformPoint(mesh.center));
+            var rotation = Quaternion.Inverse(transform.rotation) * original.rotation;
+            BoxGift(source.name.Replace(" box", ""), center, ModelSize(source), rotation, wrap, ribbon);
+        }
 
-            // The authored boxes extend slightly below the felt. Trim the bottom without moving the top.
-            float bottom = frame.localPosition.y - size.y * .5f;
-            float trim = Mathf.Clamp(.56f - bottom, 0f, size.y * .25f);
-            frame.localPosition += Vector3.up * (trim * .5f);
+        Vector3 ModelSize(MeshFilter source)
+        {
+            var size = Vector3.Scale(source.sharedMesh.bounds.size, source.transform.lossyScale) / transform.lossyScale.x;
+            return new Vector3(Mathf.Abs(size.x), Mathf.Abs(size.y), Mathf.Abs(size.z));
+        }
+
+        static float GiftFloor(Vector3 center)
+        {
+            Vector2 fromTree = new Vector2(center.x + 35f, center.z + 35f);
+            return fromTree.sqrMagnitude < 77f * 77f ? .54f : .02f;
+        }
+
+        void BoxGift(string label, Vector3 center, Vector3 size, Quaternion orientation, Material wrap, Material ribbon)
+        {
+            float bottom = center.y - size.y * .5f;
+            float trim = Mathf.Clamp(GiftFloor(center) - bottom, 0f, size.y * .25f);
+            center.y += trim * .5f;
             size.y -= trim;
-            const float joint = .018f;
-            float thick = Mathf.Clamp(Mathf.Min(size.x, size.y, size.z) * .085f, .2f, .55f);
+            var frame = Child(built, label, center, orientation);
+            var shell = new UnderneathTreeGiftShell();
+            const float joint = .016f;
+            float thick = Mathf.Clamp(Mathf.Min(size.x, size.y, size.z) * .085f, .2f, .57f);
             float insideY = size.y - 2f * (thick + joint);
             float insideX = size.x - 2f * (thick + joint);
 
-            AddPanel(frame, "Bottom", Vector3.down * ((size.y - thick) * .5f),
+            AddPanel(frame, shell, "Bottom", GiftPieceRole.Base, Vector3.down * ((size.y - thick) * .5f),
                 new Vector3(size.x, thick, size.z), wrap, null, Vector3.zero);
-            AddPanel(frame, "Lid", Vector3.up * ((size.y - thick) * .5f),
+            var top = AddPanel(frame, shell, "Lid", GiftPieceRole.Lid, Vector3.up * ((size.y - thick) * .5f),
                 new Vector3(size.x, thick, size.z), wrap, ribbon, Vector3.up);
+            if (label == "Present 206")
+                spawnTops.Insert(0, top);
+            else
+                spawnTops.Add(top);
+
             foreach (float sign in new[] { -1f, 1f })
             {
-                AddPanel(frame, sign < 0 ? "Left" : "Right", Vector3.right * (sign * (size.x - thick) * .5f),
+                AddPanel(frame, shell, sign < 0 ? "Left" : "Right", GiftPieceRole.Wall,
+                    Vector3.right * (sign * (size.x - thick) * .5f),
                     new Vector3(thick, insideY, size.z), wrap, ribbon, Vector3.right * sign);
-                AddPanel(frame, sign < 0 ? "Front" : "Back", Vector3.forward * (sign * (size.z - thick) * .5f),
+                AddPanel(frame, shell, sign < 0 ? "Front" : "Back", GiftPieceRole.Wall,
+                    Vector3.forward * (sign * (size.z - thick) * .5f),
                     new Vector3(insideX, insideY, thick), wrap, ribbon, Vector3.forward * sign);
             }
         }
 
-        void AddPanel(Transform gift, string label, Vector3 offset, Vector3 size, Material wrap, Material ribbon, Vector3 facing)
+        Collider AddPanel(Transform gift, UnderneathTreeGiftShell shell, string label, GiftPieceRole role,
+            Vector3 offset, Vector3 size, Material wrap, Material ribbon, Vector3 facing)
         {
             var piece = Child(gift, label, offset, Quaternion.identity);
-            AddBox(piece, size, true);
+            var collider = AddBox(piece, size, true);
             var visual = VisualBox(piece, "Visual", Vector3.zero, size, wrap);
             if (ribbon)
             {
@@ -94,27 +105,19 @@ namespace DeadlyJenga.CastlePrototype
                     VisualBox(piece, "Ribbon", facing * (size.z * .5f + .007f),
                         new Vector3(size.x * .18f, size.y, .014f), ribbon);
             }
-            RegisterPanel(piece.gameObject, visual.transform, size.x * size.y * size.z);
+            RegisterPanel(piece.gameObject, visual.transform, shell, role, size.x * size.y * size.z);
+            return collider;
         }
 
-        void BuildRoundLid(MeshFilter filter)
-        {
-            var go = filter.gameObject;
-            go.layer = DeadlyJenga.Core.Layers.Block;
-            var shape = go.AddComponent<MeshCollider>();
-            shape.sharedMesh = filter.sharedMesh;
-            shape.convex = true;
-            RegisterPanel(go, go.transform, 10f);
-        }
-
-        void RegisterPanel(GameObject go, Transform visual, float volume)
+        void RegisterPanel(GameObject go, Transform visual, UnderneathTreeGiftShell shell,
+            GiftPieceRole role, float volume)
         {
             var body = AddBody(go);
             body.mass = Mathf.Clamp(volume * 1.9f, 4f, 65f);
             body.linearDamping = .12f;
             body.angularDamping = .18f;
             var panel = go.AddComponent<UnderneathTreeGiftPanel>();
-            panel.SetUp(body, visual);
+            panel.SetUp(body, visual, shell, role);
             panel.SetReplica(replica);
             panels.Add(panel);
             bodies.Add(body);
@@ -128,10 +131,12 @@ namespace DeadlyJenga.CastlePrototype
             return child;
         }
 
-        static void AddBox(Transform root, Vector3 size, bool movable)
+        static BoxCollider AddBox(Transform root, Vector3 size, bool movable)
         {
             root.gameObject.layer = movable ? DeadlyJenga.Core.Layers.Block : DeadlyJenga.Core.Layers.Surface;
-            root.gameObject.AddComponent<BoxCollider>().size = size;
+            var collider = root.gameObject.AddComponent<BoxCollider>();
+            collider.size = size;
+            return collider;
         }
 
         static GameObject VisualBox(Transform parent, string label, Vector3 offset, Vector3 dimensions, Material material)
@@ -146,15 +151,6 @@ namespace DeadlyJenga.CastlePrototype
             visual.transform.localScale = dimensions;
             visual.GetComponent<MeshRenderer>().sharedMaterial = material;
             return visual;
-        }
-
-        static void AddRibbon(Transform parent, Vector3 size, Material ribbon)
-        {
-            float y = size.y * .5f + .004f;
-            VisualBox(parent, "Top ribbon", new Vector3(-size.x * .29f, y, 0),
-                new Vector3(.27f, .012f, size.z), ribbon);
-            VisualBox(parent, "Side ribbon", new Vector3(-size.x * .29f, 0, -size.z * .5f - .004f),
-                new Vector3(.27f, size.y, .012f), ribbon);
         }
 
         void BuildTrack(List<Vector3> course)

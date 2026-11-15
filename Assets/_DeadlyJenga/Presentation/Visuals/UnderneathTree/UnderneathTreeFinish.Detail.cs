@@ -115,7 +115,7 @@ namespace DeadlyJenga.CandyArt
         void AddGiftBow(MeshRenderer renderer)
         {
             string label = renderer.name;
-            if (label != "Wrap" && !(label.StartsWith("Present ", StringComparison.Ordinal) && label.EndsWith(" box", StringComparison.Ordinal)))
+            if (label != "Visual" || !renderer.transform.parent || renderer.transform.parent.name != "Front")
                 return;
             if (!renderer.TryGetComponent<MeshFilter>(out var filter) || !filter.sharedMesh)
                 return;
@@ -134,9 +134,13 @@ namespace DeadlyJenga.CandyArt
             skin.sharedMaterial = finish;
             skin.shadowCastingMode = ShadowCastingMode.TwoSided;
             var bounds = filter.sharedMesh.bounds;
-            obj.transform.SetParent(renderer.transform, false);
-            obj.transform.localPosition = bounds.center + new Vector3(0f, .20f * bounds.size.y, -.502f * bounds.size.z);
-            obj.transform.localScale = new Vector3(bounds.size.x * .23f, bounds.size.y * .19f, bounds.size.z * .12f);
+            var panel = renderer.transform;
+            var size = Vector3.Scale(panel.localScale, bounds.size);
+            obj.transform.SetParent(panel.parent, false);
+            obj.transform.localPosition = panel.localPosition + Vector3.Scale(panel.localScale, bounds.center)
+                + new Vector3(0f, .2f * size.y, -.52f * size.z);
+            obj.transform.localScale = new Vector3(Mathf.Clamp(size.x * .24f, .55f, 3.5f),
+                Mathf.Clamp(size.y * .18f, .46f, 3.4f), Mathf.Clamp(size.x * .10f, .38f, 1.4f));
             mapDressings.Add(obj);
         }
 
