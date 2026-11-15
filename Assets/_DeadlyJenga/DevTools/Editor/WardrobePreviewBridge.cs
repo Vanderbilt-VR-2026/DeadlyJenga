@@ -21,7 +21,8 @@ namespace DeadlyJenga.DevTools.Editor
         const int Size = 720;
         static readonly HashSet<AvatarSkin> Skins = new HashSet<AvatarSkin>
         {
-            AvatarSkin.Default, AvatarSkin.Rabbit, AvatarSkin.Clownfish, AvatarSkin.CandyCorn
+            AvatarSkin.Default, AvatarSkin.Rabbit, AvatarSkin.Clownfish, AvatarSkin.CandyCorn,
+            AvatarSkin.Fox, AvatarSkin.Penguin, AvatarSkin.Gingerbread, AvatarSkin.Astronaut
         };
 
         [Serializable]

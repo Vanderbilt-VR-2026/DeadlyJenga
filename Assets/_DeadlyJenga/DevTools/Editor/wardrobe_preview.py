@@ -9,7 +9,20 @@ import uuid
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
-SKINS = {"Default", "Rabbit", "Clownfish", "CandyCorn"}
+SKIN_GROUPS = {
+    "Redesigned": {"Rabbit": "Rabbit", "Clownfish": "Clownfish", "CandyCorn": "Candy Corn"},
+    "Comparison": {
+        "Default": "Default", "Fox": "Fox", "Penguin": "Penguin",
+        "Gingerbread": "Gingerbread", "Astronaut": "Astronaut",
+    },
+}
+SKINS = {skin for group in SKIN_GROUPS.values() for skin in group}
+SKIN_OPTIONS = "".join(
+    f'<optgroup label="{group}">' +
+    "".join(f'<option value="{skin}">{label}</option>' for skin, label in options.items()) +
+    "</optgroup>"
+    for group, options in SKIN_GROUPS.items()
+)
 
 PAGE = """<!doctype html>
 <html lang="en"><meta charset="utf-8">
@@ -23,6 +36,9 @@ header,nav {display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 header {justify-content:space-between}
 h1 {margin:0;font-size:clamp(22px,5vw,34px);letter-spacing:-.04em}
 nav {margin:13px 0}
+.orbit {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:0 0 12px}
+.orbit label {display:grid;gap:4px;font-size:13px}
+.orbit input {width:100%;margin:0;accent-color:#78ddc7}
 button,select {background:#253841;color:inherit;border:1px solid #40535a;border-radius:9px;padding:7px 12px;font:inherit}
 button {cursor:pointer} select {flex:1;min-width:125px}
 :focus-visible {outline:3px solid #78ddc7;outline-offset:2px}
@@ -35,22 +51,35 @@ figure {background:#17313e;margin:0;border:1px solid #3b5864;border-radius:18px;
 </style>
 <header><h1>Wardrobe</h1><span id="revision">Unity · __REVISION__</span></header>
 <nav aria-label="Wardrobe controls">
-<select id="skin" aria-label="Skin"><option>Rabbit</option><option>Clownfish</option>
-<option value="CandyCorn">Candy Corn</option><option>Default</option></select>
+<select id="skin" aria-label="Skin">__SKINS__</select>
 <select id="environment" aria-label="Lighting and environment"><option value="studio">Studio</option>
 <option value="castle">Castle</option></select>
 <button id="reset">Reset view</button><button id="stop">Stop preview</button>
 </nav>
+<div class="orbit" role="group" aria-label="Camera orbit">
+<label>Rotate left/right <input id="yaw" type="range" min="0" max="360" value="155"></label>
+<label>Tilt up/down <input id="pitch" type="range" min="-55" max="70" value="9"></label>
+</div>
 <figure><img id="avatar" tabindex="0" draggable="false" alt="Unity wardrobe preview"></figure>
 <p id="status" role="status">Starting Unity…</p>
 <script>
 const skin = document.querySelector('#skin'), avatar = document.querySelector('#avatar');
 const environment = document.querySelector('#environment');
 const status = document.querySelector('#status'), token = __TOKEN__;
-const guidance = 'Drag or use arrow keys to orbit. Scroll or use + and − to zoom.';
+const guidance = 'Drag left/right or up/down to orbit. Scroll or use + and − to zoom.';
+const yawControl = document.querySelector('#yaw'), pitchControl = document.querySelector('#pitch');
 let yaw=155, pitch=9, zoom=1, drag, dirty=true, busy=false, stopped=false, imageUrl;
 const clamp = (v,min,max) => Math.max(min,Math.min(max,v));
 const render = () => { dirty=true; };
+function setOrbit(nextYaw, nextPitch) {
+  yaw=nextYaw >= 0 && nextYaw <= 360 ? nextYaw : (nextYaw%360+360)%360;
+  pitch=clamp(nextPitch,Number(pitchControl.min),Number(pitchControl.max));
+  yawControl.value=Math.round(yaw);
+  pitchControl.value=Math.round(pitch);
+  render();
+}
+yawControl.addEventListener('input',() => setOrbit(Number(yawControl.value),pitch));
+pitchControl.addEventListener('input',() => setOrbit(yaw,Number(pitchControl.value)));
 const request = (path,body) => fetch(path,{method:'POST',headers:{
   'Content-Type':'application/json','X-Wardrobe-Token':token},body});
 setInterval(async () => {
@@ -73,9 +102,8 @@ avatar.addEventListener('pointerdown',e => {
 });
 avatar.addEventListener('pointermove',e => {
   if(!drag)return;
-  yaw=(yaw+(e.clientX-drag.x)*.55)%360;
-  pitch=clamp(pitch-(e.clientY-drag.y)*.45,-55,70);
-  drag={x:e.clientX,y:e.clientY}; render();
+  setOrbit(yaw+(e.clientX-drag.x)*.55,pitch-(e.clientY-drag.y)*.45);
+  drag={x:e.clientX,y:e.clientY};
 });
 avatar.addEventListener('lostpointercapture',() => {drag=null;});
 avatar.addEventListener('wheel',e => {
@@ -84,15 +112,18 @@ avatar.addEventListener('wheel',e => {
 avatar.addEventListener('keydown',e => {
   switch(e.key){
   case 'ArrowLeft':yaw-=10;break; case 'ArrowRight':yaw+=10;break;
-  case 'ArrowUp':pitch=clamp(pitch+8,-55,70);break; case 'ArrowDown':pitch=clamp(pitch-8,-55,70);break;
+  case 'ArrowUp':pitch+=8;break; case 'ArrowDown':pitch-=8;break;
   case '+':case '=':zoom=clamp(zoom/1.12,.55,2);break; case '-':zoom=clamp(zoom*1.12,.55,2);break;
   default:return;
   }
-  e.preventDefault(); render();
+  e.preventDefault(); setOrbit(yaw,pitch);
 });
 skin.addEventListener('change',render);
-environment.addEventListener('change',render);
-document.querySelector('#reset').onclick=()=>{yaw=155;pitch=9;zoom=1;render();};
+environment.addEventListener('change',() => {
+  pitchControl.min=environment.value==='castle' ? -6 : -55;
+  setOrbit(yaw,pitch);
+});
+document.querySelector('#reset').onclick=()=>{zoom=1;setOrbit(155,9);};
 document.querySelector('#stop').onclick=async e=>{
   e.currentTarget.disabled=true; stopped=true;
   try {const response=await request('/stop'); status.textContent=await response.text();}
@@ -114,7 +145,9 @@ class PreviewServer(ThreadingHTTPServer):
         self.folder = folder
         self.host = f"127.0.0.1:{self.server_port}"
         self.token = secrets.token_urlsafe(24)
-        self.page = PAGE.replace("__REVISION__", revision[:10]).replace("__TOKEN__", json.dumps(self.token))
+        self.page = (PAGE.replace("__REVISION__", revision[:10])
+                     .replace("__SKINS__", SKIN_OPTIONS)
+                     .replace("__TOKEN__", json.dumps(self.token)))
         self.render_lock = threading.Lock()
 
 
