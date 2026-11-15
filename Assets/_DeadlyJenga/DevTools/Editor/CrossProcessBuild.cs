@@ -20,8 +20,6 @@ namespace DeadlyJenga.CastlePrototype.Editor
         }
         public static void RunLobbyHandoffBatch()
         {
-            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon-impact") && !Application.isBatchMode)
-                ConfigureImpactGameView();
             string scene = AssetDatabase.FindAssets("Home t:Scene").Select(AssetDatabase.GUIDToAssetPath)
                 .Single(path => Path.GetFileNameWithoutExtension(path) == "Home");
             SessionState.SetBool(LobbyHandoffKey, true);
@@ -50,8 +48,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             SessionState.SetInt(LobbyHandoffKey + "GameViewSize", (int)selected.GetValue(view));
             SessionState.SetInt(LobbyHandoffKey + "GameViewAdded", index);
             SessionState.SetString(LobbyHandoffKey + "GameViewGroup", current.ToString());
-            selected.SetValue(view, index);
-            viewType.GetMethod("SizeSelectionCallback", flags)?.Invoke(view, new object[] { index, null });
+            viewType.GetMethod("SizeSelectionCallback", flags).Invoke(view, new object[] { index, null });
             view.Show(); view.Focus(); view.Repaint();
             Debug.Log("Impact Editor GameView targetSize=" + viewType.GetProperty("targetSize", flags)?.GetValue(view));
         }
@@ -71,10 +68,16 @@ namespace DeadlyJenga.CastlePrototype.Editor
             group.GetType().GetMethod("RemoveCustomSize").Invoke(group, new object[] { SessionState.GetInt(LobbyHandoffKey + "GameViewAdded", builtins) - builtins });
             SessionState.EraseString(LobbyHandoffKey + "GameViewGroup");
         }
+        static bool impactViewConfigured;
         static void PollLobbyHandoff()
         {
             if (!EditorApplication.isPlaying) return;
             var args = Environment.GetCommandLineArgs();
+            if (!impactViewConfigured && args.Contains("--dj-tycoon-impact") && !Application.isBatchMode)
+            {
+                ConfigureImpactGameView();
+                impactViewConfigured = true;
+            }
             var folder = args.Single(a => a.StartsWith("--dj-smoke-dir=")).Substring(15);
             var role = args.Single(a => a.StartsWith("--dj-smoke=")).Substring(11);
             string file = Path.Combine(folder, role + ".txt");

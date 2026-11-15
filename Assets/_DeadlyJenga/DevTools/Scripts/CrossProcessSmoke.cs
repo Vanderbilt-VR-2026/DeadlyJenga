@@ -626,14 +626,21 @@ namespace DeadlyJenga.CastlePrototype
             else
                 yield return Until(() => File.Exists(Mark("impact-bots-spawned")), "Host spawned load before the guest samples baseline");
 
+            if (Application.isEditor && !Application.isBatchMode)
+                yield return Until(() => Screen.width == 960 && Screen.height == 540,
+                    "Rendered Editor impact resolution is 960x540", 10,
+                    () => $"actual={Screen.width}x{Screen.height}");
             File.AppendAllText(Report, $"CONFIG bots={population} vsync={QualitySettings.vSyncCount} cap={Application.targetFrameRate} " +
                 $"resolution={Screen.width}x{Screen.height} gpu={SystemInfo.graphicsDeviceName} api={SystemInfo.graphicsDeviceType}\n");
             yield return new WaitForSecondsRealtime(4);
             if (host || solo) CheckNearbyCandidates("settled");
             yield return null; yield return null;
             yield return SampleImpactFrames("before-wave", blocks, before, 8);
-            if((host||solo)&&session.Network&&Environment.GetCommandLineArgs().Contains("--dj-impact-dump-world"))
-                File.WriteAllBytes(Path.Combine(folder,role+"-settled-world.bin"),session.Network.FusionCaptureWorld());
+            if((host||solo)&&Environment.GetCommandLineArgs().Contains("--dj-impact-dump-world"))
+            {
+                if(session.Network) File.WriteAllBytes(Path.Combine(folder,role+"-settled-world.bin"),session.Network.FusionCaptureWorld());
+                if(session.Modes) File.WriteAllText(Path.Combine(folder,role+"-settled-match.json"),session.Modes.CaptureFrameJson());
+            }
 
             if (host)
                 yield return Until(() => File.Exists(Mark("impact-guest-baseline")), "Guest completes its no-disaster sample");

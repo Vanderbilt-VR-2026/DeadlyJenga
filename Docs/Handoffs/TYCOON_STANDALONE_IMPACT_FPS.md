@@ -2,6 +2,14 @@
 
 Current overhaul status: +50% typical FPS is not met, and neither desktop Editor smoothness nor replication freshness is accepted. Source changes are isolated on the task branch; no shared integration or APK claim.
 
+## d1444d7f active-impact results
+
+Exact native candidate `d1444d7fbc659a6541ed00bb16ce7f77615aacb4` built successfully and passed 123 objective-contract assertions. At 960x540, 24-bot solo impact reached 32.48 typical FPS (30.785 ms median, 48.951 ms p95; 245 moving-block samples, 25 blocks displaced over one metre). The 52-bot run reached 19.50 FPS (51.270 ms median, 69.306 ms p95; 150 moving samples, 32 blocks over one metre). Against refreshed original baselines 24.77/15.72 FPS, these are approximately +31%/+24%; +50% is not met and single runs are not repeated acceptance.
+
+The default-transport 52-bot peer run completed cleanly: host 17.36 FPS, guest 56.91 FPS. Freshness failed: guest world age median 595.610 ms / maximum 1619.843 ms; pose age median 259.928 ms / maximum 1198.246 ms. During the approach/impact interval, match-state packets submitted 165,622 bytes, world packets 69,587 bytes, and human poses 40,038 bytes. The human-pose path does not contain bots; bot state is in world snapshots.
+
+The rendered Editor run completed at 4.87 FPS but actual resolution was 646x493, so it is rejected as a matched before/after comparison. The fixture now configures resolution after entering Play Mode, invokes Unity's resize callback without pre-setting its selection, and gates measurement on actual 960x540. An opt-in settled-state JSON dump is added outside the timing windows to evaluate match payload encoding. These fixture fixes require a new runtime check. No Core changes.
+
 ## Objective lookup checkpoint
 
 The a14239fc Editor trace attributes 9.776 ms mean exclusive missing-component diagnostics to bot objective evaluation and 2.164 ms to match updates. The current GameSession/Modes candidate uses TryGetComponent for optional enemy capabilities, caches enemy classification only within each existing objective sample, and hoists the actor infection decision out of the target loop. Visibility, target legality, objective cadence and content are unchanged. Static diff checks passed; exact-build objective contracts and active-impact runtime comparisons are pending. No FPS improvement is claimed for this checkpoint.
