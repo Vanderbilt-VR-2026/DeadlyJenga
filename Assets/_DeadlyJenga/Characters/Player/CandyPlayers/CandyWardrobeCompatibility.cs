@@ -3,13 +3,22 @@ using DeadlyJenga.Core;
 
 namespace DeadlyJenga.CandyPlayers
 {
-    // Source-authored prototype; fit still needs captures. Desired preferences stay intact.
+    // Resolve visible layers without changing the saved outfit.
     internal static class CandyWardrobeCompatibility
     {
         static readonly AvatarClothing[] OuterPriority={AvatarClothing.PufferVest,AvatarClothing.SailorShirt,AvatarClothing.BomberJacket,AvatarClothing.Hoodie,AvatarClothing.Tuxedo,AvatarClothing.MonkRobe};
-        internal enum Slot { Unreviewed, HeadCovering }
-        [Flags] internal enum Tags { None=0, CrownVolume=1, IntrinsicHeadCovering=2, IntrinsicSpikes=4 }
-        [Flags] internal enum Reason { None=0, CompetingHeadCovering=1, CoveredCrownHair=2, DuplicateIntrinsicHair=4, CompetingOuterGarment=8, ArmorPads=16 }
+        const AvatarAccessory ClosedHeadAccessories=AvatarAccessory.PumpkinHelmet|AvatarAccessory.SkeletonMask|AvatarAccessory.PantherHead;
+        const AvatarAccessory FaceAccessories=AvatarAccessory.Glasses|AvatarAccessory.LongNose|AvatarAccessory.StrongJaw;
+        const AvatarClothing BodyOutfit=AvatarClothing.MonkRobe|AvatarClothing.Diaper|AvatarClothing.FootballPads|
+            AvatarClothing.GrassSkirt|AvatarClothing.Tuxedo|AvatarClothing.Hoodie|AvatarClothing.BowTie|
+            AvatarClothing.BomberJacket|AvatarClothing.SailorShirt|AvatarClothing.Overalls|AvatarClothing.PufferVest;
+        static readonly AvatarAccessory[] HeadCoverings={
+            AvatarAccessory.PantherHead,AvatarAccessory.PumpkinHelmet,AvatarAccessory.SkeletonMask,
+            AvatarAccessory.TopHat,AvatarAccessory.Beanie,AvatarAccessory.CowboyHat,AvatarAccessory.PirateHat,
+            AvatarAccessory.ChefHat,AvatarAccessory.VikingHelmet,AvatarAccessory.PartyHat,AvatarAccessory.PropellerCap
+        };
+        [Flags] internal enum Tags { None=0, IntrinsicHeadCovering=1, IntrinsicSpikes=2, ClosedHead=4, BuiltInOutfit=8 }
+        [Flags] internal enum Reason { None=0, CompetingHeadCovering=1, CoveredCrownHair=2, DuplicateIntrinsicHair=4, CompetingOuterGarment=8, BuiltInOutfit=16, ClosedFace=32, BuiltInBack=64 }
 
         internal struct Resolution
         {
@@ -20,28 +29,22 @@ namespace DeadlyJenga.CandyPlayers
             internal Reason reasons;
         }
 
-        internal static Slot AccessorySlot(AvatarAccessory item)
-        {
-            return item==AvatarAccessory.TopHat||item==AvatarAccessory.Beanie?Slot.HeadCovering:Slot.Unreviewed;
-        }
-        internal static Slot ClothingSlot(AvatarClothing item)
-        {
-            return item==AvatarClothing.HockeyHelmet||item==AvatarClothing.FootballHelmet?Slot.HeadCovering:Slot.Unreviewed;
-        }
-        internal static Tags HairTags(AvatarHair hair)
-        {
-            switch(hair)
-            {
-                case AvatarHair.Afro: case AvatarHair.Pompadour: case AvatarHair.LibertySpikes:
-                case AvatarHair.Spikes: case AvatarHair.Bun: return Tags.CrownVolume;
-                default:return Tags.None;
-            }
-        }
         internal static Tags SkinTags(AvatarSkin skin)
         {
             switch(skin)
             {
-                case AvatarSkin.Snowman: case AvatarSkin.Witch:return Tags.IntrinsicHeadCovering;
+                case AvatarSkin.Snowman: case AvatarSkin.Witch: case AvatarSkin.MushroomSprite: case AvatarSkin.Pineapple:
+                    return Tags.IntrinsicHeadCovering;
+                case AvatarSkin.Santa: case AvatarSkin.MrsClaus: case AvatarSkin.Elf: case AvatarSkin.StormWizard:
+                case AvatarSkin.SpacePirate: case AvatarSkin.CandyCorn:
+                    return Tags.IntrinsicHeadCovering|Tags.BuiltInOutfit;
+                case AvatarSkin.JackOLantern:
+                    return Tags.IntrinsicHeadCovering|Tags.ClosedHead;
+                case AvatarSkin.HeadlessHorseman: case AvatarSkin.Astronaut: case AvatarSkin.CyberSamurai:
+                case AvatarSkin.DeepSeaDiver: case AvatarSkin.CrystalKnight: case AvatarSkin.NeonRobot: case AvatarSkin.CandyKnight:
+                    return Tags.IntrinsicHeadCovering|Tags.ClosedHead|Tags.BuiltInOutfit;
+                case AvatarSkin.Ghost:
+                    return Tags.BuiltInOutfit;
                 case AvatarSkin.Frankenstein: case AvatarSkin.CyclopsMonster:return Tags.IntrinsicSpikes;
                 default:return Tags.None;
             }
@@ -50,14 +53,26 @@ namespace DeadlyJenga.CandyPlayers
         internal static Resolution Resolve(AvatarAppearance desired)
         {
             var result=new Resolution{effective=desired};
-            var tags=SkinTags(desired.skin);
+            var tags=desired.poweredArmor
+                ?Tags.IntrinsicHeadCovering|Tags.ClosedHead|Tags.BuiltInOutfit
+                :SkinTags(desired.skin);
             bool occupied=(tags&Tags.IntrinsicHeadCovering)!=0;
             // Fixed precedence for legacy saves, which contain no selection chronology.
             CoverClothing(ref result,AvatarClothing.FootballHelmet,ref occupied);
             CoverClothing(ref result,AvatarClothing.HockeyHelmet,ref occupied);
-            CoverAccessory(ref result,AvatarAccessory.TopHat,ref occupied);
-            CoverAccessory(ref result,AvatarAccessory.Beanie,ref occupied);
-            if(HairOverlapsCovering(result.effective,tags,desired.hair))
+            foreach(var covering in HeadCoverings)CoverAccessory(ref result,covering,ref occupied);
+
+            bool closedHead=(tags&Tags.ClosedHead)!=0||(result.effective.accessories&ClosedHeadAccessories)!=0;
+            if(closedHead)
+            {
+                HideAccessories(ref result,FaceAccessories|AvatarAccessory.Mohawk,Reason.ClosedFace);
+                if(desired.eyewear!=AvatarEyewear.None)
+                {
+                    result.effective.eyewear=AvatarEyewear.None;
+                    result.reasons|=Reason.ClosedFace;
+                }
+            }
+            if(desired.hair!=AvatarHair.None&&(closedHead||HairOverlapsCovering(result.effective,tags,desired.hair)))
             {
                 result.effective.hair=AvatarHair.None;result.hiddenHair=true;result.reasons|=Reason.CoveredCrownHair;
             }
@@ -65,6 +80,19 @@ namespace DeadlyJenga.CandyPlayers
             {
                 result.effective.hair=AvatarHair.None;result.hiddenHair=true;result.reasons|=Reason.DuplicateIntrinsicHair;
             }
+            if((tags&Tags.BuiltInOutfit)!=0)
+            {
+                var covered=result.effective.clothing&BodyOutfit;
+                if(covered!=0)
+                {
+                    result.effective.clothing&=~covered;
+                    result.hiddenClothing|=covered;
+                    result.reasons|=Reason.BuiltInOutfit;
+                }
+            }
+            if((desired.skin==AvatarSkin.Dragon||desired.skin==AvatarSkin.Gargoyle)&&!desired.poweredArmor)
+                HideAccessories(ref result,AvatarAccessory.DragonWings,Reason.BuiltInBack);
+
             AvatarClothing outer=0;
             foreach(var item in OuterPriority)
             {
@@ -72,25 +100,28 @@ namespace DeadlyJenga.CandyPlayers
                 if(outer==0)outer=item;
                 else {result.effective.clothing&=~item;result.hiddenClothing|=item;result.reasons|=Reason.CompetingOuterGarment;}
             }
-            if(desired.poweredArmor&&(result.effective.clothing&AvatarClothing.FootballPads)!=0)
-            {result.effective.clothing&=~AvatarClothing.FootballPads;result.hiddenClothing|=AvatarClothing.FootballPads;result.reasons|=Reason.ArmorPads;}
             return result;
         }
         internal static AvatarWardrobeResolution Evaluate(AvatarAppearance desired)
         {
             var result=Resolve(desired);
-            string reason="Reviewed head-covering rules only; other combinations need fit review.";
-            if(result.hiddenAccessories!=0||result.hiddenClothing!=0)
-                reason="Temporarily hidden layers: "+result.hiddenAccessories+" / "+result.hiddenClothing+". Head coverings share the crown; fitted outer garments use the same body surface. Remove a covering layer to restore preferred pieces.";
-            if((result.reasons&Reason.ArmorPads)!=0)reason+=" Powered armor chest and shoulder shells occupy the football-pad envelope; pads restore after armor removal.";
-            if(result.hiddenHair)reason+=" Hair "+desired.hair+" is covered by the selected crown or duplicates built-in spikes; the saved hair is retained.";
+            string reason="";
+            if((result.reasons&Reason.BuiltInOutfit)!=0)reason=desired.poweredArmor?"Powered armor covers outfit pieces. ":"This skin has a built-in outfit. ";
+            else if((result.reasons&Reason.ClosedFace)!=0)reason="The head shell covers face pieces. ";
+            else if((result.reasons&Reason.CompetingHeadCovering)!=0)reason="Head coverings share the same space. ";
+            else if((result.reasons&Reason.CompetingOuterGarment)!=0)reason="Outer garments share the same space. ";
+            else if((result.reasons&Reason.BuiltInBack)!=0)reason="This skin already has dragon wings. ";
+            else if(result.hiddenHair)reason=(result.reasons&Reason.DuplicateIntrinsicHair)!=0
+                ?"This skin already has spikes. ":"The head covering overlaps this hair. ";
+            if(reason.Length>0)reason+="Hidden items stay saved.";
+
             return new AvatarWardrobeResolution{effective=result.effective,hiddenAccessories=result.hiddenAccessories,hiddenClothing=result.hiddenClothing,hiddenHair=result.hiddenHair,reason=reason};
         }
         static bool HairOverlapsCovering(AvatarAppearance effective,Tags skinTags,AvatarHair hair)
         {
             bool authoredCover=(skinTags&Tags.IntrinsicHeadCovering)!=0||
-                (effective.accessories&(AvatarAccessory.TopHat|AvatarAccessory.Beanie))!=0||
                 (effective.clothing&(AvatarClothing.HockeyHelmet|AvatarClothing.FootballHelmet))!=0;
+            foreach(var covering in HeadCoverings)authoredCover|=(effective.accessories&covering)!=0;
             if(!authoredCover)return false;
             switch(hair)
             {
@@ -101,6 +132,14 @@ namespace DeadlyJenga.CandyPlayers
                     (effective.clothing&(AvatarClothing.HockeyHelmet|AvatarClothing.FootballHelmet))!=0;
                 default:return false;
             }
+        }
+        static void HideAccessories(ref Resolution result,AvatarAccessory mask,Reason reason)
+        {
+            var hidden=result.effective.accessories&mask;
+            if(hidden==0)return;
+            result.effective.accessories&=~hidden;
+            result.hiddenAccessories|=hidden;
+            result.reasons|=reason;
         }
         static void CoverAccessory(ref Resolution result,AvatarAccessory item,ref bool occupied)
         {

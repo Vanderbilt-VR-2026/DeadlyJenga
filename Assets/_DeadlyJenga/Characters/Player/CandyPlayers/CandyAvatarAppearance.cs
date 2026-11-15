@@ -28,7 +28,7 @@ namespace DeadlyJenga.CandyPlayers
         }
         public static uint StyleBits(AvatarAppearance value)=> ((uint)value.skin&7)|((uint)value.hair<<3)|(((uint)value.eyewear&7)<<7)|(((uint)value.clothing&511)<<10)|(value.poweredArmor?1u<<19:0)|(((uint)value.skin>>3)<<20)|(((uint)value.eyewear>>3)<<24)|(((uint)value.clothing>>9)<<25);
         public static AvatarAppearance WithStyle(AvatarAppearance value,uint bits)
-        {value.skin=(AvatarSkin)((bits&7)|(((bits>>20)&15)<<3));value.hair=(AvatarHair)((bits>>3)&15);value.eyewear=(AvatarEyewear)(((bits>>7)&7)|(((bits>>24)&1)<<3));value.clothing=(AvatarClothing)(((bits>>10)&511)|(((bits>>25)&31)<<9));value.poweredArmor=(bits&(1u<<19))!=0;return SanitizeAppearance(value);}
+        {value.skin=(AvatarSkin)((bits&7)|(((bits>>20)&15)<<3));value.hair=(AvatarHair)((bits>>3)&15);value.eyewear=(AvatarEyewear)(((bits>>7)&7)|(((bits>>24)&1)<<3));value.clothing=(AvatarClothing)(((bits>>10)&511)|(((bits>>25)&31)<<9));value=SanitizeAppearance(value);value.poweredArmor=(bits&(1u<<19))!=0;return value;}
         void LoadAppearance()
         {
             if(OwnAppearance){appearance.accessories=(AvatarAccessory)(uint)PlayerPrefs.GetInt(AppearanceKey,0)&SupportedAccessories;
@@ -39,7 +39,7 @@ namespace DeadlyJenga.CandyPlayers
         public void ApplyAppearance(AvatarAppearance value)
         {
             value=SanitizeAppearance(value);appearance=value;
-            if(Rig)Rig.SetAppearance(value);
+            if(Rig)Rig.SetAppearance(EquippedAppearance);
             if(OwnAppearance){PlayerPrefs.SetInt(AppearanceKey,(int)value.accessories);PlayerPrefs.SetString("CandyAvatar.Style.v2",JsonUtility.ToJson(value));PlayerPrefs.Save();}
         }
     }

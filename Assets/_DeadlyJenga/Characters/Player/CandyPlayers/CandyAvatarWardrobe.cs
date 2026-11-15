@@ -41,8 +41,9 @@ namespace DeadlyJenga.CandyPlayers
             LeftPalmEmitter=RightPalmEmitter=LeftSoleEmitter=RightSoleEmitter=null;
             pieces.Clear();appearance=value;built=true;
             if(!originalBody)originalBody=rig.bodyRenderer.sharedMesh;
-            rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman?SnowBody(originalBody):originalBody;
-            BuildSkin(rig);BuildExpandedSkin(rig);
+            rig.bodyRenderer.sharedMesh=value.skin==AvatarSkin.Snowman&&!value.poweredArmor?SnowBody(originalBody):originalBody;
+            if(value.poweredArmor)BuildArmor(rig);
+            else {BuildSkin(rig);BuildExpandedSkin(rig);}
             int firstCosmetic=pieces.Count;
             BuildHair(rig);BuildGlasses(rig);
             for(int i=firstCosmetic;i<pieces.Count;i++)pieces[i].shadeable=true;
@@ -60,7 +61,7 @@ namespace DeadlyJenga.CandyPlayers
                     name.StartsWith("Visual - royal velvet mantle",System.StringComparison.Ordinal) ||
                     (name.StartsWith("Visual - accessory pumpkin",System.StringComparison.Ordinal) && piece.tone==Tone.Primary);
             }
-            if(value.poweredArmor)BuildArmor(rig);
+            if((value.accessories&AvatarAccessory.PumpkinHelmet)!=0)Pumpkin(rig,"accessory pumpkin",Tone.Primary);
             BatchPieces(rig);
             lastTeam=new Color(-1,-1,-1);RefreshPalette(rig);
         }
