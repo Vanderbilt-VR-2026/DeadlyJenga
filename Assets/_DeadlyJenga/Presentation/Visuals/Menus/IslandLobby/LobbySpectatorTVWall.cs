@@ -21,7 +21,7 @@ namespace DeadlyJenga.CastlePrototype
 
     {
 
-        [Range(1,6)] public float updatesPerScreen=1;
+        const int FeedFramesPerSecond = 24;
 
         [Range(128,512)] public int textureWidth=256;
 
@@ -116,6 +116,7 @@ namespace DeadlyJenga.CastlePrototype
         {
             fullScreenChannel=-1;fullScreenActorId=null;
             if(fullScreenPanel)fullScreenPanel.gameObject.SetActive(false);
+            nextFrame = 0;
         }
 
         void PresentFullScreen(Camera eye)
@@ -136,15 +137,20 @@ namespace DeadlyJenga.CastlePrototype
             float scale=height*Mathf.Max(1f,eye.aspect/(16f/9))/720f;
             fullScreenPanel.SetPositionAndRotation(eye.transform.position+eye.transform.forward*depth,eye.transform.rotation);
             fullScreenPanel.localScale=Vector3.one*(scale/Mathf.Abs(transform.lossyScale.x));
-            if(Time.unscaledTime<nextFrame)return;
-            nextFrame=Time.unscaledTime+.0667f;
+            double now = Time.unscaledTimeAsDouble;
+            if (now < nextFrame) return;
+
+            const double interval = 1.0 / FeedFramesPerSecond;
+            nextFrame = Math.Max(nextFrame + interval, now);
             if(!fullScreenTexture)
                 fullScreenTexture=MakeTexture(640);
             RenderChannel(channel,fullScreenTexture,fullScreenImage);
         }
         public void SetMatchTimer(Text label)=>matchTimer=label;
 
-        float nextRoster,nextFrame;int nextChannel;
+        float nextRoster;
+        double nextFrame;
+        int nextChannel;
 
         readonly Plane[] planes=new Plane[6];
 
@@ -200,7 +206,7 @@ namespace DeadlyJenga.CastlePrototype
             var eye=viewer.ActiveCamera;
             if(FullScreen){PresentFullScreen(eye);return;}
 
-            if(!FeedsEnabled||!eye||!eye.enabled||(eye.transform.position-transform.position).sqrMagnitude>324)return;
+            if(AssignedChannels==0||!FeedsEnabled||!eye||!eye.enabled||(eye.transform.position-transform.position).sqrMagnitude>324)return;
 
             if(Vector3.Dot(transform.forward,eye.transform.position-transform.position)>0)return;
 
@@ -208,22 +214,26 @@ namespace DeadlyJenga.CastlePrototype
 
             if(!GeometryUtility.TestPlanesAABB(planes,new Bounds(transform.TransformPoint(new Vector3(0,1.5f,0)),new Vector3(3.8f,3.1f,3.8f))))return;
 
-            if(Time.unscaledTime<nextFrame)return;
+            double now = Time.unscaledTimeAsDouble;
+            double interval = 1.0 / (FeedFramesPerSecond * AssignedChannels);
 
-            nextFrame=Time.unscaledTime+1f/(9*Mathf.Clamp(updatesPerScreen,1,2)*(viewer.IsVR?.5f:1));
-
-            for(int attempt=0;attempt<9;attempt++)
-
+            // Keep the round-robin cadence across frames, with at most one pass through the wall.
+            for (int visited = 0; visited < channels.Length && now >= nextFrame; visited++)
             {
+                var channel = channels[nextChannel];
+                nextChannel = (nextChannel + 1) % channels.Length;
 
-                var channel=channels[nextChannel];nextChannel=(nextChannel+1)%9;
+                if (channel == null || !NetworkActors.Alive(channel.actor) ||
+                    !channel.actor.gameObject || !channel.actor.Alive) continue;
 
-                if(channel==null||!NetworkActors.Alive(channel.actor)||!channel.actor.gameObject||!channel.actor.Alive)continue;
-
-                if(!channel.texture)channel.texture=MakeTexture(textureWidth);
-                RenderChannel(channel,channel.texture,channel.screen);break;
-
+                if (!channel.texture) channel.texture = MakeTexture(textureWidth);
+                RenderChannel(channel, channel.texture, channel.screen);
+                nextFrame += interval;
             }
+
+            // Drop missed updates after a stall or after the wall was out of view.
+            if (now >= nextFrame)
+                nextFrame = now + interval;
 
         }
 
@@ -307,10 +317,6 @@ namespace DeadlyJenga.CastlePrototype
                 for(int i=0;i<channel.renderers.Length;i++)if(channel.renderers[i])channel.renderers[i].forceRenderingOff=channel.hidden[i];
 
                 feedCamera.targetTexture=null;
-
-                // A slow scene lowers feed rate instead of queuing more work.
-
-                nextFrame=Mathf.Max(nextFrame,Time.unscaledTime+Mathf.Min(.5f,(float)RenderMilliseconds*.025f));
 
             }
 
