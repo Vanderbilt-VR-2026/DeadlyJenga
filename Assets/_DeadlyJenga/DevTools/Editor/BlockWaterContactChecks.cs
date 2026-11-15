@@ -96,8 +96,14 @@ namespace DeadlyJenga.DevTools.Editor
 
         static void RecordError(string message, string stack, LogType type)
         {
-            if (type == LogType.Error || type == LogType.Exception || type == LogType.Assert)
-                Check(false, message + "\n" + stack);
+            if (type != LogType.Error && type != LogType.Exception && type != LogType.Assert) return;
+            if (message.StartsWith("connection.state_change", StringComparison.Ordinal) &&
+                stack.Contains("Unity.Relay.Editor.RelayService"))
+            {
+                Log("EDITOR NOTE unrelated Unity assistant relay connection: " + message);
+                return;
+            }
+            Check(false, message + "\n" + stack);
         }
 
         static IEnumerator Checks()
@@ -410,6 +416,21 @@ namespace DeadlyJenga.DevTools.Editor
             var below = world.Center;
             below.y = world.WaterHeight(below) - 4.5f;
 
+            session.SetRole(false);
+            yield return null;
+            var survivorEye = session.Player.ViewCamera;
+            var originalEye = survivorEye.transform.position;
+            survivorEye.transform.position = shallow;
+            yield return null;
+            var guardedEye = session.ActiveCamera;
+            Check(guardedEye && guardedEye != survivorEye && guardedEye.transform.position.y >= world.WaterHeight(shallow),
+                "normal match view hands off to an above-water camera during survival immersion");
+            survivorEye.transform.position = originalEye;
+            session.SetRole(false);
+            yield return null;
+
+            // The real match guard substitutes its own above-water camera. Hold it for these injected views.
+            session.Modes.enabled = false;
             for (int role = 0; role < 2; role++)
             {
                 bool hand = role == 1;
@@ -459,6 +480,7 @@ namespace DeadlyJenga.DevTools.Editor
                 eye.cullingMask = savedMask;
                 if (follow) follow.enabled = followEnabled;
             }
+            session.Modes.enabled = true;
             Object.Destroy(marker);
             Object.Destroy(markerMaterial);
             Object.Destroy(target);
@@ -483,6 +505,23 @@ namespace DeadlyJenga.DevTools.Editor
             if (!visual) throw new InvalidOperationException("Production bot did not expose an avatar visual.");
             var shore = FindIslandSupport(map);
             var safe = world.SafeSpawnPoint();
+
+            var survivor = session.Survivor();
+            survivor.InputSuspended = true;
+            survivor.Teleport(shore + Vector3.up * 12f, Quaternion.identity);
+            float lowestEye = float.PositiveInfinity;
+            deadline = Time.time + 3;
+            while (!survivor.Grounded && Time.time < deadline)
+            {
+                var position = survivor.ViewCamera.transform.position;
+                lowestEye = Mathf.Min(lowestEye, position.y - world.WaterHeight(position));
+                yield return null;
+            }
+            var landedEye = survivor.ViewCamera.transform.position;
+            lowestEye = Mathf.Min(lowestEye, landedEye.y - world.WaterHeight(landedEye));
+            Check(survivor.Grounded && lowestEye > 0 && session.ActiveCamera == survivor.ViewCamera,
+                $"survivor drops 12 m onto actual sand with a dry active eye; lowest clearance {lowestEye:F2} m");
+            survivor.Teleport(safe, Quaternion.identity);
 
             for (int trial = 0; trial < 2; trial++)
             {
