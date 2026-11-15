@@ -68,7 +68,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     phase = 0;
                     renderReady = double.PositiveInfinity;
                     captureDirectory = SessionState.GetString("UnderneathTree.CaptureDirectory", "UnderneathTree");
-                    deadline = EditorApplication.timeSinceStartup + 85;
+                    deadline = EditorApplication.timeSinceStartup + 135;
                     EditorApplication.update += Check;
                 }
                 else if (state == PlayModeStateChange.EnteredEditMode)
@@ -121,11 +121,11 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     Require(train, "tinplate train imported");
                     initialTrainPosition = train.transform.position;
                     Shot(player.ViewCamera, "christmas-room", new Vector3(44.175f, 81f, -158.15f),
-                        new Vector3(-58f, 11f, -68f), 64f);
-                    Shot(player.ViewCamera, "bridge-approach", new Vector3(33f, 8f, -85f),
-                        new Vector3(12.45f, 5.4f, -65.9f), 69f);
-                    Shot(player.ViewCamera, "bridge-tunnel", new Vector3(23.2f, 1.75f, -71.4f),
-                        new Vector3(8f, 3.0f, -63.8f), 76f);
+                        new Vector3(-58f, 11f, -68f), 64f, true);
+                    Shot(player.ViewCamera, "bridge-approach", new Vector3(64f, 27f, -109f),
+                        new Vector3(16.0f, 5.8f, -70.5f), 55f, true);
+                    Shot(player.ViewCamera, "bridge-tunnel", new Vector3(31.5f, 2.05f, -77.15f),
+                        new Vector3(10f, 3.25f, -67.9f), 72f);
                     Require(map.Root.GetComponentsInChildren<MeshRenderer>().Any(r =>
                         r.name.StartsWith("Skirt skull") && r.GetComponent<MeshFilter>().sharedMesh.vertexCount > 0),
                         "skirt motifs are present");
@@ -173,8 +173,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     "destroying a bearing gift releases and moves the bridge");
                 Require(railBodies.Any(body => !body.isKinematic),
                     "losing gift support releases real rail sections");
-                Shot(Services.Session.Player.ViewCamera, "fallen-bridge", new Vector3(33f, 8f, -85f),
-                    new Vector3(12.45f, 5.4f, -65.9f), 69f);
+                Shot(Services.Session.Player.ViewCamera, "fallen-bridge", new Vector3(64f, 27f, -109f),
+                    new Vector3(16.0f, 5.8f, -70.5f), 55f);
                 Services.Session.ResetMap();
                 Require(map.Revision > revision && map.Blocks.Count == blockCount && map.Blocks.All(b => b.isKinematic),
                     "normal map reset restores the original intact pieces");
@@ -196,10 +196,10 @@ namespace DeadlyJenga.CastlePrototype.Editor
             }
         }
 
-        static void Shot(Camera camera, string id, Vector3 eye, Vector3 target, float fieldOfView)
+        static void Shot(Camera camera, string id, Vector3 eye, Vector3 target, float fieldOfView, bool ultraHd = false)
         {
-            const int width = 1920;
-            const int height = 1080;
+            int width = ultraHd ? 3840 : 1920;
+            int height = ultraHd ? 2160 : 1080;
             var directory = ProjectPath.Report(captureDirectory);
             Directory.CreateDirectory(directory);
             var path = Path.Combine(directory, id + ".png");
@@ -210,7 +210,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
             var priorFieldOfView = camera.fieldOfView;
             var priorAspect = camera.aspect;
             var previousMSAA = camera.allowMSAA;
-            var render = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.Default, RenderTextureReadWrite.Default, 4);
+            var render = RenderTexture.GetTemporary(width, height, 24, RenderTextureFormat.Default, RenderTextureReadWrite.Default, ultraHd ? 2 : 4);
             var image = new Texture2D(width, height, TextureFormat.RGB24, false);
             try
             {
@@ -240,6 +240,8 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     position = eye.ToString("F3"),
                     rotation = camera.transform.rotation.eulerAngles.ToString("F3"),
                     fov = fieldOfView,
+                    width = width,
+                    height = height,
                     sha256 = digest,
                     utc = DateTime.UtcNow.ToString("O"),
                     classification = "Runtime Unity render. Actual survivor camera, staged pose and FOV. World-space HUD may be present."
@@ -264,7 +266,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
         sealed class ShotReceipt
         {
             public string view, map, scene, builder, project, camera, position, rotation, sha256, utc, classification;
-            public int pid, frame;
+            public int pid, frame, width, height;
             public float fov;
         }
 
@@ -289,6 +291,9 @@ namespace DeadlyJenga.CastlePrototype.Editor
                     return Vector3.Distance(upright, deck.ClosestPoint(upright)) > 4.8f;
                 }), "the trunk clears every piece of rail deck");
             var span = gifts["Gift Bridge / Navy Span"].Single(body => body.name == "Lid");
+            var spanShape = span.GetComponent<BoxCollider>();
+            Require(spanShape && spanShape.size.z > 45f && spanShape.size.x > 8f && span.position.y > 10f,
+                "the widened and raised navy span is present");
             var center = span.transform.position;
             var floor = new Vector3(center.x, 1.65f, center.z);
             Require(!Physics.Raycast(floor - span.transform.right * 4f, span.transform.right, 8f, 1 << Layers.Block),

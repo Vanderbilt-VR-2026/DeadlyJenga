@@ -97,7 +97,8 @@ namespace DeadlyJenga.CandyArt
                 return Surface(name + " paper", name.Contains("snowflake") ? "Winter Print" : "Botanical Paper",
                     color, .37f, new Vector2(1.75f, 1.75f), 0f, .48f);
             if (name.StartsWith("Felt"))
-                return Surface("Deep cranberry wool", "Woven", new Color(.57f, .105f, .139f), .17f, new Vector2(24, 24), 0f, .90f);
+                return Fabric("Cranberry tufted tree skirt", "Fleece Scan", new Color(.65f, .115f, .153f),
+                    new Vector2(28f, 28f), .13f, .53f);
             if (name.StartsWith("Fluff"))
                 return Surface("Ivory fleece", "Woven", new Color(.84f, .75f, .63f), .25f, new Vector2(10, 8), 0f, 1f);
             if (objectName.StartsWith("Wood Planks") || name.Contains("Mahogany"))

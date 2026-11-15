@@ -22,14 +22,10 @@ namespace DeadlyJenga.CandyArt
 
         void BuildFir()
         {
-            var bark = Surface("Fir bark", "Walnut Grain", new Color(.42f, .27f, .14f),
-                .23f, new Vector2(5f, 9f), 0f, .90f);
-            var forest = Surface("Fir needles in shade", "Paper", new Color(.075f, .17f, .085f),
-                .37f, Vector2.one, 0f, .26f);
-            var crown = Surface("Fir needles in light", "Paper", new Color(.19f, .33f, .135f),
-                .39f, Vector2.one, 0f, .26f);
-            forest.SetFloat("_Cull", 0f);
-            crown.SetFloat("_Cull", 0f);
+            var bark = Surface("Fir bark", "Pine Scan", new Color(.78f, .68f, .53f),
+                .15f, new Vector2(2f, 1.25f), 0f, .76f);
+            var forest = FirFoliage("Fir needles in shade", new Color(.61f, .76f, .59f));
+            var crown = FirFoliage("Fir needles in light", new Color(.84f, .94f, .74f));
             var trunkAnchor = world.Root.Find("Underneath the Tree Layout/Fir trunk collision");
             var treeCenter = trunkAnchor ? Vector3.ProjectOnPlane(art.InverseTransformPoint(trunkAnchor.position), Vector3.up) :
                 new Vector3(-37f, 0f, -35.7f);
@@ -41,7 +37,19 @@ namespace DeadlyJenga.CandyArt
                 float high = (y + 1) / 8f;
                 var a = treeCenter + new Vector3(Mathf.Sin(low * 3.5f) * 1.45f, low * 138f, Mathf.Sin(low * 6f));
                 var b = treeCenter + new Vector3(Mathf.Sin(high * 3.5f) * 1.45f, high * 138f, Mathf.Sin(high * 6f));
-                stems.Tube(a, b, Mathf.Lerp(5.05f, .2f, low), Mathf.Lerp(5.05f, .2f, high), 12);
+                stems.Tube(a, b, Mathf.Lerp(4.6f, .2f, low), Mathf.Lerp(4.6f, .2f, high), 24);
+            }
+
+            for (int i = 0; i < 11; i++)
+            {
+                float angle = i * Mathf.PI * 2f / 11f + Range(random, -.15f, .15f);
+                var radial = new Vector3(Mathf.Cos(angle), 0f, Mathf.Sin(angle));
+                float length = Range(random, 5.2f, 6.25f);
+                var start = treeCenter + Vector3.up * 3.6f + radial * 2.8f;
+                var joint = treeCenter + Vector3.up * 1.12f + radial * (length - 1.3f);
+                var end = treeCenter + Vector3.up * .56f + radial * length;
+                stems.Tube(start, joint, Range(random, .62f, 1.46f), .58f, 10);
+                stems.Tube(joint, end, .58f, .055f, 10);
             }
 
             const int whorls = 17;
@@ -55,8 +63,8 @@ namespace DeadlyJenga.CandyArt
                 {
                     float t = tier / (float)(whorls - 1);
                     float y = 42f + t * 91f;
-                    float reach = Mathf.Lerp(39f, 2.8f, Mathf.Pow(t, 1.03f));
-                    int count = tier >= 14 ? 6 : 10;
+                    float reach = Mathf.Lerp(43f, 2.8f, Mathf.Pow(t, .86f));
+                    int count = tier >= 14 ? 7 : 12;
                     float phase = tier * .462f + .26f;
                     for (int i = 0; i < count; i++)
                     {
@@ -67,12 +75,12 @@ namespace DeadlyJenga.CandyArt
                         var root = treeCenter + Vector3.up * (y + Range(random, -1.4f, 1.4f));
                         var bend = root + axis * (length * .47f) + Vector3.down * (.08f * length);
                         var end = root + axis * length + Vector3.down * (.135f * length) + side * Range(random, -2.5f, 2.5f);
-                        float girth = Mathf.Max(.17f, length * .045f);
+                        float girth = Mathf.Max(.09f, length * .025f);
                         stems.Tube(root, bend, girth, girth * .6f, 7);
                         stems.Tube(bend, end, girth * .6f, .08f, 6);
                         if (tier < 13)
                             tips.Add(new FirTip(Vector3.Lerp(bend, end, .90f), tier, i));
-                        int brushCount = mobile ? 9 : 13;
+                        int brushCount = mobile ? 7 : 13;
                         for (int j = 0; j < brushCount; j++)
                         {
                             float v = (.92f * j / (brushCount - 1)) + .08f;
@@ -80,15 +88,17 @@ namespace DeadlyJenga.CandyArt
                             float span = Mathf.Max(1.1f, length * (.21f - .125f * v));
                             for (int sign = -1; sign <= 1; sign += 2)
                             {
-                                var shoot = basePoint + side * (sign * span * Range(random, .8f, 1.2f)) + axis * (span * .74f) +
-                                    Vector3.up * (span * Range(random, -.24f, .36f));
+                                var shoot = basePoint + side * (sign * span * Range(random, .85f, 1.38f)) +
+                                    axis * (span * Range(random, .82f, 1.55f)) + Vector3.up * (span * Range(random, -.45f, .38f));
                                 var fill = (j + i + sign) % 4 == 0 ? bright : shaded;
-                                NeedleSpray(fill, basePoint, shoot, span, mobile ? 6 : 10, random);
-                                if (!mobile && j % 2 == 0)
-                                {
-                                    var upper = basePoint + side * (sign * span * .40f) + axis * (span * .9f) + Vector3.up * (span * .76f);
-                                    NeedleSpray(bright, basePoint, upper, span * .72f, 7, random);
-                                }
+                                var needled = shoot - basePoint;
+                                var twigSide = Vector3.Cross(Vector3.up, needled).normalized;
+                                int tile = (j + i + tier + sign + 4) % FirTiles.Length;
+                                fill.Twig(basePoint, shoot, twigSide + Vector3.up * Range(random, -.45f, .55f),
+                                    span * Range(random, .7f, 1.03f), FirTiles[tile]);
+                                if (!mobile || j % 2 == 0)
+                                    shaded.Twig(basePoint + Vector3.up * .17f, shoot + Vector3.up * (span * .18f),
+                                        Vector3.up + twigSide * .45f, span * .53f, FirTiles[(tile + 1) % FirTiles.Length]);
                             }
                         }
                     }
@@ -100,31 +110,34 @@ namespace DeadlyJenga.CandyArt
             DressFir(tips, random);
         }
 
-        static void NeedleSpray(FirMesh mesh, Vector3 root, Vector3 tip, float span, int needleCount, System.Random random)
+        static readonly Rect[] FirTiles =
         {
-            var spine = (tip - root).normalized;
-            var side = Vector3.Cross(Vector3.up, spine).normalized;
-            var up = Vector3.Cross(spine, side);
-            float size = Mathf.Clamp(span * .68f, .9f, 3.8f);
-            for (int j = 0; j < needleCount; j++)
-            {
-                float p = (j + .32f) / needleCount;
-                var attach = Vector3.Lerp(root, tip, p);
-                float length = size * Mathf.Lerp(1f, .44f, p);
-                for (int sign = -1; sign <= 1; sign += 2)
-                {
-                    float pitch = Range(random, -.44f, .66f);
-                    var destination = attach + spine * (length * Range(random, .43f, .93f)) +
-                        side * (sign * length * Range(random, .65f, 1.15f)) + up * (length * pitch);
-                    mesh.Needle(attach, destination, spine, Mathf.Max(.13f, length * .145f));
-                }
-            }
+            new Rect(.178f, .676f, .257f, .297f),
+            new Rect(.644f, .631f, .335f, .350f),
+            new Rect(.298f, .215f, .357f, .376f),
+            new Rect(.615f, .160f, .371f, .407f)
+        };
+
+        Material FirFoliage(string name, Color tint)
+        {
+            var material = Surface(name, "Fir Twig Atlas", tint, .16f, Vector2.one);
+            material.SetFloat("_AlphaClip", 1f);
+            material.SetFloat("_Cutoff", .36f);
+            material.SetFloat("_Cull", 0f);
+            material.SetFloat("_EnvironmentReflections", 0f);
+            material.SetFloat("_SpecularHighlights", 0f);
+            material.SetOverrideTag("RenderType", "TransparentCutout");
+            material.EnableKeyword("_ALPHATEST_ON");
+            material.EnableKeyword("_ENVIRONMENTREFLECTIONS_OFF");
+            material.EnableKeyword("_SPECULARHIGHLIGHTS_OFF");
+            material.renderQueue = (int)RenderQueue.AlphaTest;
+            return material;
         }
 
         void DressFir(List<FirTip> tips, System.Random random)
         {
-            var bulbColors = new[] { new Color(1, .55f, .16f), new Color(.98f, .09f, .05f),
-                new Color(.11f, .82f, .31f), new Color(.17f, .36f, 1f) };
+            var bulbColors = new[] { new Color(1, .75f, .36f), new Color(.99f, .10f, .04f),
+                new Color(.86f, .97f, 1f), new Color(.27f, .53f, 1f) };
             var ornamentColors = new[] { new Color(.67f, .105f, .135f), new Color(.89f, .59f, .22f),
                 new Color(.18f, .34f, .54f), new Color(.75f, .69f, .61f) };
             var sphere = Resources.GetBuiltinResource<Mesh>("Sphere.fbx");
@@ -142,12 +155,12 @@ namespace DeadlyJenga.CandyArt
                 var tip = tips[i];
                 var bulb = tip.position + Vector3.down * Range(random, .65f, 1.25f);
                 var tint = (tip.tier + tip.ordinal * 3) % bulbs.Length;
-                bulbs[tint].Add(Part(sphere, bulb, new Vector3(.84f, 1.39f, .84f) * Range(random, .83f, 1.25f)));
+                bulbs[tint].Add(Part(sphere, bulb, new Vector3(.51f, .91f, .51f) * Range(random, .78f, 1.18f)));
                 beadCaps.Add(Part(sphere, bulb + Vector3.up * .65f, new Vector3(.50f, .45f, .50f)));
                 if ((tip.ordinal + tip.tier) % 3 == 0)
                 {
                     Vector3 center = tip.position + Vector3.down * Range(random, 2.35f, 3.55f);
-                    float diameter = Range(random, 2.6f, 4.60f);
+                    float diameter = Range(random, 2.0f, 3.8f);
                     ornaments[(tint + i) % 4].Add(Part(sphere, center, Vector3.one * diameter));
                     beadCaps.Add(Part(sphere, center + Vector3.up * (diameter * .48f), new Vector3(.75f, .60f, .75f)));
                     wire.Tube(tip.position, center + Vector3.up * (diameter * .48f), .049f, .046f, 4);
@@ -163,8 +176,8 @@ namespace DeadlyJenga.CandyArt
 
             for (int i = 0; i < 4; i++)
             {
-                var glass = Surface("Lacquered glass ornament " + i, "Paper", ornamentColors[i], .89f,
-                    Vector2.one, .34f, .29f);
+                var glass = Surface("Lacquered glass ornament " + i, null, ornamentColors[i], .92f,
+                    Vector2.one, .49f, 0f);
                 Combined("Glass baubles " + i, ornaments[i], glass, ShadowCastingMode.On);
                 Combined("Vintage colored bulbs " + i, bulbs[i],
                     Glow("Colored enamel bulb " + i, bulbColors[i], 4.5f), ShadowCastingMode.Off);
@@ -221,6 +234,22 @@ namespace DeadlyJenga.CandyArt
                     faces.Add(a); faces.Add(a + 1); faces.Add(a + 2);
                     faces.Add(a + 2); faces.Add(a + 1); faces.Add(a + 3);
                 }
+            }
+
+            public void Twig(Vector3 stem, Vector3 tip, Vector3 spread, float halfWidth, Rect region)
+            {
+                spread = spread.normalized * halfWidth;
+                int first = vertices.Count;
+                vertices.Add(stem - spread * .82f);
+                vertices.Add(stem + spread * .82f);
+                vertices.Add(tip + spread);
+                vertices.Add(tip - spread);
+                uv.Add(new Vector2(region.xMin, region.yMin));
+                uv.Add(new Vector2(region.xMax, region.yMin));
+                uv.Add(new Vector2(region.xMax, region.yMax));
+                uv.Add(new Vector2(region.xMin, region.yMax));
+                faces.Add(first); faces.Add(first + 1); faces.Add(first + 2);
+                faces.Add(first); faces.Add(first + 2); faces.Add(first + 3);
             }
 
             public void Needle(Vector3 attach, Vector3 tip, Vector3 along, float width)

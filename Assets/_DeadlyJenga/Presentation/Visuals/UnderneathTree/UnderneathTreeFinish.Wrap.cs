@@ -12,22 +12,24 @@ namespace DeadlyJenga.CandyArt
                 return;
             bool generated = label == "Wrap" || label == "Visual";
             bool imported = label.StartsWith("Present ") && label.EndsWith(" box");
-            bool upholstered = label.StartsWith("Sofa ");
-            if (!generated && !imported && !upholstered)
+            if (!generated && !imported)
                 return;
 
             var source = filter.sharedMesh;
             if (generated && !roundedWrap)
                 roundedWrap = RoundedWrap(new Bounds(Vector3.zero, Vector3.one));
             originalMeshes[filter] = source;
-            filter.sharedMesh = generated ? roundedWrap : RoundedWrap(source.bounds, upholstered ? .14f : .027f);
+            filter.sharedMesh = generated ? roundedWrap : RoundedWrap(source.bounds);
         }
 
-        Mesh RoundedWrap(Bounds source, float radius = .027f)
+        Mesh RoundedWrap(Bounds source, float radius = .027f, float loft = 0f)
         {
             float inner = .5f - radius;
-            float[] cuts = { -.5f, -.5f + radius * .32f, -.5f + radius * .77f,
-                -inner, inner, .5f - radius * .77f, .5f - radius * .32f, .5f };
+            float[] cuts = loft > 0f
+                ? new[] { -.5f, -.5f + radius * .27f, -.5f + radius * .64f, -inner, -inner * .6f,
+                    -inner * .3f, 0f, inner * .3f, inner * .6f, inner, .5f - radius * .64f, .5f - radius * .27f, .5f }
+                : new[] { -.5f, -.5f + radius * .32f, -.5f + radius * .77f,
+                    -inner, inner, .5f - radius * .77f, .5f - radius * .32f, .5f };
             var vertices = new List<Vector3>();
             var normals = new List<Vector3>();
             var uv = new List<Vector2>();
@@ -47,8 +49,11 @@ namespace DeadlyJenga.CandyArt
                     var core = new Vector3(Mathf.Clamp(frame.x, -inner, inner), Mathf.Clamp(frame.y, -inner, inner),
                         Mathf.Clamp(frame.z, -inner, inner));
                     var direction = (frame - core).normalized;
-                    vertices.Add(source.center + Vector3.Scale(core + direction * radius, weights));
-                    normals.Add(new Vector3(direction.x / weights.x, direction.y / weights.y, direction.z / weights.z).normalized);
+                    float u = cuts[col], v = cuts[row];
+                    float volume = loft * Mathf.Max(0f, 1f - 4f * u * u) * Mathf.Max(0f, 1f - 4f * v * v);
+                    vertices.Add(source.center + Vector3.Scale(core + direction * radius + normal * volume, weights));
+                    var inflated = direction + (along * u + up * v) * (volume * 5.4f);
+                    normals.Add(new Vector3(inflated.x / weights.x, inflated.y / weights.y, inflated.z / weights.z).normalized);
                     uv.Add(new Vector2(cuts[col] + .5f, cuts[row] + .5f));
                     if (row == cuts.Length - 1 || col == cuts.Length - 1)
                         continue;

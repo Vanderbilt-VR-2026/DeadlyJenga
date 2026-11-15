@@ -75,8 +75,8 @@ namespace DeadlyJenga.CastlePrototype
             Parcel("Skirt Landing / Cream Catch", -.1f, -121.7f, 8.8f, 1.3f, 5.6f, 19f, cream, berry);
 
             // Across the rug, the navy parcel has a real bearing gift at each end.
-            var left = new Vector3(7.2f, 0f, -76.6f);
-            var right = new Vector3(17.7f, 0f, -55.5f);
+            var left = new Vector3(8.5f, 0f, -88f);
+            var right = new Vector3(23.5f, 0f, -53f);
             var axis = (right - left).normalized;
             var across = Vector3.Cross(Vector3.up, axis);
             float yaw = Mathf.Atan2(axis.x, axis.z) * Mathf.Rad2Deg;
@@ -88,32 +88,32 @@ namespace DeadlyJenga.CastlePrototype
                 return Parcel("Gift Bridge / " + label, pos.x, pos.z, width, height, depth, yaw + turn, wrap, ribbon);
             }
 
-            const float seat = 5.96f;
-            var leftLid = BridgeGift("Pine Bearing", left, 6.4f, seat, 6.9f, 0f, green, gold);
-            var rightLid = BridgeGift("Cranberry Bearing", right, 7.0f, seat, 7.4f, 0f, red, ivory);
+            const float seat = 9.25f;
+            var leftLid = BridgeGift("Pine Bearing", left, 9.3f, seat, 9.3f, 0f, green, gold);
+            var rightLid = BridgeGift("Cranberry Bearing", right, 9.7f, seat, 10.7f, 0f, red, ivory);
             var midpoint = (left + right) * .5f;
-            const float spanHeight = 1.70f;
+            const float spanHeight = 2.25f;
             var span = BoxGift("Gift Bridge / Navy Span",
                 midpoint + Vector3.up * (seat + .014f + spanHeight * .5f),
-                new Vector3(6.0f, spanHeight, Vector3.Distance(left, right) + 4.8f),
+                new Vector3(8.9f, spanHeight, Vector3.Distance(left, right) + 7.8f),
                 Quaternion.Euler(0f, yaw, 0f), navy, ivory, false);
             giftBearings.Add(new GiftBearing(GiftBase(span), leftLid, rightLid));
 
-            var leftShelf = left + across * 6.3f - axis * 2.2f;
-            var leftStep = leftShelf - axis * 4.1f + across * 1.4f;
-            var leftEntry = leftStep - axis * 4.9f + across * .9f;
-            BridgeGift("Cream Landing", leftEntry, 6.5f, 1.75f, 5.8f, -13f, cream, berry);
-            BridgeGift("Red Tread", leftStep, 5.7f, 3.15f, 5.6f, 7f, red, gold);
-            BridgeGift("Pine Step", leftShelf, 5.1f, 4.55f, 5.2f, -4f, green, ivory);
+            var leftShelf = left + across * 8.3f - axis * 1.4f;
+            var leftStep = leftShelf - axis * 6.1f + across * 1f;
+            var leftEntry = leftStep - axis * 6.9f + across * 1.8f;
+            BridgeGift("Cream Landing", leftEntry, 9.7f, 2.05f, 8.1f, -14f, cream, berry);
+            BridgeGift("Red Tread", leftStep, 8.1f, 4.25f, 7.0f, 7f, red, gold);
+            BridgeGift("Pine Step", leftShelf, 7.15f, 6.9f, 6.6f, -8f, green, ivory);
 
-            var rightShelf = right + across * 7.05f + axis * 1.2f;
-            var rightStep = rightShelf + axis * 4.6f + across * .9f;
-            var rightEntry = rightStep + axis * 4.7f + across * 1.5f;
-            BridgeGift("Ochre Entry", rightEntry, 6.4f, 1.7f, 5.2f, 11f, orange, ivory);
-            BridgeGift("Green Tread", rightStep, 6.1f, 3.05f, 5.7f, -9f, green, gold);
-            var shelf = BridgeGift("Red Shelf", rightShelf, 6.2f, 4.45f, 5.2f, 1f, red, ivory);
-            var perch = rightShelf + across * .75f;
-            Parcel("Gift Bridge / Gold Lookout", perch.x, perch.z, 4.4f, 1.55f, 3.6f, yaw - 17f,
+            var rightShelf = right + across * 9.15f + axis * .7f;
+            var rightStep = rightShelf + axis * 6.25f + across * .75f;
+            var rightEntry = rightStep + axis * 6.8f - across * .6f;
+            BridgeGift("Ochre Entry", rightEntry, 8.3f, 2.15f, 7.0f, 11f, orange, ivory);
+            BridgeGift("Green Tread", rightStep, 8.8f, 4.3f, 7.8f, -9f, green, gold);
+            var shelf = BridgeGift("Red Shelf", rightShelf, 7.2f, 7.1f, 7.3f, 1f, red, ivory);
+            var perch = rightShelf - axis * .65f;
+            Parcel("Gift Bridge / Gold Lookout", perch.x, perch.z, 4.8f, 2.1f, 4.5f, yaw - 17f,
                 orange, berry, shelf);
 
             var trunk = Child(built, "Fir trunk collision", new Vector3(-37f, 17f, -35.7f), Quaternion.identity);

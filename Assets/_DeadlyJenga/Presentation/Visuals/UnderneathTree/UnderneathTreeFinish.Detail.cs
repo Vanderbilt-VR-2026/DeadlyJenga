@@ -13,22 +13,102 @@ namespace DeadlyJenga.CandyArt
         {
             BuildFloorboards();
             BuildFleece();
-            var mohair = Surface("Burgundy sofa cushions", "Red Velvet", new Color(.90f, .73f, .77f),
-                .27f, new Vector2(2.5f, 2.5f), 0f, .58f);
+            BuildSofa();
+        }
+
+        Material Fabric(string label, string tile, Color tint, Vector2 repeat, float sheen, float bump)
+        {
+            if (finishes.TryGetValue(label, out var cached))
+                return cached;
+
+            var shader = Resources.Load<Shader>(ResourcePath + "Christmas Fabric");
+            if (!shader)
+                return Surface(label, tile, tint, .17f, repeat, 0f, bump);
+
+            var material = new Material(shader) { name = label, color = tint };
+            material.SetTexture("_BaseMap", Resources.Load<Texture2D>(ResourcePath + tile));
+            material.SetTexture("_BumpMap", Resources.Load<Texture2D>(ResourcePath + tile + " Normal"));
+            material.SetTextureScale("_BaseMap", repeat);
+            material.SetFloat("_BumpScale", bump);
+            material.SetFloat("_Sheen", sheen);
+            materials.Add(material);
+            finishes.Add(label, material);
+            return material;
+        }
+
+        void BuildSofa()
+        {
+            var velvet = Fabric("Deep red scanned upholstery", "Velour Scan",
+                new Color(.84f, .67f, .69f), new Vector2(2.1f, 2.3f), .14f, .48f);
+            var lining = Fabric("Dark red velvet sofa frame", "Velour Scan",
+                new Color(.57f, .43f, .43f), new Vector2(3.0f, 3.3f), .07f, .4f);
+            var piping = Fabric("Red velvet seam piping", "Velour Scan",
+                new Color(.74f, .53f, .52f), Vector2.one, .21f, .2f);
+            var walnut = Surface("Carved sofa feet", "Walnut Grain", new Color(.40f, .29f, .22f),
+                .40f, new Vector2(1.1f, 1.6f), 0f, .28f);
+            RoundedDetail("Velvet sofa plinth", new Vector3(-216f, 13f, -109f),
+                new Vector3(67f, 16f, 145f), .17f, lining, .025f);
+            RoundedDetail("Overstuffed sofa apron", new Vector3(-197f, 20f, -109f),
+                new Vector3(30f, 16.3f, 136f), .17f, velvet, .035f);
+            var back = RoundedDetail("Tufted sofa back", new Vector3(-242f, 39f, -109f),
+                new Vector3(19f, 43f, 147f), .20f, velvet, .034f);
+            back.localRotation = Quaternion.Euler(0f, 0f, 8f);
+            foreach (float z in new[] { -178.8f, -39.2f })
+            {
+                RoundedDetail("Velvet rolled arm", new Vector3(-218f, 31f, z),
+                    new Vector3(66f, 34f, 16.0f), .30f, velvet, .07f);
+                RoundedDetail("Inset arm front", new Vector3(-187.4f, 29f, z),
+                    new Vector3(9f, 30f, 14.7f), .33f, velvet, .065f);
+                foreach (float x in new[] { -237f, -192f })
+                    RoundedDetail("Walnut bun foot", new Vector3(x, 4.7f, z),
+                        new Vector3(8f, 8.7f, 8f), .33f, walnut, .055f);
+            }
+
             for (int i = 0; i < 3; i++)
             {
-                float z = -152f + 42f * i;
-                RoundedDetail("Upholstered seat cushion", new Vector3(-207f, 31.3f, z),
-                    new Vector3(45f, 8f, 40.5f), .15f, mohair);
-                var back = RoundedDetail("Upholstered back cushion", new Vector3(-228f, 43f, z),
-                    new Vector3(14f, 29f, 40.5f), .19f, mohair);
-                back.localRotation = Quaternion.Euler(0f, 0f, 8f);
+                float z = -152f + 43f * i;
+                var seat = RoundedDetail("Stuffed velvet seat cushion", new Vector3(-212f, 28f + (i == 1 ? .33f : 0f), z),
+                    new Vector3(48f, 9.7f, 42f), .19f, velvet, .065f);
+                SofaSeam(seat, new Vector3(0f, 4.35f, 0f), new Vector2(22.9f, 20.15f), 3.6f, piping);
+                var cushion = RoundedDetail("Loose velvet back cushion", new Vector3(-233.1f, 44f, z),
+                    new Vector3(16f, 28.0f, 42f), .22f, velvet, .077f);
+                cushion.localRotation = Quaternion.Euler(.7f * (i - 1), i == 1 ? .9f : -.7f, 10.5f + i * .8f);
+                SofaSeam(cushion, new Vector3(7.4f, 0f, 0f), new Vector2(12.8f, 20.0f),
+                    3.45f, piping, true);
             }
         }
 
-        Transform RoundedDetail(string label, Vector3 position, Vector3 size, float radius, Material material)
+        void SofaSeam(Transform cushion, Vector3 center, Vector2 half, float rounding, Material piping,
+            bool vertical = false)
         {
-            var mesh = RoundedWrap(new Bounds(Vector3.zero, size), radius);
+            var path = new FirMesh();
+            Vector3 previous = default, first = default;
+            for (int corner = 0; corner < 4; corner++)
+            {
+                float angle = corner * Mathf.PI * .5f;
+                var cornerCenter = new Vector2(
+                    Mathf.Sign(Mathf.Cos(angle + .785398f)) * (half.x - rounding),
+                    Mathf.Sign(Mathf.Sin(angle + .785398f)) * (half.y - rounding));
+                for (int step = 0; step <= 6; step++)
+                {
+                    float t = angle + step * Mathf.PI / 12f;
+                    var p = cornerCenter + new Vector2(Mathf.Cos(t), Mathf.Sin(t)) * rounding;
+                    var point = center + (vertical ? new Vector3(0f, p.x, p.y) : new Vector3(p.x, 0f, p.y));
+                    if (corner == 0 && step == 0)
+                        first = point;
+                    else
+                        path.Tube(previous, point, .215f, .215f, 6);
+                    previous = point;
+                }
+            }
+            path.Tube(previous, first, .215f, .215f, 6);
+            AddMesh("Velvet welt seam", path.Build(), piping, ShadowCastingMode.Off).transform.SetParent(cushion, false);
+        }
+
+        Transform RoundedDetail(string label, Vector3 position, Vector3 size, float radius, Material material,
+            float loft = 0f)
+        {
+            var mesh = RoundedWrap(new Bounds(Vector3.zero, size), radius, loft);
             var detail = AddMesh(label, mesh, material, ShadowCastingMode.On).transform;
             detail.localPosition = position;
             return detail;
@@ -68,8 +148,7 @@ namespace DeadlyJenga.CandyArt
             var uv = new List<Vector2>();
             var triangles = new List<int>();
             var center = new Vector3(-35f, .56f, -35f);
-            var fibers = new FirMesh();
-            var random = new System.Random(198);
+
             for (int i = 0; i <= around; i++)
             {
                 float u = i / (float)around, angle = u * Mathf.PI * 2f;
@@ -78,8 +157,8 @@ namespace DeadlyJenga.CandyArt
                 for (int j = 0; j <= cross; j++)
                 {
                     float v = j / (float)cross, spin = v * Mathf.PI * 2f;
-                    var position = center + outward * (80.15f + .31f * Mathf.Sin(angle * 11f) + 3.09f * Mathf.Cos(spin)) +
-                        Vector3.up * Mathf.Max(.04f, .45f + Mathf.Sin(spin) * (1.33f + .20f * Mathf.Cos(angle * 19f)));
+                    var position = center + outward * (80.15f + .31f * Mathf.Sin(angle * 11f) + 2.77f * Mathf.Cos(spin)) +
+                        Vector3.up * Mathf.Max(.04f, .40f + Mathf.Sin(spin) * (1.06f + .16f * Mathf.Cos(angle * 19f)));
                     vertices.Add(position);
                     uv.Add(new Vector2(u, v));
                     if (i == around || j == cross)
@@ -87,29 +166,15 @@ namespace DeadlyJenga.CandyArt
                     int a = i * (cross + 1) + j, b = a + cross + 1;
                     triangles.Add(a); triangles.Add(a + 1); triangles.Add(b);
                     triangles.Add(b); triangles.Add(a + 1); triangles.Add(b + 1);
-                    if (spin > Mathf.PI)
-                        continue;
-                    for (int t = 0; t < 3; t++)
-                    {
-                        var basePoint = position + tangent * Range(random, -.85f, .85f);
-                        var end = basePoint + Vector3.up * Range(random, .15f, .54f) +
-                            tangent * Range(random, -.37f, .37f);
-                        fibers.Needle(basePoint, end, tangent, Range(random, .055f, .09f));
-                    }
                 }
             }
-            var trim = Surface("Ivory fleece edging", "Woven", new Color(.92f, .87f, .79f),
-                .19f, new Vector2(34f, 2f), 0f, .4f);
-            trim.SetFloat("_Cull", 0f);
+            var trim = Fabric("Ivory scanned fleece edging", "Fleece Scan", new Color(1f, .97f, .88f),
+                new Vector2(56f, 1.22f), .16f, .73f);
             var mesh = new Mesh { name = "Rolled fleece", vertices = vertices.ToArray(),
                 uv = uv.ToArray(), triangles = triangles.ToArray() };
             mesh.RecalculateNormals();
             mesh.RecalculateTangents();
             AddMesh("Rolled ivory skirt edge", mesh, trim, ShadowCastingMode.TwoSided);
-            var threads = Surface("Tufted ivory wool", "Woven", new Color(.98f, .92f, .84f),
-                .19f, Vector2.one, 0f, .25f);
-            threads.SetFloat("_Cull", 0f);
-            AddMesh("Wool fibers", fibers.Build(), threads, ShadowCastingMode.Off);
         }
 
         void AddGiftBow(MeshRenderer renderer)

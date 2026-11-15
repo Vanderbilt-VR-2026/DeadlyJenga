@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
     public sealed partial class UnderneathTreeMap : MonoBehaviour, IWorldQuery, ISyncedWorld,
         IMapFootprint, IRebuildable, ITraversalCollisionWorld
     {
-        const string Layout = "underneath-the-tree-v3";
+        const string Layout = "underneath-the-tree-v4";
 
         [SerializeField] GameObject model = null, room = null, locomotive = null;
         [SerializeField] Material paper = null;
@@ -116,7 +116,7 @@ namespace DeadlyJenga.CastlePrototype
                 var drum = parts.Find(filter => filter.name.EndsWith(" drum", StringComparison.Ordinal));
                 var lid = parts.Find(filter => filter.name.EndsWith(" lid", StringComparison.Ordinal));
                 var ribbon = parts.Find(filter => filter.name.Contains("ribbon A"));
-                if (pair.Key is "Present 200" or "Present 205" or "Present 208" or "Present 210")
+                if (pair.Key is "Present 200" or "Present 201" or "Present 205" or "Present 208" or "Present 210" or "Present 212")
                 {
                     foreach (var part in parts)
                         part.gameObject.SetActive(false);
