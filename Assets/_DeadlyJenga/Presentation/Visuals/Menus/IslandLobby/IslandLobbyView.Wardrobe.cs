@@ -159,6 +159,7 @@ namespace DeadlyJenga.CastlePrototype
             CandyStyle(Add(wardrobePanel,"wardrobe-clear",()=>"Previous",-240,()=>ChangeWardrobePage(-1),()=>wardrobePage>0,-263,250,48,()=>WardrobePages>1));
             CandyStyle(Add(wardrobePanel,"wardrobe-reset",()=>"Next",-240,()=>ChangeWardrobePage(1),()=>wardrobePage+1<WardrobePages,263,250,48,()=>WardrobePages>1));
             wardrobePageLabel=Label(wardrobePanel,"",-240,23,240,48);
+            CandyStyle(Add(wardrobePanel,"wardrobe-player-name",()=>"Player name: "+(DeadlyJenga.Presentation.NearbyRoomUi.Controls?.PlayerName??"Player"),-315,()=>{SetWardrobeOpen(false);DeadlyJenga.Presentation.NearbyRoomUi.OpenProfile();},()=>wardrobeOpen,0,1032,56));
             CandyStyle(Add(wardrobePanel,"wardrobe-clear-look",()=>"Reset outfit",-389,ClearAccessories,()=>wardrobeOpen,-263,506,62));
             var done=Add(wardrobePanel,"wardrobe-open",()=>"Done",-389,()=>SetWardrobeOpen(false),()=>wardrobeOpen,263,506,62);
             CandyStyle(done);CandyPrimary(done);

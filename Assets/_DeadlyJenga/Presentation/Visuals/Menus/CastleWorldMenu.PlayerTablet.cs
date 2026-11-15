@@ -9,7 +9,7 @@ namespace DeadlyJenga.CastlePrototype
 {
     public sealed partial class CastleWorldMenu
     {
-        enum TabletPage { Comfort, Controls, Room, Developer }
+        enum TabletPage { Comfort, Controls, Room, Developer, Nearby, Profile }
         sealed class TabletButton
         {
             public Button Button;
@@ -67,7 +67,7 @@ namespace DeadlyJenga.CastlePrototype
         static readonly Color JuicyRed = new(.92f,.12f,.18f);
         readonly List<TabletButton> tabletTabs = new();
         readonly List<TabletButton> tabletActions = new();
-        readonly RectTransform[] tabletPages = new RectTransform[4];
+        readonly RectTransform[] tabletPages = new RectTransform[6];
         RectTransform legacyDeveloper, tabletNav;
         Text tabletInputLayout, leftControllerHelp, rightControllerHelp, tabletRoomStatus;
         Text leftInputTitle, rightInputTitle;
@@ -131,6 +131,8 @@ namespace DeadlyJenga.CastlePrototype
             BuildTabletComfort(tabletPages[(int)TabletPage.Comfort]);
             BuildTabletControls(tabletPages[(int)TabletPage.Controls]);
             BuildTabletRoom(tabletPages[(int)TabletPage.Room]);
+            BuildTabletNearby(tabletPages[(int)TabletPage.Nearby]);
+            BuildTabletProfile(tabletPages[(int)TabletPage.Profile]);
             BuildTabletDeveloper(tabletPages[(int)TabletPage.Developer]);
 
             OpenPlayerTabletPage(TabletPage.Comfort);
@@ -617,6 +619,8 @@ namespace DeadlyJenga.CastlePrototype
         void BuildTabletRoom(RectTransform page)
         {
             TabletText(page,"ROOM",new(0,211),new(960,74),54);
+            TabletControl(tabletActions,page,()=>"Nearby requests ("+(NearbyRoomUi.Controls?.JoinRequests.Count??0)+")",new(-244,-220),new(456,66),()=>{showJoinRequests=true;bluetoothPage=0;OpenPlayerTabletPage(TabletPage.Nearby);});
+            TabletControl(tabletActions,page,()=>"My player name",new(244,-220),new(456,66),OpenNearbyProfile);
             tabletRoomStatus=TabletText(page,"",new(0,105),new(945,104),32);
             TabletControl(tabletActions,page,()=>"Invite nearby",new(-244,-10),new(456,76),
                 ()=>session.Multiplayer?.InviteNearby(),allowed:()=>session.Multiplayer?.CanInviteNearby==true);
@@ -1096,6 +1100,7 @@ namespace DeadlyJenga.CastlePrototype
             if(Time.unscaledTime>=tabletRefreshAt)
             {
                 tabletRefreshAt=Time.unscaledTime+.2f;
+                RefreshTabletNearby();
                 if(tabletPage==TabletPage.Controls) RefreshTabletControls(camera);
                 if(tabletPage==TabletPage.Room)
                 {
