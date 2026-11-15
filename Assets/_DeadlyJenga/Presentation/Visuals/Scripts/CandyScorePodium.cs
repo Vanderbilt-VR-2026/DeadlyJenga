@@ -265,11 +265,8 @@ namespace DeadlyJenga.Presentation
             var renderers = new List<Renderer>();
             foreach (var original in source.GetComponentsInChildren<Renderer>(true))
             {
-                bool avatarBody = original is SkinnedMeshRenderer && original.name == "Candy body and shared hands";
-                bool avatarHead = original is SkinnedMeshRenderer && original.name == "Candy spherical head" && original.enabled;
-                // Elimination hides the world avatar, including its equipped attachments.
-                bool hiddenInWorld = original.forceRenderingOff && !eliminated;
-                if ((!avatarBody && !avatarHead && (!original.enabled || hiddenInWorld)) ||
+                // World elimination hides the outfit without disabling its equipped renderers.
+                if (!original.enabled || (original.forceRenderingOff && !eliminated) ||
                     !CandyScorePortraits.VisibleInAvatar(original.transform, source)) continue;
                 Renderer copy;
                 if (original is SkinnedMeshRenderer skin && skin.sharedMesh)
