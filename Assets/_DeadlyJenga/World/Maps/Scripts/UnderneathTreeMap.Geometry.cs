@@ -204,9 +204,11 @@ namespace DeadlyJenga.CastlePrototype
             var wrap = ColoredPaper("Mulberry walkway", new Color(.28f, .045f, .17f), .33f);
             var ribbon = ColoredPaper("Warm ivory edge", new Color(.82f, .66f, .40f), .40f);
             var supports = Child(built, "Present Walk to the Train Loop", Vector3.zero, Quaternion.identity);
-            var landing = new Vector3(3.8f, 12.03f, -54.2f);
+            var crest = new Vector3(3.8f, 12.08f, -47.2f);
             BuildWalkway(supports, "Ribbon approach", new Vector3(3.8f, 5.01f, -32.7f),
-                landing, 2.6f, wrap, ribbon);
+                crest, 2.6f, wrap, ribbon);
+            BuildWalkway(supports, "Ribbon landing", crest, new Vector3(3.8f, 12.08f, -54.2f),
+                2.6f, wrap, ribbon);
 
             var west = new Vector3(-2.7f, 12.03f, -56.0f);
             var target = course.OrderBy(p => (new Vector2(p.x - west.x, p.z - west.z)).sqrMagnitude).First();
