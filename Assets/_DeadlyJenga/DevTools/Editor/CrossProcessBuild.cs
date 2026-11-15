@@ -92,7 +92,7 @@ namespace DeadlyJenga.CastlePrototype.Editor
 
         public static void RunBatch()
         {
-            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) { ValidateFingerPose(); ValidateDeathDeformation(); ValidateNativeWorldCodec(); }
+            if (Environment.GetCommandLineArgs().Contains("--dj-tycoon")) { ValidateFingerPose(); ValidateDeathDeformation(); ValidateNativeWorldCodec(); ValidateCompactMatchCodec(); }
             bool poseProbe = Environment.GetCommandLineArgs().Contains("--dj-pose-probe");
             var scenes = EditorBuildSettings.scenes.Where(s => s.enabled).Select(s => s.path);
             var composition = (poseProbe || Environment.GetCommandLineArgs().Contains("--dj-tycoon") ||
@@ -123,6 +123,81 @@ namespace DeadlyJenga.CastlePrototype.Editor
                 return;
             }
             EditorApplication.Exit(0);
+        }
+
+        static void ValidateCompactMatchCodec()
+        {
+            int checks = 0;
+            void Check(bool pass, string message)
+            {
+                if (!pass) throw new InvalidOperationException("Compact match: " + message);
+                checks++;
+            }
+            void RoundTrip(DeadlyJenga.Core.MatchFrame frame)
+            {
+                string before = JsonUtility.ToJson(frame);
+                var players = frame.players; var top = frame.topTen;
+                var restored = CompactMatchCodec.Unpack(CompactMatchCodec.Pack(frame));
+                Check(before == JsonUtility.ToJson(restored), "all frame values round trip");
+                Check(ReferenceEquals(players, frame.players) && ReferenceEquals(top, frame.topTen) && before == JsonUtility.ToJson(frame), "authoritative frame remains unchanged");
+                for (int i = 0; i < players.Length; i++)
+                    foreach (var field in typeof(DeadlyJenga.Core.MatchPlayerFrame).GetFields())
+                        Check(Equals(field.GetValue(players[i]), field.GetValue(restored.players[i])), "exact player field " + field.Name);
+            }
+            var random = new System.Random(71293);
+            float Number() => (float)(random.NextDouble() * 200 - 100);
+            foreach (int count in new[] { 0, 1, 24, 52, 256 })
+            {
+                var frame = new DeadlyJenga.Core.MatchFrame { players = new DeadlyJenga.Core.MatchPlayerFrame[count], revision = 37, elapsed = 41.125f };
+                for (int i = 0; i < count; i++)
+                {
+                    var player = new DeadlyJenga.Core.MatchPlayerFrame();
+                    foreach (var field in typeof(DeadlyJenga.Core.MatchPlayerFrame).GetFields())
+                    {
+                        object value;
+                        if (field.FieldType == typeof(string)) value = i % 3 == 0 ? null : "Unicode \u732b \u00e9 " + field.Name + i;
+                        else if (field.FieldType == typeof(int)) value = random.Next(-10000, 10000);
+                        else if (field.FieldType == typeof(float)) value = Number();
+                        else if (field.FieldType == typeof(bool)) value = random.Next(2) == 0;
+                        else if (field.FieldType == typeof(Color)) value = new Color(Number(), Number(), Number(), Number());
+                        else if (field.FieldType == typeof(Vector3)) value = new Vector3(Number(), Number(), Number());
+                        else if (field.FieldType == typeof(Quaternion)) value = new Quaternion(Number(), Number(), Number(), Number());
+                        else throw new InvalidOperationException("Unhandled player field type " + field.FieldType);
+                        field.SetValue(player, value);
+                    }
+                    frame.players[i] = player;
+                }
+                frame.topTen = frame.players.Take(10).Select(player => player.Copy()).ToArray();
+                frame.secondaryLeaders = frame.players.Take(5).Select(player => player.Copy()).ToArray();
+                RoundTrip(frame);
+            }
+            void Reject(Action action)
+            {
+                bool rejected = false;
+                try { action(); } catch (IOException) { rejected = true; }
+                Check(rejected, "malformed packet rejected");
+            }
+            var empty = new DeadlyJenga.Core.MatchFrame();
+            var raw = CastleFusionWire.Decompress(CompactMatchCodec.Pack(empty));
+            Reject(() => CompactMatchCodec.Unpack(CastleFusionWire.Compress(raw.Take(raw.Length - 1).ToArray())));
+            Reject(() => CompactMatchCodec.Unpack(CastleFusionWire.Compress(raw.Concat(new byte[] { 1 }).ToArray())));
+            var invalidCount = (byte[])raw.Clone(); int countAt = 8 + BitConverter.ToInt32(raw, 4);
+            Buffer.BlockCopy(BitConverter.GetBytes(257), 0, invalidCount, countAt, 4);
+            Reject(() => CompactMatchCodec.Unpack(CastleFusionWire.Compress(invalidCount)));
+            var invalidHeader = (byte[])raw.Clone(); invalidHeader[0] ^= 1;
+            Reject(() => CompactMatchCodec.Unpack(CastleFusionWire.Compress(invalidHeader)));
+            Reject(() => CompactMatchCodec.Pack(new DeadlyJenga.Core.MatchFrame { players = new DeadlyJenga.Core.MatchPlayerFrame[257] }));
+            Reject(() => CompactMatchCodec.Pack(new DeadlyJenga.Core.MatchFrame { players = new[] { new DeadlyJenga.Core.MatchPlayerFrame { name = new string('x', 4097) } } }));
+            var sample = Environment.GetCommandLineArgs().FirstOrDefault(arg => arg.StartsWith("--dj-match-sample=", StringComparison.Ordinal));
+            if (sample != null)
+            {
+                var frame = JsonUtility.FromJson<DeadlyJenga.Core.MatchFrame>(File.ReadAllText(sample.Substring("--dj-match-sample=".Length)));
+                RoundTrip(frame);
+                var original = CastleFusionWire.Compress(System.Text.Encoding.UTF8.GetBytes(JsonUtility.ToJson(frame)));
+                var compact = CompactMatchCodec.Pack(frame);
+                Debug.Log($"MATCH CODEC captured bytes original={original.Length} compact={compact.Length}");
+            }
+            Debug.Log($"PASS compact match codec checks={checks}; exact fields, unchanged authority, bounded malformed input. Peer validation still required.");
         }
 
         static void ValidateNativeWorldCodec()

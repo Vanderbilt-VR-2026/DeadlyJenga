@@ -70,7 +70,7 @@ namespace DeadlyJenga.CastlePrototype
             ConnectModes();
             if(!IsHost||!modeRuntime||Time.unscaledTime<nextMatch)return;
             nextMatch=Time.unscaledTime+.2f;
-            matchPacket=CastleFusionWire.Compress(Encoding.UTF8.GetBytes(modeRuntime.CaptureFrameJson()));
+            matchPacket=CompactMatchCodec.Enabled ? CompactMatchCodec.Pack(modeRuntime.Frame) : CastleFusionWire.Compress(Encoding.UTF8.GetBytes(modeRuntime.CaptureFrameJson()));
             if(modeRuntime.Active)foreach(var pair in peers)if(pair.Value.ready)
             {
                 Send(pair.Key,MysterySecret,Encoding.UTF8.GetBytes(modeRuntime.CaptureSecret(pair.Key.ToString())));
@@ -84,7 +84,7 @@ namespace DeadlyJenga.CastlePrototype
             }
         }
         void ReceiveMatch(ReadOnlySpan<byte> bytes)
-        {ConnectModes();if(modeRuntime)modeRuntime.ReceiveFrameJson(Encoding.UTF8.GetString(CastleFusionWire.Decompress(bytes.ToArray())));}
+        {ConnectModes();if(modeRuntime)modeRuntime.ReceiveFrameJson(CompactMatchCodec.Enabled ? JsonUtility.ToJson(CompactMatchCodec.Unpack(bytes.ToArray())) : Encoding.UTF8.GetString(CastleFusionWire.Decompress(bytes.ToArray())));}
         void ReceiveOutcome(ReadOnlySpan<byte> bytes)
         {
             ConnectModes();if(!modeRuntime)return;

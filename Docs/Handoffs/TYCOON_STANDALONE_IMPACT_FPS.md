@@ -2,6 +2,12 @@
 
 Current overhaul status: +50% typical FPS is not met, and neither desktop Editor smoothness nor replication freshness is accepted. Source changes are isolated on the task branch; no shared integration or APK claim.
 
+## Matched Editor and next network encoding candidate
+
+The corrected bfcaa98b Editor fixture verified actual 960x540 before sampling. It completed at 4.87 typical FPS (205.468 ms median, 331.102 ms p95), 38 moving-block samples and 32 blocks over one metre. This remains a desktop Editor performance failure. The d1444d7f standalone 480x270 diagnostic reached 21.30 FPS versus 19.50 at 960x540; this reduced-resolution run is diagnostic only, not accepted target performance.
+
+The settled 52-bot match payload contains 53 player rows and ten leaderboard rows and is about 79 KB of JSON. An isolated `--dj-compact-match` candidate packs player fields without quantization and retains the rest of MatchFrame as JSON, with a distinct room protocol. It preserves all field values, has explicit decode bounds and rejects schema drift. Default transport is unchanged. Exact captured-state and boundary round trips, native compilation, peer latency/FPS and migration remain required; offline size estimates alone do not establish runtime improvement.
+
 ## d1444d7f active-impact results
 
 Exact native candidate `d1444d7fbc659a6541ed00bb16ce7f77615aacb4` built successfully and passed 123 objective-contract assertions. At 960x540, 24-bot solo impact reached 32.48 typical FPS (30.785 ms median, 48.951 ms p95; 245 moving-block samples, 25 blocks displaced over one metre). The 52-bot run reached 19.50 FPS (51.270 ms median, 69.306 ms p95; 150 moving samples, 32 blocks over one metre). Against refreshed original baselines 24.77/15.72 FPS, these are approximately +31%/+24%; +50% is not met and single runs are not repeated acceptance.
