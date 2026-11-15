@@ -22,6 +22,7 @@ namespace DeadlyJenga.DevTools.Editor
         static readonly BindingFlags Flags=BindingFlags.Instance|BindingFlags.Static|BindingFlags.Public|BindingFlags.NonPublic;
         static double began;
         static int errors;
+        static bool failed;
         [Serializable] sealed class Saved { public SceneSetup[] scenes; }
         static BodyFeedbackChecks() { EditorApplication.update+=Tick; EditorApplication.playModeStateChanged+=State; }
         static void Tick()
@@ -32,7 +33,7 @@ namespace DeadlyJenga.DevTools.Editor
                 if(EditorApplication.timeSinceStartup-began<8)return;
                 began=0;
                 try { RunChecks();File.AppendAllText(Report,"COMPLETE assertions passed; runtime/editor errors observed: "+errors+"\n"); }
-                catch(Exception e){File.AppendAllText(Report,"FAIL "+e+"\n");}
+                catch(Exception e){failed=true;File.AppendAllText(Report,"FAIL "+e+"\n");}
                 finally{Time.timeScale=1;EditorApplication.ExitPlaymode();}
                 return;
             }
@@ -51,15 +52,30 @@ namespace DeadlyJenga.DevTools.Editor
             SessionState.SetString(Key+"Saved",JsonUtility.ToJson(new Saved{scenes=scenes}));SessionState.SetBool(Key,true);
             EditorSceneManager.OpenScene(ProjectPath.Find("Game.unity"));EditorApplication.EnterPlaymode();
         }
+        public static void RunSandEngulf()
+        {
+            if (!Application.isBatchMode) throw new InvalidOperationException("Use an isolated batch validation checkout");
+            MatchSetup.MapId = "castle";
+            MatchSetup.ModeId = "demo";
+            MatchSetup.BotTarget = 0;
+            MatchSetup.HandCount = 0;
+            MatchSetup.FromLobby = false;
+            MatchSetup.StartLocalSession = false;
+            SessionState.SetBool(Key+"SandOnly",true);
+            Run();
+        }
         static void State(PlayModeStateChange state)
         {
             if(!SessionState.GetBool(Key,false))return;
-            if(state==PlayModeStateChange.EnteredPlayMode){began=EditorApplication.timeSinceStartup;errors=0;Application.logMessageReceived+=OnLog;}
+            if(state==PlayModeStateChange.EnteredPlayMode){began=EditorApplication.timeSinceStartup;errors=0;failed=false;Application.logMessageReceived+=OnLog;}
             if(state!=PlayModeStateChange.EnteredEditMode)return;
             Application.logMessageReceived-=OnLog;
             var saved=JsonUtility.FromJson<Saved>(SessionState.GetString(Key+"Saved",""));
             SessionState.SetBool(Key,false);EditorSceneManager.RestoreSceneManagerSetup(saved.scenes);ValidationRunGate.Release(Key);
             File.AppendAllText(Report,"CLEANUP restored Edit Mode scenes\n");
+            bool sandOnly = SessionState.GetBool(Key+"SandOnly",false);
+            SessionState.SetBool(Key+"SandOnly",false);
+            if (sandOnly && Application.isBatchMode) EditorApplication.Exit(failed || errors > 0 ? 2 : 0);
         }
         static void OnLog(string message,string stack,LogType type)
         {
@@ -96,6 +112,11 @@ namespace DeadlyJenga.DevTools.Editor
             var own=match.Frame.players.First(p=>p.id==match.LocalActorId);
             match.Frame.phase=RoundPhase.Playing;match.Rules.healthEnabled=true;
             own.alive=true;own.dying=false;own.role="survivor";own.spectating=null;own.health=1;own.sinking=false;
+            if (SessionState.GetBool(Key+"SandOnly",false))
+            {
+                CheckSandEngulf(session,motor,match,camera);
+                return;
+            }
             Property(motor,"GripRemaining",1f);Property(motor,"SprintRequested",false);Property(motor,"Sprinting",false);
             hud.Present(motor,2);
             Check(Field<Canvas>(hud,"canvas")==null||!Field<Canvas>(hud,"canvas").enabled,"Rested, unhurt player has no overlay draw");
@@ -171,6 +192,43 @@ namespace DeadlyJenga.DevTools.Editor
             }
             Object.Destroy(baseline);
             Check(!ShaderUtil.GetShaderMessages(material.shader).Any(m=>m.severity==UnityEditor.Rendering.ShaderCompilerMessageSeverity.Error),"No compiled shader errors");
+        }
+        static void CheckSandEngulf(CastlePlaySession session, CastleSurvivor motor, IMatchRuntime match, Camera camera)
+        {
+            var engulf = session.GetComponent<CandySandEngulf>();
+            Check(engulf && session.ActiveCamera == camera, "Classic Castle starts with the production sand effect and survivor camera");
+            motor.SetSinking(true, .8f);
+            Call(engulf,"Present",.4f);
+            var quad = Field<GameObject>(engulf,"quad");
+            Check(quad && quad.activeSelf && quad.transform.parent == camera.transform &&
+                Field<Material>(engulf,"material").shader.isSupported, "Sink state activates the supported grain renderer at the survivor camera");
+
+            session.SetMenu(true);
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "Opening the menu immediately clears the sand grains while still sinking");
+
+            session.SetMenu(false);
+            motor.InputSuspended = false;
+            Call(engulf,"Present",.4f);
+            Check(quad.activeSelf, "Returning to the survivor view restores the sand grains");
+
+            camera.enabled = false;
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "A disabled survivor camera cannot keep the grains visible");
+            camera.enabled = true;
+            Call(engulf,"Present",.4f);
+            Check(quad.activeSelf, "The restored survivor camera can show grains again");
+
+            match.Frame.phase = RoundPhase.Victory;
+            Call(engulf,"Present",.01f);
+            Check(!quad.activeSelf, "Victory clears the grains without waiting for sink state to reset");
+            match.Frame.phase = RoundPhase.Playing;
+            Call(engulf,"Present",.4f);
+            motor.SetSinking(false);
+            Call(engulf,"Present",.1f);
+            Check(quad.activeSelf, "Escaping sand begins a fade");
+            Call(engulf,"Present",.5f);
+            Check(!quad.activeSelf, "The escape fade finishes and disables the renderer");
         }
         static Texture2D Capture(Camera camera,Canvas overlay,string name)
         {

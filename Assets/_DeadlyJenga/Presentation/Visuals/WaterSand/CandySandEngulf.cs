@@ -21,7 +21,10 @@ namespace DeadlyJenga.Presentation
         const float Distance = .3f, Size = 1.1f;
         GameObject quad; Material material; Mesh mesh;
         ISandState sand; GameObject sandOwner;
+        IDamageable health;
         float level;
+
+        void OnDisable() => Clear();
 
         void OnDestroy()
         {
@@ -30,22 +33,40 @@ namespace DeadlyJenga.Presentation
             if (mesh) Destroy(mesh);
         }
 
-        void LateUpdate()
+        void LateUpdate() => Present(Time.unscaledDeltaTime);
+
+        void Present(float deltaTime)
         {
             var session = Services.Session;
             var player = session?.Player;
-            if (player != null && sandOwner != player.gameObject)
+            var eye = session?.ActiveCamera;
+            var phase = MatchRuntime.Current?.Frame?.phase;
+            if (!NetworkActors.Alive(player) || !eye || !eye.isActiveAndEnabled ||
+                eye != player.ViewCamera || session.MenuOpen || session.PlayingHand ||
+                player.InputSuspended || phase == RoundPhase.Victory || phase == RoundPhase.Results ||
+                (session as ILobbyMatchVisitControls)?.VisitingLobby == true)
             {
-                sandOwner = player.gameObject;
-                sand = sandOwner ? sandOwner.GetComponent<ISandState>() : null;
+                Clear();
+                return;
             }
-            float target = sand != null && sandOwner && sand.InSand ? Mathf.Clamp01(sand.SandDepth) : 0;
+
+            if (sandOwner != player.gameObject)
+            {
+                Clear();
+                sandOwner = player.gameObject;
+                sand = sandOwner.GetComponent<ISandState>();
+                health = sandOwner.GetComponent<IDamageable>();
+            }
+            if (health?.Health <= 0)
+            {
+                Clear();
+                return;
+            }
+            float target = sand != null && sand.InSand ? Mathf.Clamp01(sand.SandDepth) : 0;
             // Rise quickly as the player sinks, clear quickly after the escape.
-            level = Mathf.MoveTowards(level, target, Time.unscaledDeltaTime * (target > level ? 2.5f : 1.8f));
+            level = Mathf.MoveTowards(level, target, deltaTime * (target > level ? 2.5f : 1.8f));
             if (level <= .01f) { if (quad) quad.SetActive(false); return; }
 
-            var eye = session?.ActiveCamera;
-            if (!eye) return;
             if (!quad) Build();
             if (!quad) return;
             if (quad.transform.parent != eye.transform)
@@ -56,6 +77,12 @@ namespace DeadlyJenga.Presentation
             }
             quad.SetActive(true);
             material.SetFloat("_Level", level);
+        }
+
+        void Clear()
+        {
+            level = 0;
+            if (quad && quad.activeSelf) quad.SetActive(false);
         }
 
         void Build()
