@@ -171,9 +171,14 @@ namespace DeadlyJenga.Presentation
             revision = synced?.Revision ?? 0;
             var water = world.WaterHeight(footprint.center);
             if (float.IsNaN(water) || float.IsInfinity(water)) water = footprint.min.y;
+            var sand = DeadlyJenga.CandyArt.CandyEnvironment.ForMap(world as Component)?.sandRenderer as MeshRenderer;
+            if (sand && sand.enabled && sand.bounds.Intersects(footprint) &&
+                Mathf.Max(sand.bounds.size.x, sand.bounds.size.z) <= size * 2.25f)
+                footprint.Encapsulate(sand.bounds);
             origin = new Vector3(footprint.center.x, water, footprint.center.z);
-            footprint.Expand(new Vector3(size * .26f, 0, size * .26f));
-            scale = Mathf.Min(MapWidth / (size * 1.26f), 1.3f / Mathf.Max(1, footprint.max.y - water));
+            footprint.Expand(new Vector3(size * .2f, 0, size * .2f));
+            float fittedWidth = Mathf.Max(footprint.size.x, footprint.size.z);
+            scale = Mathf.Min(MapWidth / fittedWidth, 1.3f / Mathf.Max(1, footprint.max.y - water));
             miniature.localScale = Vector3.one * scale;
 
             var collected = new HashSet<MeshRenderer>();
@@ -191,7 +196,7 @@ namespace DeadlyJenga.Presentation
             foreach (var renderer in root.GetComponentsInChildren<MeshRenderer>()) Add(renderer);
             foreach (var body in world.Blocks)
                 if (body) foreach (var renderer in body.GetComponentsInChildren<MeshRenderer>()) Add(renderer);
-            Add(DeadlyJenga.CandyArt.CandyEnvironment.ForMap(world as Component)?.sandRenderer as MeshRenderer);
+            Add(sand);
         }
 
         bool WithinFootprint(Vector3 point) => Mathf.Abs(point.x - origin.x) <= footprint.extents.x &&
@@ -218,7 +223,8 @@ namespace DeadlyJenga.Presentation
                 foreach (var bone in entry.bones)
                     if (bone.Key) Place(bone.Value, bone.Key);
                 foreach (var mesh in entry.meshes) UpdateMesh(mesh, false);
-                var marker = actor == null ? position + Vector3.up * 1.7f : actor.ViewPose.position;
+                float markerHeight = actor == null ? 1.7f : Mathf.Max(.6f, actor.ViewPose.position.y - position.y);
+                var marker = position + Vector3.up * markerHeight;
                 entry.marker.localPosition = marker - origin + Vector3.up * (MarkerSize * .65f / scale);
                 color.SetColor("_BaseColor", Color.Lerp(player.color, Color.white, .18f));
                 entry.markerRenderer.SetPropertyBlock(color);
@@ -306,8 +312,8 @@ namespace DeadlyJenga.Presentation
             if (show && mapMesh)
             {
                 var bounds = mesh.source.bounds;
-                show = !mesh.source.forceRenderingOff && WithinFootprint(bounds.center) &&
-                    bounds.max.y >= origin.y - .2f;
+                // The source can hide its individual renderer when it draws the same mesh in a batch.
+                show = WithinFootprint(bounds.center) && bounds.max.y >= origin.y - .2f;
             }
             if (mesh.copy.enabled != show) mesh.copy.enabled = show;
             if (show) Place(mesh.copy.transform, mesh.source.transform);
