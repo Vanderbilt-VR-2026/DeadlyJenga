@@ -12,21 +12,22 @@ namespace DeadlyJenga.CandyArt
                 return;
             bool generated = label == "Wrap" || label == "Visual";
             bool imported = label.StartsWith("Present ") && label.EndsWith(" box");
-            if (!generated && !imported)
+            bool upholstered = label.StartsWith("Sofa ");
+            if (!generated && !imported && !upholstered)
                 return;
 
             var source = filter.sharedMesh;
             if (generated && !roundedWrap)
                 roundedWrap = RoundedWrap(new Bounds(Vector3.zero, Vector3.one));
             originalMeshes[filter] = source;
-            filter.sharedMesh = generated ? roundedWrap : RoundedWrap(source.bounds);
+            filter.sharedMesh = generated ? roundedWrap : RoundedWrap(source.bounds, upholstered ? .14f : .027f);
         }
 
-        Mesh RoundedWrap(Bounds source)
+        Mesh RoundedWrap(Bounds source, float radius = .027f)
         {
-            const float radius = .027f;
-            const float inner = .5f - radius;
-            float[] cuts = { -.5f, -.49f, -.478f, -inner, inner, .478f, .49f, .5f };
+            float inner = .5f - radius;
+            float[] cuts = { -.5f, -.5f + radius * .32f, -.5f + radius * .77f,
+                -inner, inner, .5f - radius * .77f, .5f - radius * .32f, .5f };
             var vertices = new List<Vector3>();
             var normals = new List<Vector3>();
             var uv = new List<Vector2>();

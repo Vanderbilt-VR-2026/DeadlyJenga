@@ -12,6 +12,8 @@ namespace DeadlyJenga.CandyArt
     {
         const string MapId = "workshop-under-the-tree";
         const string ResourcePath = "UnderneathTreeFinish/";
+        readonly List<GameObject> mapDressings = new List<GameObject>();
+        readonly Dictionary<MeshRenderer, ShadowCastingMode> shadowCasting = new Dictionary<MeshRenderer, ShadowCastingMode>();
         readonly List<Material> materials = new List<Material>();
         readonly List<Mesh> meshes = new List<Mesh>();
         readonly Dictionary<MeshFilter, Mesh> originalMeshes = new Dictionary<MeshFilter, Mesh>();
@@ -84,6 +86,7 @@ namespace DeadlyJenga.CandyArt
             art.SetParent(world.Root, false);
             BuildRoom();
             BuildFir();
+            BuildRoomDetails();
             BuildLighting();
             RestoreIndoorSettings();
             RefreshWorldArt();
@@ -157,7 +160,7 @@ namespace DeadlyJenga.CandyArt
 
         void RestoreIndoorSettings()
         {
-            var fill = new Color(.30f, .25f, .26f);
+            var fill = new Color(.30f, .265f, .29f);
             if (!RenderSettings.skybox && !RenderSettings.fog && RenderSettings.ambientMode == AmbientMode.Flat &&
                 RenderSettings.ambientLight == fill && Mathf.Approximately(RenderSettings.reflectionIntensity, .38f))
                 return;
@@ -191,13 +194,21 @@ namespace DeadlyJenga.CandyArt
                 if (name.StartsWith("Tree Tier", StringComparison.Ordinal) || name == "Tree Trunk" ||
                     name.StartsWith("Tree Light", StringComparison.Ordinal) ||
                     name.StartsWith("Tree Ornament", StringComparison.Ordinal) ||
-                    name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire")
+                    name.StartsWith("Tree Wire", StringComparison.Ordinal) || name == "Fireplace Fire" ||
+                    name.StartsWith("Wood Planks", StringComparison.Ordinal) || name == "Tree Skirt rim")
                 {
                     Hide(renderer);
                     continue;
                 }
+                if (name.StartsWith("Room Wall", StringComparison.Ordinal) || name == "Room Ceiling")
+                {
+                    if (!shadowCasting.ContainsKey(renderer))
+                        shadowCasting.Add(renderer, renderer.shadowCastingMode);
+                    renderer.shadowCastingMode = ShadowCastingMode.Off;
+                }
                 ApplyFinish(renderer);
                 SoftenGiftEdges(renderer);
+                AddGiftBow(renderer);
             }
         }
 
@@ -206,6 +217,12 @@ namespace DeadlyJenga.CandyArt
             if (!captured)
                 return;
             captured = false;
+            foreach (var item in shadowCasting)
+                if (item.Key)
+                    item.Key.shadowCastingMode = item.Value;
+            foreach (var dressing in mapDressings)
+                if (dressing)
+                    Destroy(dressing);
             foreach (var item in originalMeshes)
                 if (item.Key)
                     item.Key.sharedMesh = item.Value;
@@ -246,10 +263,10 @@ namespace DeadlyJenga.CandyArt
         void BuildLighting()
         {
             key = MakeLight("Warm ceiling bounce", LightType.Directional,
-                Vector3.zero, new Color(1f, .80f, .61f), 1.03f, 0f);
+                Vector3.zero, new Color(1f, .82f, .66f), 1.28f, 0f);
             key.transform.localRotation = Quaternion.Euler(51f, 34f, 0f);
             key.shadows = LightShadows.Soft;
-            key.shadowStrength = .74f;
+            key.shadowStrength = .72f;
 
             MakeSpot("Moonlight from the front window", new Vector3(10, 65, 70),
                 new Vector3(-26, 2, -44), new Color(.43f, .63f, 1f), 1220f, 177f, 105f);
@@ -257,6 +274,8 @@ namespace DeadlyJenga.CandyArt
                 new Vector3(-45, 7, -54), new Color(1f, .45f, .13f), 1150f, 220f, 115f);
             MakeLight("Golden light under the tree", LightType.Point,
                 new Vector3(-9, 18, -30), new Color(1f, .58f, .28f), 155f, 64f);
+            MakeSpot("Warm fill across the junction", new Vector3(18, 30, -5),
+                new Vector3(1, 1, -23), new Color(1f, .73f, .43f), 290f, 77f, 91f);
             MakeLight("Floor lamp", LightType.Point,
                 new Vector3(-203, 63, -12), new Color(1f, .67f, .31f), 430f, 112f);
 
@@ -272,13 +291,13 @@ namespace DeadlyJenga.CandyArt
             var tone = grade.Add<Tonemapping>(true);
             tone.mode.Override(TonemappingMode.ACES);
             var bloom = grade.Add<Bloom>(true);
-            bloom.threshold.Override(.94f);
-            bloom.intensity.Override(.29f);
+            bloom.threshold.Override(.85f);
+            bloom.intensity.Override(.39f);
             bloom.scatter.Override(.62f);
             var color = grade.Add<ColorAdjustments>(true);
             color.postExposure.Override(.24f);
             color.contrast.Override(10f);
-            color.saturation.Override(7f);
+            color.saturation.Override(10f);
         }
 
         Light MakeLight(string label, LightType type, Vector3 position, Color color, float power, float range)
