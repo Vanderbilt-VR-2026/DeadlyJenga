@@ -444,31 +444,53 @@ namespace DeadlyJenga.DevTools.Editor
                 if (!eye || session.ActiveCamera != eye) continue;
                 var savedTexture = eye.targetTexture;
                 int savedMask = eye.cullingMask;
-                var savedPose = new Pose(eye.transform.position, eye.transform.rotation);
+                var eyeTransform = eye.transform;
+                var savedParent = eyeTransform.parent;
+                var savedPosition = eyeTransform.localPosition;
+                var savedRotation = eyeTransform.localRotation;
+                var savedScale = eyeTransform.localScale;
                 var follow = hand ? session.HandActor().follow : null;
                 bool followEnabled = follow && follow.enabled;
-                if (follow) follow.enabled = false;
-                eye.targetTexture = target;
-                eye.cullingMask = 1 << marker.layer;
-                marker.transform.SetParent(eye.transform, false);
-                marker.transform.localPosition = Vector3.forward * 2;
-                marker.transform.localRotation = Quaternion.identity;
-
                 var poses = new[] { dry, shallow, below, dry };
                 var colors = new Color[poses.Length];
-                for (int i = 0; i < poses.Length; i++)
+
+                // Keep the actual camera active while the actor's motion moves its usual parent.
+                try
                 {
-                    deadline = Time.unscaledTime + .45f;
-                    do
+                    if (follow) follow.enabled = false;
+                    eyeTransform.SetParent(null, false);
+                    eyeTransform.localScale = Vector3.one;
+                    eye.targetTexture = target;
+                    eye.cullingMask = 1 << marker.layer;
+                    marker.transform.SetParent(eyeTransform, false);
+                    marker.transform.SetLocalPositionAndRotation(Vector3.forward * 2, Quaternion.identity);
+
+                    for (int i = 0; i < poses.Length; i++)
                     {
-                        eye.transform.SetPositionAndRotation(poses[i], Quaternion.identity);
-                        yield return null;
-                    } while (Time.unscaledTime < deadline);
-                    eye.transform.SetPositionAndRotation(poses[i], Quaternion.identity);
-                    var capture = $"{(hand ? "hand" : "survivor")}-{i}";
-                    LogViewSample(capture, poses[i], session, eye, effects, marker, target, world);
-                    colors[i] = RenderMarker(eye, target, capture);
-                    eye.transform.SetPositionAndRotation(savedPose.position, savedPose.rotation);
+                        eyeTransform.SetPositionAndRotation(poses[i], Quaternion.identity);
+                        deadline = Time.unscaledTime + .55f;
+                        int heldFrames = 0;
+                        do
+                        {
+                            yield return null;
+                            if (Vector3.Distance(eyeTransform.position, poses[i]) > .01f)
+                                throw new InvalidOperationException($"{label} eye moved during the controlled view sample.");
+                            heldFrames++;
+                        } while (Time.unscaledTime < deadline || heldFrames < 3);
+                        var capture = $"{(hand ? "hand" : "survivor")}-{i}";
+                        LogViewSample(capture, poses[i], session, eye, effects, marker, target, world);
+                        colors[i] = RenderMarker(eye, target, capture);
+                    }
+                }
+                finally
+                {
+                    marker.transform.SetParent(null, false);
+                    eye.targetTexture = savedTexture;
+                    eye.cullingMask = savedMask;
+                    eyeTransform.SetParent(savedParent, false);
+                    eyeTransform.SetLocalPositionAndRotation(savedPosition, savedRotation);
+                    eyeTransform.localScale = savedScale;
+                    if (follow) follow.enabled = followEnabled;
                 }
 
                 Check(colors[0].r > .65f, $"{label} dry reference renders the red marker {colors[0]}");
@@ -476,10 +498,6 @@ namespace DeadlyJenga.DevTools.Editor
                     $"{label} dry and shallow-water samples {colors[0]} / {colors[1]}");
                 Check(colors[2].r < .22f && colors[2].b > .02f, $"{label} cannot see beneath the map {colors[2]}");
                 Check(colors[0].r > .65f && colors[3].r > .65f && colors[3].r > colors[0].r * .9f, $"{label} clears the filter after resurfacing {colors[3]}");
-
-                eye.targetTexture = savedTexture;
-                eye.cullingMask = savedMask;
-                if (follow) follow.enabled = followEnabled;
             }
             session.Modes.enabled = true;
             Object.Destroy(marker);
@@ -510,7 +528,9 @@ namespace DeadlyJenga.DevTools.Editor
             var survivor = session.Survivor();
             survivor.InputSuspended = true;
             survivor.Teleport(shore + Vector3.up * 12f, Quaternion.identity);
-            float lowestEye = float.PositiveInfinity;
+            var releasedEye = survivor.ViewCamera.transform.position;
+            float initialClearance = releasedEye.y - world.WaterHeight(releasedEye);
+            float lowestEye = initialClearance;
             deadline = Time.time + 3;
             while (!survivor.Grounded && Time.time < deadline)
             {
@@ -523,35 +543,50 @@ namespace DeadlyJenga.DevTools.Editor
             var feet = survivor.transform.position;
             var horizontalError = Vector3.ProjectOnPlane(feet - shore, Vector3.up).magnitude;
             var supportHeightError = Mathf.Abs(feet.y - shore.y);
+            float landingEyeOffset = landedEye.y - feet.y;
             Check(survivor.Grounded && horizontalError < 1f && supportHeightError < .5f &&
+                  initialClearance - lowestEye > 10f && landingEyeOffset > 0 && landingEyeOffset < survivor.StandingHeight + .25f &&
                   lowestEye > 0 && session.ActiveCamera == survivor.ViewCamera,
-                $"survivor drops 12 m onto actual sand with a dry active eye; lowest clearance {lowestEye:F2} m, feet {feet:F2}, intended support {shore:F2}");
+                $"survivor drops 12 m onto actual sand; clearance {initialClearance:F2} to {lowestEye:F2} m, eye offset {landingEyeOffset:F2} m, feet {feet:F2}, intended support {shore:F2}");
             survivor.Teleport(safe, Quaternion.identity);
 
             for (int trial = 0; trial < 2; trial++)
             {
-                float duration = trial == 0 ? .4f : 1.15f;
+                bool sustained = trial == 1;
+                float duration = sustained ? 1.35f : .35f;
                 motor.Teleport(shore + Vector3.up * .55f, Quaternion.identity);
                 deadline = Time.time + 2.5f;
                 while (!sand.InSand && Time.time < deadline) yield return null;
                 Check(sand.InSand, $"bot reaches sand through real island contact at {shore}");
-                deadline = Time.time + duration;
-                while (Time.time < deadline) yield return null;
-                Check(sand.InSand && sand.SandDepth > 0, $"bot exposes sand state after {duration:F2}s");
+                float entered = Time.time;
+                while (sand.InSand && Time.time - entered < duration) yield return null;
+                float observed = Time.time - entered;
+                float sampled = CoatValue(effects, motor, "sandSeconds");
+                Check(sand.InSand && sand.SandDepth > 0 && observed >= duration &&
+                    (sustained ? sampled >= 1f : sampled < 1f && !float.IsNaN(sampled)),
+                    $"bot maintains {(sustained ? "sustained" : "short")} sand contact: observed {observed:F3}s, presenter sampled {sampled:F3}s, depth {sand.SandDepth:F3}");
                 motor.Teleport(safe, Quaternion.identity);
                 deadline = Time.time + 1;
                 while (sand.InSand && Time.time < deadline) yield return null;
                 yield return null;
-                if (trial == 0) Check(!FindCoat(visual), "short contact leaves no coating");
+                Check(!sand.InSand, $"bot clears sand state after {(sustained ? "sustained" : "short")} contact");
+                if (!sustained) Check(!FindCoat(visual), "short contact leaves no coating");
             }
+            float appliedAt = CoatValue(effects, motor, "coatedAt");
             var coat = FindCoat(visual);
-            Check(coat && coat.GetFloat("_CoatTop") > coat.GetFloat("_CoatBottom") &&
-                  coat.GetFloat("_Coverage") >= .95f, "bot exits sustained sand with a full lower-body coat");
-            yield return new WaitForSeconds(18.5f);
-            Check(coat && coat.GetFloat("_Coverage") > 0 && coat.GetFloat("_Coverage") < .9f,
-                "bot coating is dusting off late in its lifetime");
-            yield return new WaitForSeconds(2f);
-            Check(!FindCoat(visual), "bot coating is removed after about 20 seconds");
+            Check(coat && appliedAt >= 0 && coat.GetFloat("_CoatTop") > coat.GetFloat("_CoatBottom") &&
+                  coat.GetFloat("_Coverage") >= .95f,
+                $"bot exits sustained sand with a full lower-body coat: material={coat != null}, appliedAt={appliedAt:F3}");
+
+            if (coat && appliedAt >= 0)
+            {
+                while (Time.time - appliedAt < 18.5f) yield return null;
+                float coverage = coat ? coat.GetFloat("_Coverage") : 0;
+                Check(coverage > 0 && coverage < .9f,
+                    $"bot coating is dusting off at age {Time.time - appliedAt:F2}s, coverage={coverage:F3}");
+                while (Time.time - appliedAt < 20.5f) yield return null;
+                Check(!FindCoat(visual), $"bot coating is removed at age {Time.time - appliedAt:F2}s");
+            }
 
             // A forced drowning pose can start a death view. Run it after the other checks.
             var survivorEye = session.Player.ViewCamera;
@@ -560,6 +595,16 @@ namespace DeadlyJenga.DevTools.Editor
             var guardedEye = session.ActiveCamera;
             Check(guardedEye && guardedEye != survivorEye && guardedEye.transform.position.y >= world.WaterHeight(shallow),
                 "normal match view hands off to an above-water camera during survival immersion");
+        }
+
+        static float CoatValue(CandyWaterSandEffects effects, Component owner, string field)
+        {
+            const BindingFlags flags = BindingFlags.Instance | BindingFlags.NonPublic;
+            if (typeof(CandyWaterSandEffects).GetField("coats", flags)?.GetValue(effects) is IDictionary coats &&
+                coats[owner.GetInstanceID()] is object state &&
+                state.GetType().GetField(field)?.GetValue(state) is float value)
+                return value;
+            return float.NaN;
         }
 
         static void LogViewSample(string name, Vector3 expected, CastlePlaySession session, Camera eye,
